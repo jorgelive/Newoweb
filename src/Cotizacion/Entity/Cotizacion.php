@@ -733,6 +733,18 @@ class Cotizacion
      *
      * ⚠️ Sólo redirige la OPERATIVA. Un histórico también tiene `derivadaDe`, y el suyo apunta a
      * la viva: un histórico enseña **su propio** dinero, que es justo lo que fue a congelar.
+     *
+     * ── 🔥 Quien lea de aquí, que use GETTERS y no la propiedad ─────────────
+     * `derivadaDe` llega casi siempre como **proxy sin inicializar**: el provider público resuelve
+     * la lista con `getArrayResult()`, así que la confirmada nunca entra en el mapa de identidad.
+     * Los proxies de esta versión de Doctrine interceptan **llamadas a métodos**, no lecturas de
+     * propiedad — leer `$padre->totalVenta` desde dentro de la clase devuelve **el valor por
+     * defecto sin cargar nada**, y no da ningún error.
+     *
+     * Escrito así, el cliente veía `totalVenta = '0.00'` y **sin desglose financiero** en toda
+     * operativa: un viaje gratis. Y lo peor: un sondeo con el grafo ya cargado en memoria lo da
+     * por bueno —ahí `derivadaDe` es un objeto de verdad—, así que sólo aparece pidiendo el
+     * endpoint de verdad.
      */
     public function origenFinancieroParaCliente(): self
     {
@@ -748,7 +760,7 @@ class Cotizacion
     #[SerializedName('clasificacionFinancieraCliente')]
     public function getClasificacionFinancieraParaCliente(): ?array
     {
-        return $this->origenFinancieroParaCliente()->clasificacionFinancieraCliente;
+        return $this->origenFinancieroParaCliente()->getClasificacionFinancieraCliente();
     }
 
     /**
@@ -765,7 +777,7 @@ class Cotizacion
     #[SerializedName('totalVenta')]
     public function getTotalVentaParaCliente(): string
     {
-        return $this->origenFinancieroParaCliente()->totalVenta;
+        return $this->origenFinancieroParaCliente()->getTotalVenta();
     }
 
     /**
@@ -904,7 +916,17 @@ class Cotizacion
      * `CotizacionFile::$cotizaciones`.
      */
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'file:item:read'])]
-    public function getTotalHistoricos(): int { return $this->historicos->count(); }
+    /**
+     * ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+     * desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+     * cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+     */
+    public function getTotalHistoricos(): int
+    {
+        return $this->historicos
+            ->filter(static fn (self $c): bool => $c->getEstado() === CotizacionEstadoEnum::HISTORICO)
+            ->count();
+    }
 
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'file:item:read'])]
     public function isHistorico(): bool { return $this->estado->esHistorico(); }

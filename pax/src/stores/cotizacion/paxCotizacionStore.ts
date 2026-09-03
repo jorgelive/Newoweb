@@ -141,6 +141,12 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
      * @param {string} localizador Código localizador del expediente.
      */
     const cargarPortada = async (localizador: string): Promise<void> => {
+        // ⚠️ **Se limpia en CADA carga.** Sólo se ponía a `true` y sólo se bajaba al identificarse,
+        // así que tras un 403 en una operativa el formulario se quedaba pegado: «Volver» y abrir
+        // otra propuesta —u otro expediente, o un tour del catálogo— seguía pintándolo encima de
+        // una carga que había ido bien. Un estado que sólo sube no es un estado: es una marca.
+        requiereIdentificacion.value = false;
+
         const ahora = Date.now();
         const hayInternet = navigator.onLine;
         const datosExisten = portada.value !== null && currentLocalizador.value === localizador;
@@ -232,6 +238,12 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
 };
 
     const cargarPropuesta = async (localizador: string, propuesta: number): Promise<void> => {
+        // ⚠️ **Se limpia en CADA carga.** Sólo se ponía a `true` y sólo se bajaba al identificarse,
+        // así que tras un 403 en una operativa el formulario se quedaba pegado: «Volver» y abrir
+        // otra propuesta —u otro expediente, o un tour del catálogo— seguía pintándolo encima de
+        // una carga que había ido bien. Un estado que sólo sube no es un estado: es una marca.
+        requiereIdentificacion.value = false;
+
         const ahora = Date.now();
         const hayInternet = navigator.onLine;
         const datosExisten = detalle.value !== null
@@ -334,6 +346,12 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
      * @param {number} propuesta Número de tour dentro del catálogo.
      */
     const cargarPropuestaCatalogo = async (localizador: string, propuesta: number): Promise<void> => {
+        // ⚠️ **Se limpia en CADA carga.** Sólo se ponía a `true` y sólo se bajaba al identificarse,
+        // así que tras un 403 en una operativa el formulario se quedaba pegado: «Volver» y abrir
+        // otra propuesta —u otro expediente, o un tour del catálogo— seguía pintándolo encima de
+        // una carga que había ido bien. Un estado que sólo sube no es un estado: es una marca.
+        requiereIdentificacion.value = false;
+
         const ahora = Date.now();
         const hayInternet = navigator.onLine;
         const datosExisten = detalle.value !== null

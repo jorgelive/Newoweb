@@ -143,27 +143,58 @@ final readonly class IdentidadDelPasajero
     /** ¿Se agotaron los intentos desde esta IP para este expediente? */
     public function bloqueado(CotizacionFile $file): bool
     {
-        $item = $this->cache->getItem($this->llaveDeIntentos($file));
+        [$fallos, $hasta] = $this->intentos($file);
 
-        return is_int($item->get()) && $item->get() >= self::INTENTOS_MAX;
+        return $fallos >= self::INTENTOS_MAX && $hasta > time();
     }
 
     /**
      * ⚠️ **Por expediente Y por IP.** Sólo por IP castigaría a un colegio entero detrás de un NAT;
-     * sólo por expediente, a las 133 familias por culpa de un curioso. La ventana no se renueva
-     * con cada intento: se cuenta desde el primero, o un atacante constante la mantendría viva y
-     * nunca podría volver nadie.
+     * sólo por expediente, a las 133 familias por culpa de un curioso.
+     *
+     * ⚠️ **La ventana se cuenta desde el primer fallo**, no se renueva con cada intento: si se
+     * renovara, alguien probando sin parar la mantendría viva y no podría volver a entrar nadie
+     * nunca.
+     *
+     * 🔥 **El límite se guarda DENTRO del valor, y no con `expiresAfter()`.** Con PSR-6, Symfony
+     * Cache **no restaura la caducidad al leer** un ítem: el `save()` del segundo intento salía
+     * con `expiry = null`, caía en el `defaultLifetime` de `cache.app` —que es 0— y el contador se
+     * quedaba **para siempre**. O sea que un colegio detrás de un NAT que acumulara 8 fallos en
+     * días distintos quedaba bloqueado de por vida, con un mensaje diciéndole «vuelve a probar en
+     * un rato». Lo caza sólo una prueba que deje pasar la ventana; a ojo el código parecía bien.
      */
     private function anotarIntento(CotizacionFile $file): void
     {
-        $item = $this->cache->getItem($this->llaveDeIntentos($file));
-        $previos = is_int($item->get()) ? $item->get() : 0;
+        [$fallos, $hasta] = $this->intentos($file);
 
-        if ($previos === 0) {
-            $item->expiresAfter(self::VENTANA_SEGUNDOS);
+        // Ventana vencida: se empieza de cero en vez de sumar sobre lo viejo.
+        if ($hasta <= time()) {
+            $fallos = 0;
+            $hasta = time() + self::VENTANA_SEGUNDOS;
         }
 
-        $this->cache->save($item->set($previos + 1));
+        $item = $this->cache->getItem($this->llaveDeIntentos($file));
+        $item->set(['fallos' => $fallos + 1, 'hasta' => $hasta]);
+
+        // Se sigue pidiendo la caducidad —para que la caché no acumule basura— pero **la verdad
+        // está en `hasta`**, que sí viaja con el valor.
+        $item->expiresAfter(max(1, $hasta - time()));
+
+        $this->cache->save($item);
+    }
+
+    /**
+     * @return array{0: int, 1: int} Fallos acumulados y hasta cuándo cuenta la ventana.
+     */
+    private function intentos(CotizacionFile $file): array
+    {
+        $guardado = $this->cache->getItem($this->llaveDeIntentos($file))->get();
+
+        if (!is_array($guardado) || !is_int($guardado['fallos'] ?? null) || !is_int($guardado['hasta'] ?? null)) {
+            return [0, 0];
+        }
+
+        return [$guardado['fallos'], $guardado['hasta']];
     }
 
     private function olvidarIntentos(CotizacionFile $file): void

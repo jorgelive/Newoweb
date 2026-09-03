@@ -2131,11 +2131,16 @@ store.$onAction(({ name, args }) => {
                   </select>
                 </div>
 
-                <!-- Forzar operación: sólo con la versión ya guardada como confirmada.
-                     La Biblia se genera en la TRANSICIÓN a confirmado y una sola vez, así
-                     que todo lo editado después no llega al Centro de Operaciones si no se
-                     regenera a mano. En catálogo no aplica (fechas nominales, sin expediente). -->
-                <div v-if="!store.modoCatalogo && store.cotizacion.estado === 'confirmado'" class="col-span-2">
+                <!-- Revisar la operación: sólo donde la operación VIVE.
+                     ⚠️ Decía `estado === 'confirmado'`, y era exacto mientras la confirmada fuera
+                     el único sitio posible. Ya no: al abrir la operativa las filas se mudan a
+                     ella, así que este botón se quedaba en la confirmada —apuntando a un cuadro
+                     con todo cancelado— y la fila que sí las tiene no lo ofrecía. Misma corrección
+                     que en `FileDetalle.vue`.
+                     ⚠️ Y el comentario viejo ya no era cierto: desde el 02/09/2026 La Biblia NO se
+                     genera al confirmar, se arma con su botón (ver GenerarOperacionProcessor).
+                     En catálogo no aplica (fechas nominales, sin expediente). -->
+                <div v-if="!store.modoCatalogo && (store.cotizacion.estado === 'operativa' || store.cotizacion.estado === 'confirmado')" class="col-span-2">
                   <button type="button" @click="abrirPlanOperacion"
                           class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white font-bold text-xs rounded-lg shadow-sm transition-colors">
                     <i class="fas fa-code-compare"></i>

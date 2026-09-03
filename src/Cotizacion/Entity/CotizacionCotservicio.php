@@ -282,9 +282,6 @@ class CotizacionCotservicio
     public function setFechaInicioAbsoluta(?DateTimeImmutable $fechaInicioAbsoluta): self { $this->fechaInicioAbsoluta = $fechaInicioAbsoluta; return $this; }
 
     /**
-     * @return Collection<int, CotizacionCotcomponente>
-     */
-    /**
      * Los componentes que ve ESTE cliente. En la operativa de un grupo, sólo los suyos.
      *
      * ```

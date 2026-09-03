@@ -63,6 +63,22 @@ final class GuardarHistoricoProcessor implements ProcessorInterface
         $foto = $data->duplicar();
         $foto->setPropuesta($data->getPropuesta());   // ⚠️ el MISMO número, a propósito
         $foto->setEstado(CotizacionEstadoEnum::HISTORICO);
+
+        // 🔥 **Un histórico NUNCA nace publicado**, y esto es una fuga tapada, no una preferencia.
+        //
+        // `duplicar()` es un `clone` superficial y arrastra `publicado`. Si la fila de la que se
+        // saca la foto estaba publicada, el histórico nacía publicado también,
+        // `CotizacionPublicadaEventListener` despublicaba a la original —la invariante de una por
+        // propuesta— y **el enlace del cliente pasaba a resolver al histórico**.
+        //
+        // ⚠️ Con la operativa eso dejó de ser sólo raro y pasó a ser una FUGA: la puerta de
+        // identificación y el filtrado por subgrupo miran `estado === OPERATIVA`, así que un
+        // histórico servía el itinerario operativo entero —con los componentes de todos los
+        // subgrupos— a cualquiera con el enlace y sin identificarse. Un clic en «Guardar foto»
+        // sobre la operativa bastaba.
+        //
+        // Publicar es una decisión aparte (§6.j.1); congelar una foto no es publicarla.
+        $foto->setPublicado(false);
         $foto->setDerivadaDe($data);
 
         $this->em->persist($foto);

@@ -67,12 +67,6 @@ class CotizacionPasajeroGrupo
     }
 
     /**
-     * El pasajero y el grupo tienen que ser del MISMO expediente.
-     *
-     * Sin esto, un importador con un id mal cruzado mete a media escuela en los grupos de otro
-     * viaje, y nada lo denuncia: las dos FK son válidas por separado.
-     */
-    /**
      * El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
      * habitación, su asiento.
      *
@@ -94,6 +88,12 @@ class CotizacionPasajeroGrupo
 
     #[ORM\PrePersist]
     #[ORM\PreUpdate]
+    /**
+     * El pasajero y el grupo tienen que ser del MISMO expediente.
+     *
+     * Sin esto, un importador con un id mal cruzado mete a media escuela en los grupos de otro
+     * viaje, y nada lo denuncia: las dos FK son válidas por separado.
+     */
     public function validarMismoExpediente(): void
     {
         $delPasajero = $this->pasajero?->getFile()?->getId();

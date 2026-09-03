@@ -2084,12 +2084,10 @@ Invertirlos le diría al cliente que su viaje no está.
 por fresca y volvería sin pedir nada — el cliente se identificaría bien y **seguiría sin ver su
 viaje, sin ningún error que lo explicara**.
 
-### Lo que NO entra todavía
+### El filtrado por persona ya está — ver §6.j.6
 
-El **filtrado por persona** —que cada uno vea sólo su vuelo y su código— necesita
-`CotizacionCotcomponente::$grupo` y `CotizacionPasajeroGrupo::$codigo`, que son F5. Hoy quien se
-identifica ve la operativa **entera**. La puerta está puesta; lo que hay detrás todavía no
-distingue.
+Se completó el 03/09/2026, en la misma sesión: quien se identifica ve sólo los componentes sin
+subgrupo y los de los suyos. Falta pintarle su `codigo`.
 
 ## 6.j.6 Cuando el grupo se parte: subgrupos y códigos (03/09/2026)
 
@@ -2149,6 +2147,65 @@ porque no sabe que le falta algo.
 
 Sale en el editor, arriba del historial de propuestas y **sin plegar**: es un aviso sobre gente que
 no puede reclamarlo.
+
+## 6.j.7 Tres fallos que la revisión encontró y las pruebas no (03/09/2026)
+
+Los tres pasaban PHPStan nivel 7, 550 tests, `schema:validate` y una verificación con datos reales.
+Los tres se reprodujeron pidiendo el **endpoint de verdad**, que es lo que ninguna de las anteriores
+hacía.
+
+### 🔥 1 · El cliente veía el viaje GRATIS
+
+`getTotalVentaParaCliente()` hacía `$this->origenFinancieroParaCliente()->totalVenta` — leyendo la
+**propiedad**, no el getter.
+
+`derivadaDe` llega casi siempre como **proxy sin inicializar**: el provider público resuelve la
+lista de propuestas con `getArrayResult()`, así que la confirmada nunca entra en el mapa de
+identidad. Los proxies de esta versión de Doctrine interceptan **llamadas a métodos**, no lecturas
+de propiedad: desde dentro de la clase, `$padre->totalVenta` devuelve **el valor por defecto sin
+cargar nada**.
+
+```
+detalle de la operativa   totalVenta '0.00'   ·   clasificacionFinancieraCliente AUSENTE
+la portada, por DQL       totalVenta '5922.09'          ← y por eso no cantaba
+```
+
+⚠️ **Lo que hizo que la verificación anterior lo diera por bueno:** el sondeo construía el grafo en
+memoria, y ahí `derivadaDe` es un objeto de verdad. **La regla: un `?->` sobre una relación que el
+provider no cargó explícitamente hay que probarlo con `$em->clear()` delante.**
+
+### 🔥 2 · «Guardar foto» sobre la operativa abría la puerta cerrada
+
+`duplicar()` es un `clone` superficial y arrastraba `publicado`. Guardar un histórico de una
+operativa publicada lo dejaba **a él** publicado, el listener despublicaba a la operativa por la
+invariante, y el enlace del cliente pasaba a resolver al histórico. Y un histórico **no es
+`OPERATIVA`**, así que ni la identificación ni el filtrado por subgrupo se le aplican:
+
+```
+sin sesión → HTTP 200 · estado servido: historico · 47 componentes, de todos los subgrupos
+```
+
+El fallo de fondo —el histórico heredando `publicado`— era anterior; lo que lo convirtió en fuga
+fue poner una puerta que mira el **estado**. `GuardarHistoricoProcessor` fuerza ahora
+`publicado = false`: congelar una foto no es publicarla.
+
+### 🔥 3 · El freno de intentos era un candado
+
+Se apoyaba en `expiresAfter()` sobre un ítem PSR-6 releído, y **Symfony Cache no restaura la
+caducidad al leer**: del segundo intento en adelante el contador se guardaba con el
+`defaultLifetime` de `cache.app`, que es 0 — sin caducidad. Un colegio detrás de un NAT que juntara
+8 fallos en días distintos quedaba fuera **de por vida**, con un mensaje diciéndole «vuelve a
+probar en un rato».
+
+Ahora el límite viaja **dentro del valor**. Lo caza sólo una prueba que deje pasar la ventana; hay
+una.
+
+### Y uno más, de vuelta por la puerta de al lado
+
+`reactivar()` no distinguía una fila cancelada por el operador de una cancelada **por el traspaso a
+la operativa**. Cancelar la confirmada por error y volver a confirmarla —el caso exacto para el que
+existe ese método— dejaba las 47 filas de la confirmada y las 47 de la operativa activas a la vez:
+el «pedirle y pagarle dos veces lo mismo al proveedor» que el propio código dice evitar.
 
 ## 6.j Versiones e históricos: dos clones en direcciones opuestas (23/08/2026)
 

@@ -118,7 +118,48 @@ class CotizacionConfirmadaEventListener
      */
     private function reactivar(Cotizacion $cotizacion, EntityManagerInterface $em, UnitOfWork $uow): void
     {
+        // 🔥 **Si su operación ya se traspasó, NO se reactiva.**
+        //
+        // `propagarEstadoOperacion` no distingue una fila que canceló el operador de una que se
+        // canceló al abrir la operativa: las pondría todas en `pendiente`. Y entonces bastaba el
+        // caso para el que existe este método —cancelar por error y volver a confirmar— para
+        // dejar **las 47 filas de la confirmada y las 47 de la operativa activas a la vez**. Que
+        // es literalmente el «riesgo de pedirle y pagarle dos veces lo mismo al proveedor» que
+        // describe el comentario de arriba, entrando por la puerta de al lado.
+        //
+        // La operativa es la fila viva; la confirmada quedó congelada al abrirla. Revivir su
+        // operación sería deshacer el traspaso sin que nadie lo pidiera.
+        if ($this->tieneOperativa($cotizacion, $em)) {
+            return;
+        }
+
         $this->propagarEstadoOperacion($cotizacion, $em, $uow, EstadoOperacionEnum::PENDIENTE);
+    }
+
+    /**
+     * ¿Existe ya la operativa de esta propuesta?
+     *
+     * ⚠️ Se busca por NÚMERO de propuesta y no por `derivadaDe`: es el mismo eje por el que
+     * `AbrirOperativaProcessor` comprueba que no haya dos, y así las dos preguntas no pueden
+     * discrepar.
+     */
+    private function tieneOperativa(Cotizacion $cotizacion, EntityManagerInterface $em): bool
+    {
+        if ($cotizacion->getEstado() === CotizacionEstadoEnum::OPERATIVA) {
+            return false;   // ella misma es la operativa: sus filas sí se reactivan
+        }
+
+        $padre = $cotizacion->getFile() ?? $cotizacion->getCatalogo();
+
+        if ($padre === null) {
+            return false;
+        }
+
+        return $em->getRepository(Cotizacion::class)->findOneBy([
+            $cotizacion->getFile() !== null ? 'file' : 'catalogo' => $padre,
+            'propuesta' => $cotizacion->getPropuesta(),
+            'estado' => CotizacionEstadoEnum::OPERATIVA,
+        ]) !== null;
     }
 
     private function propagarEstadoOperacion(
