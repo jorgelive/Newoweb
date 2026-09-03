@@ -1881,6 +1881,40 @@ aproximarlo con una lista de estados porque publicar no existía. Ahora vigila e
 y la aproximación fallaba por los dos lados: pasar de `enviado` a `confirmado` disparaba el aviso
 sin publicar nada nuevo, y publicar una `pendiente` no lo disparaba en absoluto.
 
+## 6.j.2 El estado `OPERATIVA` (02/09/2026)
+
+Otra fila de la **misma** propuesta, distinguida por estado, como el histórico. El histórico mira
+atrás y ésta mira adelante, y las dos cuelgan de la confirmada por `derivadaDe`. **No consume
+número de propuesta.**
+
+⚠️ **Entró sin migración**: `estado` es `varchar(30)`, así que un `case` nuevo no toca el esquema.
+`doctrine:schema:validate` sigue en sync.
+
+### 🔥 Lo que cazó cada herramienta, y lo que no cazó ninguna
+
+Al añadir el `case`, el resultado fue exactamente el que el plan predecía:
+
+| | ¿Saltó? |
+|---|---|
+| Los `match` exhaustivos del enum | 🔊 sí — obligan a decidir |
+| `ESTADO_COTIZACION_CONFIG` en `util`, vía el union regenerado de `api.d.ts` | 🔊 sí — `TS2741: Property 'operativa' is missing` |
+| **El `match` de `CotizacionConfirmadaEventListener`** | 🔇 **NO** — tiene `default`, y PHPStan lo da por bueno |
+
+El listener es el único sitio donde un estado nuevo entra en silencio, y su propio comentario lo
+advertía desde antes: *«caer en el `default` las dejaría activas sin que nada lo denunciara»*.
+Ahora `OPERATIVA` está explícita —sus filas de operación van **activas**, como las de una
+confirmada— y el `default` lleva escrito que sólo lo pisa `OPERADO`, donde «no tocar nada» sí es
+lo correcto.
+
+**La regla:** en ese `match`, un estado nuevo va arriba con su caso. El `default` no es un
+comodín: es la rama de `OPERADO`.
+
+### `esPublico()` se borró
+
+Ya no decidía nada —la visibilidad es `publicado` (§6.j.1)— y dejarlo habría sido peor que
+borrarlo: el siguiente que lo leyera creería que sigue mandando, y respondería que una operativa no
+es pública cuando sí puede serlo.
+
 ## 6.j Versiones e históricos: dos clones en direcciones opuestas (23/08/2026)
 
 Un expediente tiene N `Cotizacion`, numeradas `version`. **Son propuestas**, no versiones de un

@@ -43,18 +43,26 @@ enum CotizacionEstadoEnum: string
     case HISTORICO = 'historico';
 
     /**
-     * Reemplaza la antigua columna `nopublico` de la base de datos.
-     * Define si el cliente final tiene acceso al enlace web o PDF de esta propuesta.
-     * Solo Enviado y Confirmado son visibles para el cliente.
+     * Lo que de verdad se va a operar, cuando deja de parecerse a lo vendido.
+     *
+     * ⚠️ **No consume número de propuesta**, igual que el histórico: es otra fila de la MISMA
+     * propuesta, distinguida por estado. El histórico mira atrás y ésta mira adelante, y las dos
+     * cuelgan de la confirmada por `derivadaDe`.
+     *
+     * Nace **al confirmar y sin publicar**, y eso es lo que hace que las filas de operación nazcan
+     * ya aquí y **nunca haya que traspasarlas**. Crearla a demanda dejaría una ventana con dos
+     * filas con operación viva a la vez — el escenario que `CotizacionConfirmadaEventListener`
+     * describe como «riesgo de pedirle y pagarle dos veces lo mismo al proveedor».
+     *
+     * Lo que ve el cliente se compone: el **financiero de la confirmada** —ya se vendió y se
+     * cobró— y el **itinerario de ésta**, si está publicada. Ver `docs/PlanPropuestaOperativa.md`.
      */
-    public function esPublico(): bool
-    {
-        return match($this) {
-            self::ENVIADO, self::CONFIRMADO => true,
-            self::PENDIENTE, self::CERRADO, self::OPERADO, self::CANCELADO,
-            self::HISTORICO => false,
-        };
-    }
+    case OPERATIVA = 'operativa';
+
+    // ⚠️ **Aquí vivía `esPublico()`, y se borró el 02/09/2026.** La visibilidad dejó de depender
+    // del estado: la decide `Cotizacion::$publicado`, un eje propio. Dejar el método habría sido
+    // peor que borrarlo — el siguiente que lo leyera creería que sigue mandando, y respondería que
+    // una operativa no es pública cuando sí puede serlo. Ver `docs/Cotizaciones.md` §6.j.1.
 
     /**
      * ¿Es una foto del pasado en vez de una propuesta viva?
@@ -81,6 +89,7 @@ enum CotizacionEstadoEnum: string
             self::CERRADO => 'slate',
             self::CANCELADO => 'rose',
             self::HISTORICO => 'violet',
+            self::OPERATIVA => 'orange',
         };
     }
 }

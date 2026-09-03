@@ -127,8 +127,8 @@ Publicas      → ahora ve el itinerario real
 
 | | Acción | Hecho cuando |
 |---|---|---|
-| 2.1 | ⚠️ **El `match` de `CotizacionConfirmadaEventListener`, con el caso explícito** | Un estado nuevo no puede caer en `default => null` |
-| 2.2 | `OPERATIVA` en `CotizacionEstadoEnum` + sus tres `match` | Compila |
+| 2.1 | ~~El `match` del listener~~ **HECHO 02/09/2026** | ✅ Y confirmado que PHPStan no lo caza: `default` lo tapa |
+| 2.2 | ~~`OPERATIVA` en el enum~~ **HECHO** | ✅ Sin migración (`varchar(30)`) · el typecheck cazó el mapa de `util` |
 | 2.3 | Confirmar **crea la operativa** (clon, sin publicar, `derivadaDe`) y las filas de operación nacen ahí | Nunca hay dos filas con operación viva |
 | 2.4 | Vista cliente **compuesta**: financiero de la confirmada, itinerario de la operativa publicada | |
 | 2.5 | Front: estado en el mapa, botón de publicar, y que el editor diga dónde está | |

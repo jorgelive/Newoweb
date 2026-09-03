@@ -78,6 +78,20 @@ class CotizacionConfirmadaEventListener
                 // cancelarse como con cualquier otro estado no confirmado. Caer en el `default`
                 // las dejaría activas sin que nada lo denunciara.
                 CotizacionEstadoEnum::HISTORICO  => $this->propagarEstadoOperacion($entity, $em, $uow, EstadoOperacionEnum::CANCELADO),
+
+                // ⚠️ La OPERATIVA es donde vive la operación: sus filas van ACTIVAS, igual que
+                // las de una confirmada. Explícito y no por el `default`, que aquí significa «no
+                // toques nada» — y para una operativa eso dejaría las órdenes sin generar.
+                //
+                // 🔥 Y merece quedar escrito: al añadir este `case`, **PHPStan no dijo nada**. Los
+                // `match` exhaustivos del enum sí saltan, pero éste tiene `default`, así que un
+                // estado nuevo entra en silencio. Es lo que ya avisaba el comentario de abajo, y
+                // se cumplió a la primera.
+                CotizacionEstadoEnum::OPERATIVA  => $this->confirmar($entity, $em, $uow),
+
+                // ⚠️ Sólo lo pisa OPERADO, y ahí «no tocar nada» es lo correcto: el viaje ya
+                // ocurrió y sus filas se quedan como están. Cualquier estado nuevo va ARRIBA, con
+                // su caso; caer aquí por olvido es dejar filas activas sin que nada lo denuncie.
                 default                          => null,
             };
         }

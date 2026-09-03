@@ -202,6 +202,9 @@ export const ESTADO_COTIZACION_CONFIG: Record<CotizacionEstadoValue, EstadoUICon
     // Espejo de `CotizacionEstadoEnum::HISTORICO`. No es una propuesta: es la foto de una que ya
     // se vendió, congelada antes de tocarla. Comparte número de versión con la viva a propósito.
     historico: { label: 'Histórico', bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200', icon: 'fa-clock-rotate-left' },
+    // Espejo de `CotizacionEstadoEnum::OPERATIVA`. Tampoco es una propuesta nueva: es la MISMA,
+    // con lo que de verdad se va a operar. El histórico mira atrás y ésta mira adelante.
+    operativa: { label: 'Operativa', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', icon: 'fa-route' },
 };
 
 export type ComponenteModoValue = 'incluido' | 'no_incluido' | 'cortesia' | 'reemplazado';
