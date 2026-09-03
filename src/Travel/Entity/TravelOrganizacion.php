@@ -469,7 +469,14 @@ class TravelOrganizacion implements ConIdentificador
         return $this->servicios;
     }
 
-    public function addOrganizacionServicio(TravelOrganizacionServicio $servicio): self
+    /**
+     * Doctrine no llama a este método al hidratar (usa reflexión directa sobre la
+     * colección), pero el formulario de EasyAdmin sí: el `CollectionField::new('servicios', …)`
+     * del CRUD de organización necesita que el `PropertyAccessor` encuentre un
+     * `addServicio()`/`removeServicio()` para la propiedad `servicios` — busca el singular de
+     * el nombre de la propiedad, no el de la entidad. Ver docs/Travel.md.
+     */
+    public function addServicio(TravelOrganizacionServicio $servicio): self
     {
         if (!$this->servicios->contains($servicio)) {
             $this->servicios->add($servicio);
@@ -478,7 +485,7 @@ class TravelOrganizacion implements ConIdentificador
         return $this;
     }
 
-    public function removeOrganizacionServicio(TravelOrganizacionServicio $servicio): self
+    public function removeServicio(TravelOrganizacionServicio $servicio): self
     {
         if ($this->servicios->removeElement($servicio)) {
             if ($servicio->getOrganizacion() === $this) {

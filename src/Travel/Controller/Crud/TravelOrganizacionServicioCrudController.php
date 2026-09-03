@@ -14,11 +14,13 @@ use App\Travel\Entity\TravelOrganizacionServicioImagen;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -92,6 +94,22 @@ class TravelOrganizacionServicioCrudController extends BaseCrudController
             ->setPermission(Action::NEW, Roles::MAESTROS_WRITE)
             ->setPermission(Action::EDIT, Roles::MAESTROS_WRITE)
             ->setPermission(Action::DELETE, Roles::MAESTROS_WRITE);
+    }
+
+    /**
+     * Filtro por organización, para acotar el listado cuando hay muchos servicios repartidos
+     * entre varias organizaciones.
+     *
+     * @param Filters $filters
+     * @return Filters
+     */
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters
+            // Sin autocomplete(), el filtro carga las 100+ organizaciones en un <select> plano
+            // en cada apertura del panel — el mismo motivo por el que el campo 'organizacion'
+            // de configureFields() ya lo lleva.
+            ->add(EntityFilter::new('organizacion', 'Organización')->autocomplete());
     }
 
     /**

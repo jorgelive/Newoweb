@@ -9,6 +9,7 @@ use App\Security\Roles;
 use App\Travel\Entity\TravelOrganizacionServicio;
 use App\Travel\Entity\TravelOrganizacionServicioImagen;
 use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -111,13 +112,14 @@ class TravelOrganizacionServicioImagenCrudController extends BaseCrudController
      * @param EntityManagerInterface $em Gestor de entidades de Doctrine para consultar los servicios activos.
      * @return Response Retorna la vista renderizada del componente de carga masiva.
      */
+    #[AdminRoute(path: 'mass-upload', name: 'mass_upload')]
     public function renderMassUpload(EntityManagerInterface $em): Response
     {
         // Obtenemos los servicios de los organizaciones ordenados alfabéticamente para facilitar la búsqueda.
         $organizacionServicios = $em->getRepository(TravelOrganizacionServicio::class)->findBy([], ['nombre' => 'ASC']);
 
-        return $this->render('panel/travel/organización_servicio_imagen/mass_upload.html.twig', [
-            'organizaciónServicios' => $organizacionServicios,
+        return $this->render('panel/travel/organizacion_servicio_imagen/mass_upload.html.twig', [
+            'organizacionServicios' => $organizacionServicios,
             'crud' => $this->configureCrud(Crud::new()),
         ]);
     }

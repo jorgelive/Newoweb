@@ -244,6 +244,53 @@ el 404 y deja la lista vacía — **el fallo se disfraza de catálogo sin coinci
 `pax/` es parte del cambio, no una comprobación posterior. Y regenerar `api.d.ts`, que tampoco
 avisa solo.
 
+### Y una tercera vez, en el panel EasyAdmin (02/09/2026)
+
+La carga masiva de fotos (`TravelOrganizacionImagenCrudController::renderMassUpload()` y su
+gemelo de `TravelOrganizacionServicioImagenCrudController`) quedó a medio renombrar: el
+`render()` apuntaba a `panel/travel/organización_imagen/…` —con tilde, que ni siquiera es el
+nombre de la carpeta vieja— y la plantilla real seguía viviendo en
+`templates/panel/travel/proveedor_imagen/`, con la ruta de subida (`api_travel_proveedor_*`) y
+la clase del botón «Volver» (`ProveedorImagenCrudController`) apuntando también a nombres que ya
+no existían. `LoaderError: Unable to find template…` al abrir la vista — nada de esto lo ve
+PHPStan ni ESLint: son cadenas dentro de un `.twig`, la misma familia de fallo que las URLs
+muertas de arriba, sólo que aquí ni siquiera hace falta tocar la ruta para que reviente, basta
+con abrir la pantalla una vez.
+
+Se corrigió moviendo las carpetas a `organizacion_imagen/` y `organizacion_servicio_imagen/`
+(sin tilde, como el resto del proyecto) y actualizando dentro los tres puntos que citaban el
+nombre viejo: la ruta de la API, la clase del CRUD controller y las variables pasadas desde PHP
+(`organizaciones`, `organizacionServicios` — esta última también tenía tilde de más y no daba
+error porque una clave de array acepta cualquier string).
+
+**La regla que sale de aquí, otra vez:** los nombres de carpeta y ruta de plantilla EasyAdmin no
+los revisa ninguna herramienta — al renombrar una entidad, `grep` de su nombre viejo cubre
+`templates/panel/` igual que cubre `util/` y `pax/`.
+
+### Y una cuarta: el `adder`/`remover` no coincidía con el nombre de la propiedad (02/09/2026)
+
+Editar una organización daba `NoSuchPropertyException: Could not determine access type for
+property "servicios"`. El CRUD (`TravelOrganizacionCrudController::configureFields()`) declara
+`CollectionField::new('servicios', …)`, y el formulario resultante (`by_reference: false`) lo
+escribe a través de `PropertyAccessorInterface`, que para una propiedad `servicios` busca un
+`addServicio()`/`removeServicio()` — **el singular de la propiedad**, no el de la entidad
+relacionada ni el de la tabla. `TravelOrganizacion` tenía `getServicios()` (por eso el listado
+sí cargaba) pero el `adder`/`remover` habían quedado con el nombre descriptivo
+`addOrganizacionServicio()`/`removeOrganizacionServicio()` — nadie más los llamaba (Doctrine
+hidrata la colección por reflexión, no por el adder), así que el error sólo salía al abrir el
+formulario de edición. Sin `setServicios()` de respaldo, `PropertyAccessor` no tiene a qué
+recurrir y revienta.
+
+Se corrigió renombrando los dos métodos a `addServicio()`/`removeServicio()` — el mismo patrón
+que ya usa `imagenes` con `addImagen()`/`removeImagen()` en la misma entidad, que por eso nunca
+falló.
+
+**La regla:** el nombre del `adder`/`remover` de una colección de Doctrine lo fija la propiedad
+que expone el `CollectionField` en el CRUD, no cómo se llame internamente la entidad
+relacionada. Si el nombre de la propiedad no es el plural obvio del nombre de la clase, hace
+falta comprobar a mano que el singular del PropertyAccessor coincide con el método real — esto
+no lo cazan ni PHPStan ni `doctrine:schema:validate`, sólo abrir el formulario.
+
 ### Un filtro que no está no falla: devuelve de más
 
 Buscando lo anterior salieron dos filtros que **nunca existieron** y que el front llevaba

@@ -9,6 +9,7 @@ use App\Security\Roles;
 use App\Travel\Entity\TravelOrganizacion;
 use App\Travel\Entity\TravelOrganizacionImagen;
 use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -106,12 +107,13 @@ class TravelOrganizacionImagenCrudController extends BaseCrudController
      * @param EntityManagerInterface $em
      * @return Response
      */
+    #[AdminRoute(path: 'mass-upload', name: 'mass_upload')]
     public function renderMassUpload(EntityManagerInterface $em): Response
     {
         // Obtenemos los organizaciones.
         $organizaciones = $em->getRepository(TravelOrganizacion::class)->findBy([], ['nombreComercial' => 'ASC']);
 
-        return $this->render('panel/travel/organización_imagen/mass_upload.html.twig', [
+        return $this->render('panel/travel/organizacion_imagen/mass_upload.html.twig', [
             'organizaciones' => $organizaciones,
             'crud' => $this->configureCrud(Crud::new()),
         ]);

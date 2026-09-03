@@ -9,6 +9,7 @@ use App\Security\Roles;
 use App\Travel\Entity\TravelSegmento;
 use App\Travel\Entity\TravelSegmentoImagen;
 use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -86,6 +87,7 @@ class TravelSegmentoImagenCrudController extends BaseCrudController
             ->setPermission('massUpload', Roles::MAESTROS_WRITE);
     }
 
+    #[AdminRoute(path: 'mass-upload', name: 'mass_upload')]
     public function renderMassUpload(EntityManagerInterface $em): Response
     {
         $segmentos = $em->getRepository(TravelSegmento::class)->findBy([], ['nombreInterno' => 'ASC']);

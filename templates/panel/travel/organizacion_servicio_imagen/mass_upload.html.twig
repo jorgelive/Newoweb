@@ -21,7 +21,7 @@
                         <div
                                 id="mass-uploader-widget"
                                 data-controller="panel--generic-uploader"
-                                data-panel--generic-uploader-url-value="{{ path('api_travel_proveedor_servicio_imagen_upload') }}"
+                                data-panel--generic-uploader-url-value="{{ path('api_travel_organizacion_servicio_imagen_upload') }}"
                                 data-panel--generic-uploader-param-name-value="proveedor_servicio_id"
                         >
 
@@ -40,10 +40,10 @@
                                             autocomplete="off"
                                     >
                                         <option value="">Buscar servicio o habitación...</option>
-                                        {% for servicio in proveedorServicios %}
+                                        {% for servicio in organizacionServicios %}
                                             <option value="{{ servicio.id }}">
-                                                {# Se concatena el nombre del proveedor para evitar ambigüedades en el listado #}
-                                                {{ servicio.proveedor ? servicio.proveedor.nombreComercial ~ ' - ' : '' }}{{ servicio.nombre|default('Servicio sin nombre') }}
+                                                {# Se concatena el nombre de la organización para evitar ambigüedades en el listado #}
+                                                {{ servicio.organizacion ? servicio.organizacion.nombreComercial ~ ' - ' : '' }}{{ servicio.nombre|default('Servicio sin nombre') }}
                                             </option>
                                         {% endfor %}
                                     </select>
@@ -85,7 +85,7 @@
                     </div>
 
                     <div class="card-footer bg-white border-top-0 text-center py-4">
-                        <a href="{{ ea_url().setController('App\\Travel\\Controller\\Crud\\ProveedorServicioImagenCrudController').setAction('index') }}" class="btn btn-outline-secondary px-4">
+                        <a href="{{ ea_url().setController('App\\Travel\\Controller\\Crud\\TravelOrganizacionServicioImagenCrudController').setAction('index') }}" class="btn btn-outline-secondary px-4">
                             <i class="fa-solid fa-arrow-left me-2"></i> Volver a la Galería
                         </a>
                     </div>

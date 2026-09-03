@@ -11,6 +11,7 @@ use App\Pms\Entity\PmsGuiaItemGaleria;
 use App\Pms\Repository\PmsGuiaItemGaleriaRepository;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -143,6 +144,7 @@ class PmsGuiaItemGaleriaCrudController extends BaseCrudController
         );
     }
 
+    #[AdminRoute(path: 'mass-upload', name: 'mass_upload')]
     public function renderMassUpload(EntityManagerInterface $em): Response
     {
         $items = $em->getRepository(PmsGuiaItem::class)->findBy([], ['nombreInterno' => 'ASC']);

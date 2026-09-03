@@ -1,7 +1,7 @@
 {% extends '@EasyAdmin/page/content.html.twig' %}
 
 {% block content_title %}
-    <i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i> Carga Masiva de Fotos de Proveedores
+    <i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i> Carga Masiva de Fotos de Organizaciones
 {% endblock %}
 
 {% block main %}
@@ -14,20 +14,20 @@
 
                         <div class="alert alert-info border-0 bg-info-subtle text-info-emphasis mb-4">
                             <i class="fa-solid fa-circle-info me-2"></i>
-                            Busca el proveedor, selecciónalo y sube las fotos a su galería.
+                            Busca la organización, selecciónala y sube las fotos a su galería.
                         </div>
 
                         {# WIDGET STIMULUS #}
                         <div
                                 id="mass-uploader-widget"
                                 data-controller="panel--generic-uploader"
-                                data-panel--generic-uploader-url-value="{{ path('api_travel_proveedor_imagen_upload') }}"
+                                data-panel--generic-uploader-url-value="{{ path('api_travel_organizacion_imagen_upload') }}"
                                 data-panel--generic-uploader-param-name-value="proveedor_id"
                         >
 
                             {# 1. SELECTOR (Encuadre perfecto) #}
                             <div class="mb-4">
-                                <label class="form-label fw-bold text-secondary">Destino de las fotos (Proveedor):</label>
+                                <label class="form-label fw-bold text-secondary">Destino de las fotos (Organización):</label>
 
                                 <div class="input-group shadow-sm custom-search-group">
                                     <span class="input-group-text bg-white border-end-0 text-muted ps-3">
@@ -39,11 +39,11 @@
                                             data-panel--generic-uploader-target="selector"
                                             autocomplete="off"
                                     >
-                                        <option value="">Buscar proveedor...</option>
-                                        {% for proveedor in proveedores %}
-                                            <option value="{{ proveedor.id }}">
+                                        <option value="">Buscar organización...</option>
+                                        {% for organizacion in organizaciones %}
+                                            <option value="{{ organizacion.id }}">
                                                 {# Ajusta 'nombreComercial' si en tu entidad se llama de otra manera #}
-                                                {{ proveedor.nombreComercial|default('Proveedor sin nombre') }}
+                                                {{ organizacion.nombreComercial|default('Organización sin nombre') }}
                                             </option>
                                         {% endfor %}
                                     </select>
@@ -85,7 +85,7 @@
                     </div>
 
                     <div class="card-footer bg-white border-top-0 text-center py-4">
-                        <a href="{{ ea_url().setController('App\\Travel\\Controller\\Crud\\ProveedorImagenCrudController').setAction('index') }}" class="btn btn-outline-secondary px-4">
+                        <a href="{{ ea_url().setController('App\\Travel\\Controller\\Crud\\TravelOrganizacionImagenCrudController').setAction('index') }}" class="btn btn-outline-secondary px-4">
                             <i class="fa-solid fa-arrow-left me-2"></i> Volver al Listado
                         </a>
                     </div>
