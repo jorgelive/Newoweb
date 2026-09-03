@@ -230,7 +230,7 @@ final readonly class PadronImportador
      * Cazarlo antes de tocar nada es lo que permite decir los dos nombres.
      *
      * @param list<list<mixed>>                                                                                                       $filas
-     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<string, int>, nombreCompleto: bool} $columnas
+     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<int, int>, nombreCompleto: bool} $columnas
      */
     private function denunciarDocumentosRepetidos(array $filas, array $columnas, int $indiceCabecera, ResultadoDelPadron $resultado): void
     {
@@ -344,12 +344,16 @@ final readonly class PadronImportador
      *
      * @param list<mixed> $cabeceras
      *
-     * @return array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<string, int>, nombreCompleto: bool}
+     * @return array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<int, int>, nombreCompleto: bool}
      */
     private function mapearCabeceras(array $cabeceras, ResultadoDelPadron $resultado): array
     {
         $mapa = ['fijas' => [], 'docs' => [], 'ejes' => [], 'servicios' => [], 'codigos' => [], 'nombreCompleto' => false];
         $vencimientos = [];
+
+        // Para emparejar cada «Cód. #X» con la columna «#X» que tiene justo delante.
+        $ultimaColumnaDeEje = null;
+        $ultimaEtiquetaDeEje = null;
 
         foreach ($cabeceras as $i => $bruta) {
             $cabecera = trim((string) $bruta);
@@ -362,14 +366,26 @@ final readonly class PadronImportador
             // importador avisaría de un eje desconocido en vez de leer el código.
             if (str_starts_with($cabecera, PadronFormato::PREFIJO_CODIGO)) {
                 $deEje = trim(substr($cabecera, mb_strlen(PadronFormato::PREFIJO_CODIGO)));
-                $eje = PadronFormato::esColumnaDeEje($deEje) ? PadronFormato::ejeDe($deEje) : null;
 
-                if ($eje === null) {
-                    $resultado->aviso(sprintf('La columna «%s» no cualifica a ningún eje conocido: se ignora.', $cabecera));
+                // 🔥 **Se empareja con la columna de eje ANTERIOR, no con el eje.** Un pasajero
+                // puede estar en dos grupos del mismo (eje, tramo) —dos vuelos «Nacional»— y
+                // entonces la plantilla saca DOS `#Vuelo Nacional`, cada una con su `Cód.` al
+                // lado, con cabeceras idénticas. Indexando por `eje|tramo` la segunda pisaba a la
+                // primera y las dos pertenencias se llevaban el mismo código, sin ningún error.
+                //
+                // Emparejar por posición es además lo que ya promete el propio orden de la
+                // plantilla: cada código va pegado a su clave.
+                if ($ultimaColumnaDeEje === null || $ultimaEtiquetaDeEje !== $deEje) {
+                    $resultado->aviso(sprintf(
+                        'La columna «%s» no va justo detrás de la columna «%s»: se ignora. '
+                        .'Cada código tiene que ir pegado a la clave que cualifica.',
+                        $cabecera,
+                        $deEje,
+                    ));
                     continue;
                 }
 
-                $mapa['codigos'][$eje['tipo']->value . '|' . ($eje['subeje'] ?? '')] = $i;
+                $mapa['codigos'][$ultimaColumnaDeEje] = $i;
                 continue;
             }
 
@@ -382,6 +398,8 @@ final readonly class PadronImportador
                     continue;
                 }
                 $mapa['ejes'][$i] = $eje;
+                $ultimaColumnaDeEje = $i;
+                $ultimaEtiquetaDeEje = $cabecera;
                 continue;
             }
 
@@ -431,7 +449,7 @@ final readonly class PadronImportador
 
     /**
      * @param list<mixed>                                                                                                            $fila
-     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<string, int>, nombreCompleto: bool} $columnas
+     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<int, int>, nombreCompleto: bool} $columnas
      */
     private function pasajeroDeLaFila(CotizacionFile $file, array $fila, array $columnas, ResultadoDelPadron $resultado): CotizacionFilepasajero
     {
@@ -539,7 +557,7 @@ final readonly class PadronImportador
 
     /**
      * @param list<mixed>                                                                                                            $fila
-     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<string, int>, nombreCompleto: bool} $columnas
+     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<int, int>, nombreCompleto: bool} $columnas
      */
     private function buscarPorDocumento(CotizacionFile $file, array $fila, array $columnas): ?CotizacionFilepasajero
     {
@@ -585,7 +603,7 @@ final readonly class PadronImportador
 
     /**
      * @param list<mixed>                                                                                                            $fila
-     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<string, int>, nombreCompleto: bool} $columnas
+     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<int, int>, nombreCompleto: bool} $columnas
      */
     private function aplicarIdentificaciones(CotizacionFilepasajero $pasajero, array $fila, array $columnas, ResultadoDelPadron $resultado): void
     {
@@ -617,7 +635,7 @@ final readonly class PadronImportador
 
     /**
      * @param list<mixed>                                                                                                            $fila
-     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<string, int>, nombreCompleto: bool} $columnas
+     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<int, int>, nombreCompleto: bool} $columnas
      * @param array<string, array{nombre: string, detalle: string}>                                                                  $nombresDeGrupo
      */
     private function aplicarGrupos(CotizacionFile $file, CotizacionFilepasajero $pasajero, array $fila, array $columnas, array $nombresDeGrupo, ResultadoDelPadron $resultado): void
@@ -636,8 +654,9 @@ final readonly class PadronImportador
             $grupo = $this->grupo($file, $eje['tipo'], $clave, $nombresDeGrupo, $resultado, $eje['subeje']);
             $deseados[] = $grupo;
 
-            // El código de esta persona en este subgrupo, si el archivo lo trae.
-            $col = $columnas['codigos'][$eje['tipo']->value . '|' . ($eje['subeje'] ?? '')] ?? null;
+            // El código de esta persona en este subgrupo, si el archivo lo trae. Se busca por la
+            // COLUMNA que se está leyendo, no por el eje: ver el emparejamiento en mapearCabeceras().
+            $col = $columnas['codigos'][$i] ?? null;
             $codigo = $col !== null ? trim((string) ($fila[$col] ?? '')) : '';
 
             if ($codigo !== '') {

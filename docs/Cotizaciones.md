@@ -2145,6 +2145,16 @@ que no hay forma de saber cuál es cuál. Con el rótulo se puede porque es una 
 ⚠️ **Una celda en blanco NO borra.** En un reenvío del archivo significa «no lo sé», no
 «bórralo»: quien puso el localizador a mano no lo pierde porque el Excel no lo traiga.
 
+⚠️ **Y se empareja por POSICIÓN, no por eje.** Un pasajero puede estar en dos grupos del mismo
+(eje, tramo) —dos vuelos «Nacional» distintos— y entonces la plantilla saca **dos** `#Vuelo
+Nacional`, cada una con su `Cód.` al lado y **con cabeceras idénticas**. Indexando por eje la
+segunda pisaba a la primera y las dos pertenencias se llevaban el mismo código, sin ningún error.
+
+Hoy no muerde —en `5SRAJV`, con 24 grupos de vuelo, **ningún** pasajero está en dos del mismo
+tramo—, pero la plantilla ya sabe emitir esas columnas (`$cuantosPorEje` usa `max`), así que era
+una trampa esperando datos. Un código que no va pegado a su clave ahora **se avisa y se ignora**,
+en vez de aplicarse al grupo equivocado.
+
 ## 6.j.6 Cuando el grupo se parte: subgrupos y códigos (03/09/2026)
 
 ```
