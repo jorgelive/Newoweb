@@ -1113,10 +1113,47 @@ error, y el síntoma aparecía lejos de la causa.
 
 ---
 
+## 3.o `v-tooltip-tactil` — el `title` que en el móvil no existe (03/09/2026)
+
+Una fila de ocho botones-icono se lee bien en escritorio porque el `title` nativo sale al pasar por
+encima. En un móvil **no hay hover**: los mismos ocho iconos son ocho adivinanzas, y uno de ellos
+traspasa las órdenes de servicio.
+
+```html
+<button v-tooltip-tactil title="Abrir la propuesta operativa">…</button>
+```
+
+Pulsación larga (400 ms) → globo con el texto, que se va al soltar o a los 2,2 s.
+
+### Por qué una directiva y no un componente
+
+Envolver cada botón obligaría a tocar los ocho y a pasar el texto **dos veces** —una para el
+`title` de escritorio y otra para el globo—. La directiva **lee el `title` que ya está ahí**: un
+botón nuevo lo hereda con sólo escribirla, y un botón sin `title` no hace nada.
+
+⚠️ **No sustituye al `title`, lo acompaña.** El nativo se queda: es más rápido, lo dibuja el
+sistema y respeta las preferencias de accesibilidad. Esto sólo cubre el caso que aquél no puede.
+
+### Detalles que costaron
+
+| | |
+|---|---|
+| El globo se coloca **después** de medirlo | Uno de dos líneas mide distinto que uno de una; calcular la posición antes lo deja saliéndose por arriba justo en los textos largos |
+| `touchstart` con `{ passive: true }` | No se llama a `preventDefault()` —el toque normal debe seguir funcionando— y declararlo evita que el navegador retrase el desplazamiento |
+| Se quita en `scroll` y en `unmounted` | Un globo abierto sobrevivía a su botón: la tarjeta se iba y el texto se quedaba flotando |
+
+### Y el otro lado del mismo problema: la fila se apretaba
+
+Los botones de cada propuesta iban en un `flex` sin `flex-wrap`, así que en un móvil ocho iconos se
+encogían hasta ser ilegibles y difíciles de acertar. Ahora **fluyen a segunda línea**: medido,
+pasan de 1 a 2 a 3 líneas según estrecha, y **conservan su tamaño**. Un icono de 36 px es el mínimo
+para un dedo; perder una fila de alto cuesta menos que fallar el botón.
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
+| Que el `title` de un botón-icono se vea en móvil | `util/src/directives/tooltipTactil.ts` — `v-tooltip-tactil`, registrada en `main.ts` |
 | Añadir un botón a la barra flotante del editor | `util/src/components/WysiwygEditor.vue` **y** `assets/controllers/panel/tinymce_controller.js` | los dos: el gesto es el mismo en las dos pantallas (§3.n) |
 | **Que una pantalla deje de editar teléfono/correo** | la vista | `ContactoDeIdentidad.vue` con `contextType` + `contextId` (§3.h) |
 | **Cambiar cuánto hay que tirar para que recargue** | `GestoDeRecarga.vue` | `UMBRAL` (88 px) y `ROCE` (2.4) — sólo se juzga en un móvil real (§3.g) |

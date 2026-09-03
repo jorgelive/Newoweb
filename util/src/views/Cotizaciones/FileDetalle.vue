@@ -2698,8 +2698,12 @@ const eliminarDocumento = async (iri?: string) => {
                   </div>
                 </div>
 
-                <!-- Derecha: Botones de Acción -->
-                <div class="flex items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
+                <!-- Derecha: Botones de Acción.
+                     ⚠️ `flex-wrap`: son hasta OCHO botones y en un móvil se apretaban hasta
+                     quedar ilegibles y difíciles de acertar. Fluyen a segunda línea en vez de
+                     encogerse — un icono de 36 px es el mínimo para el dedo, y perder una fila de
+                     alto cuesta menos que fallar el botón. -->
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
                   <button @click="abrirMotor(cot)" class="px-4 py-2 bg-[#E07845] text-white text-xs font-bold rounded-xl shadow-sm hover:bg-[#c96636] transition-colors flex items-center gap-2">
                     Editar <i class="fas fa-arrow-right"></i>
                   </button>
@@ -2707,7 +2711,7 @@ const eliminarDocumento = async (iri?: string) => {
                   <!-- ⚠️ Publicar es un eje PROPIO, no una consecuencia del estado. Antes había que
                        poner «enviada» para que el cliente la viera —o para verla uno mismo—, que es
                        mentir sobre un acto comercial para conseguir una visibilidad. -->
-                  <button @click="alternarPublicado(cot)"
+                  <button v-tooltip-tactil @click="alternarPublicado(cot)"
                           :class="cot.publicado
                             ? 'text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
                             : 'text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-50'"
@@ -2728,7 +2732,7 @@ const eliminarDocumento = async (iri?: string) => {
                   <!-- Armar la operación. ⚠️ Mismo sitio que el plan —donde VIVE la operación—
                        porque son la misma cosa en dos momentos: éste la crea, aquél la revisa.
                        Confirmar ya no la crea (02/09/2026): ver GenerarOperacionProcessor. -->
-                  <button v-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
+                  <button v-tooltip-tactil v-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
                           @click="generarOperacion(cot)"
                           :disabled="armandoOperacion === extractIdStr(cot.id || cot['@id'])"
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white transition-colors disabled:opacity-50"
@@ -2743,7 +2747,7 @@ const eliminarDocumento = async (iri?: string) => {
                        apuntando a un plan vacío, mientras la fila que sí tiene las 47 filas no lo
                        ofrecía. Se vio en pantalla, no en un test: a ojo el `v-if` parecía correcto
                        —y lo era, hasta que existió la operativa—. Ver docs/Cotizaciones.md §6.j.3. -->
-                  <button v-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
+                  <button v-tooltip-tactil v-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
                           @click="abrirPlanOperacion(cot)"
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white transition-colors"
                           title="Revisar los cambios de esta versión en el Centro de Operaciones">
@@ -2753,7 +2757,7 @@ const eliminarDocumento = async (iri?: string) => {
                   <!-- Abrir la operativa: sólo en la confirmada, y sólo si no la tiene ya. Es
                        idempotente en el servidor —devuelve la que hay—, pero enseñar el botón
                        cuando ya existe invita a pulsarlo esperando otra cosa. -->
-                  <button v-if="cot.estado === 'confirmado' && !operativaDe(cot)"
+                  <button v-tooltip-tactil v-if="cot.estado === 'confirmado' && !operativaDe(cot)"
                           @click="abrirOperativa(cot)"
                           :disabled="abriendoOperativa === extractIdStr(cot.id || cot['@id'])"
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-orange-200 text-orange-500 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-colors disabled:opacity-50"
@@ -2766,21 +2770,22 @@ const eliminarDocumento = async (iri?: string) => {
                        direcciones opuestas, y confundirlas es lo caro: clonar crea la versión
                        siguiente y deja ésta atrás —bien antes de vender—; esto congela una foto y
                        deja ésta viva con sus órdenes. Ver docs/Cotizaciones.md §6.j. -->
-                  <button @click="guardarHistorico(cot)" :disabled="guardandoHistorico === extractIdStr(cot.id || cot['@id'])"
+                  <button v-tooltip-tactil @click="guardarHistorico(cot)" :disabled="guardandoHistorico === extractIdStr(cot.id || cot['@id'])"
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-violet-500 hover:border-violet-200 hover:bg-violet-50 transition-colors disabled:opacity-50"
                           title="Guardar una foto de cómo está ahora, antes de modificarla">
                     <i class="fas fa-spinner fa-spin text-xs" v-if="guardandoHistorico === extractIdStr(cot.id || cot['@id'])"></i>
                     <i class="fas fa-camera text-xs" v-else></i>
                   </button>
 
-                  <button @click="clonarVersion(cot)" :disabled="clonandoItem === extractIdStr(cot.id || cot['@id'])"
+                  <button v-tooltip-tactil @click="clonarVersion(cot)" :disabled="clonandoItem === extractIdStr(cot.id || cot['@id'])"
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-sky-500 hover:border-sky-200 hover:bg-sky-50 transition-colors disabled:opacity-50"
                           title="Clonar esta versión">
                     <i class="fas fa-spinner fa-spin text-xs" v-if="clonandoItem === extractIdStr(cot.id || cot['@id'])"></i>
                     <i class="fas fa-copy text-xs" v-else></i>
                   </button>
 
-                  <button @click="eliminarVersion(cot)" :disabled="eliminandoItem === (cot['@id'] || cot.id)"
+                  <button v-tooltip-tactil @click="eliminarVersion(cot)" :disabled="eliminandoItem === (cot['@id'] || cot.id)"
+                          title="Eliminar esta propuesta"
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50">
                     <i class="fas fa-spinner fa-spin text-xs" v-if="eliminandoItem === (cot['@id'] || cot.id)"></i>
                     <i class="fas fa-trash-alt text-xs" v-else></i>
