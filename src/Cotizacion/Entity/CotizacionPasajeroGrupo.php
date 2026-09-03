@@ -72,6 +72,26 @@ class CotizacionPasajeroGrupo
      * Sin esto, un importador con un id mal cruzado mete a media escuela en los grupos de otro
      * viaje, y nada lo denuncia: las dos FK son válidas por separado.
      */
+    /**
+     * El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+     * habitación, su asiento.
+     *
+     * ⚠️ **Va en la pertenencia y no en el pasajero**, porque no es suyo: es suyo *en ese grupo*.
+     * La misma persona lleva un localizador en la reserva aérea de ida y otro en la de vuelta, y
+     * un número de habitación distinto en cada hotel. Colgarlo del pasajero obligaría a inventar
+     * un campo por eje y a elegir cuál gana.
+     *
+     * ⚠️ Es **el dato que hace que la operativa tenga que pedir identidad**: el itinerario es el
+     * mismo para todos, pero esto no. Ver `docs/Cotizaciones.md` §6.j.5.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read'])]
+    #[ORM\Column(type: 'string', length: 40, nullable: true)]
+    private ?string $codigo = null;
+
+    public function getCodigo(): ?string { return $this->codigo; }
+
+    public function setCodigo(?string $codigo): self { $this->codigo = $codigo; return $this; }
+
     #[ORM\PrePersist]
     #[ORM\PreUpdate]
     public function validarMismoExpediente(): void

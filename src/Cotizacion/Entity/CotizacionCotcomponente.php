@@ -57,6 +57,38 @@ class CotizacionCotcomponente
     private ?CotizacionSegmento $cotsegmento = null;
 
     /**
+     * A QUIÉN del grupo aplica este componente. `null` = a todos.
+     *
+     * ── El caso que lo trajo ────────────────────────────────────────────────
+     * Se cotiza un grupo entero con un vuelo. Después la realidad se parte: 22 personas van en el
+     * nacional y 18 en el internacional. El servicio «Vuelo» pasa a tener **dos componentes**, y
+     * las cantidades por componente **dejan de sumar el total del grupo** — que es correcto, y es
+     * justo lo que antes no se podía representar.
+     *
+     * ```
+     * Componente «Vuelo LIM–PUJ»  grupo = #Vuelo Nacional        22 pax
+     * Componente «Vuelo LIM–PUJ»  grupo = #Vuelo Internacional   18 pax
+     * Componente «Hotel Tambo»    grupo = null                   los 40
+     * ```
+     *
+     * ── ⚠️ `null` significa TODOS, y es deliberado ──────────────────────────
+     * Es la misma decisión que en skills, guía y conocimiento: **lista vacía = sin acotar**. Va
+     * contra la intuición y se elige a propósito, porque un olvido al clasificar deja el ítem **de
+     * más** —inofensivo, alguien lo ve y lo corrige— en vez de invisible. Lo segundo no se
+     * descubre nunca: nadie echa de menos lo que no sabía que existía.
+     *
+     * Es además lo que hace barato el caso normal: un hotel que es para todos no lleva nada, y
+     * partir un vuelo no obliga a etiquetar los otros veinte componentes.
+     *
+     * ⚠️ **El subgrupo es del EXPEDIENTE, no de la cotización.** Cuelga de `CotizacionFileGrupo`,
+     * así que sobrevive a abrir la operativa: los mismos «#Vuelo Nacional» siguen valiendo.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'pax_cotizacion:read'])]
+    #[ORM\ManyToOne(targetEntity: CotizacionFileGrupo::class)]
+    #[ORM\JoinColumn(name: 'grupo_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?CotizacionFileGrupo $grupo = null;
+
+    /**
      * El nombre PÚBLICO de la línea que se compra: el que ve el cliente.
      *
      * ⚠️ **No confundir con `$nombreInternoSnapshot`**, que es el OPERATIVO. La diferencia no es
@@ -474,10 +506,16 @@ class CotizacionCotcomponente
      */
     public function setTituloSnapshot(array $tituloSnapshot): self { $this->tituloSnapshot = $tituloSnapshot; return $this; }
 
+    public function getGrupo(): ?CotizacionFileGrupo { return $this->grupo; }
+
+    public function setGrupo(?CotizacionFileGrupo $grupo): self { $this->grupo = $grupo; return $this; }
+
     /**
      * Obtiene la cantidad de componentes instanciados.
      *
-     * @return int
+     * ⚠️ En un grupo partido, las cantidades de los componentes de un servicio **NO suman el total
+     * del grupo**, y es correcto: 22 en el vuelo nacional y 18 en el internacional. Ver
+     * {@see self::$grupo}.
      */
     public function getCantidad(): int { return $this->cantidad; }
 

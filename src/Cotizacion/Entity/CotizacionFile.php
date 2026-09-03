@@ -541,6 +541,52 @@ class CotizacionFile
     public function isUsaPadron(): bool { return $this->modo->usaPadron(); }
 
     /**
+     * Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`.
+     *
+     * Ver {@see \App\Cotizacion\Service\CoberturaDeSubgrupos}: si el vuelo se parte en dos y
+     * alguien no está en ninguno, su itinerario no le enseña ningún vuelo — y no puede reportarlo,
+     * porque no echa de menos lo que no sabía que existía.
+     *
+     * @var list<array{eje: string, ejeLabel: string, faltan: list<string>}>
+     */
+    // ⚠️ La forma se declara AQUÍ y no se castea en el front. De un `list<array{...}>` la
+    // introspección saca `{[k: string]: string|string[]}[]`, que no tipa nada: `eje.join` compila.
+    // Declarándolo en PHP el arreglo vale para los dos `api.d.ts` y para cualquier consumidor
+    // futuro, en vez de para el que lo notó primero.
+    #[ApiProperty(openapiContext: [
+        'type' => 'array',
+        'items' => [
+            'type' => 'object',
+            'properties' => [
+                'eje' => ['type' => 'string'],
+                'ejeLabel' => ['type' => 'string'],
+                'faltan' => ['type' => 'array', 'items' => ['type' => 'string']],
+            ],
+            'required' => ['eje', 'ejeLabel', 'faltan'],
+        ],
+    ])]
+    #[Groups(['file:item:read'])]
+    private array $subgruposIncompletos = [];
+
+    /**
+     * @return list<array{eje: string, ejeLabel: string, faltan: list<string>}>
+     */
+    public function getSubgruposIncompletos(): array
+    {
+        return $this->subgruposIncompletos;
+    }
+
+    /**
+     * @param list<array{eje: string, ejeLabel: string, faltan: list<string>}> $subgruposIncompletos
+     */
+    public function setSubgruposIncompletos(array $subgruposIncompletos): self
+    {
+        $this->subgruposIncompletos = $subgruposIncompletos;
+
+        return $this;
+    }
+
+    /**
      * El padrón que ve el cliente en la portada pública. **Vacío en un expediente de grupo.**
      *
      * ⚠️ Aquí y no en la vista: esconderlo en el front deja los 133 nombres y sus números de

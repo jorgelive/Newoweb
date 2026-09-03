@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
+use App\Cotizacion\Service\CoberturaDeSubgrupos;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -46,6 +47,7 @@ final readonly class CotizacionFileItemProvider implements ProviderInterface
         #[Autowire(service: 'api_platform.doctrine.orm.state.item_provider')]
         private ProviderInterface $decorado,
         private Connection $conn,
+        private CoberturaDeSubgrupos $cobertura,
     ) {
     }
 
@@ -86,6 +88,11 @@ final readonly class CotizacionFileItemProvider implements ProviderInterface
             // para distinguir «vacía» de «no consultada».
             $cotizacion->setFilasOperacionActivas((int) ($porCotizacion[$clave] ?? 0));
         }
+
+        // ⚠️ Quién se queda fuera al partir el grupo. Va aquí y no en un endpoint aparte porque
+        // el operador tiene que verlo **sin ir a buscarlo**: es un aviso sobre alguien que no
+        // puede reclamar, porque no sabe que le falta algo.
+        $file->setSubgruposIncompletos($this->cobertura->revisar($file));
 
         return $file;
     }

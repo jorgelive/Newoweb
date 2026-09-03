@@ -2599,6 +2599,25 @@ const eliminarDocumento = async (iri?: string) => {
           </div>
             <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4"><i class="fas fa-code-branch mr-2 text-[#E07845]"></i> Historial de Propuestas</h2>
 
+            <!-- ⚠️ QUIÉN SE QUEDA FUERA al partir el grupo.
+                 Va arriba y sin plegar a propósito: es un aviso sobre gente que NO puede
+                 reclamarlo. Si el vuelo se parte en dos y alguien no está en ninguno, abre su
+                 viaje y no ve ningún vuelo — y no echa de menos lo que no sabía que existía.
+                 Ver CoberturaDeSubgrupos. -->
+            <div v-if="file?.subgruposIncompletos?.length"
+                 class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <p class="text-[11px] font-black uppercase tracking-widest text-amber-700 flex items-center gap-2 mb-2">
+                <i class="fas fa-triangle-exclamation"></i>
+                Hay gente sin asignar
+              </p>
+              <div v-for="hallazgo in file.subgruposIncompletos" :key="hallazgo.eje" class="text-xs text-amber-900 leading-relaxed mb-1.5 last:mb-0">
+                <span class="font-black">{{ hallazgo.ejeLabel }}:</span>
+                <span class="font-bold">{{ hallazgo.faltan.length }}</span>
+                {{ hallazgo.faltan.length === 1 ? 'persona no está' : 'personas no están' }} en ningún subgrupo —
+                <span class="text-amber-700">{{ hallazgo.faltan.slice(0, 6).join(', ') }}<span v-if="hallazgo.faltan.length > 6"> y {{ hallazgo.faltan.length - 6 }} más</span></span>
+              </div>
+            </div>
+
             <div v-if="!file.cotizaciones || file.cotizaciones.length === 0" class="bg-white border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400">
               <i class="fas fa-clipboard-list text-4xl mb-4 opacity-50"></i>
               <p class="text-sm font-bold uppercase tracking-widest">No hay cotizaciones</p>

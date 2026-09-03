@@ -171,6 +171,33 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 throw new AccessDeniedHttpException('IDENTIFICACION_REQUERIDA');
             }
 
+            // ── Cada uno ve LO SUYO ─────────────────────────────────────────
+            //
+            // Sólo en la operativa de un grupo: es la única que lleva componentes acotados a un
+            // subgrupo. En lo comercial no hay nada que filtrar —es el mismo documento para
+            // todos— y filtrarlo ahí sólo serviría para esconderle a alguien su propio viaje.
+            //
+            // ⚠️ Lista VACÍA si no pertenece a ningún subgrupo, nunca `null`: `null` significa
+            // «no se filtró» y serviría el expediente entero. Es la diferencia entre ver lo
+            // general y verlo todo.
+            if ($cotizacion->getEstado() === CotizacionEstadoEnum::OPERATIVA && !$previsualiza) {
+                $pasajero = $this->identidad->pasajeroIdentificado($file);
+
+                if ($pasajero !== null) {
+                    $suyos = [];
+
+                    foreach ($pasajero->getPertenencias() as $pertenencia) {
+                        $id = $pertenencia->getGrupo()?->getId()?->toRfc4122();
+
+                        if ($id !== null) {
+                            $suyos[] = $id;
+                        }
+                    }
+
+                    $cotizacion->setFiltroSubgrupos($suyos);
+                }
+            }
+
             $file->setCotizacionParaCliente($cotizacion);
         }
 

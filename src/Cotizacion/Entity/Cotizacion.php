@@ -670,6 +670,40 @@ class Cotizacion
     }
 
     /**
+     * A qué subgrupos pertenece quien está mirando. `null` = no se filtra.
+     *
+     * ── Virtual, y la pone el provider ──────────────────────────────────────
+     * `null` es lo normal: el operador, un tour de catálogo, un expediente individual. Se rellena
+     * **sólo** cuando un pasajero identificado abre la operativa de un grupo, y entonces cada
+     * `cotservicio` sirve nada más los componentes que le tocan.
+     *
+     * ⚠️ **Lista vacía NO es lo mismo que `null`.** Vacía significa «se filtró y esta persona no
+     * está en ningún subgrupo»: ve lo general y nada acotado. `null` significa «no se preguntó».
+     * Confundirlas enseñaría el expediente entero a alguien que no debía verlo.
+     *
+     * @var list<string>|null
+     */
+    private ?array $filtroSubgrupos = null;
+
+    /**
+     * @return list<string>|null
+     */
+    public function getFiltroSubgrupos(): ?array
+    {
+        return $this->filtroSubgrupos;
+    }
+
+    /**
+     * @param list<string>|null $filtroSubgrupos
+     */
+    public function setFiltroSubgrupos(?array $filtroSubgrupos): self
+    {
+        $this->filtroSubgrupos = $filtroSubgrupos;
+
+        return $this;
+    }
+
+    /**
      * De qué fila sale el DINERO que ve el cliente.
      *
      * ── La composición ──────────────────────────────────────────────────────

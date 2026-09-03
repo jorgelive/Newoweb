@@ -180,7 +180,7 @@ individual el «manifiesto» es la familia y está bien; en uno grupal no es ni 
 | 4.1 | ~~`FileModoEnum::ocultaManifiesto()`, y la portada lo respeta~~ **HECHO 02/09/2026** | ✅ `5SRAJV` pasa de 133 pasajeros a 0 · se corta en el SERVIDOR |
 | 4.2 | ~~Endpoint: documento + fecha de nacimiento~~ **HECHO** | ✅ `IdentidadDelPasajero` · probado con el padrón real |
 | 4.3a | ~~El provider sirve la operativa sólo a quien se identificó~~ **HECHO** | ✅ 403 `IDENTIFICACION_REQUERIDA` → formulario → sirve |
-| 4.3b | …y **filtrada a lo suyo** | ⏳ Necesita F5: hoy quien entra ve la operativa entera |
+| 4.3b | ~~…y **filtrada a lo suyo**~~ **HECHO 03/09/2026** | ✅ `getCotcomponentesParaCliente()` · con test de que NO vacía la colección real |
 | 4.4 | ~~Límite de intentos~~ **HECHO** | ✅ 8 / 15 min, por expediente **y** por IP |
 
 ⚠️ **El padrón de `5SRAJV` son menores** —viaje de colegio, nacidos en 2009—, y sus documentos
@@ -227,14 +227,23 @@ que circulan por WhatsApp en un grupo de colegio.
 
 ### F5 · El filtrado por subgrupo
 
-| | Acción |
-|---|---|
-| 5.1 | `CotizacionCotcomponente.grupo` → `?CotizacionFileGrupo`, **null = aplica a todos** · migración |
-| 5.2 | `CotizacionPasajeroGrupo.codigo` → el localizador aéreo **de esa persona en ese vuelo** · migración |
-| 5.3 | Editor: asignar subgrupo a un componente |
-| 5.4 | Chequeo: **unión(subgrupos) ⊇ pasajeros** — huecos y solapes |
-| 5.5 | Guía: el pasajero identificado ve sólo lo suyo, con su código |
-| 5.6 | Órdenes: salen con la gente del subgrupo |
+| | Acción | Hecho cuando |
+|---|---|---|
+| 5.1 | ~~`CotizacionCotcomponente.grupo`, **null = todos**~~ **HECHO 03/09/2026** | ✅ Migración escrita a mano — ver el aviso de abajo |
+| 5.2 | ~~`CotizacionPasajeroGrupo.codigo`~~ **HECHO** | ✅ En la pertenencia, no en el pasajero |
+| 5.3 | Editor: asignar subgrupo a un componente | ⏳ El campo está en la API; falta el selector en el editor |
+| 5.4 | ~~Chequeo: **unión(subgrupos) ⊇ pasajeros**~~ **HECHO** | ✅ `CoberturaDeSubgrupos` · 6 tests · aviso sin plegar en el editor |
+| 5.5 | ~~El identificado ve sólo lo suyo~~ **HECHO** | ✅ `getCotcomponentesParaCliente()` · falta pintar su `codigo` |
+| 5.6 | Órdenes: salen con la gente del subgrupo | ⏳ |
+
+🔥 **`make:migration` quería borrar cuatro tablas.** Además de las dos columnas, generó `DROP TABLE`
+de `energia_dispositivo`, `energia_lectura`, `energia_suscripcion` —restos vacíos del renombrado a
+`Domotica*`— y de `pms_evento_calendario_backup_20260808`, que es **un respaldo manual con 19
+filas**. La migración se reescribió a mano dejando sólo lo propio.
+
+⚠️ **Y esto va a repetirse en cada migración futura**, porque esas tablas siguen ahí sin entidad
+que las mapee. Limpiarlas es una decisión aparte, con su propia migración; mientras tanto, **toda
+migración generada hay que leerla entera antes de ejecutarla**.
 
 El eje ya existe y admite el multitramo **sin tocar código**: `reserva_aerea` con subeje libre
 (`#Vuelo Nacional`, `#Vuelo Internacional`). Cargar quién vuela en qué se puede hacer hoy.

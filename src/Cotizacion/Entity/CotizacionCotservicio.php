@@ -16,6 +16,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Uid\Uuid;
 
 #[ApiResource(
@@ -140,9 +141,12 @@ class CotizacionCotservicio
     private ?DateTimeImmutable $fechaInicioAbsoluta = null;
 
     /**
+     * ⚠️ SIN `pax_cotizacion:read`: al cliente se lo sirve getCotcomponentesParaCliente(), que en
+     * la operativa de un grupo deja sólo lo que le toca a quien se identificó.
+     *
      * @var Collection<int, CotizacionCotcomponente>
      */
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read', 'pax_cotizacion:read'])]
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
     #[ORM\OneToMany(mappedBy: 'cotservicio', targetEntity: CotizacionCotcomponente::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['fechaHoraInicio' => 'ASC'])]
     private Collection $cotcomponentes;
@@ -278,6 +282,58 @@ class CotizacionCotservicio
     public function setFechaInicioAbsoluta(?DateTimeImmutable $fechaInicioAbsoluta): self { $this->fechaInicioAbsoluta = $fechaInicioAbsoluta; return $this; }
 
     /**
+     * @return Collection<int, CotizacionCotcomponente>
+     */
+    /**
+     * Los componentes que ve ESTE cliente. En la operativa de un grupo, sólo los suyos.
+     *
+     * ```
+     * grupo = null                    lo ve todo el mundo
+     * grupo = #Vuelo Nacional         sólo quien pertenece a ese subgrupo
+     * ```
+     *
+     * ── ⚠️ Devuelve una colección NUEVA; nunca quita de la original ─────────
+     * `$cotcomponentes` es una `PersistentCollection` con `orphanRemoval: true`. Quitarle
+     * elementos para filtrar marcaría esos componentes para **borrado** en el siguiente flush —el
+     * cliente miraría su itinerario y la cotización perdería la mitad—. No daría error: borraría.
+     *
+     * ── ⚠️ Se filtra AQUÍ y no en la vista ──────────────────────────────────
+     * Un `v-if` en `pax` deja los vuelos de los demás viajando en la respuesta. Es exactamente lo
+     * que la identificación viene a impedir, así que esconderlo en el front la volvería
+     * decorativa.
+     *
+     * @return Collection<int, CotizacionCotcomponente>
+     */
+    #[Groups(['pax_cotizacion:read'])]
+    #[SerializedName('cotcomponentes')]
+    public function getCotcomponentesParaCliente(): Collection
+    {
+        $permitidos = $this->cotizacion?->getFiltroSubgrupos();
+
+        if ($permitidos === null) {
+            return $this->cotcomponentes;
+        }
+
+        return $this->cotcomponentes->filter(
+            static function (CotizacionCotcomponente $componente) use ($permitidos): bool {
+                $grupo = $componente->getGrupo();
+
+                // Sin subgrupo = para todos. Ver el docblock de CotizacionCotcomponente::$grupo:
+                // un olvido al clasificar deja el componente de más, que se ve y se corrige, en
+                // vez de invisible, que no se descubre nunca.
+                if ($grupo === null) {
+                    return true;
+                }
+
+                return in_array($grupo->getId()?->toRfc4122(), $permitidos, true);
+            },
+        );
+    }
+
+    /**
+     * TODOS los componentes, sin filtrar. Para el cliente va
+     * {@see self::getCotcomponentesParaCliente()}.
+     *
      * @return Collection<int, CotizacionCotcomponente>
      */
     public function getCotcomponentes(): Collection { return $this->cotcomponentes; }

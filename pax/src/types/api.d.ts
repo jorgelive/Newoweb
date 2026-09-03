@@ -7321,6 +7321,12 @@ export interface components {
              * @example https://example.com/
              */
             cotsegmento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7432,6 +7438,7 @@ export interface components {
         };
         "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo-cotizacion.read_timestamp.read"] | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7537,6 +7544,12 @@ export interface components {
         };
         "CotizacionCotcomponente-cotizacion.write": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.write"] | null;
+            /**
+             * Format: iri-reference
+             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7653,6 +7666,12 @@ export interface components {
         };
         "CotizacionCotcomponente-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_catalogo.read_pax_cotizacion.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7695,6 +7714,7 @@ export interface components {
         };
         "CotizacionCotcomponente-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo-pax_file.read_pax_cotizacion.read"] | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7749,6 +7769,12 @@ export interface components {
              * @example https://example.com/
              */
             cotsegmento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7860,6 +7886,7 @@ export interface components {
         };
         "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo.html-cotizacion.read_timestamp.read"] | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7982,6 +8009,12 @@ export interface components {
         };
         "CotizacionCotcomponente.html-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_catalogo.read_pax_cotizacion.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8024,6 +8057,7 @@ export interface components {
         };
         "CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo.html-pax_file.read_pax_cotizacion.read"] | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8078,6 +8112,12 @@ export interface components {
              * @example https://example.com/
              */
             cotsegmento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8190,6 +8230,7 @@ export interface components {
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo.jsonld-cotizacion.read_timestamp.read"] | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8314,6 +8355,12 @@ export interface components {
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_catalogo.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_catalogo.read_pax_cotizacion.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8357,6 +8404,7 @@ export interface components {
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo.jsonld-pax_file.read_pax_cotizacion.read"] | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8411,6 +8459,12 @@ export interface components {
              * @example https://example.com/
              */
             cotsegmento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8522,6 +8576,7 @@ export interface components {
         };
         "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo.multipart-cotizacion.read_timestamp.read"] | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8644,6 +8699,12 @@ export interface components {
         };
         "CotizacionCotcomponente.multipart-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_catalogo.read_pax_cotizacion.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8686,6 +8747,7 @@ export interface components {
         };
         "CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo.multipart-pax_file.read_pax_cotizacion.read"] | null;
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8758,7 +8820,8 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: string[];
+            /** @description Los componentes que ve ESTE cliente. En la operativa de un grupo, sólo los suyos. */
+            readonly cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
             id?: string;
@@ -8876,9 +8939,9 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente-pax_catalogo.read_pax_cotizacion.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento-pax_catalogo.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente-pax_catalogo.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio-pax_file.read_pax_cotizacion.read": {
             /**
@@ -8891,9 +8954,9 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente-pax_file.read_pax_cotizacion.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente-pax_file.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio.html": {
             /**
@@ -8927,7 +8990,8 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: string[];
+            /** @description Los componentes que ve ESTE cliente. En la operativa de un grupo, sólo los suyos. */
+            readonly cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
             id?: string;
@@ -9007,9 +9071,9 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-pax_catalogo.read_pax_cotizacion.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.html-pax_catalogo.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-pax_catalogo.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio.html-pax_file.read_pax_cotizacion.read": {
             /**
@@ -9022,9 +9086,9 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -9058,7 +9122,8 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: string[];
+            /** @description Los componentes que ve ESTE cliente. En la operativa de un grupo, sólo los suyos. */
+            readonly cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
             id?: string;
@@ -9138,9 +9203,9 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -9153,9 +9218,9 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio.multipart": {
             /**
@@ -9189,7 +9254,8 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: string[];
+            /** @description Los componentes que ve ESTE cliente. En la operativa de un grupo, sólo los suyos. */
+            readonly cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
             id?: string;
@@ -9269,9 +9335,9 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-pax_catalogo.read_pax_cotizacion.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-pax_catalogo.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-pax_catalogo.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio.multipart-pax_file.read_pax_cotizacion.read": {
             /**
@@ -9284,9 +9350,9 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read"][];
         };
         CotizacionCottarifa: {
             /**
@@ -10036,6 +10102,12 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
+            subgruposIncompletos?: {
+                eje: string;
+                ejeLabel: string;
+                faltan: string[];
+            }[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -10091,6 +10163,12 @@ export interface components {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
+            }[];
+            /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
+            subgruposIncompletos?: {
+                eje: string;
+                ejeLabel: string;
+                faltan: string[];
             }[];
             /** Format: date-time */
             createdAt?: string;
@@ -10320,6 +10398,12 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
+            subgruposIncompletos?: {
+                eje: string;
+                ejeLabel: string;
+                faltan: string[];
+            }[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -10375,6 +10459,12 @@ export interface components {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
+            }[];
+            /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
+            subgruposIncompletos?: {
+                eje: string;
+                ejeLabel: string;
+                faltan: string[];
             }[];
             /** Format: date-time */
             createdAt?: string;
@@ -10522,6 +10612,12 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
+            subgruposIncompletos?: {
+                eje: string;
+                ejeLabel: string;
+                faltan: string[];
+            }[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -10595,6 +10691,12 @@ export interface components {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
+            }[];
+            /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
+            subgruposIncompletos?: {
+                eje: string;
+                ejeLabel: string;
+                faltan: string[];
             }[];
             /** Format: date-time */
             createdAt?: string;
@@ -10790,6 +10892,12 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
+            subgruposIncompletos?: {
+                eje: string;
+                ejeLabel: string;
+                faltan: string[];
+            }[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -10845,6 +10953,12 @@ export interface components {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
+            }[];
+            /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
+            subgruposIncompletos?: {
+                eje: string;
+                ejeLabel: string;
+                faltan: string[];
             }[];
             /** Format: date-time */
             createdAt?: string;
@@ -10998,6 +11112,12 @@ export interface components {
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
         };
+        "CotizacionFileGrupo-cotizacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo-file.item.read_timestamp.read": {
             /** @enum {string} */
@@ -11109,6 +11229,25 @@ export interface components {
             notas?: string[];
             id?: string;
         };
+        "CotizacionFileGrupo-pax_file.read_pax_cotizacion.read": {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+            detalle?: string | null;
+            id?: string;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+        };
         "CotizacionFileGrupo.html": {
             /**
              * Format: iri-reference
@@ -11146,6 +11285,12 @@ export interface components {
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
+        };
+        "CotizacionFileGrupo.html-cotizacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.html-file.item.read_timestamp.read": {
@@ -11210,6 +11355,25 @@ export interface components {
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
         };
+        "CotizacionFileGrupo.html-pax_file.read_pax_cotizacion.read": {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+            detalle?: string | null;
+            id?: string;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+        };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             file?: components["schemas"]["CotizacionFile.jsonld"];
@@ -11242,6 +11406,13 @@ export interface components {
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
+        };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld-file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -11307,6 +11478,26 @@ export interface components {
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
         };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+            detalle?: string | null;
+            id?: string;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+        };
         "CotizacionFileGrupo.multipart": {
             /**
              * Format: iri-reference
@@ -11344,6 +11535,12 @@ export interface components {
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
+        };
+        "CotizacionFileGrupo.multipart-cotizacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.multipart-file.item.read_timestamp.read": {
@@ -11407,6 +11604,25 @@ export interface components {
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
+        };
+        "CotizacionFileGrupo.multipart-pax_file.read_pax_cotizacion.read": {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+            detalle?: string | null;
+            id?: string;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
         };
         CotizacionFilearchivo: {
             /**
@@ -12683,6 +12899,11 @@ export interface components {
              * @example https://example.com/
              */
             grupo: string;
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -12691,6 +12912,11 @@ export interface components {
         };
         "CotizacionPasajeroGrupo-file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo-file.item.read_timestamp.read"];
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -12699,6 +12925,11 @@ export interface components {
         };
         "CotizacionPasajeroGrupo-file.read_file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"];
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -12720,6 +12951,11 @@ export interface components {
              * @example https://example.com/
              */
             grupo: string;
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -12728,6 +12964,11 @@ export interface components {
         };
         "CotizacionPasajeroGrupo.html-file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.html-file.item.read_timestamp.read"];
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -12736,6 +12977,11 @@ export interface components {
         };
         "CotizacionPasajeroGrupo.html-file.read_file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"];
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -12753,6 +12999,11 @@ export interface components {
              * @example https://example.com/
              */
             grupo: string;
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -12761,6 +13012,11 @@ export interface components {
         };
         "CotizacionPasajeroGrupo.jsonld-file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read_timestamp.read"];
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -12769,6 +13025,11 @@ export interface components {
         };
         "CotizacionPasajeroGrupo.jsonld-file.read_file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"];
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -12786,6 +13047,11 @@ export interface components {
              * @example https://example.com/
              */
             grupo: string;
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -12794,6 +13060,11 @@ export interface components {
         };
         "CotizacionPasajeroGrupo.multipart-file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.item.read_timestamp.read"];
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -12802,6 +13073,11 @@ export interface components {
         };
         "CotizacionPasajeroGrupo.multipart-file.read_file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"];
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;

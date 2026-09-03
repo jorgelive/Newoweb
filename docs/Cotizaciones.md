@@ -2091,6 +2091,65 @@ El **filtrado por persona** —que cada uno vea sólo su vuelo y su código— n
 identifica ve la operativa **entera**. La puerta está puesta; lo que hay detrás todavía no
 distingue.
 
+## 6.j.6 Cuando el grupo se parte: subgrupos y códigos (03/09/2026)
+
+```
+Servicio «Vuelo»
+  Componente «LIM–PUJ»  grupo = #Vuelo Nacional        22 pax
+  Componente «LIM–PUJ»  grupo = #Vuelo Internacional   18 pax
+  Componente «Hotel»    grupo = null                   los 40
+```
+
+⚠️ **Las cantidades por componente dejan de sumar el total del grupo, y es correcto.** Era
+exactamente lo que antes no se podía representar.
+
+### `null` = todos, y es deliberado
+
+Misma decisión que en skills, guía y conocimiento: **sin acotar en vez de invisible**. Un olvido al
+clasificar deja el componente **de más** —alguien lo ve y lo corrige— en vez de escondido, que no
+se descubre nunca porque nadie echa de menos lo que no sabía que existía.
+
+Es además lo que abarata el caso normal: partir un vuelo no obliga a etiquetar los otros veinte
+componentes.
+
+### El código va en la PERTENENCIA, no en el pasajero
+
+`CotizacionPasajeroGrupo::$codigo` — su localizador, su habitación, su asiento. No es de la
+persona: es suyo **en ese grupo**. La misma persona lleva un localizador en la reserva de ida y
+otro en la de vuelta. Colgarlo del pasajero obligaría a un campo por eje y a elegir cuál gana.
+
+Es también **el dato que obliga a pedir identidad** (§6.j.5): el itinerario es igual para todos,
+esto no.
+
+### El filtrado, y la trampa que tiene dentro
+
+`CotizacionCotservicio::getCotcomponentesParaCliente()` sirve sólo lo que toca. El filtro
+—`Cotizacion::$filtroSubgrupos`, transitorio— lo pone `CotizacionFilePublicProvider` cuando un
+pasajero identificado abre la operativa.
+
+⚠️ **Devuelve una colección NUEVA.** `$cotcomponentes` tiene `orphanRemoval: true`: quitarle
+elementos para filtrar marcaría esos componentes para **borrado** en el siguiente flush. El cliente
+miraría su itinerario y la cotización perdería la mitad. No daría error: borraría. Hay un test que
+sólo vigila eso.
+
+⚠️ **Lista vacía ≠ `null`.** Vacía es «se filtró y no está en ningún subgrupo»: ve lo general.
+`null` es «no se preguntó» y sirve todo. Confundirlas enseña el expediente entero.
+
+### Quién se queda fuera
+
+`CoberturaDeSubgrupos` avisa de la persona 41 que no está ni en el vuelo nacional ni en el
+internacional: abre su viaje y **no ve ningún vuelo**. Sin error y sin fila roja — y no lo reporta,
+porque no sabe que le falta algo.
+
+| Regla | |
+|---|---|
+| `unión(miembros de los subgrupos de un eje) ⊇ pasajeros` | Por **eje**: estar en una habitación no cubre no estar en ningún vuelo |
+| Un eje sin ningún subgrupo **no** se avisa | Significa que el viaje no usa ese eje. Avisar llenaría de rojo cualquier expediente, y una lista que casi siempre miente no la lee nadie |
+| Un subgrupo **vacío** sí cuenta como eje declarado | Alguien lo creó y no metió a nadie: eso es un descuido |
+
+Sale en el editor, arriba del historial de propuestas y **sin plegar**: es un aviso sobre gente que
+no puede reclamarlo.
+
 ## 6.j Versiones e históricos: dos clones en direcciones opuestas (23/08/2026)
 
 Un expediente tiene N `Cotizacion`, numeradas `version`. **Son propuestas**, no versiones de un
