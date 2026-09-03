@@ -66,9 +66,11 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT c.propuesta, c.estado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
                    c.monedaGlobal, c.precioOculto, c.totalVenta, c.adelanto,
-                   c.tipoCambio, c.fechaExpiracion, MIN(s.fechaInicioAbsoluta) AS fechaInicio
+                   c.tipoCambio, c.fechaExpiracion, MIN(s.fechaInicioAbsoluta) AS fechaInicio,
+                   o.totalVenta AS totalVentaOrigen
             FROM App\Cotizacion\Entity\Cotizacion c
             LEFT JOIN c.cotservicios s
+            LEFT JOIN c.derivadaDe o
             WHERE c.file = :file
               AND (c.publicado = true OR :previsualiza = true)
               AND (c.fechaExpiracion IS NULL OR c.fechaExpiracion >= :ahora)
@@ -100,7 +102,19 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 'precioOculto'    => $oculto,
                 'tipoCambio'      => (float) $f['tipoCambio'],
                 // No filtrar montos cuando el precio está oculto
-                'totalVenta'      => $oculto ? null : $f['totalVenta'],
+                // ⚠️ **El total de una OPERATIVA sale de la confirmada**, igual que en el
+                // detalle (`Cotizacion::origenFinancieroParaCliente()`). Aquí hay que repetirlo
+                // porque esta consulta lee columnas, no entidades: el getter que compone no llega
+                // a ejecutarse nunca. Dos sitios que dicen lo mismo por dos caminos distintos, y
+                // por eso el segundo lleva este aviso.
+                //
+                // ⚠️ La condición mira el ESTADO, no que `derivadaDe` esté puesto: un histórico
+                // también lo tiene —apunta a la viva— y debe enseñar su propio dinero.
+                'totalVenta'      => $oculto ? null : (
+                    $estado === CotizacionEstadoEnum::OPERATIVA->value && $f['totalVentaOrigen'] !== null
+                        ? $f['totalVentaOrigen']
+                        : $f['totalVenta']
+                ),
                 'adelanto'        => $oculto ? null : $f['adelanto'],
                 'fechaExpiracion' => $f['fechaExpiracion'] instanceof \DateTimeInterface
                     ? $f['fechaExpiracion']->format(DATE_ATOM) : null,

@@ -129,8 +129,12 @@
   - `util/` — app interna de operación (calendario de reservas, tarifas, cotizaciones, chat).
   - `pax/` — app pública del huésped (guía, vista cliente de cotizaciones).
   Verificación: `cd util && npm run typecheck` **y** `npx eslint .` (idem en `pax/`). Las dos
-  tienen que salir limpias. En `pax` además **`npm test`** (Vitest), que cubre los módulos de
-  `pax/src/dominio/` — ver `docs/NodeEnElStack.md` §5.
+  tienen que salir limpias.
+
+  Los tests de TypeScript viven en **`dominio/`** (`cd dominio && npm test`), no en las apps: los
+  módulos compartidos se movieron ahí al darles su propio paquete. `pax` conserva su script pero
+  **hoy no tiene ni un test**, así que `npm test` ahí sale «no test files found» — un verde que no
+  significa nada. `tests-guard.sh` ya lo sabe y corre `dominio/`. Ver `docs/NodeEnElStack.md` §5.
 
   ⚠️ **Hasta el 02/09/2026 no había NI UN test de TypeScript** —540 en PHP, cero aquí— y ningún
   runner instalado. Se instaló al ir a mover cálculo de negocio a módulos compartibles: hacerlo
@@ -231,7 +235,8 @@ el cierre del turno si se escribieron archivos bajo cualquier `src/` y ningún a
 requiere doc, dilo en una línea y sigue.
 
 `.claude/hooks/tests-guard.sh` hace lo mismo con los **tests**: corre sólo las suites cuyo
-territorio se tocó —`pax/src/dominio/` → `npm test`, `src/` → `phpunit`— y corta si salen en rojo.
+territorio se tocó —`dominio/` → `npm test`, `util/src/stores/` → los suyos, `src/` → `phpunit`— y
+corta si salen en rojo.
 
 ⚠️ **Existió durante meses una asimetría absurda:** la documentación tenía candado y el código no.
 Se podía cerrar un turno con los tests en rojo y nadie se enteraba. Creado el 02/09/2026, el mismo

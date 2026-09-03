@@ -1963,6 +1963,51 @@ Duplicar un árbol de cotización llamaba a Google por cada una de sus 162 entid
 tardaba **245 segundos**. Ahora tarda 73 ms. Afectaba también a «Guardar foto». El detalle, y por
 qué el `origenHash` no lo evitaba, en `docs/Autotraduccion.md` §9.
 
+## 6.j.4 La vista del cliente se compone de DOS filas (02/09/2026)
+
+```
+financiero  ←  SIEMPRE la confirmada
+itinerario  ←  la operativa
+```
+
+Ya se vendió y ya se cobró: lo que pase en la operación es un tema proveedor–agencia.
+
+### ⚠️ Heredar el financiero al abrir NO basta
+
+`AbrirOperativaProcessor` copia el financiero al crear la operativa, y aun así hacía falta más. El
+editor **recalcula y envía `totalVenta` y `clasificacionFinancieraCliente` en cada guardado**
+—`cotizacionEditorStore.ts`, «Inyección de la estructura financiera al payload»—, así que el valor
+heredado dura hasta el primer guardado. Y guardar es exactamente lo que se hace con una operativa:
+partir vuelos, mover cantidades.
+
+Sin la composición, **reorganizar la operación le cambiaría los precios al cliente**. Probado con
+datos reales: la operativa guardada a `99999.00` seguía enseñando `5922.09`.
+
+### Dónde vive, y por qué en dos sitios
+
+| | |
+|---|---|
+| `Cotizacion::origenFinancieroParaCliente()` | La regla. Devuelve `derivadaDe` si es OPERATIVA, si no `$this` |
+| `getTotalVentaParaCliente()` · `getClasificacionFinancieraParaCliente()` | Los dos campos que el editor recalcula, servidos por getter con `#[SerializedName]` — la API sigue diciendo `totalVenta` |
+| `CotizacionFilePublicProvider`, consulta de la portada | ⚠️ **Lo repite**, porque lee columnas y no entidades: ahí el getter no llega a ejecutarse. `LEFT JOIN c.derivadaDe o` |
+
+⚠️ **La condición mira el ESTADO, no que `derivadaDe` esté puesto.** Un histórico también lo tiene
+—apunta a la viva— y debe enseñar **su propio** dinero, que es justo lo que fue a congelar.
+
+### Por qué en lectura y no congelando el campo
+
+Se pensó en un candado que devolviera los valores heredados al guardar. Se descartó porque rompe el
+otro caso que sí se quiere: si alguien edita **la confirmada** —renegociar es rutina, y el plan lo
+permite a propósito—, el cliente debe ver los precios nuevos. Leyendo de la confirmada eso sale
+gratis; con una copia congelada habría que acordarse de propagarla.
+
+### ⚠️ Un campo servido por getter cambia el esquema
+
+`totalVenta: string` pasó a `readonly totalVenta?: string` en los dos `api.d.ts`: API Platform no
+puede prometer que un método esté siempre ahí como promete una columna. El typecheck de las dos
+apps salió limpio —nadie escribía ese campo desde `pax`—, pero conviene saberlo antes de repetir
+el patrón.
+
 ## 6.j Versiones e históricos: dos clones en direcciones opuestas (23/08/2026)
 
 Un expediente tiene N `Cotizacion`, numeradas `version`. **Son propuestas**, no versiones de un

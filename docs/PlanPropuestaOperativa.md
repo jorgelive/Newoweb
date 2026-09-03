@@ -135,7 +135,7 @@ Publicas      → ahora ve el itinerario real
 | 2.1 | ~~El `match` del listener~~ **HECHO 02/09/2026** | ✅ Y confirmado que PHPStan no lo caza: `default` lo tapa |
 | 2.2 | ~~`OPERATIVA` en el enum~~ **HECHO** | ✅ Sin migración (`varchar(30)`) · el typecheck cazó el mapa de `util` |
 | 2.3 | ~~Abrir la operativa: clon, sin publicar, `derivadaDe`, y **traspaso** de la operación~~ **HECHO 02/09/2026** | ✅ 47 → 0 en la confirmada, 0 → 47 en la operativa, 874 ms · detalle en `docs/Cotizaciones.md` §6.j.3 |
-| 2.4 | Vista cliente **compuesta**: financiero de la confirmada, itinerario de la operativa publicada | |
+| 2.4 | ~~Vista cliente **compuesta**: financiero de la confirmada, itinerario de la operativa~~ **HECHO 02/09/2026** | ✅ La operativa guardada a 99999.00 sigue enseñando 5922.09 · `docs/Cotizaciones.md` §6.j.4 |
 | 2.5 | Front: estado en el mapa, botón de publicar, y que el editor diga dónde está | |
 
 ⚠️ **2.1 no era el único punto mudo: era el primero de cuatro.** Al probar 2.3 con datos reales

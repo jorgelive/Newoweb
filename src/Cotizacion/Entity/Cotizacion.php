@@ -31,6 +31,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Uid\Uuid;
 
 #[ApiResource(
@@ -321,7 +322,9 @@ class Cotizacion
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
     private string $totalCosto = '0.00';
 
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
+    // ⚠️ SIN `pax_cotizacion:read`: al cliente se lo sirve getTotalVentaParaCliente(), que en una
+    // OPERATIVA lo toma de la confirmada. Ver origenFinancieroParaCliente().
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
     private string $totalVenta = '0.00';
 
@@ -384,7 +387,8 @@ class Cotizacion
 
     // 🔥 NUEVA PROPIEDAD: CLASIFICACION FINANCIERA SIN COSTOS NI MÁRGENES
     /** @var array<string, mixed>|null */
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'pax_cotizacion:read'])]
+    // ⚠️ SIN `pax_cotizacion:read`: ver getClasificacionFinancieraParaCliente().
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $clasificacionFinancieraCliente = null;
 
@@ -616,15 +620,78 @@ class Cotizacion
     public function setClasificacionFinanciera(?array $clasificacionFinanciera): self { $this->clasificacionFinanciera = $clasificacionFinanciera; return $this; }
 
     /**
-     * Obtiene el resumen financiero apto para vistas de cliente.
+     * De qué fila sale el DINERO que ve el cliente.
      *
-     * Este método existe para proveer una estructura de totales y desglose
-     * de precios de venta sin filtrar datos sensibles como el costo neto
-     * o la utilidad de la agencia en endpoints públicos o PDFs.
+     * ── La composición ──────────────────────────────────────────────────────
+     * Una OPERATIVA se sirve al cliente **partida en dos**: el itinerario es suyo —es lo que de
+     * verdad se va a operar— y el dinero es el de la confirmada de la que salió.
      *
-     * @return array|null
+     *     financiero  ←  SIEMPRE la confirmada
+     *     itinerario  ←  la operativa
      *
-     * @return array<string, mixed>
+     * Ya se vendió y ya se cobró: lo que pase en la operación es un tema proveedor–agencia.
+     *
+     * ── ⚠️ Por qué NO basta con heredarlo al abrir ──────────────────────────
+     * `AbrirOperativaProcessor` copia el financiero al crearla, y aun así hace falta esto. El
+     * editor **recalcula y envía `totalVenta` y `clasificacionFinancieraCliente` en cada
+     * guardado** (`cotizacionEditorStore.ts`, «Inyección de la estructura financiera al payload»).
+     * O sea que el valor heredado dura hasta el primer guardado — y guardar es exactamente lo que
+     * se hace con una operativa: partir vuelos, mover cantidades.
+     *
+     * Sin esto, reorganizar la operación **le cambiaría los precios al cliente**. En silencio, y
+     * en el sentido de que se los sube o se los baja según cómo saliera la operación.
+     *
+     * ── Por qué en lectura y no congelando el campo ─────────────────────────
+     * Se pensó en un candado que devolviera los valores heredados al guardar. Se descartó porque
+     * rompe el otro caso que sí se quiere: si alguien edita **la confirmada** —renegociar es
+     * rutina, y F3 lo permite a propósito—, el cliente debe ver los precios nuevos. Leyendo de la
+     * confirmada eso sale gratis; con una copia congelada habría que acordarse de propagarla.
+     *
+     * ⚠️ Sólo redirige la OPERATIVA. Un histórico también tiene `derivadaDe`, y el suyo apunta a
+     * la viva: un histórico enseña **su propio** dinero, que es justo lo que fue a congelar.
+     */
+    public function origenFinancieroParaCliente(): self
+    {
+        return $this->estado === CotizacionEstadoEnum::OPERATIVA && $this->derivadaDe !== null
+            ? $this->derivadaDe
+            : $this;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    #[Groups(['pax_cotizacion:read'])]
+    #[SerializedName('clasificacionFinancieraCliente')]
+    public function getClasificacionFinancieraParaCliente(): ?array
+    {
+        return $this->origenFinancieroParaCliente()->clasificacionFinancieraCliente;
+    }
+
+    /**
+     * ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que ninguna vista de
+     * `pax` cambia. Lo que cambia es de dónde sale el número.
+     *
+     * ⚠️ Pero **`api.d.ts` sí se mueve**, y conviene saberlo antes de repetir el patrón: un campo
+     * servido por getter pasa de `totalVenta: string` a `readonly totalVenta?: string`. API
+     * Platform no puede prometer que un método esté siempre ahí como promete una columna. El
+     * typecheck de las dos apps salió limpio —nadie escribía este campo desde `pax`—, pero el día
+     * que alguien lo lea sin comprobar `undefined`, el compilador se lo dirá.
+     */
+    #[Groups(['pax_cotizacion:read'])]
+    #[SerializedName('totalVenta')]
+    public function getTotalVentaParaCliente(): string
+    {
+        return $this->origenFinancieroParaCliente()->totalVenta;
+    }
+
+    /**
+     * El resumen financiero apto para vistas de cliente: totales y desglose de precios de venta,
+     * sin el costo neto ni la utilidad de la agencia.
+     *
+     * ⚠️ El financiero **propio** de esta fila. Para servir al cliente NO se usa éste:
+     * {@see self::getClasificacionFinancieraParaCliente()}, que en una operativa lee la confirmada.
+     *
+     * @return array<string, mixed>|null
      */
     public function getClasificacionFinancieraCliente(): ?array
     {
