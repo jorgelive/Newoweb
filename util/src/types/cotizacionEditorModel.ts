@@ -22,6 +22,18 @@ export enum Language {
  * Es un estrechamiento a mano de una columna JSON: el esquema la exporta como diccionario
  * abierto (`{[k: string]: string | null}[]`) y la forma real es ésta.
  */
+/**
+ * Un subgrupo del expediente, tal como lo sirve `GET /sales/cotizacion_file_grupos?file=…`.
+ *
+ * ⚠️ **Se añade `@id` y NO se declara a mano el resto.** El esquema no expone `id` —`IdTrait` no
+ * lleva `#[Groups]`— pero JSON-LD sí manda `@id`, que es además lo que API Platform quiere al
+ * escribir una relación. Los otros campos salen del esquema tal cual: si mañana cambia el
+ * backend, esto deja de compilar en vez de mentir.
+ */
+export type SubgrupoOpcion = components['schemas']['CotizacionFileGrupo-grupo.option.read'] & {
+    '@id': string;
+};
+
 export interface I18nContent {
     content: string;
     language: Language | string; // Permitimos string para flexibilizar asignaciones literales tipo 'es'

@@ -231,7 +231,7 @@ que circulan por WhatsApp en un grupo de colegio.
 |---|---|---|
 | 5.1 | ~~`CotizacionCotcomponente.grupo`, **null = todos**~~ **HECHO 03/09/2026** | ✅ Migración escrita a mano — ver el aviso de abajo |
 | 5.2 | ~~`CotizacionPasajeroGrupo.codigo`~~ **HECHO** | ✅ En la pertenencia, no en el pasajero |
-| 5.3 | Editor: asignar subgrupo a un componente | ⏳ El campo está en la API; falta el selector en el editor |
+| 5.3 | ~~Editor: asignar subgrupo a un componente~~ **HECHO 03/09/2026** | ✅ Selector en el panel del componente · ⚠️ la paginación cortaba la lista en 30 de 109 |
 | 5.4 | ~~Chequeo: **unión(subgrupos) ⊇ pasajeros**~~ **HECHO** | ✅ `CoberturaDeSubgrupos` · 6 tests · aviso sin plegar en el editor |
 | 5.5 | ~~El identificado ve sólo lo suyo~~ **HECHO** | ✅ `getCotcomponentesParaCliente()` · falta pintar su `codigo` |
 | 5.6 | Órdenes: salen con la gente del subgrupo | ⏳ |
@@ -296,7 +296,7 @@ Se dejan escritos porque el motivo sigue siendo útil.
 | **Un estado «borrador»** | `publicado` ya lo da: el borrador es la operativa antes de publicarla |
 | **Desempatar entre filas públicas** | Con `publicado` independiente no puede haber dos. La pregunta desaparece |
 
-## 9. Decisiones abiertas
+## 9. Decisiones — todas cerradas
 
 ### ~~1 · Qué ve quien no se identifica~~ — **DECIDIDO 02/09/2026**
 
@@ -325,12 +325,22 @@ resolverlo mejor.
 Y no cuesta acceso: lo comercial —precios, itinerario vendido, condiciones— sigue abierto en las
 confirmadas e históricas, que es a lo que va quien todavía no es pasajero.
 
-### 2 · Si dos propuestas aprobadas son complementarias
+### ~~2 · Si dos propuestas aprobadas son complementarias~~ — **DECIDIDO 03/09/2026**
 
-(Lima + Bolivia): ¿la guía las fusiona por fecha o las enseña sueltas?
+**Sueltas, siempre.** No se fusionan por fecha ni por nada.
 
-Es la más grande: el pasajero vive **un viaje**, no dos documentos — pero eso hay que quererlo,
-no deducirlo.
+```
+enlace directo de la propuesta   →  esa propuesta
+portada del expediente           →  la lista, y se entra a una
+```
+
+Una propuesta es la unidad que se aprueba, se cobra y se enseña; que dos cubran tramos
+complementarios —Lima y Bolivia— no las convierte en un documento. Fusionarlas obligaría a decidir
+qué financiero manda cuando cada una tiene el suyo, y a inventar un orden entre servicios que nadie
+comparó.
+
+⚠️ **Y quita trabajo, no lo aplaza:** con esto la vista del cliente no necesita saber que existe
+otra propuesta. Cada enlace se explica solo.
 
 ---
 

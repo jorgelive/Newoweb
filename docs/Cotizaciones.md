@@ -2124,6 +2124,32 @@ se descubre nunca porque nadie echa de menos lo que no sabía que existía.
 Es además lo que abarata el caso normal: partir un vuelo no obliga a etiquetar los otros veinte
 componentes.
 
+### El selector «A quién aplica» (F5.3)
+
+Vive en el panel del componente, junto a «Modo comercial» y «Estado». **Sólo aparece si el
+expediente tiene subgrupos**: en uno individual, «a quién» no es una pregunta.
+
+⚠️ **«Todo el grupo» va el primero y es `null`.** Es el valor correcto en la enorme mayoría de
+componentes, y que sea el que está a mano es lo que evita acotar por accidente.
+
+Los subgrupos se piden aparte —`GET /sales/cotizacion_file_grupos?file=…` con un grupo de
+serialización propio, `grupo:option:read`— y **no** vienen con la cotización: `grupos` sólo está en
+`file:item:read`, y traerlos dentro arrastraría las 133 pertenencias de cada uno en cada carga del
+editor.
+
+### 🔥 La paginación cortaba la lista en silencio
+
+La primera versión ofrecía **30 subgrupos de 109**. La paginación de API Platform son 30 ítems por
+defecto, y un desplegable no tiene página 2: los otros 79 sencillamente no existían para quien
+elegía. Sin error, sin aviso — una lista que parece completa.
+
+`paginationItemsPerPage: 300`, y **no** «sin paginación»: la consulta se filtra por expediente pero
+nada obliga a que se filtre, y desactivarla dejaría un endpoint capaz de volcar los subgrupos de
+todos los expedientes de golpe.
+
+⚠️ Se vio leyendo el estado de Pinia en el navegador, no en la respuesta de la API — que devolvía
+un `totalItems: 109` perfectamente honesto junto a 30 elementos.
+
 ### El código va en la PERTENENCIA, no en el pasajero
 
 `CotizacionPasajeroGrupo::$codigo` — su localizador, su habitación, su asiento. No es de la

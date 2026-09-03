@@ -27,9 +27,10 @@ import {
   getRolTarifaUI, Servicio, TarifaSnapshot, ImagenSnapshot, formatRangoEdad,
   CotServicio, CotSegmento, ComponenteCompleto, SnapshotItem, Segmento, OpcionUpgradeInterna, NotaSnapshot,
   MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE,
-  AudienciaDetalle, AUDIENCIA_DETALLE_CONFIG,
+  AudienciaDetalle, AUDIENCIA_DETALLE_CONFIG, type SubgrupoOpcion,
   type TarifaModalidadValue, type TarifaCategoriaValue
 } from '@/types/cotizacionEditorModel';
+import { GRUPO_TIPO_LABELS } from '@/types/fileDetalleModel';
 // La etiqueta legible de cada Categoría Operativa vive con La Biblia, que es donde más se
 // pinta. La LISTA de las que existen no sale de ahí sino de `catalogos.tiposComponente`,
 // que es la que consulta `sinHorarioDeTipo()`: una sola fuente para qué hay, otra para
@@ -62,6 +63,19 @@ const { esEstrecha } = usePantallaEstrecha();
  * Un `try` alrededor porque en modo privado de algunos navegadores escribir lanza, y perder la
  * preferencia no puede tumbar el editor.
  */
+/**
+ * Cómo se lee un subgrupo en el selector: «Vuelo · Nacional · ARAJET».
+ *
+ * ⚠️ Se compone de tres campos porque **ninguno identifica solo**. `clave` es el valor crudo
+ * —`JA2CWN`, `B`, `HA13`— y sin el eje delante no dice nada; `subeje` es lo que distingue
+ * «#Vuelo Ida» de «#Vuelo Retorno», que pueden compartir clave porque las aerolíneas reutilizan
+ * códigos entre tramos.
+ */
+const etiquetaSubgrupo = (sg: SubgrupoOpcion): string =>
+  [GRUPO_TIPO_LABELS[sg.tipo]?.label ?? sg.tipo, sg.subeje || null, sg.nombre || sg.clave]
+    .filter(Boolean)
+    .join(' · ');
+
 const CLAVE_CATALOGO = 'cotizacion.editor.catalogoAbierto';
 const catalogoAbierto = ref(leerPreferencia());
 
@@ -3072,6 +3086,35 @@ store.$onAction(({ name, args }) => {
                   <p class="text-[9px] text-slate-400 mt-1 ml-1 leading-snug">
                     Cancelado deja de sumar costo y desaparece de la propuesta. La confirmación
                     del proveedor se registra en Operaciones.
+                  </p>
+                </div>
+
+                <!-- ══ A QUIÉN APLICA ═════════════════════════════════════════
+                     Sólo cuando el expediente tiene subgrupos: en uno individual, «a quién»
+                     no es una pregunta. Ver CotizacionCotcomponente::$grupo. -->
+                <div v-if="store.subgruposDelFile.length">
+                  <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">A quién aplica</label>
+                  <div class="relative">
+                    <select v-model="store.componenteActivo.grupo"
+                            class="w-full appearance-none rounded-xl px-4 py-2.5 pr-9 text-xs font-black uppercase tracking-wide outline-none shadow-sm border cursor-pointer transition-colors"
+                            :class="store.componenteActivo.grupo
+                              ? 'bg-orange-50 text-orange-700 border-orange-200'
+                              : 'bg-slate-50 text-slate-600 border-slate-200'">
+                      <!-- ⚠️ `null` = TODOS, y va el PRIMERO a propósito: es el valor correcto en
+                           la enorme mayoría de componentes, y que sea el que está a mano es lo que
+                           evita que alguien acote por accidente. -->
+                      <option :value="null">Todo el grupo</option>
+                      <option v-for="sg in store.subgruposDelFile" :key="sg['@id']" :value="sg['@id']">
+                        {{ etiquetaSubgrupo(sg) }}
+                      </option>
+                    </select>
+                    <i class="fas absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs"
+                       :class="store.componenteActivo.grupo ? 'fa-users-rectangle text-orange-500' : 'fa-users text-slate-400'"></i>
+                  </div>
+                  <p class="text-[9px] text-slate-400 mt-1 ml-1 leading-snug">
+                    Acotarlo lo saca del itinerario de quien no esté en ese subgrupo, y hace que las
+                    cantidades del servicio dejen de sumar el total del grupo — que es lo correcto
+                    cuando el vuelo va partido.
                   </p>
                 </div>
 

@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Cotizacion\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Cotizacion\Enum\GrupoTipoEnum;
+use App\Api\Filter\UuidRelacionFilter;
 use App\Security\Roles;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
@@ -41,6 +44,28 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     shortName: 'CotizacionFileGrupo',
     operations: [
+        // Lista ligera para elegir subgrupo al acotar un componente (F5.3).
+        //
+        // ⚠️ **Grupo de serialización PROPIO y no `file:item:read`.** Con ése, cada subgrupo
+        // arrastra sus `miembros` —133 pertenencias en un colegio— y además reabre el círculo
+        // `grupo → miembros → pertenencia → grupo` que obliga a los demás contextos de aquí a
+        // llevar grupos a mano. Un selector sólo necesita saber cómo se llama cada uno.
+        new GetCollection(
+            normalizationContext: ['groups' => ['grupo:option:read']],
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+
+            // 🔥 **Sin este tope, el selector miente por omisión.** La paginación de serie son 30
+            // ítems y un colegio real tiene **109 subgrupos**: el desplegable ofrecía un tercio y
+            // los demás sencillamente no existían para quien elegía. No hay error, no hay página
+            // 2 a la vista — hay una lista que parece completa.
+            //
+            // 300 y no «sin paginación»: la consulta se filtra por expediente, pero nada obliga a
+            // que se filtre, y desactivarla dejaría un endpoint capaz de volcar los subgrupos de
+            // todos los expedientes de una vez. El tope es holgado —el mayor grupo real va por
+            // 109— y falla ruidoso si algún día se queda corto, porque el que falta se nota al
+            // buscarlo.
+            paginationItemsPerPage: 300,
+        ),
         new Post(
             // ⚠️ Por lo mismo que en CotizacionFilepasajero: sin grupos, la respuesta va
             // grupo → miembros → pertenencia → el MISMO grupo y el serializador corta con una
@@ -66,6 +91,9 @@ use Symfony\Component\Validator\Constraints as Assert;
     ],
     routePrefix: '/sales'
 )]
+// ⚠️ `UuidRelacionFilter` y no `SearchFilter`: la clave es UUID binario y el filtro de serie no
+// la convierte — devuelve cero filas **sin error**. Ver `docs/Operacion.md` §8.
+#[ApiFilter(UuidRelacionFilter::class, properties: ['file'])]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_file_grupo')]
 // ⚠️ El `subeje` entra en la unicidad: `#Vuelo Ida` y `#Vuelo Retorno` con el mismo localizador
@@ -84,7 +112,7 @@ class CotizacionFileGrupo
     private ?CotizacionFile $file = null;
 
     #[Assert\NotNull(message: 'Indica en qué eje agrupa.')]
-    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read', 'grupo:option:read'])]
     // 40 y no 20: `reserva_aerea_internacional` son 27 caracteres. Con el largo viejo el eje nuevo
     // no cabía, y MySQL en modo no estricto lo habría TRUNCADO en vez de fallar.
     #[ORM\Column(type: 'string', length: 40, enumType: GrupoTipoEnum::class)]
@@ -110,7 +138,7 @@ class CotizacionFileGrupo
      *
      * Entra por la cabecera de la columna del padrón: `#Vuelo Nacional` → `subeje = 'Nacional'`.
      */
-    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read', 'grupo:option:read'])]
     #[ORM\Column(type: 'string', length: 60, options: ['default' => ''])]
     private string $subeje = '';
 
@@ -122,7 +150,7 @@ class CotizacionFileGrupo
      * nadie.
      */
     #[Assert\NotBlank(message: 'El grupo necesita un valor: «B», «5», «HA13»…')]
-    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read', 'grupo:option:read'])]
     #[ORM\Column(type: 'string', length: 60)]
     private ?string $clave = null;
 
@@ -133,7 +161,7 @@ class CotizacionFileGrupo
      * a ojo es adivinar. La píldora del pasajero pinta `clave` + `nombre` en la misma línea, así
      * que aquí caben tres palabras, no una frase. Lo que no quepa va a {@see self::$detalle}.
      */
-    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read', 'grupo:option:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombre = null;
 

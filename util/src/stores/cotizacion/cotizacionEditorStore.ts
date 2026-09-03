@@ -16,6 +16,7 @@ import {
     ComponenteCatalogo,
     ComponenteCompleto,
     ComponentePlaceholder,
+    SubgrupoOpcion,
     ComponenteTipo,
     Cotizacion,
     CotizacionFileExtended,
@@ -1332,6 +1333,35 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     });
 
 
+    // ── SUBGRUPOS DEL EXPEDIENTE (para acotar un componente) ────────────────
+    //
+    // ⚠️ Se piden aparte y NO vienen con la cotización: `grupos` sólo está en `file:item:read`, y
+    // el editor carga una cotización, no el expediente. Traerlos dentro obligaría a exponer la
+    // relación entera —con sus 133 pertenencias— en cada carga del editor.
+    const subgruposDelFile = ref<SubgrupoOpcion[]>([]);
+
+    /**
+     * Carga los subgrupos del expediente. Idempotente y silenciosa: si falla, el selector se queda
+     * vacío y el componente sigue siendo «para todos», que es el valor correcto por defecto.
+     */
+    const cargarSubgrupos = async (fileId: string | null | undefined): Promise<void> => {
+        if (!fileId) {
+            subgruposDelFile.value = [];
+
+            return;
+        }
+
+        try {
+            const { data } = await apiClient.get<{ 'hydra:member'?: SubgrupoOpcion[]; member?: SubgrupoOpcion[] }>(
+                `/platform/sales/cotizacion_file_grupos?file=${encodeURIComponent(fileId)}`
+            );
+
+            subgruposDelFile.value = data.member ?? data['hydra:member'] ?? [];
+        } catch {
+            subgruposDelFile.value = [];
+        }
+    };
+
     // ────────────────────────────────────────────────────────────────────────────
     // Builder de inclusiones (agregar al store; lo consume el computed de arriba)
     // Recorre servicios→componentes directamente (no el voter): cubre componentes
@@ -2184,6 +2214,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             publicadoPersistido.value = data?.publicado === true;
 
             void fetchPuntosDeServicios(data?.id ?? id);
+
+            // Los subgrupos del expediente, para el selector «a quién aplica». En segundo plano y
+            // sin `await`: si tarda o falla, el editor abre igual y el selector sale vacío — que
+            // significa «todo el grupo», el valor correcto por defecto.
+            void cargarSubgrupos(extractIdStr(data?.file));
 
         } catch {
             throw new Error("No se encontró la cotización o falló la hidratación.");
@@ -4876,6 +4911,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     return {
+        subgruposDelFile,
+        cargarSubgrupos,
         catalogos, cotizacion, fileActual, modoCatalogo, idiomasDisponibles, isLoading, isCargaInicial, inspectorActivo, dataActiva,
         esMonoSegmentoSinPlantilla, segmentoUnicoMaestro,
         puntosPorServicio, puntosDeServicio, fetchPuntosDeServicios,

@@ -763,7 +763,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Retrieves the collection of CotizacionFileGrupo resources.
+         * @description Retrieves the collection of CotizacionFileGrupo resources.
+         */
+        get: operations["api_salescotizacion_file_grupos_get_collection"];
         put?: never;
         /**
          * Creates a CotizacionFileGrupo resource.
@@ -4518,7 +4522,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -4618,7 +4626,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -4891,7 +4903,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -4976,7 +4992,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5299,7 +5319,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5399,7 +5423,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5480,7 +5508,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5565,7 +5597,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5796,7 +5832,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5896,7 +5936,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5977,7 +6021,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -6062,7 +6110,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -6293,7 +6345,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -6393,7 +6449,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -6474,7 +6534,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -6559,7 +6623,11 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
+            /**
+             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
+             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
+             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
+             */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -10581,7 +10649,37 @@ export interface components {
             readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
-        "CotizacionFile.jsonld": {
+        "CotizacionFile.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            email?: string | null;
+            telefono?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            contacto?: components["schemas"]["MaestroContacto.jsonld"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            idioma?: string | null;
+            /** @default es */
+            idiomaCliente: string;
+            /**
+             * @default abierto
+             * @enum {string}
+             */
+            estado: "abierto" | "cerrado" | "archivado";
+            /**
+             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
+             *     usa queries escalares); el editor la sigue usando con file:item:read.
+             */
+            cotizaciones?: string[];
+            /** @description El padrón que ve el cliente en la portada pública. **Vacío en un expediente de grupo.** */
+            readonly filepasajeros?: string[];
+            filearchivos?: string[];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.jsonld"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
@@ -10629,40 +10727,8 @@ export interface components {
             readonly documentosParaCliente?: string[];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
-            /** @description El padrón que ve el cliente en la portada pública. **Vacío en un expediente de grupo.** */
-            readonly filepasajeros?: string[];
             readonly exigeIdentificacion?: boolean;
-        } & (components["schemas"]["HydraItemBaseSchema"] & {
-            nombreGrupo?: string;
-            pasajeroPrincipal?: string | null;
-            email?: string | null;
-            telefono?: string | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            pais?: string | null;
-            contacto?: components["schemas"]["MaestroContacto.jsonld"] | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            idioma?: string | null;
-            /** @default es */
-            idiomaCliente: string;
-            /**
-             * @default abierto
-             * @enum {string}
-             */
-            estado: "abierto" | "cerrado" | "archivado";
-            /**
-             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
-             *     usa queries escalares); el editor la sigue usando con file:item:read.
-             */
-            cotizaciones?: string[];
-            filepasajeros?: string[];
-            filearchivos?: string[];
-        });
+        };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
@@ -11229,6 +11295,20 @@ export interface components {
             notas?: string[];
             id?: string;
         };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo-grupo.option.read": {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+        };
         "CotizacionFileGrupo-pax_file.read_pax_cotizacion.read": {
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
@@ -11355,6 +11435,20 @@ export interface components {
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
         };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.html-grupo.option.read": {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+        };
         "CotizacionFileGrupo.html-pax_file.read_pax_cotizacion.read": {
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
@@ -11376,7 +11470,11 @@ export interface components {
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            file?: components["schemas"]["CotizacionFile.jsonld"];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /**
@@ -11388,19 +11486,21 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            readonly vuelos?: components["schemas"]["CotizacionVuelo.jsonld"][];
             /**
              * @description ¿La reserva está emitida, o pagada y esperando billete?
              * @default true
              */
             emitido: boolean;
             detalle?: string | null;
+            miembros?: components["schemas"]["CotizacionPasajeroGrupo.jsonld"][];
             /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
             notas?: string[];
             id?: string;
             /** Format: date-time */
-            readonly createdAt?: string;
+            createdAt?: string;
             /** Format: date-time */
-            readonly updatedAt?: string | null;
+            updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
@@ -11477,6 +11577,20 @@ export interface components {
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
+        };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.jsonld-grupo.option.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -11604,6 +11718,20 @@ export interface components {
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
+        };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.multipart-grupo.option.read": {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
         };
         "CotizacionFileGrupo.multipart-pax_file.read_pax_cotizacion.read": {
             /** @enum {string} */
@@ -36288,6 +36416,49 @@ export interface operations {
                     "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
                     "application/problem+json": components["schemas"]["ConstraintViolation"];
                     "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_file_grupos_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+                /** @description Identificador (uuid o IRI) del recurso relacionado. */
+                file?: string;
+                /** @description Varios identificadores (uuid o IRI) del recurso relacionado. */
+                "file[]"?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CotizacionFileGrupo collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["CotizacionFileGrupo.jsonld-grupo.option.read"][];
+                    };
+                    "application/json": components["schemas"]["CotizacionFileGrupo-grupo.option.read"][];
+                    "text/html": components["schemas"]["CotizacionFileGrupo.html-grupo.option.read"][];
+                    "multipart/form-data": components["schemas"]["CotizacionFileGrupo.multipart-grupo.option.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
