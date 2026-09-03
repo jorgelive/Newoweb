@@ -16,6 +16,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Patch;
 use App\Api\Provider\Cotizacion\CotizacionFileCollectionProvider;
+use App\Cotizacion\ApiPlatform\State\CotizacionFileItemProvider;
 use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
 use App\Cotizacion\ApiPlatform\Filter\CotizacionFileNombreFilter;
 use App\Cotizacion\Enum\FileEstadoEnum;
@@ -59,7 +60,9 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         ),
         new Get(
             normalizationContext: ['groups' => ['file:read', 'file:item:read', 'timestamp:read']],
-            security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+            // Añade `filasOperacionActivas` a cada propuesta, en UNA consulta. Ver el provider.
+            provider: CotizacionFileItemProvider::class
         ),
         // PORTADA pública: File + cards de propuestas (liviano)
         new Get(

@@ -242,6 +242,21 @@ const versionesVivas = computed<ApiCotizacionVersion[]>(() => {
   });
 });
 
+/**
+ * ¿Es ESTA la propuesta donde vive la operación?
+ *
+ * ⚠️ **Se mira el dato, no el estado.** Antes se deducía —la confirmada tenía la operación y
+ * punto— y dos cambios del 02/09/2026 rompieron esa deducción por lados distintos: confirmar ya no
+ * arma la operación, y la operativa se lleva las filas. Las dos dejan una confirmada vacía, y
+ * significan cosas opuestas.
+ *
+ * `filasOperacionActivas` lo sirve `CotizacionFileItemProvider` contando sólo las ACTIVAS: una
+ * confirmada que ya traspasó conserva sus 47 en `cancelado`, y contarlas diría que la operación
+ * sigue ahí.
+ */
+const tieneOperacion = (cot: ApiCotizacionVersion): boolean =>
+  (cot.filasOperacionActivas ?? 0) > 0;
+
 /** La confirmada de la que sale esta operativa, si la tenemos a la vista. */
 const confirmadaDe = (cot: ApiCotizacionVersion): ApiCotizacionVersion | undefined =>
   cot.estado !== 'operativa'
@@ -2591,10 +2606,15 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
 
             <div v-else v-for="cot in versionesVivas" :key="cot.id"
-                 class="bg-white rounded-2xl p-4 sm:p-5 border shadow-sm hover:border-[#376875] transition-colors group mb-4"
-                 :class="cot.estado === 'operativa'
-                   ? 'border-orange-200 ml-4 sm:ml-8 border-l-4 border-l-orange-300 rounded-l-none'
-                   : 'border-slate-200'">
+                 class="rounded-2xl p-4 sm:p-5 border shadow-sm hover:border-[#376875] transition-colors group mb-4"
+                 :class="[
+                   cot.estado === 'operativa'
+                     ? 'border-orange-200 ml-4 sm:ml-8 border-l-4 border-l-orange-300 rounded-l-none'
+                     : 'border-slate-200',
+                   // ⚠️ El fondo lo decide TENER la operación, no el estado: son cosas distintas
+                   // desde que confirmar ya no la arma. Ver tieneOperacion().
+                   tieneOperacion(cot) ? 'bg-[#376875]/[0.04]' : 'bg-white',
+                 ]">
 
               <!-- ⚠️ El vínculo, ESCRITO. La operativa comparte número con su confirmada, así que
                    sin esta línea eran dos tarjetas diciendo «P1» y parecía otra propuesta. La
@@ -2634,6 +2654,24 @@ const eliminarDocumento = async (iri?: string) => {
                       </p>
                       <span class="text-[9px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 uppercase shrink-0">{{ cot.estado || 'Pendiente' }}</span>
                       <span class="text-[9px] font-black bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded border border-orange-100 uppercase shrink-0">{{ cot.monedaGlobal || 'USD' }}</span>
+
+                      <!-- ⚠️ Dice dónde vive la operación, que ya NO se deduce del estado: desde
+                           el 02/09/2026 confirmar no la arma y la operativa se la lleva. Las dos
+                           dejan una confirmada vacía y significan cosas opuestas. -->
+                      <span v-if="tieneOperacion(cot)"
+                            class="text-[9px] font-black bg-[#376875] text-white px-1.5 py-0.5 rounded uppercase shrink-0 flex items-center gap-1"
+                            :title="`${cot.filasOperacionActivas} servicios activos en La Biblia`">
+                        <i class="fas fa-list-check text-[8px]"></i>
+                        Operación · {{ cot.filasOperacionActivas }}
+                      </span>
+
+                      <!-- Sin operación PERO es donde debería vivir: es una llamada a armarla, no
+                           un error. Se calla en las propuestas que todavía se venden. -->
+                      <span v-else-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
+                            class="text-[9px] font-black bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200 uppercase shrink-0"
+                            title="Todavía no se ha armado la operación de esta propuesta">
+                        Sin operación
+                      </span>
                     </div>
                     <p v-if="cot.resumen" class="text-[10px] text-slate-400 font-medium mt-1 truncate max-w-35 sm:max-w-xs">
                       {{ resumenPreview(cot.resumen) }}

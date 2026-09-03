@@ -4504,6 +4504,8 @@ export interface components {
             numDias?: number | null;
             /** @default 1.0000 */
             tipoCambio: string;
+            /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
+            filasOperacionActivas?: number | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -4879,6 +4881,8 @@ export interface components {
             } | null;
             /** @default 1.0000 */
             tipoCambio: string;
+            /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
+            filasOperacionActivas?: number | null;
             id?: string;
             /**
              * @description Ganancia bruta calculada (venta - costo). Expuesta como valor derivado
@@ -4958,6 +4962,8 @@ export interface components {
             } | null;
             /** @default 1.0000 */
             tipoCambio: string;
+            /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
+            filasOperacionActivas?: number | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5279,6 +5285,8 @@ export interface components {
             numDias?: number | null;
             /** @default 1.0000 */
             tipoCambio: string;
+            /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
+            filasOperacionActivas?: number | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5462,6 +5470,8 @@ export interface components {
             } | null;
             /** @default 1.0000 */
             tipoCambio: string;
+            /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
+            filasOperacionActivas?: number | null;
             id?: string;
             /**
              * @description Ganancia bruta calculada (venta - costo). Expuesta como valor derivado
@@ -5541,6 +5551,8 @@ export interface components {
             } | null;
             /** @default 1.0000 */
             tipoCambio: string;
+            /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
+            filasOperacionActivas?: number | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5770,6 +5782,8 @@ export interface components {
             numDias?: number | null;
             /** @default 1.0000 */
             tipoCambio: string;
+            /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
+            filasOperacionActivas?: number | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -5953,6 +5967,8 @@ export interface components {
             } | null;
             /** @default 1.0000 */
             tipoCambio: string;
+            /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
+            filasOperacionActivas?: number | null;
             id?: string;
             /**
              * @description Ganancia bruta calculada (venta - costo). Expuesta como valor derivado
@@ -6032,6 +6048,8 @@ export interface components {
             } | null;
             /** @default 1.0000 */
             tipoCambio: string;
+            /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
+            filasOperacionActivas?: number | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6261,6 +6279,8 @@ export interface components {
             numDias?: number | null;
             /** @default 1.0000 */
             tipoCambio: string;
+            /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
+            filasOperacionActivas?: number | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -6444,6 +6464,8 @@ export interface components {
             } | null;
             /** @default 1.0000 */
             tipoCambio: string;
+            /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
+            filasOperacionActivas?: number | null;
             id?: string;
             /**
              * @description Ganancia bruta calculada (venta - costo). Expuesta como valor derivado
@@ -6523,6 +6545,8 @@ export interface components {
             } | null;
             /** @default 1.0000 */
             tipoCambio: string;
+            /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
+            filasOperacionActivas?: number | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -19529,7 +19553,7 @@ export interface components {
             /** @description Obtiene la direccion de la organización. */
             direccion?: string | null;
             imagenes?: string[];
-            readonly servicios?: string[];
+            servicios?: string[];
             /** @description Lugares donde opera. Lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -19621,7 +19645,7 @@ export interface components {
             /** @description Obtiene la direccion de la organización. */
             direccion?: string | null;
             imagenes?: components["schemas"]["OrganizacionImagen-organizacion.read_organizacion.item.read"][];
-            readonly servicios?: components["schemas"]["OrganizacionServicio-organizacion.read_organizacion.item.read"][];
+            servicios?: components["schemas"]["OrganizacionServicio-organizacion.read_organizacion.item.read"][];
             /** @description Lugares donde opera. Lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -19723,7 +19747,7 @@ export interface components {
             /** @description Obtiene la direccion de la organización. */
             direccion?: string | null;
             imagenes?: string[];
-            readonly servicios?: string[];
+            servicios?: string[];
             /** @description Lugares donde opera. Lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -19815,7 +19839,7 @@ export interface components {
             /** @description Obtiene la direccion de la organización. */
             direccion?: string | null;
             imagenes?: components["schemas"]["OrganizacionImagen.html-organizacion.read_organizacion.item.read"][];
-            readonly servicios?: components["schemas"]["OrganizacionServicio.html-organizacion.read_organizacion.item.read"][];
+            servicios?: components["schemas"]["OrganizacionServicio.html-organizacion.read_organizacion.item.read"][];
             /** @description Lugares donde opera. Lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -19861,7 +19885,7 @@ export interface components {
             /** @description Obtiene la direccion de la organización. */
             direccion?: string | null;
             imagenes?: string[];
-            readonly servicios?: string[];
+            servicios?: string[];
             /** @description Lugares donde opera. Lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -19953,7 +19977,7 @@ export interface components {
             /** @description Obtiene la direccion de la organización. */
             direccion?: string | null;
             imagenes?: components["schemas"]["OrganizacionImagen.jsonld-organizacion.read_organizacion.item.read"][];
-            readonly servicios?: components["schemas"]["OrganizacionServicio.jsonld-organizacion.read_organizacion.item.read"][];
+            servicios?: components["schemas"]["OrganizacionServicio.jsonld-organizacion.read_organizacion.item.read"][];
             /** @description Lugares donde opera. Lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -19999,7 +20023,7 @@ export interface components {
             /** @description Obtiene la direccion de la organización. */
             direccion?: string | null;
             imagenes?: string[];
-            readonly servicios?: string[];
+            servicios?: string[];
             /** @description Lugares donde opera. Lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -20091,7 +20115,7 @@ export interface components {
             /** @description Obtiene la direccion de la organización. */
             direccion?: string | null;
             imagenes?: components["schemas"]["OrganizacionImagen.multipart-organizacion.read_organizacion.item.read"][];
-            readonly servicios?: components["schemas"]["OrganizacionServicio.multipart-organizacion.read_organizacion.item.read"][];
+            servicios?: components["schemas"]["OrganizacionServicio.multipart-organizacion.read_organizacion.item.read"][];
             /** @description Lugares donde opera. Lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */

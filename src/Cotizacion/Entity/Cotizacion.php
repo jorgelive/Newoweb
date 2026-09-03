@@ -635,6 +635,41 @@ class Cotizacion
     public function setClasificacionFinanciera(?array $clasificacionFinanciera): self { $this->clasificacionFinanciera = $clasificacionFinanciera; return $this; }
 
     /**
+     * Cuántas filas de operación ACTIVAS cuelgan de esta propuesta.
+     *
+     * ── Virtual: no es una columna ──────────────────────────────────────────
+     * La rellena {@see \App\Cotizacion\ApiPlatform\State\CotizacionFileItemProvider} con **una
+     * sola consulta para todo el expediente**. No hay relación inversa de `cotservicio` a
+     * `OperacionServicio` —es unidireccional— así que un getter que contara por su cuenta haría
+     * una consulta por propuesta, y eso es N+1 disfrazado de campo.
+     *
+     * ── Para qué ────────────────────────────────────────────────────────────
+     * Para pintar en el expediente **cuál de las propuestas tiene la operación**. Desde que
+     * confirmar ya no la arma y desde que la operativa se la lleva, eso dejó de ser deducible
+     * mirando el estado: una confirmada puede estar vacía porque nadie pulsó el botón, o porque su
+     * operativa se llevó las filas.
+     *
+     * ⚠️ **Cuenta las ACTIVAS, no todas.** Una confirmada que ya traspasó conserva sus 47 filas en
+     * `cancelado`, y contarlas diría que ahí vive la operación cuando ya no vive.
+     *
+     * `null` significa «no se preguntó» —lo sirve otra operación de la API—, no «cero».
+     */
+    #[Groups(['file:item:read'])]
+    private ?int $filasOperacionActivas = null;
+
+    public function getFilasOperacionActivas(): ?int
+    {
+        return $this->filasOperacionActivas;
+    }
+
+    public function setFilasOperacionActivas(?int $filasOperacionActivas): self
+    {
+        $this->filasOperacionActivas = $filasOperacionActivas;
+
+        return $this;
+    }
+
+    /**
      * De qué fila sale el DINERO que ve el cliente.
      *
      * ── La composición ──────────────────────────────────────────────────────

@@ -134,6 +134,31 @@ revisa.
 completa lo que falta sin tocar lo demás. Y **no revive lo cancelado** — una fila que el operador
 apagó se queda apagada, o cada uso del botón desharía decisiones suyas.
 
+### Cómo se ve en el expediente dónde vive la operación
+
+Desde que hay dos formas de que una confirmada esté vacía, **el estado ya no lo dice**:
+
+```
+confirmada sin filas  →  nadie ha pulsado el botón       (§2.bis)
+confirmada sin filas  →  su operativa se las llevó       (Cotizaciones §6.j.3)
+```
+
+Se ven igual y significan lo contrario. Por eso el detalle del expediente lo pinta con el **dato**:
+
+| Se ve | Qué significa |
+|---|---|
+| Badge oscuro **«OPERACIÓN · N»** + fondo teñido | Ahí viven N filas activas |
+| Badge ámbar **«Sin operación»** | Es donde debería vivir y está vacía — una llamada a armarla |
+| Nada | No es donde vive: se está vendiendo, es un histórico, o ya traspasó |
+
+⚠️ **Cuenta las ACTIVAS.** Una confirmada que traspasó conserva sus 47 filas en `cancelado`;
+contarlas diría que la operación sigue ahí.
+
+⚠️ **El dato llega en UNA consulta**, desde `CotizacionFileItemProvider`, y por eso no es un getter
+de la entidad: no hay relación inversa de `cotservicio` a `OperacionServicio`, así que un getter
+haría una consulta **por propuesta** — N+1 con aspecto de campo, del que nadie sospecha porque
+parece un atributo.
+
 ### ⚠️ Consecuencia para lo que ya existe
 
 Las confirmadas anteriores conservan sus filas: no se borra nada. Lo que cambia es que una
