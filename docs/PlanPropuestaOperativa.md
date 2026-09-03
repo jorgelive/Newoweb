@@ -1,211 +1,245 @@
-# Plan — la propuesta operativa, el acceso por documento y el filtrado por subgrupo
+# Plan — la propuesta operativa, la publicación y el filtrado por subgrupo
 
 Cómo se representa **lo que de verdad va a pasar en el viaje** cuando deja de parecerse a lo que se
-vendió, sin duplicar el expediente y sin que el cliente pierda los precios que aprobó.
+vendió, sin que el cliente pierda los precios que aprobó y sin duplicar trabajo.
 
-**Alcance:** plan de ejecución con fases, criterios de «hecho» y lo que se deja fuera a propósito.
-El modelo de propuestas está en `docs/Cotizaciones.md` §6.j.0 y §6.j.
+**Alcance:** plan de ejecución con fases y criterios de «hecho». El modelo de propuestas está en
+`docs/Cotizaciones.md` §6.j.0.
 
-**Estado:** redactado el 02/09/2026. Sin empezar.
+**Estado:** redactado el 02/09/2026 tras una conversación que descartó tres diseños antes de éste
+(§8). Sin empezar.
 
 ---
 
 ## Índice
 
 1. [El caso, tal como ocurre](#1-el-caso-tal-como-ocurre)
-2. [La forma que sale del modelo que ya existe](#2-la-forma-que-sale-del-modelo-que-ya-existe)
-3. [El criterio de orden](#3-el-criterio-de-orden)
-4. [Fase A — la propuesta operativa](#fase-a--la-propuesta-operativa)
-5. [Fase B — el acceso por documento](#fase-b--el-acceso-por-documento)
-6. [Fase C — el filtrado por subgrupo](#fase-c--el-filtrado-por-subgrupo)
-7. [Lo que NO entra, y cómo entraría](#7-lo-que-no-entra-y-cómo-entraría)
-8. [Dónde choca con el plan del cálculo compartido](#8-dónde-choca-con-el-plan-del-cálculo-compartido)
+2. [Los tres ejes que hoy están mezclados](#2-los-tres-ejes-que-hoy-están-mezclados)
+3. [Cómo queda el dato](#3-cómo-queda-el-dato)
+4. [El borrador operativo sale gratis](#4-el-borrador-operativo-sale-gratis)
+5. [Fases](#5-fases)
+6. [Lo que NO entra, y cómo entraría](#6-lo-que-no-entra-y-cómo-entraría)
+7. [Dónde choca con el cálculo compartido](#7-dónde-choca-con-el-cálculo-compartido)
+8. [Diseños descartados, y por qué](#8-diseños-descartados-y-por-qué)
 9. [Decisiones abiertas](#9-decisiones-abiertas)
-10. [Cómo saber que va bien](#10-cómo-saber-que-va-bien)
 
 ---
 
 ## 1. El caso, tal como ocurre
 
-Se cotiza un grupo: todo junto, un vuelo, N pax, «todo bonito». Después la realidad se separa:
+Se cotiza un grupo: todo junto, un vuelo, N pax. Después la realidad se separa —el grupo se parte
+en vuelos nacional e internacional, algunos se integran ya en destino— y el servicio «Vuelo» acaba
+con **dos componentes**. Las cantidades por componente **dejan de sumar el total del grupo**.
 
-- El grupo se parte en **vuelos distintos**, nacional e internacional.
-- Algunos **se integran ya en Punta Cana**.
-- El servicio «Vuelo» acaba con **dos componentes de vuelo**.
-- Las cantidades por componente **dejan de sumar el total del grupo**.
+Sobre eso hay que emitir las órdenes. Pero:
 
-Y sobre eso hay que emitir las órdenes. Pero el cliente tiene que seguir viendo **los precios que
-aprobó**, aunque el itinerario ya sea otro.
+> **Ya está vendido y ya se cobró. Lo que pase en la operación es un tema proveedor–agencia.** El
+> cliente sigue viendo el financiero de la confirmada, y el descriptivo de la operativa.
 
-## 2. La forma que sale del modelo que ya existe
+## 2. Los tres ejes que hoy están mezclados
 
-⚠️ **No es un documento nuevo.** La operativa es **hermana del histórico**: misma propuesta,
-distinguida por estado, colgando de la aprobada por el mismo `derivadaDe` que ya existe. Ninguna
-consume número de propuesta.
+`estado` hace **dos trabajos a la vez**, y por eso chocan. Se ve en una queja concreta del día a
+día: *«para ver la cotización antes de mandarla tengo que ponerle enviada»* — mentir sobre un acto
+comercial para conseguir una visibilidad.
 
 ```
-Expediente
- └── PROPUESTA (v1, v2…)      alternativas o COMPLEMENTOS · el cliente elige una o varias
-       ├── HISTORICO ×N        derivadaDe → la viva      no pública · foto del pasado
-       ├── la aprobada         CONFIRMADO/ENVIADO        pública    · financiero cliente ORIGEN
-       └── OPERATIVA           derivadaDe → la aprobada  pública    · financiero cliente HEREDADO
-                                                                    · interno recalculado → órdenes
+estado       dónde está comercialmente    pendiente · enviado · confirmado · OPERATIVA · cerrado…
+publicado    ¿el cliente puede verlo?     bool, INDEPENDIENTE del estado
+congelada    consecuencia de estar vendida — por convención, no por candado (§5, F3)
 ```
 
-**Las dos superficies financieras ya existen y encajan solas:**
+⚠️ **Separarlos disuelve un problema que parecía difícil.** Con `publicado` independiente ya no
+hace falta «desempatar» qué fila ve el cliente cuando hay varias públicas en una propuesta: cada
+eje decide lo suyo y la pregunta no existe.
 
-| | Qué lleva | En la operativa |
-|---|---|---|
-| `clasificacionFinanciera` | costos y márgenes · **interno** | **se mueve** — de ahí salen las órdenes |
-| `clasificacionFinancieraCliente` | sin costos ni márgenes · **el cliente** | **se hereda y NO se regenera** |
+## 3. Cómo queda el dato
 
-Y el eje de subgrupos ya soporta el multitramo **sin tocar código**: `reserva_aerea` con subeje
-libre (`#Vuelo Nacional`, `#Vuelo Internacional`, `#Vuelo Punta Cana`).
+```
+propuesta 1
+ ├── HISTORICO ×N    fotos del proceso de venta
+ ├── CONFIRMADA      lo vendido · el financiero que ve el cliente
+ │                   en la práctica, «un histórico que además calculó precios»
+ └── OPERATIVA       viva · aquí ocurre TODO lo posterior · aquí viven las órdenes
+                     derivadaDe → la confirmada
+```
 
-## 3. El criterio de orden
+Y la vista del cliente **se compone de las dos**:
 
-**Primero lo que no falla ruidosamente.**
+```
+financiero  ←  SIEMPRE la confirmada
+itinerario  ←  la operativa SI está publicada · si no, la confirmada
+```
 
-Añadir el estado es ruidoso casi en todas partes —tres `match` exhaustivos en el enum y la unión
-generada de los `api.d.ts` hacen saltar el compilador—, así que esos sitios se cazan solos. Lo que
-va primero es lo que **hace otra cosa en silencio**:
+Ejemplo con datos reales de `2KVBMX`, que hoy tiene 47 filas de operación colgando de su
+confirmada:
 
-| Riesgo | Qué pasa hoy | Ruido |
-|---|---|---|
-| El padrón abierto | cualquiera con el enlace ve los documentos de todos | 🔇 ninguno: funciona «bien» |
-| El `match` del listener | un estado nuevo cae en `default => null` y deja operación activa | 🔇 su propio doc lo predice |
-| Dos públicas por propuesta | el provider devuelve la que MySQL quiera | 🔇 ya mordió una vez |
-| El snapshot del cliente | **guardar lo reescribe** | 🔇 le cambia los precios al cliente |
+```
+Servicio «Vuelo»
+  en la CONFIRMADA    Componente «Vuelo LIM–PUJ»                              40 pax
+  en la OPERATIVA     Componente «Vuelo LIM–PUJ»  grupo=#Vuelo Nacional       22 pax
+                      Componente «Vuelo LIM–PUJ»  grupo=#Vuelo Internacional  18 pax
+                            │                            │
+                      OperacionServicio ×2 — cada una con su hora, su punto y su orden
+```
 
-## Fase A — la propuesta operativa
+⚠️ **La operativa nace al CONFIRMAR, sin publicar.** Y eso es lo que hace que **nunca haya que
+traspasar filas de operación**: nacen ya en la operativa. La alternativa —crearla a demanda—
+dejaba una ventana con dos filas con operación viva a la vez, que es exactamente el escenario que
+`CotizacionConfirmadaEventListener` describe como *«riesgo de pedirle y pagarle dos veces lo mismo
+al proveedor»*.
+
+El coste de crearla siempre es una operativa sin usar en expedientes individuales. **Nace
+invisible**, así que no molesta a nadie — y sigue siendo donde viven las órdenes, que es lo que de
+verdad hace.
+
+## 4. El borrador operativo sale gratis
+
+No hace falta ningún estado «borrador» ni despublicar nada:
+
+```
+Confirmas     → se congela lo vendido · nace la operativa SIN publicar
+                el cliente ve exactamente lo mismo que antes
+
+Reorganizas   → partes vuelos, mueves horarios, asignas subgrupos
+                el cliente sigue viendo el itinerario de la confirmada
+                no ve una página a medias ni un enlace roto
+
+Publicas      → ahora ve el itinerario real
+                y sus precios siguen siendo los que aprobó
+```
+
+**El borrador es la operativa antes de publicarla.** Nada más.
+
+## 5. Fases
+
+### F1 · La publicación como eje propio
 
 | | Acción | Hecho cuando |
 |---|---|---|
-| A.1 | ⚠️ **El `match` de `CotizacionConfirmadaEventListener`**, con el caso explícito | Un estado nuevo no puede pasar en silencio |
-| A.2 | ⚠️ **Desempate explícito del provider público** dentro de una propuesta | Con aprobada + operativa, sirve la que se decida — no la que ordene MySQL |
-| A.3 | `OPERATIVA` en `CotizacionEstadoEnum` + `esPublico()`, `esHistorico()`, `badgeColor()` | Compila |
-| A.4 | Processor «crear operativa»: clona la aprobada, pone `derivadaDe` y **hereda** `clasificacionFinancieraCliente` | Existe el botón y crea la fila |
-| A.5 | ⚠️ **Candado en el SERVIDOR**: una operativa rechaza un guardado que cambie `clasificacionFinancieraCliente` | Un `curl` con otro snapshot devuelve 422 |
-| A.6 | Front: mapa de estados, botón de crear, y que el editor diga dónde está | El operador ve «Propuesta 2 · operativa» |
+| 1.1 | `Cotizacion.publicado` (bool) + migración: `true` donde estado ∈ (enviado, confirmado) | El día del despliegue nadie ve nada distinto |
+| 1.2 | `esVisibleParaCliente()` mira `publicado`, no el estado | |
+| 1.3 | **Previsualización del operador**: el provider deja pasar lo no publicado si quien pide está autenticado | Ver la vista cliente sin tocar el estado |
 
-⚠️ **A.5 no puede vivir en el front.** El editor regenera ese snapshot **en cada guardado**
-(`payload.clasificacionFinancieraCliente = expurgarParaCliente(fin)`), sin preguntar y sin avisar.
-Una convención —«acuérdate de no guardar»— le cambiaría los precios al cliente el primer día. Es el
-mismo patrón que la fase 6 de `PlanProcesamientoCompartido.md`: **PHP comprueba y rechaza.**
+⚠️ 1.3 no necesita enlace ni token especial: `util` y `pax` comparten dominio de cookie
+(`FRAMEWORK_SESION_COOKIE_DOMAIN`), así que basta una condición.
 
-⚠️ **A.2 ya mordió antes.** `(file_id, propuesta)` no es único, y el provider hacía `findOneBy` y
-comprobaba el estado después: MySQL le entregaba la foto congelada y respondía 404 con un enlace
-válido. Ahora filtra en la consulta — pero con **dos filas públicas** eso ya no desempata.
-
-## Fase B — el acceso por documento
-
-⚠️ **B.1 no es una función nueva: es cerrar algo que hoy está abierto.** `PaxFilePortadaView` pinta
-el padrón entero **con los números de documento de todos**, para cualquiera que tenga el enlace. Y
-`exigeIdentificacion` existe, devuelve `true` en modo grupo… y **no lo consume nadie**: sólo aparece
-en el `api.d.ts` generado. La puerta está declarada y sin construir.
+### F2 · La propuesta operativa
 
 | | Acción | Hecho cuando |
 |---|---|---|
-| B.1 | La portada deja de listar a todos los pasajeros con sus documentos | Un enlace sin identificar no expone a nadie |
-| B.2 | Endpoint: documento + fecha de nacimiento → **token acotado a ese pasajero** | Devuelve token o 401, sin decir cuál de los dos falló |
-| B.3 | El provider público filtra por ese token | Un token de A no ve los datos de B |
-| B.4 | Límite de intentos | Un bucle no enumera el padrón |
+| 2.1 | ⚠️ **El `match` de `CotizacionConfirmadaEventListener`, con el caso explícito** | Un estado nuevo no puede caer en `default => null` |
+| 2.2 | `OPERATIVA` en `CotizacionEstadoEnum` + sus tres `match` | Compila |
+| 2.3 | Confirmar **crea la operativa** (clon, sin publicar, `derivadaDe`) y las filas de operación nacen ahí | Nunca hay dos filas con operación viva |
+| 2.4 | Vista cliente **compuesta**: financiero de la confirmada, itinerario de la operativa publicada | |
+| 2.5 | Front: estado en el mapa, botón de publicar, y que el editor diga dónde está | |
 
-⚠️ **B.4 no es paranoia:** la llave son documento y fecha de nacimiento, datos que circulan por
-WhatsApp en un grupo de colegio. Sin límite, el padrón es enumerable por quien tenga el enlace.
+⚠️ **2.1 es el único punto mudo de toda la fase.** Los tres `match` del enum y la unión generada de
+los `api.d.ts` hacen saltar el compilador; el `default => null` del listener, no — y su propio
+comentario advierte que un estado nuevo *«dejaría las filas activas sin que nada lo denunciara»*.
 
-⚠️ **El 401 no distingue** «ese documento no está» de «la fecha no coincide». Distinguirlos
-convierte el formulario en un comprobador de quién viaja.
+### F3 · Sin candado, y es una decisión
 
-## Fase C — el filtrado por subgrupo
+**La confirmada NO se bloquea técnicamente.** Queda congelada por convención: la operativa existe
+justamente para no tener que tocarla. Si el operador la edita igualmente, es porque quiso — y
+asume el doble trabajo de actualizar proveedores por los dos lados.
 
-| | Acción | Hecho cuando |
-|---|---|---|
-| C.1 | `CotizacionCotcomponente.grupo` → `?CotizacionFileGrupo`, **null = aplica a todos** | Migración |
-| C.2 | `CotizacionPasajeroGrupo.codigo` → el localizador aéreo **de esa persona en ese vuelo** | Migración |
-| C.3 | Editor: asignar subgrupo a un componente | Se puede decir «este vuelo es de los del subeje Nacional» |
-| C.4 | Chequeo de coherencia: **unión(subgrupos) ⊇ pasajeros** | Avisa de huecos (alguien sin vuelo) y de solapes |
-| C.5 | Guía: el pasajero identificado ve sólo lo suyo, con su código | |
-| C.6 | Órdenes: salen con la gente del subgrupo | |
+⚠️ Consecuencia aceptada: editar la confirmada **sí** regenera su `clasificacionFinancieraCliente`
+y le cambia los precios al cliente. Eso es correcto: si alguien edita a conciencia lo vendido, está
+renegociando, y el cliente debe ver lo nuevo.
 
-⚠️ **`null` = sin acotar, no «sin clasificar»**, igual que en skills y en la guía del huésped. Va
-contra la intuición y es deliberado: un olvido deja el componente **de más** —inofensivo— en vez de
-invisible, y lo segundo no se descubre nunca.
+Se descartó un candado en el servidor por eso — ver §8.
 
-⚠️ **C.4 cambia la invariante, y ése es el punto.** Lo correcto **no** es
+### F4 · Cerrar el padrón
+
+⚠️ **No es una función nueva: es cerrar algo abierto hoy.** `PaxFilePortadaView` pinta el padrón
+entero **con los documentos de todos**, para cualquiera con el enlace. Y `exigeIdentificacion`
+existe, devuelve `true` en modo grupo, y **no lo consume nadie**: sólo aparece en el `api.d.ts`.
+
+Y F5 lo empeora: en cuanto exista el código de vuelo por persona, ese padrón abierto expondrá
+también las reservas aéreas de todos. **Cerrar antes de añadir cuesta menos que cerrar después.**
+
+| | Acción |
+|---|---|
+| 4.1 | La portada deja de listar a todos con sus documentos |
+| 4.2 | Endpoint: documento + fecha de nacimiento → token acotado a ese pasajero |
+| 4.3 | El provider filtra por ese token |
+| 4.4 | Límite de intentos |
+
+⚠️ El 401 **no distingue** «ese documento no está» de «la fecha no coincide»: distinguirlos
+convierte el formulario en un comprobador de quién viaja. Y 4.4 no es paranoia — la llave son datos
+que circulan por WhatsApp en un grupo de colegio.
+
+### F5 · El filtrado por subgrupo
+
+| | Acción |
+|---|---|
+| 5.1 | `CotizacionCotcomponente.grupo` → `?CotizacionFileGrupo`, **null = aplica a todos** · migración |
+| 5.2 | `CotizacionPasajeroGrupo.codigo` → el localizador aéreo **de esa persona en ese vuelo** · migración |
+| 5.3 | Editor: asignar subgrupo a un componente |
+| 5.4 | Chequeo: **unión(subgrupos) ⊇ pasajeros** — huecos y solapes |
+| 5.5 | Guía: el pasajero identificado ve sólo lo suyo, con su código |
+| 5.6 | Órdenes: salen con la gente del subgrupo |
+
+El eje ya existe y admite el multitramo **sin tocar código**: `reserva_aerea` con subeje libre
+(`#Vuelo Nacional`, `#Vuelo Internacional`). Cargar quién vuela en qué se puede hacer hoy.
+
+⚠️ **5.4 cambia la invariante, y ése es el punto.** Lo correcto no es `suma(cantidades) == numPax`
+—falso en cuanto hay dos vuelos— sino `unión(subgrupos) ⊇ pasajeros`. Que las cantidades no cuadren
+deja de ser una anomalía a tolerar: pasa a ser lo normal, y lo que se vigila es otra cosa.
+
+⚠️ **El código de vuelo va en el PIVOTE.** Una persona tiene un código por vuelo y un vuelo tiene
+un código por persona: es un dato de la intersección, que es lo que `CotizacionPasajeroGrupo` es.
+
+## 6. Lo que NO entra, y cómo entraría
+
+**Los que se integran a mitad de viaje.** Descartado a conciencia.
+
+Con subgrupos habría que **describir una ausencia**: etiquetar todos los hoteles y tours que esas
+personas no hacen, N anotaciones que crecen con el viaje. Compáralo con los vuelos, donde el mismo
+diseño cuesta **dos** porque describes lo que pasa.
+
+> **Si una función te obliga a anotar todo, el dato está en la entidad equivocada.**
+
+Si vuelve, vuelve barato y sin rehacer nada:
 
 ```
-suma(cantidades) == numPax        ← falso en cuanto hay dos vuelos
-unión(subgrupos)  ⊇ pasajeros     ← esto sí se puede comprobar
+CotizacionFilepasajero + participaDesde / participaHasta   (null = todo el viaje)
+
+ve un componente si:  (sin subgrupo O está en él)  Y  (el día cae en su tramo)
 ```
 
-Que las cantidades no cuadren deja de ser una anomalía a tolerar: pasa a ser la forma normal, y lo
-que se vigila es otra cosa.
+Un campo, en una persona, y ningún componente se entera.
 
-⚠️ **El código de vuelo va en el PIVOTE**, no en el pasajero ni en el vuelo: una persona tiene un
-código por vuelo, y un vuelo tiene un código por persona. Es un dato de la intersección, que es
-justo lo que `CotizacionPasajeroGrupo` representa.
+## 7. Dónde choca con el cálculo compartido
 
-## 7. Lo que NO entra, y cómo entraría
+**Un componente acotado a 12 de 40 pax hay que valorarlo por 12**, y el cálculo financiero vive
+sólo en el navegador: el servidor no lo alcanza.
 
-**Los que se integran a mitad de viaje.** Descartado a conciencia el 02/09/2026.
+**F5 se construye entera salvo el precio.** Vuelos, horarios, namelist y órdenes funcionan; la
+valoración espera a la fase 5 de `docs/PlanProcesamientoCompartido.md`. No es un bloqueo, pero
+conviene no descubrirlo a mitad.
 
-El motivo no es que sea raro: es que **con subgrupos habría que describir una ausencia**. Para que
-a esas personas no les salgan los hoteles y tours que no hacen, habría que etiquetar **todos** esos
-componentes — N anotaciones que crecen con el viaje, no con el caso.
+## 8. Diseños descartados, y por qué
 
-Compáralo con los vuelos, donde el mismo diseño es barato: el servicio se parte en dos componentes
-y cada uno lleva su subgrupo. **Dos anotaciones.** La diferencia es que ahí describes lo que pasa.
+Se dejan escritos porque el motivo sigue siendo útil.
 
-> **La regla que sale de esto: si una función te obliga a anotar todo, el dato está en la entidad
-> equivocada.**
-
-**Si el caso vuelve, vuelve barato** y sin rehacer nada:
-
-```
-CotizacionFilepasajero
-  + participaDesde / participaHasta      (null = todo el viaje)
-
-el pasajero ve un componente si:
-    (no tiene subgrupo  O  la persona está en él)
-  Y (el día del componente cae dentro de su tramo)
-```
-
-Un campo, en una persona, y ningún componente se entera. Es aditivo: una columna y un `AND` más.
-
-## 8. Dónde choca con el plan del cálculo compartido
-
-**Un componente acotado a 12 de 40 pax tiene que valorarse por 12.** Y el cálculo financiero vive
-**sólo en el navegador**: el servidor no lo alcanza.
-
-Consecuencia práctica: **C se puede construir entero salvo el precio.** Los vuelos, los horarios,
-el namelist y las órdenes funcionan sin ello; la valoración de un componente acotado espera a la
-fase 5 de `docs/PlanProcesamientoCompartido.md`.
-
-No es un bloqueo, pero conviene no descubrirlo a mitad.
+| Diseño | Por qué se cayó |
+|---|---|
+| **Una cotización operativa como documento nuevo** | Dos árboles que sincronizar a mano. La operativa es otra fila de la misma propuesta, como el histórico |
+| **Editar la confirmada y congelar sólo su snapshot** | Requería un candado en el servidor contra un editor que regenera ese campo en cada guardado. Con la confirmada congelada entera, el problema no se protege: desaparece |
+| **Crear la operativa a demanda** | Deja una ventana con dos filas con operación viva y obliga a coordinar un traspaso de las filas. Naciendo al confirmar, nunca hay nada que traspasar |
+| **Un estado «borrador»** | `publicado` ya lo da: el borrador es la operativa antes de publicarla |
+| **Desempatar entre filas públicas** | Con `publicado` independiente no puede haber dos. La pregunta desaparece |
 
 ## 9. Decisiones abiertas
-
-Son de producto, no técnicas:
 
 | | La pregunta |
 |---|---|
 | 1 | **Qué ve quien NO se identifica**: ¿nada, la portada sin padrón, o el itinerario común sin datos personales? |
 | 2 | **Si dos propuestas aprobadas son complementarias** (Lima + Bolivia), ¿la guía las fusiona por fecha o las enseña sueltas? |
-| 3 | **Cuando existe operativa**, ¿gana siempre sobre la aprobada en la vista del cliente, o se elige a mano? |
 
 La 2 es la más grande: el pasajero vive **un viaje**, no dos documentos — pero eso hay que quererlo,
 no deducirlo.
-
-## 10. Cómo saber que va bien
-
-1. **Nadie ve un documento de identidad que no sea suyo.** Es lo primero y lo único urgente.
-2. **Añadir un estado no puede pasar en silencio por ningún `match`.**
-3. **Guardar una operativa no cambia lo que el cliente ya aprobó** — comprobado con un `curl`, no
-   con buena voluntad.
-4. **El chequeo avisa de huecos y solapes**, y nadie vuelve a mirar si las cantidades suman.
-5. **Ningún componente lleva subgrupo «para que no salga»** — si aparece esa necesidad, el dato
-   está en la entidad equivocada (§7).
 
 ---
 
@@ -213,10 +247,9 @@ no deducirlo.
 
 | Necesidad | Archivo |
 |---|---|
-| Qué estados ve el cliente | `CotizacionEstadoEnum::esPublico()` |
+| Si el cliente ve una propuesta | `Cotizacion::$publicado` — **no** el estado |
 | Qué pasa al cambiar de estado | `CotizacionConfirmadaEventListener` — el `match`, **explícito siempre** |
-| Qué propuesta sirve pax | `CotizacionFilePublicProvider` |
-| Que el cliente conserve sus precios | el candado de A.5, en el servidor |
-| A quién aplica un componente | `CotizacionCotcomponente::$grupo` (C.1) |
-| El código de vuelo de una persona | `CotizacionPasajeroGrupo::$codigo` (C.2) |
+| Que confirmar abra la operación | el processor de confirmación (F2.3) |
+| A quién aplica un componente | `CotizacionCotcomponente::$grupo` |
+| El código de vuelo de una persona | `CotizacionPasajeroGrupo::$codigo` |
 | Los ejes de agrupación | `GrupoTipoEnum` — el subeje es texto libre, no hace falta un `case` por tramo |

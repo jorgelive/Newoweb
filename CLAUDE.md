@@ -183,7 +183,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `dominio/` (reglas compartidas por el navegador y el servidor: sin Vue, sin DOM, sin base) | `docs/NodeEnElStack.md` §9 — y el doc del módulo que corresponda |
 | `src/Dominio/` (la puerta de PHP al cálculo compartido: ejecutor, contrato, operaciones) | `docs/NodeEnElStack.md` §9 |
 | Procesos Node compartidos entre back y front (plan de ejecución por fases) | `docs/PlanProcesamientoCompartido.md` |
-| Propuesta operativa, acceso por documento, filtrado de componentes por subgrupo | `docs/PlanPropuestaOperativa.md` |
+| Propuesta operativa, publicación, acceso por documento, filtrado por subgrupo | `docs/PlanPropuestaOperativa.md` |
 | `src/Pax/Entity/UiI18n.php`, `src/Pax/Command/` (las cadenas de UI de la app del huésped) | El doc de la pantalla donde se leen. Entran por comando ORM, **nunca** por SQL: llevan `#[AutoTranslate]` |
 | `util/src/components/` y `common/`, `util/src/types/modulosApp.ts` (UI y navegación reutilizables entre módulos) | `docs/UI_Componentes_Compartidos.md` |
 | `src/Operacion/`, La Biblia y Órdenes de Servicio en `util/` | `docs/Operacion.md` |
