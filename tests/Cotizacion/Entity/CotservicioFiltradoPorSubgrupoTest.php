@@ -20,6 +20,9 @@ final class CotservicioFiltradoPorSubgrupoTest extends TestCase
     private CotizacionFileGrupo $internacional;
     private CotizacionCotservicio $servicio;
 
+    private \App\Cotizacion\Entity\CotizacionSegmento $segNacional;
+    private \App\Cotizacion\Entity\CotizacionSegmento $segHotel;
+
     protected function setUp(): void
     {
         $this->nacional = (new CotizacionFileGrupo())->setId(Uuid::v4())->setNombre('Vuelo Nacional');
@@ -28,9 +31,20 @@ final class CotservicioFiltradoPorSubgrupoTest extends TestCase
         $this->servicio = new CotizacionCotservicio();
         $this->servicio->setCotizacion(new Cotizacion());
 
-        foreach ([['LIM-PUJ nacional', $this->nacional], ['LIM-PUJ internacional', $this->internacional], ['Hotel Tambo', null]] as [$nombre, $grupo]) {
+        // Dos segmentos: el del vuelo —que se parte en dos componentes— y el del hotel.
+        $this->segNacional = new \App\Cotizacion\Entity\CotizacionSegmento();
+        $this->segHotel = new \App\Cotizacion\Entity\CotizacionSegmento();
+        $this->servicio->getCotsegmentos()->add($this->segNacional);
+        $this->servicio->getCotsegmentos()->add($this->segHotel);
+
+        foreach ([
+            ['LIM-PUJ nacional', $this->nacional, $this->segNacional],
+            ['LIM-PUJ internacional', $this->internacional, $this->segNacional],
+            ['Hotel Tambo', null, $this->segHotel],
+        ] as [$nombre, $grupo, $segmento]) {
             $comp = (new CotizacionCotcomponente())->setGrupo($grupo);
             $comp->setNombreInternoSnapshot($nombre);
+            $comp->setCotsegmento($segmento);
             $this->servicio->getCotcomponentes()->add($comp);
         }
     }
@@ -65,6 +79,36 @@ final class CotservicioFiltradoPorSubgrupoTest extends TestCase
         $this->servicio->getCotizacion()?->setFiltroSubgrupos([]);
 
         self::assertSame(['Hotel Tambo'], $this->nombresServidos());
+    }
+
+    public function testUnSegmentoQueSeQuedaSinComponentesNoSeSirve(): void
+    {
+        // 🔥 El relato vive en el SEGMENTO, y `componerItinerario()` pinta un bloque por segmento
+        // aunque no le quede ningún componente. Sin esto, quien no va en ningún vuelo leía el
+        // relato completo del vuelo: no es una fuga, es peor — le dice que hace algo que no hace.
+        $this->servicio->getCotizacion()?->setFiltroSubgrupos([]);
+
+        $servidos = $this->servicio->getCotsegmentosParaCliente();
+
+        self::assertCount(1, $servidos, 'el segmento del vuelo debía caerse: no le queda nada suyo');
+        self::assertSame($this->segHotel, $servidos->first());
+    }
+
+    public function testUnSegmentoQueNUNCATuvoComponentesSeQueda(): void
+    {
+        // ⚠️ Es legítimo —así se trabaja en el editor mientras se arma— y esconderlo cambiaría lo
+        // que ve el cliente sin que nadie lo haya filtrado. Sólo se cae el que TENÍA y perdió.
+        $vacio = new \App\Cotizacion\Entity\CotizacionSegmento();
+        $this->servicio->getCotsegmentos()->add($vacio);
+
+        $this->servicio->getCotizacion()?->setFiltroSubgrupos([]);
+
+        self::assertTrue($this->servicio->getCotsegmentosParaCliente()->contains($vacio));
+    }
+
+    public function testSinFiltroSeSirvenTodosLosSegmentos(): void
+    {
+        self::assertCount(2, $this->servicio->getCotsegmentosParaCliente());
     }
 
     public function testFiltrarNoVaciaLaColeccionORIGINAL(): void

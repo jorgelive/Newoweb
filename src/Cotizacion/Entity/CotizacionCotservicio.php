@@ -154,7 +154,9 @@ class CotizacionCotservicio
     /**
      * @var Collection<int, CotizacionSegmento>
      */
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read', 'pax_cotizacion:read'])]
+    // ⚠️ SIN `pax_cotizacion:read`: al cliente se lo sirve getCotsegmentosParaCliente(), que
+    // deja fuera los segmentos que el filtro por subgrupo vació.
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
     #[ORM\OneToMany(mappedBy: 'cotservicio', targetEntity: CotizacionSegmento::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['dia' => 'ASC', 'orden' => 'ASC'])]
     private Collection $cotsegmentos;
@@ -281,24 +283,60 @@ class CotizacionCotservicio
     public function getFechaInicioAbsoluta(): ?DateTimeImmutable { return $this->fechaInicioAbsoluta; }
     public function setFechaInicioAbsoluta(?DateTimeImmutable $fechaInicioAbsoluta): self { $this->fechaInicioAbsoluta = $fechaInicioAbsoluta; return $this; }
 
+
     /**
-     * Los componentes que ve ESTE cliente. En la operativa de un grupo, sólo los suyos.
+     * Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo.
      *
-     * ```
-     * grupo = null                    lo ve todo el mundo
-     * grupo = #Vuelo Nacional         sólo quien pertenece a ese subgrupo
-     * ```
+     * ── 🔥 El bloque vacío contaba un viaje ajeno ───────────────────────────
+     * `componerItinerario()` recorre **segmentos** y les cuelga los componentes que apuntan a
+     * cada uno. El relato vive en el segmento, así que un segmento cuyos componentes se filtraron
+     * todos seguía pintándose: el pasajero leía «Vuelo de Cusco a Lima» con su narrativa completa
+     * **para un vuelo en el que no va**.
      *
-     * ── ⚠️ Devuelve una colección NUEVA; nunca quita de la original ─────────
-     * `$cotcomponentes` es una `PersistentCollection` con `orphanRemoval: true`. Quitarle
-     * elementos para filtrar marcaría esos componentes para **borrado** en el siguiente flush —el
-     * cliente miraría su itinerario y la cotización perdería la mitad—. No daría error: borraría.
+     * No es una fuga de datos de otro —el relato es el mismo para todos— pero sí es peor que no
+     * enseñar nada: le dice que hace algo que no hace, y sobre eso planifica.
      *
-     * ── ⚠️ Se filtra AQUÍ y no en la vista ──────────────────────────────────
-     * Un `v-if` en `pax` deja los vuelos de los demás viajando en la respuesta. Es exactamente lo
-     * que la identificación viene a impedir, así que esconderlo en el front la volvería
-     * decorativa.
+     * ── ⚠️ Un segmento que YA venía sin componentes se queda ────────────────
+     * Es legítimo —así se trabaja en el editor mientras se arma— y esconderlo cambiaría lo que ve
+     * el cliente sin que nadie lo haya filtrado. Sólo se cae el que **tenía y perdió**.
      *
+     * @return Collection<int, CotizacionSegmento>
+     */
+    #[Groups(['pax_cotizacion:read'])]
+    #[SerializedName('cotsegmentos')]
+    public function getCotsegmentosParaCliente(): Collection
+    {
+        if ($this->cotizacion?->getFiltroSubgrupos() === null) {
+            return $this->cotsegmentos;
+        }
+
+        $visibles = $this->getCotcomponentesParaCliente();
+
+        return $this->cotsegmentos->filter(function (CotizacionSegmento $segmento) use ($visibles): bool {
+            $tenia = false;
+
+            foreach ($this->cotcomponentes as $componente) {
+                if ($componente->getCotsegmento() === $segmento) {
+                    $tenia = true;
+                    break;
+                }
+            }
+
+            if (!$tenia) {
+                return true;   // nunca tuvo: no lo vació el filtro
+            }
+
+            foreach ($visibles as $componente) {
+                if ($componente->getCotsegmento() === $segmento) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+    }
+
+    /**
      * @return Collection<int, CotizacionCotcomponente>
      */
     #[Groups(['pax_cotizacion:read'])]

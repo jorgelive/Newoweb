@@ -2261,6 +2261,37 @@ sólo vigila eso.
 ⚠️ **Lista vacía ≠ `null`.** Vacía es «se filtró y no está en ningún subgrupo»: ve lo general.
 `null` es «no se preguntó» y sirve todo. Confundirlas enseña el expediente entero.
 
+### 🔥 El relato vive en el SEGMENTO, y eso cambia cómo se filtra
+
+`componerItinerario()` recorre **segmentos** y les cuelga los componentes que apuntan a cada uno.
+El texto que lee el cliente es del segmento, no del componente ni del servicio.
+
+Consecuencia que casi se escapa: un segmento cuyos componentes se filtraron **todos** seguía
+pintándose. El pasajero leía «Vuelo de Cusco a Lima» con su narrativa completa **para un vuelo en
+el que no va**. No es una fuga —el relato es el mismo para todos— pero es **peor que no enseñar
+nada**: le dice que hace algo que no hace, y sobre eso planifica.
+
+`getCotsegmentosParaCliente()` los deja fuera. ⚠️ **Salvo el que nunca tuvo componentes**: eso es
+legítimo —así se trabaja en el editor mientras se arma— y esconderlo cambiaría lo que ve el cliente
+sin que nadie lo haya filtrado. Sólo se cae el que **tenía y perdió**.
+
+### ⚠️ Y por eso partir un vuelo NO es «+ Añadir Extra»
+
+Para que el cliente vea los dos componentes, los dos tienen que **apuntar al mismo segmento** —el
+del vuelo— y distinguirse por `grupo`. Así comparten relato, que es lo correcto: la narrativa
+«vuelas de Cusco a Lima» es idéntica; lo que cambia es quién va en cuál.
+
+Hoy eso **no se puede hacer desde el editor**:
+
+| | |
+|---|---|
+| «+ Añadir Extra» | Crea el componente con `cotsegmento: null` — y un componente sin segmento **no aparece nunca** en la vista del cliente, porque el bucle sólo recorre segmentos |
+| Asignar el segmento a mano | No existe: no hay selector de segmento en el panel del componente |
+| Duplicar un componente | Tampoco existe |
+
+Falta una acción **«Duplicar componente»** que copie el componente dentro de su mismo segmento.
+Sin ella, F5 no puede usarse para el caso que lo motivó.
+
 ### Quién se queda fuera
 
 `CoberturaDeSubgrupos` avisa de la persona 41 que no está ni en el vuelo nacional ni en el

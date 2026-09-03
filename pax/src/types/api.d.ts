@@ -4522,11 +4522,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -4626,11 +4622,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -4903,11 +4895,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -4992,11 +4980,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5319,11 +5303,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5423,11 +5403,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5508,11 +5484,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5597,11 +5569,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5832,11 +5800,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -5936,11 +5900,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -6021,11 +5981,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -6110,11 +6066,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -6345,11 +6297,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -6449,11 +6397,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -6534,11 +6478,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -6623,11 +6563,7 @@ export interface components {
             readonly ganancia?: string;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
-            /**
-             * @description ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-             *     desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-             *     cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-             */
+            /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
             readonly totalHistoricos?: number;
             readonly historico?: boolean;
         };
@@ -8888,9 +8824,9 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            /** @description Los componentes que ve ESTE cliente. En la operativa de un grupo, sólo los suyos. */
             readonly cotcomponentes?: string[];
-            cotsegmentos?: string[];
+            /** @description Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo. */
+            readonly cotsegmentos?: string[];
             servicioMaestroId?: string | null;
             id?: string;
             /** Format: date-time */
@@ -9007,8 +8943,8 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotsegmentos?: components["schemas"]["CotizacionSegmento-pax_catalogo.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotsegmentos?: components["schemas"]["CotizacionSegmento-pax_catalogo.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente-pax_catalogo.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio-pax_file.read_pax_cotizacion.read": {
@@ -9022,8 +8958,8 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotsegmentos?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotsegmentos?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente-pax_file.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio.html": {
@@ -9058,9 +8994,9 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            /** @description Los componentes que ve ESTE cliente. En la operativa de un grupo, sólo los suyos. */
             readonly cotcomponentes?: string[];
-            cotsegmentos?: string[];
+            /** @description Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo. */
+            readonly cotsegmentos?: string[];
             servicioMaestroId?: string | null;
             id?: string;
             /** Format: date-time */
@@ -9139,8 +9075,8 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotsegmentos?: components["schemas"]["CotizacionSegmento.html-pax_catalogo.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotsegmentos?: components["schemas"]["CotizacionSegmento.html-pax_catalogo.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-pax_catalogo.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio.html-pax_file.read_pax_cotizacion.read": {
@@ -9154,8 +9090,8 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotsegmentos?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotsegmentos?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -9190,9 +9126,9 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            /** @description Los componentes que ve ESTE cliente. En la operativa de un grupo, sólo los suyos. */
             readonly cotcomponentes?: string[];
-            cotsegmentos?: string[];
+            /** @description Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo. */
+            readonly cotsegmentos?: string[];
             servicioMaestroId?: string | null;
             id?: string;
             /** Format: date-time */
@@ -9271,8 +9207,8 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -9286,8 +9222,8 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio.multipart": {
@@ -9322,9 +9258,9 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            /** @description Los componentes que ve ESTE cliente. En la operativa de un grupo, sólo los suyos. */
             readonly cotcomponentes?: string[];
-            cotsegmentos?: string[];
+            /** @description Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo. */
+            readonly cotsegmentos?: string[];
             servicioMaestroId?: string | null;
             id?: string;
             /** Format: date-time */
@@ -9403,8 +9339,8 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-pax_catalogo.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-pax_catalogo.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-pax_catalogo.read_pax_cotizacion.read"][];
         };
         "CotizacionCotservicio.multipart-pax_file.read_pax_cotizacion.read": {
@@ -9418,8 +9354,8 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"][];
             id?: string;
+            readonly cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read"][];
         };
         CotizacionCottarifa: {
