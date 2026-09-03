@@ -149,24 +149,63 @@ renegociando, y el cliente debe ver lo nuevo.
 
 Se descartó un candado en el servidor por eso — ver §8.
 
-### F4 · Cerrar el padrón
+### F4 · Quién ve qué en un expediente grupal
 
-⚠️ **No es una función nueva: es cerrar algo abierto hoy.** `PaxFilePortadaView` pinta el padrón
-entero **con los documentos de todos**, para cualquiera con el enlace. Y `exigeIdentificacion`
-existe, devuelve `true` en modo grupo, y **no lo consume nadie**: sólo aparece en el `api.d.ts`.
+**El mapa de acceso**, decidido el 02/09/2026:
 
-Y F5 lo empeora: en cuanto exista el código de vuelo por persona, ese padrón abierto expondrá
-también las reservas aéreas de todos. **Cerrar antes de añadir cuesta menos que cerrar después.**
+```
+Portada del expediente                         sin identidad
+ ├── «Ver cotización» → la OPERATIVA           ← formulario de identificación
+ └── abajo: confirmadas e históricas           ← sin identidad
+```
+
+La operativa es la única puerta cerrada, y por un motivo claro: es la que lleva **datos por
+persona** —tu vuelo, tu código, tu horario—. Lo comercial es el mismo documento para todos.
+
+⚠️ **En grupales se quita el manifiesto de la portada.** Hoy `PaxFilePortadaView` lista a los 133
+pasajeros **con su número de documento**, a la vista de cualquiera con el enlace. En un expediente
+individual el «manifiesto» es la familia y está bien; en uno grupal no es ni útil ni prudente.
 
 | | Acción |
 |---|---|
-| 4.1 | La portada deja de listar a todos con sus documentos |
-| 4.2 | Endpoint: documento + fecha de nacimiento → token acotado a ese pasajero |
-| 4.3 | El provider filtra por ese token |
+| 4.1 | `FileModoEnum::ocultaManifiesto()` → `GRUPO`, y la portada lo respeta |
+| 4.2 | Endpoint: documento + fecha de nacimiento → identifica al pasajero |
+| 4.3 | El provider sirve la operativa sólo a quien se identificó, y filtrada a lo suyo |
 | 4.4 | Límite de intentos |
 
-⚠️ El 401 **no distingue** «ese documento no está» de «la fecha no coincide»: distinguirlos
-convierte el formulario en un comprobador de quién viaja. Y 4.4 no es paranoia — la llave son datos
+**El tercero de una familia.** `ocultaManifiesto()` se suma a `exigeIdentificacion()` y
+`ocultaTotalDeGrupo()`, que ya existen y ya devuelven `GRUPO`. Tres comportamientos en un solo
+sitio, cada uno **nombrado por lo que hace** en vez de por `esGrupo()`.
+
+#### Dónde vive la identidad: la SESIÓN, no una cookie propia
+
+`util` y `pax` ya comparten dominio de cookie (`FRAMEWORK_SESION_COOKIE_DOMAIN`), y el host de la
+API está bajo el firewall `main`, que es *stateful* — sólo `^/platform/api_stateless` es sin
+estado. **La máquina ya está montada.**
+
+```php
+$session->set("pax_identificado.{$fileId}", $pasajeroId);
+```
+
+| | Sesión | Cookie firmada (JWT) |
+|---|---|---|
+| Estado en servidor | sí (~130 por expediente: trivial) | no |
+| **Revocable** | **al instante** | no hasta que caduque |
+| Cripto que mantener | ninguna | secreto, caducidad, firma |
+
+La revocabilidad pesa: si el enlace se filtra en el grupo de WhatsApp, con sesión se corta y ya.
+
+⚠️ **La clave lleva el `fileId` dentro.** Con una sola clave global, identificarse en un expediente
+abriría otro — bastaría el enlace de otro grupo.
+
+⚠️ **Nada de `localStorage`**: cualquier script de la página lo lee. Una cookie de sesión es
+`HttpOnly` y no. Para algo que abre datos personales de 130 familias esa diferencia no es teórica.
+
+⚠️ **Caducidad de días, no de meses**, renovándose con el uso: un padre entra desde el móvil y
+luego desde un ordenador del trabajo que se comparte.
+
+⚠️ **El 401 no distingue** «ese documento no está» de «la fecha no coincide». Distinguirlos
+convierte el formulario en un comprobador de quién viaja. Y 4.4 no es paranoia: la llave son datos
 que circulan por WhatsApp en un grupo de colegio.
 
 ### F5 · El filtrado por subgrupo
