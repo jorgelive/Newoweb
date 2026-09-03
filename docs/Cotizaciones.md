@@ -2069,6 +2069,20 @@ opcional**: sin él, un documento fijo y un barrido de fechas encuentra a cualqu
 | Mensaje de fallo | **Uno solo para los dos casos.** Decir «ese documento no está en el grupo» convierte el formulario en un buscador de documentos |
 | Normalización | El documento se compara sin puntos ni espacios y en mayúsculas: la gente no lo escribe dos veces igual |
 
+### 🔥 El directorio del controlador ES la configuración de host
+
+`config/routes.yaml` ata cada carpeta a un host: `Cotizacion/Controller/Publico/` cuelga de
+`%app.host.pax%` y `Cotizacion/Controller/Api/` de `%app.host.api%`.
+
+El endpoint de identificación nació en `Publico/` —parece el sitio: es una pantalla pública— y
+**quedó publicado en el host equivocado**. `pax` llama por `apiClient`, o sea a `api.openperu.pe`,
+así que identificarse habría dado 404 en producción.
+
+⚠️ **No lo cazó nada hasta el `debug:router` del despliegue**: en local los dos hosts responden, y
+ninguna prueba pide la ruta por su URL completa. La regla: **un controlador al que llama `pax` por
+`apiClient` va en `Controller/Api/`, aunque su pantalla sea pública.** Lo que decide es quién hace
+la petición, no quién la mira.
+
 ### ⚠️ 403 y no 404
 
 El 403 lleva el código `IDENTIFICACION_REQUERIDA` en el cuerpo. Un 404 diría «no existe» —mentira,

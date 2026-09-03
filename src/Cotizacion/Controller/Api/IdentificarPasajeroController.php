@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Cotizacion\Controller\Publico;
+namespace App\Cotizacion\Controller\Api;
 
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Service\Publico\IdentidadDelPasajero;
@@ -22,6 +22,16 @@ use Symfony\Component\Routing\Attribute\Route;
  * ⚠️ **Controlador plano y no una operación de API Platform.** Esto no lee ni escribe un recurso:
  * abre una puerta. Modelarlo como un `Post` sobre `CotizacionFile` obligaría a un DTO, un
  * processor y un grupo de escritura para algo que no cambia ni una fila.
+ *
+ * ── 🔥 Vive en `Controller/Api/`, y el directorio ES la configuración ───────
+ * `config/routes.yaml` ata cada carpeta a un host: `Controller/Publico/` cuelga de
+ * `%app.host.pax%` y `Controller/Api/` de `%app.host.api%`. Nació en `Publico/` —parece el sitio,
+ * es una pantalla pública— y **la ruta quedó publicada en el host equivocado**: `pax` llama a la
+ * API por `apiClient`, o sea a `api.openperu.pe`, así que identificarse habría dado 404.
+ *
+ * Se descubrió en el `debug:router` del despliegue, no antes: en local los dos hosts responden y
+ * ninguna prueba pide esta ruta por su URL completa. **La regla: un controlador que llama `pax`
+ * por `apiClient` va en `Controller/Api/`, aunque su pantalla sea pública.**
  */
 final class IdentificarPasajeroController extends AbstractController
 {
