@@ -218,9 +218,37 @@ const eliminarVersion = async (cot: ApiCotizacionVersion) => {
 // Un histórico conserva a propósito el número de la versión de la que salió, así que si se
 // listaran juntos habría dos tarjetas diciendo «V1» sin forma de saber cuál es la buena. Cuelgan
 // de la suya, plegados.
-const versionesVivas = computed<ApiCotizacionVersion[]>(
-  () => (file.value?.cotizaciones ?? []).filter((c: ApiCotizacionVersion) => c.estado !== 'historico')
-);
+/**
+ * ⚠️ **La operativa va PEGADA a su confirmada, no suelta.**
+ *
+ * Comparte número con ella a propósito —es la misma propuesta, con lo que de verdad se va a
+ * operar—, así que sin ordenarlas juntas salían dos tarjetas diciendo «P1» sin nada que dijera que
+ * la segunda sale de la primera. Es el mismo problema que ya tenían los históricos; la diferencia
+ * es que un histórico se pliega y **una operativa NO**: es la fila viva, donde ocurre todo lo
+ * posterior. Se queda a la vista, sangrada y con el vínculo escrito.
+ *
+ * El servidor no promete ningún orden, así que se ordena aquí: propuesta descendente y, dentro de
+ * cada una, la confirmada primero.
+ */
+const versionesVivas = computed<ApiCotizacionVersion[]>(() => {
+  const vivas = (file.value?.cotizaciones ?? [])
+    .filter((c: ApiCotizacionVersion) => c.estado !== 'historico');
+
+  return [...vivas].sort((a, b) => {
+    if ((b.propuesta ?? 0) !== (a.propuesta ?? 0)) return (b.propuesta ?? 0) - (a.propuesta ?? 0);
+
+    // Dentro de la misma propuesta, la operativa detrás: es la derivada.
+    return Number(a.estado === 'operativa') - Number(b.estado === 'operativa');
+  });
+});
+
+/** La confirmada de la que sale esta operativa, si la tenemos a la vista. */
+const confirmadaDe = (cot: ApiCotizacionVersion): ApiCotizacionVersion | undefined =>
+  cot.estado !== 'operativa'
+    ? undefined
+    : (file.value?.cotizaciones ?? []).find(
+        (c: ApiCotizacionVersion) => extractIdStr(c.id || c['@id']) === extractIdStr(cot.derivadaDeId ?? '')
+      );
 
 const historicosDe = (cot: ApiCotizacionVersion): ApiCotizacionVersion[] => {
   const id = extractIdStr(cot.id || cot['@id']);
@@ -2533,7 +2561,22 @@ const eliminarDocumento = async (iri?: string) => {
               <p class="text-xs mt-2 font-medium">Haz clic en "Crear Nueva Propuesta" para arrancar el motor operativo.</p>
             </div>
 
-            <div v-else v-for="cot in versionesVivas" :key="cot.id" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm hover:border-[#376875] transition-colors group mb-4">
+            <div v-else v-for="cot in versionesVivas" :key="cot.id"
+                 class="bg-white rounded-2xl p-4 sm:p-5 border shadow-sm hover:border-[#376875] transition-colors group mb-4"
+                 :class="cot.estado === 'operativa'
+                   ? 'border-orange-200 ml-4 sm:ml-8 border-l-4 border-l-orange-300 rounded-l-none'
+                   : 'border-slate-200'">
+
+              <!-- ⚠️ El vínculo, ESCRITO. La operativa comparte número con su confirmada, así que
+                   sin esta línea eran dos tarjetas diciendo «P1» y parecía otra propuesta. La
+                   sangría sola no basta: dice que cuelga de algo, no de qué. -->
+              <div v-if="cot.estado === 'operativa'" class="flex items-center gap-2 -mt-1 mb-3 text-[11px] font-semibold uppercase tracking-wide text-orange-600">
+                <i class="fas fa-turn-up fa-rotate-90 text-[10px]"></i>
+                <span>Operativa de la Propuesta {{ cot.propuesta }}</span>
+                <span v-if="confirmadaDe(cot)" class="text-slate-400 normal-case font-normal tracking-normal">
+                  · deriva de la confirmada · el cliente sigue viendo sus precios
+                </span>
+              </div>
 
               <!-- 1. CABECERA: Propuesta, Estado y Botones -->
               <div class="flex flex-wrap sm:flex-nowrap items-start justify-between gap-3 mb-4">
@@ -2596,9 +2639,13 @@ const eliminarDocumento = async (iri?: string) => {
                     <i class="fas fa-external-link-alt text-xs"></i>
                   </a>
 
-                  <!-- Sólo en la versión confirmada: es la única que genera operación.
-                       El backend lo vuelve a validar (422 si no está confirmada). -->
-                  <button v-if="cot.estado === 'confirmado'"
+                  <!-- Donde VIVE la operación, que no siempre es la confirmada.
+                       ⚠️ Al abrir la operativa, las filas de La Biblia se mudan a ella y las de la
+                       confirmada quedan canceladas. Este botón se quedaba en la confirmada, o sea
+                       apuntando a un plan vacío, mientras la fila que sí tiene las 47 filas no lo
+                       ofrecía. Se vio en pantalla, no en un test: a ojo el `v-if` parecía correcto
+                       —y lo era, hasta que existió la operativa—. Ver docs/Cotizaciones.md §6.j.3. -->
+                  <button v-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
                           @click="abrirPlanOperacion(cot)"
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white transition-colors"
                           title="Revisar los cambios de esta versión en el Centro de Operaciones">

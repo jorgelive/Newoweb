@@ -1950,6 +1950,25 @@ Los tres pasaban PHPStan, los 540 tests y una lectura a ojo:
 Un verificador que comparte el punto ciego de lo que verifica no verifica nada — por eso cuenta en
 SQL crudo.
 
+### ⚠️ Lo que se vio sólo al mirar la pantalla
+
+Dos cosas que ningún test ni el typecheck podían denunciar, porque el código era correcto **hasta
+que existió la operativa**:
+
+| Qué se veía | Por qué |
+|---|---|
+| Dos tarjetas diciendo «P1 · Propuesta 1», sin nada que dijera que la segunda sale de la primera | La operativa comparte número a propósito. Se resolvió como los históricos —pegada a su confirmada— pero **sin plegar**: un histórico se archiva, una operativa es la fila viva |
+| El botón del plan de operación seguía en la **confirmada**, que ya tiene sus 47 filas canceladas | Su `v-if` decía `estado === 'confirmado'`, que era exacto mientras la confirmada fuera el único sitio donde vivía la operación |
+
+El segundo es el más instructivo: **una condición correcta puede dejar de serlo sin que nadie la
+toque**. `estado === 'confirmado'` no significaba «la confirmada», significaba «donde vive la
+operación» — y el día que eso dejó de coincidir, el botón apuntaba a un plan vacío mientras la fila
+con las 47 filas no lo ofrecía. Ahora dice lo que quiere decir:
+`operativa || (confirmado && sin operativa)`.
+
+⚠️ **Merece buscarse en otros sitios.** Cualquier `estado === 'confirmado'` escrito antes del
+02/09/2026 hay que releerlo preguntando cuál de las dos cosas quería decir.
+
 ### Idempotente
 
 Si ya hay una operativa para esa propuesta, se devuelve la que hay. Abrir dos sería tener dos
