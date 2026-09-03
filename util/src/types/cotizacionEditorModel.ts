@@ -214,16 +214,25 @@ export type Item = components['schemas']['TravelComponenteItem-componente.item.r
  * ⚠️ Que no se ofrezcan **no significa que se pisen**: una cotización que ya está en uno de esos
  * estados lo conserva y la interfaz lo enseña bloqueado. Ver `esEstadoDeProceso()`.
  *
- * El orden es deliberado: primero el camino normal de una venta —pendiente → enviado → cerrado →
- * confirmado— y **abajo los dos finales**, operado y cancelado, que se eligen una vez y ya está.
+ * El orden es deliberado y sigue el CAMINO de una venta hasta el final:
+ *
+ * ```
+ * Pendiente → Enviado → Confirmado → Operado     la venta, de principio a fin
+ * ───────────────────────────────────────────
+ * Cancelado · Cerrado                            los dos finales que NO son venta
+ * ```
+ *
+ * ⚠️ «Operado» va **detrás de confirmado**, no abajo: es el último paso del camino bueno —se
+ * vendió y se operó—, no una salida. Y abajo, separados, los dos que cierran sin venta:
+ * «Cancelado» y «Cerrado». Ordenarlos por el recorrido real es lo que permite elegir sin leer.
  */
 export const ESTADOS_ELEGIBLES: CotizacionEstadoValue[] = [
     'pendiente',
     'enviado',
-    'cerrado',
     'confirmado',
     'operado',
     'cancelado',
+    'cerrado',
 ];
 
 /** ¿Este estado lo puso un proceso y no una persona? */

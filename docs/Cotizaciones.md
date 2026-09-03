@@ -1920,9 +1920,13 @@ es pública cuando sí puede serlo.
 `ESTADOS_ELEGIBLES` — los seis que el operador **puede elegir**, en el orden en que se ofrecen:
 
 ```
-Pendiente · Enviado · Cerrado · Confirmado        el camino de una venta
-Operado · Cancelado                              abajo: los dos finales
+Pendiente → Enviado → Confirmado → Operado    la venta, de principio a fin
+──────────────────────────────────────────
+Cancelado · Cerrado                           los dos finales que NO son venta
 ```
+
+⚠️ «Operado» va **detrás de confirmado**, no abajo: es el último paso del camino bueno, no una
+salida. Ordenar por el recorrido real es lo que permite elegir sin leer.
 
 ### ⚠️ `historico` y `operativa` NO están, y es lo importante de esa lista
 
