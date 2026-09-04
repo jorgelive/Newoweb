@@ -78,6 +78,34 @@ describe('el ancla de la fecha del servicio', () => {
     expect((s as { fechaInicioAbsoluta: string }).fechaInicioAbsoluta).toBe('2026-09-17');
   });
 
+  it('🔥 mover el segmento de día DESPLAZA, no aplana el desfase de la copia', () => {
+    const store = useCotizacionEditorStore();
+    const original = comp('2026-09-18T22:00:00');
+    const copia = comp('2026-09-19T02:00:00', (original as { id: string }).id);
+    const seg = { id: crypto.randomUUID(), dia: 1, fechaAbsoluta: '2026-09-18' };
+
+    // Los dos cuelgan del mismo segmento.
+    for (const c of [original, copia]) {
+      (c as { cotsegmentoId: string }).cotsegmentoId = seg.id;
+    }
+
+    const s = {
+      id: crypto.randomUUID(),
+      fechaInicioAbsoluta: '2026-09-18',
+      cotcomponentes: [original, copia],
+      cotsegmentos: [seg],
+    };
+
+    store.cotizacion = { cotservicios: [s] } as never;
+    store.onSegmentoDiaChange((s as { id: string }).id, seg.id, 3);
+
+    // El ancla se va al día 3 (+2), y la copia conserva su +1: sigue en la madrugada siguiente.
+    // Con la versión anterior —que FIJABA la fecha del segmento en todos— las dos habrían
+    // quedado el mismo día y el vuelo de las 02:00 habría perdido su noche.
+    expect((original as { fechaHoraInicio: string }).fechaHoraInicio.slice(0, 10)).toBe('2026-09-20');
+    expect((copia as { fechaHoraInicio: string }).fechaHoraInicio.slice(0, 10)).toBe('2026-09-21');
+  });
+
   it('⚠️ si SÓLO quedan copias, se usan: mejor una fecha que ninguna', () => {
     const store = useCotizacionEditorStore();
     // Pasa si alguien borra el original de un reparto ya hecho.

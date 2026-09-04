@@ -5042,13 +5042,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     return {
-        // ⚠️ Expuesta para poder probarla: qué componente ancla la fecha del servicio es de las
-        // reglas que se rompen en silencio, y no había forma de llamarla desde fuera.
-        //
-        // ⚠️ `moverSegmentoDeDia` NO se expone aunque también convendría: añadir dos entradas más
-        // a este `return` hace que TypeScript se rinda infiriendo el store —`tarifasHermanas` pasó
-        // a `any` y saltaron tres `TS7006` en la vista—. El objeto ya está en el límite, y una
-        // entrada de conveniencia no vale un `any` en una pantalla.
+        // Expuestas para poder probarlas: qué componente ancla la fecha del servicio, y que mover
+        // un segmento de día desplace en vez de fijar, son reglas que se rompen en silencio.
         sincronizarFechaServicio,
         subgruposDelFile,
         cargarSubgrupos,

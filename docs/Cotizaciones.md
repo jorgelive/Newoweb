@@ -2271,15 +2271,32 @@ mejor una fecha que ninguna.
 
 ### ⚠️ Y al mover un segmento de día, se DESPLAZA
 
-`moverSegmentoDeDia()` fijaba la fecha del segmento en todos sus componentes, lo que **aplastaba el
-desfase**: el vuelo de las 02:00 del día siguiente volvía al día del original, en silencio. Ahora
-calcula los días de diferencia **desde el ancla** y mueve a todos esa cantidad, así que las copias
-conservan su distancia.
+`onSegmentoDiaChange()` fijaba la fecha del segmento en todos sus componentes, lo que **aplastaba
+el desfase**: el vuelo de las 02:00 del día siguiente volvía al día del original, en silencio.
+Ahora calcula los días de diferencia **desde el ancla** y mueve a todos esa cantidad, así que las
+copias conservan su distancia. Hay un test que lo fija.
 
-⚠️ `sincronizarFechaServicio` está expuesta en el store **sólo para poder probarla**.
-`moverSegmentoDeDia` no: añadir dos entradas más al `return` hace que TypeScript se rinda
-infiriendo el store —`tarifasHermanas` pasó a `any` y saltaron tres `TS7006` en la vista—. El
-objeto ya está en el límite, y una entrada de conveniencia no vale un `any` en una pantalla.
+### 🔥 Un `any` que no era de TypeScript: era un nombre inventado
+
+Al ir a exponer la segunda función para probarla, `vue-tsc` sacó **tres `TS7006`** en archivos que
+no se habían tocado: parámetros de callback perdiendo su tipo en `ResumenClasificacion.vue`, en la
+vista del editor y hasta en otro test. La lectura fácil —y la que escribí aquí primero— fue «el
+store tiene 110 miembros y TypeScript se rinde infiriéndolo».
+
+**Era falso.** El error que importaba estaba tres líneas más arriba, tapado por el ruido:
+
+```
+TS18004: No value exists in scope for the shorthand property 'moverSegmentoDeDia'
+```
+
+La función no se llamaba así: es `onSegmentoDiaChange`, **y ya estaba expuesta**. Un identificador
+inexistente en el `return` convierte el tipo del objeto entero en un tipo de error, y desde ahí el
+store completo pasa a `any` **en toda la app** — de golpe, ningún callback vuelve a inferir.
+
+⚠️ **La lección, que vale más que el arreglo:** cuando una edición pequeña saca errores de tipo en
+archivos que no tocaste, el culpable casi nunca es el compilador rindiéndose. Es **un símbolo roto
+cerca del cambio** cuyo tipo de error se propaga. Se lee el error de MÁS ARRIBA, no el más
+llamativo — `TS18004` estaba ahí, entre tres `TS7006` que no significaban nada por sí solos.
 
 ### 🔥 Un botón, no una pulsación larga sobre el texto
 
