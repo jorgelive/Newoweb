@@ -11273,6 +11273,14 @@ export interface components {
             miembros?: components["schemas"]["CotizacionPasajeroGrupo"][];
             /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
             notas?: string[];
+            /** @description Los vuelos de este subgrupo, en corto. Lo rellena `CotizacionFileGrupoCollectionProvider`. */
+            vuelosResumen?: {
+                numero?: string | null;
+                salida?: string | null;
+                llegada?: string | null;
+                origen?: string | null;
+                destino?: string | null;
+            }[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11432,6 +11440,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /** @description Los vuelos de este subgrupo, en corto. Lo rellena `CotizacionFileGrupoCollectionProvider`. */
+            vuelosResumen?: {
+                numero?: string | null;
+                salida?: string | null;
+                llegada?: string | null;
+                origen?: string | null;
+                destino?: string | null;
+            }[];
             /**
              * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
              *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
@@ -11486,6 +11502,14 @@ export interface components {
             miembros?: components["schemas"]["CotizacionPasajeroGrupo.html"][];
             /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
             notas?: string[];
+            /** @description Los vuelos de este subgrupo, en corto. Lo rellena `CotizacionFileGrupoCollectionProvider`. */
+            vuelosResumen?: {
+                numero?: string | null;
+                salida?: string | null;
+                llegada?: string | null;
+                origen?: string | null;
+                destino?: string | null;
+            }[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11597,6 +11621,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /** @description Los vuelos de este subgrupo, en corto. Lo rellena `CotizacionFileGrupoCollectionProvider`. */
+            vuelosResumen?: {
+                numero?: string | null;
+                salida?: string | null;
+                llegada?: string | null;
+                origen?: string | null;
+                destino?: string | null;
+            }[];
             /**
              * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
              *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
@@ -11652,6 +11684,14 @@ export interface components {
             miembros?: components["schemas"]["CotizacionPasajeroGrupo.jsonld"][];
             /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
             notas?: string[];
+            /** @description Los vuelos de este subgrupo, en corto. Lo rellena `CotizacionFileGrupoCollectionProvider`. */
+            vuelosResumen?: {
+                numero?: string | null;
+                salida?: string | null;
+                llegada?: string | null;
+                origen?: string | null;
+                destino?: string | null;
+            }[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11765,6 +11805,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /** @description Los vuelos de este subgrupo, en corto. Lo rellena `CotizacionFileGrupoCollectionProvider`. */
+            vuelosResumen?: {
+                numero?: string | null;
+                salida?: string | null;
+                llegada?: string | null;
+                origen?: string | null;
+                destino?: string | null;
+            }[];
             /**
              * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
              *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
@@ -11820,6 +11868,14 @@ export interface components {
             miembros?: components["schemas"]["CotizacionPasajeroGrupo.multipart"][];
             /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
             notas?: string[];
+            /** @description Los vuelos de este subgrupo, en corto. Lo rellena `CotizacionFileGrupoCollectionProvider`. */
+            vuelosResumen?: {
+                numero?: string | null;
+                salida?: string | null;
+                llegada?: string | null;
+                origen?: string | null;
+                destino?: string | null;
+            }[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11931,6 +11987,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /** @description Los vuelos de este subgrupo, en corto. Lo rellena `CotizacionFileGrupoCollectionProvider`. */
+            vuelosResumen?: {
+                numero?: string | null;
+                salida?: string | null;
+                llegada?: string | null;
+                origen?: string | null;
+                destino?: string | null;
+            }[];
             /**
              * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
              *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente

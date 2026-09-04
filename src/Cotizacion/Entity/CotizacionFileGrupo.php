@@ -6,12 +6,14 @@ namespace App\Cotizacion\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Cotizacion\Enum\GrupoTipoEnum;
 use App\Api\Filter\UuidRelacionFilter;
+use App\Cotizacion\ApiPlatform\State\CotizacionFileGrupoCollectionProvider;
 use App\Security\Roles;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
@@ -65,6 +67,9 @@ use Symfony\Component\Validator\Constraints as Assert;
             // 109— y falla ruidoso si algún día se queda corto, porque el que falta se nota al
             // buscarlo.
             paginationItemsPerPage: 300,
+
+            // Añade `vuelosResumen` a cada subgrupo, en UNA consulta. Ver el provider.
+            provider: CotizacionFileGrupoCollectionProvider::class,
         ),
         new Post(
             // ⚠️ Por lo mismo que en CotizacionFilepasajero: sin grupos, la respuesta va
@@ -342,6 +347,59 @@ class CotizacionFileGrupo
     public function getEtiqueta(): string
     {
         return $this->nombre ?? sprintf('%s %s', $this->tipo?->label() ?? 'Grupo', $this->clave ?? '—');
+    }
+
+    /**
+     * Los vuelos de este subgrupo, en corto. Lo rellena `CotizacionFileGrupoCollectionProvider`.
+     *
+     * ── Para qué ────────────────────────────────────────────────────────────
+     * Al repartir un componente hay que elegir entre subgrupos que **se llaman igual**: «Vuelo ·
+     * Nacional · JetSMART» son ocho reservas distintas. El localizador los distingue, pero no dice
+     * si ese PNR corresponde al vuelo de **este** día — una reserva cubre ida y vuelta, así que
+     * casi todos tienen vuelos de otras fechas.
+     *
+     * ```
+     * JA7018 · 17-set 07:15 → 08:55 · CUZ→LIM
+     * JA7013 · 23-set 06:10 → 07:30 · LIM→CUZ
+     * ```
+     *
+     * ⚠️ **Transitorio y en UNA consulta.** `$vuelos` es una `ManyToMany` inversa: pedirla por
+     * subgrupo son 109 consultas para pintar una lista. El provider las trae todas juntas.
+     *
+     * @var list<array{numero: string|null, salida: string|null, llegada: string|null, origen: string|null, destino: string|null}>
+     */
+    #[ApiProperty(openapiContext: [
+        'type' => 'array',
+        'items' => [
+            'type' => 'object',
+            'properties' => [
+                'numero' => ['type' => 'string', 'nullable' => true],
+                'salida' => ['type' => 'string', 'nullable' => true],
+                'llegada' => ['type' => 'string', 'nullable' => true],
+                'origen' => ['type' => 'string', 'nullable' => true],
+                'destino' => ['type' => 'string', 'nullable' => true],
+            ],
+        ],
+    ])]
+    #[Groups(['grupo:option:read'])]
+    private array $vuelosResumen = [];
+
+    /**
+     * @return list<array{numero: string|null, salida: string|null, llegada: string|null, origen: string|null, destino: string|null}>
+     */
+    public function getVuelosResumen(): array
+    {
+        return $this->vuelosResumen;
+    }
+
+    /**
+     * @param list<array{numero: string|null, salida: string|null, llegada: string|null, origen: string|null, destino: string|null}> $vuelosResumen
+     */
+    public function setVuelosResumen(array $vuelosResumen): self
+    {
+        $this->vuelosResumen = $vuelosResumen;
+
+        return $this;
     }
 
     /**

@@ -67,9 +67,9 @@ const { esEstrecha } = usePantallaEstrecha();
 // ── Repartos: un componente partido entre subgrupos ─────────────────────────
 
 interface ParteDeReparto {
-  nombres: string[];          // los subgrupos de esta parte
+  subgrupos: SubgrupoOpcion[];   // los de esta parte, enteros: hacen falta clave y vuelos
   cantidad: number;
-  personas: number | null;    // null = «a todos»: no hay a quién contar
+  personas: number | null;       // null = «a todos»: no hay a quién contar
 }
 
 interface Reparto {
@@ -151,11 +151,9 @@ const repartosDelServicio = computed<Reparto[]>(() => {
       const iris = (c.grupos ?? []) as string[];
 
       return {
-        nombres: iris.map(iri => {
-          const sg = subgrupoDe(iri);
-
-          return sg ? etiquetaSubgrupo(sg) : '—';
-        }),
+        subgrupos: iris
+          .map(iri => subgrupoDe(iri))
+          .filter((sg): sg is SubgrupoOpcion => sg !== undefined),
         cantidad: Number(c.cantidad ?? 0),
         personas: iris.length === 0
           ? null
@@ -177,9 +175,53 @@ const repartosDelServicio = computed<Reparto[]>(() => {
   return salida;
 });
 
+/**
+ * Los vuelos de un subgrupo, en una línea por tramo.
+ *
+ * ⚠️ Se enseñan **todos**, incluidos los de otras fechas: una reserva cubre ida y vuelta, y ver
+ * que este PNR también vuela el 23 es justo lo que dice si es el que toca para hoy. Esconder los
+ * demás dejaría al operador eligiendo a ciegas entre ocho «JetSMART» idénticos.
+ */
+const detalleDeVuelos = (sg: SubgrupoOpcion): string => {
+  const vuelos = sg.vuelosResumen ?? [];
+
+  if (!vuelos.length) return `${etiquetaSubgrupo(sg)} · ${sg.clave} — sin vuelos enlazados`;
+
+  const linea = (v: NonNullable<SubgrupoOpcion['vuelosResumen']>[number]): string => {
+    const dia = (v.salida ?? '').slice(0, 10).split('-').reverse().slice(0, 2).join('-');
+    const hIda = (v.salida ?? '').slice(11, 16);
+    const hFin = (v.llegada ?? '').slice(11, 16);
+
+    return `${v.numero ?? '?'} · ${dia} ${hIda}→${hFin} · ${v.origen ?? '?'}→${v.destino ?? '?'}`;
+  };
+
+  return `${sg.clave}\n` + vuelos.map(linea).join('\n');
+};
+
 // ── «A quién aplica»: varios subgrupos por componente ───────────────────────
 const grupoAbierto = ref(false);
 const filtroGrupos = ref('');
+
+/**
+ * Qué partes del reparto tienen su lista de subgrupos desplegada.
+ *
+ * ⚠️ **Colapsadas por defecto.** Una parte puede llevar ocho reservas y sus rótulos se repiten
+ * —«Vuelo · Nacional · JetSMART» ocho veces—, así que desplegadas convierten la franja en una
+ * pared de texto que tapa lo único que importa de un vistazo: cuánta gente cubre.
+ */
+const partesAbiertas = ref<Set<string>>(new Set());
+
+const alternarParte = (clave: string): void => {
+  const abiertas = new Set(partesAbiertas.value);
+
+  if (abiertas.has(clave)) {
+    abiertas.delete(clave);
+  } else {
+    abiertas.add(clave);
+  }
+
+  partesAbiertas.value = abiertas;
+};
 
 /**
  * Los subgrupos que casan con lo escrito.
@@ -2768,21 +2810,40 @@ store.$onAction(({ name, args }) => {
                   Repartido en {{ r.partes.length }} · {{ r.titulo }}
                 </p>
 
-                <div v-for="(pt, j) in r.partes" :key="j" class="flex items-start gap-2 text-[11px] text-slate-600 mb-1">
-                  <span class="font-bold flex-1 leading-snug">
-                    <template v-if="pt.nombres.length">
-                      <!-- Varios subgrupos en una parte: el vuelo JA7018 son 7 PNRs. -->
-                      <span v-for="(n, k) in pt.nombres" :key="k">
-                        <span v-if="k" class="text-slate-300"> + </span>{{ n }}
-                      </span>
-                    </template>
-                    <span v-else class="text-amber-700">Todo el grupo</span>
-                  </span>
-                  <!-- ⚠️ DOS números: `cantidad` es lo que se cobra, `personas` a cuánta gente
-                       cubre. En un servicio grupal la cantidad vale 1 y cubre a 44. -->
-                  <span class="font-mono text-slate-400 shrink-0">×{{ pt.cantidad }}</span>
-                  <span v-if="pt.personas !== null" class="font-black shrink-0 w-14 text-right">{{ pt.personas }} pax</span>
-                  <span v-else class="font-black text-amber-600 shrink-0 w-14 text-right">todos</span>
+                <div v-for="(pt, j) in r.partes" :key="j" class="mb-1">
+                  <!-- ⚠️ Resumen COLAPSADO: ocho reservas con el mismo rótulo llenaban la franja y
+                       tapaban el «cubre N de M», que es lo que se mira de un vistazo. -->
+                  <button type="button" @click="alternarParte(`${i}-${j}`)"
+                          class="w-full flex items-center gap-2 text-[11px] text-slate-600 text-left hover:text-slate-800 transition-colors">
+                    <i v-if="pt.subgrupos.length" class="fas text-[9px] w-3 text-slate-400"
+                       :class="partesAbiertas.has(`${i}-${j}`) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                    <span v-else class="w-3"></span>
+
+                    <span class="font-bold flex-1 truncate">
+                      <template v-if="pt.subgrupos.length === 1">{{ etiquetaSubgrupo(pt.subgrupos[0]) }}</template>
+                      <template v-else-if="pt.subgrupos.length">{{ pt.subgrupos.length }} reservas</template>
+                      <span v-else class="text-amber-700">Todo el grupo</span>
+                    </span>
+
+                    <!-- ⚠️ DOS números: `cantidad` es lo que se cobra, `personas` a cuánta gente
+                         cubre. En un servicio grupal la cantidad vale 1 y cubre a 44. -->
+                    <span class="font-mono text-slate-400 shrink-0">×{{ pt.cantidad }}</span>
+                    <span v-if="pt.personas !== null" class="font-black shrink-0 w-14 text-right">{{ pt.personas }} pax</span>
+                    <span v-else class="font-black text-amber-600 shrink-0 w-14 text-right">todos</span>
+                  </button>
+
+                  <!-- Desplegado: cada reserva con su localizador. La pulsación larga —o el hover
+                       en escritorio— enseña sus vuelos, incluidos los de OTRAS fechas: una reserva
+                       cubre ida y vuelta, y eso es lo que dice si es la que toca hoy. -->
+                  <div v-if="partesAbiertas.has(`${i}-${j}`)" class="ml-5 mt-1 mb-2 space-y-0.5">
+                    <div v-for="sg in pt.subgrupos" :key="sg['@id']" v-tooltip-tactil
+                         :title="detalleDeVuelos(sg)"
+                         class="flex items-center gap-2 text-[10px] text-slate-500 cursor-help">
+                      <span class="flex-1 truncate">{{ etiquetaSubgrupo(sg) }}</span>
+                      <span class="font-mono text-slate-400 shrink-0">{{ sg.clave }}</span>
+                      <span class="shrink-0 w-12 text-right">{{ sg.totalMiembros ?? 0 }} pax</span>
+                    </div>
+                  </div>
                 </div>
 
                 <p class="text-[11px] font-black mt-2 pt-2 border-t"

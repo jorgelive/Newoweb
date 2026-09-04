@@ -2223,6 +2223,43 @@ la habitación 101 y 102», para «los que sí van a Coco Bongo» y para cualqui
 invente con el eje `GRUPO`, que es texto libre. **El acotador general es la gente, no el medio de
 transporte.**
 
+### La franja: partes colapsadas y el detalle del vuelo al pulsar
+
+```
+REPARTIDO EN 2 · Vuelo Lima ↔ Cusco
+  ▸ Vuelo · Nacional · Sky Airline     ×1    88 pax
+  ▸ 8 reservas                          ×1    35 pax      ← colapsado
+  Cubre 123 de 133 pax (del manifiesto; se cotizó para 100) · faltan 10
+```
+
+⚠️ **Colapsadas por defecto.** Una parte puede llevar ocho reservas y sus rótulos **se repiten**
+—«Vuelo · Nacional · JetSMART» ocho veces—, así que desplegadas convierten la franja en una pared
+de texto que tapa lo único que se mira de un vistazo: cuánta gente cubre.
+
+Al desplegar, cada reserva con su localizador. Y con **pulsación larga** (o hover en escritorio):
+
+```
+YMFLHB
+H2 5002 · 17-09 06:50→08:35 · CUZ→LIM
+H2 5721 · 23-09 06:35→08:20 · LIM→CUZ
+```
+
+⚠️ **Se enseñan todos los vuelos, incluidos los de otras fechas.** Una reserva cubre ida y vuelta,
+y ver que ese PNR también vuela el 23 es **justo lo que dice si es el que toca hoy**. Esconder los
+demás dejaría al operador eligiendo a ciegas entre ocho «JetSMART» idénticos.
+
+### ⚠️ Los vuelos llegan en UNA consulta
+
+`$vuelos` es una `ManyToMany` **inversa**: pedirla subgrupo a subgrupo son **109 consultas** para
+pintar una lista de opciones. `CotizacionFileGrupoCollectionProvider` trae los enlaces de golpe y
+los reparte en memoria — mismo motivo que `CotizacionFileItemProvider`.
+
+🔥 **Y compara HEX contra HEX.** La primera versión pasaba el UUID sin guiones contra una columna
+`BINARY(16)`: **no casaba ninguna fila y no daba error**, así que la lista salía vacía y parecía
+que no había vuelos enlazados. Envolver la columna en `HEX()` renuncia al índice y aquí da igual
+—son 56 filas—; la alternativa, convertir a binario en PHP, vuelve a poner el error a un descuido
+de distancia.
+
 ### El selector: buscador y CLAVE siempre visible
 
 ```
