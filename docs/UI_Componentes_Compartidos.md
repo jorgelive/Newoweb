@@ -1142,6 +1142,19 @@ sistema y respeta las preferencias de accesibilidad. Esto sólo cubre el caso qu
 | `touchstart` con `{ passive: true }` | No se llama a `preventDefault()` —el toque normal debe seguir funcionando— y declararlo evita que el navegador retrase el desplazamiento |
 | Se quita en `scroll` y en `unmounted` | Un globo abierto sobrevivía a su botón: la tarjeta se iba y el texto se quedaba flotando |
 
+### ⚠️ No vale sobre TEXTO seleccionable
+
+Probado con un dedo real el 03/09/2026: sobre una fila de texto **el globo no sale nunca**. El
+long-press activa la **selección del sistema**, que se queda el gesto antes de que llegue el
+temporizador de 400 ms. Y engaña, porque en una prueba sintética —disparando `touchstart` a mano—
+funciona perfectamente.
+
+**Para qué sirve:** botones-icono **sin rótulo**, que es para lo que se escribió — una fila de
+papeleras, cámaras y clones donde el hover de escritorio ya explica y el móvil se queda sin nada.
+
+**Para qué NO:** cualquier cosa con texto dentro. Ahí va un botón **ⓘ** que se toca, y el detalle
+en línea en vez de flotando: no tapa nada y se puede copiar.
+
 ### Y el otro lado del mismo problema: la fila se apretaba
 
 Los botones de cada propuesta iban en un `flex` sin `flex-wrap`, así que en un móvil ocho iconos se

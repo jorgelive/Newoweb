@@ -2236,13 +2236,26 @@ REPARTIDO EN 2 · Vuelo Lima ↔ Cusco
 —«Vuelo · Nacional · JetSMART» ocho veces—, así que desplegadas convierten la franja en una pared
 de texto que tapa lo único que se mira de un vistazo: cuánta gente cubre.
 
-Al desplegar, cada reserva con su localizador. Y con **pulsación larga** (o hover en escritorio):
+Al desplegar, cada reserva con su localizador y un botón **ⓘ**:
 
 ```
 YMFLHB
 H2 5002 · 17-09 06:50→08:35 · CUZ→LIM
 H2 5721 · 23-09 06:35→08:20 · LIM→CUZ
 ```
+
+### 🔥 Un botón, no una pulsación larga sobre el texto
+
+La primera versión usaba `v-tooltip-tactil` sobre la fila. **En el móvil no salía nunca**: el
+long-press sobre texto activa la **selección del sistema**, que se queda el gesto antes de que
+llegue el temporizador. El globo funcionaba en la prueba sintética —donde se disparan los eventos a
+mano— y no en un dedo real.
+
+El botón se **toca**, sin ambigüedad. Y el detalle sale **en línea**, no flotando: no tapa nada y
+se puede copiar. El `title` se queda para el hover de escritorio, que ahí sí funciona.
+
+⚠️ La directiva `v-tooltip-tactil` sigue valiendo para **botones-icono sin rótulo** —una fila de
+papeleras y cámaras—, que es para lo que se escribió. Sobre texto seleccionable, no.
 
 ⚠️ **Se enseñan todos los vuelos, incluidos los de otras fechas.** Una reserva cubre ida y vuelta,
 y ver que ese PNR también vuela el 23 es **justo lo que dice si es el que toca hoy**. Esconder los

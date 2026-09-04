@@ -211,6 +211,21 @@ const filtroGrupos = ref('');
  */
 const partesAbiertas = ref<Set<string>>(new Set());
 
+/** Qué reservas tienen sus vuelos desplegados. */
+const vuelosAbiertos = ref<Set<string>>(new Set());
+
+const alternarVuelos = (iri: string): void => {
+  const abiertos = new Set(vuelosAbiertos.value);
+
+  if (abiertos.has(iri)) {
+    abiertos.delete(iri);
+  } else {
+    abiertos.add(iri);
+  }
+
+  vuelosAbiertos.value = abiertos;
+};
+
 const alternarParte = (clave: string): void => {
   const abiertas = new Set(partesAbiertas.value);
 
@@ -2836,13 +2851,41 @@ store.$onAction(({ name, args }) => {
                        en escritorio— enseña sus vuelos, incluidos los de OTRAS fechas: una reserva
                        cubre ida y vuelta, y eso es lo que dice si es la que toca hoy. -->
                   <div v-if="partesAbiertas.has(`${i}-${j}`)" class="ml-5 mt-1 mb-2 space-y-0.5">
-                    <div v-for="sg in pt.subgrupos" :key="sg['@id']" v-tooltip-tactil
-                         :title="detalleDeVuelos(sg)"
-                         class="flex items-center gap-2 text-[10px] text-slate-500 cursor-help">
-                      <span class="flex-1 truncate">{{ etiquetaSubgrupo(sg) }}</span>
-                      <span class="font-mono text-slate-400 shrink-0">{{ sg.clave }}</span>
-                      <span class="shrink-0 w-12 text-right">{{ sg.totalMiembros ?? 0 }} pax</span>
-                    </div>
+                    <template v-for="sg in pt.subgrupos" :key="sg['@id']">
+                      <div class="flex items-center gap-2 text-[10px] text-slate-500">
+                        <span class="flex-1 truncate">{{ etiquetaSubgrupo(sg) }}</span>
+                        <span class="font-mono text-slate-400 shrink-0">{{ sg.clave }}</span>
+                        <span class="shrink-0 w-12 text-right">{{ sg.totalMiembros ?? 0 }} pax</span>
+
+                        <!-- ⚠️ Un botón y no una pulsación larga sobre el texto: en el móvil el
+                             long-press sobre texto activa la SELECCIÓN del sistema y se come el
+                             gesto, así que el globo no llegaba a salir nunca. El `title` se queda
+                             para el hover de escritorio, que ahí sí funciona. -->
+                        <button type="button" @click.stop="alternarVuelos(sg['@id'])"
+                                :title="detalleDeVuelos(sg)"
+                                class="shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-colors"
+                                :class="vuelosAbiertos.has(sg['@id'])
+                                  ? 'bg-slate-700 text-white'
+                                  : 'text-slate-400 hover:bg-slate-200'">
+                          <i class="fas fa-info text-[9px]"></i>
+                        </button>
+                      </div>
+
+                      <!-- El detalle en línea, no flotando: no tapa nada y se puede copiar. -->
+                      <div v-if="vuelosAbiertos.has(sg['@id'])"
+                           class="ml-1 mb-1.5 pl-2 border-l-2 border-slate-200 space-y-0.5">
+                        <p v-for="(v, k) in (sg.vuelosResumen ?? [])" :key="k"
+                           class="text-[10px] font-mono text-slate-500 leading-snug">
+                          <span class="font-black text-slate-700">{{ v.numero }}</span>
+                          · {{ (v.salida ?? '').slice(8, 10) }}-{{ (v.salida ?? '').slice(5, 7) }}
+                          {{ (v.salida ?? '').slice(11, 16) }}→{{ (v.llegada ?? '').slice(11, 16) }}
+                          · {{ v.origen }}→{{ v.destino }}
+                        </p>
+                        <p v-if="!(sg.vuelosResumen ?? []).length" class="text-[10px] text-amber-600 font-bold">
+                          Sin vuelos enlazados
+                        </p>
+                      </div>
+                    </template>
                   </div>
                 </div>
 
