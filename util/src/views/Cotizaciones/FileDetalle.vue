@@ -1588,6 +1588,46 @@ const resumenSubgrupos = computed(() => {
 const nuevoGrupo = ref({ tipo: 'grupo', subeje: '', clave: '', nombre: '', detalle: '' });
 const creandoGrupo = ref(false);
 
+/**
+ * Los ejemplos del formulario, uno por eje.
+ *
+ * 🔥 **Enseñaban un vuelo pasara lo que pasara.** El `placeholder` del detalle era «Ida DM6771 ·
+ * LIM → PUJ» aunque estuvieras creando una habitación, y el de la clave mezclaba los cuatro ejes
+ * en una fila —`B · 5 · HA13 · JA2CWN`— para no tener que elegir. Un ejemplo que no corresponde
+ * a lo que estás haciendo es peor que no ponerlo: da instrucciones para otra tarea.
+ *
+ * ⚠️ Y el sufijo dejó de llamarse siempre «Tramo»: es lo que se dice de un vuelo, pero de una
+ * habitación se dice el hotel y de un servicio, la ciudad o la fecha. La palabra tiene que ser
+ * la del eje que hay delante, o el campo parece pedir otra cosa.
+ */
+const EJEMPLOS_EJE: Record<string, { subeje: string; ejemploSubeje: string; clave: string; nombre: string; detalle: string }> = {
+  grupo: {
+    subeje: 'Matiz', ejemploSubeje: 'Salón · Bus', clave: 'B · 5',
+    nombre: 'QUINTO B', detalle: 'Los que van al taller de danza\nProfesora responsable: *Ana Ríos*',
+  },
+  habitacion: {
+    subeje: 'Hotel', ejemploSubeje: 'Sonesta · Terra', clave: 'HA13',
+    nombre: 'DOBLE MATRIMONIAL', detalle: 'Piso 3, vista al patio\nCheck-in 15:00 · check-out 11:00',
+  },
+  reserva_aerea: {
+    subeje: 'Tramo', ejemploSubeje: 'Nacional · Cusco-Puno', clave: 'JA2CWN',
+    nombre: 'ARAJET · DOBLE',
+    detalle: 'Ida DM6771 · LIM 18/09/2026 03:00 → PUJ 18/09/2026 09:19'
+      + '\nRetorno DM6770 · PUJ 22/09/2026 20:22 → LIM 23/09/2026 00:30',
+  },
+  servicio: {
+    subeje: 'Matiz', ejemploSubeje: 'Punta Cana · Día 3', clave: 'COCOBONGO',
+    nombre: 'NOCHE EN COCO BONGO', detalle: 'Sólo mayores de 18\nTraslado incluido desde el hotel',
+  },
+};
+
+const ejemploDe = computed(() => EJEMPLOS_EJE[nuevoGrupo.value.tipo] ?? EJEMPLOS_EJE.grupo);
+const etiquetaSubeje = computed(() => ejemploDe.value.subeje);
+const ejemploSubeje = computed(() => ejemploDe.value.ejemploSubeje);
+const ejemploClave = computed(() => ejemploDe.value.clave);
+const ejemploNombre = computed(() => ejemploDe.value.nombre);
+const ejemploDetalle = computed(() => ejemploDe.value.detalle);
+
 const agregarGrupo = async () => {
   if (!file.value || !nuevoGrupo.value.clave.trim()) return;
 
@@ -2303,6 +2343,24 @@ const eliminarDocumento = async (iri?: string) => {
                    :class="vuelosAbiertos ? 'rotate-180' : ''"></i>
               </button>
               <div v-if="vuelosAbiertos">
+                <!-- ⚠️ **La acción, donde se mira la lista.** Vivía sólo dentro de «Cargar datos»,
+                     tres paneles más abajo y plegado: veías los 16 vuelos y no había forma de
+                     tocarlos desde aquí, así que parecían de sólo lectura. Es el mismo botón, no
+                     otro camino — abre el mismo modal de pegar JSON. -->
+                <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <p class="text-[10px] text-slate-400 font-bold">
+                    <i class="fas fa-circle-info mr-1"></i>
+                    Se cargan pegando el JSON de la aerolínea. El <span class="font-mono">PNR</span>
+                    es lo que ata cada vuelo con su subgrupo y con la gente que va en él.
+                  </p>
+                  <button @click="abrirVuelos"
+                          title="Pega el JSON de reservas que manda la aerolínea. Vuelve a pegar el mismo PNR para corregirlo."
+                          class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[11px] font-bold hover:bg-slate-50 shrink-0">
+                    <i class="fas fa-plane-departure"></i>
+                    {{ vuelos.length ? 'Cargar o corregir vuelos' : 'Cargar vuelos' }}
+                  </button>
+                </div>
+
                 <!-- ── Los vuelos del viaje ─────────────────────────────────
                      En orden cronológico, que es como se mira un expediente: «qué pasa el día 23».
                      El PNR es el que agrupa a la gente, así que va delante de los pasajeros. -->
@@ -2334,6 +2392,10 @@ const eliminarDocumento = async (iri?: string) => {
                     </tbody>
                   </table>
                 </div>
+
+                <p v-else class="text-[11px] text-slate-400 italic border border-dashed border-slate-200 rounded-2xl px-4 py-3">
+                  Sin vuelos todavía. Se cargan pegando el JSON que manda la aerolínea.
+                </p>
               </div>
             </div>
 
@@ -2365,13 +2427,23 @@ const eliminarDocumento = async (iri?: string) => {
                     <option v-for="(cfg, valor) in GRUPO_TIPO_LABELS" :key="valor" :value="valor">{{ cfg.label }}</option>
                   </select>
                 </div>
-                <!-- ⚠️ El tramo sólo para el vuelo. Sin este campo, un vuelo con tramo únicamente
-                     podía entrar por el .xlsx: al quitar los dos casos de enum, el desplegable de
-                     eje dejó de ofrecer «nacional» e «internacional» y aquí no quedó forma de
-                     escribirlo. Los demás ejes no se subdividen. -->
-                <div v-if="nuevoGrupo.tipo === 'reserva_aerea'">
-                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Tramo</label>
-                  <input v-model="nuevoGrupo.subeje" type="text" placeholder="Nacional · Cusco-Puno" maxlength="60"
+                <!-- ⚠️ **El sufijo, para CUALQUIER eje.** Estaba sólo en el vuelo, con el
+                     argumento de que «una habitación no se subdivide: el hotel es uno». En un
+                     viaje con hotel en Lima, en Cusco y en Punta Cana eso deja de ser cierto: la
+                     `HA13` del Sonesta y la `HA13` del Terra son dos habitaciones distintas y
+                     chocaban. Lo mismo con los servicios, que ya son diez.
+                     La columna `subeje` siempre fue genérica y entra en la clave única
+                     (`uniq_file_grupo_tipo_clave`), así que aquí no había nada que cambiar salvo
+                     dejar de esconder el campo.
+                     ⚠️ Lo que NO se toca es `GrupoTipoEnum::admiteSubeje()`, que gobierna el
+                     .xlsx: allí eje y sufijo viajan en UNA cadena —`#Vuelo Nacional`— y abrirlo
+                     haría que `#Habitacion doble` entrara como tramo «doble» en vez de
+                     denunciarse. Aquí son dos campos y no hay nada que adivinar. -->
+                <div>
+                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                    {{ etiquetaSubeje }}
+                  </label>
+                  <input v-model="nuevoGrupo.subeje" type="text" :placeholder="ejemploSubeje" maxlength="60"
                          @keyup.enter="agregarGrupo"
                          class="w-36 border rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 placeholder:text-slate-300">
                 </div>
@@ -2381,13 +2453,13 @@ const eliminarDocumento = async (iri?: string) => {
                      exactamente lo que se va a guardar. -->
                 <div>
                   <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Clave</label>
-                  <input v-model="nuevoGrupo.clave" type="text" placeholder="B · 5 · HA13 · JA2CWN" maxlength="60"
+                  <input v-model="nuevoGrupo.clave" type="text" :placeholder="ejemploClave" maxlength="60"
                          @keyup.enter="agregarGrupo"
                          class="w-40 border rounded-lg px-3 py-2 text-sm font-bold uppercase outline-none focus:border-teal-500 placeholder:font-normal placeholder:normal-case placeholder:text-slate-300">
                 </div>
                 <div class="flex-1 min-w-40">
                   <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Nombre (opcional)</label>
-                  <input v-model="nuevoGrupo.nombre" type="text" placeholder="ARAJET · DOBLE" maxlength="150"
+                  <input v-model="nuevoGrupo.nombre" type="text" :placeholder="ejemploNombre" maxlength="150"
                          @keyup.enter="agregarGrupo"
                          class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 placeholder:text-slate-300">
                 </div>
@@ -2405,7 +2477,7 @@ const eliminarDocumento = async (iri?: string) => {
                     Detalle (opcional) — varias líneas, admite *negrita* y listas
                   </label>
                   <textarea v-model="nuevoGrupo.detalle" rows="2"
-                            placeholder="Ida DM6771 · LIM 18/09/2026 03:00 → PUJ 18/09/2026 09:19&#10;Retorno DM6770 · PUJ 22/09/2026 20:22 → LIM 23/09/2026 00:30"
+                            :placeholder="ejemploDetalle"
                             class="w-full border rounded-lg px-3 py-2 text-xs outline-none focus:border-teal-500 placeholder:text-slate-300"></textarea>
                 </div>
               </div>

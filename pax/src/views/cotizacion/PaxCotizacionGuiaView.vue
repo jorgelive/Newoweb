@@ -833,6 +833,32 @@ const opcionesRestantes = computed(() => Math.max(0, opcionesPlanas.value.length
 const hayVariosPerfiles = computed(() => clasesPasajeros.value.length > 1);
 
 /**
+ * El perfil más barato. Es el que encabeza la tarjeta cerrada **cuando hay varios**.
+ *
+ * 🔥 **Cerrada se veía UN precio y nada decía que hubiera dos.** Encabezaba `claseDominante` —el
+ * perfil con más gente—, así que un grupo de 60 adultos y 40 menores enseñaba «POR PASAJERO
+ * 1907,46» a secas: el padre de un menor leía el precio del adulto como si fuera el suyo y no
+ * sabía que le tocaban 1425 hasta abrir el desplegable. El número grande se lee como EL precio,
+ * por mucho que el pie invite a mirar los perfiles.
+ *
+ * Con «Desde» delante, el número deja de ser una afirmación sobre todos y pasa a ser el suelo —
+ * que es lo que de verdad es. Mismo par de cadenas que la portada, que ya lo decía así.
+ *
+ * ⚠️ **Sólo con varios perfiles.** Con uno, «desde» insinuaría una variedad que no existe: sería
+ * la mentira contraria.
+ */
+const claseMasBarata = computed(() =>
+  clasesPasajeros.value.length
+    ? [...clasesPasajeros.value].sort(
+        (a, b) => a.resumenPorModo.normal.ventaDolares - b.resumenPorModo.normal.ventaDolares,
+      )[0]
+    : null
+);
+
+/** La que encabeza la tarjeta cerrada: la más barata si hay varias, la dominante si hay una. */
+const claseDeCabecera = computed(() => (hayVariosPerfiles.value ? claseMasBarata.value : claseDominante.value));
+
+/**
  * Lo que dice el disparador, según lo que de verdad hay detrás.
  *
  * 🔥 **Decía «Toca para ver precios por perfil» con UN solo perfil.** Prometía una comparación
@@ -1115,7 +1141,14 @@ const adelantoVista = computed(() => {
                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
                   <i class="fas fa-user-tag text-[#E07845] opacity-90 text-[10px]"></i>
                   <template v-if="finanzasAbiertas">{{ maestroStore.t('cot_precio_por_pasajero') || 'Precio por pasajero' }}</template>
-                  <template v-else-if="claseDominante">{{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}</template>
+                  <!-- Con varios perfiles el número es el SUELO, no el precio de todos: se dice.
+                       Mismo par de cadenas que la portada, que ya lo decía así. -->
+                  <template v-else-if="hayVariosPerfiles && claseDeCabecera">
+                    {{ maestroStore.t('cot_precio_desde') || 'Desde' }}
+                    <span class="text-slate-300">·</span>
+                    {{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}
+                  </template>
+                  <template v-else-if="claseDeCabecera">{{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}</template>
                   <template v-else>{{ maestroStore.t('cot_precio_total') || 'Precio total del viaje' }}</template>
                 </span>
 
@@ -1123,8 +1156,8 @@ const adelantoVista = computed(() => {
                      desglose de abajo ya lo dice perfil por perfil. -->
                 <span v-if="!finanzasAbiertas"
                       class="text-2xl md:text-3xl font-extrabold tabular-nums tracking-tight leading-none text-[#376875] shrink-0">
-                  <template v-if="claseDominante">
-                    {{ mv(claseDominante.resumenPorModo.normal.ventaSoles, claseDominante.resumenPorModo.normal.ventaDolares) }}
+                  <template v-if="claseDeCabecera">
+                    {{ mv(claseDeCabecera.resumenPorModo.normal.ventaSoles, claseDeCabecera.resumenPorModo.normal.ventaDolares) }}
                   </template>
                   <template v-else>{{ mv(totalViaje.soles, totalViaje.dolares) }}</template>
                 </span>
@@ -1132,7 +1165,7 @@ const adelantoVista = computed(() => {
 
               <!-- Total del viaje: sólo colapsada (expandida tiene su propia barra) y
                    sólo si el tour se vende como grupo -- ver totalesOcultos. -->
-              <div v-if="!finanzasAbiertas && claseDominante && !ocultarTotales"
+              <div v-if="!finanzasAbiertas && claseDeCabecera && !ocultarTotales"
                    class="mt-2 pt-2 border-t border-slate-200/60 flex justify-end">
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider tabular-nums flex items-center gap-1.5">
                   {{ maestroStore.t('cot_precio_total') || 'Total del viaje' }}:

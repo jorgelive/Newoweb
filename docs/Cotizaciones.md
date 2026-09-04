@@ -928,6 +928,22 @@ enseña ni un precio. La primera versión de este cálculo miraba los perfiles a
 volvía a prometer «precios por perfil» justo donde no hay ninguno — el mismo fallo que venía a
 quitar, reintroducido por otra puerta. **Se vio simulando el caso, no leyendo el código.**
 
+#### Con varios perfiles, el número grande decía el precio de otro (04/09/2026)
+
+Cerrada, la tarjeta encabezaba con `claseDominante` —el perfil **con más gente**— y lo rotulaba
+`POR PASAJERO` a secas. En un grupo de 60 adultos y 40 menores eso enseña **1907,46** y calla que
+un menor paga **1425**: el padre de un menor lee el precio del adulto como si fuera el suyo, y no
+se entera hasta abrir el desplegable. 🔥 **Un número grande se lee como EL precio**, por mucho que
+el pie invite a mirar los perfiles.
+
+Con más de un perfil encabeza ahora `claseMasBarata` y lleva **«Desde»** delante: el número deja
+de ser una afirmación sobre todos y pasa a ser el suelo, que es lo que de verdad es. Se reutiliza
+el par `cot_precio_desde` + `cot_por_pasajero`, que es exactamente como ya lo decía la portada.
+
+⚠️ **Sólo con varios perfiles.** Con uno, «desde» insinuaría una variedad que no existe — sería la
+mentira contraria. Lo decide `claseDeCabecera`, y ése es el único sitio donde se elige qué precio
+encabeza.
+
 #### Un opcional escondido no se vende (04/09/2026)
 
 Cerrada, la tarjeta enseñaba precio y disparador, y nada más. Detrás había una noche en Coco Bongo
@@ -3454,6 +3470,17 @@ Es un invariante que **no se rompe nunca a mano y que un importador rompe en lot
 
 ### En pantalla
 
+#### Los vuelos se miran en un sitio y se cargaban en otro (04/09/2026)
+
+El panel «Vuelos» enseña los 16 tramos con sus PNRs y **no tenía ni una acción**: la carga vivía
+dentro de «Cargar datos», tres paneles más abajo y plegado. Quien miraba la lista concluía que era
+de sólo lectura — y tenía razón desde lo que veía.
+
+Ahora el mismo botón está también ahí («Cargar o corregir vuelos»), abriendo el mismo modal, con
+una línea que dice de dónde salen: **se pegan en JSON** y el `PNR` es lo que ata cada vuelo con su
+subgrupo y con la gente que va en él. No hay edición fila a fila a propósito: se vuelve a pegar el
+PNR corregido, que es como llega la corrección de la aerolínea.
+
 - **Sección «Subgrupos»** en `FileDetalle`, antes del manifiesto: se definen primero y se asignan
   después. Alta con eje + clave + nombre opcional; al borrar avisa a cuántos pasajeros se quita y
   aclara que **ellos no se borran**.
@@ -3742,6 +3769,32 @@ Ahora hay **un solo eje de vuelo** y el tramo vive en `CotizacionFileGrupo::$sub
 ⚠️ **Sólo los ejes con `admiteSubeje()` se parten.** Sin eso, `#Habitacion doble` entraría como
 eje habitación con tramo «doble» en vez de denunciarse — y el tipo de habitación tiene su sitio,
 que es la columna «Nombre» de la hoja «Grupos».
+
+#### El sufijo, a mano vale para CUALQUIER eje (04/09/2026)
+
+La frase de arriba —«sólo el vuelo admite etiqueta»— sigue siendo cierta **para el .xlsx**, y sólo
+para él. En el formulario manual de `FileDetalle` el campo estaba escondido tras
+`tipo === 'reserva_aerea'` y no debía estarlo: en un viaje con hotel en Lima, en Cusco y en Punta
+Cana, la `HA13` del Sonesta y la `HA13` del Terra son dos habitaciones distintas y chocaban contra
+`uniq_file_grupo_tipo_clave`. Lo mismo con los servicios, que en ese expediente ya son diez.
+
+**La columna siempre fue genérica** y ya entraba en la clave única, así que no hubo nada que
+cambiar en PHP: sólo dejar de esconder el campo.
+
+⚠️ **Y `GrupoTipoEnum::admiteSubeje()` NO se tocó**, a propósito. Gobierna el parseo de la
+cabecera del padrón, donde eje y sufijo viajan en **una sola cadena** (`#Vuelo Nacional`):
+abrirlo allí haría que `#Habitacion doble` entrara como tramo «doble» en vez de denunciarse. En el
+formulario son **dos campos separados** y no hay nada que adivinar — la ambigüedad sólo existe al
+partir un texto.
+
+⚠️ **El rótulo del campo cambia con el eje**, y no es cosmético: de un vuelo se dice el «Tramo»,
+de una habitación el «Hotel», de un grupo o un servicio el «Matiz». Con una sola palabra para los
+cuatro, el campo parecía pedir otra cosa y se dejaba vacío.
+
+Los **ejemplos también son por eje** (`EJEMPLOS_EJE` en `FileDetalle.vue`). El del detalle enseñaba
+un itinerario de vuelo aunque estuvieras creando una habitación, y el de la clave amontonaba los
+cuatro ejes en una fila —`B · 5 · HA13 · JA2CWN`— para no tener que elegir. Un ejemplo que no
+corresponde a lo que estás haciendo es peor que no ponerlo: da instrucciones para otra tarea.
 
 ⚠️ **`subeje` es NOT NULL con cadena vacía, y eso NO es cosmético.** En InnoDB un índice único
 admite **cuantos `NULL` quiera**: con la columna nullable, meterla en `uniq_file_grupo_tipo_clave`
