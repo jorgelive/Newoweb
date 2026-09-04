@@ -984,6 +984,25 @@ qué se compró. `selloDeComponente()` la pinta como pastilla al final de la lí
 mismo que la línea de al lado sólo estorba. Y sólo aparece cuando hay **más de un** componente con
 hora, que es el único caso en que hay algo que desempatar.
 
+⚠️ **Y envuelve, no recorta.** La primera versión ponía el sello en `shrink-0` y la fila en una
+sola línea: una tarifa larga —«[JetSMART] con artículo personal»— **se comía el título hasta
+dejarlo en nada Y encima se salía de la pantalla**, o sea que se perdían las dos cosas a la vez.
+Ahora lo único intocable es la hora; el resto fluye a la línea siguiente.
+
+⚠️ **El título se calla cuando repite el de la tarjeta.** En vuelo, tren y transporte lo pone el
+segmento, así que las dos partes decían lo mismo que el encabezado tres líneas más arriba.
+Callándolo, el sello —lo único que desempata— se lleva el ancho entero.
+
+#### La misma enfermedad en el selector «A quién aplica»
+
+El rótulo es `Eje · Sufijo · Nombre` y **lo que distingue va al final**. Con `truncate`, en un móvil
+«Vuelo · Internacional · …» cortaba exactamente la palabra que hacía falta —Arajet o Copa— y
+dejaba cuatro filas idénticas. Ahora envuelve (`break-words`, fila con `items-start`).
+
+**La regla:** truncar sólo vale cuando lo importante va delante. Si la cola es lo que identifica,
+truncar es peor que ocupar dos líneas — deja al operador eligiendo entre opciones que parecen la
+misma.
+
 **Dónde se escribe:** en el título de la tarifa del componente, en el editor. No hace falta campo
 nuevo.
 

@@ -1710,17 +1710,33 @@ const adelantoVista = computed(() => {
 
                 <!-- Horarios de componentes (con hora real) -->
                 <div v-if="compsConHora(item).length > 1" class="mt-4 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 space-y-2">
+                  <!-- ⚠️ **Envuelve, no recorta.** Con la fila en una sola línea y el sello en
+                       `shrink-0`, una tarifa larga —«[JetSMART] con artículo personal»— se comía
+                       el título hasta dejarlo en nada Y encima se salía de la pantalla: se perdían
+                       las dos cosas a la vez. Aquí lo único intocable es la hora; lo demás fluye a
+                       la línea siguiente, que en un móvil es lo que hay. -->
                   <p
                       v-for="c in compsConHora(item)"
                       :key="c.id"
-                      class="flex items-center gap-2.5 text-xs font-bold text-slate-500"
+                      class="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-xs font-bold text-slate-500"
                   >
-                    <i class="far fa-clock text-[#E07845] shrink-0"></i>
-                    <span class="tabular-nums text-[#376875] font-black text-sm shrink-0 whitespace-nowrap">{{ horaRango(c) }}</span>
-                    <span class="truncate">{{ tituloDeComponente(c, item.segmento) }}</span>
+                    <span class="flex items-baseline gap-2 shrink-0">
+                      <i class="far fa-clock text-[#E07845]"></i>
+                      <span class="tabular-nums text-[#376875] font-black text-sm whitespace-nowrap">{{ horaRango(c) }}</span>
+                    </span>
+
+                    <!-- El título se calla cuando repite el de la tarjeta: en vuelo, tren y
+                         transporte lo pone el segmento, así que las dos partes dirían lo mismo que
+                         el encabezado que está tres líneas más arriba. Callándolo, el sello —que es
+                         lo único que desempata— se lleva el ancho entero. -->
+                    <span v-if="tituloDeComponente(c, item.segmento) !== store.traducir(item.segmento.tituloSnapshot)"
+                          class="min-w-0 break-words">
+                      {{ tituloDeComponente(c, item.segmento) }}
+                    </span>
+
                     <!-- El sello que desempata: la tarifa. Ver selloDeComponente. -->
                     <span v-if="selloDeComponente(c, item.segmento)"
-                          class="shrink-0 text-[10px] font-black uppercase tracking-wider text-[#376875]/70 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
+                          class="min-w-0 break-words text-[10px] font-black uppercase tracking-wider text-[#376875]/70 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
                       {{ selloDeComponente(c, item.segmento) }}
                     </span>
                   </p>

@@ -3613,10 +3613,15 @@ store.$onAction(({ name, args }) => {
                           <div class="flex items-center hover:bg-slate-50 transition-colors"
                                :class="tieneGrupo(sg['@id']) ? 'bg-orange-50' : ''">
                             <button type="button" @click="alternarGrupo(sg['@id'])"
-                                    class="flex-1 min-w-0 flex items-center gap-2 px-4 py-2 text-[11px] font-bold text-left"
+                                    class="flex-1 min-w-0 flex items-start gap-2 px-4 py-2 text-[11px] font-bold text-left"
                                     :class="tieneGrupo(sg['@id']) ? 'text-orange-800' : 'text-slate-600'">
                               <i class="fas text-[10px] w-4 shrink-0" :class="tieneGrupo(sg['@id']) ? 'fa-square-check' : 'fa-square text-slate-300'"></i>
-                              <span class="flex-1 truncate">{{ etiquetaSubgrupo(sg) }}</span>
+                              <!-- ⚠️ **Envuelve, no trunca.** El rótulo es «Eje · Sufijo · Nombre» y lo
+                                   que distingue va AL FINAL: en un móvil, «Vuelo · Internacional · …»
+                                   cortaba exactamente la palabra que hacía falta —Arajet o Copa— y
+                                   dejaba cuatro filas idénticas. Truncar es correcto cuando lo
+                                   importante va delante; aquí va detrás. Dos líneas caben. -->
+                              <span class="flex-1 min-w-0 break-words leading-tight">{{ etiquetaSubgrupo(sg) }}</span>
                               <!-- ⚠️ La CLAVE siempre, y en monoespaciado: es el localizador y es
                                    lo ÚNICO que distingue dos subgrupos con el mismo rótulo.
                                    «Vuelo · Nacional · Sky Airline» son dos, YMATXY e YMFLHB, con
