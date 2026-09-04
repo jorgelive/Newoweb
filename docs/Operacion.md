@@ -165,6 +165,48 @@ Las confirmadas anteriores conservan sus filas: no se borra nada. Lo que cambia 
 confirmada **nueva** nace con el cuadro vacío hasta que alguien lo arme. Si alguien reporta «La
 Biblia está vacía», la respuesta ya no es sólo §3.bis: puede ser que nadie haya pulsado el botón.
 
+## 2.ter Quiénes van en una orden (03/09/2026)
+
+```
+Orden «Vuelo Cusco → Lima»
+  Alejandra Valdivia Berrios   YMFLHB
+  Alex Montes Ugarte           YMFLHB
+```
+
+Sale de los **subgrupos del componente** (`CotizacionCotcomponente::$grupos`), en el `Get` de la
+orden.
+
+### 🔥 Se DERIVA, no se congela — y es la excepción a la regla del snapshot
+
+La Biblia es un snapshot **de valores** —precios, fechas— porque eso se acordó en un momento y no
+debe moverse solo (§3). **Quién viaja no es un valor acordado**: cambia hasta el día de salida.
+
+Una orden congelada se manda al proveedor con la lista de hace tres semanas: **con gente que ya no
+va y sin quien se apuntó después**. Y obligaría a regenerar órdenes cada vez que entra alguien al
+padrón, que es exactamente lo que §3 dice que la idempotencia impide.
+
+Los subgrupos son del **expediente**, así que están siempre al día y sobreviven a abrir la
+operativa.
+
+### ⚠️ Vacío significa TODO EL GRUPO
+
+Un componente sin subgrupos aplica a todos, y devolver ahí las 133 fichas convertiría la orden de
+un hotel en un listado inútil. Se devuelve **vacío**, y quien pinta la orden dice «todo el grupo» —
+que es la información, no la lista.
+
+### ⚠️ Sin repetir, y ordenado por nombre
+
+Un componente puede llevar varios subgrupos —el vuelo JA7018 son 7 PNRs— y una persona estar en
+dos. Se cuenta por **pasajero**, no por pertenencia. Y se ordena por nombre: una orden se lee
+pasando lista, y el orden de la base no ayuda a eso.
+
+### ⚠️ Grupo de serialización PROPIO, sólo en el `Get`
+
+`normalizationContext` es **de recurso**: poner los pasajeros en `operacion:item:read` los pondría
+también en la colección, y el cuadro de La Biblia son cientos de filas recorriendo cada una los
+subgrupos de su componente. N+1 sobre la pantalla que más se abre. Van en
+`operacion:pasajeros:read`, declarado sólo en la operación de detalle.
+
 ## 3. Reglas del snapshot
 
 `BibliaSnapshotService::generarParaCotizacion()` copia valores; **no** crea una vista en vivo.

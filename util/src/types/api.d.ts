@@ -7674,6 +7674,23 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionCotcomponente-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
+            componenteMaestroId?: string | null;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
+            sinHorario: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionCotcomponente-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_catalogo.read_pax_cotizacion.read"] | null;
             /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
@@ -7997,6 +8014,23 @@ export interface components {
             readonly ordenNarrativo?: number;
         };
         "CotizacionCotcomponente.html-operacion.item.read_timestamp.read": {
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
+            componenteMaestroId?: string | null;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
+            sinHorario: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionCotcomponente.html-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
@@ -8355,6 +8389,24 @@ export interface components {
             updatedAt?: string | null;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
+        "CotizacionCotcomponente.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
+            componenteMaestroId?: string | null;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
+            sinHorario: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_catalogo.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_catalogo.read_pax_cotizacion.read"] | null;
             /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
@@ -8695,6 +8747,23 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionCotcomponente.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            /** @description Obtiene el ID del componente maestro si lo hubiera. */
+            componenteMaestroId?: string | null;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
+            sinHorario: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionCotcomponente.multipart-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_catalogo.read_pax_cotizacion.read"] | null;
             /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
@@ -8922,6 +8991,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionCotservicio-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionCotservicio-pax_catalogo.read_pax_cotizacion.read": {
             /**
              * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
@@ -9049,6 +9124,12 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCotservicio.html-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionCotservicio.html-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -9186,6 +9267,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionCotservicio.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionCotservicio.jsonld-pax_catalogo.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
              * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
@@ -9313,6 +9400,12 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCotservicio.multipart-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionCotservicio.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -9519,6 +9612,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionCottarifa-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionCottarifa-pax_catalogo.read_pax_cotizacion.read": {
             /** @default 1 */
             cantidad: number;
@@ -9673,6 +9772,12 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCottarifa.html-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionCottarifa.html-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -9837,6 +9942,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionCottarifa.jsonld-pax_catalogo.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @default 1 */
             cantidad: number;
@@ -9991,6 +10102,12 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCottarifa.multipart-operacion.item.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionCottarifa.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -10292,6 +10409,17 @@ export interface components {
             updatedAt?: string | null;
             readonly localizador?: string | null;
         };
+        "CotizacionFile-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly localizador?: string | null;
+        };
         "CotizacionFile-operacion.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
@@ -10571,6 +10699,17 @@ export interface components {
             readonly exigeIdentificacion?: boolean;
         };
         "CotizacionFile.html-operacion.item.read_timestamp.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly localizador?: string | null;
+        };
+        "CotizacionFile.html-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
             /** Format: uuid */
@@ -10874,6 +11013,18 @@ export interface components {
             readonly localizador?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly localizador?: string | null;
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
             createdAt?: string;
@@ -11153,6 +11304,17 @@ export interface components {
             readonly exigeIdentificacion?: boolean;
         };
         "CotizacionFile.multipart-operacion.item.read_timestamp.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly localizador?: string | null;
+        };
+        "CotizacionFile.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
             /** Format: uuid */
@@ -17171,6 +17333,15 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "Moneda-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "Moneda-operacion.pago.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
@@ -17230,6 +17401,15 @@ export interface components {
             simbolo?: string;
         };
         "Moneda.html-operacion.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.html-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
@@ -17305,6 +17485,15 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "Moneda.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "Moneda.jsonld-operacion.pago.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
             createdAt?: string;
@@ -17364,6 +17553,15 @@ export interface components {
             simbolo?: string;
         };
         "Moneda.multipart-operacion.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
@@ -18138,6 +18336,34 @@ export interface components {
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         };
+        "OperacionOrdenServicio-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            items?: components["schemas"]["OperacionOrdenServicioItem-operacion.item.read_timestamp.read_operacion.pasajeros.read"][];
+            reemplazaA?: components["schemas"]["OperacionOrdenServicio-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Qué se puede tocar en esta orden, y el motivo cuando no. */
+            readonly edicionPermitida?: {
+                [key: string]: {
+                    [key: string]: boolean | string | null;
+                };
+            };
+            /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
+            readonly divergencias?: string[];
+            /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
+            readonly cambiosMenores?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
+            readonly sucia?: boolean;
+            /** @description Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla. */
+            readonly rutasVisibles?: {
+                [key: string]: string;
+            };
+            /** @description Lo que de verdad se imprime de cada lado, para que la pastilla lo diga. */
+            readonly visibilidadEfectiva?: Record<string, never>;
+            /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
+            readonly avisosDeRutas?: string[];
+        };
         "OperacionOrdenServicio-operacion.mensaje.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
@@ -18307,6 +18533,34 @@ export interface components {
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         };
+        "OperacionOrdenServicio.html-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            items?: components["schemas"]["OperacionOrdenServicioItem.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"][];
+            reemplazaA?: components["schemas"]["OperacionOrdenServicio.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Qué se puede tocar en esta orden, y el motivo cuando no. */
+            readonly edicionPermitida?: {
+                [key: string]: {
+                    [key: string]: boolean | string | null;
+                };
+            };
+            /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
+            readonly divergencias?: string[];
+            /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
+            readonly cambiosMenores?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
+            readonly sucia?: boolean;
+            /** @description Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla. */
+            readonly rutasVisibles?: {
+                [key: string]: string;
+            };
+            /** @description Lo que de verdad se imprime de cada lado, para que la pastilla lo diga. */
+            readonly visibilidadEfectiva?: Record<string, never>;
+            /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
+            readonly avisosDeRutas?: string[];
+        };
         "OperacionOrdenServicio.html-operacion.mensaje.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
@@ -18404,6 +18658,35 @@ export interface components {
         } & (components["schemas"]["HydraItemBaseSchema"] & {
             items?: components["schemas"]["OperacionOrdenServicioItem.jsonld-operacion.item.read_timestamp.read"][];
         });
+        "OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            reemplazaA?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Qué se puede tocar en esta orden, y el motivo cuando no. */
+            readonly edicionPermitida?: {
+                [key: string]: {
+                    [key: string]: boolean | string | null;
+                };
+            };
+            /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
+            readonly divergencias?: string[];
+            /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
+            readonly cambiosMenores?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
+            readonly sucia?: boolean;
+            /** @description Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla. */
+            readonly rutasVisibles?: {
+                [key: string]: string;
+            };
+            /** @description Lo que de verdad se imprime de cada lado, para que la pastilla lo diga. */
+            readonly visibilidadEfectiva?: Record<string, never>;
+            /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
+            readonly avisosDeRutas?: string[];
+        } & (components["schemas"]["HydraItemBaseSchema"] & {
+            items?: components["schemas"]["OperacionOrdenServicioItem.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"][];
+        });
         "OperacionOrdenServicio.jsonld-operacion.mensaje.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
             createdAt?: string;
@@ -18476,6 +18759,34 @@ export interface components {
         "OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read": {
             items?: components["schemas"]["OperacionOrdenServicioItem.multipart-operacion.item.read_timestamp.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read"] | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Qué se puede tocar en esta orden, y el motivo cuando no. */
+            readonly edicionPermitida?: {
+                [key: string]: {
+                    [key: string]: boolean | string | null;
+                };
+            };
+            /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
+            readonly divergencias?: string[];
+            /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
+            readonly cambiosMenores?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
+            readonly sucia?: boolean;
+            /** @description Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla. */
+            readonly rutasVisibles?: {
+                [key: string]: string;
+            };
+            /** @description Lo que de verdad se imprime de cada lado, para que la pastilla lo diga. */
+            readonly visibilidadEfectiva?: Record<string, never>;
+            /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
+            readonly avisosDeRutas?: string[];
+        };
+        "OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            items?: components["schemas"]["OperacionOrdenServicioItem.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"][];
+            reemplazaA?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -18629,6 +18940,66 @@ export interface components {
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
+        "OperacionOrdenServicioItem-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+            operacionServicioId?: string | null;
+            /**
+             * @description La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+             * @default
+             */
+            descripcion: string;
+            /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
+            nombreComponente?: string | null;
+            /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
+            nombreSegmento?: string | null;
+            /** @description Dónde iba esta línea en el itinerario, congelado. */
+            ordenItinerario?: number | null;
+            /** @description Qué NATURALEZA tiene lo contratado, congelada. */
+            tipoComponente?: string | null;
+            /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
+            contextoServicio?: string | null;
+            /** Format: date-time */
+            fechaServicio?: string | null;
+            /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+            hora?: string | null;
+            /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
+            horaRecojoConfirmada?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
+            puntoRecojoConfirmado?: string | null;
+            puntoEntregaConfirmado?: string | null;
+            /**
+             * @description Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
+            cantidadPax?: number | null;
+            cantidad?: string | null;
+            /** @default 0.00 */
+            importe: string;
+            moneda?: components["schemas"]["Moneda-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+            prestadorNombre?: string | null;
+            prestadorServicioNombre?: string | null;
+            /** @description Lo que se le dijo al proveedor, **congelado**. */
+            notasPrestador?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
+            readonly tituloParaProveedor?: string;
+            readonly varianteParaProveedor?: string | null;
+            /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
+            readonly diaParaProveedor?: string | null;
+        };
         "OperacionOrdenServicioItem-operacion.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
             operacionServicioId?: string | null;
@@ -18732,6 +19103,66 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"] | null;
+            /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+            prestadorNombre?: string | null;
+            prestadorServicioNombre?: string | null;
+            /** @description Lo que se le dijo al proveedor, **congelado**. */
+            notasPrestador?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
+            readonly tituloParaProveedor?: string;
+            readonly varianteParaProveedor?: string | null;
+            /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
+            readonly diaParaProveedor?: string | null;
+        };
+        "OperacionOrdenServicioItem.html-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+            operacionServicioId?: string | null;
+            /**
+             * @description La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+             * @default
+             */
+            descripcion: string;
+            /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
+            nombreComponente?: string | null;
+            /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
+            nombreSegmento?: string | null;
+            /** @description Dónde iba esta línea en el itinerario, congelado. */
+            ordenItinerario?: number | null;
+            /** @description Qué NATURALEZA tiene lo contratado, congelada. */
+            tipoComponente?: string | null;
+            /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
+            contextoServicio?: string | null;
+            /** Format: date-time */
+            fechaServicio?: string | null;
+            /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+            hora?: string | null;
+            /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
+            horaRecojoConfirmada?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
+            puntoRecojoConfirmado?: string | null;
+            puntoEntregaConfirmado?: string | null;
+            /**
+             * @description Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
+            cantidadPax?: number | null;
+            cantidad?: string | null;
+            /** @default 0.00 */
+            importe: string;
+            moneda?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -18869,6 +19300,66 @@ export interface components {
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
+        "OperacionOrdenServicioItem.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+            operacionServicioId?: string | null;
+            /**
+             * @description La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+             * @default
+             */
+            descripcion: string;
+            /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
+            nombreComponente?: string | null;
+            /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
+            nombreSegmento?: string | null;
+            /** @description Dónde iba esta línea en el itinerario, congelado. */
+            ordenItinerario?: number | null;
+            /** @description Qué NATURALEZA tiene lo contratado, congelada. */
+            tipoComponente?: string | null;
+            /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
+            contextoServicio?: string | null;
+            /** Format: date-time */
+            fechaServicio?: string | null;
+            /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+            hora?: string | null;
+            /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
+            horaRecojoConfirmada?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
+            puntoRecojoConfirmado?: string | null;
+            puntoEntregaConfirmado?: string | null;
+            /**
+             * @description Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
+            cantidadPax?: number | null;
+            cantidad?: string | null;
+            /** @default 0.00 */
+            importe: string;
+            moneda?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+            prestadorNombre?: string | null;
+            prestadorServicioNombre?: string | null;
+            /** @description Lo que se le dijo al proveedor, **congelado**. */
+            notasPrestador?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
+            readonly tituloParaProveedor?: string;
+            readonly varianteParaProveedor?: string | null;
+            /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
+            readonly diaParaProveedor?: string | null;
+        };
         "OperacionOrdenServicioItem.jsonld-operacion.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
             operacionServicioId?: string | null;
@@ -18972,6 +19463,66 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"] | null;
+            /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+            prestadorNombre?: string | null;
+            prestadorServicioNombre?: string | null;
+            /** @description Lo que se le dijo al proveedor, **congelado**. */
+            notasPrestador?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
+            readonly tituloParaProveedor?: string;
+            readonly varianteParaProveedor?: string | null;
+            /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
+            readonly diaParaProveedor?: string | null;
+        };
+        "OperacionOrdenServicioItem.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+            operacionServicioId?: string | null;
+            /**
+             * @description La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+             * @default
+             */
+            descripcion: string;
+            /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
+            nombreComponente?: string | null;
+            /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
+            nombreSegmento?: string | null;
+            /** @description Dónde iba esta línea en el itinerario, congelado. */
+            ordenItinerario?: number | null;
+            /** @description Qué NATURALEZA tiene lo contratado, congelada. */
+            tipoComponente?: string | null;
+            /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
+            contextoServicio?: string | null;
+            /** Format: date-time */
+            fechaServicio?: string | null;
+            /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+            hora?: string | null;
+            /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
+            horaRecojoConfirmada?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
+            puntoRecojoConfirmado?: string | null;
+            puntoEntregaConfirmado?: string | null;
+            /**
+             * @description Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
+            cantidadPax?: number | null;
+            cantidad?: string | null;
+            /** @default 0.00 */
+            importe: string;
+            moneda?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -19263,6 +19814,145 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
+            /** @description El id del prestador que vale. */
+            readonly prestadorEfectivoMaestroId?: string | null;
+            /** @description El nombre del prestador que vale. */
+            readonly prestadorEfectivoNombre?: string | null;
+            readonly prestadorServicioEfectivoNombre?: string | null;
+            /** @description El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.** */
+            readonly compradorEfectivoMaestroId?: string | null;
+            readonly compradorEfectivoNombre?: string | null;
+            /** @description ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+            readonly papelIntervenido?: boolean;
+            /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
+            readonly cotizacionId?: string | null;
+            /**
+             * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+             *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+             *     vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
+             */
+            readonly cotizacionVersion?: number | null;
+            /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
+            readonly desgloseCotizado?: {
+                concepto: string;
+                unitario: string;
+                cantidad: number;
+                unidades: number;
+                subtotal: string;
+                moneda?: string | null;
+            }[];
+            /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
+            readonly ordenItinerario?: number | null;
+            /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
+            readonly prioridadOperativa?: number;
+            /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
+            readonly notasPrestadorEfectivas?: string[];
+        };
+        "OperacionServicio-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            file?: components["schemas"]["CotizacionFile-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+            cotizacionServicio?: components["schemas"]["CotizacionCotservicio-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+            cotizacionComponente?: components["schemas"]["CotizacionCotcomponente-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** Format: date-time */
+            fechaServicio?: string;
+            horaRecojo?: string | null;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
+            puntoRecojo?: string | null;
+            puntoEntrega?: string | null;
+            /** @description Lo que hay que decirle al proveedor, **si el operador lo redacta a mano**. */
+            notasPrestador?: string[] | null;
+            /**
+             * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
+            /** @description El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
+            prestadorServicioMaestroId?: string | null;
+            compradorMaestroId?: string | null;
+            compradorNombre?: string | null;
+            prestadorOverrideMaestroId?: string | null;
+            prestadorOverrideNombre?: string | null;
+            prestadorServicioOverrideMaestroId?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
+            compradorOverrideMaestroId?: string | null;
+            compradorOverrideNombre?: string | null;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
+            descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
+            /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
+            modoComponente?: string | null;
+            /** @description Snapshot de ComponenteEstadoEnum en el momento de confirmar la cotización. */
+            estadoComponente?: string | null;
+            /** @default 1 */
+            cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
+            /** @default 0.00 */
+            montoVenta: string;
+            /** @default 0.00 */
+            costoCotizado: string;
+            monedaCotizada?: components["schemas"]["Moneda-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** @default 0.00 */
+            costoNegociado: string;
+            monedaNegociada?: components["schemas"]["Moneda-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /**
+             * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
+             * @default sin-solicitar
+             * @enum {string}
+             */
+            estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            /**
+             * Format: date-time
+             * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
+             */
+            estadoReservaProveedorDesde?: string | null;
+            /**
+             * @default pendiente
+             * @enum {string}
+             */
+            estadoOperacion: "pendiente" | "en-proceso" | "completado" | "cancelado";
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
+            readonly soloReferencia?: boolean;
+            /** @description Quiénes van en esta orden, con su código. */
+            readonly pasajeros?: {
+                nombre?: string;
+                codigo?: string | null;
+                subgrupo?: string;
+            }[];
             /** @description El id del prestador que vale. */
             readonly prestadorEfectivoMaestroId?: string | null;
             /** @description El nombre del prestador que vale. */
@@ -19700,6 +20390,145 @@ export interface components {
             /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
             readonly notasPrestadorEfectivas?: string[];
         };
+        "OperacionServicio.html-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            file?: components["schemas"]["CotizacionFile.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+            cotizacionServicio?: components["schemas"]["CotizacionCotservicio.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+            cotizacionComponente?: components["schemas"]["CotizacionCotcomponente.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** Format: date-time */
+            fechaServicio?: string;
+            horaRecojo?: string | null;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
+            puntoRecojo?: string | null;
+            puntoEntrega?: string | null;
+            /** @description Lo que hay que decirle al proveedor, **si el operador lo redacta a mano**. */
+            notasPrestador?: string[] | null;
+            /**
+             * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
+            /** @description El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
+            prestadorServicioMaestroId?: string | null;
+            compradorMaestroId?: string | null;
+            compradorNombre?: string | null;
+            prestadorOverrideMaestroId?: string | null;
+            prestadorOverrideNombre?: string | null;
+            prestadorServicioOverrideMaestroId?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
+            compradorOverrideMaestroId?: string | null;
+            compradorOverrideNombre?: string | null;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
+            descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
+            /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
+            modoComponente?: string | null;
+            /** @description Snapshot de ComponenteEstadoEnum en el momento de confirmar la cotización. */
+            estadoComponente?: string | null;
+            /** @default 1 */
+            cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
+            /** @default 0.00 */
+            montoVenta: string;
+            /** @default 0.00 */
+            costoCotizado: string;
+            monedaCotizada?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** @default 0.00 */
+            costoNegociado: string;
+            monedaNegociada?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /**
+             * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
+             * @default sin-solicitar
+             * @enum {string}
+             */
+            estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            /**
+             * Format: date-time
+             * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
+             */
+            estadoReservaProveedorDesde?: string | null;
+            /**
+             * @default pendiente
+             * @enum {string}
+             */
+            estadoOperacion: "pendiente" | "en-proceso" | "completado" | "cancelado";
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
+            readonly soloReferencia?: boolean;
+            /** @description Quiénes van en esta orden, con su código. */
+            readonly pasajeros?: {
+                nombre?: string;
+                codigo?: string | null;
+                subgrupo?: string;
+            }[];
+            /** @description El id del prestador que vale. */
+            readonly prestadorEfectivoMaestroId?: string | null;
+            /** @description El nombre del prestador que vale. */
+            readonly prestadorEfectivoNombre?: string | null;
+            readonly prestadorServicioEfectivoNombre?: string | null;
+            /** @description El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.** */
+            readonly compradorEfectivoMaestroId?: string | null;
+            readonly compradorEfectivoNombre?: string | null;
+            /** @description ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+            readonly papelIntervenido?: boolean;
+            /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
+            readonly cotizacionId?: string | null;
+            /**
+             * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+             *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+             *     vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
+             */
+            readonly cotizacionVersion?: number | null;
+            /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
+            readonly desgloseCotizado?: {
+                concepto: string;
+                unitario: string;
+                cantidad: number;
+                unidades: number;
+                subtotal: string;
+                moneda?: string | null;
+            }[];
+            /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
+            readonly ordenItinerario?: number | null;
+            /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
+            readonly prioridadOperativa?: number;
+            /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
+            readonly notasPrestadorEfectivas?: string[];
+        };
         "OperacionServicio.html-operacion.read_timestamp.read": {
             /** Format: date-time */
             fechaServicio?: string;
@@ -19913,6 +20742,145 @@ export interface components {
             /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
             readonly notasPrestadorEfectivas?: string[];
         };
+        "OperacionServicio.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read": components["schemas"]["HydraItemBaseSchema"] & {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            file?: components["schemas"]["CotizacionFile.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+            cotizacionServicio?: components["schemas"]["CotizacionCotservicio.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+            cotizacionComponente?: components["schemas"]["CotizacionCotcomponente.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** Format: date-time */
+            fechaServicio?: string;
+            horaRecojo?: string | null;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
+            puntoRecojo?: string | null;
+            puntoEntrega?: string | null;
+            /** @description Lo que hay que decirle al proveedor, **si el operador lo redacta a mano**. */
+            notasPrestador?: string[] | null;
+            /**
+             * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
+            /** @description El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
+            prestadorServicioMaestroId?: string | null;
+            compradorMaestroId?: string | null;
+            compradorNombre?: string | null;
+            prestadorOverrideMaestroId?: string | null;
+            prestadorOverrideNombre?: string | null;
+            prestadorServicioOverrideMaestroId?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
+            compradorOverrideMaestroId?: string | null;
+            compradorOverrideNombre?: string | null;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
+            descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
+            /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
+            modoComponente?: string | null;
+            /** @description Snapshot de ComponenteEstadoEnum en el momento de confirmar la cotización. */
+            estadoComponente?: string | null;
+            /** @default 1 */
+            cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
+            /** @default 0.00 */
+            montoVenta: string;
+            /** @default 0.00 */
+            costoCotizado: string;
+            monedaCotizada?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** @default 0.00 */
+            costoNegociado: string;
+            monedaNegociada?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /**
+             * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
+             * @default sin-solicitar
+             * @enum {string}
+             */
+            estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            /**
+             * Format: date-time
+             * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
+             */
+            estadoReservaProveedorDesde?: string | null;
+            /**
+             * @default pendiente
+             * @enum {string}
+             */
+            estadoOperacion: "pendiente" | "en-proceso" | "completado" | "cancelado";
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
+            readonly soloReferencia?: boolean;
+            /** @description Quiénes van en esta orden, con su código. */
+            readonly pasajeros?: {
+                nombre?: string;
+                codigo?: string | null;
+                subgrupo?: string;
+            }[];
+            /** @description El id del prestador que vale. */
+            readonly prestadorEfectivoMaestroId?: string | null;
+            /** @description El nombre del prestador que vale. */
+            readonly prestadorEfectivoNombre?: string | null;
+            readonly prestadorServicioEfectivoNombre?: string | null;
+            /** @description El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.** */
+            readonly compradorEfectivoMaestroId?: string | null;
+            readonly compradorEfectivoNombre?: string | null;
+            /** @description ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+            readonly papelIntervenido?: boolean;
+            /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
+            readonly cotizacionId?: string | null;
+            /**
+             * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+             *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+             *     vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
+             */
+            readonly cotizacionVersion?: number | null;
+            /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
+            readonly desgloseCotizado?: {
+                concepto: string;
+                unitario: string;
+                cantidad: number;
+                unidades: number;
+                subtotal: string;
+                moneda?: string | null;
+            }[];
+            /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
+            readonly ordenItinerario?: number | null;
+            /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
+            readonly prioridadOperativa?: number;
+            /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
+            readonly notasPrestadorEfectivas?: string[];
+        };
         "OperacionServicio.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
             fechaServicio?: string;
@@ -20092,6 +21060,145 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
+            /** @description El id del prestador que vale. */
+            readonly prestadorEfectivoMaestroId?: string | null;
+            /** @description El nombre del prestador que vale. */
+            readonly prestadorEfectivoNombre?: string | null;
+            readonly prestadorServicioEfectivoNombre?: string | null;
+            /** @description El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.** */
+            readonly compradorEfectivoMaestroId?: string | null;
+            readonly compradorEfectivoNombre?: string | null;
+            /** @description ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+            readonly papelIntervenido?: boolean;
+            /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
+            readonly cotizacionId?: string | null;
+            /**
+             * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+             *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+             *     vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
+             */
+            readonly cotizacionVersion?: number | null;
+            /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
+            readonly desgloseCotizado?: {
+                concepto: string;
+                unitario: string;
+                cantidad: number;
+                unidades: number;
+                subtotal: string;
+                moneda?: string | null;
+            }[];
+            /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
+            readonly ordenItinerario?: number | null;
+            /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
+            readonly prioridadOperativa?: number;
+            /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
+            readonly notasPrestadorEfectivas?: string[];
+        };
+        "OperacionServicio.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            ordenServicio?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            file?: components["schemas"]["CotizacionFile.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+            cotizacionServicio?: components["schemas"]["CotizacionCotservicio.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+            cotizacionComponente?: components["schemas"]["CotizacionCotcomponente.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+            cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** Format: date-time */
+            fechaServicio?: string;
+            horaRecojo?: string | null;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
+            puntoRecojo?: string | null;
+            puntoEntrega?: string | null;
+            /** @description Lo que hay que decirle al proveedor, **si el operador lo redacta a mano**. */
+            notasPrestador?: string[] | null;
+            /**
+             * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
+            prestadorMaestroId?: string | null;
+            prestadorNombre?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
+            /** @description El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
+            prestadorServicioMaestroId?: string | null;
+            compradorMaestroId?: string | null;
+            compradorNombre?: string | null;
+            prestadorOverrideMaestroId?: string | null;
+            prestadorOverrideNombre?: string | null;
+            prestadorServicioOverrideMaestroId?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
+            compradorOverrideMaestroId?: string | null;
+            compradorOverrideNombre?: string | null;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
+            descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
+            /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
+            modoComponente?: string | null;
+            /** @description Snapshot de ComponenteEstadoEnum en el momento de confirmar la cotización. */
+            estadoComponente?: string | null;
+            /** @default 1 */
+            cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
+            /** @default 0.00 */
+            montoVenta: string;
+            /** @default 0.00 */
+            costoCotizado: string;
+            monedaCotizada?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** @default 0.00 */
+            costoNegociado: string;
+            monedaNegociada?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /**
+             * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
+             * @default sin-solicitar
+             * @enum {string}
+             */
+            estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
+            /**
+             * Format: date-time
+             * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
+             */
+            estadoReservaProveedorDesde?: string | null;
+            /**
+             * @default pendiente
+             * @enum {string}
+             */
+            estadoOperacion: "pendiente" | "en-proceso" | "completado" | "cancelado";
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
+            readonly soloReferencia?: boolean;
+            /** @description Quiénes van en esta orden, con su código. */
+            readonly pasajeros?: {
+                nombre?: string;
+                codigo?: string | null;
+                subgrupo?: string;
+            }[];
             /** @description El id del prestador que vale. */
             readonly prestadorEfectivoMaestroId?: string | null;
             /** @description El nombre del prestador que vale. */
@@ -39930,10 +41037,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["OperacionServicio.jsonld-operacion.item.read_timestamp.read"];
-                    "application/json": components["schemas"]["OperacionServicio-operacion.item.read_timestamp.read"];
-                    "text/html": components["schemas"]["OperacionServicio.html-operacion.item.read_timestamp.read"];
-                    "multipart/form-data": components["schemas"]["OperacionServicio.multipart-operacion.item.read_timestamp.read"];
+                    "application/ld+json": components["schemas"]["OperacionServicio.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+                    "application/json": components["schemas"]["OperacionServicio-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+                    "text/html": components["schemas"]["OperacionServicio.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
+                    "multipart/form-data": components["schemas"]["OperacionServicio.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"];
                 };
             };
             /** @description Forbidden */

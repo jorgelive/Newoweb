@@ -44,6 +44,11 @@ use Symfony\Component\Uid\Uuid;
             security: "is_granted('" . Roles::OPERACIONES_SHOW . "')"
         ),
         new Get(
+            // ⚠️ Grupo PROPIO para los pasajeros, y sólo aquí. El contexto de normalización es de
+            // recurso, así que ponerlos en `operacion:item:read` los pondría también en la
+            // colección: el cuadro de La Biblia son cientos de filas y cada una recorrería los
+            // subgrupos de su componente. N+1 sobre la pantalla que más se abre.
+            normalizationContext: ['groups' => ['operacion:item:read', 'timestamp:read', 'operacion:pasajeros:read']],
             security: "is_granted('" . Roles::OPERACIONES_SHOW . "')"
         ),
         new Post(
@@ -736,6 +741,81 @@ class OperacionServicio
 
     public function getCotizacionServicio(): ?CotizacionCotservicio { return $this->cotizacionServicio; }
     public function setCotizacionServicio(?CotizacionCotservicio $cotizacionServicio): self { $this->cotizacionServicio = $cotizacionServicio; return $this; }
+
+    /**
+     * Quiénes van en esta orden, con su código.
+     *
+     * ```
+     * Alejandra Valdivia Berrios   YMFLHB
+     * Alex Montes Ugarte           YMFLHB
+     * ```
+     *
+     * ── Se DERIVA, no se congela ────────────────────────────────────────────
+     * La Biblia es un snapshot **de valores** —precios, fechas— porque eso se acordó en un momento
+     * y no debe moverse solo. **Quién viaja no es un valor acordado**: cambia hasta el día de
+     * salida, y una orden que se manda al proveedor con la lista de hace tres semanas manda a
+     * gente que ya no va y deja fuera a quien se apuntó después.
+     *
+     * Por eso sale de los subgrupos del componente, que son del **expediente** y siempre están al
+     * día. Congelarla obligaría además a regenerar órdenes cada vez que entra alguien al padrón.
+     *
+     * ── ⚠️ Vacío significa TODO EL GRUPO ────────────────────────────────────
+     * Un componente sin subgrupos aplica a todos, y devolver aquí las 133 fichas convertiría cada
+     * orden de un hotel en un listado inútil. Se devuelve **vacío** y quien pinte la orden dice
+     * «todo el grupo» — que es la información, no la lista.
+     *
+     * ── ⚠️ Sin repetir ──────────────────────────────────────────────────────
+     * Un componente puede llevar varios subgrupos y una persona estar en dos. Se cuenta por
+     * pasajero, no por pertenencia.
+     *
+     * @return list<array{nombre: string, codigo: string|null, subgrupo: string}>
+     */
+    #[ApiProperty(openapiContext: [
+        'type' => 'array',
+        'items' => [
+            'type' => 'object',
+            'properties' => [
+                'nombre' => ['type' => 'string'],
+                'codigo' => ['type' => 'string', 'nullable' => true],
+                'subgrupo' => ['type' => 'string'],
+            ],
+        ],
+    ])]
+    #[Groups(['operacion:pasajeros:read'])]
+    public function getPasajeros(): array
+    {
+        $grupos = $this->cotizacionComponente?->getGrupos();
+
+        if ($grupos === null || $grupos->isEmpty()) {
+            return [];
+        }
+
+        /** @var array<string, array{nombre: string, codigo: string|null, subgrupo: string}> $porPasajero */
+        $porPasajero = [];
+
+        foreach ($grupos as $grupo) {
+            foreach ($grupo->getMiembros() as $pertenencia) {
+                $pasajero = $pertenencia->getPasajero();
+                $id = $pasajero?->getId()?->toRfc4122();
+
+                if ($id === null || isset($porPasajero[$id])) {
+                    continue;
+                }
+
+                $porPasajero[$id] = [
+                    'nombre' => trim($pasajero->getNombre() . ' ' . $pasajero->getApellido()),
+                    'codigo' => $pertenencia->getCodigo() ?? $grupo->getClave(),
+                    'subgrupo' => $grupo->getEtiqueta(),
+                ];
+            }
+        }
+
+        // Por nombre: una orden se lee y se pasa lista, y el orden de la base no ayuda a eso.
+        $salida = array_values($porPasajero);
+        usort($salida, static fn (array $a, array $b): int => strcmp($a['nombre'], $b['nombre']));
+
+        return $salida;
+    }
 
     public function getCotizacionComponente(): ?CotizacionCotcomponente { return $this->cotizacionComponente; }
     public function setCotizacionComponente(?CotizacionCotcomponente $cotizacionComponente): self { $this->cotizacionComponente = $cotizacionComponente; return $this; }
