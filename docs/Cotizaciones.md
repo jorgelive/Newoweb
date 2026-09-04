@@ -2351,6 +2351,24 @@ deja de leerse, y entonces no avisa el día que importa.
 ⚠️ Y **«Esta parte sin acotar»** cuando la copia todavía no tiene subgrupos: es el estado en que
 nace, y decirlo es la mitad del recordatorio de que hay que repartirla.
 
+### La franja de repartos se retiró de encima de la lista
+
+Encima de los componentes vivía una franja «Repartido en 2 · Vuelo Cusco–Lima … Cubre 88 de 100
+pax». Se quitó: decía, con otras palabras, lo mismo que ahora dicen la pastilla de cada tarjeta y
+el desglose del panel del componente — y lo decía **lejos de donde se actúa**. Había que leerla
+arriba y bajar a averiguar cuál de las cinco tarjetas era la que se había quedado corta.
+
+De ella sobrevive lo único que no estaba en ningún otro sitio: **la ⓘ con los vuelos de cada
+reserva**, que se mudó al desplegable de la tarjeta. Enseña todos los tramos, incluidos los de
+otras fechas —una reserva cubre ida y vuelta—, que es justo lo que dice si ese PNR es el que toca
+hoy.
+
+⚠️ **Y con la franja se fue `repartosDelServicio`, que era un espejo PARCIAL de
+`CotizacionCotservicio::repartos()`**: sumaba donde el servidor deduplica, porque el front sólo
+recibe `totalMiembros` y no quiénes son. Hoy el único cálculo de reparto en el navegador es
+`repartoDelActivo`, que mide **un** componente. Si vuelve a hacer falta el total del servicio, se
+pide por la API en vez de reescribirlo aquí.
+
 ### Y en la propia tarjeta del componente
 
 Desde la lista no se veía si un componente ya estaba acotado: había que abrirlo para saberlo, y con

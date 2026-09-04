@@ -65,48 +65,20 @@ const { esEstrecha } = usePantallaEstrecha();
  * preferencia no puede tumbar el editor.
  */
 // ── Repartos: un componente partido entre subgrupos ─────────────────────────
+//
+// ⚠️ **La franja de repartos que iba encima de la lista se retiró.** Repetía, con otras palabras,
+// lo que ahora dicen la pastilla de cada tarjeta —«2 subgrupos · 88 pax»— y el desglose del panel
+// del componente, y lo hacía **lejos de donde se actúa**: había que leerla arriba y bajar a
+// buscar cuál de las cinco tarjetas era la que le faltaba gente.
+//
+// De ella sobrevive lo que no estaba en ningún otro sitio: la ⓘ con los vuelos de cada reserva,
+// que se mudó al desplegable de la tarjeta.
+//
+// Con la franja se fue también `repartosDelServicio`, que era un **espejo parcial** de
+// `CotizacionCotservicio::repartos()` (PHP) y sumaba donde el servidor deduplica. Hoy el único
+// cálculo de reparto en el front es `repartoDelActivo`, que mide UN componente. Si algún día hace
+// falta el total del servicio, se pide por la API en vez de volver a escribirlo aquí.
 
-interface ParteDeReparto {
-  subgrupos: SubgrupoOpcion[];   // los de esta parte, enteros: hacen falta clave y vuelos
-  cantidad: number;
-  personas: number | null;       // null = «a todos»: no hay a quién contar
-}
-
-interface Reparto {
-  titulo: string;
-  partes: ParteDeReparto[];
-  cantidad: number;
-  personas: number;
-  hayAbiertos: boolean;
-}
-
-/**
- * Los componentes partidos del servicio abierto, con lo que suman.
- *
- * ⚠️ **Espejo PARCIAL de `CotizacionCotservicio::repartos()`** (PHP). La regla de agrupar —«un
- * original y los que apuntan a él por `duplicadoDe`»— vive en los dos sitios y hay que tocar los
- * dos.
- *
- * ── 🔥 Aquí es una SUMA; en PHP es una unión. Y no es un descuido ───────────
- * El servidor cuenta **pasajeros distintos**: recorre los miembros y deduplica. El front **no
- * puede**: sólo recibe `totalMiembros` por subgrupo, no quiénes son. Traer los ids de los 109
- * subgrupos para deduplicar en pantalla costaría más que el dato que produce.
- *
- * O sea que este número es una **cota superior**. Coincide con la de verdad mientras los subgrupos
- * no compartan gente —lo normal dentro de un eje: nadie está en dos habitaciones— y **sobreestima**
- * si alguien marca el mismo PNR en dos partes o cruza ejes que sí se solapan.
- *
- * ⚠️ Por eso el aviso de «contados dos veces» sirve: cuando la suma pasa del manifiesto, o sobra
- * gente o hay solape, y las dos cosas hay que mirarlas. Lo que **no** hace es detectar un solape
- * que quepa por debajo del total.
- *
- * El día que `repartos()` se exponga por la API, este cálculo se cambia por él y se borra la
- * diferencia.
- *
- * ── ⚠️ Por qué DOS números y no uno ────────────────────────────────────────
- * `cantidad` es lo que se cobra; `personas` es a cuánta gente cubre. En un servicio por persona
- * coinciden, y en uno **grupal no**: la cantidad vale 1 —se cobra una vez— y cubre a 44.
- */
 /**
  * Contra cuánta gente se mide la cobertura de un reparto.
  *
@@ -138,54 +110,6 @@ const midePorManifiesto = computed<boolean>(() =>
   && (store.cotizacion.totalEnElManifiesto ?? 0) > 0
   && store.cotizacion.totalEnElManifiesto !== store.cotizacion.numPax);
 
-const repartosDelServicio = computed<Reparto[]>(() => {
-  const comps = store.servicioActivo?.cotcomponentes ?? [];
-  const porRaiz = new Map<string, ComponenteCompleto[]>();
-
-  for (const comp of comps) {
-    const raiz = comp.duplicadoDe ?? comp.id;
-
-    if (!raiz) continue;
-
-    porRaiz.set(raiz, [...(porRaiz.get(raiz) ?? []), comp]);
-  }
-
-  const subgrupoDe = (iri: string) => store.subgruposDelFile.find(sg => sg['@id'] === iri);
-
-  const salida: Reparto[] = [];
-
-  for (const miembros of porRaiz.values()) {
-    if (miembros.length < 2) continue;
-
-    // Los pasajeros ya contados en ESTE reparto, para no sumar a nadie dos veces entre partes.
-    const partes = miembros.map((c): ParteDeReparto => {
-      const iris = (c.grupos ?? []) as string[];
-
-      return {
-        subgrupos: iris
-          .map(iri => subgrupoDe(iri))
-          .filter((sg): sg is SubgrupoOpcion => sg !== undefined),
-        cantidad: Number(c.cantidad ?? 0),
-        personas: iris.length === 0
-          ? null
-          : iris.reduce((s, iri) => s + (subgrupoDe(iri)?.totalMiembros ?? 0), 0),
-      };
-    });
-
-    salida.push({
-      titulo: miembros[0].nombreInternoSnapshot
-        || store.getI18nText(miembros[0].tituloSnapshot, 'es')
-        || 'Componente',
-      partes,
-      cantidad: partes.reduce((s, p) => s + p.cantidad, 0),
-      personas: partes.reduce((s, p) => s + (p.personas ?? 0), 0),
-      hayAbiertos: partes.some(p => p.personas === null),
-    });
-  }
-
-  return salida;
-});
-
 /**
  * Los vuelos de un subgrupo, en una línea por tramo.
  *
@@ -214,39 +138,23 @@ const grupoAbierto = ref(false);
 const filtroGrupos = ref('');
 
 /**
- * Qué partes del reparto tienen su lista de subgrupos desplegada.
+ * Qué reservas tienen sus vuelos desplegados.
  *
- * ⚠️ **Colapsadas por defecto.** Una parte puede llevar ocho reservas y sus rótulos se repiten
- * —«Vuelo · Nacional · JetSMART» ocho veces—, así que desplegadas convierten la franja en una
- * pared de texto que tapa lo único que importa de un vistazo: cuánta gente cubre.
+ * ⚠️ La clave **no** es el IRI a secas: en la lista de tarjetas es `idDeTarjeta|IRI`, porque el
+ * mismo PNR puede estar en dos componentes y con la clave compartida se abrirían los dos a la vez.
  */
-const partesAbiertas = ref<Set<string>>(new Set());
-
-/** Qué reservas tienen sus vuelos desplegados. */
 const vuelosAbiertos = ref<Set<string>>(new Set());
 
-const alternarVuelos = (iri: string): void => {
+const alternarVuelos = (clave: string): void => {
   const abiertos = new Set(vuelosAbiertos.value);
 
-  if (abiertos.has(iri)) {
-    abiertos.delete(iri);
+  if (abiertos.has(clave)) {
+    abiertos.delete(clave);
   } else {
-    abiertos.add(iri);
+    abiertos.add(clave);
   }
 
   vuelosAbiertos.value = abiertos;
-};
-
-const alternarParte = (clave: string): void => {
-  const abiertas = new Set(partesAbiertas.value);
-
-  if (abiertas.has(clave)) {
-    abiertas.delete(clave);
-  } else {
-    abiertas.add(clave);
-  }
-
-  partesAbiertas.value = abiertas;
 };
 
 /**
@@ -2969,103 +2877,6 @@ store.$onAction(({ name, args }) => {
                 <button @click="store.agregarComponente(servicioActivoId)" class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow-sm border border-sky-200 hover:bg-sky-200 transition-colors">+ Añadir Extra</button>
               </h3>
 
-              <!-- ══ REPARTOS ═══════════════════════════════════════════════
-                   Encima de los componentes porque es lo que hay que mirar ANTES de tocarlos: dos
-                   tarjetas por separado no dejan ver que entre las dos cubren 44 de 100. -->
-              <div v-for="(r, i) in repartosDelServicio" :key="i"
-                   class="mb-3 rounded-2xl border p-3"
-                   :class="r.personas === paxDeReferencia && !r.hayAbiertos
-                     ? 'border-emerald-200 bg-emerald-50'
-                     : 'border-amber-200 bg-amber-50'">
-                <p class="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 mb-2"
-                   :class="r.personas === paxDeReferencia && !r.hayAbiertos ? 'text-emerald-700' : 'text-amber-700'">
-                  <i class="fas" :class="r.personas === paxDeReferencia && !r.hayAbiertos ? 'fa-circle-check' : 'fa-triangle-exclamation'"></i>
-                  Repartido en {{ r.partes.length }} · {{ r.titulo }}
-                </p>
-
-                <div v-for="(pt, j) in r.partes" :key="j" class="mb-1">
-                  <!-- ⚠️ Resumen COLAPSADO: ocho reservas con el mismo rótulo llenaban la franja y
-                       tapaban el «cubre N de M», que es lo que se mira de un vistazo. -->
-                  <button type="button" @click="alternarParte(`${i}-${j}`)"
-                          class="w-full flex items-center gap-2 text-[11px] text-slate-600 text-left hover:text-slate-800 transition-colors">
-                    <i v-if="pt.subgrupos.length" class="fas text-[9px] w-3 text-slate-400"
-                       :class="partesAbiertas.has(`${i}-${j}`) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                    <span v-else class="w-3"></span>
-
-                    <span class="font-bold flex-1 truncate">
-                      <template v-if="pt.subgrupos.length === 1">{{ etiquetaSubgrupo(pt.subgrupos[0]) }}</template>
-                      <template v-else-if="pt.subgrupos.length">{{ pt.subgrupos.length }} reservas</template>
-                      <span v-else class="text-amber-700">Todo el grupo</span>
-                    </span>
-
-                    <!-- ⚠️ DOS números: `cantidad` es lo que se cobra, `personas` a cuánta gente
-                         cubre. En un servicio grupal la cantidad vale 1 y cubre a 44. -->
-                    <span class="font-mono text-slate-400 shrink-0">×{{ pt.cantidad }}</span>
-                    <span v-if="pt.personas !== null" class="font-black shrink-0 w-14 text-right">{{ pt.personas }} pax</span>
-                    <span v-else class="font-black text-amber-600 shrink-0 w-14 text-right">todos</span>
-                  </button>
-
-                  <!-- Desplegado: cada reserva con su localizador. La pulsación larga —o el hover
-                       en escritorio— enseña sus vuelos, incluidos los de OTRAS fechas: una reserva
-                       cubre ida y vuelta, y eso es lo que dice si es la que toca hoy. -->
-                  <div v-if="partesAbiertas.has(`${i}-${j}`)" class="ml-5 mt-1 mb-2 space-y-0.5">
-                    <template v-for="sg in pt.subgrupos" :key="sg['@id']">
-                      <div class="flex items-center gap-2 text-[10px] text-slate-500">
-                        <span class="flex-1 truncate">{{ etiquetaSubgrupo(sg) }}</span>
-                        <span class="font-mono text-slate-400 shrink-0">{{ sg.clave }}</span>
-                        <span class="shrink-0 w-12 text-right">{{ sg.totalMiembros ?? 0 }} pax</span>
-
-                        <!-- ⚠️ Un botón y no una pulsación larga sobre el texto: en el móvil el
-                             long-press sobre texto activa la SELECCIÓN del sistema y se come el
-                             gesto, así que el globo no llegaba a salir nunca. El `title` se queda
-                             para el hover de escritorio, que ahí sí funciona. -->
-                        <button type="button" @click.stop="alternarVuelos(sg['@id'])"
-                                :title="detalleDeVuelos(sg)"
-                                class="shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-colors"
-                                :class="vuelosAbiertos.has(sg['@id'])
-                                  ? 'bg-slate-700 text-white'
-                                  : 'text-slate-400 hover:bg-slate-200'">
-                          <i class="fas fa-info text-[9px]"></i>
-                        </button>
-                      </div>
-
-                      <!-- El detalle en línea, no flotando: no tapa nada y se puede copiar. -->
-                      <div v-if="vuelosAbiertos.has(sg['@id'])"
-                           class="ml-1 mb-1.5 pl-2 border-l-2 border-slate-200 space-y-0.5">
-                        <p v-for="(v, k) in (sg.vuelosResumen ?? [])" :key="k"
-                           class="text-[10px] font-mono text-slate-500 leading-snug">
-                          <span class="font-black text-slate-700">{{ v.numero }}</span>
-                          · {{ (v.salida ?? '').slice(8, 10) }}-{{ (v.salida ?? '').slice(5, 7) }}
-                          {{ (v.salida ?? '').slice(11, 16) }}→{{ (v.llegada ?? '').slice(11, 16) }}
-                          · {{ v.origen }}→{{ v.destino }}
-                        </p>
-                        <p v-if="!(sg.vuelosResumen ?? []).length" class="text-[10px] text-amber-600 font-bold">
-                          Sin vuelos enlazados
-                        </p>
-                      </div>
-                    </template>
-                  </div>
-                </div>
-
-                <p class="text-[11px] font-black mt-2 pt-2 border-t"
-                   :class="r.personas === paxDeReferencia && !r.hayAbiertos
-                     ? 'border-emerald-200 text-emerald-700' : 'border-amber-200 text-amber-800'">
-                  Cubre {{ r.personas }} de {{ paxDeReferencia }} pax
-                  <!-- ⚠️ Se dice de dónde sale el número: en una operativa se mide contra el
-                       manifiesto, no contra lo cotizado, y la diferencia es el motivo de que la
-                       operativa exista. Callarlo haría dudar del número. -->
-                  <span v-if="midePorManifiesto" class="font-bold text-slate-500">
-                    (del manifiesto; se cotizó para {{ store.cotizacion?.numPax ?? 0 }})
-                  </span>
-                  <span v-if="r.hayAbiertos" class="font-bold"> · hay una parte «para todos», que no se suma</span>
-                  <span v-else-if="r.personas < paxDeReferencia" class="font-bold">
-                    · faltan {{ paxDeReferencia - r.personas }} por asignar
-                  </span>
-                  <span v-else-if="r.personas > paxDeReferencia" class="font-bold">
-                    · hay {{ r.personas - paxDeReferencia }} contados dos veces
-                  </span>
-                </p>
-              </div>
               <div class="space-y-3">
 
                 <div v-for="comp in store.servicioActivo.cotcomponentes" :key="comp.id"
@@ -3225,12 +3036,41 @@ store.$onAction(({ name, args }) => {
 
                     <div v-if="gruposDeTarjetaAbiertos.has(comp.id) && (comp.grupos?.length ?? 0)"
                          class="mt-1.5 pl-2 border-l-2 border-orange-200 space-y-0.5" @click.stop>
-                      <div v-for="iri in (comp.grupos ?? [])" :key="iri"
-                           class="flex items-center gap-2 text-[10px] text-slate-500">
-                        <span class="flex-1 truncate">{{ etiquetaDeIri(iri) }}</span>
-                        <span class="font-mono text-slate-400 shrink-0">{{ claveDeIri(iri) }}</span>
-                        <span class="shrink-0 w-12 text-right">{{ paxDeIri(iri) }} pax</span>
-                      </div>
+                      <template v-for="iri in (comp.grupos ?? [])" :key="iri">
+                        <div class="flex items-center gap-2 text-[10px] text-slate-500">
+                          <span class="flex-1 truncate">{{ etiquetaDeIri(iri) }}</span>
+                          <span class="font-mono text-slate-400 shrink-0">{{ claveDeIri(iri) }}</span>
+                          <span class="shrink-0 w-12 text-right">{{ paxDeIri(iri) }} pax</span>
+
+                          <!-- La ⓘ que estaba en la franja de repartos, ahora aquí: es lo único
+                               que aquella aportaba y que la tarjeta no tenía. Una reserva cubre
+                               ida y vuelta, así que sus vuelos son lo que dice si es la que toca
+                               en esta fecha. -->
+                          <button v-if="subgrupoDeIri(iri)" type="button"
+                                  @click.stop="alternarVuelos(`${comp.id}|${iri}`)"
+                                  :title="detalleDeVuelos(subgrupoDeIri(iri)!)"
+                                  class="shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-colors"
+                                  :class="vuelosAbiertos.has(`${comp.id}|${iri}`)
+                                    ? 'bg-slate-700 text-white'
+                                    : 'text-slate-400 hover:bg-slate-200'">
+                            <i class="fas fa-info text-[9px]"></i>
+                          </button>
+                        </div>
+
+                        <!-- En línea y no flotando: no tapa nada y se puede copiar. -->
+                        <div v-if="vuelosAbiertos.has(`${comp.id}|${iri}`)"
+                             class="ml-1 mb-1.5 pl-2 border-l-2 border-slate-200 space-y-0.5">
+                          <p v-for="(v, k) in (subgrupoDeIri(iri)?.vuelosResumen ?? [])" :key="k"
+                             class="text-[10px] font-mono text-slate-500 leading-snug">
+                            <span class="font-black text-slate-700">{{ v.numero }}</span>
+                            · {{ (v.salida ?? '').slice(8, 10) }}-{{ (v.salida ?? '').slice(5, 7) }}
+                            {{ (v.salida ?? '').slice(11, 16) }}→{{ (v.llegada ?? '').slice(11, 16) }}
+                            · {{ v.origen }}→{{ v.destino }}
+                          </p>
+                          <p v-if="!(subgrupoDeIri(iri)?.vuelosResumen ?? []).length"
+                             class="text-[10px] text-amber-600 font-bold">Sin vuelos enlazados</p>
+                        </div>
+                      </template>
                     </div>
                   </div>
 
@@ -3853,7 +3693,15 @@ store.$onAction(({ name, args }) => {
                         <dd v-else class="font-black text-amber-700 shrink-0">nadie todavía</dd>
                       </div>
                       <div class="flex justify-between gap-2">
-                        <dt class="font-bold">Entre las {{ repartoDelActivo.partes }} partes</dt>
+                        <dt class="font-bold">
+                          Entre las {{ repartoDelActivo.partes }} partes
+                          <!-- ⚠️ Se dice de dónde sale el número: en una operativa se mide contra
+                               el manifiesto, no contra lo cotizado, y esa diferencia es el motivo
+                               de que la operativa exista. Callarlo haría dudar del número. -->
+                          <span v-if="midePorManifiesto" class="block font-bold text-[9px] text-slate-500 normal-case">
+                            del manifiesto; se cotizó para {{ store.cotizacion?.numPax ?? 0 }}
+                          </span>
+                        </dt>
                         <dd class="font-black shrink-0">{{ repartoDelActivo.total }} de {{ paxDeReferencia }} pax</dd>
                       </div>
                       <div v-if="repartoDelActivo.faltan" class="flex justify-between gap-2 pt-0.5 border-t"
