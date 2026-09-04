@@ -1081,6 +1081,48 @@ deja de repetirse cada noche —sale sólo el primer día— y se coloca a media
 
 La hora de llegada al hotel es otro campo: `OperacionServicio::$horaRecojo`, del operador.
 
+### ⚠️ «Por día» NO es un campo de la tarifa: los días van en la cantidad del COMPONENTE
+
+Un precio diario —un seguro de viaje a 8 USD, un alquiler por jornada— parece pedir un campo
+`porDia` en `TravelTarifa`, y no existe. El cálculo, en
+`util/src/stores/cotizacion/cotizacionEditorStore.ts` y `docs/Cotizaciones.md` §6.g.2, es:
+
+```
+costoTotal = monto × (esGrupal ? 1 : cantidadTarifa) × cantidadComponente
+```
+
+`cantidadComponente` es un **multiplicador libre** de la línea de cotización, y ése es el sitio de
+los días. La tarifa se carga con el precio de **una unidad**: 8.00 con `costoPorGrupo = false`
+—o sea, por pasajero— y el operador pone 5 en la cantidad del componente para cinco días.
+Cinco días con tres pasajeros son 8 × 3 × 5.
+
+⚠️ **`costoPorGrupo = true` habría dado el mismo número en la ficha y otra factura.** En grupal el
+monto **ya es el total**, así que 8 dejaría de ser el precio por persona y por día para ser el
+precio del grupo entero.
+
+⚠️ **Y nada escribe los días solo.** El multiplicador se teclea al armar la cotización: cargar la
+tarifa no basta para que un producto diario cobre por días. Si el operador lo deja en 1, cobra un
+día y no falla nada.
+
+### El tipo de un producto multi-día que NO ubica al pasajero
+
+Un bloque se lee como periodo cuando **no tiene horas** y termina en fecha posterior
+(`esEstadia`, en `dominio/cotizacion/itinerarioVista.ts`). Eso deja elegir entre los tipos con
+`sinHorario() = true`, y la elección no es indiferente:
+
+| Tipo | Multi-día | `esAnclaDeUbicacion()` | Para qué |
+|---|---|---|---|
+| `ALOJAMIENTO` | sí | **sí** | dice dónde DUERME el pasajero cada noche |
+| `EXTRAS` | sí | no | algo que acompaña al viaje sin situarlo |
+
+⚠️ **Un seguro, una tarjeta de datos o cualquier cobertura que dure todo el viaje va en `EXTRAS`.**
+Con `ALOJAMIENTO` también saldría multi-día —y por eso se cae en la trampa— pero además declararía
+que el pasajero *está* ahí: de los alojamientos encadenados se deducen los puntos de recojo de
+todo lo demás, así que un seguro puesto como alojamiento envenenaría el «dónde recojo» de los
+traslados de esos días. Sin error, como todo lo caro de este módulo.
+
+Lo aplica `app:travel:crear-seguro-de-viaje`.
+
 ## 6. AutoTranslate: por qué esto va por comando
 
 Estos campos se traducen a 7 idiomas mediante un listener enganchado a `prePersist`/`preUpdate`:
@@ -1241,3 +1283,4 @@ prueba de idempotencia**, y como ninguna clave natural está protegida por la ba
 | `app:travel:crear-traslado-coco-bongo` | clonar una flota en vez de recopiarla · reparar lo que una pasada anterior dejó a null |
 | `app:travel:redaccion-punta-cana` | el marcado como contrato del campo, no como gusto · separar retitular de reescribir |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
+| `app:travel:crear-seguro-de-viaje` | la receta de §4 **entera** en un comando · producto diario sin campo «por día» · `EXTRAS` para lo multi-día que no ubica |
