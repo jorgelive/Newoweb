@@ -259,13 +259,62 @@ const alternarParte = (clave: string): void => {
  *
  * Sin acentos ni mayúsculas: nadie escribe «Habitación» con tilde en un buscador.
  */
+/**
+ * Los subgrupos que **ya están puestos en otra parte de este mismo reparto**.
+ *
+ * ── Por qué se quitan de la lista ───────────────────────────────────────────
+ * Partir un vuelo es repartir a la gente: cada PNR va en **una** parte. Verlo disponible en la
+ * segunda es una trampa — marcarlo dos veces cuenta a esas 44 personas dos veces, la franja dice
+ * «hay 44 contados dos veces» y hay que volver a buscar dónde estaba el error.
+ *
+ * Quitándolos, lo que queda en la lista es exactamente **lo que falta por repartir**, y la lista
+ * encoge conforme avanzas.
+ *
+ * ── ⚠️ Sólo dentro del REPARTO, no de la cotización ────────────────────────
+ * Un hotel y un vuelo comparten subgrupo con toda naturalidad: «los de la habitación 101» duermen
+ * ahí y además vuelan. Lo que no puede repetirse es el mismo subgrupo en dos partes **del mismo
+ * componente partido**, que son las que se suman entre sí.
+ *
+ * ⚠️ Y nunca se esconden los del componente que se está editando: son los que hay que poder
+ * desmarcar.
+ */
+const yaEnOtraParteDelReparto = computed<Set<string>>(() => {
+  const activo = store.componenteActivo;
+
+  if (!activo) return new Set();
+
+  // 🔥 **NO se puede usar `store.servicioActivo`.** `servicioActivo` y `componenteActivo` son
+  // excluyentes —los dos salen de `dataActiva` según el nivel abierto—, así que aquí, con el panel
+  // del componente delante, `servicioActivo` es `null` y la lista salía vacía: el filtro existía y
+  // no filtraba nada, sin error. Se busca el servicio que contiene al componente.
+  const comps = (store.cotizacion?.cotservicios ?? [])
+    .find(s => (s.cotcomponentes ?? []).some(c => c.id === activo.id))
+    ?.cotcomponentes ?? [];
+
+  const raiz = activo.duplicadoDe ?? activo.id;
+  const usados = new Set<string>();
+
+  for (const c of comps) {
+    if (c.id === activo.id) continue;
+    if ((c.duplicadoDe ?? c.id) !== raiz) continue;
+
+    for (const iri of (c.grupos ?? []) as string[]) {
+      usados.add(iri);
+    }
+  }
+
+  return usados;
+});
+
 const subgruposFiltrados = computed(() => {
   const q = filtroGrupos.value.trim().toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-  if (!q) return store.subgruposDelFile;
+  const libres = store.subgruposDelFile.filter(sg => !yaEnOtraParteDelReparto.value.has(sg['@id']));
 
-  return store.subgruposDelFile.filter(sg => {
+  if (!q) return libres;
+
+  return libres.filter(sg => {
     const heno = `${etiquetaSubgrupo(sg)} ${sg.clave ?? ''}`.toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -3590,22 +3639,56 @@ store.$onAction(({ name, args }) => {
                           <i class="fas fa-users text-[10px] w-4"></i> Todo el grupo
                         </button>
 
-                        <button v-for="sg in subgruposFiltrados" :key="sg['@id']" type="button"
-                                @click="alternarGrupo(sg['@id'])"
-                                class="w-full flex items-center gap-2 px-4 py-2 text-[11px] font-bold text-left hover:bg-slate-50 transition-colors"
-                                :class="tieneGrupo(sg['@id']) ? 'bg-orange-50 text-orange-800' : 'text-slate-600'">
-                          <i class="fas text-[10px] w-4 shrink-0" :class="tieneGrupo(sg['@id']) ? 'fa-square-check' : 'fa-square text-slate-300'"></i>
-                          <span class="flex-1 truncate">{{ etiquetaSubgrupo(sg) }}</span>
-                          <!-- ⚠️ La CLAVE siempre, y en monoespaciado: es el localizador y es lo
-                               ÚNICO que distingue dos subgrupos con el mismo rótulo. «Vuelo ·
-                               Nacional · Sky Airline» son dos, YMATXY e YMFLHB, con 44 pax cada
-                               uno: sin esto parecen el mismo repetido. -->
-                          <span class="font-mono text-[10px] text-slate-400 shrink-0">{{ sg.clave }}</span>
-                          <span class="text-[10px] text-slate-500 shrink-0 w-12 text-right">{{ sg.totalMiembros ?? 0 }} pax</span>
-                        </button>
+                        <template v-for="sg in subgruposFiltrados" :key="sg['@id']">
+                          <div class="flex items-center hover:bg-slate-50 transition-colors"
+                               :class="tieneGrupo(sg['@id']) ? 'bg-orange-50' : ''">
+                            <button type="button" @click="alternarGrupo(sg['@id'])"
+                                    class="flex-1 min-w-0 flex items-center gap-2 px-4 py-2 text-[11px] font-bold text-left"
+                                    :class="tieneGrupo(sg['@id']) ? 'text-orange-800' : 'text-slate-600'">
+                              <i class="fas text-[10px] w-4 shrink-0" :class="tieneGrupo(sg['@id']) ? 'fa-square-check' : 'fa-square text-slate-300'"></i>
+                              <span class="flex-1 truncate">{{ etiquetaSubgrupo(sg) }}</span>
+                              <!-- ⚠️ La CLAVE siempre, y en monoespaciado: es el localizador y es
+                                   lo ÚNICO que distingue dos subgrupos con el mismo rótulo.
+                                   «Vuelo · Nacional · Sky Airline» son dos, YMATXY e YMFLHB, con
+                                   44 pax cada uno: sin esto parecen el mismo repetido. -->
+                              <span class="font-mono text-[10px] text-slate-400 shrink-0">{{ sg.clave }}</span>
+                              <span class="text-[10px] text-slate-500 shrink-0 w-12 text-right">{{ sg.totalMiembros ?? 0 }} pax</span>
+                            </button>
+
+                            <!-- ⚠️ Sólo donde hay algo que enseñar: un subgrupo de habitación no
+                                 tiene vuelos, y un botón que abre un hueco enseña a no pulsarlo. -->
+                            <button v-if="(sg.vuelosResumen ?? []).length" type="button"
+                                    @click.stop="alternarVuelos(sg['@id'])"
+                                    :title="detalleDeVuelos(sg)"
+                                    class="shrink-0 w-6 h-6 mr-2 rounded-full flex items-center justify-center transition-colors"
+                                    :class="vuelosAbiertos.has(sg['@id']) ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-200'">
+                              <i class="fas fa-info text-[9px]"></i>
+                            </button>
+                          </div>
+
+                          <!-- El vuelo, para elegir sabiendo. Incluye los de OTRAS fechas: una
+                               reserva cubre ida y vuelta, y eso es lo que dice si es la de hoy. -->
+                          <div v-if="vuelosAbiertos.has(sg['@id'])"
+                               class="px-4 pb-2 pl-10 bg-slate-50/60 border-b border-slate-100">
+                            <p v-for="(v, k) in (sg.vuelosResumen ?? [])" :key="k"
+                               class="text-[10px] font-mono text-slate-500 leading-snug">
+                              <span class="font-black text-slate-700">{{ v.numero }}</span>
+                              · {{ (v.salida ?? '').slice(8, 10) }}-{{ (v.salida ?? '').slice(5, 7) }}
+                              {{ (v.salida ?? '').slice(11, 16) }}→{{ (v.llegada ?? '').slice(11, 16) }}
+                              · {{ v.origen }}→{{ v.destino }}
+                            </p>
+                          </div>
+                        </template>
 
                         <p v-if="!subgruposFiltrados.length" class="px-4 py-3 text-[11px] text-slate-400 font-bold">
                           Ninguno con «{{ filtroGrupos }}»
+                        </p>
+
+                        <!-- ⚠️ Se dice cuántos se ocultaron. Que un subgrupo desaparezca sin
+                             explicación se lee como un fallo, y el operador lo busca en vano. -->
+                        <p v-if="yaEnOtraParteDelReparto.size" class="px-4 py-2 text-[10px] text-slate-400 font-bold border-t border-slate-100 bg-slate-50">
+                          <i class="fas fa-circle-info mr-1"></i>
+                          {{ yaEnOtraParteDelReparto.size }} ya {{ yaEnOtraParteDelReparto.size === 1 ? 'está' : 'están' }} en otra parte de este reparto
                         </p>
                       </div>
                     </div>

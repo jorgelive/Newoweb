@@ -2327,6 +2327,44 @@ que no había vuelos enlazados. Envolver la columna en `HEX()` renuncia al índi
 —son 56 filas—; la alternativa, convertir a binario en PHP, vuelve a poner el error a un descuido
 de distancia.
 
+### En el selector: el vuelo desplegable y lo ya repartido fuera
+
+```
+9 subgrupos · 35 pax                    ▾
+  🔍 sky
+  ☐ Vuelo · Nacional · Sky Airline   YMATXY   44 pax   ⓘ
+  ⓘ 1 ya está en otra parte de este reparto
+```
+
+Dos cosas al elegir:
+
+**El vuelo, desplegable ahí mismo.** Elegir entre ocho «JetSMART» idénticos sin ver sus horarios es
+adivinar; el ⓘ abre los tramos —incluidos los de otras fechas— sin salir de la lista. Sólo aparece
+donde hay algo que enseñar: una habitación no tiene vuelos, y un botón que abre un hueco enseña a
+no pulsarlo.
+
+**Lo ya puesto en otra parte del reparto desaparece.** Cada PNR va en **una** parte: verlo
+disponible en la segunda es una trampa, y marcarlo dos veces cuenta a esas 44 personas dos veces.
+Quitándolo, lo que queda es exactamente **lo que falta por repartir**, y la lista encoge conforme
+avanzas.
+
+⚠️ **Sólo dentro del REPARTO**, no de la cotización: un hotel y un vuelo comparten subgrupo con
+toda naturalidad —los de la habitación 101 duermen ahí y además vuelan—. Lo que no puede repetirse
+es el mismo subgrupo en dos partes **del mismo componente partido**, que son las que se suman entre
+sí.
+
+⚠️ **Y se dice cuántos se ocultaron.** Que un subgrupo desaparezca sin explicación se lee como un
+fallo, y el operador lo busca en vano.
+
+### 🔥 `servicioActivo` es `null` cuando hay un componente abierto
+
+La primera versión buscaba las otras partes en `store.servicioActivo.cotcomponentes`. Los dos
+salen de `dataActiva` según el nivel abierto y son **excluyentes**: con el panel del componente
+delante, `servicioActivo` es `null`, la lista salía vacía y **el filtro existía sin filtrar nada**.
+
+Sin error, sin aviso: la lista se veía igual que antes. Se localiza el servicio recorriendo
+`cotizacion.cotservicios` hasta encontrar el que contiene al componente activo.
+
 ### El selector: buscador y CLAVE siempre visible
 
 ```
