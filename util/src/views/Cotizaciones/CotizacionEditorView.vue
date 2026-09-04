@@ -83,14 +83,25 @@ interface Reparto {
 /**
  * Los componentes partidos del servicio abierto, con lo que suman.
  *
- * ⚠️ **Espejo de `CotizacionCotservicio::repartos()`** (PHP). La regla de agrupar —«un original y
- * los que apuntan a él por `duplicadoDe`»— vive en los dos sitios y hay que tocar los dos. Aquí
- * además se cuentan las personas, que el servidor sí calcula pero no expone todavía.
+ * ⚠️ **Espejo PARCIAL de `CotizacionCotservicio::repartos()`** (PHP). La regla de agrupar —«un
+ * original y los que apuntan a él por `duplicadoDe`»— vive en los dos sitios y hay que tocar los
+ * dos.
  *
- * ── ⚠️ Contar es una UNIÓN, no una suma ────────────────────────────────────
- * Un componente puede llevar varios subgrupos —el vuelo JA7018 son 7 PNRs— y dos subgrupos pueden
- * compartir gente. Sumar `totalMiembros` daría de más justo donde el solape importa, y diría
- * «cubre 120 de 100» en vez de señalar el solape. Se cuentan **pasajeros distintos**.
+ * ── 🔥 Aquí es una SUMA; en PHP es una unión. Y no es un descuido ───────────
+ * El servidor cuenta **pasajeros distintos**: recorre los miembros y deduplica. El front **no
+ * puede**: sólo recibe `totalMiembros` por subgrupo, no quiénes son. Traer los ids de los 109
+ * subgrupos para deduplicar en pantalla costaría más que el dato que produce.
+ *
+ * O sea que este número es una **cota superior**. Coincide con la de verdad mientras los subgrupos
+ * no compartan gente —lo normal dentro de un eje: nadie está en dos habitaciones— y **sobreestima**
+ * si alguien marca el mismo PNR en dos partes o cruza ejes que sí se solapan.
+ *
+ * ⚠️ Por eso el aviso de «contados dos veces» sirve: cuando la suma pasa del manifiesto, o sobra
+ * gente o hay solape, y las dos cosas hay que mirarlas. Lo que **no** hace es detectar un solape
+ * que quepa por debajo del total.
+ *
+ * El día que `repartos()` se exponga por la API, este cálculo se cambia por él y se borra la
+ * diferencia.
  *
  * ── ⚠️ Por qué DOS números y no uno ────────────────────────────────────────
  * `cantidad` es lo que se cobra; `personas` es a cuánta gente cubre. En un servicio por persona

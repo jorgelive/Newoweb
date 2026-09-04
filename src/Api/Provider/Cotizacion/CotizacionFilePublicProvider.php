@@ -145,11 +145,32 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             //
             // Y con `publicado` como eje propio esto además es DETERMINISTA: la invariante dice
             // que hay como máximo una publicada por propuesta, así que no hay nada que desempatar.
-            $cotizacion = $this->em->getRepository(Cotizacion::class)->findOneBy([
-                'file'    => $file,
-                'propuesta' => (int) $uriVariables['propuesta'],
-                ...($previsualiza ? [] : ['publicado' => true]),
-            ]);
+            // 🔥 **Se precargan los `grupos` de los componentes en la misma consulta.**
+            //
+            // `esParaTodos()` pregunta `isEmpty()` sobre una `ManyToMany` perezosa, así que con un
+            // `findOneBy` a secas era **una consulta por componente**: medido, 36 componentes → 36
+            // consultas, y la operativa del colegio ronda los 150. Multiplicado por los 133 que
+            // abren la app, eso es la diferencia entre una página y una caída.
+            //
+            // Antes no pasaba porque `$grupo` era una `ManyToOne`: un proxy no consulta hasta que
+            // se le pide algo, y `=== null` no se lo pide. El plural cambió eso sin avisar.
+            $dql = $this->em->createQueryBuilder()
+                ->select('c', 'cs', 'cc', 'g')
+                ->from(Cotizacion::class, 'c')
+                ->leftJoin('c.cotservicios', 'cs')
+                ->leftJoin('cs.cotcomponentes', 'cc')
+                ->leftJoin('cc.grupos', 'g')
+                ->where('c.file = :file')
+                ->andWhere('c.propuesta = :propuesta')
+                ->setParameter('file', $file->getId(), UuidType::NAME)
+                ->setParameter('propuesta', (int) $uriVariables['propuesta']);
+
+            if (!$previsualiza) {
+                $dql->andWhere('c.publicado = true');
+            }
+
+            /** @var Cotizacion|null $cotizacion */
+            $cotizacion = $dql->getQuery()->getOneOrNullResult();
 
             $esVisible = $cotizacion
                 && ($previsualiza || $cotizacion->isPublicado())

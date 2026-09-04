@@ -2345,6 +2345,44 @@ sirve para elegir; buscar `YMFLHB` deja uno.
 ⚠️ Y hace falta porque son **109 subgrupos** en un colegio: desplazarse por todos hasta encontrar
 un localizador es exactamente cómo se marca el equivocado.
 
+### 🔥 Los subgrupos NO salen a `pax`
+
+Con el singular, un componente llevaba **su** subgrupo y el filtro exigía pertenecer a él. Con el
+plural, un componente acotado a los 7 PNRs del vuelo JA7018 servía **los siete** a cualquiera de
+ellos — y `CotizacionFileGrupo` expone `clave`, que **es el localizador**.
+
+Con un apellido, ése es el dato con el que se entra a gestionar la reserva de otro en la web de la
+aerolínea. Es exactamente lo que `miIdentidad` se construyó para impedir, entrando por la puerta de
+al lado el mismo día.
+
+`$grupos` ya no lleva `pax_cotizacion:read`. El cliente no los necesita: recibe **filtrado** lo que
+le toca, y lo suyo se lo cuenta «Lo tuyo».
+
+⚠️ **La lección del cambio de cardinalidad:** al pasar de `?grupo` a `grupos`, el grupo de
+serialización se copió tal cual. Y lo que era inocuo en singular —un dato tuyo— dejó de serlo en
+plural, sin que el campo «cambiara». **Un `#[Groups]` heredado en un cambio de cardinalidad hay que
+volver a justificarlo, no arrastrarlo.**
+
+### 🔥 Y el plural trajo un N+1 que el singular no tenía
+
+`esParaTodos()` pregunta `isEmpty()` sobre una `ManyToMany` perezosa: **una consulta por
+componente**. Medido, 36 componentes → 36 consultas, y la operativa del colegio ronda los 150,
+multiplicado por los 133 que abren la app.
+
+Antes no pasaba porque `$grupo` era una `ManyToOne`: un proxy no consulta hasta que se le pide algo,
+y `=== null` no se lo pide. `CotizacionFilePublicProvider` los precarga ahora con un `LEFT JOIN`.
+
+### ⚠️ Y `matching()` no es «la versión barata de contar»
+
+`getTotalEnElManifiesto()` usaba `matching()` «para no hidratar». **Falso**: sobre una colección que
+no es `EXTRA_LAZY`, Doctrine hace `new ArrayCollection($persister->loadCriteria(...))` y carga todo
+igual — y encima no deja la colección inicializada, así que quien la recorra después vuelve a
+pagarlo. Medido: 133 fichas hidratadas, mismo coste que `count()`.
+
+El arreglo no estaba en la llamada sino en el **mapeo**: `fetch: 'EXTRA_LAZY'` en `$filepasajeros`,
+y entonces `count()` ya es un `SELECT COUNT(*)`. En `getTotalHistoricos()` sí funcionaba porque esa
+colección **sí** es extra lazy — de ahí la confusión.
+
 ### ⚠️ Basta con pertenecer a UNO
 
 Al filtrar, un componente acotado a siete PNRs lo ve quien esté en **cualquiera** de los siete: la

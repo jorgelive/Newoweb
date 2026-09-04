@@ -98,7 +98,15 @@ class CotizacionCotcomponente
      *
      * @var Collection<int, CotizacionFileGrupo>
      */
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'pax_cotizacion:read'])]
+    // 🔥 **SIN `pax_cotizacion:read`.** Con el singular sólo viajaba el subgrupo propio; con el
+    // plural, un componente acotado a los 7 PNRs del vuelo JA7018 servía **los siete** a cualquiera
+    // de ellos —y `CotizacionFileGrupo` expone `clave`, que es el localizador—. Con un apellido,
+    // ése es el dato con el que se entra a gestionar la reserva de otro en la web de la aerolínea.
+    //
+    // Es exactamente lo que `CotizacionFile::$miIdentidad` se construyó para impedir, entrando por
+    // la puerta de al lado. El cliente no necesita los subgrupos: ya recibe **filtrado** lo que le
+    // toca, y lo suyo se lo cuenta «Lo tuyo».
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\ManyToMany(targetEntity: CotizacionFileGrupo::class)]
     #[ORM\JoinTable(name: 'cotizacion_cotcomponente_grupo')]
     #[ORM\JoinColumn(name: 'cotcomponente_id', referencedColumnName: 'id', onDelete: 'CASCADE')]

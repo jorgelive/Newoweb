@@ -717,10 +717,20 @@ class Cotizacion
      * repartidas diría «122 de 100 · hay 22 contados dos veces» cuando en realidad **faltan 11**.
      * Un número que parece una comprobación y apunta al lado contrario es peor que no tenerlo.
      *
-     * ⚠️ **`matching()` y no `count()`.** `$filepasajeros` **no** es `EXTRA_LAZY`, así que
-     * `count()` hidrataría las 133 fichas con sus identificaciones y grupos EAGER sólo para
-     * devolver un entero. `matching()` empuja un `COUNT(*)` y no carga nada — la misma lección que
-     * costó el «Out of sort memory» de `getTotalHistoricos()`.
+     * ⚠️ **`count()`, y sólo funciona porque `$filepasajeros` es `EXTRA_LAZY`.**
+     *
+     * 🔥 La primera versión usaba `matching()` «para no hidratar», y era falso: sobre una
+     * colección que **no** es extra lazy, `PersistentCollection::matching()` no devuelve una
+     * `LazyCriteriaCollection` — hace `new ArrayCollection($persister->loadCriteria(...))` y
+     * **carga todo igual**, con el agravante de que ni siquiera deja la colección inicializada, así
+     * que quien la recorra después vuelve a pagarlo.
+     *
+     * Medido: 133 fichas hidratadas, mismo coste que `count()`. El arreglo no estaba en la llamada
+     * sino en el mapeo — `fetch: 'EXTRA_LAZY'` en la colección—, y entonces `count()` ya es un
+     * `SELECT COUNT(*)` sin más.
+     *
+     * ⚠️ **La lección:** `matching()` no es «la versión barata de contar». Es barata **sólo** sobre
+     * `EXTRA_LAZY`. En `getTotalHistoricos()` funciona porque esa colección sí lo es.
      */
     #[Groups(['cotizacion:read', 'cotizacion:item:read'])]
     public function getTotalEnElManifiesto(): int
@@ -731,9 +741,7 @@ class Cotizacion
             return 0;
         }
 
-        return $pasajeros instanceof Selectable
-            ? $pasajeros->matching(Criteria::create())->count()
-            : $pasajeros->count();
+        return $pasajeros->count();
     }
 
     /**

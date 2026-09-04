@@ -7693,8 +7693,6 @@ export interface components {
         };
         "CotizacionCotcomponente-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_catalogo.read_pax_cotizacion.read"] | null;
-            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
-            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7737,7 +7735,6 @@ export interface components {
         };
         "CotizacionCotcomponente-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"] | null;
-            grupos?: components["schemas"]["CotizacionFileGrupo-pax_file.read_pax_cotizacion.read"][];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8049,8 +8046,6 @@ export interface components {
         };
         "CotizacionCotcomponente.html-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_catalogo.read_pax_cotizacion.read"] | null;
-            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
-            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8093,7 +8088,6 @@ export interface components {
         };
         "CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"] | null;
-            grupos?: components["schemas"]["CotizacionFileGrupo.html-pax_file.read_pax_cotizacion.read"][];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8409,8 +8403,6 @@ export interface components {
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_catalogo.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_catalogo.read_pax_cotizacion.read"] | null;
-            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
-            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8454,7 +8446,6 @@ export interface components {
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read"] | null;
-            grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-pax_file.read_pax_cotizacion.read"][];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8766,8 +8757,6 @@ export interface components {
         };
         "CotizacionCotcomponente.multipart-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_catalogo.read_pax_cotizacion.read"] | null;
-            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
-            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8810,7 +8799,6 @@ export interface components {
         };
         "CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"] | null;
-            grupos?: components["schemas"]["CotizacionFileGrupo.multipart-pax_file.read_pax_cotizacion.read"][];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -11618,25 +11606,6 @@ export interface components {
              */
             readonly totalMiembros?: number;
         };
-        "CotizacionFileGrupo-pax_file.read_pax_cotizacion.read": {
-            /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /**
-             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
-             * @default
-             */
-            subeje: string;
-            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
-            clave: string;
-            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
-            nombre?: string | null;
-            detalle?: string | null;
-            id?: string;
-            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
-            readonly etiquetaDeEje?: string;
-            /** @description Cómo se llama esto en pantalla. */
-            readonly etiqueta?: string;
-        };
         "CotizacionFileGrupo.html": {
             /**
              * Format: iri-reference
@@ -11798,25 +11767,6 @@ export interface components {
              *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
              */
             readonly totalMiembros?: number;
-        };
-        "CotizacionFileGrupo.html-pax_file.read_pax_cotizacion.read": {
-            /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /**
-             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
-             * @default
-             */
-            subeje: string;
-            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
-            clave: string;
-            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
-            nombre?: string | null;
-            detalle?: string | null;
-            id?: string;
-            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
-            readonly etiquetaDeEje?: string;
-            /** @description Cómo se llama esto en pantalla. */
-            readonly etiqueta?: string;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -11983,26 +11933,6 @@ export interface components {
              */
             readonly totalMiembros?: number;
         };
-        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
-        "CotizacionFileGrupo.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /**
-             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
-             * @default
-             */
-            subeje: string;
-            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
-            clave: string;
-            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
-            nombre?: string | null;
-            detalle?: string | null;
-            id?: string;
-            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
-            readonly etiquetaDeEje?: string;
-            /** @description Cómo se llama esto en pantalla. */
-            readonly etiqueta?: string;
-        };
         "CotizacionFileGrupo.multipart": {
             /**
              * Format: iri-reference
@@ -12164,25 +12094,6 @@ export interface components {
              *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
              */
             readonly totalMiembros?: number;
-        };
-        "CotizacionFileGrupo.multipart-pax_file.read_pax_cotizacion.read": {
-            /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /**
-             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
-             * @default
-             */
-            subeje: string;
-            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
-            clave: string;
-            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
-            nombre?: string | null;
-            detalle?: string | null;
-            id?: string;
-            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
-            readonly etiquetaDeEje?: string;
-            /** @description Cómo se llama esto en pantalla. */
-            readonly etiqueta?: string;
         };
         CotizacionFilearchivo: {
             /**

@@ -187,7 +187,12 @@ class CotizacionFile
     // expediente de grupo devuelve una lista vacía. Ver FileModoEnum::ocultaManifiesto().
     #[ApiProperty(fetchEager: false)]
     #[Groups(['file:item:read'])]
-    #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFilepasajero::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    // ⚠️ `EXTRA_LAZY` para que `count()` sea un `SELECT COUNT(*)`. Sin él, contar el manifiesto
+    // —133 fichas con sus identificaciones y pertenencias EAGER— se paga entero cada vez que
+    // alguien pregunta cuánta gente va. Y `matching()` **tampoco** ayudaba: sobre una colección
+    // que no es extra lazy, Doctrine hidrata igual y encima no deja la colección inicializada, así
+    // que quien la recorra después vuelve a pagarlo.
+    #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFilepasajero::class, cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EXTRA_LAZY')]
     private Collection $filepasajeros;
 
     /**
