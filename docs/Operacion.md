@@ -207,6 +207,60 @@ también en la colección, y el cuadro de La Biblia son cientos de filas recorri
 subgrupos de su componente. N+1 sobre la pantalla que más se abre. Van en
 `operacion:pasajeros:read`, declarado sólo en la operación de detalle.
 
+## 2.quater Borrar la propuesta vaciaba las órdenes (04/09/2026)
+
+`OperacionOrdenBorradoListener` impide borrar una orden que ya salió al proveedor: «el documento
+existió y su rastro se queda». Ese guarda vive en el `preRemove` de la **orden** — y borrar la
+**cotización** no borra ninguna orden: borra sus servicios. `operacion_servicio` cuelga del
+componente con `ON DELETE CASCADE`, así que la cascada la resuelve MySQL y Doctrine ni se entera.
+Ningún listener llega a correr, y el `DELETE` devuelve 204.
+
+Medido en producción borrando la propuesta de `2KVBMX` en una transacción con `rollback`:
+
+```
+                           antes  después
+cotservicios                  17        0
+filas de operación            47        0
+órdenes                        6        6   ← sobreviven
+órdenes emitidas y VACÍAS      1        6   ← apuntando a nada
+ítems de esas órdenes         21       21   ← con sus importes
+enlaces públicos vivos         6        6   ← el proveedor sigue entrando
+```
+
+🔥 **No es que se pierda información: es peor.** La orden sigue viva, con su número, sus líneas y
+su enlace, diciéndole a un proveedor que preste servicios que ya no existen en ninguna parte. Y
+nadie se entera, porque borrar respondió que todo fue bien.
+
+Lo cierra `CotizacionBorradoConOperacionListener` (en `src/Cotizacion/EventListener/`), con el
+mismo criterio y el mismo remedio que el otro guarda:
+
+```
+sin órdenes, o sólo BORRADOR   →  se borra. Nada salió: no hay nada que contradecir.
+EMITIDA/CONFIRMADA/COMPLETADA  →  409, con la lista de OS. Anúlalas primero.
+CANCELADA                      →  se borra. Al anular, sus servicios ya volvieron al pool.
+```
+
+⚠️ **409 y no 403.** No es cuestión de permisos —nadie con más rango debería poder— sino de que el
+estado del expediente lo impide. El mensaje nombra las órdenes: un «no se puede» sin la lista
+obliga a buscarlas a mano.
+
+⚠️ **Se manda a anular, no a borrar la orden.** `OperacionOrdenEmision::anular()` devuelve los
+servicios al pool, así que quien quiera deshacerse de la propuesta lo consigue igual, sin dejar un
+documento vivo apuntando al vacío.
+
+⚠️ **El guarda se escribió «funcionando» y no hacía nada.** Su consulta pasaba la **entidad** como
+parámetro contra `cotizacion_id`, que es `BINARY(16)`: cero filas y ni un error, o sea que dejaba
+borrar siempre. Se vio porque la prueba con datos reales seguía enseñando las seis órdenes
+vaciadas. Va el **id con `UuidType::NAME`**, como en el resto del código. Es la misma trampa que
+mordió en `AbrirOperativaProcessor`, allí resuelta con `ArrayParameterType::BINARY`.
+
+### Lo que NO cubre, a propósito
+
+Borrar el **expediente** entero ya estaba frenado por la base: `operacion_orden_servicio.file_id`
+es `ON DELETE RESTRICT`. Frena, sí, pero con una excepción de clave foránea en crudo en vez de un
+mensaje. No se tocó porque nadie borra expedientes por la interfaz; si algún día se hace, merece
+el mismo trato que esto.
+
 ## 3. Reglas del snapshot
 
 `BibliaSnapshotService::generarParaCotizacion()` copia valores; **no** crea una vista en vivo.
