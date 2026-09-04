@@ -1955,8 +1955,13 @@ store.$onAction(({ name, args }) => {
             {{ store.cotizacion.idiomaCliente }}<span class="hidden md:inline"> (CLIENTE)</span>
           </button>
         </div>
+        <!-- ⚠️ Dice «Cabecera», que es como se titula la pantalla a la que lleva. Decía
+             «Resumen» y era la palabra equivocada dos veces: la pantalla se llama CABECERA DE
+             COTIZACIÓN, y «Resumen» ya nombra otras dos cosas —el campo de texto de esa misma
+             cabecera y el modo de lectura del itinerario en `pax`—. Un botón y su destino tienen
+             que decir la misma palabra, o el botón parece llevar a otro sitio. -->
         <button @click="nivelEditor = 'cabecera'" class="md:hidden px-3 py-2 bg-slate-800 text-slate-300 rounded-lg text-[10px] font-bold shadow-sm border border-slate-700 whitespace-nowrap">
-          <i class="fas fa-chart-pie mr-1"></i> Resumen
+          <i class="fas fa-file-invoice-dollar mr-1"></i> Cabecera
         </button>
         <button v-if="paxPreviewUrl" @click="abrirVistaPax"
                 title="Abrir la vista del cliente (guía pax) en otra pestaña"

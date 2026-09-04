@@ -905,16 +905,76 @@ porque ambos decían "detalle":
 - La tarjeta es **una sola pieza con dos disparadores** (fila superior y pie): abierta, la
   fila de arriba se sale de pantalla, así que el pie repite el toggle. No son `<button>`
   anidados — por eso el **selector de moneda vive en el hero** y no dentro de la tarjeta.
-- Claves i18n del pie: `cot_ver_precios_perfil` / `cot_ocultar_precios`; el encabezado
-  expandido reutiliza `cot_precio_por_pasajero`. Si el precio está oculto pero hay
-  alternativas, la tarjeta sigue existiendo y el pie ofrece "ver opciones".
+#### El pie decía siempre lo mismo, y casi siempre era mentira (04/09/2026)
+
+El disparador enseñaba **«Toca para ver precios por perfil»** hubiera un perfil o cinco. Con uno
+solo —el caso normal de un grupo de colegio— prometía una comparación que no existe, y quien lo
+abría encontraba una tarjeta con el mismo precio que ya estaba viendo. 🔥 **Un control que miente
+sobre su contenido se deja de pulsar**, y detrás estaban las opciones.
+
+Ahora lo calcula `etiquetaDisparador`, a partir de lo que el desplegable va a enseñar de verdad:
+
+| Precio visible | Perfiles | Opciones | Dice |
+|---|---|---|---|
+| sí | varios | sí | Toca para ver precios por perfil y opciones |
+| sí | varios | no | Toca para ver precios por perfil |
+| sí | uno | ≥1 | Toca para ver el detalle de la(s) opción(es) |
+| sí | uno | no | Toca para ver detalle |
+| **no** | *(da igual)* | ≥1 | Toca para ver el detalle de la(s) opción(es) |
+
+⚠️ **La fila del precio oculto va primero y no es un detalle.** Con `precioOculto` la tarjeta
+existe **sólo** para llegar a las opciones: los perfiles siguen en los datos, pero el panel no
+enseña ni un precio. La primera versión de este cálculo miraba los perfiles antes que el precio y
+volvía a prometer «precios por perfil» justo donde no hay ninguno — el mismo fallo que venía a
+quitar, reintroducido por otra puerta. **Se vio simulando el caso, no leyendo el código.**
+
+#### Un opcional escondido no se vende (04/09/2026)
+
+Cerrada, la tarjeta enseñaba precio y disparador, y nada más. Detrás había una noche en Coco Bongo
+por 100 $ que **hay que sospechar que existe** para ir a buscarla. Peor que perder la venta: el
+cliente se entera de que existía cuando ya no puede contratarlo.
+
+`opcionesAdelanto` pinta las **dos primeras** con su importe, en pequeño, bajo el precio:
+
+```
+POR PASAJERO                         $ 1907,46
+                 PRECIO TOTAL DEL VIAJE: $ 190.746,41
+⊕ Noche en Coco Bongo · Fiesta Blanca      +$ 100,32
+⊕ Upgrade a habitación vista al mar        +$ 185,00
+   + 3 opciones más
+↓ TOCA PARA VER EL DETALLE DE LAS OPCIONES
+```
+
+- ⚠️ **Dos, y el resto contado.** Con una sola se vería la primera y se escondería el resto sin
+  decirlo, que es el mismo fallo con otra cara; con todas, un viaje con seis opcionales empuja el
+  itinerario fuera de la pantalla y el adelanto deja de ser un adelanto.
+- ⚠️ **El adelanto va FUERA del bloque del precio**, porque también hay opciones cuando el precio
+  está oculto — y ahí es cuando más falta hacen. En ese caso se pinta el nombre y **no** el
+  importe: el importe es dinero y se calla igual que el resto del panel.
+- Los negativos se pintan con `−` y en verde (`fa-circle-minus`): una opción puede **restar**
+  —«sin almuerzo del día 3»— y un `+$ 22,40` verde diría lo contrario de lo que pasa.
+- El detalle sigue dentro: categoría, modalidad, qué reemplaza, la nota y el total del grupo.
+
+Claves i18n del pie: `cot_ver_precios_perfil`, `cot_ver_perfiles_y_opciones`,
+`cot_ver_detalle_opcion`, `cot_ver_detalle_opciones`, `cot_ver_detalle`, `cot_ocultar_precios`,
+`cot_opcion_mas`, `cot_opciones_mas`. El encabezado expandido reutiliza `cot_precio_por_pasajero`.
 
 > **Gotcha i18n — el fallback esconde el hueco.** `maestroStore.t('clave')` devuelve vacío si
 > no hay fila en `pax_ui_i18n`, y el template cae al literal `|| 'Texto en español'`. En
 > castellano no se nota nada; el cliente extranjero ve esa cadena suelta en español entre el
-> resto traducido. **Toda clave nueva necesita su fila sembrada por migración** (patrón:
-> `Version20260803140000`, `INSERT … AS nuevo ON DUPLICATE KEY UPDATE` que respeta lo ya
-> editado a mano). Para detectar las que falten:
+> resto traducido.
+>
+> ⛔ **Y NO se siembra por migración**, aunque este documento lo dijera hasta el 04/09/2026.
+> `UiI18n::$contenido` lleva `#[AutoTranslate]` y ese listener cuelga de `prePersist`: un
+> `INSERT` en SQL **se lo salta** y la fila nace sólo en español — que es exactamente el hueco
+> que la migración venía a tapar. Entra por comando ORM, idempotente por la clave natural:
+> `PaxCrearTextosPanelPrecioCommand`, `PaxCrearTextosItinerarioCommand`.
+>
+> ```bash
+> php bin/console pax:textos:panel-precio --dry-run
+> ```
+>
+> Para detectar las que falten:
 > ```bash
 > grep -rhoE "\.t\(\s*'[a-z0-9_]+'" pax/src | grep -oE "'[a-z0-9_]+'" | tr -d "'" | sort -u
 > php bin/console dbal:run-sql "SELECT id FROM pax_ui_i18n"   # y se cruzan ambas listas
@@ -5707,6 +5767,9 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Serialización pública / ocultar precio o proveedor** → `src/Cotizacion/Serializer/CotizacionPublicNormalizer.php` + grupos `pax_cotizacion:read` en las entidades.
 - **Portada o duración de un tour de catálogo (en el panel o en pax)** → `TourTarjetaResolver` (§6.b). Nunca reimplementar la derivación en la entidad ni en el front.
 - **La tarjeta de precio de la guía (colapsada/expandida, textos del pie)** → sección "TARJETA DE PRECIO" de `PaxCotizacionGuiaView.vue` + `finanzasAbiertas` / `hayPanelPrecio`. Ojo con el vocabulario: §6.
+- **Lo que dice el disparador de esa tarjeta** → `etiquetaDisparador` en `PaxCotizacionGuiaView.vue`. Se calcula de `clasesPasajeros` y `opcionesPlanas`: si el panel gana una sección, la etiqueta se queda corta y se toca ahí.
+- **Cuántos opcionales se ven con la tarjeta cerrada** → `OPCIONES_EN_ADELANTO` en `PaxCotizacionGuiaView.vue`.
+- **Una cadena de UI de `pax` (crear o traducir)** → un comando en `src/Pax/Command/`, NUNCA una migración: lleva `#[AutoTranslate]`. Ver §6.
 - **Que un tour de catálogo muestre (o no) el total de grupo** → flag `totalesOcultos`: default al crear en `crearCotizacionVacia()` (store), toggle "Ocultar Total de Grupo" en `CotizacionEditorView.vue`, consumo en `ocultarTotales` de `PaxCotizacionGuiaView.vue`. Ver §6.b.
 - **Precio "desde" del escaparate del catálogo** → `preciosDesde[]` (bloque "Precios de Exhibición" del editor) → `PaxCatalogoPortadaView.vue` / `CatalogoDashboard.vue`. No es lo mismo que el flag anterior (§6.b).
 - **Lo que enseña cada fila de versión en el dashboard (estado, título, tramo de fechas)** → `CotizacionFileCollectionProvider` lo calcula en UNA consulta batched y viaja en `CotizacionFile::$versionesFechas`; lo pinta `DashboardView.vue` (`tituloDeVersion`, `rangoDeVersion`). **`fechaFin` no es `MAX(fechaInicioAbsoluta)`**: ver la sección del dashboard antes de tocar el DQL.

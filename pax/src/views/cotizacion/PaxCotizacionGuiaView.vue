@@ -808,6 +808,73 @@ const mvDelta = (deltaUsd: number) => {
 };
 
 /**
+ * Todas las opciones, sin agrupar, para el adelanto de la tarjeta cerrada.
+ *
+ * 🔥 **Cerrada, un opcional era invisible.** La tarjeta enseñaba el precio y «toca para ver
+ * precios por perfil», y detrás había una noche en Coco Bongo por 100 $ que nadie iba a
+ * descubrir: hay que sospechar que existe para ir a buscarla. Un adicional que no se ve no se
+ * vende, y peor — el cliente se entera de que existía cuando ya no puede contratarlo.
+ */
+const opcionesPlanas = computed(() => gruposUpgrade.value.flatMap(g => g.opciones));
+
+/**
+ * Cuántas caben en el adelanto sin que la tarjeta se convierta en la lista entera.
+ *
+ * ⚠️ **Dos, y el resto contado.** Con una sola se vería la primera y se escondería el resto sin
+ * decirlo, que es el mismo fallo con otra cara; con todas, un viaje con seis opcionales empuja el
+ * itinerario fuera de la pantalla y el adelanto deja de ser un adelanto.
+ */
+const OPCIONES_EN_ADELANTO = 2;
+
+const opcionesAdelanto = computed(() => opcionesPlanas.value.slice(0, OPCIONES_EN_ADELANTO));
+const opcionesRestantes = computed(() => Math.max(0, opcionesPlanas.value.length - OPCIONES_EN_ADELANTO));
+
+/** ¿Hay más de un perfil de pasajero? Con uno solo, «precios por perfil» no promete nada. */
+const hayVariosPerfiles = computed(() => clasesPasajeros.value.length > 1);
+
+/**
+ * Lo que dice el disparador, según lo que de verdad hay detrás.
+ *
+ * 🔥 **Decía «Toca para ver precios por perfil» con UN solo perfil.** Prometía una comparación
+ * que no existe, y quien la abría encontraba una tarjeta con el mismo precio que ya estaba
+ * viendo. Un control que miente sobre su contenido se deja de pulsar, y con él se pierde lo que
+ * sí había detrás — las opciones.
+ *
+ * ⚠️ No es cosmético: la etiqueta se calcula de `clasesPasajeros` y `opcionesPlanas`, o sea de
+ * lo que el desplegable va a enseñar. Si mañana el panel gana una sección, esto se queda corto
+ * y hay que tocarlo aquí.
+ */
+const etiquetaDisparador = computed((): string => {
+    const n = opcionesPlanas.value.length;
+
+    // ⚠️ **El precio manda sobre todo lo demás.** Con `precioOculto` la tarjeta existe sólo para
+    // llegar a las opciones: los perfiles siguen en los datos, pero el panel no enseña ni uno.
+    //   Prometer «precios por perfil» ahí es la misma mentira que esto viene a quitar — y se
+    // coló al reescribir la etiqueta, hasta que se simuló el caso.
+    const hayPrecios = store.precioVisible && !!totalViaje.value;
+
+    if (!hayPrecios) {
+        return n === 1
+            ? (maestroStore.t('cot_ver_detalle_opcion') || 'Toca para ver el detalle de la opción')
+            : (maestroStore.t('cot_ver_detalle_opciones') || 'Toca para ver el detalle de las opciones');
+    }
+
+    if (hayVariosPerfiles.value) {
+        return n > 0
+            ? (maestroStore.t('cot_ver_perfiles_y_opciones') || 'Toca para ver precios por perfil y opciones')
+            : (maestroStore.t('cot_ver_precios_perfil') || 'Toca para ver precios por perfil');
+    }
+
+    if (n > 0) {
+        return n === 1
+            ? (maestroStore.t('cot_ver_detalle_opcion') || 'Toca para ver el detalle de la opción')
+            : (maestroStore.t('cot_ver_detalle_opciones') || 'Toca para ver el detalle de las opciones');
+    }
+
+    return maestroStore.t('cot_ver_detalle') || 'Toca para ver el detalle';
+});
+
+/**
  * ¿Se pinta la tarjeta de precio? Hay tarjeta si hay precio o si hay alternativas
  * (éstas son descriptivas y se muestran aunque el precio esté oculto). El hero la
  * consulta para reservar el aire del solape: sin tarjeta, no hay hueco que dejar.
@@ -1083,6 +1150,42 @@ const adelantoVista = computed(() => {
                 </span>
               </div>
             </template>
+
+            <!-- ══ ADELANTO DE OPCIONES ══════════════════════════════════════
+                 Cerrada, un opcional era invisible: había que sospechar que existía para ir a
+                 buscarlo detrás del desplegable. Aquí van dos, pequeñas, con su importe — lo
+                 justo para que se sepa que están; el detalle (categoría, qué reemplaza, la nota
+                 y el total) sigue dentro.
+
+                 ⚠️ Fuera del `template` del precio a propósito: también hay opciones cuando el
+                 precio está oculto, y ahí es cuando más falta hacen. -->
+            <div v-if="!finanzasAbiertas && opcionesPlanas.length"
+                 class="mt-2.5 pt-2.5 border-t border-dashed border-[#E07845]/25 space-y-1.5">
+              <div v-for="(up, ui) in opcionesAdelanto" :key="'ad' + ui"
+                   class="flex items-center justify-between gap-3">
+                <span class="min-w-0 flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
+                  <i class="fas text-[9px] shrink-0 text-[#E07845]"
+                     :class="(up.deltaVentaPorPax ?? 0) < 0 ? 'fa-circle-minus' : 'fa-circle-plus'"></i>
+                  <span class="truncate">{{ store.traducir(up.componenteNombre) }}</span>
+                </span>
+
+                <!-- El importe es dinero: se calla igual que el resto del panel. -->
+                <span v-if="store.precioVisible"
+                      class="shrink-0 text-[11px] font-black tabular-nums"
+                      :class="(up.deltaVentaPorPax ?? 0) < 0 ? 'text-emerald-600' : 'text-[#E07845]'">
+                  {{ (up.deltaVentaPorPax ?? 0) < 0 ? '−' : '+' }}{{ mvDelta(up.deltaVentaPorPax ?? 0) }}
+                </span>
+              </div>
+
+              <!-- ⚠️ Se dice cuántas quedan. Cortar en dos y callarlo esconde el resto sin que
+                   nadie lo note, que es exactamente el fallo que esto viene a arreglar. -->
+              <p v-if="opcionesRestantes" class="text-[10px] font-bold text-slate-400 pl-4">
+                + {{ opcionesRestantes }}
+                {{ opcionesRestantes === 1
+                  ? (maestroStore.t('cot_opcion_mas') || 'opción más')
+                  : (maestroStore.t('cot_opciones_mas') || 'opciones más') }}
+              </p>
+            </div>
           </button>
 
           <!-- ── CONTENIDO EXPANDIDO ── -->
@@ -1270,9 +1373,7 @@ const adelantoVista = computed(() => {
             <i class="fas text-[9px]" :class="finanzasAbiertas ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
             {{ finanzasAbiertas
               ? (maestroStore.t('cot_ocultar_precios') || 'Toca para ocultar')
-              : (maestroStore.t('cot_ver_precios_perfil') || (store.precioVisible && totalViaje
-                  ? 'Toca para ver precios por perfil'
-                  : 'Toca para ver opciones')) }}
+              : etiquetaDisparador }}
           </button>
         </div>
       </section>
