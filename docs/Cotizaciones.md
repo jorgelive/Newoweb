@@ -2363,6 +2363,28 @@ serialización se copió tal cual. Y lo que era inocuo en singular —un dato tu
 plural, sin que el campo «cambiara». **Un `#[Groups]` heredado en un cambio de cardinalidad hay que
 volver a justificarlo, no arrastrarlo.**
 
+### 🔥 Previsualizar tenía que elegir entre varias, y nadie había escrito la regla
+
+Sin el filtro `publicado = true` —o sea, previsualizando— una propuesta tiene **varias filas**: la
+confirmada, sus históricos y la operativa comparten número a propósito. El `findOneBy` de antes
+elegía una **en silencio**, con el orden que quisiera MySQL. Al pasar a DQL, esa elección invisible
+se volvió un `NonUniqueResultException` **en producción**.
+
+⚠️ **El fallo no lo introdujo la consulta: lo destapó.** El operador llevaba previsualizando «una
+de las tres» sin saber cuál, que es peor que un error — un 500 se arregla, una previsualización que
+enseña la fila equivocada se cree.
+
+La regla, ahora escrita:
+
+```
+manda la PUBLICADA
+si ninguna lo está → la OPERATIVA, que es la fila viva
+```
+
+⚠️ Y se resuelve en PHP, no con un `ORDER BY`: `estado ASC` pondría «operativa» primero por
+**orden alfabético**, y confiar una regla de negocio a que dos palabras caigan bien es cómo se
+rompe al añadir un estado.
+
 ### 🔥 Y el plural trajo un N+1 que el singular no tenía
 
 `esParaTodos()` pregunta `isEmpty()` sobre una `ManyToMany` perezosa: **una consulta por

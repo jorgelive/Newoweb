@@ -169,8 +169,37 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 $dql->andWhere('c.publicado = true');
             }
 
-            /** @var Cotizacion|null $cotizacion */
-            $cotizacion = $dql->getQuery()->getOneOrNullResult();
+            // 🔥 **`getResult()[0]` y no `getOneOrNullResult()`, y hace falta una REGLA.**
+            //
+            // Sin `publicado = true` —o sea, previsualizando— una propuesta tiene **varias filas**:
+            // la confirmada y su operativa comparten número a propósito. El `findOneBy` de antes
+            // elegía una **en silencio**, y con el orden que quisiera MySQL; al pasar a DQL, lo que
+            // era una elección invisible se volvió un `NonUniqueResultException` en producción.
+            //
+            // El fallo no lo introdujo la consulta: lo destapó. Antes el operador previsualizaba
+            // «una de las dos» sin saber cuál, que es peor que un error.
+            //
+            // La regla: **manda la publicada; si ninguna lo está, la OPERATIVA**, que es la fila
+            // viva y lo que el operador está preparando cuando previsualiza. El resto, por número
+            // descendente para que al menos sea estable.
+            $dql->addOrderBy('c.publicado', 'DESC')
+                ->addOrderBy('c.estado', 'ASC');
+
+            /** @var list<Cotizacion> $encontradas */
+            $encontradas = $dql->getQuery()->getResult();
+
+            $cotizacion = null;
+
+            foreach ($encontradas as $candidata) {
+                // `estado ASC` no pone «operativa» primero por casualidad —es orden alfabético—,
+                // así que la preferencia se dice aquí en vez de confiarla al alfabeto.
+                if ($cotizacion === null
+                    || ($candidata->isPublicado() && !$cotizacion->isPublicado())
+                    || (!$cotizacion->isPublicado() && $candidata->getEstado() === CotizacionEstadoEnum::OPERATIVA)
+                ) {
+                    $cotizacion = $candidata;
+                }
+            }
 
             $esVisible = $cotizacion
                 && ($previsualiza || $cotizacion->isPublicado())
