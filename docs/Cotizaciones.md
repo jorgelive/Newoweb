@@ -2351,6 +2351,36 @@ deja de leerse, y entonces no avisa el día que importa.
 ⚠️ Y **«Esta parte sin acotar»** cuando la copia todavía no tiene subgrupos: es el estado en que
 nace, y decirlo es la mitad del recordatorio de que hay que repartirla.
 
+### 🔥 `Collection::filter()` conserva las claves, y el front revienta lejos
+
+**«Propuesta no encontrada · `e.sort is not a function`»**, 04/09/2026, en la operativa del
+colegio. Lo veía un pasajero identificado; el operador no, porque su sesión no filtra.
+
+`CotizacionCotservicio::getCotcomponentesParaCliente()` devolvía el resultado de
+`Collection::filter()`, **que conserva las claves**. Si el filtro se llevaba por delante el
+**primer** componente del servicio, quedaban las claves `[1, 2…]` y `json_encode` escribía un
+**objeto** —`{"1": {…}}`— donde `pax` esperaba un array. El servidor no falla: falla el navegador,
+más tarde y lejos, en `ordenarComponentesPorRelato()`, al llamar `.sort()` sobre algo que no lo es.
+
+Se arregla con `new ArrayCollection($filtrados->getValues())` en los dos getters filtrados
+—componentes y segmentos—. Reproducido antes de tocar nada, contra producción:
+
+```
+subgrupo 01a03480 | servicio 01a06848 | comps claves [1] -> OBJETO
+```
+
+Tres cosas que deja este fallo:
+
+- ⚠️ **Dependía de qué subgrupo tocara.** Un hueco sólo aparece si cae el primer elemento, así
+  que la mitad de los pasajeros lo veía y la otra mitad no. Nada en el servidor lo distinguía.
+- ⚠️ **La lección ya estaba pagada en otro módulo.** `PmsReserva::getEventosCalendario()` lleva el
+  mismo `getValues()` con el comentario escrito —«resetea los índices para que en JSON sea
+  `[{}, {}]` y no `{"1": {}, "2": {}}`»— desde hace tiempo. No cruzó de módulo.
+- 🔥 **La prueba que existía lo escondía.** `CotservicioFiltradoPorSubgrupoTest` leía el resultado
+  con `array_values(array_map(...))`: el contenido salía bien y las claves no las miraba nadie. Se
+  añadió `testLaColeccionServidaEsUnaLISTA`, que pregunta por `toArray()` y **nunca** por
+  `getValues()` — a `getValues()` preguntarle esto siempre da que sí, que es el mismo punto ciego.
+
 ### La franja de repartos se retiró de encima de la lista
 
 Encima de los componentes vivía una franja «Repartido en 2 · Vuelo Cusco–Lima … Cubre 88 de 100

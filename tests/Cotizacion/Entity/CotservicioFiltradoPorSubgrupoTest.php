@@ -53,7 +53,14 @@ final class CotservicioFiltradoPorSubgrupoTest extends TestCase
         }
     }
 
-    /** @return list<string|null> */
+    /**
+     * ⚠️ **El `array_values()` de aquí abajo es lo que escondió el fallo del 04/09/2026.** Todas
+     * las pruebas de este archivo leían por él, así que el contenido salía bien y nadie miraba
+     * las CLAVES. Se queda —lo que estas pruebas comprueban es el contenido— pero ya no está solo:
+     * ver `testLaColeccionServidaEsUnaLISTA`.
+     *
+     * @return list<string|null>
+     */
     private function nombresServidos(): array
     {
         return array_values(array_map(
@@ -142,5 +149,28 @@ final class CotservicioFiltradoPorSubgrupoTest extends TestCase
         // siguiente flush BORRARÍA esos componentes. El cliente miraría su itinerario y la
         // cotización perdería la mitad. No daría error: borraría.
         self::assertCount(3, $this->servicio->getCotcomponentes());
+    }
+
+    public function testLaColeccionServidaEsUnaLISTA(): void
+    {
+        // 🔥 **`Collection::filter()` CONSERVA las claves.** Si el filtro se lleva el primer
+        // componente quedan `[1, 2]`, y eso `json_encode` lo escribe como OBJETO —`{"1": {…}}`—
+        // en vez de array. El servidor no falla; falla el navegador, más tarde y lejos, con un
+        // `e.sort is not a function`, y el pasajero lee «Propuesta no encontrada».
+        //
+        // Se filtra por el subgrupo del SEGUNDO componente a propósito: es la única forma de
+        // dejar un hueco delante, y por eso el fallo dependía de qué subgrupo tocara.
+        $this->servicio->getCotizacion()?->setFiltroSubgrupos(
+            [$this->internacional->getId()?->toRfc4122() ?? ''],
+        );
+
+        $comps = $this->servicio->getCotcomponentesParaCliente()->toArray();
+        $segs = $this->servicio->getCotsegmentosParaCliente()->toArray();
+
+        // ⚠️ Sobre `toArray()`, NUNCA sobre `getValues()`: `getValues()` reindexa, así que
+        // preguntárselo a él siempre diría que sí. Es el mismo punto ciego que tenía el helper.
+        self::assertTrue(array_is_list($comps), 'los componentes servidos salen con huecos: en JSON serían un objeto');
+        self::assertTrue(array_is_list($segs), 'los segmentos servidos salen con huecos: en JSON serían un objeto');
+        self::assertCount(2, $comps);   // el internacional y el hotel, que es de todos
     }
 }

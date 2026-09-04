@@ -424,6 +424,21 @@ class CotizacionCotservicio
      * Es legítimo —así se trabaja en el editor mientras se arma— y esconderlo cambiaría lo que ve
      * el cliente sin que nadie lo haya filtrado. Sólo se cae el que **tenía y perdió**.
      *
+     * ── 🔥 `getValues()` y no `filter()` a secas ────────────────────────────
+     * **`Collection::filter()` CONSERVA las claves.** Si el filtro se lleva por delante el primer
+     * elemento, quedan las claves `[1, 2…]` y `json_encode` produce un **objeto** —`{"1": {…}}`—
+     * en vez de un array. El front no falla al recibirlo: falla más tarde, al usarlo, con un
+     * `e.sort is not a function` que no dice de dónde viene.
+     *
+     * Pasó el 04/09/2026 en la operativa del colegio: un pasajero identificado abría su propuesta
+     * y leía «Propuesta no encontrada». Sólo le pasaba a quien se identifica —el operador, sin
+     * filtro, veía la lista entera— y sólo cuando el filtro se comía el PRIMER componente del
+     * servicio, así que dependía de qué subgrupo tocara.
+     *
+     * ⚠️ Esta lección ya estaba pagada en otro módulo: {@see \App\Pms\Entity\PmsReserva}
+     * lleva el mismo `getValues()` con el mismo comentario desde hace tiempo. No cruzó de módulo,
+     * y por eso vuelve a estar escrita aquí.
+     *
      * @return Collection<int, CotizacionSegmento>
      */
     #[Groups(['pax_cotizacion:read'])]
@@ -436,7 +451,7 @@ class CotizacionCotservicio
 
         $visibles = $this->getCotcomponentesParaCliente();
 
-        return $this->cotsegmentos->filter(function (CotizacionSegmento $segmento) use ($visibles): bool {
+        $filtrados = $this->cotsegmentos->filter(function (CotizacionSegmento $segmento) use ($visibles): bool {
             $tenia = false;
 
             foreach ($this->cotcomponentes as $componente) {
@@ -458,9 +473,28 @@ class CotizacionCotservicio
 
             return false;
         });
+
+        return new ArrayCollection($filtrados->getValues());
     }
 
     /**
+     * Los componentes que ve ESTE cliente.
+     *
+     * ── 🔥 `getValues()` y no `filter()` a secas ────────────────────────────
+     * **`Collection::filter()` CONSERVA las claves.** Si el filtro se lleva por delante el primer
+     * elemento, quedan las claves `[1, 2…]` y `json_encode` produce un **objeto** —`{"1": {…}}`—
+     * en vez de un array. El front no falla al recibirlo: falla más tarde, al usarlo, con un
+     * `e.sort is not a function` que no dice de dónde viene.
+     *
+     * Pasó el 04/09/2026 en la operativa del colegio: un pasajero identificado abría su propuesta
+     * y leía «Propuesta no encontrada». Sólo le pasaba a quien se identifica —el operador, sin
+     * filtro, veía la lista entera— y sólo cuando el filtro se comía el PRIMER componente del
+     * servicio, así que dependía de qué subgrupo tocara.
+     *
+     * ⚠️ Esta lección ya estaba pagada en otro módulo: {@see \App\Pms\Entity\PmsReserva}
+     * lleva el mismo `getValues()` con el mismo comentario desde hace tiempo. No cruzó de módulo,
+     * y por eso vuelve a estar escrita aquí.
+     *
      * @return Collection<int, CotizacionCotcomponente>
      */
     #[Groups(['pax_cotizacion:read'])]
@@ -473,7 +507,7 @@ class CotizacionCotservicio
             return $this->cotcomponentes;
         }
 
-        return $this->cotcomponentes->filter(
+        $filtrados = $this->cotcomponentes->filter(
             static function (CotizacionCotcomponente $componente) use ($permitidos): bool {
                 // Sin subgrupos = para todos. Ver el docblock de CotizacionCotcomponente::$grupos:
                 // un olvido al clasificar deja el componente de más, que se ve y se corrige, en
@@ -494,6 +528,8 @@ class CotizacionCotservicio
                 return false;
             },
         );
+
+        return new ArrayCollection($filtrados->getValues());
     }
 
     /**
