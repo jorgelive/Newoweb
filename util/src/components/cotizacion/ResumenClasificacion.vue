@@ -27,6 +27,15 @@ import {
 
 const store = useCotizacionEditorStore();
 const fin = computed(() => store.resumenFinanciero);
+
+/**
+ * Todo lo que hay que decirle al operador, en una sola lista.
+ *
+ * `advertencias` bloquea publicar; `informativas` no. Esa distinción existe para el guardado, no
+ * para quien lee: aquí se muestran juntas porque un aviso es un aviso, y partir la sección en dos
+ * obligaría a explicar una categoría que no ayuda a decidir nada.
+ */
+const avisosDelPanel = computed(() => [...(fin.value?.advertencias ?? []), ...(fin.value?.informativas ?? [])]);
 const lang = computed(() => store.cotizacion?.idiomaEdicion || 'es');
 
 // ── Switch global de moneda ──────────────────────────────────────────────────
@@ -514,19 +523,22 @@ const totalesInclusiones = computed(() => {
         </div>
       </section>
 
-      <!-- ══ 5 · Avisos — informativo, colapsado por defecto, sin lenguaje de bloqueo ══ -->
-      <section v-if="fin.advertencias.length" class="bg-white border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
+      <!-- ══ 5 · Avisos — informativo, colapsado por defecto, sin lenguaje de bloqueo ══
+           ⚠️ Se pintan las DOS listas juntas, y no es pereza: para quien mira, un aviso es un
+           aviso. La diferencia —si cuenta para `publicable` o no— es de la máquina, y sacarla a
+           la pantalla obligaría a explicar dos categorías que no ayudan a decidir nada. -->
+      <section v-if="avisosDelPanel.length" class="bg-white border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
         <button @click="toggle('avisos')" class="w-full px-3 sm:px-5 py-3 sm:py-4 flex items-center justify-between hover:bg-amber-50/50 transition-colors">
           <span class="font-black text-sm uppercase tracking-wide flex items-center gap-2 text-amber-700">
             <i class="fas fa-circle-info"></i> Información
           </span>
           <span class="flex items-center gap-2">
-            <span class="text-[10px] font-black bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">{{ fin.advertencias.length }}</span>
+            <span class="text-[10px] font-black bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">{{ avisosDelPanel.length }}</span>
             <i class="fas fa-chevron-down text-slate-300 transition-transform" :class="isOpen('avisos') ? 'rotate-180' : ''"></i>
           </span>
         </button>
         <div v-show="isOpen('avisos')" class="border-t border-amber-100 px-3 sm:px-5 py-3 space-y-1.5">
-          <p v-for="(adv, i) in fin.advertencias" :key="i"
+          <p v-for="(adv, i) in avisosDelPanel" :key="i"
              class="text-[11px] font-bold text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-100">{{ adv }}</p>
         </div>
       </section>

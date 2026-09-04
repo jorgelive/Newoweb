@@ -785,6 +785,32 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const tc = parseFloat(cotizacion.value.tipoCambio) || tipoCambioSugerido.value || 1;
         const advertencias: string[] = [];
 
+        /**
+         * Avisos que se **dicen pero no cuentan**: no entran en `publicable`.
+         *
+         * 🔥 **Nació porque el único modo de montar un opcional se marcaba como conflicto.** Un
+         * componente `incluido` SIN tarifa estándar es exactamente cómo se publica un opcional
+         * con precio —«Coco Bongo · +100,32 c/u»—, y también cómo se ve un olvido de marcar la
+         * estándar. En los datos son **idénticos**, así que el aviso no puede distinguirlos.
+         *
+         * Contándolo como advertencia, `publicable` caía a `false` y el editor pedía confirmación
+         * en cada guardado y bloqueaba el cambio de estado — **por tener un opcional**, que es una
+         * configuración legítima y frecuente.
+         *
+         * 🔥 **Y «incluido sin estándar» ES el diseño, no un descuido.** Así se decidió publicar
+         * un opcional con precio: sin modo `opcional` en el componente, la ausencia de estándar es
+         * lo que manda todas sus tarifas a «Opción N». El aviso llegó después y confundió la
+         * intención con un error — no era una regla incompleta, era una regla equivocada.
+         *
+         * ⚠️ **Se sigue diciendo**, en el panel de «Información»: el día que sí sea un olvido, la
+         * frase es la pista. Lo que se le quita es el voto sobre publicar.
+         *
+         * ⚠️ **Y con eso el olvido real deja de frenarse**, que es el precio de aceptar los dos
+         * casos por igual. Sólo se recupera cuando el dato diga la intención — un modo `opcional`
+         * en el componente, o una marca equivalente. Ver `docs/Cotizaciones.md`.
+         */
+        const informativas: string[] = [];
+
         // ── Helpers de moneda: la moneda ORIGINAL manda, la otra se deriva 1 vez ──
         interface Bimoneda { soles: number; dolares: number; }
         const aBimoneda = (montoNativo: number, moneda: string): Bimoneda =>
@@ -1306,7 +1332,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             a.fecha.localeCompare(b.fecha) || a.servicioId.localeCompare(b.servicioId)));
 
         // ── PASO 4: inclusiones aplanadas ────────────────────────────────────────
-        const inclusiones = construirInclusiones(advertencias);
+        const inclusiones = construirInclusiones(advertencias, informativas);
 
         // ── PASO 5: salida ───────────────────────────────────────────────────────
         const gan = (t: TotalesInternos) => { t.gananciaSoles = t.ventaSoles - t.costoSoles; t.gananciaDolares = t.ventaDolares - t.costoDolares; return t; };
@@ -1357,6 +1383,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             opcionesUpgrade,
             inclusiones,
             advertencias,
+            informativas,
             publicable: !tieneConflictos && advertencias.length === 0
         };
     });
@@ -1476,7 +1503,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         });
     };
 
-    const construirInclusiones = (advertencias: string[]): InclusionServicio[] => {
+    const construirInclusiones = (advertencias: string[], informativas: string[]): InclusionServicio[] => {
         if (!cotizacion.value?.cotservicios) return [];
         const idiomaEdicion = cotizacion.value.idiomaEdicion || 'es';
         const resultado: InclusionServicio[] = [];
@@ -1492,6 +1519,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         // para avisos de estilo ni para recordatorios.
         const avisar = (servicioLabel: string, compLabel: string, texto: string): void => {
             advertencias.push(`"${servicioLabel} ➔ ${compLabel}": ${texto}`);
+        };
+
+        /** Lo mismo, pero sin voto: se dice en el panel y no toca `publicable`. Ver `informativas`. */
+        const informar = (servicioLabel: string, compLabel: string, texto: string): void => {
+            informativas.push(`"${servicioLabel} ➔ ${compLabel}": ${texto}`);
         };
 
         // Los cuatro que `destino()` sabe repartir. Cualquier otro cae en "Incluye".
@@ -1609,10 +1641,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         // en Opcional— y ahí está el peligro: el cliente recibe como
                         // elegible algo que se le vendió como incluido, sin que nadie lo note.
                         if (opcionables.length > 0) {
-                            avisar(servicioLabel, compLabel,
-                                'está marcado como Incluido pero no tiene tarifa estándar, '
-                                + 'así que el cliente lo verá como Opcional. Marca una tarifa como estándar '
-                                + 'o cambia el modo del componente.');
+                            // ⚠️ INFORMATIVO, no advertencia: así se monta un opcional con precio,
+                            // y bloquear por esto impedía publicar cualquier propuesta que tuviera
+                            // uno. El texto dice lo que va a pasar y deja la decisión, en vez de
+                            // dar por hecho que es un error.
+                            informar(servicioLabel, compLabel,
+                                'no tiene tarifa estándar, así que el cliente lo verá como OPCIONAL '
+                                + 'y podrá añadirlo por su diferencia de precio. Si tenía que ir incluido '
+                                + 'en el paquete, marca una de sus tarifas como estándar.');
                         } else {
                             // Ni estándar ni alternativas: no se publica absolutamente nada.
                             // "Publicable" y no "ninguna": `opcionables` descarta las de rol

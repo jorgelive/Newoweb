@@ -1069,6 +1069,8 @@ export interface ClasificacionFinancieraInterna extends Omit<ClasificacionFinanc
     clasesPasajeros: ClasePasajeroInterna[];
     opcionesUpgrade: OpcionUpgradeInterna[];
     advertencias: string[];
+    /** Avisos que se dicen pero no votan: no entran en `publicable`. Ver el store. */
+    informativas: string[];
     publicable: boolean;
 }
 

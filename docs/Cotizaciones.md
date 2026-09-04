@@ -797,7 +797,7 @@ que hoy se guardan, o la regla está mal o hay un problema de datos que arreglar
 | Advertencia | Por qué no se puede publicar |
 |---|---|
 | Grupo alternativo cuyo nº de pax no cuadra con el global ni con la base | un upgrade que cubre 3 de 5 pasajeros no se puede vender: si lo aceptan, ¿qué pasa con los otros 2? |
-| Componente `incluido` **sin tarifa estándar** | el renderizado lo degrada a «Opción N» en Opcional: el cliente recibe como elegible algo vendido como incluido |
+| ~~Componente `incluido` **sin tarifa estándar**~~ | **Ya no bloquea (04/09/2026)** — ver abajo |
 | Componente `incluido` **sin ninguna tarifa publicable** | no genera ni una línea: desaparece de la propuesta |
 | Componente **sin título público y sin ítems** | invisible en la propuesta, y si lleva tarifa es costo sin contrapartida visible |
 | Ítem con **modo desconocido** | `destino()` manda a «Incluye» todo lo que no reconoce: una errata regala lo que se quería cobrar aparte |
@@ -814,6 +814,39 @@ el rótulo `"Servicio ➔ Componente"` salga igual que en el resto.
 —127 de 127 son `estandar`—, así que la advertencia del grupo alternativo **no puede
 dispararse hoy**. En la práctica `publicable` depende sólo de `tieneConflictos` y de las
 cuatro nuevas.
+
+#### 🔥 «Incluido sin estándar» ES el diseño, y la regla lo trataba de error (04/09/2026)
+
+Un componente `incluido` **sin tarifa estándar** es exactamente **cómo se monta un opcional con
+precio**: sin modo `opcional` en el componente, la ausencia de estándar es lo que manda todas sus
+tarifas a «Opción N» dentro de Opcional, con su diferencia por persona. Es el
+`ADICIONAL · C/U $ 100,32` de Coco Bongo que ve el cliente.
+
+La advertencia se escribió después, pensando en el olvido —«marqué incluido y se me pasó la
+estándar»— y **no puede distinguirlos: en los datos son idénticos**. Como cualquier advertencia
+pone `publicable = false`, el resultado era que **tener un opcional impedía publicar la
+propuesta**, y cada guardado pedía confirmación.
+
+Se separa en dos cubos:
+
+| | Cuenta para `publicable` | Se ve en el panel «Información» |
+|---|---|---|
+| `advertencias` | **sí** | sí |
+| `informativas` | no | sí |
+
+La de «incluido sin estándar» pasa a `informativas` y se reescribe: dice **lo que va a pasar** —el
+cliente lo verá como opcional y podrá añadirlo— y deja la decisión, en vez de dar por hecho que es
+un error. En pantalla las dos listas se pintan juntas: para quien lee, un aviso es un aviso; la
+distinción es de la máquina.
+
+⚠️ **Y con eso el olvido real deja de frenarse.** Es el precio de aceptar los dos casos por igual,
+y sólo se recupera cuando el dato diga la intención: un modo `opcional` en el componente, o una
+marca equivalente. Hasta entonces, si algo tenía que ir incluido y sale como opcional, lo dice la
+frase del panel y no lo impide nadie.
+
+⚠️ **El listón para `advertencias` sube con esto:** una regla ahí dentro no vale sólo con señalar
+algo raro — tiene que ser algo que **no pueda ser deliberado**. Si el operador puede haberlo hecho
+a propósito y el dato no lo distingue, va en `informativas`.
 
 
 ---
