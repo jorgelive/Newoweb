@@ -961,6 +961,32 @@ enseña ni un precio. La primera versión de este cálculo miraba los perfiles a
 volvía a prometer «precios por perfil» justo donde no hay ninguno — el mismo fallo que venía a
 quitar, reintroducido por otra puerta. **Se vio simulando el caso, no leyendo el código.**
 
+#### Dos partes del mismo servicio decían lo mismo (04/09/2026)
+
+Un servicio repartido pinta una línea por parte —`06:50 – 08:35` y `07:15 – 08:55`— y **las dos
+decían «Vuelo de Cusco a Lima»**: en vuelo, tren y transporte el título lo pone el SEGMENTO
+(`mandaElSegmento`) y hay **un** segmento para las dos. El operador miraba dos horarios sin saber
+cuál era el de Sky y cuál el de JetSMART.
+
+⚠️ **El título del componente no sirve para desempatar**, y por eso no se usó: en esos tres tipos
+nombra una ruta y quedó congelado en un sentido —«Vuelo desde la ciudad de Cusco a la ciudad de
+Arequipa»—, que es justo el motivo de que mande el segmento.
+
+La **tarifa** sí: hay una por parte, ya viaja en `pax_cotizacion:read` y es donde se escribe con
+qué se compró. `selloDeComponente()` la pinta como pastilla al final de la línea.
+
+```
+06:50 – 08:35   Vuelo de Cusco a Lima   [ SKY AIRLINE ]
+07:15 – 08:55   Vuelo de Cusco a Lima   [ JETSMART ]
+```
+
+⚠️ **Se calla la tarifa que repite el título** y la de rol `operativo`: una coletilla que dice lo
+mismo que la línea de al lado sólo estorba. Y sólo aparece cuando hay **más de un** componente con
+hora, que es el único caso en que hay algo que desempatar.
+
+**Dónde se escribe:** en el título de la tarifa del componente, en el editor. No hace falta campo
+nuevo.
+
 #### Con varios perfiles, el número grande decía el precio de otro (04/09/2026)
 
 Cerrada, la tarjeta encabezaba con `claseDominante` —el perfil **con más gente**— y lo rotulaba

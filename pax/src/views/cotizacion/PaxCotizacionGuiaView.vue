@@ -264,6 +264,40 @@ const tituloDeComponente = (c: PaxCotComponente, segmento: { tituloSnapshot?: un
   return store.traducir(c.tituloSnapshot) || delSegmento;
 };
 
+/**
+ * Lo que distingue una parte de otra cuando el título no puede: la tarifa.
+ *
+ * 🔥 **Dos filas idénticas.** Un servicio repartido enseña una línea por parte —`06:50 – 08:35` y
+ * `07:15 – 08:55`— y las dos dicen «Vuelo de Cusco a Lima», porque en vuelo, tren y transporte el
+ * título lo pone el SEGMENTO ({@see mandaElSegmento}) y hay un segmento para los dos. El operador
+ * mira dos horarios y no sabe cuál es el de Sky y cuál el de JetSMART.
+ *
+ * El título del componente **no sirve** para desempatar: en estos tres tipos nombra una ruta y
+ * quedó congelado en un sentido —«Vuelo desde la ciudad de Cusco a la ciudad de Arequipa»—, que es
+ * justo el motivo de que mande el segmento. La **tarifa** sí: hay una por parte, ya viaja en
+ * `pax_cotizacion:read`, y es donde se escribe con qué se compró — «Sky Airline», «Arajet».
+ *
+ * ⚠️ **Se calla la que repite el título** y la de rol operativo: una coletilla que dice lo mismo
+ * que la línea de al lado sólo estorba.
+ */
+const selloDeComponente = (c: PaxCotComponente, segmento: { tituloSnapshot?: unknown }): string => {
+  const titulo = tituloDeComponente(c, segmento).trim().toLowerCase();
+
+  for (const t of c.cottarifas ?? []) {
+    if ((t.rolSnapshot ?? 'estandar') === 'operativo') {
+      continue;
+    }
+
+    const sello = store.traducir(t.tituloSnapshot).trim();
+
+    if (sello !== '' && sello.toLowerCase() !== titulo) {
+      return sello;
+    }
+  }
+
+  return '';
+};
+
 const horaRango = (c: PaxCotComponente) => {
   if (!compConHora(c)) return null;
   const hi = hhmm(c.fechaHoraInicio);
@@ -1684,6 +1718,11 @@ const adelantoVista = computed(() => {
                     <i class="far fa-clock text-[#E07845] shrink-0"></i>
                     <span class="tabular-nums text-[#376875] font-black text-sm shrink-0 whitespace-nowrap">{{ horaRango(c) }}</span>
                     <span class="truncate">{{ tituloDeComponente(c, item.segmento) }}</span>
+                    <!-- El sello que desempata: la tarifa. Ver selloDeComponente. -->
+                    <span v-if="selloDeComponente(c, item.segmento)"
+                          class="shrink-0 text-[10px] font-black uppercase tracking-wider text-[#376875]/70 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
+                      {{ selloDeComponente(c, item.segmento) }}
+                    </span>
                   </p>
                 </div>
 
