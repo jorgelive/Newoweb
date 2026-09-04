@@ -65,6 +65,10 @@ final class CotizacionFilePublicProvider implements ProviderInterface
          */
         $previsualiza = $this->security->isGranted('ROLE_USER');
 
+        // Se dice en pantalla. Ver {@see CotizacionFile::$vistaDeOperador}: saltarse tres puertas
+        // en silencio hacía que el operador creyera que no existían.
+        $file->setVistaDeOperador($previsualiza);
+
         // ── Lo que es TUYO: tu nombre y tus códigos ──────────────────────────
         //
         // Va antes de todo y para cualquier propuesta: si ya te identificaste, tu localizador de

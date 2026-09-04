@@ -25,6 +25,7 @@ import { useMaestroStore } from '@/stores/maestroStore';
 import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
 import { componerItinerario, dateOf, hhmm, compConHora, diffDays } from '@dominio/cotizacion/index.ts';
 import type { BloqueVista as BloqueVistaBase } from '@dominio/cotizacion/index.ts';
+import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
 
 /** El bloque con los tipos de `pax` dentro: el módulo es genérico y los devuelve intactos. */
 type BloqueVista = BloqueVistaBase<PaxCotServicio>;
@@ -886,6 +887,12 @@ const adelantoVista = computed(() => {
     <!-- ═══ GUÍA ═══ -->
 
     <template v-else>
+
+      <!-- Aquí engaña MÁS que en la portada: sin sesión, esta propuesta llega ya filtrada a los
+           subgrupos de quien mira, y el operador la ve entera. Ver AvisoVistaDeOperador. -->
+      <div v-if="store.file?.vistaDeOperador" class="max-w-3xl mx-auto px-4 pt-4 no-imprimir">
+        <AvisoVistaDeOperador />
+      </div>
 
       <!-- ═══ LO TUYO ═══
            Va ARRIBA del itinerario porque es lo primero que busca quien viaja en grupo: su

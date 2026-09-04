@@ -256,6 +256,23 @@ class CotizacionFile
     /** Cotización completa de la versión solicitada en la URL (solo detalle). */
     private ?Cotizacion $cotizacionParaCliente = null;
 
+    /**
+     * ¿Quien mira es un operador con sesión, y no el cliente?
+     *
+     * 🔥 **Existe porque «no me pide el documento» parecía un fallo y no lo era.** `util` y `pax`
+     * comparten dominio de cookie a propósito —es lo que permite previsualizar sin tocar el
+     * estado—, así que la sesión del operador llega a la API y `$previsualiza` se salta TRES
+     * puertas a la vez: `publicado`, la identificación y el filtrado por persona.
+     *
+     * El operador veía entonces el expediente entero, concluía que la puerta estaba abierta para
+     * todos, y no tenía forma de saber que no. Es la familia de fallo que persigue este proyecto:
+     * el que no da error. La puerta funciona —desde fuera contesta `403 IDENTIFICACION_REQUERIDA`—,
+     * lo que faltaba era **decirlo en pantalla**.
+     *
+     * ⚠️ No es un permiso ni cambia nada: es un cartel. Quien decide sigue siendo el provider.
+     */
+    private bool $vistaDeOperador = false;
+
     public function __construct()
     {
         $this->initializeId();
@@ -673,4 +690,17 @@ class CotizacionFile
 
     #[Groups(['file:read', 'file:item:read', 'pax_file:read'])]
     public function isExigeIdentificacion(): bool { return $this->modo->exigeIdentificacion(); }
+
+    public function setVistaDeOperador(bool $vista): self
+    {
+        $this->vistaDeOperador = $vista;
+        return $this;
+    }
+
+    /** Ver {@see $vistaDeOperador}: lo que `pax` necesita para poner el cartel. */
+    #[Groups(['pax_file:read'])]
+    public function isVistaDeOperador(): bool
+    {
+        return $this->vistaDeOperador;
+    }
 }

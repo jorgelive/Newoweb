@@ -225,6 +225,42 @@ luego desde un ordenador del trabajo que se comparte.
 convierte el formulario en un comprobador de quién viaja. Y 4.4 no es paranoia: la llave son datos
 que circulan por WhatsApp en un grupo de colegio.
 
+### ⚠️ La sesión del operador se salta la puerta, y ahora lo dice
+
+**«He publicado la operativa y no me pide documento — lo veo todo.»** Reportado el 04/09/2026, y
+no era un fallo: `util` y `pax` comparten dominio de cookie **a propósito** —es lo que permite
+previsualizar la vista cliente sin tocar el estado—, así que la sesión del operador llega a la API
+y `$previsualiza = isGranted('ROLE_USER')` se salta **tres** puertas de golpe:
+
+| Puerta | Qué ve el operador de más |
+|---|---|
+| `c.publicado = true` en la consulta | propuestas que el cliente **no tiene** |
+| `403 IDENTIFICACION_REQUERIDA` | la operativa **sin** el formulario |
+| `setFiltroSubgrupos()` | el expediente **entero**, no lo de una persona |
+
+Comprobado contra producción sin cookie, que es la única prueba que vale:
+
+```
+GET …/cotizacion_file/5SRAJV     → 200 · propuestasParaCliente: [(1, 'operativa')]
+GET …/cotizacion_file/5SRAJV/1   → 403 · IDENTIFICACION_REQUERIDA
+```
+
+La confirmada (`publicado = 0`) no sale, y la operativa pide documento. La puerta estaba bien.
+
+🔥 **Lo que faltaba era decirlo en pantalla.** Es la familia de fallo que persigue este proyecto:
+el que no da error. El operador abría el enlace, veía el expediente entero y concluía —con toda
+la razón desde lo que tenía delante— que las 133 familias veían lo mismo. Nada le decía que su
+propia sesión era la diferencia.
+
+Ahora `CotizacionFile::$vistaDeOperador` viaja en `pax_file:read` y `pax` pinta
+`AvisoVistaDeOperador` en la portada **y** en la guía. Dice las **tres** cosas, no «vista previa»
+a secas: el operador ya sabe que previsualiza — lo que necesita saber es **qué está viendo de
+más**, porque cada una engaña distinto.
+
+⚠️ **En la guía engaña más que en la portada**, y por eso también va ahí: sin sesión esa propuesta
+llega ya recortada a los subgrupos de quien mira, así que un itinerario completo es exactamente lo
+que un pasajero **no** debería ver.
+
 ### F5 · El filtrado por subgrupo
 
 | | Acción | Hecho cuando |

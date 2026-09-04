@@ -10191,6 +10191,11 @@ export interface components {
              */
             cotizacionParaCliente?: string | null;
             /**
+             * @description ¿Quien mira es un operador con sesión, y no el cliente?
+             * @default false
+             */
+            vistaDeOperador: boolean;
+            /**
              * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
              *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
              *     para toda la página del dashboard (sin N+1), evitando hidratar
@@ -10431,6 +10436,11 @@ export interface components {
                 [key: string]: string | null;
             }[];
             /**
+             * @description ¿Quien mira es un operador con sesión, y no el cliente?
+             * @default false
+             */
+            vistaDeOperador: boolean;
+            /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
              */
@@ -10469,6 +10479,11 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion-pax_file.read_pax_cotizacion.read"] | null;
+            /**
+             * @description ¿Quien mira es un operador con sesión, y no el cliente?
+             * @default false
+             */
+            vistaDeOperador: boolean;
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -10542,6 +10557,11 @@ export interface components {
              * @example https://example.com/
              */
             cotizacionParaCliente?: string | null;
+            /**
+             * @description ¿Quien mira es un operador con sesión, y no el cliente?
+             * @default false
+             */
+            vistaDeOperador: boolean;
             /**
              * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
              *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
@@ -10731,6 +10751,11 @@ export interface components {
                 [key: string]: string | null;
             }[];
             /**
+             * @description ¿Quien mira es un operador con sesión, y no el cliente?
+             * @default false
+             */
+            vistaDeOperador: boolean;
+            /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
              */
@@ -10769,6 +10794,11 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.html-pax_file.read_pax_cotizacion.read"] | null;
+            /**
+             * @description ¿Quien mira es un operador con sesión, y no el cliente?
+             * @default false
+             */
+            vistaDeOperador: boolean;
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -10842,6 +10872,11 @@ export interface components {
              * @example https://example.com/
              */
             cotizacionParaCliente?: string | null;
+            /**
+             * @description ¿Quien mira es un operador con sesión, y no el cliente?
+             * @default false
+             */
+            vistaDeOperador: boolean;
             /**
              * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
              *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
@@ -11036,6 +11071,11 @@ export interface components {
                 [key: string]: string | null;
             }[];
             /**
+             * @description ¿Quien mira es un operador con sesión, y no el cliente?
+             * @default false
+             */
+            vistaDeOperador: boolean;
+            /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
              */
@@ -11074,6 +11114,11 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.jsonld-pax_file.read_pax_cotizacion.read"] | null;
+            /**
+             * @description ¿Quien mira es un operador con sesión, y no el cliente?
+             * @default false
+             */
+            vistaDeOperador: boolean;
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -11147,6 +11192,11 @@ export interface components {
              * @example https://example.com/
              */
             cotizacionParaCliente?: string | null;
+            /**
+             * @description ¿Quien mira es un operador con sesión, y no el cliente?
+             * @default false
+             */
+            vistaDeOperador: boolean;
             /**
              * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
              *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
@@ -11336,6 +11386,11 @@ export interface components {
                 [key: string]: string | null;
             }[];
             /**
+             * @description ¿Quien mira es un operador con sesión, y no el cliente?
+             * @default false
+             */
+            vistaDeOperador: boolean;
+            /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
              */
@@ -11374,6 +11429,11 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.multipart-pax_file.read_pax_cotizacion.read"] | null;
+            /**
+             * @description ¿Quien mira es un operador con sesión, y no el cliente?
+             * @default false
+             */
+            vistaDeOperador: boolean;
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
