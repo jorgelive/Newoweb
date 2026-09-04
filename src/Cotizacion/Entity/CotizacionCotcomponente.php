@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use App\Attribute\AutoTranslate;
@@ -106,6 +107,24 @@ class CotizacionCotcomponente
     // Es exactamente lo que `CotizacionFile::$miIdentidad` se construyó para impedir, entrando por
     // la puerta de al lado. El cliente no necesita los subgrupos: ya recibe **filtrado** lo que le
     // toca, y lo suyo se lo cuenta «Lo tuyo».
+    //
+    // 🔥 **`readableLink: false`, o el editor no puede volver a guardar.** Sin esto la relación
+    // **no salía como IRI**: el contexto de lectura del editor es `['cotizacion:read',
+    // 'timestamp:read']`, y `CotizacionFileGrupo` usa `TimestampTrait`, cuyos `createdAt`/
+    // `updatedAt` llevan `timestamp:read`. Basta con que **una** propiedad del destino esté en un
+    // grupo activo para que API Platform **incruste el objeto** en vez de emitir el enlace.
+    //
+    // El editor devolvía lo que había recibido y la escritura lo rechazaba con «Nested documents
+    // for attribute "grupos" are not allowed. Use IRIs instead» — un **500 al guardar**, en
+    // producción, el 04/09/2026. Y sólo aparecía DESPUÉS de acotar el primer componente: mientras
+    // la lista estuvo vacía no había nada que incrustar, así que el fallo esperaba a que la
+    // funcionalidad se usara de verdad.
+    //
+    // ⚠️ La trampa no está en esta línea sino en la de al lado: el grupo que rompe la forma
+    // —`timestamp:read`— **no se menciona aquí**. Se hereda del recurso y viaja a todo lo que
+    // cuelgue. Cualquier relación nueva servida en `cotizacion:read` cuyo destino sea un recurso
+    // con marcas de tiempo tiene este mismo problema, y tampoco lo dirá.
+    #[ApiProperty(readableLink: false)]
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\ManyToMany(targetEntity: CotizacionFileGrupo::class)]
     #[ORM\JoinTable(name: 'cotizacion_cotcomponente_grupo')]

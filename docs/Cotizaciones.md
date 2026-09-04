@@ -3770,6 +3770,48 @@ Ahora hay **un solo eje de vuelo** y el tramo vive en `CotizacionFileGrupo::$sub
 eje habitación con tramo «doble» en vez de denunciarse — y el tipo de habitación tiene su sitio,
 que es la columna «Nombre» de la hoja «Grupos».
 
+#### 🔥 `grupos` volvía incrustado y el editor no podía guardar (04/09/2026)
+
+**500 en producción al guardar**, con este cuerpo:
+
+```
+Nested documents for attribute "grupos" are not allowed. Use IRIs instead.
+```
+
+`CotizacionCotcomponente::$grupos` está en `cotizacion:read`, y el contexto de lectura del editor
+es `['cotizacion:read', 'timestamp:read']`. `CotizacionFileGrupo` usa `TimestampTrait`, cuyos
+`createdAt`/`updatedAt` llevan **`timestamp:read`** — y basta con que **una** propiedad del destino
+caiga en un grupo activo para que API Platform **incruste el objeto** en vez de emitir el IRI. El
+editor devolvía lo que había recibido y la escritura lo rechazaba.
+
+Se arregla con `#[ApiProperty(readableLink: false)]`, que fuerza el enlace pase lo que pase. Es el
+mismo truco que ya usaban `TravelComponenteItem` y `TravelItinerario`.
+
+⚠️ **El grupo que rompe la forma no se menciona en la línea que falla.** `timestamp:read` se
+declara en el recurso y viaja a **todo** lo que cuelgue de él. Leyendo `#[Groups(['cotizacion:read',
+'cotizacion:write'])]` no hay forma de saber que esa relación va a llegar incrustada: hay que
+serializar y mirar.
+
+⚠️ **Y esperó a que la funcionalidad se usara.** Mientras ningún componente tuvo subgrupos, la
+lista iba vacía y no había nada que incrustar: el expediente guardaba sin problema. El fallo
+apareció con el **primer** componente acotado, semanas después de escribir la relación.
+
+⚠️ **El tipo del front también mentía.** `api.d.ts` declaraba
+`grupos?: CotizacionFileGrupo[]` mientras todo el código de `util` la trataba como `string[]` —con
+un cast— y funcionaba, porque el editor sólo escribe IRIs. Al regenerar, el tipo pasó a `string[]`:
+el esquema y el código dicen por fin lo mismo. **Un cast que tapa un tipo equivocado tapa también
+el día que el dato cambia de forma.**
+
+**La regla:** cualquier relación servida en `cotizacion:read` cuyo destino sea otro `ApiResource`
+—y casi todos llevan marcas de tiempo— necesita `readableLink: false` salvo que se quiera de
+verdad incrustada. Para comprobarlo, serializar y buscar `@type` ajenos al árbol:
+
+```php
+// var/probar-iris.php — recorre el JSON y denuncia lo que no es del árbol editable
+$delArbol = ['Cotizacion', 'CotizacionCotservicio', 'CotizacionCotcomponente',
+             'CotizacionSegmento', 'CotizacionCottarifa'];
+```
+
 #### El sufijo, a mano vale para CUALQUIER eje (04/09/2026)
 
 La frase de arriba —«sólo el vuelo admite etiqueta»— sigue siendo cierta **para el .xlsx**, y sólo

@@ -7448,7 +7448,8 @@ export interface components {
         };
         "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"] | null;
-            grupos?: components["schemas"]["CotizacionFileGrupo-cotizacion.read_timestamp.read"][];
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7904,7 +7905,8 @@ export interface components {
         };
         "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"] | null;
-            grupos?: components["schemas"]["CotizacionFileGrupo.html-cotizacion.read_timestamp.read"][];
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8258,7 +8260,8 @@ export interface components {
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"] | null;
-            grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-cotizacion.read_timestamp.read"][];
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8615,7 +8618,8 @@ export interface components {
         };
         "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"] | null;
-            grupos?: components["schemas"]["CotizacionFileGrupo.multipart-cotizacion.read_timestamp.read"][];
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8871,6 +8875,7 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
+            /** @description Los componentes que ve ESTE cliente. */
             readonly cotcomponentes?: string[];
             /** @description Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo. */
             readonly cotsegmentos?: string[];
@@ -9047,6 +9052,7 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
+            /** @description Los componentes que ve ESTE cliente. */
             readonly cotcomponentes?: string[];
             /** @description Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo. */
             readonly cotsegmentos?: string[];
@@ -9185,6 +9191,7 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
+            /** @description Los componentes que ve ESTE cliente. */
             readonly cotcomponentes?: string[];
             /** @description Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo. */
             readonly cotsegmentos?: string[];
@@ -9323,6 +9330,7 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
+            /** @description Los componentes que ve ESTE cliente. */
             readonly cotcomponentes?: string[];
             /** @description Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo. */
             readonly cotsegmentos?: string[];
@@ -11508,12 +11516,6 @@ export interface components {
              */
             readonly totalMiembros?: number;
         };
-        "CotizacionFileGrupo-cotizacion.read_timestamp.read": {
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo-file.item.read_timestamp.read": {
             /** @enum {string} */
@@ -11718,12 +11720,6 @@ export interface components {
              */
             readonly totalMiembros?: number;
         };
-        "CotizacionFileGrupo.html-cotizacion.read_timestamp.read": {
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.html-file.item.read_timestamp.read": {
             /** @enum {string} */
@@ -11882,13 +11878,6 @@ export interface components {
             readonly totalMiembros?: number;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
-        "CotizacionFileGrupo.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld-file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
@@ -12044,12 +12033,6 @@ export interface components {
              *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
              */
             readonly totalMiembros?: number;
-        };
-        "CotizacionFileGrupo.multipart-cotizacion.read_timestamp.read": {
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.multipart-file.item.read_timestamp.read": {
