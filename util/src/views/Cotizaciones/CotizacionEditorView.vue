@@ -335,6 +335,35 @@ const repartoDelActivo = computed<{ esta: number | null; total: number; partes: 
   };
 });
 
+// ── «A quién aplica» visible desde la tarjeta del componente ────────────────
+const gruposDeTarjetaAbiertos = ref<Set<string>>(new Set());
+
+const alternarGruposDeTarjeta = (id: string): void => {
+  const abiertos = new Set(gruposDeTarjetaAbiertos.value);
+
+  if (abiertos.has(id)) {
+    abiertos.delete(id);
+  } else {
+    abiertos.add(id);
+  }
+
+  gruposDeTarjetaAbiertos.value = abiertos;
+};
+
+/** El subgrupo detrás de un IRI, o `undefined` si aún no cargaron. */
+const subgrupoDeIri = (iri: string): SubgrupoOpcion | undefined =>
+  store.subgruposDelFile.find(sg => sg['@id'] === iri);
+
+const etiquetaDeIri = (iri: string): string => {
+  const sg = subgrupoDeIri(iri);
+
+  return sg ? etiquetaSubgrupo(sg) : '—';
+};
+
+const claveDeIri = (iri: string): string => subgrupoDeIri(iri)?.clave ?? '';
+
+const paxDeIri = (iri: string): number => subgrupoDeIri(iri)?.totalMiembros ?? 0;
+
 const yaEnOtraParteDelReparto = computed<Set<string>>(() => {
   const activo = store.componenteActivo;
 
@@ -363,13 +392,31 @@ const subgruposFiltrados = computed(() => {
 
   const libres = store.subgruposDelFile.filter(sg => !yaEnOtraParteDelReparto.value.has(sg['@id']));
 
-  if (!q) return libres;
+  const casan = q
+    ? libres.filter(sg => {
+        const heno = `${etiquetaSubgrupo(sg)} ${sg.clave ?? ''}`.toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-  return libres.filter(sg => {
-    const heno = `${etiquetaSubgrupo(sg)} ${sg.clave ?? ''}`.toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return heno.includes(q);
+      })
+    : libres;
 
-    return heno.includes(q);
+  // ⚠️ **Los marcados arriba, y el resto alfabético.**
+  //
+  // Con 109 subgrupos, lo que ya elegiste se pierde entre los demás y hay que desplazarse para
+  // comprobar qué llevas puesto — o peor, se marca dos veces por no verlo. Arriba se lee de un
+  // vistazo, y desmarcar deja de ser una búsqueda.
+  //
+  // El resto por etiqueta y no por el orden de la base: buscar «Habitación» te deja las
+  // habitaciones seguidas, que es como se recorre una lista cuando no sabes exactamente qué
+  // buscas.
+  return [...casan].sort((a, b) => {
+    const ma = tieneGrupo(a['@id']) ? 0 : 1;
+    const mb = tieneGrupo(b['@id']) ? 0 : 1;
+
+    if (ma !== mb) return ma - mb;
+
+    return etiquetaSubgrupo(a).localeCompare(etiquetaSubgrupo(b), 'es');
   });
 });
 
@@ -3160,6 +3207,33 @@ store.$onAction(({ name, args }) => {
                     </span>
                   </div>
 
+                  <!-- ══ A QUIÉN APLICA, EN LA PROPIA TARJETA ═══════════════
+                       Desde la lista no se veía si un componente ya estaba acotado: había que
+                       abrirlo para saberlo, y con cinco partes eso es abrir cinco. Colapsado
+                       porque una parte puede llevar ocho reservas con rótulos repetidos. -->
+                  <div v-if="store.subgruposDelFile.length" class="mb-3">
+                    <button type="button" @click.stop="alternarGruposDeTarjeta(comp.id)"
+                            class="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-lg border transition-colors"
+                            :class="(comp.grupos?.length ?? 0)
+                              ? 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100'
+                              : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'">
+                      <i class="fas text-[8px]" :class="(comp.grupos?.length ?? 0) ? 'fa-users-rectangle' : 'fa-users'"></i>
+                      <span>{{ resumenDeGrupos(comp) }}</span>
+                      <i v-if="(comp.grupos?.length ?? 0)" class="fas text-[7px]"
+                         :class="gruposDeTarjetaAbiertos.has(comp.id) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    </button>
+
+                    <div v-if="gruposDeTarjetaAbiertos.has(comp.id) && (comp.grupos?.length ?? 0)"
+                         class="mt-1.5 pl-2 border-l-2 border-orange-200 space-y-0.5" @click.stop>
+                      <div v-for="iri in (comp.grupos ?? [])" :key="iri"
+                           class="flex items-center gap-2 text-[10px] text-slate-500">
+                        <span class="flex-1 truncate">{{ etiquetaDeIri(iri) }}</span>
+                        <span class="font-mono text-slate-400 shrink-0">{{ claveDeIri(iri) }}</span>
+                        <span class="shrink-0 w-12 text-right">{{ paxDeIri(iri) }} pax</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <div v-if="comp.detallesOperativos?.length" class="flex flex-wrap gap-1.5 mb-3">
                     <div v-for="bloque in comp.detallesOperativos" :key="bloque.id"
                          class="relative"
@@ -3764,15 +3838,30 @@ store.$onAction(({ name, args }) => {
                     <p class="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"
                        :class="repartoDelActivo.faltan === 0 ? 'text-emerald-700' : 'text-amber-700'">
                       <i class="fas" :class="repartoDelActivo.faltan === 0 ? 'fa-circle-check' : 'fa-triangle-exclamation'"></i>
-                      Parte de un reparto en {{ repartoDelActivo.partes }}
+                      Este servicio va repartido en {{ repartoDelActivo.partes }}
                     </p>
-                    <p class="text-[11px] font-bold mt-1"
-                       :class="repartoDelActivo.faltan === 0 ? 'text-emerald-800' : 'text-amber-900'">
-                      <span v-if="repartoDelActivo.esta !== null">Esta parte {{ repartoDelActivo.esta }} pax · </span>
-                      <span v-else class="text-amber-700">Esta parte sin acotar · </span>
-                      entre todas {{ repartoDelActivo.total }} de {{ paxDeReferencia }}
-                      <span v-if="repartoDelActivo.faltan"> · faltan {{ repartoDelActivo.faltan }}</span>
-                    </p>
+
+                    <!-- ⚠️ Una idea por línea y con su rótulo. La versión anterior encadenaba tres
+                         cifras en una frase —«Esta parte 29 pax · entre todas 122 de 133 · faltan
+                         11»— y no se entendía cuál era cuál. Un número sin nombre delante obliga a
+                         reconstruir qué mide, y aquí hay tres midiendo cosas distintas. -->
+                    <dl class="text-[11px] mt-1.5 space-y-0.5"
+                        :class="repartoDelActivo.faltan === 0 ? 'text-emerald-800' : 'text-amber-900'">
+                      <div class="flex justify-between gap-2">
+                        <dt class="font-bold">A este componente le tocan</dt>
+                        <dd v-if="repartoDelActivo.esta !== null" class="font-black shrink-0">{{ repartoDelActivo.esta }} pax</dd>
+                        <dd v-else class="font-black text-amber-700 shrink-0">nadie todavía</dd>
+                      </div>
+                      <div class="flex justify-between gap-2">
+                        <dt class="font-bold">Entre las {{ repartoDelActivo.partes }} partes</dt>
+                        <dd class="font-black shrink-0">{{ repartoDelActivo.total }} de {{ paxDeReferencia }} pax</dd>
+                      </div>
+                      <div v-if="repartoDelActivo.faltan" class="flex justify-between gap-2 pt-0.5 border-t"
+                           :class="repartoDelActivo.faltan === 0 ? 'border-emerald-200' : 'border-amber-200'">
+                        <dt class="font-black">Sin asignar a ninguna parte</dt>
+                        <dd class="font-black shrink-0">{{ repartoDelActivo.faltan }} pax</dd>
+                      </div>
+                    </dl>
                   </div>
                 </div>
 

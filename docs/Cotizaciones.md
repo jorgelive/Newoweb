@@ -2330,10 +2330,16 @@ de distancia.
 ### La cobertura, también dentro del componente
 
 ```
-A QUIÉN APLICA        [ Vuelo · Nacional · Sky Airline · YMFLHB · 44 pax ▾ ]
-  ⚠ PARTE DE UN REPARTO EN 5
-    Esta parte 29 pax · entre todas 122 de 133 · faltan 11
+A QUIÉN APLICA        [ 2 subgrupos · 88 pax ▾ ]
+  ⚠ ESTE SERVICIO VA REPARTIDO EN 2
+      A este componente le tocan          88 pax
+      Entre las 2 partes              88 de 100 pax
+      Sin asignar a ninguna parte         12 pax
 ```
+
+⚠️ **Una idea por línea y con su rótulo.** La primera versión encadenaba las tres cifras en una
+frase —«Esta parte 29 pax · entre todas 122 de 133 · faltan 11»— y no se entendía cuál era cuál. Un
+número sin nombre delante obliga a reconstruir qué mide, y aquí hay tres midiendo cosas distintas.
 
 La franja completa vive en el panel del **servicio** y el selector en el del **componente**:
 mientras asignabas no veías el efecto, y con cinco partes eso son cinco viajes de ida y vuelta para
@@ -2344,6 +2350,21 @@ deja de leerse, y entonces no avisa el día que importa.
 
 ⚠️ Y **«Esta parte sin acotar»** cuando la copia todavía no tiene subgrupos: es el estado en que
 nace, y decirlo es la mitad del recordatorio de que hay que repartirla.
+
+### Y en la propia tarjeta del componente
+
+Desde la lista no se veía si un componente ya estaba acotado: había que abrirlo para saberlo, y con
+cinco partes eso es abrir cinco. Ahora cada tarjeta lleva su pastilla —«2 subgrupos · 88 pax» o
+«Todo el grupo»— desplegable a la lista con localizadores.
+
+### El orden del selector: marcados arriba, resto alfabético
+
+Con 109 subgrupos, lo que ya elegiste se pierde entre los demás: hay que desplazarse para comprobar
+qué llevas puesto, o se marca dos veces por no verlo. Arriba se lee de un vistazo y desmarcar deja
+de ser una búsqueda.
+
+El resto por etiqueta y no por el orden de la base: buscar «Habitación» deja las habitaciones
+seguidas, que es como se recorre una lista cuando no sabes exactamente qué buscas.
 
 ### En el selector: el vuelo desplegable y lo ya repartido fuera
 
