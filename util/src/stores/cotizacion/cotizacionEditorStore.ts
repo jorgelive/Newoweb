@@ -680,12 +680,34 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         });
     };
 
+    /**
+     * La fecha del servicio sale de la de sus componentes ORIGINALES.
+     *
+     * ── 🔥 Las copias NO cuentan, y ése es el ancla ─────────────────────────
+     * Un servicio repartido tiene partes en fechas distintas y **es correcto**: un vuelo sale a
+     * las 22:00 de un día y el otro a las 02:00 del siguiente. Son el mismo servicio y dos
+     * componentes con fecha distinta.
+     *
+     * Si la copia contara, bastaría con que saliera **antes** que el original para arrastrar al
+     * servicio al día anterior — y con él a los segmentos, al relato y al orden del itinerario.
+     * Cada reparto movería la escaleta entera, y no sólo en los casos raros: también en los
+     * normales, donde una copia con la hora todavía sin ajustar mandaría sobre el original.
+     *
+     * Con el original como única fuente, el servicio tiene un **ancla** que ningún reparto puede
+     * mover. Las copias flotan alrededor, que es lo que son.
+     *
+     * ⚠️ Si el servicio sólo tuviera copias —no debería pasar, pero un borrado del original lo
+     * dejaría así— se cae al conjunto entero antes que dejar el servicio sin fecha.
+     */
     const sincronizarFechaServicio = (servicio: CotServicio | null | undefined): void => {
         if (!servicio || !servicio.cotcomponentes || servicio.cotcomponentes.length === 0) return;
 
+        const originales = servicio.cotcomponentes.filter((c: ComponenteCompleto) => !c.duplicadoDe);
+        const mandan = originales.length ? originales : servicio.cotcomponentes;
+
         let fechaMinima = '9999-12-31T23:59:59';
 
-        servicio.cotcomponentes.forEach((c: ComponenteCompleto) => {
+        mandan.forEach((c: ComponenteCompleto) => {
             if (c.fechaHoraInicio && c.fechaHoraInicio < fechaMinima) {
                 fechaMinima = c.fechaHoraInicio;
             }
@@ -4516,17 +4538,39 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         segmento.fechaAbsoluta = nuevaFechaAbs;
 
         if (servicio.cotcomponentes) {
-            servicio.cotcomponentes.forEach((comp) => {
-                if (idSegmentoDeComponente(comp) === segmentoId) {
-                    const duracionMs = getDuracionMs(comp.fechaHoraInicio, comp.fechaHoraFin);
+            const delSegmento = servicio.cotcomponentes.filter(c => idSegmentoDeComponente(c) === segmentoId);
 
-                    if (comp.fechaHoraInicio) comp.fechaHoraInicio = replaceDateKeepTime(comp.fechaHoraInicio, nuevaFechaAbs);
+            // 🔥 **Se mueve por DESPLAZAMIENTO, no fijando la fecha de cada uno.**
+            //
+            // Fijar la fecha del segmento en todos aplastaba el desfase de las copias: un vuelo que
+            // sale a las 02:00 del día siguiente volvía al día del original, y en silencio. Como el
+            // servicio se ancla al ORIGINAL (ver `sincronizarFechaServicio`), el desplazamiento se
+            // calcula desde él y las copias lo siguen conservando su distancia.
+            //
+            // ⚠️ Sin original en el segmento —posible si se borró— se usa el más temprano: mover
+            // algo mal es recuperable, no moverlo deja el día partido sin que nada lo diga.
+            const ancla = delSegmento.find(c => !c.duplicadoDe) ?? delSegmento[0];
+            const fechaAncla = ancla?.fechaHoraInicio ? getFechaLimpia(ancla.fechaHoraInicio) : null;
 
-                    if (comp.fechaHoraInicio) {
-                        const nS = parseNaiveAsUTC(comp.fechaHoraInicio);
-                        comp.fechaHoraFin = formatNaiveFromUTC(nS + duracionMs);
-                    }
-                }
+            const dias = fechaAncla
+                ? Math.round(
+                    (new Date(`${nuevaFechaAbs}T12:00:00Z`).getTime() - new Date(`${fechaAncla}T12:00:00Z`).getTime())
+                    / 86_400_000,
+                )
+                : 0;
+
+            delSegmento.forEach((comp) => {
+                if (!comp.fechaHoraInicio) return;
+
+                const duracionMs = getDuracionMs(comp.fechaHoraInicio, comp.fechaHoraFin);
+                const suya = new Date(`${getFechaLimpia(comp.fechaHoraInicio)}T12:00:00Z`);
+
+                suya.setUTCDate(suya.getUTCDate() + dias);
+
+                comp.fechaHoraInicio = replaceDateKeepTime(comp.fechaHoraInicio, suya.toISOString().split('T')[0]);
+
+                const nS = parseNaiveAsUTC(comp.fechaHoraInicio);
+                comp.fechaHoraFin = formatNaiveFromUTC(nS + duracionMs);
             });
             ordenarComponentesCronologicamente(servicio.cotcomponentes, servicio);
             sincronizarFechaServicio(servicio);
@@ -4998,6 +5042,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     return {
+        // ⚠️ Expuesta para poder probarla: qué componente ancla la fecha del servicio es de las
+        // reglas que se rompen en silencio, y no había forma de llamarla desde fuera.
+        //
+        // ⚠️ `moverSegmentoDeDia` NO se expone aunque también convendría: añadir dos entradas más
+        // a este `return` hace que TypeScript se rinda infiriendo el store —`tarifasHermanas` pasó
+        // a `any` y saltaron tres `TS7006` en la vista—. El objeto ya está en el límite, y una
+        // entrada de conveniencia no vale un `any` en una pantalla.
+        sincronizarFechaServicio,
         subgruposDelFile,
         cargarSubgrupos,
         catalogos, cotizacion, fileActual, modoCatalogo, idiomasDisponibles, isLoading, isCargaInicial, inspectorActivo, dataActiva,

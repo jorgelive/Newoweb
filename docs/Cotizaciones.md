@@ -2244,6 +2244,43 @@ H2 5002 · 17-09 06:50→08:35 · CUZ→LIM
 H2 5721 · 23-09 06:35→08:20 · LIM→CUZ
 ```
 
+### 🔥 La fecha del servicio la ancla el componente ORIGINAL
+
+```
+Servicio «Vuelo»
+  Componente  18-set 22:00   ← ORIGINAL: manda
+  Copia       19-set 02:00   ← no cuenta
+  ────────────────────────
+  fechaInicioAbsoluta = 18-set
+```
+
+Un servicio repartido tiene partes en fechas distintas y **es correcto**: un vuelo sale a las 22:00
+de un día y el otro a las 02:00 del siguiente. Son el mismo servicio y dos componentes con fecha
+distinta.
+
+⚠️ **Si la copia contara, arrastraría al servicio.** `sincronizarFechaServicio()` toma el mínimo, y
+bastaría con que una copia saliera antes que el original para llevarse el servicio al día anterior
+—y con él los segmentos, el relato y el orden del itinerario—. Cada reparto movería la escaleta
+entera.
+
+Y no sólo en el caso raro: en uno **normal**, una copia recién creada con la hora todavía sin
+ajustar mandaría sobre el original mientras se la termina de configurar.
+
+⚠️ Si sólo quedan copias —posible si se borra el original de un reparto ya hecho— se usan igual:
+mejor una fecha que ninguna.
+
+### ⚠️ Y al mover un segmento de día, se DESPLAZA
+
+`moverSegmentoDeDia()` fijaba la fecha del segmento en todos sus componentes, lo que **aplastaba el
+desfase**: el vuelo de las 02:00 del día siguiente volvía al día del original, en silencio. Ahora
+calcula los días de diferencia **desde el ancla** y mueve a todos esa cantidad, así que las copias
+conservan su distancia.
+
+⚠️ `sincronizarFechaServicio` está expuesta en el store **sólo para poder probarla**.
+`moverSegmentoDeDia` no: añadir dos entradas más al `return` hace que TypeScript se rinda
+infiriendo el store —`tarifasHermanas` pasó a `any` y saltaron tres `TS7006` en la vista—. El
+objeto ya está en el límite, y una entrada de conveniencia no vale un `any` en una pantalla.
+
 ### 🔥 Un botón, no una pulsación larga sobre el texto
 
 La primera versión usaba `v-tooltip-tactil` sobre la fila. **En el móvil no salía nunca**: el
