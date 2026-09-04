@@ -140,6 +140,26 @@ final readonly class IdentidadDelPasajero
         return null;
     }
 
+    /**
+     * Cierra la sesión de ESTE expediente: quien mira vuelve a ser un desconocido.
+     *
+     * Hace falta porque el enlace se abre en dispositivos compartidos —el móvil de la familia, el
+     * ordenador del colegio— y sin esto la primera persona que entra deja su nombre, su
+     * localizador y su habitación puestos para el siguiente.
+     *
+     * ⚠️ **NO borra el contador de intentos**, a propósito. Si lo borrara, salir y volver a entrar
+     * sería la forma de saltarse el freno: ocho pruebas, cerrar sesión, otras ocho. El contador va
+     * por IP y expediente en caché, así que ni se toca — y por eso quien salga tras fallar sigue
+     * viendo el mismo bloqueo, que es justo lo que se quiere.
+     *
+     * ⚠️ Sólo la llave de este expediente. Salir de un viaje no cierra el de al lado, misma regla
+     * que al entrar.
+     */
+    public function olvidar(CotizacionFile $file): void
+    {
+        $this->requestStack->getSession()->remove($this->llave($file));
+    }
+
     /** ¿Se agotaron los intentos desde esta IP para este expediente? */
     public function bloqueado(CotizacionFile $file): bool
     {

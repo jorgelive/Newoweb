@@ -62,6 +62,18 @@ export const paxCotizacionService = {
     },
 
     /**
+     * «No soy yo»: cierra la identificación de este expediente.
+     *
+     * Idempotente en el servidor —responde 200 aunque no hubiera nadie dentro—, así que quien
+     * llama no tiene que comprobar antes si hay sesión abierta.
+     */
+    async olvidarIdentidad(localizador: string): Promise<void> {
+        await apiClient.delete(
+            `/platform/sales/client/cotizacion/${encodeURIComponent(localizador)}/identificar`
+        );
+    },
+
+    /**
      * PORTADA del catálogo de tours: cards de todos los tours públicos
      * (título, resumen, rangos "Desde", portada, días). Liviano.
      *

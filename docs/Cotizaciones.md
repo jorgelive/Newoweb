@@ -2134,6 +2134,38 @@ Invertirlos le diría al cliente que su viaje no está.
 por fresca y volvería sin pedir nada — el cliente se identificaría bien y **seguiría sin ver su
 viaje, sin ningún error que lo explicara**.
 
+### «No soy yo»: salir de la identificación
+
+El enlace de un viaje de grupo se abre en dispositivos compartidos —el móvil de la familia, el
+ordenador del colegio—, y sin salida la primera persona que entra deja su nombre, su localizador
+de vuelo y su habitación puestos para el siguiente. El botón vive en la tarjeta «Lo tuyo», que es
+donde se ve el nombre ajeno.
+
+```
+DELETE /platform/sales/client/cotizacion/{localizador}/identificar
+```
+
+Misma ruta que el `POST` de entrar, con el verbo opuesto: entrar y salir son la misma puerta.
+`OlvidarIdentidadController` → `IdentidadDelPasajero::olvidar()`, que sólo quita la llave de
+sesión de **ese** expediente.
+
+| Decisión | Por qué |
+|---|---|
+| Dice **«No soy yo»**, no «Cerrar sesión» | Quien pulsa casi nunca es quien se identificó, sino el siguiente, que ve un nombre ajeno. Dicho como acción de sesión, ni se le ocurre que sea eso |
+| Responde **200 aunque no hubiera nadie** | Es idempotente por naturaleza: quien llama quiere quedar sin identidad, y ya estarlo es el resultado que pedía |
+| **NO borra el contador de intentos** | Si lo borrara, salir y volver sería la forma de saltarse el freno: ocho pruebas, cerrar, otras ocho. El contador va por IP y expediente en caché, así que ni se toca |
+| Se **recarga la propuesta**, no se borra la tarjeta | El itinerario venía recortado a los subgrupos de quien estaba dentro. Hay que volver a pedirlo; el servidor contesta 403 y el formulario aparece solo |
+
+⚠️ **Se invalidan LAS DOS cachés, no sólo la del detalle.** «Lo tuyo» sale de `miIdentidad`, que
+viaja en la respuesta de la portada **y** en la del detalle. Dejar la portada fresca devolvería a
+alguien recién salido a una pantalla con su nombre puesto — el mismo descuido que ya costó caro al
+entrar, en el otro sentido.
+
+⚠️ El controlador vive en `Controller/Api/` y **el directorio es la configuración**: `pax` llama
+por `apiClient`, o sea al host de la API. Es la trampa que ya se pagó con
+`IdentificarPasajeroController`, que nació en `Controller/Publico/` y quedó publicado en el host
+equivocado.
+
 ### El filtrado por persona ya está — ver §6.j.6
 
 Se completó el 03/09/2026, en la misma sesión: quien se identifica ve sólo los componentes sin

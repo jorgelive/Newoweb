@@ -132,6 +132,31 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
         }
     };
 
+    /**
+     * «No soy yo»: se cierra la identificación y quien mira vuelve a ser un desconocido.
+     *
+     * Hace falta porque este enlace se abre en dispositivos compartidos —el móvil de la familia,
+     * el ordenador del colegio—, y sin esto la primera persona que entra deja su nombre, su
+     * localizador de vuelo y su habitación puestos para el siguiente.
+     *
+     * ⚠️ **Se invalidan LAS DOS cachés, no sólo la del detalle.** La identidad se pinta también en
+     * la portada —«Lo tuyo» sale de `miIdentidad`, que viaja en las dos respuestas—, así que dejar
+     * la portada fresca devolvería a alguien recién salido a una pantalla con su nombre puesto.
+     * Es el mismo descuido que ya costó caro al entrar, en el otro sentido.
+     *
+     * ⚠️ **El freno de intentos NO se limpia**: vive en el servidor por IP y expediente. Si saliera
+     * con la sesión, cerrar y volver a abrir sería la forma de saltárselo.
+     */
+    const olvidarIdentidad = async (localizador: string): Promise<void> => {
+        await paxCotizacionService.olvidarIdentidad(localizador);
+
+        identificadoComo.value = null;
+        detalle.value = null;
+        portada.value = null;
+        lastUpdateDetalle.value = 0;
+        lastUpdatePortada.value = 0;
+    };
+
     // ── Acciones ──────────────────────────────────────────────────────────
 
     /**
@@ -504,7 +529,7 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
     return {
         // estado
         portada, detalle, loading, error, miIdentidad,
-        requiereIdentificacion, identificadoComo, identificarse,
+        requiereIdentificacion, identificadoComo, identificarse, olvidarIdentidad,
         currentLocalizador, currentVersion,
         lastUpdatePortada, lastUpdateDetalle,
         portadaCatalogo, lastUpdatePortadaCatalogo, esCatalogo,

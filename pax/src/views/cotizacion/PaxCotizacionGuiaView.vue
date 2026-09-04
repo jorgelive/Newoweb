@@ -111,6 +111,27 @@ const identError = ref<string | null>(null);
  * llegó a mandar el contenido —por eso respondió 403—, así que aquí no hay nada escondido que
  * revelar: hay que ir a buscarlo con la sesión ya abierta.
  */
+const saliendo = ref(false);
+
+/**
+ * Cierra la identificación y deja la pantalla pidiendo documento otra vez.
+ *
+ * ⚠️ **Se recarga la propuesta a propósito, en vez de sólo borrar el nombre.** Lo que se ve
+ * después de salir no es esta misma página sin la tarjeta: el itinerario venía recortado a los
+ * subgrupos de quien estaba dentro, así que hay que volver a pedirlo. El servidor contestará 403
+ * y el formulario aparece solo.
+ */
+const salirDeIdentidad = async () => {
+  saliendo.value = true;
+
+  try {
+    await store.olvidarIdentidad(props.localizador);
+    await store.cargarPropuesta(props.localizador, Number(props.propuesta));
+  } finally {
+    saliendo.value = false;
+  }
+};
+
 const enviarIdentificacion = async () => {
   identEnviando.value = true;
   identError.value = null;
@@ -907,6 +928,16 @@ const adelantoVista = computed(() => {
             {{ maestroStore.t('cot_lo_tuyo') || 'Lo tuyo' }}
           </p>
           <span class="text-xs font-bold text-slate-400 truncate">· {{ store.miIdentidad.nombre }}</span>
+
+          <!-- ⚠️ **«No soy yo», no «Cerrar sesión».** Este enlace se abre en el móvil de la
+               familia y en el ordenador del colegio: quien pulsa aquí casi nunca es quien se
+               identificó, sino el siguiente, que ve un nombre ajeno y necesita quitarlo. Dicho
+               como una acción de sesión, ni se le ocurre que sea eso. -->
+          <button type="button" @click="salirDeIdentidad" :disabled="saliendo"
+                  class="ml-auto shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-[#376875] hover:border-[#376875]/30 transition-colors disabled:opacity-50">
+            <i class="fas" :class="saliendo ? 'fa-spinner fa-spin' : 'fa-right-from-bracket'"></i>
+            {{ maestroStore.t('cot_no_soy_yo') || 'No soy yo' }}
+          </button>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
