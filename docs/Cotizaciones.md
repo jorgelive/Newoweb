@@ -2327,6 +2327,24 @@ que no había vuelos enlazados. Envolver la columna en `HEX()` renuncia al índi
 —son 56 filas—; la alternativa, convertir a binario en PHP, vuelve a poner el error a un descuido
 de distancia.
 
+### La cobertura, también dentro del componente
+
+```
+A QUIÉN APLICA        [ Vuelo · Nacional · Sky Airline · YMFLHB · 44 pax ▾ ]
+  ⚠ PARTE DE UN REPARTO EN 5
+    Esta parte 29 pax · entre todas 122 de 133 · faltan 11
+```
+
+La franja completa vive en el panel del **servicio** y el selector en el del **componente**:
+mientras asignabas no veías el efecto, y con cinco partes eso son cinco viajes de ida y vuelta para
+saber si ya cubres a los 133. Es el mismo número, al lado del control que lo mueve.
+
+⚠️ **Sólo si el componente está repartido.** Un aviso permanente que casi siempre dice «todo bien»
+deja de leerse, y entonces no avisa el día que importa.
+
+⚠️ Y **«Esta parte sin acotar»** cuando la copia todavía no tiene subgrupos: es el estado en que
+nace, y decirlo es la mitad del recordatorio de que hay que repartirla.
+
 ### En el selector: el vuelo desplegable y lo ya repartido fuera
 
 ```

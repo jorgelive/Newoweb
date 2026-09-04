@@ -278,18 +278,69 @@ const alternarParte = (clave: string): void => {
  * ⚠️ Y nunca se esconden los del componente que se está editando: son los que hay que poder
  * desmarcar.
  */
+/**
+ * Los componentes del servicio que contiene al componente abierto.
+ *
+ * 🔥 **NO vale `store.servicioActivo`.** `servicioActivo` y `componenteActivo` salen los dos de
+ * `dataActiva` según el nivel abierto y son **excluyentes**: con el panel del componente delante,
+ * el primero es `null`. La versión que lo usaba devolvía lista vacía y **el filtro existía sin
+ * filtrar nada** — sin error y sin que la lista se viera distinta.
+ */
+const hermanosDelActivo = computed<ComponenteCompleto[]>(() => {
+  const activo = store.componenteActivo;
+
+  if (!activo) return [];
+
+  return (store.cotizacion?.cotservicios ?? [])
+    .find(s => (s.cotcomponentes ?? []).some(c => c.id === activo.id))
+    ?.cotcomponentes ?? [];
+});
+
+/**
+ * El reparto al que pertenece el componente abierto, resumido para su propio panel.
+ *
+ * ── Por qué también aquí ────────────────────────────────────────────────────
+ * La franja de cobertura vive en el panel del SERVICIO y el selector «A quién aplica» en el del
+ * COMPONENTE. Mientras asignas no ves el efecto: hay que volver atrás para saber si ya cubres a
+ * los 133, y con cinco partes eso son cinco viajes de ida y vuelta.
+ *
+ * ⚠️ `null` cuando el componente no está repartido —es un servicio normal— y entonces no se pinta
+ * nada: un aviso permanente que casi siempre dice «todo bien» deja de leerse.
+ */
+const repartoDelActivo = computed<{ esta: number | null; total: number; partes: number; faltan: number } | null>(() => {
+  const activo = store.componenteActivo;
+
+  if (!activo) return null;
+
+  const raiz = activo.duplicadoDe ?? activo.id;
+  const partes = hermanosDelActivo.value.filter(c => (c.duplicadoDe ?? c.id) === raiz);
+
+  if (partes.length < 2) return null;
+
+  const paxDe = (c: ComponenteCompleto): number | null => {
+    const iris = (c.grupos ?? []) as string[];
+
+    return iris.length === 0
+      ? null
+      : iris.reduce((s, iri) => s + (store.subgruposDelFile.find(sg => sg['@id'] === iri)?.totalMiembros ?? 0), 0);
+  };
+
+  const total = partes.reduce((s, c) => s + (paxDe(c) ?? 0), 0);
+
+  return {
+    esta: paxDe(activo),
+    total,
+    partes: partes.length,
+    faltan: Math.max(0, paxDeReferencia.value - total),
+  };
+});
+
 const yaEnOtraParteDelReparto = computed<Set<string>>(() => {
   const activo = store.componenteActivo;
 
   if (!activo) return new Set();
 
-  // 🔥 **NO se puede usar `store.servicioActivo`.** `servicioActivo` y `componenteActivo` son
-  // excluyentes —los dos salen de `dataActiva` según el nivel abierto—, así que aquí, con el panel
-  // del componente delante, `servicioActivo` es `null` y la lista salía vacía: el filtro existía y
-  // no filtraba nada, sin error. Se busca el servicio que contiene al componente.
-  const comps = (store.cotizacion?.cotservicios ?? [])
-    .find(s => (s.cotcomponentes ?? []).some(c => c.id === activo.id))
-    ?.cotcomponentes ?? [];
+  const comps = hermanosDelActivo.value;
 
   const raiz = activo.duplicadoDe ?? activo.id;
   const usados = new Set<string>();
@@ -3698,6 +3749,31 @@ store.$onAction(({ name, args }) => {
                     Vacío = todo el grupo. Marca varios cuando el mismo vuelo lleva gente de
                     distintas reservas: es un componente, no uno por localizador.
                   </p>
+
+                  <!-- ══ LA COBERTURA, AQUÍ MISMO ═══════════════════════════
+                       La franja completa vive en el panel del SERVICIO, y mientras asignas no se
+                       ve: había que volver atrás para saber si ya cubres a los 133, y con cinco
+                       partes eso son cinco viajes de ida y vuelta. Esto es el mismo número, al
+                       lado del selector que lo mueve.
+                       ⚠️ Sólo si el componente está repartido: un aviso permanente que casi
+                       siempre dice «todo bien» deja de leerse. -->
+                  <div v-if="repartoDelActivo" class="mt-2 rounded-xl border px-3 py-2"
+                       :class="repartoDelActivo.faltan === 0
+                         ? 'border-emerald-200 bg-emerald-50'
+                         : 'border-amber-200 bg-amber-50'">
+                    <p class="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"
+                       :class="repartoDelActivo.faltan === 0 ? 'text-emerald-700' : 'text-amber-700'">
+                      <i class="fas" :class="repartoDelActivo.faltan === 0 ? 'fa-circle-check' : 'fa-triangle-exclamation'"></i>
+                      Parte de un reparto en {{ repartoDelActivo.partes }}
+                    </p>
+                    <p class="text-[11px] font-bold mt-1"
+                       :class="repartoDelActivo.faltan === 0 ? 'text-emerald-800' : 'text-amber-900'">
+                      <span v-if="repartoDelActivo.esta !== null">Esta parte {{ repartoDelActivo.esta }} pax · </span>
+                      <span v-else class="text-amber-700">Esta parte sin acotar · </span>
+                      entre todas {{ repartoDelActivo.total }} de {{ paxDeReferencia }}
+                      <span v-if="repartoDelActivo.faltan"> · faltan {{ repartoDelActivo.faltan }}</span>
+                    </p>
+                  </div>
                 </div>
 
                 <!-- ══ PRESTADOR ══════════════════════════════════════════════
