@@ -1124,6 +1124,57 @@ async function copiar(texto: string, key: string): Promise<void> {
 }
 
 
+/**
+ * Vuelve a leer del servidor SÓLO el estado y el estado de pago de cada estancia.
+ *
+ * 🔥 **Registrar un pago mueve la estancia por detrás del formulario abierto.** El panel de
+ * finanzas cuadra el saldo, `PmsEstadoPagoEventosService` pone `pago-total` y la integridad la
+ * confirma — todo en el servidor, sin pasar por este formulario. El drawer se quedaba enseñando
+ * «Pendiente · No pagado», que era verdad al abrirlo y dejó de serlo hace diez segundos.
+ *
+ * El guardado ya no pisaba nada —`estado` y `estadoPago` viajan sólo si se cambiaron aquí, ver
+ * `guardar()`—, pero **enseñar un dato falso invita a corregirlo**: el operador lee «No pagado»
+ * sobre una reserva que acaba de cobrar, toca el selector para arreglarlo y entonces sí manda un
+ * valor a mano encima del que el servidor puso solo.
+ *
+ * ⚠️ **Sólo esos dos campos y sus originales.** Nada más se toca: el operador pudo haber escrito
+ * una descripción o cambiado los adultos antes de ir a cobrar, y recargar el formulario entero le
+ * borraría lo suyo sin avisar. Se re-sincroniza lo que el servidor mueve por su cuenta, y punto.
+ *
+ * ⚠️ **También se actualizan `estadoActualId` / `estadoPagoActualId`**, no sólo lo que se ve. Si se
+ * refrescara la vista y no el original, el siguiente guardado creería que el operador cambió esos
+ * campos —difieren de lo que había al abrir— y los mandaría de vuelta: el mismo pisotón, por la
+ * puerta contraria.
+ */
+async function resincronizarEstadosDeEstancias(): Promise<void> {
+    const conId = eventos.value.filter((e) => e.eventoId !== null);
+
+    if (conId.length === 0) {
+        return;
+    }
+
+    try {
+        const frescos = await Promise.all(conId.map((e) => reservasStore.fetchEvento(e.eventoId as string)));
+
+        conId.forEach((entry, i) => {
+            const fresco = frescos[i];
+
+            if (!fresco) {
+                return;
+            }
+
+            entry.estadoActualId = fresco.estado?.id ?? null;
+            entry.estadoPagoActualId = fresco.estadoPago?.id ?? null;
+            entry.form.estado = fresco.estado?.id ?? '';
+            entry.form.estadoPago = fresco.estadoPago?.id ?? '';
+        });
+    } catch {
+        // Silencio a propósito: es una puesta al día, no una acción del operador. Si falla, el
+        // formulario se queda como estaba —que es lo que ya hacía— y el guardado sigue protegido
+        // por la comparación con el original. Un error aquí sólo asustaría sin dar nada que hacer.
+    }
+}
+
 async function cargarDatos(): Promise<void> {
     isLoadingDrawer.value = true;
     localError.value = null;
@@ -1843,9 +1894,13 @@ async function ejecutarBorrado(): Promise<void> {
                 <!-- `cambiado` sube hasta el calendario: un cobro hecho aquí con los atajos
                      no pasa por «Guardar», así que sin esto la barra de la reserva se quedaba
                      con el color y el saldo viejos detrás de este mismo panel. -->
+                <!-- ⚠️ `cambiado` sirve para DOS cosas y las dos hacen falta: sube al
+                     calendario (color de la barra y saldo) y **vuelve a leer el estado de las
+                     estancias**, que el cobro acaba de mover en el servidor por detrás de este
+                     formulario. Ver `resincronizarEstadosDeEstancias()`. -->
                 <ReservaFinanzasPanel v-if="reservaId" ref="finanzasPanel"
                     :reserva-id="reservaId" :read-only="readOnly"
-                    @cambiado="emit('finanzasCambiadas')" />
+                    @cambiado="emit('finanzasCambiadas'); void resincronizarEstadosDeEstancias()" />
 
                 <!-- ================= ESTANCIA(S) ================= -->
                 <section>

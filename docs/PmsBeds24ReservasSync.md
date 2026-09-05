@@ -4452,6 +4452,34 @@ servidor** (`EventoEntry.estadoActualId` / `estadoPagoActualId`). La auto-confir
 por pago sigue viajando: muta `form.estado`, así que difiere del original. El resto del
 formulario se sigue mandando entero: ningún otro campo del PATCH lo escribe el backend solo.
 
+#### Y además el formulario se pone al día (05/09/2026)
+
+La guarda de arriba impide el pisotón, pero deja algo peor a medias: **el drawer sigue enseñando
+«Pendiente · No pagado»** sobre una reserva que se acaba de cobrar. Era verdad al abrirlo y dejó de
+serlo hace diez segundos.
+
+🔥 **Un dato falso en pantalla invita a corregirlo.** El operador lee «No pagado», va al selector a
+arreglarlo — y entonces sí manda a mano un valor encima del que el servidor puso solo. La guarda
+sólo protege de lo que el formulario **no toca**; en cuanto alguien toca, se acabó.
+
+`ReservaEditDrawer::resincronizarEstadosDeEstancias()` cuelga del mismo `@cambiado` que ya subía al
+calendario, y vuelve a leer del servidor **cuatro cosas y nada más** por estancia: `form.estado`,
+`form.estadoPago` y sus dos originales.
+
+⚠️ **Se actualizan también los originales**, no sólo lo que se ve. Refrescar la vista y dejar
+`estadoActualId` viejo haría que el siguiente guardado creyera que el operador cambió esos campos
+—difieren de lo que había al abrir— y los mandaría de vuelta: el mismo pisotón por la puerta
+contraria.
+
+⚠️ **Y sólo esos cuatro.** El operador pudo escribir una descripción o cambiar los adultos antes de
+ir a cobrar; recargar el formulario entero se los borraría sin decir nada. Verificado en pantalla:
+tras resincronizar, `estado` y `estadoPago` vuelven a `confirmada` / `pago-total` y la descripción
+y los adultos escritos a mano siguen ahí.
+
+⚠️ **Si la relectura falla, silencio.** Es una puesta al día, no una acción del operador: el
+formulario se queda como estaba —que es lo que hacía antes— y el guardado sigue protegido por la
+comparación con el original. Un error ahí sólo asusta sin dar nada que hacer.
+
 La contraparte del teléfono del huésped. Cuando entra un WhatsApp lo único que se tiene es el
 número del remitente, y sin este campo no había forma de distinguir a un operador de un huésped:
 **todos entraban por la puerta del huésped** (`AgentActor::huesped()`, acotado a una reserva).
