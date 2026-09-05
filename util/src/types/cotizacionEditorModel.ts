@@ -764,6 +764,35 @@ export interface EtiquetaGrupoTarifa {
     indice: number;
 }
 
+/**
+ * ¿Este componente se le publica al cliente como OPCIONAL?
+ *
+ * 🔥 **No es un modo, es un resultado.** `ComponenteModoEnum` no tiene `opcional`: un componente
+ * `incluido` **sin tarifa estándar** manda todas sus tarifas a «Opción N» dentro de Opcional, con
+ * su diferencia por persona. Así se monta un opcional con precio, y así se ve también un olvido de
+ * marcar la estándar — en los datos son idénticos.
+ *
+ * ⚠️ **Una sola definición para los dos consumidores**: el aviso informativo de
+ * `construirInclusiones()` y el badge del componente en el editor. Escrita dos veces acabarían
+ * discrepando, y entonces el badge diría una cosa y el panel otra sobre el mismo componente.
+ *
+ * ⚠️ Pide **alguna tarifa publicable**: sin ninguna no se publica nada —ni como opcional— y ése es
+ * otro aviso distinto, el que sí bloquea.
+ */
+export const esOpcionalParaElCliente = (comp: {
+    modo?: string | null;
+    cottarifas?: { rolSnapshot?: string | null }[] | null;
+}): boolean => {
+    if ((comp.modo || 'incluido').toLowerCase() !== 'incluido') {
+        return false;
+    }
+
+    const tarifas = comp.cottarifas || [];
+    const rol = (t: { rolSnapshot?: string | null }) => (t.rolSnapshot || 'estandar');
+
+    return !tarifas.some(t => rol(t) === 'estandar') && tarifas.some(t => rol(t) !== 'operativo');
+};
+
 export const etiquetaGrupoTarifa = (
     grupo: number | null | undefined,
     hayEstandar: boolean

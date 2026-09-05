@@ -29,7 +29,7 @@ import {
   MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE,
   AudienciaDetalle, AUDIENCIA_DETALLE_CONFIG, type SubgrupoOpcion,
   ESTADOS_ELEGIBLES, esEstadoDeProceso, type EstadoUIConfig, type CotizacionEstadoValue,
-  type TarifaModalidadValue, type TarifaCategoriaValue
+  type TarifaModalidadValue, type TarifaCategoriaValue, esOpcionalParaElCliente
 } from '@/types/cotizacionEditorModel';
 import { GRUPO_TIPO_LABELS } from '@/types/fileDetalleModel';
 // La etiqueta legible de cada Categoría Operativa vive con La Biblia, que es donde más se
@@ -351,6 +351,15 @@ const alternarGrupo = (iri: string): void => {
 };
 
 /** Lo que se lee en el botón cerrado. */
+/**
+ * Cuántos componentes de este servicio se publican como opcionales.
+ *
+ * Es el mismo dato que el badge de cada tarjeta, contado arriba: con quince componentes no se
+ * llega a verlos todos de un vistazo, y lo que se quiere saber es si **hay alguno**, no cuál.
+ */
+const opcionalesDelServicio = computed(() =>
+  (store.servicioActivo?.cotcomponentes ?? []).filter(c => esOpcionalParaElCliente(c)).length);
+
 const resumenDeGrupos = (comp: ComponenteCompleto): string => {
   const iris = (comp.grupos ?? []) as string[];
 
@@ -2873,7 +2882,15 @@ store.$onAction(({ name, args }) => {
 
             <div class="border-t border-slate-100 pt-5">
               <h3 class="text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 flex items-center justify-between">
-                <span>Componentes Logísticos</span>
+                <span class="flex items-center gap-2 min-w-0">
+                  Componentes Logísticos
+                  <!-- El mismo dato que el badge de cada tarjeta, contado aquí: con quince
+                       componentes en un servicio no se llega a verlos todos de un vistazo. -->
+                  <span v-if="opcionalesDelServicio" class="normal-case tracking-normal text-[9px] font-black px-2 py-0.5 rounded-lg border bg-amber-50 text-amber-700 border-amber-200 whitespace-nowrap"
+                        :title="`${opcionalesDelServicio} componente(s) sin tarifa estándar: el cliente los verá como Opcional`">
+                    <i class="fas fa-circle-question mr-1"></i>{{ opcionalesDelServicio }} opcional{{ opcionalesDelServicio === 1 ? '' : 'es' }}
+                  </span>
+                </span>
                 <!-- ⚠️ UN botón, no dos.
                      Estuvieron «+ Añadir Extra» y «Manual» separados, y era una decisión mal
                      colocada: los dos creaban exactamente lo mismo y la diferencia sólo se veía
@@ -3020,6 +3037,22 @@ store.$onAction(({ name, args }) => {
 
                     <span v-if="store.isComponenteBloqueado(comp)" class="mt-1 text-[9px] font-bold text-teal-500 flex items-center gap-1">
                       <i class="fas fa-link"></i> Insumo Autogenerado (Vinculado)
+                    </span>
+                  </div>
+
+                  <!-- ══ OPCIONAL, DICHO EN LA TARJETA ═════════════════════
+                       🔥 En el modelo no hay un modo «opcional»: un componente `incluido` SIN
+                       tarifa estándar es lo que el cliente recibe como «Opción N», con su
+                       diferencia de precio. Eso lo decidió quien lo montó, pero **no se veía en
+                       ninguna parte** — había que abrir el componente y deducirlo de que ninguna
+                       tarifa estaba marcada como estándar.
+                       El badge lo dice siempre. Así el aviso del panel deja de ser una sorpresa:
+                       el operador ya sabía que ese componente era opcional, y dirá que sí. -->
+                  <div v-if="esOpcionalParaElCliente(comp)" class="mb-3">
+                    <span class="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-lg border bg-amber-50 text-amber-700 border-amber-200"
+                          title="Sin tarifa estándar: el cliente lo verá como Opcional y podrá añadirlo por su diferencia de precio. Si tenía que ir incluido, marca una tarifa como estándar.">
+                      <i class="fas fa-circle-question text-[8px]"></i>
+                      Opcional
                     </span>
                   </div>
 

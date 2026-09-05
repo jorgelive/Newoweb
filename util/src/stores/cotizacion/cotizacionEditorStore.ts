@@ -1640,6 +1640,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         // renderizado la resuelve con elegancia —lo publica como «Opción N»
                         // en Opcional— y ahí está el peligro: el cliente recibe como
                         // elegible algo que se le vendió como incluido, sin que nadie lo note.
+                        // ⚠️ **Misma condición que `esOpcionalParaElCliente()`**, que es la que
+                        // pinta el badge del componente en el editor. Aquí se calcula inline
+                        // porque `estandares`/`opcionables` hacen falta para otras cosas; si una
+                        // de las dos cambia, la otra tiene que cambiar — o el badge dirá una cosa
+                        // y el panel otra sobre el mismo componente.
                         if (opcionables.length > 0) {
                             // ⚠️ INFORMATIVO, no advertencia: así se monta un opcional con precio,
                             // y bloquear por esto impedía publicar cualquier propuesta que tuviera

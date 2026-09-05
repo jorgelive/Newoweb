@@ -839,10 +839,35 @@ cliente lo verá como opcional y podrá añadirlo— y deja la decisión, en vez
 un error. En pantalla las dos listas se pintan juntas: para quien lee, un aviso es un aviso; la
 distinción es de la máquina.
 
-⚠️ **Y con eso el olvido real deja de frenarse.** Es el precio de aceptar los dos casos por igual,
-y sólo se recupera cuando el dato diga la intención: un modo `opcional` en el componente, o una
-marca equivalente. Hasta entonces, si algo tenía que ir incluido y sale como opcional, lo dice la
-frase del panel y no lo impide nadie.
+#### La intención se declara MIRÁNDOLA, no con un campo nuevo (05/09/2026)
+
+Quedaba pendiente «un modo `opcional` en el componente» para distinguir el olvido de la intención.
+Se descartó: **no hace falta un dato nuevo, hace falta que el que hay se vea**. Un componente
+`incluido` sin tarifa estándar ya dice lo que es; lo que fallaba es que había que **abrirlo y
+deducirlo** de que ninguna tarifa estuviera marcada.
+
+Ahora se dice en los dos sitios donde se trabaja:
+
+```
+Componentes Logísticos   [ ? 1 opcional ]        ← la cabecera del servicio
+  ┌──────────────────────────────────────┐
+  │ Noche en Coco Bongo                  │
+  │ [ ? Opcional ]  [ 2 subgrupos · 88 ] │       ← la tarjeta del componente
+```
+
+⚠️ **Una sola definición**: `esOpcionalParaElCliente()` en `cotizacionEditorModel.ts`, que usan el
+badge y la cuenta del servicio. `construirInclusiones()` la calcula inline porque necesita
+`estandares`/`opcionables` para otras cosas — y lleva escrito que si una cambia, la otra también.
+Dos definiciones acabarían diciendo cosas distintas del mismo componente.
+
+⚠️ **Y así el aviso del panel deja de ser una sorpresa.** El operador ya sabía que ese componente
+era opcional cuando lo montó: al leerlo en el resumen dirá que sí, en vez de preguntarse qué se le
+pasó. Ése era el problema real — no que el sistema no supiera distinguir, sino que **no enseñaba lo
+que sabía**.
+
+⚠️ **El olvido real sigue sin frenarse**, y eso no cambia: si algo tenía que ir incluido y sale
+como opcional, ahora lo dicen un badge, una cuenta y una línea en el panel — pero nadie lo impide.
+Es lo que se aceptó al sacar el aviso de `publicable`.
 
 ⚠️ **El listón para `advertencias` sube con esto:** una regla ahí dentro no vale sólo con señalar
 algo raro — tiene que ser algo que **no pueda ser deliberado**. Si el operador puede haberlo hecho
