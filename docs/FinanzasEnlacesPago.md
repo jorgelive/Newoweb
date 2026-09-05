@@ -1070,15 +1070,60 @@ aquí**. El primer cliente de fuera que pague *es* la prueba, y sin su respuesta
 volveríamos a quedarnos con un 422 mudo, que es exactamente como se perdieron los cinco
 primeros intentos.
 
+### La auditoría de cobros: una fila por intento (05/09/2026)
+
+`fin_pasarela_cobro_audit` guarda **lo que le pedimos a la pasarela**; su hermana
+`fin_pasarela_webhook_audit` guarda lo que la pasarela nos manda. Faltaba la primera mitad de
+la conversación, que es donde está el dinero.
+
+**Nace de una necesidad concreta:** hay implementaciones que no se pueden terminar probando.
+El reto 3DS lo dispara el banco emisor de una tarjeta extranjera y aquí no hay ninguna; los
+cinco intentos reales de agosto y septiembre se perdieron dejando **una línea de log repetida
+cinco veces, sin el cuerpo de la respuesta**, y reconstruir qué había pasado costó leer el
+bundle de la librería y contar líneas del `error.log`. Con la tabla, el primer pago extranjero
+cierra la implementación solo:
+
+```sql
+SELECT intentado_en, con_3ds, desenlace, action_code, outcome_type, outcome_code, cargo_id
+FROM fin_pasarela_cobro_audit WHERE enlace_id = 0x… ORDER BY intentado_en;
+
+12:03:41  0  reto_3ds  REVIEW  NULL            NULL      NULL
+12:04:58  1  pagado    NULL    venta_exitosa   AUT0000   chr_live_…
+```
+
+Dos filas y quedan contestadas las tres preguntas abiertas: si el reto llega, si el token se
+puede reutilizar y qué `outcome.type` trae un cargo que pasó por el banco.
+
+Los seis desenlaces: `iniciado`, `pagado`, `reto_3ds`, `rechazado`, `no_salda` (vino algo con
+forma de cargo que no cuadra) y `error` (no se pudo ni hablar con la pasarela).
+
+⚠️ **La fila se abre ANTES de llamar a Culqi**, igual que el audit de webhooks se persiste
+antes de validar la firma. La fila que más interesa es la del intento que **no volvió**: si la
+red se corta entre el cargo y nuestra respuesta, el dinero pudo salir y aquí queda la única
+prueba de que se pidió. Un intento que se queda en `iniciado` es exactamente eso, y es lo
+primero que hay que mirar ante un descuadre.
+
+⚠️ **Auditar nunca puede tumbar un cobro.** Todo `FinCobroAuditor` va envuelto en `try`: si la
+escritura falla, se anota en el log y el pago sigue. Va en sentido contrario a lo habitual —
+aquí la observabilidad vale menos que la operación que observa— y por eso `abrir()` devuelve
+`null` en vez de lanzar, y `cerrar(null, …)` no hace nada.
+
+⚠️ **Nunca guarda datos del titular.** El cuerpo entra sin `source`, `antifraud_details` ni
+`client` —tarjeta enmascarada, correo, nombre, teléfono, huella del dispositivo—: no hacen
+falta para entender qué contestó la pasarela y sí sobran en una tabla que se consulta meses
+después. Lo cubre `FinCobroAuditorTest`, que es también donde están escritos los cuerpos reales
+de un cargo autorizado, uno denegado y una petición de reto.
+
 ### Sigue pendiente
 
 **Probar el reto 3DS de punta a punta.** Sigue sin ejecutarse una sola vez: el reto lo dispara
 el banco emisor de una tarjeta extranjera y aquí no hay ninguna. La primera versión se desplegó
 el 05/09/2026 **inerte** —dos fallos que la revisión encontró leyendo el bundle y los logs, no
 probando— y lo que hay ahora está corregido pero igual de sin estrenar. Lo que **sí** está
-medido es el suelo: un cargo denegado no salda el enlace, y las dos ramas que no saldan dejan
-el cuerpo entero escrito. El primer cliente extranjero que pague es la prueba, y esta vez deja
-rastro.
+medido es el suelo: un cargo denegado no salda el enlace. Y desde el 05/09/2026 el primer
+cliente extranjero que pague **cierra la implementación por sí solo**: su secuencia entera
+queda en `fin_pasarela_cobro_audit`, intento a intento. No hay nada más que programar a ciegas
+— hay que mirar esa tabla.
 
 **Qué `outcome.type` trae un cargo que pasó por el reto.** Se exige `venta_exitosa`; si un
 cobro autenticado trajera otra cosa, el dinero estaría en Culqi y el enlace sin saldar — el
@@ -1748,6 +1793,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Tocar el reto 3DS del navegador | `pax/src/views/pago/PagoCulqiForm.vue` | `autenticar3DS()` · `MINUTOS_DE_RETO` |
 | Leer más campos del webhook de Culqi | `src/Finanzas/Controller/Webhook/CulqiWebhookController.php` | `datosDelEvento()` — `data` llega como cadena y en camelCase |
 | Cambiar lo que lee el cliente ante un error sin mensaje | `pax/src/views/pago/PagoCulqiForm.vue` | `textoDelError()` |
+| Ver qué pasó en un cobro que no cuadra | tabla `fin_pasarela_cobro_audit` | una fila por intento; empieza por los `iniciado` |
+| Cambiar qué se guarda de la respuesta de una pasarela | `src/Finanzas/Service/FinCobroAuditor.php` | `senalesDe()` · `sinDatosDelTitular()` |
 | Cambiar qué datos del cobro se ven sin desplegar | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | bloque `estado === 'pagado'` |
 | Tocar la vista de auditoría de la respuesta | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | `alternarAuditoria()` |
 | Extraer un campo nuevo de la respuesta a columna | el cliente de esa pasarela | `comoRespuestaNormalizada()` |

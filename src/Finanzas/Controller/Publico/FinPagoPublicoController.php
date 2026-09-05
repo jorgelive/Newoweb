@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Finanzas\Controller\Publico;
 
 use App\Finanzas\Entity\FinEnlacePago;
-use App\Finanzas\Service\Culqi\CulqiRechazoException;
+use App\Finanzas\Entity\FinPasarelaCobroAudit;
 use App\Finanzas\Enum\FinPasarela;
 use App\Finanzas\Repository\FinEnlacePagoRepository;
 use App\Finanzas\Service\Culqi\CulqiClient;
+use App\Finanzas\Service\Culqi\CulqiRechazoException;
+use App\Finanzas\Service\FinCobroAuditor;
 use App\Finanzas\Service\FinEnlacePagoService;
 use App\Finanzas\Service\FinPasarelaRegistry;
 use DomainException;
@@ -44,6 +46,7 @@ final class FinPagoPublicoController extends AbstractController
         private readonly FinPasarelaRegistry $pasarelas,
         private readonly CulqiClient $culqi,
         private readonly FinEnlacePagoService $servicio,
+        private readonly FinCobroAuditor $auditor,
         private readonly LoggerInterface $logger,
     ) {}
 
@@ -145,6 +148,11 @@ final class FinPagoPublicoController extends AbstractController
         // intento; ver `CulqiClient::cobrarConToken()`.
         $autenticacion = is_array($datos['autenticacion3DS'] ?? null) ? $datos['autenticacion3DS'] : null;
 
+        // ⚠️ **La fila se abre ANTES de llamar a Culqi.** Un intento que se queda en `iniciado`
+        // es el caso que no deja rastro en ningún otro sitio: la petición salió, el cargo pudo
+        // crearse y la respuesta no volvió. Ver `FinPasarelaCobroAudit`.
+        $audit = $this->auditor->abrir($enlace, FinPasarela::CULQI, $autenticacion !== null);
+
         try {
             $cargo = $this->culqi->cobrarConToken($enlace, $tokenTarjeta, $autenticacion);
         } catch (CulqiRechazoException $e) {
@@ -161,6 +169,7 @@ final class FinPagoPublicoController extends AbstractController
                     'enlace' => (string) $enlace->getId(),
                     'code' => $e->codigo(),
                 ]);
+                $this->auditor->cerrar($audit, FinPasarelaCobroAudit::DESENLACE_RETO_3DS, $e->datos());
 
                 return $this->json([
                     'error' => 'requiere_3ds',
@@ -179,11 +188,13 @@ final class FinPagoPublicoController extends AbstractController
                 'code' => $e->codigo(),
                 'motivo' => $e->motivoDelComercio(),
             ]);
+            $this->auditor->cerrar($audit, FinPasarelaCobroAudit::DESENLACE_RECHAZADO, $e->datos());
 
             return $this->json(['error' => 'rechazado', 'mensaje' => $e->getMessage()], 402);
         } catch (RuntimeException $e) {
             // Cualquier otro fallo hablando con Culqi (red, configuración): no es del banco.
             $this->servicio->registrarFallo($enlace, ['error' => $e->getMessage()]);
+            $this->auditor->cerrar($audit, FinPasarelaCobroAudit::DESENLACE_ERROR, [], $e->getMessage());
 
             return $this->json(['error' => 'rechazado', 'mensaje' => $e->getMessage()], 402);
         }
@@ -192,11 +203,13 @@ final class FinPagoPublicoController extends AbstractController
             $this->logger->error('[culqi] cargo creado que no cuadra con el enlace', [
                 'enlace' => (string) $enlace->getId(),
             ]);
+            $this->auditor->cerrar($audit, FinPasarelaCobroAudit::DESENLACE_NO_SALDA, $cargo);
 
             return $this->json(['error' => 'cargo_no_valido'], 422);
         }
 
         $this->servicio->confirmarPago($enlace, $this->culqi->comoRespuestaNormalizada($cargo));
+        $this->auditor->cerrar($audit, FinPasarelaCobroAudit::DESENLACE_PAGADO, $cargo);
 
         return $this->json(['ok' => true, 'estado' => $enlace->getEstado()->value]);
     }

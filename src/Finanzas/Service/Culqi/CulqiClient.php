@@ -7,6 +7,7 @@ namespace App\Finanzas\Service\Culqi;
 use App\Finanzas\Contract\FinPasarelaClientInterface;
 use App\Finanzas\Entity\FinEnlacePago;
 use App\Finanzas\Enum\FinPasarela;
+use App\Finanzas\Service\FinCobroAuditor;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -230,7 +231,7 @@ final class CulqiClient implements FinPasarelaClientInterface
             $this->logger->error('[culqi] el POST no devolvió un cargo', [
                 'enlace' => (string) $enlace->getId(),
                 'reintentoCon3DS' => $autenticacion3DS !== null,
-                'respuesta' => self::sinDatosDelTitular($respuesta),
+                'respuesta' => FinCobroAuditor::sinDatosDelTitular($respuesta),
             ]);
 
             throw new CulqiRechazoException('Culqi no creó el cargo: ' . $detalle, $respuesta);
@@ -239,22 +240,6 @@ final class CulqiClient implements FinPasarelaClientInterface
         return $respuesta;
     }
 
-    /**
-     * El cuerpo de Culqi sin lo que identifica al titular, para poder registrarlo.
-     *
-     * `source` lleva la tarjeta enmascarada, el correo y la huella del dispositivo;
-     * `antifraud_details`, el nombre y el teléfono. Nada de eso hace falta para entender qué
-     * respondió la pasarela, y un log se lee meses después y desde muchos sitios.
-     *
-     * @param array<string, mixed> $cuerpo
-     * @return array<string, mixed>
-     */
-    private static function sinDatosDelTitular(array $cuerpo): array
-    {
-        unset($cuerpo['source'], $cuerpo['antifraud_details'], $cuerpo['client']);
-
-        return $cuerpo;
-    }
 
     /**
      * Quién paga, para el panel de Culqi. **`antifraud_details`, y no el `client` del Checkout.**
@@ -426,7 +411,7 @@ final class CulqiClient implements FinPasarelaClientInterface
             $this->logger->error('[culqi] la respuesta no es un cargo', [
                 'enlace' => (string) $enlace->getId(),
                 'object' => $cargo['object'] ?? null,
-                'respuesta' => self::sinDatosDelTitular($cargo),
+                'respuesta' => FinCobroAuditor::sinDatosDelTitular($cargo),
             ]);
 
             return false;
@@ -447,7 +432,7 @@ final class CulqiClient implements FinPasarelaClientInterface
                 'outcome' => $resultado,
                 'code' => $cargo['outcome']['code'] ?? null,
                 'motivo' => $cargo['outcome']['merchant_message'] ?? null,
-                'respuesta' => self::sinDatosDelTitular($cargo),
+                'respuesta' => FinCobroAuditor::sinDatosDelTitular($cargo),
             ]);
 
             return false;
