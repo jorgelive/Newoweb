@@ -805,9 +805,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
          * ⚠️ **Se sigue diciendo**, en el panel de «Información»: el día que sí sea un olvido, la
          * frase es la pista. Lo que se le quita es el voto sobre publicar.
          *
-         * ⚠️ **Y con eso el olvido real deja de frenarse**, que es el precio de aceptar los dos
-         * casos por igual. Sólo se recupera cuando el dato diga la intención — un modo `opcional`
-         * en el componente, o una marca equivalente. Ver `docs/Cotizaciones.md`.
+         * ⚠️ **Y esto NO deja una deuda abierta.** Un opcional deliberado y una estándar olvidada
+         * son el mismo dato: mismo modo, mismas tarifas, mismos roles. No hay señal que los
+         * separe, así que no hay nada que «frenar» — pedirlo es pedir que el sistema adivine lo
+         * que el operador pensaba. Lo que sí se puede es enseñarlo y dejar decidir, y eso es lo
+         * que hay: este aviso, el badge de la tarjeta y la cuenta del servicio
+         * (`esOpcionalParaElCliente()`). Ver `docs/Cotizaciones.md`.
          */
         const informativas: string[] = [];
 

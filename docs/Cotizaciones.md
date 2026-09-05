@@ -865,9 +865,21 @@ era opcional cuando lo montó: al leerlo en el resumen dirá que sí, en vez de 
 pasó. Ése era el problema real — no que el sistema no supiera distinguir, sino que **no enseñaba lo
 que sabía**.
 
-⚠️ **El olvido real sigue sin frenarse**, y eso no cambia: si algo tenía que ir incluido y sale
-como opcional, ahora lo dicen un badge, una cuenta y una línea en el panel — pero nadie lo impide.
-Es lo que se aceptó al sacar el aviso de `publicable`.
+#### Y con esto la pregunta queda CERRADA, no pendiente
+
+Durante un tiempo esto se anotó como deuda: «falta frenar el olvido de verdad». **No lo era.** Un
+opcional deliberado y una estándar olvidada son **el mismo dato**: mismo modo, mismas tarifas,
+mismos roles. No hay señal que los separe, porque el modelo decidió —bien— no guardar la intención.
+Pedir que el sistema los distinga es pedir que adivine lo que el operador pensaba.
+
+Lo único que se puede hacer con dos casos indistinguibles es **enseñarlos y preguntar**, y eso es
+exactamente lo que hay: el badge en la tarjeta, la cuenta en el servicio y la línea en el panel. Si
+era a propósito, se lee y se sigue; si fue un olvido, se ve tres veces antes de publicar.
+
+⚠️ **Un mecanismo que enseña y deja decidir no es un remedio a medias**: es el correcto cuando el
+dato no dice la intención. Escribirlo como pendiente invita a que alguien vuelva a intentar
+«arreglarlo», y lo único que puede salir de ahí es un campo que el operador tendrá que rellenar
+para repetir lo que ya dijo al montar el componente.
 
 ⚠️ **El listón para `advertencias` sube con esto:** una regla ahí dentro no vale sólo con señalar
 algo raro — tiene que ser algo que **no pueda ser deliberado**. Si el operador puede haberlo hecho
