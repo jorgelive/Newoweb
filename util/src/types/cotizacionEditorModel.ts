@@ -781,9 +781,19 @@ export interface EtiquetaGrupoTarifa {
  */
 export const esOpcionalParaElCliente = (comp: {
     modo?: string | null;
+    tituloSnapshot?: unknown[] | null;
     cottarifas?: { rolSnapshot?: string | null }[] | null;
 }): boolean => {
     if ((comp.modo || 'incluido').toLowerCase() !== 'incluido') {
+        return false;
+    }
+
+    // ⚠️ **Sin título público no hay línea, y por tanto no hay opcional.** El panel del cliente
+    // sólo emite la línea del componente `if (tieneNombre)`; esta comprobación faltaba aquí, así
+    // que un componente sin título llevaba el badge «opcional» en el editor y no aparecía por
+    // ningún lado en la propuesta. Un badge que promete algo que el cliente nunca ve es peor que
+    // no tenerlo: el operador da por publicado lo que no se publicó.
+    if (!comp.tituloSnapshot?.length) {
         return false;
     }
 

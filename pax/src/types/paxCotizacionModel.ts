@@ -375,6 +375,13 @@ export interface PaxFilearchivo {
 /** Item de getVersionesParaCliente(): resumen liviano para comparar propuestas */
 export interface PaxPropuestaResumen {
     propuesta: number;
+    /**
+     * Sólo llega en previsualización de operador; `null` para el cliente.
+     *
+     * El cartel de arriba avisa de que hay borradores en la lista; esto dice **cuáles**, que es
+     * lo que decide si se puede mandar el enlace o no.
+     */
+    sinPublicar?: boolean | null;
     estado: string;
     numPax: number;
     titulo?: I18n; // título comercial multiidioma (opcional)
@@ -431,6 +438,8 @@ export interface PaxPrecioDesdeRango {
 /** Card liviana de un tour del catálogo (portada del escaparate). */
 export interface PaxTourResumen {
     propuesta: number;
+    /** Sólo en previsualización de operador; `null` para el cliente. Ver `PaxPropuestaResumen`. */
+    sinPublicar?: boolean | null;
     estado: string;
     numPax: number;
     titulo: I18n;
@@ -458,6 +467,13 @@ export interface PaxCatalogo {
     toursParaCliente: PaxTourResumen[];
     /** Cotización completa del tour; solo viene cuando la URL incluye /{version} */
     cotizacionParaCliente?: PaxCotizacion | null;
+    /**
+     * Las puertas que la sesión del operador se saltó. Vacío o ausente para el cliente.
+     *
+     * Gemelo del que trae el expediente, y lo lee el mismo cartel: aquí sólo puede valer
+     * `sin_publicar`. Ver `CotizacionCatalogo::$saltosDeOperador`.
+     */
+    saltosDeOperador?: string[] | null;
 }
 
 // --- Tipos derivados para la UI (itinerario agrupado) ---------------------------

@@ -116,12 +116,17 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             $file->setSaltosDeOperador($hayBorradores !== [] ? ['sin_publicar'] : []);
         }
 
-        $file->setPropuestasParaCliente(array_values(array_map(static function (array $f): array {
+        $file->setPropuestasParaCliente(array_values(array_map(static function (array $f) use ($previsualiza): array {
             $oculto = (bool) $f['precioOculto'];
             $estado = $f['estado'] instanceof CotizacionEstadoEnum ? $f['estado']->value : $f['estado'];
 
             return [
                 'propuesta'         => $f['propuesta'],
+                // ⚠️ **Cuál de ellas está sin publicar, no sólo que hay alguna.** El cartel de
+                // arriba avisa del salto; con varias propuestas en la lista, no decir cuál obliga
+                // a abrirlas una a una para averiguarlo. Sólo viaja en previsualización: para el
+                // cliente esta clave no existe, porque las no publicadas ni siquiera se consultan.
+                'sinPublicar'     => $previsualiza ? ($f['publicado'] ?? true) !== true : null,
                 'estado'          => $estado,
                 'numPax'          => $f['numPax'],
                 'titulo'          => $f['titulo'] ?? [],           // I18nContent[] (texto)
@@ -460,9 +465,16 @@ final class CotizacionFilePublicProvider implements ProviderInterface
 
             // El invitado no existe aquí —ver `esExpuesto()`— y el que no viaja tampoco es
             // compañero de nadie. Salvo que sea quien pregunta: a uno mismo no se le esconde.
-            if (!$esElMismo && ($tipo === null
-                || !$tipo->esExpuesto()
-                || $tipo === PasajeroTipoEnum::NO_PARTICIPA)) {
+            //
+            // ⚠️ **Sin rol NO es lo mismo que excluido, y esto los excluía.** `desdeTexto()`
+            // devuelve `null` cuando la hoja trae un rol que no está en la plantilla, así que un
+            // `tipo` vacío es un fallo de clasificación, no una decisión: son pasajeros del grupo
+            // con nombre y apellido —hoy 2 de 135 en producción— que desaparecían de «mis grupos»
+            // sin que nadie pudiera notarlo, porque no se echa de menos a quien no sabías que
+            // estaba. Vale la regla de todo el proyecto: sin clasificar es **sin acotar**, y de
+            // más se ve; de menos, nunca.
+            if (!$esElMismo && $tipo !== null
+                && (!$tipo->esExpuesto() || $tipo === PasajeroTipoEnum::NO_PARTICIPA)) {
                 continue;
             }
 

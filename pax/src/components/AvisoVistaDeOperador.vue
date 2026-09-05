@@ -40,11 +40,15 @@
  */
 import { computed } from 'vue';
 
-import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
+/**
+ * ⚠️ **Los saltos llegan por prop, no se van a buscar.** El cartel leía el expediente
+ * directamente del store, y por eso el catálogo —que también deja al operador ver tours sin
+ * publicar— se quedó sin él: no era una decisión, era que el componente no sabía mirar ahí.
+ * Con la prop, cualquier pantalla que reciba `saltosDeOperador` del servidor lo puede usar.
+ */
+const props = defineProps<{ saltos?: string[] | null }>();
 
-const store = usePaxCotizacionStore();
-
-const saltos = computed<string[]>(() => store.file?.saltosDeOperador ?? []);
+const saltos = computed<string[]>(() => props.saltos ?? []);
 
 const sinPublicar = computed(() => saltos.value.includes('sin_publicar'));
 

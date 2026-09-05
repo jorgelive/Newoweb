@@ -1163,10 +1163,26 @@ async function resincronizarEstadosDeEstancias(): Promise<void> {
                 return;
             }
 
+            // ⚠️ **Sólo se mueve el selector que el operador NO ha tocado.** Antes se pisaban
+            // los dos sin mirar: quien había elegido un estado y todavía no había guardado veía
+            // su elección desaparecer al registrar el pago, sin aviso y sin poder deshacerla.
+            // Registrar un cobro pone al día lo que dice el servidor; no borra lo que la persona
+            // estaba escribiendo.
+            const tocoElEstado = entry.form.estado !== (entry.estadoActualId ?? '');
+            const tocoElPago = entry.form.estadoPago !== (entry.estadoPagoActualId ?? '');
+
+            // La referencia se refresca SIEMPRE, tocado o no: es contra ella que el guardado
+            // decide qué mandar, así que dejarla vieja haría reenviar un estado ya superado.
             entry.estadoActualId = fresco.estado?.id ?? null;
             entry.estadoPagoActualId = fresco.estadoPago?.id ?? null;
-            entry.form.estado = fresco.estado?.id ?? '';
-            entry.form.estadoPago = fresco.estadoPago?.id ?? '';
+
+            if (!tocoElEstado) {
+                entry.form.estado = fresco.estado?.id ?? '';
+            }
+
+            if (!tocoElPago) {
+                entry.form.estadoPago = fresco.estadoPago?.id ?? '';
+            }
         });
     } catch {
         // Silencio a propósito: es una puesta al día, no una acción del operador. Si falla, el

@@ -61,7 +61,7 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
 
         // ── 1. Cards para la portada: un solo query escalar ──────────────────
         $filas = $this->em->createQuery(<<<'DQL'
-            SELECT c.id, c.imagenPortada, c.propuesta, c.estado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
+            SELECT c.id, c.imagenPortada, c.propuesta, c.estado, c.publicado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
                    c.monedaGlobal, c.precioOculto, c.totalVenta,
                    c.preciosDesde, c.orden,
                    MIN(s.fechaInicioAbsoluta) AS fechaMin, MAX(s.fechaInicioAbsoluta) AS fechaMax
@@ -84,12 +84,24 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
         // Portadas automáticas: imágenes de los segmentos en orden de itinerario
         $portadas = $this->tarjetas->portadasDerivadas(array_column($filas, 'id'));
 
-        $catalogo->setToursParaCliente(array_values(array_map(static function (array $f) use ($portadas): array {
+        // 🔥 **El catálogo también deja pasar al operador, y no lo decía.** Previsualizar un tour
+        // sin publicar es útil y deliberado; que no se distinga de uno vivo, no. Ver
+        // `CotizacionCatalogo::$saltosDeOperador` y el cartel `AvisoVistaDeOperador` de `pax`.
+        if ($previsualiza) {
+            $hayBorradores = array_filter($filas, static fn (array $f): bool => ($f['publicado'] ?? true) !== true);
+            $catalogo->setSaltosDeOperador($hayBorradores !== [] ? ['sin_publicar'] : []);
+        }
+
+        $catalogo->setToursParaCliente(array_values(array_map(static function (array $f) use ($portadas, $previsualiza): array {
             $oculto = (bool) $f['precioOculto'];
             $estado = $f['estado'] instanceof CotizacionEstadoEnum ? $f['estado']->value : $f['estado'];
 
             return [
                 'propuesta'           => $f['propuesta'],
+                // Cuál de ellos, no sólo que hay alguno: con varios tours en la parrilla, el
+                // cartel de arriba no basta para saber cuál se puede enseñar. Nulo para el
+                // cliente, que ni siquiera consulta los no publicados.
+                'sinPublicar'       => $previsualiza ? ($f['publicado'] ?? true) !== true : null,
                 'estado'            => $estado,
                 'numPax'            => $f['numPax'],
                 'titulo'            => $f['titulo'] ?? [],         // I18nContent[] (texto)
@@ -119,6 +131,12 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
 
             if (!$cotizacion || !($previsualiza || $cotizacion->isPublicado())) {
                 return null; // tour inexistente o no publicado
+            }
+
+            // En el detalle el veredicto es sobre ESTE tour, no sobre la parrilla: da igual que
+            // los demás estén publicados si el que tienes abierto no lo está.
+            if ($previsualiza) {
+                $catalogo->setSaltosDeOperador($cotizacion->isPublicado() ? [] : ['sin_publicar']);
             }
 
             $catalogo->setCotizacionParaCliente($cotizacion);

@@ -4471,6 +4471,21 @@ calendario, y vuelve a leer del servidor **cuatro cosas y nada más** por estanc
 —difieren de lo que había al abrir— y los mandaría de vuelta: el mismo pisotón por la puerta
 contraria.
 
+🐛 **Pero al principio pisaba los dos selectores sin mirar** (corregido el 05/09/2026). El párrafo
+de arriba dice que la guarda «sólo protege de lo que el formulario no toca», y esta función no
+comprobaba si se había tocado: quien había elegido un estado y todavía no había guardado veía su
+elección desaparecer al registrar el pago, sin aviso y sin manera de recuperarla. Ahora se compara
+cada selector con su original antes de moverlo:
+
+| El operador… | Qué pasa al registrar el pago |
+|---|---|
+| no tocó el selector | se pone al día con lo que dice el servidor |
+| eligió algo y no ha guardado | **se respeta su elección** |
+
+Y la referencia (`estadoActualId`) se refresca **siempre**, tocada o no: es contra ella que el
+guardado decide qué mandar, así que dejarla vieja reenviaría un estado ya superado. Registrar un
+cobro pone al día lo que dice el servidor; no borra lo que la persona estaba escribiendo.
+
 ⚠️ **Y sólo esos cuatro.** El operador pudo escribir una descripción o cambiar los adultos antes de
 ir a cobrar; recargar el formulario entero se los borraría sin decir nada. Verificado en pantalla:
 tras resincronizar, `estado` y `estadoPago` vuelven a `confirmada` / `pago-total` y la descripción

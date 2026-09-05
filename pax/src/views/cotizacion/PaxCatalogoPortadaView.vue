@@ -2,6 +2,7 @@
 import { onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
+import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { thumbUrl } from '@/services/imageThumb';
 import type { PaxTourResumen } from '@/types/paxCotizacionModel';
@@ -116,6 +117,9 @@ const resumenPlano = (tour: PaxTourResumen): string =>
            un CTA gigante en cada una competía con la foto y alargaba el scroll; el
            precio "Desde" con la flecha ya dice a dónde se va. -->
       <main class="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-10 pb-20 space-y-6 md:space-y-7">
+        <!-- Antes que nada: si eres operador, que se sepa. Ver AvisoVistaDeOperador. -->
+        <AvisoVistaDeOperador :saltos="store.portadaCatalogo?.saltosDeOperador" />
+
         <article v-for="(tour, idx) in store.tours" :key="tour.propuesta"
                  @click="verTour(tour.propuesta)"
                  class="group bg-white rounded-3xl border border-slate-200/70 shadow-[0_10px_30px_rgb(15,23,42,0.06)] hover:shadow-[0_18px_45px_rgb(55,104,117,0.15)] hover:border-slate-300 hover:-translate-y-0.5 overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.995]">
@@ -134,6 +138,13 @@ const resumenPlano = (tour: PaxTourResumen): string =>
             <span v-if="tour.numDias" class="absolute top-4 left-4 bg-white/95 backdrop-blur text-[#376875] text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">
               <i class="fas fa-route mr-1.5 text-[#E07845]"></i>
               {{ tour.numDias }} {{ tour.numDias === 1 ? (maestroStore.t('cat_dia') || 'día') : (maestroStore.t('cat_dias') || 'días') }}
+            </span>
+
+            <!-- Sólo para el operador: el servidor no manda esta clave al cliente. Cuál de los
+                 tours de la parrilla es el que todavía no se puede enseñar. -->
+            <span v-if="tour.sinPublicar"
+                  class="absolute top-4 right-4 bg-amber-100/95 backdrop-blur border border-amber-300 text-amber-800 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">
+              <i class="fas fa-eye-slash mr-1.5"></i>Sin publicar
             </span>
 
             <!-- Título flotante: sin caja, directo sobre el degradado -->

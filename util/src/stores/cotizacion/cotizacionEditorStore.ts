@@ -1689,7 +1689,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                     edadMin: ref?.edadMinimaSnapshot ?? null,
                                     edadMax: ref?.edadMaximaSnapshot ?? null,
                                     tarifaTitulo: [],
-                                    tarifas: tarifasGrupo.map(mapearTarifaInclusion)
+                                    tarifas: tarifasGrupo.map(mapearTarifaInclusion),
+                                    // ⚠️ **De qué componente cuelga.** Era la única de las cuatro
+                                    // secciones que no lo llevaba, y el filtro por subgrupo deja
+                                    // pasar lo que no puede identificar: un pasajero del vuelo Sky
+                                    // leía entre los opcionales los del JetSMART, el componente que
+                                    // se le había ocultado. Ver `Cotizacion::acotarInclusiones()`.
+                                    componenteId: componente.id
                                 });
                             });
                     } else {

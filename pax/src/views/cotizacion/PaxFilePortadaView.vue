@@ -148,7 +148,7 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
     <div v-else-if="store.portada" class="max-w-4xl mx-auto">
 
       <!-- Antes que nada: si eres operador, que se sepa. Ver AvisoVistaDeOperador. -->
-      <AvisoVistaDeOperador />
+      <AvisoVistaDeOperador :saltos="store.file?.saltosDeOperador" />
 
       <!-- SECCIÓN 1: Encabezado del expediente -->
       <header class="bg-[#376875] p-6 md:p-10 rounded-[2.5rem] shadow-xl shadow-[#376875]/20 mb-6 relative overflow-hidden text-white">
@@ -269,6 +269,13 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
               <div class="min-w-0">
                 <span class="inline-block px-3 py-1 rounded-lg bg-[#376875] text-white text-[10px] font-black uppercase tracking-widest">
                   {{ maestroStore.t('cot_propuesta') || 'Propuesta' }} P{{ v.propuesta }}
+                </span>
+                <!-- Sólo para el operador: el servidor no manda esta clave al cliente. Es la
+                     respuesta a «¿cuál?» del cartel de arriba, y va pegada a la propuesta porque
+                     es de ella de quien habla. -->
+                <span v-if="v.sinPublicar"
+                      class="inline-block ml-2 px-3 py-1 rounded-lg bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-black uppercase tracking-widest">
+                  <i class="fas fa-eye-slash mr-1"></i>Sin publicar
                 </span>
                 <h3 v-if="store.traducir(v.titulo)" class="text-xl md:text-2xl font-black text-[#376875] leading-tight tracking-tight mt-2">
                   {{ store.traducir(v.titulo) }}

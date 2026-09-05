@@ -154,6 +154,25 @@ class CotizacionCatalogo
     /** Cotización completa del tour solicitado en la URL (solo detalle). */
     private ?Cotizacion $cotizacionParaCliente = null;
 
+    /**
+     * Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente.
+     *
+     * 🔥 **El catálogo también deja pasar, y no lo decía.** `CotizacionCatalogoPublicProvider`
+     * permite previsualizar un tour antes de publicarlo —a propósito, es útil— pero en pantalla
+     * no había ninguna diferencia entre un tour vivo y uno que el cliente no puede abrir. Es el
+     * mismo falso fallo que ya costó una tarde en el expediente: el operador ve algo, deduce que
+     * el cliente también, y manda el enlace.
+     *
+     * Gemelo de {@see CotizacionFile::$saltosDeOperador}, y lo lee el mismo cartel
+     * (`AvisoVistaDeOperador`). Aquí sólo puede haber una: `sin_publicar`. La identificación y el
+     * filtrado por persona son de la operativa de un grupo; un catálogo no tiene ni pasajeros.
+     *
+     * @var list<string>
+     */
+    #[ApiProperty(openapiContext: ['type' => 'array', 'items' => ['type' => 'string']])]
+    #[Groups(['pax_catalogo:read'])]
+    private array $saltosDeOperador = [];
+
     public function __construct()
     {
         $this->initializeId();
@@ -176,6 +195,19 @@ class CotizacionCatalogo
     {
         // Se mapea con la propiedad $this->localizador del Trait
         return $this->localizador;
+    }
+
+    /** @param list<string> $saltos */
+    public function setSaltosDeOperador(array $saltos): self
+    {
+        $this->saltosDeOperador = $saltos;
+        return $this;
+    }
+
+    /** @return list<string> */
+    public function getSaltosDeOperador(): array
+    {
+        return $this->saltosDeOperador;
     }
 
     /**

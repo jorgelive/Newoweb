@@ -6753,6 +6753,8 @@ export interface components {
              * @example https://example.com/
              */
             cotizacionParaCliente?: string | null;
+            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
+            saltosDeOperador?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -6886,6 +6888,8 @@ export interface components {
             toursParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
+            saltosDeOperador?: string[];
             readonly localizador?: string | null;
         };
         /**
@@ -6901,6 +6905,8 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion-pax_catalogo.read_pax_cotizacion.read"] | null;
+            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
+            saltosDeOperador?: string[];
             readonly localizador?: string | null;
         };
         /**
@@ -6941,6 +6947,8 @@ export interface components {
              * @example https://example.com/
              */
             cotizacionParaCliente?: string | null;
+            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
+            saltosDeOperador?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -7026,6 +7034,8 @@ export interface components {
             toursParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
+            saltosDeOperador?: string[];
             readonly localizador?: string | null;
         };
         /**
@@ -7041,6 +7051,8 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.html-pax_catalogo.read_pax_cotizacion.read"] | null;
+            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
+            saltosDeOperador?: string[];
             readonly localizador?: string | null;
         };
         /**
@@ -7081,6 +7093,8 @@ export interface components {
              * @example https://example.com/
              */
             cotizacionParaCliente?: string | null;
+            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
+            saltosDeOperador?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -7170,6 +7184,8 @@ export interface components {
             toursParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
+            saltosDeOperador?: string[];
             readonly localizador?: string | null;
         };
         /**
@@ -7185,6 +7201,8 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.jsonld-pax_catalogo.read_pax_cotizacion.read"] | null;
+            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
+            saltosDeOperador?: string[];
             readonly localizador?: string | null;
         };
         /**
@@ -7225,6 +7243,8 @@ export interface components {
              * @example https://example.com/
              */
             cotizacionParaCliente?: string | null;
+            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
+            saltosDeOperador?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -7310,6 +7330,8 @@ export interface components {
             toursParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
+            saltosDeOperador?: string[];
             readonly localizador?: string | null;
         };
         /**
@@ -7325,6 +7347,8 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.multipart-pax_catalogo.read_pax_cotizacion.read"] | null;
+            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
+            saltosDeOperador?: string[];
             readonly localizador?: string | null;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */

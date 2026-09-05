@@ -308,6 +308,27 @@ Ves tres cosas de más:
 
 Enumerar es gratis; leerlas de un vistazo es el único trabajo que este cartel tiene que hacer.
 
+#### Y dos cosas más que faltaban (05/09/2026)
+
+🐛 **El CATÁLOGO también deja pasar al operador, y no lo decía.**
+`CotizacionCatalogoPublicProvider` permite previsualizar un tour antes de publicarlo —a propósito,
+es útil— pero en pantalla no había ninguna diferencia entre un tour vivo y uno que el cliente no
+puede abrir. Es el mismo falso fallo que costó una tarde en el expediente: el operador ve algo,
+deduce que el cliente también, y manda el enlace. Ahora `CotizacionCatalogo::$saltosDeOperador`
+—gemelo del del expediente, con un solo valor posible, `sin_publicar`— alimenta el mismo cartel.
+
+⚠️ Para eso `AvisoVistaDeOperador` **recibe los saltos por prop** en vez de ir a buscarlos al
+store. Que el catálogo se quedara sin cartel no fue una decisión: fue que el componente sólo sabía
+mirar el expediente. Cualquier pantalla que reciba `saltosDeOperador` del servidor lo puede usar
+ya.
+
+🐛 **Y «Sin publicar» no decía CUÁL.** En la portada el salto se enciende si **alguna** de las
+propuestas es borrador; con varias en la lista, averiguar cuál obligaba a abrirlas una a una.
+Ahora cada tarjeta —de propuesta y de tour— lleva su propia marca `sinPublicar`, que **sólo viaja
+en previsualización**: para el cliente esa clave es `null`, porque las no publicadas ni siquiera
+se consultan. El cartel avisa del salto; la marca contesta a «cuál», y va pegada a aquello de lo
+que habla.
+
 ### F5 · El filtrado por subgrupo
 
 | | Acción | Hecho cuando |

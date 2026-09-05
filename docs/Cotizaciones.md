@@ -860,6 +860,14 @@ badge y la cuenta del servicio. `construirInclusiones()` la calcula inline porqu
 `estandares`/`opcionables` para otras cosas — y lleva escrito que si una cambia, la otra también.
 Dos definiciones acabarían diciendo cosas distintas del mismo componente.
 
+🐛 **Y ya habían empezado a discrepar.** El panel emite la línea del componente sólo
+`if (tieneNombre)`; el badge no miraba el título, así que un componente sin título público salía
+marcado «Opcional» en el editor y **no aparecía por ningún lado** en la propuesta. Un badge que
+promete algo que el cliente nunca ve es peor que no tenerlo: el operador da por publicado lo que
+no se publicó. Corregido el 05/09/2026 añadiendo la misma condición. Es exactamente el riesgo que
+el aviso de arriba anunciaba, cumplido — de dos cálculos que tienen que decir lo mismo, uno se
+movió.
+
 ⚠️ **Y así el aviso del panel deja de ser una sorpresa.** El operador ya sabía que ese componente
 era opcional cuando lo montó: al leerlo en el resumen dirá que sí, en vez de preguntarse qué se le
 pasó. Ése era el problema real — no que el sistema no supiera distinguir, sino que **no enseñaba lo
@@ -2414,6 +2422,14 @@ componentes visibles.
 `cotizacionEditorStore.ts`— así que una propuesta guardada antes perdería media lista, y perder lo
 legítimo es peor que enseñar de más. Se acotan solas en cuanto alguien guarde.
 
+🐛 **Y las OPCIONALES siguieron sin llevarlo hasta el 05/09/2026.** De las cuatro secciones que
+`acotarInclusiones()` filtra —`incluidos`, `noIncluidos`, `cortesias`, `opcionales`— la última era
+la única cuyas líneas nacían sin `componenteId`, así que la puerta de arriba las dejaba pasar
+todas: un pasajero del PNR de Sky leía entre los opcionales los del JetSMART, el mismo componente
+que se le había ocultado. El filtro estaba bien y la lista estaba bien; lo que faltaba era el hilo
+entre las dos. Arreglado en el `push` de `bloque.opcionales`, con la misma línea que ya llevaban
+las otras tres.
+
 **2 · Una operativa recién abierta nacía con el panel vacío.** `AbrirOperativaProcessor` hereda el
 blob tal cual, con los `servicioId` de la confirmada; se arreglaba al primer guardado desde el
 editor, pero abrir y publicar desde el ojo del expediente no pasa por ahí — y es el camino corto.
@@ -2429,6 +2445,14 @@ equivocado, y eso es peor que un panel vacío.
 
 **4 · Un `NO_PARTICIPA` salía como tu compañero de cuarto.** `esExpuesto()` lo da por visible
 —existe en el manifiesto— pero no viaja. Enseñarlo dice que duermes con alguien que no va.
+
+🐛 **4 bis · Y al arreglarlo se cayó el pasajero SIN rol** (visto el 05/09/2026). La guarda quedó
+como `$tipo === null || !$tipo->esExpuesto() || …`, y `null` no es una decisión: es lo que
+devuelve `PasajeroTipoEnum::desdeTexto()` cuando la hoja trae un rol que no está en la plantilla.
+Son pasajeros del grupo con nombre y apellido —**2 de 135** en producción— que desaparecían de
+«mis grupos» sin que nadie pudiera notarlo, porque no se echa de menos a quien no sabías que
+estaba. Vale la regla general del proyecto: **sin clasificar es sin acotar**; de más se ve, de
+menos nunca.
 
 **5 · «Desde $ 0,00».** `normal` sólo suma líneas `incluido`, así que un perfil liberado vale 0 y
 encabezaba la tarjeta con un viaje gratis. El «desde» se calcula ahora entre los perfiles con
