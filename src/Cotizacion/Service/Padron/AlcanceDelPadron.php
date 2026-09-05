@@ -23,6 +23,19 @@ use Symfony\Bundle\SecurityBundle\Security;
  * sin tipo                       →  sólo su ficha
  * ```
  *
+ * ## ⚠️ Y hay una excepción viva, fuera de este servicio (05/09/2026)
+ *
+ * «Alumno · Padre → sólo su ficha» describe **este** eje: el padrón. Pero
+ * {@see \App\Api\Provider\Cotizacion\CotizacionFilePublicProvider::companerosDe()} le da a
+ * cualquier pasajero identificado los NOMBRES de quienes están en **sus** subgrupos —su compañero
+ * de habitación, los de su PNR—, y eso contradice la letra de la tabla de arriba.
+ *
+ * Se decidió a conciencia: la comodidad primero, y a esa gente la ve en el aeropuerto. No es el
+ * padrón —son sus grupos y sólo el nombre— pero tampoco es «sólo su ficha».
+ *
+ * ⚠️ **Este servicio no lo consume nadie todavía.** El día que se conecte, o la excepción se
+ * escribe aquí dentro, o las dos reglas van a decir cosas distintas sobre el mismo pasajero.
+ *
  * ## ⚠️ Los invitados no se filtran: no existen
  *
  * Son gratuidades de la agencia, acordadas fuera del contrato con el colegio. Se caen de **toda**

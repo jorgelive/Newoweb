@@ -10,12 +10,12 @@ use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Cotizacion\Entity\CotizacionFileGrupo;
+use App\Cotizacion\Entity\CotizacionFilepasajero;
 use Doctrine\DBAL\ArrayParameterType;
 use App\Cotizacion\Enum\PasajeroTipoEnum;
 use App\Cotizacion\Service\Publico\IdentidadDelPasajero;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
-use Symfony\Component\Uid\Uuid;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Bundle\SecurityBundle\Security;
 
@@ -76,8 +76,12 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         // ── Lo que es TUYO: tu nombre y tus códigos ──────────────────────────
         //
         // Va antes de todo y para cualquier propuesta: si ya te identificaste, tu localizador de
-        // vuelo es tuyo también mirando la portada. Sale **una** persona —la de la sesión—; la
-        // relación entera nunca se expone, o sería el padrón otra vez.
+        // vuelo es tuyo también mirando la portada.
+        //
+        // ⚠️ **Actualizado el 05/09/2026.** Aquí decía «sale UNA persona; la relación entera nunca
+        // se expone». Lo segundo sigue siendo verdad —el padrón no sale— pero lo primero ya no:
+        // desde `companerosDe()` cada subgrupo trae los NOMBRES de quienes están en él. Son los
+        // subgrupos de quien pregunta y sólo el nombre; el límite se movió, no desapareció.
         $this->ponerIdentidad($file);
 
         // ── 1. Resúmenes para la portada: un solo query escalar ──────────────
@@ -316,7 +320,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             $gruposDelPasajero[] = $grupo;
         }
 
-        $companeros = $this->companerosDe($gruposDelPasajero);
+        $companeros = $this->companerosDe($gruposDelPasajero, $pasajero);
 
         foreach ($subgrupos as $i => $sg) {
             $subgrupos[$i]['miembros'] = $companeros[$sg['idGrupo'] ?? ''] ?? [];
@@ -327,6 +331,15 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             'nombre' => trim($pasajero->getNombre() . ' ' . $pasajero->getApellido()),
             'subgrupos' => $subgrupos,
         ]);
+    }
+
+    /** Minúsculas y sin tildes: la clave con la que se ORDENA, nunca la que se enseña. */
+    private static function aplanar(string $texto): string
+    {
+        return mb_strtolower(strtr(trim($texto), [
+            'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n',
+            'Á' => 'a', 'É' => 'e', 'Í' => 'i', 'Ó' => 'o', 'Ú' => 'u', 'Ü' => 'u', 'Ñ' => 'n',
+        ]));
     }
 
     /**
@@ -371,20 +384,30 @@ final class CotizacionFilePublicProvider implements ProviderInterface
      * convierte al id y ahí se pierde igual. La nota del proyecto avisaba de los `Uuid`; esta fila
      * de la tabla es nueva.
      *
+     * ⚠️ **Quien pregunta NUNCA se filtra a sí mismo.** Un invitado —gratuidad de la agencia— no
+     * sale en las listas de los demás, y eso está bien; pero si es él quien mira, verse a sí mismo
+     * fuera de su propia habitación es justo lo que la regla quería evitar: «una lista de la que
+     * faltas invita a preguntar». Se le esconde de los otros, no de sí mismo.
+     *
+     * ⚠️ **`NO_PARTICIPA` tampoco es compañero de nadie.** `esExpuesto()` lo da por visible —existe
+     * en el manifiesto, hay que poder verlo— pero no viaja: enseñarlo como tu compañero de
+     * habitación es decirte que duermes con alguien que no va. Si el padrón le dejó la celda
+     * puesta al caerse, aquí no cuenta.
+     *
      * @param list<CotizacionFileGrupo> $grupos
      *
      * @return array<string, list<string>> id del grupo => nombres, el responsable primero
      */
-    private function companerosDe(array $grupos): array
+    private function companerosDe(array $grupos, CotizacionFilepasajero $quienPregunta): array
     {
         if ($grupos === []) {
             return [];
         }
 
-        /** @var list<array{grupo: string, nombre: string|null, apellido: string|null, tipo: PasajeroTipoEnum|null}> $filas */
+        /** @var list<array{grupo: string, pasajero: string, nombre: string|null, apellido: string|null, tipo: PasajeroTipoEnum|null}> $filas */
         $filas = $this->em->createQuery(
             <<<'DQL'
-            SELECT g.id AS grupo, p.nombre AS nombre, p.apellido AS apellido, p.tipo AS tipo
+            SELECT g.id AS grupo, p.id AS pasajero, p.nombre AS nombre, p.apellido AS apellido, p.tipo AS tipo
               FROM App\Cotizacion\Entity\CotizacionPasajeroGrupo pg
               JOIN pg.grupo g
               JOIN pg.pasajero p
@@ -399,11 +422,17 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         /** @var array<string, list<array{orden: int, etiqueta: string, nombre: string}>> $porGrupo */
         $porGrupo = [];
 
+        $suyo = $quienPregunta->getId()?->toRfc4122();
+
         foreach ($filas as $f) {
             $tipo = $f['tipo'];
+            $esElMismo = $suyo !== null && (string) $f['pasajero'] === $suyo;
 
-            // El invitado no existe aquí. Ver `esExpuesto()`.
-            if ($tipo !== null && !$tipo->esExpuesto()) {
+            // El invitado no existe aquí —ver `esExpuesto()`— y el que no viaja tampoco es
+            // compañero de nadie. Salvo que sea quien pregunta: a uno mismo no se le esconde.
+            if (!$esElMismo && ($tipo === null
+                || !$tipo->esExpuesto()
+                || $tipo === PasajeroTipoEnum::NO_PARTICIPA)) {
                 continue;
             }
 
@@ -423,7 +452,11 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                     default => 2,
                 },
                 // Se ordena por APELLIDO, que es como se lee una lista de pasajeros.
-                'etiqueta' => mb_strtolower(trim(($f['apellido'] ?? '') . ' ' . ($f['nombre'] ?? ''))),
+                //
+                // ⚠️ **Sin tildes ni eñes en la CLAVE.** `strcoll()` usa el locale del proceso, y
+                // el de php-fpm es `C`: con él «Ñuñez» y «Ávila» se van al final de la lista, detrás
+                // de la Z. Se compara una versión plana; lo que se enseña sigue llevando su tilde.
+                'etiqueta' => self::aplanar(($f['apellido'] ?? '') . ' ' . ($f['nombre'] ?? '')),
                 'nombre' => $nombre,
             ];
         }
@@ -432,7 +465,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
 
         foreach ($porGrupo as $clave => $gente) {
             usort($gente, static fn (array $a, array $b): int => $a['orden'] <=> $b['orden']
-                ?: strcoll($a['etiqueta'], $b['etiqueta']));
+                ?: strcmp($a['etiqueta'], $b['etiqueta']));
 
             $salida[$clave] = array_map(static fn (array $x): string => $x['nombre'], $gente);
         }

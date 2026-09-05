@@ -2364,6 +2364,59 @@ dijeron que todo estaba bien —la columna tenía los ids nuevos, las fechas ca�
 apareció comparando en el navegador `inclusiones[].servicioId` con `itinerario[].servicio.id`.
 **Cuando la pantalla y el dato no coinciden, el sospechoso es el getter que hay en medio.**
 
+#### Lo que la revisión encontró encima (05/09/2026)
+
+**1 · El panel se saltaba el filtro por subgrupo, y lo estrenó el propio arreglo.** Devuelto el
+panel, un pasajero del PNR de Sky veía en «¿Qué incluye este día?» las líneas del componente de
+JetSMART —el que se le había ocultado—: `inclusionesPorDia` cruza por **servicio y fecha**, nunca
+por componente. Ahora `Cotizacion::acotarInclusiones()` deja sólo lo de los componentes que esa
+persona ve. Medido en producción: 43 líneas sin filtro, **33 acotado a `YMFLHB`**, con 33 de 43
+componentes visibles.
+
+⚠️ **Una línea sin `componenteId` pasa.** Las de ítem no lo llevaban hasta hoy —se añadió en
+`cotizacionEditorStore.ts`— así que una propuesta guardada antes perdería media lista, y perder lo
+legítimo es peor que enseñar de más. Se acotan solas en cuanto alguien guarde.
+
+**2 · Una operativa recién abierta nacía con el panel vacío.** `AbrirOperativaProcessor` hereda el
+blob tal cual, con los `servicioId` de la confirmada; se arreglaba al primer guardado desde el
+editor, pero abrir y publicar desde el ojo del expediente no pasa por ahí — y es el camino corto.
+Ahora `remapearInclusiones()` traduce los ids al clon: **18 de 18 servicios y 36 de 36
+componentes** en la prueba.
+
+⚠️ **La correspondencia se toma por POSICIÓN**, que es como `duplicar()` construye la copia. Si las
+formas no coinciden no se remapea **nada**: un mapa a medias ataría líneas al componente
+equivocado, y eso es peor que un panel vacío.
+
+**3 · Un invitado desaparecía de su propia habitación.** `companerosDe()` descartaba a todo
+`!esExpuesto()` sin excepción. Se le esconde de los demás, no de sí mismo.
+
+**4 · Un `NO_PARTICIPA` salía como tu compañero de cuarto.** `esExpuesto()` lo da por visible
+—existe en el manifiesto— pero no viaja. Enseñarlo dice que duermes con alguien que no va.
+
+**5 · «Desde $ 0,00».** `normal` sólo suma líneas `incluido`, así que un perfil liberado vale 0 y
+encabezaba la tarjeta con un viaje gratis. El «desde» se calcula ahora entre los perfiles con
+precio, y si ninguno lo tiene manda el dominante y no se anuncia «Desde».
+
+**6 · Dieciséis claves i18n usadas por `pax` no estaban sembradas**, entre ellas **el formulario de
+identificación entero**: lo PRIMERO que ve un pasajero extranjero, en castellano y sin un error que
+lo denunciara. Se descubrió cruzando las 183 claves que usa `pax` con las 233 de la tabla:
+
+```bash
+grep -rhoE "\.t\(\s*'[a-z0-9_]+'" pax/src | grep -oE "'[a-z0-9_]+'" | tr -d "'" | sort -u
+php bin/console dbal:run-sql --force-fetch "SELECT id FROM pax_ui_i18n" --env=prod
+comm -23 usadas.txt sembradas.txt
+```
+
+Quedan fuera las de catálogo (`cat_*`) y reservas (`res_*`): mismo agujero, otra pantalla.
+
+**7 · Tres textos decían lo contrario del código** y ya lo dicen bien: el comentario de
+`ponerIdentidad()` («la relación entera nunca se expone»), la cabecera de `AlcanceDelPadron` y
+`PasajeroTipoEnum::alcance()`.
+
+Y cuatro fragilidades: «tú» se marca por **posición** y no por texto (dos homónimos se lo llevaban
+los dos), el orden usa una clave **sin tildes** (`strcoll` con locale `C` mandaba «Ñuñez» detrás de
+la Z), `selloDeComponente()` se calcula una vez por fila y no dos, y se fue un `use` muerto.
+
 ### «Lo tuyo» dice ahora CON QUIÉN (04/09/2026)
 
 Cada subgrupo de la tarjeta trae `miembros`: los nombres de quienes están en **ese** subgrupo suyo.

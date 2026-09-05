@@ -54,6 +54,21 @@ final class PaxCrearTextosItinerarioCommand extends Command
         'cot_tu' => 'tú',
         'cot_ver_mis_grupos' => 'Ver mis grupos',
         'cot_ocultar_mis_grupos' => 'Ocultar mis grupos',
+
+        // 🔥 **La puerta de entrada estaba entera en castellano.** Estas seis se escribieron con su
+        // respaldo `||` y nunca se sembraron: un pasajero extranjero se topaba con el formulario
+        // de identificación —lo PRIMERO que ve— en un idioma que no es el suyo, y sin un error que
+        // lo denunciara. Se descubrió cruzando las 183 claves que usa `pax` contra las 233 de la
+        // tabla; el respaldo hace que un hueco sólo se vea mirando.
+        'cot_lo_tuyo' => 'Lo tuyo',
+        'cot_no_soy_yo' => 'No soy yo',
+        'cot_su_reserva' => 'Su reserva:',
+        'cot_identificate_titulo' => 'Identifícate para ver tu viaje',
+        'cot_identificate_motivo' => 'Esta propuesta lleva datos de cada persona —tu vuelo, tus horarios—, '
+            . 'así que te pedimos dos datos para enseñarte los tuyos.',
+        'cot_identificate_documento' => 'Número de documento',
+        'cot_identificate_nacimiento' => 'Fecha de nacimiento',
+        'cot_identificate_entrar' => 'Ver mi viaje',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

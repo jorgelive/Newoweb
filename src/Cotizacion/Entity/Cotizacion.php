@@ -834,6 +834,81 @@ class Cotizacion
 
         $bloque['inclusiones'] = $this->clasificacionFinancieraCliente['inclusiones'] ?? [];
 
+        return $this->acotarInclusiones($bloque);
+    }
+
+    /**
+     * Deja en «qué incluye» sólo lo de los componentes que esta persona SÍ ve.
+     *
+     * 🔥 **El panel se saltaba el filtro por subgrupo.** `getCotcomponentesParaCliente()` acota el
+     * itinerario —un pasajero del PNR de Sky no ve el componente de JetSMART— pero las
+     * inclusiones se cruzaban sólo por servicio y fecha, así que en «¿Qué incluye este día?»
+     * aparecían las líneas del componente que se le había ocultado: su tarifa, sus ítems, su
+     * «[ JETSMART ] con articulo personal». No es un dato de otra persona, pero contradice de
+     * frente lo que el filtrado promete, y **lo estrenó el arreglo que devolvió el panel**: antes
+     * no se veía nada porque no se veía nada.
+     *
+     * ⚠️ **Una línea SIN `componenteId` pasa.** Las de ítem no lo llevaban hasta el 05/09/2026, así
+     * que una propuesta guardada antes se quedaría sin la mitad de su «Incluye» — y perder lo
+     * legítimo es peor que enseñar de más. Se vuelven a filtrar solas en cuanto alguien guarde.
+     *
+     * ⚠️ **Sin filtro (`null`) no se toca nada**: es el operador, un catálogo o un expediente
+     * individual. Ver `CotizacionCotservicio::getCotcomponentesParaCliente()`.
+     *
+     * @param array<string, mixed> $bloque
+     *
+     * @return array<string, mixed>
+     */
+    private function acotarInclusiones(array $bloque): array
+    {
+        if ($this->filtroSubgrupos === null || !is_array($bloque['inclusiones'] ?? null)) {
+            return $bloque;
+        }
+
+        /** @var array<string, true> $visibles */
+        $visibles = [];
+
+        foreach ($this->cotservicios as $servicio) {
+            foreach ($servicio->getCotcomponentesParaCliente() as $componente) {
+                $id = $componente->getId()?->toRfc4122();
+
+                if ($id !== null) {
+                    $visibles[$id] = true;
+                }
+            }
+        }
+
+        $inclusiones = [];
+
+        foreach ($bloque['inclusiones'] as $servicio) {
+            if (!is_array($servicio)) {
+                continue;
+            }
+
+            foreach (['incluidos', 'noIncluidos', 'cortesias', 'opcionales'] as $seccion) {
+                if (!is_array($servicio[$seccion] ?? null)) {
+                    continue;
+                }
+
+                $servicio[$seccion] = array_values(array_filter(
+                    $servicio[$seccion],
+                    static function (mixed $linea) use ($visibles): bool {
+                        if (!is_array($linea)) {
+                            return false;
+                        }
+
+                        $comp = $linea['componenteId'] ?? null;
+
+                        return !is_string($comp) || $comp === '' || isset($visibles[$comp]);
+                    },
+                ));
+            }
+
+            $inclusiones[] = $servicio;
+        }
+
+        $bloque['inclusiones'] = $inclusiones;
+
         return $bloque;
     }
 

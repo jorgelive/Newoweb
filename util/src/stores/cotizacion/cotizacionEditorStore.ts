@@ -1748,7 +1748,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         edadMin: item.categoriaTarifaVisible ? (tarifaRef?.edadMinimaSnapshot ?? null) : null,
                         edadMax: item.categoriaTarifaVisible ? (tarifaRef?.edadMaximaSnapshot ?? null) : null,
                         tarifaTitulo: item.tituloTarifaVisible ? (tarifaRef?.tituloSnapshot || []) : [],
-                        tarifas: []   // items: sin dimensión monetaria, nunca "0"
+                        tarifas: [],   // items: sin dimensión monetaria, nunca "0"
+                        // ⚠️ **De qué componente cuelga**, aunque la línea sea de un ítem. Sin esto
+                        // el backend no puede acotar las inclusiones al subgrupo de quien mira: un
+                        // pasajero del vuelo Sky leía en «qué incluye» las líneas del vuelo
+                        // JetSMART, el componente que se le había ocultado. Las líneas de
+                        // componente ya lo llevaban; éstas no, y por eso el filtro no podía ser
+                        // completo. Ver `Cotizacion::getClasificacionFinancieraParaCliente()`.
+                        componenteId: componente.id
                     });
                 });
             });

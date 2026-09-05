@@ -73,6 +73,11 @@ enum PasajeroTipoEnum: string
         };
     }
 
+    // ⚠️ **`SOLO_YO` es del PADRÓN, no de todo.** Desde el 05/09/2026 un participante identificado
+    // sí ve los nombres de quienes están en SUS subgrupos —su habitación, su PNR— por
+    // `CotizacionFilePublicProvider::companerosDe()`. Ese alcance y éste hablan de cosas
+    // distintas; ver la cabecera de `AlcanceDelPadron`.
+
     /**
      * ¿Aparece en las listas que ven los demás?
      *

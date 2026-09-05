@@ -100,7 +100,9 @@ final readonly class AbrirOperativaProcessor implements ProcessorInterface
         // ⚠️ **El financiero del cliente se HEREDA tal cual.** Ya se vendió y ya se cobró: lo que
         // pase en la operación es un tema proveedor–agencia. El interno sí se recalculará con las
         // cantidades reales, y de ahí saldrán las órdenes.
-        $operativa->setClasificacionFinancieraCliente($data->getClasificacionFinancieraCliente());
+        $operativa->setClasificacionFinancieraCliente(
+            self::remapearInclusiones($data, $operativa),
+        );
 
         // ⚠️ **Dos flushes, y por eso una transacción explícita.** Las filas de operación cuelgan
         // de los `cotservicio` de la operativa, que no tienen id hasta que el primer flush los
@@ -157,6 +159,106 @@ final readonly class AbrirOperativaProcessor implements ProcessorInterface
      * ocurrió. Es la misma regla que ya aplica `CotizacionConfirmadaEventListener`, y aquí hay
      * que repetirla porque este camino no pasa por él.
      */
+    /**
+     * El financiero heredado, con los ids de servicio y componente traducidos a los del clon.
+     *
+     * 🔥 **Sin esto, «Incluye / No incluye» nace vacío.** El blob se hereda tal cual —ya se vendió
+     * y ya se cobró— pero dentro lleva `inclusiones`, y cada línea trae el `servicioId` y el
+     * `componenteId` a los que pertenece. La operativa es un clon con **ids nuevos**: `pax` cruza
+     * esos ids contra los servicios de SU itinerario y no casa ni uno, así que el panel entero se
+     * calla. Y no da error: los ids casan o no casan.
+     *
+     * Se arreglaba solo en cuanto alguien guardaba la operativa desde el editor —el editor
+     * recalcula el blob— pero abrir la operativa y publicarla desde el ojo del expediente no pasa
+     * por ahí. Ese camino existe y es el corto.
+     *
+     * ⚠️ **La correspondencia se toma por POSICIÓN**, que es como `duplicar()` construye la copia:
+     * recorre la colección y va añadiendo. Si por lo que sea las formas no coinciden —distinto
+     * número de servicios o de componentes— **no se remapea nada** y se devuelve el blob intacto:
+     * un mapa a medias ataría líneas al componente equivocado, que es peor que un panel vacío.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function remapearInclusiones(Cotizacion $origen, Cotizacion $copia): ?array
+    {
+        $bloque = $origen->getClasificacionFinancieraCliente();
+
+        if ($bloque === null || !is_array($bloque['inclusiones'] ?? null)) {
+            return $bloque;
+        }
+
+        $serviciosOrigen = $origen->getCotservicios()->toArray();
+        $serviciosCopia = $copia->getCotservicios()->toArray();
+
+        if (count($serviciosOrigen) !== count($serviciosCopia)) {
+            return $bloque;
+        }
+
+        /** @var array<string, string> $mapa */
+        $mapa = [];
+
+        foreach ($serviciosOrigen as $i => $servicio) {
+            $gemelo = $serviciosCopia[$i];
+            $viejo = $servicio->getId()?->toRfc4122();
+            $nuevo = $gemelo->getId()?->toRfc4122();
+
+            if ($viejo !== null && $nuevo !== null) {
+                $mapa[$viejo] = $nuevo;
+            }
+
+            $compsOrigen = $servicio->getCotcomponentes()->toArray();
+            $compsCopia = $gemelo->getCotcomponentes()->toArray();
+
+            if (count($compsOrigen) !== count($compsCopia)) {
+                return $bloque;
+            }
+
+            foreach ($compsOrigen as $j => $componente) {
+                $viejoC = $componente->getId()?->toRfc4122();
+                $nuevoC = $compsCopia[$j]->getId()?->toRfc4122();
+
+                if ($viejoC !== null && $nuevoC !== null) {
+                    $mapa[$viejoC] = $nuevoC;
+                }
+            }
+        }
+
+        $traducir = static fn (mixed $id): mixed => is_string($id) ? ($mapa[$id] ?? $id) : $id;
+
+        $inclusiones = [];
+
+        foreach ($bloque['inclusiones'] as $servicio) {
+            if (!is_array($servicio)) {
+                continue;
+            }
+
+            $servicio['servicioId'] = $traducir($servicio['servicioId'] ?? null);
+
+            foreach (['incluidos', 'noIncluidos', 'cortesias', 'opcionales'] as $seccion) {
+                if (!is_array($servicio[$seccion] ?? null)) {
+                    continue;
+                }
+
+                $servicio[$seccion] = array_map(
+                    static function (mixed $linea) use ($traducir): mixed {
+                        if (is_array($linea) && isset($linea['componenteId'])) {
+                            $linea['componenteId'] = $traducir($linea['componenteId']);
+                        }
+
+                        return $linea;
+                    },
+                    $servicio[$seccion],
+                );
+            }
+
+            $inclusiones[] = $servicio;
+        }
+
+        $bloque['inclusiones'] = $inclusiones;
+
+        return $bloque;
+    }
+
     private function cancelarOperacionDe(Cotizacion $cotizacion): void
     {
         /** @var list<array{id: \Symfony\Component\Uid\Uuid}> $filas */

@@ -896,16 +896,25 @@ const hayVariosPerfiles = computed(() => clasesPasajeros.value.length > 1);
  * ⚠️ **Sólo con varios perfiles.** Con uno, «desde» insinuaría una variedad que no existe: sería
  * la mentira contraria.
  */
-const claseMasBarata = computed(() =>
-  clasesPasajeros.value.length
-    ? [...clasesPasajeros.value].sort(
-        (a, b) => a.resumenPorModo.normal.ventaDolares - b.resumenPorModo.normal.ventaDolares,
-      )[0]
-    : null
-);
+const claseMasBarata = computed(() => {
+  // ⚠️ **Sólo entre los que tienen precio.** `normal` suma únicamente las líneas `incluido`, así
+  // que un perfil liberado —un infante con todo en cortesía o no incluido— vale 0 y encabezaría
+  // la tarjeta con «Desde · Por pasajero $ 0,00»: un viaje gratis en el sitio más visible de la
+  // propuesta. Si ninguno tiene precio, no hay «desde» que dar y manda el dominante.
+  const conPrecio = clasesPasajeros.value.filter(c => c.resumenPorModo.normal.ventaDolares > 0);
+
+  return conPrecio.length
+    ? [...conPrecio].sort((a, b) => a.resumenPorModo.normal.ventaDolares - b.resumenPorModo.normal.ventaDolares)[0]
+    : null;
+});
 
 /** La que encabeza la tarjeta cerrada: la más barata si hay varias, la dominante si hay una. */
-const claseDeCabecera = computed(() => (hayVariosPerfiles.value ? claseMasBarata.value : claseDominante.value));
+const claseDeCabecera = computed(() =>
+  (hayVariosPerfiles.value ? claseMasBarata.value : null) ?? claseDominante.value);
+
+/** ¿Se anuncia «Desde»? Sólo si el número de la cabecera es de verdad el suelo, y no el único. */
+const encabezaElSuelo = computed(() =>
+  hayVariosPerfiles.value && claseMasBarata.value !== null && claseDeCabecera.value === claseMasBarata.value);
 
 /**
  * Lo que dice el disparador, según lo que de verdad hay detrás.
@@ -1003,8 +1012,14 @@ const alternarGente = (i: number): void => {
  * de la que faltas invita a preguntar si hubo un error. Se compara por nombre porque es lo único
  * que viaja — el backend no manda ids de otras personas, a propósito.
  */
-const soyYo = (nombre: string): boolean =>
-  nombre.trim().toLowerCase() === (store.miIdentidad?.nombre ?? '').trim().toLowerCase();
+const soyYo = (indice: number, lista: string[]): boolean => {
+  const mio = (store.miIdentidad?.nombre ?? '').trim().toLowerCase();
+
+  // ⚠️ **Se compara por POSICIÓN, no por texto.** El backend manda nombres, no ids —a propósito:
+  // no salen ids de otras personas—, así que dos homónimos en el mismo PNR se llevarían los dos
+  // el «tú». Marcar uno es una apuesta; marcar dos es decirle que es las dos.
+  return lista.findIndex(n => n.trim().toLowerCase() === mio) === indice;
+};
 
 const adelantoVista = computed(() => {
   const cot = store.cotizacion;
@@ -1167,10 +1182,10 @@ const adelantoVista = computed(() => {
               <ul v-if="gentAbierta.has(i)" class="mt-2 space-y-0.5 border-t border-slate-200/70 pt-2">
                 <li v-for="(quien, k) in sg.miembros" :key="k"
                     class="text-[11px] leading-snug flex items-baseline gap-1.5"
-                    :class="soyYo(quien) ? 'font-black text-[#376875]' : 'font-bold text-slate-500'">
+                    :class="soyYo(k, sg.miembros) ? 'font-black text-[#376875]' : 'font-bold text-slate-500'">
                   <i class="fas fa-circle text-[3px] shrink-0 opacity-40"></i>
                   <span class="min-w-0 break-words">{{ quien }}</span>
-                  <span v-if="soyYo(quien)" class="shrink-0 text-[9px] font-black uppercase tracking-widest text-[#E07845]">
+                  <span v-if="soyYo(k, sg.miembros)" class="shrink-0 text-[9px] font-black uppercase tracking-widest text-[#E07845]">
                     {{ maestroStore.t('cot_tu') || 'tú' }}
                   </span>
                 </li>
@@ -1277,7 +1292,7 @@ const adelantoVista = computed(() => {
                   <template v-if="finanzasAbiertas">{{ maestroStore.t('cot_precio_por_pasajero') || 'Precio por pasajero' }}</template>
                   <!-- Con varios perfiles el número es el SUELO, no el precio de todos: se dice.
                        Mismo par de cadenas que la portada, que ya lo decía así. -->
-                  <template v-else-if="hayVariosPerfiles && claseDeCabecera">
+                  <template v-else-if="encabezaElSuelo">
                     {{ maestroStore.t('cot_precio_desde') || 'Desde' }}
                     <span class="text-slate-300">·</span>
                     {{ maestroStore.t('cot_por_pasajero') || 'Por pasajero' }}
@@ -1835,10 +1850,14 @@ const adelantoVista = computed(() => {
                     </span>
 
                     <!-- El sello que desempata: la tarifa. Ver selloDeComponente. -->
-                    <span v-if="selloDeComponente(c, item.segmento)"
-                          class="min-w-0 break-words text-[10px] font-black uppercase tracking-wider text-[#376875]/70 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
-                      {{ selloDeComponente(c, item.segmento) }}
-                    </span>
+                    <!-- Se calcula UNA vez: en el `v-if` y en la interpolación era la misma
+                         función dos veces por fila. -->
+                    <template v-for="sello in [selloDeComponente(c, item.segmento)]" :key="sello">
+                      <span v-if="sello"
+                            class="min-w-0 break-words text-[10px] font-black uppercase tracking-wider text-[#376875]/70 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
+                        {{ sello }}
+                      </span>
+                    </template>
                   </p>
                 </div>
 
