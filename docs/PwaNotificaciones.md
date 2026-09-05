@@ -307,9 +307,45 @@ setInterval(function () { reg.update(); }, 60000);
 ```
 
 ⚠️ **Y NO se recarga por nuestra cuenta.** La primera versión de este arreglo enganchaba
-`controllerchange` en el propio shell y hacía `location.reload()`. Funcionaba, y estaba mal:
-llegaba antes que el cartel, lo dejaba muerto, y una recarga de golpe puede cortar una edición
-a medias. Manda el cartel, que espera a que la persona toque.
+`controllerchange` en el propio shell y hacía `location.reload()`. En el escritorio funcionaba,
+y aun así estaba mal: llegaba antes que el cartel, lo dejaba muerto, y una recarga de golpe
+puede cortar una edición a medias. Manda el cartel, que espera a que la persona toque.
+
+### Lo del iPhone: qué era de verdad, y por qué el cartel se queda igual (05/09/2026)
+
+La recarga automática se descartó en su día porque **en iPhone no funcionaba**, y durante un
+tiempo se contó como «WebKit bloquea `location.reload()`». **Eso no existe: no hay ninguna API
+bloqueada.** Lo que había era un bug real y bien documentado, y conviene tener las dos cosas
+separadas porque una caduca y la otra no.
+
+**Lo que pasaba (y ya no):** WebKit [#199110](https://bugs.webkit.org/show_bug.cgi?id=199110) —
+una PWA instalada en la pantalla de inicio seguía sirviendo los assets viejos indefinidamente
+después de publicar un SW nuevo; en Safari normal y en Android se actualizaba bien. La causa,
+en palabras del propio ingeniero de WebKit: si el *network process* se paraba entre dos
+ejecuciones de la app, **el service worker en espera nunca llegaba a activarse** y los scripts
+no se actualizaban. Recargar no arreglaba nada porque el problema no era la recarga: era que el
+SW nuevo no existía todavía para esa app. **RESOLVED FIXED**, enviado en **iOS 16 (octubre de
+2022)**. Los teléfonos del equipo van muy por encima de eso.
+
+**Por qué el cartel se queda de todos modos**, y ahora sí por el motivo bueno: es el patrón que
+[recomienda Workbox](https://developer.chrome.com/docs/workbox/handling-service-worker-updates)
+para una app que precachea HTML y assets, precisamente el caso nuestro. La recarga automática
+sobre `controllerchange` recarga también **la primera visita**, puede entrar en bucle, y tira
+por delante lo que la persona estuviera haciendo. Ninguna de esas tres caduca con una versión
+de iOS.
+
+⚠️ **Entonces el cartel no es deuda de iOS: es la decisión correcta por sí sola.** Si alguien lo
+lee como fricción evitable, que sepa que quitarlo no devuelve nada — devuelve una recarga en la
+primera visita y una edición cortada a media frase.
+
+⚠️ **Y hay un cabo suelto, que es nuestro y no de Apple.** El patrón del cartel se monta con
+`skipWaiting: false`; nuestro `vite.config.ts` lo tiene en **`true`**, junto con `clientsClaim`.
+O sea: el SW nuevo toma el control **sin preguntar**, y lo único que espera al toque es la
+recarga de la página — una página vieja hablando con una caché nueva. Es también lo que obliga a
+la guarda `teniaControlador` de §5.1, porque `clientsClaim` dispara `controllerchange` en la
+primera instalación. Funciona, pero es una mezcla de dos patrones; el limpio sería
+`skipWaiting: false` + `messageSkipWaiting()` al pulsar el cartel. **Sin tocar hasta que se
+decida**: cambiarlo toca el mecanismo de actualización de las dos PWAs a la vez.
 
 ⚠️ Al diagnosticar esto, el síntoma («no veo el cambio») apunta a build o despliegue, y los dos
 estaban bien. La comprobación que lo descarta en un minuto es buscar un texto del código nuevo
