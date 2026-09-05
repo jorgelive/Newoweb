@@ -328,7 +328,12 @@ final readonly class PmsPrepagoEnlaceService
                 return null;
             }
 
-            $this->anularVigentes($id);
+            // ⚠️ SÓLO los automáticos. Aquí no hay nadie mirando —esto lo dispara el sync de
+            // Beds24, no un operador— así que un enlace manual por otro concepto o importe se
+            // queda vivo aunque el prepago recalculado ya no coincida con él. La versión sin
+            // filtrar (`anularVigentes()`) es la correcta en `emitir()`, el camino manual: ahí
+            // SÍ hay una persona decidiendo reemplazar lo que había. Ver docs/FinanzasEnlacesPago.md.
+            $this->anularAutomaticosVigentes($id);
 
             return $this->enlaces->crear(
                 origenTipo: FinOrigenCobro::PMS_RESERVA,

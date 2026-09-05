@@ -1035,10 +1035,20 @@ esa reserva vuelve a pasar por el mismo recálculo.
 silencio y el huésped se quedaría sin poder pagar sin que nadie se entere. El emitido **a mano**
 conserva su vigencia por defecto, porque ahí hay una persona detrás.
 
-⚠️ **Y al emitir por un importe distinto se ANULA el vivo anterior** (`anularVigentes()`). Sin
-eso, un cargo extra dejaba dos enlaces pagables por cantidades distintas y el huésped podía pagar
-el que no toca. Con emisión manual casi no pasaba —hay alguien mirando—; automatizado pasa solo.
-Se anula, no se borra: el enlace que se mandó existió.
+⚠️ **Y al emitir por un importe distinto se ANULA el vivo anterior.** Sin eso, un cargo extra
+dejaba dos enlaces pagables por cantidades distintas y el huésped podía pagar el que no toca. Se
+anula, no se borra: el enlace que se mandó existió.
+
+🐛 **Y hasta el 05/09/2026 se anulaba CUALQUIER enlace vivo de la reserva, no sólo los
+automáticos.** El camino automático (`emitirConTurno()`) llamaba a `anularVigentes()` —la versión
+sin filtrar, pensada para `emitir()`, el camino MANUAL, donde hay una persona decidiendo
+reemplazar lo que había—. Sin filtro de autoría, el sync de Beds24 se llevaba por delante
+cualquier enlace que un operador hubiera emitido a mano para esa reserva, aunque fuera por otro
+concepto o importe completamente distinto: un cargo nuevo llegaba por webhook, el prepago
+recalculado ya no coincidía con nada vivo, y `anularVigentes()` anulaba también el enlace del
+operador antes de emitir el automático de turno. Arreglado usando `anularAutomaticosVigentes()`
+—la que ya existía para las otras dos ramas de abajo— también aquí. Cubierto como caso 8 de
+`var/probar-prepago-automatico.php`.
 
 ⚠️ **Y la moneda se DICE, no se deduce.** `pendiente()` devuelve el importe en la moneda de la
 **cabecera** (`base()` lo convierte), pero `crear()` sin el parámetro `moneda` se lo pregunta al
