@@ -933,12 +933,15 @@ debe prometer más.
 
 ### Comprobado contra la API real (cobro de test)
 
-- **Éxito del cargo.** Un cobro autorizado devuelve `object: "charge"` **y**
-  `outcome.type: "venta_exitosa"`. `cargoPagaElEnlace()` sigue decidiendo por
-  `object === 'charge'` **a propósito**: es la condición necesaria y suficiente —Culqi sólo
-  materializa el objeto cargo cuando autoriza, un rechazo devuelve un objeto de error—, y
-  exigir además un `outcome.type` exacto arriesga rechazar un cobro legítimo si mañana
-  aparece otra variante (3DS, por ejemplo). El valor se registra en el log para poder verlo.
+- 🔥 **Éxito del cargo — y aquí este documento estuvo equivocado.** Decía que
+  `object === 'charge'` es «condición necesaria y suficiente», porque «Culqi sólo materializa
+  el objeto cargo cuando autoriza». **No es cierto, y se midió contra un cargo real de
+  producción:** `chr_live_amECtx8jft1ti9zY`, 175,68 USD, devolvió `object: "charge"` con
+  `outcome.type: "denegado"` y `code: DNGE0116`. Con la regla vieja ese cargo **saldaba el
+  enlace**: la reserva pasaba a pagada y el dinero no había entrado nunca.
+  `cargoPagaElEnlace()` exige desde el 05/09/2026 que además `outcome.type` sea
+  `venta_exitosa`, enumerando **lo bueno**, no lo malo: la lista de códigos de rechazo es de
+  Culqi y crece, la de éxito no.
 - **Moneda.** La cuenta **acepta USD**, no sólo soles. Verificado con un cargo real de test
   de `72387 USD` → `venta_exitosa`. No hay que convertir importes.
 - **Tarjetas de prueba que tokenizan** en esta cuenta: `4111 1111 1111 1111` (Visa) y
@@ -948,7 +951,58 @@ debe prometer más.
   tu tarjeta", **sospecha del número antes que del código**. Se reproduce en un segundo con
   un POST a `/v2/tokens` usando la clave pública.
 
+### 3-D Secure: el reto lo pide el banco, no nosotros (05/09/2026)
+
+Entre el 26/08 y el 05/09 **ninguna tarjeta extranjera pudo pagar** —cinco denegaciones
+`DNGE0116` desde España y Australia— mientras las peruanas pasaban sin problema. No fallaba el
+cobro: fallaba que la respuesta no se leía entera. `DNGE0116` no es un «no»; es *«denegación,
+sospecha de fraude, se solicita autenticación 3DS»*, o sea **una instrucción**: autentica y
+vuelve a intentarlo.
+
+```
+navegador                          servidor                        Culqi
+   │ checkout-js → token              │                               │
+   ├─────────── POST /pagar ─────────▶│ cobrarConToken(token)         │
+   │                                  ├──────────────────────────────▶│
+   │                                  │◀───── DNGE0116 (rechazo) ─────┤
+   │◀──── 409 {"error":"requiere_3ds"}┤   ← NO se registra fallo
+   │ culqi3ds.min.js → reto del banco │
+   │  (iframe; respuesta por message) │
+   ├── POST /pagar + authentication_3DS ─▶ cobrarConToken(token, 3DS) ▶│
+   │                                  │◀────── venta_exitosa ─────────┤
+```
+
+Las cuatro cosas que no se ven leyendo el código:
+
+- **Son DOS librerías, no una.** `js.culqi.com/checkout-js` tokeniza; el reto lo monta
+  `3ds.culqi.com/culqi3ds.min.js`, que expone `window.Culqi3DS` y hay que cargar aparte. La
+  URL viaja al front en `culqi3dsJs`, junto a la del checkout, para que no haya un literal
+  suelto en una vista.
+- **El 409 no es un fallo del enlace.** `FinPagoPublicoController` devuelve
+  `409 {"error":"requiere_3ds"}` **sin registrar el intento fallido**: el cobro no ha
+  terminado, está a mitad. Cualquier otro rechazo sí se registra —con su `code` y su
+  `merchant_message`— y sale como 402. Confundir los dos deja el enlace marcado como
+  problemático por un cobro que después va a salir bien.
+- **El token se reutiliza.** El reintento manda el **mismo** `tokenTarjeta` más el bloque
+  `authentication_3DS`; no se vuelve a tokenizar. Y se reintenta **una sola vez**: si el
+  segundo también pide 3DS, es un no.
+- **La respuesta del reto llega por `postMessage`**, así que se filtra por
+  `evento.origin !== window.location.origin` antes de leerla — un iframe de otro origen puede
+  mandar lo que quiera. El reto caduca a los `MINUTOS_DE_RETO = 5`.
+
+⚠️ **Y una guarda que no es sobre 3DS pero nace del mismo susto:** `estaConfigurado()`
+devuelve **false** si el entorno es `prod` y las claves empiezan por `pk_test_`/`sk_test_`
+—false, no una excepción, porque `FinPasarelaRegistry` lo llama para *listar* pasarelas y una
+excepción ahí tumbaría el panel de finanzas entero—. El throw vive en `peticion()`, que es
+donde de verdad se iría a cobrar contra la cuenta equivocada.
+
 ### Sigue pendiente
+
+**Probar el reto 3DS de punta a punta.** El flujo se desplegó el 05/09/2026 sin haberlo
+ejecutado nunca: el reto sólo lo dispara el banco emisor de una tarjeta extranjera, y aquí no
+hay ninguna. Lo que **sí** está medido es el suelo —un `DNGE0116` ya no salda el enlace— así
+que lo peor que puede pasar es lo que pasaba antes: que el cobro no salga. El primer cliente
+extranjero que pague es la prueba; el log de `cargoPagaElEnlace()` deja el `outcome` entero.
 
 **Si Culqi firma sus webhooks.** El panel ofrece un toggle "Activar autenticación" que su
 documentación pública no explica. Merece preguntarlo a soporte: el diseño no depende de ello
@@ -1608,6 +1662,9 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar el texto de la confirmación al anular (vista global) | `util/src/views/Finanzas/FinanzasView.vue` | `anularCobro()` — nombra importe y concepto a propósito |
 | Cambiar qué pasa con la fila al anular | `util/src/stores/finanzas/cajaStore.ts` | `anularCobro()` — **gemelo** de `enlacesPagoStore.anular()` |
 | Cambiar quién puede emitir o anular un enlace | el backend (`#[IsGranted]` de `FinEnlacePagoApiController`) | **no** un `readOnly` en el front — ver §11 bis |
+| Cambiar qué códigos de Culqi disparan el reto 3DS | `src/Finanzas/Service/Culqi/CulqiRechazoException.php` | `pideAutenticacion3DS()` — hoy sólo `DNGE0116` |
+| Cambiar cuándo un cargo de Culqi SALDA el enlace | `src/Finanzas/Service/Culqi/CulqiClient.php` | `cargoPagaElEnlace()` — enumera lo bueno (`venta_exitosa`) |
+| Tocar el reto 3DS del navegador | `pax/src/views/pago/PagoCulqiForm.vue` | `autenticar3DS()` · `MINUTOS_DE_RETO` |
 | Cambiar qué datos del cobro se ven sin desplegar | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | bloque `estado === 'pagado'` |
 | Tocar la vista de auditoría de la respuesta | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | `alternarAuditoria()` |
 | Extraer un campo nuevo de la respuesta a columna | el cliente de esa pasarela | `comoRespuestaNormalizada()` |
