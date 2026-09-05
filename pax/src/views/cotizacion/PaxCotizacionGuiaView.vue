@@ -279,6 +279,11 @@ const tituloDeComponente = (c: PaxCotComponente, segmento: { tituloSnapshot?: un
  *
  * ⚠️ **Se calla la que repite el título** y la de rol operativo: una coletilla que dice lo mismo
  * que la línea de al lado sólo estorba.
+ *
+ * ⚠️ **Si el título trae corchetes, el sello es lo de dentro.** Es la convención que ya usaba el
+ * operador —«[ SKY AIRLINE ] con articulo personal y equipaje de cabina»—: dentro va con qué se
+ * vuela, fuera la condición de la tarifa. La condición no desempata nada y convertía la pastilla
+ * en un párrafo.
  */
 const selloDeComponente = (c: PaxCotComponente, segmento: { tituloSnapshot?: unknown }): string => {
   const titulo = tituloDeComponente(c, segmento).trim().toLowerCase();
@@ -288,7 +293,17 @@ const selloDeComponente = (c: PaxCotComponente, segmento: { tituloSnapshot?: unk
       continue;
     }
 
-    const sello = store.traducir(t.tituloSnapshot).trim();
+    const completo = store.traducir(t.tituloSnapshot).trim();
+
+    // 🔥 **Los corchetes ya son la convención del operador.** Las tarifas se titulan
+    // «[ SKY AIRLINE ] con articulo personal y equipaje de cabina»: dentro va con qué se vuela
+    // —lo que desempata— y fuera, la condición de la tarifa. Pintar la frase entera convertía la
+    // pastilla en un párrafo justo donde sólo hacía falta una palabra.
+    //
+    // ⚠️ Se lee lo de DENTRO, no se recorta por longitud: cortar a N caracteres parece lo mismo
+    // hasta el día que alguien escribe «[ LATAM ]» y «[ LATAM Premium ]».
+    const entreCorchetes = completo.match(/\[([^\]]+)\]/)?.[1]?.trim();
+    const sello = entreCorchetes || completo;
 
     if (sello !== '' && sello.toLowerCase() !== titulo) {
       return sello;

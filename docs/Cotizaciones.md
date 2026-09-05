@@ -984,6 +984,19 @@ qué se compró. `selloDeComponente()` la pinta como pastilla al final de la lí
 mismo que la línea de al lado sólo estorba. Y sólo aparece cuando hay **más de un** componente con
 hora, que es el único caso en que hay algo que desempatar.
 
+⚠️ **Si el título trae corchetes, el sello es lo de dentro.** Es la convención que el operador ya
+usaba —`[ SKY AIRLINE ] con articulo personal y equipaje de cabina`—: dentro va con qué se vuela,
+que es lo que desempata; fuera, la condición de la tarifa, que no desempata nada y convertía la
+pastilla en un párrafo.
+
+```
+06:50 – 08:35   [ SKY AIRLINE ]
+07:15 – 08:55   [ JETSMART ]
+```
+
+⚠️ **Se lee lo de dentro, NO se recorta por longitud.** Cortar a N caracteres parece lo mismo hasta
+el día que alguien escribe `[ LATAM ]` y `[ LATAM Premium ]`.
+
 ⚠️ **Y envuelve, no recorta.** La primera versión ponía el sello en `shrink-0` y la fila en una
 sola línea: una tarifa larga —«[JetSMART] con artículo personal»— **se comía el título hasta
 dejarlo en nada Y encima se salía de la pantalla**, o sea que se perdían las dos cosas a la vez.
