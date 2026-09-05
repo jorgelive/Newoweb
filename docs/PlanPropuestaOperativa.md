@@ -261,6 +261,21 @@ más**, porque cada una engaña distinto.
 llega ya recortada a los subgrupos de quien mira, así que un itinerario completo es exactamente lo
 que un pasajero **no** debería ver.
 
+⚠️ **Y las tres se dicen en LISTA, con la misma forma (05/09/2026).** La primera versión las metía
+en una frase corrida con **tres sujetos distintos** —«tu sesión se salta», «ve propuestas», «no te
+pide»— y dos polaridades mezcladas: una en positivo y dos en negativo. Empezaba hablando de la
+sesión, seguía hablando de ti y acababa hablando del sistema; se leía dos veces y seguía sin
+entenderse. Ahora son tres **cosas que ves de más**, mismo signo y misma forma:
+
+```
+Ves tres cosas de más:
+  · las propuestas sin publicar
+  · la operativa sin que te pida el documento
+  · el viaje entero, no sólo lo de una persona
+```
+
+Enumerar es gratis; leerlas de un vistazo es el único trabajo que este cartel tiene que hacer.
+
 ### F5 · El filtrado por subgrupo
 
 | | Acción | Hecho cuando |
