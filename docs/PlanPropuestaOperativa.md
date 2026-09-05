@@ -261,6 +261,38 @@ más**, porque cada una engaña distinto.
 llega ya recortada a los subgrupos de quien mira, así que un itinerario completo es exactamente lo
 que un pasajero **no** debería ver.
 
+#### 🔥 Y sólo se dice lo que se saltó en ESTA petición (05/09/2026)
+
+El cartel enumeraba las tres puertas siempre. Pero el operador pasa la mayor parte del día mirando
+**confirmadas, enviadas y pendientes**, donde la identificación y el filtrado por persona **no
+existen**: son de la operativa de un grupo y de nadie más. Dos tercios del aviso eran ruido — y el
+ruido enseña a saltarse el tercio que sí importaba.
+
+Ahora el veredicto viaja en `CotizacionFile::$saltosDeOperador`, que el provider llena con lo que
+de verdad se saltó:
+
+| Lo que miras | Qué dice el cartel |
+|---|---|
+| Enviada / confirmada **publicada** | **nada**: ves lo mismo que el cliente |
+| Confirmada **sin publicar** | «Sin publicar: el cliente todavía no lo ve, ni con el enlace» |
+| Operativa **publicada** | «Ves dos cosas que no ve el cliente: el documento, el filtrado» |
+| Operativa **sin publicar** | las dos cosas, con «Sin publicar» arriba |
+
+⚠️ **Sin saltos no hay cartel.** Un aviso permanente que casi siempre dice «todo bien» deja de
+leerse, y con él se pierde el día que sí tenía algo que decir.
+
+⚠️ **Lo decide el PROVIDER, no la vista.** Es quien evalúa las tres condiciones en esa misma
+petición; deducirlas otra vez en `pax` sería un segundo juez capaz de discrepar del primero, y
+discreparía en silencio. Por eso `pax` **no recibe `estado` ni `publicado`**: viaja el veredicto,
+no los ingredientes — y de paso no se le manda al cliente vocabulario comercial que no le toca.
+
+⚠️ **«Sin publicar» va aparte y arriba**, no como un punto más: es lo único que habla de lo que
+tienes delante y no de un permiso tuyo. Decide si puedes enseñar la pantalla o mandar el enlace.
+Enterrado en la lista se leía como una capacidad y no como el estado de la propuesta.
+
+⚠️ Y la conjunción es condicional: **«Y ves dos cosas»** sólo cuando hay una línea antes que
+continuar. Sin ella empieza por una «Y» que no continúa nada y se lee como si faltara un trozo.
+
 ⚠️ **Y las tres se dicen en LISTA, con la misma forma (05/09/2026).** La primera versión las metía
 en una frase corrida con **tres sujetos distintos** —«tu sesión se salta», «ve propuestas», «no te
 pide»— y dos polaridades mezcladas: una en positivo y dos en negativo. Empezaba hablando de la

@@ -86,7 +86,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
 
         // ── 1. Resúmenes para la portada: un solo query escalar ──────────────
         $filas = $this->em->createQuery(<<<'DQL'
-            SELECT c.propuesta, c.estado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
+            SELECT c.propuesta, c.estado, c.publicado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
                    c.monedaGlobal, c.precioOculto, c.totalVenta, c.adelanto,
                    c.tipoCambio, c.fechaExpiracion, MIN(s.fechaInicioAbsoluta) AS fechaInicio,
                    o.totalVenta AS totalVentaOrigen
@@ -107,6 +107,13 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         // Sin ninguna propuesta pública vigente, el expediente no es visible
         if ($filas === []) {
             return null;
+        }
+
+        // En la portada la única puerta que hay que saltarse es `publicado`: aquí no se identifica
+        // a nadie ni se filtra nada. Ver `CotizacionFile::$saltosDeOperador`.
+        if ($previsualiza) {
+            $hayBorradores = array_filter($filas, static fn (array $f): bool => ($f['publicado'] ?? true) !== true);
+            $file->setSaltosDeOperador($hayBorradores !== [] ? ['sin_publicar'] : []);
         }
 
         $file->setPropuestasParaCliente(array_values(array_map(static function (array $f): array {
@@ -219,6 +226,29 @@ final class CotizacionFilePublicProvider implements ProviderInterface
 
             if (!$esVisible) {
                 return null; // versión inexistente, no pública o expirada
+            }
+
+            // ⚠️ **Lo que se salta, dicho aquí y no deducido en `pax`.** Son las mismas tres
+            // condiciones que se evalúan justo debajo; que las vuelva a calcular la vista sería un
+            // segundo juez capaz de discrepar del primero, y discreparía en silencio.
+            if ($previsualiza) {
+                $saltos = [];
+
+                if (!$cotizacion->isPublicado()) {
+                    $saltos[] = 'sin_publicar';
+                }
+
+                // La puerta del documento y el filtrado por persona son de la OPERATIVA de un
+                // grupo, y de nadie más: en una confirmada o una enviada no existen, y anunciarlas
+                // ahí era el ruido que enseñaba a no leer el cartel.
+                if ($cotizacion->getEstado() === CotizacionEstadoEnum::OPERATIVA
+                    && $file->isExigeIdentificacion()
+                ) {
+                    $saltos[] = 'sin_documento';
+                    $saltos[] = 'sin_filtrar';
+                }
+
+                $file->setSaltosDeOperador($saltos);
             }
 
             // ── La única puerta cerrada del expediente ───────────────────────

@@ -273,6 +273,30 @@ class CotizacionFile
      */
     private bool $vistaDeOperador = false;
 
+    /**
+     * QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre.
+     *
+     * 🔥 **Un cartel que enumera lo que no aplica se deja de leer.** La primera versión listaba las
+     * tres puertas siempre —sin publicar, sin documento, sin filtrar— y el operador pasa la mayor
+     * parte del día mirando **confirmadas, enviadas y pendientes**, donde las dos últimas no
+     * existen: la identificación y el filtrado por persona son de la operativa y de nadie más. Dos
+     * tercios del aviso eran ruido, y el ruido enseña a saltarse el tercio que sí importaba.
+     *
+     * ⚠️ **Lo decide el provider, no la vista.** Es quien evalúa las tres condiciones en esta misma
+     * petición; deducirlas otra vez en `pax` sería un segundo juez que puede discrepar del primero
+     * —y discreparía en silencio—. Aquí viaja el veredicto, no los ingredientes.
+     *
+     * ⚠️ Y por eso `pax` **no necesita `estado` ni `publicado`**: no se le manda vocabulario
+     * comercial que el cliente no tiene por qué recibir. Lo que no debe salir, no se manda.
+     *
+     * Valores: `sin_publicar`, `sin_documento`, `sin_filtrar`.
+     *
+     * @var list<string>
+     */
+    #[ApiProperty(openapiContext: ['type' => 'array', 'items' => ['type' => 'string']])]
+    #[Groups(['pax_file:read'])]
+    private array $saltosDeOperador = [];
+
     public function __construct()
     {
         $this->initializeId();
@@ -708,5 +732,18 @@ class CotizacionFile
     public function isVistaDeOperador(): bool
     {
         return $this->vistaDeOperador;
+    }
+
+    /** @param list<string> $saltos */
+    public function setSaltosDeOperador(array $saltos): self
+    {
+        $this->saltosDeOperador = $saltos;
+        return $this;
+    }
+
+    /** @return list<string> */
+    public function getSaltosDeOperador(): array
+    {
+        return $this->saltosDeOperador;
     }
 }

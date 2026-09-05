@@ -5043,6 +5043,7 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio-pax_catalogo.read_pax_cotizacion.read"][];
+            /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -5109,6 +5110,7 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio-pax_file.read_pax_cotizacion.read"][];
+            /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -5634,6 +5636,7 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio.html-pax_catalogo.read_pax_cotizacion.read"][];
+            /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -5700,6 +5703,7 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio.html-pax_file.read_pax_cotizacion.read"][];
+            /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -6133,6 +6137,7 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
+            /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -6199,6 +6204,7 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio.jsonld-pax_file.read_pax_cotizacion.read"][];
+            /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -6632,6 +6638,7 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio.multipart-pax_catalogo.read_pax_cotizacion.read"][];
+            /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -6698,6 +6705,7 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio.multipart-pax_file.read_pax_cotizacion.read"][];
+            /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -10203,6 +10211,8 @@ export interface components {
              * @default false
              */
             vistaDeOperador: boolean;
+            /** @description QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre. */
+            saltosDeOperador?: string[];
             /**
              * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
              *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
@@ -10449,6 +10459,8 @@ export interface components {
              * @default false
              */
             vistaDeOperador: boolean;
+            /** @description QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre. */
+            saltosDeOperador?: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -10494,6 +10506,8 @@ export interface components {
              * @default false
              */
             vistaDeOperador: boolean;
+            /** @description QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre. */
+            saltosDeOperador?: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -10573,6 +10587,8 @@ export interface components {
              * @default false
              */
             vistaDeOperador: boolean;
+            /** @description QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre. */
+            saltosDeOperador?: string[];
             /**
              * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
              *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
@@ -10767,6 +10783,8 @@ export interface components {
              * @default false
              */
             vistaDeOperador: boolean;
+            /** @description QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre. */
+            saltosDeOperador?: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -10812,6 +10830,8 @@ export interface components {
              * @default false
              */
             vistaDeOperador: boolean;
+            /** @description QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre. */
+            saltosDeOperador?: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -10891,6 +10911,8 @@ export interface components {
              * @default false
              */
             vistaDeOperador: boolean;
+            /** @description QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre. */
+            saltosDeOperador?: string[];
             /**
              * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
              *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
@@ -11090,6 +11112,8 @@ export interface components {
              * @default false
              */
             vistaDeOperador: boolean;
+            /** @description QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre. */
+            saltosDeOperador?: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -11135,6 +11159,8 @@ export interface components {
              * @default false
              */
             vistaDeOperador: boolean;
+            /** @description QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre. */
+            saltosDeOperador?: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -11214,6 +11240,8 @@ export interface components {
              * @default false
              */
             vistaDeOperador: boolean;
+            /** @description QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre. */
+            saltosDeOperador?: string[];
             /**
              * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
              *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
@@ -11408,6 +11436,8 @@ export interface components {
              * @default false
              */
             vistaDeOperador: boolean;
+            /** @description QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre. */
+            saltosDeOperador?: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -11453,6 +11483,8 @@ export interface components {
              * @default false
              */
             vistaDeOperador: boolean;
+            /** @description QUÉ puertas se saltó esta petición concreta. Vacío para un cliente, siempre. */
+            saltosDeOperador?: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.

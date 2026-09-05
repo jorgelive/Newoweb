@@ -148,7 +148,7 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
     <div v-else-if="store.portada" class="max-w-4xl mx-auto">
 
       <!-- Antes que nada: si eres operador, que se sepa. Ver AvisoVistaDeOperador. -->
-      <AvisoVistaDeOperador v-if="store.portada.vistaDeOperador" />
+      <AvisoVistaDeOperador />
 
       <!-- SECCIÓN 1: Encabezado del expediente -->
       <header class="bg-[#376875] p-6 md:p-10 rounded-[2.5rem] shadow-xl shadow-[#376875]/20 mb-6 relative overflow-hidden text-white">

@@ -1118,7 +1118,7 @@ const adelantoVista = computed(() => {
 
       <!-- Aquí engaña MÁS que en la portada: sin sesión, esta propuesta llega ya filtrada a los
            subgrupos de quien mira, y el operador la ve entera. Ver AvisoVistaDeOperador. -->
-      <div v-if="store.file?.vistaDeOperador" class="max-w-3xl mx-auto px-4 pt-4 no-imprimir">
+      <div v-if="(store.file?.saltosDeOperador?.length ?? 0) > 0" class="max-w-3xl mx-auto px-4 pt-4 no-imprimir">
         <AvisoVistaDeOperador />
       </div>
 
