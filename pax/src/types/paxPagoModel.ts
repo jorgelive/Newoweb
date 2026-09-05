@@ -52,6 +52,13 @@ export interface PaxConfigCulqi {
     publicKey: string;
     /** URL de la librería del Checkout v4. */
     checkoutJs: string;
+    /**
+     * URL de la librería del reto 3-D Secure, que es una pieza APARTE.
+     *
+     * El bundle del Checkout busca `window.Culqi3DS` pero no lo trae. Sin cargarla, ese global no
+     * existe y el reto tampoco: es lo que impedía pagar a cualquier tarjeta extranjera.
+     */
+    culqi3dsJs: string;
     /** Céntimos, entero. Culqi cobra en la unidad mínima igual que Lyra. */
     amount: number;
     currency: string;

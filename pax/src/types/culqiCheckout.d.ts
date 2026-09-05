@@ -119,3 +119,29 @@ declare global {
 }
 
 export {};
+
+/**
+ * La librería del reto 3-D Secure (`3ds.culqi.com/culqi3ds.min.js`).
+ *
+ * Tipado a mano y a partir del BUNDLE, no de su documentación —que es una SPA ilegible—: los
+ * nombres salen de leer `culqi3ds.min.js` (`set publicKey`, `_settings`, `initAuthentication`,
+ * `generateDevice`) y el resultado no vuelve por aquí sino por `window.postMessage`.
+ */
+export interface Culqi3DSInstance {
+    publicKey: string;
+    settings: {
+        card?: { email?: string; cardNumber?: string | null; cvv?: string | null;
+                 expirationYear?: string | null; expirationMonth?: string | null };
+        charge?: { totalAmount?: number; returnUrl?: string };
+    };
+    /** Lanza el reto sobre un token de tarjeta ya creado. El resultado llega por `postMessage`. */
+    initAuthentication(tokenId: string): Promise<void>;
+    /** Huella del dispositivo. La usa la propia librería en el paso de autenticación. */
+    generateDevice(): Promise<string | null>;
+}
+
+declare global {
+    interface Window {
+        Culqi3DS?: Culqi3DSInstance;
+    }
+}

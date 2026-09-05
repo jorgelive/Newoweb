@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Finanzas\Controller\Publico;
 
 use App\Finanzas\Entity\FinEnlacePago;
+use App\Finanzas\Service\Culqi\CulqiRechazoException;
 use App\Finanzas\Enum\FinPasarela;
 use App\Finanzas\Repository\FinEnlacePagoRepository;
 use App\Finanzas\Service\Culqi\CulqiClient;
@@ -140,11 +141,48 @@ final class FinPagoPublicoController extends AbstractController
             return $this->json(['error' => 'token_requerido'], 400);
         }
 
+        // Los cinco parámetros del reto, si el navegador ya lo pasó. Ausentes en el primer
+        // intento; ver `CulqiClient::cobrarConToken()`.
+        $autenticacion = is_array($datos['autenticacion3DS'] ?? null) ? $datos['autenticacion3DS'] : null;
+
         try {
-            $cargo = $this->culqi->cobrarConToken($enlace, $tokenTarjeta);
-        } catch (RuntimeException $e) {
+            $cargo = $this->culqi->cobrarConToken($enlace, $tokenTarjeta, $autenticacion);
+        } catch (CulqiRechazoException $e) {
+            // 🔥 **Un rechazo puede ser una INSTRUCCIÓN, no un no.** «Se solicita autenticación
+            // 3DS» significa: autentica al titular y repite el mismo cobro. Tratarlo como
+            // definitivo es lo que dejó sin poder pagar a toda tarjeta extranjera entre el 26/08
+            // y el 05/09 —cinco denegaciones seguidas de España y Australia— mientras las
+            // peruanas, que no disparan el reto, pasaban sin enterarse de nada.
+            //
+            // ⚠️ **No se registra fallo** en este caso: no ha fallado nada todavía. Marcarlo
+            // ensuciaría el historial del enlace con un intento por cada autenticación.
+            if ($e->pideAutenticacion3DS() && $autenticacion === null) {
+                $this->logger->info('[culqi] el cobro exige 3DS; se devuelve al navegador', [
+                    'enlace' => (string) $enlace->getId(),
+                    'code' => $e->codigo(),
+                ]);
+
+                return $this->json([
+                    'error' => 'requiere_3ds',
+                    'mensaje' => $e->motivoDelComercio() ?? 'Tu banco pide autenticación.',
+                ], 409);
+            }
+
             // Rechazo del banco: NO es un error nuestro. Se registra el intento y el cliente
             // puede reintentar con otra tarjeta en el mismo enlace (FALLIDO no es final).
+            //
+            // ⚠️ Se guarda el CÓDIGO además del mensaje: si mañana Culqi pide 3DS con otro
+            // código, aquí es donde se va a ver — la lista de `pideAutenticacion3DS()` sólo
+            // reconoce lo que hemos medido, a propósito.
+            $this->servicio->registrarFallo($enlace, [
+                'error' => $e->getMessage(),
+                'code' => $e->codigo(),
+                'motivo' => $e->motivoDelComercio(),
+            ]);
+
+            return $this->json(['error' => 'rechazado', 'mensaje' => $e->getMessage()], 402);
+        } catch (RuntimeException $e) {
+            // Cualquier otro fallo hablando con Culqi (red, configuración): no es del banco.
             $this->servicio->registrarFallo($enlace, ['error' => $e->getMessage()]);
 
             return $this->json(['error' => 'rechazado', 'mensaje' => $e->getMessage()], 402);

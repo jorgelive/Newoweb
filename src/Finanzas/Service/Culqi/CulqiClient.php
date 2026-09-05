@@ -68,6 +68,15 @@ final class CulqiClient implements FinPasarelaClientInterface
      */
     private const CHECKOUT_JS = 'https://js.culqi.com/checkout-js';
 
+    /**
+     * La librería del reto 3-D Secure. **Es una pieza aparte y hay que cargarla a mano.**
+     *
+     * El bundle del Checkout la busca —`window.Culqi3DS && window.Culqi3DS?._settings?.card && …`—
+     * pero no la trae: sin este `<script>`, ese `&&` es falso siempre y el reto no existe. Eso es
+     * lo que dejó sin poder pagar a toda tarjeta extranjera hasta el 05/09/2026.
+     */
+    private const CULQI_3DS_JS = 'https://3ds.culqi.com/culqi3ds.min.js';
+
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
@@ -77,16 +86,52 @@ final class CulqiClient implements FinPasarelaClientInterface
         private readonly string $publicKey,
         #[Autowire('%finanzas.culqi.secret_key%')]
         private readonly string $secretKey,
+        #[Autowire('%kernel.environment%')]
+        private readonly string $entorno = 'prod',
     ) {}
+
+    /**
+     * ¿Estas llaves son las del cajón de arena de Culqi?
+     *
+     * Lo dice el prefijo, y no es una convención nuestra: la propia librería de Culqi decide con
+     * él si habla con el entorno de prueba o con el real (`publicKey.startsWith(LIVE|TEST)` en
+     * `culqi3ds.min.js`). Aquí se usa para lo mismo, del lado del servidor.
+     */
+    private function esEntornoDePrueba(): bool
+    {
+        return str_starts_with($this->secretKey, 'sk_test_') || str_starts_with($this->publicKey, 'pk_test_');
+    }
 
     public function pasarela(): FinPasarela
     {
         return FinPasarela::CULQI;
     }
 
+    /**
+     * 🔥 **Con llaves de prueba en producción, cobrar deja de existir y NADA falla.**
+     *
+     * Culqi contesta 2xx a una `sk_test_` igual que a una `sk_live_`: el cargo se crea en su cajón
+     * de arena, nuestro código lo da por bueno, el enlace pasa a «pagado» y la reserva se
+     * confirma. El huésped ve su confirmación, el operador ve el saldo a cero y **el dinero no
+     * existe**. No hay error que leer ni fila que cuadre: se descubre semanas después, mirando la
+     * cuenta del banco.
+     *
+     * Por eso es un fallo duro y no un aviso. Es el mismo criterio que el resto del módulo: cuando
+     * la alternativa es cobrar mal en silencio, se prefiere que reviente.
+     *
+     * ⚠️ En `dev` sí se permiten —es justamente donde se prueba el 3DS, que sólo se puede provocar
+     * con las tarjetas del cajón de arena—, y lo natural es tenerlas en `.env.dev.local`, que
+     * Symfony carga sólo con `APP_ENV=dev` y no se despliega.
+     */
     public function estaConfigurado(): bool
     {
-        return $this->publicKey !== '' && $this->secretKey !== '';
+        // ⚠️ **Devuelve `false`, NO lanza.** Este método es un predicado: `FinPasarelaRegistry`
+        // lo usa para LISTAR las pasarelas disponibles. Lanzando aquí, unas llaves mal puestas
+        // tumbaban con un 500 el panel de finanzas entero en vez de dejar a Culqi fuera de la
+        // lista. Quien sí revienta es `peticion()`, que es donde se iría a cobrar de verdad.
+        return $this->publicKey !== ''
+            && $this->secretKey !== ''
+            && !($this->entorno === 'prod' && $this->esEntornoDePrueba());
     }
 
     /**
@@ -100,6 +145,7 @@ final class CulqiClient implements FinPasarelaClientInterface
         return [
             'publicKey' => $this->publicKey,
             'checkoutJs' => self::CHECKOUT_JS,
+            'culqi3dsJs' => self::CULQI_3DS_JS,
             // Céntimos, entero. Culqi cobra en la unidad mínima igual que Lyra: mandar
             // `150.00` en vez de `15000` cobra un sol y medio en lugar de ciento cincuenta.
             'amount' => $enlace->montoTotalCentimos(),
@@ -123,12 +169,28 @@ final class CulqiClient implements FinPasarelaClientInterface
     /**
      * Crea el cargo con el token que devolvió el navegador. Es el camino principal.
      *
+     * @param array<string, mixed>|null $autenticacion3DS Los cinco parámetros del reto ya
+     *        resuelto, tal como los emite `culqi3ds.min.js`. **Null en el primer intento**: el
+     *        propio SDK de Culqi lo dice —«la primera vez que se consume el servicio no se debe
+     *        enviar los parámetros 3ds»—. Sólo se mandan al REINTENTAR, después de que el
+     *        navegador haya pasado el reto.
+     *
      * @return array<string, mixed> El objeto `charge` de Culqi.
-     * @throws RuntimeException si Culqi rechaza el cobro (tarjeta denegada, fondos, etc.).
+     *
+     * @throws CulqiRechazoException si Culqi rechaza el cobro. Lleva el cuerpo entero: quien la
+     *         captura tiene que mirar `pideAutenticacion3DS()` antes de darla por definitiva.
+     * @throws RuntimeException si no se pudo ni hablar con Culqi —red, tiempo agotado, llaves sin
+     *         configurar—. Son cosas distintas: una la decide el banco y la otra nos pasa a
+     *         nosotros, y al cliente no se le cuenta igual.
      */
-    public function cobrarConToken(FinEnlacePago $enlace, string $tokenTarjeta): array
-    {
-        return $this->peticion('POST', self::RUTA_CHARGES, [
+    public function cobrarConToken(
+        FinEnlacePago $enlace,
+        string $tokenTarjeta,
+        ?array $autenticacion3DS = null,
+    ): array {
+        $tds = $autenticacion3DS !== null ? ['authentication_3DS' => $autenticacion3DS] : [];
+
+        return $this->peticion('POST', self::RUTA_CHARGES, $tds + [
             'amount' => $enlace->montoTotalCentimos(),
             'currency_code' => $enlace->getMonedaCodigo() ?? 'PEN',
             'email' => $enlace->getClienteEmail() ?: 'pagos@openperu.pe',
@@ -279,18 +341,59 @@ final class CulqiClient implements FinPasarelaClientInterface
      * real de S/1 —suyo, legítimo— y saldar una reserva de S/2000. El webhook trae un id
      * que no controlamos, así que el importe hay que verificarlo siempre.
      *
-     * `object === 'charge'` es la señal de éxito: Culqi sólo materializa el objeto cargo
-     * cuando el cobro se autorizó; un rechazo devuelve un objeto de error, no un cargo.
+     * 🔥 **`object === 'charge'` NO es la señal de éxito, y aquí se creía que sí.** Esa nota decía
+     * «Culqi sólo materializa el objeto cargo cuando el cobro se autorizó; un rechazo devuelve un
+     * objeto de error», y dejaba pendiente confirmarlo con el primer cobro real. Confirmado el
+     * 05/09/2026 contra la cuenta de producción, y es **falso**:
      *
-     * ⚠️ Pendiente de confirmar con el primer cobro real de test: si `outcome.type` trae
-     * algún valor de rechazo con el objeto ya creado, hay que añadirlo aquí. Se deja
-     * registrado en el log para poder verlo.
+     * ```
+     * chr_live_amECtx8jft1ti9zY
+     *   object       : 'charge'              ← la supuesta señal de éxito
+     *   amount       : 17568 USD             ← cuadra con el enlace
+     *   outcome.type : operacion_denegada
+     *   outcome.code : DNGE0116  «Denegación sospecha de fraude, se solicita autenticación 3DS»
+     * ```
+     *
+     * Los tres controles pasaban y esto devolvía `true`. Por la puerta del **webhook** —que hace
+     * `verificarCargo()` (un GET que devuelve exactamente ese objeto) y luego llama aquí— un cargo
+     * **denegado se confirmaba como pagado**: reserva confirmada, saldo a cero y dinero que nunca
+     * entró. Sin error, sin fila descuadrada: se descubre mirando el banco.
+     *
+     * Por eso ahora manda `outcome.type`, que es el veredicto de verdad. Cualquier valor que no
+     * sea `venta_exitosa` se rechaza — y se rechaza **enumerando lo bueno, no lo malo**: la lista
+     * de motivos de denegación de Culqi es suya y crece, así que dar por buena «cualquier cosa que
+     * no reconozco» es cómo se cuela el siguiente.
      *
      * @param array<string, mixed> $cargo
      */
     public function cargoPagaElEnlace(array $cargo, FinEnlacePago $enlace): bool
     {
+        // ⚠️ **Con log.** Esta salida no escribía nada, y por eso los cinco intentos denegados de
+        // los días 4 y 5 se quedaron sin explicación: el controlador decía «no cuadra» y no había
+        // forma de saber qué había llegado. Una rama muda en el camino del dinero es una rama que
+        // no se puede diagnosticar.
         if (($cargo['object'] ?? null) !== 'charge') {
+            $this->logger->error('[culqi] la respuesta no es un cargo', [
+                'enlace' => (string) $enlace->getId(),
+                'object' => $cargo['object'] ?? null,
+                'claves' => array_slice(array_keys($cargo), 0, 12),
+            ]);
+
+            return false;
+        }
+
+        // El veredicto de verdad. Ver el bloque de arriba: un denegado también es un `charge`.
+        $resultado = $cargo['outcome']['type'] ?? null;
+
+        if ($resultado !== 'venta_exitosa') {
+            $this->logger->error('[culqi] cargo NO autorizado; no salda el enlace', [
+                'enlace' => (string) $enlace->getId(),
+                'cargo' => $cargo['id'] ?? null,
+                'outcome' => $resultado,
+                'code' => $cargo['outcome']['code'] ?? null,
+                'motivo' => $cargo['outcome']['merchant_message'] ?? null,
+            ]);
+
             return false;
         }
 
@@ -351,6 +454,14 @@ final class CulqiClient implements FinPasarelaClientInterface
      */
     private function peticion(string $metodo, string $ruta, ?array $payload = null): array
     {
+        if ($this->entorno === 'prod' && $this->esEntornoDePrueba()) {
+            throw new RuntimeException(
+                'Culqi tiene llaves de PRUEBA (sk_test_/pk_test_) en producción: se aborta el cobro. '
+                . 'Con ellas el cargo se crea en el cajón de arena, el enlace quedaría «pagado» y el '
+                . 'dinero no habría entrado. Las de prueba van en .env.dev.local, que sólo carga dev.'
+            );
+        }
+
         if (!$this->estaConfigurado()) {
             throw new RuntimeException(
                 'Culqi no está configurado: define CULQI_PUBLIC_KEY y CULQI_SECRET_KEY en .env.local.'
@@ -388,7 +499,12 @@ final class CulqiClient implements FinPasarelaClientInterface
                 'respuesta' => $datos,
             ]);
 
-            throw new RuntimeException('Culqi rechazó la operación: ' . $detalle);
+            // ⚠️ **El CUERPO viaja con la excepción, no sólo el texto.** Un rechazo de Culqi no
+            // es todo lo mismo: «fondos insuficientes» es final y «se solicita autenticación 3DS»
+            // es una instrucción para reintentar. Con un `RuntimeException` de mensaje suelto,
+            // quien lo captura no puede distinguirlos y los trata a los dos como definitivos —que
+            // es justamente por lo que ninguna tarjeta extranjera podía pagar.
+            throw new CulqiRechazoException('Culqi rechazó la operación: ' . $detalle, $datos);
         }
 
         return $datos;

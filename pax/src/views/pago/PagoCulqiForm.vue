@@ -38,6 +38,20 @@ const listo = ref(false);
 const cobrando = ref(false);
 
 /**
+ * Cuánto se espera al reto del banco antes de rendirse.
+ *
+ * Cinco minutos porque el titular puede tener que ir a por un SMS, abrir la app del banco o
+ * teclear una clave que no recuerda. Menos deja tirada a gente que sí iba a pagar; más deja el
+ * botón en «Procesando…» cuando ya se cerró la ventana y nadie va a volver.
+ */
+const MINUTOS_DE_RETO = 5;
+
+/** Lo que el reto necesita saber, guardado al montar: viene de la misma configuración. */
+const publicKey = ref('');
+const emailCliente = ref<string | null>(null);
+const montoCentimos = ref(0);
+
+/**
  * La instancia del checkout. Local al componente: esa es la mejora sobre v4.
  *
  * ⚠️ **`shallowRef` + `markRaw`, NUNCA `ref`.** Un `ref` envuelve el objeto en `reactive()`,
@@ -64,20 +78,110 @@ const cargarLibreria = (src: string): Promise<void> => {
     });
 };
 
-/** Canjea el token por un cargo real. Es el único punto que confirma el pago. */
-const cobrar = async (tokenTarjeta: string): Promise<void> => {
+/**
+ * Pasa el reto 3-D Secure y devuelve los cinco parámetros que Culqi pide para reintentar.
+ *
+ * 🔥 **Sin esto no puede pagar ninguna tarjeta extranjera.** Medido entre el 26/08 y el 05/09: las
+ * peruanas pasaban y las de España y Australia se denegaban siempre con `DNGE0116` —«sospecha de
+ * fraude, se solicita autenticación 3DS»—. No era un fallo del cobro: es que el reto no existía.
+ *
+ * ⚠️ **El resultado llega por `window.postMessage`, no por callback.** Lo emite la propia
+ * librería (`_postMessageAuthentication` en `culqi3ds.min.js`):
+ *
+ * ```js
+ * window.postMessage({ parameters3DS, error, loading }, window.location.origin)
+ * ```
+ *
+ * Se filtra por `origin` —es la única defensa: cualquier iframe de la página puede mandar
+ * mensajes— y se ignora el `loading`, que son avisos de progreso, no resultados.
+ *
+ * ⚠️ **Con `timeout`.** Si el titular cierra el modal del banco o su móvil no le llega el SMS, no
+ * llega ni resultado ni error: sin plazo, la promesa no se resuelve nunca y el botón se queda en
+ * «Procesando…» para siempre.
+ */
+const autenticar3DS = (tokenTarjeta: string): Promise<Record<string, unknown>> =>
+    new Promise((resolve, reject) => {
+        const Culqi3DS = window.Culqi3DS;
+
+        if (!Culqi3DS) {
+            reject(new Error('No se pudo cargar la autenticación del banco.'));
+
+            return;
+        }
+
+        const limpiar = (): void => {
+            window.removeEventListener('message', escuchar);
+            clearTimeout(reloj);
+        };
+
+        const reloj = window.setTimeout(() => {
+            limpiar();
+            reject(new Error('La autenticación con tu banco tardó demasiado. Inténtalo otra vez.'));
+        }, MINUTOS_DE_RETO * 60_000);
+
+        function escuchar(evento: MessageEvent): void {
+            if (evento.origin !== window.location.origin) return;
+
+            const datos = evento.data as { parameters3DS?: Record<string, unknown>; error?: string | null };
+
+            if (datos?.parameters3DS) {
+                limpiar();
+                resolve(datos.parameters3DS);
+            } else if (datos?.error) {
+                limpiar();
+                reject(new Error(String(datos.error)));
+            }
+        }
+
+        window.addEventListener('message', escuchar);
+
+        Culqi3DS.publicKey = publicKey.value;
+        Culqi3DS.settings = {
+            card: { email: emailCliente.value ?? undefined },
+            charge: { totalAmount: montoCentimos.value, returnUrl: window.location.href },
+        };
+
+        void Culqi3DS.initAuthentication(tokenTarjeta);
+    });
+
+/**
+ * Canjea el token por un cargo real. Es el único punto que confirma el pago.
+ *
+ * ⚠️ **El primer intento va SIN los parámetros 3DS**, y no es una optimización: lo dice el propio
+ * SDK de Culqi —«la primera vez que se consume el servicio no se debe enviar los parámetros
+ * 3ds»—. Si el banco los pide, el servidor contesta `409 requiere_3ds`, se pasa el reto y se
+ * repite el MISMO cobro con ellos.
+ *
+ * ⚠️ **Un solo reintento.** Si el segundo también se deniega, es un no de verdad: repetir el reto
+ * en bucle sólo pasea al titular por la pantalla de su banco.
+ */
+const cobrar = async (tokenTarjeta: string, autenticacion3DS?: Record<string, unknown>): Promise<void> => {
     cobrando.value = true;
     try {
         const { data } = await apiClient.post<PaxCulqiCobroRespuesta>(
             `/finanzas/pago/${props.token}/culqi/cobrar`,
-            { token: tokenTarjeta },
+            autenticacion3DS ? { token: tokenTarjeta, autenticacion3DS } : { token: tokenTarjeta },
         );
         if (data.ok) emit('pagado');
         else emit('error', 'No pudimos confirmar el pago.');
     } catch (err) {
+        const respuesta = (err as { response?: { status?: number; data?: { mensaje?: string; error?: string } } })?.response;
+        const data = respuesta?.data;
+
+        // 409 = el banco pide autenticar al titular. No es un rechazo: es un paso más.
+        if (respuesta?.status === 409 && data?.error === 'requiere_3ds' && !autenticacion3DS) {
+            try {
+                const parametros = await autenticar3DS(tokenTarjeta);
+                await cobrar(tokenTarjeta, parametros);
+            } catch (fallo3DS) {
+                emit('error', fallo3DS instanceof Error ? fallo3DS.message : 'No se pudo autenticar con tu banco.');
+            }
+
+            return;
+        }
+
         // 402 = el banco rechazó. El backend ya lo dejó como FALLIDO, que NO es final:
         // el cliente puede reintentar con otra tarjeta en el mismo enlace.
-        const data = (err as { response?: { data?: { mensaje?: string; error?: string } } })?.response?.data;
         emit('error', data?.mensaje || data?.error || 'El pago no se pudo completar.');
     } finally {
         cobrando.value = false;
@@ -94,7 +198,14 @@ const montar = async (): Promise<void> => {
     }
 
     const config: PaxConfigCulqi = data.config;
+    publicKey.value = config.publicKey;
+    emailCliente.value = config.email ?? null;
+    montoCentimos.value = config.amount;
+
+    // Las DOS librerías. El checkout ya la busca —`window.Culqi3DS && …` en su bundle— pero
+    // nunca la cargaba nadie, así que ese `&&` siempre era falso y el reto no existía.
     await cargarLibreria(config.checkoutJs);
+    await cargarLibreria(config.culqi3dsJs);
 
     const Constructor = window.CulqiCheckout;
     if (!Constructor) throw new Error('El formulario de pago no está disponible.');
