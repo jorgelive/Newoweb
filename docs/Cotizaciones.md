@@ -2388,6 +2388,25 @@ DOBLE                         Sky Airline
 | **Te marca a ti**, no te esconde | Verse confirma que la reserva es la tuya; una lista de la que faltas invita a preguntar si hubo un error |
 | **Colapsado** | Un PNR lleva 44 nombres: desplegados sepultan lo que la tarjeta existe para decir |
 
+#### La tarjeta nace CERRADA, con «Ver mis grupos (4)»
+
+Nació abierta porque es lo primero que busca quien viaja en grupo, y con dos subgrupos ocupaba
+poco. Con cuatro —habitación, grupo, vuelo nacional, vuelo internacional— y la gente dentro, empuja
+el itinerario entero fuera de la pantalla: quien entra a mirar el día 3 tiene que pasar por encima
+de su propia ficha.
+
+```
+LO TUYO · Alejandra Valdivia            [ NO SOY YO ]
+        ▸ VER MIS GRUPOS (4)
+```
+
+⚠️ **Lo que NO se colapsa es la cabecera.** El nombre se queda a la vista porque dice de quién es
+esta sesión —en un móvil compartido eso es lo primero que hay que poder desmentir— y con él «No soy
+yo», que escondido dentro no lo encuentra nadie.
+
+⚠️ **El disparador dice cuántos hay.** «Ver mis grupos (4)» invita a abrirlo; «Ver mis grupos» a
+secas podría no llevar a nada, y un control que quizá esté vacío se pulsa una vez y no más.
+
 ⚠️ **Esto cambia una regla escrita.** `AlcanceDelPadron` dice «Alumno · Padre · Invitado → sólo su
 ficha», y esto les da los miembros de sus propios subgrupos. Se decidió así a conciencia —la
 comodidad primero, y a esa gente la ven en el aeropuerto—. Ese servicio **sigue sin consumirse por

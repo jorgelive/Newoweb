@@ -52,6 +52,8 @@ final class PaxCrearTextosItinerarioCommand extends Command
         // «Lo tuyo»: con quién comparte cada subgrupo. Ver CotizacionFile::$miIdentidad.
         'cot_personas' => 'personas',
         'cot_tu' => 'tú',
+        'cot_ver_mis_grupos' => 'Ver mis grupos',
+        'cot_ocultar_mis_grupos' => 'Ocultar mis grupos',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

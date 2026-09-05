@@ -970,6 +970,20 @@ const hayPanelPrecio = computed(() => !!(store.precioVisible && totalViaje.value
  */
 const gentAbierta = ref<Set<number>>(new Set());
 
+/**
+ * ¿Está desplegada la tarjeta «Lo tuyo»?
+ *
+ * ⚠️ **Cerrada por defecto, y es un cambio a conciencia.** Nació abierta porque es lo primero que
+ * busca quien viaja en grupo, y con dos subgrupos ocupaba poco. Con cuatro —habitación, grupo,
+ * vuelo nacional, vuelo internacional— y ahora con la gente dentro, empuja el itinerario entero
+ * fuera de la pantalla: quien entra a mirar el día 3 tiene que pasar por encima de su propia ficha.
+ *
+ * ⚠️ **Lo que NO se colapsa es la cabecera.** El nombre se queda a la vista porque es lo que dice
+ * de quién es esta sesión —en un móvil compartido, eso es lo primero que hay que poder desmentir—
+ * y con él «No soy yo», que si se esconde dentro no lo encuentra nadie.
+ */
+const misGruposAbiertos = ref(false);
+
 const alternarGente = (i: number): void => {
   const abiertos = new Set(gentAbierta.value);
 
@@ -1100,7 +1114,7 @@ const adelantoVista = computed(() => {
            `CotizacionFile::$miIdentidad`. -->
       <div v-if="store.miIdentidad?.subgrupos?.length"
            class="max-w-3xl mx-auto mb-8 bg-white rounded-[2rem] shadow-md shadow-slate-200/40 border border-slate-100 p-5">
-        <div class="flex items-center gap-2 mb-4">
+        <div class="flex items-center gap-2 mb-3">
           <i class="fas fa-id-card text-[#376875] text-sm"></i>
           <p class="text-[11px] font-black uppercase tracking-[0.15em] text-[#376875]/70">
             {{ maestroStore.t('cot_lo_tuyo') || 'Lo tuyo' }}
@@ -1118,7 +1132,19 @@ const adelantoVista = computed(() => {
           </button>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <!-- El disparador dice CUÁNTOS hay, no sólo que hay algo: «Ver mis grupos (4)» invita a
+             abrirlo; «Ver mis grupos» a secas podría no llevar a nada. -->
+        <button type="button" @click="misGruposAbiertos = !misGruposAbiertos"
+                :aria-expanded="misGruposAbiertos"
+                class="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-[#376875]/25 bg-[#376875]/4 px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-[#376875]/80 hover:bg-[#376875]/8 transition-colors">
+          <i class="fas text-[10px]" :class="misGruposAbiertos ? 'fa-chevron-up' : 'fa-layer-group'"></i>
+          {{ misGruposAbiertos
+            ? (maestroStore.t('cot_ocultar_mis_grupos') || 'Ocultar mis grupos')
+            : (maestroStore.t('cot_ver_mis_grupos') || 'Ver mis grupos') }}
+          <span class="text-[#E07845]">({{ store.miIdentidad.subgrupos.length }})</span>
+        </button>
+
+        <div v-if="misGruposAbiertos" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
           <div v-for="(sg, i) in store.miIdentidad.subgrupos" :key="i"
                class="bg-slate-50/60 border border-slate-100 rounded-2xl p-3.5">
             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">
