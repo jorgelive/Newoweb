@@ -432,6 +432,38 @@ revés. **Sumar las dos cifras no significa nada**, y por eso nunca se pintan ju
 El filtro de cobros va por fecha de **creación** a propósito: filtrando por fecha de pago
 desaparecerían justo los que nadie pagó, que son el motivo de mirar esta pantalla.
 
+### La barra de filtros se pliega (05/09/2026)
+
+Desplegada son cinco controles en dos o tres renglones y, con los totales debajo, en un
+teléfono **no quedaba una sola fila de la tabla por encima del pliegue**: se entraba a
+Finanzas y no se veía ni un cobro. Ahora viven tras un botón **Filtros**, igual que los ejes
+de La Biblia (`OperacionView.vue`): lo que se viene a ver es el cuadro, no los mandos.
+
+| Pieza | Qué hace |
+|---|---|
+| `filtrosAbiertos` | Abierta en escritorio (`innerWidth >= 768`), plegada en móvil. No es la misma pantalla: donde sobra sitio, esconderlos es un clic de más por cada fecha que se cambia |
+| `filtrosPuestos` | El contador del botón. Cuenta el rango **sólo si se tocó** — arranca siempre con 30 días, y contarlo tal cual lo dejaría en 1 para siempre sin decir nada |
+| `resumenFiltros` | «6 ago – 5 sep · Pagado · «perez»». Rango siempre; estado/medio y búsqueda, si están puestos |
+| `aplicar()` | Buscar carga **y pliega la barra en móvil**. Los `@change` de fechas y desplegables no: ahí se está ajustando, y cerrarle el panel al operador a media frase es quitarle el mando |
+
+⚠️ **El contador es lo que hace seguro esconderlos.** Un filtro activo sin señal es la forma
+de leer una lista recortada creyéndola entera — el mismo motivo por el que los ejes de La
+Biblia llevan el suyo.
+
+⚠️ **El resumen NO cabe en la fila del botón, y está medido.** A 360 px el interruptor ocupa
+125 px y «Cobro manual» 132, así que le quedaban 55 y se leía «6 ago – …», que es peor que no
+ponerlo. Va en su **propia línea y sólo con la barra plegada**: abierta, los propios controles
+dicen lo que hay puesto. Si se añade algo a esa fila, vuelve a medir en el navegador.
+
+En la fila fija se quedan **sólo el interruptor y «Cobro manual»**. El botón de emitir no se
+pliega nunca: es la acción de la pantalla, no un mando de la consulta.
+
+Las **etiquetas del resumen salen de `estadosCobro` y `medios`**, los catálogos que ya manda
+el backend con cada listado. Traducir aquí el código a mano sería reabrir el agujero que cerró
+el desplegable de estados.
+
+Los **totales siguen a la vista**, y es deliberado: son la respuesta, no el mando.
+
 ### Anular desde aquí, y por qué hacía falta (28/08/2026)
 
 `anular` vivía **sólo** en `ReservaEnlacesPagoSection.vue`, o sea sólo en el panel de una
@@ -1583,7 +1615,9 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar qué se busca con el texto (cobros) | `src/Finanzas/Repository/FinEnlacePagoRepository.php` | `buscar()` |
 | Cambiar qué se busca con el texto (caja) | `src/Pms/Repository/PmsPagoFinancieroRepository.php` | `buscarParaCaja()` |
 | Cambiar las columnas de las tablas | `util/src/views/Finanzas/FinanzasView.vue` | — |
-| Cambiar el rango de fechas por defecto | `util/src/views/Finanzas/FinanzasView.vue` | `filtros` (arranca en 30 días) |
+| Cambiar el rango de fechas por defecto | `util/src/views/Finanzas/FinanzasView.vue` | `rangoPorDefecto()` / `RANGO_DIAS` — lo usan el valor inicial, «Limpiar» y el contador |
+| Que los filtros arranquen abiertos o cerrados | `util/src/views/Finanzas/FinanzasView.vue` | `filtrosAbiertos` (hoy `innerWidth >= 768`) |
+| Cambiar qué se lee con los filtros plegados | `util/src/views/Finanzas/FinanzasView.vue` | `resumenFiltros` / `filtrosPuestos` — el contador es lo que hace seguro esconderlos |
 | Que los pagos de un módulo salgan en la caja | §10, paso 3 | `FinMovimientoProviderInterface` |
 | Añadir un módulo que cobre | §10 | `FinOrigenCobroResolverInterface` |
 | Depurar "no se confirmó un cobro" | tabla `fin_pasarela_webhook_audit` | `payload_raw`, `estado`, `error_mensaje` |

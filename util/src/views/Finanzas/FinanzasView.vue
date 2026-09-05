@@ -43,22 +43,88 @@ function fechaISO(diasAtras = 0): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/** Días que abarca el rango de arranque. Un solo sitio: lo usan el valor y el contador. */
+const RANGO_DIAS = 30;
+
 /**
- * Arranca en los últimos 30 días y no "todo".
+ * El rango de arranque: los últimos 30 días, no "todo".
  *
  * Sin rango, la primera carga barre la tabla entera y choca contra el tope de filas del
  * backend, que además avisa de truncado nada más entrar. Un mes es lo que se mira a
  * diario, y ampliarlo es cambiar una fecha.
  */
-const filtros = ref<FinCajaFiltros>({
-    desde: fechaISO(30),
+const rangoPorDefecto = (): { desde: string; hasta: string } => ({
+    desde: fechaISO(RANGO_DIAS),
     hasta: fechaISO(),
+});
+
+const filtros = ref<FinCajaFiltros>({
+    ...rangoPorDefecto(),
     estado: '',
     medio: '',
     q: '',
 });
 
 const truncado = computed(() => (activeTab.value === 'cobros' ? store.cobrosTruncado : store.cajaTruncado));
+
+// ============================================================================
+// LA BARRA DE FILTROS SE PLIEGA
+//
+// Desplegada ocupa cinco controles en dos o tres renglones y, con los totales debajo, en un
+// teléfono no queda una sola fila de la tabla por encima del pliegue: se entra a Finanzas y
+// no se ve ni un cobro. Mismo criterio que los ejes de La Biblia — lo que se viene a ver es
+// el cuadro, no los mandos.
+//
+// ⚠️ El botón LLEVA CONTADOR y a su lado va el resumen del rango. Un filtro activo escondido
+// y sin señal es la forma de leer una lista recortada creyéndola entera; con el rango a la
+// vista, «no aparece mi cobro» se explica solo.
+// ============================================================================
+
+/**
+ * Abierta en escritorio, plegada en móvil.
+ *
+ * No es la misma pantalla: donde sobra sitio, esconder los filtros es un clic de más cada
+ * vez que se cambia una fecha; donde no lo hay, son justo lo que tapa la tabla.
+ */
+const filtrosAbiertos = ref(window.innerWidth >= 768);
+
+/**
+ * Cuántos filtros hay puestos, contando el rango sólo si se tocó.
+ *
+ * El rango SIEMPRE tiene valor —arranca en 30 días— así que contarlo tal cual dejaría el
+ * contador en 1 para siempre y no diría nada.
+ */
+const filtrosPuestos = computed<number>(() => {
+    const base = rangoPorDefecto();
+    let n = 0;
+
+    if (filtros.value.desde !== base.desde || filtros.value.hasta !== base.hasta) n++;
+    if (activeTab.value === 'cobros' ? filtros.value.estado : filtros.value.medio) n++;
+    if (filtros.value.q.trim()) n++;
+
+    return n;
+});
+
+/** `2026-08-06` → «6 ago». Con `T00:00:00` explícito: sin él se parsea en UTC y resta un día. */
+const fechaResumen = (iso: string): string =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
+
+/** Lo que se lee con la barra plegada. El rango va siempre; lo demás, sólo si está puesto. */
+const resumenFiltros = computed<string>(() => {
+    const partes = [`${fechaResumen(filtros.value.desde)} – ${fechaResumen(filtros.value.hasta)}`];
+
+    // Las etiquetas salen de los catálogos del backend, igual que los desplegables: aquí no
+    // se traduce ningún código a mano.
+    if (activeTab.value === 'cobros' && filtros.value.estado) {
+        partes.push(store.estadosCobro.find(e => e.value === filtros.value.estado)?.label ?? filtros.value.estado);
+    }
+    if (activeTab.value === 'caja' && filtros.value.medio) {
+        partes.push(store.medios.find(m => m.value === filtros.value.medio)?.label ?? filtros.value.medio);
+    }
+    if (filtros.value.q.trim()) partes.push(`«${filtros.value.q.trim()}»`);
+
+    return partes.join(' · ');
+});
 
 // ============================================================================
 // COBRO MANUAL
@@ -144,8 +210,20 @@ const cambiarTab = async (tab: 'cobros' | 'caja'): Promise<void> => {
     await cargar();
 };
 
+/**
+ * Buscar desde el botón (o con Enter): carga y, en móvil, pliega la barra.
+ *
+ * Sólo desde el gesto explícito de buscar. Los `@change` de los desplegables y las fechas
+ * siguen recargando sin cerrar nada: ahí el operador está ajustando y cerrarle el panel en
+ * la cara sería quitarle el mando a media frase.
+ */
+const aplicar = async (): Promise<void> => {
+    await cargar();
+    if (window.innerWidth < 768) filtrosAbiertos.value = false;
+};
+
 const limpiarFiltros = async (): Promise<void> => {
-    filtros.value = { desde: fechaISO(30), hasta: fechaISO(), estado: '', medio: '', q: '' };
+    filtros.value = { ...rangoPorDefecto(), estado: '', medio: '', q: '' };
     await cargar();
 };
 
@@ -399,7 +477,46 @@ function fechaLarga(iso?: string | null): string {
 
             <!-- ================= FILTROS ================= -->
             <div class="sticky top-0 z-10 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200 px-4 md:px-6 py-3">
-                <div class="flex flex-wrap items-end gap-2">
+
+                <!-- ===== LA FILA QUE NUNCA SE PLIEGA =====
+                     Interruptor con contador y la acción, y nada más: son lo único que hace
+                     falta tener siempre delante. El resto son mandos, y se abren al usarlos.
+
+                     ⚠️ El resumen NO va en esta línea. Medido en el navegador a 360 px: el
+                     interruptor ocupa 125 y «Cobro manual» 132, así que le quedaban 55 y se
+                     leía «6 ago – …», que es peor que no ponerlo. Va debajo, y sólo con la
+                     barra plegada — abierta, los propios controles dicen lo que hay puesto. -->
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="filtrosAbiertos = !filtrosAbiertos"
+                        :class="filtrosAbiertos ? 'bg-[#376875] text-white border-[#376875]'
+                            : filtrosPuestos ? 'bg-white text-[#376875] border-[#376875]'
+                            : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
+                        class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors shadow-sm">
+                        <i class="fas fa-sliders"></i>
+                        Filtros
+                        <!-- El contador es lo que hace seguro tenerlos escondidos: un filtro
+                             puesto y sin señal es leer una lista recortada creyéndola entera. -->
+                        <span v-if="filtrosPuestos"
+                            :class="filtrosAbiertos ? 'bg-white/25' : 'bg-[#376875] text-white'"
+                            class="rounded-full px-1.5">{{ filtrosPuestos }}</span>
+                        <i class="fas text-[8px]" :class="filtrosAbiertos ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    </button>
+
+                    <!-- Sólo en Cobros: en Caja no se emite nada, se mira lo que entró. -->
+                    <button v-if="activeTab === 'cobros'" type="button" @click="abrirFormManual"
+                        class="ml-auto shrink-0 px-3 py-1.5 bg-[#2E7D5B] hover:bg-[#26654a] text-white rounded-lg text-xs font-black">
+                        <i class="fas fa-plus mr-1"></i>Cobro manual
+                    </button>
+                </div>
+
+                <!-- Con la barra plegada, esta línea es lo único que dice qué se está mirando:
+                     el rango siempre, y lo demás si está puesto. Sin ella, «no aparece mi
+                     cobro» no tiene explicación a la vista. -->
+                <p v-if="!filtrosAbiertos" class="mt-1.5 truncate text-[11px] font-bold text-slate-500">
+                    <i v-if="store.isLoading" class="fas fa-circle-notch fa-spin mr-1 text-slate-400"></i>{{ resumenFiltros }}
+                </p>
+
+                <div v-if="filtrosAbiertos" class="mt-2 flex flex-wrap items-end gap-2">
                     <label class="flex flex-col gap-1">
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desde</span>
                         <input v-model="filtros.desde" type="date" @change="cargar"
@@ -440,22 +557,19 @@ function fechaLarga(iso?: string | null): string {
                     <label class="flex flex-col gap-1 flex-1 min-w-[12rem]">
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Buscar</span>
                         <input v-model="filtros.q" type="search" placeholder="Localizador, referencia o cliente…"
-                            @keyup.enter="cargar"
+                            @keyup.enter="aplicar"
                             class="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white" />
                     </label>
 
-                    <button type="button" @click="cargar" :disabled="store.isLoading"
+                    <!-- Buscar pliega la barra en móvil (`aplicar`): es el gesto de «ya está,
+                         enséñame la lista». Los `@change` de arriba no, que ahí se está
+                         ajustando. -->
+                    <button type="button" @click="aplicar" :disabled="store.isLoading"
                         class="px-3 py-1.5 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-50 text-white rounded-lg text-xs font-black">
                         <i class="fas" :class="store.isLoading ? 'fa-circle-notch fa-spin' : 'fa-magnifying-glass'"></i>
                     </button>
                     <button type="button" @click="limpiarFiltros"
                         class="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700">Limpiar</button>
-
-                    <!-- Sólo en Cobros: en Caja no se emite nada, se mira lo que entró. -->
-                    <button v-if="activeTab === 'cobros'" type="button" @click="abrirFormManual"
-                        class="ml-auto px-3 py-1.5 bg-[#2E7D5B] hover:bg-[#26654a] text-white rounded-lg text-xs font-black">
-                        <i class="fas fa-plus mr-1"></i> Cobro manual
-                    </button>
                 </div>
 
                 <!-- ===== TOTALES ===== -->
