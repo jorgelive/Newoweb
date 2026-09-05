@@ -2333,6 +2333,37 @@ por `apiClient`, o sea al host de la API. Es la trampa que ya se pagó con
 `IdentificarPasajeroController`, que nació en `Controller/Publico/` y quedó publicado en el host
 equivocado.
 
+### 🔥 «Incluye / No incluye» desapareció de toda operativa (04/09/2026)
+
+Sin un error, sin un hueco: el panel entero se callaba. 18 servicios con inclusiones, 43 líneas,
+cero pintadas.
+
+`getClasificacionFinancieraParaCliente()` devuelve el bloque de la **confirmada** cuando la
+propuesta es una operativa —el dinero es el vendido, ver `origenFinancieroParaCliente()`—, y eso
+está bien. Lo que nadie miró es que ese mismo blob lleva dentro `inclusiones`, y **cada línea trae
+el `servicioId` al que pertenece**. La operativa es un clon con ids nuevos:
+
+```
+inclusiones[0].servicioId   b633c1bc-…    ← la confirmada
+itinerario[0].servicio.id   01a06e82-…    ← el clon
+```
+
+`pax` cruza esos ids contra los servicios de SU itinerario (`inclusionPorServicio`), no casaba ni
+uno, y `inclusionesPorDia` devolvía vacío para los siete días.
+
+**Las inclusiones no son dinero**: describen lo que la persona va a recibir, y la operativa existe
+justamente para decir eso mejor que la confirmada. Se toman de `$this`; los importes y
+`opcionesUpgrade` siguen viniendo del origen.
+
+⚠️ **`opcionesUpgrade` se queda con las del origen** a propósito: ahí sí hay dinero —el delta que
+se cobraría— y no se cruzan por id contra el itinerario, se pintan solas en la tarjeta de precio.
+
+⚠️ **Cómo se encontró, porque no había nada que leer.** Los ids son ids: casan o no. Tres sondas
+dijeron que todo estaba bien —la columna tenía los ids nuevos, las fechas caían en días válidos,
+18 de 18 casaban en PHP— y todas preguntaban por **la columna**, no por lo que la API sirve. Sólo
+apareció comparando en el navegador `inclusiones[].servicioId` con `itinerario[].servicio.id`.
+**Cuando la pantalla y el dato no coinciden, el sospechoso es el getter que hay en medio.**
+
 ### «Lo tuyo» dice ahora CON QUIÉN (04/09/2026)
 
 Cada subgrupo de la tarjeta trae `miembros`: los nombres de quienes están en **ese** subgrupo suyo.

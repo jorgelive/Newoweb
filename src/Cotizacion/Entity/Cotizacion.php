@@ -795,13 +795,46 @@ class Cotizacion
     }
 
     /**
+     * El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS.
+     *
+     * 🔥 **«Incluye / No incluye» desapareció de toda operativa, y sin un solo error.** El dinero
+     * sale de la confirmada a propósito —se cobra lo que se vendió, ver
+     * {@see self::origenFinancieroParaCliente()}—, pero ese mismo blob lleva dentro `inclusiones`,
+     * y cada línea trae el `servicioId` al que pertenece. La operativa es un **clon con ids
+     * nuevos**: `pax` cruza esos ids contra los servicios de SU itinerario, no casaba ni uno, y el
+     * panel entero se callaba. 18 servicios con inclusiones, 43 líneas, cero pintadas.
+     *
+     * ```
+     * inclusiones[0].servicioId  b633c1bc-…   ← la confirmada
+     * itinerario[0].servicio.id  01a06e82-…   ← el clon
+     * ```
+     *
+     * Las inclusiones **no son dinero**: describen lo que la persona va a recibir, y la operativa
+     * existe justamente para decir eso mejor que la confirmada. Así que se toman de `$this`.
+     *
+     * ⚠️ **`opcionesUpgrade` se queda con las del origen**: ahí sí hay importes —el delta que se le
+     * cobraría— y no se cruzan contra el itinerario por id, se pintan solas en la tarjeta de
+     * precio.
+     *
+     * ⚠️ No hay error que ver: los ids son ids, casan o no. Sólo se encuentra comparando lo que
+     * llega al navegador con lo que hay en el árbol.
+     *
      * @return array<string, mixed>|null
      */
     #[Groups(['pax_cotizacion:read'])]
     #[SerializedName('clasificacionFinancieraCliente')]
     public function getClasificacionFinancieraParaCliente(): ?array
     {
-        return $this->origenFinancieroParaCliente()->getClasificacionFinancieraCliente();
+        $origen = $this->origenFinancieroParaCliente();
+        $bloque = $origen->getClasificacionFinancieraCliente();
+
+        if ($origen === $this || $bloque === null) {
+            return $bloque;
+        }
+
+        $bloque['inclusiones'] = $this->clasificacionFinancieraCliente['inclusiones'] ?? [];
+
+        return $bloque;
     }
 
     /**
