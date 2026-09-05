@@ -50,7 +50,7 @@ export interface PaxConfigIzipay {
  */
 export interface PaxConfigCulqi {
     publicKey: string;
-    /** URL de la librería del Checkout v4. */
+    /** URL de la librería del Checkout Custom (que no es el Checkout v4: ver docs §11). */
     checkoutJs: string;
     /**
      * URL de la librería del reto 3-D Secure, que es una pieza APARTE.
@@ -61,6 +61,14 @@ export interface PaxConfigCulqi {
     culqi3dsJs: string;
     /** Céntimos, entero. Culqi cobra en la unidad mínima igual que Lyra. */
     amount: number;
+    /**
+     * ⚠️ Va también al reto 3DS, que si no lo recibe **se queda en PEN** por defecto y pediría
+     * autenticar el importe en la moneda equivocada.
+     *
+     * Se deja como `string` porque es lo que promete el servidor (`getMonedaCodigo() ?? 'PEN'`,
+     * sin acotar): quien lo pase al reto es quien lo estrecha, y así el tipo no promete algo
+     * que la API no garantiza.
+     */
     currency: string;
     descripcion: string;
     email: string | null;

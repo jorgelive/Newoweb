@@ -24,7 +24,7 @@
 import { markRaw, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import type { PaxConfigCulqi, PaxConfigPago, PaxCulqiCobroRespuesta } from '@/types/paxPagoModel';
-import type { CulqiCheckoutInstance } from '@/types/culqiCheckout';
+import type { CulqiCheckoutInstance, Parametros3DS } from '@/types/culqiCheckout';
 
 const props = defineProps<{ token: string; monedaSimbolo?: string | null; montoTotal: string }>();
 
@@ -38,18 +38,33 @@ const listo = ref(false);
 const cobrando = ref(false);
 
 /**
- * Cuánto se espera al reto del banco antes de rendirse.
+ * Cuánto se espera al reto del banco antes de rendirse. **Es un respaldo, no el plazo.**
  *
- * Cinco minutos porque el titular puede tener que ir a por un SMS, abrir la app del banco o
- * teclear una clave que no recuerda. Menos deja tirada a gente que sí iba a pagar; más deja el
- * botón en «Procesando…» cuando ya se cerró la ventana y nadie va a volver.
+ * El plazo lo pone la librería: su propia sesión dura **diez minutos** y al agotarse emite
+ * `SESSION_EXPIRED` («Han pasado 10 minutos»), que nos llega como `error` y corta limpiamente.
+ * Esto es sólo la red por si ese aviso no llega nunca.
+ *
+ * ⚠️ **Estuvo en cinco, y era rendirse antes que el banco.** Al minuto cinco rechazábamos
+ * mientras la ventana del banco seguía abierta: si el titular terminaba de teclear su clave en
+ * el seis, autenticaba para nada. Once minutos deja que hable primero quien sabe si el reto
+ * sigue vivo.
  */
-const MINUTOS_DE_RETO = 5;
+const MINUTOS_DE_RETO = 11;
 
 /** Lo que el reto necesita saber, guardado al montar: viene de la misma configuración. */
 const publicKey = ref('');
 const emailCliente = ref<string | null>(null);
 const montoCentimos = ref(0);
+
+/**
+ * La moneda, para el reto 3DS.
+ *
+ * ⚠️ **Estrechada aquí, y no en el modelo.** El servidor manda un `string` sin acotar
+ * (`getMonedaCodigo() ?? 'PEN'`), pero Culqi sólo admite estas dos —lo valida su propio bundle—,
+ * así que quien la usa es quien decide qué hacer con lo demás. PEN es el mismo respaldo que usa
+ * el servidor, no una elección nueva.
+ */
+const moneda = ref<'PEN' | 'USD'>('PEN');
 
 /**
  * La instancia del checkout. Local al componente: esa es la mejora sobre v4.
@@ -66,8 +81,20 @@ const montoCentimos = ref(0);
  */
 const checkout = shallowRef<CulqiCheckoutInstance | null>(null);
 
-const cargarLibreria = (src: string): Promise<void> => {
-    if (window.CulqiCheckout) return Promise.resolve();
+/**
+ * Carga un `<script>` externo una sola vez.
+ *
+ * 🔥 **La guarda pregunta por SU global, y ésa es toda la corrección.** Antes era
+ * `if (window.CulqiCheckout) return` para las dos librerías: la primera llamada cargaba el
+ * checkout y definía ese global, y la segunda —la del 3DS— entraba, lo veía puesto y se iba
+ * **sin insertar nada**. `window.Culqi3DS` sólo lo define `culqi3ds.min.js`, así que el reto
+ * moría en su primera línea con «No se pudo cargar la autenticación del banco», que para el
+ * huésped extranjero es el mismo «no puedo pagar» de siempre con otro texto.
+ *
+ * Una guarda que mira el global equivocado no falla: convierte la carga en un no-op.
+ */
+const cargarLibreria = (src: string, yaCargada: () => boolean): Promise<void> => {
+    if (yaCargada()) return Promise.resolve();
 
     return new Promise((resolve, reject) => {
         const script = document.createElement('script');
@@ -99,7 +126,19 @@ const cargarLibreria = (src: string): Promise<void> => {
  * llega ni resultado ni error: sin plazo, la promesa no se resuelve nunca y el botón se queda en
  * «Procesando…» para siempre.
  */
-const autenticar3DS = (tokenTarjeta: string): Promise<Record<string, unknown>> =>
+/**
+ * Suelta el reto en curso al desmontar. Ver `onBeforeUnmount`.
+ *
+ * Sólo desengancha: no resuelve ni rechaza, porque a estas alturas ya no hay a quién contarle
+ * nada — la promesa se queda colgada y se la lleva el recolector con el componente.
+ */
+let soltarReto: (() => void) | null = null;
+
+const abandonarReto = (): void => {
+    soltarReto?.();
+};
+
+const autenticar3DS = (tokenTarjeta: string): Promise<Parametros3DS> =>
     new Promise((resolve, reject) => {
         const Culqi3DS = window.Culqi3DS;
 
@@ -112,6 +151,7 @@ const autenticar3DS = (tokenTarjeta: string): Promise<Record<string, unknown>> =
         const limpiar = (): void => {
             window.removeEventListener('message', escuchar);
             clearTimeout(reloj);
+            soltarReto = null;
         };
 
         const reloj = window.setTimeout(() => {
@@ -122,7 +162,7 @@ const autenticar3DS = (tokenTarjeta: string): Promise<Record<string, unknown>> =
         function escuchar(evento: MessageEvent): void {
             if (evento.origin !== window.location.origin) return;
 
-            const datos = evento.data as { parameters3DS?: Record<string, unknown>; error?: string | null };
+            const datos = evento.data as { parameters3DS?: Parametros3DS; error?: string | null };
 
             if (datos?.parameters3DS) {
                 limpiar();
@@ -134,11 +174,26 @@ const autenticar3DS = (tokenTarjeta: string): Promise<Record<string, unknown>> =
         }
 
         window.addEventListener('message', escuchar);
+        soltarReto = limpiar;
 
         Culqi3DS.publicKey = publicKey.value;
+
+        // ⚠️ **`currency` es obligatorio en la práctica**: el bundle arranca en PEN y su setter
+        // MEZCLA lo que le des, así que omitirlo no hereda nada — deja PEN. Con un enlace en
+        // dólares se pedía autenticar el importe en soles, y las cinco denegaciones reales que
+        // motivaron todo esto fueron en USD.
+        //
+        // ⚠️ Y el `email` **sólo si lo hay**: el checkout ya escribe el suyo en esta misma
+        // instancia al tokenizar (`Culqi3DS._settings.card.email = …`), y mandar `undefined`
+        // explícito lo BORRA por el mismo spread. En las reservas directas no hay email, que es
+        // justo cuando se perdería.
         Culqi3DS.settings = {
-            card: { email: emailCliente.value ?? undefined },
-            charge: { totalAmount: montoCentimos.value, returnUrl: window.location.href },
+            card: emailCliente.value !== null ? { email: emailCliente.value } : {},
+            charge: {
+                totalAmount: montoCentimos.value,
+                currency: moneda.value,
+                returnUrl: window.location.href,
+            },
         };
 
         void Culqi3DS.initAuthentication(tokenTarjeta);
@@ -155,7 +210,26 @@ const autenticar3DS = (tokenTarjeta: string): Promise<Record<string, unknown>> =
  * ⚠️ **Un solo reintento.** Si el segundo también se deniega, es un no de verdad: repetir el reto
  * en bucle sólo pasea al titular por la pantalla de su banco.
  */
-const cobrar = async (tokenTarjeta: string, autenticacion3DS?: Record<string, unknown>): Promise<void> => {
+/**
+ * Qué lee el huésped cuando el error viene sin `mensaje`.
+ *
+ * ⚠️ **Antes se enseñaba el código tal cual.** El respaldo era `data.error`, que es nuestro
+ * identificador de máquina: quien se topaba con esto leía literalmente `cargo_no_valido` o
+ * `no_vigente` en mitad de la pantalla de pago. Un código en la cara del cliente no le dice qué
+ * hacer y encima parece una avería.
+ */
+const textoDelError = (codigo?: string): string => {
+    const textos: Record<string, string> = {
+        no_vigente: 'Este enlace de pago ya no está disponible. Pídenos uno nuevo.',
+        no_encontrado: 'Este enlace de pago no existe. Comprueba el enlace que te enviamos.',
+        cargo_no_valido: 'Tu banco no confirmó el cobro. No se te ha cobrado nada; inténtalo otra vez.',
+        token_requerido: 'No pudimos leer los datos de la tarjeta. Inténtalo otra vez.',
+    };
+
+    return (codigo !== undefined ? textos[codigo] : undefined) ?? 'El pago no se pudo completar.';
+};
+
+const cobrar = async (tokenTarjeta: string, autenticacion3DS?: Parametros3DS): Promise<void> => {
     cobrando.value = true;
     try {
         const { data } = await apiClient.post<PaxCulqiCobroRespuesta>(
@@ -182,7 +256,7 @@ const cobrar = async (tokenTarjeta: string, autenticacion3DS?: Record<string, un
 
         // 402 = el banco rechazó. El backend ya lo dejó como FALLIDO, que NO es final:
         // el cliente puede reintentar con otra tarjeta en el mismo enlace.
-        emit('error', data?.mensaje || data?.error || 'El pago no se pudo completar.');
+        emit('error', data?.mensaje || textoDelError(data?.error));
     } finally {
         cobrando.value = false;
     }
@@ -201,11 +275,13 @@ const montar = async (): Promise<void> => {
     publicKey.value = config.publicKey;
     emailCliente.value = config.email ?? null;
     montoCentimos.value = config.amount;
+    moneda.value = config.currency === 'USD' ? 'USD' : 'PEN';
 
-    // Las DOS librerías. El checkout ya la busca —`window.Culqi3DS && …` en su bundle— pero
-    // nunca la cargaba nadie, así que ese `&&` siempre era falso y el reto no existía.
-    await cargarLibreria(config.checkoutJs);
-    await cargarLibreria(config.culqi3dsJs);
+    // Las DOS librerías, cada una con su propio testigo. El checkout ya la busca
+    // —`window.Culqi3DS && …` en su bundle— pero nunca la cargaba nadie, así que ese `&&`
+    // siempre era falso y el reto no existía.
+    await cargarLibreria(config.checkoutJs, () => Boolean(window.CulqiCheckout));
+    await cargarLibreria(config.culqi3dsJs, () => Boolean(window.Culqi3DS));
 
     const Constructor = window.CulqiCheckout;
     if (!Constructor) throw new Error('El formulario de pago no está disponible.');
@@ -272,6 +348,11 @@ onBeforeUnmount(() => {
         instancia.close();
     }
     checkout.value = null;
+
+    // ⚠️ Y el reto, si estaba a medias. Sin esto, un `postMessage` que llega después de que la
+    // persona haya navegado dispara `cobrar()` desde un componente muerto: el cargo se hace y el
+    // enlace queda pagado, pero nadie ve la confirmación y un segundo intento choca con un 410.
+    abandonarReto();
 });
 </script>
 

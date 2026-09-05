@@ -72,6 +72,7 @@ final class CulqiWebhookController extends AbstractController
         try {
             /** @var array<string, mixed> $payload */
             $payload = json_decode($crudo, true, 512, JSON_THROW_ON_ERROR);
+            $payload['data'] = self::datosDelEvento($payload);
 
             $idCargo = $this->idDeCargo($payload);
             $enlace = $this->localizarEnlace($payload);
@@ -124,6 +125,47 @@ final class CulqiWebhookController extends AbstractController
             // pudo ser real.
             return $this->json(['ok' => false, 'error' => 'error_interno'], 500);
         }
+    }
+
+    /**
+     * El objeto del evento, venga como objeto o como **cadena**.
+     *
+     * 🔥 **Y viene como cadena, que es por lo que este webhook no ha funcionado nunca.** Medido
+     * en la tabla de auditoría de producción el 05/09/2026: **4 avisos recibidos, 4 ignorados**
+     * con `sin_cargo_o_enlace`, desde el 26/08. Culqi manda esto:
+     *
+     * ```json
+     * {"object":"event","type":"charge.creation.succeeded",
+     *  "data":"{\"object\":\"charge\",\"id\":\"chr_live_…\",\"currencyCode\":\"USD\"…}"}
+     * ```
+     *
+     * `data` es una **cadena JSON**, así que `$payload['data']['id']` sobre un string devuelve
+     * `null` y todo aviso se descartaba como ajeno. Sin error, sin fila roja: el endpoint
+     * contestaba `200 ok` y Culqi se quedaba tan tranquilo.
+     *
+     * ⚠️ **Lo que se cae con esto es la única red del «cobrado y no registrado».** Si la conexión
+     * se corta entre el cargo y nuestra respuesta, el camino principal deja el enlace en fallido,
+     * el huésped reintenta y paga dos veces. Esto es lo que tenía que rescatarlo.
+     *
+     * ⚠️ Dentro de la cadena las claves van en **camelCase** (`currencyCode`, `merchantMessage`),
+     * al revés que la API REST. No nos afecta —de aquí sólo salen el id y nuestro `metadata`, que
+     * ya lo escribimos nosotros en camelCase— pero quien venga a leer más campos, que lo sepa: el
+     * objeto bueno lo trae `CulqiClient::verificarCargo()`, que pregunta con la clave secreta.
+     *
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private static function datosDelEvento(array $payload): array
+    {
+        $datos = $payload['data'] ?? null;
+
+        if (is_string($datos)) {
+            $decodificado = json_decode($datos, true);
+
+            return is_array($decodificado) ? $decodificado : [];
+        }
+
+        return is_array($datos) ? $datos : [];
     }
 
     /**

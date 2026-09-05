@@ -132,12 +132,39 @@ export interface Culqi3DSInstance {
     settings: {
         card?: { email?: string; cardNumber?: string | null; cvv?: string | null;
                  expirationYear?: string | null; expirationMonth?: string | null };
-        charge?: { totalAmount?: number; returnUrl?: string };
+        /**
+         * ⚠️ **`currency` NO es opcional en la práctica, aunque el tipo lo diga.** El bundle
+         * arranca con `charge: { currency: "PEN" }` y su setter MEZCLA lo que le pases
+         * (`{...this._settings.charge, ...nuevo}`), así que omitirlo no hereda la moneda del
+         * cargo: **deja PEN**. Con un enlace en dólares se pedía autenticar «175,68 PEN» para
+         * un cobro de 175,68 USD, y las cinco denegaciones reales fueron todas en USD.
+         *
+         * Se declara aquí porque el tipo lo tenía sin declarar, y por eso nadie lo echó de
+         * menos: un campo que falta en un `.d.ts` no da error, simplemente deja de existir.
+         */
+        charge?: { totalAmount?: number; returnUrl?: string; currency?: 'PEN' | 'USD' };
     };
     /** Lanza el reto sobre un token de tarjeta ya creado. El resultado llega por `postMessage`. */
     initAuthentication(tokenId: string): Promise<void>;
     /** Huella del dispositivo. La usa la propia librería en el paso de autenticación. */
     generateDevice(): Promise<string | null>;
+    /** Limpia `settings` y el token. NO cierra el modal del banco: no hay API para eso. */
+    reset?(): void;
+}
+
+/**
+ * Lo que el reto devuelve por `postMessage` cuando sale bien.
+ *
+ * Los cinco nombres salen de `_saveAuthentication3DSParameters` en el bundle y son los mismos
+ * que `POST /v2/charges` espera dentro de `authentication_3DS`. En Mastercard, `xid` y `cavv`
+ * se rellenan desde `ucafAuthenticationData`; `directoryServerTransactionId` puede venir nulo.
+ */
+export interface Parametros3DS {
+    eci: string;
+    xid: string;
+    cavv: string;
+    protocolVersion?: string;
+    directoryServerTransactionId: string | null;
 }
 
 declare global {

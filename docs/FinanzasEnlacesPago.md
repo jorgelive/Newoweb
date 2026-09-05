@@ -702,6 +702,31 @@ siempre.
 Ese diseño es más robusto que la firma y **sigue valiendo si Culqi añade firma mañana**
 (entonces se suma como segunda barrera, no la sustituye).
 
+🐛 **Y hasta el 05/09/2026 ese webhook no había funcionado ni una vez.** Medido en
+`fin_pasarela_webhook_audit` de producción: **4 avisos recibidos desde el 26/08, 4 ignorados**
+con `sin_cargo_o_enlace`. El motivo estaba a la vista en el `payload_raw`:
+
+```json
+{"object":"event","type":"charge.creation.succeeded",
+ "data":"{\"object\":\"charge\",\"id\":\"chr_live_…\",\"currencyCode\":\"USD\"…}"}
+```
+
+`data` es una **cadena JSON**, no un objeto, así que `$payload['data']['id']` sobre un string
+devuelve `null` y todo aviso se descartaba como ajeno. Sin error y sin fila roja: el endpoint
+contestaba `200 ok` y Culqi se quedaba tan tranquilo. `datosDelEvento()` lo decodifica y acepta
+las dos formas, por si algún día cambian de opinión.
+
+⚠️ **Lo que estaba caído era la única red del «cobrado y no registrado».** Si la conexión se
+corta entre el cargo y nuestra respuesta, el camino principal deja el enlace FALLIDO, el huésped
+reintenta y **paga dos veces** — el segundo cobro sí se imputa y el primero se queda suelto en
+Culqi. Esto es lo que tenía que rescatarlo, y llevaba diez días sin hacerlo mientras el
+comentario de esta misma clase afirmaba lo contrario.
+
+⚠️ **Dentro de la cadena las claves van en camelCase** (`currencyCode`, `merchantMessage`), al
+revés que la API REST. Da igual para lo que sacamos de ahí —el id y nuestro `metadata`, que lo
+escribimos nosotros—, pero quien venga a leer más campos que no se fíe: el objeto bueno lo trae
+`verificarCargo()`, que pregunta con la clave secreta y responde en snake_case.
+
 ### Dónde está la confirmación de cada una
 
 | | Camino principal | Red de seguridad |
@@ -937,7 +962,7 @@ debe prometer más.
   `object === 'charge'` es «condición necesaria y suficiente», porque «Culqi sólo materializa
   el objeto cargo cuando autoriza». **No es cierto, y se midió contra un cargo real de
   producción:** `chr_live_amECtx8jft1ti9zY`, 175,68 USD, devolvió `object: "charge"` con
-  `outcome.type: "denegado"` y `code: DNGE0116`. Con la regla vieja ese cargo **saldaba el
+  `outcome.type: "operacion_denegada"` y `code: DNGE0116`. Con la regla vieja ese cargo **saldaba el
   enlace**: la reserva pasaba a pagada y el dinero no había entrado nunca.
   `cargoPagaElEnlace()` exige desde el 05/09/2026 que además `outcome.type` sea
   `venta_exitosa`, enumerando **lo bueno**, no lo malo: la lista de códigos de rechazo es de
@@ -964,7 +989,7 @@ navegador                          servidor                        Culqi
    │ checkout-js → token              │                               │
    ├─────────── POST /pagar ─────────▶│ cobrarConToken(token)         │
    │                                  ├──────────────────────────────▶│
-   │                                  │◀───── DNGE0116 (rechazo) ─────┤
+   │                                  │◀── 200 SIN cargo (REVIEW) ────┤
    │◀──── 409 {"error":"requiere_3ds"}┤   ← NO se registra fallo
    │ culqi3ds.min.js → reto del banco │
    │  (iframe; respuesta por message) │
@@ -972,23 +997,60 @@ navegador                          servidor                        Culqi
    │                                  │◀────── venta_exitosa ─────────┤
 ```
 
-Las cuatro cosas que no se ven leyendo el código:
+🔥 **Un 2xx de Culqi NO significa que haya cargo, y la primera versión de esto daba por hecho
+que sí.** Es el hallazgo que hacía inútil todo lo demás: `peticion()` sólo levantaba la mano
+con HTTP ≥400 o `object: "error"`, y cuando el banco pide el reto **Culqi contesta 200 con un
+cuerpo que no es ninguna de las dos cosas** —el demo oficial lo reconoce por
+`action_code: "REVIEW"`, frente al 201 del cobrado—. La excepción no saltaba, así que
+`pideAutenticacion3DS()` no llegaba a ejecutarse **nunca**: la rama del 409 era código
+inalcanzable y el huésped extranjero acababa leyendo un `cargo_no_valido` en la pantalla.
 
-- **Son DOS librerías, no una.** `js.culqi.com/checkout-js` tokeniza; el reto lo monta
-  `3ds.culqi.com/culqi3ds.min.js`, que expone `window.Culqi3DS` y hay que cargar aparte. La
-  URL viaja al front en `culqi3dsJs`, junto a la del checkout, para que no haya un literal
-  suelto en una vista.
+No se dedujo, se midió en los logs de producción:
+
+| Línea del log | Veces |
+|---|---|
+| `[culqi] cargo creado que no cuadra con el enlace` — sólo se escribe si el POST devolvió **sin lanzar** | 5 |
+| `[culqi] respuesta de error` — la que escribiría un rechazo con forma de error | **0** |
+| `[culqi] cargo que NO corresponde al enlace` — descarta que fuera desajuste de importe | **0** |
+
+Ahora `cobrarConToken()` convierte cualquier cuerpo que no sea `object: 'charge'` en
+`CulqiRechazoException`, que es la que sabe distinguir «no» de «autentica y vuelve», y
+`pideAutenticacion3DS()` mira **tres** señales porque llegan por caminos distintos:
+`action_code: REVIEW` (cuerpo del POST), `outcome.decline_code: authentication_required`
+(el cargo denegado que devuelve el GET) y `code: DNGE0116` (las cinco denegaciones medidas).
+
+Las seis cosas que no se ven leyendo el código:
+
+- 🔥 **Son DOS librerías, y cargarlas cuesta más de lo que parece.** `js.culqi.com/checkout-js`
+  tokeniza; el reto lo monta `3ds.culqi.com/culqi3ds.min.js`, que es quien define
+  `window.Culqi3DS`. El cargador tenía **una guarda que miraba el global equivocado**
+  (`if (window.CulqiCheckout) return`, para las dos), así que la segunda llamada veía el global
+  de la primera y **se iba sin insertar nada**. Una guarda mal apuntada no falla: convierte la
+  carga en un no-op, y el síntoma es el mismo «no puedo pagar» con otro texto. Cada `src` va con
+  su propio testigo.
+- 🔥 **El reto necesita `currency`, aunque parezca heredada.** El bundle arranca con
+  `charge: { currency: "PEN" }` y su setter **mezcla** (`{...anterior, ...nuevo}`), así que
+  omitirla no hereda la moneda del cargo: deja PEN. Con un enlace en dólares se pedía autenticar
+  «175,68 PEN» para un cobro de 175,68 USD — y las cinco denegaciones reales fueron todas en USD,
+  o sea que el primer reto de verdad habría salido así.
+- ⚠️ **El `email` sólo se manda si lo hay.** El checkout escribe el suyo en esa misma instancia
+  al tokenizar; pasar `email: undefined` lo **borra** por el mismo spread. Las reservas directas
+  no traen email, que es justo cuando se perdería.
 - **El 409 no es un fallo del enlace.** `FinPagoPublicoController` devuelve
   `409 {"error":"requiere_3ds"}` **sin registrar el intento fallido**: el cobro no ha
   terminado, está a mitad. Cualquier otro rechazo sí se registra —con su `code` y su
   `merchant_message`— y sale como 402. Confundir los dos deja el enlace marcado como
   problemático por un cobro que después va a salir bien.
 - **El token se reutiliza.** El reintento manda el **mismo** `tokenTarjeta` más el bloque
-  `authentication_3DS`; no se vuelve a tokenizar. Y se reintenta **una sola vez**: si el
-  segundo también pide 3DS, es un no.
-- **La respuesta del reto llega por `postMessage`**, así que se filtra por
-  `evento.origin !== window.location.origin` antes de leerla — un iframe de otro origen puede
-  mandar lo que quiera. El reto caduca a los `MINUTOS_DE_RETO = 5`.
+  `authentication_3DS`; no se vuelve a tokenizar. Confirmado en los datos: `source.active` sigue
+  en `true` en los seis cargos denegados y pasa a `false` en los tres cobrados — denegar no
+  consume el token. Y se reintenta **una sola vez**: si el segundo también pide 3DS, es un no.
+- **La respuesta del reto llega por `postMessage`**, filtrada por
+  `evento.origin !== window.location.origin`. Es la comprobación correcta: el bundle emite desde
+  la ventana principal con `window.location.origin`, y los mensajes del iframe del banco los
+  consume él por dentro. El plazo propio, `MINUTOS_DE_RETO`, es **11 y es un respaldo**: la
+  sesión del bundle dura diez minutos y avisa sola con `SESSION_EXPIRED`. Estuvo en 5, que era
+  rendirse antes que el banco — quien tecleara su clave en el minuto seis autenticaba para nada.
 
 ⚠️ **Y una guarda que no es sobre 3DS pero nace del mismo susto:** `estaConfigurado()`
 devuelve **false** si el entorno es `prod` y las claves empiezan por `pk_test_`/`sk_test_`
@@ -996,13 +1058,32 @@ devuelve **false** si el entorno es `prod` y las claves empiezan por `pk_test_`/
 excepción ahí tumbaría el panel de finanzas entero—. El throw vive en `peticion()`, que es
 donde de verdad se iría a cobrar contra la cuenta equivocada.
 
+⚠️ **Los códigos de error no se le enseñan al cliente.** El respaldo del mensaje era
+`data.error`, nuestro identificador de máquina: quien caía en esa rama leía literalmente
+`cargo_no_valido` o `no_vigente` en mitad de la pantalla de pago. `textoDelError()` los traduce
+y, ante uno desconocido, dice algo humano en vez del código.
+
+⚠️ **Y las dos ramas que no saldan el enlace registran el cuerpo ENTERO** (sin `source` ni
+`antifraud_details`, que es donde viven la tarjeta y la persona). No es por gusto: el reto sólo
+lo dispara el banco emisor de una tarjeta extranjera, así que **no se puede provocar desde
+aquí**. El primer cliente de fuera que pague *es* la prueba, y sin su respuesta escrita
+volveríamos a quedarnos con un 422 mudo, que es exactamente como se perdieron los cinco
+primeros intentos.
+
 ### Sigue pendiente
 
-**Probar el reto 3DS de punta a punta.** El flujo se desplegó el 05/09/2026 sin haberlo
-ejecutado nunca: el reto sólo lo dispara el banco emisor de una tarjeta extranjera, y aquí no
-hay ninguna. Lo que **sí** está medido es el suelo —un `DNGE0116` ya no salda el enlace— así
-que lo peor que puede pasar es lo que pasaba antes: que el cobro no salga. El primer cliente
-extranjero que pague es la prueba; el log de `cargoPagaElEnlace()` deja el `outcome` entero.
+**Probar el reto 3DS de punta a punta.** Sigue sin ejecutarse una sola vez: el reto lo dispara
+el banco emisor de una tarjeta extranjera y aquí no hay ninguna. La primera versión se desplegó
+el 05/09/2026 **inerte** —dos fallos que la revisión encontró leyendo el bundle y los logs, no
+probando— y lo que hay ahora está corregido pero igual de sin estrenar. Lo que **sí** está
+medido es el suelo: un cargo denegado no salda el enlace, y las dos ramas que no saldan dejan
+el cuerpo entero escrito. El primer cliente extranjero que pague es la prueba, y esta vez deja
+rastro.
+
+**Qué `outcome.type` trae un cargo que pasó por el reto.** Se exige `venta_exitosa`; si un
+cobro autenticado trajera otra cosa, el dinero estaría en Culqi y el enlace sin saldar — el
+agujero al revés. No hay forma de saberlo sin un cobro real, así que esa rama registra el
+cuerpo entero: la respuesta llegará escrita el primer día que pase.
 
 **Si Culqi firma sus webhooks.** El panel ofrece un toggle "Activar autenticación" que su
 documentación pública no explica. Merece preguntarlo a soporte: el diseño no depende de ello
@@ -1665,6 +1746,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar qué códigos de Culqi disparan el reto 3DS | `src/Finanzas/Service/Culqi/CulqiRechazoException.php` | `pideAutenticacion3DS()` — hoy sólo `DNGE0116` |
 | Cambiar cuándo un cargo de Culqi SALDA el enlace | `src/Finanzas/Service/Culqi/CulqiClient.php` | `cargoPagaElEnlace()` — enumera lo bueno (`venta_exitosa`) |
 | Tocar el reto 3DS del navegador | `pax/src/views/pago/PagoCulqiForm.vue` | `autenticar3DS()` · `MINUTOS_DE_RETO` |
+| Leer más campos del webhook de Culqi | `src/Finanzas/Controller/Webhook/CulqiWebhookController.php` | `datosDelEvento()` — `data` llega como cadena y en camelCase |
+| Cambiar lo que lee el cliente ante un error sin mensaje | `pax/src/views/pago/PagoCulqiForm.vue` | `textoDelError()` |
 | Cambiar qué datos del cobro se ven sin desplegar | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | bloque `estado === 'pagado'` |
 | Tocar la vista de auditoría de la respuesta | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | `alternarAuditoria()` |
 | Extraer un campo nuevo de la respuesta a columna | el cliente de esa pasarela | `comoRespuestaNormalizada()` |

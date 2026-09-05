@@ -35,14 +35,35 @@ final class CulqiRechazoException extends RuntimeException
     /**
      * ¿Culqi está pidiendo autenticación 3-D Secure?
      *
-     * ⚠️ **Se enumera lo que conocemos, y lo que no se registra.** `DNGE0116` es el código que han
-     * devuelto las cinco denegaciones reales. La lista de códigos es de Culqi y crece, así que
-     * tratar «cualquier cosa que no reconozco» como 3DS lanzaría retos sobre tarjetas sin fondos;
-     * y al revés, callarse los desconocidos nos dejaría otra vez a ciegas. Por eso: se reconoce lo
-     * medido y {@see self::codigo()} deja el resto a la vista en el log.
+     * ⚠️ **Se enumera lo que conocemos, y lo que no se registra.** La lista de códigos es de Culqi
+     * y crece, así que tratar «cualquier cosa que no reconozco» como 3DS lanzaría retos sobre
+     * tarjetas sin fondos; y al revés, callarse los desconocidos nos dejaría otra vez a ciegas.
+     * Por eso: se reconoce lo medido y {@see self::codigo()} deja el resto a la vista en el log.
+     *
+     * Se miran **tres** señales, y las tres hacen falta porque llegan por caminos distintos:
+     *
+     * | Señal | De dónde sale |
+     * |---|---|
+     * | `action_code: REVIEW` | el cuerpo 200 del POST — es lo que mira el demo oficial de Culqi |
+     * | `outcome.decline_code: authentication_required` | el objeto `charge` denegado (GET) |
+     * | `code: DNGE0116` | el código de las cinco denegaciones reales de España y Australia |
+     *
+     * La primera es la que de verdad importa: al pedir el reto, Culqi **no** contesta con un
+     * error, contesta 200 con un cuerpo que no es un cargo. Reconocer sólo el código dejaba el
+     * reto inalcanzable, porque ese código llega por la puerta del cargo ya denegado.
      */
     public function pideAutenticacion3DS(): bool
     {
+        if (($this->datos['action_code'] ?? null) === 'REVIEW') {
+            return true;
+        }
+
+        $motivo = $this->datos['outcome']['decline_code'] ?? $this->datos['decline_code'] ?? null;
+
+        if ($motivo === 'authentication_required') {
+            return true;
+        }
+
         return $this->codigo() === 'DNGE0116';
     }
 

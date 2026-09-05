@@ -177,8 +177,9 @@ final class CulqiClient implements FinPasarelaClientInterface
      *
      * @return array<string, mixed> El objeto `charge` de Culqi.
      *
-     * @throws CulqiRechazoException si Culqi rechaza el cobro. Lleva el cuerpo entero: quien la
-     *         captura tiene que mirar `pideAutenticacion3DS()` antes de darla por definitiva.
+     * @throws CulqiRechazoException si Culqi rechaza el cobro **o si contesta 2xx sin cargo**,
+     *         que es como pide el reto 3DS. Lleva el cuerpo entero: quien la captura tiene que
+     *         mirar `pideAutenticacion3DS()` antes de darla por definitiva.
      * @throws RuntimeException si no se pudo ni hablar con Culqi —red, tiempo agotado, llaves sin
      *         configurar—. Son cosas distintas: una la decide el banco y la otra nos pasa a
      *         nosotros, y al cliente no se le cuenta igual.
@@ -190,7 +191,7 @@ final class CulqiClient implements FinPasarelaClientInterface
     ): array {
         $tds = $autenticacion3DS !== null ? ['authentication_3DS' => $autenticacion3DS] : [];
 
-        return $this->peticion('POST', self::RUTA_CHARGES, $tds + [
+        $respuesta = $this->peticion('POST', self::RUTA_CHARGES, $tds + [
             'amount' => $enlace->montoTotalCentimos(),
             'currency_code' => $enlace->getMonedaCodigo() ?? 'PEN',
             'email' => $enlace->getClienteEmail() ?: 'pagos@openperu.pe',
@@ -204,6 +205,55 @@ final class CulqiClient implements FinPasarelaClientInterface
                 'ordenId' => (string) $enlace->getOrdenId(),
             ],
         ] + $this->antifraude($enlace));
+
+        // 🔥 **Un 2xx de Culqi NO significa que haya cargo, y aquí se daba por hecho que sí.**
+        // `peticion()` sólo levanta la mano si el HTTP es ≥400 o el cuerpo dice `object: error`.
+        // Cuando el banco pide el reto, Culqi contesta **200 con un cuerpo que no es ninguna de
+        // las dos cosas** —el demo oficial lo reconoce por `action_code: "REVIEW"`, frente al 201
+        // del cobrado—, así que la excepción no saltaba, el `pideAutenticacion3DS()` del
+        // controlador no llegaba a ejecutarse nunca y el reto era **código inalcanzable**.
+        //
+        // Se midió en los logs de producción, no se dedujo: los cinco intentos denegados de los
+        // días 4 y 5 dejaron `cargo creado que no cuadra con el enlace` —línea que sólo se
+        // escribe si esto devolvió sin lanzar— y **cero** líneas de `respuesta de error`.
+        //
+        // Ahora cualquier cuerpo que no sea un cargo sale por la puerta de la excepción, que es
+        // la que sabe distinguir «no» de «autentica y vuelve».
+        if (($respuesta['object'] ?? null) !== 'charge') {
+            $detalle = $respuesta['user_message'] ?? $respuesta['merchant_message'] ?? 'sin cargo';
+
+            // ⚠️ **El cuerpo entero al log, y a propósito.** El reto sólo lo dispara el banco
+            // emisor de una tarjeta extranjera, así que esto no se puede provocar desde aquí:
+            // el primer cliente de fuera que pague ES la prueba, y sin su respuesta escrita
+            // volveríamos a quedarnos con un 422 mudo. Se le quitan `source` y
+            // `antifraud_details`, que es donde viven la tarjeta y la persona.
+            $this->logger->error('[culqi] el POST no devolvió un cargo', [
+                'enlace' => (string) $enlace->getId(),
+                'reintentoCon3DS' => $autenticacion3DS !== null,
+                'respuesta' => self::sinDatosDelTitular($respuesta),
+            ]);
+
+            throw new CulqiRechazoException('Culqi no creó el cargo: ' . $detalle, $respuesta);
+        }
+
+        return $respuesta;
+    }
+
+    /**
+     * El cuerpo de Culqi sin lo que identifica al titular, para poder registrarlo.
+     *
+     * `source` lleva la tarjeta enmascarada, el correo y la huella del dispositivo;
+     * `antifraud_details`, el nombre y el teléfono. Nada de eso hace falta para entender qué
+     * respondió la pasarela, y un log se lee meses después y desde muchos sitios.
+     *
+     * @param array<string, mixed> $cuerpo
+     * @return array<string, mixed>
+     */
+    private static function sinDatosDelTitular(array $cuerpo): array
+    {
+        unset($cuerpo['source'], $cuerpo['antifraud_details'], $cuerpo['client']);
+
+        return $cuerpo;
     }
 
     /**
@@ -376,7 +426,7 @@ final class CulqiClient implements FinPasarelaClientInterface
             $this->logger->error('[culqi] la respuesta no es un cargo', [
                 'enlace' => (string) $enlace->getId(),
                 'object' => $cargo['object'] ?? null,
-                'claves' => array_slice(array_keys($cargo), 0, 12),
+                'respuesta' => self::sinDatosDelTitular($cargo),
             ]);
 
             return false;
@@ -386,12 +436,18 @@ final class CulqiClient implements FinPasarelaClientInterface
         $resultado = $cargo['outcome']['type'] ?? null;
 
         if ($resultado !== 'venta_exitosa') {
+            // ⚠️ **Con el cuerpo entero.** Ésta es la rama del agujero INVERSO: si un cargo que
+            // pasó el reto trajera un `outcome.type` que no hemos visto nunca, el dinero estaría
+            // en Culqi y el enlace se quedaría sin saldar, en silencio. No se puede provocar
+            // desde aquí —hace falta una tarjeta extranjera de verdad—, así que la única defensa
+            // es que la primera vez quede escrito qué llegó.
             $this->logger->error('[culqi] cargo NO autorizado; no salda el enlace', [
                 'enlace' => (string) $enlace->getId(),
                 'cargo' => $cargo['id'] ?? null,
                 'outcome' => $resultado,
                 'code' => $cargo['outcome']['code'] ?? null,
                 'motivo' => $cargo['outcome']['merchant_message'] ?? null,
+                'respuesta' => self::sinDatosDelTitular($cargo),
             ]);
 
             return false;
