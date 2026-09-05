@@ -10227,6 +10227,7 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    miembros: string[];
                 }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
@@ -10461,6 +10462,7 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    miembros: string[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -10505,6 +10507,7 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    miembros: string[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -10594,6 +10597,7 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    miembros: string[];
                 }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
@@ -10776,6 +10780,7 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    miembros: string[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -10820,6 +10825,7 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    miembros: string[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -10909,6 +10915,7 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    miembros: string[];
                 }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
@@ -11096,6 +11103,7 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    miembros: string[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -11140,6 +11148,7 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    miembros: string[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -11229,6 +11238,7 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    miembros: string[];
                 }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
@@ -11411,6 +11421,7 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    miembros: string[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -11455,6 +11466,7 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    miembros: string[];
                 }[];
             } | null;
             readonly localizador?: string | null;

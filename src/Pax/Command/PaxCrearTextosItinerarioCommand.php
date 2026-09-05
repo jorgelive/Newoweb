@@ -49,6 +49,9 @@ final class PaxCrearTextosItinerarioCommand extends Command
      */
     private const array TEXTOS = [
         'cot_imprimir' => 'Imprimir',
+        // «Lo tuyo»: con quién comparte cada subgrupo. Ver CotizacionFile::$miIdentidad.
+        'cot_personas' => 'personas',
+        'cot_tu' => 'tú',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

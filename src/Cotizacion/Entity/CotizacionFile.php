@@ -578,7 +578,12 @@ class CotizacionFile
      * Un expediente individual, un tour de catálogo, o alguien que no se ha identificado: `null`.
      * Sólo se rellena cuando hay identidad **y** el expediente la exige.
      *
-     * @var array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null}>}|null
+     * ── Con quién comparte cada subgrupo (04/09/2026) ───────────────────────
+     * Cada subgrupo trae además `miembros`: los nombres de quienes están en **ese** subgrupo suyo
+     * —su compañero de habitación, los de su PNR—. Sigue sin ser el padrón: son SUS grupos, y sólo
+     * el nombre. Ni documento, ni fecha, ni el `codigo` del vecino, que es el localizador ajeno.
+     *
+     * @var array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<string>}>}|null
      */
     #[ApiProperty(openapiContext: [
         'type' => 'object',
@@ -596,8 +601,9 @@ class CotizacionFile
                         'clave' => ['type' => 'string'],
                         'nombre' => ['type' => 'string', 'nullable' => true],
                         'codigo' => ['type' => 'string', 'nullable' => true],
+                        'miembros' => ['type' => 'array', 'items' => ['type' => 'string']],
                     ],
-                    'required' => ['eje', 'ejeLabel', 'subeje', 'clave'],
+                    'required' => ['eje', 'ejeLabel', 'subeje', 'clave', 'miembros'],
                 ],
             ],
         ],
@@ -607,7 +613,7 @@ class CotizacionFile
     private ?array $miIdentidad = null;
 
     /**
-     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null}>}|null
+     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<string>}>}|null
      */
     public function getMiIdentidad(): ?array
     {
@@ -615,7 +621,7 @@ class CotizacionFile
     }
 
     /**
-     * @param array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null}>}|null $miIdentidad
+     * @param array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<string>}>}|null $miIdentidad
      */
     public function setMiIdentidad(?array $miIdentidad): self
     {

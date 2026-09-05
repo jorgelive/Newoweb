@@ -956,6 +956,42 @@ const etiquetaDisparador = computed((): string => {
  */
 const hayPanelPrecio = computed(() => !!(store.precioVisible && totalViaje.value) || gruposUpgrade.value.length > 0);
 
+/**
+ * Qué subgrupo de «Lo tuyo» tiene abierta su lista de gente.
+ *
+ * 🔥 **La primera pregunta de quien viaja en grupo es con quién.** Con quién duerme, con quién
+ * embarca. El expediente lo sabe —la habitación y el PNR son subgrupos con miembros— y la tarjeta
+ * lo callaba: enseñaba «HABITACIÓN · DOBLE · HP13» y quien la leía seguía sin saber quién es el
+ * otro. Obligarle a escribir para preguntarlo es fricción sin nada al otro lado; a esa persona la
+ * va a ver esa misma noche.
+ *
+ * ⚠️ **Colapsado.** Un PNR de vuelo lleva 44 nombres: desplegados sepultan las tres cosas que la
+ * tarjeta existe para decir —tu localizador, tu habitación, tu grupo—.
+ */
+const gentAbierta = ref<Set<number>>(new Set());
+
+const alternarGente = (i: number): void => {
+  const abiertos = new Set(gentAbierta.value);
+
+  if (abiertos.has(i)) {
+    abiertos.delete(i);
+  } else {
+    abiertos.add(i);
+  }
+
+  gentAbierta.value = abiertos;
+};
+
+/**
+ * ¿Esta línea eres tú?
+ *
+ * Se marca en vez de esconderse: verse en la lista confirma que la reserva es la tuya, y una lista
+ * de la que faltas invita a preguntar si hubo un error. Se compara por nombre porque es lo único
+ * que viaja — el backend no manda ids de otras personas, a propósito.
+ */
+const soyYo = (nombre: string): boolean =>
+  nombre.trim().toLowerCase() === (store.miIdentidad?.nombre ?? '').trim().toLowerCase();
+
 const adelantoVista = computed(() => {
   const cot = store.cotizacion;
   if (!cot) return '';
@@ -1091,6 +1127,29 @@ const adelantoVista = computed(() => {
             <p class="font-black text-gray-800 text-sm leading-tight mt-1">
               {{ sg.nombre || sg.clave }}
             </p>
+
+            <!-- ── Con quién ──────────────────────────────────────────────
+                 Sólo si hay alguien más: una habitación individual no necesita un desplegable
+                 para enseñar un solo nombre, el tuyo. -->
+            <template v-if="(sg.miembros?.length ?? 0) > 1">
+              <button type="button" @click="alternarGente(i)"
+                      class="mt-2 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#E07845] hover:text-[#D06535] transition-colors">
+                <i class="fas text-[9px]" :class="gentAbierta.has(i) ? 'fa-chevron-up' : 'fa-users'"></i>
+                {{ sg.miembros.length }} {{ maestroStore.t('cot_personas') || 'personas' }}
+              </button>
+
+              <ul v-if="gentAbierta.has(i)" class="mt-2 space-y-0.5 border-t border-slate-200/70 pt-2">
+                <li v-for="(quien, k) in sg.miembros" :key="k"
+                    class="text-[11px] leading-snug flex items-baseline gap-1.5"
+                    :class="soyYo(quien) ? 'font-black text-[#376875]' : 'font-bold text-slate-500'">
+                  <i class="fas fa-circle text-[3px] shrink-0 opacity-40"></i>
+                  <span class="min-w-0 break-words">{{ quien }}</span>
+                  <span v-if="soyYo(quien)" class="shrink-0 text-[9px] font-black uppercase tracking-widest text-[#E07845]">
+                    {{ maestroStore.t('cot_tu') || 'tú' }}
+                  </span>
+                </li>
+              </ul>
+            </template>
             <!-- El código es lo único que de verdad es de esta persona: su localizador, su
                  asiento. Se pinta en monoespaciado porque se copia y se dicta. -->
             <p v-if="sg.codigo" class="text-xs font-mono font-black text-[#376875] tracking-wider mt-1.5">

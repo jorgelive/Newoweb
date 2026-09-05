@@ -9,9 +9,13 @@ use ApiPlatform\Metadata\Operation;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
+use App\Cotizacion\Entity\CotizacionFileGrupo;
+use Doctrine\DBAL\ArrayParameterType;
+use App\Cotizacion\Enum\PasajeroTipoEnum;
 use App\Cotizacion\Service\Publico\IdentidadDelPasajero;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Bundle\SecurityBundle\Security;
 
@@ -285,6 +289,8 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         }
 
         $subgrupos = [];
+        /** @var list<CotizacionFileGrupo> $gruposDelPasajero */
+        $gruposDelPasajero = [];
 
         foreach ($pasajero->getPertenencias() as $pertenencia) {
             $grupo = $pertenencia->getGrupo();
@@ -305,12 +311,132 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 'clave' => (string) $grupo->getClave(),
                 'nombre' => $grupo->getNombre(),
                 'codigo' => $pertenencia->getCodigo(),
+                'idGrupo' => $grupo->getId()?->toRfc4122(),
             ];
+            $gruposDelPasajero[] = $grupo;
+        }
+
+        $companeros = $this->companerosDe($gruposDelPasajero);
+
+        foreach ($subgrupos as $i => $sg) {
+            $subgrupos[$i]['miembros'] = $companeros[$sg['idGrupo'] ?? ''] ?? [];
+            unset($subgrupos[$i]['idGrupo']);
         }
 
         $file->setMiIdentidad([
             'nombre' => trim($pasajero->getNombre() . ' ' . $pasajero->getApellido()),
             'subgrupos' => $subgrupos,
         ]);
+    }
+
+    /**
+     * Con quién comparte cada uno de SUS subgrupos: el compañero de habitación, los de su PNR.
+     *
+     * ── Por qué se enseña, si el padrón está cerrado ────────────────────────
+     * Porque no es el padrón: es **su** habitación y **su** reserva de vuelo. Saber con quién
+     * duermes y con quién embarcas es la primera pregunta que hace quien viaja en grupo, y
+     * obligarle a escribir para preguntarlo es fricción sin nada al otro lado — a esa gente ya la
+     * va a ver en el aeropuerto.
+     *
+     * ⚠️ **Acotado a los subgrupos de quien pregunta**, y a nada más. Los 133 nombres del
+     * expediente siguen sin salir: ver {@see \App\Cotizacion\Entity\CotizacionFile::$miIdentidad}.
+     *
+     * ⚠️ **Sólo el nombre.** Ni documento, ni fecha de nacimiento, ni el `codigo` del vecino —el
+     * localizador ajeno con un apellido abre la reserva de otro en la web de la aerolínea, que es
+     * exactamente la fuga que se cerró al pasar `grupos` a plural—.
+     *
+     * ⚠️ **Los invitados no salen**, y no es un filtro por rol: {@see PasajeroTipoEnum::esExpuesto()}
+     * dice que no existen en ninguna vista pública. Son gratuidades de la agencia y un hueco se
+     * pregunta igual que un nombre.
+     *
+     * ⚠️ **UNA consulta para todos los grupos**, no una por grupo. Recorrer `$grupo->getMiembros()`
+     * hidrata pertenencias y pasajeros de cada uno: con un vuelo de 44 son 45 consultas por
+     * subgrupo, y es la misma trampa que ya costó cara en `OperacionServicio::getPasajeros()`.
+     *
+     * 🔥 **El id EN BINARIO y con `ArrayParameterType::BINARY`, o no casa nada.** La columna es
+     * `BINARY(16)` y este `IN` devolvía **cero filas sin un solo error**: el panel salía vacío,
+     * como si nadie compartiera habitación. Medido contra producción, sobre una habitación con dos
+     * personas:
+     *
+     * ```
+     * g = :g            (la ENTIDAD)              → 0 filas
+     * g.id = :id        (Uuid suelto)             → 0
+     * g.id = :id        (Uuid + UuidType::NAME)   → 2  ✅
+     * g.id IN (:ids)    (Uuid[] suelto)           → 0
+     * g.id IN (:ids)    (binario + BINARY)        → 2  ✅
+     * g.clave = :c      (control, sin uuid)       → 2
+     * ```
+     *
+     * ⚠️ **Pasar la entidad tampoco vale**, que es lo que uno probaría primero: Doctrine la
+     * convierte al id y ahí se pierde igual. La nota del proyecto avisaba de los `Uuid`; esta fila
+     * de la tabla es nueva.
+     *
+     * @param list<CotizacionFileGrupo> $grupos
+     *
+     * @return array<string, list<string>> id del grupo => nombres, el responsable primero
+     */
+    private function companerosDe(array $grupos): array
+    {
+        if ($grupos === []) {
+            return [];
+        }
+
+        /** @var list<array{grupo: string, nombre: string|null, apellido: string|null, tipo: PasajeroTipoEnum|null}> $filas */
+        $filas = $this->em->createQuery(
+            <<<'DQL'
+            SELECT g.id AS grupo, p.nombre AS nombre, p.apellido AS apellido, p.tipo AS tipo
+              FROM App\Cotizacion\Entity\CotizacionPasajeroGrupo pg
+              JOIN pg.grupo g
+              JOIN pg.pasajero p
+             WHERE g.id IN (:ids)
+            DQL,
+        )->setParameter(
+            'ids',
+            array_map(static fn (CotizacionFileGrupo $g): string => (string) $g->getId()?->toBinary(), $grupos),
+            ArrayParameterType::BINARY,
+        )->getArrayResult();
+
+        /** @var array<string, list<array{orden: int, etiqueta: string, nombre: string}>> $porGrupo */
+        $porGrupo = [];
+
+        foreach ($filas as $f) {
+            $tipo = $f['tipo'];
+
+            // El invitado no existe aquí. Ver `esExpuesto()`.
+            if ($tipo !== null && !$tipo->esExpuesto()) {
+                continue;
+            }
+
+            $nombre = trim(($f['nombre'] ?? '') . ' ' . ($f['apellido'] ?? ''));
+
+            if ($nombre === '') {
+                continue;
+            }
+
+            $clave = (string) $f['grupo'];
+            $porGrupo[$clave] ??= [];
+            $porGrupo[$clave][] = [
+                // Quien responde del grupo va primero: es a quien se busca cuando algo pasa.
+                'orden' => match ($tipo) {
+                    PasajeroTipoEnum::COORDINADOR => 0,
+                    PasajeroTipoEnum::SUPERVISOR => 1,
+                    default => 2,
+                },
+                // Se ordena por APELLIDO, que es como se lee una lista de pasajeros.
+                'etiqueta' => mb_strtolower(trim(($f['apellido'] ?? '') . ' ' . ($f['nombre'] ?? ''))),
+                'nombre' => $nombre,
+            ];
+        }
+
+        $salida = [];
+
+        foreach ($porGrupo as $clave => $gente) {
+            usort($gente, static fn (array $a, array $b): int => $a['orden'] <=> $b['orden']
+                ?: strcoll($a['etiqueta'], $b['etiqueta']));
+
+            $salida[$clave] = array_map(static fn (array $x): string => $x['nombre'], $gente);
+        }
+
+        return $salida;
     }
 }

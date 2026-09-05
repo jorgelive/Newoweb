@@ -2333,6 +2333,55 @@ por `apiClient`, o sea al host de la API. Es la trampa que ya se pagó con
 `IdentificarPasajeroController`, que nació en `Controller/Publico/` y quedó publicado en el host
 equivocado.
 
+### «Lo tuyo» dice ahora CON QUIÉN (04/09/2026)
+
+Cada subgrupo de la tarjeta trae `miembros`: los nombres de quienes están en **ese** subgrupo suyo.
+La primera pregunta de quien viaja en grupo es con quién duerme y con quién embarca; el expediente
+lo sabía —la habitación y el PNR son subgrupos con miembros— y la tarjeta lo callaba.
+
+```
+HABITACIÓN · SONESTA          VUELO · NACIONAL
+DOBLE                         Sky Airline
+▸ 2 personas                  ▸ 4 personas
+   · Dariana Jaramillo           · Militsa Villafuerte Florez   ← coordinadora
+   · Alejandra Valdivia  TÚ      · Braulio Acosta Castro
+                                 · Alejandra Valdivia    TÚ
+```
+
+| Decisión | Por qué |
+|---|---|
+| **Sólo los subgrupos de quien pregunta** | Sigue sin ser el padrón: son SUS grupos. Los 133 nombres no salen |
+| **Sólo el nombre** | Ni documento, ni fecha, ni el `codigo` del vecino — un localizador ajeno con un apellido abre la reserva de otro en la web de la aerolínea |
+| **Los invitados no salen** | No es un filtro por rol: `PasajeroTipoEnum::esExpuesto()` dice que no existen en ninguna vista pública. Son gratuidades de la agencia, y un hueco se pregunta igual que un nombre |
+| **El responsable primero**, luego por apellido | Coordinador, supervisor, resto: es a quien se busca cuando algo pasa. Y una lista de pasajeros se lee por apellido |
+| **Te marca a ti**, no te esconde | Verse confirma que la reserva es la tuya; una lista de la que faltas invita a preguntar si hubo un error |
+| **Colapsado** | Un PNR lleva 44 nombres: desplegados sepultan lo que la tarjeta existe para decir |
+
+⚠️ **Esto cambia una regla escrita.** `AlcanceDelPadron` dice «Alumno · Padre · Invitado → sólo su
+ficha», y esto les da los miembros de sus propios subgrupos. Se decidió así a conciencia —la
+comodidad primero, y a esa gente la ven en el aeropuerto—. Ese servicio **sigue sin consumirse por
+nadie**; el día que se conecte, esta excepción hay que escribirla ahí.
+
+🔥 **El `IN` con UUID binario no casa, y ni pasando la entidad.** Medido contra producción sobre
+una habitación con dos personas:
+
+```
+g = :g            (la ENTIDAD)              → 0 filas
+g.id = :id        (Uuid suelto)             → 0
+g.id = :id        (Uuid + UuidType::NAME)   → 2  ✅
+g.id IN (:ids)    (Uuid[] suelto)           → 0
+g.id IN (:ids)    (binario + BINARY)        → 2  ✅
+g.clave = :c      (control, sin uuid)       → 2
+```
+
+**Pasar la entidad tampoco vale**, que es lo que uno probaría primero: Doctrine la convierte al id
+y ahí se pierde igual. La nota del proyecto avisaba de los `Uuid`; esa fila es nueva. Cero filas y
+ni un error: el panel salía vacío como si nadie compartiera habitación.
+
+⚠️ **Y una consulta para todos los grupos, no una por grupo.** Recorrer `$grupo->getMiembros()`
+hidrata pertenencias y pasajeros de cada uno: con un vuelo de 44 son 45 consultas por subgrupo. Es
+la misma trampa que ya costó cara en `OperacionServicio::getPasajeros()`.
+
 ### El filtrado por persona ya está — ver §6.j.6
 
 Se completó el 03/09/2026, en la misma sesión: quien se identifica ve sólo los componentes sin
