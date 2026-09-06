@@ -2,9 +2,10 @@
 // ============================================================================
 // Enlaces de pago por pasarela (módulo Finanzas).
 //
-// Espejo del serializador de `App\Finanzas\Controller\Api\FinEnlacePagoApiController`
-// (método privado `serializar()`). NO es un recurso de API Platform: no hay contrato
-// generado, así que si cambia un campo allí hay que cambiarlo aquí a mano.
+// Espejo de `App\Finanzas\Service\FinEnlacePagoSerializer::aArray()`, que es donde vive la
+// forma del JSON desde que la comparten dos pantallas — el `serializar()` del controlador es
+// un passthrough de una línea. NO es un recurso de API Platform: no hay contrato generado, así
+// que si cambia un campo allí hay que cambiarlo aquí a mano.
 //
 // Los importes viajan como STRING con dos decimales, igual que en el resto de finanzas:
 // pasarlos a `number` en el transporte introduce errores de coma flotante justo en las

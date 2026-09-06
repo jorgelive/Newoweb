@@ -63,7 +63,7 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
         const salida: Record<string, string> = {};
         for (const clave of claves) {
             const valor = filtros[clave];
-            if (valor) salida[clave === 'q' ? 'q' : clave] = valor;
+            if (valor) salida[clave] = valor;
         }
         return salida;
     };

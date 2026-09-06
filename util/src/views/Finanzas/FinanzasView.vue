@@ -315,7 +315,9 @@ const copiar = async (enlace: FinEnlacePago): Promise<void> => {
         await navigator.clipboard.writeText(enlace.url);
     } catch {
         // Portapapeles bloqueado (http o permiso denegado): no es un error que merezca
-        // interrumpir; el operador puede abrir la ficha y copiar desde ahí.
+        // interrumpir. La URL está a la vista y seleccionable a mano en el pie de la ficha y
+        // en el panel del cobro manual, que es el fallback de verdad — este comentario lo
+        // prometía antes de que existiera.
     }
 };
 
@@ -497,6 +499,17 @@ async function devolverCobro(cobro: FinEnlacePago): Promise<void> {
         devolviendoId.value = null;
     }
 }
+
+/**
+ * Nombre y apellido pegados para donde se enseña una sola línea.
+ *
+ * ⚠️ Se guardan SEPARADOS porque la pasarela quiere los dos campos y partirlos después es
+ * adivinar —«Ramos Garcia Mª Isabel» no la parte ninguna heurística—, pero al leerlos se
+ * concatenan. En los enlaces anteriores al 31/08/2026 el apellido llega `null` y el nombre
+ * completo está en `clienteNombre`: por eso se filtran los vacíos en vez de unir a ciegas.
+ */
+const nombreCompleto = (nombre?: string | null, apellido?: string | null): string =>
+    [nombre, apellido].filter(Boolean).join(' ');
 
 /** Fecha con hora: en una ficha sí importa a qué hora se emitió o se pagó. */
 function fechaLarga(iso?: string | null): string {
@@ -754,7 +767,7 @@ function fechaLarga(iso?: string | null): string {
                                         {{ c.origenReferencia || '—' }}
                                     </button>
                                     <span v-if="c.clienteNombre" class="block text-[10px] text-slate-400 truncate max-w-[12rem]">
-                                        {{ c.clienteNombre }}
+                                        {{ nombreCompleto(c.clienteNombre, c.clienteApellido) }}
                                     </span>
                                 </td>
                                 <td class="px-3 py-2 text-right whitespace-nowrap">
@@ -1095,7 +1108,9 @@ function fechaLarga(iso?: string | null): string {
                     <dl class="flex flex-col gap-1.5">
                         <div v-if="fichaCobro.clienteNombre" class="flex justify-between gap-3">
                             <dt class="text-slate-400 font-bold shrink-0">Nombre</dt>
-                            <dd class="font-bold text-slate-700 text-right break-words">{{ fichaCobro.clienteNombre }}</dd>
+                            <dd class="font-bold text-slate-700 text-right break-words">
+                                {{ nombreCompleto(fichaCobro.clienteNombre, fichaCobro.clienteApellido) }}
+                            </dd>
                         </div>
                         <div v-if="fichaCobro.clienteEmail" class="flex justify-between gap-3">
                             <dt class="text-slate-400 font-bold shrink-0">Correo</dt>
@@ -1175,6 +1190,12 @@ function fechaLarga(iso?: string | null): string {
                  pulsan por proximidad. La confirmación nombra el cobro (ver el script). -->
             <footer v-if="fichaCobro.vigente" class="shrink-0 px-4 py-3 border-t border-slate-100 bg-slate-50 space-y-2">
                 <p v-if="errorAnular" class="text-[11px] font-bold text-rose-600">{{ errorAnular }}</p>
+                <!-- La URL a la vista y seleccionable a mano. El comentario de `copiar()` decía
+                     que con el portapapeles bloqueado se podía «abrir la ficha y copiar desde
+                     ahí», y la ficha usaba el mismo botón sin enseñar la URL en ninguna parte:
+                     el fallback no existía. Es lo mismo que ya hace el panel de la reserva. -->
+                <input :value="fichaCobro.url" readonly
+                    class="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-mono" />
                 <button type="button" @click="copiar(fichaCobro)"
                     class="w-full py-2 rounded-xl bg-[#376875] hover:bg-[#2d5660] text-white text-xs font-black">
                     <i class="fas fa-copy mr-1"></i> Copiar enlace de pago

@@ -156,6 +156,9 @@ final class FinCajaApiController extends AbstractController
             'saldoPendiente' => $dto->saldoPendiente,
             'moneda' => $dto->moneda,
             'clienteNombre' => $dto->clienteNombre,
+            // Separado, igual que en el enlace: el DTO de origen lo trae desde que
+            // `PmsReservaOrigenCobroResolver` dejó de pegarlos. Ver §11.
+            'clienteApellido' => $dto->clienteApellido,
             'clienteEmail' => $dto->clienteEmail,
             'clienteTelefono' => $dto->clienteTelefono,
         ];

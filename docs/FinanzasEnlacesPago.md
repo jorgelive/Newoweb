@@ -53,6 +53,7 @@ es dejar rastro de la contradicción (un enlace `anulado` que acabó cobrado), n
 11 quater. [Devoluciones: deshacer un cobro que ya pasó](#11-quater-devoluciones-deshacer-un-cobro-que-ya-paso)
 12. [Despliegue: por qué no basta con `git pull`](#12-despliegue-por-qué-no-basta-con-git-pull)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
+13 bis. [La descripción del cargo que ve el huésped](#13-bis-la-descripción-del-cargo-que-ve-el-huésped)
 14. [El catálogo de medios de cobro (`FinMedioCobro`)](#14-el-catálogo-de-medios-de-cobro-finmediocobro)
     - [⚠️ Gotcha: `opciones()` de un enum devuelve CASOS](#144--gotcha-opciones-de-un-enum-devuelve-casos-no-value)
     - [⚠️ `#[AutoTranslate]` necesita DOS cosas más](#145--una-entidad-con-autotranslate-necesita-dos-cosas-más)
@@ -574,6 +575,12 @@ Se emite desde `/finanzas` → pestaña Cobros → botón **Cobro manual**, con 
 (`POST /finanzas/enlaces-pago/manual`) porque el contrato es distinto: sin saldo del que
 deducir, importe, moneda y concepto pasan a ser obligatorios.
 
+⚠️ **El cobro manual NO deja elegir pasarela, y el panel de la reserva sí.** El cuerpo lo admite
+(`FinEnlacePagoManualCreate.pasarela`) y `ReservaEnlacesPagoSection.vue` pinta el selector con
+`eligePasarela`, pero la pantalla global nunca llama a `fetchPasarelas()`: un manual sale
+siempre por la de defecto. Hoy da igual —sólo Culqi tiene credenciales— y el día que Izipay se
+habilite hay que decidir si se añade el selector o se deja así a propósito.
+
 ### El segundo contrato: `FinMovimientoProviderInterface`
 
 La pestaña de caja necesita leer los pagos de cada módulo, y eso es otra pregunta que
@@ -726,10 +733,15 @@ igual en las dos direcciones.
 ⚠️ **Va en el cargo, no en el Checkout.** El `client` del Checkout Custom sólo lleva `email`; el
 nombre viaja en `antifraud_details` del `POST /charges`, que es servidor.
 
-**El nombre va ENTERO en `first_name`.** `FinEnlacePago` guarda un solo campo —«Vanesa Acosta»— y
-Culqi quiere dos. No se parte por el primer espacio: «Ramos Garcia Mª Isabel» daría un apellido
-inventado, y como el panel los pinta concatenados, entero en el primero se lee igual sin adivinar.
-Es lo que `IzipayClient` ya hace con `billingDetails.firstName`.
+⚠️ **Este párrafo describía el estado ANTERIOR y se corrigió el 06/09/2026.** Decía «el nombre
+va entero en `first_name`» porque `FinEnlacePago` guardaba un solo campo. Eso dejó de ser cierto
+ese mismo 31/08 con la columna `cliente_apellido` —ver el bloque de arriba—: `CulqiClient::antifraude()`
+manda hoy `first_name` **y** `last_name` por separado, e `IzipayClient` su `billingDetails.lastName`.
+Dos secciones del mismo día contándose lo contrario, y ganó la de más arriba.
+
+Lo que sigue vigente es el **porqué de no partir**: «Ramos Garcia Mª Isabel» no la separa ninguna
+heurística, así que en los 21 enlaces anteriores a la columna el nombre completo se queda entero
+en `first_name` y `last_name` viaja vacío. No se rellenan hacia atrás.
 
 `address`, `address_city` y `country_code` **no se mandan**: no están en el enlace, y Finanzas no
 puede preguntárselos al PMS —la dependencia va al revés—. El día que hagan falta van como columna.
@@ -1532,7 +1544,7 @@ mientras no se ha cobrado nada — después, lo que queda es el **saldo**, y lla
 mentiría porque el total de la reserva incluye lo ya pagado.
 
 Que «Primera noche» desaparezca no hay que programarlo: el panel recibe `prepagoPendiente` de
-`pendiente()`, que devuelve `null` en cuanto hay un pago (§8). El backend además lo impediría.
+`pendiente()`, que devuelve `null` en cuanto hay un pago (§13 bis). El backend además lo impediría.
 
 ⚠️ **El atajo NO emite: prellena el formulario y lo abre.** Vigencia, recargo y concepto siguen
 a la vista y el operador confirma con «Generar enlace». Es un cobro; ahorrar el tecleo no es
@@ -1962,7 +1974,7 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Guardar otro campo de la transacción | `src/Finanzas/Service/FinEnlacePagoService.php` | `confirmarPago()` |
 | Cambiar cómo se imputa el pago en el PMS | `src/Pms/Finanzas/PmsReservaOrigenCobroResolver.php` | `registrarCobro()` |
 | Cambiar el texto que ve el cliente | `src/Pms/Finanzas/PmsReservaOrigenCobroResolver.php` | `describir()` |
-| Cambiar el JSON que consume `util` | `src/Finanzas/Controller/Api/FinEnlacePagoApiController.php` | `serializar()` (+ espejo TS, §7) |
+| Cambiar el JSON que consume `util` | `src/Finanzas/Service/FinEnlacePagoSerializer.php` | `aArray()` (+ espejo TS, §7). El `serializar()` del controlador es un passthrough de una línea |
 | Cambiar el JSON que consume `pax` | `src/Finanzas/Controller/Publico/FinPagoPublicoController.php` | `ver()` (+ espejo TS, §7) |
 | Cambiar el tema visual del formulario | `pax/src/views/pago/PaxPagoView.vue` | `cargarLibreria()` (assets `neon`) |
 | Cambiar el sondeo de confirmación | `pax/src/views/pago/PaxPagoView.vue` | `sondearConfirmacion()` |
@@ -1986,7 +1998,7 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar qué importe/concepto lleva el enlace automático | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `loQueSePide()` + `conceptoSaldo()` — lo comparten los tres caminos |
 | Cambiar CUÁNDO se releva el adelanto por el saldo | `src/Pms/Command/PmsPrepagoRevisarLlegadasCommand.php` + crontab | `app:pms:prepago:revisar-llegadas` — 05:05 UTC = 00:05 de Lima |
 | Cambiar cuántos días atrás mira el relevo | el mismo comando | `--dias-atras` (30 por defecto) |
-| Cambiar CUÁNDO deja de pedirse | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `pendiente()` (§8) |
+| Cambiar CUÁNDO deja de pedirse | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `pendiente()` (§13 bis) |
 | Cambiar CUÁNDO se emite solo el enlace | `PmsInformacionFinancieraCoherenciaListener::postFlush()` | La llamada a `emitirPrepagos()`, al final de la cadena. La decisión de *si procede* sigue en `pendiente()` |
 | Cambiar qué dice el aviso de cobro (§11 ter) | `src/Finanzas/Service/Aviso/FinAvisoDeCobro.php` | `redactar()` dentro de ventana, `variables()` fuera. Si añades una variable, tiene que llegar SIEMPRE con valor y en una línea |
 | Añadir un dato a la ficha de un cobro (§11 bis.2) | `FinEnlacePagoSerializer::aArray()` **y** `util/src/types/finEnlacePagoModel.ts` | Son espejo: el serializador lo cita. Si el dato es del DOCUMENTO y no del enlace, va en `FinCajaApiController::origenDe()` |
@@ -2004,7 +2016,12 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 
 ---
 
-## 8. La descripción del cargo que ve el huésped
+## 13 bis. La descripción del cargo que ve el huésped
+
+> ⚠️ **Esta sección se llamó «## 8» hasta el 06/09/2026**, con lo que el doc tenía DOS §8: ésta
+> y «Configuración y credenciales», que está mucho más arriba. Las referencias internas «(§8)»
+> apuntaban a ÉSTA, no a aquélla, y el índice no la listaba. Renumerada como 13 bis —el idiom que ya usan 11 bis, ter y quater—
+> para no moverla de sitio.
 
 `pms_cargo_financiero` tiene **dos** descripciones y no son intercambiables:
 
@@ -2369,7 +2386,7 @@ Travel. No son intercambiables:
 El caso del trait es el que más caro sale, porque el atributo queda a la vista en la entidad y
 todo parece bien puesto. Pasó dos veces en un mismo día: en `PmsEstablecimientoVirtual` (se
 detectó a tiempo y el campo se dejó sin traducir a propósito) y en `PmsCargoFinanciero`, donde
-sigue vivo — ver §8.
+sigue vivo — ver §13 bis.
 
 Auditar el parque entero es un comando:
 

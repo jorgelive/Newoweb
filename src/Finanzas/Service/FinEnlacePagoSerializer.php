@@ -57,9 +57,19 @@ final class FinEnlacePagoSerializer
             // Columna «Módulo» del listado: «Manual» cuando el cobro no pertenece a ninguno.
             'moduloEtiqueta' => $enlace->getModuloEtiqueta(),
             'esManual' => $enlace->getEsManual(),
-            'origenId' => (string) $enlace->getOrigenId(),
+            // ⚠️ `?->toRfc4122()`, no `(string)`. Con el cast, un cobro MANUAL —que por
+            // definición no tiene origen— viajaba como cadena VACÍA mientras el espejo TS y
+            // este doc prometen `null`. Hoy colaba porque la vista mira `!origenId`, pero un
+            // `=== null` futuro habría fallado en silencio. Es el idiom que ya usaba
+            // `movimientoGeneradoId` tres líneas más abajo.
+            'origenId' => $enlace->getOrigenId()?->toRfc4122(),
             'origenReferencia' => $enlace->getOrigenReferencia(),
             'clienteNombre' => $enlace->getClienteNombre(),
+            // El apellido se guardaba, se mandaba a la pasarela y NO volvía nunca a la
+            // pantalla: el serializador se lo saltaba desde que se separó el 31/08/2026,
+            // mientras el espejo TS lo declaraba. En los enlaces anteriores a esa fecha llega
+            // `null` y el nombre completo está en `clienteNombre` — quien lo pinte concatena.
+            'clienteApellido' => $enlace->getClienteApellido(),
             // Los tres datos del cliente van juntos: en un cobro MANUAL son lo único que se
             // guardó de quién paga —no hay documento detrás del que sacarlos— y hasta ahora
             // se tecleaban al crear el enlace y no se volvían a ver nunca.
