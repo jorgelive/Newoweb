@@ -145,6 +145,7 @@ final class PmsPrepagoRevisarLlegadasCommand extends Command
         ));
 
         $relevadas = 0;
+        $retiradas = 0;
         $sinCambio = 0;
 
         foreach ($filas as $fila) {
@@ -180,10 +181,27 @@ final class PmsPrepagoRevisarLlegadasCommand extends Command
                 continue;
             }
 
-            // El camino de siempre. Si no procede relevar, devuelve null y no toca nada.
+            // El camino de siempre. Devuelve el enlace emitido, o null.
             $nuevo = $this->prepago->emitirPorCambioDeCargos($info);
 
             if ($nuevo === null) {
+                // ⚠️ `null` NO significa «no pasó nada». El emisor también devuelve null cuando
+                // RETIRA el adelanto viejo sin emitir otro —porque ya hay uno vivo por el
+                // importe bueno, típicamente el que el operador emitió a mano por el saldo—.
+                // Contarlo como «sin cambio» era un resumen que mentía sobre un enlace de cobro
+                // que acababa de morir.
+                if ($this->automaticoVivo($reservaId) === null) {
+                    $retiradas++;
+                    $io->writeln(sprintf(
+                        '  ✅ %s · retirado «%s» %s %s (ya había uno vivo por el importe bueno)',
+                        $localizador,
+                        $vivoAntes->getConcepto(),
+                        $vivoAntes->getMonedaCodigo(),
+                        $vivoAntes->getMontoNeto(),
+                    ));
+                    continue;
+                }
+
                 $sinCambio++;
                 continue;
             }
@@ -206,7 +224,12 @@ final class PmsPrepagoRevisarLlegadasCommand extends Command
             return Command::SUCCESS;
         }
 
-        $io->success(sprintf('%d relevada(s), %d sin cambio.', $relevadas, $sinCambio));
+        $io->success(sprintf(
+            '%d relevada(s), %d retirada(s) sin reemplazo, %d sin cambio.',
+            $relevadas,
+            $retiradas,
+            $sinCambio,
+        ));
 
         return Command::SUCCESS;
     }
