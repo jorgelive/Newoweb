@@ -14,6 +14,7 @@ use Throwable;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Enum\PmsQueSePide;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use DomainException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -71,6 +72,9 @@ final readonly class PmsPrepagoEnlaceService
         private LoggerInterface $logger,
         private FinEnlacePagoService $enlaces,
         private FinEnlacePagoRepository $repositorio,
+        // Para el saldo TOTAL: es quien sabe cuánto se debe y en qué moneda, y ya es la fuente
+        // que usa `FinEnlacePagoService::crear()` cuando no se le dice el importe.
+        private PmsReservaOrigenCobroResolver $origen,
         #[Autowire('%finanzas.enlaces_prepago_activos%')]
         private bool $activo,
     ) {}
@@ -131,13 +135,19 @@ final readonly class PmsPrepagoEnlaceService
             return null;
         }
 
-        $existente = $this->vigentePorImporte($id, $prepago['monto']);
+        // Adelanto, o el saldo entero desde el día de llegada. La previsualización tiene que
+        // enseñar EXACTAMENTE lo que va a emitirse: mismo helper que `emitir()`.
+        $pide = $this->loQueSePide($reserva, $info, $prepago);
+
+        if ($pide === null) {
+            return null;
+        }
+
+        $existente = $this->vigentePorImporte($id, $pide['monto']);
 
         return [
-            'monto' => $prepago['monto'],
-            // La moneda de la cabecera: es en la que está el importe que devuelve el
-            // calculador, y en la que se emitirá el enlace.
-            'moneda' => $info->getMoneda()?->getId() ?? '',
+            'monto' => $pide['monto'],
+            'moneda' => $pide['moneda'] ?? '',
             'politica' => $prepago['politica'],
             'reutilizado' => $existente !== null,
         ];
@@ -175,7 +185,13 @@ final readonly class PmsPrepagoEnlaceService
             );
         }
 
-        $existente = $this->vigentePorImporte($id, $prepago['monto']);
+        $pide = $this->loQueSePide($reserva, $info, $prepago);
+
+        if ($pide === null) {
+            throw new DomainException('Esta reserva ya no tiene saldo pendiente que cobrar.');
+        }
+
+        $existente = $this->vigentePorImporte($id, $pide['monto']);
 
         if ($existente !== null) {
             return $this->respuesta($existente, $prepago, reutilizado: true);
@@ -195,15 +211,15 @@ final readonly class PmsPrepagoEnlaceService
         $enlace = $this->enlaces->crear(
             origenTipo: FinOrigenCobro::PMS_RESERVA,
             origenId: $id,
-            montoNeto: $prepago['monto'],
+            montoNeto: $pide['monto'],
             // El recargo de tarjeta se traslada igual que en cualquier otro cobro: la
             // comisión de la pasarela no la absorbe la casa por ser un adelanto.
             conRecargo: true,
-            concepto: $this->concepto($reserva),
+            concepto: $pide['concepto'],
             // Ver la nota de `emitirPorCambioDeCargos()`: el importe viene en la moneda de la
             // cabecera y hay que decirlo. El fallo era el mismo aquí, sólo que con una persona
             // delante que podía notarlo.
-            moneda: $info->getMoneda()?->getId(),
+            moneda: $pide['moneda'],
             creadoPor: $creadoPor,
         );
 
@@ -322,9 +338,23 @@ final readonly class PmsPrepagoEnlaceService
                 return null;
             }
 
+            // Adelanto, o el saldo entero desde el día de llegada (ver `loQueSePide()`). Va
+            // ANTES de la comprobación de enlace vivo porque es el importe lo que decide si
+            // hay que emitir: el día que la reserva cruza a TOTAL, el adelanto vivo deja de
+            // coincidir y se releva solo.
+            $pide = $this->loQueSePide($reserva, $info, $prepago);
+
+            if ($pide === null) {
+                // Toca el total y no queda saldo: no hay nada que cobrar, así que tampoco nada
+                // que ofrecer. Se retira lo vivo por el mismo motivo que arriba.
+                $this->anularAutomaticosVigentes($id);
+
+                return null;
+            }
+
             // Ya hay uno vivo por ese importe: nada que hacer. Es lo que evita emitir un
             // enlace nuevo en cada recálculo.
-            if ($this->vigentePorImporte($id, $prepago['monto']) !== null) {
+            if ($this->vigentePorImporte($id, $pide['monto']) !== null) {
                 return null;
             }
 
@@ -338,15 +368,16 @@ final readonly class PmsPrepagoEnlaceService
             return $this->enlaces->crear(
                 origenTipo: FinOrigenCobro::PMS_RESERVA,
                 origenId: $id,
-                montoNeto: $prepago['monto'],
+                montoNeto: $pide['monto'],
                 conRecargo: true,
-                concepto: $this->concepto($reserva),
-                // ⚠️ La moneda se DICE, no se deduce. `pendiente()` devuelve el importe en la
-                // moneda de la CABECERA (`base()` lo convierte), pero `crear()` sin este
-                // parámetro se lo pregunta al resolver, que responde «la de mayor saldo». En
-                // una reserva con cargos en soles y cabecera en dólares son monedas distintas:
-                // el enlace habría cobrado 46.42 PEN donde el cálculo decía 46.42 USD.
-                moneda: $info->getMoneda()?->getId(),
+                concepto: $pide['concepto'],
+                // ⚠️ La moneda se DICE, no se deduce. Con ADELANTO el importe viene en la
+                // moneda de la CABECERA (`base()` lo convierte) y `crear()` sin este parámetro
+                // se lo preguntaría al resolver, que responde «la de mayor saldo»: en una
+                // reserva con cargos en soles y cabecera en dólares el enlace habría cobrado
+                // 46.42 PEN donde el cálculo decía 46.42 USD. Con TOTAL el importe ya viene del
+                // resolver, así que la moneda es la suya y coinciden por construcción.
+                moneda: $pide['moneda'],
                 // Sin persona detrás: el enlace queda sin `creadoPorNombre`, que es la verdad.
                 creadoPor: null,
                 vigenciaDias: 0,
@@ -498,6 +529,86 @@ final readonly class PmsPrepagoEnlaceService
      * Si cada uno redactara la suya, el mismo cobro tendría dos nombres en el extracto del
      * huésped según quién lo emitiera.
      */
+    /**
+     * Qué importe y con qué nombre se emite: el ADELANTO, o el TOTAL desde el día de llegada.
+     *
+     * ── La regla no es nueva; lo nuevo es que este camino la lea ──────────────────
+     * `PmsPrepagoCalculador::queSePide()` la decidió el 28/08/2026 y gobernaba el MENSAJE que
+     * se le redacta al huésped. El emisor de enlaces preguntaba por `pendiente()`, que no mira
+     * fechas, así que desde el día de llegada el texto decía «paga el total» y el enlace que
+     * acompañaba a ese texto se titulaba «Adelanto de reserva» por una fracción.
+     *
+     * Se vio en producción sobre dos reservas (PQK8EG y 4P559S): en las dos el operador emitió
+     * a mano el enlace por el total —el mismo día de la llegada, que es cuando la regla lo
+     * pide— y el camino automático le puso enfrente un adelanto por la primera noche.
+     *
+     * ── Lo usan los TRES caminos, y eso no es opcional ───────────────────────────
+     * `emitirSimulado()` (la previsualización del agente), `emitir()` (la skill, con una
+     * persona confirmando) y `emitirConTurno()` (el automático). Una previsualización que no
+     * coincide con lo que luego ocurre es peor que no previsualizar, así que el importe sale
+     * del mismo sitio para los tres.
+     *
+     * ⚠️ **El público NO cambia: sólo el importe.** Quien llega aquí ya pasó por
+     * `pendiente() !== null`, o sea que tiene política de prepago, su canal no cobró por
+     * nosotros, hay base y **no hay ni un pago registrado**. Un establecimiento sin política de
+     * adelanto sigue sin recibir enlaces automáticos aunque el mensaje le pida el total el día
+     * de la llegada; y una reserva con un pago a cuenta sigue sin recibirlos, que es la regla
+     * de siempre. Ampliar eso sería otra decisión, y no es ésta.
+     *
+     * ⚠️ El TOTAL sale del resolver de origen —saldo de la moneda que más se debe—, no del
+     * calculador: el adelanto es una petición mono-moneda que `base()` convierte, pero el saldo
+     * **no se convierte nunca** (§12.2b). Con deuda en dos divisas se cobra la mayor, que es lo
+     * que responde `crear()` cuando nadie le dice la moneda.
+     *
+     * @param array{monto: string, claveI18n: string, politica: string} $prepago
+     *
+     * @return array{monto: string, moneda: ?string, concepto: string}|null `null` cuando toca
+     *         el total y no queda saldo que cobrar: no hay enlace que emitir.
+     */
+    private function loQueSePide(PmsReserva $reserva, PmsInformacionFinanciera $info, array $prepago): ?array
+    {
+        if ($this->calculador->queSePide($info) === PmsQueSePide::ADELANTO) {
+            return [
+                'monto' => $prepago['monto'],
+                // La moneda se DICE: el importe viene en la de la cabecera. Ver `emitir()`.
+                'moneda' => $info->getMoneda()?->getId(),
+                'concepto' => $this->concepto($reserva),
+            ];
+        }
+
+        $id = $reserva->getId();
+        $origen = $id === null ? null : $this->origen->resolver($id);
+
+        // Sin saldo no hay nada que cobrar. No debería pasar —quien llega aquí tiene cargos y
+        // ningún pago— pero el saldo lo calcula otra pieza y emitir un enlace de 0.00 es peor
+        // que no emitir.
+        if ($origen === null || (float) $origen->saldoPendiente <= 0.005) {
+            return null;
+        }
+
+        return [
+            'monto' => $origen->saldoPendiente,
+            'moneda' => $origen->moneda,
+            'concepto' => $this->conceptoSaldo($reserva),
+        ];
+    }
+
+    /**
+     * El concepto de un cobro por el SALDO, que no es el del adelanto.
+     *
+     * Lo lee el huésped en el extracto de su tarjeta: llamar «Adelanto de reserva» a un cobro
+     * del total es contradecir al mensaje que se le acaba de mandar. Espejo de `concepto()`,
+     * que sigue siendo el del adelanto.
+     */
+    public function conceptoSaldo(PmsReserva $reserva): string
+    {
+        return substr(sprintf(
+            'Saldo de reserva %s — %s',
+            $reserva->getLocalizador(),
+            $reserva->getUnidadesAggregate() ?: $reserva->getNombreHabitacion(),
+        ), 0, 255);
+    }
+
     public function concepto(PmsReserva $reserva): string
     {
         return substr(sprintf(

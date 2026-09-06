@@ -156,7 +156,11 @@ final readonly class PmsSituacionDeCobroResolver
         }
 
         // ── 5 · POLÍTICA ────────────────────────────────────────────────────
-        $queSePide = $this->queSePide($reserva, $info);
+        // ⚠️ La regla —adelanto hasta la víspera, total desde el día de llegada— vive en el
+        // CALCULADOR, no aquí. Estuvo dentro de esta clase y por eso el emisor de enlaces no la
+        // veía: el mensaje pedía el total y el sistema emitía «Adelanto de reserva». Ver
+        // docs/FinanzasEnlacesPago.md.
+        $queSePide = $this->prepago->queSePide($info);
         $importes = $queSePide === PmsQueSePide::ADELANTO
             ? $this->importeDelAdelanto($info)
             : $this->importesPendientes($totales, $reserva);
@@ -186,32 +190,6 @@ final readonly class PmsSituacionDeCobroResolver
         );
     }
 
-    /**
-     * Adelanto o total, y el corte es **el día de check-in incluido**.
-     *
-     * ⚠️ Regla de negocio decidida el 28/08/2026, y **nueva**: `PmsPrepagoCalculador` nunca
-     * ha mirado fechas — sólo sabe si la política pide adelanto y si ya hay algún pago. Desde
-     * la mañana del día de llegada se pide el total: un adelanto pierde sentido cuando el
-     * huésped ya está entrando, y pedirlo invita a que pague dos veces.
-     */
-    private function queSePide(PmsReserva $reserva, PmsInformacionFinanciera $info): PmsQueSePide
-    {
-        $llegada = $reserva->getFechaLlegada();
-
-        // Sin fecha no se puede decidir por tiempo: manda la política, que es lo que hacía
-        // el código antes de esta regla.
-        $yaLlegoElDia = $llegada !== null
-            && (new DateTimeImmutable($llegada->format('Y-m-d'))) <= new DateTimeImmutable('today');
-
-        if ($yaLlegoElDia) {
-            return PmsQueSePide::TOTAL;
-        }
-
-        // `pendiente()` devuelve null en cuanto hay CUALQUIER pago: ese pago era el adelanto.
-        return $this->prepago->pendiente($info) !== null
-            ? PmsQueSePide::ADELANTO
-            : PmsQueSePide::TOTAL;
-    }
 
     /**
      * El adelanto, que es ESCALAR y va en la moneda de la cabecera.

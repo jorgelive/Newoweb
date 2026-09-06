@@ -7,7 +7,9 @@ namespace App\Pms\Service\Finance;
 use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Enum\PmsPoliticaPrepago;
+use App\Pms\Enum\PmsQueSePide;
 use App\Pms\Enum\PmsTipoCargo;
+use DateTimeImmutable;
 
 /**
  * Cuánto hay que pedirle por adelantado a esta reserva, según la política de su
@@ -39,6 +41,44 @@ use App\Pms\Enum\PmsTipoCargo;
  */
 final readonly class PmsPrepagoCalculador
 {
+    /**
+     * Adelanto o total, y el corte es **el día de check-in incluido**.
+     *
+     * ⚠️ Regla de negocio del 28/08/2026: desde la mañana del día de llegada se pide el
+     * TOTAL. Un adelanto pierde sentido cuando el huésped ya está entrando, y pedirlo
+     * invita a que pague dos veces.
+     *
+     * ⚠️ **Vive aquí, y no en quien redacta el mensaje, desde el 06/09/2026.** Estuvo dentro
+     * de `PmsSituacionDeCobroResolver` —o sea, sólo en el texto— mientras el emisor de
+     * enlaces seguía preguntando por `pendiente()`, que no mira fechas. Resultado: pasado el
+     * día de llegada el mensaje decía «paga el total» y el sistema emitía enlaces titulados
+     * «Adelanto de reserva». Se comprobó en producción sobre dos reservas reales (PQK8EG y
+     * 4P559S): en las dos, el operador emitió a mano el total el mismo día de la llegada y el
+     * camino automático le puso enfrente un adelanto. Una regla escrita en un solo consumidor
+     * no es una regla del negocio: es una regla de esa pantalla.
+     *
+     * No devuelve `NADA` nunca: ese caso lo decide antes quien pregunta —un canal que ya cobró
+     * no llega hasta aquí.
+     */
+    public function queSePide(PmsInformacionFinanciera $finanzas): PmsQueSePide
+    {
+        $llegada = $finanzas->getReserva()?->getFechaLlegada();
+
+        // Sin fecha no se puede decidir por tiempo: manda la política, que es lo que hacía el
+        // código antes de esta regla.
+        $yaLlegoElDia = $llegada !== null
+            && (new DateTimeImmutable($llegada->format('Y-m-d'))) <= new DateTimeImmutable('today');
+
+        if ($yaLlegoElDia) {
+            return PmsQueSePide::TOTAL;
+        }
+
+        // `pendiente()` devuelve null en cuanto hay CUALQUIER pago: ese pago era el adelanto.
+        return $this->pendiente($finanzas) !== null
+            ? PmsQueSePide::ADELANTO
+            : PmsQueSePide::TOTAL;
+    }
+
     /**
      * El prepago que TODAVÍA hay que pedir, o `null` si ya no procede pedirlo.
      *

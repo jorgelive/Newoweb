@@ -1349,6 +1349,63 @@ la reserva no queda ninguno vivo; y **con el turno tomado desde otra conexión, 
 retira en vez de emitir** —lo único que no se puede comprobar con una sola conexión, porque
 `GET_LOCK` es reentrante para la sesión que ya lo tiene—.
 
+### 🎯 Adelanto hasta la víspera, SALDO desde el día de llegada (06/09/2026)
+
+La regla no es nueva: la decidió `PmsQueSePide` el 28/08/2026 —«desde la mañana del día de
+llegada se pide el total, un adelanto pierde sentido cuando el huésped ya está entrando»—. Lo
+nuevo es que **el emisor de enlaces la lea**.
+
+Vivía dentro de `PmsSituacionDeCobroResolver`, o sea sólo en el texto que se le redacta al
+huésped. El emisor preguntaba por `PmsPrepagoCalculador::pendiente()`, que **no mira fechas**.
+Resultado: pasado el día de llegada el mensaje decía «paga el total» y el enlace que lo
+acompañaba se titulaba «Adelanto de reserva» por una fracción.
+
+**Comprobado en producción, no deducido.** Dos reservas reales, PQK8EG (llegada 04/09) y 4P559S
+(llegada 05/09): en las dos el operador emitió a mano un enlace por el total **el mismo día de
+la llegada** —que es justo lo que la regla pide— y el camino automático le puso enfrente un
+adelanto por la primera noche. Una regla escrita en un solo consumidor no es una regla del
+negocio: es una regla de esa pantalla.
+
+| Cuándo | Qué emite | Concepto | Importe |
+|---|---|---|---|
+| Antes del día de llegada | Adelanto | `Adelanto de reserva X — Casita N` | la fracción de la política, en la moneda de la **cabecera** |
+| Día de llegada en adelante | Saldo | `Saldo de reserva X — Casita N` | el **saldo entero** de la moneda que más se debe |
+
+La regla se mudó a `PmsPrepagoCalculador::queSePide()` y el resolver de la situación de cobro
+la llama de ahí: los dos consumidores leen lo mismo o vuelve a pasar.
+
+⚠️ **El público NO cambia: sólo el importe.** Quien llega a `loQueSePide()` ya pasó por
+`pendiente() !== null`, o sea que tiene política de prepago, su canal no cobró por nosotros,
+hay base y **no hay ni un pago registrado**. Un establecimiento sin política de adelanto sigue
+sin recibir enlaces automáticos aunque el mensaje le pida el total el día de la llegada; y una
+reserva con un pago a cuenta sigue sin recibirlos. Ampliar eso sería otra decisión.
+
+⚠️ **El total sale del RESOLVER de origen, no del calculador.** El adelanto es una petición
+mono-moneda que `base()` convierte; el saldo **no se convierte nunca**. Con deuda en dos
+divisas se cobra la mayor, que es lo que responde `crear()` cuando nadie le dice la moneda.
+
+⚠️ **Y el concepto cambia con el importe.** Llamar «Adelanto de reserva» a un cobro del total
+es contradecir en el extracto de la tarjeta lo que dice el mensaje. `concepto()` sigue siendo
+el del adelanto; `conceptoSaldo()` es su espejo.
+
+Lo usan los **tres** caminos —`emitirSimulado()` (la previsualización del agente), `emitir()`
+(la skill) y `emitirConTurno()` (el automático)— desde el mismo `loQueSePide()`. Una
+previsualización que no coincide con lo que luego ocurre es peor que no previsualizar.
+
+Verificado con `var/probar-prepago-dia-de-llegada.php` (transacción con rollback): la misma
+reserva emite adelanto con la llegada en el futuro y, movida la llegada a hoy, emite el saldo
+entero **relevando** al adelanto anterior — nunca dos pagables a la vez.
+
+🐛 **Dos trampas que se llevó por delante montar esa prueba**, y las dos daban un resultado
+creíble y falso:
+
+| Trampa | Qué parecía |
+|---|---|
+| `FINANZAS_ENLACES_PREPAGO=0` en local | La prueba encontraba el enlace que la reserva ya tenía de antes y lo daba por recién emitido: **verde sin que se hubiera emitido nada** |
+| `UPDATE … WHERE id = ?` con el UUID sin tipo `BINARY` | Afectaba a **cero filas sin error**, la fecha no se movía y la regla parecía no funcionar. La misma trampa de §2 |
+
+Las dos pruebas comprueban ahora el interruptor y abortan si está apagado.
+
 ### La reutilización, y por qué mira el importe
 
 `emitir()` devuelve un enlace **vigente por el mismo importe** en vez de emitir otro. Sin eso,
@@ -1883,6 +1940,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Añadir un módulo que cobre | §10 | `FinOrigenCobroResolverInterface` |
 | Depurar "no se confirmó un cobro" | tabla `fin_pasarela_webhook_audit` | `payload_raw`, `estado`, `error_mensaje` |
 | Cambiar CUÁNTO se pide de prepago | `src/Pms/Enum/PmsPoliticaPrepago.php` | `fraccion()`, `soloAlojamiento()` |
+| Cambiar el corte entre adelanto y total | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `queSePide()` — la leen el emisor de enlaces **y** el redactor del mensaje |
+| Cambiar qué importe/concepto lleva el enlace automático | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `loQueSePide()` + `conceptoSaldo()` — lo comparten los tres caminos |
 | Cambiar CUÁNDO deja de pedirse | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `pendiente()` (§8) |
 | Cambiar CUÁNDO se emite solo el enlace | `PmsInformacionFinancieraCoherenciaListener::postFlush()` | La llamada a `emitirPrepagos()`, al final de la cadena. La decisión de *si procede* sigue en `pendiente()` |
 | Cambiar qué dice el aviso de cobro (§11 ter) | `src/Finanzas/Service/Aviso/FinAvisoDeCobro.php` | `redactar()` dentro de ventana, `variables()` fuera. Si añades una variable, tiene que llegar SIEMPRE con valor y en una línea |
