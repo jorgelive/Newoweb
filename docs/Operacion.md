@@ -1956,7 +1956,7 @@ Encadenados: al arreglar el primero salió el segundo.
 se pueda guardar. Y la tabla vacía no llamaba la atención: una función nueva sin uso todavía.
 
 **Qué lo cazó:** ejecutar un `flush()` de verdad contra datos reales
-(`var/probar-pago-orden-servicio.php`). Es exactamente lo que avisa `CLAUDE.md` — lo que no
+(`tools/pruebas/probar-pago-orden-servicio.php`). Es exactamente lo que avisa `CLAUDE.md` — lo que no
 cubren los tests unitarios se verifica con datos reales, en transacción con `rollback`.
 
 ⚠️ **Al añadir una entidad que use `IdTrait` o `TimestampTrait`, comprueba las dos cosas.** Un
@@ -2021,7 +2021,7 @@ decía «No se pudo registrar el pago»; el backend sabe qué falló —«esta o
 se le puede registrar un pago en PEN»— y taparlo obligaba a adivinar delante de un formulario que
 no dice qué campo está mal. Ahora devuelve el motivo (`mensajeDeErrorApi`).
 
-Verificación con datos reales: `var/probar-pago-orden-servicio.php`, en transacción con
+Verificación con datos reales: `tools/pruebas/probar-pago-orden-servicio.php`, en transacción con
 `rollback`. ⚠️ **En local no hay ni una orden de servicio**, así que esa sonda sólo dice algo
 ejecutada contra producción (`APP_ENV=prod`).
 

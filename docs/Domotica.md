@@ -177,7 +177,7 @@ alquilado). Que es *por día* está cerrado.
 
 ## 7. El contrato de Tuya
 
-Verificado a mano contra la nube (`var/probar-tuya.php`, fuera de git por las credenciales):
+Verificado a mano contra la nube (`tools/pruebas/probar-tuya.php`, fuera de git por las credenciales):
 
 ```
 GET /v1.0/iot-03/energy/electricity/devices/statistics-trend

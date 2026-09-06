@@ -1308,7 +1308,7 @@ cero filas y el prestador «no aparece». Pasó durante la implementación —`H
 comando de backfill dio 254 líneas sin pareja y 0 enlazadas—. Todo id se normaliza con
 `ProveedorVivoResolver::clave()` y los binarios con `Uuid::fromBinary()`, nunca con `HEX()`.
 
-Sondas: `var/probar-prestador-visible.php` y `var/probar-comprador.php`.
+Sondas: `tools/inspeccion/probar-prestador-visible.php` y `tools/inspeccion/probar-comprador.php`.
 
 ⚠️ **Las dos estuvieron rotas desde el 19/08/2026 y nadie se enteró** (arregladas el 31/08). El
 renombrado a `TravelOrganizacion` se llevó por delante `ProveedorVivoResolver`, `travel_proveedor`
@@ -1814,7 +1814,7 @@ Los dos caminos convergen, **llegue el payload en el orden que llegue** — que 
 la regla vive en la entidad. Se ignora en silencio y no con un 400 porque quien manda el payload
 no está haciendo nada malo: el editor limpia el campo al vincular, y un error rompería un guardado
 entero por un dato que sobra. Verificado sobre datos reales con
-`var/probar-lugares-manuales.php` (transacción con rollback), en los dos órdenes.
+`tools/pruebas/probar-lugares-manuales.php` (transacción con rollback), en los dos órdenes.
 
 El setter además **normaliza**: a minúsculas, sin duplicados y descartando lo que no sea un uuid.
 Es el formato con el que compara el filtro del cuadro de tráfico, y un uuid en mayúsculas no
@@ -1870,7 +1870,7 @@ con el «Nueva Tarifa» de fábrica. Ver `docs/Operacion.md` §3.3.
 ⚠️ **Sin `#[AutoTranslate]` a propósito**: no se le enseña a ningún pasajero, así que traducirlo a
 siete idiomas es coste puro. Mismo criterio que la nota al prestador.
 
-Comprobado con datos reales (`var/probar-componente-manual.php`, en transacción con `rollback`):
+Comprobado con datos reales (`tools/inspeccion/probar-componente-manual.php`, en transacción con `rollback`):
 con nombre interno La Biblia rotula «Traslado a La Olla de Juanita (ida)»; sin él sigue cayendo al
 título público, que es el comportamiento de siempre.
 
@@ -3690,7 +3690,7 @@ Por eso reimportar el padrón corregido nunca duplicó nada y la ficha sí: eran
 reglas, y sólo uno estaba escrito.
 
 La mitad que los tests unitarios no pueden cubrir —el orden de los INSERT y los DELETE dentro de
-un mismo flush— se verifica con datos reales en `var/probar-identificaciones-1062.php`, que corre
+un mismo flush— se verifica con datos reales en `tools/pruebas/probar-identificaciones-1062.php`, que corre
 el mismo guardado con el arreglo y sin él: sin él reproduce el 1062 exacto de producción; con él,
 las filas conservan su id y su `createdAt`.
 
@@ -3947,7 +3947,7 @@ que la **respuesta** —que devuelve el recurso guardado— salía sin filtrar y
 que es la peor forma de fallar —parece que no se guardó, y sí se guardó—.
 
 Hoy las cinco operaciones de escritura llevan `normalizationContext` con `file:item:read`. Lo
-comprueba `var/probar-circular-pasajero.php`, que arma el grafo con el círculo cerrado y serializa
+comprueba `tools/pruebas/probar-circular-pasajero.php`, que arma el grafo con el círculo cerrado y serializa
 cada operación con el contexto que declara su propio `#[ApiResource]`.
 
 ⚠️ **Y por eso `CotizacionFilepasajero::$file` es sólo de escritura.** Filtrar por grupos cortó el
@@ -4111,7 +4111,8 @@ el día que el dato cambia de forma.**
 verdad incrustada. Para comprobarlo, serializar y buscar `@type` ajenos al árbol:
 
 ```php
-// var/probar-iris.php — recorre el JSON y denuncia lo que no es del árbol editable
+// (la sonda `probar-iris.php` que recorría el JSON denunciando lo que no es del árbol
+//  editable se perdió: no está en `tools/` ni en `var/obsoletos/`. Si hace falta, se rehace)
 $delArbol = ['Cotizacion', 'CotizacionCotservicio', 'CotizacionCotcomponente',
              'CotizacionSegmento', 'CotizacionCottarifa'];
 ```
@@ -6178,7 +6179,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Que al prestador se le nombre (o no) ante el cliente** → `CotizacionCotcomponente::$prestadorVisible`. **Espejo triple**: el normalizer, `construirInclusiones()` y `onPrestadorComponenteChange()` (que lo siembra). Ya **no** se deriva del `modo`; el flag de anonimato global sigue sin taparlo. Ver §6.c.
 - **Quién presta un componente** → `CotizacionCotcomponente::$prestador*`, soft-link a `Proveedor` o escrito a mano. Se edita en el inspector del COMPONENTE, junto al comprador. Ver §6.c.
 - **A quién se le encarga ejecutar la compra** → `compradorMaestroId` + `compradorNombreSnapshot` en `CotizacionCotcomponente`, soft-link al catálogo de proveedores. Cascada en `resolverComprador()`, **espejo en PHP y TS**. Llega a Operación por `BibliaSnapshotService`. Ver §6.c — **siempre un `Proveedor`, nunca una persona**, y **nunca** le pongas grupo público.
-- **Que al proveedor se le nombre (o no) ante el cliente** → `$proveedorVisible` del componente, en OR con el global `Cotizacion::$proveedorOculto`. Lo aplica `CotizacionCotcomponenteProveedorPublicNormalizer`. Sonda: `var/probar-proveedor-componente.php`.
+- **Que al proveedor se le nombre (o no) ante el cliente** → `$proveedorVisible` del componente, en OR con el global `Cotizacion::$proveedorOculto`. Lo aplica `CotizacionCotcomponenteProveedorPublicNormalizer`. Sonda: **desaparecida** —`probar-proveedor-componente.php` no está en `tools/` ni en `var/obsoletos/`—; lo más cercano que sí corre es `tools/pruebas/probar-proveedor-visible.php`.
 - **De dónde sale el nombre/logo del proveedor que ve el cliente** → `ProveedorVivoResolver`, resuelto contra el catálogo maestro AL SERVIR y precargado en lote desde `CotizacionPublicNormalizer::precargarProveedores()`. **No** es el snapshot: ése es sólo el respaldo si el maestro desaparece. Ver §6.c.
 - **Enlazar una línea de inclusión con su componente** → `componenteId`, que emite `construirInclusiones()`. Para propuestas viejas: `app:cotizacion:backfill-componente-id`. Nunca reconstruir el vínculo con una clave natural en tiempo de render.
 - **Aligerar `clasificacionFinanciera` / ordenar el store por capas** → está medido y decidido en `docs/Pendientes.md` («El JSON financiero pesa 10× lo que dice»); la forma del servicio, en `docs/NodeEnElStack.md` §8. **Fixtures antes que nada.**

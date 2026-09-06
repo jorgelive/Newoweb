@@ -335,7 +335,7 @@ Arreglado sustituyéndolo por lo que la propia entidad ya tenía anotado como pe
 #[ApiFilter(UuidRelacionFilter::class, properties: ['organizacion' => 'exact'])]
 ```
 
-Sonda: `var/probar-filtro-servicios-organizacion.php`, que comprueba las **tres** respuestas que
+Sonda: `tools/inspeccion/probar-filtro-servicios-organizacion.php`, que comprueba las **tres** respuestas que
 en pantalla se parecen —el catálogo entero (fallo de más), cero (fallo de menos, el de
 `SearchFilter` con uuid) y los de esa empresa— e incluye a propósito el caso del nombre mal
 escrito, para dejar por escrito que devuelve de más.
@@ -489,7 +489,7 @@ invisibles para todo lo demás. Ver CLAUDE.md, «lista vacía = sin acotar».
 
 ### Verificación
 
-`var/probar-buscar-tarifas.php` y `var/probar-guardar-tarifa.php`, contra datos reales y el
+`tools/inspeccion/probar-buscar-tarifas.php` y `tools/pruebas/probar-guardar-tarifa.php`, contra datos reales y el
 segundo en transacción con **rollback**. Seis casos, incluido el del bug de arriba:
 
 ```
@@ -572,7 +572,7 @@ opt-in.
 
 `Version20260816120000` siembra la columna con la regla vieja (`visible = tenía título`), así
 que **no cambia lo que ve ningún cliente**: los mismos 5 proveedores que podían mostrarse
-siguen pudiendo. Sonda de verificación: `var/probar-proveedor-visible.php`.
+siguen pudiendo. Sonda de verificación: `tools/inspeccion/probar-proveedor-visible.php`.
 
 ---
 
@@ -893,7 +893,7 @@ omite—. Con su `#[IsGranted]`: el host de la API cae en `PUBLIC_ACCESS`.
 Verificado en producción con el navegador — Tambo del Inka → su habitación; Hotel Terra → la
 suya; PeruRail → vacío, porque no tiene servicios cargados.
 
-Y `var/probar-crud-tarifa.php` cruza los campos del CRUD contra las propiedades reales de la
+Y `tools/pruebas/probar-crud-tarifa.php` cruza los campos del CRUD contra las propiedades reales de la
 entidad. Nació porque un barrido de renombrado dejó `TextField::new('nombreParaOrganizacion')`
 apuntando a una propiedad que se llama `nombreParaPrestador` — una cadena que no ve PHPStan, ni
 `vue-tsc`, ni ningún test, y que sólo revienta al abrir el formulario.

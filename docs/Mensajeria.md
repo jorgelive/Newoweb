@@ -2184,7 +2184,7 @@ desde `util/`. Por eso `getLimpieza()` declara su forma con `#[ApiProperty(opena
 `PmsLimpiezaAsignada` es un `[number]` sobre el campo del esquema. El único tipo a mano es
 `PmsLimpiadorOption`, porque el desplegable lo sirve un controlador plano que OpenAPI no ve.
 
-Comprobación de todo esto contra la BD real, sin dejar rastro: `php var/probar-limpieza.php`.
+Comprobación de todo esto contra la BD real, sin dejar rastro: `php tools/pruebas/probar-limpieza.php`.
 
 #### 🗣️ El triaje también tiene que saber con quién habla
 
@@ -4842,7 +4842,7 @@ con su modelo por defecto. El mecanismo se puede desplegar sin cambiar nada.
 
 > 🚧 **Estado real de este entorno hoy.** Las tres claves apuntan a Anthropic (`opus-5`,
 > `sonnet-5`, `haiku-4.5`), pero `ANTHROPIC_API_KEY` está **vacía**, así que los tres tramos
-> degradan al mismo motor. Comprobado con `php var/probar-triaje.php`:
+> degradan al mismo motor. Comprobado con `php tools/pruebas/probar-triaje.php`:
 >
 > ```
 >   alta   → google/gemini-3.6-flash (alta)
@@ -5090,7 +5090,7 @@ php var/medir-triaje.php
 # Las dos piezas frágiles, sin API: qué hace el triaje con lo que devuelva el modelo (skills
 # inventadas, pistas que son el mensaje entero, JSON envuelto en backticks) y la traducción
 # del esquema a Gemini. Termina imprimiendo qué motor resuelve cada tramo en ESTE entorno.
-php var/probar-triaje.php
+php tools/pruebas/probar-triaje.php
 
 # Qué decidió el triaje en cada mensaje, y con qué modelo.
 grep 'Agent: triaje con' var/log/dev.log
@@ -5307,7 +5307,7 @@ Una URL lleva `_` y `*` con todo el derecho (`/mi_guia`), y el quitado de marcas
 en silencio. Los dos lados apartan las URLs con marcadores `\x00N\x00` antes de transformar y
 las devuelven intactas al final — y lo pegado al final de una URL («mira *url*», «visita
 url.») se devuelve al texto, para que las marcas se vean en pareja. Verificado en
-`var/probar-formato.php` (19 comprobaciones, sin API).
+`tools/pruebas/probar-formato.php` (19 comprobaciones, sin API).
 
 ### 🧱 Los bloques ``` del modelo: el canal los QUITA y el panel los PINTA
 
@@ -6032,7 +6032,7 @@ arreglar** — ver el aviso al final de esta sección.
 | Cuánto sobrevive el hilo del asistente a un refresco | `AsistenteBar.vue` | `HILO_TTL_MS` (1 h) y `restaurarHilo()` |
 | Cambiar cómo degrada un canal el texto libre | `Beds24SendMappingStrategy` / `WhatsappMetaSendMappingStrategy` | `paraTextoPlano()` / `paraWhatsapp()`, sólo con `getTemplate() === null`, §14 |
 | Cambiar la barra B/I/U/S del compositor del chat | `ChatView.vue` | `aplicarFormato()` + `envolverSeleccion()` de `formatoDeTexto.ts`, §14 |
-| Probar el formateador sin gastar API | — | `php var/probar-formato.php` — §14 |
+| Probar el formateador sin gastar API | — | `php tools/pruebas/probar-formato.php` — §14 |
 | **Cambiar qué dice el resumen de lo pendiente** | `ResumenConversacionService` | `SYSTEM_PROMPT` — una frase, 12 palabras, §7 |
 | Cambiar la ventana que se resume | `ResumenConversacionService` | `ventanaSinResponder()` — el corte es la última salida, §7 |
 | Apagar el resumen IA | `.env` | `AGENT_IA_RESUMEN_CONVERSACION=0` — todo cae al texto del último mensaje, §7 |
@@ -6051,7 +6051,7 @@ arreglar** — ver el aviso al final de esta sección.
 | Añadir una llamada sin herramientas a un motor nuevo | `AgentEngineInterface` | `turnoDirecto()` — con esquema, la salida la fuerza el proveedor, §13.6 |
 | Que un esquema JSON funcione también en Gemini | `GoogleAIEngine::esquemaGemini()` | Gemini rechaza `additionalProperties` y los `type` en lista con un 400, §13.6 |
 | Medir cuánto ocupa cada prompt sin gastar API | — | `php var/medir-triaje.php` — §13.3 |
-| Comprobar el triaje y el esquema de Gemini sin gastar API | — | `php var/probar-triaje.php` — 15 comprobaciones + qué motor resuelve cada tramo, §13.10 |
+| Comprobar el triaje y el esquema de Gemini sin gastar API | — | `php tools/pruebas/probar-triaje.php` — 15 comprobaciones + qué motor resuelve cada tramo, §13.10 |
 | Saber si el triaje está fallando en silencio | `var/log/info-*.log` | `grep -c "indeterminado — respuesta no era JSON"` — §13.6 bis. Degrada limpio, así que sólo se ve aquí |
 | **Ver qué contestaría hoy el agente a una charla que ya ocurrió** | — | `php bin/console app:agent:replay <uuid-reserva> --guion=<json>` — §16.7. No guarda nada, pero las skills sí se ejecutan |
 | Que el agente sepa en qué momento de la estancia está el huésped | `AiConversationProcessor` | `faseDeLaEstancia()` — §17. Va en el contexto, no en una skill: el triaje no llama a herramientas |
@@ -7642,7 +7642,7 @@ enseñárselo al modelo no filtre nada—.
 
 `app:agent:permisos` **no sirve** para comprobar esto: construye los actores con `AgentActor::`
 a secas, sin dominios, así que nunca ejerce el filtro. Se comprueba con
-`php var/probar-dominios.php`, que los arma por la factoría, como nacen en producción:
+`php tools/pruebas/probar-dominios.php`, que los arma por la factoría, como nacen en producción:
 
 | Actor | Dominios | Skills |
 |---|---|---|
@@ -7692,7 +7692,7 @@ consulta?» a una lista que por construcción nunca contiene `abierto`, así que
 siempre «no» y **`MomentoDeFrente::Venta` con entidad era código inalcanzable**. El caso que
 motivó el modelo entero —huésped alojado con una consulta de ampliación pendiente— no podía
 producirse, y el test lo daba por bueno porque usaba dobles que se saltan `PmsFrentes`. Si
-alguna vez tocas esto, comprueba el camino real con `var/probar-frentes.php`, no sólo la suite.
+alguna vez tocas esto, comprueba el camino real con `tools/pruebas/probar-frentes.php`, no sólo la suite.
 
 ---
 
@@ -8184,7 +8184,7 @@ Es la **segunda** vez que el mapa plano falla por tratarse como un almacén para
 fue el `start` que sólo se escribía una vez—. Ahora es una **proyección**: `proyectarEnMapaPlano()`
 lo rehace entero desde la lista en cada cambio, así que no puede desincronizarse.
 
-Comprobado con `php var/probar-parcial.php`, que cancela una casita de una reserva real dentro de
+Comprobado con `php tools/pruebas/probar-parcial.php`, que cancela una casita de una reserva real dentro de
 una transacción, verifica que se anota **una** vez y **vuelve a guardar tres veces más** para
 confirmar que no se duplica.
 
@@ -8449,7 +8449,7 @@ duchas y «Calefactor». Varios necesitan las dos cosas: pasos **y** partirse.
 | Cambiar qué se le dice al agotarse | `ConsultarGuiaSkill::detalle()`, clave `debes_escalar` |
 | Cambiar el aviso anti-invención | `ConsultarGuiaSkill::detalle()`, clave `si_no_le_funciona` |
 | Que la huella se escriba en el saliente | `AiConversationProcessor::encolarRespuesta()` |
-| Probarlo con datos reales | `php var/probar-escalera.php` (transacción + rollback) |
+| Probarlo con datos reales | `php tools/pruebas/probar-escalera.php` (transacción + rollback) |
 
 ### 22.8 El enfriamiento del escalado
 
@@ -8473,7 +8473,7 @@ sin prometer plazo.
 | 30 minutos | Cuánto tarda la guardia en mirar el móvil. ⚠️ **Ya NO es la misma ventana que `HUMANO_AL_MANDO`**, que bajó a 15 el 30/08/2026 con datos: aquélla pregunta si el humano sigue en ESE chat, ésta cuánto tarda la guardia en enterarse. Que coincidieran era conveniencia |
 | `emergencia` lo decide **el modelo** | Asimetría deliberada: un falso positivo cuesta un WhatsApp de más; un falso negativo silencia una emergencia real. Ante la duda, que suene |
 
-Verificado con `php var/probar-enfriamiento.php`: no enfría sin avisos previos, ni con un aviso de
+Verificado con `php tools/pruebas/probar-enfriamiento.php`: no enfría sin avisos previos, ni con un aviso de
 otra conversación, ni con uno que falló al encolarse, ni con uno de hace tres horas; sí con uno de
 hace un momento.
 
@@ -10532,7 +10532,7 @@ Los tres motivos se distinguen a propósito, porque mandan a sitios distintos:
 
 #### Verificado con datos reales
 
-`var/probar-apertura-de-hilo.php`, en transacción con `rollback`. Corta el hilo de una reserva
+`tools/pruebas/probar-apertura-de-hilo.php`, en transacción con `rollback`. Corta el hilo de una reserva
 real —hilo y enlace borrados— y lo vuelve a abrir: **vuelve con sus identidades, su nombre, su
 enlace marcado como titular y su `contextData`**. Y abre el de una organización proveedora, que
 nunca había tenido: nace con el teléfono del catálogo sembrado y el canal de correo apagado,
@@ -10582,7 +10582,7 @@ Se normaliza a mano con `'jsonld'` y el grupo `conversation:read` —los mismos 
 `@id` y `reservasStore` lee `id`. Y `204` explícito cuando no hay hilo, que antes salía de
 devolver `null`.
 
-Verificado en `var/probar-por-asunto.php`: la firma es `Response`, el controlador se instancia
+Verificado en `tools/pruebas/probar-por-asunto.php`: la firma es `Response`, el controlador se instancia
 con su normalizador, y el cuerpo trae las dos claves.
 
 ---

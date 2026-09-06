@@ -2174,10 +2174,10 @@ el log y se sigue sin estimación. Un tooltip vacío es mucho más barato que un
 puede guardar.
 
 **Verificado en su día** (2026-08-15) sobre las 24 estancias directas reales de la base: las 24
-devolvían su desglose de coste teórico, contrastado a mano con `var/probar-costo-teorico.php` —
+devolvían su desglose de coste teórico, contrastado a mano con `tools/inspeccion/probar-costo-teorico.php` —
 p. ej. Casita 4, 6 noches, 14 pax: `33.00 × 6 N = 198.00`, `6.00 × 11 P × 6 N = 396.00`, limpieza
 `15.00`, total `609.00 USD`. Esa parte sigue igual; la que comprobaba el cargo en cero
-(`var/probar-cargo-directo-cero.php`) describía la regla del 15/08 —una línea de LIMPIEZA en
+(`var/obsoletos/probar-cargo-directo-cero.php`) describía la regla del 15/08 —una línea de LIMPIEZA en
 0.00— que el 25/08 se retiró: hoy una estancia directa **no estrena ningún cargo**. Se apartó el
 06/09/2026 en vez de arreglarla, porque no hay nada que arreglar: la invariante que guardaba ya
 no existe. Quien quiera un guarda de la regla nueva tiene que comprobar lo contrario —que no se
@@ -2990,7 +2990,7 @@ Lo demás se conserva: `pago-parcial` **sólo asciende desde `no-pagado`** (nunc
 `pago-total` ni pisa un `pago-alojamiento` puesto a mano), las estancias canceladas y las
 extensiones quedan fuera, y `confirmarPorPago()` no se toca porque opera sobre `estado_pago_id`.
 
-**Verificado** (16/08/2026, `var/probar-estado-pago-por-moneda.php`, en transacción con rollback):
+**Verificado** (16/08/2026, `tools/inspeccion/probar-estado-pago-por-moneda.php`, en transacción con rollback):
 sobre las 317 fichas, **0 estancias cambian de estado de pago** — la lógica nueva reproduce
 exactamente la actual. Y `XTHRMQ`, que deja +0.10 de diferencia cambiaria, queda en `pago-total` en
 vez de arrastrar un «parcial» eterno por diez céntimos.
@@ -3004,7 +3004,7 @@ vez de arrastrar un «parcial» eterno por diez céntimos.
 >   cancelar**. Los dos `EXISTS` se conservan igual —cuestan nada y mantienen «sin cargos no está
 >   pagada»— pero no son lo que impide un desastre.
 
-**Verificado** (16/08/2026, `var/probar-rollup-por-moneda.php`, en transacción con rollback):
+**Verificado** (16/08/2026, `tools/inspeccion/probar-rollup-por-moneda.php`, en transacción con rollback):
 recálculo de las **317 fichas en 50 ms**; las **50 de una sola moneda coinciden al céntimo** con
 el modelo viejo —si no, el nuevo estaría tocando algo que no debía—; las 4 mixtas dan el desglose
 esperado; al imputar el cobro de `GASUNN` a la deuda en dólares, **la fila en soles desaparece
@@ -3068,7 +3068,7 @@ en él.
 Se exige que **todos** los importes que existan estén en cero: un cargo lleva `totalLinea` y
 `monto`, un pago sólo `monto`. Con cualquiera con importe, ya hay dinero registrado.
 
-**Verificado** (2026-08-15, `var/probar-moneda-cargo-en-cero.php`, en transacción con rollback):
+**Verificado** (2026-08-15, `tools/inspeccion/probar-moneda-cargo-en-cero.php`, en transacción con rollback):
 cargo en 0.00 USD → PEN **pasa**; importe y moneda en el mismo guardado (que es como lo manda el
 panel) **pasa**; un cargo que ya tiene importe **sigue bloqueado**.
 
@@ -3180,7 +3180,7 @@ que dejó 6 registros históricos sin sellar.
   último disponible, y no lanza. Si aun así devuelve `null`, el registro nace sin TC y se persiste
   igual: un problema con la cotización no puede impedir anotar un cobro que ya se recibió.
 
-**Verificado** (16/08/2026, `var/probar-sello-tipo-cambio.php`, en transacción con rollback): un
+**Verificado** (16/08/2026, `tools/inspeccion/probar-sello-tipo-cambio.php`, en transacción con rollback): un
 cargo persistido sale con la venta de hoy (3.371); un cobro con `fechaPago` de hace cuatro días
 sale con la de **ese** día (3.372), no con la de hoy; y un registro que ya traía el suyo no se
 pisa. Los 6 históricos se completaron con
@@ -3380,7 +3380,7 @@ absorbía el depósito en el mismo flush —el saldo volvía a 0 hiciera lo que 
 el pago real del huésped dejaba la reserva en negativo. Con el alcance acotado a los cargos del
 canal, una reserva OTA **pura** se comporta exactamente igual que antes (todos sus cargos son del
 canal), y en una **mixta** los cargos manuales quedan pendientes hasta que se registra el pago
-manual — verificado con `var/probar-deposito-canal.php` (transacción con rollback).
+manual — verificado con `tools/pruebas/probar-deposito-canal.php` (transacción con rollback).
 
 Los depósitos sobredimensionados que dejó la regla anterior **se corrigen solos** en el
 siguiente recálculo de su cabecera (cualquier alta/edición de un cargo o pago de esa reserva).
@@ -3497,7 +3497,7 @@ y ése era el 500. **El veto de coherencia se queda igualmente**: protege el bor
 *suelto*, que no pasa por `preRemove`. Dos puertas para dos caminos, con la misma regla detrás
 (`PmsPagoFinanciero::getMotivoNoBorrable()`).
 
-Verificado con `var/probar-borrado-pago-enlace.php` (transacción con rollback): un pago manual
+Verificado con `tools/pruebas/probar-borrado-pago-enlace.php` (transacción con rollback): un pago manual
 sigue borrable, el del enlace no, la reserva se declara no borrable **con su motivo**, el
 intento devuelve `AccessDeniedHttpException` con el texto, y el pago suelto lo sigue parando
 la coherencia.
@@ -3509,7 +3509,7 @@ porque es de la conexión, no del manager).
 
 La regla vive en **la entidad** (`PmsPagoFinanciero::isGestionadoPorElSistema()`), no repetida en
 el listener, el servicio y la SPA: los tres la consultan, y el campo se serializa para que el
-panel sepa cuándo pedir el candado. Verificado con `var/probar-deposito-intervenido.php`
+panel sepa cuándo pedir el candado. Verificado con `tools/pruebas/probar-deposito-intervenido.php`
 (transacción con rollback): el veto sigue en pie sin intervenir, la edición pasa al intervenir, el
 recálculo la respeta, no nace un segundo depósito y la marcha atrás vuelve a cuadrar.
 
@@ -4919,7 +4919,7 @@ La regla vive ahora en **`PmsEventoEstado::transicionOtaPermitida()`**, y la con
 #### 🔥 Lo que destapó cruzarlos
 
 Los tres decidían por separado y **no coincidían**. La comprobación cruzada
-(`var/verificar_transiciones_ota.php`, una matriz 6×6) encontró tres agujeros:
+(`tools/inspeccion/verificar_transiciones_ota.php`, una matriz 6×6) encontró tres agujeros:
 
 | Transición | Regla | Listener | Desplegable |
 |---|---|---|---|
@@ -5046,7 +5046,7 @@ Medido contra producción: borrar una reserva de OTA devuelve el mensaje de aqu�
 bloqueo con hilo devuelve el de éste. O sea que el motivo que esta guarda aporta de verdad es el
 de la conversación — que es el único que no vigila nadie más.
 
-Verificación: `var/probar-borrado-reserva.php`, en transacción con `rollback`. ⚠️ Busca una
+Verificación: `tools/pruebas/probar-borrado-reserva.php`, en transacción con `rollback`. ⚠️ Busca una
 reserva con estancias borrables **y** conversación; con otra mide el listener equivocado.
 
 ### ⚠️ Un respaldo con `json_encode()` de filas del PMS sale VACÍO

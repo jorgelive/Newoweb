@@ -84,7 +84,7 @@ hoy queda mudo en modo enlace (`docs/Mensajeria.md` §20.6).
 
 ### 🔍 Y un caso que no encaja del todo: HRD4ZD (06/09/2026)
 
-Salió al revisar `var/probar-regeneracion.php`. La reserva tiene **todas sus estancias
+Salió al revisar `tools/pruebas/probar-regeneracion.php`. La reserva tiene **todas sus estancias
 canceladas**, y hasta ahí es el caso de arriba. Lo que no encaja es la cantidad: **trece**
 mensajes `cancelled` de la regla «Check Out», **todos con el mismo `scheduled_at`**
 (`2026-10-02 12:00`), más uno `failed` a la misma hora.

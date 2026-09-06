@@ -1385,7 +1385,7 @@ concepto o importe completamente distinto: un cargo nuevo llegaba por webhook, e
 recalculado ya no coincidía con nada vivo, y `anularVigentes()` anulaba también el enlace del
 operador antes de emitir el automático de turno. Arreglado usando `anularAutomaticosVigentes()`
 —la que ya existía para las otras dos ramas de abajo— también aquí. Cubierto como caso 8 de
-`var/probar-prepago-automatico.php`.
+`tools/pruebas/probar-prepago-automatico.php`.
 
 ⚠️ **Y la moneda se DICE, no se deduce.** `pendiente()` devuelve el importe en la moneda de la
 **cabecera** (`base()` lo convierte), pero `crear()` sin el parámetro `moneda` se lo pregunta al
@@ -1439,7 +1439,7 @@ enlace aún no existe—; y el **índice único sobre columna generada**, porque
 `NOW()` (la caducidad) y no es expresable como columna determinista, y además rompería los
 enlaces manuales que sí pueden convivir.
 
-Verificado con `var/probar-prepago-automatico.php` (transacción con rollback): estrena un enlace
+Verificado con `tools/pruebas/probar-prepago-automatico.php` (transacción con rollback): estrena un enlace
 sin caducidad, sin autor y **en la moneda de la cabecera**; un movimiento que no cambia el importe
 **no** emite otro; al cambiar el adelanto queda uno vivo con el anterior en `anulado`; al anular
 la reserva no queda ninguno vivo; y **con el turno tomado desde otra conexión, el emisor se
@@ -1491,7 +1491,7 @@ Lo usan los **tres** caminos —`emitirSimulado()` (la previsualización del age
 (la skill) y `emitirConTurno()` (el automático)— desde el mismo `loQueSePide()`. Una
 previsualización que no coincide con lo que luego ocurre es peor que no previsualizar.
 
-Verificado con `var/probar-prepago-dia-de-llegada.php` (transacción con rollback): la misma
+Verificado con `tools/pruebas/probar-prepago-dia-de-llegada.php` (transacción con rollback): la misma
 reserva emite adelanto con la llegada en el futuro y, movida la llegada a hoy, emite el saldo
 entero **relevando** al adelanto anterior — nunca dos pagables a la vez.
 
@@ -1606,7 +1606,7 @@ quedaba vivo. Era exactamente el estado de 3GFMC7 en producción: un manual de 1
 `anularAutomaticosVigentes()`, con el enlace reutilizado como excepción para que no se suicide
 si el reutilizado es el propio automático.
 
-Verificado en `var/probar-prepago-dia-de-llegada.php`, caso 3.
+Verificado en `tools/pruebas/probar-prepago-dia-de-llegada.php`, caso 3.
 
 ### La reutilización, y por qué mira el importe
 
@@ -1869,7 +1869,7 @@ en el log.
 —donde el mismo huésped insistiendo tres veces son tres avisos por lo mismo, y por eso allí hay
 enfriamiento—.
 
-Verificado con `var/probar-aviso-cobro.php`, que compone el aviso de tres casos (reserva, venta
+Verificado con `tools/pruebas/probar-aviso-cobro.php`, que compone el aviso de tres casos (reserva, venta
 suelta sin origen, y sin nombre de cliente) y comprueba las dos reglas que Meta impone y que
 revientan el envío: **ninguna variable vacía ni multilínea**. ⚠️ Ese guion **no envía nada** a
 propósito: hacerlo haría sonar el móvil de toda la guardia (ver `docs/Mensajeria.md` §16.7).
@@ -2517,7 +2517,7 @@ abrir **editar**, que es la pantalla a la que se llega la segunda vez. Ni `php -
 Es la misma convención que ya seguía `PmsPoliticaPrepago::opciones()`; el enum nuevo se escribió
 sin mirarla y por eso apareció. Al añadir un enum al panel, cópiala.
 
-`php var/probar-medios-cobro.php` lo comprueba sin navegador —y de paso verifica que cada
+`php tools/inspeccion/probar-medios-cobro.php` lo comprueba sin navegador —y de paso verifica que cada
 propiedad de `configureFields()` se pueda leer y escribir en la entidad, que es el otro fallo
 que sólo se ve al abrir la pantalla—.
 
@@ -2591,7 +2591,7 @@ se marca «Retraducir la nota al guardar». Las ocho cuentas bancarias no llevan
 | Cambiar si el huésped cuenta como «de Perú» | `PmsProcedenciaHuesped` | `pagaDesdePeru()` — fuente única del chat y de la guía del huésped |
 | Añadir un campo que vea el huésped en su guía | `PmsGuiaHuespedProvider::mediosPago()` **y** `paxHuespedGuiaModel.ts` | Espejo, §7. El front lo ignora en silencio si falta |
 | Quién puede editar el catálogo | `FinMedioCobroCrudController` | `MAESTROS_WRITE` hoy; ver el aviso de su docblock |
-| Comprobar el CRUD sin abrir el navegador | — | `php var/probar-medios-cobro.php` — §14.4 |
+| Comprobar el CRUD sin abrir el navegador | — | `php tools/inspeccion/probar-medios-cobro.php` — §14.4 |
 
 ---
 
