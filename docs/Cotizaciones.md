@@ -341,7 +341,7 @@ Los textos multi-idioma son `I18nContent[]` = `[{ language, content }]`.
 - util: `store.getI18nText(arr, lang)` (con fallback).
 - pax: `store.traducir(arr)` (fallback idioma actual → en → es → primero).
 
-> ⚠️ **`util/src/types/api.d.ts` miente en los i18n.** El backend serializa objetos
+> ⚠️ **`dominio/api.d.ts` miente en los i18n.** El backend serializa objetos
 > `{language, content}` —son `I18nContent[]`— y el generador nunca acierta con esa
 > forma. Lo mismo con `Proveedor.proveedorImagenes`, declarado como IRIs cuando el
 > grupo de lectura manda los objetos completos.
