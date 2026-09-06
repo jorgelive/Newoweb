@@ -128,6 +128,37 @@ const linkPublicoPropuesta = (propuesta?: number) => {
   return propuesta ? `${base}/p/${propuesta}` : base;
 };
 
+/**
+ * Qué propuesta se acaba de copiar, para el ✓ de dos segundos.
+ *
+ * Es el NÚMERO y no un booleano porque la cabecera se repite por propuesta: con un flag
+ * compartido, copiar la P1 ponía el visto también en la P2 y la P3.
+ */
+const propuestaCopiada = ref<number | null>(null);
+
+/**
+ * Copia el enlace de la vista cliente de UNA propuesta.
+ *
+ * Hermano de `copiarLink()`, que copia el del file entero. Existe porque lo que se le manda al
+ * cliente casi nunca es «el expediente»: es una propuesta concreta, y hasta ahora había que
+ * abrirla en otra pestaña y copiar de la barra de direcciones.
+ *
+ * El fallback no es decorativo: con el portapapeles bloqueado —http, o permiso denegado— el
+ * `alert` enseña la URL entera para poder seleccionarla a mano. Mismo criterio que `copiarLink()`.
+ */
+const copiarLinkPropuesta = async (propuesta?: number) => {
+  const url = linkPublicoPropuesta(propuesta);
+  if (!url) return;
+
+  try {
+    await navigator.clipboard.writeText(url);
+    propuestaCopiada.value = propuesta ?? 0;
+    setTimeout(() => { propuestaCopiada.value = null; }, 2000);
+  } catch {
+    alert('No se pudo copiar. Copia manualmente: ' + url);
+  }
+};
+
 const copiarLink = async () => {
   if (!linkPublico.value) return;
   try {
@@ -2800,6 +2831,20 @@ const eliminarDocumento = async (iri?: string) => {
                      :title="`Abrir vista cliente (P${cot.propuesta})`">
                     <i class="fas fa-external-link-alt text-xs"></i>
                   </a>
+
+                  <!-- Copiar ese mismo enlace. Va PEGADO al de abrir porque son la misma cosa en
+                       dos gestos: mirarla uno o mandársela al cliente — y mandársela era abrir la
+                       pestaña y copiar de la barra de direcciones. -->
+                  <button v-tooltip-tactil @click="copiarLinkPropuesta(cot.propuesta)"
+                          :class="propuestaCopiada === cot.propuesta
+                            ? 'text-emerald-600 border-emerald-200 bg-emerald-50'
+                            : 'text-slate-400 border-slate-200 hover:text-emerald-500 hover:border-emerald-200 hover:bg-emerald-50'"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border transition-colors"
+                          :title="propuestaCopiada === cot.propuesta
+                            ? 'Enlace copiado'
+                            : `Copiar el enlace de la vista cliente (P${cot.propuesta})`">
+                    <i class="text-xs" :class="propuestaCopiada === cot.propuesta ? 'fas fa-check' : 'far fa-copy'"></i>
+                  </button>
 
                   <!-- Armar la operación. ⚠️ Mismo sitio que el plan —donde VIVE la operación—
                        porque son la misma cosa en dos momentos: éste la crea, aquél la revisa.

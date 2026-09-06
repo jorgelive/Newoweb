@@ -6152,6 +6152,13 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 
 ## 9. "Quiero cambiar X — ¿dónde toco?"
 
+- **El enlace de la vista cliente (abrirlo o copiarlo)** → `linkPublicoPropuesta()` en
+  `FileDetalle.vue`, y los dos botones pegados de la cabecera de cada propuesta: el ↗ que abre y
+  el 📋 que copia. La vista cliente se abre **siempre**, publicada o no —como operador ves también
+  lo que el cliente todavía no—, y lo que se manda casi nunca es el expediente entero sino una
+  propuesta concreta: por eso el copiar es por propuesta y no sólo el del file. El ✓ de dos
+  segundos se guarda en `propuestaCopiada` como NÚMERO y no como booleano, porque la cabecera se
+  repite por propuesta y un flag compartido ponía el visto en las tres.
 - **Que un dato más salga en la tarjeta del componente** → el bloque de pastillas junto a `prestadorNombreSnapshot` en `CotizacionEditorView.vue` (§6.d).
 - **Que el bloque «Catálogo Maestro» arranque cerrado** → `leerPreferencia()` en `CotizacionEditorView.vue`; hoy abre salvo que se haya cerrado antes (§6.d).
 - **Cómo se calcula costo/venta/markup/alternativas** → `resumenFinanciero` en `util/.../cotizacionEditorStore.ts`.
