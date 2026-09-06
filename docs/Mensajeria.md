@@ -586,6 +586,22 @@ pendiente que resumir.
 | Encolado (con espera de ráfaga) | `MessageResumenListener` |
 | Ejecución en el worker | `GenerarResumenDispatchHandler` |
 | Texto de respaldo sin IA | `ResumenConversacionService::textoDeRespaldo()` |
+| Relleno y reproceso a mano | `app:message:resumir` (`--dry-run`, `--forzar`) |
+
+⚠️ **`app:message:resumir` NO es un cron que falte, y conviene decirlo porque lo parece.** El
+resumen se regenera solo al entrar un mensaje; el comando existe para dos cosas que el evento no
+cubre: **rellenar** las conversaciones que ya estaban pendientes cuando esto se desplegó —y que
+sin él se quedan sin resumen hasta que el huésped vuelva a escribir, que puede ser nunca— y
+**reprocesar** tras cambiar el prompt, con `--forzar`, que ignora `resumen_ia_hasta`.
+
+Cada conversación sin resumen es **una llamada al modelo**: `--dry-run` dice cuántas serían antes
+de gastar nada.
+
+⚠️ **Y de paso, es la forma de ver qué va a decir el agente al escalar.** El mismo texto que este
+comando genera es el que `EscalarAlEquipoSkill` pega en el aviso al equipo como «🗒️ Sin
+contestar: …», y el que `NotificadorPushConversacion` usa como cuerpo de la notificación push.
+Leer aquí el resumen de una conversación es leer, palabra por palabra, lo que le llegará al
+operador.
 
 **Dos guardas que no hay que quitar:**
 
