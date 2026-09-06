@@ -15,7 +15,7 @@ declare(strict_types=1);
  *   2. Un cobro con `fechaPago` de hace días: tiene que traer el cambio DE ESE DÍA, no el de hoy.
  *   3. Un registro que ya trae su propio tipo de cambio: NO se pisa.
  *
- * Uso: php var/probar-sello-tipo-cambio.php
+ * Uso: php tools/inspeccion/probar-sello-tipo-cambio.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

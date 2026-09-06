@@ -10,7 +10,7 @@ declare(strict_types=1);
  * 2. `GoogleAIEngine::esquemaGemini()` — la traducción del JSON Schema al subconjunto que
  *    Gemini admite. Si esto sale mal, Gemini contesta con un 400 y no con un aviso.
  *
- * Uso: php var/probar-triaje.php
+ * Uso: php tools/pruebas/probar-triaje.php
  */
 
 use App\Agent\Provider\Google\GoogleAIEngine;

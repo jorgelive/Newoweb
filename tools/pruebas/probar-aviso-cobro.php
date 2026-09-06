@@ -14,7 +14,7 @@ declare(strict_types=1);
  * Comprueba además las dos reglas que Meta impone y que revientan el envío si se incumplen:
  * ninguna variable vacía y ninguna con salto de línea.
  *
- *   php var/probar-aviso-cobro.php
+ *   php tools/pruebas/probar-aviso-cobro.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

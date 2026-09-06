@@ -15,7 +15,7 @@ declare(strict_types=1);
  *
  * No hace falta el kernel: los dos fallos están en el componente Form, no en la aplicación.
  *
- * Uso: php var/probar-medios-cobro.php
+ * Uso: php tools/inspeccion/probar-medios-cobro.php
  */
 
 use App\Finanzas\Entity\FinMedioCobro;

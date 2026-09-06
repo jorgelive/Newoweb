@@ -25,7 +25,7 @@ declare(strict_types=1);
  * ⚠️ La consulta de abajo es un ESPEJO de la de la migración: si cambia una, cambia la
  * otra. Se duplica a propósito para poder apuntarla a las tablas de prueba.
  *
- * Uso: php var/probar-backfill-proveedor.php
+ * Uso: php tools/inspeccion/probar-backfill-proveedor.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

@@ -26,8 +26,8 @@ use Symfony\Component\HttpClient\HttpClient;
 $destino = $argv[1] ?? null;
 
 if ($destino === null) {
-    exit("Uso: php var/probar-ventana-cerrada.php <numero_e164_sin_mas>\n"
-       . "Ej.:  php var/probar-ventana-cerrada.php 51958191965\n");
+    exit("Uso: php tools/inspeccion/probar-ventana-cerrada.php <numero_e164_sin_mas>\n"
+       . "Ej.:  php tools/inspeccion/probar-ventana-cerrada.php 51958191965\n");
 }
 
 $config = $em->getRepository(MetaConfig::class)->findOneBy(['activo' => true]);

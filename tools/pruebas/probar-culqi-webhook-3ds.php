@@ -10,10 +10,10 @@ declare(strict_types=1);
  *  2. `CulqiRechazoException::pideAutenticacion3DS()` sobre las tres señales medidas.
  *
  * No abre base de datos ni toca nada: sólo llama a las funciones. Se ejecuta con
- *   php var/probar-culqi-webhook-3ds.php <ruta-al-payload.json>
+ *   php tools/pruebas/probar-culqi-webhook-3ds.php <ruta-al-payload.json>
  */
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../../vendor/autoload.php';
 
 use App\Finanzas\Controller\Webhook\CulqiWebhookController;
 use App\Finanzas\Service\Culqi\CulqiRechazoException;
@@ -21,7 +21,7 @@ use App\Finanzas\Service\Culqi\CulqiRechazoException;
 $ruta = $argv[1] ?? null;
 
 if ($ruta === null || !is_readable($ruta)) {
-    fwrite(STDERR, "Uso: php var/probar-culqi-webhook-3ds.php <payload.json>\n");
+    fwrite(STDERR, "Uso: php tools/pruebas/probar-culqi-webhook-3ds.php <payload.json>\n");
     exit(1);
 }
 

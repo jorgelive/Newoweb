@@ -21,7 +21,7 @@ declare(strict_types=1);
  *
  * Objetos en memoria; no toca la base.
  *
- * Uso: php var/probar-comprador.php
+ * Uso: php tools/inspeccion/probar-comprador.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

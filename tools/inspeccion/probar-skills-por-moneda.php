@@ -19,7 +19,7 @@ declare(strict_types=1);
  * Sólo LEE: `consultar_cuenta` no escribe, y las de escritura se llaman sin `confirmado`, que es
  * su modo previsualización. Aun así va en transacción con rollback, por si acaso.
  *
- * Uso: php var/probar-skills-por-moneda.php
+ * Uso: php tools/inspeccion/probar-skills-por-moneda.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
@@ -47,15 +47,18 @@ $kernel->boot();
 $em = $kernel->getContainer()->get('doctrine')->getManager();
 $conn = $em->getConnection();
 
-// Las skills se arman a mano: en `dev` son privadas, y el contenedor de `test` apunta a una base
-// `..._test` que aquí no existe. Sus dependencias no tienen estado (ver probar-costo-teorico.php).
-// `TipocambioManager` va con el token vacío a propósito: sin él cae a la cotización ya cacheada
-// en la base, que es justo la que se quiere leer — esto no debe salir a SUNAT.
-$logger = new NullLogger();
-$tipoCambio = new TipoCambioDelDia(new TipocambioManager($em, HttpClient::create(), $logger, ''), $logger);
+// ⚠️ Las skills se piden al CONTENEDOR, no se arman a mano.
+//
+// Se armaban a mano «porque en dev son privadas», y eso las ató a una lista de dependencias que
+// envejece: `ConsultarCuentaSkill` pasó de tres a seis y esta maqueta llevaba tiempo reventando
+// con un `TypeError` en el tercer argumento. Un servicio privado se saca igual con el `load()`
+// del contenedor —es lo que ya hacen las otras sondas de esta carpeta— y así el día que le
+// añadan otra dependencia esto sigue corriendo.
+$cargador = new ReflectionMethod($kernel->getContainer(), 'load');
+$cargador->setAccessible(true);
 
-$cuenta = new ConsultarCuentaSkill($em, new PmsPrepagoCalculador(), $logger);
-$pagos = new RegistrarPagoSkill($em, new MonedaResolver($em), $tipoCambio, new PmsCuentaSimulador());
+$cuenta = $cargador->invoke($kernel->getContainer(), 'getConsultarCuentaSkillService');
+$pagos = $cargador->invoke($kernel->getContainer(), 'getRegistrarPagoSkillService');
 
 /** Los cuatro casos reales de producción, con lo que cada uno enseña. */
 $CASOS = [

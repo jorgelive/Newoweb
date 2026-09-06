@@ -17,7 +17,7 @@ declare(strict_types=1);
  * Y se comprueba el punto que motivó el umbral: `XTHRMQ` deja +0.10 de diferencia cambiaria y
  * **tiene que quedar como pagada**, no arrastrar un «parcial» eterno por diez céntimos.
  *
- * Uso: php var/probar-estado-pago-por-moneda.php
+ * Uso: php tools/inspeccion/probar-estado-pago-por-moneda.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

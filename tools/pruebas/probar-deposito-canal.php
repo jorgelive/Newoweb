@@ -16,7 +16,7 @@ declare(strict_types=1);
  *   3. Un pago manual por ese mismo importe baja el saldo esa misma cantidad, y el
  *      depósito sigue sin moverse.
  *
- * Uso: php var/probar-deposito-canal.php [localizador]
+ * Uso: php tools/pruebas/probar-deposito-canal.php [localizador]
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

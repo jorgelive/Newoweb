@@ -10,8 +10,8 @@ no lo pesca ningún test unitario: se pesca ejecutando el flujo real contra fila
 
 | | Qué hay | Cómo se lee el resultado |
 |---|---|---|
-| `pruebas/` | **Afirman**: terminan en ✅ o ❌ y devuelven código de salida | verde/rojo |
-| `inspeccion/` | **Vuelcan**: imprimen el estado de algo para mirarlo | se lee, no se aprueba |
+| `pruebas/` (33) | **Afirman**: terminan en ✅ o ❌ y devuelven código de salida | verde/rojo |
+| `inspeccion/` (33) | **Vuelcan**: imprimen el estado de algo para mirarlo | se lee, no se aprueba |
 
 Mezclarlas era la mitad del problema: con las dos juntas, «prueba» no significaba nada.
 
@@ -36,6 +36,20 @@ lo dijeran ellas mismas:
   cargo de verdad), así que no se emite nada y el rojo culpa al código.
 
 Las pruebas de prepago comprueban las dos cosas y abortan con un mensaje que lo explica.
+
+## ⚠️ Tres que hablan hacia FUERA
+
+No se ejecutan en una pasada general. Están en `inspeccion/` porque no afirman nada, pero lo que
+importa es que salen de la máquina:
+
+| | Qué hace | Cuidado |
+|---|---|---|
+| `probar-ventana-cerrada.php` | **Manda un WhatsApp de verdad** por la API de Meta, con nuestras credenciales, para ver si Direct Send sigue activo | recibe el número como argumento; el mensaje LLEGA a ese teléfono |
+| `probar-tuya.php` | Pide a la API de Tuya el estado de un dispositivo | sólo lectura; las credenciales van por variables de entorno, no por argumento |
+| `probar-skills-por-moneda.php` | Maqueta de lo que las skills le enseñan al modelo | no sale a la red, pero lee reservas reales de producción |
+
+`probar-ventana-cerrada` es la única con consecuencia fuera: mide **el código que devuelve Meta**
+—entrega, 131047 «more than 24 hours», u otro—, y para eso el mensaje tiene que salir.
 
 ## De dónde salen
 

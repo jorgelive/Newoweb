@@ -20,7 +20,7 @@ declare(strict_types=1);
  *
  * Correrlo en producción antes de `doctrine:migrations:migrate` y guardar la salida.
  *
- * Uso: php var/auditar-proveedor-anidado.php
+ * Uso: php tools/inspeccion/auditar-proveedor-anidado.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

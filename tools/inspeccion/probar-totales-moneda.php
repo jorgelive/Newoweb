@@ -18,7 +18,7 @@ declare(strict_types=1);
  * `PmsInformacionFinancieraRecalculoService`, para que lo que se mida sea lo que se va a
  * desplegar y no una aproximación escrita para la ocasión.
  *
- * Uso: php var/probar-totales-moneda.php
+ * Uso: php tools/inspeccion/probar-totales-moneda.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

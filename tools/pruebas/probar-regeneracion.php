@@ -18,7 +18,7 @@ declare(strict_types=1);
  * `TRIGGER_COMMAND` y `force`, no un doble— y la comparación es sobre filas de verdad. Lo único
  * que no ocurre es el `COMMIT`.
  *
- * Es la misma técnica que `var/probar-limpieza.php`, y sirve por lo mismo: lo que este flujo
+ * Es la misma técnica que `tools/pruebas/probar-limpieza.php`, y sirve por lo mismo: lo que este flujo
  * produce son FILAS que un worker leerá después. Si nunca se confirman, nadie las lee.
  *
  * ── Qué se borra ────────────────────────────────────────────────────────────
@@ -34,7 +34,7 @@ declare(strict_types=1);
  * la prueba salía en ❌ sin que hubiera nada roto. Pasó con 12 mensajes de 4 conversaciones,
  * tres de ellas con TODAS las estancias canceladas, donde no regenerar era lo correcto.
  *
- * Uso: php var/probar-regeneracion.php
+ * Uso: php tools/pruebas/probar-regeneracion.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

@@ -29,7 +29,7 @@ declare(strict_types=1);
  * `TravelOrganizacion` se llevó por delante. Una sonda que revienta al arrancar es peor que
  * ninguna, porque la doc la cita como si comprobara algo.
  *
- * Uso: php var/probar-prestador-visible.php
+ * Uso: php tools/inspeccion/probar-prestador-visible.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

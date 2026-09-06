@@ -26,7 +26,7 @@ declare(strict_types=1);
  *   6. El enlace que emitió un OPERADOR a mano sobrevive a las emisiones — el bug del
  *      05/09/2026, que anulaba cualquier enlace vivo y no sólo los automáticos. Sólo se puede
  *      comprobar si la reserva elegida ya tenía uno; el caso montado a propósito es el 8 de
- *      `var/probar-prepago-automatico.php`.
+ *      `tools/pruebas/probar-prepago-automatico.php`.
  *
  * ⚠️ **La fecha se mueve por SQL, no por el ORM**, y a propósito: tocar `PmsReserva` dispara
  * los listeners de sincronización, y esta prueba no tiene por qué hablar con Beds24. Va dentro
@@ -41,7 +41,7 @@ declare(strict_types=1);
  * que la reserva ya tenía de antes y lo daba por recién emitido. Un verde por dato viejo es
  * peor que un rojo, así que ahora se comprueba el interruptor y se aborta.
  *
- * Uso: FINANZAS_ENLACES_PREPAGO=1 php var/probar-prepago-dia-de-llegada.php [LOCALIZADOR]
+ * Uso: FINANZAS_ENLACES_PREPAGO=1 php tools/pruebas/probar-prepago-dia-de-llegada.php [LOCALIZADOR]
  *      (por defecto, la reserva más próxima con llegada futura, canal que no cobra por
  *       nosotros y sin ningún pago: las tres condiciones para que haya adelanto que pedir)
  */
@@ -90,7 +90,7 @@ if ($claveCulqi !== '' && !str_starts_with($claveCulqi, 'sk_test_')) {
 if (($_SERVER['FINANZAS_ENLACES_PREPAGO'] ?? '0') !== '1') {
     echo "El emisor automático está APAGADO (FINANZAS_ENLACES_PREPAGO=0).\n";
     echo "Sin él no se emite nada y esta prueba mediría datos viejos. Relánzala así:\n";
-    echo "  FINANZAS_ENLACES_PREPAGO=1 php var/probar-prepago-dia-de-llegada.php\n";
+    echo "  FINANZAS_ENLACES_PREPAGO=1 php tools/pruebas/probar-prepago-dia-de-llegada.php\n";
     exit(1);
 }
 

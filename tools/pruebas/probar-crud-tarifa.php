@@ -7,9 +7,9 @@ declare(strict_types=1);
  * una propiedad que no existe. No lo caza PHPStan —son cadenas— ni ningún test, y sólo
  * revienta al abrir el formulario. Sólo LEE.
  */
-require dirname(__DIR__, 1) . '/vendor/autoload.php';
+require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
-$crud = file_get_contents(dirname(__DIR__, 1) . '/src/Travel/Controller/Crud/TravelTarifaCrudController.php');
+$crud = file_get_contents(dirname(__DIR__, 2) . '/src/Travel/Controller/Crud/TravelTarifaCrudController.php');
 preg_match_all('/(?:TextField|AssociationField|NumberField|IntegerField|BooleanField|ChoiceField|CollectionField)::new\(\s*\'([a-zA-Z0-9_]+)\'/', $crud, $m);
 $campos = array_values(array_unique($m[1]));
 

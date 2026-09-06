@@ -9,10 +9,10 @@ declare(strict_types=1);
  * quedar sin persistir si el ORM lo lee de una caché vieja, y entonces `flush()` corre sin
  * error y la columna se queda en NULL (ver CLAUDE.md). Esto lo comprueba escribiendo.
  *
- *   php var/probar-cobro-audit.php
+ *   php tools/pruebas/probar-cobro-audit.php
  */
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../../vendor/autoload.php';
 
 use App\Finanzas\Entity\FinPasarelaCobroAudit;
 use App\Finanzas\Enum\FinPasarela;
@@ -21,7 +21,7 @@ use App\Kernel;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Dotenv\Dotenv;
 
-(new Dotenv())->bootEnv(__DIR__ . '/../.env');
+(new Dotenv())->bootEnv(__DIR__ . '/../../.env');
 
 $kernel = new Kernel($_SERVER['APP_ENV'] ?? 'dev', false);
 $kernel->boot();

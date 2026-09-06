@@ -18,7 +18,7 @@ declare(strict_types=1);
  * 5. El desplegable (`/tipo/user/enum/pms/limpiadores`) y el validador del processor miran
  *    la MISMA lista.
  *
- * Uso: php var/probar-limpieza.php
+ * Uso: php tools/pruebas/probar-limpieza.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

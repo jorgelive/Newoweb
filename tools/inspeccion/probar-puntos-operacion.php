@@ -1,7 +1,7 @@
 <?php
 // Sonda local (gitignored): resuelve los puntos de servicios reales de La Biblia.
-require __DIR__ . '/../vendor/autoload.php';
-(new Symfony\Component\Dotenv\Dotenv())->bootEnv(__DIR__ . '/../.env');
+require __DIR__ . '/../../vendor/autoload.php';
+(new Symfony\Component\Dotenv\Dotenv())->bootEnv(__DIR__ . '/../../.env');
 $k = new App\Kernel('dev', true); $k->boot();
 $em = $k->getContainer()->get('doctrine')->getManager();
 

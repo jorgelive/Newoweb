@@ -19,7 +19,7 @@ declare(strict_types=1);
  * unidad de trabajo sucia, y cualquier `flush()` posterior vuelve a intentar el cambio
  * rechazado — así que lo que fuera detrás no mediría lo que dice medir.
  *
- * Uso: php var/probar-moneda-cargo-en-cero.php
+ * Uso: php tools/inspeccion/probar-moneda-cargo-en-cero.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

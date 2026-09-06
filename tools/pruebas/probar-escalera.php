@@ -9,7 +9,7 @@ declare(strict_types=1);
  * huella, y comprueba que cada vuelta entrega el peldaño siguiente hasta agotarse. TODO dentro de
  * una transacción con rollback: la base queda como estaba.
  *
- *   php var/probar-escalera.php
+ *   php tools/pruebas/probar-escalera.php
  */
 
 use App\Agent\Service\EscaleraDeTemas;

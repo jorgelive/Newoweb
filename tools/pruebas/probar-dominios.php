@@ -14,7 +14,7 @@ declare(strict_types=1);
  *   2. Un actor de un negocio que no existe todavía (turismo) se queda sólo con lo transversal.
  *      Sin esto, el mecanismo entero podría estar sin efecto y nadie se enteraría.
  *
- * Uso: php var/probar-dominios.php
+ * Uso: php tools/pruebas/probar-dominios.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
@@ -38,7 +38,7 @@ $kernel = new App\Kernel('dev', true);
 $kernel->boot();
 
 // El registro de skills es un servicio privado: se saca del comando que ya lo recibe, mismo
-// truco que usa var/probar-triaje.php con el asistente.
+// truco que usa tools/pruebas/probar-triaje.php con el asistente.
 $app = new Application($kernel);
 $comando = $app->find('app:agent:permisos');
 if ($comando instanceof LazyCommand) {

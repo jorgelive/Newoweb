@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Comprueba SIN API el formateador de mensajes: normalización del Markdown del modelo,
  * degradación por canal y protección de URLs.
  *
- * Uso: php var/probar-formato.php
+ * Uso: php tools/pruebas/probar-formato.php
  */
 
 use App\Message\Service\Formato\FormatoDeTexto;

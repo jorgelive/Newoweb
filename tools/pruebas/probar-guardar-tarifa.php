@@ -16,8 +16,8 @@ use App\Security\Roles;
 use App\Travel\Entity\TravelTarifa;
 use Symfony\Component\Dotenv\Dotenv;
 
-require __DIR__ . '/../vendor/autoload.php';
-(new Dotenv())->bootEnv(__DIR__ . '/../.env');
+require __DIR__ . '/../../vendor/autoload.php';
+(new Dotenv())->bootEnv(__DIR__ . '/../../.env');
 $k = new Kernel('dev', false);
 $k->boot();
 $em = $k->getContainer()->get('doctrine')->getManager();

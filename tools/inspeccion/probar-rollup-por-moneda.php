@@ -22,7 +22,7 @@ declare(strict_types=1);
  * `$em->remove($reserva)`: el ORM baja hasta la ficha, y **la tabla de totales no está en ninguna
  * cascada del ORM**, así que ahí es donde tiene que actuar el `ON DELETE CASCADE` de la base.
  *
- * Uso: php var/probar-rollup-por-moneda.php
+ * Uso: php tools/inspeccion/probar-rollup-por-moneda.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

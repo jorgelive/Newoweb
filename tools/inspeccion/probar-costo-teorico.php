@@ -12,7 +12,7 @@ declare(strict_types=1);
  * Corre en `test` porque ahí el contenedor expone los servicios privados
  * (`framework.test: true`); no toca ninguna base distinta de la de siempre.
  *
- * Uso: php var/probar-costo-teorico.php
+ * Uso: php tools/inspeccion/probar-costo-teorico.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

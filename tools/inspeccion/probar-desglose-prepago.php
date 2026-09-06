@@ -13,15 +13,15 @@ declare(strict_types=1);
  * Desde que la skill llama a `getDesglosePorTipo()` la igualdad es por construcción. Lo que
  * comprueba esto es el DATO: que existen cargos negativos y cuánto movían.
  *
- * Read-only.  php var/probar-desglose-prepago.php
+ * Read-only.  php tools/inspeccion/probar-desglose-prepago.php
  */
 
 use App\Kernel;
 use App\Pms\Entity\PmsReserva;
 use Symfony\Component\Dotenv\Dotenv;
 
-require __DIR__ . '/../vendor/autoload.php';
-(new Dotenv())->bootEnv(__DIR__ . '/../.env');
+require __DIR__ . '/../../vendor/autoload.php';
+(new Dotenv())->bootEnv(__DIR__ . '/../../.env');
 
 $kernel = new Kernel('dev', false);
 $kernel->boot();

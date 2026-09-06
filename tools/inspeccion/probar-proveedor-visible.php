@@ -15,7 +15,7 @@ declare(strict_types=1);
  *
  * Escribe dentro de una transacción con ROLLBACK: no deja rastro en la base.
  *
- * Uso: php var/probar-proveedor-visible.php
+ * Uso: php tools/inspeccion/probar-proveedor-visible.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

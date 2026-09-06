@@ -18,7 +18,7 @@ declare(strict_types=1);
  *   4. No nació un segundo depósito (el fallo que costó el diseño anterior, §12.4.5).
  *   5. Al devolverlo al automático, vuelve a cuadrar los cargos del canal él solo.
  *
- * Uso: php var/probar-deposito-intervenido.php [localizador]
+ * Uso: php tools/pruebas/probar-deposito-intervenido.php [localizador]
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

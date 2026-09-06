@@ -12,7 +12,7 @@ declare(strict_types=1);
  * Las credenciales van por variables de entorno, no por argumentos: así no quedan en el historial
  * del shell.
  *
- *   TUYA_CLIENT_ID=xxx TUYA_SECRET=yyy php var/probar-tuya.php eb4776d865f5b3351angr3
+ *   TUYA_CLIENT_ID=xxx TUYA_SECRET=yyy php tools/inspeccion/probar-tuya.php eb4776d865f5b3351angr3
  *
  * El endpoint por defecto es el de Western America, que es el data center que corresponde a las
  * cuentas registradas en Perú. Si el proyecto está en otra región, se cambia con TUYA_HOST.
@@ -24,7 +24,7 @@ $deviceId = $argv[1] ?? '';
 $host = getenv('TUYA_HOST') ?: 'https://openapi.tuyaus.com';
 
 if ($clientId === '' || $secret === '' || $deviceId === '') {
-    fwrite(STDERR, "Uso: TUYA_CLIENT_ID=… TUYA_SECRET=… php var/probar-tuya.php <device_id>\n");
+    fwrite(STDERR, "Uso: TUYA_CLIENT_ID=… TUYA_SECRET=… php tools/inspeccion/probar-tuya.php <device_id>\n");
     exit(1);
 }
 

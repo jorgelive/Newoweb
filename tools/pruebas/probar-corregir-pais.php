@@ -9,7 +9,7 @@ declare(strict_types=1);
  * teléfonos. Lo que se comprueba es lo que un unitario no puede decir —que la segunda pasada no
  * toca nada— y se deshace todo al final.
  *
- *   php var/probar-corregir-pais.php
+ *   php tools/pruebas/probar-corregir-pais.php
  */
 
 use App\Kernel;
@@ -19,8 +19,8 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Dotenv\Dotenv;
 
-require __DIR__ . '/../vendor/autoload.php';
-(new Dotenv())->bootEnv(__DIR__ . '/../.env');
+require __DIR__ . '/../../vendor/autoload.php';
+(new Dotenv())->bootEnv(__DIR__ . '/../../.env');
 
 $kernel = new Kernel($_SERVER['APP_ENV'] ?? 'dev', (bool) ($_SERVER['APP_DEBUG'] ?? true));
 $kernel->boot();

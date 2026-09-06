@@ -17,7 +17,7 @@ declare(strict_types=1);
  *   · mal atado    → cero                 (el fallo de menos: `SearchFilter` con uuid)
  *   · bien         → los de esa empresa
  *
- * Uso: php var/probar-filtro-servicios-organizacion.php
+ * Uso: php tools/inspeccion/probar-filtro-servicios-organizacion.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

@@ -4,8 +4,8 @@
 // justo la mitad que los tests unitarios no pueden cubrir: el orden en que Doctrine manda los
 // INSERT y los DELETE dentro de un mismo flush.
 //
-//   php var/probar-identificaciones-1062.php              → con el arreglo (esperado: UPDATE)
-//   php var/probar-identificaciones-1062.php --sin-arreglo → sin él (esperado: 1062, el bug)
+//   php tools/pruebas/probar-identificaciones-1062.php              → con el arreglo (esperado: UPDATE)
+//   php tools/pruebas/probar-identificaciones-1062.php --sin-arreglo → sin él (esperado: 1062, el bug)
 //
 // Transacción con rollback: no deja nada escrito.
 require dirname(__DIR__, 2).'/vendor/autoload.php';

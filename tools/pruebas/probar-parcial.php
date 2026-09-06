@@ -13,7 +13,7 @@ declare(strict_types=1);
  * reserva, así que si la casita perdida siguiera contando como cubierta, cada guardado anotaría
  * otra cancelación parcial y el huésped recibiría el mismo aviso una y otra vez.
  *
- * Todo dentro de una transacción que se deshace. Uso: php var/probar-parcial.php
+ * Todo dentro de una transacción que se deshace. Uso: php tools/pruebas/probar-parcial.php
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

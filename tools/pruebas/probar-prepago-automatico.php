@@ -21,9 +21,9 @@ declare(strict_types=1);
  * ⚠️ Y la reserva se elige por LLEGADA FUTURA y sin pagos. Desde el 06/09/2026 el emisor pide
  * el SALDO entero a partir del día de llegada (`PmsPrepagoCalculador::queSePide()`), así que
  * una reserva ya empezada emitiría «Saldo de reserva» y no el adelanto que aquí se comprueba.
- * Ese camino tiene su propia prueba: `var/probar-prepago-dia-de-llegada.php`.
+ * Ese camino tiene su propia prueba: `tools/pruebas/probar-prepago-dia-de-llegada.php`.
  *
- * Uso: FINANZAS_ENLACES_PREPAGO=1 php var/probar-prepago-automatico.php [localizador]
+ * Uso: FINANZAS_ENLACES_PREPAGO=1 php tools/pruebas/probar-prepago-automatico.php [localizador]
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
@@ -65,7 +65,7 @@ if ($claveCulqi !== '' && !str_starts_with($claveCulqi, 'sk_test_')) {
 
 if (($_SERVER['FINANZAS_ENLACES_PREPAGO'] ?? '0') !== '1') {
     echo "El emisor automático está APAGADO (FINANZAS_ENLACES_PREPAGO=0): no emitiría nada.\n";
-    echo "  FINANZAS_ENLACES_PREPAGO=1 php var/probar-prepago-automatico.php\n";
+    echo "  FINANZAS_ENLACES_PREPAGO=1 php tools/pruebas/probar-prepago-automatico.php\n";
     exit(1);
 }
 

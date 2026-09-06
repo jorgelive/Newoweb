@@ -9,7 +9,7 @@ declare(strict_types=1);
  * reciente de ESTA conversación (debe enfriar), uno de OTRA (no debe), uno viejo (no debe) y uno
  * fallido (no debe, porque nunca sonó). Transacción con rollback.
  *
- *   php var/probar-enfriamiento.php
+ *   php tools/pruebas/probar-enfriamiento.php
  */
 
 use App\Agent\Skill\Pms\EscalarAlEquipoSkill;

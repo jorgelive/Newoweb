@@ -19,7 +19,7 @@ declare(strict_types=1);
  *   7. Sin teléfonos configurados → NO se le prohíbe el enlace: sin teléfono esa rama
  *      dejaría al modelo sin ninguna salida, y sin salida se inventa una.
  *
- * Uso: php var/probar-llegada-hoy.php [localizador]
+ * Uso: php tools/pruebas/probar-llegada-hoy.php [localizador]
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';

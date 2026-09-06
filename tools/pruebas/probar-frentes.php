@@ -9,7 +9,7 @@ declare(strict_types=1);
  * con datos de verdad, que el desempate del PMS se respete, y que el bloque del prompt no
  * arrastre ningún identificador interno.
  *
- * Uso: php var/probar-frentes.php [telefono]
+ * Uso: php tools/pruebas/probar-frentes.php [telefono]
  */
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
