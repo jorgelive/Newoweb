@@ -118,8 +118,10 @@ final readonly class PmsPrepagoEnlaceService
      * en la skill: una previsualización que no coincide con lo que luego ocurre es peor que
      * no previsualizar.
      *
-     * @return array{monto: string, moneda: string, politica: string, reutilizado: bool}|null
-     *         `null` cuando no hay prepago que pedir, por el motivo que sea.
+     * @return array{monto: string, moneda: string, politica: string, reutilizado: bool, esSaldo: bool}|null
+     *         `null` cuando no hay nada que pedir, por el motivo que sea. `esSaldo` distingue
+     *         el adelanto del saldo entero: quien lo enseñe tiene que decir cuál es, y no
+     *         deducirlo. Ver `loQueSePide()`.
      */
     public function emitirSimulado(PmsReserva $reserva): ?array
     {
@@ -153,13 +155,14 @@ final readonly class PmsPrepagoEnlaceService
             'moneda' => $pide['moneda'] ?? '',
             'politica' => $prepago['politica'],
             'reutilizado' => $existente !== null,
+            'esSaldo' => $pide['esSaldo'],
         ];
     }
 
     /**
      * El enlace con el que se paga el prepago de esta reserva.
      *
-     * @return array{enlace: FinEnlacePago, url: string, monto: string, moneda: string, politica: string, reutilizado: bool}
+     * @return array{enlace: FinEnlacePago, url: string, monto: string, moneda: string, politica: string, reutilizado: bool, esSaldo: bool}
      *
      * @throws DomainException con un mensaje que se le puede leer al operador tal cual.
      */
@@ -201,7 +204,7 @@ final readonly class PmsPrepagoEnlaceService
         $existente = $this->vigentePorImporte($id, $pide['monto']);
 
         if ($existente !== null) {
-            return $this->respuesta($existente, $prepago, reutilizado: true);
+            return $this->respuesta($existente, $prepago, reutilizado: true, esSaldo: $pide['esSaldo']);
         }
 
         // ⚠️ El importe CAMBIÓ: se anula el enlace vivo por la cantidad vieja antes de emitir.
@@ -230,7 +233,7 @@ final readonly class PmsPrepagoEnlaceService
             creadoPor: $creadoPor,
         );
 
-        return $this->respuesta($enlace, $prepago, reutilizado: false);
+        return $this->respuesta($enlace, $prepago, reutilizado: false, esSaldo: $pide['esSaldo']);
     }
 
     /**
@@ -550,9 +553,9 @@ final readonly class PmsPrepagoEnlaceService
     /**
      * @param array{monto: string, claveI18n: string, politica: string} $prepago
      *
-     * @return array{enlace: FinEnlacePago, url: string, monto: string, moneda: string, politica: string, reutilizado: bool}
+     * @return array{enlace: FinEnlacePago, url: string, monto: string, moneda: string, politica: string, reutilizado: bool, esSaldo: bool}
      */
-    private function respuesta(FinEnlacePago $enlace, array $prepago, bool $reutilizado): array
+    private function respuesta(FinEnlacePago $enlace, array $prepago, bool $reutilizado, bool $esSaldo): array
     {
         return [
             'enlace' => $enlace,
@@ -561,6 +564,7 @@ final readonly class PmsPrepagoEnlaceService
             'moneda' => $enlace->getMonedaCodigo() ?? '',
             'politica' => $prepago['politica'],
             'reutilizado' => $reutilizado,
+            'esSaldo' => $esSaldo,
         ];
     }
 
@@ -605,14 +609,15 @@ final readonly class PmsPrepagoEnlaceService
      *
      * @param array{monto: string, claveI18n: string, politica: string} $prepago
      *
-     * @return array{monto: string, moneda: ?string, concepto: string}|null `null` cuando toca
-     *         el total y no queda saldo que cobrar: no hay enlace que emitir.
+     * @return array{monto: string, moneda: ?string, concepto: string, esSaldo: bool}|null `null`
+     *         cuando toca el total y no queda saldo que cobrar: no hay enlace que emitir.
      */
     private function loQueSePide(PmsReserva $reserva, PmsInformacionFinanciera $info, array $prepago): ?array
     {
         if ($this->calculador->queSePide($info) === PmsQueSePide::ADELANTO) {
             // La moneda se DICE: el importe viene en la de la cabecera. Ver `emitir()`.
             $moneda = $info->getMoneda()?->getId();
+            $esTodo = $this->esElSaldoEntero($info, $moneda, $prepago['monto']);
 
             return [
                 'monto' => $prepago['monto'],
@@ -626,9 +631,12 @@ final readonly class PmsPrepagoEnlaceService
                 // Se decide al EMITIR y no al cruzar el día de llegada a propósito: relevar el
                 // enlace entonces mataría uno que el huésped ya tiene en su WhatsApp y le
                 // mandaría otra URL sólo por cambiar un rótulo.
-                'concepto' => $this->esElSaldoEntero($info, $moneda, $prepago['monto'])
-                    ? $this->conceptoSaldo($reserva)
-                    : $this->concepto($reserva),
+                'concepto' => $esTodo ? $this->conceptoSaldo($reserva) : $this->concepto($reserva),
+                // Lo que se está pidiendo, para que quien lo enseñe no tenga que deducirlo del
+                // concepto. Sin esto la skill del agente preguntaba «¿emito el enlace de
+                // ADELANTO de 188.88?» sobre un cobro que era el saldo entero: el importe
+                // correcto con el rótulo equivocado, que es de lo que nadie sospecha.
+                'esSaldo' => $esTodo,
             ];
         }
 
@@ -646,6 +654,7 @@ final readonly class PmsPrepagoEnlaceService
             'monto' => $origen->saldoPendiente,
             'moneda' => $origen->moneda,
             'concepto' => $this->conceptoSaldo($reserva),
+            'esSaldo' => true,
         ];
     }
 

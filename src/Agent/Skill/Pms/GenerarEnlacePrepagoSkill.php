@@ -23,7 +23,15 @@ use DomainException;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Emite el enlace con el que el huésped paga su adelanto. **Crea un cobro.**
+ * Emite el enlace con el que el huésped paga lo que se le pide. **Crea un cobro.**
+ *
+ * ⚠️ **No siempre es el adelanto, y la skill no lo decide.** Desde el día de llegada lo que se
+ * pide es el SALDO entero (`PmsPrepagoCalculador::queSePide()`), y con un pago parcial ya
+ * registrado, lo que queda. El importe y el concepto salen de `PmsPrepagoEnlaceService`, que es
+ * el mismo que emite; aquí sólo se enseña. La respuesta trae `que_se_pide` para que el texto que
+ * lee el operador diga cuál de los dos es: pedir aprobación para «el adelanto de 188.88» cuando
+ * el cobro es el saldo entero es el importe correcto con el rótulo equivocado, y de eso nadie
+ * sospecha.
  *
  * ### Genera, pero NO envía — y es a propósito
  *
@@ -80,18 +88,20 @@ final readonly class GenerarEnlacePrepagoSkill implements SkillInterface, SkillD
     public function definicion(): SkillDefinition
     {
         return new SkillDefinition(
-            descripcion: 'Emite el enlace de pago con el que el huésped abona el ADELANTO '
-                . '(prepago) de su reserva, y devuelve la URL. CREA UN COBRO: llama primero '
+            descripcion: 'Emite el enlace de pago con el que el huésped abona lo que se le pide '
+                . 'en su reserva, y devuelve la URL. OJO: el importe es el ADELANTO hasta la '
+                . 'víspera de la llegada y el SALDO entero desde el día de llegada; la respuesta '
+                . 'trae que_se_pide con cuál de los dos es, y tienes que decírselo al operador '
+                . 'con esa palabra. CREA UN COBRO: llama primero '
                 . 'con confirmado=false, enséñale al operador el huésped, el importe y la '
                 . 'política, y espera su sí antes de confirmado=true. NO ENVÍA NADA: cuando '
                 . 'tengas la URL, redáctale el mensaje al huésped en su idioma y mándalo con '
                 . 'enviar_mensaje_huesped, que es quien pide la confirmación de envío. El '
                 . 'importe NO lo eliges tú: sale de la política del establecimiento y viene '
                 . 'calculado. Si la respuesta dice reutilizado=true, ese enlace ya existía y '
-                . 'sigue vivo — dilo, y no emitas otro. Si el huésped ya pagó algo, esta skill '
-                . 'te dirá que no hay prepago pendiente: no insistas ni inventes un importe. '
-                . 'Para consultar cuánto es el adelanto SIN emitir nada, usa consultar_cuenta, '
-                . 'que ya trae prepago_pendiente. Necesita el reserva_id.',
+                . 'sigue vivo — dilo, y no emitas otro. Si no hay nada que cobrar, esta skill te '
+                . 'lo dirá: no insistas ni inventes un importe. Para consultar cuánto es SIN '
+                . 'emitir nada, usa consultar_cuenta. Necesita el reserva_id.',
             parametros: [
                 SkillParameter::texto('reserva_id', 'Identificador de la reserva, tal cual lo '
                     . 'devolvió buscar_reserva.'),
@@ -155,14 +165,21 @@ final readonly class GenerarEnlacePrepagoSkill implements SkillInterface, SkillD
 
         if ($prepago === null) {
             return SkillResult::error(
-                'Esta reserva no tiene prepago pendiente: o ya hay un pago registrado, o su '
-                . 'establecimiento no pide adelanto, o el canal cobró por nosotros. '
-                . 'Consulta consultar_cuenta para ver cómo está la cuenta.'
+                'Esta reserva no tiene nada que cobrar por enlace: o su establecimiento no pide '
+                . 'adelanto, o el canal cobró por nosotros, o ya hay un pago y todavía no ha '
+                . 'llegado, o no queda saldo. Consulta consultar_cuenta para ver cómo está.'
             );
         }
 
         $huesped = trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente());
-        $politica = PmsPoliticaPrepago::tryFrom($prepago['politica'])?->etiqueta();
+
+        // La política explica de dónde sale la FRACCIÓN del adelanto. Cuando lo que se cobra es
+        // el saldo entero no explica nada, y enseñarla al lado del importe invita a leer «esto
+        // es la primera noche» sobre un cobro que es todo.
+        $politica = $prepago['esSaldo']
+            ? null
+            : PmsPoliticaPrepago::tryFrom($prepago['politica'])?->etiqueta();
+        $queSePide = $prepago['esSaldo'] ? 'saldo' : 'adelanto';
 
         if (!$confirmado) {
             return SkillResult::ok(array_filter([
@@ -172,10 +189,11 @@ final readonly class GenerarEnlacePrepagoSkill implements SkillInterface, SkillD
                 'monto' => $prepago['monto'],
                 'moneda' => $prepago['moneda'],
                 'politica' => $politica,
+                'que_se_pide' => $queSePide,
                 'ya_existe_enlace' => $prepago['reutilizado'],
                 'idioma_huesped' => $reserva->getIdioma()?->getId(),
                 'pregunta_aprobacion' => sprintf(
-                    '¿Emito el enlace de adelanto de %s %s para %s (%s)?',
+                    '¿Emito el enlace del ' . $queSePide . ' de %s %s para %s (%s)?',
                     $prepago['monto'],
                     $prepago['moneda'],
                     $huesped,
@@ -203,6 +221,7 @@ final readonly class GenerarEnlacePrepagoSkill implements SkillInterface, SkillD
             'total_con_tarjeta' => $emitido['enlace']->getMontoTotal(),
             'recargo_porcentaje' => $emitido['enlace']->getRecargoPorcentaje(),
             'politica' => $politica,
+            'que_se_pide' => $emitido['esSaldo'] ? 'saldo' : 'adelanto',
             'caduca' => $emitido['enlace']->getExpiraEn()?->format('Y-m-d'),
             'reutilizado' => $emitido['reutilizado'],
             'idioma_huesped' => $reserva->getIdioma()?->getId(),

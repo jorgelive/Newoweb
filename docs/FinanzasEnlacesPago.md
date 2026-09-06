@@ -1455,6 +1455,24 @@ no existe. Ojo con no confundir los dos ejes: la **política** es del establecim
 **canal** (`CANAL_PAGO_TOTAL`: Airbnb, VRBO) es otra puerta, anterior e independiente, y es la
 que de verdad se aplica a diario.
 
+### El rótulo que ve el operador también cambia (06/09/2026)
+
+Cambiar el importe sin cambiar la palabra deja el peor de los dos mundos. `generar_enlace_prepago`
+pedía aprobación con **«¿Emito el enlace de adelanto de 188.88?»** sobre un cobro que ya era el
+saldo entero: el importe correcto con el rótulo equivocado, que es justo de lo que nadie sospecha.
+
+Por eso `loQueSePide()` devuelve además **`esSaldo`**, y sube hasta la skill como `que_se_pide`
+(`adelanto` | `saldo`) en las dos respuestas —la previsualización y la emisión—. La descripción
+que lee el modelo se lo dice con esas palabras, y la pregunta de aprobación las usa.
+
+Y la **política se oculta cuando se cobra el saldo**: explica de dónde sale la fracción del
+adelanto, así que enseñarla al lado del importe entero invita a leer «esto es la primera noche»
+sobre un cobro que es todo.
+
+> La regla de siempre: quien enseña un importe no lo deduce del concepto ni de la fecha — se lo
+> dice el mismo servicio que emite. Es lo mismo que ya obligaba a que la previsualización y la
+> emisión compartan `loQueSePide()`.
+
 ### ⏰ La regla depende de la FECHA, pero el emisor se dispara por MOVIMIENTO (06/09/2026)
 
 El relevo del adelanto por el saldo no ocurre a medianoche: ocurre la próxima vez que algo mueva
@@ -2034,6 +2052,7 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar el corte entre adelanto y total | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `queSePide()` — la leen el emisor de enlaces **y** el redactor del mensaje |
 | Cambiar si un pago parcial cierra la puerta | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | la rama `$prepago === null` de `emitirConTurno()` — hoy se abre sólo con `yaLlegoElDia()` |
 | Cambiar cuándo un adelanto se llama «Saldo» | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `esElSaldoEntero()` — se decide al emitir, no al cruzar el día |
+| Cambiar el rótulo que aprueba el operador | `src/Agent/Skill/Pms/GenerarEnlacePrepagoSkill.php` | `que_se_pide`, que viene de `esSaldo`; no se deduce del concepto |
 | Cambiar qué importe/concepto lleva el enlace automático | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `loQueSePide()` + `conceptoSaldo()` — lo comparten los tres caminos |
 | Cambiar CUÁNDO se releva el adelanto por el saldo | `src/Pms/Command/PmsPrepagoRevisarLlegadasCommand.php` + crontab | `app:pms:prepago:revisar-llegadas` — 05:05 UTC = 00:05 de Lima |
 | Cambiar cuántos días atrás mira el relevo | el mismo comando | `--dias-atras` (30 por defecto) |
