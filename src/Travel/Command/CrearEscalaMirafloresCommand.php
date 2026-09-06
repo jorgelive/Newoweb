@@ -60,6 +60,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-escala-miraflores',
     description: 'Crea el servicio «Walking en Miraflores» con la escala de día completo en Lima.',
+    hidden: true,
 )]
 final class CrearEscalaMirafloresCommand extends Command
 {

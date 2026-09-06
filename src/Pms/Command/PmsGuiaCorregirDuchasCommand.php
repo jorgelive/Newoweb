@@ -49,7 +49,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:pms:guia:corregir-duchas',
-    description: 'Corrige el lado del agua caliente en las siete duchas, en los tres sitios a la vez.'
+    description: 'Corrige el lado del agua caliente en las siete duchas, en los tres sitios a la vez.',
+    hidden: true,
 )]
 final class PmsGuiaCorregirDuchasCommand extends Command
 {

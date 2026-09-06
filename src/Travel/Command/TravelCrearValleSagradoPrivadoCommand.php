@@ -48,6 +48,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-valle-sagrado-privado',
     description: 'Crea la plantilla «Full Day Valle Sagrado privado» que se quedó sin montar.',
+    hidden: true,
 )]
 final class TravelCrearValleSagradoPrivadoCommand extends Command
 {

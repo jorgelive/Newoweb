@@ -41,7 +41,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:pms:guia:tanda-servicios',
-    description: 'Escribe los textos de la sección Servicios y de las cocinas, y enciende las fichas.'
+    description: 'Escribe los textos de la sección Servicios y de las cocinas, y enciende las fichas.',
+    hidden: true,
 )]
 final class PmsGuiaTandaServiciosCommand extends Command
 {

@@ -63,6 +63,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-vuelos-por-ruta',
     description: 'Crea componentes de vuelo por ruta («Vuelo Lima Cusco»), como ya están los trenes.',
+    hidden: true,
 )]
 final class CrearVuelosPorRutaCommand extends Command
 {

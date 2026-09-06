@@ -524,6 +524,23 @@ ORM.
 Los comandos de carga de contenido viven en `src/<Modulo>/Command/`, son **idempotentes** (por
 `nombreInterno` o clave natural) y llevan `--dry-run`. Ver `app:pms:guia:crear-televisor`.
 
+⚠️ **Y cuando ya corrieron, se ARCHIVAN: `hidden: true` en el `#[AsCommand]`.** No se borran —la
+receta de cómo entró ese contenido es lo único que lo explica— y siguen ejecutables por su
+nombre; sólo dejan de aparecer en `bin/console list`. Archivados 31 el 06/09/2026, un tercio del
+catálogo: cargadores atados a contenido concreto (`crear-excursiones-punta-cana`,
+`crear-escala-miraflores`), arreglos ya aplicados (`corregir-duchas`, `tanda-reglas`) y backfills
+de migraciones pasadas.
+
+**Se quedan a la vista** los que están parametrizados de verdad —`cargar-vuelos` (expediente y
+archivo), `renombrar-componente` (actual → nuevo)— y el mantenimiento que vuelve a hacer falta:
+`completar-tipo-cambio`, `corregir-pais-ota`. Un flag como `--aplicar` no generaliza un cargador:
+es el modo de una sola vez.
+
+⚠️ **Archivar es `hidden`, NO sacarlos de `src/`.** Fuera de ahí perderían PHPStan y
+`lint:container`, que es exactamente lo que pudrió las 78 sondas de `var/` —17 reventando sin que
+nadie se enterara— mientras que de los 104 comandos, cubiertos por el análisis, **no había ni uno
+roto**. Ver `tools/README.md`.
+
 Dos reglas más de datos:
 
 - **No se borra: se marca.** Una reserva cancelada, un asunto retirado o un enlace muerto siguen

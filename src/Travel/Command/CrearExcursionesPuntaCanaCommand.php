@@ -57,6 +57,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-excursiones-punta-cana',
     description: 'Crea Isla Saona y Coco Bongo con sus modalidades, componentes y tarifas.',
+    hidden: true,
 )]
 final class CrearExcursionesPuntaCanaCommand extends Command
 {

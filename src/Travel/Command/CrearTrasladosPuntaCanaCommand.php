@@ -50,6 +50,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-traslados-punta-cana',
     description: 'Crea los traslados aeropuerto ↔ hotel de Punta Cana, con su servicio y componentes.',
+    hidden: true,
 )]
 final class CrearTrasladosPuntaCanaCommand extends Command
 {

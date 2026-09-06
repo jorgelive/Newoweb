@@ -50,6 +50,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-segmentos-resort-puj',
     description: 'Crea los segmentos de estancia en resort de Punta Cana (llegada, días, salida, comidas).',
+    hidden: true,
 )]
 final class CrearSegmentosResortPujCommand extends Command
 {

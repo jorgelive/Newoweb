@@ -32,6 +32,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-servicios-ferroviarios',
     description: 'Crea las clases de servicio de PeruRail e IncaRail.',
+    hidden: true,
 )]
 final class CrearServiciosFerroviariosCommand extends Command
 {

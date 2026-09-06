@@ -51,6 +51,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-segmentos-vuelo',
     description: 'Crea el segmento narrativo de cada ruta de vuelo y los asigna al servicio VUELO.',
+    hidden: true,
 )]
 final class CrearSegmentosVueloCommand extends Command
 {

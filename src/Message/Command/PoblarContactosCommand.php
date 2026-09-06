@@ -48,7 +48,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:contactos:poblar',
-    description: 'Crea los MaestroContacto que faltan a partir de reservas, expedientes y conversaciones.'
+    description: 'Crea los MaestroContacto que faltan a partir de reservas, expedientes y conversaciones.',
+    hidden: true,
 )]
 final class PoblarContactosCommand extends Command
 {

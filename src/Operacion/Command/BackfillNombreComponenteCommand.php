@@ -37,6 +37,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:operacion:backfill-nombre-componente',
     description: 'Rellena el nombre operativo del componente en el cuadro y en las órdenes.',
+    hidden: true,
 )]
 final class BackfillNombreComponenteCommand extends Command
 {

@@ -35,6 +35,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:reclasificar-transporte-excursion',
     description: 'Detecta transportes que son excursiones privadas y los pasa a su tipo propio.',
+    hidden: true,
 )]
 final class ReclasificarTransporteExcursionCommand extends Command
 {

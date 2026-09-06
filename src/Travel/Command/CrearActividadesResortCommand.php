@@ -61,6 +61,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-actividades-resort',
     description: 'Crea el servicio «Actividades en resort» con sus segmentos, componentes y tarifas a 0.',
+    hidden: true,
 )]
 final class CrearActividadesResortCommand extends Command
 {

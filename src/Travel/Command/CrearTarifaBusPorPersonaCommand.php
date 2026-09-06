@@ -41,7 +41,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:travel:crear-tarifa-bus-por-persona',
-    description: 'Añade el bus privado por persona (8 USD) a los traslados de Lima y Punta Cana.'
+    description: 'Añade el bus privado por persona (8 USD) a los traslados de Lima y Punta Cana.',
+    hidden: true,
 )]
 final class CrearTarifaBusPorPersonaCommand extends Command
 {

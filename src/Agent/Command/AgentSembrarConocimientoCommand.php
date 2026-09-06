@@ -51,7 +51,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:agent:sembrar-conocimiento',
-    description: 'Crea los temas y la primera tanda de respuestas del conocimiento genérico.'
+    description: 'Crea los temas y la primera tanda de respuestas del conocimiento genérico.',
+    hidden: true,
 )]
 final class AgentSembrarConocimientoCommand extends Command
 {

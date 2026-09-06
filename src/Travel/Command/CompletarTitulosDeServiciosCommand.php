@@ -33,6 +33,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:completar-titulos-servicios',
     description: 'Da título público a los servicios de organización que no lo tienen.',
+    hidden: true,
 )]
 final class CompletarTitulosDeServiciosCommand extends Command
 {

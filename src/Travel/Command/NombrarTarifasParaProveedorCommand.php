@@ -40,6 +40,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:nombrar-tarifas-para-proveedor',
     description: 'Rellena el nombre con el que el proveedor reconoce cada tarifa de transporte.',
+    hidden: true,
 )]
 final class NombrarTarifasParaProveedorCommand extends Command
 {

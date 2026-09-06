@@ -49,7 +49,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:pms:guia:tanda-reglas',
-    description: 'Saca los servicios de «Reglas», añade las mascotas y baja lo punitivo a un paso.'
+    description: 'Saca los servicios de «Reglas», añade las mascotas y baja lo punitivo a un paso.',
+    hidden: true,
 )]
 final class PmsGuiaTandaReglasCommand extends Command
 {

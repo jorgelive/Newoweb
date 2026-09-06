@@ -34,6 +34,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:operacion:rellenar-nombre-segmento',
     description: 'Añade el nombre del segmento a las líneas de órdenes ya emitidas que no lo llevan.',
+    hidden: true,
 )]
 final class RellenarNombreSegmentoCommand extends Command
 {

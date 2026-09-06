@@ -51,6 +51,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-varios-aeropuerto-lima',
     description: 'Crea «Varios en el aeropuerto de Lima» y da transporte propio a los traslados del walking.',
+    hidden: true,
 )]
 final class CrearVariosAeropuertoLimaCommand extends Command
 {

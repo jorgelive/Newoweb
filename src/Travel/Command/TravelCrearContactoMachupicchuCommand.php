@@ -54,6 +54,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-contacto-machupicchu',
     description: 'Crea el componente y los segmentos de contacto con el pasajero, y los engancha a las plantillas de MAPI.',
+    hidden: true,
 )]
 final class TravelCrearContactoMachupicchuCommand extends Command
 {

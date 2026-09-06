@@ -38,6 +38,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:completar-traslados-punta-cana',
     description: 'Pone la ciudad en los dos extremos del título de los traslados de Punta Cana.',
+    hidden: true,
 )]
 final class CompletarTrasladosPuntaCanaCommand extends Command
 {

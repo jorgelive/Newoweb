@@ -36,6 +36,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:ajustar-textos-contacto',
     description: 'Afina el título y el texto de los segmentos de contacto, regenerando sus traducciones.',
+    hidden: true,
 )]
 final class TravelAjustarTextosContactoCommand extends Command
 {

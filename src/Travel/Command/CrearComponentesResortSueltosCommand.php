@@ -51,6 +51,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-componentes-resort-sueltos',
     description: 'Crea componente, tarifa y enlace para los segmentos de resort que se hicieron a mano.',
+    hidden: true,
 )]
 final class CrearComponentesResortSueltosCommand extends Command
 {

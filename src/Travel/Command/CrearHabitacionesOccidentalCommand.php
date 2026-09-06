@@ -54,6 +54,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:crear-habitaciones-occidental',
     description: 'Crea los tipos de habitación del Occidental Caribe y reconvierte «El resort» en la estándar.',
+    hidden: true,
 )]
 final class CrearHabitacionesOccidentalCommand extends Command
 {

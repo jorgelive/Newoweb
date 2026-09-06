@@ -28,6 +28,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:cotizacion:backfill-componente-id',
     description: 'Enlaza las líneas de inclusión ya guardadas con su componente.',
+    hidden: true,
 )]
 final class CotizacionBackfillComponenteIdCommand extends Command
 {

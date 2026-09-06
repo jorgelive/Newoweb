@@ -70,7 +70,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:travel:crear-seguro-de-viaje',
-    description: 'Crea el maestro del seguro de viaje: servicio, segmento, componente y tarifa.'
+    description: 'Crea el maestro del seguro de viaje: servicio, segmento, componente y tarifa.',
+    hidden: true,
 )]
 final class CrearSeguroDeViajeCommand extends Command
 {

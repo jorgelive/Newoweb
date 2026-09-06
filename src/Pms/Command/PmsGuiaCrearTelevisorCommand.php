@@ -47,7 +47,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:pms:guia:crear-televisor',
-    description: 'Crea el ítem Televisor de cada casita (Roku, Xiaomi o Android TV según la casa).'
+    description: 'Crea el ítem Televisor de cada casita (Roku, Xiaomi o Android TV según la casa).',
+    hidden: true,
 )]
 final class PmsGuiaCrearTelevisorCommand extends Command
 {

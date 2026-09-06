@@ -44,6 +44,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:travel:renombrar-valle-vip-privada',
     description: 'Renombra «Valle sagrado tradicional privado» → «Valle Vip privada» y regenera su título.',
+    hidden: true,
 )]
 final class TravelRenombrarValleVipPrivadaCommand extends Command
 {
