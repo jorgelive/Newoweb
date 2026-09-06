@@ -16,6 +16,7 @@ use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsQueSePide;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
+use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use DomainException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Uid\Uuid;
@@ -129,7 +130,9 @@ final readonly class PmsPrepagoEnlaceService
             return null;
         }
 
-        $prepago = $this->calculador->pendiente($info);
+        // Espejo de `emitir()`: la previsualización tiene que ver la misma puerta.
+        $prepago = $this->calculador->pendiente($info)
+            ?? ($this->calculador->yaLlegoElDia($info) ? $this->calculador->calcular($info) : null);
 
         if ($prepago === null) {
             return null;
@@ -176,12 +179,16 @@ final readonly class PmsPrepagoEnlaceService
             throw new DomainException('Esta reserva todavía no tiene cuenta financiera abierta.');
         }
 
-        $prepago = $this->calculador->pendiente($info);
+        // Misma puerta que el camino automático: con un pago registrado y la reserva ya
+        // llegada, lo que queda por pedir es el saldo. Ver `emitirConTurno()`.
+        $prepago = $this->calculador->pendiente($info)
+            ?? ($this->calculador->yaLlegoElDia($info) ? $this->calculador->calcular($info) : null);
 
         if ($prepago === null) {
             throw new DomainException(
-                'Esta reserva no tiene prepago pendiente: o ya hay un pago registrado, o su '
-                . 'establecimiento no pide adelanto, o el canal cobró por nosotros.'
+                'Esta reserva no tiene nada que cobrar por enlace: o su establecimiento no pide '
+                . 'adelanto, o el canal cobró por nosotros, o ya hay un pago registrado y la '
+                . 'reserva todavía no ha llegado.'
             );
         }
 
@@ -326,16 +333,34 @@ final readonly class PmsPrepagoEnlaceService
             $prepago = $this->calculador->pendiente($info);
 
             if ($prepago === null) {
-                // 🔴 Ya no procede pedir adelanto —lo pagó por transferencia, se canceló sin
-                // penalización, cambió la política—, así que el enlace vivo tiene que MORIR.
+                // ⚠️ No hay adelanto pendiente. Antes eso cerraba la puerta siempre; desde el
+                // 06/09/2026, sólo casi siempre.
                 //
-                // Sin esto, y como los automáticos se emiten SIN caducidad, quedaría un enlace
-                // pagable para siempre en el WhatsApp de alguien que ya pagó. La ausencia de
-                // caducidad, que es lo correcto mientras el cobro procede, se vuelve una trampa
-                // en cuanto deja de proceder.
-                $this->anularAutomaticosVigentes($id);
+                // `pendiente()` devuelve null por cuatro motivos y no son equivalentes: el canal
+                // ya cobró, el establecimiento no pide adelanto, la base es cero — o **ya hay un
+                // pago registrado**. Ese cuarto, con la reserva ya llegada, no significa «no hay
+                // nada que cobrar»: significa que lo que queda por pedir es el SALDO. Es el caso
+                // del huésped que adelantó la primera noche y llega debiendo el resto.
+                //
+                // `calcular()` es `pendiente()` sin la regla del pago, así que sirve exactamente
+                // para separar ese motivo de los otros tres. Y la puerta sólo se abre con
+                // `yaLlegoElDia()`: antes de la llegada, quien ya adelantó no recibe un enlace
+                // por el resto — el mensaje tampoco se lo pide.
+                $prepago = $this->calculador->calcular($info);
 
-                return null;
+                if ($prepago === null || !$this->calculador->yaLlegoElDia($info)) {
+                    // 🔴 Ya no procede pedir nada —el canal cobró, no hay política, la base es
+                    // cero, o pagó y todavía no ha llegado—, así que el enlace vivo tiene que
+                    // MORIR.
+                    //
+                    // Sin esto, y como los automáticos se emiten SIN caducidad, quedaría un
+                    // enlace pagable para siempre en el WhatsApp de alguien que ya pagó. La
+                    // ausencia de caducidad, correcta mientras el cobro procede, se vuelve una
+                    // trampa en cuanto deja de proceder.
+                    $this->anularAutomaticosVigentes($id);
+
+                    return null;
+                }
             }
 
             // Adelanto, o el saldo entero desde el día de llegada (ver `loQueSePide()`). Va
@@ -586,11 +611,24 @@ final readonly class PmsPrepagoEnlaceService
     private function loQueSePide(PmsReserva $reserva, PmsInformacionFinanciera $info, array $prepago): ?array
     {
         if ($this->calculador->queSePide($info) === PmsQueSePide::ADELANTO) {
+            // La moneda se DICE: el importe viene en la de la cabecera. Ver `emitir()`.
+            $moneda = $info->getMoneda()?->getId();
+
             return [
                 'monto' => $prepago['monto'],
-                // La moneda se DICE: el importe viene en la de la cabecera. Ver `emitir()`.
-                'moneda' => $info->getMoneda()?->getId(),
-                'concepto' => $this->concepto($reserva),
+                'moneda' => $moneda,
+                // ⚠️ Si el «adelanto» ya es el saldo entero, se llama SALDO desde el primer
+                // día. Pasa en las estancias de UNA noche: `primera_noche_total` reparte la
+                // base entre las noches y cobra una, así que con una sola noche la fracción es
+                // el total. Titularlo «Adelanto de reserva» sería mentirle al extracto de la
+                // tarjeta por un cobro que es el pago completo.
+                //
+                // Se decide al EMITIR y no al cruzar el día de llegada a propósito: relevar el
+                // enlace entonces mataría uno que el huésped ya tiene en su WhatsApp y le
+                // mandaría otra URL sólo por cambiar un rótulo.
+                'concepto' => $this->esElSaldoEntero($info, $moneda, $prepago['monto'])
+                    ? $this->conceptoSaldo($reserva)
+                    : $this->concepto($reserva),
             ];
         }
 
@@ -609,6 +647,24 @@ final readonly class PmsPrepagoEnlaceService
             'moneda' => $origen->moneda,
             'concepto' => $this->conceptoSaldo($reserva),
         ];
+    }
+
+    /**
+     * ¿El importe que se va a pedir es ya todo lo que se debe en esa moneda?
+     *
+     * Se compara contra los totales de la cabecera y no contra el resolver: el adelanto está en
+     * la moneda de la cabecera y `PmsTotalesPorMoneda` ya está calculado sobre el `$info` que
+     * tenemos delante — preguntar al resolver sería una consulta más para saber lo mismo.
+     */
+    private function esElSaldoEntero(PmsInformacionFinanciera $info, ?string $moneda, string $monto): bool
+    {
+        if ($moneda === null) {
+            return false;
+        }
+
+        $saldo = PmsTotalesPorMoneda::de($info)->porMoneda[$moneda]['saldo'] ?? null;
+
+        return $saldo !== null && abs((float) $saldo - (float) $monto) < 0.005;
     }
 
     /**

@@ -42,6 +42,24 @@ use DateTimeImmutable;
 final readonly class PmsPrepagoCalculador
 {
     /**
+     * ¿Es hoy, o ya pasó, el día de llegada?
+     *
+     * Sale de `queSePide()` porque el emisor de enlaces necesita distinguir **por qué** se pide
+     * el total: `queSePide()` devuelve `TOTAL` tanto porque llegó el día como porque ya hay un
+     * pago, y esas dos cosas no se tratan igual (ver `PmsPrepagoEnlaceService::emitirConTurno()`).
+     *
+     * Sin fecha no se puede decidir por tiempo: manda la política, que es lo que hacía el código
+     * antes de esta regla.
+     */
+    public function yaLlegoElDia(PmsInformacionFinanciera $finanzas): bool
+    {
+        $llegada = $finanzas->getReserva()?->getFechaLlegada();
+
+        return $llegada !== null
+            && (new DateTimeImmutable($llegada->format('Y-m-d'))) <= new DateTimeImmutable('today');
+    }
+
+    /**
      * Adelanto o total, y el corte es **el día de check-in incluido**.
      *
      * ⚠️ Regla de negocio del 28/08/2026: desde la mañana del día de llegada se pide el
@@ -62,14 +80,7 @@ final readonly class PmsPrepagoCalculador
      */
     public function queSePide(PmsInformacionFinanciera $finanzas): PmsQueSePide
     {
-        $llegada = $finanzas->getReserva()?->getFechaLlegada();
-
-        // Sin fecha no se puede decidir por tiempo: manda la política, que es lo que hacía el
-        // código antes de esta regla.
-        $yaLlegoElDia = $llegada !== null
-            && (new DateTimeImmutable($llegada->format('Y-m-d'))) <= new DateTimeImmutable('today');
-
-        if ($yaLlegoElDia) {
+        if ($this->yaLlegoElDia($finanzas)) {
             return PmsQueSePide::TOTAL;
         }
 

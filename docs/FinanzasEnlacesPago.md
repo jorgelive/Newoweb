@@ -1418,6 +1418,43 @@ creíble y falso:
 
 Las dos pruebas comprueban ahora el interruptor y abortan si está apagado.
 
+### Dos decisiones tomadas con los datos delante (06/09/2026)
+
+**1 · Con un pago parcial y la reserva ya llegada, se pide el SALDO restante.** Antes,
+`pendiente()` devolvía `null` en cuanto había cualquier pago y ahí se acababa: el mensaje pedía
+el total y no había ningún enlace que lo acompañara. Ahora esa puerta se abre — y **sólo** ésa:
+
+`pendiente()` devuelve `null` por cuatro motivos que no son equivalentes —el canal ya cobró, el
+establecimiento no pide adelanto, la base es cero, o **ya hay un pago**—. `calcular()` es
+`pendiente()` sin la regla del pago, así que sirve exactamente para separar el cuarto de los
+otros tres. Y se exige además `yaLlegoElDia()`: **antes de la llegada, quien ya adelantó no
+recibe un enlace por el resto**, porque el mensaje tampoco se lo pide.
+
+> Al medirlo, el caso tenía **cero apariciones en 117 llegadas** desde junio. Se implementa
+> igual porque cuando aparezca no habrá nadie mirando: el enlace o está o no está.
+
+**2 · Si el «adelanto» ya ES el saldo entero, el enlace se llama «Saldo» desde el primer día.**
+Pasa en las estancias de **una noche**: `primera_noche_total` reparte la base entre las noches y
+cobra una, así que con una sola noche la fracción es el total. Titularlo «Adelanto de reserva»
+le miente al extracto de la tarjeta sobre un cobro que es el pago completo.
+
+Se decide **al emitir** y no al cruzar el día de llegada, y eso es la mitad de la decisión:
+relevarlo entonces mataría un enlace que el huésped ya tiene en su WhatsApp para mandarle otra
+URL sólo por cambiar un rótulo.
+
+> ⚠️ **«Una noche» no es `fecha_salida - fecha_llegada`.** `PmsReserva::getNoches()` cuenta las
+> noches **distintas** dormidas entre todos los eventos vivos —dos casitas la misma noche son
+> UNA noche— y sólo cae al intervalo de la cabecera si no hay ningún evento. Contarlo por las
+> fechas de la cabecera daba 4 casos en tres meses; contándolo bien son **2** (W23PC8, PDK94C),
+> y los otros dos eran cabeceras activas **sin ninguna estancia viva**, que es otro asunto.
+
+**Y una que NO se tomó:** los establecimientos sin política de prepago siguen sin recibir
+enlaces automáticos, aunque el día de llegada el mensaje les pida el total. Hoy no hay ninguno
+—`Inti` y `Saphy` usan las dos `primera_noche_total`—, así que sería legislar sobre un caso que
+no existe. Ojo con no confundir los dos ejes: la **política** es del establecimiento virtual; el
+**canal** (`CANAL_PAGO_TOTAL`: Airbnb, VRBO) es otra puerta, anterior e independiente, y es la
+que de verdad se aplica a diario.
+
 ### ⏰ La regla depende de la FECHA, pero el emisor se dispara por MOVIMIENTO (06/09/2026)
 
 El relevo del adelanto por el saldo no ocurre a medianoche: ocurre la próxima vez que algo mueva
@@ -1995,6 +2032,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Depurar "no se confirmó un cobro" | tabla `fin_pasarela_webhook_audit` | `payload_raw`, `estado`, `error_mensaje` |
 | Cambiar CUÁNTO se pide de prepago | `src/Pms/Enum/PmsPoliticaPrepago.php` | `fraccion()`, `soloAlojamiento()` |
 | Cambiar el corte entre adelanto y total | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `queSePide()` — la leen el emisor de enlaces **y** el redactor del mensaje |
+| Cambiar si un pago parcial cierra la puerta | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | la rama `$prepago === null` de `emitirConTurno()` — hoy se abre sólo con `yaLlegoElDia()` |
+| Cambiar cuándo un adelanto se llama «Saldo» | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `esElSaldoEntero()` — se decide al emitir, no al cruzar el día |
 | Cambiar qué importe/concepto lleva el enlace automático | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `loQueSePide()` + `conceptoSaldo()` — lo comparten los tres caminos |
 | Cambiar CUÁNDO se releva el adelanto por el saldo | `src/Pms/Command/PmsPrepagoRevisarLlegadasCommand.php` + crontab | `app:pms:prepago:revisar-llegadas` — 05:05 UTC = 00:05 de Lima |
 | Cambiar cuántos días atrás mira el relevo | el mismo comando | `--dias-atras` (30 por defecto) |
