@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
-import { ref, onMounted } from 'vue';
-import { RouterView } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
+import { RouterView, useRoute } from 'vue-router';
 import { useMaestroStore } from '@/stores/maestroStore';
 
 const maestroStore = useMaestroStore();
@@ -22,6 +22,33 @@ const maestroStore = useMaestroStore();
 // `templates/pax/app.html.twig`. Sin él no hay `updatefound` y el cartel no sale.
 // ============================================================================
 const updateAvailable = ref(false);
+
+const route = useRoute();
+
+/**
+ * ⚠️ **El cartel NO sale mientras se está pagando.**
+ *
+ * Se pinta sobre `<RouterView />`, así que salía en todas las rutas — incluida la de cobro, y
+ * justo encima del importe, con un icono girando: en una pantalla de pago eso se lee como si
+ * fuera parte del pago. Y tocarlo recarga.
+ *
+ * Lo que cuesta según cuándo se toque:
+ *
+ * | Momento | Qué pasa |
+ * |---|---|
+ * | antes de pulsar Pagar | inofensivo |
+ * | con el cobro en vuelo | el cargo puede existir en Culqi y perderse la respuesta |
+ * | durante el reto 3DS | el reto muere; hasta once minutos de espera tirados |
+ *
+ * 🔥 **Y el riesgo se estrenó al arreglar el propio cartel.** Antes casi no salía en `pax`,
+ * porque nadie preguntaba si había versión nueva; con el `reg.update()` periódico de
+ * `templates/pax/app.html.twig` cualquier pestaña se entera de un despliegue en menos de un
+ * minuto. Pasó de inalcanzable a rutinario sin que cambiara una línea de esta lógica.
+ *
+ * No se pierde nada aplazándolo: una pantalla de cobro dura minutos, el SW nuevo sigue esperando
+ * en `waiting` y el cartel aparece en cuanto la persona navegue a otra cosa.
+ */
+const enPantallaDeCobro = computed(() => route.name === 'pago_enlace');
 
 let registroSw: ServiceWorkerRegistration | null = null;
 let recargando = false;
@@ -80,7 +107,7 @@ onMounted(() => {
 <template>
   <Transition name="fade-slide">
     <div
-        v-if="updateAvailable"
+        v-if="updateAvailable && !enPantallaDeCobro"
         class="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 font-bold cursor-pointer hover:bg-slate-700 transition-colors"
         @click="refreshApp"
     >

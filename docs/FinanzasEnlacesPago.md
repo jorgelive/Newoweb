@@ -1111,6 +1111,13 @@ devuelve **false** si el entorno es `prod` y las claves empiezan por `pk_test_`/
 excepción ahí tumbaría el panel de finanzas entero—. El throw vive en `peticion()`, que es
 donde de verdad se iría a cobrar contra la cuenta equivocada.
 
+⚠️ **Y encima de esta pantalla no se pinta nada que recargue.** El cartel de «nueva versión
+disponible» de la PWA se dibuja sobre `<RouterView />`, así que salía también aquí —justo encima
+del importe, con un icono girando— y tocarlo recarga: con el cobro en vuelo, el cargo puede
+existir ya en Culqi y perderse la respuesta; durante el reto 3DS, se tiran hasta once minutos de
+espera del titular. `pax/src/App.vue` lo suprime en la ruta `pago_enlace`. El porqué largo, y la
+regla para el próximo aviso global, en `docs/PwaNotificaciones.md`.
+
 ⚠️ **Los códigos de error no se le enseñan al cliente.** El respaldo del mensaje era
 `data.error`, nuestro identificador de máquina: quien caía en esa rama leía literalmente
 `cargo_no_valido` o `no_vigente` en mitad de la pantalla de pago. `textoDelError()` los traduce

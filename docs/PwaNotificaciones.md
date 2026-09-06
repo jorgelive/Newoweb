@@ -282,6 +282,7 @@ En orden, porque cada paso descarta el anterior:
 | Volver a la actualización automática | `util/vite.config.ts` y `pax/vite.config.ts` | `registerType` — `autoUpdate` PISA el bloque `workbox` y deja el cartel decorativo |
 | Cambiar cada cuánto se pregunta por versión nueva | `util/scripts/pwa-postbuild.mjs` y `templates/pax/app.html.twig` | El `setInterval(... , 60000)`. Son dos sitios: uno por app |
 | Verificar el despliegue de pax | `pax/scripts/pwa-verify-deploy.mjs` | `npm run verify:deploy` — espejo del de util, sin push |
+| Que el cartel NO salga en una pantalla concreta | `pax/src/App.vue` | `enPantallaDeCobro` — hoy sólo la ruta `pago_enlace`, y por qué |
 | Qué pasa si la app está enfocada al llegar un push | `util/public/push-sw.js` | rama `isAppFocused` → `postMessage`, lo recoge `App.vue` |
 | Rotar las llaves VAPID | `.env.local` **y** `util/.env.production` | `VAPID_PUBLIC_KEY` ↔ `VITE_VAPID_PUBLIC_KEY` son **espejo**: si difieren, el servidor push rechaza con 403. Cambiarlas invalida todas las suscripciones existentes |
 | Que un dispositivo caído no calle a los demás | `WebPushNotificationService::sendToUser()` | No lanza excepciones a propósito, §6 |
@@ -388,6 +389,54 @@ notaría el día que alguien pulsara el cartel y no ocurriera nada.
 instala el nuevo y lo deja en `waiting`: su App.vue viejo no sabe mandarle `SKIP_WAITING`, así que
 activa cuando se cierran todas las pestañas de la app. En un móvil eso es cerrar la PWA y volver a
 abrirla, una vez. A partir de ahí, el cartel.
+
+### 🔥 Y el cartel arreglado se estrenó encima de una pantalla de cobro (05/09/2026)
+
+Verificado en producción el mismo día, con un SW real en `waiting`: la píldora «Nueva versión
+disponible. Toca para actualizar.» se pintaba **sobre la ruta de pago**, en `top-4 left-1/2` con
+`z-[9999]`, o sea justo encima del importe y con un icono de sincronización girando.
+
+```
+   ◜ Nueva versión disponible. Toca para actualizar. ◝
+        A PAGAR
+        US$ 199.27
+        [ Pagar US$ 199.27 ]
+```
+
+En una pantalla de cobro eso no se lee como un aviso del sistema: se lee como parte del pago. Y
+tocarlo recarga.
+
+| Cuándo se toca | Qué cuesta |
+|---|---|
+| antes de pulsar Pagar | nada, se recarga y vuelve a empezar |
+| **con el cobro en vuelo** | el cargo puede existir ya en Culqi y perderse la respuesta — *cobrado y no registrado* |
+| durante el reto 3DS | el reto muere: hasta once minutos de espera del titular, tirados |
+
+El del medio lo rescata hoy el webhook de Culqi (`docs/FinanzasEnlacesPago.md` §11), arreglado esa
+misma mañana. Pero depender de la red de seguridad para algo que se evita con una condición es
+elegir mal.
+
+🔥 **Lo que lo hace interesante es de dónde salió el riesgo: de arreglar el propio cartel.** La
+lógica que lo pinta no cambió ni una línea. Lo que cambió fue que en `pax` empezó a **haber**
+cartel: su `reg.update()` corría una sola vez al arrancar, así que una pestaña abierta no volvía a
+preguntar nunca y el aviso no salía casi jamás. Con el `setInterval(..., 60000)` del shell,
+cualquier pestaña se entera de un despliegue en menos de un minuto. El riesgo pasó de inalcanzable
+a rutinario **sin que nadie tocara el código que lo causa** — no hay diff donde buscarlo.
+
+La guarda es `enPantallaDeCobro` en `pax/src/App.vue`, comparando `route.name === 'pago_enlace'`.
+No se pierde nada aplazando: una pantalla de cobro dura minutos, el SW nuevo sigue esperando en
+`waiting` y el cartel sale en cuanto la persona navegue a otra cosa.
+
+⚠️ **La regla, para el próximo que añada un aviso global:** un cartel que se pinta sobre
+`<RouterView />` sale en TODAS las rutas, también en las que la persona está a mitad de algo
+irreversible. Antes de añadir uno, la pregunta es en qué pantalla NO debe salir — y hoy la lista
+de `pax` es corta: la de pago.
+
+⚠️ **`util` tiene la misma forma y no la misma guarda**, a propósito por ahora: allí no hay dinero
+en vuelo, pero sí formularios a medio escribir —el drawer de reservas—, y pulsar el cartel se los
+lleva. Es la misma familia que el pisotón de `resincronizarEstadosDeEstancias()`
+(`docs/PmsBeds24ReservasSync.md`). Queda anotado, no resuelto: haría falta una señal de «hay algo
+sin guardar» que hoy no existe.
 
 ⚠️ Al diagnosticar esto, el síntoma («no veo el cambio») apunta a build o despliegue, y los dos
 estaban bien. La comprobación que lo descarta en un minuto es buscar un texto del código nuevo
