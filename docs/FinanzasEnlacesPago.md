@@ -1406,6 +1406,48 @@ creíble y falso:
 
 Las dos pruebas comprueban ahora el interruptor y abortan si está apagado.
 
+### ⏰ La regla depende de la FECHA, pero el emisor se dispara por MOVIMIENTO (06/09/2026)
+
+El relevo del adelanto por el saldo no ocurre a medianoche: ocurre la próxima vez que algo mueva
+la cuenta. El emisor vive en el `postFlush` de `PmsInformacionFinancieraCoherenciaListener` y
+sólo entra si en ese flush se movió un `PmsCargoFinanciero`, un `PmsPagoFinanciero`, un
+`PmsEventoCalendario` o nació una `PmsReserva`. **Ningún cron llamaba al emisor.**
+
+Una reserva que no se mueve el día de su llegada se quedaba con el adelanto vivo —y nace con
+`vigenciaDias: 0`, o sea **sin caducidad**— pidiendo la primera noche mientras las otras tres
+superficies ya pedían el total. Lo normal es que Beds24 mueva algo y se releve solo, pero «lo
+normal» no es una garantía.
+
+**El mismo dinero se enseña en cuatro sitios**, y el enlace era el último que quedaba
+calculando por su cuenta:
+
+| Superficie | Qué la hace consciente de la fecha |
+|---|---|
+| Tarjeta del huésped en `pax` | `PmsSituacionDeCobroResolver` |
+| El agente (`consultar_cuenta`) | el mismo resolver, desde el 30/08/2026 |
+| Panel del operador | la guarda de `PmsInformacionFinancieraPorReservaProvider::prepago()` |
+| **El enlace de pago** | `app:pms:prepago:revisar-llegadas`, este comando |
+
+El comando pasa por el emisor de siempre las reservas que **ya tienen un enlace automático
+vivo** y cuya llegada ya ocurrió. No inventa reglas ni amplía el público: si el emisor decide
+que no procede, no procede. Es idempotente y trae `--dry-run`.
+
+⚠️ **Corre a las 00:05 de Lima, que en el crontab son las 05:05.** El servidor tiene el reloj en
+**UTC** y PHP en **America/Lima**; `queSePide()` usa `'today'` de PHP, así que la regla cambia a
+medianoche de Lima. Por lo mismo el comando calcula la fecha **en PHP y no con `CURDATE()`**:
+entre las 19:00 y la medianoche de Lima, MySQL ya está en el día siguiente y el relevo se
+adelantaría cinco horas, justo en la franja en la que un huésped puede estar pagando.
+
+🐛 **Y hacía falta cerrar antes una puerta trasera.** `emitirConTurno()` salía por «ya hay uno
+vivo por ese importe» **antes** de retirar los automáticos viejos. Con el enlace que el operador
+emitió a mano por el saldo, los importes coinciden, se reutiliza — y el adelanto viejo se
+quedaba vivo. Era exactamente el estado de 3GFMC7 en producción: un manual de 188.88 y un
+«Adelanto» de 31.48, los dos pagables. Ahora esa rama también llama a
+`anularAutomaticosVigentes()`, con el enlace reutilizado como excepción para que no se suicide
+si el reutilizado es el propio automático.
+
+Verificado en `var/probar-prepago-dia-de-llegada.php`, caso 3.
+
 ### La reutilización, y por qué mira el importe
 
 `emitir()` devuelve un enlace **vigente por el mismo importe** en vez de emitir otro. Sin eso,
@@ -1942,6 +1984,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar CUÁNTO se pide de prepago | `src/Pms/Enum/PmsPoliticaPrepago.php` | `fraccion()`, `soloAlojamiento()` |
 | Cambiar el corte entre adelanto y total | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `queSePide()` — la leen el emisor de enlaces **y** el redactor del mensaje |
 | Cambiar qué importe/concepto lleva el enlace automático | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `loQueSePide()` + `conceptoSaldo()` — lo comparten los tres caminos |
+| Cambiar CUÁNDO se releva el adelanto por el saldo | `src/Pms/Command/PmsPrepagoRevisarLlegadasCommand.php` + crontab | `app:pms:prepago:revisar-llegadas` — 05:05 UTC = 00:05 de Lima |
+| Cambiar cuántos días atrás mira el relevo | el mismo comando | `--dias-atras` (30 por defecto) |
 | Cambiar CUÁNDO deja de pedirse | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `pendiente()` (§8) |
 | Cambiar CUÁNDO se emite solo el enlace | `PmsInformacionFinancieraCoherenciaListener::postFlush()` | La llamada a `emitirPrepagos()`, al final de la cadena. La decisión de *si procede* sigue en `pendiente()` |
 | Cambiar qué dice el aviso de cobro (§11 ter) | `src/Finanzas/Service/Aviso/FinAvisoDeCobro.php` | `redactar()` dentro de ventana, `variables()` fuera. Si añades una variable, tiene que llegar SIEMPRE con valor y en una línea |

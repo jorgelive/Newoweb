@@ -352,9 +352,23 @@ final readonly class PmsPrepagoEnlaceService
                 return null;
             }
 
-            // Ya hay uno vivo por ese importe: nada que hacer. Es lo que evita emitir un
-            // enlace nuevo en cada recálculo.
-            if ($this->vigentePorImporte($id, $pide['monto']) !== null) {
+            $existente = $this->vigentePorImporte($id, $pide['monto']);
+
+            if ($existente !== null) {
+                // Ya hay uno vivo por ese importe: no se emite otro. Es lo que evita un enlace
+                // nuevo en cada recálculo.
+                //
+                // ⚠️ Pero puede quedar OTRO automático vivo por un importe que ya no se pide —el
+                // adelanto cuando la reserva cruzó a saldo—, y ése hay que retirarlo igual. Sin
+                // esto, el huésped veía dos enlaces por cantidades distintas y podía pagar el
+                // que no toca. Muerde justo en el caso que motivó todo: el enlace que el
+                // OPERADOR emitió a mano por el saldo coincide en importe, se reutiliza, y la
+                // función salía por aquí dejando vivo el adelanto viejo.
+                //
+                // `excepto` es el que se está reutilizando: si es el propio automático, no se
+                // suicida.
+                $this->anularAutomaticosVigentes($id, $existente);
+
                 return null;
             }
 
@@ -462,9 +476,13 @@ final readonly class PmsPrepagoEnlaceService
      * emitido a mano es la decisión de una persona —puede estar cobrando otra cosa, o queriendo
      * cobrar igual— y retirárselo sin avisar sería peor que dejarlo.
      */
-    private function anularAutomaticosVigentes(Uuid $reservaId): void
+    private function anularAutomaticosVigentes(Uuid $reservaId, ?FinEnlacePago $excepto = null): void
     {
         foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
+            if ((string) $enlace->getId() === (string) $excepto?->getId()) {
+                continue;
+            }
+
             if ($enlace->estaVigente() && $enlace->getCreadoPor() === null) {
                 $this->enlaces->anular($enlace);
             }
