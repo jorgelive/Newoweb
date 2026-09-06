@@ -82,6 +82,22 @@ asunto funciona bien; borrar en paralelo a un cambio del motor mezcla dos causas
 salga mal. Cuando se haga, decidir también qué pasa con el aviso de cancelación por asunto, que
 hoy queda mudo en modo enlace (`docs/Mensajeria.md` §20.6).
 
+### 🔍 Y un caso que no encaja del todo: HRD4ZD (06/09/2026)
+
+Salió al revisar `var/probar-regeneracion.php`. La reserva tiene **todas sus estancias
+canceladas**, y hasta ahí es el caso de arriba. Lo que no encaja es la cantidad: **trece**
+mensajes `cancelled` de la regla «Check Out», **todos con el mismo `scheduled_at`**
+(`2026-10-02 12:00`), más uno `failed` a la misma hora.
+
+Churn de sincronizaciones repetidas explicaría dos o tres, no trece con el segundo idéntico.
+Huele a un bucle que cancela y recrea, y si lo es, no es exclusivo de las canceladas: sería un
+mensaje nuevo por cada pasada del motor sobre cualquier conversación que cumpla la condición.
+
+**Sin investigar.** Lo barato para empezar: agrupar `msg_message` por
+`(conversation_id, rule_id, scheduled_at)` con `COUNT(*) > 2` y ver si HRD4ZD es un caso raro o
+la punta de algo. Si el barrido de arriba se hace antes, esta pista se borra con él — así que
+conviene mirarla primero.
+
 ## Mejorar redacción de Agua Caliente en la Guía / Conocimiento
 
 **Observación:** Durante la auditoría del Agente de IA, se notó que la duda de los huéspedes sobre si el agua caliente "alcanza para 5 personas" se puede responder de forma mucho más directa y elegante mejorando el texto de la base de conocimientos.
