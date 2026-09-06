@@ -2177,7 +2177,11 @@ puede guardar.
 devolvían su desglose de coste teórico, contrastado a mano con `var/probar-costo-teorico.php` —
 p. ej. Casita 4, 6 noches, 14 pax: `33.00 × 6 N = 198.00`, `6.00 × 11 P × 6 N = 396.00`, limpieza
 `15.00`, total `609.00 USD`. Esa parte sigue igual; la que comprobaba el cargo en cero
-(`var/probar-cargo-directo-cero.php`) ya no describe lo que pasa.
+(`var/probar-cargo-directo-cero.php`) describía la regla del 15/08 —una línea de LIMPIEZA en
+0.00— que el 25/08 se retiró: hoy una estancia directa **no estrena ningún cargo**. Se apartó el
+06/09/2026 en vez de arreglarla, porque no hay nada que arreglar: la invariante que guardaba ya
+no existe. Quien quiera un guarda de la regla nueva tiene que comprobar lo contrario —que no se
+crea nada— ejercitando el alta, no este servicio.
 
 **Lo que escriba `escribirAprobados()` nace MANUAL** (sin `beds24ItemId`, §12.4.1): el operador lo
 corrige o lo borra sin pelearse con la sincronización.
