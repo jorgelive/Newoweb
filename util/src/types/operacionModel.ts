@@ -21,7 +21,7 @@
 //    filtrar por ordenServicio para datos completos.
 // ============================================================================
 
-import { components } from '@/types/api';
+import { components } from '@dominio/api';
 import { EstadoUIConfig } from '@/types/cotizacionEditorModel';
 
 // ============================================================================

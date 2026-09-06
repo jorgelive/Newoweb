@@ -290,11 +290,26 @@ Dos trampas que ya costaron caro, porque **no fallan al compilar**:
 
 ### TypeScript: los tipos de la API se GENERAN
 
-`util/src/types/api.d.ts` **y `pax/src/types/api.d.ts`** salen de `npm run gen:api` (exporta el
-OpenAPI de API Platform y lo pasa por `openapi-typescript`). **Al añadir o cambiar un campo
-expuesto por la API, se regeneran LAS DOS**, en la misma sesión.
+**Hay UN solo `api.d.ts`, y vive en `dominio/`** (desde el 05/09/2026). Sale de
+`cd dominio && npm run gen:api`, que exporta el OpenAPI de API Platform y lo pasa por
+`openapi-typescript`. Las dos apps lo importan por su alias: `import type { components } from
+'@dominio/api'`. **Al añadir o cambiar un campo expuesto por la API, se regenera**, en la misma
+sesión.
 
-⚠️ **`pax` no tenía el script hasta el 27/08/2026**, y su `api.d.ts` llevaba **8 días congelado**:
+⚠️ **Antes eran dos copias y había que acordarse de regenerar las DOS.** 44 889 líneas byte a byte
+repetidas, sincronizadas sólo por disciplina — y la disciplina ya había fallado una vez (ver el
+aviso de abajo). Un archivo generado que existe dos veces no se «desincroniza» con un error: se
+queda viejo en silencio, que es como se descubrió aquello. El alias `@dominio/*` y el `include`
+de `../dominio/**/*.ts` ya existían en las dos apps.
+
+⚠️ **Y esto NO se extiende a los `*Model.ts`.** Los tipos anclados a mano de `pax` son más
+estrechos que los de `util` a propósito: los 18 campos de diferencia son los que la API decide no
+mandarle al cliente, y el compilador de `pax` es la única comprobación automática de esa frontera.
+El esquema generado describe la API entera en las dos apps, así que compartirlo no la toca. Es
+privacidad, no estilo — ver `docs/PlanProcesamientoCompartido.md` §5 fase 2.2.
+
+⚠️ **`pax` no tenía el script hasta el 27/08/2026**, y su `api.d.ts` llevaba **8 días congelado**
+—es el fallo que acabó justificando el archivo único—:
 se había generado una vez a mano y nadie lo volvió a tocar. Al darle su `gen:api` y regenerarlo
 salieron **6106 líneas** de diferencia. No había roto nada de milagro —lo que `pax` lee del esquema
 no estaba entre lo que cambió—, pero un `.d.ts` viejo no falla: **describe una API que ya no

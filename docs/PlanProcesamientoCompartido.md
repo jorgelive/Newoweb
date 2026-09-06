@@ -248,10 +248,42 @@ Se puede hacer en cualquier momento; cuanto antes, menos duele.
 | | Acción | Por qué ya |
 |---|---|---|
 | S1 | **Concurrencia optimista al guardar**: rechazar un guardado cuya base está caducada | Arregla un bug VIVO —dos operadores se pisan en silencio— y es el cimiento de cualquier fusión futura. Una columna y una comprobación |
-| S2 | **Un solo `api.d.ts`** generado, en `dominio/` | Hoy hay dos copias byte a byte de 42.658 líneas. La de `pax` ya estuvo 8 días describiendo una API que no existía |
+| S2 | ~~**Un solo `api.d.ts`** generado, en `dominio/`~~ **HECHO 05/09/2026** | ✅ `dominio/api.d.ts` · un `gen:api` · las dos apps importan `@dominio/api` — ver abajo |
 | S3 | Sacar el publicador de Mercure de `src/Message/` a un servicio transversal, con **tema = IRI del nodo que cambió** | Vale igual para SSE que para WS. Retrofitar la granularidad obliga a tocar a todos los suscriptores |
 | S4 | Token de Mercure **acotado por tema** para `pax` | Hoy `subscribe: ['*']`: cualquier autenticado escucha todo. Tolerable con sólo personal interno; fuga el día que `pax` necesite tiempo real |
 | S5 | La lógica de `EventSource` en **un** módulo cliente, no repartida por stores | Cambiar SSE por WS pasa a ser un archivo |
+
+### S2 · Cómo quedó (05/09/2026)
+
+Eran **44 889 líneas byte a byte repetidas** —habían crecido desde las 42 658 que decía este
+plan— sincronizadas sólo por disciplina. El fallo no es que se desincronicen con un error: es que
+una se queda vieja **en silencio**, describiendo una API que ya no existe, y el typecheck la da
+por buena porque sólo sabe lo que dice el `.d.ts`. Ya había pasado: la de `pax`, ocho días.
+
+| | Antes | Ahora |
+|---|---|---|
+| El archivo | `util/src/types/api.d.ts` + `pax/src/types/api.d.ts` | `dominio/api.d.ts` |
+| El comando | uno en cada app, y había que acordarse de los dos | `cd dominio && npm run gen:api` |
+| El import | `@/types/api` | `@dominio/api` |
+
+La mudanza fue corta porque la casa ya estaba puesta: el alias `@dominio/*` y el
+`include: ["../dominio/**/*.ts"]` existían en las dos apps desde la fase 3. Diez importaciones y
+un script.
+
+⚠️ **El generador se instaló en `dominio`** (`openapi-typescript`), no se dejó en las apps: el
+script vive junto al archivo que escribe. Comprobado que produce **exactamente el mismo byte** en
+su ubicación nueva antes de tocar nada más.
+
+⚠️ **Y NO arrastra a los `*Model.ts`**, que es la pregunta que salta enseguida. La fase 2.2 decidió
+lo contrario para ellos —`pax` es subconjunto estricto de `util` y su compilador es la única
+comprobación automática de esa frontera de privacidad—. No hay contradicción: el esquema generado
+describe **la API entera** en las dos copias, así que nunca fue él quien sostenía esa frontera.
+
+⚠️ **Encontrado de paso, y sin arreglar:** `cd dominio && npm run typecheck` estaba **en rojo**
+antes de esto —diez errores `TS2591` por `process` en `cotizacion/itinerario.cli.ts`, que es una
+herramienta de línea de comandos y el paquete declara `types: []` a propósito—. No lo cazaba nadie
+porque `tests-guard.sh` corre `npm test`, no el typecheck. El esquema nuevo pasa limpio; los diez
+errores son de antes y siguen ahí.
 
 ## 7. Los módulos transversales: cómo llegan
 

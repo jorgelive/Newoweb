@@ -1,4 +1,4 @@
-import { components } from '@/types/api';
+import { components } from '@dominio/api';
 
 /**
  * Interfaz base para elementos maestros.

@@ -18,7 +18,7 @@
 // era justo la desincronización que este patrón viene a eliminar.
 // ============================================================================
 
-import type { components } from '@/types/api';
+import type { components } from '@dominio/api';
 
 // ============================================================================
 // ENUMS SERVIDOS POR EL BACKEND

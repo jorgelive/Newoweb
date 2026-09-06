@@ -29,7 +29,7 @@
 // regenera con `npm run gen:api` — no se declara aquí.
 // ============================================================================
 
-import type { components } from './api';
+import type { components } from '@dominio/api';
 
 type SegmentoBase   = components['schemas']['CotizacionSegmento-pax_file.read_pax_cotizacion.read'];
 type CottarifaBase  = components['schemas']['CotizacionCottarifa-pax_file.read_pax_cotizacion.read'];

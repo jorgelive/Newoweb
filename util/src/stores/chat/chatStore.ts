@@ -5,7 +5,7 @@ import { ref, computed, shallowRef, watch } from 'vue';
 import { useAttachmentStore } from '../attachmentStore.ts';
 import { useNotificationStore } from '../notificationStore.ts';
 import { useNoLeidosStore } from './noLeidosStore.ts';
-import type { components } from '@/types/api';
+import type { components } from '@dominio/api';
 import { apiClient, getUrls, type CustomAxiosRequestConfig } from '@/services/apiClient.ts';
 import { esErrorSilencioso } from '@/services/apiError';
 import { miembrosHydra, hayPaginaSiguiente, uuidDe, mismaEntidad, type RecursoHydra } from '@/services/hydra';

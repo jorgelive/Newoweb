@@ -23,7 +23,7 @@
 // Los tipos del árbol de la guía ya no viven aquí; ver la nota de más abajo.
 // ============================================================================
 
-import type { components } from './api';
+import type { components } from '@dominio/api';
 
 // --- Tipos de contenido traducible (columnas JSON, sin schema propio en api.d.ts) ---
 

@@ -32,7 +32,7 @@
 //    ApiResource y por tanto no salen en el esquema (`PmsLimpiadorOption`).
 // ============================================================================
 
-import { components } from '@/types/api';
+import { components } from '@dominio/api';
 
 // ============================================================================
 // TIPOS DE LECTURA

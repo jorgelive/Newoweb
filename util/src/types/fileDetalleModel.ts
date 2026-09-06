@@ -1,4 +1,4 @@
-import type { components } from '@/types/api';
+import type { components } from '@dominio/api';
 import type { ApiIdioma, ApiPais } from '@/types/maestroModel';
 import type { I18nContent, PropuestaDelFile } from "@/types/cotizacionEditorModel.ts";
 

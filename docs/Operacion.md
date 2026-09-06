@@ -3059,12 +3059,16 @@ Este fallo tenía roto `propagarEstadoOperacion()`: cancelar una cotización no 
 con `annotation "@…" was never imported`. En los docblocks de entidades, esa arroba se describe con
 palabras.
 
-**`api.d.ts` se regenera a mano.** No hay script en `package.json`:
+**`api.d.ts` se regenera con un comando, y es UNO solo** (desde el 05/09/2026: vive en
+`dominio/`, lo importan las dos apps por `@dominio/api`):
 
 ```bash
-php bin/console api:openapi:export > /tmp/openapi.json
-cd util && npx openapi-typescript /tmp/openapi.json -o src/types/api.d.ts
+cd dominio && npm run gen:api
 ```
+
+⚠️ Esta receta decía «se regenera a mano, no hay script en `package.json`» y apuntaba a
+`util/src/types/api.d.ts`. Las dos cosas dejaron de ser verdad: primero cuando cada app tuvo su
+`gen:api`, y luego cuando las dos copias se fundieron en una.
 
 Estaba desactualizado respecto al backend, así que regenerarlo puede sacar a la luz referencias a
 schemas que ya no existen en otros módulos. Es señal de deuda, no de que el cambio esté mal.

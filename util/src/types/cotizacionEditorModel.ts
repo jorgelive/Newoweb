@@ -1,4 +1,4 @@
-import { components } from '@/types/api';
+import { components } from '@dominio/api';
 import type { LugarOpcion } from '@/types/organizacionModel';
 
 export enum Language {

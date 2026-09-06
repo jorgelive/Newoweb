@@ -73,7 +73,7 @@ import {
 import type {PuntosDeServicioCot, PuntosPorServicio} from '@/types/cotizacionEditorModel';
 import {ApiIdioma} from '@/types/maestroModel';
 import type {LugarOpcion, ProveedorWrite} from '@/types/organizacionModel';
-import {components} from "@/types/api";
+import {components} from "@dominio/api";
 
 /** Distingue el maestro completo del placeholder ("Sincronizando…") por `tipo`. */
 export const isComponenteCompleto = (c: ComponenteCatalogo | null | undefined): c is Componente => {

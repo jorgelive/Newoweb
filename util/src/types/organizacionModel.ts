@@ -12,7 +12,7 @@
 // Suelen coincidir, pero no siempre; la UI los distingue con icono y color.
 // ============================================================================
 
-import type { components } from '@/types/api';
+import type { components } from '@dominio/api';
 
 export interface I18nTexto {
     language: string;

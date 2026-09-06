@@ -24,7 +24,7 @@ export default defineConfigWithVueTs(
             // Lo genera Vite (`vite/client`): se regenera entero, no se corrige a mano.
             'src/vite-env.d.ts',
             // Generado por openapi-typescript: se regenera entero, no se corrige.
-            'src/types/api.d.ts',
+            // `api.d.ts` vive ahora en `dominio/`, fuera de lo que lintea esta app.
             // Scripts de build en Node puro, con otra forma de módulos.
             'scripts/**',
             'public/**',

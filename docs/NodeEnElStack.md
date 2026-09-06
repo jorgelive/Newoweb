@@ -335,6 +335,26 @@ proyecto: con el módulo fuera, el **build funcionaba** y el dev server devolví
 en las dos apps. Es un fallo que sólo existe en desarrollo — el peor sitio para descubrirlo tarde,
 porque parece «la app está rota» y no «falta una línea de configuración».
 
+### Y el segundo inquilino: el esquema de la API (05/09/2026)
+
+`dominio/api.d.ts` es el **único** `api.d.ts` del repo. Lo genera `cd dominio && npm run gen:api` y
+lo importan las dos apps por `@dominio/api`.
+
+Es el inquilino raro de esta casa —no es una regla de negocio, es un archivo generado— y aun así
+le corresponde estar aquí por la misma razón que a las demás: **estaba escrito dos veces**. 44 889
+líneas byte a byte, en `util/src/types/` y en `pax/src/types/`, sincronizadas sólo por acordarse.
+La de `pax` ya había estado ocho días describiendo una API que no existía.
+
+⚠️ **Lo que se comparte es el ESQUEMA, no los modelos.** Los `*Model.ts` siguen en cada app y
+siguen siendo distintos a propósito: los de `pax` son más estrechos porque hay campos que la API
+decide no mandarle al cliente, y su compilador es la única comprobación automática de esa
+frontera. El esquema generado describe la API entera en los dos lados, así que nunca fue él quien
+la sostenía. Ver `docs/PlanProcesamientoCompartido.md` §6 S2.
+
+⚠️ **El generador (`openapi-typescript`) se instaló aquí**, no se quedó en las apps: el script vive
+junto al archivo que escribe. No entra en el despliegue —esto se regenera en desarrollo— así que
+`dominio/` sigue sin `node_modules` en producción.
+
 ### 🔥 Los tres espejos nunca fueron el mismo cálculo
 
 Al ir a unificarlos se compararon línea a línea, y **no coincidían**:
