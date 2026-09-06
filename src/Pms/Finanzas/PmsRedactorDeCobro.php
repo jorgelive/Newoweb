@@ -23,11 +23,11 @@ use App\Pms\Service\Finance\PmsTotalesPorMoneda;
  * bloque entra por `{{ bloque_pago }}` y se ocupa sólo de las cifras. Repartirlo así es lo que
  * permite reformular la bienvenida sin tocar el dinero, y al revés.
  *
- * ── A quién jubila ──────────────────────────────────────────────────────────
- * A `GenerarMensajePrepagoSkill`, que compone su propio texto en 400 líneas de PHP con su propio
- * formato de fechas —en español a pelo— y su propia idea de los medios de pago. Era el productor
- * nº 3 de los seis que documenta §«La fuente única sobre el dinero»; mientras coexistan hay dos
- * verdades sobre el mismo dinero.
+ * ── A quién jubiló ──────────────────────────────────────────────────────────
+ * A `GenerarMensajePrepagoSkill`, **borrada el 06/09/2026**: componía su propio texto en 400
+ * líneas de PHP, con su formato de fechas en español a pelo, `US$` en duro y su propia idea de
+ * los medios de pago. Era el productor nº 3 de los seis que documenta §«La fuente única sobre el
+ * dinero». Este bloque y sus tres variables hermanas son ahora el único camino.
  *
  * ── Los rótulos NO se escriben aquí ─────────────────────────────────────────
  * Salen de `pax_ui_i18n` por {@see TextosUi}, en los siete idiomas, y los medios se resuelven por

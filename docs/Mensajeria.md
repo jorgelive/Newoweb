@@ -10784,9 +10784,9 @@ del 24 de septiembre al 25 de septiembre · Casita 1
 ⚠️ **La gramática del rango es de cada idioma**, no del código: vive en `res_estancia_tramo` con
 dos marcadores —«del {{ desde }} al {{ hasta }}», «from {{ desde }} to {{ hasta }}»—, igual que el
 saludo. Y las fechas las formatea **ICU** con el patrón que cada locale considera correcto
-(`d 'de' MMMM` en español, `MMMM d` en inglés) vía `IntlDatePatternGenerator`, no con la tabla de
-meses en español que arrastra `GenerarMensajePrepagoSkill`. El año sólo aparece si el tramo cruza
-de año.
+(`d 'de' MMMM` en español, `MMMM d` en inglés) vía `IntlDatePatternGenerator`, no con una tabla de
+meses en español —como la que arrastraba `GenerarMensajePrepagoSkill`, borrada el 06/09/2026. El
+año sólo aparece si el tramo cruza de año.
 
 ⚠️ Los eventos **cancelados no salen**, y el espejo manual de Beds24 (§6.3) tampoco duplica la
 casita: dos eventos de la misma unidad y las mismas fechas se dicen una vez, porque «Casita 2 ·
@@ -10867,12 +10867,22 @@ aparecer el segundo, copiar diez líneas era el camino corto a que la misma regl
 cosas. Sus tres condiciones no cambian: moneda distinta de PEN, constar que paga desde Perú
 —ternaria, y su `null` no vale— y haber tipo de cambio del día.
 
-#### Lo que todavía no está
+#### ✅ Cerrado el 06/09/2026
 
-Ninguna plantilla usa `{{ bloque_pago }}` aún, así que la interpolación de punta a punta no está
-ejercitada. Y `GenerarMensajePrepagoSkill` **sigue viva** componiendo su propio texto en 400
-líneas: es a quien esto viene a jubilar, y mientras coexistan hay dos verdades sobre el mismo
-dinero.
+Las dos cosas que faltaban ya están. **`pago_texto` y `politicas_booking` usan `{{ bloque_pago }}`
+y `{{ medios_de_pago }}`** en producción, y las dos llevan `{{ account_url }}`, que es el camino a
+la ficha donde vive el enlace vigente. Y **`GenerarMensajePrepagoSkill` se borró**: mientras
+coexistían había dos verdades sobre el mismo dinero.
+
+⚠️ **Lo que la mató no fue la duplicación, fue el TRIAJE.** Era `NivelRiesgo::Lectura`, así que
+entraba en `CatalogoDelTriaje::enrutablesDirectas()` y el clasificador podía señalarla **como
+skill única, sin pasar por el empate**. Sus sustitutas para «mándale el detalle de pago»
+—`enviar_plantilla` y `enviarme_plantilla`— son escrituras y no pueden enrutarse así, **por
+diseño**. O sea que ante la frase más natural del operador, la única candidata que el triaje podía
+elegir de un tirón era la peor: la que promete un enlace que no adjunta, imprime `US$` en duro
+sobre una cuenta en soles y se inventa los medios en vez de leer el catálogo.
+
+Y no fallaba: devolvía un texto bien formado. Un error que se lee bien es el más caro de todos.
 
 ### ⚠️ Una palabra suelta no tiene contexto: «Cargos» se tradujo como «puestos» (31/08/2026)
 
@@ -10967,7 +10977,7 @@ dinero para el cliente (las únicas de `msg_template` que hablan de cobros son `
 |---|---|---|
 | 1 | `ConsultarCuentaSkill` | no — datos |
 | 2 | `ConsultarMediosPagoSkill` | no — datos del catálogo |
-| 3 | `GenerarMensajePrepagoSkill` | **sí, 400 líneas de PHP** |
+| 3 | ~~`GenerarMensajePrepagoSkill`~~ | **sí, 400 líneas de PHP** — borrada el 06/09/2026 |
 | 4 | `GenerarEnlacePrepagoSkill` | no — una URL |
 | 5 | `PmsPrepagoEnlaceService::emitirPorCambioDeCargos()` | automático, sin avisar |
 | 6 | `PmsReservaPaxProvider` | la ficha del huésped |

@@ -110,85 +110,48 @@ como `true`, y entonces se le enseñan todos los medios y elige el huésped.
 
 Sin prisa: el defecto acierta casi siempre y el coste de equivocarse es enseñar un medio de más.
 
-## Descomentar el enlace de pago en el mensaje de prepago
+## ✅ CERRADO (06/09/2026): la skill del mensaje de prepago se borró
 
-**Estado (19/08/2026): bloqueado por la pasarela, no por el código.**
+**Lo que había:** `GenerarMensajePrepagoSkill` componía un mensaje que **anunciaba** un «Enlace de
+pago seguro» y no llevaba ninguna URL; el bloque que la habría puesto estaba escrito y comentado
+dentro de la propia skill. La nota decía «bloqueado por la pasarela, no por el código», con
+`FINANZAS_ENLACES_PREPAGO=0`.
 
-`GenerarMensajePrepagoSkill` compone un mensaje que **anuncia** un «Enlace de pago seguro» en sus
-dos ramas —la nacional como Opción 2, la extranjera como Opción 1— y **no lleva ninguna URL**:
-`FINANZAS_ENLACES_PREPAGO=0`, la pasarela no está habilitada. El bloque que lo emitiría está
-escrito y comentado en la propia skill, justo antes de componer el mensaje.
+**Ese bloqueo había caducado y nadie volvió a mirar la nota:** el flag está en **1** en
+producción. Y con él encendido, la colisión que esta misma sección daba por *latente* pasó a estar
+**activa** — `generar_enlace_prepago` es `SkillConmutableInterface` y con el flag a 1 entra en el
+catálogo.
 
-⚠️ **NO basta con quitar las barras.** La primera versión de esta nota decía que sí, y era falso.
-Hacen falta CINCO cosas, y sólo las tres últimas son de criterio:
+**No se descomentó nada: se borró la skill entera.** Las cinco cosas que hacían falta para
+encender aquel bloque dejaron de importar cuando quedó claro que el trabajo ya lo hacía mejor otro
+camino:
 
-1. **Inyectar el servicio.** `PmsPrepagoEnlaceService` **no está** en el constructor de la skill
-   ni importado. Sin eso, `$this->prepagoEnlaces` es propiedad indefinida y revienta en la
-   primera ejecución. PHPStan no lo ve hoy porque está dentro de un comentario.
-2. **Capturar `DomainException`.** `emitir()` lanza con el flag apagado, sin cuenta de cobro y
-   sin prepago pendiente. `GenerarEnlacePrepagoSkill` lo envuelve en try/catch; aquí, sin eso, la
-   skill dejaría de contestar en vez de redactar el mensaje sin enlace.
-3. **`emitir()` CREA UN COBRO** (`FinEnlacePago` persistido y flusheado). Esta skill es hoy
-   `NivelRiesgo::Lectura`, o sea que se ejecuta **sin que nadie confirme**. Emitir desde aquí la
-   convierte en escritura: hay que subirle el nivel y pasar por la previsualización, como ya hace
-   `generar_enlace_prepago`.
-4. **O no emitir aquí**: que esta skill sólo LEA un enlace ya emitido y deje la emisión donde
-   está. Es la opción que no toca el nivel de riesgo, y probablemente la buena — dos skills que
-   crean cobros para lo mismo es justo lo que se quiere evitar.
-5. **Mientras tanto el texto promete algo que no viaja.** El operador copia y pega un mensaje que
-   le anuncia al huésped un enlace seguro, con el importe y el 5.5% ya calculados, y el enlace no
-   existe. Si la espera va para largo, lo honesto es quitar esa línea del mensaje antes que
-   dejarla puesta.
+| Lo que el operador pide | Quién lo resuelve |
+|---|---|
+| «¿cuánto debe?» | `consultar_cuenta` — línea a línea, en su moneda |
+| «¿qué medios tenemos?» | `consultar_medios_pago` — catálogo `FinMedioCobro` con `ofrecibles()` |
+| «envíale su información de pago» | `enviar_plantilla` + `pago_texto` |
+| «dámelo para copiarlo» | `enviarme_plantilla` |
+| «emite el enlace» | `generar_enlace_prepago`, con previsualización |
 
-**Relacionado, y sin resolver:**
+`pago_texto` hidrata `{{ bloque_pago }}` y `{{ medios_de_pago }}` desde `PmsRedactorDeCobro` —siete
+idiomas, números de cuenta reales— y lleva `{{ account_url }}` a la ficha, que es donde el huésped
+ve el enlace vigente. El enlace **no viaja en el texto a propósito**: así no puede quedar un
+importe escrito contradiciendo lo que el enlace cobra.
 
-- `generar_mensaje_prepago` declara `Roles::HUESPED`, así que está en el catálogo del huésped
-  (comprobado con `app:agent:permisos`). El texto que produce es de operador —«🏨 DETALLE DE
-  RESERVA», emojis de ficha, «listo para copiar y pegar»— y encima le anuncia un enlace que él no
-  puede pedir, porque `generar_enlace_prepago` exige `RESERVAS_WRITE`. Tampoco se ancla al
-  contexto del actor: coge `entrada['reserva_id']` directo, sin el `reservaDelContexto($actor)`
-  que sí usa `consultar_cuenta`.
-- Asume **USD**: imprime `US$` en duro y multiplica por el tipo de cambio. Con una cuenta en PEN
-  etiqueta soles como dólares y convierte dos veces. `ConsultarCuentaSkill` lee `getMoneda()`
-  justo por esto.
+⚠️ **El motivo de fondo fue el TRIAJE, no la duplicación.** Era `NivelRiesgo::Lectura`, luego
+enrutable directa (`CatalogoDelTriaje::enrutablesDirectas()`); sus sustitutas son escrituras y no
+pueden serlo, por diseño. Ante «mándale el detalle de pago», la única que el triaje podía señalar
+sola era la peor — y devolvía un texto bien formado, así que ganaba en silencio.
 
-**Lo que sí está resuelto:** el importe. Las cuatro skills de prepago salen de
-`PmsPrepagoCalculador::pendiente()` —`generar_enlace_prepago` vía `PmsPrepagoEnlaceService`— así
-que ya no pueden decir cifras distintas para la misma reserva.
+**Lo que se pierde:** nada. El desglose cargo a cargo ya lo da `consultar_cuenta`, y mejor: aquél
+imprimía todo en `US$` aunque la cuenta estuviera en soles.
 
-### Lo que salió al revisarlo, y sigue abierto
-
-- ✅ **RESUELTO (19/08/2026): el TOTAL del mensaje ya es el de `consultar_cuenta`.**
-  `desgloseCargos()` reimplementaba las reglas del desglose y se saltaba cuatro: no filtraba
-  `esCargo()`, ignoraba `activa`, no convertía moneda y **descartaba los importes ≤ 0**. Ese
-  último se vio con la reserva `GASUNN` —un «Descuento tipo de cambio» de −0.20—: el mensaje
-  decía `66.17` y la cuenta `65.97`. Y era peor que una discrepancia entre skills: el prepago
-  del **mismo mensaje** ya salía del desglose canónico, así que un solo texto llevaba dos
-  aritméticas. Ahora llama a `getDesglosePorTipo()`, que es la fuente declarada, y la igualdad
-  es por construcción. Exposición medida en producción antes del arreglo: **1 reserva, 0.20**.
-  Los otros tres siguen siendo latentes y son más caros que ése; ver `var/probar-desglose-prepago.php`.
-
-- **Diagnóstico falso «sin prepago».** Si `pendiente()` y `calcular()` dan `null`, el mensaje
-  afirma «La política del establecimiento está configurada como sin prepago». Pero `calcular()`
-  también devuelve `null` con **base 0** (reserva nueva, cargos aún sin generar) y con **noches
-  < 1**. El operador lee que ese establecimiento no pide adelanto, y no lo pide.
-  `GenerarEnlacePrepagoSkill` enumera los motivos sin afirmar uno; aquí habría que hacer igual.
-- **`emitirSimulado()` y `emitir()` pueden discrepar en la MONEDA.** El simulado reporta la de la
-  cabecera; `emitir()` llama a `FinEnlacePagoService::crear()` **sin pasar moneda**, así que el
-  resolver elige la de mayor saldo. Con cargos en dos monedas y sin pagos —el único caso en que
-  `pendiente()` pasa— la previsualización dice «65.97 USD» y se emite por «65.97 PEN». Y
-  `vigentePorImporte()` compara sólo el importe, **sin moneda**: un enlace vigente de 100 PEN se
-  reutiliza para un prepago de 100 USD. Latente: 1 cabecera con moneda cruzada en local, ninguna
-  con prepago pendiente.
-- **Reserva de grupo:** el mensaje sale con «👤 Huésped: Pendiente Sync (Grupo)», los
-  placeholders que siembra el pull. Y los conceptos de cargo se imprimen crudos: los
-  `[ROOMNAME1]` de Beds24 sólo se limpian en `ConsultarCuentaSkill::concepto()`, no aquí.
-- **El pisado con `generar_enlace_prepago` está latente**, no activo: con el flag a 0 la skill del
-  enlace no entra en el catálogo (`SkillConmutableInterface`). El día que se encienda, ninguna de
-  las dos descripciones cita a la otra, y ante «mándale el cobro del adelanto» el triaje puede
-  elegir la de Lectura —que se ejecuta sin confirmación—, encadenarla a `enviar_mensaje_huesped` y
-  darse por satisfecho: el huésped recibe la promesa de un enlace que no existe y se puenteó la
-  previsualización del cobro. La dirección inversa sí es segura (`confirmado=false` frena).
+Los defectos que esta sección enumeraba —diagnóstico falso «sin prepago», `US$` en duro,
+`Roles::HUESPED`, los `[ROOMNAME1]` crudos, el pisado con `generar_enlace_prepago`— se van con
+ella. Los dos que NO eran suyos siguen abiertos y viven ahora en `docs/FinanzasEnlacesPago.md`:
+`emitirSimulado()` y `emitir()` comparten ya el mismo `loQueSePide()`, y `vigentePorImporte()`
+**sigue comparando sólo el importe, sin moneda**.
 
 ## El plan de pagos pactado no existe como dato, y el sistema afirma lo contrario
 

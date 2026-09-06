@@ -37,7 +37,8 @@ use IntlDatePatternGenerator;
  * … to …» en inglés, «du … au …» en francés: eso vive en `res_estancia_tramo` con dos
  * marcadores, igual que el saludo. Las fechas las formatea ICU con el patrón que cada locale
  * considera correcto —«28 de agosto» / «August 28»— vía {@see IntlDatePatternGenerator}, no con
- * una tabla de meses en español como la que arrastra `GenerarMensajePrepagoSkill`.
+ * una tabla de meses en español —como la que arrastraba `GenerarMensajePrepagoSkill`, borrada el
+ * 06/09/2026 justamente por eso y por cinco cosas más.
  */
 final readonly class PmsRedactorDeEstancias
 {
