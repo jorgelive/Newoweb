@@ -123,6 +123,12 @@ final class CulqiClient implements FinPasarelaClientInterface
      * ⚠️ En `dev` sí se permiten —es justamente donde se prueba el 3DS, que sólo se puede provocar
      * con las tarjetas del cajón de arena—, y lo natural es tenerlas en `.env.dev.local`, que
      * Symfony carga sólo con `APP_ENV=dev` y no se despliega.
+     *
+     * 🔥 **Y la simétrica, desde el 06/09/2026: llaves REALES fuera de producción también
+     * revientan.** Este predicado sólo miraba un sentido, y el otro es igual de caro: con
+     * `sk_live_` en desarrollo y una base copiada de producción, «Devolver» reembolsa un cargo
+     * real desde un portátil. La comprobación dura está en `peticion()`, que es la única puerta
+     * a la red; aquí se refleja para que la pasarela ni siquiera se liste.
      */
     public function estaConfigurado(): bool
     {
@@ -132,7 +138,8 @@ final class CulqiClient implements FinPasarelaClientInterface
         // lista. Quien sí revienta es `peticion()`, que es donde se iría a cobrar de verdad.
         return $this->publicKey !== ''
             && $this->secretKey !== ''
-            && !($this->entorno === 'prod' && $this->esEntornoDePrueba());
+            && !($this->entorno === 'prod' && $this->esEntornoDePrueba())
+            && !($this->entorno !== 'prod' && !$this->esEntornoDePrueba());
     }
 
     /**
@@ -501,6 +508,29 @@ final class CulqiClient implements FinPasarelaClientInterface
                 . 'Con ellas el cargo se crea en el cajón de arena, el enlace quedaría «pagado» y el '
                 . 'dinero no habría entrado. Las de prueba van en .env.dev.local, que sólo carga dev.'
             );
+        }
+
+        // 🔥 **Y la inversa: llaves REALES fuera de producción.** La guarda de arriba llevaba
+        // meses cubriendo un solo sentido —cobrar de mentira creyendo que era de verdad— y el
+        // otro estaba abierto: **cobrar de verdad creyendo que era de mentira**.
+        //
+        // No es hipotético. El 06/09/2026 el `.env.local` de desarrollo tenía las `sk_live_` de
+        // producción, y la base local es una copia de la real: el botón «Devolver» de /finanzas
+        // habría reembolsado un cargo REAL desde el portátil de alguien, con un `charge id`
+        // copiado de producción. El interruptor `FINANZAS_ENLACES_PREPAGO` no protegía nada de
+        // esto — apaga la emisión de enlaces, no este cliente.
+        //
+        // Va aquí, en la única puerta por la que se sale a la red, y no en `estaConfigurado()`:
+        // aquél es un predicado para LISTAR pasarelas, y al reembolsar el cliente se resuelve
+        // por la columna `pasarela` del enlace sin pasar por esa lista.
+        if ($this->entorno !== 'prod' && !$this->esEntornoDePrueba()) {
+            throw new RuntimeException(sprintf(
+                'Culqi tiene llaves REALES (sk_live_/pk_live_) en el entorno «%s»: se aborta la '
+                . 'operación. Desde aquí se cobraría y se reembolsaría dinero de verdad contra la '
+                . 'cuenta de producción, y con una base local copiada de ella los identificadores '
+                . 'de cargo son reales. Pon las de prueba (sk_test_/pk_test_) en .env.local.',
+                $this->entorno,
+            ));
         }
 
         if (!$this->estaConfigurado()) {

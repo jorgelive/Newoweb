@@ -1254,6 +1254,34 @@ Apaga sólo el camino **automático** —la skill y el botón del pax—, no los
 «Cobrar con tarjeta» del panel sigue igual que siempre. Es la diferencia que importa: por el
 panel pasa un operador que mira; por aquí el enlace sale solo.
 
+### 🔥 Las llaves reales fuera de producción también revientan (06/09/2026)
+
+La guarda de `CulqiClient::peticion()` llevaba meses cubriendo **un solo sentido**: llaves de
+prueba en producción —cobrar de mentira creyendo que era de verdad—. El otro estaba abierto, y es
+igual de caro: **cobrar de verdad creyendo que era de mentira**.
+
+No es hipotético. El `.env.local` de desarrollo tenía las `sk_live_` de producción, y **la base
+local es una copia de la real**: el botón «Devolver» de `/finanzas` habría reembolsado un cargo
+REAL desde un portátil, con un `charge id` copiado de producción. `FINANZAS_ENLACES_PREPAGO` no
+protegía nada de eso — apaga la emisión de enlaces, no este cliente.
+
+Ahora es simétrica: con llaves reales y `kernel.environment !== 'prod'`, `peticion()` aborta, y
+`estaConfigurado()` devuelve `false` para que Culqi ni se liste. La consecuencia buscada es que
+**en dev con llaves reales no se emite ningún enlace**: `crear()` no encuentra pasarela y el
+emisor lo registra sin tocar los cargos. Es lo correcto — un enlace emitido ahí sería pagable de
+verdad, porque el Checkout se monta con la `pk_live_`.
+
+| Entorno | Llaves | Qué pasa |
+|---|---|---|
+| `prod` | `_live_` | opera |
+| `prod` | `_test_` | 🔥 aborta: el cargo iría al cajón de arena y el enlace quedaría «pagado» |
+| no-`prod` | `_test_` | opera contra el cajón de arena |
+| no-`prod` | `_live_` | 🔥 aborta: cobraría y reembolsaría dinero real |
+
+**El prefijo de la llave es lo único que decide contra qué cuenta se habla** — lo usa la librería
+de Culqi en el navegador y `esEntornoDePrueba()` en el servidor. Está escrito también en el
+`.env` y en el `.env.local` de dev, encima de las propias variables, que es donde se mira.
+
 ⚠️ **El flag no comprueba las claves.** Una `pk_test_` es sintácticamente igual de válida que
 una `pk_live_`, así que encenderlo es una decisión de una persona, no un automatismo. Antes de
 ponerlo a 1: claves `_live_` en `.env.local` **y** `composer dump-env prod` (§12.1).
@@ -2118,6 +2146,7 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar si un pago parcial cierra la puerta | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | la rama `$prepago === null` de `emitirConTurno()` — hoy se abre sólo con `yaLlegoElDia()` |
 | Cambiar cuándo un adelanto se llama «Saldo» | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `esElSaldoEntero()` — se decide al emitir, no al cruzar el día |
 | Cambiar el rótulo que aprueba el operador | `src/Agent/Skill/Pms/GenerarEnlacePrepagoPagoTotalSkill.php` | `que_se_pide`, que viene de `esSaldo`; no se deduce del concepto |
+| Cambiar contra qué cuenta de Culqi se habla | el **prefijo** de `CULQI_*_KEY` | `sk_test_`/`pk_test_` o `sk_live_`/`pk_live_`; lo valida `CulqiClient::peticion()` en los dos sentidos |
 | Cambiar qué importe/concepto lleva el enlace automático | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `loQueSePide()` + `conceptoSaldo()` — lo comparten los tres caminos |
 | Cambiar CUÁNDO se releva el adelanto por el saldo | `src/Pms/Command/PmsPrepagoRevisarLlegadasCommand.php` + crontab | `app:pms:prepago:revisar-llegadas` — 05:05 UTC = 00:05 de Lima |
 | Cambiar cuántos días atrás mira el relevo | el mismo comando | `--dias-atras` (30 por defecto) |
