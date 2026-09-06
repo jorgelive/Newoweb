@@ -462,7 +462,60 @@ Las **etiquetas del resumen salen de `estadosCobro` y `medios`**, los catálogos
 el backend con cada listado. Traducir aquí el código a mano sería reabrir el agujero que cerró
 el desplegable de estados.
 
-Los **totales siguen a la vista**, y es deliberado: son la respuesta, no el mando.
+Los **totales siguen a la vista**, y es deliberado: son la respuesta, no el mando. Lo que se
+les quitó fue la repetición — ver abajo.
+
+### Los totales se agrupan por moneda, y filtran (05/09/2026)
+
+El backend manda un total por estado **y** moneda, y cada uno se pintaba como una pastilla con
+la moneda dentro: «PENDIENTE USD 4410.79 (17)». Eso las hacía tan anchas que en un teléfono
+**sólo cabía una por línea**: cuatro estados, cuatro renglones, empujando la tabla fuera de la
+pantalla. Y no escalaba: son **seis estados por divisa**, así que al empezar a cobrar en soles
+podían llegar a **doce**.
+
+Ahora es **una fila por moneda**, con la divisa escrita una vez al margen izquierdo:
+
+```
+USD   Pendiente 4410.79 (17)   Pagado 6.28 (2)
+      Expirado 146.91 (2)      Anulado 4299.16 (16)
+PEN   Pendiente 1240.00 (3)    Pagado 350.00 (1)
+```
+
+- **Se agrupa por MONEDA, no por estado**, porque la moneda es el eje que no se puede sumar.
+  Así nunca aparece una cifra que mezcle divisas — la misma decisión que ya toma el panel de la
+  reserva y que §9 explica arriba.
+- **Añadir una divisa añade una fila**, no duplica la lista.
+- El orden de los estados **no es el del enum**: `pendiente` primero, porque es el motivo de
+  abrir esta pantalla; los que ya no se pueden tocar, al final. Un estado que no esté en
+  `ORDEN_ESTADOS` cae al fondo en vez de desaparecer.
+
+⚠️ **Las pastillas van en minúsculas, y está medido.** Con `uppercase tracking-wide`,
+«REEMBOLSADO» ocupaba tanto que caía sola en su renglón; en caja baja entran dos por línea
+donde antes entraba una. Si se añade un estado con nombre largo, vuelve a medir a 360 px.
+
+**Tocar un total pone ese estado en el filtro; volver a tocarlo lo quita.** Es lo que hace que
+el resumen valga su espacio: deja de ser un cartel y pasa a ser por donde se navega. Y encoge
+solo — `FinCajaApiController::totalesCobros()` se calcula **sobre la lista ya filtrada**, así
+que con un estado puesto el resumen se queda en una pastilla por moneda.
+
+⚠️ **Filtra por estado, NO por estado + moneda.** `FinCajaFiltros` no tiene eje de divisa, así
+que tocar «Pendiente» en la fila de soles trae también los de dólares. No es un engaño
+silencioso —el resumen sigue enseñando las dos filas— pero si algún día molesta, la salida es
+un filtro de moneda en `FinEnlacePagoRepository::buscar()`, no recortar la lista en la vista.
+
+### El cobro manual es un panel, no un bloque incrustado (05/09/2026)
+
+Nacía entre los totales y la tabla, así que empujaba todo hacia abajo y en un teléfono se veían
+**dos campos y medio**: el botón de emitir y el recuadro con la URL recién creada quedaban fuera
+de la pantalla, que es justo lo que se viene a hacer.
+
+Ahora es el **mismo `aside` que la ficha de un cobro** —hoja completa en móvil, lateral de 26 rem
+en escritorio— y a propósito: son la misma clase de cosa, algo que se abre encima, se resuelve y
+se cierra, así que no hay vocabulario nuevo que aprender. Con scroll propio y el botón de emitir
+clavado en el pie.
+
+Dentro del panel los campos van a **dos columnas como mucho**: la rejilla de cuatro que tenía
+suelto no cabe en 26 rem.
 
 ### Anular desde aquí, y por qué hacía falta (28/08/2026)
 
@@ -1815,6 +1868,10 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar el rango de fechas por defecto | `util/src/views/Finanzas/FinanzasView.vue` | `rangoPorDefecto()` / `RANGO_DIAS` — lo usan el valor inicial, «Limpiar» y el contador |
 | Que los filtros arranquen abiertos o cerrados | `util/src/views/Finanzas/FinanzasView.vue` | `filtrosAbiertos` (hoy `innerWidth >= 768`) |
 | Cambiar qué se lee con los filtros plegados | `util/src/views/Finanzas/FinanzasView.vue` | `resumenFiltros` / `filtrosPuestos` — el contador es lo que hace seguro esconderlos |
+| Cambiar el orden de los totales por estado | `util/src/views/Finanzas/FinanzasView.vue` | `ORDEN_ESTADOS` — `pendiente` primero a propósito |
+| Cambiar cómo se agrupan los totales | `util/src/views/Finanzas/FinanzasView.vue` | `totalesPorMoneda` — por MONEDA, que es el eje que no se puede sumar |
+| Que un total filtre por moneda además de por estado | `src/Finanzas/Repository/FinEnlacePagoRepository.php` | `buscar()` + `FinCajaFiltros` — hoy `filtrarPorEstado()` sólo tiene el eje de estado |
+| Tocar el formulario de cobro manual | `util/src/views/Finanzas/FinanzasView.vue` | el `<aside>` de `formAbierto` — dos columnas como mucho, no cabe más en 26 rem |
 | Que los pagos de un módulo salgan en la caja | §10, paso 3 | `FinMovimientoProviderInterface` |
 | Añadir un módulo que cobre | §10 | `FinOrigenCobroResolverInterface` |
 | Depurar "no se confirmó un cobro" | tabla `fin_pasarela_webhook_audit` | `payload_raw`, `estado`, `error_mensaje` |

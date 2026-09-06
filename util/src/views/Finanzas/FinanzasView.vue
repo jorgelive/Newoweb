@@ -26,7 +26,9 @@ import {
     clasesEstadoEnlace,
     type FinCobroOrigen,
     type FinEnlacePago,
+    type FinEnlacePagoEstado,
     type FinOrigenCobro,
+    type FinTotalCobro,
 } from '@/types/finEnlacePagoModel';
 import type { FinCajaFiltros, FinMovimiento } from '@/types/finMovimientoModel';
 import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
@@ -104,6 +106,69 @@ const filtrosPuestos = computed<number>(() => {
 
     return n;
 });
+
+// ============================================================================
+// LOS TOTALES SE AGRUPAN POR MONEDA
+//
+// El backend manda un total por estado Y moneda, y cada uno se pintaba como una pastilla
+// con la moneda dentro: «PENDIENTE USD 4410.79 (17)». Eso las hacía tan anchas que en un
+// teléfono sólo cabía UNA por línea — cuatro estados, cuatro renglones. Y no escala: son
+// seis estados por moneda, así que al empezar a cobrar en soles podían llegar a DOCE.
+//
+// Agrupadas por moneda, la moneda se escribe una vez por fila y las pastillas caben tres
+// por línea. Añadir una divisa añade una fila, no duplica la lista.
+//
+// ⚠️ Se agrupa por MONEDA y no por estado a propósito: es el eje que no se puede sumar. Con
+// los totales así, nunca aparece una cifra que mezcle divisas — la misma decisión que ya
+// toma el panel de la reserva. Ver §9 de docs/FinanzasEnlacesPago.md.
+// ============================================================================
+
+/**
+ * Orden de lectura de los estados, que no es el del enum.
+ *
+ * Primero lo que hay que perseguir: `pendiente` es el motivo de abrir esta pantalla —el doc
+ * lo dice al explicar por qué el filtro va por fecha de creación—. Al final lo que ya no se
+ * puede tocar. Un estado que no esté aquí cae al fondo en vez de desaparecer.
+ */
+const ORDEN_ESTADOS: FinEnlacePagoEstado[] = [
+    'pendiente', 'fallido', 'pagado', 'reembolsado', 'expirado', 'anulado',
+];
+
+/** Una fila por moneda, en el orden en que la manda el backend. */
+const totalesPorMoneda = computed<{ moneda: string; filas: FinTotalCobro[] }[]>(() => {
+    const grupos = new Map<string, FinTotalCobro[]>();
+
+    for (const t of store.totalesCobros) {
+        const filas = grupos.get(t.moneda) ?? [];
+        filas.push(t);
+        grupos.set(t.moneda, filas);
+    }
+
+    return [...grupos.entries()].map(([moneda, filas]) => ({
+        moneda,
+        filas: [...filas].sort(
+            (a, b) => ORDEN_ESTADOS.indexOf(a.estado) - ORDEN_ESTADOS.indexOf(b.estado),
+        ),
+    }));
+});
+
+/**
+ * Tocar un total pone (o quita) ese estado en el filtro.
+ *
+ * Es lo que hace que el resumen se gane su sitio: deja de ser un cartel y pasa a ser por
+ * donde se navega. Pulsar el que ya está puesto lo quita, que es lo que espera cualquiera
+ * que use un chip de filtro.
+ *
+ * ⚠️ Filtra por ESTADO, no por estado + moneda: el backend no tiene eje de divisa en
+ * `FinCajaFiltros`. Tocar «Pendiente» en la fila de soles trae también los de dólares. No es
+ * un engaño silencioso —el resumen sigue enseñando las dos filas debajo— pero si algún día
+ * molesta, la salida es un filtro de moneda en `FinEnlacePagoRepository::buscar()`, no
+ * recortar la lista aquí.
+ */
+const filtrarPorEstado = async (estado: FinEnlacePagoEstado): Promise<void> => {
+    filtros.value.estado = filtros.value.estado === estado ? '' : estado;
+    await cargar();
+};
 
 /** `2026-08-06` → «6 ago». Con `T00:00:00` explícito: sin él se parsea en UTC y resta un día. */
 const fechaResumen = (iso: string): string =>
@@ -572,25 +637,57 @@ function fechaLarga(iso?: string | null): string {
                         class="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700">Limpiar</button>
                 </div>
 
-                <!-- ===== TOTALES ===== -->
-                <!-- Agrupados por moneda y NUNCA sumados entre sí: el tipo de cambio bueno
-                     es el del día de cada registro, y una cifra única con la cotización de
-                     hoy no cuadraría con ningún extracto. -->
-                <div v-if="activeTab === 'cobros' && store.totalesCobros.length" class="mt-3 flex flex-wrap gap-2">
-                    <div v-for="t in store.totalesCobros" :key="t.estado + t.moneda"
-                        class="px-3 py-1.5 rounded-lg border text-[11px]" :class="clasesEstadoEnlace(t.estado)">
-                        <span class="font-black uppercase tracking-wide">{{ t.etiqueta }}</span>
-                        <span class="ml-2 font-black">{{ t.moneda }} {{ t.total }}</span>
-                        <span class="ml-1 opacity-70">({{ t.registros }})</span>
+                <!-- ===== TOTALES =====
+                     UNA FILA POR MONEDA, y nunca una cifra que las mezcle: el tipo de cambio
+                     bueno es el del día de cada registro, y una suma con la cotización de hoy
+                     no cuadraría con ningún extracto.
+
+                     La moneda se escribe una vez, a la izquierda, y no dentro de cada
+                     pastilla: repetida las hacía tan anchas que sólo cabía una por línea. Y
+                     así añadir soles añade una fila, no duplica la lista — son seis estados
+                     por divisa. -->
+                <div v-if="activeTab === 'cobros' && totalesPorMoneda.length" class="mt-3 flex flex-col gap-1.5">
+                    <div v-for="g in totalesPorMoneda" :key="g.moneda" class="flex items-start gap-2">
+                        <span class="shrink-0 w-9 pt-1 text-[10px] font-black text-slate-400 uppercase tracking-widest tabular-nums">
+                            {{ g.moneda }}
+                        </span>
+                        <div class="flex flex-wrap gap-1.5">
+                            <!-- Tocar un total FILTRA por ese estado, y volver a tocarlo lo
+                                 quita. Es lo que hace que el resumen valga su espacio: deja de
+                                 ser un cartel y pasa a ser por donde se navega.
+                                 Filtra sólo por estado, no por moneda: ver `filtrarPorEstado`. -->
+                            <button v-for="t in g.filas" :key="t.estado" type="button"
+                                @click="filtrarPorEstado(t.estado)"
+                                :title="filtros.estado === t.estado ? 'Quitar el filtro' : `Ver sólo los de estado ${t.etiqueta}`"
+                                class="px-2 py-1 rounded-lg border text-[11px] transition-all"
+                                :class="[
+                                    clasesEstadoEnlace(t.estado),
+                                    filtros.estado === t.estado ? 'ring-2 ring-offset-1 ring-slate-400' : 'hover:brightness-95',
+                                ]">
+                                <!-- Sin caja alta: «REEMBOLSADO» en versalitas ocupaba tanto
+                                     que caía sola en su renglón. Medido a 360 px, en minúsculas
+                                     entran dos pastillas por línea donde antes entraba una. -->
+                                <span class="font-black">{{ t.etiqueta }}</span>
+                                <span class="ml-1.5 font-black tabular-nums">{{ t.total }}</span>
+                                <span class="ml-1 opacity-70 tabular-nums">({{ t.registros }})</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div v-if="activeTab === 'caja' && store.totalesCaja.length" class="mt-3 flex flex-wrap gap-2">
-                    <div v-for="t in store.totalesCaja" :key="t.moneda"
-                        class="px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-[11px]">
-                        <span class="font-black uppercase tracking-wide">Recibido</span>
-                        <span class="ml-2 font-black">{{ t.moneda }} {{ t.total }}</span>
-                        <span class="ml-1 opacity-70">({{ t.registros }})</span>
+                <!-- En Caja el backend ya agrupa por moneda y no hay estados, así que la
+                     fila es una sola pastilla. Se mantiene la moneda al margen izquierdo
+                     para que las dos pestañas se lean igual. -->
+                <div v-if="activeTab === 'caja' && store.totalesCaja.length" class="mt-3 flex flex-col gap-1.5">
+                    <div v-for="t in store.totalesCaja" :key="t.moneda" class="flex items-start gap-2">
+                        <span class="shrink-0 w-9 pt-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            {{ t.moneda }}
+                        </span>
+                        <div class="px-2 py-1 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-[11px]">
+                            <span class="font-black">Recibido</span>
+                            <span class="ml-1.5 font-black tabular-nums">{{ t.total }}</span>
+                            <span class="ml-1 opacity-70 tabular-nums">({{ t.registros }})</span>
+                        </div>
                     </div>
                 </div>
 
@@ -608,141 +705,6 @@ function fechaLarga(iso?: string | null): string {
                 <p v-if="errorDevolver" class="mt-2 text-[11px] font-bold text-rose-600">
                     <i class="fas fa-rotate-left mr-1"></i>{{ errorDevolver }}
                 </p>
-            </div>
-
-            <!-- ================= FORMULARIO DE COBRO MANUAL ================= -->
-            <div v-if="formAbierto" class="px-4 md:px-6 pt-4">
-                <div class="bg-white rounded-xl border border-[#2E7D5B]/30 p-4 max-w-3xl">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-sm font-black text-slate-800">Cobro manual</h2>
-                        <button type="button" @click="formAbierto = false"
-                            class="text-slate-400 hover:text-slate-700"><i class="fas fa-xmark"></i></button>
-                    </div>
-                    <p class="mt-1 text-[11px] text-slate-500">
-                        Para cobrar algo que no cuelga de una reserva: una venta suelta, una garantía,
-                        un servicio aparte.
-                    </p>
-
-                    <!-- Emitido: lo primero que quiere el operador es la URL, no volver a la tabla. -->
-                    <div v-if="recienCreado" class="mt-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
-                        <p class="text-[11px] font-black text-emerald-800">
-                            <i class="fas fa-circle-check mr-1"></i>
-                            Enlace emitido · {{ recienCreado.monedaSimbolo }} {{ recienCreado.montoTotal }}
-                        </p>
-                        <div class="mt-2 flex items-center gap-1.5">
-                            <input :value="recienCreado.url" readonly
-                                class="flex-1 min-w-0 px-2 py-1 bg-white border border-emerald-200 rounded text-[10px] font-mono truncate" />
-                            <button type="button" @click="copiar(recienCreado)"
-                                class="shrink-0 px-2 py-1 bg-white border border-emerald-200 rounded text-[10px] font-black">
-                                <i class="fas fa-copy"></i> Copiar
-                            </button>
-                        </div>
-                        <button type="button" @click="abrirFormManual"
-                            class="mt-2 text-[11px] font-black text-emerald-700 underline decoration-dotted">
-                            Emitir otro
-                        </button>
-                    </div>
-
-                    <div v-else class="mt-3 space-y-3">
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <label class="block">
-                                <span class="text-[10px] font-black text-slate-500 uppercase">Importe</span>
-                                <input v-model="formManual.monto" type="number" step="0.01" min="0.01"
-                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
-                            </label>
-                            <label class="block">
-                                <span class="text-[10px] font-black text-slate-500 uppercase">Moneda</span>
-                                <select v-model="formManual.moneda"
-                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white">
-                                    <option value="USD">USD</option>
-                                    <option value="PEN">PEN</option>
-                                </select>
-                            </label>
-                            <!-- Sólo etiqueta: no vincula con ningún documento. -->
-                            <label class="block">
-                                <span class="text-[10px] font-black text-slate-500 uppercase">Módulo</span>
-                                <select v-model="formManual.modulo"
-                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white">
-                                    <option value="">Ninguno</option>
-                                    <option value="pms_reserva">PMS</option>
-                                    <option value="cotizacion">Cotizaciones</option>
-                                </select>
-                            </label>
-                            <label class="block">
-                                <span class="text-[10px] font-black text-slate-500 uppercase">Vigencia (días)</span>
-                                <input v-model.number="formManual.vigenciaDias" type="number" min="0" step="1"
-                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
-                            </label>
-                        </div>
-
-                        <label class="block">
-                            <span class="text-[10px] font-black text-slate-500 uppercase">Concepto</span>
-                            <input v-model="formManual.concepto" type="text" maxlength="200"
-                                placeholder="Lo que verá el cliente en su tarjeta"
-                                class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
-                        </label>
-
-                        <!-- ⚠️ Nombre y apellido SEPARADOS, no un «Cliente» de un solo campo.
-                             Es lo que la pasarela quiere (`first_name`/`last_name`) y juntarlos
-                             aquí obligaría a partirlos después, que es adivinar: «Ramos Garcia Mª
-                             Isabel» no la parte ninguna heurística. Los cuatro son opcionales,
-                             pero sin ellos el panel de Culqi enseña `first_last_name` y nuestro
-                             correo de respaldo, y la venta no se identifica de un vistazo. -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <label class="block">
-                                <span class="text-[10px] font-black text-slate-500 uppercase">Nombre</span>
-                                <input v-model="formManual.clienteNombre" type="text" maxlength="150"
-                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
-                            </label>
-                            <label class="block">
-                                <span class="text-[10px] font-black text-slate-500 uppercase">Apellido</span>
-                                <input v-model="formManual.clienteApellido" type="text" maxlength="150"
-                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
-                            </label>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <label class="block">
-                                <span class="text-[10px] font-black text-slate-500 uppercase">Email</span>
-                                <input v-model="formManual.clienteEmail" type="email"
-                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
-                            </label>
-                            <label class="block">
-                                <span class="text-[10px] font-black text-slate-500 uppercase">Teléfono</span>
-                                <input v-model="formManual.clienteTelefono" type="tel" maxlength="40"
-                                    placeholder="+51 9…"
-                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
-                            </label>
-                            <label class="block">
-                                <span class="text-[10px] font-black text-slate-500 uppercase">Referencia</span>
-                                <input v-model="formManual.referencia" type="text" maxlength="60"
-                                    placeholder="Nº de factura, pedido…"
-                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
-                            </label>
-                        </div>
-
-                        <label class="flex items-start gap-2 cursor-pointer">
-                            <input v-model="formManual.conRecargo" type="checkbox" class="mt-0.5" />
-                            <span class="text-[11px] text-slate-600">
-                                <b>Trasladar la comisión al cliente.</b>
-                                Se cobra el importe más el recargo de tarjeta.
-                            </span>
-                        </label>
-
-                        <p v-if="errorForm" class="text-[11px] font-bold text-rose-600">{{ errorForm }}</p>
-
-                        <div class="flex items-center justify-end gap-2">
-                            <button type="button" @click="formAbierto = false"
-                                class="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
-                            <button type="button" @click="guardarManual"
-                                :disabled="guardando || !formManual.monto || !formManual.concepto"
-                                class="px-4 py-1.5 bg-[#2E7D5B] hover:bg-[#26654a] disabled:opacity-50 text-white rounded-lg text-xs font-black">
-                                <i class="fas" :class="guardando ? 'fa-circle-notch fa-spin' : 'fa-link'"></i>
-                                Emitir enlace
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- ================= PESTAÑA COBROS ================= -->
@@ -890,6 +852,164 @@ function fechaLarga(iso?: string | null): string {
                 </div>
             </section>
         </main>
+        <!-- ================= COBRO MANUAL =================
+             Panel, y ya no un bloque incrustado. Nacía entre los totales y la tabla: empujaba
+             todo hacia abajo, y en un teléfono se veían dos campos y medio con el botón de
+             emitir —y el recuadro con la URL recién creada— fuera de la pantalla.
+
+             Es el mismo `aside` que la ficha, y a propósito: son la misma clase de cosa —algo
+             que se abre encima, se resuelve y se cierra— así que no hay vocabulario nuevo que
+             aprender. Hoja completa en móvil, lateral en escritorio, scroll propio y el botón
+             de emitir clavado abajo. -->
+        <div v-if="formAbierto" class="fixed inset-0 z-40 bg-slate-900/40" @click="formAbierto = false"></div>
+
+        <aside v-if="formAbierto"
+            class="fixed inset-y-0 right-0 z-50 w-full sm:w-[26rem] bg-white shadow-2xl flex flex-col">
+
+            <header class="px-4 py-3 bg-[#2E7D5B] text-white flex items-start justify-between gap-3 shrink-0">
+                <div class="min-w-0">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-white/60">Nuevo</p>
+                    <p class="text-sm font-black truncate">Cobro manual</p>
+                </div>
+                <button type="button" @click="formAbierto = false"
+                    class="shrink-0 w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </header>
+
+            <div class="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-3">
+
+                <!-- Emitido: lo primero que quiere el operador es la URL, no volver a la tabla.
+                     El campo se deja seleccionable a mano además del botón, porque el
+                     portapapeles no siempre está disponible. -->
+                <div v-if="recienCreado" class="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                    <p class="text-[11px] font-black text-emerald-800">
+                        <i class="fas fa-circle-check mr-1"></i>
+                        Enlace emitido · {{ recienCreado.monedaSimbolo }} {{ recienCreado.montoTotal }}
+                    </p>
+                    <input :value="recienCreado.url" readonly
+                        class="mt-2 w-full px-2 py-1.5 bg-white border border-emerald-200 rounded text-[10px] font-mono" />
+                    <div class="mt-2 flex items-center gap-2">
+                        <button type="button" @click="copiar(recienCreado)"
+                            class="flex-1 px-2 py-1.5 bg-white border border-emerald-200 rounded text-[11px] font-black text-emerald-800">
+                            <i class="fas fa-copy mr-1"></i> Copiar
+                        </button>
+                        <button type="button" @click="abrirFormManual"
+                            class="px-2 py-1.5 text-[11px] font-black text-emerald-700 underline decoration-dotted">
+                            Emitir otro
+                        </button>
+                    </div>
+                </div>
+
+                <template v-else>
+                    <p class="text-[11px] text-slate-500 leading-snug">
+                        Para cobrar algo que no cuelga de una reserva: una venta suelta, una garantía,
+                        un servicio aparte.
+                    </p>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="block">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Importe</span>
+                            <input v-model="formManual.monto" type="number" step="0.01" min="0.01"
+                                class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                        </label>
+                        <label class="block">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Moneda</span>
+                            <select v-model="formManual.moneda"
+                                class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white">
+                                <option value="USD">USD</option>
+                                <option value="PEN">PEN</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- Sólo etiqueta: no vincula con ningún documento. -->
+                        <label class="block">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Módulo</span>
+                            <select v-model="formManual.modulo"
+                                class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white">
+                                <option value="">Ninguno</option>
+                                <option value="pms_reserva">PMS</option>
+                                <option value="cotizacion">Cotizaciones</option>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Vigencia (días)</span>
+                            <input v-model.number="formManual.vigenciaDias" type="number" min="0" step="1"
+                                class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                        </label>
+                    </div>
+
+                    <label class="block">
+                        <span class="text-[10px] font-black text-slate-500 uppercase">Concepto</span>
+                        <input v-model="formManual.concepto" type="text" maxlength="200"
+                            placeholder="Lo que verá el cliente en su tarjeta"
+                            class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                    </label>
+
+                    <!-- ⚠️ Nombre y apellido SEPARADOS, no un «Cliente» de un solo campo.
+                         Es lo que la pasarela quiere (`first_name`/`last_name`) y juntarlos
+                         aquí obligaría a partirlos después, que es adivinar: «Ramos Garcia Mª
+                         Isabel» no la parte ninguna heurística. Los cuatro son opcionales,
+                         pero sin ellos el panel de Culqi enseña `first_last_name` y nuestro
+                         correo de respaldo, y la venta no se identifica de un vistazo. -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="block">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Nombre</span>
+                            <input v-model="formManual.clienteNombre" type="text" maxlength="150"
+                                class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                        </label>
+                        <label class="block">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Apellido</span>
+                            <input v-model="formManual.clienteApellido" type="text" maxlength="150"
+                                class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                        </label>
+                    </div>
+
+                    <label class="block">
+                        <span class="text-[10px] font-black text-slate-500 uppercase">Email</span>
+                        <input v-model="formManual.clienteEmail" type="email"
+                            class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                    </label>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="block">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Teléfono</span>
+                            <input v-model="formManual.clienteTelefono" type="tel" maxlength="40"
+                                placeholder="+51 9…"
+                                class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                        </label>
+                        <label class="block">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Referencia</span>
+                            <input v-model="formManual.referencia" type="text" maxlength="60"
+                                placeholder="Nº de factura…"
+                                class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                        </label>
+                    </div>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                        <input v-model="formManual.conRecargo" type="checkbox" class="mt-0.5" />
+                        <span class="text-[11px] text-slate-600">
+                            <b>Trasladar la comisión al cliente.</b>
+                            Se cobra el importe más el recargo de tarjeta.
+                        </span>
+                    </label>
+                </template>
+            </div>
+
+            <!-- El botón de emitir, clavado abajo: en el bloque incrustado quedaba al final de
+                 un formulario largo, o sea fuera de la pantalla en un teléfono. -->
+            <footer v-if="!recienCreado" class="shrink-0 px-4 py-3 border-t border-slate-100 bg-slate-50 space-y-2">
+                <p v-if="errorForm" class="text-[11px] font-bold text-rose-600">{{ errorForm }}</p>
+                <button type="button" @click="guardarManual"
+                    :disabled="guardando || !formManual.monto || !formManual.concepto"
+                    class="w-full py-2 rounded-xl bg-[#2E7D5B] hover:bg-[#26654a] disabled:opacity-50 text-white text-xs font-black">
+                    <i class="fas mr-1" :class="guardando ? 'fa-circle-notch fa-spin' : 'fa-link'"></i>
+                    Emitir enlace
+                </button>
+            </footer>
+        </aside>
         <!-- ================= FICHA DE UN COBRO =================
              Panel lateral, no fila desplegable: en un móvil la tabla ya se corta y lo que
              queda fuera —concepto, documento e importe— es justo lo que se viene a ver. -->
