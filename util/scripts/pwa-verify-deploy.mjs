@@ -72,8 +72,21 @@ if (!failed) {
         console.error('   La PWA se instalaría sin listener de `push`: el backend enviaría, el servidor')
         console.error('   push respondería 201 y el dispositivo no mostraría NADA. Rehaz el build de util.')
         failed = true
-    } else {
-        console.log('✅      contenido del SW: importa push-sw.js y no mezcla assets de pax')
+    }
+
+    // El cartel de «nueva versión» de App.vue depende de esto: con `skipWaiting: false`
+    // workbox inyecta el listener de SKIP_WAITING, y es lo que permite que el SW nuevo
+    // espere al toque de la persona. Si el build saliera sin él, pulsar el cartel no
+    // activaría nada y la actualización se quedaría colgada en silencio.
+    if (!swSrc.includes('SKIP_WAITING')) {
+        console.error('\n❌ /util-service-worker.js NO trae el listener de SKIP_WAITING.')
+        console.error('   El cartel de «nueva versión» quedaría muerto: pulsarlo no activaría nada.')
+        console.error('   Revisa que `skipWaiting` siga en false en util/vite.config.ts y rehaz el build.')
+        failed = true
+    }
+
+    if (!failed) {
+        console.log('✅      contenido del SW: importa push-sw.js, trae SKIP_WAITING y no mezcla assets de pax')
     }
 }
 

@@ -9,19 +9,60 @@ const maestroStore = useMaestroStore();
 // ============================================================================
 // AVISO DE NUEVA VERSIÓN
 // ----------------------------------------------------------------------------
-// Espejo del de `util/src/App.vue`. Pax también se instala como PWA y una
-// pestaña de larga vida puede quedarse con el bundle viejo indefinidamente.
+// Espejo del de `util/src/App.vue`, donde está el porqué largo. Pax también se
+// instala como PWA y una pestaña de larga vida puede quedarse con el bundle viejo
+// indefinidamente.
 //
-// La guarda de `teniaControlador` es imprescindible: el service worker se genera
-// con `skipWaiting` + `clientsClaim`, y clientsClaim dispara `controllerchange`
-// TAMBIÉN la primera vez que toma control de una pestaña que cargó sin
-// controlador. Sin ella, el aviso sale al estrenar la app, que es justo cuando
-// no hay ninguna versión nueva.
+// El SW se genera con `skipWaiting: false` (ver vite.config.ts): el nuevo espera
+// en `waiting` hasta que el cartel se lo pide. Pulsar NO recarga —eso serviría la
+// versión vieja otra vez—, manda `SKIP_WAITING`; la recarga llega sola con el
+// `controllerchange` que sigue.
+//
+// Quien pregunta si hay versión nueva es el `reg.update()` periódico de
+// `templates/pax/app.html.twig`. Sin él no hay `updatefound` y el cartel no sale.
 // ============================================================================
 const updateAvailable = ref(false);
 
+let registroSw: ServiceWorkerRegistration | null = null;
+let recargando = false;
+
 const refreshApp = () => {
+  if (registroSw?.waiting) {
+    registroSw.waiting.postMessage({ type: 'SKIP_WAITING' });
+    return;
+  }
+
   window.location.reload();
+};
+
+/**
+ * `navigator.serviceWorker.controller` distingue una ACTUALIZACIÓN del estreno de
+ * la PWA: sin controlador previo no hay versión nueva, hay una instalación.
+ */
+const vigilarActualizaciones = async (): Promise<void> => {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (recargando) return;
+    recargando = true;
+    window.location.reload();
+  });
+
+  registroSw = await navigator.serviceWorker.getRegistration() ?? null;
+  if (!registroSw) return;
+
+  if (registroSw.waiting && navigator.serviceWorker.controller) {
+    updateAvailable.value = true;
+  }
+
+  registroSw.addEventListener('updatefound', () => {
+    const entrante = registroSw?.installing;
+    if (!entrante) return;
+
+    entrante.addEventListener('statechange', () => {
+      if (entrante.state === 'installed' && navigator.serviceWorker.controller) {
+        updateAvailable.value = true;
+      }
+    });
+  });
 };
 
 onMounted(() => {
@@ -31,10 +72,7 @@ onMounted(() => {
   maestroStore.cargarConfiguracion();
 
   if ('serviceWorker' in navigator) {
-    const teniaControlador = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (teniaControlador) updateAvailable.value = true;
-    });
+    void vigilarActualizaciones();
   }
 });
 </script>

@@ -50,7 +50,16 @@
             // 'service-worker.js' hacía que el último build sobrescribiera al del otro.
             navigator.serviceWorker
                 .register('/pax-service-worker.js', { scope: '/', updateViaCache: 'none' })
-                .then((reg) => reg.update());
+                .then((reg) => {
+                    reg.update();
+
+                    // Espejo del shell de util (`util/scripts/pwa-postbuild.mjs`). El cartel de
+                    // App.vue sólo puede salir si alguien PREGUNTA si hay versión nueva, y el
+                    // update() de arriba corre una sola vez al arrancar: una PWA instalada que
+                    // se queda abierta no volvía a preguntar nunca. Es el mismo fallo que en
+                    // util se arregló el 17/08/2026 y que aquí seguía vivo.
+                    setInterval(() => reg.update(), 60000);
+                });
         }
     </script>
 {% endif %}

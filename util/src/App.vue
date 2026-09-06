@@ -18,16 +18,82 @@ const showManualSubscriptionButton = ref(false);
 // Vive aquí y no en ChatView: si estás en Reservas con la pestaña abierta desde
 // ayer, el código viejo te afecta igual y el aviso también te sirve.
 //
-// La guarda de `teniaControlador` no es opcional. El service worker se genera
-// con `skipWaiting` + `clientsClaim`, y clientsClaim hace que `controllerchange`
-// dispare TAMBIÉN la primera vez que el SW toma control de una pestaña que cargó
-// sin controlador —o sea, recién instalada la app—. Sin la guarda salía "nueva
-// versión disponible" al estrenar la PWA, que es justo cuando no la hay.
+// El cartel es la ÚNICA puerta de la actualización, y ahora de verdad: el SW se
+// genera con `skipWaiting: false` (ver vite.config.ts), así que el nuevo se queda
+// en `waiting` hasta que esta pantalla se lo pide. Antes estaba en `true` y el SW
+// nuevo tomaba el control solo —caché nueva bajo una página vieja—; el cartel sólo
+// pedía permiso para la recarga, que llegaba tarde.
+//
+// No se recarga por nuestra cuenta, y no es cosa de iOS: la recarga automática
+// dispara también en la primera visita, puede entrar en bucle y tira por delante
+// lo que estuvieras haciendo. Ver docs/PwaNotificaciones.md §5.1.
+//
+// Espejo de pax/src/App.vue. Si cambia el mecanismo, cambian los dos.
 // ============================================================================
 const updateAvailable = ref(false);
 
+/** El registro vivo del SW: hace falta para hablar con el que espera. */
+let registroSw: ServiceWorkerRegistration | null = null;
+
+/** Una sola recarga. `controllerchange` puede llegar más de una vez. */
+let recargando = false;
+
+/**
+ * Pulsar el cartel NO recarga: le pide al SW en espera que tome el mando.
+ *
+ * La recarga viene después, sola, cuando el nuevo toma el control y dispara
+ * `controllerchange`. Recargar aquí serviría la versión vieja otra vez, porque el
+ * SW que responde sigue siendo el de antes hasta ese momento.
+ *
+ * Si no hay nadie esperando —el cartel salió por otra vía, o el SW ya activó—
+ * queda la recarga a secas: peor no deja las cosas.
+ */
 const refreshApp = (): void => {
+    if (registroSw?.waiting) {
+        registroSw.waiting.postMessage({ type: 'SKIP_WAITING' });
+        return;
+    }
+
     window.location.reload();
+};
+
+/**
+ * Enciende el cartel cuando hay una versión nueva instalada y esperando.
+ *
+ * `navigator.serviceWorker.controller` es lo que distingue una ACTUALIZACIÓN del
+ * estreno de la PWA: sin controlador previo no hay nada que actualizar, hay una
+ * instalación. Es la misma guarda que antes se llamaba `teniaControlador`, ahora
+ * puesta donde de verdad decide.
+ *
+ * Quién pregunta si hay versión nueva no es esto: es el `reg.update()` periódico
+ * del shell (`scripts/pwa-postbuild.mjs`). Sin él no habría `updatefound` y el
+ * cartel no saldría nunca — que fue exactamente el fallo de agosto de 2026.
+ */
+const vigilarActualizaciones = async (): Promise<void> => {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (recargando) return;
+        recargando = true;
+        window.location.reload();
+    });
+
+    registroSw = await navigator.serviceWorker.getRegistration() ?? null;
+    if (!registroSw) return;
+
+    // Puede haber uno esperando desde antes de que montara la app.
+    if (registroSw.waiting && navigator.serviceWorker.controller) {
+        updateAvailable.value = true;
+    }
+
+    registroSw.addEventListener('updatefound', () => {
+        const entrante = registroSw?.installing;
+        if (!entrante) return;
+
+        entrante.addEventListener('statechange', () => {
+            if (entrante.state === 'installed' && navigator.serviceWorker.controller) {
+                updateAvailable.value = true;
+            }
+        });
+    });
 };
 
 // ============================================================================
@@ -63,12 +129,7 @@ onMounted(() => {
       }
     });
 
-    // Si ya hay controlador, cualquier cambio posterior ES una versión nueva.
-    // Si no lo hay, el primer `controllerchange` es solo el estreno del SW.
-    const teniaControlador = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (teniaControlador) updateAvailable.value = true;
-    });
+    void vigilarActualizaciones();
   }
 
   void noLeidosStore.refrescar();

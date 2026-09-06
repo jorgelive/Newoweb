@@ -278,7 +278,10 @@ En orden, porque cada paso descarta el anterior:
 | Añadir un contador de no leídos en otra vista | `util/src/stores/chat/noLeidosStore.ts` | consúmelo del store; no cuentes sobre `chatStore.conversations`, §5 |
 | Cambiar qué devuelve el resumen | `UnreadSummaryController` **y** `noLeidosStore.ts` | Son espejo: las claves de la respuesta están tipadas en `RespuestaResumen` |
 | Reconciliar contadores que se ven raros | — | `php bin/console app:message:recalcular-no-leidos --dry-run`, [Mensajeria.md §7](Mensajeria.md#7-gotchas) |
-| Tocar el aviso de nueva versión | `util/src/App.vue` y `pax/src/App.vue` | No quitar la guarda `teniaControlador`, §5.1 |
+| Tocar el aviso de nueva versión | `util/src/App.vue` y `pax/src/App.vue` | `vigilarActualizaciones()` — la guarda de estreno es `navigator.serviceWorker.controller`, §5.1 |
+| Volver a la actualización automática | `util/vite.config.ts` y `pax/vite.config.ts` | `registerType` — `autoUpdate` PISA el bloque `workbox` y deja el cartel decorativo |
+| Cambiar cada cuánto se pregunta por versión nueva | `util/scripts/pwa-postbuild.mjs` y `templates/pax/app.html.twig` | El `setInterval(... , 60000)`. Son dos sitios: uno por app |
+| Verificar el despliegue de pax | `pax/scripts/pwa-verify-deploy.mjs` | `npm run verify:deploy` — espejo del de util, sin push |
 | Qué pasa si la app está enfocada al llegar un push | `util/public/push-sw.js` | rama `isAppFocused` → `postMessage`, lo recoge `App.vue` |
 | Rotar las llaves VAPID | `.env.local` **y** `util/.env.production` | `VAPID_PUBLIC_KEY` ↔ `VITE_VAPID_PUBLIC_KEY` son **espejo**: si difieren, el servidor push rechaza con 403. Cambiarlas invalida todas las suscripciones existentes |
 | Que un dispositivo caído no calle a los demás | `WebPushNotificationService::sendToUser()` | No lanza excepciones a propósito, §6 |
@@ -305,6 +308,14 @@ Arreglo, una línea en `pwa-postbuild.mjs`:
 ```js
 setInterval(function () { reg.update(); }, 60000);
 ```
+
+⚠️ **Y en `pax` faltó hasta el 05/09/2026.** El arreglo se aplicó sólo al shell de util; el
+registro de pax vive en `templates/pax/app.html.twig` y se quedó con el `reg.update()` de una
+sola vez. Mismo fallo, misma app del huésped, dieciocho días más. Muerde menos —un huésped abre
+el enlace, mira y cierra— pero la sesión que se queda abierta no vuelve a preguntar nunca.
+
+> Al vivir en un Twig y no en un shell generado, **tocarlo necesita `cache:clear --env=prod`**
+> para llegar a producción. El hook de `post-merge` ya lo hace en cada `git pull`.
 
 ⚠️ **Y NO se recarga por nuestra cuenta.** La primera versión de este arreglo enganchaba
 `controllerchange` en el propio shell y hacía `location.reload()`. En el escritorio funcionaba,
@@ -338,14 +349,45 @@ de iOS.
 lee como fricción evitable, que sepa que quitarlo no devuelve nada — devuelve una recarga en la
 primera visita y una edición cortada a media frase.
 
-⚠️ **Y hay un cabo suelto, que es nuestro y no de Apple.** El patrón del cartel se monta con
-`skipWaiting: false`; nuestro `vite.config.ts` lo tiene en **`true`**, junto con `clientsClaim`.
-O sea: el SW nuevo toma el control **sin preguntar**, y lo único que espera al toque es la
-recarga de la página — una página vieja hablando con una caché nueva. Es también lo que obliga a
-la guarda `teniaControlador` de §5.1, porque `clientsClaim` dispara `controllerchange` en la
-primera instalación. Funciona, pero es una mezcla de dos patrones; el limpio sería
-`skipWaiting: false` + `messageSkipWaiting()` al pulsar el cartel. **Sin tocar hasta que se
-decida**: cambiarlo toca el mecanismo de actualización de las dos PWAs a la vez.
+### El cartel pasó a ser de verdad la puerta (05/09/2026)
+
+Hasta aquí el cartel pedía permiso para algo que ya había pasado. Las dos apps se generaban con
+`skipWaiting` + `clientsClaim` en **true**: el SW nuevo tomaba el control **sin preguntar** y lo
+único que esperaba al toque era la recarga — una página vieja hablando con una caché nueva. Era
+también lo que obligaba a la guarda `teniaControlador`, porque `clientsClaim` dispara
+`controllerchange` en la primera instalación.
+
+Ahora es el patrón que
+[recomienda Workbox](https://developer.chrome.com/docs/workbox/handling-service-worker-updates),
+en `util` y en `pax`:
+
+| Pieza | Antes | Ahora |
+|---|---|---|
+| `registerType` | `autoUpdate` | **`prompt`** |
+| `workbox.skipWaiting` / `clientsClaim` | `true` / `true` | **`false` / `false`** |
+| Qué hace pulsar el cartel | `location.reload()` | **`postMessage({type:'SKIP_WAITING'})`** |
+| Quién recarga | la persona | el `controllerchange` que llega después, solo |
+| Guarda de estreno | `teniaControlador` sobre el evento | `navigator.serviceWorker.controller` al detectar el SW instalado |
+
+⚠️ **`registerType: 'autoUpdate'` PISA el bloque `workbox`.** Poner `skipWaiting: false` ahí abajo
+no hacía nada: el SW generado seguía trayendo `self.skipWaiting(),e.clientsClaim()` y **ningún**
+listener de SKIP_WAITING. Se vio inspeccionando el bundle generado, no leyendo la documentación
+del plugin. Quien devuelva `registerType` a `autoUpdate` deja el cartel **decorativo**: pulsarlo
+no activaría nada.
+
+⚠️ **Pulsar el cartel NO recarga, y no puede hacerlo.** Recargar en ese momento serviría la
+versión vieja otra vez, porque quien responde sigue siendo el SW anterior hasta que el nuevo
+activa. El orden es: `SKIP_WAITING` → el nuevo activa y reclama → `controllerchange` → recarga.
+Con una guarda `recargando` para que un `controllerchange` repetido no encadene recargas.
+
+⚠️ **Lo comprueban los dos `verify:deploy`**, buscando `SKIP_WAITING` dentro del SW servido. Sin
+esa comprobación, un `registerType` mal puesto pasaría el build, pasaría el despliegue y sólo se
+notaría el día que alguien pulsara el cartel y no ocurriera nada.
+
+⚠️ **La transición se paga una vez.** Un cliente que hoy tiene el SW viejo (con `skipWaiting`)
+instala el nuevo y lo deja en `waiting`: su App.vue viejo no sabe mandarle `SKIP_WAITING`, así que
+activa cuando se cierran todas las pestañas de la app. En un móvil eso es cerrar la PWA y volver a
+abrirla, una vez. A partir de ahí, el cartel.
 
 ⚠️ Al diagnosticar esto, el síntoma («no veo el cambio») apunta a build o despliegue, y los dos
 estaban bien. La comprobación que lo descarta en un minuto es buscar un texto del código nuevo

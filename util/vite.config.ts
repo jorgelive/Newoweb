@@ -23,7 +23,16 @@ export default defineConfig(({ command }) => {
 
                 // ✅ Symfony/Twig controla el HTML, no inyectar nada
                 injectRegister: null,
-                registerType: 'autoUpdate',
+
+                // ⚠️ `prompt`, NO `autoUpdate`, y no es un detalle de nombre: `autoUpdate`
+                // FUERZA `skipWaiting` + `clientsClaim` a true y PISA lo que se ponga abajo
+                // en `workbox`. Con él, el SW nuevo tomaba el control sin preguntar y el
+                // cartel de App.vue sólo llegaba a pedir permiso para la recarga — tarde.
+                // Comprobado en el SW generado, no en la documentación: con `autoUpdate` el
+                // bundle traía `self.skipWaiting(),e.clientsClaim()` y ningún listener de
+                // SKIP_WAITING. Si alguien lo devuelve a `autoUpdate`, el cartel se queda
+                // decorativo. Espejo en pax/vite.config.ts.
+                registerType: 'prompt',
 
                 // ✅ Un solo modo: generateSW
                 strategies: 'generateSW',
@@ -72,8 +81,18 @@ export default defineConfig(({ command }) => {
 
                 workbox: {
                     cleanupOutdatedCaches: true,
-                    clientsClaim: true,
-                    skipWaiting: true,
+
+                    // ⚠️ Los DOS en false, y es lo que hace honesto al cartel de «nueva
+                    // versión» de App.vue. Estuvieron en true, que es la mezcla de dos
+                    // patrones incompatibles: el SW nuevo tomaba el control sin preguntar
+                    // —caché nueva bajo una página vieja— y lo único que esperaba el toque
+                    // era la recarga. Con `skipWaiting: false`, workbox inyecta el listener
+                    // de `{type:'SKIP_WAITING'}` y el SW espera de verdad hasta que la
+                    // persona pulsa; `clientsClaim: false` evita además que el estreno de la
+                    // PWA dispare un `controllerchange` que no es ninguna actualización.
+                    // Espejo exacto en pax/vite.config.ts. Ver docs/PwaNotificaciones.md §5.1.
+                    clientsClaim: false,
+                    skipWaiting: false,
 
                     // ✅ Importante: Inyectamos el script nativo de notificaciones Push para app_util
                     importScripts: ['/app_util/push-sw.js'],

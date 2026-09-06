@@ -22,7 +22,11 @@ export default defineConfig(({ command }) => {
 
                 // ✅ Symfony/Twig controla el HTML, no inyectar nada
                 injectRegister: null,
-                registerType: 'autoUpdate',
+                // ⚠️ `prompt`, NO `autoUpdate`: `autoUpdate` fuerza `skipWaiting` +
+                // `clientsClaim` a true y PISA lo que diga el bloque `workbox` de abajo.
+                // El porqué largo, y la comprobación sobre el SW generado, en
+                // util/vite.config.ts. Si cambias uno, cambia el otro.
+                registerType: 'prompt',
 
                 // ✅ Un solo modo: generateSW (sin injectManifest)
                 strategies: 'generateSW',
@@ -52,8 +56,13 @@ export default defineConfig(({ command }) => {
 
                 workbox: {
                     cleanupOutdatedCaches: true,
-                    clientsClaim: true,
-                    skipWaiting: true,
+
+                    // ⚠️ Los DOS en false — espejo de util/vite.config.ts, donde está el
+                    // porqué largo: con `skipWaiting: false` workbox inyecta el listener de
+                    // `{type:'SKIP_WAITING'}` y el SW nuevo espera al toque de la persona en
+                    // vez de tomar el control por su cuenta. Si cambias uno, cambia el otro.
+                    clientsClaim: false,
+                    skipWaiting: false,
 
                     // ✅ Importante: escanear SOLO desde public/app_pax
                     globDirectory: '../public/app_pax',
