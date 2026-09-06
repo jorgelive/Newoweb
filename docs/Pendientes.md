@@ -119,7 +119,7 @@ dentro de la propia skill. La nota decía «bloqueado por la pasarela, no por el
 
 **Ese bloqueo había caducado y nadie volvió a mirar la nota:** el flag está en **1** en
 producción. Y con él encendido, la colisión que esta misma sección daba por *latente* pasó a estar
-**activa** — `generar_enlace_prepago` es `SkillConmutableInterface` y con el flag a 1 entra en el
+**activa** — `generar_enlace_prepago_pago_total` es `SkillConmutableInterface` y con el flag a 1 entra en el
 catálogo.
 
 **No se descomentó nada: se borró la skill entera.** Las cinco cosas que hacían falta para
@@ -132,7 +132,7 @@ camino:
 | «¿qué medios tenemos?» | `consultar_medios_pago` — catálogo `FinMedioCobro` con `ofrecibles()` |
 | «envíale su información de pago» | `enviar_plantilla` + `pago_texto` |
 | «dámelo para copiarlo» | `enviarme_plantilla` |
-| «emite el enlace» | `generar_enlace_prepago`, con previsualización |
+| «emite el enlace» | `generar_enlace_prepago_pago_total`, con previsualización |
 
 `pago_texto` hidrata `{{ bloque_pago }}` y `{{ medios_de_pago }}` desde `PmsRedactorDeCobro` —siete
 idiomas, números de cuenta reales— y lleva `{{ account_url }}` a la ficha, que es donde el huésped
@@ -148,7 +148,7 @@ sola era la peor — y devolvía un texto bien formado, así que ganaba en silen
 imprimía todo en `US$` aunque la cuenta estuviera en soles.
 
 Los defectos que esta sección enumeraba —diagnóstico falso «sin prepago», `US$` en duro,
-`Roles::HUESPED`, los `[ROOMNAME1]` crudos, el pisado con `generar_enlace_prepago`— se van con
+`Roles::HUESPED`, los `[ROOMNAME1]` crudos, el pisado con `generar_enlace_prepago_pago_total`— se van con
 ella. Los dos que NO eran suyos siguen abiertos y viven ahora en `docs/FinanzasEnlacesPago.md`:
 `emitirSimulado()` y `emitir()` comparten ya el mismo `loQueSePide()`, y `vigentePorImporte()`
 **sigue comparando sólo el importe, sin moneda**.

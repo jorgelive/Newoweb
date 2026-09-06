@@ -1023,7 +1023,7 @@ existen: una vista que el asistente nunca toca no necesita registrarse.
 | **Home** | el panel de llegadas y salidas | `confirmar_estancia`, `modificar_reserva`, `aplicar_cambio_horario` |
 | **Reservas** | el calendario | `crear_reserva`, `crear_estancia`, `modificar_reserva`, `confirmar_estancia` |
 | **Tarifas** | el calendario de precios | `ajustar_tarifas` |
-| **Finanzas** | movimientos y saldo | `registrar_pago`, `registrar_cargo`, `generar_enlace_prepago` |
+| **Finanzas** | movimientos y saldo | `registrar_pago`, `registrar_cargo`, `generar_enlace_prepago_pago_total` |
 | **Operación** | la pestaña que se esté mirando | `aplicar_cambio_horario` |
 | **Ficha del expediente** | el padrón | las de cotización |
 

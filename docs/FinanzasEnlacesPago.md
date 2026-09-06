@@ -49,7 +49,8 @@ es dejar rastro de la contradicción (un enlace `anulado` que acabó cobrado), n
 9. [El módulo en `util`: Cobros y Caja](#9-el-módulo-en-util-cobros-y-caja)
 10. [Añadir un módulo nuevo que cobre](#10-añadir-un-módulo-nuevo-que-cobre)
 11. [Dos pasarelas en paralelo: Izipay y Culqi](#11-dos-pasarelas-en-paralelo-izipay-y-culqi)
-11 bis. [Enlaces de PREPAGO](#11-bis-enlaces-de-prepago)
+11 bis. [Enlaces de PREPAGO — y de saldo](#11-bis-enlaces-de-prepago--y-de-saldo)
+    - [📋 El estado actual, de un vistazo](#-el-estado-actual-de-un-vistazo)
 11 quater. [Devoluciones: deshacer un cobro que ya pasó](#11-quater-devoluciones-deshacer-un-cobro-que-ya-paso)
 12. [Despliegue: por qué no basta con `git pull`](#12-despliegue-por-qué-no-basta-con-git-pull)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
@@ -1209,15 +1210,20 @@ barrera.
 
 ---
 
-## 11 bis. Enlaces de PREPAGO
+## 11 bis. Enlaces de PREPAGO — y de saldo
 
-Cobrar el adelanto por pasarela. **No hay maquinaria de cobro nueva debajo**: es lo que ya
-había, con el importe del prepago en vez del saldo.
+Cobrar por pasarela lo que toque pedir. **No hay maquinaria de cobro nueva debajo**: es la de
+§3, con el importe que decide `PmsPrepagoCalculador` en vez de con el saldo a secas.
+
+⚠️ **Se llamó «de prepago» y ya no siempre lo es.** Desde el 06/09/2026 el mismo camino emite el
+**adelanto** hasta la víspera de la llegada y el **saldo entero** desde ese día — y la skill se
+llama `generar_enlace_prepago_pago_total` justamente para no prometer una sola de las dos cosas.
+El nombre de la sección se queda por las referencias cruzadas de este doc.
 
 ```
 consultar_cuenta ──► prepago_pendiente (sólo informa)
                                 │
-generar_enlace_prepago ─────────┤ PmsPrepagoEnlaceService::emitir()
+generar_enlace_prepago_pago_total ─────────┤ PmsPrepagoEnlaceService::emitir()
    (skill, RESERVAS_WRITE)      │   ├─ PmsPrepagoCalculador::pendiente()  ← el importe
    confirmado=false → preview   │   └─ FinEnlacePagoService::crear(montoNeto: …)
    confirmado=true  → emite     │
@@ -1236,7 +1242,12 @@ generar_enlace_prepago ─────────┤ PmsPrepagoEnlaceService::e
 
 ### El interruptor: `FINANZAS_ENLACES_PREPAGO`
 
-En **0** hasta que Culqi pase a producción. Con `pk_test_`/`sk_test_` la pasarela **acepta el
+**Hoy está en 1 en producción** (`.env.local`), y el repo lo trae en **0** por defecto (`.env`),
+que es lo que hay en local. Conviene saberlo antes de leer nada de lo que sigue: con 0 la skill
+no existe en el catálogo, el pax no pinta botón y `emitirPorCambioDeCargos()` no hace nada — más
+de una prueba ha salido verde en falso por eso.
+
+Estuvo en 0 hasta que Culqi pasó a producción. Con `pk_test_`/`sk_test_` la pasarela **acepta el
 cobro y no mueve dinero**, y un huésped que "paga" ahí se va convencido de que ya está.
 
 Apaga sólo el camino **automático** —la skill y el botón del pax—, no los cobros: el botón
@@ -1250,6 +1261,52 @@ ponerlo a 1: claves `_live_` en `.env.local` **y** `composer dump-env prod` (§1
 Con el flag apagado la skill **no existe en el catálogo** —`SkillConmutableInterface`, ver
 `docs/Mensajeria.md` §11— y `enlacesPagables()` devuelve vacío, así que la app del pax no pinta
 ningún botón. Comprobado en local en los dos sentidos.
+
+### 📋 El estado actual, de un vistazo
+
+Todo lo que sigue en esta sección explica el **porqué**. Esto es el **qué**, y es lo que hay que
+mirar antes de tocar nada.
+
+**Qué se emite, y con qué nombre.** Lo decide `PmsPrepagoEnlaceService::loQueSePide()`, y lo
+comparten los **tres** caminos —el automático, la skill del agente y su previsualización—, así
+que no pueden divergir:
+
+| Situación de la reserva | Qué se emite | Concepto en la tarjeta | Importe |
+|---|---|---|---|
+| Antes del día de llegada, sin pagos | adelanto | `Adelanto de reserva X — Casita N` | la fracción de la política, en la moneda de la **cabecera** |
+| Antes del día de llegada, **con** algún pago | nada, y se retira el vivo | — | — |
+| Desde el día de llegada, sin pagos | saldo | `Saldo de reserva X — Casita N` | el saldo entero de la moneda que **más se debe** |
+| Desde el día de llegada, con pago parcial | saldo | `Saldo de reserva X — Casita N` | lo que queda |
+| El adelanto ya ES el saldo (estancia de una noche) | saldo, **desde el primer día** | `Saldo de reserva X — Casita N` | el saldo entero |
+| Canal que ya cobró · sin política · base cero · saldo cero | nada, y se retira el vivo | — | — |
+
+**Quién lo dispara.** Dos cosas, y sólo dos:
+
+| Disparador | Cuándo |
+|---|---|
+| `PmsInformacionFinancieraCoherenciaListener::postFlush()` | cuando en ese flush se movió un cargo, un pago, una estancia o nació la reserva — o sea, por **movimiento** |
+| `app:pms:prepago:revisar-llegadas` (cron, 05:05 UTC = 00:05 de Lima) | por **reloj**: el día de llegada la regla cambia y puede que nada mueva esa cuenta |
+
+Más el camino a mano: `generar_enlace_prepago_pago_total` (`RESERVAS_WRITE`, dos pasos con
+confirmación) y el botón «Cobrar con tarjeta» del panel de la reserva.
+
+**Qué se retira, y qué no.** Se anulan **sólo los enlaces automáticos** (`creadoPor === null`).
+Uno emitido a mano por un operador sobrevive siempre — es la decisión de una persona. Y desde el
+06/09/2026 también se retira el automático viejo **cuando se reutiliza otro por el importe
+bueno**, que es el caso del manual del operador coincidiendo con el saldo.
+
+**Qué ve el operador.** La respuesta de la skill trae `que_se_pide` (`adelanto` | `saldo`), y la
+pregunta de aprobación usa esa palabra. No se deduce del concepto ni de la fecha: lo dice el
+mismo servicio que emite.
+
+**Qué NO viaja en el mensaje.** El enlace. La plantilla `pago_texto` lleva `{{ bloque_pago }}` y
+`{{ account_url }}`: el mensaje manda a la ficha, y la ficha enseña los enlaces vigentes. Así no
+puede quedar un importe escrito contradiciendo lo que el enlace cobra.
+
+**Vigencia.** Los automáticos nacen con `vigenciaDias: 0` —sin caducidad—; los manuales conservan
+la de por defecto. El porqué, abajo.
+
+---
 
 ### El enlace se emite SOLO cuando la reserva estrena importes
 
@@ -1363,6 +1420,8 @@ retira en vez de emitir** —lo único que no se puede comprobar con una sola co
 
 ### 🎯 Adelanto hasta la víspera, SALDO desde el día de llegada (06/09/2026)
 
+> El **qué** está en «El estado actual, de un vistazo», arriba. Aquí está el **porqué**.
+
 La regla no es nueva: la decidió `PmsQueSePide` el 28/08/2026 —«desde la mañana del día de
 llegada se pide el total, un adelanto pierde sentido cuando el huésped ya está entrando»—. Lo
 nuevo es que **el emisor de enlaces la lea**.
@@ -1420,6 +1479,8 @@ Las dos pruebas comprueban ahora el interruptor y abortan si está apagado.
 
 ### Dos decisiones tomadas con los datos delante (06/09/2026)
 
+> El **qué** está en «El estado actual, de un vistazo», arriba. Aquí está el **porqué**.
+
 **1 · Con un pago parcial y la reserva ya llegada, se pide el SALDO restante.** Antes,
 `pendiente()` devolvía `null` en cuanto había cualquier pago y ahí se acababa: el mensaje pedía
 el total y no había ningún enlace que lo acompañara. Ahora esa puerta se abre — y **sólo** ésa:
@@ -1457,7 +1518,9 @@ que de verdad se aplica a diario.
 
 ### El rótulo que ve el operador también cambia (06/09/2026)
 
-Cambiar el importe sin cambiar la palabra deja el peor de los dos mundos. `generar_enlace_prepago`
+> El **qué** está en «El estado actual, de un vistazo», arriba. Aquí está el **porqué**.
+
+Cambiar el importe sin cambiar la palabra deja el peor de los dos mundos. `generar_enlace_prepago_pago_total`
 pedía aprobación con **«¿Emito el enlace de adelanto de 188.88?»** sobre un cobro que ya era el
 saldo entero: el importe correcto con el rótulo equivocado, que es justo de lo que nadie sospecha.
 
@@ -1474,6 +1537,8 @@ sobre un cobro que es todo.
 > emisión compartan `loQueSePide()`.
 
 ### ⏰ La regla depende de la FECHA, pero el emisor se dispara por MOVIMIENTO (06/09/2026)
+
+> El **qué** está en «El estado actual, de un vistazo», arriba. Aquí está el **porqué**.
 
 El relevo del adelanto por el saldo no ocurre a medianoche: ocurre la próxima vez que algo mueva
 la cuenta. El emisor vive en el `postFlush` de `PmsInformacionFinancieraCoherenciaListener` y
@@ -1651,7 +1716,7 @@ adelanto de 110.00 PEN:
 | `total_pagos` 0.00, saldo 220.00 | `total_pagos` 110.00, saldo 110.00 |
 | enlace PENDIENTE | enlace PAGADO, `movimientoGeneradoId` apuntando al pago |
 | `prepago_pendiente` en `consultar_cuenta` | ya no aparece |
-| `generar_enlace_prepago` emitía | responde «no tiene prepago pendiente» |
+| `generar_enlace_prepago_pago_total` emitía | responde «no tiene prepago pendiente» |
 
 El pago se creó por el **neto** (110.00, no los 116.05 de la tarjeta) con `comisionPorcentaje`
 5.50, que es la regla de §6 y la que hace que el saldo cuadre.
@@ -2052,7 +2117,7 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar el corte entre adelanto y total | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `queSePide()` — la leen el emisor de enlaces **y** el redactor del mensaje |
 | Cambiar si un pago parcial cierra la puerta | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | la rama `$prepago === null` de `emitirConTurno()` — hoy se abre sólo con `yaLlegoElDia()` |
 | Cambiar cuándo un adelanto se llama «Saldo» | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `esElSaldoEntero()` — se decide al emitir, no al cruzar el día |
-| Cambiar el rótulo que aprueba el operador | `src/Agent/Skill/Pms/GenerarEnlacePrepagoSkill.php` | `que_se_pide`, que viene de `esSaldo`; no se deduce del concepto |
+| Cambiar el rótulo que aprueba el operador | `src/Agent/Skill/Pms/GenerarEnlacePrepagoPagoTotalSkill.php` | `que_se_pide`, que viene de `esSaldo`; no se deduce del concepto |
 | Cambiar qué importe/concepto lleva el enlace automático | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `loQueSePide()` + `conceptoSaldo()` — lo comparten los tres caminos |
 | Cambiar CUÁNDO se releva el adelanto por el saldo | `src/Pms/Command/PmsPrepagoRevisarLlegadasCommand.php` + crontab | `app:pms:prepago:revisar-llegadas` — 05:05 UTC = 00:05 de Lima |
 | Cambiar cuántos días atrás mira el relevo | el mismo comando | `--dias-atras` (30 por defecto) |

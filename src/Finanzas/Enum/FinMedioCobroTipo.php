@@ -18,7 +18,7 @@ namespace App\Finanzas\Enum;
  *
  * La prueba de que no son el mismo enum: la tarjeta de crédito es un `PmsMedioPago` de pleno
  * derecho y aquí **no está**, porque no se anuncia con un número —se anuncia con un enlace de
- * pasarela que emite {@see \App\Agent\Skill\Pms\GenerarEnlacePrepagoSkill}—. Y al revés, Yape y
+ * pasarela que emite {@see \App\Agent\Skill\Pms\GenerarEnlacePrepagoPagoTotalSkill}—. Y al revés, Yape y
  * Plin viven fusionados en `PLIN_YAPE` para contabilizar, pero al cliente se le nombran por
  * separado porque son dos apps.
  *

@@ -528,7 +528,7 @@ vía `UnreadSummaryController`. Ver [`PwaNotificaciones.md`](PwaNotificaciones.m
 
 ##### 🔗 El enlace de pago se LEE en `consultar_cuenta`, no se emite
 
-Emitir un enlace es escribir un cobro: lo hace `generar_enlace_prepago`, que exige
+Emitir un enlace es escribir un cobro: lo hace `generar_enlace_prepago_pago_total`, que exige
 `RESERVAS_WRITE` y **no existe en el chat del huésped**. Ese candado se queda donde está.
 
 Pero leer el que **ya existe** es otra cosa, y `consultar_cuenta` lo devuelve en
@@ -4189,16 +4189,16 @@ no tiene dónde escribir otra reserva—, y se acepta sólo porque la misma skil
 lados. Comprobado con las dos reservas de Susan: pasando el id de la otra desde el chat, la
 skill devuelve la del contexto.
 
-### `generar_enlace_prepago`: emite el cobro del adelanto, y ahí se para
+### `generar_enlace_prepago_pago_total`: emite el cobro del adelanto, y ahí se para
 
 Emite el enlace con el que el huésped paga su adelanto y devuelve la URL.
 **No lo envía.** El flujo completo son dos llamadas encadenadas, igual que
 `localizar_conversacion` → `enviar_mensaje_huesped`:
 
 ```
-generar_enlace_prepago(reserva_id, confirmado=false)  → importe + pregunta_aprobacion
+generar_enlace_prepago_pago_total(reserva_id, confirmado=false)  → importe + pregunta_aprobacion
         ↓  el operador dice que sí
-generar_enlace_prepago(reserva_id, confirmado=true)   → url
+generar_enlace_prepago_pago_total(reserva_id, confirmado=true)   → url
         ↓  el modelo redacta en el idioma del huésped
 enviar_mensaje_huesped(...)                       ✍️  → borrador → «¿lo mando?» → sale
 ```
@@ -4229,7 +4229,7 @@ huésped una versión inventada de por qué no pudo.
 ⚠️ **El filtro del registro no es seguridad.** Filtra el catálogo, no la ejecución: por nombre
 se llega igual desde `app:agent:skill` o desde un plan de una conversación que empezó antes de
 apagar el flag. Una skill apagada que además escriba **tiene que volver a comprobarlo en
-`ejecutar()`**, y `generar_enlace_prepago` lo hace.
+`ejecutar()`**, y `generar_enlace_prepago_pago_total` lo hace.
 
 #### 🔥 El usuario del actor no siempre está en la base de datos
 
@@ -6019,7 +6019,7 @@ arreglar** — ver el aviso al final de esta sección.
 | Que una skill que escribe llegue al chat del huésped | la propia skill | `nivelRiesgo(): NivelRiesgo::Interna` — sólo si escribe *hacia dentro* y el peor caso es perder un minuto, §11 |
 | Cambiar qué se filtra en el chat del huésped (sólo lectura) | `SkillRegistry::paraActor()` | `NivelRiesgo::exigePermisoDeEscritura()` — **no** comparar con `Lectura`, §11 |
 | Que el huésped consulte su saldo o el desglose de su cuenta | `ConsultarMiReservaSkill` (cifra) / `ConsultarCuentaSkill` (detalle) | La segunda ignora `reserva_id` si hay contexto: `reservaDelContexto()`, §11 |
-| Mandarle al huésped el enlace para pagar su adelanto | `GenerarEnlacePrepagoSkill` + `EnviarMensajeHuespedSkill` | Son DOS llamadas: genera, y luego envía. §11 |
+| Mandarle al huésped el enlace para pagar su adelanto | `GenerarEnlacePrepagoPagoTotalSkill` + `EnviarMensajeHuespedSkill` | Son DOS llamadas: genera, y luego envía. §11 |
 | Apagar una skill sin borrarla | `SkillConmutableInterface` en la propia skill | Desaparece del catálogo; repite la guarda en `ejecutar()`. §11 |
 | Que el huésped pueda avisar al equipo | `EscalarAlEquipoSkill` | Ya la tiene (`Roles::HUESPED` + `Interna`). El prompt le obliga a llamarla si promete respuesta, §9 |
 | **Que el huésped pueda pedirse una plantilla** (su guía, tours) | CRUD de plantillas | Interruptor «autoenvío» (`autoenvio_habilitada`) + «Cuándo usarla» rellenado. La manda `EnviarmePlantillaSkill`, §11 |
@@ -6125,7 +6125,7 @@ El reparto lo decide **cada cuánto caduca el dato**:
   │   ⚠️ NO se escribe en la guía: envejece en silencio                    │
   ├───────────────────────────────────────────────────────────────────────┤
   │ ENLACE DE PAGO            no existe todavía                            │
-  │ GenerarEnlacePrepagoSkill, apagada con FINANZAS_ENLACES_PREPAGO=0     │
+  │ GenerarEnlacePrepagoPagoTotalSkill, apagada con FINANZAS_ENLACES_PREPAGO=0     │
   │   → mientras esté apagada, consultar_medios_pago devuelve             │
   │     pago_con_tarjeta.disponible = false + la orden de no inventarlo   │
   └───────────────────────────────────────────────────────────────────────┘
@@ -10978,7 +10978,7 @@ dinero para el cliente (las únicas de `msg_template` que hablan de cobros son `
 | 1 | `ConsultarCuentaSkill` | no — datos |
 | 2 | `ConsultarMediosPagoSkill` | no — datos del catálogo |
 | 3 | ~~`GenerarMensajePrepagoSkill`~~ | **sí, 400 líneas de PHP** — borrada el 06/09/2026 |
-| 4 | `GenerarEnlacePrepagoSkill` | no — una URL |
+| 4 | `GenerarEnlacePrepagoPagoTotalSkill` | no — una URL |
 | 5 | `PmsPrepagoEnlaceService::emitirPorCambioDeCargos()` | automático, sin avisar |
 | 6 | `PmsReservaPaxProvider` | la ficha del huésped |
 

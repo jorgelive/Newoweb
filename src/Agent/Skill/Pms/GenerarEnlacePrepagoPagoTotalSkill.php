@@ -68,7 +68,7 @@ use Symfony\Component\Uid\Uuid;
  * esta skill no existe en su contexto. El huésped ve sus enlaces en su app, que sólo enseña
  * los que ya existen — leer no es emitir.
  */
-final readonly class GenerarEnlacePrepagoSkill implements SkillInterface, SkillDominioInterface, SkillConmutableInterface
+final readonly class GenerarEnlacePrepagoPagoTotalSkill implements SkillInterface, SkillDominioInterface, SkillConmutableInterface
 {
     public function __construct(
         private EntityManagerInterface $em,
@@ -77,7 +77,7 @@ final readonly class GenerarEnlacePrepagoSkill implements SkillInterface, SkillD
 
     public function nombre(): string
     {
-        return 'generar_enlace_prepago';
+        return 'generar_enlace_prepago_pago_total';
     }
 
     public function estaActiva(): bool

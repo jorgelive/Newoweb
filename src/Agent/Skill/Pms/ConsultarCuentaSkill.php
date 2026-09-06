@@ -412,7 +412,7 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
      *
      * ### Leer no es emitir, y ésa es toda la diferencia
      *
-     * Emitir un enlace es escribir un cobro: lo hace `generar_enlace_prepago`, que exige
+     * Emitir un enlace es escribir un cobro: lo hace `generar_enlace_prepago_pago_total`, que exige
      * `RESERVAS_WRITE` y por eso **no existe en el chat del huésped**. Ese candado se queda
      * donde está. Esto es otra cosa: el enlace ya fue emitido —a mano por un operador, o solo
      * al estrenar importes la reserva (§11 bis de docs/FinanzasEnlacesPago.md)— y **el huésped

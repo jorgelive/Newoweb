@@ -56,7 +56,7 @@ use Symfony\Component\Uid\Uuid;
  * declara con `pago_con_tarjeta.disponible = false` más una instrucción explícita de no
  * inventarlo. Es deliberado que viaje el `false` en vez de omitir la clave: el silencio es
  * justo lo que el modelo rellena solo. Cuando se encienda el flag y Culqi esté en producción,
- * el enlace lo emitirá {@see GenerarEnlacePrepagoSkill} y aquí pasará a `true`.
+ * el enlace lo emitirá {@see GenerarEnlacePrepagoPagoTotalSkill} y aquí pasará a `true`.
  */
 final readonly class ConsultarMediosPagoSkill implements SkillInterface, SkillDominioInterface
 {
