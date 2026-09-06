@@ -148,7 +148,7 @@ final readonly class PmsPrepagoEnlaceService
             return null;
         }
 
-        $existente = $this->vigentePorImporte($id, $pide['monto']);
+        $existente = $this->vigentePorImporte($id, $pide['monto'], $pide['moneda']);
 
         return [
             'monto' => $pide['monto'],
@@ -201,7 +201,7 @@ final readonly class PmsPrepagoEnlaceService
             throw new DomainException('Esta reserva ya no tiene saldo pendiente que cobrar.');
         }
 
-        $existente = $this->vigentePorImporte($id, $pide['monto']);
+        $existente = $this->vigentePorImporte($id, $pide['monto'], $pide['moneda']);
 
         if ($existente !== null) {
             return $this->respuesta($existente, $prepago, reutilizado: true, esSaldo: $pide['esSaldo']);
@@ -380,7 +380,7 @@ final readonly class PmsPrepagoEnlaceService
                 return null;
             }
 
-            $existente = $this->vigentePorImporte($id, $pide['monto']);
+            $existente = $this->vigentePorImporte($id, $pide['monto'], $pide['moneda']);
 
             if ($existente !== null) {
                 // Ya hay uno vivo por ese importe: no se emite otro. Es lo que evita un enlace
@@ -539,10 +539,27 @@ final readonly class PmsPrepagoEnlaceService
      * tarjeta rebote no invalida el enlace, el cliente reintenta con otra en la misma URL— y
      * emitir uno nuevo por cada rechazo llenaría la reserva de enlaces muertos.
      */
-    private function vigentePorImporte(Uuid $reservaId, string $monto): ?FinEnlacePago
+    private function vigentePorImporte(Uuid $reservaId, string $monto, ?string $moneda): ?FinEnlacePago
     {
         foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
-            if ($enlace->estaVigente() && (float) $enlace->getMontoNeto() === (float) $monto) {
+            if (!$enlace->estaVigente()) {
+                continue;
+            }
+
+            // ⚠️ **La MONEDA también, desde el 06/09/2026.** Comparaba sólo el número, así que un
+            // enlace vivo de 100 PEN se daba por bueno para un cobro de 100 USD: se reutilizaba y
+            // el huésped pagaba **cuatro veces menos** sin que fallara nada. Hacía falta una
+            // reserva con deuda en dos divisas y sin pagos —el único caso en que `pendiente()`
+            // pasa—, así que nunca llegó a ocurrir; es la misma familia que el fallo de la moneda
+            // que se DICE al crear, del que éste era la mitad que faltaba.
+            //
+            // Sin moneda declarada no se reutiliza nada: preferimos emitir de más a cobrar en la
+            // divisa equivocada.
+            if ($moneda === null || $enlace->getMonedaCodigo() !== $moneda) {
+                continue;
+            }
+
+            if ((float) $enlace->getMontoNeto() === (float) $monto) {
                 return $enlace;
             }
         }

@@ -4332,6 +4332,16 @@ Por eso el flag es persistido e independiente:
   la reserva quedan canceladas — en un grupo, que caiga una casita no anula el cobro de las otras.
 - Como actúa en la transición y no en el estado, un webhook que repite `cancelled` **no vuelve a
   tocarlo**: la decisión del operador gana. Mismo criterio asimétrico que `datosLocked` (§9.3).
+- ⚠️ **Y desde el 06/09/2026 también en la INSERCIÓN, pero sólo si la reserva entera nace en ese
+  flush.** Mirar sólo el changeSet dejaba fuera a la reserva que llega de Beds24 **ya cancelada**:
+  se inserta con el estado puesto, no hay «anterior» que comparar y la cabecera se quedaba
+  **activa** con todas sus estancias muertas. En producción había nueve así, todas de julio.
+  El filtro de «toda la reserva es nueva» (`UnitOfWork::isScheduledForInsert()` sobre cada
+  estancia) es lo que impide que esto pise la reactivación del punto anterior: una estancia nueva
+  y cancelada añadida a una reserva existente **no** vuelve a apagar el cobro.
+- Las que quedaron de antes se limpian con `app:pms:cabeceras:huerfanas` (`--dry-run` incluido),
+  que **sólo toca las que tienen cargos y pagos a cero** — con dinero de por medio puede ser un
+  cobro reactivado a mano, y ahí no se decide por el operador.
 - En el panel: aviso ámbar + botón "Reactivar cobro" cuando está anulada, y un "Anular cobro"
   discreto para el caso inverso (un no-show que el canal no marcó).
 
@@ -5205,6 +5215,7 @@ compartido tendría que parametrizarse justo en lo que cambia.
 | Cambiar la clasificación de un cargo (incluida la penalización, §12.7) | `PmsTipoCargo` | `desdeBeds24()` — el caso `PENALIZACION` va **antes** que la regla del subType |
 | Cambiar qué computa una reserva cancelada (§12.7) | `PmsInformacionFinancieraRecalculoService` | `AND (i2.activa = 1 OR c.tipo_cargo = 'penalizacion')` |
 | Cambiar cuándo se anula el cobro automáticamente (§12.7) | `PmsInformacionFinancieraCoherenciaListener` | `aplicarCancelacion()` |
+| Limpiar cabeceras activas con todas las estancias canceladas | `src/Pms/Command/PmsCabecerasHuerfanasCommand.php` | `app:pms:cabeceras:huerfanas --dry-run` |
 | Cambiar la moneda por defecto (hoy USD) | `MonedaResolver` | `resolve()` |
 | Cambiar quién puede fijar la moneda base (§12.4.4) | `PmsInformacionFinanciera` | `isMonedaBaseEditable()` (hoy: ningún cargo sincronizado ni estancia OTA) |
 | Cambiar qué se reescribe al fijar la moneda base (§12.4.4) | `PmsMonedaBaseService` | `cambiar()` — cargos sí, pagos nunca |

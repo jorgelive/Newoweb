@@ -179,6 +179,39 @@ final class PmsInformacionFinancieraCoherenciaListener
             }
         }
 
+        // 4 bis. Y la estancia que NACE cancelada (06/09/2026).
+        //
+        // La de arriba mira el changeSet, o sea sólo la TRANSICIÓN. Una reserva que llega de
+        // Beds24 ya cancelada se inserta con el estado puesto y no hay «anterior» que comparar:
+        // la cabecera se quedaba **activa** con todas sus estancias muertas. En producción
+        // había **nueve** así, todas de julio, y con cargos a cero no dieron la cara — pero con
+        // importes, `emitirPorCambioDeCargos()` no ve su guarda de `isActiva()` y llegaría a
+        // emitir un enlace de cobro sobre una reserva cancelada.
+        //
+        // Se reusa el mismo método pasándole un cambio `[null, estado]`: su primera guarda
+        // —«sólo la transición HACIA cancelada»— da por bueno un `null` como estado anterior,
+        // que es exactamente lo que es una inserción.
+        //
+        // ⚠️ **Sólo si la reserva ENTERA nace en este flush**, y esa guarda no es opcional. Que
+        // esto mire la transición y no el estado es deliberado (§12.7 de PmsBeds24ReservasSync):
+        // protege al operador que REACTIVÓ el cobro de una estancia que la OTA da por cancelada
+        // —el huésped que se pasa a directa para ahorrarse la comisión—. Sin este filtro, una
+        // estancia nueva insertada como cancelada sobre esa reserva volvería a apagarle la
+        // cabecera y le quitaría al operador una decisión que ya había tomado.
+        foreach ($uow->getScheduledEntityInsertions() as $entity) {
+            if (!$entity instanceof PmsEventoCalendario) {
+                continue;
+            }
+
+            foreach ($entity->getReserva()?->getEventosCalendario() ?? [] as $otro) {
+                if (!$uow->isScheduledForInsert($otro)) {
+                    continue 2;
+                }
+            }
+
+            $this->aplicarCancelacion($entity, ['estado' => [null, $entity->getEstado()]], $em);
+        }
+
         // 5. HORARIO EXTRA (entrada temprana / salida tardía) — las casillas se marcan
         //    EDITANDO una estancia que ya existe. Se anota y se resuelve en postFlush,
         //    en los dos sentidos: al marcar nace el cargo, al desmarcar se retira.

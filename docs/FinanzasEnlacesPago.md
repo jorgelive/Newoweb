@@ -1610,6 +1610,13 @@ Verificado en `var/probar-prepago-dia-de-llegada.php`, caso 3.
 
 ### La reutilización, y por qué mira el importe
 
+⚠️ **Y la MONEDA, desde el 06/09/2026.** Comparaba sólo el número: un enlace vivo de 100 PEN se
+daba por bueno para un cobro de 100 USD, se reutilizaba, y el huésped pagaba **cuatro veces
+menos** sin que fallara nada. Hacía falta una reserva con deuda en dos divisas y sin pagos —el
+único caso en que `pendiente()` pasa—, así que nunca llegó a ocurrir. Era la mitad que faltaba
+del mismo fallo que ya obligó a **decir** la moneda al crear: sin declararla no se reutiliza
+nada, que es preferible a cobrar en la divisa equivocada.
+
 `emitir()` devuelve un enlace **vigente por el mismo importe** en vez de emitir otro. Sin eso,
 «mándame el link» + «no me llegó» dejan dos enlaces vivos por el mismo dinero, y el huésped que
 pague los dos paga el adelanto dos veces.
