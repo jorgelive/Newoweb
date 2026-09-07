@@ -386,6 +386,32 @@ construir nada. Una clase con estado obliga a montarla en los dos lados. El crit
 clases cuando aparezca **estado o varias implementaciones de la misma pregunta**, no para ordenar;
 agrupar por ordenar acaba en el `switch` por dominio que este diseño evita a propósito.
 
+#### La fase siguiente: un demonio, no un arranque por proceso
+
+Está decidida la dirección, **no la fecha**: no se va a arrancar node por cada proceso para
+siempre. En algún momento habrá uno o dos residentes esperando la consulta.
+
+Entre lo de hoy y eso hay un escalón **ya pagado**: reutilizar dentro de una misma petición. Con el
+contrato en lote, una pantalla que necesita cinco cosas hace una llamada y no cinco. El demonio
+sólo gana lo que quede después — las peticiones sueltas, una por request.
+
+⚠️ **Nada de lo que hay hoy cierra esa puerta, y conviene no estropearlo:**
+
+| Lo que ya está | Por qué importa para el demonio |
+|---|---|
+| Funciones sobre datos, **sin estado** | Un proceso vivo las atiende en cualquier orden y para cualquier petición. Con estado haría falta aislamiento entre peticiones |
+| El `.cli.ts` es sólo **transporte** | La lógica vive fuera; atender por socket es un archivo delgado al lado, no una reescritura |
+| El contrato **en lote y versionado** | Es ya la forma que necesita un demonio, y `itinerario@1` es lo que hace que un proceso viejo **explote** en vez de contestar bien con la lógica de ayer |
+
+Y lo que habrá que añadir, que no es código:
+
+- **Supervisión.** Un demonio sin supervisor es una caída esperando, y esta casa ya lo aprendió por
+  las malas. Aquí además falla distinto: si muere, no falla un comando — falla **la pantalla**.
+- **Reinicio en el despliegue.** El `post-merge` ya reinicia los cuatro workers de messenger; sería
+  una línea más. Sin eso el fallo es el peor: no revienta, **contesta bien con el código de ayer**.
+- **Socket unix, no puerto.** Sólo tienen que hablar PHP y node en la misma máquina; un puerto
+  abierto es superficie de red a cambio de nada.
+
 ### Qué se está calculando dos veces (inventario vivo)
 
 Lo que sigue son cálculos que HOY viven en PHP y en TypeScript a la vez, con el espejo declarado en
