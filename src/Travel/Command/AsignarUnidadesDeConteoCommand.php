@@ -67,6 +67,7 @@ final class AsignarUnidadesDeConteoCommand extends Command
             ->addOption('sustantivo', null, InputOption::VALUE_REQUIRED, 'Cómo se llama en singular: «día», «desayuno».')
             ->addOption('momento', null, InputOption::VALUE_REQUIRED, 'Dónde se lee sin reloj: abre | manana | media_manana | mediodia | tarde | noche | cierra')
             ->addOption('ajustar-fin', null, InputOption::VALUE_NONE, 'Recalcula fechaHoraFin como inicio + cantidad − 1. LEE EL INFORME ANTES.')
+            ->addOption('estado', null, InputOption::VALUE_REQUIRED, 'Limita el ajuste de fechas a las cotizaciones en ese estado (operativa, confirmado…).')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'No guarda nada: enseña lo que haría.');
     }
 
@@ -75,6 +76,12 @@ final class AsignarUnidadesDeConteoCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $seco = (bool) $input->getOption('dry-run');
         $ajustar = (bool) $input->getOption('ajustar-fin');
+        // ⚠️ El filtro existe porque el ajuste NO es correcto en todas las filas a la vez. En el
+        // 5SRAJV la operativa tiene la fecha torcida y la cantidad buena —ajustar acierta— y la
+        // confirmada tiene la fecha buena y la cantidad corta, donde ajustar encogería la
+        // cobertura. Sin poder acotar, la única salida era tocar la base a mano, que es justo lo
+        // que este comando existe para evitar.
+        $estadoFiltro = (string) ($input->getOption('estado') ?? '');
 
         $busqueda = (string) ($input->getOption('componente') ?? '');
         if ($busqueda === '') {
@@ -169,18 +176,20 @@ final class AsignarUnidadesDeConteoCommand extends Command
             $cuadra = $fin->format('Y-m-d') === $finEsperado->format('Y-m-d');
 
             $expediente = $k->getCotservicio()?->getCotizacion();
+            $estado = (string) ($expediente?->getEstado()->value ?? '');
+            $enAlcance = $estadoFiltro === '' || $estado === $estadoFiltro;
 
             $filas[] = [
                 $expediente?->getFile()?->getLocalizador() ?? '—',
-                (string) ($expediente?->getEstado()->value ?? '—'),
+                $estado === '' ? '—' : $estado,
                 $inicio->format('d/m'),
                 $fin->format('d/m'),
                 (string) $cantidad,
                 $finEsperado->format('d/m'),
-                $cuadra ? '✅' : ($ajustar ? '🔧 ajustado' : '❌ NO cuadra'),
+                $cuadra ? '✅' : (($ajustar && $enAlcance) ? '🔧 ajustado' : '❌ NO cuadra'),
             ];
 
-            if (!$cuadra && $ajustar) {
+            if (!$cuadra && $ajustar && $enAlcance) {
                 $k->setFechaHoraFin($finEsperado);
                 ++$ajustados;
             }
