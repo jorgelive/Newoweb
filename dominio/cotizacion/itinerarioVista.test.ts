@@ -37,8 +37,10 @@ const resumir = <S extends ServicioMinimo>(dias: DiaVista<S>[]): string[] =>
             const hora = b.horaServicioInicio ?? b.horaInicio ?? '  —  ';
             const titulos = (b.segmento as { tituloSnapshot?: { content?: string | null }[] }).tituloSnapshot;
             const titulo = titulos?.find((t) => t.content)?.content ?? '(sin título)';
-            const marca = b.esEstadia
-                ? (b.esRepeticion ? ` [noche ${b.noche}/${b.totalNoches}]` : ` [estadía ${b.totalNoches}n]`)
+            const marca = b.esPeriodo
+                ? (b.esRepeticion
+                    ? ` [${b.unidad} ${b.indiceUnidad}/${b.totalUnidades}]`
+                    : ` [periodo ${b.totalUnidades} ${b.unidad}]`)
                 : '';
             return `   ${String(hora).padEnd(6)} ${titulo}${marca}`;
         }),
@@ -68,7 +70,7 @@ describe('las tres reglas que no se adivinan leyendo las entidades', () => {
     const bloques = dias.flatMap((d) => d.bloques);
 
     it('una estadía se repite cada día de su periodo, y sólo la primera no es repetición', () => {
-        const estadias = bloques.filter((b) => b.esEstadia);
+        const estadias = bloques.filter((b) => b.esPeriodo);
         expect(estadias.length).toBeGreaterThan(0);
 
         // Por cada estadía distinta: tantos bloques como noches, y exactamente una cabecera.
@@ -80,10 +82,10 @@ describe('las tres reglas que no se adivinan leyendo las entidades', () => {
         }
 
         for (const [id, grupo] of porSegmento) {
-            expect(grupo, `estadía ${id}`).toHaveLength(grupo[0].totalNoches);
+            expect(grupo, `estadía ${id}`).toHaveLength(grupo[0].totalUnidades);
             expect(grupo.filter((b) => !b.esRepeticion), `cabeceras de ${id}`).toHaveLength(1);
             // Las noches van numeradas 1..N y en orden de fecha.
-            expect(grupo.map((b) => b.noche)).toEqual(grupo.map((_, i) => i + 1));
+            expect(grupo.map((b) => b.indiceUnidad)).toEqual(grupo.map((_, i) => i + 1));
         }
     });
 
@@ -138,7 +140,7 @@ describe('el orden del día', () => {
         // dentro de un grupo conviven bloques con hora y sin ella. Comprobarlo bloque a bloque
         // falla contra datos correctos — lo hizo al escribir este test.
         for (const dia of componerItinerario(cot2KVBMX)) {
-            const grupos: { clave: string; conHora: boolean; esEstadia: boolean }[] = [];
+            const grupos: { clave: string; conHora: boolean; cierraElDia: boolean }[] = [];
 
             for (const b of dia.bloques) {
                 const clave = b.esRepeticion ? `${b.servicio.id}::repeticion` : b.servicio.id;
@@ -146,12 +148,12 @@ describe('el orden del día', () => {
 
                 if (ultimo?.clave === clave) {
                     ultimo.conHora ||= Boolean(b.horaInicio ?? b.horaServicioInicio);
-                    ultimo.esEstadia &&= b.esEstadia;
+                    ultimo.cierraElDia &&= b.esPeriodo && b.unidad === 'noches';
                 } else {
                     grupos.push({
                         clave,
                         conHora: Boolean(b.horaInicio ?? b.horaServicioInicio),
-                        esEstadia: b.esEstadia,
+                        cierraElDia: b.esPeriodo && b.unidad === 'noches',
                     });
                 }
             }
@@ -160,7 +162,7 @@ describe('el orden del día', () => {
             expect(new Set(grupos.map((g) => g.clave)).size, `día ${dia.numeroDia} · grupos contiguos`)
                 .toBe(grupos.length);
 
-            const escalon = grupos.map((g) => (g.conHora ? 0 : g.esEstadia ? 2 : 1));
+            const escalon = grupos.map((g) => (g.conHora ? 0 : g.cierraElDia ? 2 : 1));
             expect(escalon, `día ${dia.numeroDia}`).toEqual([...escalon].sort((a, b) => a - b));
         }
     });
@@ -262,6 +264,77 @@ describe('el orden del día', () => {
         // herencia: el tour conserva su sitio por reloj.
         expect(dias[1]!.bloques.map((b) => b.servicio.id)).toEqual(['tour', 'hotel']);
         expect(dias[1]!.bloques.at(-1)!.esRepeticion).toBe(true);
+    });
+});
+
+describe('noches vs días', () => {
+    /**
+     * Las mismas dos fechas, dos cantidades. Un hotel del 18 al 22 son 4 noches —el día de salida
+     * no se duerme— y un seguro del 18 al 22 son 5 días —el día de salida sigue cubierto—.
+     *
+     * Hasta el 07/09/2026 sólo existía la primera cuenta, así que para cobrar 5 días hubo que
+     * escribir el seguro como «18 → 23»: se torció la fecha para que la resta cuadrara.
+     */
+    it('el mismo intervalo da 4 noches y 5 días, y el seguro llega al día de salida', () => {
+        const periodo = (id: string, unidad: string, sustantivo: string) => ({
+            id, orden: 0, tituloSnapshot: [],
+            cotsegmentos: [{ id: `s-${id}`, dia: 1, orden: 1, fechaAbsoluta: '2030-01-18', tituloSnapshot: [] }],
+            cotcomponentes: [{
+                id: `c-${id}`, cotsegmento: { id: `s-${id}` },
+                fechaHoraInicio: '2030-01-18T00:00:00', fechaHoraFin: '2030-01-22T00:00:00',
+                sinHorario: true, horaServicioCompleto: false, ordenNarrativo: 90,
+                unidadDeConteo: unidad, sustantivoUnidad: sustantivo, tituloSnapshot: [],
+            }],
+        });
+
+        const dias = componerItinerario({
+            cotservicios: [periodo('hotel', 'noches', ''), periodo('seguro', 'dias', 'día')],
+        });
+
+        const bloquesDe = (id: string) => dias.flatMap((d) => d.bloques).filter((b) => b.servicio.id === id);
+
+        expect(bloquesDe('hotel')).toHaveLength(4);
+        expect(bloquesDe('seguro')).toHaveLength(5);
+
+        // El hotel acaba la víspera de la salida; el seguro cubre el día de salida.
+        expect(dias.at(-1)!.fecha).toBe('2030-01-22');
+        expect(dias.at(-1)!.bloques.map((b) => b.servicio.id)).toEqual(['seguro']);
+
+        expect(bloquesDe('hotel')[0]!.totalUnidades).toBe(4);
+        expect(bloquesDe('seguro')[0]!.totalUnidades).toBe(5);
+    });
+
+    /**
+     * Sólo la cama cierra el día. Lo que se cuenta por días CUBRE la jornada, así que se lee al
+     * empezarla: un cliente que recorre su día de arriba abajo y encuentra al pie «incluía el
+     * almuerzo» se enteró tarde de algo que ya no puede usar.
+     */
+    it('el periodo en días no cierra el día; el de noches sí', () => {
+        const dias = componerItinerario({
+            cotservicios: [
+                {
+                    id: 'hotel', orden: 0, tituloSnapshot: [],
+                    cotsegmentos: [{ id: 's-hotel', dia: 1, orden: 1, fechaAbsoluta: '2030-01-18', tituloSnapshot: [] }],
+                    cotcomponentes: [{ id: 'c-hotel', cotsegmento: { id: 's-hotel' }, fechaHoraInicio: '2030-01-18T00:00:00', fechaHoraFin: '2030-01-20T00:00:00', sinHorario: true, horaServicioCompleto: false, ordenNarrativo: 90, unidadDeConteo: 'noches', tituloSnapshot: [] }],
+                },
+                {
+                    id: 'seguro', orden: 0, tituloSnapshot: [],
+                    cotsegmentos: [{ id: 's-seguro', dia: 1, orden: 1, fechaAbsoluta: '2030-01-18', tituloSnapshot: [] }],
+                    cotcomponentes: [{ id: 'c-seguro', cotsegmento: { id: 's-seguro' }, fechaHoraInicio: '2030-01-18T00:00:00', fechaHoraFin: '2030-01-20T00:00:00', sinHorario: true, horaServicioCompleto: false, ordenNarrativo: 5, unidadDeConteo: 'dias', tituloSnapshot: [] }],
+                },
+                {
+                    id: 'tour', orden: 0, tituloSnapshot: [],
+                    cotsegmentos: [{ id: 's-tour', dia: 1, orden: 1, fechaAbsoluta: '2030-01-19', tituloSnapshot: [] }],
+                    cotcomponentes: [{ id: 'c-tour', cotsegmento: { id: 's-tour' }, fechaHoraInicio: '2030-01-19T09:00:00', fechaHoraFin: null, sinHorario: false, horaServicioCompleto: false, ordenNarrativo: 30, tituloSnapshot: [] }],
+                },
+            ],
+        });
+
+        // Día 2: el seguro ABRE —cubre la jornada entera, así que se anuncia antes de nada—, el
+        // tour va por su hora y la cama cierra. Antes del 07/09/2026 el seguro salía el ÚLTIMO:
+        // lo sin-hora se amontonaba detrás de todo lo que tenía reloj.
+        expect(dias[1]!.bloques.map((b) => b.servicio.id)).toEqual(['seguro', 'tour', 'hotel']);
+        expect(dias[1]!.bloques.at(-1)!.unidad).toBe('noches');
     });
 });
 

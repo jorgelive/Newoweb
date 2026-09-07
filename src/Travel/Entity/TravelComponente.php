@@ -373,6 +373,21 @@ class TravelComponente
         return $this->unidadDeConteo ?? $this->tipo->unidadPorDefecto();
     }
 
+    /**
+     * La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+     * componente.
+     *
+     * ⚠️ Viaja resuelta a propósito. Si el front recibiera sólo el campo declarado —casi siempre
+     * NULL— tendría que aplicar el defecto por su cuenta, y eso es escribir la tabla tipo → unidad
+     * en TypeScript: la segunda copia de una regla que ya vive en PHP.
+     */
+    #[ApiProperty(openapiContext: ['type' => 'string', 'enum' => ['noches', 'dias', 'unidades']])]
+    #[Groups(['componente:read', 'componente:item:read', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
+    public function getUnidadResuelta(): string
+    {
+        return $this->resolverUnidadDeConteo()->value;
+    }
+
     public function getSustantivoUnidad(): ?string
     {
         return $this->sustantivoUnidad;

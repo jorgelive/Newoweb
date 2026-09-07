@@ -407,6 +407,30 @@ const selloDeComponente = (
   return '';
 };
 
+/**
+ * Cómo se rotula un periodo repetido: «Noche 2/4», «Día 2/5», «Desayuno 2/5».
+ *
+ * ⚠️ Aquí estaba clavado «Noche» con un icono de luna, y con eso se rotulaba un seguro de viaje
+ * —que se cuenta por DÍAS— en la app del huésped. La unidad la declara el componente maestro; ver
+ * `App\Travel\Enum\UnidadDeConteoEnum`.
+ *
+ * ⚠️ **El sustantivo del catálogo NO está traducido.** «noche» y «día» sí, por sus claves de
+ * i18n; una palabra propia («desayuno») sale en español en las siete versiones. Es una limitación
+ * conocida: el campo es una columna plana sin `#[AutoTranslate]`, y traducirlo pide moverlo a la
+ * maquinaria de i18n del catálogo. Mientras tanto es preferible a un «×5» que no dice de qué.
+ */
+const etiquetaUnidad = (b: BloqueVista): string => {
+  const propio = (b.sustantivoUnidad ?? '').trim();
+  if (propio !== '') return propio.charAt(0).toUpperCase() + propio.slice(1);
+
+  return b.unidad === 'dias'
+      ? (maestroStore.t('cot_dia') || 'Día')
+      : (maestroStore.t('cot_noche') || 'Noche');
+};
+
+/** La luna es de dormir. Lo que se cuenta por días cubre la jornada: sol. */
+const iconoDeUnidad = (b: BloqueVista): string => (b.unidad === 'dias' ? 'fa-sun' : 'fa-moon');
+
 const horaRango = (c: PaxCotComponente) => {
   if (!compConHora(c)) return null;
   const hi = hhmm(c.fechaHoraInicio);
@@ -1871,12 +1895,12 @@ const adelantoVista = computed(() => {
                 class="bg-white rounded-2xl shadow-md shadow-slate-200/40 border border-slate-100 px-5 py-4 mb-6 flex items-center gap-4"
             >
               <span class="w-10 h-10 rounded-xl bg-[#376875]/6 text-[#376875] flex items-center justify-center shrink-0">
-                <i class="fas fa-moon"></i>
+                <i class="fas" :class="iconoDeUnidad(item)"></i>
               </span>
               <div class="min-w-0 flex-1">
                 <p class="text-[9px] font-black text-[#376875]/50 uppercase tracking-widest">
                   {{ store.traducir(item.servicio.tituloSnapshot) }}
-                  <span class="normal-case text-slate-400 font-bold">· {{ maestroStore.t('cot_noche') || 'Noche' }} {{ item.noche }}/{{ item.totalNoches }}</span>
+                  <span class="normal-case text-slate-400 font-bold">· {{ etiquetaUnidad(item) }} {{ item.indiceUnidad }}/{{ item.totalUnidades }}</span>
                 </p>
                 <p class="font-black text-gray-800 text-sm leading-snug">
                   {{ store.traducir(item.segmento.tituloSnapshot) }}

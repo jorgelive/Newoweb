@@ -41,6 +41,8 @@
  * importe este módulo y el de PHP se desnormalice. Ver `docs/PlanProcesamientoCompartido.md` §4.
  */
 
+import { unidadesEntre } from './unidades.ts';
+
 // ── El contrato de entrada: lo que el módulo LEE, y nada más ─────────────────
 
 /** Lo que se lee de un componente. Todo opcional salvo el id: el módulo tolera lo que falte. */
@@ -52,6 +54,18 @@ export interface ComponenteMinimo {
   sinHorario?: boolean | null;
   horaServicioCompleto?: boolean | null;
   ordenNarrativo?: number | null;
+  /**
+   * En qué se cuenta si dura: `'noches' | 'dias' | 'unidades'`.
+   *
+   * ⚠️ Llega **ya resuelta** desde `CotizacionCotcomponente::getUnidadDeConteo()`, que aplica el
+   * defecto del tipo. Leerla aquí ES leer el enum de PHP: escribir la tabla tipo → unidad en
+   * TypeScript sería la segunda copia de una regla, igual que pasó con `ordenNarrativo`.
+   *
+   * Ausente = `'noches'`, que es lo que hacía este módulo antes de que la unidad existiera.
+   */
+  unidadDeConteo?: string | null;
+  /** Cómo se llama la unidad en singular: «noche», «día», «desayuno». */
+  sustantivoUnidad?: string | null;
 }
 
 /** Lo que se lee de un segmento. */
@@ -111,6 +125,10 @@ export const compConHora = (c: ComponenteMinimo): boolean => {
   const t = hhmm(c?.fechaHoraInicio);
   return !!t && t !== '00:00';
 };
+
+/** La unidad de un bloque: la del primer componente que la declare. Ausente = noches. */
+const unidadDe = (comps: Pick<ComponenteMinimo, 'unidadDeConteo'>[]): string =>
+  comps.find((c) => (c?.unidadDeConteo ?? '') !== '')?.unidadDeConteo ?? 'noches';
 
 /**
  * Dónde va un servicio dentro de un día cuando el reloj no lo decide.
@@ -192,10 +210,20 @@ export interface BloqueVista<S extends ServicioMinimo> {
   // la experiencia, no el del segmento donde el componente está anclado.
   horaServicioInicio: string | null;
   horaServicioFin: string | null;
-  esEstadia: boolean;              // alojamiento / periodo multi-día sin horas
-  esRepeticion: boolean;           // repetición de la estadía en días siguientes
-  noche: number;                   // 1..totalNoches (solo estadías)
-  totalNoches: number;
+  /**
+   * Dura varios días sin horas: un hotel, un seguro, un alquiler por jornada.
+   *
+   * ⚠️ Antes se llamaba `esEstadia` y daba por hecho que todo periodo era una cama. No lo es: un
+   * seguro también dura, y se cuenta en días. Quién CIERRA el día lo dice ahora `unidad`.
+   */
+  esPeriodo: boolean;
+  esRepeticion: boolean;           // repetición del periodo en días siguientes
+  /** `'noches' | 'dias' | 'unidades'`, resuelta en PHP. Sólo la cama cierra el día. */
+  unidad: string;
+  /** Cómo se llama la unidad en singular: «noche», «día», «desayuno». '' si no aplica. */
+  sustantivoUnidad: string;
+  indiceUnidad: number;            // 1..totalUnidades (solo periodos)
+  totalUnidades: number;
   totalSegmentosServicio: number;
   /**
    * ¿Es el primer bloque de su servicio en este día?
@@ -246,17 +274,23 @@ export function componerItinerario<S extends ServicioMinimo>(
 
       const base = dateOf(segmento.fechaAbsoluta);
 
-      // Estadía: sin horas reales y con componentes que terminan en fecha posterior (hoteles)
+      // Periodo: sin horas reales y con componentes que terminan en fecha posterior.
       let finPeriodo = base;
       for (const c of comps) {
         if (c.fechaHoraFin && dateOf(c.fechaHoraFin) > finPeriodo) finPeriodo = dateOf(c.fechaHoraFin);
       }
-      const esEstadia = !horaInicio && !horaFin && finPeriodo > base;
-      const totalNoches = esEstadia ? diffDays(base, finPeriodo) : 1;
+      const esPeriodo = !horaInicio && !horaFin && finPeriodo > base;
+      const unidad = unidadDe(comps);
+      const sustantivoUnidad = comps.find((c) => (c?.sustantivoUnidad ?? '') !== '')?.sustantivoUnidad ?? '';
 
-      // Estadías: se pintan cada día del periodo [checkin .. checkout)
-      const fechas = esEstadia
-        ? Array.from({ length: totalNoches }, (_, i) => addDays(base, i))
+      // 🔥 **Cuántos días se pinta, según en qué se cuente.** Un hotel del 18 al 22 ocupa cuatro
+      // jornadas —se duerme 18, 19, 20 y 21— y un seguro del 18 al 22 ocupa cinco: el día de
+      // salida sigue cubierto. Es el mismo `+1` de `unidadesEntre`, aplicado al calendario.
+      const totalUnidades = esPeriodo ? (unidadesEntre(base, finPeriodo, unidad) ?? 1) : 1;
+
+      // Periodos: se pintan cada día del intervalo —[inicio, fin) en noches, [inicio, fin] en días—
+      const fechas = esPeriodo
+        ? Array.from({ length: totalUnidades }, (_, i) => addDays(base, i))
         : [base];
 
       fechas.forEach((fecha, rep) => {
@@ -265,8 +299,9 @@ export function componerItinerario<S extends ServicioMinimo>(
           servicio, segmento, componentes: comps,
           horaInicio, horaFin,
           horaServicioInicio: null, horaServicioFin: null,
-          esEstadia, esRepeticion: rep > 0,
-          noche: rep + 1, totalNoches,
+          esPeriodo, esRepeticion: rep > 0,
+          unidad, sustantivoUnidad,
+          indiceUnidad: rep + 1, totalUnidades,
           totalSegmentosServicio: segs.length,
           esPrimeroDelServicioEnElDia: false,
         });
@@ -335,9 +370,43 @@ export function componerItinerario<S extends ServicioMinimo>(
       if (promoInicio) horas.push(promoInicio);
       const horaMin = horas.length ? [...horas].sort()[0] : null; // null = sin hora absoluta
       const ordenMin = posicionDeServicio(gb[0]!.servicio, gb.flatMap(b => b.componentes), diaAMano);
-      const esEstadia = gb.every(b => b.esEstadia);
+      // ⚠️ **Sólo la cama cierra el día.** Un periodo contado en DÍAS —un seguro, unos
+      // desayunos— cubre la jornada, así que se lee al empezarla y no al pie: un cliente que
+      // recorre su día de arriba abajo y encuentra al final «incluía el almuerzo» se enteró tarde
+      // de algo que ya no puede usar. Ésos van por su `ordenNarrativo`, como todo lo demás.
+      const cierraElDia = gb.every(b => b.esPeriodo && b.unidad === 'noches');
       const esRepeticion = gb.every(b => b.esRepeticion);
-      return { horaMin, ordenMin, esEstadia, esRepeticion };
+      const narrativoMin = Math.min(...gb.flatMap(b => b.componentes).map(c => c?.ordenNarrativo ?? 30), 30);
+      return { horaMin, ordenMin, cierraElDia, esRepeticion, narrativoMin };
+    };
+
+    /**
+     * La hora con la que un grupo SIN reloj se mide contra los que sí lo tienen.
+     *
+     * 🔥 **«Sin hora» no significa «al final», y eso era el fallo.** Hasta el 07/09/2026 el
+     * escalón 0 —lo que tiene hora— iba entero antes que el escalón 1, así que un almuerzo
+     * variable aterrizaba **después de la excursión de la tarde**. Un cliente que lee su día de
+     * arriba abajo y encuentra al pie «incluía el almuerzo» se enteró tarde de algo que ya no
+     * puede usar. Un almuerzo sin hora no es un evento sin sitio: tiene sitio, lo que no tiene es
+     * minuto.
+     *
+     * ⚠️ **Esta hora NO se guarda, NO se pinta y NO se manda a nadie.** Es una clave de
+     * ordenación y muere en este `sort`. La alternativa era escribir un minuto inventado en la
+     * base —que luego se pinta, viaja al proveedor y se convierte en un compromiso—, y el catálogo
+     * ya se negó a hacerlo a propósito.
+     *
+     * Traduce la escala narrativa (10 llegar … 90 dormir) al reloj de una jornada normal.
+     */
+    const horaNominal = (narrativo: number): string => {
+      if (narrativo <= 5) return '00:00';   // cubre el día entero: un seguro
+      if (narrativo <= 10) return '06:00';  // llegar y moverse abre la jornada
+      if (narrativo <= 20) return '07:30';  // quien recibe, recibe al principio
+      if (narrativo <= 30) return '09:30';  // el cuerpo del día
+      if (narrativo <= 40) return '11:00';
+      if (narrativo <= 50) return '13:00';  // almuerzos
+      if (narrativo <= 55) return '16:00';
+      if (narrativo <= 70) return '20:00';  // cenas
+      return '23:00';                       // dormir cierra
     };
 
     // 3) Ordenar los GRUPOS:
@@ -356,19 +425,27 @@ export function componerItinerario<S extends ServicioMinimo>(
     // cierre, y ésas se quedan al final aunque el día esté curado.
     const gruposOrdenados = [...grupos.values()].sort((ga, gb) => {
       const ma = metaGrupo(ga), mb = metaGrupo(gb);
-      const tier = (m: typeof ma) => (m.horaMin ? 0 : (m.esEstadia ? 2 : 1));
+      const tier = (m: typeof ma) => (m.horaMin ? 0 : (m.cierraElDia ? 2 : 1));
       const ta = tier(ma), tb = tier(mb);
 
       if (diaAMano) {
         // Sólo el «sigues aquí» cierra el día; lo demás va por el orden que puso la persona.
-        const cierra = (m: typeof ma) => m.esEstadia && m.esRepeticion;
+        const cierra = (m: typeof ma) => m.cierraElDia && m.esRepeticion;
         const ca = cierra(ma), cb = cierra(mb);
         if (ca !== cb) return ca ? 1 : -1;
         return ma.ordenMin - mb.ordenMin;
       }
 
-      if (ta !== tb) return ta - tb;
-      if (ma.horaMin && mb.horaMin) return ma.horaMin.localeCompare(mb.horaMin);
+      // ⚠️ **La cama sigue cerrando aparte.** Es lo único que se ordena por escalón y no por
+      // reloj: su hora nominal la pondría a las 23:00, que es casi lo mismo, pero un hotel con
+      // check-in declarado dejaría de cerrar y ésa no es la regla.
+      if (ta === 2 || tb === 2) return (ta === 2 ? 1 : 0) - (tb === 2 ? 1 : 0);
+
+      // Lo demás se mide contra el mismo reloj: el que tiene hora, la suya; el que no, la nominal
+      // de su momento del día. Así lo sin-hora se INTERCALA en vez de amontonarse al final.
+      const relojA = ma.horaMin ?? horaNominal(ma.narrativoMin);
+      const relojB = mb.horaMin ?? horaNominal(mb.narrativoMin);
+      if (relojA !== relojB) return relojA.localeCompare(relojB);
       return ma.ordenMin - mb.ordenMin; // desempate estable entre grupos sin hora
     });
 

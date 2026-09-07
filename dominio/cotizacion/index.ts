@@ -17,6 +17,11 @@ export {
     compConHora,
 } from './itinerarioVista.ts';
 
+export {
+    unidadesEntre,
+    etiquetaDeUnidades,
+} from './unidades.ts';
+
 export type {
     BloqueVista,
     DiaVista,

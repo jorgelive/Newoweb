@@ -65,6 +65,7 @@ import {
 
 import {
     parseNaiveAsUTC,
+    calcularUnidades,
     formatNaiveFromUTC,
     getDuracionMs,
     addDurationToDate,
@@ -554,14 +555,20 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return partes.join(' · ');
     };
 
-    const calcularPernoctes = (inicioStr: string, finStr: string): number => {
-        if (!inicioStr || !finStr) return 1;
-        const DIA = 24 * 60 * 60 * 1000;
-        const s = Math.floor(parseNaiveAsUTC(inicioStr) / DIA);
-        const e = Math.floor(parseNaiveAsUTC(finStr) / DIA);
-        const diff = e - s;
-        return diff > 0 ? diff : 1;
-    };
+    /**
+     * La cantidad que sale de las fechas, **según en qué se cuente el componente**.
+     *
+     * 🔥 **Se llamaba `calcularPernoctes` y restaba, sin más.** Correcto para una cama y falso para
+     * todo lo que se consume por jornada: un hotel del 18 al 22 son 4 noches, un seguro del 18 al
+     * 22 son 5 días. Con una sola cuenta, la única forma de cobrar 5 días era escribir «18 → 23» —
+     * y eso es exactamente lo que hubo que hacer, dejando el itinerario diciendo que la cobertura
+     * llegaba a un día en el que ya no había nadie allí.
+     *
+     * ⚠️ Devuelve `null` cuando la cantidad NO sale de las fechas (`unidades`: un ticket, una
+     * propina). Quien llama no toca lo que ya hay.
+     */
+    const cantidadPorFechas = (comp: { fechaHoraInicio?: string | null; fechaHoraFin?: string | null; unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): number | null =>
+        calcularUnidades(comp.fechaHoraInicio, comp.fechaHoraFin, comp.unidadDeConteoSnapshot ?? comp.unidadDeConteo);
     const getI18nText = (arrayI18n: I18nContent[] | undefined, lang: string): string => {
         if (!arrayI18n || !Array.isArray(arrayI18n)) return '';
         const found = arrayI18n.find(item => item.language === lang);
@@ -3425,6 +3432,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         nombreInternoSnapshot: compMaestro.nombreInterno || null,
                         tipo: compMaestro.tipo || 'extras',
                         sinHorario: sinHorarioDeTipo(compMaestro.tipo),
+                        // En qué se cuenta, cómo se llama y dónde se lee: congelado del maestro,
+                        // que es donde lo declara quien conoce el producto. Ver UnidadDeConteoEnum.
+                        unidadDeConteoSnapshot: compMaestro.unidadResuelta || null,
+                        sustantivoUnidadSnapshot: compMaestro.sustantivoUnidad || null,
+                        momentoDelDiaSnapshot: compMaestro.momentoDelDia || null,
                         cantidad: componentePadre.cantidad,
                         estado: 'activo',
                         modo: 'incluido',
@@ -3998,6 +4010,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     (compMaestro.componenteItems || []).map(mapearItemASnapshot)
                 );
 
+                // En qué se cuenta: llega ya resuelta del maestro y se congela aquí, como el resto
+                // del expediente. Ver `UnidadDeConteoEnum` para por qué no la deduce el front.
+                const unidadMaestro = compMaestro.unidadResuelta || null;
+
                 const nuevoComp: ComponenteCompleto = {
                     id: crypto.randomUUID(),
                     duplicadoDe: null,
@@ -4009,10 +4025,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     nombreInternoSnapshot: compMaestro.nombreInterno || null,
                     tipo: tipoComp,
                     sinHorario,
+                    unidadDeConteoSnapshot: unidadMaestro,
+                    sustantivoUnidadSnapshot: compMaestro.sustantivoUnidad || null,
+                    momentoDelDiaSnapshot: compMaestro.momentoDelDia || null,
                     // Propaga la promoción de la plantilla Travel: la hora de este
                     // componente representa el horario de toda la excursión.
                     horaServicioCompleto: !!segComp.horaServicioCompleto,
-                    cantidad: calcularPernoctes(fHoraInicio, fHoraFin),
+                    cantidad: calcularUnidades(fHoraInicio, fHoraFin, unidadMaestro) ?? 1,
                     // El prestador no viene del catálogo; el PROVEEDOR sí, desde que subió
                     // de la tarifa al componente maestro. Se siembra aquí en vez de al
                     // elegir tarifa, que es donde estaba y donde ya no tiene sentido.
@@ -4495,6 +4514,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             componente.lugaresManuales = [];
             componente.tipo = maestro.tipo || 'extras';   // 🔥 snapshot autónomo del tipo
             componente.sinHorario = sinHorarioDeTipo(maestro.tipo);   // 🔥 snapshot del flag de horario
+            componente.unidadDeConteoSnapshot = maestro.unidadResuelta || null;
+            componente.sustantivoUnidadSnapshot = maestro.sustantivoUnidad || null;
+            componente.momentoDelDiaSnapshot = maestro.momentoDelDia || null;
             componente.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
             componente.nombreInternoSnapshot = maestro.nombreInterno || null;
 
@@ -4511,7 +4533,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             }
 
             if (componente.fechaHoraInicio && componente.fechaHoraFin) {
-                componente.cantidad = calcularPernoctes(componente.fechaHoraInicio, componente.fechaHoraFin);
+                componente.cantidad = cantidadPorFechas(componente) ?? componente.cantidad;
             }
 
             componente.snapshotItems = [];
@@ -4657,7 +4679,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
 
         if (componente.fechaHoraInicio && componente.fechaHoraFin) {
-            componente.cantidad = calcularPernoctes(componente.fechaHoraInicio, componente.fechaHoraFin);
+            componente.cantidad = cantidadPorFechas(componente) ?? componente.cantidad;
         }
 
         const servicio = findServicioByComponenteId(componente.id);
@@ -5111,7 +5133,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         servicioActivo, componenteActivo, tarifaActiva,
         isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido, todasLasTarifasMaestras,
         resumenFinanciero, gruposUpgrade, itinerarioDinamico, totalCostoNeto, ventaSugerida,
-        getTipoComponente, requiereHoraExacta, componenteRequiereHora, sinHorarioDeTipo, calcularPernoctes,
+        getTipoComponente, requiereHoraExacta, componenteRequiereHora, sinHorarioDeTipo, cantidadPorFechas,
         isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel, getTarifaSublabel, getProveedorDeTarifa, getPapelesDeTarifa, extractIdStr,
         inicializarEditor, guardarCotizacion, abrirNivel, retrocederNivel, cerrarInspectorMobile,
         updateNumPaxGlobal, agregarServicio, eliminarServicio, agregarComponente, eliminarComponente, duplicarComponente,

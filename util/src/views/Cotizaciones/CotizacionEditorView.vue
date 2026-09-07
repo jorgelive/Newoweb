@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch, onUnmounted, type DirectiveBinding } f
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useVolverAtras } from '@/composables/useVolverAtras';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
+import { etiquetaDeUnidades } from '@dominio/cotizacion/index.ts';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import type { InformeCoherencia } from '@/types/operacionModel';
 import { getUrls } from '@/services/apiClient';
@@ -443,6 +444,30 @@ const route = useRoute();
 const router = useRouter();
 const volverAtras = useVolverAtras();
 const store = useCotizacionEditorStore();
+
+/**
+ * Cómo se rotula la cantidad de un componente que dura.
+ *
+ * ⚠️ Aquí estaba clavado «noches» con un icono de luna, y el mismo chip rotulaba un seguro de
+ * viaje que se cuenta por DÍAS. La unidad la declara el componente maestro; ver
+ * `App\Travel\Enum\UnidadDeConteoEnum`.
+ */
+const unidadDe = (comp: { unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): string =>
+    comp.unidadDeConteoSnapshot ?? comp.unidadDeConteo ?? 'noches';
+
+const sustantivoDe = (comp: { sustantivoUnidadSnapshot?: string | null; unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): string => {
+    const propio = (comp.sustantivoUnidadSnapshot ?? '').trim();
+    if (propio !== '') return propio;
+
+    return unidadDe(comp) === 'dias' ? 'día' : 'noche';
+};
+
+const etiquetaDeCantidad = (comp: { cantidad?: number | null; sustantivoUnidadSnapshot?: string | null; unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): string =>
+    etiquetaDeUnidades(comp.cantidad ?? 1, sustantivoDe(comp));
+
+/** La luna es de dormir. Lo que se cuenta por días cubre la jornada: sol. */
+const iconoDeUnidad = (comp: { unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): string =>
+    unidadDe(comp) === 'dias' ? 'fa-sun' : 'fa-moon';
 const fileStore = useCotizacionFileStore();
 
 // ============================================================================
@@ -3025,12 +3050,15 @@ store.$onAction(({ name, args }) => {
                     <div v-if="comp.cantidad && comp.cantidad !== 1"
                          class="flex items-center gap-2 pl-4">
                       <div class="w-px h-3 bg-slate-300"></div>
+                      <!-- ⚠️ La luna y la palabra «noches» estaban clavadas aquí, y este mismo
+                           chip rotulaba un seguro de viaje que se cuenta por DÍAS. Ahora los pone
+                           la unidad del componente; ver `UnidadDeConteoEnum`. -->
                       <span class="text-[9px] font-black text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                        <i class="fas fa-moon text-[8px]"></i> {{ comp.cantidad }} noches
+                        <i class="fas text-[8px]" :class="iconoDeUnidad(comp)"></i> {{ etiquetaDeCantidad(comp) }}
                       </span>
                     </div>
 
-                    <span v-if="!comp.sinHorario || store.calcularPernoctes(comp.fechaHoraInicio, comp.fechaHoraFin) > 1" class="bg-slate-100 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
+                    <span v-if="!comp.sinHorario || (store.cantidadPorFechas(comp) ?? 1) > 1" class="bg-slate-100 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
                       <i class="far fa-flag text-slate-400"></i>
                       {{ !comp.sinHorario ? 'FIN: ' + formatDateTimeFromISO(comp.fechaHoraFin) : 'HASTA: ' + formatDateOnlyFromISO(comp.fechaHoraFin) }}
                     </span>

@@ -1064,6 +1064,7 @@ class CotizacionCotcomponente
      *
      * Un tipo desconocido cae en `UNIDADES`: lo que no sabemos qué es no se cuenta por fechas.
      */
+    #[ApiProperty(openapiContext: ['type' => 'string', 'enum' => ['noches', 'dias', 'unidades']])]
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     public function getUnidadDeConteo(): string
     {

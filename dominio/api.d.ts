@@ -3153,6 +3153,12 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
             readonly virtualTitulo?: string;
             readonly virtualServicios?: string;
             readonly virtualItems?: string;
@@ -3195,6 +3201,12 @@ export interface components {
             lugares?: string[];
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-componente.read": {
@@ -3229,6 +3241,12 @@ export interface components {
             lugares?: string[];
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-componente.write": {
@@ -3295,6 +3313,12 @@ export interface components {
             momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html": {
@@ -3349,6 +3373,12 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
             readonly virtualTitulo?: string;
             readonly virtualServicios?: string;
             readonly virtualItems?: string;
@@ -3391,6 +3421,12 @@ export interface components {
             lugares?: string[];
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html-componente.read": {
@@ -3425,6 +3461,12 @@ export interface components {
             lugares?: string[];
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html-servicio.item.read": {
@@ -3457,6 +3499,12 @@ export interface components {
             momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -3511,6 +3559,12 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
             readonly virtualTitulo?: string;
             readonly virtualServicios?: string;
             readonly virtualItems?: string;
@@ -3553,6 +3607,12 @@ export interface components {
             lugares?: string[];
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld-componente.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -3587,6 +3647,12 @@ export interface components {
             lugares?: string[];
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -3619,6 +3685,12 @@ export interface components {
             momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart": {
@@ -3673,6 +3745,12 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
             readonly virtualTitulo?: string;
             readonly virtualServicios?: string;
             readonly virtualItems?: string;
@@ -3715,6 +3793,12 @@ export interface components {
             lugares?: string[];
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart-componente.read": {
@@ -3749,6 +3833,12 @@ export interface components {
             lugares?: string[];
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart-servicio.item.read": {
@@ -3781,6 +3871,12 @@ export interface components {
             momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         ComprobanteComprobante: {
             readonly id?: number;
@@ -7695,8 +7791,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -7822,8 +7921,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -8019,8 +8121,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -8067,8 +8172,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -8212,8 +8320,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -8339,8 +8450,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -8421,8 +8535,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -8469,8 +8586,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -8614,8 +8734,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -8742,8 +8865,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -8827,8 +8953,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -8876,8 +9005,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -9021,8 +9153,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -9148,8 +9283,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -9230,8 +9368,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };
@@ -9278,8 +9419,11 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
-            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
-            readonly unidadDeConteo?: string;
+            /**
+             * @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+             * @enum {string}
+             */
+            readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
         };

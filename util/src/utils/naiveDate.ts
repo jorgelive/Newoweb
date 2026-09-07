@@ -18,6 +18,7 @@
  * Regla de oro: en el frontend, NUNCA pasar un string naive por `new Date(str)` para
  * hacer cálculos. Siempre vía `parseNaiveAsUTC` / `formatNaiveFromUTC`.
  */
+import { unidadesEntre } from '@dominio/cotizacion/index.ts';
 
 /** Parsea 'yyyy-MM-ddTHH:mm(:ss)' como si fuera UTC (sin influencia de la zona del cliente). */
 export const parseNaiveAsUTC = (s: string): number => {
@@ -61,15 +62,25 @@ export const addDurationToDate = (baseIsoString: string, durationDecimal: number
     return formatNaiveFromUTC(base + Math.round(horas * 60) * 60000);
 };
 
-/** Nº de pernoctes (noches) entre dos fechas naive, contando por día de calendario. */
-export const calcularPernoctes = (inicioStr: string, finStr: string): number => {
-    if (!inicioStr || !finStr) return 1;
-    const DIA = 24 * 60 * 60 * 1000;
-    const s = Math.floor(parseNaiveAsUTC(inicioStr) / DIA);
-    const e = Math.floor(parseNaiveAsUTC(finStr) / DIA);
-    const diff = e - s;
-    return diff > 0 ? diff : 1;
-};
+/**
+ * Cuántas unidades hay entre dos fechas naive, **según en qué se cuente**.
+ *
+ * 🔥 **Se llamaba `calcularPernoctes` y sólo sabía restar**, que es correcto para una cama y falso
+ * para todo lo que se consume por jornada. Un hotel del 18 al 22 son 4 noches; un seguro del 18 al
+ * 22 son 5 días. Con una sola cuenta, para cobrar los 5 días el operador **tuvo que escribir una
+ * fecha de fin falsa** —«18 → 23»—, porque era la única forma de que la resta diera 5.
+ *
+ * `'unidades'` devuelve `null`: un ticket no dura, se compra, y su cantidad la escribe quien
+ * cotiza. Quien llame decide qué hacer con el `null` — normalmente, no tocar lo que ya hay.
+ *
+ * ⚠️ La regla vive en `dominio/`, que es de donde la lee también la guía del huésped. Aquí sólo
+ * se adapta la firma al `string` que usa el editor.
+ */
+export const calcularUnidades = (
+    inicioStr: string | null | undefined,
+    finStr: string | null | undefined,
+    unidad: string | null | undefined,
+): number | null => unidadesEntre(inicioStr, finStr, unidad ?? 'noches');
 
 /**
  * Formatea una fecha naive para mostrarla, respetando exactamente los dígitos guardados
