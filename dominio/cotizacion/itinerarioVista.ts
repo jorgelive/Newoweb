@@ -322,7 +322,12 @@ export function componerItinerario<S extends ServicioMinimo>(
     // 2) Metadatos por grupo: hora absoluta más temprana y orden mínimo del día.
     //    Si el servicio no tiene hora en sus segmentos pero sí una hora promovida
     //    (servicio completo), se usa esa para posicionarlo en la cronología.
-    const diaAMano = [...grupos.values()].some(g => (g[0]?.servicio.orden ?? 0) > 0);
+    // ⚠️ **Una REPETICIÓN no la colocó nadie en este día.** El `orden` es del SERVICIO, no del
+    // día, así que un hotel curado el día 1 se lleva su número a las noches 2, 3 y 4 — y sin este
+    // filtro esos días se declaraban «colocados a mano» sin que nadie los tocara, con lo que sus
+    // servicios perdían el orden por reloj y empataban todos en `MAX_SAFE_INTEGER`.
+    const diaAMano = [...grupos.values()]
+        .some(g => (g[0]?.servicio.orden ?? 0) > 0 && !g[0]?.esRepeticion);
 
     const metaGrupo = (gb: BloqueVista<S>[]) => {
       const horas = gb.map(b => b.horaInicio).filter(Boolean) as string[];
@@ -331,7 +336,8 @@ export function componerItinerario<S extends ServicioMinimo>(
       const horaMin = horas.length ? [...horas].sort()[0] : null; // null = sin hora absoluta
       const ordenMin = posicionDeServicio(gb[0]!.servicio, gb.flatMap(b => b.componentes), diaAMano);
       const esEstadia = gb.every(b => b.esEstadia);
-      return { horaMin, ordenMin, esEstadia };
+      const esRepeticion = gb.every(b => b.esRepeticion);
+      return { horaMin, ordenMin, esEstadia, esRepeticion };
     };
 
     // 3) Ordenar los GRUPOS:
@@ -339,16 +345,25 @@ export function componerItinerario<S extends ServicioMinimo>(
     // ⚠️ **Un día ordenado a mano se ordena SÓLO por su `orden`**, igual que en el editor. Si la
     // hora siguiera mandando, el operador colocaría el día y el huésped lo leería en otro orden.
     //
-    // Las ESTADÍAS repetidas se quedan al final igualmente: son la nota de cierre, no una parada
-    // del relato, y no es eso lo que nadie está colocando cuando arrastra.
+    // ⚠️ **Y en un día curado, la PRIMERA noche obedece.** Hasta el 07/09/2026 toda estadía se
+    // resolvía en el andén 2 antes de mirar el `orden`: arrastrar un hotel lo movía en el editor
+    // —que no tiene andenes— y en la guía volvía al final. Es el mismo gesto roto que este
+    // cálculo dice haber arreglado, sobrevivido en las estadías.
+    //
+    // Si alguien colocó el alojamiento en mitad del día es porque significa algo —el CHECK-IN, un
+    // momento con hora aunque el hotel no la tenga— y después puede seguir habiendo actividades.
+    // Lo que no es una parada del relato son las **repeticiones**: «sigues aquí» es nota de
+    // cierre, y ésas se quedan al final aunque el día esté curado.
     const gruposOrdenados = [...grupos.values()].sort((ga, gb) => {
       const ma = metaGrupo(ga), mb = metaGrupo(gb);
       const tier = (m: typeof ma) => (m.horaMin ? 0 : (m.esEstadia ? 2 : 1));
       const ta = tier(ma), tb = tier(mb);
 
       if (diaAMano) {
-        // La estadía sigue cerrando el día; lo demás va por el orden que puso la persona.
-        if (ta === 2 || tb === 2) return (ta === 2 ? 1 : 0) - (tb === 2 ? 1 : 0);
+        // Sólo el «sigues aquí» cierra el día; lo demás va por el orden que puso la persona.
+        const cierra = (m: typeof ma) => m.esEstadia && m.esRepeticion;
+        const ca = cierra(ma), cb = cierra(mb);
+        if (ca !== cb) return ca ? 1 : -1;
         return ma.ordenMin - mb.ordenMin;
       }
 

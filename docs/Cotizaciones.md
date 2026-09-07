@@ -5234,6 +5234,32 @@ intento.
 una excepción: **las estadías repetidas siguen cerrando el día**. Son la nota de «sigues aquí», no
 una parada del relato, y no es eso lo que nadie está colocando cuando arrastra.
 
+⚠️ **Y la excepción era demasiado ancha: se comía también la PRIMERA noche (arreglado el
+07/09/2026).** El escalón 2 se resolvía antes de mirar el `orden`, así que arrastrar un hotel lo
+movía en el editor —que no tiene escalones— y en la guía volvía al final. **El mismo snap-back
+que esta sección dice haber arreglado, sobrevivido en las estadías**, y silencioso porque el
+número sí se guardaba.
+
+Si alguien coloca el alojamiento en mitad del día es porque significa algo: el **check-in**, un
+momento del día aunque el hotel no tenga hora, después del cual puede seguir habiendo
+actividades. Lo que no es una parada del relato son las **repeticiones**.
+
+```
+día curado, hotel arrastrado al medio
+  10  Hotel  (check-in)     ← obedece: es donde lo puso la persona
+  20  Cena
+  …   noche 2/3             ← «sigues aquí»: cierra igual
+```
+
+**En un día automático no cambia nada** —el alojamiento tiene `ordenNarrativo` 90 y sigue
+cerrando—, y los snapshots de las tres cotizaciones reales salieron idénticos.
+
+⚠️ **Y el `orden` es del SERVICIO, no del día.** Un hotel curado el día 1 se lleva su número a las
+noches 2, 3 y 4, y `diaAMano` lo daba por «alguien colocó este día» sin que nadie lo tocara: los
+servicios de esos días perdían el orden por reloj y empataban todos en `MAX_SAFE_INTEGER`. Ahora
+las repeticiones no cuentan para esa pregunta. No llegó a verse en producción —hay 6 servicios con
+`orden > 0` y ninguno dura más de un día— pero estaba armado.
+
 **La orden del proveedor NO cambia**: sigue siendo cronológica. Es un horario de trabajo, no un
 relato — allí la hora manda siempre.
 

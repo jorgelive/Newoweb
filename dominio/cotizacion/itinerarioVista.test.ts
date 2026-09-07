@@ -219,6 +219,50 @@ describe('el orden del día', () => {
         // Las 18:00 van primero porque alguien lo colocó así. Si mandara la hora, saldría 08:00.
         expect(dia.bloques.map((b) => b.horaInicio)).toEqual(['18:00', '08:00']);
     });
+
+    /**
+     * El hotel colocado a mano: la PRIMERA noche obedece, las repeticiones cierran igual.
+     *
+     * Hasta el 07/09/2026 toda estadía se resolvía en el andén 2 antes de mirar el `orden`, así
+     * que arrastrar un hotel lo movía en el editor —que no tiene andenes— y en la guía volvía al
+     * final: el gesto se guardaba y no hacía nada. Si alguien lo coloca en mitad del día es
+     * porque significa algo —el CHECK-IN— y después puede seguir habiendo actividades.
+     *
+     * Las noches 2 y 3 no son una parada del relato sino un «sigues aquí», y ésas sí cierran.
+     */
+    it('estadía colocada a mano: la primera noche obedece al operador; las repeticiones cierran', () => {
+        const cot = {
+            cotservicios: [
+                {
+                    id: 'hotel', orden: 10, tituloSnapshot: [],
+                    cotsegmentos: [{ id: 's-hotel', dia: 1, orden: 1, fechaAbsoluta: '2030-01-01', tituloSnapshot: [] }],
+                    cotcomponentes: [{ id: 'c-hotel', cotsegmento: { id: 's-hotel' }, fechaHoraInicio: '2030-01-01T00:00:00', fechaHoraFin: '2030-01-04T00:00:00', sinHorario: true, horaServicioCompleto: false, ordenNarrativo: 90, tituloSnapshot: [] }],
+                },
+                {
+                    id: 'cena', orden: 20, tituloSnapshot: [],
+                    cotsegmentos: [{ id: 's-cena', dia: 1, orden: 1, fechaAbsoluta: '2030-01-01', tituloSnapshot: [] }],
+                    cotcomponentes: [{ id: 'c-cena', cotsegmento: { id: 's-cena' }, fechaHoraInicio: '2030-01-01T20:00:00', fechaHoraFin: null, sinHorario: false, horaServicioCompleto: false, ordenNarrativo: 50, tituloSnapshot: [] }],
+                },
+                {
+                    id: 'tour', orden: 0, tituloSnapshot: [],
+                    cotsegmentos: [{ id: 's-tour', dia: 2, orden: 1, fechaAbsoluta: '2030-01-02', tituloSnapshot: [] }],
+                    cotcomponentes: [{ id: 'c-tour', cotsegmento: { id: 's-tour' }, fechaHoraInicio: '2030-01-02T09:00:00', fechaHoraFin: null, sinHorario: false, horaServicioCompleto: false, ordenNarrativo: 30, tituloSnapshot: [] }],
+                },
+            ],
+        };
+
+        const dias = componerItinerario(cot);
+
+        // Día 1, curado: el hotel (orden 10) va ANTES de la cena (orden 20), que es donde el
+        // operador lo puso. Antes del arreglo salía al final.
+        expect(dias[0]!.bloques.map((b) => b.servicio.id)).toEqual(['hotel', 'cena']);
+
+        // Día 2: la noche 2 del hotel es un «sigues aquí» y cierra, aunque el servicio lleve
+        // `orden` 10 heredado del día 1. Y el día 2 NO cuenta como colocado a mano por esa
+        // herencia: el tour conserva su sitio por reloj.
+        expect(dias[1]!.bloques.map((b) => b.servicio.id)).toEqual(['tour', 'hotel']);
+        expect(dias[1]!.bloques.at(-1)!.esRepeticion).toBe(true);
+    });
 });
 
 describe('bordes', () => {
