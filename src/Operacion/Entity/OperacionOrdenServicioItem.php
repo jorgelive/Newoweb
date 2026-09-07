@@ -351,6 +351,18 @@ class OperacionOrdenServicioItem
             return null;
         }
 
+        // ⚠️ **Sólo lo que DURA, y ésa es una regla que este repo ya tenía escrita: cruzar
+        // medianoche no es durar dos días.** En producción los que acaban «al día siguiente» sin
+        // ser periodos son un traslado urbano de 30 minutos (23:30 → 00:00), un vuelo nocturno y
+        // dos con la duración mal puesta —un traslado de aeropuerto de 25 horas—. A ninguno le
+        // corresponde una salida: decir «hasta el 1 sep» de media hora de coche es ruido, y en
+        // los dos últimos sería repetir un error de datos en un documento que firma la agencia.
+        //
+        // El marcador de «esto dura» es tener unidad que nombrar: noches, días, desayunos.
+        if (trim((string) $this->sustantivoUnidad) === '') {
+            return null;
+        }
+
         return sprintf(
             'hasta el %s %d %s',
             self::DIAS[(int) $this->fechaFin->format('w')],

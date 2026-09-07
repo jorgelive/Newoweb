@@ -49,8 +49,17 @@ justo la parte que más se pregunta por teléfono. Ahora la fila y el ítem cong
 🕐 *Alojamiento en Lima*  ·  Habitación Superior Matrimonial  ·  2 pax  ·  4 noches  ·  hasta el jue 4 sep
 ```
 
-`getHastaParaProveedor()` **se calla si acaba el mismo día**: la fecha ya encabeza el bloque, y
-repetirla en cada línea enseña a no leerla.
+`getHastaParaProveedor()` **se calla si acaba el mismo día** —la fecha ya encabeza el bloque, y
+repetirla en cada línea enseña a no leerla— **y también si el encargo no dura**, aunque su fecha de
+fin caiga en la jornada siguiente.
+
+⚠️ Eso último es la misma regla que ya aplica `esEstadia`: **cruzar medianoche no es durar dos
+días**. En producción, los que acaban «al día siguiente» sin ser periodos son un traslado urbano de
+media hora (23:30 → 00:00), un vuelo nocturno y dos con la duración mal puesta —un traslado de
+aeropuerto de 25 horas—. Decirle a ninguno «hasta el 1 sep» es ruido, y en los dos últimos sería
+repetir un error de datos en un documento que firma la agencia.
+
+El marcador de «esto dura» es tener **unidad que nombrar**: noches, días, desayunos.
 
 ⚠️ **El backfill toca documentos YA EMITIDOS**, que normalmente no se tocan. Se hizo a conciencia y
 por decisión del operador, porque lo que cambia **no contradice** lo enviado: donde ponía «4»
