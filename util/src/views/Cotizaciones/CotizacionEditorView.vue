@@ -3,7 +3,7 @@ import { ref, onMounted, computed, watch, onUnmounted, type DirectiveBinding } f
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useVolverAtras } from '@/composables/useVolverAtras';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
-import { etiquetaDeUnidades } from '@dominio/cotizacion/index.ts';
+import { etiquetaDeUnidades, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import type { InformeCoherencia } from '@/types/operacionModel';
 import { getUrls } from '@/services/apiClient';
@@ -455,12 +455,8 @@ const store = useCotizacionEditorStore();
 const unidadDe = (comp: { unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): string =>
     comp.unidadDeConteoSnapshot ?? comp.unidadDeConteo ?? 'noches';
 
-const sustantivoDe = (comp: { sustantivoUnidadSnapshot?: string | null; unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): string => {
-    const propio = (comp.sustantivoUnidadSnapshot ?? '').trim();
-    if (propio !== '') return propio;
-
-    return unidadDe(comp) === 'dias' ? 'día' : 'noche';
-};
+const sustantivoDe = (comp: { sustantivoUnidadSnapshot?: string | null; unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): string =>
+    sustantivoDeUnidad(unidadDe(comp), comp.sustantivoUnidadSnapshot);
 
 const etiquetaDeCantidad = (comp: { cantidad?: number | null; sustantivoUnidadSnapshot?: string | null; unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): string =>
     etiquetaDeUnidades(comp.cantidad ?? 1, sustantivoDe(comp));

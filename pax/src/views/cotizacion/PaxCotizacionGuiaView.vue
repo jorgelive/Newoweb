@@ -23,7 +23,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
-import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnidades } from '@dominio/cotizacion/index.ts';
+import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnidades, sustantivoDeUnidad, resumenDeDuracion } from '@dominio/cotizacion/index.ts';
 import type { BloqueVista as BloqueVistaBase } from '@dominio/cotizacion/index.ts';
 import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
 
@@ -423,6 +423,8 @@ const etiquetaUnidad = (b: BloqueVista): string => {
   const propio = (b.sustantivoUnidad ?? '').trim();
   if (propio !== '') return propio.charAt(0).toUpperCase() + propio.slice(1);
 
+  // Las dos estándar SÍ están traducidas, por sus claves de i18n; el sustantivo del catálogo no.
+  // Por eso aquí no vale `sustantivoDeUnidad` a secas: haría falta traducir el resultado.
   return b.unidad === 'dias'
       ? (maestroStore.t('cot_dia') || 'Día')
       : (maestroStore.t('cot_noche') || 'Noche');
@@ -978,16 +980,18 @@ const ocultarTotales = computed(() => store.cotizacion?.totalesOcultos === true)
  *
  * ⚠️ **Las noches NO son los días menos uno.** Lo son casi siempre y dejan de serlo en cuanto el
  * viaje empieza o acaba sin dormir —una escala de día completo—, así que se SUMAN de lo que de
- * verdad se durmió. La cuenta la hace `Cotizacion::getResumenDuracion()` y viaja resuelta: aquí
- * escribirla otra vez sería la tercera copia, porque también la leen La Biblia y el proveedor.
+ * verdad se durmió.
+ *
+ * ⚠️ **Las dos salen del MISMO sitio**, `resumenDeDuracion()`, sobre el itinerario ya compuesto.
+ * Hasta el 07/09/2026 los días los ponía la vista y las noches el servidor, y podían discrepar en
+ * uno: lo que el huésped cuenta en las pestañas y lo que dice la cabecera no pueden separarse.
  *
  * Las noches se callan cuando no hay ninguna: «3 días, 0 noches» es un day tour descrito como si
  * le faltara algo.
  */
 const diasLabel = computed(() => {
-  const n = totalDiasViaje.value;
+  const { dias: n, noches } = resumenDeDuracion(itinerarioVista.value);
   const palabra = n === 1 ? (maestroStore.t('cot_dia') || 'día') : (maestroStore.t('cot_dias') || 'días');
-  const noches = store.cotizacion?.resumenDuracion?.noches ?? 0;
 
   if (noches <= 0) return `${n} ${palabra}`;
 

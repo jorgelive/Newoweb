@@ -22,7 +22,7 @@ import { getUrls } from '@/services/apiClient';
 import { mensajeDeErrorApi } from '@/utils/errorApi';
 import { extractIdStr } from '@/utils/recurso';
 import { mandaElSegmento } from '@/utils/componenteTipo';
-import { etiquetaDeUnidades } from '@dominio/cotizacion/index.ts';
+import { etiquetaDeUnidades, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
 import {
     getEstadoOsConfig,
     getEstadoReservaProveedorConfig,
@@ -1948,10 +1948,7 @@ const unidadesTexto = (s: { cantidadComponente?: number; unidadDeConteo?: string
     const n = s.cantidadComponente ?? 1;
     if (n <= 1) return '';
 
-    const propio = (s.sustantivoUnidad ?? '').trim();
-    const palabra = propio !== ''
-        ? propio
-        : (s.unidadDeConteo === 'noches' ? 'noche' : (s.unidadDeConteo === 'dias' ? 'día' : ''));
+    const palabra = sustantivoDeUnidad(s.unidadDeConteo, s.sustantivoUnidad);
 
     return palabra === '' ? `${n} uds · ` : `${etiquetaDeUnidades(n, palabra)} · `;
 };

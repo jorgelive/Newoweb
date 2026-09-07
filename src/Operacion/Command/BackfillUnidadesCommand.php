@@ -61,8 +61,11 @@ final class BackfillUnidadesCommand extends Command
         $tocadas = 0;
         $sinComponente = 0;
         $conFin = 0;
+        $desfasados = 0;
         /** @var array<string, \DateTimeImmutable|null> $finPorServicio */
         $finPorServicio = [];
+        /** @var array<string, \DateTimeImmutable|null> $inicioPorServicio */
+        $inicioPorServicio = [];
         /** @var array<string, int> $porUnidad */
         $porUnidad = [];
         /** @var array<string, string|null> $sustantivoPorServicio  id de OperacionServicio → sustantivo */
@@ -95,6 +98,7 @@ final class BackfillUnidadesCommand extends Command
                 // salida y sólo lo delataba mirar la tabla en la base.
                 if ($id !== '') {
                     $finPorServicio[$id] = $fila->getFechaFinServicio();
+                    $inicioPorServicio[$id] = $fila->getFechaServicio();
                 }
             }
 
@@ -123,6 +127,18 @@ final class BackfillUnidadesCommand extends Command
             $sustantivo = $sustantivoPorServicio[$clave] ?? null;
             $fin = $finPorServicio[$clave] ?? null;
 
+            // ⚠️ **Nada de mezclar dos fotos.** El fin que se copia es el de la fila VIVA; si el
+            // componente se movió después de emitir, el ítem quedaría con su fecha de inicio
+            // congelada y un fin de otra semana — un documento que se contradice a sí mismo. Si no
+            // coinciden los inicios, se deja como está: para eso existe reemitir.
+            $inicioVivo = $inicioPorServicio[$clave] ?? null;
+            if ($fin !== null
+                && $inicioVivo !== null
+                && $item->getFechaServicio()?->format('Y-m-d') !== $inicioVivo->format('Y-m-d')) {
+                $fin = null;
+                ++$desfasados;
+            }
+
             if ($sustantivo === null && $fin === null) {
                 continue;
             }
@@ -146,6 +162,7 @@ final class BackfillUnidadesCommand extends Command
                 ['  sin componente vivo (se dejan)', (string) $sinComponente],
                 ['  con fecha de fin', (string) $conFin],
                 ['Líneas de órdenes ya emitidas', (string) $itemsTocados],
+                ['  sin fin, por haberse movido la fecha', (string) $desfasados],
             ]
         );
 

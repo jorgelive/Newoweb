@@ -70,6 +70,7 @@
             {% if g.pasajero and g.pasajero != g.grupo %} · {{ g.pasajero }}{% endif %}
             {% if g.habitaciones %} · {{ g.habitaciones }} habitaci{{ g.habitaciones == 1 ? 'ón' : 'ones' }}{% endif %}
             {% if g.pax %} · {{ g.pax }} pax{% endif %}
+            {% if g.dias %} · {{ g.dias }} día{{ g.dias == 1 ? '' : 's' }}{% if g.noches %}, {{ g.noches }} noche{{ g.noches == 1 ? '' : 's' }}{% endif %}{% endif %}
             {% if g.telefono %} · tel. {{ g.telefono }}{% endif %}
         </p>
     {% endfor %}

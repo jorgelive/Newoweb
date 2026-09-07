@@ -246,7 +246,7 @@ final readonly class OperacionOrdenEmision
      */
     private function congelarGrupos(OperacionOrdenServicio $orden): void
     {
-        /** @var array<string, array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int}> $porFile */
+        /** @var array<string, array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int, dias: int, noches: int}> $porFile */
         $porFile = [];
 
         foreach ($orden->getOperacionServicios() as $servicio) {
@@ -262,6 +262,9 @@ final readonly class OperacionOrdenEmision
                 continue;
             }
 
+            $cotizacion = $servicio->getCotizacionServicio()?->getCotizacion();
+            $duracion = $cotizacion?->getResumenDuracion() ?? ['dias' => 0, 'noches' => 0];
+
             $habitaciones = 0;
             foreach ($file->getGrupos() as $grupo) {
                 if ($grupo->getTipo() === GrupoTipoEnum::HABITACION) {
@@ -275,7 +278,9 @@ final readonly class OperacionOrdenEmision
                 'pasajero'     => (string) ($file->getPasajeroPrincipal() ?? ''),
                 'telefono'     => (string) ($file->getTelefono() ?? ''),
                 'habitaciones' => $habitaciones,
-                'pax'          => $servicio->getCotizacionServicio()?->getCotizacion()?->getNumPax() ?? 0,
+                'pax'          => $cotizacion?->getNumPax() ?? 0,
+                'dias'         => $duracion['dias'],
+                'noches'       => $duracion['noches'],
             ];
         }
 

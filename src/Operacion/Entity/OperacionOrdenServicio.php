@@ -226,7 +226,7 @@ class OperacionOrdenServicio
     /**
      * Quién viaja: un bloque por expediente, congelado al emitir.
      *
-     * @var list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int}>
+     * @var list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int, dias: int, noches: int}>
      */
     #[ORM\Column(name: 'grupos_snapshot', type: 'json')]
     private array $gruposSnapshot = [];
@@ -478,19 +478,19 @@ class OperacionOrdenServicio
      * y ni el nombre del grupo ni a quién llamar. Con una orden de un solo expediente se
      * sobreentendía; con dos, no hay forma de saber qué línea es de quién.
      *
-     * @return list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int}>
+     * @return list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int, dias: int, noches: int}>
      */
     #[ApiProperty(openapiContext: ['type' => 'array', 'items' => ['type' => 'object']])]
     #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getGruposSnapshot(): array
     {
-        /** @var list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int}> $valor */
+        /** @var list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int, dias: int, noches: int}> $valor */
         $valor = $this->gruposSnapshot;
 
         return $valor;
     }
 
-    /** @param list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int}> $v */
+    /** @param list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int, dias: int, noches: int}> $v */
     public function setGruposSnapshot(array $v): self
     {
         $this->gruposSnapshot = $v;

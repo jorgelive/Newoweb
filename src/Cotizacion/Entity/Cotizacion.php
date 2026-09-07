@@ -961,12 +961,17 @@ class Cotizacion
      * «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez.
      *
      * ── Por qué es UN cálculo y no tres ─────────────────────────────────────
-     * ⚠️ **Hoy sólo lo lee la guía del huésped, y sólo las NOCHES.** Los días los saca de su
-     * propio itinerario (`totalDiasViaje`), así que la etiqueta «5 días, 4 noches» tiene dos
-     * fuentes y pueden discrepar: un hotel que acaba sin segmento de checkout hace que el
-     * itinerario pinte un día menos del que cuenta esto. La Biblia y la orden todavía no lo
-     * consumen — está escrito para ellas, pero mientras no lo usen no es «una fuente única», es
-     * una fuente y media.
+     * ⚠️ **La guía del huésped NO lo usa: lo calcula sobre el itinerario ya compuesto**
+     * (`resumenDeDuracion()` en `dominio/cotizacion/unidades.ts`). Allí sale gratis —cada bloque ya
+     * sabe si es un periodo y cuántas unidades tiene— y, sobre todo, la etiqueta deja de tener dos
+     * orígenes: hasta el 07/09/2026 los días los ponía la vista y las noches este método, y podían
+     * discrepar en uno.
+     *
+     * Esto se queda para el lado del servidor, que no tiene el itinerario compuesto: lo llama
+     * `OperacionOrdenEmision` UNA vez, al emitir, y el número se congela en la orden. **Es un
+     * espejo declarado de `resumenDeDuracion()`** — si cambia la regla, se tocan los dos. Se
+     * unifican el día que PHP invoque el cálculo compartido por el ejecutor de dominio; mientras
+     * tanto, invocar node por una etiqueta en cada lectura costaría más de lo que arregla.
      *
      * ── Las dos magnitudes NO son la misma cosa menos uno ───────────────────
      * ⚠️ La tentación es `noches = días − 1`. Es falso en cuanto el viaje empieza o acaba sin

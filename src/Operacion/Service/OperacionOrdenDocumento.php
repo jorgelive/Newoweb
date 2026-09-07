@@ -47,7 +47,7 @@ final readonly class OperacionOrdenDocumento
      * ⚠️ Con UN expediente esto se sobreentiende para toda la orden y las líneas no se etiquetan;
      * con dos o más, cada línea lleva su grupo y este bloque hace de directorio del documento.
      *
-     * @param list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int}> $grupos
+     * @param list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int, dias: int, noches: int}> $grupos
      *
      * @return list<string>
      */
@@ -63,6 +63,14 @@ final readonly class OperacionOrdenDocumento
                     ? sprintf('%d %s', $g['habitaciones'], $g['habitaciones'] === 1 ? 'habitación' : 'habitaciones')
                     : null,
                 $g['pax'] > 0 ? sprintf('%d pax', $g['pax']) : null,
+                $g['dias'] > 0
+                    ? trim(sprintf(
+                        '%d %s%s',
+                        $g['dias'],
+                        $g['dias'] === 1 ? 'día' : 'días',
+                        $g['noches'] > 0 ? sprintf(', %d %s', $g['noches'], $g['noches'] === 1 ? 'noche' : 'noches') : ''
+                    ))
+                    : null,
                 $g['telefono'] !== '' ? sprintf('tel. %s', $g['telefono']) : null,
             ], static fn (?string $p): bool => $p !== null));
 

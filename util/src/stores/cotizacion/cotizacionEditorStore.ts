@@ -1,6 +1,6 @@
 import { extractIdStr } from '@/utils/recurso';
 import { mandaElSegmento } from '@/utils/componenteTipo';
-import { posicionDeServicio } from '@dominio/cotizacion/index.ts';
+import { posicionDeServicio, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
 import {defineStore} from 'pinia';
 import { extractApiErrorMessage } from '@/services/apiError';
 import {computed, ref, toRaw, type Ref} from 'vue';
@@ -573,13 +573,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * Viaja con el `×N` a la clasificación financiera para que el huésped lea «5 días» o
      * «5 desayunos» en vez de un «×5» que no dice de qué.
      */
-    const sustantivoDeComponente = (comp: { sustantivoUnidadSnapshot?: string | null; unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): string => {
-        const propio = (comp.sustantivoUnidadSnapshot ?? '').trim();
-        if (propio !== '') return propio;
-
-        const unidad = comp.unidadDeConteoSnapshot ?? comp.unidadDeConteo ?? 'unidades';
-        return unidad === 'dias' ? 'día' : (unidad === 'noches' ? 'noche' : '');
-    };
+    const sustantivoDeComponente = (comp: { sustantivoUnidadSnapshot?: string | null; unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): string =>
+        sustantivoDeUnidad(comp.unidadDeConteoSnapshot ?? comp.unidadDeConteo, comp.sustantivoUnidadSnapshot);
 
     const cantidadPorFechas = (comp: { fechaHoraInicio?: string | null; fechaHoraFin?: string | null; unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): number | null =>
         calcularUnidades(comp.fechaHoraInicio, comp.fechaHoraFin, comp.unidadDeConteoSnapshot ?? comp.unidadDeConteo);

@@ -3192,6 +3192,27 @@ cliente. No contradice lo enviado: añade lo que faltaba. Las ya emitidas las re
 **Lo que sigue sin salir es el dinero**: ni importes, ni lo vendido, ni nada de la cotización. Ésa
 es la parte de la regla vieja que no se toca.
 
+### «7 días, 6 noches»: una cuenta, dos consumidores
+
+⚠️ **La guía del huésped NO usa el cálculo de PHP.** Lo saca de `resumenDeDuracion()`
+(`dominio/cotizacion/unidades.ts`) sobre el itinerario **ya compuesto**: allí cada bloque sabe si
+es un periodo, en qué se cuenta y cuántas unidades tiene, así que sale gratis y sin recorrer otra
+vez servicios, segmentos y componentes.
+
+Y sobre todo, deja de haber **dos orígenes**: hasta el 07/09/2026 los días los ponía la vista y las
+noches el servidor, y podían discrepar en uno —un checkout sin servicio ese día—. Lo que el
+huésped cuenta en las pestañas y lo que dice la cabecera ya no pueden separarse.
+
+`Cotizacion::getResumenDuracion()` se queda para el lado del servidor, que no tiene el itinerario
+compuesto: lo llama `OperacionOrdenEmision` **una vez, al emitir**, y el número se congela en el
+bloque de grupos. **Es un espejo declarado** — si cambia la regla, se tocan los dos. Se unifican el
+día que PHP invoque el cálculo compartido por el ejecutor de dominio; invocar node por una etiqueta
+en cada lectura costaría más de lo que arregla.
+
+⚠️ **Y las noches se suman sólo de los bloques ANCLA y de lo que está vivo.** Una estadía de cuatro
+noches se pinta cuatro veces —sumarlas todas daría dieciséis— y un componente cancelado sigue en la
+colección: un cambio de hotel daba las noches de los dos.
+
 ### El teléfono de emergencia (07/09/2026)
 
 Va al pie de cada orden —mensaje, página pública y PDF— y **no existía en ninguna parte del

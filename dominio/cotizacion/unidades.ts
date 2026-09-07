@@ -9,7 +9,7 @@
  * consume el valor.
  */
 
-import { dateOf, diffDays } from './itinerarioVista.ts';
+import { dateOf, diffDays, type DiaVista, type ServicioMinimo } from './itinerarioVista.ts';
 
 /**
  * Cuántas unidades hay entre dos fechas, según en qué se cuente.
@@ -59,4 +59,61 @@ export const etiquetaDeUnidades = (n: number, sustantivo: string | null | undefi
 
   const plural = /[aeiouáéíóú]$/i.test(palabra) ? `${palabra}s` : `${palabra}es`;
   return `${n} ${plural}`;
+};
+
+/**
+ * Cómo se llama una unidad en singular: «noche», «día», «desayuno».
+ *
+ * **Espejo de `UnidadDeConteoEnum::sustantivo()`** — si cambia la regla, se tocan los dos. Estuvo
+ * escrita tres veces en TypeScript (el store del editor, la ficha del editor y La Biblia) porque
+ * cada pantalla necesitaba el respaldo por un motivo distinto; la regla, sin embargo, es una.
+ *
+ * `propio` es el sustantivo que el catálogo declara para ese producto y manda sobre todo lo demás.
+ */
+export const sustantivoDeUnidad = (
+  unidad: string | null | undefined,
+  propio?: string | null,
+): string => {
+  const suyo = (propio ?? '').trim();
+  if (suyo !== '') return suyo;
+
+  if (unidad === 'noches') return 'noche';
+  if (unidad === 'dias') return 'día';
+
+  return '';
+};
+
+/**
+ * «7 días, 6 noches» — las dos magnitudes del viaje, de UNA sola pasada.
+ *
+ * 🔥 **Por qué vive aquí y no en PHP.** El itinerario ya está compuesto: cada bloque sabe si es un
+ * periodo, en qué se cuenta y cuántas unidades tiene. Calcularlo en el servidor obliga a recorrer
+ * otra vez servicios, segmentos y componentes —una consulta más— para llegar al mismo número.
+ *
+ * Y sobre todo: hasta el 07/09/2026 la etiqueta tenía **dos orígenes** —los días los ponía el
+ * itinerario del huésped y las noches el servidor— y podían discrepar en un día. Con una sola
+ * fuente, lo que el huésped cuenta en pantalla y lo que dice la cabecera no pueden separarse.
+ *
+ * ⚠️ Los días son del CALENDARIO —`numeroDia` del último día con algo— y las noches se SUMAN de
+ * lo que de verdad se durmió. No son «los días menos uno»: deja de serlo en cuanto el viaje
+ * empieza o acaba sin dormir, que es lo que pasa con una escala de día completo.
+ *
+ * ⚠️ Sólo los bloques ANCLA (`!esRepeticion`): una estadía de cuatro noches se pinta cuatro veces
+ * y sumar todas daría dieciséis.
+ */
+export const resumenDeDuracion = <S extends ServicioMinimo>(
+  dias: DiaVista<S>[],
+): { dias: number; noches: number } => {
+  const ultimo = dias.length ? dias[dias.length - 1] : null;
+
+  let noches = 0;
+  for (const dia of dias) {
+    for (const b of dia.bloques) {
+      if (b.esPeriodo && !b.esRepeticion && b.unidad === 'noches') {
+        noches += b.totalUnidades;
+      }
+    }
+  }
+
+  return { dias: ultimo?.numeroDia ?? 0, noches };
 };

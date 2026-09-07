@@ -20,6 +20,8 @@ export {
 export {
     unidadesEntre,
     etiquetaDeUnidades,
+    sustantivoDeUnidad,
+    resumenDeDuracion,
 } from './unidades.ts';
 
 export type {
