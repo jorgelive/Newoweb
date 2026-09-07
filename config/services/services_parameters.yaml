@@ -33,6 +33,17 @@ parameters:
     panel_host_url: '%env(PANEL_HOST_URL)%'
     api_host_url: '%env(API_HOST_URL)%'
 
+    # ⚠️ El teléfono al que llama un PROVEEDOR cuando algo se tuerce en ruta, y va al pie de cada
+    # orden de servicio. No existía en ninguna parte: lo único parecido era el WhatsApp del
+    # establecimiento, que es del PMS y por propiedad, y un conductor no sabe cuál es.
+    #
+    # Vacío = el pie no sale. Preferible a un número inventado en un documento que se manda fuera.
+    # Cadena vacía y no null: el servicio la recibe tipada como `string`, y `default::` devuelve
+    # null cuando la variable no está — que es lo que pasa en cuanto alguien despliega sin
+    # regenerar `.env.local.php`.
+    operaciones_sin_valor: ''
+    operaciones_telefono_emergencia: '%env(default:operaciones_sin_valor:OPERACIONES_TELEFONO_EMERGENCIA)%'
+
     pax_book_guide_url: '%env(PAX_HOST_URL)%/huesped/reserva'
     pax_book_guide_url_nd: 'huesped/reserva'
     # ⚠️ El catálogo de tours vive en `/catalogo/{localizador}` — ver `pax/src/router/index.ts`.

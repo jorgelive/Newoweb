@@ -8,6 +8,7 @@ use App\Operacion\Entity\OperacionOrdenServicio;
 use App\Operacion\Entity\OperacionOrdenServicioItem;
 use App\Travel\Entity\TravelOrganizacion;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -32,8 +33,45 @@ use Symfony\Component\Uid\Uuid;
  */
 final readonly class OperacionOrdenDocumento
 {
-    public function __construct(private EntityManagerInterface $em)
+    public function __construct(
+        private EntityManagerInterface $em,
+        #[Autowire(param: 'operaciones_telefono_emergencia')]
+        private string $telefonoEmergencia = '',
+    )
     {
+    }
+
+    /**
+     * «Nune & Todd · Todd Nune · 1 habitación · 2 pax · 999 888 777» — quién viaja.
+     *
+     * ⚠️ Con UN expediente esto se sobreentiende para toda la orden y las líneas no se etiquetan;
+     * con dos o más, cada línea lleva su grupo y este bloque hace de directorio del documento.
+     *
+     * @param list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int}> $grupos
+     *
+     * @return list<string>
+     */
+    private function bloqueDeGrupos(array $grupos): array
+    {
+        $lineas = [];
+
+        foreach ($grupos as $g) {
+            $partes = array_values(array_filter([
+                $g['grupo'] !== '' ? sprintf('*%s*', $g['grupo']) : null,
+                $g['pasajero'] !== '' && $g['pasajero'] !== $g['grupo'] ? $g['pasajero'] : null,
+                $g['habitaciones'] > 0
+                    ? sprintf('%d %s', $g['habitaciones'], $g['habitaciones'] === 1 ? 'habitación' : 'habitaciones')
+                    : null,
+                $g['pax'] > 0 ? sprintf('%d pax', $g['pax']) : null,
+                $g['telefono'] !== '' ? sprintf('tel. %s', $g['telefono']) : null,
+            ], static fn (?string $p): bool => $p !== null));
+
+            if ($partes !== []) {
+                $lineas[] = '👥 ' . implode('  ·  ', $partes);
+            }
+        }
+
+        return $lineas;
     }
 
     /**
@@ -84,9 +122,15 @@ final readonly class OperacionOrdenDocumento
         // firma y se factura, y es lo que espera ver quien recibe un encargo formal. Si no la
         // tiene —o el destinatario no está en el catálogo—, cae al nombre con el que se le conoce
         // antes que a un saludo genérico.
+        // ⚠️ Quién viaja va ARRIBA, antes de las líneas: al proveedor le llegaban horas y pax sin
+        // decirle de quién era el encargo ni a quién llamar. Con un solo grupo se sobreentendía;
+        // con dos, no había forma de saber qué línea era de quién.
+        $grupos = $this->bloqueDeGrupos($orden->getGruposSnapshot());
+
         $partes = array_filter([
             sprintf('Estimado equipo de %s:', $this->tratamientoDelDestinatario($orden)),
             sprintf('*Orden de Servicio %s*', $orden->getNumeroOs()),
+            $grupos === [] ? null : implode("\n", $grupos),
             $partesCuerpo === []
                 ? '(sin líneas: la orden todavía no se ha emitido)'
                 : implode("\n\n", $partesCuerpo),
@@ -101,6 +145,17 @@ final readonly class OperacionOrdenDocumento
             // cuenta: dos sitios componiendo el mismo texto, y el del grupo podía recibir una
             // versión distinta del que lo recibe por chat. Ahora se compone una vez, aquí.
             $enlace === null ? null : "Puede consultar la orden de servicio en el siguiente enlace:\n" . $enlace,
+            // ── EL TELÉFONO DE EMERGENCIA, AL PIE ───────────────────────────
+            //
+            // Lo que un conductor necesita a las 22:00 cuando el vuelo se retrasa. No existía en
+            // ninguna parte del sistema: lo único parecido era el WhatsApp del establecimiento,
+            // que es del PMS, por propiedad, y un proveedor de transporte no sabe cuál es.
+            //
+            // ⚠️ Vacío = no sale. Un número inventado en un documento que se manda fuera es peor
+            // que no ponerlo: se llama y no contesta nadie, justo el día que hacía falta.
+            trim($this->telefonoEmergencia) === ''
+                ? null
+                : sprintf('Ante cualquier urgencia durante el servicio: %s', trim($this->telefonoEmergencia)),
             // El único que puede faltar es el enlace: un borrador todavía no tiene llave pública.
         ], static fn (?string $p): bool => $p !== null);
 
@@ -241,6 +296,12 @@ final readonly class OperacionOrdenDocumento
         // consumen.
         if (($dia = $item->getDiaParaProveedor()) !== null) {
             $partes[] = $dia;
+        }
+
+        // De quién es la línea. **Sólo con más de un grupo**: con uno, el encabezado ya lo dijo y
+        // repetirlo en cada renglón es ruido.
+        if ($item->getOrden()?->isMultigrupo() === true && ($grupo = trim((string) $item->getNombreGrupo())) !== '') {
+            $partes[] = $grupo;
         }
 
         $linea = '🕐 ' . implode('  ·  ', $partes);

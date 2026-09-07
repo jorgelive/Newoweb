@@ -61,6 +61,53 @@ repetir un error de datos en un documento que firma la agencia.
 
 El marcador de «esto dura» es tener **unidad que nombrar**: noches, días, desayunos.
 
+### Quién viaja, en el documento del proveedor (07/09/2026)
+
+La regla escrita en `OrdenPublicaController` era «al proveedor se le dice **qué operar**, no para
+quién», y en la práctica dejaba al conductor con horas y pax pero **sin el nombre del grupo ni un
+teléfono al que llamar**. Con una orden de un expediente se sobreentendía de quién era; con dos, no
+hay forma de saber qué línea es de quién.
+
+```
+👥 *Nune & Todd*  ·  Todd Nune  ·  1 habitación  ·  2 pax  ·  tel. 999 888 777
+
+*Lun 31 ago*
+🕐 22:00 · *Transporte…* · 2 pax · Transporte en Lima
+```
+
+| Dónde | Campo | Cuándo se pone |
+|---|---|---|
+| Orden | `gruposSnapshot` (JSON, un bloque por expediente) | al emitir, y **se recalcula siempre** |
+| Línea | `nombreGrupo` | al emitir |
+
+⚠️ **La etiqueta por línea sale sólo si hay más de un grupo** (`isMultigrupo()`). Con uno, el
+encabezado ya lo dijo y repetirlo en cada renglón es ruido. Con varios, el bloque de arriba hace de
+**directorio del documento**.
+
+⚠️ **`congelarGrupos()` se recalcula en cada emisión, aunque ya haya líneas** — es la única parte
+que se salta la regla del documento inmutable, y a propósito: nació después que las órdenes que ya
+existían, y dejarla vacía obligaría a reemitir una orden confirmada sólo para ponerle el nombre del
+cliente. No contradice lo enviado: añade lo que faltaba. Las ya emitidas las rellena
+`app:operacion:backfill-grupos`.
+
+**Lo que sigue sin salir es el dinero**: ni importes, ni lo vendido, ni nada de la cotización. Ésa
+es la parte de la regla vieja que no se toca.
+
+### El teléfono de emergencia (07/09/2026)
+
+Va al pie de cada orden —mensaje, página pública y PDF— y **no existía en ninguna parte del
+sistema**: lo único parecido era el WhatsApp del establecimiento, que es del PMS, por propiedad, y
+un proveedor de transporte no sabe cuál es.
+
+Es el parámetro `operaciones_telefono_emergencia`, de `OPERACIONES_TELEFONO_EMERGENCIA`.
+
+⚠️ **Vacío = el pie no sale.** Un número inventado en un documento que se manda fuera es peor que
+ninguno: se llama y no contesta nadie, justo el día que hacía falta.
+
+⚠️ El defecto del parámetro es una **cadena vacía y no `null`** (`default:operaciones_sin_valor:`).
+Con `default::` el servicio recibe `null` donde declara `string` y **el contenedor no compila** —
+que es lo que pasa en cuanto alguien despliega sin regenerar `.env.local.php`.
+
 ### El importe dejó de ensuciar la orden (07/09/2026)
 
 `getDivergencias()` vigilaba el importe, así que **cada ajuste de costo marcaba la orden como «ya

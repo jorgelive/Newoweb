@@ -224,6 +224,14 @@ class OperacionOrdenServicio
     private ?string $totalOs = null;
 
     /**
+     * Quién viaja: un bloque por expediente, congelado al emitir.
+     *
+     * @var list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int}>
+     */
+    #[ORM\Column(name: 'grupos_snapshot', type: 'json')]
+    private array $gruposSnapshot = [];
+
+    /**
      * @var Collection<int, OperacionServicio>
      */
     /**
@@ -462,6 +470,45 @@ class OperacionOrdenServicio
 
     public function getMonedaOs(): ?MaestroMoneda { return $this->monedaOs; }
     public function setMonedaOs(?MaestroMoneda $monedaOs): self { $this->monedaOs = $monedaOs; return $this; }
+
+    /**
+     * Quién viaja, congelado al emitir: un bloque por expediente.
+     *
+     * ⚠️ **El documento no decía de quién era.** Al proveedor le llegaban horas, servicios y pax,
+     * y ni el nombre del grupo ni a quién llamar. Con una orden de un solo expediente se
+     * sobreentendía; con dos, no hay forma de saber qué línea es de quién.
+     *
+     * @return list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int}>
+     */
+    #[ApiProperty(openapiContext: ['type' => 'array', 'items' => ['type' => 'object']])]
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getGruposSnapshot(): array
+    {
+        /** @var list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int}> $valor */
+        $valor = $this->gruposSnapshot;
+
+        return $valor;
+    }
+
+    /** @param list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int}> $v */
+    public function setGruposSnapshot(array $v): self
+    {
+        $this->gruposSnapshot = $v;
+
+        return $this;
+    }
+
+    /**
+     * ¿Hace falta etiquetar cada línea con su grupo?
+     *
+     * Sólo cuando hay más de uno. Con un expediente, el encabezado ya dice de quién es todo y
+     * repetirlo en cada renglón es ruido — que es justo lo que el operador pidió evitar.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function isMultigrupo(): bool
+    {
+        return count($this->gruposSnapshot) > 1;
+    }
 
     public function getTotalOs(): ?string { return $this->totalOs; }
     public function setTotalOs(?string $totalOs): self { $this->totalOs = $totalOs; return $this; }

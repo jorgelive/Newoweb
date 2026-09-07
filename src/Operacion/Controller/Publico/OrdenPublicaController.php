@@ -9,6 +9,7 @@ use App\Operacion\Enum\EstadoOrdenServicioEnum;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\AsController;
@@ -27,8 +28,13 @@ use Symfony\Component\Routing\Attribute\Route;
  * La llave son 32 caracteres de azar —ni el número de OS ni el UUID sirven, que son
  * adivinables— pero un enlace se reenvía, y hay que asumir que acaba fuera.
  *
- * Tampoco sale el expediente, ni el cliente, ni nada de la cotización: al proveedor se le dice
- * **qué operar**, no para quién ni por cuánto se vendió.
+ * ⚠️ **Sí sale QUIÉN viaja, desde el 07/09/2026, y antes no.** La regla escrita aquí era «al
+ * proveedor se le dice qué operar, no para quién», y en la práctica dejaba al conductor con horas
+ * y pax pero sin el nombre del grupo ni un teléfono al que llamar. Lo pidió el operador con el
+ * caso delante: en una orden de dos expedientes no hay forma de saber qué línea es de quién.
+ *
+ * Lo que sigue sin salir es **el dinero**: ni importes, ni lo que se vendió, ni nada de la
+ * cotización. Ésa es la parte de la regla que no se toca.
  *
  * ── Se genera al vuelo ──────────────────────────────────────────────────────
  * No hay fichero guardado: el PDF se compone en el momento a partir de los ítems congelados. Sin
@@ -41,8 +47,11 @@ use Symfony\Component\Routing\Attribute\Route;
 #[AsController]
 final class OrdenPublicaController extends AbstractController
 {
-    public function __construct(private readonly EntityManagerInterface $em)
-    {
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        #[Autowire(param: 'operaciones_telefono_emergencia')]
+        private readonly string $telefonoEmergencia = '',
+    ) {
     }
 
     #[Route('/orden/{token}', name: 'operacion_orden_publica', methods: ['GET'], requirements: ['token' => '[0-9a-f]{32}'])]
@@ -54,6 +63,7 @@ final class OrdenPublicaController extends AbstractController
             'orden' => $orden,
             // Mismo criterio que el mensaje al proveedor: el recojo, una vez al día.
             'rutas' => $orden->getRutasVisibles(),
+            'telefonoEmergencia' => trim($this->telefonoEmergencia),
             'paraPdf' => false,
         ]);
     }
@@ -73,6 +83,7 @@ final class OrdenPublicaController extends AbstractController
         $dompdf->loadHtml($this->renderView('operacion/orden_publica.html.twig', [
             'rutas' => $orden->getRutasVisibles(),
             'orden' => $orden,
+            'telefonoEmergencia' => trim($this->telefonoEmergencia),
             'paraPdf' => true,
         ]));
         $dompdf->setPaper('a4');

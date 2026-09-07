@@ -224,6 +224,16 @@ class OperacionOrdenServicioItem
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
     private ?string $cantidad = null;
 
+    /**
+     * De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno.
+     *
+     * ⚠️ Congelado y no leído en vivo: una orden emitida dice de quién era el día que se mandó,
+     * aunque después el expediente se renombre.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(name: 'nombre_grupo', type: 'string', length: 120, nullable: true)]
+    private ?string $nombreGrupo = null;
+
     /** Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día. */
     #[Groups(['operacion:read', 'operacion:item:read'])]
     #[ORM\Column(name: 'fecha_fin', type: 'date_immutable', nullable: true)]
@@ -329,6 +339,9 @@ class OperacionOrdenServicioItem
 
     public function getFechaServicio(): ?DateTimeInterface { return $this->fechaServicio; }
     public function setFechaServicio(?DateTimeInterface $v): self { $this->fechaServicio = $v; return $this; }
+
+    public function getNombreGrupo(): ?string { return $this->nombreGrupo; }
+    public function setNombreGrupo(?string $v): self { $this->nombreGrupo = ($v === '' ? null : $v); return $this; }
 
     public function getFechaFin(): ?DateTimeImmutable { return $this->fechaFin; }
     public function setFechaFin(?DateTimeImmutable $v): self { $this->fechaFin = $v; return $this; }

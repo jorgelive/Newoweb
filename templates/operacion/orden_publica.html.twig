@@ -36,6 +36,7 @@
                   letter-spacing: .06em; padding: 7px 8px; border-bottom: 1px solid #e2e8f0; }
         .servicio { font-weight: bold; }
         .pax { white-space: nowrap; text-align: right; color: #475569; }
+        .grupo { margin: 2px 0 0; font-size: 12px; color: #334155; }
         .pie { color: #64748b; font-size: 11px; margin-top: 18px; }
         .boton { display: inline-block; padding: 10px 18px; background: #376875; color: #fff;
                  text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px; }
@@ -60,8 +61,23 @@
         {% if orden.items|length %} · {{ orden.items|length }} servicio(s){% endif %}
     </p>
 
+    {# ⚠️ Quién viaja. Faltaba: al proveedor le llegaban horas y pax sin decirle de quién era el
+       encargo ni a quién llamar. Con un solo grupo esto vale para toda la orden y las líneas no se
+       etiquetan; con dos o más, cada línea lleva el suyo y este bloque hace de directorio. #}
+    {% for g in orden.gruposSnapshot %}
+        <p class="grupo">
+            <strong>{{ g.grupo }}</strong>
+            {% if g.pasajero and g.pasajero != g.grupo %} · {{ g.pasajero }}{% endif %}
+            {% if g.habitaciones %} · {{ g.habitaciones }} habitaci{{ g.habitaciones == 1 ? 'ón' : 'ones' }}{% endif %}
+            {% if g.pax %} · {{ g.pax }} pax{% endif %}
+            {% if g.telefono %} · tel. {{ g.telefono }}{% endif %}
+        </p>
+    {% endfor %}
+
     {% if orden.items|length %}
         <table>
+            {# ⚠️ Quién viaja. Con un solo grupo esto vale para toda la orden y las líneas no se
+               etiquetan; con dos o más, cada línea lleva el suyo y esto hace de directorio. #}
             <thead>
             {# Sin columna «Fecha»: la lleva el renglón que encabeza cada día. Repetirla en
                todas las filas gastaba una columna entera en un dato que no cambia dentro del
@@ -151,6 +167,12 @@
     {% endif %}
 
     <p class="pie">Por favor confirmar recepción y disponibilidad.</p>
+
+    {# El teléfono al que llamar si algo se tuerce en ruta. Vacío = no sale: un número inventado
+       en un documento que se manda fuera es peor que ninguno. #}
+    {% if telefonoEmergencia %}
+        <p class="pie"><strong>Ante cualquier urgencia durante el servicio:</strong> {{ telefonoEmergencia }}</p>
+    {% endif %}
 
     {# El botón sólo en la web: dentro del PDF sería un enlace al propio PDF. #}
     {% if not paraPdf and orden.items|length %}

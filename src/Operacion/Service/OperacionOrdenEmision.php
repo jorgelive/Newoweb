@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operacion\Service;
 
+use App\Cotizacion\Enum\GrupoTipoEnum;
 use App\Operacion\Entity\OperacionOrdenServicio;
 use App\Operacion\Entity\OperacionOrdenServicioItem;
 use App\Operacion\Entity\OperacionServicio;
@@ -47,6 +48,8 @@ final readonly class OperacionOrdenEmision
      */
     public function emitir(OperacionOrdenServicio $orden): void
     {
+        $this->congelarGrupos($orden);
+
         if ($orden->getItems()->count() === 0) {
             foreach ($orden->getOperacionServicios() as $servicio) {
                 $negociado = (float) $servicio->getCostoNegociado();
@@ -80,6 +83,8 @@ final readonly class OperacionOrdenEmision
                     ->setSustantivoUnidad($servicio->getSustantivoUnidad())
                     // Y cuándo acaba: «4 noches» sin salida sigue dejando al hotelero a medias.
                     ->setFechaFin($servicio->getFechaFinServicio())
+                    // De quién es la línea. Se pinta sólo si la orden lleva varios grupos.
+                    ->setNombreGrupo($servicio->getFile()?->getNombreGrupo())
                     // Mientras nadie negocie, lo que se pide es lo cotizado: un cero se leería
                     // como «pactado en cero», que es lo contrario de «todavía sin pactar».
                     ->setImporte($negociado > 0.0 ? $servicio->getCostoNegociado() : $servicio->getCostoCotizado())
@@ -226,5 +231,54 @@ final readonly class OperacionOrdenEmision
         if ($hasta === EstadoOrdenServicioEnum::BORRADOR) {
             throw new DomainException('Una orden ya emitida no vuelve a borrador: el proveedor ya la tiene. Anúlala y emite otra.');
         }
+    }
+
+    /**
+     * Quién viaja: un bloque por expediente, congelado con el resto del documento.
+     *
+     * ⚠️ **Se recalcula en cada emisión, incluso si ya hay líneas.** Es la única parte del
+     * documento que puede estar vacía en órdenes anteriores —nació después que ellas— y dejarla
+     * así obligaría a reemitir una orden confirmada sólo para ponerle el nombre del cliente. No
+     * contradice nada de lo enviado: añade lo que faltaba.
+     *
+     * Las habitaciones salen de los subgrupos del expediente, que es donde el operador las
+     * reparte; los pax, de la cotización que originó la fila.
+     */
+    private function congelarGrupos(OperacionOrdenServicio $orden): void
+    {
+        /** @var array<string, array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int}> $porFile */
+        $porFile = [];
+
+        foreach ($orden->getOperacionServicios() as $servicio) {
+            $file = $servicio->getFile();
+
+            if ($file === null) {
+                continue;
+            }
+
+            $clave = (string) $file->getId();
+
+            if (isset($porFile[$clave])) {
+                continue;
+            }
+
+            $habitaciones = 0;
+            foreach ($file->getGrupos() as $grupo) {
+                if ($grupo->getTipo() === GrupoTipoEnum::HABITACION) {
+                    ++$habitaciones;
+                }
+            }
+
+            $porFile[$clave] = [
+                'localizador'  => (string) $file->getLocalizador(),
+                'grupo'        => (string) ($file->getNombreGrupo() ?? ''),
+                'pasajero'     => (string) ($file->getPasajeroPrincipal() ?? ''),
+                'telefono'     => (string) ($file->getTelefono() ?? ''),
+                'habitaciones' => $habitaciones,
+                'pax'          => $servicio->getCotizacionServicio()?->getCotizacion()?->getNumPax() ?? 0,
+            ];
+        }
+
+        $orden->setGruposSnapshot(array_values($porFile));
     }
 }
