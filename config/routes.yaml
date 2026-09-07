@@ -142,6 +142,21 @@ cotizacion_api_controllers:
     type: attribute
     host: '%app.host.api%'
 
+# ⚠️ **El mismo controlador, también en el host del operador.**
+#
+# `ArchivoPrivadoController` vive en `Publico/` —lo abre el pasajero desde su app— pero quien más
+# lo usa es el operador desde `util`, y las sesiones no cruzan de host: con la ruta sólo en `pax`,
+# el enlace del expediente llevaba a un host donde el operador no está identificado. Y como los
+# `imageUrl` son relativos, ni siquiera llegaba: caía en el comodín del SPA.
+#
+# Registrarlo dos veces es seguro porque el permiso lo comprueba el propio controlador, no la
+# ruta: en `util` reconoce la sesión del panel; en `pax`, la identidad del pasajero.
+cotizacion_archivo_privado_util:
+    resource: ../src/Cotizacion/Controller/Publico/ArchivoPrivadoController.php
+    type: attribute
+    host: '%app.host.util%'
+    name_prefix: util_
+
 # Panel (Easyadmin)
 panel_controllers:
     resource: ../src/Panel/Controller/
