@@ -61,6 +61,24 @@ repetir un error de datos en un documento que firma la agencia.
 
 El marcador de «esto dura» es tener **unidad que nombrar**: noches, días, desayunos.
 
+### El importe dejó de ensuciar la orden (07/09/2026)
+
+`getDivergencias()` vigilaba el importe, así que **cada ajuste de costo marcaba la orden como «ya
+no coincide con La Biblia»** y pedía reemitir: anular una orden confirmada, avisar al proveedor y
+volver a empezar — para producir un documento **idéntico** al que ya se había mandado.
+
+Idéntico porque **el documento no lleva importes**: ni el mensaje, ni la página pública, ni el PDF.
+Está escrito en `$totalOs` («al proveedor no se le manda un total») y en la cabecera del Twig. Y el
+total interno tampoco se quedaba viejo: `getTotalesPorMoneda()` suma las **filas vivas**, no las
+líneas congeladas.
+
+O sea: una alarma que sólo podía ser falsa, y cuyo único remedio era destructivo.
+
+⚠️ Tampoco pasó a `getCambiosMenores()`, que existe para lo que **se le confirma al proveedor**
+(«ya se sabe la hora del recojo») y tiene un botón que le avisa. Un costo interno no es asunto
+suyo. Si algún día el documento llevara importes, la vigilancia vuelve — y el test
+`negociarOtroImporteNoLaEnsucia` es el que habría que dar la vuelta.
+
 ⚠️ **El backfill toca documentos YA EMITIDOS**, que normalmente no se tocan. Se hizo a conciencia y
 por decisión del operador, porque lo que cambia **no contradice** lo enviado: donde ponía «4»
 pondrá «4 noches». Ni una cifra, ni un importe, ni una fecha. Lo corre

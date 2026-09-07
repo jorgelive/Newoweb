@@ -795,9 +795,19 @@ class OperacionOrdenServicio
                     $que, $item->getCantidadPax() ?? '—', $servicio->getCantidadPax());
             }
 
-            if (!self::mismoImporte($item->getImporte(), $servicio->getCostoNegociado(), $servicio->getCostoCotizado())) {
-                $avisos[] = sprintf('«%s»: el importe cambió', $que);
-            }
+            // ⚠️ **El IMPORTE no se vigila, y no es un olvido.** Estuvo aquí y obligaba a reemitir
+            // cada vez que el operador ajustaba un costo — para producir un documento **idéntico**
+            // al que ya se mandó, porque este documento NO LLEVA IMPORTES: ni el mensaje, ni la
+            // página pública, ni el PDF. Está escrito en `$totalOs` («al proveedor no se le manda
+            // un total») y en la cabecera de `orden_publica.html.twig`.
+            //
+            // Y el total interno tampoco se queda viejo: `getTotalesPorMoneda()` suma las filas
+            // VIVAS, no las líneas congeladas. Así que un cambio de importe no deja nada
+            // desactualizado en ningún sitio — reemitir por él era pedirle al operador que anulara
+            // una orden confirmada, avisara al proveedor y volviera a empezar, a cambio de nada.
+            //
+            // Si algún día el documento llevara importes, esto vuelve. Mientras no los lleve,
+            // vigilarlo es una alarma que sólo puede ser falsa.
 
             // Hora que YA estaba confirmada y ahora es otra: eso es una modificación, y hay
             // que avisar al cliente y al proveedor. Que aparezca por primera vez, no.
@@ -1264,13 +1274,6 @@ class OperacionOrdenServicio
     private function etiqueta(OperacionOrdenServicioItem $item): string
     {
         return $item->getDescripcion() !== '' ? mb_substr($item->getDescripcion(), 0, 34) : 'un servicio';
-    }
-
-    private static function mismoImporte(string $congelado, string $negociado, string $cotizado): bool
-    {
-        $vivo = (float) $negociado > 0.0 ? $negociado : $cotizado;
-
-        return abs((float) $congelado - (float) $vivo) < 0.005;
     }
 
     public function addOperacionServicio(OperacionServicio $operacionServicio): self

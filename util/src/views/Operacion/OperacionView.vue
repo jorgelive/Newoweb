@@ -1917,6 +1917,33 @@ const serviciosDeOrdenAbierta = computed<OperacionServicio[]>(() => {
  * de cinco días se rotulaba «5 uds». La unidad la declara el componente maestro y viaja congelada
  * en la fila; ver `App\Travel\Enum\UnidadDeConteoEnum`.
  */
+/**
+ * «4 noches · hasta el 04/09» — lo que dura una fila, para la tarjeta de La Biblia.
+ *
+ * ⚠️ Se calla en lo que empieza y acaba el mismo día, que es la mayoría: repetir la fecha del
+ * encabezado en cada tarjeta enseña a no leerla. Y **cruzar medianoche no es durar dos días**: un
+ * traslado de las 23:30 no lleva duración aquí, igual que en el documento del proveedor.
+ */
+const duracionTexto = (s: {
+    fechaServicio?: string | null;
+    fechaFinServicio?: string | null;
+    cantidadComponente?: number;
+    unidadDeConteo?: string | null;
+    sustantivoUnidad?: string | null;
+}): string => {
+    const ini = (s.fechaServicio ?? '').slice(0, 10);
+    const fin = (s.fechaFinServicio ?? '').slice(0, 10);
+
+    if (ini === '' || fin === '' || fin === ini) return '';
+
+    // El marcador de «esto dura» es tener unidad que nombrar: noches, días, desayunos.
+    const cuanto = unidadesTexto(s).replace(/\s*·\s*$/, '');
+    if (cuanto === '') return '';
+
+    const [a, m, d] = fin.split('-');
+    return `${cuanto} · hasta el ${d}/${m}/${a.slice(2)}`;
+};
+
 const unidadesTexto = (s: { cantidadComponente?: number; unidadDeConteo?: string | null; sustantivoUnidad?: string | null }): string => {
     const n = s.cantidadComponente ?? 1;
     if (n <= 1) return '';
@@ -3281,6 +3308,16 @@ onMounted(async () => {
                                     <span v-else><i class="fas fa-folder-open mr-1"></i>Sin expediente</span>
 
                                     <span class="shrink-0"><i class="fas fa-users mr-1"></i>{{ servicio.cantidadPax }}</span>
+
+                                    <!-- ⚠️ **Cuánto dura, que no salía en ninguna parte.** Una fila de
+                                         alojamiento decía «Sin hora» y nada más: ni las noches ni el
+                                         checkout. El operador tenía que abrir la ficha para saber si
+                                         eran dos noches o cuatro, y el proveedor recibía el encargo
+                                         sin su duración. Se calla en lo que empieza y acaba el mismo
+                                         día, que es la mayoría de las filas. -->
+                                    <span v-if="duracionTexto(servicio)" class="shrink-0 text-[#376875]">
+                                        <i class="far fa-calendar-check mr-1"></i>{{ duracionTexto(servicio) }}
+                                    </span>
                                 </div>
 
                                 <!-- ── Los dos ESTADOS, en línea. Son lo que se mueve a diario ─ -->

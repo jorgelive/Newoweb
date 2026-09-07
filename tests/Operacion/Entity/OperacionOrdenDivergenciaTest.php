@@ -126,8 +126,20 @@ final class OperacionOrdenDivergenciaTest extends TestCase
         self::assertSame([], $orden->getDivergencias());
     }
 
+    /**
+     * ⚠️ **Negociar otro importe TAMPOCO la ensucia** (07/09/2026). Este test afirmaba lo
+     * contrario y fijaba una conducta que costaba trabajo al operador: cada ajuste de costo le
+     * obligaba a anular una orden confirmada, avisar al proveedor y reemitir — para producir un
+     * documento **idéntico** al que ya se había mandado.
+     *
+     * El documento NO LLEVA IMPORTES: ni el mensaje, ni la página pública, ni el PDF. Y el total
+     * interno no se queda viejo, porque `getTotalesPorMoneda()` suma las filas vivas y no las
+     * líneas congeladas. O sea que no había nada desactualizado en ninguna parte.
+     *
+     * Si algún día el documento llevara importes, esta prueba vuelve a decir lo de antes.
+     */
     #[Test]
-    public function negociarOtroImporteSiLaEnsucia(): void
+    public function negociarOtroImporteNoLaEnsucia(): void
     {
         $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00');
         $orden = $this->ordenCon($servicio);
@@ -135,7 +147,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
 
         $servicio->setCostoNegociado('95.00');
 
-        self::assertStringContainsString('el importe cambió', $orden->getDivergencias()[0]);
+        self::assertSame([], $orden->getDivergencias());
     }
 
     // ─────────────────────────────────────────────────────────────────────────
