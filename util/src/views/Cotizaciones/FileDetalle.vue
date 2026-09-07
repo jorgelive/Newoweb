@@ -22,7 +22,7 @@ import { ESTADO_FILE_LABELS } from '@/types/cotizacionEditorModel';
 import type { ApiPais } from '@/types/maestroModel';
 
 import {
-  getArchivoLabel, ARCHIVO_TIPO_LABELS,
+  getArchivoLabel, ARCHIVO_TIPO_LABELS, ARCHIVO_TIPOS_DEL_PASAJERO,
   getSexoLabel, SEXO_LABELS,
   getDocIdLabel, DOCUMENTO_IDENTIDAD_LABELS, GRUPO_TIPO_LABELS, PASAJERO_TIPO_CONFIG, FILE_MODO_CONFIG,
   type ApiFileGrupo,
@@ -610,7 +610,10 @@ const payloadDePax = () => {
 };
 
 const docForm = ref({
-  nombre: '', tipoArchivo: '', sobreescribirTraduccion: false, fileObject: null as File | null
+  nombre: '', tipoArchivo: '', sobreescribirTraduccion: false, fileObject: null as File | null,
+  // De quién es y —si es un boarding pass— de qué vuelo. Ver la tabla de alcances en
+  // `CotizacionFilearchivo`: pasajero + grupo significa «lo suyo, para ese vuelo».
+  pasajeroId: '', grupoId: ''
 });
 
 const extractIdStr = (val: unknown): string => val ? String(val).split('/').pop() ?? '' : '';
@@ -1405,6 +1408,57 @@ const gruposElegibles = computed(() =>
         })),
 );
 
+/**
+ * A quién se le puede colgar un archivo. Los 133 del padrón, ordenados como el manifiesto.
+ *
+ * ⚠️ `SearchableSelect` por lo mismo que los subgrupos: con 133 personas, una lista nativa en un
+ * móvil es una pared. Aquí además se busca por documento, que es lo que trae escrito el fichero
+ * que llega de la aerolínea.
+ */
+const pasajerosElegibles = computed(() =>
+    (file.value?.filepasajeros ?? []).map(p => ({
+        value: extractIdStr(p.id ?? p['@id']) ?? '',
+        label: [p.nombre, p.apellido].filter(Boolean).join(' '),
+        sublabel: (p.identificaciones ?? []).map(i => i.numero).filter(Boolean).join(' · ') || 'sin documento',
+    })),
+);
+
+/**
+ * De qué vuelo es el boarding pass: los subgrupos de reserva aérea.
+ *
+ * Una persona que vuela Cusco–Lima, Lima–Panamá y Panamá–Punta Cana ida y vuelta tiene ocho, y sin
+ * esto sólo se sabría de quién es cada uno, no de cuál.
+ */
+const vuelosElegibles = computed(() =>
+    (file.value?.grupos ?? [])
+        .filter(g => String(g.tipo) === 'reserva_aerea')
+        .map(g => ({
+            value: extractIdStr(g.id ?? g['@id']) ?? '',
+            label: [g.clave, g.nombre].filter(Boolean).join(' · '),
+            sublabel: `${contarEnGrupo(g)} pax`,
+        })),
+);
+
+/**
+ * De quién es un archivo, para la fila de la bóveda: «Ana Pérez · LA-2695».
+ *
+ * Vacío cuando cuelga del expediente entero, que es lo de siempre y no hace falta decirlo.
+ */
+const duenoDelArchivo = (doc: ApiCotizacionFilearchivo): string => {
+    const pasajeroIri = typeof doc.pasajero === 'string' ? doc.pasajero : (doc.pasajero as { '@id'?: string } | null)?.['@id'];
+    const grupoIri = typeof doc.grupo === 'string' ? doc.grupo : (doc.grupo as { '@id'?: string } | null)?.['@id'];
+
+    const pasajero = (file.value?.filepasajeros ?? []).find(p =>
+        pasajeroIri?.endsWith(String(extractIdStr(p.id ?? p['@id']))));
+    const vuelo = (file.value?.grupos ?? []).find(g =>
+        grupoIri?.endsWith(String(extractIdStr(g.id ?? g['@id']))));
+
+    return [
+        pasajero ? [pasajero.nombre, pasajero.apellido].filter(Boolean).join(' ') : null,
+        vuelo ? (vuelo.clave || vuelo.nombre) : null,
+    ].filter(Boolean).join(' · ');
+};
+
 /** El desplegable se vacía en cuanto elige: es un «añadir», no una selección que se queda. */
 const grupoPorAnadir = ref<string | number | null>(null);
 watch(grupoPorAnadir, (iri) => {
@@ -1809,7 +1863,7 @@ const docEditandoIri = ref<string | null>(null);
 
 const abrirDocModal = () => {
   docEditandoIri.value = null; // modo creación
-  docForm.value = { nombre: '', tipoArchivo: '', sobreescribirTraduccion: false, fileObject: null };
+  docForm.value = { nombre: '', tipoArchivo: '', sobreescribirTraduccion: false, fileObject: null, pasajeroId: '', grupoId: '' };
   showDocModal.value = true;
   capas.abrir('doc', () => { showDocModal.value = false; docEditandoIri.value = null; });
 };
@@ -1820,7 +1874,11 @@ const abrirEdicionDoc = (doc: ApiCotizacionFilearchivo) => {
     nombre: getDocNombre(doc, 'es'),   // siempre editamos la fuente en español
     tipoArchivo: doc.tipoArchivo || '',
     sobreescribirTraduccion: false,
-    fileObject: null
+    fileObject: null,
+    // Al editar no se reasigna el dueño: cambiarlo movería el archivo de manos sin decirlo. Para
+    // eso se borra y se vuelve a subir, que deja rastro.
+    pasajeroId: '',
+    grupoId: '',
   };
   showDocModal.value = true;
   capas.abrir('doc', () => { showDocModal.value = false; docEditandoIri.value = null; });
@@ -1862,6 +1920,15 @@ const guardarDocumento = async () => {
     formData.append('tipoArchivo', docForm.value.tipoArchivo);
     formData.append('sobreescribirTraduccion', docForm.value.sobreescribirTraduccion ? 'true' : 'false');
     formData.append('file', `/platform/sales/cotizacion_files/${extractIdStr(file.value.id || file.value['@id'])}`);
+
+    // ⚠️ Sólo si tienen valor: mandar la clave vacía haría que API Platform intentara resolver un
+    // IRI en blanco. Vacío significa «del expediente entero», que es un alcance legítimo.
+    if (docForm.value.pasajeroId) {
+      formData.append('pasajero', `/platform/sales/cotizacion_filepasajeros/${docForm.value.pasajeroId}`);
+    }
+    if (docForm.value.grupoId) {
+      formData.append('grupo', `/platform/sales/cotizacion_file_grupos/${docForm.value.grupoId}`);
+    }
     success = await fileStore.uploadDocument(formData);
   }
 
@@ -2119,7 +2186,13 @@ const eliminarDocumento = async (iri?: string) => {
                   <div class="w-8 h-8 rounded bg-sky-100 text-sky-600 flex items-center justify-center text-sm shrink-0"><i class="far fa-file-pdf"></i></div>
                   <div class="min-w-0">
                     <p class="text-[11px] font-black text-slate-800 truncate">{{ getDocNombre(doc) || getArchivoLabel(doc.tipoArchivo) }}</p>
-                    <p class="text-[9px] font-bold text-slate-400 uppercase truncate">{{ getArchivoLabel(doc.tipoArchivo) }}</p>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase truncate">
+                      {{ getArchivoLabel(doc.tipoArchivo) }}
+                      <!-- ⚠️ De quién es, en la propia fila. Con ~1 500 archivos en un expediente
+                           grande, una lista que sólo dice el tipo obliga a abrirlos para saber
+                           cuál es cuál. -->
+                      <span v-if="duenoDelArchivo(doc)" class="normal-case text-slate-500">· {{ duenoDelArchivo(doc) }}</span>
+                    </p>
                   </div>
                 </a>
                 <button @click="abrirEdicionDoc(doc)" class="w-6 h-6 shrink-0 rounded-full bg-white border border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200 flex items-center justify-center transition-colors">
@@ -3555,6 +3628,44 @@ const eliminarDocumento = async (iri?: string) => {
                  o Visas vencidas»: un campo de IDENTIDAD en una entidad de ARCHIVOS. Nadie lo llenó
                  nunca —0 de 7 filas en producción— y el vencimiento de un documento de identidad va
                  en el pasajero, no en un adjunto del expediente. -->
+          </div>
+
+          <!-- ── DE QUIÉN ES ────────────────────────────────────────────────
+               Vacío = del expediente entero, que es lo de siempre. Con pasajero, es suyo; con
+               pasajero Y vuelo, es su boarding pass DE ESE VUELO — que con ocho vuelos por
+               persona es la única forma de distinguirlos. Ver la tabla de alcances en
+               `CotizacionFilearchivo`. -->
+          <div v-if="!docEditandoIri" class="grid grid-cols-1 gap-3 pt-3 border-t border-slate-100">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                ¿De quién es?
+                <span class="normal-case text-slate-400 font-medium">— vacío: de todo el expediente</span>
+              </label>
+              <SearchableSelect
+                  v-model="docForm.pasajeroId"
+                  :options="pasajerosElegibles"
+                  placeholder="Todo el expediente"
+              />
+            </div>
+
+            <div v-if="docForm.pasajeroId && docForm.tipoArchivo === 'boleto'">
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                ¿De qué vuelo?
+                <span class="normal-case text-slate-400 font-medium">— para distinguir sus boarding passes</span>
+              </label>
+              <SearchableSelect
+                  v-model="docForm.grupoId"
+                  :options="vuelosElegibles"
+                  placeholder="Sin vuelo concreto"
+              />
+            </div>
+
+            <p v-if="ARCHIVO_TIPOS_DEL_PASAJERO.includes(docForm.tipoArchivo as never) && !docForm.pasajeroId"
+               class="text-[10px] font-bold text-amber-600 flex items-start gap-1.5">
+              <i class="fas fa-triangle-exclamation mt-0.5"></i>
+              Un documento de identidad es de una persona: elige de quién, o quedará colgado del
+              expediente y lo verá cualquiera del equipo.
+            </p>
           </div>
           <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
             <button type="button" @click="capas.cerrar('doc')" class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg">Cancelar</button>

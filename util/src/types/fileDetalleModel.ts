@@ -168,8 +168,25 @@ export const ARCHIVO_TIPO_LABELS: Record<ArchivoTipoValue, string> = {
     boleto: 'Boleto / Ticket',
     factura: 'Factura / Recibo',
     reserva: 'Confirmación de Reserva',
+    pasaporte: 'Pasaporte (escaneo)',
+    dni_anverso: 'DNI — anverso',
+    dni_reverso: 'DNI — reverso',
+    autorizacion: 'Autorización notarial',
     otros: 'Otros Documentos',
 };
+
+/**
+ * Los que sube el PASAJERO desde su app, no el operador.
+ *
+ * ⚠️ Espejo de `ArchivoTipoEnum::loSubeElPasajero()`. El operador puede subirlos igual —a veces
+ * llegan por correo— pero el formulario los separa: mezclar «el boleto que le mando» con «la foto
+ * de su pasaporte» en la misma lista invita a colgar del expediente algo que es de una persona.
+ */
+export const ARCHIVO_TIPOS_DEL_PASAJERO: ArchivoTipoValue[] = ['pasaporte', 'dni_anverso', 'dni_reverso', 'autorizacion'];
+
+/** ¿Este tipo pide decir DE QUIÉN es? Todo lo que sube el pasajero, y los boletos. */
+export const archivoNecesitaPasajero = (tipo?: string | null): boolean =>
+    tipo === 'boleto' || ARCHIVO_TIPOS_DEL_PASAJERO.includes(tipo as ArchivoTipoValue);
 
 export const getArchivoLabel = (val?: string | null): string =>
     ARCHIVO_TIPO_LABELS[(val as ArchivoTipoValue)] || val || 'Documento';

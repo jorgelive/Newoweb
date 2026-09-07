@@ -12847,7 +12847,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -12855,7 +12855,7 @@ export interface components {
             file?: string;
             /**
              * Format: iri-reference
-             * @description De quién es este archivo. **Las dos nulables, y las tres combinaciones significan algo:**
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
              * @example https://example.com/
              */
             pasajero?: string | null;
@@ -12868,8 +12868,6 @@ export interface components {
             imageFile?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -12892,6 +12890,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
@@ -12902,14 +12902,12 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.read_file.item.read_timestamp.read"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"] | null;
             imageName?: string | null;
             imageSize?: number | null;
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -12917,6 +12915,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
         };
@@ -12925,14 +12925,12 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile-file.write"];
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.write"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo-file.write"] | null;
             imageName?: string | null;
             imageSize?: number | null;
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -12942,20 +12940,20 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
         };
         "CotizacionFilearchivo-file.write.jsonMergePatch": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile-file.write"];
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.write"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo-file.write"] | null;
             imageName?: string | null;
             imageSize?: number | null;
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -12965,37 +12963,39 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
         };
         "CotizacionFilearchivo-pax_file.read": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
         };
         "CotizacionFilearchivo-pax_file.read_pax_cotizacion.read": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
         };
         "CotizacionFilearchivo.html": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -13003,7 +13003,7 @@ export interface components {
             file?: string;
             /**
              * Format: iri-reference
-             * @description De quién es este archivo. **Las dos nulables, y las tres combinaciones significan algo:**
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
              * @example https://example.com/
              */
             pasajero?: string | null;
@@ -13016,8 +13016,6 @@ export interface components {
             imageFile?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -13040,6 +13038,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
@@ -13050,14 +13050,12 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"] | null;
             imageName?: string | null;
             imageSize?: number | null;
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -13065,6 +13063,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
         };
@@ -13073,31 +13073,31 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
         };
         "CotizacionFilearchivo.html-pax_file.read_pax_cotizacion.read": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
         };
         "CotizacionFilearchivo.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -13105,7 +13105,7 @@ export interface components {
             file?: string;
             /**
              * Format: iri-reference
-             * @description De quién es este archivo. **Las dos nulables, y las tres combinaciones significan algo:**
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
              * @example https://example.com/
              */
             pasajero?: string | null;
@@ -13118,8 +13118,6 @@ export interface components {
             imageFile?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -13142,6 +13140,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
@@ -13152,14 +13152,12 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"] | null;
             imageName?: string | null;
             imageSize?: number | null;
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -13167,6 +13165,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
         };
@@ -13175,31 +13175,31 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
         };
         "CotizacionFilearchivo.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
         };
         "CotizacionFilearchivo.multipart": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -13207,7 +13207,7 @@ export interface components {
             file?: string;
             /**
              * Format: iri-reference
-             * @description De quién es este archivo. **Las dos nulables, y las tres combinaciones significan algo:**
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
              * @example https://example.com/
              */
             pasajero?: string | null;
@@ -13220,8 +13220,6 @@ export interface components {
             imageFile?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -13244,6 +13242,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
@@ -13254,14 +13254,12 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"] | null;
             imageName?: string | null;
             imageSize?: number | null;
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -13269,6 +13267,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
         };
@@ -13277,24 +13277,24 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
         };
         "CotizacionFilearchivo.multipart-pax_file.read_pax_cotizacion.read": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
-            /** @description Propiedad virtual para exponer la URL pública. */
-            imageUrl?: string | null;
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
         };
         CotizacionFilepasajero: {
             nombre?: string;
@@ -18967,6 +18967,8 @@ export interface components {
             updatedAt?: string | null;
         };
         "OperacionOrdenServicio-operacion.item.read_timestamp.read": {
+            /** @description Quién viaja: un bloque por expediente, congelado al emitir. */
+            gruposSnapshot?: Record<string, never>[];
             items?: components["schemas"]["OperacionOrdenServicioItem-operacion.item.read_timestamp.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
@@ -18979,6 +18981,8 @@ export interface components {
                     [key: string]: boolean | string | null;
                 };
             };
+            /** @description ¿Hace falta etiquetar cada línea con su grupo? */
+            readonly multigrupo?: boolean;
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -18995,6 +18999,8 @@ export interface components {
             readonly avisosDeRutas?: string[];
         };
         "OperacionOrdenServicio-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            /** @description Quién viaja: un bloque por expediente, congelado al emitir. */
+            gruposSnapshot?: Record<string, never>[];
             items?: components["schemas"]["OperacionOrdenServicioItem-operacion.item.read_timestamp.read_operacion.pasajeros.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
             /** Format: date-time */
@@ -19007,6 +19013,8 @@ export interface components {
                     [key: string]: boolean | string | null;
                 };
             };
+            /** @description ¿Hace falta etiquetar cada línea con su grupo? */
+            readonly multigrupo?: boolean;
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -19048,6 +19056,8 @@ export interface components {
             estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
             monedaOs?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
             totalOs?: string | null;
+            /** @description Quién viaja: un bloque por expediente, congelado al emitir. */
+            gruposSnapshot?: Record<string, never>[];
             operacionServicios?: components["schemas"]["OperacionServicio-operacion.read_timestamp.read"][];
             items?: components["schemas"]["OperacionOrdenServicioItem-operacion.read_timestamp.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"] | null;
@@ -19065,6 +19075,8 @@ export interface components {
                     [key: string]: boolean | string | null;
                 };
             };
+            /** @description ¿Hace falta etiquetar cada línea con su grupo? */
+            readonly multigrupo?: boolean;
             /** @description Lo que suma la orden, POR MONEDA y sin convertir. */
             readonly totalesPorMoneda?: {
                 moneda?: string;
@@ -19164,6 +19176,8 @@ export interface components {
             soloBorrador: boolean;
         };
         "OperacionOrdenServicio.html-operacion.item.read_timestamp.read": {
+            /** @description Quién viaja: un bloque por expediente, congelado al emitir. */
+            gruposSnapshot?: Record<string, never>[];
             items?: components["schemas"]["OperacionOrdenServicioItem.html-operacion.item.read_timestamp.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio.html-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
@@ -19176,6 +19190,8 @@ export interface components {
                     [key: string]: boolean | string | null;
                 };
             };
+            /** @description ¿Hace falta etiquetar cada línea con su grupo? */
+            readonly multigrupo?: boolean;
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -19192,6 +19208,8 @@ export interface components {
             readonly avisosDeRutas?: string[];
         };
         "OperacionOrdenServicio.html-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            /** @description Quién viaja: un bloque por expediente, congelado al emitir. */
+            gruposSnapshot?: Record<string, never>[];
             items?: components["schemas"]["OperacionOrdenServicioItem.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
             /** Format: date-time */
@@ -19204,6 +19222,8 @@ export interface components {
                     [key: string]: boolean | string | null;
                 };
             };
+            /** @description ¿Hace falta etiquetar cada línea con su grupo? */
+            readonly multigrupo?: boolean;
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -19245,6 +19265,8 @@ export interface components {
             estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
             monedaOs?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
             totalOs?: string | null;
+            /** @description Quién viaja: un bloque por expediente, congelado al emitir. */
+            gruposSnapshot?: Record<string, never>[];
             operacionServicios?: components["schemas"]["OperacionServicio.html-operacion.read_timestamp.read"][];
             items?: components["schemas"]["OperacionOrdenServicioItem.html-operacion.read_timestamp.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"] | null;
@@ -19262,6 +19284,8 @@ export interface components {
                     [key: string]: boolean | string | null;
                 };
             };
+            /** @description ¿Hace falta etiquetar cada línea con su grupo? */
+            readonly multigrupo?: boolean;
             /** @description Lo que suma la orden, POR MONEDA y sin convertir. */
             readonly totalesPorMoneda?: {
                 moneda?: string;
@@ -19299,6 +19323,8 @@ export interface components {
                     [key: string]: boolean | string | null;
                 };
             };
+            /** @description ¿Hace falta etiquetar cada línea con su grupo? */
+            readonly multigrupo?: boolean;
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -19314,6 +19340,8 @@ export interface components {
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         } & (components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Quién viaja: un bloque por expediente, congelado al emitir. */
+            gruposSnapshot?: Record<string, never>[];
             items?: components["schemas"]["OperacionOrdenServicioItem.jsonld-operacion.item.read_timestamp.read"][];
         });
         "OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
@@ -19328,6 +19356,8 @@ export interface components {
                     [key: string]: boolean | string | null;
                 };
             };
+            /** @description ¿Hace falta etiquetar cada línea con su grupo? */
+            readonly multigrupo?: boolean;
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -19343,6 +19373,8 @@ export interface components {
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         } & (components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Quién viaja: un bloque por expediente, congelado al emitir. */
+            gruposSnapshot?: Record<string, never>[];
             items?: components["schemas"]["OperacionOrdenServicioItem.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"][];
         });
         "OperacionOrdenServicio.jsonld-operacion.mensaje.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -19373,6 +19405,8 @@ export interface components {
                     [key: string]: boolean | string | null;
                 };
             };
+            /** @description ¿Hace falta etiquetar cada línea con su grupo? */
+            readonly multigrupo?: boolean;
             /** @description Lo que suma la orden, POR MONEDA y sin convertir. */
             readonly totalesPorMoneda?: {
                 moneda?: string;
@@ -19411,10 +19445,14 @@ export interface components {
             estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
             monedaOs?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
             totalOs?: string | null;
+            /** @description Quién viaja: un bloque por expediente, congelado al emitir. */
+            gruposSnapshot?: Record<string, never>[];
             operacionServicios?: components["schemas"]["OperacionServicio.jsonld-operacion.read_timestamp.read"][];
             items?: components["schemas"]["OperacionOrdenServicioItem.jsonld-operacion.read_timestamp.read"][];
         });
         "OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read": {
+            /** @description Quién viaja: un bloque por expediente, congelado al emitir. */
+            gruposSnapshot?: Record<string, never>[];
             items?: components["schemas"]["OperacionOrdenServicioItem.multipart-operacion.item.read_timestamp.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
@@ -19427,6 +19465,8 @@ export interface components {
                     [key: string]: boolean | string | null;
                 };
             };
+            /** @description ¿Hace falta etiquetar cada línea con su grupo? */
+            readonly multigrupo?: boolean;
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -19443,6 +19483,8 @@ export interface components {
             readonly avisosDeRutas?: string[];
         };
         "OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read": {
+            /** @description Quién viaja: un bloque por expediente, congelado al emitir. */
+            gruposSnapshot?: Record<string, never>[];
             items?: components["schemas"]["OperacionOrdenServicioItem.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
             /** Format: date-time */
@@ -19455,6 +19497,8 @@ export interface components {
                     [key: string]: boolean | string | null;
                 };
             };
+            /** @description ¿Hace falta etiquetar cada línea con su grupo? */
+            readonly multigrupo?: boolean;
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -19496,6 +19540,8 @@ export interface components {
             estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
             monedaOs?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;
             totalOs?: string | null;
+            /** @description Quién viaja: un bloque por expediente, congelado al emitir. */
+            gruposSnapshot?: Record<string, never>[];
             operacionServicios?: components["schemas"]["OperacionServicio.multipart-operacion.read_timestamp.read"][];
             items?: components["schemas"]["OperacionOrdenServicioItem.multipart-operacion.read_timestamp.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"] | null;
@@ -19513,6 +19559,8 @@ export interface components {
                     [key: string]: boolean | string | null;
                 };
             };
+            /** @description ¿Hace falta etiquetar cada línea con su grupo? */
+            readonly multigrupo?: boolean;
             /** @description Lo que suma la orden, POR MONEDA y sin convertir. */
             readonly totalesPorMoneda?: {
                 moneda?: string;
@@ -19578,6 +19626,13 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno. */
+            nombreGrupo?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día.
+             */
+            fechaFin?: string | null;
             /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
             sustantivoUnidad?: string | null;
             /** @default 0.00 */
@@ -19594,6 +19649,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día. */
+            readonly hastaParaProveedor?: string | null;
             /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
             readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
@@ -19642,6 +19699,13 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno. */
+            nombreGrupo?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día.
+             */
+            fechaFin?: string | null;
             /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
             sustantivoUnidad?: string | null;
             /** @default 0.00 */
@@ -19658,6 +19722,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día. */
+            readonly hastaParaProveedor?: string | null;
             /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
             readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
@@ -19706,6 +19772,13 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno. */
+            nombreGrupo?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día.
+             */
+            fechaFin?: string | null;
             /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
             sustantivoUnidad?: string | null;
             /** @default 0.00 */
@@ -19722,6 +19795,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día. */
+            readonly hastaParaProveedor?: string | null;
             /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
             readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
@@ -19770,6 +19845,13 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno. */
+            nombreGrupo?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día.
+             */
+            fechaFin?: string | null;
             /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
             sustantivoUnidad?: string | null;
             /** @default 0.00 */
@@ -19786,6 +19868,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día. */
+            readonly hastaParaProveedor?: string | null;
             /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
             readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
@@ -19834,6 +19918,13 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno. */
+            nombreGrupo?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día.
+             */
+            fechaFin?: string | null;
             /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
             sustantivoUnidad?: string | null;
             /** @default 0.00 */
@@ -19850,6 +19941,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día. */
+            readonly hastaParaProveedor?: string | null;
             /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
             readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
@@ -19898,6 +19991,13 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno. */
+            nombreGrupo?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día.
+             */
+            fechaFin?: string | null;
             /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
             sustantivoUnidad?: string | null;
             /** @default 0.00 */
@@ -19914,6 +20014,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día. */
+            readonly hastaParaProveedor?: string | null;
             /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
             readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
@@ -19962,6 +20064,13 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno. */
+            nombreGrupo?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día.
+             */
+            fechaFin?: string | null;
             /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
             sustantivoUnidad?: string | null;
             /** @default 0.00 */
@@ -19978,6 +20087,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día. */
+            readonly hastaParaProveedor?: string | null;
             /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
             readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
@@ -20026,6 +20137,13 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno. */
+            nombreGrupo?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día.
+             */
+            fechaFin?: string | null;
             /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
             sustantivoUnidad?: string | null;
             /** @default 0.00 */
@@ -20042,6 +20160,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día. */
+            readonly hastaParaProveedor?: string | null;
             /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
             readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
@@ -20090,6 +20210,13 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno. */
+            nombreGrupo?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día.
+             */
+            fechaFin?: string | null;
             /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
             sustantivoUnidad?: string | null;
             /** @default 0.00 */
@@ -20106,6 +20233,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día. */
+            readonly hastaParaProveedor?: string | null;
             /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
             readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
@@ -20154,6 +20283,13 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno. */
+            nombreGrupo?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día.
+             */
+            fechaFin?: string | null;
             /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
             sustantivoUnidad?: string | null;
             /** @default 0.00 */
@@ -20170,6 +20306,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día. */
+            readonly hastaParaProveedor?: string | null;
             /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
             readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
@@ -20218,6 +20356,13 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno. */
+            nombreGrupo?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día.
+             */
+            fechaFin?: string | null;
             /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
             sustantivoUnidad?: string | null;
             /** @default 0.00 */
@@ -20234,6 +20379,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día. */
+            readonly hastaParaProveedor?: string | null;
             /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
             readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
@@ -20282,6 +20429,13 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description De qué grupo es esta línea. Sólo se pinta si la orden lleva más de uno. */
+            nombreGrupo?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día.
+             */
+            fechaFin?: string | null;
             /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
             sustantivoUnidad?: string | null;
             /** @default 0.00 */
@@ -20298,6 +20452,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día. */
+            readonly hastaParaProveedor?: string | null;
             /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
             readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
@@ -20429,6 +20585,11 @@ export interface components {
             cotizacionTarifa?: components["schemas"]["CotizacionCottarifa-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+             */
+            fechaFinServicio?: string | null;
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
@@ -20569,6 +20730,11 @@ export interface components {
             cotizacionTarifa?: components["schemas"]["CotizacionCottarifa-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+             */
+            fechaFinServicio?: string | null;
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
@@ -20710,6 +20876,11 @@ export interface components {
         "OperacionServicio-operacion.read_timestamp.read": {
             /** Format: date-time */
             fechaServicio?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+             */
+            fechaFinServicio?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
             /**
@@ -20992,6 +21163,11 @@ export interface components {
             cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.html-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+             */
+            fechaFinServicio?: string | null;
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
@@ -21132,6 +21308,11 @@ export interface components {
             cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+             */
+            fechaFinServicio?: string | null;
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
@@ -21273,6 +21454,11 @@ export interface components {
         "OperacionServicio.html-operacion.read_timestamp.read": {
             /** Format: date-time */
             fechaServicio?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+             */
+            fechaFinServicio?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
             /**
@@ -21365,6 +21551,11 @@ export interface components {
             cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+             */
+            fechaFinServicio?: string | null;
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
@@ -21505,6 +21696,11 @@ export interface components {
             cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+             */
+            fechaFinServicio?: string | null;
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
@@ -21646,6 +21842,11 @@ export interface components {
         "OperacionServicio.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
             fechaServicio?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+             */
+            fechaFinServicio?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
             /**
@@ -21738,6 +21939,11 @@ export interface components {
             cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.multipart-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+             */
+            fechaFinServicio?: string | null;
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
@@ -21878,6 +22084,11 @@ export interface components {
             cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+             */
+            fechaFinServicio?: string | null;
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
@@ -22019,6 +22230,11 @@ export interface components {
         "OperacionServicio.multipart-operacion.read_timestamp.read": {
             /** Format: date-time */
             fechaServicio?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+             */
+            fechaFinServicio?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
             /**
