@@ -77,10 +77,21 @@ vich_uploader:
             delete_on_update: true
             delete_on_remove: true
 
+        # ⚠️ **FUERA de `public/` desde el 07/09/2026, y es el primero que lo está.**
+        #
+        # Antes se servían por URL directa, así que **la URL era la llave**: quien la tuviera, la
+        # adivinara o la recibiera reenviada, entraba. Con 8 boletos era discutible; con escaneos
+        # de pasaporte y DNI de 133 personas —cien de ellas menores— y ~1 000 boarding passes con
+        # nombre y PNR, deja de serlo.
+        #
+        # Sin `uri_prefix` porque **no hay URL pública**: los entrega `ArchivoPrivadoController`,
+        # que comprueba quién pregunta y delega el envío a nginx con `X-Accel-Redirect`. PHP no
+        # lee el fichero, así que esto no cuesta procesos de php-fpm.
+        #
+        # ⚠️ Necesita en nginx: `location /_privado/ { internal; alias …/var/documentos/; }`.
+        # **Sin `internal;` la carpeta queda accesible a pelo** y todo esto no sirve de nada.
         cotizacion_file_archivos:
-            # Puedes usar un parámetro en services.yaml o escribir la ruta directamente
-            uri_prefix: '%cotizacion.path.file_archivos%'
-            upload_destination: '%app.public_dir%%cotizacion.path.file_archivos%'
+            upload_destination: '%kernel.project_dir%/var/documentos/archivos'
 
             # Universal: Usa el token del MediaTrait (TOKEN_nombre.ext)
             namer: App\Panel\Naming\MediaTokenNamer

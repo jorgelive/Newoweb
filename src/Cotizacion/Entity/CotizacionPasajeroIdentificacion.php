@@ -35,8 +35,11 @@ use Symfony\Component\Validator\Constraints as Assert;
  * nombre hizo que alguien le metiera dentro un `vencimiento` «para alertar de pasaportes
  * vencidos». Ver `docs/Cotizaciones.md` §6.k.
  *
- * Aquí no hay archivo: **es un dato**. Se consulta por vencimiento, no se descarga. El escaneo, si
- * algún día hace falta, es un archivo aparte y se queda del lado del operador.
+ * Aquí no hay archivo: **es un dato**. Se consulta por vencimiento, no se descarga.
+ *
+ * El **escaneo** sí cabe en `CotizacionFilearchivo` —que es para archivos, cualquiera— colgando
+ * del pasajero. Las dos cosas conviven sin pisarse porque tienen vidas distintas: el número se
+ * guarda mientras el expediente exista y la foto se borra al mes del retorno del grupo.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_pasajero_identificacion')]

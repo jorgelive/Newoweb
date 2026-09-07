@@ -64,9 +64,17 @@ class CotizacionFilearchivo
     /**
      * Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
      *
-     * ⚠️ Se llamaba `tipodocumento`, y ese nombre hizo leer la entidad entera al revés: esto **no
-     * es un documento de identidad**. Aquí viven adjuntos —`Vich\Uploadable`, `MediaTrait`, POST
-     * multipart—, no el DNI ni el pasaporte de nadie.
+     * ⚠️ **Se llamaba `tipodocumento`, y ese nombre hacía creer que aquí se guardaba el NÚMERO
+     * del DNI.** Eso es lo que no cabe: los datos de identidad —tipo, número, vencimiento, país—
+     * son {@see CotizacionPasajeroIdentificacion}, que se consulta y se compara.
+     *
+     * Aquí caben **archivos, cualquier archivo**: un boleto, una factura, una confirmación… y
+     * también el escaneo de un pasaporte, que es un archivo como otro cualquiera. Lo que separa a
+     * las dos entidades no es el asunto del documento, es su naturaleza: **allí un dato, aquí un
+     * fichero**.
+     *
+     * ⚠️ La redacción anterior decía «esto no es un documento de identidad», y se leía como que un
+     * pasaporte escaneado no tenía sitio aquí. No es eso: el escaneo sí, el número no.
      */
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(name: 'tipo_archivo', type: 'string', length: 20, enumType: ArchivoTipoEnum::class)]
@@ -78,16 +86,22 @@ class CotizacionFilearchivo
     private ?CotizacionFile $file = null;
 
     /**
-     * De quién es este archivo. **Las dos nulables, y las tres combinaciones significan algo:**
+     * De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
      *
      * | `pasajero` | `grupo` | qué es |
      * |---|---|---|
-     * | ✓ | — | suyo: su boarding pass, su autorización notarial |
+     * | ✓ | ✓ | **suyo, para ese vuelo**: su boarding pass del Lima–Panamá |
+     * | ✓ | — | suyo y nada más: el escaneo de su pasaporte, su autorización notarial |
      * | — | ✓ | del grupo: el namelist que manda la aerolínea con el PNR |
-     * | — | — | del expediente: lo de siempre, lo ve todo el mundo |
+     * | — | — | del expediente: la factura, la confirmación |
      *
-     * Un solo mecanismo para los tres alcances. Sin esto harían falta tres modelos, y el día que
-     * apareciera un cuarto alcance, un cuarto.
+     * ⚠️ **La primera fila se añadió el 07/09/2026 y antes no existía.** Con `pasajero` a secas se
+     * sabe de quién es un boarding pass pero **no de qué vuelo**, y una persona de un grupo que
+     * vuela Cusco–Lima, Lima–Panamá y Panamá–Punta Cana ida y vuelta tiene ocho. El subgrupo de
+     * tipo `reserva_aerea` es justo lo que los distingue, y ya existía: 24 de ellos en el
+     * expediente que motivó esto.
+     *
+     * Un solo mecanismo para los cuatro alcances. Sin esto harían falta cuatro modelos.
      */
     #[Groups(['file:item:read', 'file:write'])]
     #[ORM\ManyToOne(targetEntity: CotizacionFilepasajero::class)]
@@ -114,11 +128,25 @@ class CotizacionFilearchivo
     private ?int $imageSize = null;
 
     /**
-     * Propiedad virtual para exponer la URL pública.
-     * Es inyectada dinámicamente por el AssetListener.
+     * Por dónde se pide este archivo. **Ya no es una URL pública.**
+     *
+     * ⚠️ Antes la inyectaba un `AssetListener` concatenando la ruta de `public/`, y eso hacía que
+     * el enlace **fuera** el permiso. Ahora apunta al controlador que comprueba quién pregunta
+     * ({@see \App\Cotizacion\Controller\Publico\ArchivoPrivadoController}); el fichero lo manda
+     * nginx, no PHP.
+     *
+     * Es un getter y no una propiedad inyectada porque se deriva del id: no hay nada que guardar
+     * ni que mantener sincronizado.
      */
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
-    private ?string $imageUrl = null;
+    public function getImageUrl(): ?string
+    {
+        if (($this->imageName ?? '') === '' || $this->id === null) {
+            return null;
+        }
+
+        return '/archivo/' . $this->id->toRfc4122();
+    }
 
     /** @var list<array{language?: string, content?: string|null}>|null */
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
@@ -190,8 +218,7 @@ class CotizacionFilearchivo
     public function getImageSize(): ?int { return $this->imageSize; }
     public function setImageSize(?int $imageSize): self { $this->imageSize = $imageSize; return $this; }
 
-    public function getImageUrl(): ?string { return $this->imageUrl; }
-    public function setImageUrl(?string $imageUrl): self { $this->imageUrl = $imageUrl; return $this; }
+
 
     /**
      * @return list<array{language?: string, content?: string|null}>
@@ -243,5 +270,39 @@ class CotizacionFilearchivo
             $this->grupo !== null => 'grupo',
             default => 'expediente',
         };
+    }
+
+    /**
+     * ¿Se le puede devolver al pasajero que se identificó? Lo decide el TIPO.
+     *
+     * Vive aquí y no sólo en el enum para que el controlador pregunte a la entidad y no tenga que
+     * saber que el tipo puede ser nulo: un adjunto sin clasificar no se devuelve.
+     */
+    public function esDevolvibleAlPasajero(): bool
+    {
+        return $this->tipoArchivo?->esDevolvibleAlPasajero() ?? false;
+    }
+
+    /**
+     * Con qué nombre se guarda en el móvil de quien lo descarga.
+     *
+     * ⚠️ El nombre en disco es un token —`TOKEN_algo.pdf`, cosa del `MediaTokenNamer`— y en la
+     * carpeta de descargas de un teléfono eso no le dice nada a nadie. En el gate hay prisa: el
+     * fichero tiene que llamarse como lo que es.
+     */
+    public function nombreParaDescarga(): string
+    {
+        $extension = pathinfo((string) $this->imageName, PATHINFO_EXTENSION);
+        $base = $this->tipoArchivo->value ?? 'archivo';
+
+        $pasajero = $this->pasajero;
+        if ($pasajero !== null) {
+            $base .= '-' . trim(sprintf('%s %s', (string) $pasajero->getNombre(), (string) $pasajero->getApellido()));
+        }
+
+        // Sin acentos ni espacios: acaba en un sistema de ficheros que no se sabe cuál es.
+        $limpio = preg_replace('/[^A-Za-z0-9._-]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT', $base) ?: $base) ?? $base;
+
+        return trim((string) $limpio, '-') . ($extension !== '' ? '.' . $extension : '');
     }
 }

@@ -1100,6 +1100,73 @@ arriesgarlo era perder el bimodal.
 espejo en los cuatro sitios (enum PHP, `util/utils/componenteTipo.ts`, La Biblia, la copia de
 `pax`). Lo que se afinó es la cláusula de silencio, que ya era exclusiva de `pax` antes de esto.
 
+#### Los adjuntos salen de `public/` (07/09/2026)
+
+Hasta hoy los adjuntos del expediente vivían dentro de `public/` y se servían por URL directa, así
+que **la URL era la llave**: quien la tuviera, la adivinara o la recibiera reenviada, entraba. Con
+8 boletos era discutible. Con lo que viene deja de serlo:
+
+```
+escaneos    133 pax × 3 (pasaporte + DNI anverso y reverso)  ≈   400 ficheros
+boarding    133 pax × 8 vuelos                               ≈ 1 060 ficheros
+```
+
+Cien de esas personas son menores, y un boarding pass lleva nombre completo y PNR — con un PNR se
+toca una reserva en media aerolínea.
+
+**Ahora los entrega `ArchivoPrivadoController`, y PHP no lee el fichero:**
+
+```
+1. GET /archivo/{id}      → PHP comprueba quién pregunta   ~2 ms, cuerpo vacío
+2. X-Accel-Redirect: /_privado/archivos/TOKEN.pdf
+3. nginx lo manda con sendfile
+```
+
+Sin esto, 133 pasajeros bajando 8 boarding passes serían mil transferencias **a través de PHP**,
+con un proceso de php-fpm ocupado en cada una. Es la razón por la que se acaba dejando todo en
+`public/`, y no hace falta.
+
+⚠️ **La línea que hace que esto sirva de algo es `internal;`** en la ruta de nginx. Sin ella, la
+carpeta privada queda accesible a pelo:
+
+```nginx
+location /_privado/ { internal; alias /var/www/openperu.pe/var/documentos/; }
+```
+
+⚠️ **404 y nunca 403.** Un 403 confirma que el archivo existe; quien no tiene permiso no debe poder
+distinguir «no es tuyo» de «no existe».
+
+**Quién ve qué:**
+
+| Quién | Qué |
+|---|---|
+| Operador con sesión | todo |
+| Pasajero identificado | sólo lo suyo, y sólo lo **devolvible** |
+| Cualquier otro | 404 |
+
+⚠️ **El escaneo del propio pasaporte NO se le devuelve al pasajero**, aunque sea suyo. Lo sube y
+ahí se acaba: poder redescargarlo no le da nada que no tenga ya —lo lleva en el bolsillo— y añade
+una vía más por la que esa imagen puede salir. **El boarding pass sí**, y es indispensable: lo
+enseña él en el gate, así que baja a su móvil y allí funciona sin cobertura.
+
+⚠️ **La cuarta combinación de alcance.** `pasajero` + `grupo` a la vez significa «su boarding pass
+**de ese vuelo**»: con `pasajero` a secas se sabe de quién es pero no de qué vuelo, y quien vuela
+Cusco–Lima, Lima–Panamá y Panamá–Punta Cana ida y vuelta tiene ocho. El subgrupo `reserva_aerea`
+ya existía —24 en el expediente que lo motivó— y es justo lo que los distingue.
+
+⚠️ **Y el DNI son DOS tipos, no uno con campo «cara»**: un control migratorio quiere las dos. Con
+un caso por cara, «¿a quién le falta algo?» se contesta mirando qué tipos tiene.
+
+**Caducan al mes del retorno**: `app:cotizacion:purgar-escaneos` borra fichero y fila de los
+escaneos de identidad. **No toca `CotizacionPasajeroIdentificacion`** —el número de pasaporte con
+el que se emitió un boleto se queda— ni los boletos, que el pasajero puede necesitar para una
+reclamación.
+
+⚠️ Y una redacción que hubo que corregir de paso: el docblock del tipo decía «esto **no** es un
+documento de identidad», y se leía como que un pasaporte escaneado no cabía aquí. No era eso: lo
+que no cabe es **el número**, que es un dato y vive en la identificación. El escaneo es un archivo
+como cualquier otro. Esa frase costó una entidad entera escrita y borrada.
+
 #### Noches y días no son lo mismo, y contarlos igual torció un dato (07/09/2026)
 
 Un hotel del 18 al 22 son **4 noches**. Un seguro de viaje del 18 al 22 son **5 días**. Las mismas
