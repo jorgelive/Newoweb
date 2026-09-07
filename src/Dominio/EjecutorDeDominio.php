@@ -69,6 +69,7 @@ final readonly class EjecutorDeDominio
     /** Cuánto se espera por una ranura antes de rendirse. Un PDF tarda ~120 ms. */
     private const int ESPERA_MAX_MS = 1500;
 
+
     public function __construct(
         #[Autowire(param: 'kernel.project_dir')]
         private string $projectDir,
@@ -261,6 +262,18 @@ final readonly class EjecutorDeDominio
      *
      * ⚠️ No es un atajo que se salte el lote: por debajo manda una lista de uno. Que exista este
      * método es lo que evita que alguien invente un camino distinto para «sólo una».
+     *
+     * ⚠️ **Pero NO se llama dentro de un bucle**, y ésta es la regla que hay que respetar aunque
+     * un día haya un proceso residente esperando. El riesgo no es el arranque: es el **sitio de
+     * llamada**. Un demonio cambia cincuenta arranques por segundo por cincuenta idas y vueltas
+     * por segundo — el coste está en preguntar, no en encender.
+     *
+     * Si tienes N cosas, junta las N y llama a {@see self::ejecutar()} una vez. Lo que se pregunta
+     * es **el proceso entero**, no cada uno de sus elementos.
+     *
+     * ⚠️ No hay guarda que lo impida, y no por descuido: esta clase es `readonly` a propósito —el
+     * ejecutor no recuerda nada entre llamadas— y contar invocaciones exigiría darle estado.
+     * Vigilarlo pide un colaborador aparte; mientras tanto, la regla se lee aquí.
      */
     public function ejecutarUna(OperacionDominioInterface $operacion, mixed $entrada): mixed
     {

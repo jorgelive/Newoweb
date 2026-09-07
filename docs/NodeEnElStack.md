@@ -403,6 +403,24 @@ sólo gana lo que quede después — las peticiones sueltas, una por request.
 | El `.cli.ts` es sólo **transporte** | La lógica vive fuera; atender por socket es un archivo delgado al lado, no una reescritura |
 | El contrato **en lote y versionado** | Es ya la forma que necesita un demonio, y `itinerario@1` es lo que hace que un proceso viejo **explote** en vez de contestar bien con la lógica de ayer |
 
+⚠️ **Y lo que de verdad hay que proteger no es el transporte: es el SITIO DE LLAMADA.** Un demonio
+no salva a un código que pregunta dentro de un bucle — cambia cincuenta arranques por segundo por
+cincuenta idas y vueltas por segundo. El coste está en preguntar, no en encender.
+
+```php
+foreach ($cotizaciones as $cot) {            // ❌ sobrevive a cualquier demonio
+    $ejecutor->ejecutarUna($op, $plano);
+}
+
+$ejecutor->ejecutar($op, $planos);           // ✅ se pregunta el PROCESO, no cada elemento
+```
+
+`ejecutarUna()` existe para que nadie invente un camino distinto para «sólo una» —manda una lista
+de uno— pero es también la semilla de esa costumbre, y por eso la regla está escrita en su
+docblock. **No hay guarda que lo impida**, y no por descuido: `EjecutorDeDominio` es `readonly` a
+propósito —no recuerda nada entre llamadas— y contar invocaciones por petición exigiría darle
+estado. Vigilarlo pide un colaborador aparte; el día que haga falta, ahí está el porqué.
+
 Y lo que habrá que añadir, que no es código:
 
 - **Supervisión.** Un demonio sin supervisor es una caída esperando, y esta casa ya lo aprendió por
