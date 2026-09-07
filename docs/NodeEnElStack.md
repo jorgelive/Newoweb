@@ -363,6 +363,46 @@ proyecto: con el módulo fuera, el **build funcionaba** y el dev server devolví
 en las dos apps. Es un fallo que sólo existe en desarrollo — el peor sitio para descubrirlo tarde,
 porque parece «la app está rota» y no «falta una línea de configuración».
 
+### La trayectoria: pasar el PROCESO, no la operación (07/09/2026)
+
+La dirección acordada es que la lógica de negocio compartida se vaya mudando aquí, y con ella una
+regla de uso que conviene no olvidar:
+
+⚠️ **Se le pasan los datos del proceso, no de uno en uno.** El contrato ya nace en lote —«siempre
+en LOTE, aunque sea de uno», ver `itinerario.cli.ts`— precisamente por esto: arrancar node cuesta
+~50 ms, irrelevante para un PDF y letal en `N × 50 ms`. La frase «invocar node por una etiqueta en
+cada lectura cuesta más de lo que arregla» es verdad **mientras se pida de a una**; con tres o
+cuatro operaciones aquí, La Biblia pide de una vez lo de sus 78 filas y el coste se diluye. No hay
+que rediseñar nada para eso: hay que dejar de pedir suelto.
+
+⚠️ **Y el día que una LECTURA del panel dependa de esto, `DOMINIO_NODE_BINARIO` cambia de
+categoría.** Hoy lo llaman comandos: si falta, falla un comando. Cuando lo llame una pantalla,
+falla la pantalla. Es el mismo paso de despliegue de siempre, con otra consecuencia.
+
+⚠️ **Sobre estructurar esto en clases**, cuando llegue: `erasableSyntaxOnly: true` deja fuera
+`enum`, propiedades en el constructor y modificadores en parámetros. Y lo de ahora son funciones
+sobre datos por un motivo — es lo que las hace invocables igual desde el navegador y desde node sin
+construir nada. Una clase con estado obliga a montarla en los dos lados. El criterio: pasar a
+clases cuando aparezca **estado o varias implementaciones de la misma pregunta**, no para ordenar;
+agrupar por ordenar acaba en el `switch` por dominio que este diseño evita a propósito.
+
+### Qué se está calculando dos veces (inventario vivo)
+
+Lo que sigue son cálculos que HOY viven en PHP y en TypeScript a la vez, con el espejo declarado en
+los dos lados. Son los candidatos, por orden de lo que costaría equivocarse:
+
+| Qué | Dónde | Por qué duele |
+|---|---|---|
+| **La comisión de un pago** | `PmsPagoFinanciero::getMontoComision()`/`getMontoTotalCobrado()`, `RegistrarPagoSkill::desglose()` y `totalConComision()`/`netoDesdeTotal()` en `util/src/types/pmsFinanzasModel.ts` | **Tres copias, y es dinero.** El formulario recalcula en vivo mientras se teclea, el agente lo redacta en el chat y la entidad lo persiste |
+| `mandaElSegmento()` | `ComponenteTipoEnum`, `util/src/utils/componenteTipo.ts` y la copia inline de `pax` | Una **tabla por tipo** escrita en TS; el resto de tablas (`ordenNarrativo`, la unidad) ya viajan serializadas |
+| `resumenDeDuracion()` ↔ `Cotizacion::getResumenDuracion()` | `dominio/cotizacion/unidades.ts` y la entidad | Espejo asumido a sabiendas: PHP lo llama **una vez al emitir** y congela el número |
+| `unidadesEntre()` ↔ `UnidadDeConteoEnum::sumaElUltimoDia()` | idem | El `+1` de días vs noches |
+| `PmsRedactorDeCobro::bloque()` ↔ `PmsReservaView.vue` | redacción del bloque de cobro | El texto que lee el huésped, escrito dos veces |
+
+**El patrón que los une**: el backend es la fuente de verdad al leer, pero el formulario necesita
+recalcular en vivo mientras alguien teclea. Ése es exactamente el hueco que `dominio/` viene a
+tapar — y la razón de que la mudanza valga la pena aunque hoy cada copia funcione.
+
 ### Y el segundo inquilino: el esquema de la API (05/09/2026)
 
 `dominio/api.d.ts` es el **único** `api.d.ts` del repo. Lo genera `cd dominio && npm run gen:api` y
