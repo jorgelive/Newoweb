@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use App\Pms\Finanzas\ComisionDeCobro;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -324,8 +325,7 @@ class PmsPagoFinanciero
     #[Groups(['pms_pago:read'])]
     public function getMontoComision(): string
     {
-        $pct = (float) ($this->comisionPorcentaje ?? '0');
-        return number_format((float) $this->monto * $pct / 100, 2, '.', '');
+        return ComisionDeCobro::recargo((float) $this->monto, (float) ($this->comisionPorcentaje ?? '0'));
     }
 
     /**
@@ -335,7 +335,7 @@ class PmsPagoFinanciero
     #[Groups(['pms_pago:read'])]
     public function getMontoTotalCobrado(): string
     {
-        return number_format((float) $this->monto + (float) $this->getMontoComision(), 2, '.', '');
+        return ComisionDeCobro::totalCobrado((float) $this->monto, (float) ($this->comisionPorcentaje ?? '0'));
     }
 
     public function getFechaPago(): ?DateTimeInterface { return $this->fechaPago; }

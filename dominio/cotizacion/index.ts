@@ -17,6 +17,8 @@ export {
     compConHora,
 } from './itinerarioVista.ts';
 
+export { mandaElSegmento } from './componenteTipo.ts';
+
 export {
     unidadesEntre,
     etiquetaDeUnidades,

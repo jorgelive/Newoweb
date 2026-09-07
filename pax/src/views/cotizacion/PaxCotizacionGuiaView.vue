@@ -23,7 +23,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
-import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnidades, sustantivoDeUnidad, resumenDeDuracion } from '@dominio/cotizacion/index.ts';
+import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnidades, resumenDeDuracion, mandaElSegmento } from '@dominio/cotizacion/index.ts';
 import type { BloqueVista as BloqueVistaBase } from '@dominio/cotizacion/index.ts';
 import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
 
@@ -225,8 +225,6 @@ const tituloGrandeDeServicio = (b: BloqueVista): boolean =>
 const mostrarAccionInclusiones = (b: BloqueVista): boolean =>
     b.esPrimeroDelServicioEnElDia && !b.esRepeticion && serviciosConInclusiones.value.has(b.servicio.id);
 
-const totalDiasViaje = computed(() =>
-    itinerarioVista.value.length ? itinerarioVista.value[itinerarioVista.value.length - 1].numeroDia : 0);
 
 // ── Horarios de componentes ──────────────────────────────────────────────────
 const compsConHora = (b: BloqueVista) =>
@@ -235,23 +233,6 @@ const compsConHora = (b: BloqueVista) =>
         .sort((a, b2) => (a.fechaHoraInicio ?? '').localeCompare(b2.fechaHoraInicio ?? ''));
 
 
-/**
- * ¿Manda el SEGMENTO sobre el componente? **Espejo de `ComponenteTipoEnum::mandaElSegmento()`** —
- * si cambia la regla, se tocan LOS TRES: aquí, `util` y el enum de PHP.
- *
- * ⚠️ Aquí manda por un motivo DISTINTO al del despacho, y conviene no confundirlos. En La Biblia
- * es porque el nombre operativo del componente ya no dice la dirección; aquí es porque su TÍTULO
- * PÚBLICO tampoco puede decirla y encima lo intenta: al fusionar ida y vuelta —«Vuelo Cusco ↔
- * Arequipa (ida o vuelta)»— el título quedó congelado en un sentido, «Vuelo desde la ciudad de
- * Cusco a la ciudad de Arequipa». En el tramo de vuelta el huésped leería la dirección al revés.
- *
- * El título del segmento sí la dice —«Vuelo Cusco – Arequipa», «Viaje en tren desde
- * Ollantaytambo»— porque hay uno por sentido.
- *
- * En los demás tipos el componente nombra lo comprado y su título es la prosa buena: se queda.
- */
-const mandaElSegmento = (tipo?: string | null): boolean =>
-    tipo === 'transporte' || tipo === 'tren' || tipo === 'vuelo';
 
 /**
  * Para comparar títulos entre hermanos: sin acentos, sin caja y sin puntuación.

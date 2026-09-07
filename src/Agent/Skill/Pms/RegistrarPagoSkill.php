@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Skill\Pms;
 
+use App\Pms\Finanzas\ComisionDeCobro;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
@@ -776,15 +777,19 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
     /**
      * Las dos lecturas posibles de un importe con comisión.
      *
-     * 🪞 Espejo de `totalConComision()` y `netoDesdeTotal()` de
-     * `util/src/types/pmsFinanzasModel.ts`. Si cambia una fórmula, cambian las dos.
+     * ⚠️ **La fórmula ya NO se escribe aquí.** Estuvo copiada —y era la tercera copia de un
+     * cálculo de dinero, en el sitio donde la escribe un modelo de lenguaje en un chat con el
+     * huésped delante—. Vive en {@see ComisionDeCobro}, con la entidad que la persiste.
+     *
+     * Lo que sí decide este método es **qué se pregunta**: si el importe que dio el operador ya
+     * incluye el recargo o hay que añadírselo. Eso es de la skill, no de la fórmula.
      *
      * @return array<string, string>
      */
     private function desglose(float $importe, float $pct, bool $incluye, ?string $moneda): array
     {
-        $cobrado = $incluye ? $importe : $importe * (1 + $pct / 100);
-        $neto    = $incluye ? $importe / (1 + $pct / 100) : $importe;
+        $cobrado = (float) ($incluye ? $importe : ComisionDeCobro::totalCobrado($importe, $pct));
+        $neto    = (float) ($incluye ? ComisionDeCobro::netoDesdeTotal($importe, $pct) : $importe);
 
         return [
             'cobrado_al_huesped' => sprintf('%.2f %s', round($cobrado, 2), $moneda),

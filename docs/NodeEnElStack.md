@@ -393,8 +393,8 @@ los dos lados. Son los candidatos, por orden de lo que costaría equivocarse:
 
 | Qué | Dónde | Por qué duele |
 |---|---|---|
-| **La comisión de un pago** | `PmsPagoFinanciero::getMontoComision()`/`getMontoTotalCobrado()`, `RegistrarPagoSkill::desglose()` y `totalConComision()`/`netoDesdeTotal()` en `util/src/types/pmsFinanzasModel.ts` | **Tres copias, y es dinero.** El formulario recalcula en vivo mientras se teclea, el agente lo redacta en el chat y la entidad lo persiste |
-| `mandaElSegmento()` | `ComponenteTipoEnum`, `util/src/utils/componenteTipo.ts` y la copia inline de `pax` | Una **tabla por tipo** escrita en TS; el resto de tablas (`ordenNarrativo`, la unidad) ya viajan serializadas |
+| ~~**La comisión de un pago**~~ | `App\Pms\Finanzas\ComisionDeCobro` ← entidad y skill; TS sigue aparte | **De tres a dos** (07/09/2026). Ver abajo |
+| ~~`mandaElSegmento()`~~ | `dominio/cotizacion/componenteTipo.ts` ← `util` y `pax`; el enum sigue aparte | **De tres a dos** (07/09/2026) |
 | `resumenDeDuracion()` ↔ `Cotizacion::getResumenDuracion()` | `dominio/cotizacion/unidades.ts` y la entidad | Espejo asumido a sabiendas: PHP lo llama **una vez al emitir** y congela el número |
 | `unidadesEntre()` ↔ `UnidadDeConteoEnum::sumaElUltimoDia()` | idem | El `+1` de días vs noches |
 | `PmsRedactorDeCobro::bloque()` ↔ `PmsReservaView.vue` | redacción del bloque de cobro | El texto que lee el huésped, escrito dos veces |
@@ -402,6 +402,31 @@ los dos lados. Son los candidatos, por orden de lo que costaría equivocarse:
 **El patrón que los une**: el backend es la fuente de verdad al leer, pero el formulario necesita
 recalcular en vivo mientras alguien teclea. Ése es exactamente el hueco que `dominio/` viene a
 tapar — y la razón de que la mudanza valga la pena aunque hoy cada copia funcione.
+
+#### Lo unificado el 07/09/2026, y hasta dónde llega
+
+**La comisión: de tres copias a dos.** `App\Pms\Finanzas\ComisionDeCobro` la escribe una vez y la
+usan la entidad —que la persiste y la sirve por la API— y la skill del agente, que era la copia más
+delicada: la fórmula del dinero **en el sitio donde la redacta un modelo de lenguaje con el huésped
+delante**.
+
+⚠️ **La de TypeScript se queda, y hay que decir por qué**: el formulario recalcula con cada tecla y
+una ida y vuelta al servidor por pulsación es peor que la copia. Esa tercera sólo desaparece cuando
+`dominio/` pueda servir a los dos lados. **No es una excusa, es la lista de espera.**
+
+⚠️ Y de paso quedó escrito lo que ninguna de las tres decía: **las dos direcciones no son la misma
+cuenta**. De 100 con 5 % salen 105; pero de 105 el neto es `105 / 1,05` = 100, **no** 105 − 5 %
+(99,75). Restar el porcentaje al total es el error clásico y con importes grandes se lleva por
+delante soles de deuda que nadie cuadra después.
+
+**`mandaElSegmento`: de tres a dos.** Vive en `dominio/cotizacion/componenteTipo.ts` y lo importan
+las dos apps. Las dos copias de TypeScript no podían compartirse —`util` y `pax` son aplicaciones
+distintas— y `dominio/` es justo el sitio que ambas sí comparten. `util/src/utils/componenteTipo.ts`
+sobrevive como puerta, reexportando, para no tocar a sus cuatro consumidores.
+
+⚠️ Sigue sin poder leerse del backend, y el motivo importa: las tablas que **sí** viajan
+serializadas —`ordenNarrativo`, la unidad de conteo— cuelgan de un componente concreto; ésta se
+pregunta sobre un **tipo suelto**, a veces sin componente delante.
 
 ### Y el segundo inquilino: el esquema de la API (05/09/2026)
 
