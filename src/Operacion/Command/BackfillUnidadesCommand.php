@@ -80,10 +80,21 @@ final class BackfillUnidadesCommand extends Command
 
             // La fecha de fin se rellena SIEMPRE que exista, aunque la unidad no tenga nombre: un
             // traslado no dice «2 noches», pero saber que acaba al día siguiente sí importa.
+            $id = (string) $fila->getId();
             $fin = $componente->getFechaHoraFin();
+
             if ($fin !== null) {
                 $fila->setFechaFinServicio(\DateTimeImmutable::createFromInterface($fin)->setTime(0, 0));
                 ++$conFin;
+
+                // ⚠️ **Antes del `continue`, y esto se me pasó en la primera versión.** La fecha de
+                // fin viaja al documento AUNQUE la unidad no tenga nombre: un traslado nocturno no
+                // dice «2 noches», pero que acabe al día siguiente es justo lo que el conductor
+                // necesita saber. Poblado después del `continue`, esas líneas se quedaban sin
+                // salida y sólo lo delataba mirar la tabla en la base.
+                if ($id !== '') {
+                    $finPorServicio[$id] = $fila->getFechaFinServicio();
+                }
             }
 
             // Sin unidad que nombrar no hay nada más que rellenar: el número pelado es lo correcto.
@@ -94,10 +105,8 @@ final class BackfillUnidadesCommand extends Command
             $fila->setUnidadDeConteo($unidad);
             $fila->setSustantivoUnidad($sustantivo);
 
-            $id = (string) $fila->getId();
             if ($id !== '') {
                 $sustantivoPorServicio[$id] = $sustantivo;
-                $finPorServicio[$id] = $fila->getFechaFinServicio();
             }
 
             $porUnidad[$unidad] = ($porUnidad[$unidad] ?? 0) + 1;
