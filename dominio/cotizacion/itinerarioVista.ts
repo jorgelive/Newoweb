@@ -126,9 +126,18 @@ export const compConHora = (c: ComponenteMinimo): boolean => {
   return !!t && t !== '00:00';
 };
 
-/** La unidad de un bloque: la del primer componente que la declare. Ausente = noches. */
+/**
+ * La unidad de un bloque: la del componente que de verdad DURA.
+ *
+ * ⚠️ **No vale «el primero que la declare».** La unidad llega ya resuelta del servidor, así que
+ * todos la declaran y el primero siempre gana: un extra suelto delante de un hotel hacía que el
+ * bloque contara en `unidades` —un solo día pintado, y sin cerrar la jornada— por el orden del
+ * array. Manda quien cuenta un periodo; `unidades` es lo que no dura y sólo se usa si no hay otra.
+ */
 const unidadDe = (comps: Pick<ComponenteMinimo, 'unidadDeConteo'>[]): string =>
-  comps.find((c) => (c?.unidadDeConteo ?? '') !== '')?.unidadDeConteo ?? 'noches';
+  comps.find((c) => c?.unidadDeConteo === 'noches' || c?.unidadDeConteo === 'dias')?.unidadDeConteo
+  ?? comps.find((c) => (c?.unidadDeConteo ?? '') !== '')?.unidadDeConteo
+  ?? 'noches';
 
 /**
  * Dónde va un servicio dentro de un día cuando el reloj no lo decide.
@@ -376,7 +385,12 @@ export function componerItinerario<S extends ServicioMinimo>(
       // de algo que ya no puede usar. Ésos van por su `ordenNarrativo`, como todo lo demás.
       const cierraElDia = gb.every(b => b.esPeriodo && b.unidad === 'noches');
       const esRepeticion = gb.every(b => b.esRepeticion);
-      const narrativoMin = Math.min(...gb.flatMap(b => b.componentes).map(c => c?.ordenNarrativo ?? 30), 30);
+      // ⚠️ **El 30 va como valor por defecto de la LISTA VACÍA, no como un miembro más.** Escrito
+      // dentro del `min` topaba todo a 30: un almuerzo (50) y una cena (70) recibían la hora
+      // nominal de las 09:30 y se leían antes que el tour de las 11:00 — al principio del día en
+      // vez de al final, que es peor que el problema que esto venía a arreglar.
+      const narrativos = gb.flatMap(b => b.componentes).map(c => c?.ordenNarrativo ?? 30);
+      const narrativoMin = narrativos.length ? Math.min(...narrativos) : 30;
       return { horaMin, ordenMin, cierraElDia, esRepeticion, narrativoMin };
     };
 

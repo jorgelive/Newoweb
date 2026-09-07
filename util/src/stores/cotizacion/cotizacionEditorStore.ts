@@ -4549,8 +4549,15 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 componente.fechaHoraFin = toDateTimeString(endStr.split('T')[0]);
             }
 
+            // ⚠️ **Al cambiar de maestro, `unidades` REPONE a 1.** Aquí el componente pasa a ser
+            // otro producto: cambiar un hotel de 4 noches por un ticket dejaba la cantidad en 4
+            // —`cantidadPorFechas` devuelve null en `unidades` y no pisa lo que hay— y el precio
+            // salía multiplicado por cuatro sin que nadie lo pidiera.
+            //
+            // Es distinto de `onComponenteFechasChange`, donde NO reponer es lo correcto: allí el
+            // producto es el mismo y la cantidad la escribió una persona.
             if (componente.fechaHoraInicio && componente.fechaHoraFin) {
-                componente.cantidad = cantidadPorFechas(componente) ?? componente.cantidad;
+                componente.cantidad = cantidadPorFechas(componente) ?? 1;
             }
 
             componente.snapshotItems = [];

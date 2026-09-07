@@ -512,7 +512,11 @@ class BibliaReconciliacionService
             'modoComponente'        => $fila->getModoComponente(),
             'estadoComponente'      => $fila->getEstadoComponente(),
             'cantidadComponente'    => $fila->getCantidadComponente(),
-            'fechaFinServicio'      => $fila->getFechaFinServicio(),
+            // ⚠️ **Formateada, como la de inicio.** `compararCampos()` pasa esto a `normalizar()`,
+            // que declara `string|int|float|null` con `strict_types`: un `DateTimeImmutable` aquí
+            // revienta la reconciliación entera con un `TypeError`. PHPStan no lo ve porque el
+            // array es `array<string, mixed>` — la zona ciega que describe CLAUDE.md.
+            'fechaFinServicio'      => $fila->getFechaFinServicio()?->format('Y-m-d'),
             'unidadDeConteo'        => $fila->getUnidadDeConteo(),
             'sustantivoUnidad'      => $fila->getSustantivoUnidad(),
             'cantidadPax'           => $fila->getCantidadPax(),

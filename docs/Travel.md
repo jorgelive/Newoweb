@@ -14,6 +14,36 @@ pivotes. Tarifas, proveedores e imágenes se cubren sólo en lo que toca a ese m
 
 ---
 
+## En qué se cuenta un producto (07/09/2026)
+
+Tres declaraciones nuevas en `TravelComponente`, las tres **opcionales**: vacío = lo que diga el
+tipo. Sólo se rellena la excepción.
+
+| Campo | Qué decide | Defecto |
+|---|---|---|
+| `$unidadDeConteo` | `NOCHES` (fin − inicio) · `DIAS` (fin − inicio + 1) · `UNIDADES` | `ComponenteTipoEnum::unidadPorDefecto()`: alojamiento → noches, el resto → unidades |
+| `$sustantivoUnidad` | cómo se llama: «desayuno», «masaje» | el de la unidad: «noche», «día» |
+| `$momentoDelDia` | dónde se lee cuando NO tiene reloj | `ComponenteTipoEnum::ordenNarrativo()` |
+
+⚠️ **El tipo no puede ser la única fuente, y el culpable es `EXTRAS`**: ahí caben un seguro (días),
+una propina (una unidad) y un upgrade. El tipo acierta en 31 de los 33 componentes multi-día que
+hay en producción; el campo corrige los otros dos.
+
+⚠️ **El sustantivo es un campo y no un caso del enum.** Si el enum cargara el nombre, crecería con
+el catálogo: desayuno, almuerzo, cena, masaje… Cómo se CUENTA es una pregunta cerrada; cómo se
+LLAMA, no.
+
+⚠️ **`$momentoDelDia` existe para no inventar horas.** Desayuno, almuerzo y cena son los tres
+`ALIMENTACION_HORARIO_VAR` y ocurren en tres momentos distintos; el tipo no puede distinguirlos, y
+la alternativa era escribir en la base un minuto que nadie fijó y que luego viaja al proveedor.
+
+Los tres llevan su ⓘ en `TravelComponenteCrudController`. El porqué entero, con el caso que lo
+motivó —una fecha de fin torcida para que cuadrara el importe— está en `docs/Cotizaciones.md`.
+
+**Para asignarlos a un producto ya creado:** `app:travel:asignar-unidades-de-conteo`, que además
+los congela en los expedientes que ya cuelgan de él y **denuncia** las fechas que no cuadran con su
+cantidad. Ver `docs/TravelCargaDeCatalogo.md`.
+
 ## Índice
 
 1. [Las cuatro entidades en una frase](#1-las-cuatro-entidades-en-una-frase)

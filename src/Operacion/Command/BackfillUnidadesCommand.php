@@ -36,6 +36,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:operacion:backfill-unidades',
     description: 'Rellena la unidad de conteo en las filas de La Biblia y en las líneas de órdenes ya emitidas.',
+    hidden: true,
 )]
 final class BackfillUnidadesCommand extends Command
 {

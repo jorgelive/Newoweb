@@ -9,129 +9,6 @@ Alcance: `src/Operacion/` (entidades, enums, servicio, listener, comando), los e
 
 ---
 
-## La unidad de conteo llega a Operaciones (07/09/2026)
-
-El rótulo de esa casilla en la reconciliación decía, literalmente, **«Cantidad (noches/días)»**: la
-ambigüedad estaba admitida por escrito y sin resolver. La misma columna decía 4 noches de hotel y 5
-días de seguro, y al proveedor le llegaba un número pelado — de hecho **ni siquiera le llegaba**: la
-orden pública sólo pintaba los pax.
-
-Y en La Biblia estaba escrito a mano:
-
-```ts
-const palabra = tipo === 'alojamiento' ? 'noches' : 'uds';   // ← un seguro salía «5 uds»
-```
-
-Ahora la unidad la declara el catálogo (`TravelComponente::$unidadDeConteo`, ver
-`docs/Cotizaciones.md`) y **se congela** en dos sitios más, por la misma razón que el tipo y los
-nombres: leerla del catálogo al pintar haría que una orden ya emitida se leyera distinta el día que
-alguien reclasifique el producto.
-
-| Dónde | Campo | Quién lo pone |
-|---|---|---|
-| Fila de La Biblia | `OperacionServicio::$unidadDeConteo` + `$sustantivoUnidad` | `BibliaSnapshotService` al generar |
-| Línea de la orden | `OperacionOrdenServicioItem::$sustantivoUnidad` | `OperacionOrdenEmision::emitir()` |
-
-La redacción («4 noches», «5 desayunos») la compone `getCantidadParaProveedor()` en la entidad, no
-la plantilla: la leen el documento público, el PDF y el mensaje al proveedor, y escrita en cada uno
-cambiaría en uno solo el día que se toque.
-
-⚠️ **La reconciliación vigila las dos columnas nuevas.** Reclasificar un producto en el catálogo
-—de `unidades` a `dias`— tiene que salir en el diff como cualquier otro cambio que la cotización
-gobierna, no aplicarse a escondidas.
-
-⚠️ **Y faltaba la fecha de FIN, que es la mitad del encargo.** El mensaje que recibía el hotelero
-decía «Lun 31 ago · Habitación Superior · 2 pax»: la entrada, sin salida y sin número de noches —
-justo la parte que más se pregunta por teléfono. Ahora la fila y el ítem congelan
-`fechaFinServicio` / `fechaFin`, y el mensaje añade dos partes que redacta la entidad:
-
-```
-🕐 *Alojamiento en Lima*  ·  Habitación Superior Matrimonial  ·  2 pax  ·  4 noches  ·  hasta el jue 4 sep
-```
-
-`getHastaParaProveedor()` **se calla si acaba el mismo día** —la fecha ya encabeza el bloque, y
-repetirla en cada línea enseña a no leerla— **y también si el encargo no dura**, aunque su fecha de
-fin caiga en la jornada siguiente.
-
-⚠️ Eso último es la misma regla que ya aplica `esEstadia`: **cruzar medianoche no es durar dos
-días**. En producción, los que acaban «al día siguiente» sin ser periodos son un traslado urbano de
-media hora (23:30 → 00:00), un vuelo nocturno y dos con la duración mal puesta —un traslado de
-aeropuerto de 25 horas—. Decirle a ninguno «hasta el 1 sep» es ruido, y en los dos últimos sería
-repetir un error de datos en un documento que firma la agencia.
-
-El marcador de «esto dura» es tener **unidad que nombrar**: noches, días, desayunos.
-
-### Quién viaja, en el documento del proveedor (07/09/2026)
-
-La regla escrita en `OrdenPublicaController` era «al proveedor se le dice **qué operar**, no para
-quién», y en la práctica dejaba al conductor con horas y pax pero **sin el nombre del grupo ni un
-teléfono al que llamar**. Con una orden de un expediente se sobreentendía de quién era; con dos, no
-hay forma de saber qué línea es de quién.
-
-```
-👥 *Nune & Todd*  ·  Todd Nune  ·  1 habitación  ·  2 pax  ·  tel. 999 888 777
-
-*Lun 31 ago*
-🕐 22:00 · *Transporte…* · 2 pax · Transporte en Lima
-```
-
-| Dónde | Campo | Cuándo se pone |
-|---|---|---|
-| Orden | `gruposSnapshot` (JSON, un bloque por expediente) | al emitir, y **se recalcula siempre** |
-| Línea | `nombreGrupo` | al emitir |
-
-⚠️ **La etiqueta por línea sale sólo si hay más de un grupo** (`isMultigrupo()`). Con uno, el
-encabezado ya lo dijo y repetirlo en cada renglón es ruido. Con varios, el bloque de arriba hace de
-**directorio del documento**.
-
-⚠️ **`congelarGrupos()` se recalcula en cada emisión, aunque ya haya líneas** — es la única parte
-que se salta la regla del documento inmutable, y a propósito: nació después que las órdenes que ya
-existían, y dejarla vacía obligaría a reemitir una orden confirmada sólo para ponerle el nombre del
-cliente. No contradice lo enviado: añade lo que faltaba. Las ya emitidas las rellena
-`app:operacion:backfill-grupos`.
-
-**Lo que sigue sin salir es el dinero**: ni importes, ni lo vendido, ni nada de la cotización. Ésa
-es la parte de la regla vieja que no se toca.
-
-### El teléfono de emergencia (07/09/2026)
-
-Va al pie de cada orden —mensaje, página pública y PDF— y **no existía en ninguna parte del
-sistema**: lo único parecido era el WhatsApp del establecimiento, que es del PMS, por propiedad, y
-un proveedor de transporte no sabe cuál es.
-
-Es el parámetro `operaciones_telefono_emergencia`, de `OPERACIONES_TELEFONO_EMERGENCIA`.
-
-⚠️ **Vacío = el pie no sale.** Un número inventado en un documento que se manda fuera es peor que
-ninguno: se llama y no contesta nadie, justo el día que hacía falta.
-
-⚠️ El defecto del parámetro es una **cadena vacía y no `null`** (`default:operaciones_sin_valor:`).
-Con `default::` el servicio recibe `null` donde declara `string` y **el contenedor no compila** —
-que es lo que pasa en cuanto alguien despliega sin regenerar `.env.local.php`.
-
-### El importe dejó de ensuciar la orden (07/09/2026)
-
-`getDivergencias()` vigilaba el importe, así que **cada ajuste de costo marcaba la orden como «ya
-no coincide con La Biblia»** y pedía reemitir: anular una orden confirmada, avisar al proveedor y
-volver a empezar — para producir un documento **idéntico** al que ya se había mandado.
-
-Idéntico porque **el documento no lleva importes**: ni el mensaje, ni la página pública, ni el PDF.
-Está escrito en `$totalOs` («al proveedor no se le manda un total») y en la cabecera del Twig. Y el
-total interno tampoco se quedaba viejo: `getTotalesPorMoneda()` suma las **filas vivas**, no las
-líneas congeladas.
-
-O sea: una alarma que sólo podía ser falsa, y cuyo único remedio era destructivo.
-
-⚠️ Tampoco pasó a `getCambiosMenores()`, que existe para lo que **se le confirma al proveedor**
-(«ya se sabe la hora del recojo») y tiene un botón que le avisa. Un costo interno no es asunto
-suyo. Si algún día el documento llevara importes, la vigilancia vuelve — y el test
-`negociarOtroImporteNoLaEnsucia` es el que habría que dar la vuelta.
-
-⚠️ **El backfill toca documentos YA EMITIDOS**, que normalmente no se tocan. Se hizo a conciencia y
-por decisión del operador, porque lo que cambia **no contradice** lo enviado: donde ponía «4»
-pondrá «4 noches». Ni una cifra, ni un importe, ni una fecha. Lo corre
-`app:operacion:backfill-unidades`, con `--dry-run`.
-
-
 ## Índice
 
 1. [Vocabulario](#1-vocabulario)
@@ -145,6 +22,7 @@ pondrá «4 noches». Ni una cifra, ni un importe, ni una fecha. Lo corre
 7. [La vista de tráfico](#7-la-vista-de-tráfico)
 8. [Gotchas](#8-gotchas)
 9. [Pendiente de decidir](#9-pendiente-de-decidir)
+9.bis [Contar en noches o en días](#9bis-contar-en-noches-o-en-días)
 10. [Dónde tocar para cambiar X](#10-dónde-tocar-para-cambiar-x)
 13. [Lo que se le dice al proveedor](#13-lo-que-se-le-dice-al-proveedor-22082026)
 
@@ -3228,10 +3106,139 @@ cotizado, no contra la venta real.
 
 ---
 
+## 9.bis Contar en noches o en días (07/09/2026)
+
+### La unidad de conteo llega a Operaciones
+
+El rótulo de esa casilla en la reconciliación decía, literalmente, **«Cantidad (noches/días)»**: la
+ambigüedad estaba admitida por escrito y sin resolver. La misma columna decía 4 noches de hotel y 5
+días de seguro, y al proveedor le llegaba un número pelado — de hecho **ni siquiera le llegaba**: la
+orden pública sólo pintaba los pax.
+
+Y en La Biblia estaba escrito a mano:
+
+```ts
+const palabra = tipo === 'alojamiento' ? 'noches' : 'uds';   // ← un seguro salía «5 uds»
+```
+
+Ahora la unidad la declara el catálogo (`TravelComponente::$unidadDeConteo`, ver
+`docs/Cotizaciones.md`) y **se congela** en dos sitios más, por la misma razón que el tipo y los
+nombres: leerla del catálogo al pintar haría que una orden ya emitida se leyera distinta el día que
+alguien reclasifique el producto.
+
+| Dónde | Campo | Quién lo pone |
+|---|---|---|
+| Fila de La Biblia | `OperacionServicio::$unidadDeConteo` + `$sustantivoUnidad` | `BibliaSnapshotService` al generar |
+| Línea de la orden | `OperacionOrdenServicioItem::$sustantivoUnidad` | `OperacionOrdenEmision::emitir()` |
+
+La redacción («4 noches», «5 desayunos») la compone `getCantidadParaProveedor()` en la entidad, no
+la plantilla: la leen el documento público, el PDF y el mensaje al proveedor, y escrita en cada uno
+cambiaría en uno solo el día que se toque.
+
+⚠️ **La reconciliación vigila las dos columnas nuevas.** Reclasificar un producto en el catálogo
+—de `unidades` a `dias`— tiene que salir en el diff como cualquier otro cambio que la cotización
+gobierna, no aplicarse a escondidas.
+
+⚠️ **Y faltaba la fecha de FIN, que es la mitad del encargo.** El mensaje que recibía el hotelero
+decía «Lun 31 ago · Habitación Superior · 2 pax»: la entrada, sin salida y sin número de noches —
+justo la parte que más se pregunta por teléfono. Ahora la fila y el ítem congelan
+`fechaFinServicio` / `fechaFin`, y el mensaje añade dos partes que redacta la entidad:
+
+```
+🕐 *Alojamiento en Lima*  ·  Habitación Superior Matrimonial  ·  2 pax  ·  4 noches  ·  hasta el jue 4 sep
+```
+
+`getHastaParaProveedor()` **se calla si acaba el mismo día** —la fecha ya encabeza el bloque, y
+repetirla en cada línea enseña a no leerla— **y también si el encargo no dura**, aunque su fecha de
+fin caiga en la jornada siguiente.
+
+⚠️ Eso último es la misma regla que ya aplica `esEstadia`: **cruzar medianoche no es durar dos
+días**. En producción, los que acaban «al día siguiente» sin ser periodos son un traslado urbano de
+media hora (23:30 → 00:00), un vuelo nocturno y dos con la duración mal puesta —un traslado de
+aeropuerto de 25 horas—. Decirle a ninguno «hasta el 1 sep» es ruido, y en los dos últimos sería
+repetir un error de datos en un documento que firma la agencia.
+
+El marcador de «esto dura» es tener **unidad que nombrar**: noches, días, desayunos.
+
+### Quién viaja, en el documento del proveedor (07/09/2026)
+
+La regla escrita en `OrdenPublicaController` era «al proveedor se le dice **qué operar**, no para
+quién», y en la práctica dejaba al conductor con horas y pax pero **sin el nombre del grupo ni un
+teléfono al que llamar**. Con una orden de un expediente se sobreentendía de quién era; con dos, no
+hay forma de saber qué línea es de quién.
+
+```
+👥 *Nune & Todd*  ·  Todd Nune  ·  1 habitación  ·  2 pax  ·  tel. 999 888 777
+
+*Lun 31 ago*
+🕐 22:00 · *Transporte…* · 2 pax · Transporte en Lima
+```
+
+| Dónde | Campo | Cuándo se pone |
+|---|---|---|
+| Orden | `gruposSnapshot` (JSON, un bloque por expediente) | al emitir, y **se recalcula siempre** |
+| Línea | `nombreGrupo` | al emitir |
+
+⚠️ **La etiqueta por línea sale sólo si hay más de un grupo** (`isMultigrupo()`). Con uno, el
+encabezado ya lo dijo y repetirlo en cada renglón es ruido. Con varios, el bloque de arriba hace de
+**directorio del documento**.
+
+⚠️ **`congelarGrupos()` se recalcula en cada emisión, aunque ya haya líneas** — es la única parte
+que se salta la regla del documento inmutable, y a propósito: nació después que las órdenes que ya
+existían, y dejarla vacía obligaría a reemitir una orden confirmada sólo para ponerle el nombre del
+cliente. No contradice lo enviado: añade lo que faltaba. Las ya emitidas las rellena
+`app:operacion:backfill-grupos`.
+
+**Lo que sigue sin salir es el dinero**: ni importes, ni lo vendido, ni nada de la cotización. Ésa
+es la parte de la regla vieja que no se toca.
+
+### El teléfono de emergencia (07/09/2026)
+
+Va al pie de cada orden —mensaje, página pública y PDF— y **no existía en ninguna parte del
+sistema**: lo único parecido era el WhatsApp del establecimiento, que es del PMS, por propiedad, y
+un proveedor de transporte no sabe cuál es.
+
+Es el parámetro `operaciones_telefono_emergencia`, de `OPERACIONES_TELEFONO_EMERGENCIA`.
+
+⚠️ **Vacío = el pie no sale.** Un número inventado en un documento que se manda fuera es peor que
+ninguno: se llama y no contesta nadie, justo el día que hacía falta.
+
+⚠️ El defecto del parámetro es una **cadena vacía y no `null`** (`default:operaciones_sin_valor:`).
+Con `default::` el servicio recibe `null` donde declara `string` y **el contenedor no compila** —
+que es lo que pasa en cuanto alguien despliega sin regenerar `.env.local.php`.
+
+### El importe dejó de ensuciar la orden (07/09/2026)
+
+`getDivergencias()` vigilaba el importe, así que **cada ajuste de costo marcaba la orden como «ya
+no coincide con La Biblia»** y pedía reemitir: anular una orden confirmada, avisar al proveedor y
+volver a empezar — para producir un documento **idéntico** al que ya se había mandado.
+
+Idéntico porque **el documento no lleva importes**: ni el mensaje, ni la página pública, ni el PDF.
+Está escrito en `$totalOs` («al proveedor no se le manda un total») y en la cabecera del Twig. Y el
+total interno tampoco se quedaba viejo: `getTotalesPorMoneda()` suma las **filas vivas**, no las
+líneas congeladas.
+
+O sea: una alarma que sólo podía ser falsa, y cuyo único remedio era destructivo.
+
+⚠️ Tampoco pasó a `getCambiosMenores()`, que existe para lo que **se le confirma al proveedor**
+(«ya se sabe la hora del recojo») y tiene un botón que le avisa. Un costo interno no es asunto
+suyo. Si algún día el documento llevara importes, la vigilancia vuelve — y el test
+`negociarOtroImporteNoLaEnsucia` es el que habría que dar la vuelta.
+
+⚠️ **El backfill toca documentos YA EMITIDOS**, que normalmente no se tocan. Se hizo a conciencia y
+por decisión del operador, porque lo que cambia **no contradice** lo enviado: donde ponía «4»
+pondrá «4 noches». Ni una cifra, ni un importe, ni una fecha. Lo corre
+`app:operacion:backfill-unidades`, con `--dry-run`.
+
 ## 10. Dónde tocar para cambiar X
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
+| **Cambiar en qué se cuenta una fila (noches/días)** | `src/Travel/Entity/TravelComponente.php` | `$unidadDeConteo` — lo declara el CATÁLOGO; el tipo sólo da el defecto |
+| Cambiar cómo se rotula la cantidad al proveedor | `src/Operacion/Entity/OperacionOrdenServicioItem.php` | `getCantidadParaProveedor()` — la redacción vive aquí, no en el Twig |
+| Cambiar cuándo sale «hasta el…» | `src/Operacion/Entity/OperacionOrdenServicioItem.php` | `getHastaParaProveedor()` — se calla si acaba el mismo día o si no dura |
+| Cambiar qué sabe el proveedor de QUIÉN viaja | `src/Operacion/Service/OperacionOrdenEmision.php` | `congelarGrupos()` + `OperacionOrdenServicio::$gruposSnapshot` |
+| Cambiar el teléfono de emergencia del pie | `.env` | `OPERACIONES_TELEFONO_EMERGENCIA` — vacío = no sale |
 | **Armar el cuadro de operación** | `src/Cotizacion/ApiPlatform/State/GenerarOperacionProcessor.php` | `process()` — botón «Armar la operación». ⚠️ **NO** lo hace confirmar (§2.bis) |
 | Que re-confirmar devuelva las filas canceladas | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `reactivar()` — reactiva, no genera |
 | **Añadir un medio de pago a proveedor** | `src/Operacion/Enum/OperacionMedioPago.php` | un `case` + su `label()` e `icono()`; el panel lo recoge solo |

@@ -6,6 +6,30 @@ el fallo aparece semanas después, en la cotización, sin un solo error.
 
 Complementa `docs/Travel.md`, que explica el porqué del modelo. Aquí está el **cómo**.
 
+## Al cargar algo que se cuenta por días
+
+Un seguro, unos desayunos, un alquiler por jornada: productos cuyo importe es `monto × pax × N`
+donde N son **días**, no noches.
+
+⚠️ **Declara `unidadDeConteo = DIAS` en el componente maestro.** Si no, el editor cuenta
+`fin − inicio` —la cuenta de las camas— y para cobrar los cinco días de una estancia hay que
+escribir una fecha de fin falsa. Pasó de verdad: un seguro quedó guardado como «18 → 23» en un
+viaje cuyo hotel cerraba el 22, y el itinerario decía que la cobertura llegaba a un día en el que
+ya no había nadie allí.
+
+Con la unidad puesta, la cantidad sale sola de las fechas correctas y el «×5» se lee «5 días».
+
+```bash
+php bin/console app:travel:asignar-unidades-de-conteo \
+    --componente='Seguro de viaje' --unidad=dias --sustantivo='día' --momento=abre --dry-run
+```
+
+⚠️ **`--ajustar-fin` no es el modo por defecto**, y no por prudencia genérica: ajustar hace mandar
+a la CANTIDAD, y eso sólo acierta cuando la fecha es la torcida. En el expediente que motivó todo
+esto, la propuesta operativa tenía la fecha mala y la cantidad buena —ahí acierta— y la confirmada
+tenía la fecha buena y la cantidad corta, donde ajustar habría **encogido la cobertura** en vez de
+arreglar el precio. Léase el informe antes; para eso lo imprime fila a fila.
+
 ## Índice
 
 1. [El mapa: qué cuelga de qué](#1-el-mapa-qué-cuelga-de-qué)

@@ -338,6 +338,58 @@ describe('noches vs días', () => {
     });
 });
 
+describe('lo que no tiene reloj, en su sitio', () => {
+    const comp = (id: string, extra: Record<string, unknown>) => ({
+        id, cotsegmento: { id: `s-${id}` }, fechaHoraFin: null, sinHorario: true,
+        horaServicioCompleto: false, tituloSnapshot: [], ...extra,
+    });
+    const serv = (id: string, fecha: string, c: Record<string, unknown>) => ({
+        id, orden: 0, tituloSnapshot: [],
+        cotsegmentos: [{ id: `s-${id}`, dia: 1, orden: 1, fechaAbsoluta: fecha, tituloSnapshot: [] }],
+        cotcomponentes: [comp(id, c)],
+    });
+
+    /**
+     * ⚠️ El `Math.min(..., 30)` topaba TODO a 30, así que un almuerzo (50) y una cena (70) recibían
+     * la hora nominal de las 09:30 y se leían **antes** que el tour de las 11:00. O sea: lo
+     * sin-hora dejó de irse al final para irse al principio, que es peor.
+     */
+    it('el almuerzo va después del tour de la mañana y la cena al final', () => {
+        const dias = componerItinerario({
+            cotservicios: [
+                serv('almuerzo', '2030-03-01', { fechaHoraInicio: '2030-03-01T00:00:00', ordenNarrativo: 50 }),
+                serv('cena', '2030-03-01', { fechaHoraInicio: '2030-03-01T00:00:00', ordenNarrativo: 70 }),
+                serv('tour', '2030-03-01', { fechaHoraInicio: '2030-03-01T11:00:00', sinHorario: false, ordenNarrativo: 30 }),
+                serv('traslado', '2030-03-01', { fechaHoraInicio: '2030-03-01T08:00:00', sinHorario: false, ordenNarrativo: 10 }),
+            ],
+        });
+
+        expect(dias[0]!.bloques.map((b) => b.servicio.id)).toEqual(['traslado', 'tour', 'almuerzo', 'cena']);
+    });
+
+    /**
+     * ⚠️ La unidad llega ya resuelta del servidor, así que TODOS los componentes la declaran y
+     * «el primero que la declare» era, en la práctica, «el primero del array». Un extra suelto
+     * delante de un hotel hacía que el bloque contara en `unidades`: un solo día pintado y sin
+     * cerrar la jornada.
+     */
+    it('manda la unidad del que dura, no la del primero del array', () => {
+        const hotelConExtraDelante = {
+            id: 'hotel', orden: 0, tituloSnapshot: [],
+            cotsegmentos: [{ id: 's-h', dia: 1, orden: 1, fechaAbsoluta: '2030-01-18', tituloSnapshot: [] }],
+            cotcomponentes: [
+                { id: 'extra', cotsegmento: { id: 's-h' }, fechaHoraInicio: '2030-01-18T00:00:00', fechaHoraFin: '2030-01-18T00:00:00', sinHorario: true, horaServicioCompleto: false, ordenNarrativo: 60, unidadDeConteo: 'unidades', tituloSnapshot: [] },
+                { id: 'cama', cotsegmento: { id: 's-h' }, fechaHoraInicio: '2030-01-18T00:00:00', fechaHoraFin: '2030-01-22T00:00:00', sinHorario: true, horaServicioCompleto: false, ordenNarrativo: 90, unidadDeConteo: 'noches', tituloSnapshot: [] },
+            ],
+        };
+
+        const dias = componerItinerario({ cotservicios: [hotelConExtraDelante] });
+
+        expect(dias.flatMap((d) => d.bloques)).toHaveLength(4);
+        expect(dias[0]!.bloques[0]!.unidad).toBe('noches');
+    });
+});
+
 describe('bordes', () => {
     it('sin cotización, sin días', () => {
         expect(componerItinerario(null)).toEqual([]);

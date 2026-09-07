@@ -958,15 +958,15 @@ class Cotizacion
     }
 
     /**
-     * @return Collection<int, CotizacionCotservicio>
-     */
-    /**
      * «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez.
      *
      * ── Por qué es UN cálculo y no tres ─────────────────────────────────────
-     * Lo leen el huésped, La Biblia y la orden del proveedor. Escrito en cada sitio serían tres
-     * copias de la misma cuenta, y este repo ya sabe cómo acaba eso: discrepan el día que alguien
-     * toca una. Aquí se decide; las pantallas ordenan y pintan, que no es una regla.
+     * ⚠️ **Hoy sólo lo lee la guía del huésped, y sólo las NOCHES.** Los días los saca de su
+     * propio itinerario (`totalDiasViaje`), así que la etiqueta «5 días, 4 noches» tiene dos
+     * fuentes y pueden discrepar: un hotel que acaba sin segmento de checkout hace que el
+     * itinerario pinte un día menos del que cuenta esto. La Biblia y la orden todavía no lo
+     * consumen — está escrito para ellas, pero mientras no lo usen no es «una fuente única», es
+     * una fuente y media.
      *
      * ── Las dos magnitudes NO son la misma cosa menos uno ───────────────────
      * ⚠️ La tentación es `noches = días − 1`. Es falso en cuanto el viaje empieza o acaba sin
@@ -1011,7 +1011,9 @@ class Cotizacion
                     $ultimo = $fin;
                 }
 
-                if ($componente->getUnidadDeConteo() === 'noches') {
+                // ⚠️ Sólo lo VIVO. Un componente cancelado o reemplazado sigue en la colección y
+                // sumaba sus noches: un cambio de hotel daba las noches de los dos.
+                if ($componente->getUnidadDeConteo() === 'noches' && $componente->estaVivo()) {
                     $noches += max(0, $componente->getCantidad());
                 }
             }

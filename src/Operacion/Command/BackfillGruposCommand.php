@@ -28,6 +28,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:operacion:backfill-grupos',
     description: 'Rellena el bloque de grupos y la etiqueta por línea en las órdenes ya emitidas.',
+    hidden: true,
 )]
 final class BackfillGruposCommand extends Command
 {
