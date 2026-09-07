@@ -23,7 +23,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
-import { componerItinerario, dateOf, hhmm, compConHora, diffDays } from '@dominio/cotizacion/index.ts';
+import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnidades } from '@dominio/cotizacion/index.ts';
 import type { BloqueVista as BloqueVistaBase } from '@dominio/cotizacion/index.ts';
 import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
 
@@ -2115,7 +2115,9 @@ const adelantoVista = computed(() => {
                                 {{ maestroStore.t('cot_opcion') || 'Opción' }} {{ l.grupoOpcion }}
                               </span>
                               {{ store.traducir(l.nombre) }}
-                              <b v-if="l.cantidadComponente > 1" class="text-[#376875] font-black">×{{ l.cantidadComponente }}</b>
+                              <!-- «×5» no decía de qué. Si el componente declara unidad, se
+                                   escribe: «5 días», «4 noches», «5 desayunos». -->
+                              <b v-if="l.cantidadComponente > 1" class="text-[#376875] font-black">{{ l.sustantivoUnidad ? etiquetaDeUnidades(l.cantidadComponente, l.sustantivoUnidad) : '×' + l.cantidadComponente }}</b>
                               <span class="text-[10px] font-medium text-slate-400 ml-1.5 whitespace-nowrap capitalize">
                                 · {{ fechaChip(l.fecha) }}
                               </span>

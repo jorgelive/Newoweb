@@ -857,6 +857,8 @@ export interface LineaDetalleClaseCliente {
     esGrupal: boolean;
     cantidad: number;
     cantidadComponente: number;
+    /** Cómo se llama la unidad en singular («día», «desayuno»); '' si no aplica. */
+    sustantivoUnidad?: string | null;
     modo: ModoFinanciero;
     fecha: string;
     modalidad: TarifaModalidadValue | null;
@@ -1033,6 +1035,8 @@ export interface InclusionLinea {
     grupoOpcion?: number;
     fecha: string;
     cantidadComponente: number;
+    /** Cómo se llama la unidad en singular («día», «desayuno»); '' si no aplica. */
+    sustantivoUnidad?: string | null;
     modalidad: TarifaModalidadValue | null;
     categoria: TarifaCategoriaValue | null;
     procedencia: TarifaProcedenciaValue | null;

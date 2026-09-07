@@ -229,6 +229,8 @@ export interface PaxInclusionItem {
     edadMax?: number | null;
     tarifaTitulo: I18n;
     cantidadComponente: number;
+    /** Cómo se llama la unidad en singular («día», «desayuno»); '' si no aplica. */
+    sustantivoUnidad?: string | null;
     /**
      * Prestador de referencia — sólo llega en líneas `no_incluido`.
      *
@@ -290,6 +292,8 @@ export interface PaxClasePasajeroDetalle {
     servicioNombre: I18n;
     componenteNombre: I18n;
     cantidadComponente: number;
+    /** Cómo se llama la unidad en singular («día», «desayuno»); '' si no aplica. */
+    sustantivoUnidad?: string | null;
 }
 
 export interface PaxClasePasajero {

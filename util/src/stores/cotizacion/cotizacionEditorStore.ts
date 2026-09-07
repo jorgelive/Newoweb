@@ -567,6 +567,20 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * ⚠️ Devuelve `null` cuando la cantidad NO sale de las fechas (`unidades`: un ticket, una
      * propina). Quien llama no toca lo que ya hay.
      */
+    /**
+     * Cómo se llama la unidad de este componente, en singular. '' si no hay nada que decir.
+     *
+     * Viaja con el `×N` a la clasificación financiera para que el huésped lea «5 días» o
+     * «5 desayunos» en vez de un «×5» que no dice de qué.
+     */
+    const sustantivoDeComponente = (comp: { sustantivoUnidadSnapshot?: string | null; unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): string => {
+        const propio = (comp.sustantivoUnidadSnapshot ?? '').trim();
+        if (propio !== '') return propio;
+
+        const unidad = comp.unidadDeConteoSnapshot ?? comp.unidadDeConteo ?? 'unidades';
+        return unidad === 'dias' ? 'día' : (unidad === 'noches' ? 'noche' : '');
+    };
+
     const cantidadPorFechas = (comp: { fechaHoraInicio?: string | null; fechaHoraFin?: string | null; unidadDeConteoSnapshot?: string | null; unidadDeConteo?: string | null }): number | null =>
         calcularUnidades(comp.fechaHoraInicio, comp.fechaHoraFin, comp.unidadDeConteoSnapshot ?? comp.unidadDeConteo);
     const getI18nText = (arrayI18n: I18nContent[] | undefined, lang: string): string => {
@@ -1037,6 +1051,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             esGrupal,
                             cantidad: tCant,
                             cantidadComponente: cCant,
+                            sustantivoUnidad: sustantivoDeComponente(componente),
                             modo: modoFin,
                             fecha,
                             modalidad: t.modalidadSnapshot || null, // Se extrae pacíficamente, no es estrictamente obligatorio
@@ -1690,6 +1705,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                     grupoOpcion: etiquetaGrupoTarifa(g, false).indice,
                                     fecha,
                                     cantidadComponente: cCant,
+                                    sustantivoUnidad: sustantivoDeComponente(componente),
                                     modalidad: ref?.modalidadSnapshot || null,
                                     categoria: ref?.categoriaSnapshot || null,
                                     procedencia: ref?.procedenciaSnapshot || null,
@@ -1724,6 +1740,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             nombre: nombrePublicoDeLinea(),
                             fecha,
                             cantidadComponente: cCant,
+                            sustantivoUnidad: sustantivoDeComponente(componente),
                             modalidad: tarifaRef?.modalidadSnapshot || null,
                             categoria: tarifaRef?.categoriaSnapshot || null,
                             procedencia: tarifaRef?.procedenciaSnapshot || null,
