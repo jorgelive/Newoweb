@@ -3117,6 +3117,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             componenteItems?: components["schemas"]["TravelComponenteItem"][];
             tarifas?: string[];
             servicios?: string[];
@@ -3165,6 +3177,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             componenteItems?: components["schemas"]["TravelComponenteItem-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa-componente.item.read"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -3189,6 +3213,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3211,6 +3247,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             componenteItems?: components["schemas"]["TravelComponenteItem-componente.write"][];
             tarifas?: components["schemas"]["Tarifa-componente.write"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -3233,6 +3281,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -3253,6 +3313,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.html"][];
             tarifas?: string[];
             servicios?: string[];
@@ -3301,6 +3373,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.html-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa.html-componente.item.read"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -3325,6 +3409,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3347,6 +3443,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -3367,6 +3475,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.jsonld"][];
             tarifas?: string[];
             servicios?: string[];
@@ -3415,6 +3535,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.jsonld-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa.jsonld-componente.item.read"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -3439,6 +3571,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3461,6 +3605,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -3481,6 +3637,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.multipart"][];
             tarifas?: string[];
             servicios?: string[];
@@ -3529,6 +3697,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.multipart-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa.multipart-componente.item.read"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -3553,6 +3733,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3575,6 +3767,18 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -7419,6 +7623,18 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description En qué se cuenta este componente, congelado del maestro al añadirlo.
+             * @enum {string|null}
+             */
+            unidadDeConteoSnapshot?: "noches" | "dias" | "unidades" | null;
+            /** @description El sustantivo de la unidad («desayuno»), congelado. NULL = el de la unidad. */
+            sustantivoUnidadSnapshot?: string | null;
+            /**
+             * @description Dónde se lee dentro del día cuando no hay reloj, congelado. NULL = lo que diga el tipo.
+             * @enum {string|null}
+             */
+            momentoDelDiaSnapshot?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -7479,6 +7695,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"] | null;
@@ -7536,6 +7756,18 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description En qué se cuenta este componente, congelado del maestro al añadirlo.
+             * @enum {string|null}
+             */
+            unidadDeConteoSnapshot?: "noches" | "dias" | "unidades" | null;
+            /** @description El sustantivo de la unidad («desayuno»), congelado. NULL = el de la unidad. */
+            sustantivoUnidadSnapshot?: string | null;
+            /**
+             * @description Dónde se lee dentro del día cuando no hay reloj, congelado. NULL = lo que diga el tipo.
+             * @enum {string|null}
+             */
+            momentoDelDiaSnapshot?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -7590,6 +7822,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         "CotizacionCotcomponente-cotizacion.write": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.write"] | null;
@@ -7647,6 +7883,18 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description En qué se cuenta este componente, congelado del maestro al añadirlo.
+             * @enum {string|null}
+             */
+            unidadDeConteoSnapshot?: "noches" | "dias" | "unidades" | null;
+            /** @description El sustantivo de la unidad («desayuno»), congelado. NULL = el de la unidad. */
+            sustantivoUnidadSnapshot?: string | null;
+            /**
+             * @description Dónde se lee dentro del día cuando no hay reloj, congelado. NULL = lo que diga el tipo.
+             * @enum {string|null}
+             */
+            momentoDelDiaSnapshot?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -7771,6 +8019,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         "CotizacionCotcomponente-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"] | null;
@@ -7815,6 +8067,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.html": {
@@ -7884,6 +8140,18 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description En qué se cuenta este componente, congelado del maestro al añadirlo.
+             * @enum {string|null}
+             */
+            unidadDeConteoSnapshot?: "noches" | "dias" | "unidades" | null;
+            /** @description El sustantivo de la unidad («desayuno»), congelado. NULL = el de la unidad. */
+            sustantivoUnidadSnapshot?: string | null;
+            /**
+             * @description Dónde se lee dentro del día cuando no hay reloj, congelado. NULL = lo que diga el tipo.
+             * @enum {string|null}
+             */
+            momentoDelDiaSnapshot?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -7944,6 +8212,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"] | null;
@@ -8001,6 +8273,18 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description En qué se cuenta este componente, congelado del maestro al añadirlo.
+             * @enum {string|null}
+             */
+            unidadDeConteoSnapshot?: "noches" | "dias" | "unidades" | null;
+            /** @description El sustantivo de la unidad («desayuno»), congelado. NULL = el de la unidad. */
+            sustantivoUnidadSnapshot?: string | null;
+            /**
+             * @description Dónde se lee dentro del día cuando no hay reloj, congelado. NULL = lo que diga el tipo.
+             * @enum {string|null}
+             */
+            momentoDelDiaSnapshot?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -8055,6 +8339,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         "CotizacionCotcomponente.html-operacion.item.read_timestamp.read": {
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
@@ -8133,6 +8421,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         "CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"] | null;
@@ -8177,6 +8469,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -8246,6 +8542,18 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description En qué se cuenta este componente, congelado del maestro al añadirlo.
+             * @enum {string|null}
+             */
+            unidadDeConteoSnapshot?: "noches" | "dias" | "unidades" | null;
+            /** @description El sustantivo de la unidad («desayuno»), congelado. NULL = el de la unidad. */
+            sustantivoUnidadSnapshot?: string | null;
+            /**
+             * @description Dónde se lee dentro del día cuando no hay reloj, congelado. NULL = lo que diga el tipo.
+             * @enum {string|null}
+             */
+            momentoDelDiaSnapshot?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -8306,6 +8614,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -8364,6 +8676,18 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description En qué se cuenta este componente, congelado del maestro al añadirlo.
+             * @enum {string|null}
+             */
+            unidadDeConteoSnapshot?: "noches" | "dias" | "unidades" | null;
+            /** @description El sustantivo de la unidad («desayuno»), congelado. NULL = el de la unidad. */
+            sustantivoUnidadSnapshot?: string | null;
+            /**
+             * @description Dónde se lee dentro del día cuando no hay reloj, congelado. NULL = lo que diga el tipo.
+             * @enum {string|null}
+             */
+            momentoDelDiaSnapshot?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -8418,6 +8742,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -8499,6 +8827,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -8544,6 +8876,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.multipart": {
@@ -8613,6 +8949,18 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description En qué se cuenta este componente, congelado del maestro al añadirlo.
+             * @enum {string|null}
+             */
+            unidadDeConteoSnapshot?: "noches" | "dias" | "unidades" | null;
+            /** @description El sustantivo de la unidad («desayuno»), congelado. NULL = el de la unidad. */
+            sustantivoUnidadSnapshot?: string | null;
+            /**
+             * @description Dónde se lee dentro del día cuando no hay reloj, congelado. NULL = lo que diga el tipo.
+             * @enum {string|null}
+             */
+            momentoDelDiaSnapshot?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -8673,6 +9021,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"] | null;
@@ -8730,6 +9082,18 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description En qué se cuenta este componente, congelado del maestro al añadirlo.
+             * @enum {string|null}
+             */
+            unidadDeConteoSnapshot?: "noches" | "dias" | "unidades" | null;
+            /** @description El sustantivo de la unidad («desayuno»), congelado. NULL = el de la unidad. */
+            sustantivoUnidadSnapshot?: string | null;
+            /**
+             * @description Dónde se lee dentro del día cuando no hay reloj, congelado. NULL = lo que diga el tipo.
+             * @enum {string|null}
+             */
+            momentoDelDiaSnapshot?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -8784,6 +9148,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         "CotizacionCotcomponente.multipart-operacion.item.read_timestamp.read": {
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
@@ -8862,6 +9230,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         "CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"] | null;
@@ -8906,6 +9278,10 @@ export interface components {
             }[];
             /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
             readonly ordenNarrativo?: number;
+            /** @description En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts. */
+            readonly unidadDeConteo?: string;
+            /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
+            readonly sustantivoUnidad?: string;
         };
         CotizacionCotservicio: {
             /**

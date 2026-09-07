@@ -10,6 +10,8 @@ use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelComponenteItem;
 use App\Travel\Entity\TravelTarifa;
 use App\Travel\Enum\ComponenteTipoEnum;
+use App\Travel\Enum\MomentoDelDiaEnum;
+use App\Travel\Enum\UnidadDeConteoEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Panel\Helper\AdminFieldHelper;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
@@ -147,6 +149,48 @@ class TravelComponenteCrudController extends BaseCrudController
             ->setChoices(array_reduce(ComponenteTipoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
             ->formatValue(static fn ($value) => $value instanceof ComponenteTipoEnum ? $value->value : $value)
             ->setColumns(6);
+
+        // ── Cómo se cuenta y dónde se lee ────────────────────────────────────
+        // ⚠️ Los tres son EXCEPCIONES: vacío = lo que diga la categoría operativa, que acierta en
+        // 31 de los 33 componentes multi-día que hay en producción. Se rellenan cuando el tipo no
+        // puede saberlo —un seguro es `extras` y se cobra por día; desayuno, almuerzo y cena son
+        // el mismo tipo en tres momentos distintos—.
+        //
+        // Si cambia la convención, el otro texto que la explica está en el editor de cotizaciones.
+        yield ChoiceField::new('unidadDeConteo', 'Se cuenta en')
+            ->setChoices(array_reduce(UnidadDeConteoEnum::cases(), static fn ($c, $e) => $c + [ucfirst($e->value) => $e], []))
+            ->formatValue(static fn ($value) => $value instanceof UnidadDeConteoEnum ? $value->value : $value)
+            ->setRequired(false)
+            ->setHelp(
+                '<i class="fas fa-circle-info text-primary"></i> '
+                . 'Vacío = lo que diga la categoría (alojamiento cuenta noches; el resto, unidades). '
+                . '<strong>Noches</strong>: del 18 al 22 son 4 — el día de salida no se cuenta. '
+                . '<strong>Días</strong>: del 18 al 22 son 5, el último cuenta. Es el caso de un seguro '
+                . 'o un desayuno: se consume cada jornada. La cantidad se calcula sola desde las fechas, '
+                . 'así que no hay que torcer la fecha de fin para que salga el número.'
+            )
+            ->setColumns(4);
+
+        yield TextField::new('sustantivoUnidad', 'Se llama')
+            ->setRequired(false)
+            ->setHelp(
+                '<i class="fas fa-circle-info text-primary"></i> '
+                . 'En singular, para que el cliente lea «5 desayunos» en vez de «×5». '
+                . 'Vacío = «noche» o «día» según lo de al lado.'
+            )
+            ->setColumns(4);
+
+        yield ChoiceField::new('momentoDelDia', 'Se lee en el día')
+            ->setChoices(array_reduce(MomentoDelDiaEnum::cases(), static fn ($c, $e) => $c + [$e->etiqueta() => $e], []))
+            ->formatValue(static fn ($value) => $value instanceof MomentoDelDiaEnum ? $value->etiqueta() : $value)
+            ->setRequired(false)
+            ->setHelp(
+                '<i class="fas fa-circle-info text-primary"></i> '
+                . 'Sólo para lo que NO tiene hora. Vacío = lo que diga la categoría. '
+                . 'Sirve para que un almuerzo variable se lea a mediodía y no al final de la jornada, '
+                . '<strong>sin inventarle una hora</strong> que luego viaje al proveedor.'
+            )
+            ->setColumns(4);
 
         yield FormField::addPanel('Título Público (Lo que ve el cliente)')->setIcon('fa fa-language')
             ->setHelp('Si este componente no es un "Pool" y se muestra directamente al cliente, aquí defines cómo se lee en su PDF.');

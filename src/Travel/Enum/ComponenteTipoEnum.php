@@ -284,6 +284,29 @@ enum ComponenteTipoEnum: string
     }
 
     /**
+     * En qué se cuenta este tipo cuando dura varios días: el DEFECTO, corregible por componente.
+     *
+     * ⚠️ **Es un defecto, no la verdad.** El tipo acierta en 31 de los 33 componentes multi-día de
+     * producción —los 31 alojamientos— y no puede acertar en los otros dos, porque son `EXTRAS`:
+     * el cajón donde caben un seguro (días), una propina (una unidad) y un upgrade (una unidad).
+     * La corrección vive en `TravelComponente::$unidadDeConteo`, que es donde alguien que conoce
+     * el producto la declara **una vez**, en vez de que se acuerde el que cotiza.
+     *
+     * ⚠️ `UNIDADES` para todo lo que no sea cama es deliberado: un ticket no dura, se compra. Sólo
+     * lo que de verdad se consume por jornada —cobertura, desayunos, alquiler— se declara `DIAS`,
+     * y eso el tipo no lo sabe.
+     *
+     * {@see UnidadDeConteoEnum} para el porqué de los tres valores.
+     */
+    public function unidadPorDefecto(): UnidadDeConteoEnum
+    {
+        return match ($this) {
+            self::ALOJAMIENTO => UnidadDeConteoEnum::NOCHES,
+            default => UnidadDeConteoEnum::UNIDADES,
+        };
+    }
+
+    /**
      * ¿Quién identifica la fila: el SEGMENTO o el componente?
      *
      * Decide qué nombre va en grande en La Biblia y en la Orden que lee el proveedor. **Espejo de

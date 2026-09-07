@@ -20,6 +20,8 @@ use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use App\Travel\Enum\ComponenteTipoEnum;
+use App\Travel\Enum\MomentoDelDiaEnum;
+use App\Travel\Enum\UnidadDeConteoEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
@@ -309,6 +311,27 @@ class CotizacionCotcomponente
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'operacion:item:read'])]
     #[ORM\Column(name: 'nombre_interno_snapshot', type: 'string', length: 255, nullable: true)]
     private ?string $nombreInternoSnapshot = null;
+
+    /**
+     * En qué se cuenta este componente, congelado del maestro al añadirlo.
+     *
+     * ⚠️ **Congelado y no leído en vivo**, como el resto del expediente: lo que se vendió no puede
+     * cambiar de cantidad —ni de precio— porque mañana alguien reclasifique el producto en el
+     * catálogo. NULL = lo que diga el tipo.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(name: 'unidad_conteo_snapshot', type: 'string', length: 20, nullable: true, enumType: UnidadDeConteoEnum::class)]
+    private ?UnidadDeConteoEnum $unidadDeConteoSnapshot = null;
+
+    /** El sustantivo de la unidad («desayuno»), congelado. NULL = el de la unidad. */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(name: 'sustantivo_unidad_snapshot', type: 'string', length: 30, nullable: true)]
+    private ?string $sustantivoUnidadSnapshot = null;
+
+    /** Dónde se lee dentro del día cuando no hay reloj, congelado. NULL = lo que diga el tipo. */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(name: 'momento_dia_snapshot', type: 'string', length: 20, nullable: true, enumType: MomentoDelDiaEnum::class)]
+    private ?MomentoDelDiaEnum $momentoDelDiaSnapshot = null;
 
     /** @var list<array<string, mixed>> */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
@@ -1025,8 +1048,56 @@ class CotizacionCotcomponente
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     public function getOrdenNarrativo(): int
     {
+        if ($this->momentoDelDiaSnapshot !== null) {
+            return $this->momentoDelDiaSnapshot->orden();
+        }
+
         return (ComponenteTipoEnum::tryFrom((string) $this->tipo)?->ordenNarrativo()) ?? 30;
     }
+
+    /**
+     * En qué se cuenta este componente: **la respuesta ya resuelta**, para los dos fronts.
+     *
+     * ⚠️ Viaja resuelta a propósito, igual que {@see self::getOrdenNarrativo()}: la tabla tipo →
+     * unidad vive en PHP y sólo en PHP. Escribirla en TypeScript sería la segunda copia de una
+     * regla, y este repo ya pagó ese precio con el orden narrativo.
+     *
+     * Un tipo desconocido cae en `UNIDADES`: lo que no sabemos qué es no se cuenta por fechas.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
+    public function getUnidadDeConteo(): string
+    {
+        if ($this->unidadDeConteoSnapshot !== null) {
+            return $this->unidadDeConteoSnapshot->value;
+        }
+
+        return (ComponenteTipoEnum::tryFrom((string) $this->tipo)?->unidadPorDefecto() ?? UnidadDeConteoEnum::UNIDADES)->value;
+    }
+
+    /**
+     * Cómo se llama la unidad, en singular: «noche», «día», «desayuno».
+     *
+     * Cadena vacía cuando no hay sustantivo que poner —`UNIDADES`, un ticket— y entonces el front
+     * pinta el número a secas, como hasta ahora.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
+    public function getSustantivoUnidad(): string
+    {
+        if (($this->sustantivoUnidadSnapshot ?? '') !== '') {
+            return (string) $this->sustantivoUnidadSnapshot;
+        }
+
+        return (UnidadDeConteoEnum::tryFrom($this->getUnidadDeConteo()) ?? UnidadDeConteoEnum::UNIDADES)->sustantivo();
+    }
+
+    public function getUnidadDeConteoSnapshot(): ?UnidadDeConteoEnum { return $this->unidadDeConteoSnapshot; }
+    public function setUnidadDeConteoSnapshot(?UnidadDeConteoEnum $v): self { $this->unidadDeConteoSnapshot = $v; return $this; }
+
+    public function getSustantivoUnidadSnapshot(): ?string { return $this->sustantivoUnidadSnapshot; }
+    public function setSustantivoUnidadSnapshot(?string $v): self { $this->sustantivoUnidadSnapshot = ($v === '' ? null : $v); return $this; }
+
+    public function getMomentoDelDiaSnapshot(): ?MomentoDelDiaEnum { return $this->momentoDelDiaSnapshot; }
+    public function setMomentoDelDiaSnapshot(?MomentoDelDiaEnum $v): self { $this->momentoDelDiaSnapshot = $v; return $this; }
 
     public function isSinHorario(): bool { return $this->sinHorario; }
     public function setSinHorario(bool $sinHorario): self { $this->sinHorario = $sinHorario; return $this; }

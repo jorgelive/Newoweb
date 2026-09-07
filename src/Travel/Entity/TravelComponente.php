@@ -17,6 +17,8 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
 use App\Travel\Enum\ComponenteTipoEnum;
+use App\Travel\Enum\MomentoDelDiaEnum;
+use App\Travel\Enum\UnidadDeConteoEnum;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -120,6 +122,52 @@ class TravelComponente
     #[Assert\PositiveOrZero(message: 'Los días de anticipación de alerta no pueden ser negativos.')]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $anticipacionalerta = null;
+
+    /**
+     * En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+     *
+     * **NULL = lo que diga el tipo** ({@see ComponenteTipoEnum::unidadPorDefecto()}), que es lo
+     * correcto para casi todo el catálogo. Se rellena sólo en la excepción: un seguro de viaje se
+     * cobra por DÍAS aunque su tipo sea `EXTRAS`, y el tipo no puede saberlo porque en `EXTRAS`
+     * también cabe una propina.
+     *
+     * ⚠️ **Se declara AQUÍ y no en la cotización a propósito.** La sabe quien crea el producto;
+     * el que cotiza no tiene por qué acordarse cada vez, y hasta el 07/09/2026 la única forma de
+     * cobrar cinco días era escribir una fecha de fin falsa para que la resta cuadrara.
+     */
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
+    #[ORM\Column(type: 'string', length: 20, nullable: true, enumType: UnidadDeConteoEnum::class)]
+    private ?UnidadDeConteoEnum $unidadDeConteo = null;
+
+    /**
+     * Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje».
+     *
+     * ⚠️ **Es un campo y no un caso del enum**, porque si no el enum crecería con el catálogo.
+     * «5 desayunos» es `DIAS` con sustantivo «desayuno»; «4 noches» es `NOCHES` sin sustantivo
+     * propio, que ya lo pone la unidad. Cómo se cuenta es una pregunta cerrada; cómo se llama, no.
+     *
+     * NULL = el sustantivo de la unidad ({@see UnidadDeConteoEnum::sustantivo()}).
+     */
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
+    #[Assert\Length(max: 30, maxMessage: 'El sustantivo de la unidad no puede pasar de {{ limit }} caracteres.')]
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
+    private ?string $sustantivoUnidad = null;
+
+    /**
+     * Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+     *
+     * NULL = el momento que da el tipo ({@see ComponenteTipoEnum::ordenNarrativo()}). Se rellena
+     * cuando el tipo no puede distinguir: desayuno, almuerzo y cena son los tres
+     * `ALIMENTACION_HORARIO_VAR` y ocurren en tres momentos distintos.
+     *
+     * ⚠️ Existe para **no tener que inventar una hora**. Hasta ahora, colocar un almuerzo variable
+     * en mitad del día obligaba a ponerle un minuto que nadie había fijado — y lo sin-hora se
+     * amontonaba al final de la jornada, donde un cliente que lee de arriba abajo descubre que
+     * tenía el almuerzo incluido cuando ya no le sirve.
+     */
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
+    #[ORM\Column(type: 'string', length: 20, nullable: true, enumType: MomentoDelDiaEnum::class)]
+    private ?MomentoDelDiaEnum $momentoDelDia = null;
 
     /**
      * 👇 CASCADA HACIA ABAJO (Items descriptivos)
@@ -304,6 +352,46 @@ class TravelComponente
     public function setTipo(ComponenteTipoEnum $tipo): self
     {
         $this->tipo = $tipo;
+        return $this;
+    }
+
+    /** La unidad DECLARADA, sin resolver el defecto. Para el CRUD del maestro. */
+    public function getUnidadDeConteo(): ?UnidadDeConteoEnum
+    {
+        return $this->unidadDeConteo;
+    }
+
+    public function setUnidadDeConteo(?UnidadDeConteoEnum $unidadDeConteo): self
+    {
+        $this->unidadDeConteo = $unidadDeConteo;
+        return $this;
+    }
+
+    /** La unidad ya resuelta: la declarada, y si no, la que da el tipo. */
+    public function resolverUnidadDeConteo(): UnidadDeConteoEnum
+    {
+        return $this->unidadDeConteo ?? $this->tipo->unidadPorDefecto();
+    }
+
+    public function getSustantivoUnidad(): ?string
+    {
+        return $this->sustantivoUnidad;
+    }
+
+    public function setSustantivoUnidad(?string $sustantivoUnidad): self
+    {
+        $this->sustantivoUnidad = $sustantivoUnidad;
+        return $this;
+    }
+
+    public function getMomentoDelDia(): ?MomentoDelDiaEnum
+    {
+        return $this->momentoDelDia;
+    }
+
+    public function setMomentoDelDia(?MomentoDelDiaEnum $momentoDelDia): self
+    {
+        $this->momentoDelDia = $momentoDelDia;
         return $this;
     }
 
