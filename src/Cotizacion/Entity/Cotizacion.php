@@ -960,6 +960,73 @@ class Cotizacion
     /**
      * @return Collection<int, CotizacionCotservicio>
      */
+    /**
+     * «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez.
+     *
+     * ── Por qué es UN cálculo y no tres ─────────────────────────────────────
+     * Lo leen el huésped, La Biblia y la orden del proveedor. Escrito en cada sitio serían tres
+     * copias de la misma cuenta, y este repo ya sabe cómo acaba eso: discrepan el día que alguien
+     * toca una. Aquí se decide; las pantallas ordenan y pintan, que no es una regla.
+     *
+     * ── Las dos magnitudes NO son la misma cosa menos uno ───────────────────
+     * ⚠️ La tentación es `noches = días − 1`. Es falso en cuanto el viaje empieza o acaba sin
+     * dormir —una escala de día completo en Lima, una salida de madrugada—, y también cuando hay
+     * un tramo sin alojamiento en medio. Los días salen del CALENDARIO del itinerario; las noches
+     * se SUMAN de lo que de verdad se durmió, que es lo que cuenta en `NOCHES`.
+     *
+     * Un componente contado en días —un seguro, unos desayunos— no suma ninguna noche, y ése es
+     * justo el error que hacía falta evitar: hasta el 07/09/2026 todo lo multi-día se contaba
+     * igual y un seguro habría entrado como si fueran noches de hotel.
+     *
+     * @return array{dias: int, noches: int}
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read', 'operacion:item:read'])]
+    public function getResumenDuracion(): array
+    {
+        $primero = null;
+        $ultimo = null;
+        $noches = 0;
+
+        foreach ($this->cotservicios as $servicio) {
+            foreach ($servicio->getCotsegmentos() as $segmento) {
+                $fecha = $segmento->getFechaAbsoluta();
+                if ($fecha === null) {
+                    continue;
+                }
+
+                if ($primero === null || $fecha < $primero) {
+                    $primero = $fecha;
+                }
+                if ($ultimo === null || $fecha > $ultimo) {
+                    $ultimo = $fecha;
+                }
+            }
+
+            foreach ($servicio->getCotcomponentes() as $componente) {
+                // ⚠️ El fin de un periodo puede caer DESPUÉS del último segmento: el checkout de
+                // un hotel no tiene segmento propio. Sin esto, un viaje que acaba durmiendo se
+                // quedaría un día corto.
+                $fin = $componente->getFechaHoraFin();
+                if ($fin !== null && ($ultimo === null || $fin > $ultimo)) {
+                    $ultimo = $fin;
+                }
+
+                if ($componente->getUnidadDeConteo() === 'noches') {
+                    $noches += max(0, $componente->getCantidad());
+                }
+            }
+        }
+
+        if ($primero === null || $ultimo === null) {
+            return ['dias' => 0, 'noches' => $noches];
+        }
+
+        $dias = (int) $primero->diff($ultimo)->days + 1;
+
+        return ['dias' => max(1, $dias), 'noches' => $noches];
+    }
+
+    /** @return Collection<int, CotizacionCotservicio> */
     public function getCotservicios(): Collection { return $this->cotservicios; }
     public function addCotservicio(CotizacionCotservicio $cotservicio): self
     {

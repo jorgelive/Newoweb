@@ -973,11 +973,26 @@ const totalViaje = computed(() => {
  *  total" y el "precio total del viaje". El precio unitario sí se sigue viendo. */
 const ocultarTotales = computed(() => store.cotizacion?.totalesOcultos === true);
 
-/** Etiqueta "N día(s)" con singular/plural correcto ("1 día", no "1 días"). */
+/**
+ * Etiqueta «5 días, 4 noches» — la forma en que el sector nombra un programa.
+ *
+ * ⚠️ **Las noches NO son los días menos uno.** Lo son casi siempre y dejan de serlo en cuanto el
+ * viaje empieza o acaba sin dormir —una escala de día completo—, así que se SUMAN de lo que de
+ * verdad se durmió. La cuenta la hace `Cotizacion::getResumenDuracion()` y viaja resuelta: aquí
+ * escribirla otra vez sería la tercera copia, porque también la leen La Biblia y el proveedor.
+ *
+ * Las noches se callan cuando no hay ninguna: «3 días, 0 noches» es un day tour descrito como si
+ * le faltara algo.
+ */
 const diasLabel = computed(() => {
   const n = totalDiasViaje.value;
   const palabra = n === 1 ? (maestroStore.t('cot_dia') || 'día') : (maestroStore.t('cot_dias') || 'días');
-  return `${n} ${palabra}`;
+  const noches = store.cotizacion?.resumenDuracion?.noches ?? 0;
+
+  if (noches <= 0) return `${n} ${palabra}`;
+
+  const palabraNoche = noches === 1 ? (maestroStore.t('cot_noche') || 'noche') : (maestroStore.t('cot_noches') || 'noches');
+  return `${n} ${palabra}, ${noches} ${palabraNoche.toLowerCase()}`;
 });
 /** Etiqueta "N pasajero(s)" con singular/plural correcto. */
 const paxLabel = computed(() => {

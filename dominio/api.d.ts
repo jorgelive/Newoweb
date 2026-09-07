@@ -4922,6 +4922,10 @@ export interface components {
             readonly ganancia?: string;
             /** @description Cuánta gente hay de verdad en el expediente, según el manifiesto. */
             readonly totalEnElManifiesto?: number;
+            /** @description «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez. */
+            readonly resumenDuracion?: {
+                [key: string]: number;
+            };
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -5352,6 +5356,10 @@ export interface components {
              *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
+            /** @description «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez. */
+            readonly resumenDuracion?: {
+                [key: string]: number;
+            };
         };
         "Cotizacion-pax_file.read_pax_cotizacion.read": {
             /**
@@ -5419,6 +5427,10 @@ export interface components {
              *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
+            /** @description «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez. */
+            readonly resumenDuracion?: {
+                [key: string]: number;
+            };
         };
         "Cotizacion.AplicarPlanInput-operacion.plan.write": {
             /** @description Firma del plan que se revisó. Si el estado se movió, `aplicar` lo rechaza. */
@@ -5707,6 +5719,10 @@ export interface components {
             readonly ganancia?: string;
             /** @description Cuánta gente hay de verdad en el expediente, según el manifiesto. */
             readonly totalEnElManifiesto?: number;
+            /** @description «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez. */
+            readonly resumenDuracion?: {
+                [key: string]: number;
+            };
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -5945,6 +5961,10 @@ export interface components {
              *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
+            /** @description «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez. */
+            readonly resumenDuracion?: {
+                [key: string]: number;
+            };
         };
         "Cotizacion.html-pax_file.read_pax_cotizacion.read": {
             /**
@@ -6012,6 +6032,10 @@ export interface components {
              *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
+            /** @description «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez. */
+            readonly resumenDuracion?: {
+                [key: string]: number;
+            };
         };
         "Cotizacion.jsonld-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -6208,6 +6232,10 @@ export interface components {
             readonly ganancia?: string;
             /** @description Cuánta gente hay de verdad en el expediente, según el manifiesto. */
             readonly totalEnElManifiesto?: number;
+            /** @description «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez. */
+            readonly resumenDuracion?: {
+                [key: string]: number;
+            };
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -6446,6 +6474,10 @@ export interface components {
              *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
+            /** @description «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez. */
+            readonly resumenDuracion?: {
+                [key: string]: number;
+            };
         };
         "Cotizacion.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -6513,6 +6545,10 @@ export interface components {
              *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
+            /** @description «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez. */
+            readonly resumenDuracion?: {
+                [key: string]: number;
+            };
         };
         "Cotizacion.multipart-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
             /**
@@ -6709,6 +6745,10 @@ export interface components {
             readonly ganancia?: string;
             /** @description Cuánta gente hay de verdad en el expediente, según el manifiesto. */
             readonly totalEnElManifiesto?: number;
+            /** @description «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez. */
+            readonly resumenDuracion?: {
+                [key: string]: number;
+            };
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -6947,6 +6987,10 @@ export interface components {
              *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
+            /** @description «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez. */
+            readonly resumenDuracion?: {
+                [key: string]: number;
+            };
         };
         "Cotizacion.multipart-pax_file.read_pax_cotizacion.read": {
             /**
@@ -7014,6 +7058,10 @@ export interface components {
              *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
+            /** @description «5 días, 4 noches»: las dos magnitudes del viaje, calculadas una sola vez. */
+            readonly resumenDuracion?: {
+                [key: string]: number;
+            };
         };
         /**
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
