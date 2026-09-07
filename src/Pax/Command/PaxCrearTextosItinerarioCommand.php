@@ -55,6 +55,10 @@ final class PaxCrearTextosItinerarioCommand extends Command
         // El rol de quien responde del grupo. En VERBO y en minúscula —«coordina», no
         // «COORDINADOR»—: es un dato de servicio para saber a quién buscar, no un galón, y al
         // lado de un nombre un sustantivo en mayúsculas se lee como un cargo.
+        // ⚠️ El PLURAL de noche no existía y el singular sí, porque hasta el 07/09/2026 la única
+        // frase que las nombraba era «Noche 2/4» — siempre en singular. Con «5 días, 4 noches» en
+        // la cabecera hace falta el plural, o sale en español en los siete idiomas.
+        'cot_noches' => 'noches',
         'cot_rol_coordinador' => 'coordina',
         'cot_rol_supervisor' => 'supervisa',
         'cot_ver_mis_grupos' => 'Ver mis grupos',
