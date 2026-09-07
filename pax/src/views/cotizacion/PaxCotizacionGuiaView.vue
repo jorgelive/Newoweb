@@ -1012,13 +1012,27 @@ const alternarGente = (i: number): void => {
  * de la que faltas invita a preguntar si hubo un error. Se compara por nombre porque es lo único
  * que viaja — el backend no manda ids de otras personas, a propósito.
  */
-const soyYo = (indice: number, lista: string[]): boolean => {
+const soyYo = (indice: number, lista: { nombre: string }[]): boolean => {
   const mio = (store.miIdentidad?.nombre ?? '').trim().toLowerCase();
 
   // ⚠️ **Se compara por POSICIÓN, no por texto.** El backend manda nombres, no ids —a propósito:
   // no salen ids de otras personas—, así que dos homónimos en el mismo PNR se llevarían los dos
   // el «tú». Marcar uno es una apuesta; marcar dos es decirle que es las dos.
-  return lista.findIndex(n => n.trim().toLowerCase() === mio) === indice;
+  return lista.findIndex(m => m.nombre.trim().toLowerCase() === mio) === indice;
+};
+
+/**
+ * La etiqueta del rol, cuando lo hay.
+ *
+ * ⚠️ Sólo `coordinador` y `supervisor` viajan: son a quien se busca cuando algo pasa, y por eso
+ * el backend los pone primeros en la lista. Hasta ahora ese orden era la única señal, y un orden
+ * no se lee — quien mira la lista no sabe que el primero es el primero por algo.
+ */
+const rolDeMiembro = (rol?: string | null): string => {
+  if (rol === 'coordinador') return maestroStore.t('cot_rol_coordinador') || 'coordina';
+  if (rol === 'supervisor') return maestroStore.t('cot_rol_supervisor') || 'supervisa';
+
+  return '';
 };
 
 const adelantoVista = computed(() => {
@@ -1184,7 +1198,14 @@ const adelantoVista = computed(() => {
                     class="text-[11px] leading-snug flex items-baseline gap-1.5"
                     :class="soyYo(k, sg.miembros) ? 'font-black text-[#376875]' : 'font-bold text-slate-500'">
                   <i class="fas fa-circle text-[3px] shrink-0 opacity-40"></i>
-                  <span class="min-w-0 break-words">{{ quien }}</span>
+                  <span class="min-w-0 break-words">{{ quien.nombre }}</span>
+                  <!-- Quien responde del grupo, dicho y no sólo insinuado por el orden. En gris y
+                       en minúsculas: es un dato de servicio, no un galón — el «tú» sigue siendo
+                       lo único naranja, porque es lo que se busca al abrir la lista. -->
+                  <span v-if="rolDeMiembro(quien.rol)"
+                        class="shrink-0 text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                    {{ rolDeMiembro(quien.rol) }}
+                  </span>
                   <span v-if="soyYo(k, sg.miembros)" class="shrink-0 text-[9px] font-black uppercase tracking-widest text-[#E07845]">
                     {{ maestroStore.t('cot_tu') || 'tú' }}
                   </span>

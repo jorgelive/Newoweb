@@ -431,7 +431,8 @@ final class CotizacionFilePublicProvider implements ProviderInterface
      *
      * @param list<CotizacionFileGrupo> $grupos
      *
-     * @return array<string, list<string>> id del grupo => nombres, el responsable primero
+     * @return array<string, list<array{nombre: string, rol: string|null}>> id del grupo =>
+     *         su gente con el rol que se enseña, el responsable primero
      */
     private function companerosDe(array $grupos, CotizacionFilepasajero $quienPregunta): array
     {
@@ -454,7 +455,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             ArrayParameterType::BINARY,
         )->getArrayResult();
 
-        /** @var array<string, list<array{orden: int, etiqueta: string, nombre: string}>> $porGrupo */
+        /** @var array<string, list<array{orden: int, etiqueta: string, nombre: string, rol: string|null}>> $porGrupo */
         $porGrupo = [];
 
         $suyo = $quienPregunta->getId()?->toRfc4122();
@@ -493,6 +494,18 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                     PasajeroTipoEnum::SUPERVISOR => 1,
                     default => 2,
                 },
+                // Y además VIAJA, desde el 06/09/2026. El rol ya decidía el orden pero se perdía
+                // al serializar, así que en la lista el coordinador salía primero y nada lo decía:
+                // el que la lee no sabe que el primero es el primero por algo. Es el mismo dato,
+                // enseñado en vez de sólo usado.
+                //
+                // ⚠️ Sólo estos dos. `participante` y `acompanante` no son un rol que le importe a
+                // nadie del grupo, y pintarlos convertiría la lista en un organigrama.
+                'rol' => match ($tipo) {
+                    PasajeroTipoEnum::COORDINADOR => 'coordinador',
+                    PasajeroTipoEnum::SUPERVISOR => 'supervisor',
+                    default => null,
+                },
                 // Se ordena por APELLIDO, que es como se lee una lista de pasajeros.
                 //
                 // ⚠️ **Sin tildes ni eñes en la CLAVE.** `strcoll()` usa el locale del proceso, y
@@ -509,7 +522,10 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             usort($gente, static fn (array $a, array $b): int => $a['orden'] <=> $b['orden']
                 ?: strcmp($a['etiqueta'], $b['etiqueta']));
 
-            $salida[$clave] = array_map(static fn (array $x): string => $x['nombre'], $gente);
+            $salida[$clave] = array_map(
+                static fn (array $x): array => ['nombre' => $x['nombre'], 'rol' => $x['rol']],
+                $gente,
+            );
         }
 
         return $salida;

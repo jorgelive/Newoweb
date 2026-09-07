@@ -52,6 +52,11 @@ final class PaxCrearTextosItinerarioCommand extends Command
         // «Lo tuyo»: con quién comparte cada subgrupo. Ver CotizacionFile::$miIdentidad.
         'cot_personas' => 'personas',
         'cot_tu' => 'tú',
+        // El rol de quien responde del grupo. En VERBO y en minúscula —«coordina», no
+        // «COORDINADOR»—: es un dato de servicio para saber a quién buscar, no un galón, y al
+        // lado de un nombre un sustantivo en mayúsculas se lee como un cargo.
+        'cot_rol_coordinador' => 'coordina',
+        'cot_rol_supervisor' => 'supervisa',
         'cot_ver_mis_grupos' => 'Ver mis grupos',
         'cot_ocultar_mis_grupos' => 'Ocultar mis grupos',
 

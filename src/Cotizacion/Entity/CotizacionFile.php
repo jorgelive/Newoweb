@@ -607,7 +607,7 @@ class CotizacionFile
      * —su compañero de habitación, los de su PNR—. Sigue sin ser el padrón: son SUS grupos, y sólo
      * el nombre. Ni documento, ni fecha, ni el `codigo` del vecino, que es el localizador ajeno.
      *
-     * @var array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<string>}>}|null
+     * @var array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<array{nombre: string, rol: string|null}>}>}|null
      */
     #[ApiProperty(openapiContext: [
         'type' => 'object',
@@ -625,7 +625,18 @@ class CotizacionFile
                         'clave' => ['type' => 'string'],
                         'nombre' => ['type' => 'string', 'nullable' => true],
                         'codigo' => ['type' => 'string', 'nullable' => true],
-                        'miembros' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        // ⚠️ Objetos, no cadenas, desde el 06/09/2026: el nombre y su ROL
+                        // —`coordinador`, `supervisor`, o `null`—. El rol ya ordenaba la lista
+                        // y no viajaba, así que el coordinador salía primero sin que nada lo
+                        // dijera. Espejo en `PaxCotizacionGuiaView.vue`.
+                        'miembros' => ['type' => 'array', 'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'nombre' => ['type' => 'string'],
+                                'rol' => ['type' => 'string', 'nullable' => true],
+                            ],
+                            'required' => ['nombre'],
+                        ]],
                     ],
                     'required' => ['eje', 'ejeLabel', 'subeje', 'clave', 'miembros'],
                 ],
@@ -637,7 +648,7 @@ class CotizacionFile
     private ?array $miIdentidad = null;
 
     /**
-     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<string>}>}|null
+     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<array{nombre: string, rol: string|null}>}>}|null
      */
     public function getMiIdentidad(): ?array
     {
@@ -645,7 +656,7 @@ class CotizacionFile
     }
 
     /**
-     * @param array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<string>}>}|null $miIdentidad
+     * @param array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<array{nombre: string, rol: string|null}>}>}|null $miIdentidad
      */
     public function setMiIdentidad(?array $miIdentidad): self
     {

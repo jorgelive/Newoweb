@@ -10261,7 +10261,10 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
-                    miembros: string[];
+                    miembros: {
+                        nombre: string;
+                        rol?: string | null;
+                    }[];
                 }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
@@ -10498,7 +10501,10 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
-                    miembros: string[];
+                    miembros: {
+                        nombre: string;
+                        rol?: string | null;
+                    }[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -10545,7 +10551,10 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
-                    miembros: string[];
+                    miembros: {
+                        nombre: string;
+                        rol?: string | null;
+                    }[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -10637,7 +10646,10 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
-                    miembros: string[];
+                    miembros: {
+                        nombre: string;
+                        rol?: string | null;
+                    }[];
                 }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
@@ -10822,7 +10834,10 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
-                    miembros: string[];
+                    miembros: {
+                        nombre: string;
+                        rol?: string | null;
+                    }[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -10869,7 +10884,10 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
-                    miembros: string[];
+                    miembros: {
+                        nombre: string;
+                        rol?: string | null;
+                    }[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -10961,7 +10979,10 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
-                    miembros: string[];
+                    miembros: {
+                        nombre: string;
+                        rol?: string | null;
+                    }[];
                 }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
@@ -11151,7 +11172,10 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
-                    miembros: string[];
+                    miembros: {
+                        nombre: string;
+                        rol?: string | null;
+                    }[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -11198,7 +11222,10 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
-                    miembros: string[];
+                    miembros: {
+                        nombre: string;
+                        rol?: string | null;
+                    }[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -11290,7 +11317,10 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
-                    miembros: string[];
+                    miembros: {
+                        nombre: string;
+                        rol?: string | null;
+                    }[];
                 }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
@@ -11475,7 +11505,10 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
-                    miembros: string[];
+                    miembros: {
+                        nombre: string;
+                        rol?: string | null;
+                    }[];
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -11522,7 +11555,10 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
-                    miembros: string[];
+                    miembros: {
+                        nombre: string;
+                        rol?: string | null;
+                    }[];
                 }[];
             } | null;
             readonly localizador?: string | null;
