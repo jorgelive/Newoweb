@@ -1100,6 +1100,70 @@ arriesgarlo era perder el bimodal.
 espejo en los cuatro sitios (enum PHP, `util/utils/componenteTipo.ts`, La Biblia, la copia de
 `pax`). Lo que se afinó es la cláusula de silencio, que ya era exclusiva de `pax` antes de esto.
 
+#### Noches y días no son lo mismo, y contarlos igual torció un dato (07/09/2026)
+
+Un hotel del 18 al 22 son **4 noches**. Un seguro de viaje del 18 al 22 son **5 días**. Las mismas
+dos fechas, dos cantidades — y el editor sólo sabía una: `calcularPernoctes()` hacía `fin − inicio`
+para todo, y el nombre confesaba la suposición.
+
+⚠️ **La consecuencia no fue un número mal pintado: fue que el operador tuvo que torcer el dato.**
+Para cobrar los 5 días de estancia en Punta Cana escribió el seguro como `18 → 23`, porque era la
+única forma de que la resta diera 5. La cantidad la deriva el editor y la pisa cada vez que cambian
+las fechas, así que la fecha era la única palanca. El itinerario quedó diciendo que la cobertura
+llegaba a un día en que ya nadie estaba allí, y quien leyera con atención vería la incoherencia.
+
+**Dos ejes, no uno.** Meterlos en el mismo enum haría que creciera con el catálogo:
+
+| | Qué decide | Valores |
+|---|---|---|
+| Aritmética | cómo se cuenta | `NOCHES` (fin − inicio) · `DIAS` (fin − inicio + 1) · `UNIDADES` (no sale de fechas) |
+| Sustantivo | cómo se llama | «noche», «día», «desayuno», «masaje»… |
+
+Así «5 desayunos» es `DIAS` con sustantivo «desayuno» y **no toca la aritmética**.
+
+**Dónde vive la verdad: en el catálogo.** `TravelComponente::$unidadDeConteo`, que lo declara una
+vez quien crea el producto — no quien cotiza, que es quien tendría que acordarse cada vez. NULL =
+lo que diga el tipo (`ComponenteTipoEnum::unidadPorDefecto()`), que acierta en **31 de los 33**
+componentes multi-día de producción.
+
+⚠️ **El tipo no puede ser la única fuente, y el culpable es `EXTRAS`**: ahí caben un seguro (días),
+una propina (una unidad) y un upgrade. Por eso el tipo da el defecto y el componente lo corrige.
+
+⚠️ **La tabla tipo → unidad vive en PHP y sólo en PHP.** Cruza al front ya resuelta por
+`CotizacionCotcomponente::getUnidadDeConteo()`, igual que `ordenNarrativo`. Escribirla en
+TypeScript sería la segunda copia de una regla, y este repo ya pagó ese precio una vez.
+
+**Lo que cambia al leer el itinerario:**
+
+```
+18 → 22   hotel   4 bloques (18, 19, 20, 21)   la cama cierra el día
+18 → 22   seguro  5 bloques (18 … 22)          cubre la jornada: la ABRE
+```
+
+⚠️ **Y lo sin-hora deja de amontonarse al final.** El escalón «con hora» iba entero antes que el
+«sin hora», así que un almuerzo variable aterrizaba tras la excursión de la tarde: un cliente que
+lee su día de arriba abajo se enteraba **al pie** de que tenía el almuerzo incluido. Ahora un
+bloque sin reloj se mide con la **hora nominal** de su momento del día, que es una clave de
+ordenación y no se guarda, no se pinta y no viaja a nadie. La alternativa era inventarle un minuto
+en la base, que luego se pinta y acaba siendo un compromiso con el proveedor.
+
+`TravelComponente::$momentoDelDia` afina lo que el tipo no puede: desayuno, almuerzo y cena son los
+tres `ALIMENTACION_HORARIO_VAR` y ocurren en tres momentos distintos.
+
+**Textos e iconos clavados que se fueron con esto:** «N noches» con luna en el editor y «Noche i/N»
+con luna en la guía — los dos rotulaban también el seguro. Y el «×5» de «qué incluye», que no decía
+de qué.
+
+⚠️ **El sustantivo del catálogo no está traducido**: «noche» y «día» sí, por sus claves de i18n;
+una palabra propia sale en español en los siete idiomas. El campo es una columna plana sin
+`#[AutoTranslate]`; traducirlo pide moverlo a la maquinaria de i18n del catálogo.
+
+**Las fechas ya torcidas no se arreglan solas:** `app:travel:asignar-unidades-de-conteo` declara la
+unidad, la congela en los expedientes y **denuncia** las fechas que no cuadran con su cantidad.
+Sólo con `--ajustar-fin` las corrige, y no es el modo por defecto a propósito — en el 5SRAJV la
+operativa tiene la fecha torcida y la cantidad buena (ajustar acierta) y la confirmada tiene la
+fecha buena y la cantidad corta, donde ajustar encogería la cobertura en vez de arreglar el precio.
+
 #### El corchete parte el título en dos, y ahora lo entienden los tres sitios (06/09/2026)
 
 Un título de tarifa con corchetes son **dos datos**: dentro, con quién se va; fuera, en qué
@@ -6268,6 +6332,14 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
   dentro**: es la convención del operador, «[ SKY AIRLINE ] con articulo personal y equipaje de
   cabina». En producción la usan 12 de 254 tarifas —6 pares raíz+clon—, todas de aerolínea o bus
   de reparto; ninguna tarifa fuera de un reparto usa corchetes.
+- **En qué se cuenta un componente que dura** → `TravelComponente::$unidadDeConteo` (lo declara el
+  catálogo), con defecto en `ComponenteTipoEnum::unidadPorDefecto()` y congelado en
+  `CotizacionCotcomponente::$unidadDeConteoSnapshot`. La aritmética, en `dominio/cotizacion/unidades.ts`.
+- **Cómo se llama la unidad («5 desayunos»)** → `TravelComponente::$sustantivoUnidad`, y
+  `etiquetaDeUnidades()` para el plural.
+- **Dónde se lee algo sin hora dentro del día** → `TravelComponente::$momentoDelDia`, que afina el
+  `ordenNarrativo` del tipo. La traducción a reloj es `horaNominal()` en `itinerarioVista.ts`: no se
+  guarda ni se pinta, sólo ordena.
 - **Partir un título de tarifa en «con quién» y «en qué condiciones»** → `partirTituloTarifa()`.
   Lo usan los tres sitios que pintan ese título: el sello del horario (sólo el primero), los chips
   de «qué incluye» y los de opciones alternativas (los dos, por separado).
