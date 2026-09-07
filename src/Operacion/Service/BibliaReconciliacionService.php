@@ -488,8 +488,20 @@ class BibliaReconciliacionService
         return $this->nombresDelCatalogo[$clave] = $nombre;
     }
 
-    /** Estado actual de la fila en el mismo formato escalar que calcularValores(). */
-    /** @return array<string, mixed> Los campos de la fila que se comparan contra la cotización. */
+    /**
+     * Estado actual de la fila, en el mismo formato ESCALAR que `calcularValores()`.
+     *
+     * ⚠️ **El tipo del valor no es `mixed`, y ponerlo dejó pasar un fallo a producción.** Con
+     * `array<string, mixed>`, meter aquí un `DateTimeImmutable` y pasarlo a `normalizar()` —que
+     * declara `string|int|float|null` con `strict_types`— **no es un error en el nivel 7**: eso lo
+     * caza `checkExplicitMixed`, que es del 9. La reconciliación entera reventaba con un
+     * `TypeError` y el análisis decía OK.
+     *
+     * Escrito el tipo de verdad, el mismo descuido no compila. Es la regla de `CLAUDE.md` sobre el
+     * `array` pelado, aplicada al valor y no sólo a la clave.
+     *
+     * @return array<string, string|int|float|null> Los campos de la fila que se comparan contra la cotización.
+     */
     private function valoresActuales(OperacionServicio $fila): array
     {
         $tarifa = $fila->getCotizacionTarifa();
