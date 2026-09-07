@@ -430,11 +430,35 @@ Y lo que habrá que añadir, que no es código:
 - **Socket unix, no puerto.** Sólo tienen que hablar PHP y node en la misma máquina; un puerto
   abierto es superficie de red a cambio de nada.
 
-  ⚠️ **Esto contradice el paso 5 del plan («Hono cuando duela») y lo sustituye.** Un servidor HTTP
-  compra herramientas —`curl`, un navegador— a cambio de un parser, un puerto y **una dependencia
-  en `node_modules` de producción**, cuando hoy `dominio/` no tiene ninguna y eso está anotado como
-  virtud. El único cliente es PHP en la misma máquina. Hono queda como escape para el día que
-  pregunte algo que no sea PHP local.
+  ⚠️ **Esto matiza el paso 5 del plan («Hono cuando duela»), no lo prohíbe.** Un servidor HTTP
+  compra herramientas —`curl`, un navegador— a cambio de un parser y **la primera dependencia de
+  producción de `dominio/`**, que hoy no tiene ninguna y eso está anotado como virtud. Con un solo
+  cliente y **una** ruta —«resuelve esta operación»— el framework ahorra unas veinte líneas de
+  parseo; empezar sin él y añadirlo si pesa es más barato que al revés.
+
+  ⚠️ **Y «socket unix» y «Hono» NO son opciones rivales**, que es como se leía antes esta línea.
+  **HTTP sobre socket unix existe**: un servidor de Node escucha en un `path` en lugar de en un
+  puerto y nginx sabe hablar con él (`proxy_pass http://unix:/ruta.sock:/`). Se puede tener el
+  framework y seguir sin abrir un puerto. *(Antes de casarse con ello: comprobar que el adaptador
+  de Node de Hono deja pasar esa opción al servidor. No está verificado.)*
+
+  **Lo que mantiene las dos puertas abiertas es la separación que ya está**: `servidor.cli.ts`
+  como capa fina que no sabe nada de itinerarios. Cambiar `net.createServer` por Hono —o al revés—
+  toca un archivo y ninguna regla de negocio.
+
+#### ⚠️ nginx delante es otra decisión, y tiene su propia lista
+
+Lo que cambia el modelo de amenaza no es el framework: es **publicarlo**.
+
+Mientras sólo hable PHP con node por el socket, el interlocutor es un proceso local del mismo
+servidor: no hacen falta autenticación, límites de tasa, CORS ni pensar en cabeceras, porque
+**nadie de fuera puede llegar**. En cuanto nginx lo expone —aunque sea a través del mismo socket—
+todo eso pasa a ser responsabilidad nuestra. Y este endpoint recibe **cotizaciones enteras en el
+cuerpo** y hace trabajo de CPU: es exactamente la forma que un abuso disfruta.
+
+Si algún día se publica, que sea **porque algo de fuera necesita preguntar** —una app, un
+integrador— y no como efecto colateral de haber puesto un framework. Son dos decisiones distintas y
+se toman por separado.
 
 ⚠️ **Y el contrato versionado NO cubre lo que parecía.** `itinerario@1` grita si cambia la FORMA,
 no si cambia la LÓGICA con la misma forma: un arreglo en `componerItinerario` con el proceso viejo
