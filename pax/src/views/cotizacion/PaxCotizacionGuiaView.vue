@@ -345,6 +345,38 @@ const tituloDeComponente = (
  * vuela, fuera la condición de la tarifa. La condición no desempata nada y convertía la pastilla
  * en un párrafo.
  */
+/**
+ * Un título de tarifa con corchetes son DOS datos, no uno.
+ *
+ * ```
+ * «[ SKY AIRLINE ] con articulo personal y equipaje de cabina»
+ *    └── con QUIÉN se va          └── en qué CONDICIONES
+ * ```
+ *
+ * Es la convención que ya usaba el operador, y hasta ahora sólo la entendía el sello del
+ * itinerario: en «qué incluye» y en las opciones alternativas el título se pintaba en crudo, con
+ * los corchetes colgando, que ahí no significan nada y se leen como un error.
+ *
+ * Partirlo deja que cada sitio pinte lo que le cabe: **la línea de horarios sólo el sello** —ahí
+ * el ancho es lo que escasea y lo único que hace falta es desempatar—, y donde hay sitio, los dos
+ * por separado.
+ *
+ * Sin corchetes no hay nada que partir: el título entero es el sello y no hay condición.
+ */
+const partirTituloTarifa = (texto: string): { sello: string; condicion: string } => {
+  const completo = texto.trim();
+  const corchete = completo.match(/\[([^\]]+)\]/);
+
+  if (corchete === null) {
+    return { sello: completo, condicion: '' };
+  }
+
+  return {
+    sello: (corchete[1] ?? '').trim(),
+    condicion: completo.replace(corchete[0], ' ').replace(/\s+/g, ' ').trim(),
+  };
+};
+
 const selloDeComponente = (
     c: PaxCotComponente,
     segmento: { tituloSnapshot?: unknown },
@@ -359,15 +391,13 @@ const selloDeComponente = (
 
     const completo = store.traducir(t.tituloSnapshot).trim();
 
-    // 🔥 **Los corchetes ya son la convención del operador.** Las tarifas se titulan
-    // «[ SKY AIRLINE ] con articulo personal y equipaje de cabina»: dentro va con qué se vuela
-    // —lo que desempata— y fuera, la condición de la tarifa. Pintar la frase entera convertía la
-    // pastilla en un párrafo justo donde sólo hacía falta una palabra.
+    // 🔥 **Los corchetes ya son la convención del operador.** Ver `partirTituloTarifa`: aquí sólo
+    // se usa el sello —con quién se va— porque en esta fila el ancho es lo que escasea y la
+    // condición de la tarifa no desempata nada. La condición se pinta donde sí cabe.
     //
     // ⚠️ Se lee lo de DENTRO, no se recorta por longitud: cortar a N caracteres parece lo mismo
     // hasta el día que alguien escribe «[ LATAM ]» y «[ LATAM Premium ]».
-    const entreCorchetes = completo.match(/\[([^\]]+)\]/)?.[1]?.trim();
-    const sello = entreCorchetes || completo;
+    const sello = partirTituloTarifa(completo).sello;
 
     if (sello !== '' && sello.toLowerCase() !== titulo) {
       return sello;
@@ -828,7 +858,11 @@ const abrirInclusiones = (servicioId: string, nombre: I18n) => {
  *   tarifas (si todas son privadas → PRIVADO; si difieren, el atributo se
  *   omite) y nunca con multiplicador.
  */
-interface ChipLinea { titulo: string; badges: ReturnType<typeof modCatBadges>; proveedor: PrestadorInfo | null; count: number }
+/**
+ * `titulo` es el sello —con quién se va— y `condicion` lo de fuera del corchete. Van separados
+ * porque aquí sí caben los dos: ver `partirTituloTarifa`.
+ */
+interface ChipLinea { titulo: string; condicion: string; badges: ReturnType<typeof modCatBadges>; proveedor: PrestadorInfo | null; count: number }
 const chipsDeLinea = (l: PaxInclusionItem): ChipLinea[] => {
   // El proveedor se lee del componente VIVO, no del snapshot: el backend lo resuelve
   // contra el catálogo maestro al servir, así que renombrar un hotel se ve al instante
@@ -848,21 +882,28 @@ const chipsDeLinea = (l: PaxInclusionItem): ChipLinea[] => {
   // comparten los campos de clasificación que se pintan en el chip.
   const origenes: (PaxTarifaFinanciera | PaxInclusionItem)[] = l.tarifas.length ? l.tarifas : [l];
   const fuentes = origenes
-      .map((t) => ({
-        titulo: store.traducir(t.tarifaTitulo),
-        modalidad: (t.modalidad ?? null) as string | null,
-        categoria: (t.categoria ?? null) as string | null,
-        procedencia: (t.procedencia ?? null) as string | null,
-        edadMin: (t.edadMin ?? null) as number | null,
-        edadMax: (t.edadMax ?? null) as number | null,
-        proveedor: proveedorLinea,
-      }));
+      .map((t) => {
+        // El corchete parte el título en dos: con quién se va y en qué condiciones.
+        const { sello, condicion } = partirTituloTarifa(store.traducir(t.tarifaTitulo) || '');
+
+        return {
+          titulo: sello,
+          condicion,
+          modalidad: (t.modalidad ?? null) as string | null,
+          categoria: (t.categoria ?? null) as string | null,
+          procedencia: (t.procedencia ?? null) as string | null,
+          edadMin: (t.edadMin ?? null) as number | null,
+          edadMax: (t.edadMax ?? null) as number | null,
+          proveedor: proveedorLinea,
+        };
+      });
 
   if (esCatalogo.value) {
     const unanime = <T,>(vals: (T | null)[]): T | null =>
         vals.length > 0 && vals.every(v => v !== null && v === vals[0]) ? vals[0] : null;
 
     const titulo = unanime(fuentes.map(f => f.titulo || null)) ?? '';
+    const condicion = unanime(fuentes.map(f => f.condicion || null)) ?? '';
     const badges = modCatBadges({
       modalidad: unanime(fuentes.map(f => f.modalidad)),
       categoria: unanime(fuentes.map(f => f.categoria)),
@@ -871,17 +912,17 @@ const chipsDeLinea = (l: PaxInclusionItem): ChipLinea[] => {
       edadMax: unanime(fuentes.map(f => f.edadMax)),
     });
     const proveedor = unanime(fuentes.map(f => f.proveedor));
-    return (titulo || badges.length || proveedor) ? [{ titulo, badges, proveedor, count: 1 }] : [];
+    return (titulo || condicion || badges.length || proveedor) ? [{ titulo, condicion, badges, proveedor, count: 1 }] : [];
   }
 
   const grupos = new Map<string, ChipLinea>();
   for (const f of fuentes) {
     const badges = modCatBadges(f);
-    if (!f.titulo && !badges.length && !f.proveedor) continue;
-    const key = `${f.titulo}|${badges.map(b => b.key).join(',')}|${f.proveedor ? contenidoEs(f.proveedor.titulo) : ''}`;
+    if (!f.titulo && !f.condicion && !badges.length && !f.proveedor) continue;
+    const key = `${f.titulo}|${f.condicion}|${badges.map(b => b.key).join(',')}|${f.proveedor ? contenidoEs(f.proveedor.titulo) : ''}`;
     const previo = grupos.get(key);
     if (previo) previo.count++;
-    else grupos.set(key, { titulo: f.titulo, badges, proveedor: f.proveedor, count: 1 });
+    else grupos.set(key, { titulo: f.titulo, condicion: f.condicion, badges, proveedor: f.proveedor, count: 1 });
   }
   return [...grupos.values()];
 };
@@ -1568,10 +1609,17 @@ const adelantoVista = computed(() => {
                             <i class="fas" :class="grupo.esOpcion ? 'fa-circle-question' : 'fa-shuffle'"></i>
                             {{ labelGrupoUpgrade(grupo) }}
                           </span>
-                          <span v-if="store.traducir(up.tarifaTitulo)"
-                                class="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200/80 rounded-md px-1.5 py-0.5">
-                            {{ store.traducir(up.tarifaTitulo) }}
-                          </span>
+                          <!-- Igual que en «qué incluye»: el corchete parte el título en dos. -->
+                          <template v-for="t in [partirTituloTarifa(store.traducir(up.tarifaTitulo) || '')]" :key="t.sello">
+                            <span v-if="t.sello"
+                                  class="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200/80 rounded-md px-1.5 py-0.5">
+                              {{ t.sello }}
+                            </span>
+                            <span v-if="t.condicion"
+                                  class="text-[10px] font-medium text-slate-400 bg-white border border-slate-200/80 rounded-md px-1.5 py-0.5">
+                              {{ t.condicion }}
+                            </span>
+                          </template>
                           <span
                               v-for="b in modCatBadges(up)"
                               :key="b.key"
@@ -2056,11 +2104,20 @@ const adelantoVista = computed(() => {
                               :key="ci"
                               class="ml-6 mt-1 flex flex-wrap items-center gap-1.5"
                           >
+                            <!-- Dos pastillas, no una frase: con quién se va y en qué condiciones.
+                                 Aquí caben las dos —a diferencia de la línea de horarios— y hasta
+                                 ahora salía el título en crudo, corchetes incluidos. -->
                             <span
                                 v-if="chip.titulo"
                                 class="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 rounded-md px-1.5 py-0.5"
                             >
                               {{ chip.titulo }}<b v-if="chip.count > 1" class="text-[#376875] font-black ml-1">×{{ chip.count }}</b>
+                            </span>
+                            <span
+                                v-if="chip.condicion"
+                                class="text-[10px] font-medium text-slate-400 bg-white border border-slate-200/80 rounded-md px-1.5 py-0.5"
+                            >
+                              {{ chip.condicion }}
                             </span>
                             <span
                                 v-for="b in chip.badges"

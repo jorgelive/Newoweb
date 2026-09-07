@@ -352,8 +352,21 @@ class TravelTarifaCrudController extends BaseCrudController
             })
             ->renderAsHtml();
 
+        // ⚠️ La convención de los corchetes NO es cosmética: la lee `partirTituloTarifa()` en
+        // `pax/src/views/cotizacion/PaxCotizacionGuiaView.vue`. Sin esta ayuda el operador la
+        // descubría copiando lo que ya había escrito otro, que es como aparecieron «[ ARAJET ]»
+        // y «[ Arajet ]» en la misma base. Si cambia la regla, se cambian LOS DOS textos: éste y
+        // el del editor de cotizaciones (`CotizacionEditorView.vue`, «Nombre para cliente»).
         yield CollectionField::new('titulo', 'Título Visible al Cliente')
             ->setEntryType(TranslationTextType::class)
+            ->setHelp(
+                '<i class="fas fa-circle-info text-primary"></i> '
+                . '<strong>Lo que va entre corchetes es con QUIÉN se va</strong> y el resto, en qué condiciones. '
+                . 'Ejemplo: <code>[ SKY AIRLINE ] con artículo personal y equipaje de cabina</code>. '
+                . 'En el itinerario del cliente sólo se ve <code>SKY AIRLINE</code> —es lo que distingue una parte de otra '
+                . 'cuando un servicio va repartido entre dos compañías—; en «qué incluye» se ven los dos por separado. '
+                . 'Sin corchetes se muestra el título entero.'
+            )
             ->setRequired(false)->hideOnIndex()->hideOnDetail()->setColumns(12);
     }
 }

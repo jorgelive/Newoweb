@@ -4300,7 +4300,15 @@ store.$onAction(({ name, args }) => {
                        type="text" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-inner mb-4"
                        placeholder="Ej: Adulto Extranjero...">
 
-                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre para cliente *</label>
+                <!-- ⚠️ La convención de los corchetes la lee `partirTituloTarifa()` en
+                     `pax/src/views/cotizacion/PaxCotizacionGuiaView.vue`. Si cambia la regla se
+                     cambian LOS DOS textos de ayuda: éste y el `setHelp()` de
+                     `TravelTarifaCrudController` (el mismo campo, en el catálogo maestro). -->
+                <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
+                  Nombre para cliente *
+                  <i v-tooltip-tactil class="fas fa-circle-info text-slate-400 hover:text-orange-500 cursor-help normal-case"
+                     title="Lo que va entre corchetes es CON QUIÉN se va; el resto, en qué condiciones. Ej: [ SKY AIRLINE ] con artículo personal y equipaje de cabina. En el itinerario del cliente sólo se ve SKY AIRLINE —es lo que distingue una parte de otra cuando el servicio va repartido entre dos compañías—; en «qué incluye» se ven los dos por separado. Sin corchetes se muestra el título entero."></i>
+                </label>
                 <div class="flex gap-2">
                   <input :value="store.getI18nText(store.tarifaActiva.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
                          @input="e => { if(store.cotizacion && store.tarifaActiva) store.setI18nText(store.tarifaActiva.tituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"

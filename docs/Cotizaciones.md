@@ -1051,6 +1051,83 @@ Ahora lo único intocable es la hora; el resto fluye a la línea siguiente.
 segmento, así que las dos partes decían lo mismo que el encabezado tres líneas más arriba.
 Callándolo, el sello —lo único que desempata— se lleva el ancho entero.
 
+#### El tipo era un proxy: quien calla al componente son sus hermanos (06/09/2026)
+
+`mandaElSegmento(tipo)` decía «en vuelo, tren y transporte manda el segmento», y en la guía del
+huésped eso además **borra** el título del componente —es la única pantalla con UNA ranura; en La
+Biblia y en la orden el que no manda baja a la secundaria y no se pierde nada—.
+
+Funcionaba por accidente. Lo que la regla quería decir es que **el título del componente no
+distingue nada**, y eso es cierto cuando los hermanos se llaman igual:
+
+```
+Vuelo de Cusco a Lima                        ← un solo nombre entre los hermanos
+  06:50 – 08:35  «Vuelo desde la ciudad de Cusco a la ciudad de Lima»  [ SKY AIRLINE ]
+  07:15 – 08:55  «Vuelo desde la ciudad de Cusco a la ciudad de Lima»  [ JETSMART ]
+```
+
+No es cierto en el **traslado bimodal** —3 segmentos en producción—, donde los dos componentes son
+tramos consecutivos con nombres distintos y el título es la información:
+
+```
+Traslado Bimodal de Ida (Vía Ollantaytambo)  ← dos nombres
+  04:20 – 04:40  «Transporte dentro de Cusco hasta Terminal de bus»       Sedán
+  05:10 – 07:10  «Transporte desde Terminal de bus a Estación de Olla…»   Autobús
+```
+
+Ahí ida y vuelta ya viven en **segmentos separados**, así que la ruta congelada que justificó
+`mandaElSegmento` no existe, y callarlos le quitaba al huésped el de-dónde-a-dónde a las 04:20.
+
+**La regla, en `hablaCadaComponente()`:** el tipo decide a quién se le cree la dirección; los
+hermanos deciden a quién se le quita la voz. Un solo nombre en el bloque → manda el segmento; dos
+o más → habla cada componente.
+
+⚠️ **Decide el BLOQUE entero, no cada fila.** Con dos gemelos y un tercero distinto hablan los
+tres, aunque los dos primeros repitan: una lista donde una línea tiene título y la de al lado no
+se lee como un fallo de datos, y callarlos a todos por culpa de los gemelos se llevaría por
+delante al único que dice hacia dónde va.
+
+⚠️ **La comparación va normalizada** (sin acentos, caja ni puntuación). En esta misma base
+conviven `[ ARAJET ]` y `[ Arajet ]`: un espacio de más bastaba para que dos títulos iguales
+contaran como distintos.
+
+⚠️ **Riesgo asumido.** Dos compañías cuyos productos de catálogo traigan la misma ruta redactada
+con frases distintas volverían a enseñar la dirección congelada bajo un segmento que dice lo
+contrario. El síntoma se ve en la propia guía y se cura renombrando el producto; el precio de no
+arriesgarlo era perder el bimodal.
+
+⚠️ **La cláusula vive SÓLO en la guía del huésped.** `mandaElSegmento` sigue siendo el mismo
+espejo en los cuatro sitios (enum PHP, `util/utils/componenteTipo.ts`, La Biblia, la copia de
+`pax`). Lo que se afinó es la cláusula de silencio, que ya era exclusiva de `pax` antes de esto.
+
+#### El corchete parte el título en dos, y ahora lo entienden los tres sitios (06/09/2026)
+
+Un título de tarifa con corchetes son **dos datos**: dentro, con quién se va; fuera, en qué
+condiciones. Hasta ahora sólo lo entendía el sello del itinerario — en «qué incluye» y en las
+opciones alternativas el título salía **en crudo, con los corchetes colgando**, que ahí no
+significan nada y se leen como un error.
+
+`partirTituloTarifa()` lo separa una vez y cada sitio pinta lo que le cabe:
+
+| Dónde | Qué se pinta |
+|---|---|
+| Línea de horarios | **sólo el sello** — el ancho es lo que escasea y lo único que hace falta es desempatar |
+| «Qué incluye» (`chipsDeLinea`) | dos pastillas: `SKY AIRLINE` + `con artículo personal y equipaje de cabina` |
+| Opciones alternativas / upgrades | dos pastillas, lo mismo |
+
+Sin corchetes no hay nada que partir: el título entero es el sello.
+
+⚠️ **La convención se le explica al operador donde ESCRIBE, en los dos sitios**, porque hasta
+ahora se aprendía copiando lo que había escrito otro — que es como aparecieron `[ ARAJET ]` y
+`[ Arajet ]` en la misma base:
+
+| Dónde se escribe | Ayuda |
+|---|---|
+| Catálogo maestro | `TravelTarifaCrudController`, `setHelp()` del campo «Título Visible al Cliente» |
+| Editor de cotizaciones | `CotizacionEditorView.vue`, la «i» junto a «Nombre para cliente» |
+
+Si cambia la regla se cambian **los dos textos** además del código.
+
 #### La misma enfermedad en el selector «A quién aplica»
 
 El rótulo es `Eje · Sufijo · Nombre` y **lo que distingue va al final**. Con `truncate`, en un móvil
@@ -6163,7 +6240,18 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
   tarifa**, que es el texto escrito para el cliente y traducido —no `nombreInternoSnapshot`, que es
   jerga de compras y salió de `pax` el 29/08/2026—. Si el título trae corchetes se pinta **lo de
   dentro**: es la convención del operador, «[ SKY AIRLINE ] con articulo personal y equipaje de
-  cabina». En producción la usan 12 de 254 tarifas, todas de aerolínea.
+  cabina». En producción la usan 12 de 254 tarifas —6 pares raíz+clon—, todas de aerolínea o bus
+  de reparto; ninguna tarifa fuera de un reparto usa corchetes.
+- **Partir un título de tarifa en «con quién» y «en qué condiciones»** → `partirTituloTarifa()`.
+  Lo usan los tres sitios que pintan ese título: el sello del horario (sólo el primero), los chips
+  de «qué incluye» y los de opciones alternativas (los dos, por separado).
+- **Explicarle la convención del corchete al operador** → `TravelTarifaCrudController` (`setHelp()`
+  del campo «Título Visible al Cliente») y la «i» junto a «Nombre para cliente» en
+  `CotizacionEditorView.vue`. Son dos textos y se cambian los dos.
+- **Cuándo el título del componente se calla en la línea de horarios** → `hablaCadaComponente()`:
+  un solo nombre entre los hermanos del bloque → manda el segmento; dos o más → habla cada
+  componente. La comparación va normalizada, decide el bloque entero, y la cláusula existe **sólo
+  aquí** —`mandaElSegmento` sigue siendo el mismo espejo en los cuatro sitios—.
 - **El enlace de la vista cliente (abrirlo o copiarlo)** → `linkPublicoPropuesta()` en
   `FileDetalle.vue`, y los dos botones pegados de la cabecera de cada propuesta: el ↗ que abre y
   el 📋 que copia. La vista cliente se abre **siempre**, publicada o no —como operador ves también
