@@ -430,6 +430,36 @@ Y lo que habrá que añadir, que no es código:
 - **Socket unix, no puerto.** Sólo tienen que hablar PHP y node en la misma máquina; un puerto
   abierto es superficie de red a cambio de nada.
 
+  ⚠️ **Esto contradice el paso 5 del plan («Hono cuando duela») y lo sustituye.** Un servidor HTTP
+  compra herramientas —`curl`, un navegador— a cambio de un parser, un puerto y **una dependencia
+  en `node_modules` de producción**, cuando hoy `dominio/` no tiene ninguna y eso está anotado como
+  virtud. El único cliente es PHP en la misma máquina. Hono queda como escape para el día que
+  pregunte algo que no sea PHP local.
+
+⚠️ **Y el contrato versionado NO cubre lo que parecía.** `itinerario@1` grita si cambia la FORMA,
+no si cambia la LÓGICA con la misma forma: un arreglo en `componerItinerario` con el proceso viejo
+arriba contesta bien **con el código de ayer**, que es justo el fallo que este doc llama «el peor».
+Node cachea los módulos al importarlos, así que el proceso no ve el `git pull`. La defensa barata
+es un apretón de manos de revisión —el servidor devuelve la revisión con la que arrancó y PHP la
+compara con la suya—, no sólo el contrato.
+
+⚠️ **Y ningún fallback automático socket→arranque.** Caer en silencio al proceso efímero cuando el
+demonio no contesta es «fallar callado» con otro disfraz: el demonio estaría muerto y nadie se
+enteraría. Un reintento único tras `ECONNREFUSED` —no tras timeout— cubre los 200 ms del reinicio.
+
+#### El estado real: escrito, probado, desplegado y sin estrenar
+
+Medido el 07/09/2026 contra producción: **el canal `dominio` no tiene ni una línea** en un
+`info.log` de 7,7 MB. Y no es que el nivel `info` no se registre —sí lo hace, desde que se partió
+el `prod.log` con buffer—: es que **nadie ha invocado nunca el cálculo compartido**. Su único
+consumidor es el PDF público del itinerario
+(`/client/cotizacion/{localizador}/{propuesta}/itinerario.pdf`) y no se ha pedido jamás.
+
+Eso reordena la conversación entera: la pregunta no es «¿cuándo un demonio?» sino **«¿cuándo
+alguien va a usar esto?»**. Optimizar el arranque de un camino que no se recorre es trabajo
+inventado — y la señal de que ha llegado el momento es, antes que cualquier número de la lista de
+abajo, **que el canal `dominio` empiece a escribir**.
+
 ### Qué se está calculando dos veces (inventario vivo)
 
 Lo que sigue son cálculos que HOY viven en PHP y en TypeScript a la vez, con el espejo declarado en

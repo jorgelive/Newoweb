@@ -195,6 +195,15 @@ final readonly class EjecutorDeDominio
             ));
         }
 
+        // Una línea por LOTE, no por entrada: el volumen lo pone el número de veces que alguien
+        // pregunta, que es lo que hay que vigilar para saber cuándo toca un proceso residente.
+        //
+        // ⚠️ **`info` se ve en producción** —hay un `info.log` propio desde que se partió el
+        // `prod.log` con buffer—, así que no hace falta subirla de nivel. Comprobado el
+        // 07/09/2026, y de paso se comprobó algo más útil: **el canal `dominio` no tiene ni una
+        // línea en producción**, porque su único consumidor es el PDF público del itinerario y
+        // nadie lo ha pedido todavía. El cálculo compartido está escrito, probado y desplegado —
+        // y sin estrenar.
         $this->dominioLogger->info('Dominio: operación resuelta', [
             'contrato' => $operacion->contrato(),
             'entradas' => count($entradas),
