@@ -105,6 +105,15 @@ final class ArchivoPrivadoController
         $respuesta = new Response();
         $respuesta->headers->set('X-Accel-Redirect', '/_privado/archivos/' . $archivo->getImageName());
 
+        // ⚠️ **El `Content-Type` hay que ponerlo AQUÍ.** Symfony pone `text/html` por defecto y esa
+        // cabecera gana sobre la que nginx deduciría de la extensión: el navegador recibía el PDF
+        // correcto y lo pintaba **como texto**, una pantalla de símbolos. El fichero estaba bien
+        // desde el primer momento; lo que faltaba era decir qué era.
+        //
+        // `mime_content_type()` lee la cabecera del fichero, unos bytes — no lo transfiere, así que
+        // no rompe la razón de ser de todo esto.
+        $respuesta->headers->set('Content-Type', $this->tipoMime($ruta));
+
         // El nombre con el que se guarda en el móvil. `inline` para que el boarding pass se ABRA
         // —en el gate no se navega por la carpeta de descargas— y el navegador ofrezca guardarlo.
         $respuesta->headers->set(
@@ -145,5 +154,18 @@ final class ArchivoPrivadoController
         }
 
         return $this->identidad->pasajeroIdentificado($file)?->getId()?->equals($pasajero->getId() ?? Uuid::v4()) === true;
+    }
+
+    /**
+     * Qué es el fichero, para que el navegador lo abra en vez de escupirlo.
+     *
+     * Se pregunta al fichero y no a la extensión: el nombre en disco lo pone un `Namer` y una
+     * extensión se puede escribir mal, pero los primeros bytes de un PDF siempre dicen PDF.
+     */
+    private function tipoMime(string $ruta): string
+    {
+        $detectado = @mime_content_type($ruta);
+
+        return is_string($detectado) && $detectado !== '' ? $detectado : 'application/octet-stream';
     }
 }
