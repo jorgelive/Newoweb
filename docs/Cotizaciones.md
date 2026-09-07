@@ -6152,6 +6152,18 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 
 ## 9. "Quiero cambiar X — ¿dónde toco?"
 
+- **Cuándo sale la lista de horarios bajo la tarjeta** → `compsConHora(item).length > 1 ||
+  ...some(c => c.esParteRepartida)` en `PaxCotizacionGuiaView.vue`. Con un solo componente la hora
+  ya está en la pastilla de la cabecera y repetirla debajo sobra — **salvo** si ese componente es
+  parte de un servicio repartido: la vista del huésped está acotada a lo suyo, así que de un vuelo
+  repartido entre dos aerolíneas él ve UNA línea, y sin la lista se queda sin el sello que dice
+  con cuál vuela. `CotizacionCotcomponente::getEsParteRepartida()` lo resuelve en el backend
+  porque la marca (`duplicadoDe`) vive en un solo lado del par: la copia la tiene y la raíz no.
+- **Qué dice el sello de al lado del horario** → `selloDeComponente()`: el **`tituloSnapshot` de la
+  tarifa**, que es el texto escrito para el cliente y traducido —no `nombreInternoSnapshot`, que es
+  jerga de compras y salió de `pax` el 29/08/2026—. Si el título trae corchetes se pinta **lo de
+  dentro**: es la convención del operador, «[ SKY AIRLINE ] con articulo personal y equipaje de
+  cabina». En producción la usan 12 de 254 tarifas, todas de aerolínea.
 - **El enlace de la vista cliente (abrirlo o copiarlo)** → `linkPublicoPropuesta()` en
   `FileDetalle.vue`, y los dos botones pegados de la cabecera de cada propuesta: el ↗ que abre y
   el 📋 que copia. La vista cliente se abre **siempre**, publicada o no —como operador ves también

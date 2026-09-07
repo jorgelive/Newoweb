@@ -1845,7 +1845,16 @@ const adelantoVista = computed(() => {
                 </button>
 
                 <!-- Horarios de componentes (con hora real) -->
-                <div v-if="compsConHora(item).length > 1" class="mt-4 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 space-y-2">
+                <!-- ⚠️ **O uno solo, si es PARTE de un servicio repartido.** La regla del «más de
+                     uno» daba por hecho que el bloque enseña todas las partes, y la vista del
+                     huésped está acotada a lo suyo: de un vuelo repartido entre Sky y JetSMART él
+                     ve UNA línea, la suya, y se quedaba sin el sello de la aerolínea — que es
+                     justo lo que el reparto existe para distinguir. `esParteRepartida` lo dice
+                     desde el backend porque la marca vive en un solo lado del par
+                     (`duplicadoDe` apunta a la raíz) y la vista no puede deducirlo con lo que
+                     recibe. -->
+                <div v-if="compsConHora(item).length > 1 || compsConHora(item).some(c => c.esParteRepartida)"
+                     class="mt-4 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 space-y-2">
                   <!-- ⚠️ **Envuelve, no recorta.** Con la fila en una sola línea y el sello en
                        `shrink-0`, una tarifa larga —«[JetSMART] con artículo personal»— se comía
                        el título hasta dejarlo en nada Y encima se salía de la pantalla: se perdían

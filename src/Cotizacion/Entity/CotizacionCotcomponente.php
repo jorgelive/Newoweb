@@ -605,6 +605,48 @@ class CotizacionCotcomponente
 
     public function getDuplicadoDe(): ?string { return $this->duplicadoDe; }
 
+    /**
+     * ¿Este componente es una PARTE de un servicio repartido?
+     *
+     * Lo es tanto la copia —tiene `duplicadoDe`— como la raíz de la que se copió, que no lo
+     * tiene y sin esto se quedaría fuera: {@see self::$duplicadoDe} apunta siempre a la raíz, así
+     * que la marca vive sólo en un lado del par.
+     *
+     * ── Para qué lo quiere el huésped ───────────────────────────────────────
+     * `PaxCotizacionGuiaView` pinta la lista de horarios **sólo cuando el bloque tiene más de un
+     * componente con hora**: con uno solo, la hora ya está en la pastilla de la cabecera y
+     * repetirla debajo sobra. Pero la vista del huésped está acotada a lo suyo, así que de un
+     * servicio repartido en dos vuelos él ve UNA parte — la suya — y con la regla del «más de
+     * uno» se quedaba sin ver con qué aerolínea vuela, que es justamente el dato que el reparto
+     * existe para distinguir.
+     *
+     * ── Mira a los hermanos, y puede ───────────────────────────────────────
+     * Las copias viven en el MISMO `cotservicio` que su raíz —comprobado sobre las 6 que hay en
+     * producción—, y esa colección ya está cargada cuando se serializa el servicio. No hay
+     * consulta nueva.
+     */
+    #[Groups(['pax_cotizacion:read', 'cotizacion:item:read', 'cotizacion:read'])]
+    public function getEsParteRepartida(): bool
+    {
+        if ($this->duplicadoDe !== null) {
+            return true;
+        }
+
+        $mio = strtolower((string) $this->id);
+
+        if ($mio === '') {
+            return false;
+        }
+
+        foreach ($this->cotservicio?->getCotcomponentes() ?? [] as $otro) {
+            if (strtolower((string) $otro->getDuplicadoDe()) === $mio) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function setDuplicadoDe(?string $duplicadoDe): self { $this->duplicadoDe = $duplicadoDe; return $this; }
 
     /** Azúcar para lo que se pregunta más: pintar la marca y desbloquear el borrado. */

@@ -7471,6 +7471,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -7580,6 +7582,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -7759,6 +7763,8 @@ export interface components {
              */
             horaServicioCompleto: boolean;
             id?: string;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -7801,6 +7807,8 @@ export interface components {
              */
             horaServicioCompleto: boolean;
             id?: string;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -7928,6 +7936,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8037,6 +8047,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8113,6 +8125,8 @@ export interface components {
              */
             horaServicioCompleto: boolean;
             id?: string;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8155,6 +8169,8 @@ export interface components {
              */
             horaServicioCompleto: boolean;
             id?: string;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8282,6 +8298,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8392,6 +8410,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8471,6 +8491,8 @@ export interface components {
              */
             horaServicioCompleto: boolean;
             id?: string;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8514,6 +8536,8 @@ export interface components {
              */
             horaServicioCompleto: boolean;
             id?: string;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8641,6 +8665,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8750,6 +8776,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8826,6 +8854,8 @@ export interface components {
              */
             horaServicioCompleto: boolean;
             id?: string;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8868,6 +8898,8 @@ export interface components {
              */
             horaServicioCompleto: boolean;
             id?: string;
+            /** @description ¿Este componente es una PARTE de un servicio repartido? */
+            readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
