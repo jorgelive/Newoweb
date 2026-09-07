@@ -22,6 +22,7 @@ import { getUrls } from '@/services/apiClient';
 import { mensajeDeErrorApi } from '@/utils/errorApi';
 import { extractIdStr } from '@/utils/recurso';
 import { mandaElSegmento } from '@/utils/componenteTipo';
+import { etiquetaDeUnidades } from '@dominio/cotizacion/index.ts';
 import {
     getEstadoOsConfig,
     getEstadoReservaProveedorConfig,
@@ -1909,11 +1910,23 @@ const serviciosDeOrdenAbierta = computed<OperacionServicio[]>(() => {
  * Un `1` no se muestra: «1 noche» es ruido para un traslado o una entrada, donde la unidad es
  * implícita. La palabra depende del tipo: un alojamiento son noches, lo demás son «uds».
  */
-const nochesTexto = (cantidad: number | undefined, tipo: string | null | undefined): string => {
-    const n = cantidad ?? 1;
+/**
+ * «4 noches · », «5 días · », «5 desayunos · » — o «5 uds · » si no hay unidad que nombrar.
+ *
+ * ⚠️ Aquí estaba escrito `tipo === 'alojamiento' ? 'noches' : 'uds'`, así que un seguro de viaje
+ * de cinco días se rotulaba «5 uds». La unidad la declara el componente maestro y viaja congelada
+ * en la fila; ver `App\Travel\Enum\UnidadDeConteoEnum`.
+ */
+const unidadesTexto = (s: { cantidadComponente?: number; unidadDeConteo?: string | null; sustantivoUnidad?: string | null }): string => {
+    const n = s.cantidadComponente ?? 1;
     if (n <= 1) return '';
-    const palabra = tipo === 'alojamiento' ? 'noches' : 'uds';
-    return `${n} ${palabra} · `;
+
+    const propio = (s.sustantivoUnidad ?? '').trim();
+    const palabra = propio !== ''
+        ? propio
+        : (s.unidadDeConteo === 'noches' ? 'noche' : (s.unidadDeConteo === 'dias' ? 'día' : ''));
+
+    return palabra === '' ? `${n} uds · ` : `${etiquetaDeUnidades(n, palabra)} · `;
 };
 
 /** «hace 3 h», «hace 2 días», «hace un momento» — legible, no una fecha ISO. */
@@ -3749,7 +3762,7 @@ onMounted(async () => {
                                                 <i class="fas fa-comment-dots text-[8px] mr-1 text-slate-300"></i>{{ nota }}
                                             </p>
                                             <p class="text-[10px] text-slate-400 leading-snug">
-                                                {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ nochesTexto(s.cantidadComponente, s.tipoComponente) }}{{ s.cantidadPax }} pax
+                                                {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ unidadesTexto(s) }}{{ s.cantidadPax }} pax
                                             </p>
                                         </div>
                                         <!-- Lo NEGOCIADO, editable aquí mismo: es el momento en que
@@ -4470,7 +4483,7 @@ onMounted(async () => {
                                     {{ s.contextoServicio }}
                                 </p>
                                 <p class="text-[10px] text-slate-400">
-                                    {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ nochesTexto(s.cantidadComponente, s.tipoComponente) }}{{ s.cantidadPax }} pax
+                                    {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ unidadesTexto(s) }}{{ s.cantidadPax }} pax
                                 </p>
                             </div>
                             <span class="text-xs font-black text-slate-700 tabular-nums shrink-0">

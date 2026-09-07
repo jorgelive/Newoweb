@@ -223,6 +223,17 @@ class OperacionOrdenServicioItem
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
     private ?string $cantidad = null;
 
+    /**
+     * Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno».
+     *
+     * ⚠️ Un número pelado en un documento que lee un PROVEEDOR es una invitación a que pregunte.
+     * «4» al hotelero y «5» al de los seguros era la misma casilla diciendo cosas distintas.
+     * Vacío = no hay unidad que nombrar (un ticket, un traslado) y se pinta el número solo.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(name: 'sustantivo_unidad', type: 'string', length: 30, nullable: true)]
+    private ?string $sustantivoUnidad = null;
+
     #[Groups(['operacion:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2)]
     private string $importe = '0.00';
@@ -369,6 +380,37 @@ class OperacionOrdenServicioItem
 
     public function getCantidad(): ?string { return $this->cantidad; }
     public function setCantidad(?string $v): self { $this->cantidad = $v; return $this; }
+
+    public function getSustantivoUnidad(): ?string { return $this->sustantivoUnidad; }
+    public function setSustantivoUnidad(?string $v): self { $this->sustantivoUnidad = ($v === '' ? null : $v); return $this; }
+
+    /**
+     * «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar.
+     *
+     * La redacción vive aquí y no en la plantilla porque la leen el documento público, el PDF y
+     * el mensaje al proveedor. Escrita en cada uno, cambiaría en uno solo el día que se toque.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getCantidadParaProveedor(): ?string
+    {
+        $n = $this->cantidad === null ? null : (int) round((float) $this->cantidad);
+        if ($n === null || $n <= 0) {
+            return null;
+        }
+
+        $palabra = trim((string) $this->sustantivoUnidad);
+        if ($palabra === '') {
+            return (string) $n;
+        }
+
+        if ($n === 1) {
+            return sprintf('%d %s', $n, $palabra);
+        }
+
+        $plural = preg_match('/[aeiouáéíóú]$/iu', $palabra) === 1 ? $palabra . 's' : $palabra . 'es';
+
+        return sprintf('%d %s', $n, $plural);
+    }
 
     public function getImporte(): string { return $this->importe; }
     public function setImporte(string $v): self { $this->importe = $v; return $this; }

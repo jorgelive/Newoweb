@@ -127,7 +127,17 @@
                             <br>{{ nota }}
                         {% endfor %}
                     </td>
-                    <td class="pax">{{ item.cantidadPax ?: '—' }}</td>
+                    {# ⚠️ La cantidad NO estaba en el documento: sólo iban los pax. Un hotel de
+                       cuatro noches y un seguro de cinco días llegaban al proveedor sin decir
+                       cuánto se le encargaba, y la unidad la ponía él de su cosecha. La redacción
+                       la compone la entidad —la misma que usa el mensaje al proveedor— para que
+                       no haya dos sitios donde cambiarla. #}
+                    <td class="pax">
+                        {{ item.cantidadPax ?: '—' }}
+                        {% if item.cantidadParaProveedor and item.sustantivoUnidad %}
+                            <br><span class="sub">{{ item.cantidadParaProveedor }}</span>
+                        {% endif %}
+                    </td>
                 </tr>
             {% endfor %}
             </tbody>

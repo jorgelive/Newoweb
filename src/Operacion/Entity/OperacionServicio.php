@@ -488,6 +488,16 @@ class OperacionServicio
     #[ORM\Column(type: 'integer', options: ['default' => 1])]
     private int $cantidadComponente = 1;
 
+    /** `noches` | `dias` | `unidades`. Congelado del componente al generar la fila. */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(name: 'unidad_de_conteo', type: 'string', length: 20, options: ['default' => 'unidades'])]
+    private string $unidadDeConteo = 'unidades';
+
+    /** Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(name: 'sustantivo_unidad', type: 'string', length: 30, nullable: true)]
+    private ?string $sustantivoUnidad = null;
+
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2)]
     private string $montoVenta = '0.00';
@@ -1179,6 +1189,21 @@ class OperacionServicio
 
     public function getCantidadPax(): int { return $this->cantidadPax; }
     public function setCantidadPax(int $cantidadPax): self { $this->cantidadPax = $cantidadPax; return $this; }
+
+    /**
+     * En qué se cuenta `cantidadComponente`: `noches`, `dias` o `unidades`.
+     *
+     * ⚠️ **La columna se llamaba «Cantidad (noches/días)» en la reconciliación**, o sea que la
+     * ambigüedad estaba admitida por escrito y sin resolver: la misma casilla decía 4 noches de
+     * hotel y 5 días de seguro. Se congela al generar la fila, como el tipo y los nombres: leerla
+     * del catálogo al pintar haría que una orden emitida se leyera distinta el día que alguien
+     * reclasifique el producto.
+     */
+    public function getUnidadDeConteo(): string { return $this->unidadDeConteo; }
+    public function setUnidadDeConteo(string $v): self { $this->unidadDeConteo = ($v === '' ? 'unidades' : $v); return $this; }
+
+    public function getSustantivoUnidad(): ?string { return $this->sustantivoUnidad; }
+    public function setSustantivoUnidad(?string $v): self { $this->sustantivoUnidad = ($v === '' ? null : $v); return $this; }
 
     public function getCantidadComponente(): int { return $this->cantidadComponente; }
     public function setCantidadComponente(int $cantidadComponente): self { $this->cantidadComponente = $cantidadComponente; return $this; }

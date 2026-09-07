@@ -76,6 +76,8 @@ final readonly class OperacionOrdenEmision
                     ->setHoraRecojoConfirmada($servicio->getHoraRecojo())
                     ->setCantidadPax($servicio->getCantidadPax())
                     ->setCantidad((string) $servicio->getCantidadComponente())
+                    // Y en qué se cuenta: «4 noches» le dice al hotelero lo que «4» no le dice.
+                    ->setSustantivoUnidad($servicio->getSustantivoUnidad())
                     // Mientras nadie negocie, lo que se pide es lo cotizado: un cero se leería
                     // como «pactado en cero», que es lo contrario de «todavía sin pactar».
                     ->setImporte($negociado > 0.0 ? $servicio->getCostoNegociado() : $servicio->getCostoCotizado())

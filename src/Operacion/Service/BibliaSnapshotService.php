@@ -236,6 +236,10 @@ class BibliaSnapshotService
             // Noches / días / tramos: lo que se multiplica por el precio y lo que hay que
             // decirle al proveedor («4 noches»), no sólo «un hotel».
             'cantidadComponente'    => max(1, $cotcomponente->getCantidad()),
+            // En qué se cuenta esa cantidad. Sin esto, la casilla dice «4» tanto si son noches de
+            // hotel como si son días de seguro, y el proveedor tiene que adivinar.
+            'unidadDeConteo'        => $cotcomponente->getUnidadDeConteo(),
+            'sustantivoUnidad'      => $cotcomponente->getSustantivoUnidad(),
             // Sin tarifa el costo es 0 y no null: la fila es referencia, no una compra
             // de importe desconocido. Un null aquí obligaría a comprobarlo en cada suma.
             //
@@ -318,6 +322,14 @@ class BibliaSnapshotService
         if ($aplica('cantidadPax')) {
             $ops->setCantidadPax((int) $valores['cantidadPax']);
         }
+        if ($aplica('unidadDeConteo')) {
+            $ops->setUnidadDeConteo((string) $valores['unidadDeConteo']);
+        }
+
+        if ($aplica('sustantivoUnidad')) {
+            $ops->setSustantivoUnidad($this->comoTexto(is_scalar($valores['sustantivoUnidad'] ?? null) ? (string) $valores['sustantivoUnidad'] : null));
+        }
+
         if ($aplica('cantidadComponente')) {
             $ops->setCantidadComponente((int) $valores['cantidadComponente']);
         }

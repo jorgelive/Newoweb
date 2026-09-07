@@ -19578,6 +19578,8 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"] | null;
@@ -19592,6 +19594,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
+            readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
@@ -19638,6 +19642,8 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
@@ -19652,6 +19658,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
+            readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
@@ -19698,6 +19706,8 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
@@ -19712,6 +19722,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
+            readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
@@ -19758,6 +19770,8 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"] | null;
@@ -19772,6 +19786,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
+            readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
@@ -19818,6 +19834,8 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
@@ -19832,6 +19850,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
+            readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
@@ -19878,6 +19898,8 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
@@ -19892,6 +19914,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
+            readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
@@ -19938,6 +19962,8 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"] | null;
@@ -19952,6 +19978,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
+            readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
@@ -19998,6 +20026,8 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
@@ -20012,6 +20042,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
+            readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
@@ -20058,6 +20090,8 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
@@ -20072,6 +20106,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
+            readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
@@ -20118,6 +20154,8 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"] | null;
@@ -20132,6 +20170,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
+            readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
@@ -20178,6 +20218,8 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
@@ -20192,6 +20234,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
+            readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
@@ -20238,6 +20282,8 @@ export interface components {
             visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
+            /** @description Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;
@@ -20252,6 +20298,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «4 noches», «5 días», «5 desayunos» — o el número a secas si no hay unidad que nombrar. */
+            readonly cantidadParaProveedor?: string | null;
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
@@ -20441,6 +20489,13 @@ export interface components {
              * @default 1
              */
             cantidadComponente: number;
+            /**
+             * @description `noches` | `dias` | `unidades`. Congelado del componente al generar la fila.
+             * @default unidades
+             */
+            unidadDeConteo: string;
+            /** @description Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -20574,6 +20629,13 @@ export interface components {
              * @default 1
              */
             cantidadComponente: number;
+            /**
+             * @description `noches` | `dias` | `unidades`. Congelado del componente al generar la fila.
+             * @default unidades
+             */
+            unidadDeConteo: string;
+            /** @description Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -20676,6 +20738,13 @@ export interface components {
              * @default 1
              */
             cantidadComponente: number;
+            /**
+             * @description `noches` | `dias` | `unidades`. Congelado del componente al generar la fila.
+             * @default unidades
+             */
+            unidadDeConteo: string;
+            /** @description Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
@@ -20983,6 +21052,13 @@ export interface components {
              * @default 1
              */
             cantidadComponente: number;
+            /**
+             * @description `noches` | `dias` | `unidades`. Congelado del componente al generar la fila.
+             * @default unidades
+             */
+            unidadDeConteo: string;
+            /** @description Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -21116,6 +21192,13 @@ export interface components {
              * @default 1
              */
             cantidadComponente: number;
+            /**
+             * @description `noches` | `dias` | `unidades`. Congelado del componente al generar la fila.
+             * @default unidades
+             */
+            unidadDeConteo: string;
+            /** @description Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -21218,6 +21301,13 @@ export interface components {
              * @default 1
              */
             cantidadComponente: number;
+            /**
+             * @description `noches` | `dias` | `unidades`. Congelado del componente al generar la fila.
+             * @default unidades
+             */
+            unidadDeConteo: string;
+            /** @description Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
@@ -21335,6 +21425,13 @@ export interface components {
              * @default 1
              */
             cantidadComponente: number;
+            /**
+             * @description `noches` | `dias` | `unidades`. Congelado del componente al generar la fila.
+             * @default unidades
+             */
+            unidadDeConteo: string;
+            /** @description Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -21468,6 +21565,13 @@ export interface components {
              * @default 1
              */
             cantidadComponente: number;
+            /**
+             * @description `noches` | `dias` | `unidades`. Congelado del componente al generar la fila.
+             * @default unidades
+             */
+            unidadDeConteo: string;
+            /** @description Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -21570,6 +21674,13 @@ export interface components {
              * @default 1
              */
             cantidadComponente: number;
+            /**
+             * @description `noches` | `dias` | `unidades`. Congelado del componente al generar la fila.
+             * @default unidades
+             */
+            unidadDeConteo: string;
+            /** @description Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
@@ -21687,6 +21798,13 @@ export interface components {
              * @default 1
              */
             cantidadComponente: number;
+            /**
+             * @description `noches` | `dias` | `unidades`. Congelado del componente al generar la fila.
+             * @default unidades
+             */
+            unidadDeConteo: string;
+            /** @description Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -21820,6 +21938,13 @@ export interface components {
              * @default 1
              */
             cantidadComponente: number;
+            /**
+             * @description `noches` | `dias` | `unidades`. Congelado del componente al generar la fila.
+             * @default unidades
+             */
+            unidadDeConteo: string;
+            /** @description Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -21922,6 +22047,13 @@ export interface components {
              * @default 1
              */
             cantidadComponente: number;
+            /**
+             * @description `noches` | `dias` | `unidades`. Congelado del componente al generar la fila.
+             * @default unidades
+             */
+            unidadDeConteo: string;
+            /** @description Cómo se llama esa unidad en singular: «noche», «día», «desayuno». */
+            sustantivoUnidad?: string | null;
             /** @default 0.00 */
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;

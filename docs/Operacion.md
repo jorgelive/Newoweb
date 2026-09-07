@@ -9,6 +9,43 @@ Alcance: `src/Operacion/` (entidades, enums, servicio, listener, comando), los e
 
 ---
 
+## La unidad de conteo llega a Operaciones (07/09/2026)
+
+El rótulo de esa casilla en la reconciliación decía, literalmente, **«Cantidad (noches/días)»**: la
+ambigüedad estaba admitida por escrito y sin resolver. La misma columna decía 4 noches de hotel y 5
+días de seguro, y al proveedor le llegaba un número pelado — de hecho **ni siquiera le llegaba**: la
+orden pública sólo pintaba los pax.
+
+Y en La Biblia estaba escrito a mano:
+
+```ts
+const palabra = tipo === 'alojamiento' ? 'noches' : 'uds';   // ← un seguro salía «5 uds»
+```
+
+Ahora la unidad la declara el catálogo (`TravelComponente::$unidadDeConteo`, ver
+`docs/Cotizaciones.md`) y **se congela** en dos sitios más, por la misma razón que el tipo y los
+nombres: leerla del catálogo al pintar haría que una orden ya emitida se leyera distinta el día que
+alguien reclasifique el producto.
+
+| Dónde | Campo | Quién lo pone |
+|---|---|---|
+| Fila de La Biblia | `OperacionServicio::$unidadDeConteo` + `$sustantivoUnidad` | `BibliaSnapshotService` al generar |
+| Línea de la orden | `OperacionOrdenServicioItem::$sustantivoUnidad` | `OperacionOrdenEmision::emitir()` |
+
+La redacción («4 noches», «5 desayunos») la compone `getCantidadParaProveedor()` en la entidad, no
+la plantilla: la leen el documento público, el PDF y el mensaje al proveedor, y escrita en cada uno
+cambiaría en uno solo el día que se toque.
+
+⚠️ **La reconciliación vigila las dos columnas nuevas.** Reclasificar un producto en el catálogo
+—de `unidades` a `dias`— tiene que salir en el diff como cualquier otro cambio que la cotización
+gobierna, no aplicarse a escondidas.
+
+⚠️ **El backfill toca documentos YA EMITIDOS**, que normalmente no se tocan. Se hizo a conciencia y
+por decisión del operador, porque lo que cambia **no contradice** lo enviado: donde ponía «4»
+pondrá «4 noches». Ni una cifra, ni un importe, ni una fecha. Lo corre
+`app:operacion:backfill-unidades`, con `--dry-run`.
+
+
 ## Índice
 
 1. [Vocabulario](#1-vocabulario)

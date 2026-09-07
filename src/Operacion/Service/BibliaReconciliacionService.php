@@ -64,7 +64,12 @@ class BibliaReconciliacionService
         'tipoComponente'        => 'Tipo',
         'modoComponente'        => 'Modo',
         'estadoComponente'      => 'Estado en la cotización',
-        'cantidadComponente'    => 'Cantidad (noches/días)',
+        // ⚠️ El rótulo decía «Cantidad (noches/días)» porque la casilla significaba las dos cosas
+        // y nadie sabía cuál. Desde que la unidad es un dato, la casilla es la cantidad y la
+        // unidad se vigila aparte: reclasificar un producto en el catálogo tiene que salir aquí.
+        'cantidadComponente'    => 'Cantidad',
+        'unidadDeConteo'        => 'Se cuenta en',
+        'sustantivoUnidad'      => 'Nombre de la unidad',
         'cantidadPax'           => 'Pax',
         'costoCotizado'         => 'Costo cotizado',
         'monedaCotizadaId'      => 'Moneda',
@@ -506,6 +511,8 @@ class BibliaReconciliacionService
             'modoComponente'        => $fila->getModoComponente(),
             'estadoComponente'      => $fila->getEstadoComponente(),
             'cantidadComponente'    => $fila->getCantidadComponente(),
+            'unidadDeConteo'        => $fila->getUnidadDeConteo(),
+            'sustantivoUnidad'      => $fila->getSustantivoUnidad(),
             'cantidadPax'           => $fila->getCantidadPax(),
             'costoCotizado'         => $fila->getCostoCotizado(),
             'monedaCotizadaId'      => $fila->getMonedaCotizada()?->getId(),
