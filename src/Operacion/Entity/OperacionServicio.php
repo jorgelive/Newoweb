@@ -167,6 +167,17 @@ class OperacionServicio
     #[ORM\Column(type: 'date_immutable')]
     private ?\DateTimeImmutable $fechaServicio = null;
 
+    /**
+     * Cuándo TERMINA lo que dura: el checkout del hotel, el último día de la cobertura.
+     *
+     * ⚠️ Faltaba, y se notaba donde más duele: el mensaje al proveedor decía «Lun 31 ago» y nada
+     * más. Al hotelero le llegaba una fecha de entrada, sin salida y sin número de noches — o sea,
+     * el encargo sin su duración. Nulo en lo que ocurre y acaba el mismo día.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(name: 'fecha_fin_servicio', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $fechaFinServicio = null;
+
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 10, nullable: true)]
     private ?string $horaRecojo = null;
@@ -1199,6 +1210,9 @@ class OperacionServicio
      * del catálogo al pintar haría que una orden emitida se leyera distinta el día que alguien
      * reclasifique el producto.
      */
+    public function getFechaFinServicio(): ?\DateTimeImmutable { return $this->fechaFinServicio; }
+    public function setFechaFinServicio(?\DateTimeImmutable $v): self { $this->fechaFinServicio = $v; return $this; }
+
     public function getUnidadDeConteo(): string { return $this->unidadDeConteo; }
     public function setUnidadDeConteo(string $v): self { $this->unidadDeConteo = ($v === '' ? 'unidades' : $v); return $this; }
 

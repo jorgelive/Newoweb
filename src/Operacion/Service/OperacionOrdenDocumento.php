@@ -202,6 +202,20 @@ final readonly class OperacionOrdenDocumento
             $partes[] = sprintf('%d pax', $pax);
         }
 
+        // ⚠️ **Cuánto y hasta cuándo**, que es lo que faltaba. Al hotelero le llegaba «Lun 31 ago
+        // · Habitación Superior · 2 pax» — la entrada, sin salida y sin número de noches: el
+        // encargo sin su duración, y con la parte que más se pregunta por teléfono.
+        //
+        // Las dos redacciones viven en el ÍTEM, que es quien las pinta también en la página
+        // pública: escritas aquí también, cambiarían en un sitio y no en el otro.
+        if (($cuanto = $item->getCantidadParaProveedor()) !== null && $item->getSustantivoUnidad() !== null) {
+            $partes[] = $cuanto;
+        }
+
+        if (($hasta = $item->getHastaParaProveedor()) !== null) {
+            $partes[] = $hasta;
+        }
+
         // ── Dónde recoge y dónde deja ───────────────────────────────────────
         //
         // Va en su propio renglón: metida en la ristra de la línea, entre la hora y los pax, una

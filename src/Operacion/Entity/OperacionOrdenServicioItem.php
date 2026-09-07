@@ -7,6 +7,7 @@ namespace App\Operacion\Entity;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use DateTimeImmutable;
 use DateTimeInterface;
 use App\Operacion\Enum\VisibilidadPuntoEnum;
 use App\Travel\Enum\ComponenteTipoEnum;
@@ -223,6 +224,11 @@ class OperacionOrdenServicioItem
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
     private ?string $cantidad = null;
 
+    /** Cuándo termina el encargo: el checkout, el último día cubierto. Nulo si acaba el mismo día. */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(name: 'fecha_fin', type: 'date_immutable', nullable: true)]
+    private ?DateTimeImmutable $fechaFin = null;
+
     /**
      * Cómo se llama lo que cuenta `cantidad`, en singular: «noche», «día», «desayuno».
      *
@@ -323,6 +329,35 @@ class OperacionOrdenServicioItem
 
     public function getFechaServicio(): ?DateTimeInterface { return $this->fechaServicio; }
     public function setFechaServicio(?DateTimeInterface $v): self { $this->fechaServicio = $v; return $this; }
+
+    public function getFechaFin(): ?DateTimeImmutable { return $this->fechaFin; }
+    public function setFechaFin(?DateTimeImmutable $v): self { $this->fechaFin = $v; return $this; }
+
+    /**
+     * «hasta el jue 4 sep» — la salida, cuando el encargo dura más de un día.
+     *
+     * ⚠️ Se calla si acaba el mismo día: repetir la fecha del encabezado en cada línea enseña a
+     * no leerla. Y con el día de la semana, como el encabezado: a un hotelero le dice más «jueves»
+     * que «04/09», que es el formato que hay que traducir mentalmente.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getHastaParaProveedor(): ?string
+    {
+        if ($this->fechaFin === null || $this->fechaServicio === null) {
+            return null;
+        }
+
+        if ($this->fechaFin->format('Y-m-d') === $this->fechaServicio->format('Y-m-d')) {
+            return null;
+        }
+
+        return sprintf(
+            'hasta el %s %d %s',
+            self::DIAS[(int) $this->fechaFin->format('w')],
+            (int) $this->fechaFin->format('j'),
+            self::MESES[(int) $this->fechaFin->format('n') - 1],
+        );
+    }
 
     public function getHora(): ?string { return $this->hora; }
     public function setHora(?string $v): self { $this->hora = $v; return $this; }

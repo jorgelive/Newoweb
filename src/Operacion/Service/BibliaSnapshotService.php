@@ -239,6 +239,8 @@ class BibliaSnapshotService
             // En qué se cuenta esa cantidad. Sin esto, la casilla dice «4» tanto si son noches de
             // hotel como si son días de seguro, y el proveedor tiene que adivinar.
             'unidadDeConteo'        => $cotcomponente->getUnidadDeConteo(),
+            // Cuándo termina: sin esto el proveedor recibe la entrada y ninguna salida.
+            'fechaFinServicio'      => $cotcomponente->getFechaHoraFin()?->format('Y-m-d'),
             'sustantivoUnidad'      => $cotcomponente->getSustantivoUnidad(),
             // Sin tarifa el costo es 0 y no null: la fila es referencia, no una compra
             // de importe desconocido. Un null aquí obligaría a comprobarlo en cada suma.
@@ -322,6 +324,11 @@ class BibliaSnapshotService
         if ($aplica('cantidadPax')) {
             $ops->setCantidadPax((int) $valores['cantidadPax']);
         }
+        if ($aplica('fechaFinServicio')) {
+            $texto = $this->comoTexto(is_scalar($valores['fechaFinServicio'] ?? null) ? (string) $valores['fechaFinServicio'] : null);
+            $ops->setFechaFinServicio($texto === null ? null : new \DateTimeImmutable($texto));
+        }
+
         if ($aplica('unidadDeConteo')) {
             $ops->setUnidadDeConteo((string) $valores['unidadDeConteo']);
         }

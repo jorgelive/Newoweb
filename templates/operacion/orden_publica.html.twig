@@ -137,6 +137,10 @@
                         {% if item.cantidadParaProveedor and item.sustantivoUnidad %}
                             <br><span class="sub">{{ item.cantidadParaProveedor }}</span>
                         {% endif %}
+                        {# La salida. Se calla si acaba el mismo día: la fecha ya está en la fila. #}
+                        {% if item.hastaParaProveedor %}
+                            <br><span class="sub">{{ item.hastaParaProveedor }}</span>
+                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}

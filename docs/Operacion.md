@@ -40,6 +40,18 @@ cambiaría en uno solo el día que se toque.
 —de `unidades` a `dias`— tiene que salir en el diff como cualquier otro cambio que la cotización
 gobierna, no aplicarse a escondidas.
 
+⚠️ **Y faltaba la fecha de FIN, que es la mitad del encargo.** El mensaje que recibía el hotelero
+decía «Lun 31 ago · Habitación Superior · 2 pax»: la entrada, sin salida y sin número de noches —
+justo la parte que más se pregunta por teléfono. Ahora la fila y el ítem congelan
+`fechaFinServicio` / `fechaFin`, y el mensaje añade dos partes que redacta la entidad:
+
+```
+🕐 *Alojamiento en Lima*  ·  Habitación Superior Matrimonial  ·  2 pax  ·  4 noches  ·  hasta el jue 4 sep
+```
+
+`getHastaParaProveedor()` **se calla si acaba el mismo día**: la fecha ya encabeza el bloque, y
+repetirla en cada línea enseña a no leerla.
+
 ⚠️ **El backfill toca documentos YA EMITIDOS**, que normalmente no se tocan. Se hizo a conciencia y
 por decisión del operador, porque lo que cambia **no contradice** lo enviado: donde ponía «4»
 pondrá «4 noches». Ni una cifra, ni un importe, ni una fecha. Lo corre

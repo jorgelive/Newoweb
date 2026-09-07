@@ -68,6 +68,7 @@ class BibliaReconciliacionService
         // y nadie sabía cuál. Desde que la unidad es un dato, la casilla es la cantidad y la
         // unidad se vigila aparte: reclasificar un producto en el catálogo tiene que salir aquí.
         'cantidadComponente'    => 'Cantidad',
+        'fechaFinServicio'      => 'Fecha de fin',
         'unidadDeConteo'        => 'Se cuenta en',
         'sustantivoUnidad'      => 'Nombre de la unidad',
         'cantidadPax'           => 'Pax',
@@ -511,6 +512,7 @@ class BibliaReconciliacionService
             'modoComponente'        => $fila->getModoComponente(),
             'estadoComponente'      => $fila->getEstadoComponente(),
             'cantidadComponente'    => $fila->getCantidadComponente(),
+            'fechaFinServicio'      => $fila->getFechaFinServicio(),
             'unidadDeConteo'        => $fila->getUnidadDeConteo(),
             'sustantivoUnidad'      => $fila->getSustantivoUnidad(),
             'cantidadPax'           => $fila->getCantidadPax(),

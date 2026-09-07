@@ -59,6 +59,9 @@ final class BackfillUnidadesCommand extends Command
 
         $tocadas = 0;
         $sinComponente = 0;
+        $conFin = 0;
+        /** @var array<string, \DateTimeImmutable|null> $finPorServicio */
+        $finPorServicio = [];
         /** @var array<string, int> $porUnidad */
         $porUnidad = [];
         /** @var array<string, string|null> $sustantivoPorServicio  id de OperacionServicio → sustantivo */
@@ -75,7 +78,15 @@ final class BackfillUnidadesCommand extends Command
             $unidad = $componente->getUnidadDeConteo();
             $sustantivo = $componente->getSustantivoUnidad();
 
-            // Sin unidad que nombrar no hay nada que rellenar: el número pelado es lo correcto.
+            // La fecha de fin se rellena SIEMPRE que exista, aunque la unidad no tenga nombre: un
+            // traslado no dice «2 noches», pero saber que acaba al día siguiente sí importa.
+            $fin = $componente->getFechaHoraFin();
+            if ($fin !== null) {
+                $fila->setFechaFinServicio(\DateTimeImmutable::createFromInterface($fin)->setTime(0, 0));
+                ++$conFin;
+            }
+
+            // Sin unidad que nombrar no hay nada más que rellenar: el número pelado es lo correcto.
             if ($unidad === 'unidades') {
                 continue;
             }
@@ -86,6 +97,7 @@ final class BackfillUnidadesCommand extends Command
             $id = (string) $fila->getId();
             if ($id !== '') {
                 $sustantivoPorServicio[$id] = $sustantivo;
+                $finPorServicio[$id] = $fila->getFechaFinServicio();
             }
 
             $porUnidad[$unidad] = ($porUnidad[$unidad] ?? 0) + 1;
@@ -97,13 +109,22 @@ final class BackfillUnidadesCommand extends Command
 
         $itemsTocados = 0;
         foreach ($items as $item) {
-            $sustantivo = $sustantivoPorServicio[(string) $item->getOperacionServicioId()] ?? null;
+            $clave = (string) $item->getOperacionServicioId();
+            $sustantivo = $sustantivoPorServicio[$clave] ?? null;
+            $fin = $finPorServicio[$clave] ?? null;
 
-            if ($sustantivo === null || $sustantivo === '') {
+            if ($sustantivo === null && $fin === null) {
                 continue;
             }
 
-            $item->setSustantivoUnidad($sustantivo);
+            if ($sustantivo !== null && $sustantivo !== '') {
+                $item->setSustantivoUnidad($sustantivo);
+            }
+
+            if ($fin !== null) {
+                $item->setFechaFin($fin);
+            }
+
             ++$itemsTocados;
         }
 
@@ -113,6 +134,7 @@ final class BackfillUnidadesCommand extends Command
                 ['Filas de La Biblia revisadas', (string) count($filas)],
                 ['  con unidad que nombrar', (string) $tocadas],
                 ['  sin componente vivo (se dejan)', (string) $sinComponente],
+                ['  con fecha de fin', (string) $conFin],
                 ['Líneas de órdenes ya emitidas', (string) $itemsTocados],
             ]
         );
