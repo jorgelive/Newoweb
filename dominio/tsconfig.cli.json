@@ -1,0 +1,14 @@
+{
+  // Los puntos de entrada que PHP invoca con `node`. Son los ÚNICOS de `dominio/` que pueden
+  // tocar `process`, `Buffer` o `node:*`; el resto del paquete corre también en el navegador y su
+  // `tsconfig.json` lo prohíbe con `"types": []`.
+  //
+  // Los módulos que estos archivos importan entran por dependencia y se comprueban aquí también,
+  // pero con Node disponible: la comprobación que de verdad los sujeta es la del otro config.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["**/*.cli.ts"],
+  "exclude": []
+}

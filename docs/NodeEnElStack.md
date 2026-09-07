@@ -329,6 +329,34 @@ necesita `jsdom` porque allí las reglas viven dentro de stores que importan un 
 `error TS1294 ... not allowed when 'erasableSyntaxOnly' is enabled` **al escribirlo**. Sin ese
 candado compilaría en Vite y moriría en el servidor con `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`.
 
+⚠️ **`npm run typecheck` en `dominio/` llevaba tiempo en rojo, y eso quiere decir que nadie lo
+corría** (arreglado el 07/09/2026). Diez errores, todos en `itinerario.cli.ts`: `process` y
+`Buffer` sin `@types/node`. Un script que sale en rojo por algo que a nadie le importa deja de
+consultarse, y entonces tampoco avisa de lo que sí importa.
+
+El arreglo obvio —instalar `@types/node` y poner `"types": ["node"]`— **rompe lo que el paquete
+existe para garantizar**: estos módulos corren también en el navegador, y el compilador es lo
+único que impide que alguien escriba `process.env` o `import 'node:fs'` en una regla de negocio.
+
+Costó dos intentos entenderlo, y merece quedar escrito porque no es intuitivo:
+
+| Intento | Qué pasó |
+|---|---|
+| `/// <reference types="node" />` dentro del propio `.cli.ts` | **No acota nada**: una referencia triple-slash es global a la compilación entera. `process` pasó a compilar en cualquier archivo |
+| `"types": []` + excluir sólo los `.cli.ts` | Tampoco. `"types"` controla la inclusión **automática** de `@types/*`, no las referencias que arrastran los `.d.ts` importados: un `import ... from 'vitest'` en el archivo de tests metía los globales de Node en todo el programa |
+
+La barrera sólo es real si el programa **no importa nada que arrastre esos tipos**. De ahí las tres
+configuraciones, cada una con su trabajo:
+
+| | Qué comprueba | `types` |
+|---|---|---|
+| `tsconfig.json` | los módulos puros — **es la barrera** | `[]` |
+| `tsconfig.cli.json` | `**/*.cli.ts`, que existen para correr en Node | `["node"]` |
+| `tsconfig.test.json` | los tests y `vitest.config.ts`, que importan vitest | `["node"]` |
+
+`npm run typecheck` corre las tres. Comprobado con una sonda: un módulo normal con `process` da
+`TS2591`; el mismo código en un `.cli.ts`, no.
+
 🔥 **Y el 403 que predijo el plan ocurrió.** Vite restringe qué archivos sirve a la raíz del
 proyecto: con el módulo fuera, el **build funcionaba** y el dev server devolvía
 `403 Restricted ... outside of Vite serving allow list`. Se arregla con `server.fs.allow: ['..']`

@@ -15,5 +15,23 @@
     "lib": ["ESNext"],
     "types": []
   },
-  "include": ["**/*.ts"]
+  // ⚠️ **Esta configuración es LA BARRERA**, y por eso deja fuera todo lo que no es un módulo
+  // puro. `dominio/` corre también en el navegador: `process`, `Buffer` y `node:*` no pueden
+  // estar disponibles aquí, y el compilador es lo único que lo impide.
+  //
+  // Se comprueban aparte, cada uno con sus tipos:
+  //   `**/*.cli.ts`   → `tsconfig.cli.json`   corren en Node, es su razón de ser
+  //   `**/*.test.ts`  → `tsconfig.test.json`  importan vitest, que arrastra los tipos de Node
+  //   `vitest.config.ts`                       igual
+  //
+  // ⚠️ **`"types": []` NO basta por sí solo**, y esto costó dos intentos el 07/09/2026:
+  // controla la inclusión AUTOMÁTICA de `@types/*`, no las referencias que traen los `.d.ts`
+  // que se importan. Con `@types/node` instalado, basta un `import ... from 'vitest'` para
+  // que los globales de Node entren en la compilación entera y `process` compile en
+  // cualquier archivo. Tampoco sirve una `/// <reference types="node" />` dentro del
+  // `.cli.ts`: es global a la compilación, y abre la misma puerta.
+  //
+  // La barrera sólo es real si el programa NO importa nada que arrastre esos tipos.
+  "include": ["**/*.ts"],
+  "exclude": ["**/*.cli.ts", "**/*.test.ts", "vitest.config.ts"]
 }

@@ -1,0 +1,10 @@
+{
+  // Los tests. Importan vitest, que trae consigo los tipos de Node, así que aquí la barrera del
+  // `tsconfig.json` no puede sostenerse — y no hace falta: estos archivos no se empaquetan.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["**/*.test.ts", "vitest.config.ts"],
+  "exclude": []
+}

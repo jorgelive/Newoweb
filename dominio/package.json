@@ -7,10 +7,11 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.cli.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "gen:api": "php ../bin/console cache:pool:clear --all --quiet && php ../bin/console api:openapi:export -o .openapi.json && openapi-typescript .openapi.json -o api.d.ts && rm .openapi.json"
   },
   "devDependencies": {
+    "@types/node": "^26.4.1",
     "openapi-typescript": "^7.13.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"
