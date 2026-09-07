@@ -253,11 +253,71 @@ const compsConHora = (b: BloqueVista) =>
 const mandaElSegmento = (tipo?: string | null): boolean =>
     tipo === 'transporte' || tipo === 'tren' || tipo === 'vuelo';
 
+/**
+ * Para comparar títulos entre hermanos: sin acentos, sin caja y sin puntuación.
+ *
+ * ⚠️ Comparar en crudo deja la regla a merced de la higiene del catálogo. En esta misma base
+ * conviven «[ ARAJET ]» y «[ Arajet ]»: un espacio o una mayúscula de más y dos títulos que son
+ * el mismo cuentan como distintos, que es justo el error que hay que evitar aquí.
+ */
+const normalizarTitulo = (t: string): string =>
+    t.normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .trim();
+
+/**
+ * ¿Habla cada componente por sí mismo, o los tapa el segmento?
+ *
+ * 🔥 **La condición que `mandaElSegmento` no puede tener.** El tipo dice a quién se le cree la
+ * DIRECCIÓN —el título de un vuelo es una etiqueta de catálogo; el de un «Guiado» es la actividad
+ * misma— pero no dice si el título aporta algo. Lo segundo lo dicen los hermanos:
+ *
+ * - **Todos se llaman IGUAL** → el título no distingue nada. Un vuelo repartido entre dos
+ *   compañías enseña dos líneas que dicen las dos «Vuelo desde la ciudad de Cusco a la ciudad de
+ *   Lima»; lo único que las separa es el sello. Manda el segmento y el título se calla.
+ * - **Hay más de un nombre** → el título ES la información. El traslado bimodal son dos tramos
+ *   consecutivos —«dentro de Cusco hasta Terminal de bus» y «desde Terminal de bus a Estación de
+ *   Ollantaytambo»—: aquí ida y vuelta ya viven en segmentos separados, así que la ruta congelada
+ *   que justificó `mandaElSegmento` no existe, y callarlos le quitaba al huésped el de-dónde-a-dónde
+ *   a las 04:20 de la mañana.
+ *
+ * ⚠️ **Decide el BLOQUE entero, no cada fila.** Con dos hermanos iguales y un tercero distinto
+ * hablan LOS TRES, aunque los dos primeros repitan. Dos motivos: una lista donde una línea tiene
+ * título y la de al lado no se lee como un fallo de datos, y callarlos a todos por culpa de los
+ * gemelos se llevaría por delante al tercero, que es el único que dice hacia dónde va.
+ *
+ * Por eso la condición es «cuántos NOMBRES distintos hay», no «están todos repetidos»: uno solo
+ * tapa el bloque, dos o más lo abren.
+ *
+ * ⚠️ **Riesgo asumido: distintos pero congelados.** Si dos compañías traen del catálogo la misma
+ * ruta redactada con frases distintas, esto los da por informativos y el huésped vuelve a leer la
+ * dirección al revés bajo un segmento que dice lo contrario. El síntoma se ve y se cura
+ * renombrando el producto; el precio de no arriesgarlo era perder el bimodal.
+ *
+ * ⚠️ **Vive SÓLO aquí, y no es un espejo que se quedó atrás.** `mandaElSegmento` sigue siendo la
+ * misma en los cuatro sitios. Esta cláusula es de la guía del huésped porque es la única pantalla
+ * con UNA ranura: en La Biblia y en la orden el nombre que no manda baja a la ranura secundaria y
+ * no se pierde nada, así que allí no hay nada que arreglar.
+ */
+const hablaCadaComponente = (b: BloqueVista): boolean => {
+  const titulos = compsConHora(b)
+      .map((c) => normalizarTitulo(store.traducir(c.tituloSnapshot) || ''))
+      .filter((t) => t !== '');
+
+  return new Set(titulos).size > 1;
+};
+
 /** El texto de la línea de horarios: el que de verdad identifica ese momento del día. */
-const tituloDeComponente = (c: PaxCotComponente, segmento: { tituloSnapshot?: unknown }): string => {
+const tituloDeComponente = (
+    c: PaxCotComponente,
+    segmento: { tituloSnapshot?: unknown },
+    hablanLosComponentes = false,
+): string => {
   const delSegmento = store.traducir(segmento?.tituloSnapshot as never) || '';
 
-  if (mandaElSegmento(c.tipo) && delSegmento !== '') {
+  if (mandaElSegmento(c.tipo) && !hablanLosComponentes && delSegmento !== '') {
     return delSegmento;
   }
 
@@ -285,8 +345,12 @@ const tituloDeComponente = (c: PaxCotComponente, segmento: { tituloSnapshot?: un
  * vuela, fuera la condición de la tarifa. La condición no desempata nada y convertía la pastilla
  * en un párrafo.
  */
-const selloDeComponente = (c: PaxCotComponente, segmento: { tituloSnapshot?: unknown }): string => {
-  const titulo = tituloDeComponente(c, segmento).trim().toLowerCase();
+const selloDeComponente = (
+    c: PaxCotComponente,
+    segmento: { tituloSnapshot?: unknown },
+    hablanLosComponentes = false,
+): string => {
+  const titulo = tituloDeComponente(c, segmento, hablanLosComponentes).trim().toLowerCase();
 
   for (const t of c.cottarifas ?? []) {
     if ((t.rolSnapshot ?? 'estandar') === 'operativo') {
@@ -318,6 +382,32 @@ const horaRango = (c: PaxCotComponente) => {
   const hi = hhmm(c.fechaHoraInicio);
   const hf = hhmm(c.fechaHoraFin);
   return hf && hf !== hi ? `${hi} – ${hf}` : hi;
+};
+
+/**
+ * Las filas de la lista de horarios, ya resueltas: hora, título —o nada— y sello.
+ *
+ * Se decide aquí y no en la plantilla porque `hablaCadaComponente` es una pregunta del BLOQUE y
+ * la fila sólo puede responderla mirando a sus hermanos: calculada por fila serían tantas pasadas
+ * como filas, y peor, invitaba a que la plantilla la evaluara dos veces con el mismo resultado.
+ *
+ * `titulo` viene ya en `null` cuando repetiría el encabezado de la tarjeta que está tres líneas
+ * más arriba.
+ */
+const filasDeHorario = (b: BloqueVista): { id: string; hora: string | null; titulo: string | null; sello: string }[] => {
+  const hablan = hablaCadaComponente(b);
+  const delSegmento = store.traducir(b.segmento.tituloSnapshot) || '';
+
+  return compsConHora(b).map((c) => {
+    const titulo = tituloDeComponente(c, b.segmento, hablan);
+
+    return {
+      id: c.id,
+      hora: horaRango(c),
+      titulo: titulo !== delSegmento ? titulo : null,
+      sello: selloDeComponente(c, b.segmento, hablan),
+    };
+  });
 };
 
 // ── Imágenes de segmento (galería) ───────────────────────────────────────────
@@ -1861,33 +1951,27 @@ const adelantoVista = computed(() => {
                        las dos cosas a la vez. Aquí lo único intocable es la hora; lo demás fluye a
                        la línea siguiente, que en un móvil es lo que hay. -->
                   <p
-                      v-for="c in compsConHora(item)"
-                      :key="c.id"
+                      v-for="f in filasDeHorario(item)"
+                      :key="f.id"
                       class="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-xs font-bold text-slate-500"
                   >
                     <span class="flex items-baseline gap-2 shrink-0">
                       <i class="far fa-clock text-[#E07845]"></i>
-                      <span class="tabular-nums text-[#376875] font-black text-sm whitespace-nowrap">{{ horaRango(c) }}</span>
+                      <span class="tabular-nums text-[#376875] font-black text-sm whitespace-nowrap">{{ f.hora }}</span>
                     </span>
 
                     <!-- El título se calla cuando repite el de la tarjeta: en vuelo, tren y
-                         transporte lo pone el segmento, así que las dos partes dirían lo mismo que
-                         el encabezado que está tres líneas más arriba. Callándolo, el sello —que es
-                         lo único que desempata— se lleva el ancho entero. -->
-                    <span v-if="tituloDeComponente(c, item.segmento) !== store.traducir(item.segmento.tituloSnapshot)"
-                          class="min-w-0 break-words">
-                      {{ tituloDeComponente(c, item.segmento) }}
-                    </span>
+                         transporte lo pone el segmento SI los hermanos se llaman igual, así que
+                         las dos partes dirían lo mismo que el encabezado que está tres líneas más
+                         arriba. Callándolo, el sello —que es lo único que desempata— se lleva el
+                         ancho entero. Quién manda lo resuelve `filasDeHorario`. -->
+                    <span v-if="f.titulo" class="min-w-0 break-words">{{ f.titulo }}</span>
 
                     <!-- El sello que desempata: la tarifa. Ver selloDeComponente. -->
-                    <!-- Se calcula UNA vez: en el `v-if` y en la interpolación era la misma
-                         función dos veces por fila. -->
-                    <template v-for="sello in [selloDeComponente(c, item.segmento)]" :key="sello">
-                      <span v-if="sello"
-                            class="min-w-0 break-words text-[10px] font-black uppercase tracking-wider text-[#376875]/70 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
-                        {{ sello }}
-                      </span>
-                    </template>
+                    <span v-if="f.sello"
+                          class="min-w-0 break-words text-[10px] font-black uppercase tracking-wider text-[#376875]/70 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
+                      {{ f.sello }}
+                    </span>
                   </p>
                 </div>
 
