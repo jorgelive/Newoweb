@@ -12,6 +12,33 @@ está declarado en el enum pero **sin resolver**: emitir un cobro con ese origen
 propósito.
 
 
+## 🔥 Los números del servidor dejan de estar tecleados en el front (08/09/2026)
+
+`pax` llevaba `const RECARGO_TARJETA_PCT = 5.5` con un comentario que decía *«si algún día cambia,
+este es el único sitio»*. **Y no lo era**: el mismo número vive en `services_finanzas.yaml` y en
+`PmsMedioPago::comisionPorcentaje()`. Tres copias — y ésta es **la que ve el cliente**: se podía
+subir el recargo en el servidor y esa pantalla seguiría enseñando el cálculo viejo, sin un error.
+
+`GET /config/front` sirve los valores y las dos apps los piden al arrancar.
+
+| Dónde | Qué hay |
+|---|---|
+| `ConfigFrontController` | Lista blanca escrita a mano. **No** es «devuelve el parámetro que te pidan» |
+| `@dominio/finanzas` | La REGLA: `avisoDeTope()` y `totalConRecargo()`, con sus tests |
+| `useConfigDelFront()` (una por app) | Sólo trae el dato. La fórmula no se copia |
+
+⚠️ **Público y sin sesión, a propósito.** `pax` es la app del huésped y no tiene la del operador;
+y son valores que el cliente descubre igual pagando una vez —el recargo se le enseña, el tope se
+topa—. Lo que lo mantiene sano es que la lista sea blanca y escrita a mano.
+
+⚠️ **La regla va a `dominio/` y no a cada app.** Copiarla en las dos habría sido repetir el mismo
+error el día de corregirlo. Sus tests incluyen el caso que la justifica: **2 900 USD parece válido
+y no lo es**, porque con el recargo son 3 059,50.
+
+⚠️ **Y arranca con los valores de hoy como respaldo.** Si la petición falla, la pantalla sigue
+calculando —con el número de ayer, que es mejor que ninguno— en vez de enseñar un cero. Cuando
+llega la respuesta, gana ella.
+
 ## 🔥 El tope antifraude de la pasarela, comprobado al EMITIR (08/09/2026)
 
 Culqi rechaza por encima de **3 000 USD** y **10 000 PEN** por operación. No es una política

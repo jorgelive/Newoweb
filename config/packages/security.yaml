@@ -103,6 +103,11 @@ security:
 
     access_control:
         # Login/logout públicos (Incluyendo la nueva ruta AJAX)
+        # Tres números de negocio —recargo de tarjeta y tope por cargo— que las dos apps necesitan
+        # para calcular lo mismo que el servidor. `pax` no tiene sesión de operador y son valores
+        # que el cliente descubre igualmente pagando una vez. Lista blanca escrita a mano en
+        # `ConfigFrontController`: esto NO se convierte en «devuelve el parámetro que te pidan».
+        - { path: '^/config/front$', roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: '^/ajax_login$', roles: PUBLIC_ACCESS }
         - { path: '^/login$',  roles: PUBLIC_ACCESS }
         - { path: '^/logout$', roles: PUBLIC_ACCESS }

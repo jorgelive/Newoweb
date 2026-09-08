@@ -6,6 +6,8 @@ import { ref, computed, nextTick, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { usePmsReservaStore } from '@/stores/huesped/paxHuespedReservaStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
+import { useConfigDelFront } from '@/composables/useConfigDelFront';
+import { totalConRecargo } from '@dominio/finanzas';
 import type { PmsEventoCalendario } from '@/types/paxHuespedModel';
 
 const props = defineProps<{
@@ -141,11 +143,22 @@ const verGuiaEvento = (evento: PmsEventoCalendario) => {
  * ───────────────────────────────────────────────────────────── */
 
 /**
- * Recargo por pago con tarjeta, en %. Regla comercial del establecimiento
- * (comisión de la pasarela): se calcula SOLO para mostrar — el cobro real lo
- * hace recepción. Si algún día cambia, este es el único sitio.
+ * Recargo por pago con tarjeta: **lo dice el SERVIDOR**.
+ *
+ * 🔥 Estaba tecleado aquí como `const RECARGO_TARJETA_PCT = 5.5`, con un comentario que decía «si
+ * algún día cambia, este es el único sitio». **Y no lo era**: el mismo número vive en
+ * `services_finanzas.yaml` y en `PmsMedioPago::comisionPorcentaje()`. Tres copias, y ésta es la
+ * que ve el cliente: se podía subir el recargo en el servidor y esta pantalla seguiría enseñando
+ * el cálculo viejo, sin un solo error.
+ *
+ * `useConfigDelFront()` lo trae una vez y arranca con el valor de hoy como respaldo, así que si la
+ * petición falla la pantalla sigue calculando en vez de quedarse en blanco.
  */
-const RECARGO_TARJETA_PCT = 5.5;
+const { config: configFront, cargar: cargarConfigFront } = useConfigDelFront();
+
+void cargarConfigFront();
+
+const recargoTarjetaPct = computed(() => Number(configFront.value.recargoTarjetaPorcentaje));
 
 const finanzas = computed(() => pmsStore.reserva?.resumenFinanciero ?? null);
 
@@ -436,7 +449,7 @@ const todoPagado = computed(() =>
 
 /** Saldo pagando con tarjeta: saldo + comisión, redondeado a 2 decimales. */
 const finSaldoTarjeta = computed(() =>
-    Math.round(finSaldo.value * (1 + RECARGO_TARJETA_PCT / 100) * 100) / 100
+    totalConRecargo(finSaldo.value, configFront.value.recargoTarjetaPorcentaje)
 );
 
 /** % pagado para la barra de progreso (acotado a [0, 100]). */
@@ -1342,7 +1355,7 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                       <i class="fas fa-credit-card mr-1.5 text-[#376875]"></i>{{ maestroStore.t('res_saldo_tarjeta') || 'Pagando con tarjeta' }}
                     </span>
                     <span class="block text-[10px] font-semibold text-slate-400 mt-0.5">
-                      {{ maestroStore.t('res_recargo_nota', { pct: String(RECARGO_TARJETA_PCT) }) || `Incluye ${RECARGO_TARJETA_PCT}% de comisión` }}
+                      {{ maestroStore.t('res_recargo_nota', { pct: String(recargoTarjetaPct) }) || `Incluye ${recargoTarjetaPct}% de comisión` }}
                     </span>
                   </span>
                   <span class="text-lg font-black text-[#376875] tabular-nums shrink-0">{{ formatMonto(finSaldoTarjeta) }}</span>

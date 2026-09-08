@@ -32,6 +32,7 @@ import {
 } from '@/types/finEnlacePagoModel';
 import type { FinCajaFiltros, FinMovimiento } from '@/types/finMovimientoModel';
 import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
+import { useConfigDelFront } from '@/composables/useConfigDelFront';
 
 const router = useRouter();
 const store = useCajaStore();
@@ -205,6 +206,10 @@ const errorForm = ref<string | null>(null);
 /** Enlace recién emitido: se muestra su URL para copiarla sin buscarla en la tabla. */
 const recienCreado = ref<FinEnlacePago | null>(null);
 
+const { cargar: cargarConfig, superaElTope } = useConfigDelFront();
+
+void cargarConfig();
+
 const formManual = ref({
     monto: '',
     moneda: 'USD',
@@ -218,6 +223,16 @@ const formManual = ref({
     clienteTelefono: '',
     referencia: '',
 });
+
+/**
+ * El aviso del tope de la pasarela, o `null`.
+ *
+ * La regla vive en `@dominio/finanzas/topePorCargo` y es la MISMA que aplica
+ * `FinEnlacePagoService::comprobarTope()` al emitir: aquí sólo se enseña antes.
+ */
+const avisoTope = computed(() =>
+    superaElTope(Number(formManual.value.monto), formManual.value.moneda, formManual.value.conRecargo));
+
 
 function abrirFormManual(): void {
     errorForm.value = null;
@@ -924,7 +939,8 @@ function fechaLarga(iso?: string | null): string {
                         <label class="block">
                             <span class="text-[10px] font-black text-slate-500 uppercase">Importe</span>
                             <input v-model="formManual.monto" type="number" step="0.01" min="0.01"
-                                class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                                class="mt-1 w-full px-2 py-1.5 border rounded-lg text-xs font-bold"
+                                :class="avisoTope ? 'border-amber-300 bg-amber-50' : 'border-slate-200'" />
                         </label>
                         <label class="block">
                             <span class="text-[10px] font-black text-slate-500 uppercase">Moneda</span>
@@ -935,6 +951,15 @@ function fechaLarga(iso?: string | null): string {
                             </select>
                         </label>
                     </div>
+
+                    <!-- 🔥 **El tope, MIENTRAS se escribe.** El servidor lo rechaza igual al pulsar
+                         «Emitir», pero para entonces ya se rellenaron concepto, nombre, apellido y
+                         correo. Y el caso que se cuela es el del filo —2 900 USD parece válido y no
+                         lo es, porque con el recargo son 3 059,50—: ése no se adivina.
+                         La regla es la misma que la del servidor, compartida en `dominio/`. -->
+                    <p v-if="avisoTope" class="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 leading-snug">
+                        <i class="fas fa-triangle-exclamation mr-1"></i>{{ avisoTope }}
+                    </p>
 
                     <div class="grid grid-cols-2 gap-3">
                         <!-- Sólo etiqueta: no vincula con ningún documento. -->
