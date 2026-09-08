@@ -1307,6 +1307,12 @@ que no caduca.
 ⚠️ **`OTROS` no caduca a propósito**: es el cajón de lo que no se clasificó, así que no sabemos qué
 hay dentro. Borrar por defecto lo no clasificado es como se pierde el único ejemplar de algo.
 
+**Corre por cron a las 4:10**, y ⚠️ **en el cron sólo apunta lo que borra**: la tabla entera son
+~50 KB cada noche con 542 boarding passes —18 MB al año de un log que nadie lee—, y una noche sin
+nada que borrar no escribe ni una línea. Un log que dice «0» todas las madrugadas es un log que se
+deja de mirar, y entonces tampoco se ve el día que dice otra cosa. En `--dry-run` sí sale la tabla
+completa: ahí es el resultado, no el registro.
+
 ⚠️ **Y no hay columna `caduca_el`.** La fecha se calcula cada vez desde el retorno del expediente
 (la última fecha de segmentos y componentes), así que si el viaje se mueve, la caducidad se mueve
 con él. Una fecha guardada seguiría apuntando al viaje que se planeó.

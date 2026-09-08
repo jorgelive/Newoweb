@@ -109,18 +109,24 @@ final class PurgarArchivosCommand extends Command
             $caduca = $fin?->modify(sprintf('+%d months', $meses));
             $vencido = $caduca !== null && $caduca < $hoy;
 
-            $filas[] = [
-                (string) $file->getLocalizador(),
-                $archivo->getTipoArchivo()->value ?? '—',
-                trim(sprintf(
-                    '%s %s',
-                    (string) $archivo->getPasajero()?->getNombre(),
-                    (string) $archivo->getPasajero()?->getApellido(),
-                )) ?: '(sin pasajero)',
-                $fin?->format('d/m/Y') ?? '— sin fechas',
-                $caduca?->format('d/m/Y') ?? '—',
-                $vencido ? '🔥 se borra' : 'se queda',
-            ];
+            // ⚠️ En el cron sólo se apunta lo que SE BORRA. Con 542 boarding passes por grupo, la
+            // tabla entera son ~50 KB cada noche —18 MB al año de un log que nadie lee— y aquí un
+            // disco lleno ya tumbó producción una vez. En ensayo sí se enseña todo: ahí la tabla
+            // es el resultado, no el registro.
+            if ($seco || $vencido) {
+                $filas[] = [
+                    (string) $file->getLocalizador(),
+                    $archivo->getTipoArchivo()->value ?? '—',
+                    trim(sprintf(
+                        '%s %s',
+                        (string) $archivo->getPasajero()?->getNombre(),
+                        (string) $archivo->getPasajero()?->getApellido(),
+                    )) ?: '(sin pasajero)',
+                    $fin?->format('d/m/Y') ?? '— sin fechas',
+                    $caduca?->format('d/m/Y') ?? '—',
+                    $vencido ? '🔥 se borra' : 'se queda',
+                ];
+            }
 
             if (!$vencido) {
                 continue;
@@ -141,11 +147,19 @@ final class PurgarArchivosCommand extends Command
             ++$borrados;
         }
 
-        $io->table(['Expediente', 'Tipo', 'Pasajero', 'Retorno', 'Caduca', ''], $filas);
+        if ($filas !== []) {
+            $io->table(['Expediente', 'Tipo', 'Pasajero', 'Retorno', 'Caduca', ''], $filas);
+        }
 
         if ($seco) {
             $io->warning(sprintf('Ensayo: se borrarían %d.', $borrados));
 
+            return Command::SUCCESS;
+        }
+
+        if ($borrados === 0) {
+            // Silencio: es la noche normal. Un log que dice «0» todas las madrugadas es un log que
+            // se deja de mirar, y entonces tampoco se ve el día que dice otra cosa.
             return Command::SUCCESS;
         }
 
