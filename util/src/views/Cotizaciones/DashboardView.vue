@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import { useMaestroStore } from '@/stores/maestroStore';
+import { useDuenioDeIdentificador } from '@/composables/useDuenioDeIdentificador';
 import type { ApiCotizacionFile } from '@/types/fileDetalleModel';
 import {
     ESTADO_FILE_LABELS,
@@ -179,6 +180,16 @@ const sortedFiles = computed(() => {
 const showCreateModal = ref<boolean>(false);
 
 // Payload reactivo del formulario, utilizando IDs crudos para la interacción UI
+/**
+ * El aviso de «este número ya es de alguien», mientras se teclea.
+ *
+ * `yaTieneHilo` es `false` porque un expediente que se está creando **no tiene hilo todavía**: el
+ * desenlace es la unión al hilo de esa persona, no un rechazo. El composable redacta la frase que
+ * toca; aquí no se decide nada.
+ */
+const duenioTelefono = useDuenioDeIdentificador(() => false);
+const duenioCorreo = useDuenioDeIdentificador(() => false);
+
 const newFile = ref({
   nombreGrupo: '',
   pasajeroPrincipal: '',
@@ -239,6 +250,8 @@ const handleCreate = async (): Promise<void> => {
     // Cierre de interfaz modal y purga de estado temporal
     showCreateModal.value = false;
     newFile.value = { nombreGrupo: '', pasajeroPrincipal: '', email: '', telefono: '', paisId: 'PE', idiomaId: 'es' };
+    duenioTelefono.limpiar();
+    duenioCorreo.limpiar();
 
     // Extracción segura del ID en presencia del estándar Hydra
     const safeId = result.id || (result['@id'] as string).split('/').pop();
@@ -462,15 +475,30 @@ const loadMore = (): void => {
               <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Email corporativo o personal</label>
               <div class="relative">
                 <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                <input v-model="newFile.email" type="email" placeholder="correo@ejemplo.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-[#376875]/30 focus:border-[#376875] focus:bg-white transition-colors font-medium">
+                <input v-model="newFile.email" type="email" placeholder="correo@ejemplo.com"
+                       @input="duenioCorreo.comprobar('email', newFile.email)"
+                       class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-[#376875]/30 focus:border-[#376875] focus:bg-white transition-colors font-medium">
               </div>
+              <p v-if="duenioCorreo.aviso.value" class="mt-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 leading-snug">
+                <i class="fas fa-circle-info mr-1"></i>{{ duenioCorreo.aviso.value }}
+              </p>
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">WhatsApp / Teléfono</label>
               <div class="relative">
                 <i class="fas fa-phone-alt absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                <input v-model="newFile.telefono" type="tel" placeholder="+51 987 654 321" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-[#376875]/30 focus:border-[#376875] focus:bg-white transition-colors font-medium">
+                <input v-model="newFile.telefono" type="tel" placeholder="+51 987 654 321"
+                       @input="duenioTelefono.comprobar('telefono', newFile.telefono)"
+                       class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-[#376875]/30 focus:border-[#376875] focus:bg-white transition-colors font-medium">
               </div>
+              <!-- 🔥 **El desenlace, ANTES de guardar.** Un expediente nuevo con un número que ya
+                   es de alguien NO abre un hilo: se suma al de esa persona, con su historial. Es
+                   lo correcto —una persona, un hilo— pero invisible: el operador teclea y no sabe
+                   que acaba de enganchar su expediente a una conversación existente. Si el número
+                   está mal, lo descubre cuando el mensaje sale al hilo de otro. -->
+              <p v-if="duenioTelefono.aviso.value" class="mt-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 leading-snug">
+                <i class="fas fa-circle-info mr-1"></i>{{ duenioTelefono.aviso.value }}
+              </p>
             </div>
           </div>
 

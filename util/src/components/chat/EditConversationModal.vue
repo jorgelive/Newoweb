@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
+import { useDuenioDeIdentificador, type TipoIdentificador } from '@/composables/useDuenioDeIdentificador';
 import { useChatStore, type ApiConversation } from '@/stores/chat/chatStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { uuidDe } from '@/services/hydra';
@@ -21,7 +22,9 @@ const errorMsg = ref('');
 // contradice solo. El backend los normaliza y valida —aquí no se toca el valor— porque la
 // normalización tiene que ser LA MISMA que la de la resolución de hilos, o se parten en dos.
 
-const nuevoTipo = ref('telefono');
+// El tipo cerrado y no `string`: el composable y el backend sólo entienden estos dos, y dejarlo
+// abierto convertía una errata en una consulta que siempre contesta «no es de nadie».
+const nuevoTipo = ref<TipoIdentificador>('telefono');
 const nuevoValor = ref('');
 const errorIdent = ref('');
 const ocupado = ref(false);
@@ -36,6 +39,15 @@ const totalMensajes = computed(() =>
   Number((props.conversation as unknown as { totalMensajes?: number }).totalMensajes ?? 0));
 
 const idDelHilo = computed(() => uuidDe(props.conversation) ?? '');
+
+/**
+ * ¿El identificador que se está tecleando ya es de otro hilo?
+ *
+ * `yaTieneHilo` es SIEMPRE `true` aquí: estamos dentro de una conversación, así que el desenlace
+ * no es la unión sino el rechazo —un identificador no se le quita a su dueño— y la salida es
+ * fusionar. El composable redacta esa versión de la frase.
+ */
+const duenioNuevo = useDuenioDeIdentificador(() => true);
 
 /** Vienen serializadas con la conversación (`conversation:read`). */
 interface IdentidadDelPanel {
@@ -418,12 +430,25 @@ const formatDateTime = (iso?: string | null) => {
                 <option value="email">Correo</option>
               </select>
               <input v-model="nuevoValor" type="text" placeholder="Añadir identificador" @keyup.enter="anadir"
+                     @input="duenioNuevo.comprobar(nuevoTipo, nuevoValor)"
                      class="flex-1 min-w-0 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[#376875]">
               <button @click="anadir" :disabled="ocupado || !nuevoValor.trim()"
                       class="px-3 py-2 bg-[#376875] text-white rounded-xl text-xs font-black disabled:opacity-40">
                 <i class="fas fa-plus"></i>
               </button>
             </div>
+
+            <!-- 🔥 **El aviso, MIENTRAS se teclea.** Antes esto sólo se sabía al pulsar «+», y en
+                 forma de error rojo: se descubría después de decidir. Y aquí el desenlace es el
+                 duro —«no se guardará»— porque este hilo ya existe y un identificador no se le
+                 quita a su dueño: la salida es fusionar. Decirlo antes convierte un error en una
+                 decisión informada. -->
+            <p v-if="duenioNuevo.aviso.value" class="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-2 leading-snug">
+              <i class="fas fa-circle-info mr-1"></i>{{ duenioNuevo.aviso.value }}
+              <RouterLink v-if="duenioNuevo.duenio.value"
+                          :to="{ name: 'chat_conversation', params: { conversationId: duenioNuevo.duenio.value.conversacionId } }"
+                          class="underline hover:no-underline">Ver ese hilo</RouterLink>
+            </p>
 
             <p v-if="errorIdent" class="text-[11px] font-bold text-red-500 mt-2 leading-snug">{{ errorIdent }}</p>
           </div>

@@ -30,6 +30,31 @@ Collection<int, Message>` ajeno y sin su `#[Groups]` — el fallo exacto que des
 que aquí no fue silencioso de milagro: `api:openapi:export` reventó al no poder instanciar el
 atributo. Al insertar un método, mirar qué hay inmediatamente encima.
 
+## El aviso de «este número ya es de alguien» faltaba donde más duele (08/09/2026)
+
+`DuenioDeIdentificadorController` existía y hacía justo esto, pero sólo lo consumía
+`ContactoDeIdentidad` —el detalle del expediente y organizaciones—. Faltaba en los dos sitios donde
+un número se teclea **por primera vez** y donde el desenlace es invisible:
+
+| Dónde | Qué pasaba sin aviso |
+|---|---|
+| **Aperturar expediente** | El expediente se engancha al hilo de esa persona, con su historial. Es correcto —una persona, un hilo— pero el operador no lo sabe; si el número está mal, lo descubre cuando el mensaje sale al hilo de otro |
+| **Editor de identidades** | Sólo se sabía al pulsar «+», y en forma de error rojo: se descubría **después** de decidir |
+
+Y el desenlace **no es el mismo en los dos**, así que el aviso tampoco:
+
+- Sin hilo propio → «este asunto se unirá a la conversación de X».
+- Con hilo propio → «no se guardará: un identificador no se le puede quitar a su dueño; si son la
+  misma persona, hay que fusionar» — y ahora con enlace para ir a verlo.
+
+🔥 **Se extrajo a `useDuenioDeIdentificador`, no se copió.** Habría sido la tercera versión de la
+misma frase, y estas frases **describen lo que el sistema va a hacer**: el día que cambie el
+comportamiento, una copia vieja no falla, miente.
+
+⚠️ **La normalización la hace el BACKEND.** El endpoint pasa el valor por
+`IdentidadTipo::normalizar()`, que es lo mismo que usará la resolución al guardar: si el aviso
+mirara un valor y el guardado otro, diría lo contrario de lo que va a pasar.
+
 ## El contacto del expediente se resolvía en edición pero NO en lectura
 
 La tarjeta «Datos del expediente» pintaba `file.telefono`, que es la **semilla**. El modo edición ya
