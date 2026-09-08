@@ -225,6 +225,19 @@ const misBoletos = computed(() => store.miIdentidad?.documentos ?? []);
 const rutaDe = (d: { origen?: string | null; destino?: string | null }) =>
   d.origen && d.destino ? `${d.origen} → ${d.destino}` : '';
 
+/** «03:00». La hora local del aeropuerto, tal como la imprime el billete. */
+const horaDeVuelo = (iso?: string | null) => (iso ?? '').slice(11, 16);
+
+/**
+ * ¿Aterriza al día siguiente?
+ *
+ * Se comparan los DÍAS de las cadenas, sin construir fechas: los dos instantes vienen en hora
+ * local de su aeropuerto y convertirlos a un `Date` los movería a la zona del navegador, que es
+ * justo lo que haría fallar la comparación para quien mire desde otro país.
+ */
+const cruzaMedianoche = (salida?: string | null, llegada?: string | null) =>
+  Boolean(salida && llegada && llegada.slice(0, 10) > salida.slice(0, 10));
+
 /**
  * «17 sep». Fecha del vuelo, en el idioma que esté leyendo.
  *
@@ -1459,6 +1472,28 @@ const adelantoVista = computed(() => {
             </p>
             <p v-else-if="sg.nombre && sg.clave && sg.nombre !== sg.clave"
                class="text-[11px] font-bold text-slate-400 font-mono mt-1.5">{{ sg.clave }}</p>
+
+            <!-- ═══ LOS TRAMOS ═══
+                 🔥 El operador ve esto en su manifiesto y el pasajero no lo veía: «Copa Airlines ·
+                 BNZXNE · 8 personas» dice con quién vuela y con qué localizador, pero **no cuándo
+                 ni desde dónde** — que es lo que se busca la noche antes.
+                 Y el itinerario del viaje no vale aquí: el vuelo es de SU subgrupo, no del grupo
+                 entero. Por eso va en «Lo tuyo». -->
+            <div v-if="sg.vuelos?.length" class="mt-2 pt-2 border-t border-slate-200/70 space-y-1">
+              <p v-for="(v, k) in sg.vuelos" :key="k"
+                 class="flex items-baseline gap-1.5 text-[11px] leading-snug flex-wrap">
+                <span class="font-mono font-black text-slate-600">{{ v.numero }}</span>
+                <span class="text-slate-400">{{ fechaDeVuelo(v.salida) }}</span>
+                <span class="font-black text-slate-700">{{ horaDeVuelo(v.salida) }}</span>
+                <span class="font-bold text-slate-500">{{ v.origen }} → {{ v.destino }}</span>
+                <span class="font-black text-slate-700">{{ horaDeVuelo(v.llegada) }}</span>
+                <!-- ⚠️ El «+1 día» no es un adorno: un vuelo que sale a las 20:22 y llega a las
+                     00:30 aterriza al día SIGUIENTE, y quien lea sólo las horas hará las cuentas
+                     mal — para el traslado, para el hotel, para avisar a quien le recoge. -->
+                <span v-if="cruzaMedianoche(v.salida, v.llegada)"
+                      class="font-black text-[#E07845]">+1 {{ maestroStore.t('cot_dia') || 'día' }}</span>
+              </p>
+            </div>
           </div>
         </div>
       </div>

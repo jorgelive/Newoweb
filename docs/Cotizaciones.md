@@ -1207,6 +1207,43 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### El manifiesto se lee para rellenar OTROS formularios (08/09/2026)
+
+Es lo que de verdad se hace con él: el del seguro, el de la aerolínea, el del hotel. Y hasta hoy
+eso era seleccionar con el ratón un número dentro de una línea con más cosas. Con 131 personas y
+varios formularios cada una, teclear un DNI a mano es donde aparecen los dígitos cambiados que
+nadie descubre hasta el mostrador.
+
+Ahora la ficha lleva **botón de copiar** en el nombre completo, en cada número de documento, en
+cada vencimiento y en la fecha de nacimiento. ⚠️ El aviso de «copiado» es **por campo y no
+global**: hay tres números seguidos que se parecen, y lo que hace falta saber es cuál se copió.
+
+⚠️ **Y faltaba la FECHA DE NACIMIENTO**, que sólo salía como edad. La edad se calcula y sirve para
+saber si es menor; la fecha es la que piden la aerolínea, el seguro y migraciones — y es además la
+mitad de la contraseña con la que el pasajero entra a ver su viaje. Estaba únicamente en el
+editor, así que había que abrir el formulario para leerla.
+
+⚠️ **Nacimiento y sexo suben al principio del editor.** Estaban al final, después de los documentos
+y de los subgrupos, y son los dos datos que pide todo control migratorio. El orden de un formulario
+que se rellena 131 veces no es estética.
+
+#### El pasajero no veía los horarios de SU vuelo (08/09/2026)
+
+En «Lo tuyo», el subgrupo aéreo decía «Copa Airlines · BNZXNE · 8 personas»: con quién vuela y con
+qué localizador, pero **no cuándo ni desde dónde** — que es lo que se busca la noche antes. El
+operador sí lo veía en el manifiesto.
+
+`miIdentidad.subgrupos[].vuelos` lleva ahora número, ruta y horas de cada tramo. Y el itinerario
+del viaje no servía para esto: el vuelo es de **su** subgrupo, no del grupo entero.
+
+⚠️ **El «+1 día» no es un adorno.** Un vuelo que sale a las 20:22 y llega a las 00:30 aterriza al
+día siguiente, y quien lea sólo las horas hará mal las cuentas del traslado, del hotel y de a quién
+avisa para que le recoja.
+
+⚠️ Las horas viajan **sin formatear** y se comparan por su cadena `Y-m-d`, sin construir un `Date`:
+los dos instantes están en hora local de su aeropuerto, y pasarlos por la zona del navegador
+movería el cálculo justo para quien mire desde otro país.
+
 #### El formulario de la bóveda no llegaba a dos de los cuatro alcances (08/09/2026)
 
 `CotizacionFilearchivo` sostiene cuatro alcances —pasajero+vuelo, pasajero, grupo, expediente— y el

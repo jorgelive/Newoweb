@@ -350,6 +350,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 'clave' => (string) $grupo->getClave(),
                 'nombre' => $grupo->getNombre(),
                 'codigo' => $pertenencia->getCodigo(),
+                'vuelos' => $this->tramosDe($grupo),
                 'idGrupo' => $grupo->getId()?->toRfc4122(),
             ];
             $gruposDelPasajero[] = $grupo;
@@ -368,6 +369,41 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             'documentos' => $this->documentosDe($file, $pasajero),
             'documentosEnviados' => $this->tiposYaEnviados($file, $pasajero),
         ]);
+    }
+
+    /**
+     * Los TRAMOS de un subgrupo aéreo: número, ruta y horas.
+     *
+     * 🔥 **El operador ve esto en el manifiesto y el pasajero no lo veía.** «Copa Airlines ·
+     * BNZXNE · 8 personas» dice con quién vuela y con qué localizador, pero no **cuándo ni desde
+     * dónde** — que es lo que se busca la noche antes. Y el itinerario del viaje tampoco vale
+     * aquí: el vuelo es de SU subgrupo, no del grupo entero, y por eso está en «Lo tuyo».
+     *
+     * ⚠️ Fechas y horas **tal cual**, sin formatear: la app habla siete idiomas y quien sabe en
+     * cuál se está leyendo es el front.
+     *
+     * ⚠️ Sólo tiene sentido en el eje de reserva aérea; en los demás sale vacío y el front no
+     * pinta nada. No se pregunta por el eje aquí porque la relación ya lo dice: un subgrupo de
+     * habitación no tiene vuelos.
+     *
+     * @return list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>
+     */
+    private function tramosDe(CotizacionFileGrupo $grupo): array
+    {
+        $tramos = [];
+
+        foreach ($grupo->getVuelos() as $vuelo) {
+            $tramos[] = [
+                'numero' => $vuelo->getNumero(),
+                'origen' => $vuelo->getOrigen(),
+                'destino' => $vuelo->getDestino(),
+                'aerolinea' => $vuelo->getAerolinea(),
+                'salida' => $vuelo->getSalida()?->format('c'),
+                'llegada' => $vuelo->getLlegada()?->format('c'),
+            ];
+        }
+
+        return $tramos;
     }
 
     /**

@@ -948,6 +948,36 @@ const aplicarVuelos = async () => {
   }
 };
 
+/**
+ * Copia al portapapeles y lo dice.
+ *
+ * 🔥 El manifiesto se lee para RELLENAR OTROS FORMULARIOS —el de la aerolínea, el del seguro, el
+ * del hotel—, y hasta hoy eso era seleccionar con el ratón un número dentro de una línea con más
+ * cosas. Con 131 personas y varios formularios cada una, teclear un DNI a mano es donde aparecen
+ * los dígitos cambiados que nadie descubre hasta el mostrador.
+ *
+ * ⚠️ El aviso dura poco y es por campo, no un cartel global: lo que hace falta saber es **cuál**
+ * se copió, porque hay tres números seguidos que se parecen.
+ */
+const copiado = ref<string | null>(null);
+
+async function copiar(valor: string | null | undefined, marca: string): Promise<void> {
+  if (!valor) return;
+
+  try {
+    await navigator.clipboard.writeText(String(valor).trim());
+    copiado.value = marca;
+    setTimeout(() => { if (copiado.value === marca) copiado.value = null; }, 1400);
+  } catch {
+    // Sin permiso de portapapeles —o sin HTTPS— no se avisa: el operador puede seleccionar a mano
+    // y un error aquí interrumpiría algo que no ha pedido.
+  }
+}
+
+/** La fecha como se teclea en los formularios: `dd/mm/aaaa`. */
+const fechaLarga = (iso?: string | null): string =>
+  (iso ?? '').slice(0, 10).split('-').reverse().join('/');
+
 /** La bóveda arranca plegada: ver el comentario de su cabecera. */
 const bovedaAbierta = ref(false);
 
@@ -3371,7 +3401,18 @@ const eliminarDocumento = async (iri?: string) => {
              datos están repartidos entre campos que hay que interpretar. Aquí se leen de corrido. -->
         <div v-if="modoVistaPax && paxEnFoco" class="p-6 space-y-4 overflow-y-auto">
           <div>
-            <p class="text-xl font-black text-slate-800 leading-tight">{{ paxEnFoco.nombre }} {{ paxEnFoco.apellido }}</p>
+            <p class="text-xl font-black text-slate-800 leading-tight flex items-start gap-2">
+              <span class="flex-1">{{ paxEnFoco.nombre }} {{ paxEnFoco.apellido }}</span>
+              <!-- Nombre y apellidos juntos: es como los pide cualquier formulario. -->
+              <button type="button" @click="copiar(`${paxEnFoco.nombre ?? ''} ${paxEnFoco.apellido ?? ''}`, 'nombre')"
+                      :title="copiado === 'nombre' ? 'Copiado' : 'Copiar nombre y apellidos'"
+                      class="shrink-0 w-7 h-7 rounded-lg border text-xs transition-colors"
+                      :class="copiado === 'nombre'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                        : 'border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200'">
+                <i class="fas" :class="copiado === 'nombre' ? 'fa-check' : 'fa-copy'"></i>
+              </button>
+            </p>
             <p class="mt-1.5 flex flex-wrap items-center gap-2">
               <span class="text-[10px] font-black px-2 py-0.5 rounded border uppercase tracking-wide"
                     :class="PASAJERO_TIPO_CONFIG[String(paxEnFoco.tipo)]?.clase ?? 'bg-slate-100 text-slate-600 border-slate-200'">
@@ -3400,6 +3441,25 @@ const eliminarDocumento = async (iri?: string) => {
               <p class="text-[10px] font-bold text-slate-400 uppercase">Teléfono</p>
               <p class="text-sm font-bold text-slate-700">{{ paxEnFoco.telefono ? formatearTelefono(paxEnFoco.telefono) : '—' }}</p>
             </div>
+            <!-- ⚠️ **La FECHA, no sólo la edad.** La edad se calcula y sirve para saber si es
+                 menor; la fecha es la que piden la aerolínea, el seguro y migraciones — y es
+                 además la mitad de la contraseña con la que el pasajero entra a su viaje. Faltaba
+                 en la ficha, así que había que abrir el editor para leerla. -->
+            <div class="col-span-2">
+              <p class="text-[10px] font-bold text-slate-400 uppercase">Nacimiento</p>
+              <p class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <span>{{ fechaLarga(paxEnFoco.fechanacimiento) || '—' }}</span>
+                <button v-if="paxEnFoco.fechanacimiento" type="button"
+                        @click="copiar(fechaLarga(paxEnFoco.fechanacimiento), 'nacimiento')"
+                        :title="copiado === 'nacimiento' ? 'Copiado' : 'Copiar fecha'"
+                        class="w-6 h-6 rounded border text-[10px] transition-colors"
+                        :class="copiado === 'nacimiento'
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                          : 'border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200'">
+                  <i class="fas" :class="copiado === 'nacimiento' ? 'fa-check' : 'fa-copy'"></i>
+                </button>
+              </p>
+            </div>
           </div>
 
           <div v-if="documentosDe.length">
@@ -3409,10 +3469,29 @@ const eliminarDocumento = async (iri?: string) => {
             <div v-for="d in documentosDe" :key="d.id" class="flex items-baseline gap-2 text-sm">
               <span class="font-bold text-slate-700">{{ d.etiqueta }}</span>
               <span class="font-black text-slate-800">{{ d.numero }}</span>
+              <!-- El NÚMERO solo, sin la etiqueta: es lo que se pega en el formulario. -->
+              <button type="button" @click="copiar(d.numero, `doc-${d.id}`)"
+                      :title="copiado === `doc-${d.id}` ? 'Copiado' : 'Copiar número'"
+                      class="w-6 h-6 shrink-0 self-center rounded border text-[10px] transition-colors"
+                      :class="copiado === `doc-${d.id}`
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                        : 'border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200'">
+                <i class="fas" :class="copiado === `doc-${d.id}` ? 'fa-check' : 'fa-copy'"></i>
+              </button>
               <span v-if="d.vence" class="text-[11px] font-bold" :class="d.vencido ? 'text-red-600' : 'text-slate-400'">
                 {{ d.vencido ? 'VENCIDO ' : 'vence ' }}{{ d.vence.split('-').reverse().join('/') }}
               </span>
               <span v-else class="text-[11px] font-bold text-amber-500">sin comprobar</span>
+              <!-- La fecha de vencimiento también se copia: la piden los mismos formularios. -->
+              <button v-if="d.vence" type="button"
+                      @click="copiar(d.vence.split('-').reverse().join('/'), `ven-${d.id}`)"
+                      :title="copiado === `ven-${d.id}` ? 'Copiado' : 'Copiar vencimiento'"
+                      class="w-6 h-6 shrink-0 self-center rounded border text-[10px] transition-colors"
+                      :class="copiado === `ven-${d.id}`
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                        : 'border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200'">
+                <i class="fas" :class="copiado === `ven-${d.id}` ? 'fa-check' : 'fa-copy'"></i>
+              </button>
             </div>
           </div>
 
@@ -3498,6 +3577,20 @@ const eliminarDocumento = async (iri?: string) => {
             <div>
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Apellidos *</label>
               <input v-model="paxForm.apellido" required type="text" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
+            </div>
+            <!-- ⚠️ **Nacimiento y sexo van ARRIBA**, con el nombre. Estaban al final, después de
+                 los documentos y de los subgrupos, y son los dos datos que pide toda aerolínea y
+                 todo control migratorio: quedaban a un scroll de distancia de lo que se teclea
+                 cada vez. El orden de un formulario que se rellena 131 veces no es estética. -->
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nacimiento</label>
+              <MaskedDateInput v-model="paxForm.fechanacimiento" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sexo *</label>
+              <select v-model="paxForm.sexo" required class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                <option v-for="(label, valor) in SEXO_LABELS" :key="valor" :value="valor">{{ label }}</option>
+              </select>
             </div>
             <div class="col-span-2">
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nacionalidad *</label>
@@ -3676,16 +3769,6 @@ const eliminarDocumento = async (iri?: string) => {
                      class="text-[10px] font-medium text-slate-600 whitespace-pre-line leading-snug"></p>
                 </div>
               </div>
-            </div>
-            <div>
-              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nacimiento</label>
-              <MaskedDateInput v-model="paxForm.fechanacimiento" />
-            </div>
-            <div>
-              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sexo *</label>
-              <select v-model="paxForm.sexo" required class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
-                <option v-for="(label, valor) in SEXO_LABELS" :key="valor" :value="valor">{{ label }}</option>
-              </select>
             </div>
           </div>
           <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">

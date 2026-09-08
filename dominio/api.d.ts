@@ -10861,6 +10861,14 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    vuelos: {
+                        numero?: string | null;
+                        origen?: string | null;
+                        destino?: string | null;
+                        aerolinea?: string | null;
+                        salida?: string | null;
+                        llegada?: string | null;
+                    }[];
                     miembros: {
                         nombre: string;
                         rol?: string | null;
@@ -11114,6 +11122,14 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    vuelos: {
+                        numero?: string | null;
+                        origen?: string | null;
+                        destino?: string | null;
+                        aerolinea?: string | null;
+                        salida?: string | null;
+                        llegada?: string | null;
+                    }[];
                     miembros: {
                         nombre: string;
                         rol?: string | null;
@@ -11177,6 +11193,14 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    vuelos: {
+                        numero?: string | null;
+                        origen?: string | null;
+                        destino?: string | null;
+                        aerolinea?: string | null;
+                        salida?: string | null;
+                        llegada?: string | null;
+                    }[];
                     miembros: {
                         nombre: string;
                         rol?: string | null;
@@ -11285,6 +11309,14 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    vuelos: {
+                        numero?: string | null;
+                        origen?: string | null;
+                        destino?: string | null;
+                        aerolinea?: string | null;
+                        salida?: string | null;
+                        llegada?: string | null;
+                    }[];
                     miembros: {
                         nombre: string;
                         rol?: string | null;
@@ -11486,6 +11518,14 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    vuelos: {
+                        numero?: string | null;
+                        origen?: string | null;
+                        destino?: string | null;
+                        aerolinea?: string | null;
+                        salida?: string | null;
+                        llegada?: string | null;
+                    }[];
                     miembros: {
                         nombre: string;
                         rol?: string | null;
@@ -11549,6 +11589,14 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    vuelos: {
+                        numero?: string | null;
+                        origen?: string | null;
+                        destino?: string | null;
+                        aerolinea?: string | null;
+                        salida?: string | null;
+                        llegada?: string | null;
+                    }[];
                     miembros: {
                         nombre: string;
                         rol?: string | null;
@@ -11657,6 +11705,14 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    vuelos: {
+                        numero?: string | null;
+                        origen?: string | null;
+                        destino?: string | null;
+                        aerolinea?: string | null;
+                        salida?: string | null;
+                        llegada?: string | null;
+                    }[];
                     miembros: {
                         nombre: string;
                         rol?: string | null;
@@ -11863,6 +11919,14 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    vuelos: {
+                        numero?: string | null;
+                        origen?: string | null;
+                        destino?: string | null;
+                        aerolinea?: string | null;
+                        salida?: string | null;
+                        llegada?: string | null;
+                    }[];
                     miembros: {
                         nombre: string;
                         rol?: string | null;
@@ -11926,6 +11990,14 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    vuelos: {
+                        numero?: string | null;
+                        origen?: string | null;
+                        destino?: string | null;
+                        aerolinea?: string | null;
+                        salida?: string | null;
+                        llegada?: string | null;
+                    }[];
                     miembros: {
                         nombre: string;
                         rol?: string | null;
@@ -12034,6 +12106,14 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    vuelos: {
+                        numero?: string | null;
+                        origen?: string | null;
+                        destino?: string | null;
+                        aerolinea?: string | null;
+                        salida?: string | null;
+                        llegada?: string | null;
+                    }[];
                     miembros: {
                         nombre: string;
                         rol?: string | null;
@@ -12235,6 +12315,14 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    vuelos: {
+                        numero?: string | null;
+                        origen?: string | null;
+                        destino?: string | null;
+                        aerolinea?: string | null;
+                        salida?: string | null;
+                        llegada?: string | null;
+                    }[];
                     miembros: {
                         nombre: string;
                         rol?: string | null;
@@ -12298,6 +12386,14 @@ export interface components {
                     clave: string;
                     nombre?: string | null;
                     codigo?: string | null;
+                    vuelos: {
+                        numero?: string | null;
+                        origen?: string | null;
+                        destino?: string | null;
+                        aerolinea?: string | null;
+                        salida?: string | null;
+                        llegada?: string | null;
+                    }[];
                     miembros: {
                         nombre: string;
                         rol?: string | null;

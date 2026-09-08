@@ -618,7 +618,7 @@ class CotizacionFile
      * —su compañero de habitación, los de su PNR—. Sigue sin ser el padrón: son SUS grupos, y sólo
      * el nombre. Ni documento, ni fecha, ni el `codigo` del vecino, que es el localizador ajeno.
      *
-     * @var array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null
+     * @var array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null
      */
     #[ApiProperty(openapiContext: [
         'type' => 'object',
@@ -640,6 +640,20 @@ class CotizacionFile
                         // —`coordinador`, `supervisor`, o `null`—. El rol ya ordenaba la lista
                         // y no viajaba, así que el coordinador salía primero sin que nada lo
                         // dijera. Espejo en `PaxCotizacionGuiaView.vue`.
+                        // Los tramos del subgrupo aéreo: el operador los ve en el manifiesto y el
+                        // pasajero no los veía. «Copa Airlines · BNZXNE» dice con quién vuela,
+                        // no cuándo. Vacío en los demás ejes.
+                        'vuelos' => ['type' => 'array', 'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'numero' => ['type' => 'string', 'nullable' => true],
+                                'origen' => ['type' => 'string', 'nullable' => true],
+                                'destino' => ['type' => 'string', 'nullable' => true],
+                                'aerolinea' => ['type' => 'string', 'nullable' => true],
+                                'salida' => ['type' => 'string', 'nullable' => true],
+                                'llegada' => ['type' => 'string', 'nullable' => true],
+                            ],
+                        ]],
                         'miembros' => ['type' => 'array', 'items' => [
                             'type' => 'object',
                             'properties' => [
@@ -649,7 +663,7 @@ class CotizacionFile
                             'required' => ['nombre'],
                         ]],
                     ],
-                    'required' => ['eje', 'ejeLabel', 'subeje', 'clave', 'miembros'],
+                    'required' => ['eje', 'ejeLabel', 'subeje', 'clave', 'miembros', 'vuelos'],
                 ],
             ],
             // ⚠️ **Lo suyo, y sólo cuando se identificó.** Una tarjeta de embarque es de UNA
@@ -697,7 +711,7 @@ class CotizacionFile
     private ?array $miIdentidad = null;
 
     /**
-     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null
+     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null
      */
     public function getMiIdentidad(): ?array
     {
@@ -705,7 +719,7 @@ class CotizacionFile
     }
 
     /**
-     * @param array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null $miIdentidad
+     * @param array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null $miIdentidad
      */
     public function setMiIdentidad(?array $miIdentidad): self
     {
