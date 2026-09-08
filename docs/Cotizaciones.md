@@ -1393,6 +1393,23 @@ estado de los **tres escaneos** que se piden — DNI anverso, DNI reverso y pasa
 vencimientos, ejes— y trae la columna `Id` precisamente para reimportarse. Ésta lleva el ESTADO y
 no tiene importador: son dos hojas distintas porque son dos preguntas distintas.
 
+##### El orden es por GRUPO, y el coordinador encabeza el suyo
+
+Los documentos se reclaman por grupo, así que la hoja sale ordenada por grupo y, dentro de él, por
+`PasajeroTipoEnum::rangoDeLectura()`: primero el coordinador —que es a quien se le escribe—, después
+los participantes por apellido. Los 23 que no van en ningún grupo —acompañantes, supervisores,
+invitados— caen al final en bloque, con `— sin grupo` escrito: **una celda vacía en una hoja de
+faltantes se lee como «esto no se ha rellenado»**, que es justo lo contrario de lo que pasa.
+
+⚠️ **No hay un grupo de coordinadores, ni un eje con más jerarquía.** Los cuatro ejes de
+`GrupoTipoEnum` son planos y cruzados; `grupo` son las nueve unidades operativas del viaje y punto.
+Quien lidera lo dice el **rol de la persona** (`PasajeroTipoEnum::COORDINADOR`), no un grupo aparte:
+hay 9 coordinadores para 9 grupos, uno cada uno, y por eso `esJefe` se quitó de la pertenencia — es
+la misma razón que ya está escrita en la cabecera del enum.
+
+⚠️ La clave del grupo es **texto libre** —hoy son cifras, pero valdría «A» o «Bus rojo»—, así que
+se acolcha a la izquierda antes de comparar: sin eso, `10` iría antes que `9`.
+
 ⚠️ **Respeta los filtros de la pantalla**, y por eso manda la lista de ids por `POST` en vez de
 mandar los filtros: repetirlos en el servidor serían dos implementaciones de la misma pregunta, y
 la que se quedase corta lo haría en silencio. Sin filtros puestos es un `GET` y baja el expediente

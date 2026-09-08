@@ -114,10 +114,7 @@ final readonly class ReporteDeDocumentos
         $vacios = 0;
         $archivos = 0;
 
-        foreach ($file->getFilepasajeros() as $pasajero) {
-            if ($permitidos !== null && !isset($permitidos[(string) $pasajero->getId()])) {
-                continue;
-            }
+        foreach ($this->ordenados($file, $permitidos) as $pasajero) {
 
             $subidos = $this->escaneosDe($file, $pasajero);
             $faltan = [];
@@ -311,7 +308,7 @@ final readonly class ReporteDeDocumentos
      * Sólo los de tipo `grupo`: la habitación y la reserva aérea también son grupos suyos, pero
      * quien reclama documentos lo hace por aula, no por vuelo.
      */
-    private function gruposDe(CotizacionFilepasajero $pasajero): ?string
+    private function gruposDe(CotizacionFilepasajero $pasajero): string
     {
         $claves = [];
 
@@ -322,6 +319,70 @@ final readonly class ReporteDeDocumentos
             $claves[] = (string) $grupo->getClave();
         }
 
-        return $claves === [] ? null : implode(', ', $claves);
+        // ⚠️ Explícito y no en blanco. 23 de las 133 personas del padrón real —acompañantes,
+        // supervisores, invitados— no van en ningún grupo, y una celda vacía en una hoja de
+        // faltantes se lee como «esto no se ha rellenado», que es justo lo contrario.
+        return $claves === [] ? '— sin grupo' : implode(', ', $claves);
+    }
+
+    /**
+     * Las personas que entran en la hoja, **por grupo y dentro de él por rango**.
+     *
+     * Ordenar por grupo es lo que convierte la hoja en la lista con la que se reclama: los
+     * documentos se piden por grupo, y el coordinador de ese grupo encabeza su bloque porque es a
+     * quien se le escribe. Dentro del mismo rango, alfabético.
+     *
+     * ⚠️ Los que no van en ningún grupo caen al final en bloque: el `— sin grupo` ordena después
+     * de cualquier cifra.
+     *
+     * @param array<string, int>|null $permitidos
+     *
+     * @return list<CotizacionFilepasajero>
+     */
+    private function ordenados(CotizacionFile $file, ?array $permitidos): array
+    {
+        $personas = [];
+
+        foreach ($file->getFilepasajeros() as $pasajero) {
+            if ($permitidos !== null && !isset($permitidos[(string) $pasajero->getId()])) {
+                continue;
+            }
+            $personas[] = $pasajero;
+        }
+
+        usort($personas, static function (CotizacionFilepasajero $a, CotizacionFilepasajero $b): int {
+            $grupoA = self::claveDeOrden($a);
+            $grupoB = self::claveDeOrden($b);
+
+            return [$grupoA, $a->getTipo()?->rangoDeLectura() ?? 90, mb_strtolower(trim(sprintf('%s %s', $a->getApellido(), $a->getNombre())))]
+                <=> [$grupoB, $b->getTipo()?->rangoDeLectura() ?? 90, mb_strtolower(trim(sprintf('%s %s', $b->getApellido(), $b->getNombre())))];
+        });
+
+        return $personas;
+    }
+
+    /**
+     * Con qué se ordena el grupo de alguien.
+     *
+     * ⚠️ Los grupos son «1»…«9» pero la clave es TEXTO libre —lo mismo vale «A» o «Bus rojo»—, así
+     * que `'10'` iría antes que `'9'` si se comparase como cadena. Se acolcha a la izquierda para
+     * que las cifras ordenen como cifras sin dejar de admitir lo que no lo es.
+     */
+    private static function claveDeOrden(CotizacionFilepasajero $pasajero): string
+    {
+        $claves = [];
+
+        foreach ($pasajero->grupos() as $grupo) {
+            if ($grupo->getTipo() !== GrupoTipoEnum::GRUPO) {
+                continue;
+            }
+            $clave = (string) $grupo->getClave();
+            $claves[] = ctype_digit($clave) ? str_pad($clave, 6, '0', STR_PAD_LEFT) : $clave;
+        }
+
+        sort($claves);
+
+        // «~» ordena después de las cifras y de las letras: los sin grupo, al final.
+        return $claves === [] ? '~' : $claves[0];
     }
 }

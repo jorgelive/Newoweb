@@ -58,6 +58,29 @@ enum PasajeroTipoEnum: string
     }
 
     /**
+     * En qué orden se lee una lista de personas: **el que manda primero**.
+     *
+     * ⚠️ Esto NO es jerarquía de mando ni permisos —eso es {@see self::alcance()}—, es orden de
+     * lectura. Quien abre un manifiesto busca antes al supervisor y a los coordinadores porque es
+     * con quien se habla; los demás se buscan por apellido.
+     *
+     * ⚠️ Y **no crea un rango nuevo**: es el mismo criterio que ya usaba el manifiesto del panel
+     * (`RANGO_ROL` en `FileDetalle.vue`), traído aquí para que la hoja que se descarga salga en el
+     * mismo orden que la pantalla de la que sale.
+     */
+    public function rangoDeLectura(): int
+    {
+        return match ($this) {
+            self::SUPERVISOR => 0,
+            self::COORDINADOR => 1,
+            self::PARTICIPANTE => 2,
+            self::ACOMPANANTE => 3,
+            self::INVITADO => 4,
+            self::NO_PARTICIPA => 5,
+        };
+    }
+
+    /**
      * Hasta dónde llega lo que ve.
      *
      * ⚠️ `EXPEDIENTE` **nunca incluye a los invitados**: eso lo decide `esExpuesto()`, que es el
