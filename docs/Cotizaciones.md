@@ -1138,6 +1138,25 @@ viaja como dato.
 permitía nginx (`client_max_body_size`). Aun así, **un ZIP por vuelo es mejor que uno gigante**:
 cada vuelo lleva ≤25 pax, entra de sobra, y la tabla de revisión es corta.
 
+#### La pantalla se olvidaba de lo que ya subiste (08/09/2026)
+
+El primer pasajero real subió sus tres documentos, volvió a entrar y los tres botones decían
+«SUBIR» otra vez. Los ficheros estaban guardados —2400×1800, con su filtro correcto—; lo que
+faltaba era decírselo.
+
+🔥 **El coste no es la molestia: es que deja de intentarlo.** O lo manda de nuevo —trabajo
+repetido para él y para el operador, con dos escaneos que hay que comparar— o da por hecho que el
+sistema no funciona. Lo segundo **no se descubre nunca**, porque nadie escribe para decir que se
+rindió: sólo se ve al final, en los que faltan.
+
+Lo arregla `miIdentidad.documentosEnviados`, y ⚠️ **lleva sólo el TIPO: ni id, ni url, ni nombre de
+fichero.** Un escaneo de identidad no se le devuelve ni a su dueño, así que esto contesta
+«recibido» sin darle nada con lo que abrirlo. Por eso no cabe en `miIdentidad.documentos`, que sí
+lleva enlaces.
+
+⚠️ En el componente se **une** con lo de esta sesión en vez de sustituirlo: el prop viene de la
+respuesta del servidor, y lo que se acaba de subir todavía no está en ella.
+
 #### Lo que encontró la revisión (08/09/2026)
 
 Cinco defectos que pasaron PHPStan 7, 576 tests, `vue-tsc` y ESLint. Ninguno daba error.

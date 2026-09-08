@@ -1328,7 +1328,8 @@ const adelantoVista = computed(() => {
            pasajero, y si queda debajo del itinerario de siete días nadie lo ve. Sólo aparece si
            se identificó — sin saber quién es, no hay a quién colgarle la foto. -->
       <div v-if="store.miIdentidad" class="max-w-3xl mx-auto px-4 no-imprimir">
-        <MisDocumentos :localizador="props.localizador" />
+        <MisDocumentos :localizador="props.localizador"
+                       :ya-enviados="store.miIdentidad.documentosEnviados" />
       </div>
 
       <!-- ═══ TUS TARJETAS DE EMBARQUE ═══

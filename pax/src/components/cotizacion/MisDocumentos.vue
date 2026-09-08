@@ -25,7 +25,20 @@
 import { ref, computed } from 'vue';
 import { useMaestroStore } from '@/stores/maestroStore';
 
-const props = defineProps<{ localizador: string }>();
+const props = defineProps<{
+  localizador: string;
+  /**
+   * Los que ya mandó, **de una visita anterior**.
+   *
+   * 🔥 Sin esto la pantalla se olvida: sube el pasaporte, vuelve al día siguiente y los tres
+   * botones dicen «Subir» otra vez. O lo manda de nuevo, o da por hecho que no funcionó y deja de
+   * intentarlo — y eso segundo no se descubre nunca, porque nadie escribe para decir que se
+   * rindió.
+   *
+   * ⚠️ Llega sólo el TIPO, sin enlace: un escaneo de identidad no se le devuelve ni a su dueño.
+   */
+  yaEnviados?: string[];
+}>();
 
 const maestroStore = useMaestroStore();
 
@@ -48,7 +61,15 @@ const vistaPrevia = ref<string | null>(null);
 const ficheroElegido = ref<File | null>(null);
 const enviando = ref(false);
 const error = ref<string | null>(null);
-const subidos = ref<Set<string>>(new Set());
+/**
+ * Lo que ya tiene, venga de esta sesión o de la anterior.
+ *
+ * Se une en vez de sustituir: el prop llega con la respuesta del servidor y lo que acaba de subir
+ * todavía no está en ella.
+ */
+const recienSubidos = ref<Set<string>>(new Set());
+
+const subidos = computed(() => new Set<string>([...(props.yaEnviados ?? []), ...recienSubidos.value]));
 
 const tituloDe = (tipo: TipoDoc) => DOCUMENTOS.find(d => d.tipo === tipo)?.titulo ?? '';
 
@@ -100,7 +121,7 @@ const confirmar = async () => {
       return;
     }
 
-    subidos.value = new Set([...subidos.value, eligiendo.value]);
+    recienSubidos.value = new Set([...recienSubidos.value, eligiendo.value]);
     descartar();
   } catch {
     // Sin conexión: el mensaje dice qué hacer, no qué falló.

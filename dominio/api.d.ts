@@ -10878,6 +10878,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosEnviados: string[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
@@ -11130,6 +11131,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read"][];
@@ -11192,6 +11194,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read_pax_cotizacion.read"][];
@@ -11299,6 +11302,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosEnviados: string[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
@@ -11499,6 +11503,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read"][];
@@ -11561,6 +11566,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read_pax_cotizacion.read"][];
@@ -11668,6 +11674,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosEnviados: string[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
@@ -11873,6 +11880,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read"][];
@@ -11935,6 +11943,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read_pax_cotizacion.read"][];
@@ -12042,6 +12051,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosEnviados: string[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
@@ -12242,6 +12252,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read"][];
@@ -12304,6 +12315,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read_pax_cotizacion.read"][];

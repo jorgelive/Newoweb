@@ -366,6 +366,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             'nombre' => trim($pasajero->getNombre() . ' ' . $pasajero->getApellido()),
             'subgrupos' => $subgrupos,
             'documentos' => $this->documentosDe($file, $pasajero),
+            'documentosEnviados' => $this->tiposYaEnviados($file, $pasajero),
         ]);
     }
 
@@ -427,6 +428,40 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         usort($suyos, static fn (array $a, array $b): int => ($a['fecha'] ?? '') <=> ($b['fecha'] ?? ''));
 
         return $suyos;
+    }
+
+    /**
+     * Qué escaneos de identidad **ya mandó**, sólo el tipo.
+     *
+     * 🔥 **Sin esto la pantalla se olvida.** El pasajero sube su pasaporte, cierra, vuelve al día
+     * siguiente y los tres botones dicen «SUBIR» otra vez: parece que no llegó. O lo manda de
+     * nuevo —trabajo repetido para él y para el operador— o da por hecho que el sistema no
+     * funciona y deja de intentarlo. Lo segundo no se descubre nunca, porque nadie escribe para
+     * decir que se rindió.
+     *
+     * ⚠️ **Sólo el tipo: ni id, ni url, ni nombre de fichero.** Un escaneo de identidad no se le
+     * devuelve ni a su dueño ({@see ArchivoTipoEnum::esDevolvibleAlPasajero()}); esto contesta
+     * «recibido» sin darle nada con lo que abrirlo. Por eso no cabe en `documentos`, que sí lleva
+     * enlaces.
+     *
+     * @return list<string>
+     */
+    private function tiposYaEnviados(CotizacionFile $file, CotizacionFilepasajero $pasajero): array
+    {
+        $tipos = [];
+
+        foreach ($file->getFilearchivos() as $archivo) {
+            $tipo = $archivo->getTipoArchivo();
+            $mio = $archivo->getPasajero()?->getId()?->equals($pasajero->getId() ?? $archivo->getId()) === true;
+
+            if (!$mio || $tipo === null || !$tipo->loSubeElPasajero()) {
+                continue;
+            }
+
+            $tipos[$tipo->value] = true;
+        }
+
+        return array_keys($tipos);
     }
 
     /** Minúsculas y sin tildes: la clave con la que se ORDENA, nunca la que se enseña. */
