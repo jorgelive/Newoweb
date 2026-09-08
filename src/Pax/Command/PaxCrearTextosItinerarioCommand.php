@@ -92,6 +92,8 @@ final class PaxCrearTextosItinerarioCommand extends Command
         'cot_mis_documentos' => 'Tus documentos',
         'cot_mis_documentos_motivo' => 'Los necesitamos para emitir tus boletos y para el control migratorio. '
             . 'Sólo los ve el equipo que arma tu viaje, y se borran un mes después de tu regreso.',
+        // La línea del panel encogido: lo ÚNICO que ve quien ya entregó los tres.
+        'cot_mis_documentos_completos' => 'Recibidos. No tienes que hacer nada más.',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

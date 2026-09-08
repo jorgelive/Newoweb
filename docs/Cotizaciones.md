@@ -1138,6 +1138,19 @@ viaja como dato.
 permitía nginx (`client_max_body_size`). Aun así, **un ZIP por vuelo es mejor que uno gigante**:
 cada vuelo lleva ≤25 pax, entra de sobra, y la tabla de revisión es corta.
 
+#### Entregado todo, el panel se encoge a una línea (08/09/2026)
+
+La tarjeta de documentos va **arriba del itinerario** porque es lo único de esa pantalla que le
+pide algo al pasajero. En cuanto ya no le pide nada, ese sitio deja de ser suyo: quien ya entregó
+vuelve a mirar su viaje, y encontrarse tres filas resueltas empujando el itinerario hacia abajo es
+cobrarle todos los días por haber hecho los deberes.
+
+Con los tres subidos queda una línea: ✔ verde, «Recibidos. No tienes que hacer nada más.» Se puede
+volver a abrir —una foto se puede querer cambiar—, pero cerrado es el estado normal.
+
+⚠️ **El botón de cerrar sólo existe cuando está todo.** Si falta algo, plegar el panel sería
+esconder lo que se le está pidiendo.
+
 #### La pantalla se olvidaba de lo que ya subiste (08/09/2026)
 
 El primer pasajero real subió sus tres documentos, volvió a entrar y los tres botones decían

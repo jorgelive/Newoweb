@@ -132,13 +132,52 @@ const confirmar = async () => {
 };
 
 const quedanPorSubir = computed(() => DOCUMENTOS.filter(d => !subidos.value.has(d.tipo)).length);
+
+/**
+ * Con todo entregado, el panel se encoge a una línea.
+ *
+ * 🔥 Esta tarjeta va ARRIBA del itinerario porque es lo único de la pantalla que le pide algo al
+ * pasajero. En cuanto ya no le pide nada, ese sitio deja de ser suyo: quien ya entregó viene a
+ * mirar su viaje, y encontrarse tres filas resueltas empujando el itinerario hacia abajo es
+ * cobrarle todos los días por haber hecho los deberes.
+ *
+ * Se puede volver a abrir —una foto se puede querer cambiar—, pero cerrado es el estado normal.
+ */
+const desplegado = ref(false);
+const compacto = computed(() => quedanPorSubir.value === 0 && !desplegado.value);
 </script>
 
 <template>
-  <section class="bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-100 p-6 mb-6">
-    <h3 class="text-gray-900 font-black text-base mb-1">
-      {{ maestroStore.t('cot_mis_documentos') || 'Tus documentos' }}
-    </h3>
+  <!-- ═══ TODO ENTREGADO: una línea ═══
+       Sigue siendo pulsable porque una foto se puede querer cambiar, pero deja de ocupar la
+       pantalla de quien ya cumplió. -->
+  <button v-if="compacto" type="button" @click="desplegado = true"
+          class="w-full flex items-center gap-3 bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-100 px-5 py-3.5 mb-6 text-left hover:border-emerald-200 transition-colors">
+    <span class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+      <i class="fas fa-check text-sm"></i>
+    </span>
+    <span class="min-w-0 flex-1">
+      <span class="block text-sm font-black text-gray-800 truncate">
+        {{ maestroStore.t('cot_mis_documentos') || 'Tus documentos' }}
+      </span>
+      <span class="block text-[11px] text-emerald-700 font-bold">
+        {{ maestroStore.t('cot_mis_documentos_completos') || 'Recibidos. No tienes que hacer nada más.' }}
+      </span>
+    </span>
+    <i class="fas fa-chevron-down text-slate-300 text-xs shrink-0"></i>
+  </button>
+
+  <section v-else class="bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-100 p-6 mb-6">
+    <div class="flex items-start gap-2 mb-1">
+      <h3 class="text-gray-900 font-black text-base flex-1">
+        {{ maestroStore.t('cot_mis_documentos') || 'Tus documentos' }}
+      </h3>
+      <!-- Sólo cuando está todo: si falta algo, cerrar el panel es esconder lo que se le pide. -->
+      <button v-if="quedanPorSubir === 0" type="button" @click="desplegado = false"
+              class="shrink-0 w-7 h-7 rounded-lg text-slate-300 hover:text-slate-500 hover:bg-slate-50 transition-colors">
+        <i class="fas fa-chevron-up text-xs"></i>
+      </button>
+    </div>
     <p class="text-slate-500 text-xs leading-relaxed mb-5">
       {{ maestroStore.t('cot_mis_documentos_motivo')
         || 'Los necesitamos para emitir tus boletos y para el control migratorio. Sólo los ve el equipo que arma tu viaje, y se borran un mes después de tu regreso.' }}
@@ -173,9 +212,6 @@ const quedanPorSubir = computed(() => DOCUMENTOS.filter(d => !subidos.value.has(
       </div>
     </div>
 
-    <p v-if="quedanPorSubir === 0" class="mt-4 text-[11px] font-bold text-emerald-700 text-center">
-      <i class="fas fa-circle-check mr-1"></i> Ya está todo. No tienes que hacer nada más.
-    </p>
   </section>
 
   <!-- ═══ LA PREVISUALIZACIÓN ═══
