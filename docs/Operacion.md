@@ -18,6 +18,7 @@ Alcance: `src/Operacion/` (entidades, enums, servicio, listener, comando), los e
 2.bis [Confirmar ya NO arma la operación](#2bis-confirmar-ya-no-arma-la-operación)
 2.quinquies [El filtro de expediente no filtraba](#2quinquies--el-filtro-de-expediente-de-la-biblia-no-filtraba-08092026)
 2.sexies [El teléfono de la orden llegaba viejo](#2sexies--el-teléfono-de-la-orden-llegaba-viejo-08092026)
+2.septies [El mensaje decía un teléfono y la página otro](#2septies-el-mensaje-decía-un-teléfono-y-la-página-otro-08092026)
 3.bis [Por qué La Biblia aparece vacía](#3bis-por-qué-la-biblia-aparece-vacía)
 4. [Los tres estados y por qué son tres](#4-los-tres-estados-y-por-qué-son-tres)
 5. [Órdenes de Servicio y bitácora](#5-órdenes-de-servicio-y-bitácora)
@@ -323,6 +324,26 @@ número viejo es más útil que ninguno.
 
 ⚠️ Arregla también las órdenes YA emitidas, que es la mitad del valor: congelar el dato bueno al
 emitir habría dejado las de antes mintiendo para siempre.
+
+---
+
+## 2.septies El mensaje decía un teléfono y la página otro (08/09/2026)
+
+Al resolver el teléfono en vivo se arregló **el mensaje** al proveedor… y no la **página pública**,
+que leía `orden.gruposSnapshot` directamente en Twig. Resultado: el proveedor recibía un número por
+WhatsApp y, al abrir el enlace de esa misma orden, otro distinto. Peor que el fallo original: dos
+respuestas para la misma pregunta.
+
+`OperacionOrdenDocumento::gruposVivos()` arma los grupos con el teléfono ya resuelto, y **lo usan
+los tres**: el mensaje, la página y el PDF.
+
+⚠️ **Y sale FORMATEADO.** La identidad guarda dígitos pegados —`15617072454`— porque así se compara
+y así se envía; el congelado venía de `CotizacionFile::getTelefono()`, que ya lo formateaba. Al
+pasar a resolverlo en vivo el número empezó a salir crudo en el mensaje: el mismo dato, peor de
+leer y peor de teclear a mano.
+
+⚠️ Se parsea **sin país por defecto**: `+1 561 707 2454` es de Estados Unidos. Dar por hecho Perú
+habría convertido un número correcto en uno ilegible.
 
 ---
 

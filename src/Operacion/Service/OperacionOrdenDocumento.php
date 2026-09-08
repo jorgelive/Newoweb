@@ -8,6 +8,9 @@ use App\Operacion\Entity\OperacionOrdenServicio;
 use App\Operacion\Entity\OperacionOrdenServicioItem;
 use App\Travel\Entity\TravelOrganizacion;
 use App\Cotizacion\Entity\CotizacionFile;
+use libphonenumber\NumberParseException;
+use libphonenumber\PhoneNumberFormat;
+use libphonenumber\PhoneNumberUtil;
 use App\Message\Service\Conversacion\ContactoDelAsunto;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -113,6 +116,39 @@ final readonly class OperacionOrdenDocumento
      *
      * @param array{localizador: string, telefono: string} $grupo
      */
+    /**
+     * Los grupos de la orden con el teléfono ya resuelto y **formateado**.
+     *
+     * 🔥 Existe para que el mensaje, la página pública y el PDF digan LO MISMO. La página leía
+     * `gruposSnapshot` directamente en Twig, así que enseñaba el teléfono congelado mientras el
+     * mensaje ya mandaba el vivo: el proveedor recibía un número por WhatsApp y otro distinto al
+     * abrir el enlace de esa misma orden.
+     *
+     * @return list<array{localizador: string, grupo: string, pasajero: string, telefono: string, habitaciones: int, pax: int, dias: int, noches: int}>
+     */
+    public function gruposVivos(OperacionOrdenServicio $orden): array
+    {
+        $grupos = [];
+
+        foreach ($orden->getGruposSnapshot() as $g) {
+            $g['telefono'] = $this->telefonoVivo($g);
+            $grupos[] = $g;
+        }
+
+        return $grupos;
+    }
+
+    /**
+     * ⚠️ **Formateado, no crudo.** La identidad guarda dígitos pegados —`15617072454`— porque así
+     * se compara y así se envía; el congelado venía de `CotizacionFile::getTelefono()`, que ya lo
+     * formatea. Al pasar a resolverlo en vivo, el número empezó a salir sin formato en el mensaje
+     * al proveedor: el mismo dato, peor de leer y peor de teclear a mano.
+     *
+     * Y sin país por defecto: `+1 561 707 2454` es de Estados Unidos, no de Perú. Se parsea con el
+     * `+` delante y `null` como región, que es lo que hace la entidad.
+     *
+     * @param array{localizador: string, telefono: string} $grupo
+     */
     private function telefonoVivo(array $grupo): string
     {
         $file = $grupo['localizador'] === ''
@@ -125,7 +161,19 @@ final readonly class OperacionOrdenDocumento
 
         $vivo = $this->contacto->para('cotizacion_file', (string) $file->getId())['telefono'] ?? null;
 
-        return $vivo !== null && $vivo !== '' ? $vivo : $grupo['telefono'];
+        return $vivo !== null && $vivo !== '' ? $this->comoTelefono($vivo) : $grupo['telefono'];
+    }
+
+    /** `15617072454` → `+1 561 707 2454`. Si no se entiende, se devuelve tal cual. */
+    private function comoTelefono(string $crudo): string
+    {
+        try {
+            $util = PhoneNumberUtil::getInstance();
+
+            return $util->format($util->parse('+' . ltrim($crudo, '+'), null), PhoneNumberFormat::INTERNATIONAL);
+        } catch (NumberParseException) {
+            return $crudo;
+        }
     }
 
     /**

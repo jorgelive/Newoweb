@@ -64,7 +64,11 @@
     {# ⚠️ Quién viaja. Faltaba: al proveedor le llegaban horas y pax sin decirle de quién era el
        encargo ni a quién llamar. Con un solo grupo esto vale para toda la orden y las líneas no se
        etiquetan; con dos o más, cada línea lleva el suyo y este bloque hace de directorio. #}
-    {% for g in orden.gruposSnapshot %}
+    {# ⚠️ `grupos` y NO `orden.gruposSnapshot`: el teléfono se resuelve en vivo al servir la
+       página, igual que en el mensaje al proveedor. Leyendo el snapshot, esta página enseñaba el
+       número congelado mientras el WhatsApp mandaba el nuevo — el proveedor recibía dos números
+       distintos para la misma orden. Lo arma `OperacionOrdenDocumento::gruposVivos()`. #}
+    {% for g in grupos %}
         <p class="grupo">
             <strong>{{ g.grupo }}</strong>
             {% if g.pasajero and g.pasajero != g.grupo %} · {{ g.pasajero }}{% endif %}

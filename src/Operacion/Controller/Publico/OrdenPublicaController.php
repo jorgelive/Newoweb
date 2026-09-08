@@ -8,6 +8,7 @@ use App\Operacion\Entity\OperacionOrdenServicio;
 use App\Operacion\Enum\EstadoOrdenServicioEnum;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use App\Operacion\Service\OperacionOrdenDocumento;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -49,6 +50,7 @@ final class OrdenPublicaController extends AbstractController
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly OperacionOrdenDocumento $documento,
         #[Autowire(param: 'operaciones_telefono_emergencia')]
         private readonly string $telefonoEmergencia = '',
     ) {
@@ -61,6 +63,8 @@ final class OrdenPublicaController extends AbstractController
 
         return $this->render('operacion/orden_publica.html.twig', [
             'orden' => $orden,
+            // El teléfono, resuelto ahora: el snapshot lo congeló y ya no es el bueno.
+            'grupos' => $this->documento->gruposVivos($orden),
             // Mismo criterio que el mensaje al proveedor: el recojo, una vez al día.
             'rutas' => $orden->getRutasVisibles(),
             'telefonoEmergencia' => trim($this->telefonoEmergencia),
@@ -83,6 +87,7 @@ final class OrdenPublicaController extends AbstractController
         $dompdf->loadHtml($this->renderView('operacion/orden_publica.html.twig', [
             'rutas' => $orden->getRutasVisibles(),
             'orden' => $orden,
+            'grupos' => $this->documento->gruposVivos($orden),
             'telefonoEmergencia' => trim($this->telefonoEmergencia),
             'paraPdf' => true,
         ]));
