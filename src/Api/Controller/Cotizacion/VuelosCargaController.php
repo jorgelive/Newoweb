@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Api\Controller\Cotizacion;
 
 use App\Cotizacion\Entity\CotizacionFile;
+use App\Cotizacion\Service\Vuelos\VuelosExportador;
 use App\Cotizacion\Service\Vuelos\VuelosImportador;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,6 +30,44 @@ use Symfony\Component\Uid\Uuid;
  */
 final class VuelosCargaController extends AbstractController
 {
+    /**
+     * Descarga los vuelos del expediente **en el mismo JSON que se carga**.
+     *
+     * 🔥 Es la otra mitad del viaje de ida y vuelta, y sustituye a un formulario que no compensa:
+     * un PNR con cuatro tramos son veintitantos campos anidados en dos niveles, y lo que de verdad
+     * se hace no es crearlo de cero sino **corregir un horario** cuando la aerolínea reprograma.
+     *
+     * ⚠️ `.txt` y no `.json`: se abre de un toque en cualquier móvil y en cualquier portátil, que
+     * es donde llega el correo de la aerolínea. El contenido es JSON igual.
+     */
+    #[Route(
+        '/cotizacion/user/vuelos/exportar/{id}',
+        name: 'cotizacion_vuelos_exportar',
+        requirements: ['id' => '[0-9a-fA-F-]{36}'],
+        methods: ['GET'],
+    )]
+    #[IsGranted(Roles::RESERVAS_SHOW, message: 'No tienes permiso para ver este expediente.')]
+    public function exportar(
+        string $id,
+        EntityManagerInterface $em,
+        VuelosExportador $exportador,
+    ): Response {
+        $file = $em->getRepository(CotizacionFile::class)->find(Uuid::fromString($id));
+
+        if ($file === null) {
+            return $this->json(['error' => 'No encontré el expediente.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $respuesta = new Response($exportador->comoTexto($file));
+        $respuesta->headers->set('Content-Type', 'text/plain; charset=utf-8');
+        $respuesta->headers->set(
+            'Content-Disposition',
+            sprintf('attachment; filename="vuelos-%s.txt"', $file->getLocalizador() ?? 'expediente'),
+        );
+
+        return $respuesta;
+    }
+
     #[Route(
         '/cotizacion/user/vuelos/cargar/{id}',
         name: 'cotizacion_vuelos_cargar',

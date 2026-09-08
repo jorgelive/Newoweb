@@ -336,6 +336,40 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * ⚠️ El 422 trae el motivo dentro y se devuelve en vez de tirarlo: cuando el JSON viene de
      * pegar un correo, «falta una coma en la línea 40» es lo único accionable.
      */
+    /**
+     * Descarga los vuelos del expediente en el mismo JSON que se carga.
+     *
+     * 🔥 Es la otra mitad del viaje de ida y vuelta, y sustituye a un formulario que no compensa:
+     * un PNR con cuatro tramos son veintitantos campos anidados en dos niveles, y lo que de verdad
+     * se hace no es crearlo de cero sino corregir un horario cuando la aerolínea reprograma.
+     *
+     * ⚠️ Va por `apiClient` y NO por un `<a href>`: la petición lleva la sesión, y un enlace suelto
+     * la perdería y bajaría un 401 con extensión `.txt`.
+     */
+    const descargarVuelos = async (fileId: string, localizador: string): Promise<boolean> => {
+        error.value = null;
+
+        try {
+            const { data } = await apiClient.get(
+                `/cotizacion/user/vuelos/exportar/${fileId}`,
+                { responseType: 'blob' },
+            );
+
+            const url = URL.createObjectURL(data as Blob);
+            const enlace = document.createElement('a');
+            enlace.href = url;
+            enlace.download = `vuelos-${localizador || 'expediente'}.txt`;
+            enlace.click();
+            URL.revokeObjectURL(url);
+
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudieron descargar los vuelos.');
+
+            return false;
+        }
+    };
+
     const cargarVuelos = async (
         fileId: string,
         json: string,
@@ -747,6 +781,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         actualizarGrupo,
         cargarPadron,
         cargarVuelos,
+        descargarVuelos,
         eliminarGrupo,
         planificarOperacion,
         revisarCoherencia,

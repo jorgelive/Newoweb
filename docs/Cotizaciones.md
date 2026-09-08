@@ -1221,6 +1221,33 @@ por WhatsApp y tecleándolo 133 veces. Es justo el dato que luego el pasajero bu
 rellena mirando la clave que tiene al lado, y con diez columnas de por medio se rellena la del
 vuelo equivocado.
 
+#### Se descarga lo que hay, se edita y se vuelve a cargar (08/09/2026)
+
+**Un formulario para esto no compensa.** Un PNR con cuatro tramos —cada uno con número, fecha,
+aerolínea, ruta y dos horas— más las notas de la reserva es un formulario de veintitantos campos
+anidados en dos niveles. Y lo que de verdad se hace **no es crearlo de cero**: es corregir un
+horario cuando la aerolínea reprograma.
+
+`VuelosExportador` saca el expediente en **el mismo JSON que se carga**. Descargar, cambiar la
+línea, volver a pegar. De paso el formato deja de ser un examen: se aprende leyendo el propio.
+
+🔥 **Es espejo exacto de `VuelosImportador`. Al tocar uno, tocar el otro.** Si el exportador
+escribiera una clave que el importador no lee —o al revés—, el viaje de ida y vuelta perdería datos
+**en silencio**: se descarga, se edita una línea, se vuelve a cargar, y lo que se nombró distinto
+desaparece sin un solo error. No se puede unificar en una constante como hace `PadronFormato`
+—uno lee y el otro escribe—, así que la garantía es la comprobación: **exportar, reimportar en
+ensayo y no obtener ningún cambio**.
+
+⚠️ **`pnr_nuevo` no se exporta.** Es una instrucción de renombrado, no un dato del expediente:
+escribirlo haría que reimportar sin tocar nada renombrara el PNR a sí mismo.
+
+⚠️ **Sólo el eje de reserva aérea.** Una habitación no tiene vuelos, y sacarla con `"vuelos": []`
+haría que reimportar **desvinculara** lo que ese grupo tuviera — la lista de un PNR reemplaza.
+
+⚠️ **`.txt` y no `.json`**: se abre de un toque en cualquier móvil, que es donde llega el correo de
+la aerolínea. Y la descarga va por `apiClient`, no por un `<a href>`: un enlace suelto perdería la
+sesión y bajaría un 401 con extensión `.txt`.
+
 #### El orden importa: primero el padrón, después los vuelos
 
 `VuelosImportador` **no crea localizadores**: un PNR que no está en el expediente se reporta y se

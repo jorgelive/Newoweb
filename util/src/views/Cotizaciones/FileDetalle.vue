@@ -993,6 +993,18 @@ const EJEMPLO_VUELOS = `[
   }
 ]`;
 
+/** Baja el JSON de los vuelos que ya tiene el expediente, para editarlo y volver a cargarlo. */
+const descargarVuelos = async () => {
+  if (!file.value) return;
+
+  const ok = await fileStore.descargarVuelos(
+    extractIdStr(file.value.id || file.value['@id']) || '',
+    String(file.value.localizador ?? ''),
+  );
+
+  if (!ok) alert(fileStore.error || 'No se pudieron descargar los vuelos.');
+};
+
 const abrirVuelos = () => {
   jsonVuelos.value = '';
   ensayoVuelos.value = null;
@@ -4095,8 +4107,11 @@ const eliminarDocumento = async (iri?: string) => {
               vuelos se <b>reemplazan</b> por los de la lista. Si mandas un PNR con la ida y te
               olvidas la vuelta, esa vuelta deja de ser suya. Ningún vuelo se borra de la base —se
               queda sin nadie y se avisa—, pero el pasajero deja de tenerlo.</p>
-            <p><b>El PNR debe existir</b> en el expediente: si no, se avisa y no se crea. Para renombrar
-              uno provisional usa <code class="font-mono">pnr_nuevo</code>.</p>
+            <p><b>Esto NO crea PNR.</b> Un localizador que no exista ya en el expediente se avisa y
+              se salta: <code class="font-mono">«BONT3N no existe en el expediente: no se crea.»</code>
+              Los PNR los crea el <b>padrón</b> (el Excel), así que el orden es padrón primero y
+              vuelos después. Crear uno desde aquí convertiría una errata de tecleo en un grupo sin
+              pasajeros. Para renombrar uno provisional usa <code class="font-mono">pnr_nuevo</code>.</p>
             <p><b>Un vuelo es un <code class="font-mono">leg</code>.</b> Una conexión son dos vuelos,
               cada uno con su número; lo que los une es que comparten PNR.</p>
             <p><code class="font-mono">emitido: false</code> marca la reserva pagada y sin billete.</p>
@@ -4107,9 +4122,18 @@ const eliminarDocumento = async (iri?: string) => {
 
         <div class="flex items-center justify-between mb-1">
           <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">JSON</label>
-          <button @click="jsonVuelos = EJEMPLO_VUELOS" class="text-[10px] font-bold text-sky-600 hover:underline">
-            <i class="fas fa-file-code mr-1"></i>Pegar un ejemplo
-          </button>
+          <div class="flex items-center gap-3">
+            <!-- 🔥 Lo que de verdad se hace no es escribir el JSON de cero: es CORREGIR un horario
+                 cuando la aerolínea reprograma. Descargar lo que hay, cambiar la línea y volver a
+                 cargarlo es el camino corto — y de paso el formato se aprende leyendo el propio. -->
+            <button v-if="(file?.vuelos ?? []).length" @click="descargarVuelos"
+                    class="text-[10px] font-bold text-slate-500 hover:text-slate-700 hover:underline">
+              <i class="fas fa-download mr-1"></i>Descargar lo que hay
+            </button>
+            <button @click="jsonVuelos = EJEMPLO_VUELOS" class="text-[10px] font-bold text-sky-600 hover:underline">
+              <i class="fas fa-file-code mr-1"></i>Pegar un ejemplo
+            </button>
+          </div>
         </div>
         <!-- El placeholder ES el ejemplo completo: se ve la forma exacta antes de escribir nada, y
                      «Pegar un ejemplo» lo mete de verdad para editarlo encima. -->
