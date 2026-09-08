@@ -121,9 +121,16 @@ final class ArchivoPrivadoController
             sprintf('inline; filename="%s"', $archivo->nombreParaDescarga()),
         );
 
-        // ⚠️ **Privada, no pública.** Un intermediario que cachee esto lo serviría a otro. El
-        // service worker de `pax` sí puede guardarlo: es el dispositivo de su dueño.
-        $respuesta->headers->set('Cache-Control', 'private, max-age=3600');
+        // ⚠️ **Privada, y sin guardar.** Un intermediario que cachee esto lo serviría a otro; y
+        // `max-age` en el propio navegador es peor de lo que parece: este enlace se abre en el
+        // móvil compartido de la familia —por eso existe «No soy yo»—, así que A abre su tarjeta,
+        // sale, entra B, y el «atrás» le serviría la de A durante una hora **sin pasar por PHP**,
+        // que es donde se comprueba de quién es.
+        //
+        // `no-cache` no prohíbe guardar: obliga a revalidar, así que el service worker de `pax`
+        // sigue pudiendo conservarla para el aeropuerto sin señal — que es el caso que importa.
+        $respuesta->headers->set('Cache-Control', 'private, no-cache');
+        $respuesta->headers->set('Vary', 'Cookie');
 
         return $respuesta;
     }
@@ -143,10 +150,29 @@ final class ArchivoPrivadoController
         $file = $archivo->getFile();
         $pasajero = $archivo->getPasajero();
 
-        if ($file === null || $pasajero === null) {
-            // Sin dueño no hay a quién devolvérselo: los adjuntos del expediente entero —una
-            // factura, una confirmación— son cosa del operador mientras nadie diga lo contrario.
+        if ($file === null) {
             return false;
+        }
+
+        // ── Sin dueño: es del expediente entero ─────────────────────────────
+        // 🔥 **Esto llegó a producción cerrado de más y rompió la portada entera.** «Sin dueño no
+        // hay a quién devolvérselo» sonaba prudente y era falso: la entrada a Machu Picchu, el
+        // tren y la confirmación de reserva NO tienen dueño y son justo lo que la portada lleva
+        // años ofreciendo. Con el candado puesto, **todo adjunto de la portada daba 404 a todo
+        // cliente** — y como el 404 es mudo por diseño, parecía que el archivo no existía.
+        //
+        // Lo que manda es el TIPO: `esPublico()` es la misma regla con la que
+        // {@see \App\Cotizacion\Entity\CotizacionFile::getDocumentosParaCliente()} arma esa
+        // lista, así que la lista y el permiso no pueden volver a discrepar.
+        //
+        // ⚠️ Y si el expediente exige identificarse, esto también: sería absurdo cerrar el
+        // itinerario con documento y fecha de nacimiento y dejar los boletos abiertos al lado.
+        if ($pasajero === null) {
+            if ($archivo->getTipoArchivo()?->esPublico() !== true) {
+                return false;
+            }
+
+            return !$file->isExigeIdentificacion() || $this->identidad->estaIdentificado($file);
         }
 
         if (!$archivo->esDevolvibleAlPasajero()) {

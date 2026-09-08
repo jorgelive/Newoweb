@@ -85,7 +85,7 @@ final readonly class CargaMasivaDeArchivos
         }
 
         $porDocumento = $this->pasajerosPorDocumento($file);
-        $porVuelo = $this->vuelosPorNumero($file);
+        [$porVuelo, $ambiguos] = $this->vuelosPorNumero($file);
         $destino = $this->prepararTemporal();
 
         $plan = [];
@@ -122,7 +122,7 @@ final readonly class CargaMasivaDeArchivos
 
             [$pasajero, $vuelo] = $this->casar($nombre, $porDocumento, $porVuelo);
 
-            $problema = $this->queFalta($pasajero, $vuelo);
+            $problema = $this->queFalta($nombre, $pasajero, $vuelo, $ambiguos);
 
             // ⚠️ Se extrae por índice y con un nombre NUESTRO: `extractTo` con el nombre del ZIP
             // permite `../../` —el «zip slip»— y escribe donde no debe. Aquí el nombre de destino
@@ -159,13 +159,31 @@ final readonly class CargaMasivaDeArchivos
      * El orden de las comprobaciones es el orden en que se entiende el error: primero si se
      * reconoce a la persona, después el vuelo, y sólo entonces si encajan entre sí.
      */
-    private function queFalta(?CotizacionFilepasajero $pasajero, ?CotizacionVuelo $vuelo): ?string
-    {
+    /** @param array<string, list<string>> $ambiguos */
+    private function queFalta(
+        string $fichero,
+        ?CotizacionFilepasajero $pasajero,
+        ?CotizacionVuelo $vuelo,
+        array $ambiguos = [],
+    ): ?string {
         if ($pasajero === null) {
             return 'no se reconoce el documento';
         }
 
         if ($vuelo === null) {
+            // ⚠️ Antes de decir «no se reconoce», mirar si es que se reconoce DEMASIADO: ese
+            // número vuela dos veces y el nombre no dice cuál. Es un error distinto y se arregla
+            // distinto —añadiendo la fecha—, así que decirlo importa.
+            foreach ($ambiguos as $numero => $fechas) {
+                if (in_array($numero, array_map($this->normalizar(...), preg_split('/[-_\s.]+/', pathinfo($fichero, PATHINFO_FILENAME)) ?: []), true)) {
+                    return sprintf(
+                        'el %s vuela el %s: añade la fecha al nombre',
+                        $numero,
+                        implode(' y el ', $fechas),
+                    );
+                }
+            }
+
             return 'no se reconoce el número de vuelo';
         }
 
@@ -257,20 +275,51 @@ final readonly class CargaMasivaDeArchivos
         return $mapa;
     }
 
-    /** @return array<string, CotizacionVuelo> */
+    /**
+     * Los vuelos del expediente por número — y 🔥 **los repetidos se quedan FUERA**.
+     *
+     * `CotizacionVuelo` es único por `(numero, fecha)`, no por número: el JA7027 vuela el 25 y el
+     * 27. Con un mapa `numero → vuelo`, el último gana y `12345678-JA7027.pdf` se archiva contra
+     * el tramo equivocado. Y no salta ninguna alarma: la persona vuela los dos —mismo PNR—, así
+     * que `vuelaEseVuelo()` dice que sí y el plan lo pinta en verde. El pasajero abre en la puerta
+     * el boarding pass del otro día.
+     *
+     * Por eso el ambiguo no se adivina: se saca del mapa y {@see self::queFalta()} lo cuenta,
+     * para que el operador ponga la fecha en el nombre.
+     *
+     * @return array{0: array<string, CotizacionVuelo>, 1: array<string, list<string>>}
+     *         el mapa utilizable, y los números ambiguos con sus fechas para explicarlo
+     */
     private function vuelosPorNumero(CotizacionFile $file): array
     {
-        $mapa = [];
+        /** @var array<string, list<CotizacionVuelo>> $porNumero */
+        $porNumero = [];
 
         foreach ($file->getVuelos() as $vuelo) {
             $clave = $this->normalizar((string) $vuelo->getNumero());
 
             if ($clave !== '') {
-                $mapa[$clave] = $vuelo;
+                $porNumero[$clave][] = $vuelo;
             }
         }
 
-        return $mapa;
+        $mapa = [];
+        $ambiguos = [];
+
+        foreach ($porNumero as $clave => $vuelos) {
+            if (count($vuelos) === 1) {
+                $mapa[$clave] = $vuelos[0];
+
+                continue;
+            }
+
+            $ambiguos[$clave] = array_map(
+                static fn (CotizacionVuelo $v): string => ($v->getSalida() ?? $v->getFecha())?->format('d/m') ?? '?',
+                $vuelos,
+            );
+        }
+
+        return [$mapa, $ambiguos];
     }
 
     /**
@@ -359,7 +408,7 @@ final readonly class CargaMasivaDeArchivos
         $nombres = json_decode((string) file_get_contents($indice), true) ?: [];
 
         $porDocumento = $this->pasajerosPorDocumento($file);
-        $porVuelo = $this->vuelosPorNumero($file);
+        [$porVuelo, $ambiguos] = $this->vuelosPorNumero($file);
 
         $plan = [];
 
@@ -371,7 +420,7 @@ final readonly class CargaMasivaDeArchivos
             }
 
             [$pasajero, $vuelo] = $this->casar((string) $original, $porDocumento, $porVuelo);
-            $plan[] = $this->fila($file, (string) $original, $pasajero, $vuelo, $this->queFalta($pasajero, $vuelo), $fichero);
+            $plan[] = $this->fila($file, (string) $original, $pasajero, $vuelo, $this->queFalta((string) $original, $pasajero, $vuelo, $ambiguos), $fichero);
         }
 
         return $this->aplicar($file, $plan);
@@ -387,6 +436,8 @@ final readonly class CargaMasivaDeArchivos
     public function aplicar(CotizacionFile $file, array $plan): array
     {
         $creados = [];
+        /** @var array<string, true> $vistos  pasajero|vuelo ya servido en esta misma pasada */
+        $vistos = [];
 
         foreach ($plan as $fila) {
             if ($fila['problema'] !== null || $fila['ruta'] === null || !is_file($fila['ruta'])) {
@@ -400,6 +451,19 @@ final readonly class CargaMasivaDeArchivos
             if ($previo !== null) {
                 $this->em->remove($previo);
             }
+
+            // 🔥 **Y el duplicado dentro del PROPIO ZIP.** `setFile()` es un setter plano: el
+            // adjunto nuevo no entra en `$file->getFilearchivos()`, así que `boletoPrevio()` sólo
+            // ve la base y dos entradas que casan igual —`12345678-DM6771.pdf` y
+            // `12345678_DM6771.jpg`, o el mismo nombre en `ida/` y en `vuelta/`— se creaban las
+            // dos. Es exactamente el duplicado que todo esto viene a evitar, colado por dentro.
+            $huella = sprintf('%s|%s', (string) $fila['pasajero']?->getId(), (string) $fila['vuelo']?->getId());
+
+            if (isset($vistos[$huella])) {
+                continue;
+            }
+
+            $vistos[$huella] = true;
 
             $archivo = new CotizacionFilearchivo();
             $archivo->setFile($file);

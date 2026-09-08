@@ -317,6 +317,22 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
         $extension = pathinfo((string) $this->imageName, PATHINFO_EXTENSION);
         $base = $this->tipoArchivo->value ?? 'archivo';
 
+        // 🔥 **El vuelo delante del tipo.** Ocho tarjetas de embarque descargadas se llamaban
+        // `boleto.pdf`, `boleto(1).pdf`, `boleto(2).pdf` — y el pasajero acaba en la puerta
+        // abriéndolas de una en una. Con `CUZ-LIM-17sep-JA7018` la carpeta de descargas ya está
+        // ordenada, que es donde de verdad se busca.
+        $vuelo = $this->vuelo;
+        if ($vuelo !== null) {
+            $base = trim(sprintf(
+                '%s-%s-%s-%s',
+                (string) $vuelo->getOrigen(),
+                (string) $vuelo->getDestino(),
+                // Sin año: el viaje es de este año y hace el nombre más corto de leer.
+                ($vuelo->getSalida() ?? $vuelo->getFecha())?->format('d-M') ?? '',
+                (string) $vuelo->getNumero(),
+            ), '-');
+        }
+
         $pasajero = $this->pasajero;
         if ($pasajero !== null) {
             $base .= '-' . trim(sprintf('%s %s', (string) $pasajero->getNombre(), (string) $pasajero->getApellido()));

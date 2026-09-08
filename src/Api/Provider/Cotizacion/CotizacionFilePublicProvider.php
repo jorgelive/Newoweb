@@ -383,7 +383,13 @@ final class CotizacionFilePublicProvider implements ProviderInterface
      *
      * ⚠️ **Con el vuelo delante, no con el nombre del fichero.** El pasajero tiene ocho tarjetas y
      * todas se llaman igual; lo que necesita en la puerta de embarque es «CUZ → LIM, 17 sep», no
-     * «boleto». La fecha va en ISO y la formatea el front: esta app habla siete idiomas.
+     * «boleto». La fecha la formatea el front, que sabe en qué idioma se está leyendo.
+     *
+     * 🔥 **Y viaja como `Y-m-d`, no como ISO completo.** `salida` es hora LOCAL de Lima; mandada
+     * con `format('c')` sale con `-05:00`, y el front la pinta en UTC para que una fecha sin hora
+     * no se corra. Las dos cosas juntas empujan un vuelo de las 23:50 al día siguiente. El resto
+     * de fechas de esa vista ya recortaban a diez caracteres por lo mismo; ésta lo hace aquí, que
+     * es donde se sabe que es una fecha y no un instante.
      *
      * ⚠️ **Ordenados por fecha de vuelo.** Es el orden en que los va a usar, y el que hace que el
      * de mañana esté arriba.
@@ -414,7 +420,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 'numero' => $vuelo?->getNumero(),
                 'origen' => $vuelo?->getOrigen(),
                 'destino' => $vuelo?->getDestino(),
-                'fecha' => $fecha?->format('c'),
+                'fecha' => $fecha?->format('Y-m-d'),
             ];
         }
 

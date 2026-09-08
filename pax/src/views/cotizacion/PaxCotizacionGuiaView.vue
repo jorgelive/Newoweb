@@ -225,11 +225,17 @@ const misBoletos = computed(() => store.miIdentidad?.documentos ?? []);
 const rutaDe = (d: { origen?: string | null; destino?: string | null }) =>
   d.origen && d.destino ? `${d.origen} → ${d.destino}` : '';
 
-/** «17 sep». Fecha del vuelo, en el idioma que esté leyendo. */
+/**
+ * «17 sep». Fecha del vuelo, en el idioma que esté leyendo.
+ *
+ * ⚠️ `substring(0, 10) + 'T00:00:00Z'` como el resto de esta vista: el backend manda `Y-m-d` y
+ * `new Date('2026-09-17')` ya se interpreta en UTC, pero dejarlo al azar del formato es cómo un
+ * vuelo de las 23:50 acaba pintado al día siguiente.
+ */
 const fechaDeVuelo = (iso?: string | null) => {
   if (!iso) return '';
 
-  return new Date(iso).toLocaleDateString(maestroStore.idiomaActual, {
+  return new Date(iso.substring(0, 10) + 'T00:00:00Z').toLocaleDateString(maestroStore.idiomaActual, {
     day: 'numeric', month: 'short', timeZone: 'UTC',
   });
 };

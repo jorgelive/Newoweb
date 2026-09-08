@@ -1138,6 +1138,43 @@ viaja como dato.
 permitía nginx (`client_max_body_size`). Aun así, **un ZIP por vuelo es mejor que uno gigante**:
 cada vuelo lleva ≤25 pax, entra de sobra, y la tabla de revisión es corta.
 
+#### Lo que encontró la revisión (08/09/2026)
+
+Cinco defectos que pasaron PHPStan 7, 576 tests, `vue-tsc` y ESLint. Ninguno daba error.
+
+**1. Todo adjunto de la portada daba 404 a todo cliente.** `ArchivoPrivadoController::puedeVerlo()`
+decía «sin dueño no hay a quién devolvérselo» — prudente y falso: la entrada a Machu Picchu, el
+tren y la confirmación de reserva **no tienen dueño** y son justo lo que la portada ofrece. Y como
+el 404 es mudo por diseño, parecía que el archivo no existía. Ahora manda el TIPO —`esPublico()`,
+la misma regla con la que se arma la lista, para que lista y permiso no puedan discrepar— y, si el
+expediente exige identificarse, esto también.
+
+**2. Un número de vuelo que se repite se archivaba contra el tramo equivocado.** `CotizacionVuelo`
+es único por `(numero, fecha)`: el JA7027 vuela el 25 **y** el 27. El mapa `numero → vuelo` dejaba
+ganar al último, y `12345678-JA7027.pdf` iba al tramo que tocara. Sin alarma: la persona vuela los
+dos —mismo PNR—, así que la validación cruzada decía que sí y el plan lo pintaba en verde. El
+pasajero abría en la puerta el boarding pass del otro día. Ahora el ambiguo **se saca del mapa** y
+la fila explica «el JA7027 vuela el 25/09 y el 27/09: añade la fecha al nombre».
+
+**3. Dos ficheros del mismo pasajero y vuelo en el MISMO ZIP creaban dos tarjetas.** `setFile()` es
+un setter plano: el adjunto nuevo no entra en `getFilearchivos()`, así que `boletoPrevio()` sólo
+veía la base. `12345678-DM6771.pdf` y `12345678_DM6771.jpg` —o el mismo nombre en `ida/` y
+`vuelta/`— pasaban los dos. El duplicado que todo esto evita, colado por dentro.
+
+**4. La fecha se corría un día en vuelos de noche.** `salida` es hora local de Lima; enviada con
+`format('c')` lleva `-05:00`, y el front pinta en UTC para que una fecha sin hora no se mueva. Un
+vuelo de las 23:50 del 22 salía «23 sep». Ahora viaja como `Y-m-d`.
+
+**5. El `unlink` del cron mentía.** El comentario prometía «si falla, la fila se queda y el próximo
+pase lo reintenta», pero se ignoraba el resultado y la fila se borraba igual — dejando el fichero
+en disco sin nadie que supiera de quién era.
+
+⚠️ **Y `Cache-Control` pasó de `max-age=3600` a `no-cache`**: este enlace se abre en el móvil
+compartido de la familia —por eso existe «No soy yo»—, y con `max-age` el «atrás» servía la
+tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprueba de quién es.
+`no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
+aeropuerto sin señal.
+
 #### La tarjeta de embarque, con el vuelo delante (08/09/2026)
 
 El pasajero tiene hasta ocho y **todas se llaman «boleto»**. En la cola del embarque lo que sirve

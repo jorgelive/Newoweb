@@ -132,12 +132,16 @@ final class PurgarArchivosCommand extends Command
                 continue;
             }
 
-            // El fichero primero: si falla, la fila se queda y el próximo pase lo reintenta. Al
-            // revés quedaría un huérfano en disco que ya nadie sabe de quién era.
+            // ⚠️ **El comentario decía «si falla, la fila se queda» y no era verdad**: se ignoraba
+            // el resultado de `unlink()` y la fila se borraba igual, dejando el fichero en disco
+            // sin nadie que supiera de quién era. Ahora sí: si no se puede borrar, esta fila se
+            // salta y el pase de mañana lo reintenta.
             $ruta = $this->projectDir . '/var/documentos/archivos/' . (string) $archivo->getImageName();
 
-            if (!$seco && is_file($ruta)) {
-                @unlink($ruta);
+            if (!$seco && is_file($ruta) && !@unlink($ruta)) {
+                $io->warning(sprintf('No se pudo borrar %s: se reintenta mañana.', basename($ruta)));
+
+                continue;
             }
 
             if (!$seco) {
