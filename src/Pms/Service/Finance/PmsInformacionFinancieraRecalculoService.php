@@ -157,12 +157,25 @@ final class PmsInformacionFinancieraRecalculoService
                            0                                   AS pago
                     FROM pms_cargo_financiero c
                     INNER JOIN pms_informacion_financiera i2 ON i2.id = c.informacion_id
+                    -- Para saber si la ESTANCIA de este cargo sigue viva. `LEFT` porque un cargo
+                    -- de nivel reserva no cuelga de ninguna.
+                    LEFT JOIN pms_evento_calendario ev ON ev.id = c.evento_id
                     -- COALESCE y no `= 'charge'`: la columna admite nulo y `prePersist` es quien
                     -- pone el defecto, así que el espejo en PHP (`PmsTotalesPorMoneda`) tiene que
                     -- contar igual una fila sin tipo. Hoy no hay ninguna, pero dos criterios
                     -- distintos sobre la misma fila es exactamente lo que no puede pasar aquí.
                     WHERE COALESCE(c.tipo, 'charge') = 'charge'
                       AND c.informacion_id IN ({$in})
+                      -- 🔥 **Una estancia CANCELADA no cobra, esté la ficha activa o no.**
+                      -- `activa` es de la RESERVA ENTERA, y eso dejaba sin salida el caso que
+                      -- más ocurre: el huésped cancela en la OTA y sigue como directa con otras
+                      -- fechas. Bajada, no contaba ni el precio nuevo tecleado a mano; subida,
+                      -- revivían los cargos del canal de la estancia muerta JUNTO con el nuevo.
+                      -- No había posición correcta de esa bandera. Con esto, «Reactivar» despierta
+                      -- lo que sigue vivo y deja dormido lo que se canceló.
+                      --
+                      -- ⚠️ `COALESCE`: un cargo de nivel reserva no tiene estancia y sí cuenta.
+                      AND COALESCE(ev.estado_id, '') <> 'cancelada'
                       -- Cabecera ANULADA: sólo cuenta la penalización (§12.7). Los cargos de la
                       -- estancia siguen en la tabla —no se pierde historia—, pero dejan de sumar.
                       --

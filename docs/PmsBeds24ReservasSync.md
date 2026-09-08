@@ -4315,10 +4315,44 @@ clasificaba como una noche más.
 
 | `activa` | Qué suma `total_cargos` |
 |---|---|
-| `true` | **Todos** los cargos (caso normal) |
-| `false` | **Sólo** los de tipo `PENALIZACION` |
+| `true` | Todos los cargos **de estancias vivas**, más los de nivel reserva |
+| `false` | Nada (ni la penalización, desde el 31/08/2026) |
 
 Los cargos **nunca se borran**: siguen en la tabla y visibles en el panel, sólo dejan de contar.
+
+#### 🔥 Una estancia CANCELADA no cobra, esté la ficha activa o no (08/09/2026)
+
+`activa` es de la **reserva entera**, y eso dejaba sin salida el caso que más ocurre: el huésped
+cancela en la OTA y sigue como directa con otras fechas. La bandera no tenía posición correcta:
+
+| `activa` | Qué pasaba |
+|---|---|
+| `false` | No contaba **nada**, ni el precio nuevo tecleado a mano. Saldo negativo con el dinero ya cobrado |
+| `true` | Revivían los cargos del canal de la estancia muerta **junto** con el nuevo. Se cobraba dos veces |
+
+Pasó en la **92657416**: cancelada en Booking, rehecha como directa en dos casitas, S/. 977
+tecleados a mano y el panel enseñando `CARGOS S/. 0.00`.
+
+La regla que lo cierra es una línea, y usa un dato que ya existía —el panel ya pinta la estancia
+tachada y ya la excluye del desplegable al añadir un cargo; el cálculo era el único que no la
+miraba:
+
+```sql
+AND COALESCE(ev.estado_id, '') <> 'cancelada'
+```
+
+⚠️ **`COALESCE` porque un cargo de NIVEL RESERVA no cuelga de ninguna estancia**, y ése sí cuenta:
+es justamente donde el operador teclea el precio del arreglo nuevo.
+
+⚠️ **Con esto «Reactivar» vuelve a significar lo que dice**: despierta lo que sigue vivo y deja
+dormido lo que se canceló. Antes era una trampa.
+
+⚠️ Y saca a la luz las fichas donde el dinero se quedó pegado al tramo muerto: la **91881927**
+parecía saldada porque los USD 174.39 del tramo cancelado cuadraban con lo pagado, mientras la
+estancia viva no tenía precio. Para eso está `app:pms:mover-cargos-de-cancelada`, que reengancha
+los cargos a la estancia viva **por ORM** —los listeners de coherencia recalculan los totales al
+guardar; un `UPDATE` en SQL dejaría `pms_finanzas_total_moneda` mintiendo— y **sólo cuando hay una
+sola estancia viva**: con dos, quién se queda el cargo lo decide una persona mirando las fechas.
 
 `PmsTipoCargo::PENALIZACION` se detecta **antes** que la regla del `subType` (por descripción:
 `cancel`, `penaliz`, `no show`), justo porque comparte el `subType 8` con el alojamiento.

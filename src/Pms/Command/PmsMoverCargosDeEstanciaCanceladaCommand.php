@@ -1,0 +1,152 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Pms\Command;
+
+use App\Pms\Entity\PmsCargoFinanciero;
+use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Entity\PmsEventoEstado;
+use App\Pms\Entity\PmsReserva;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+/**
+ * Reengancha a la estancia VIVA los cargos que quedaron colgados de una cancelada.
+ *
+ * ── Por qué hace falta ──────────────────────────────────────────────────────
+ * Desde el 08/09/2026 un cargo de una estancia cancelada **no cuenta** (ver
+ * {@see \App\Pms\Service\Finance\PmsTotalesPorMoneda::cargoCuenta()}). La regla es correcta, pero
+ * saca a la luz las fichas donde el dinero se quedó pegado al tramo muerto: el huésped movió
+ * fechas o casita, el cargo original no se movió con él, y la ficha parecía saldada porque el
+ * importe del tramo cancelado casualmente cuadraba con lo pagado.
+ *
+ * ⚠️ **Va por ORM y no por SQL**, aunque sea un `UPDATE` de una columna: los listeners de
+ * coherencia financiera recalculan los totales por moneda al guardar. Un `UPDATE` directo dejaría
+ * `pms_finanzas_total_moneda` diciendo lo de antes — y ese desajuste no da error, sólo un panel
+ * que miente.
+ *
+ * ⚠️ **Sólo mueve cuando hay UNA estancia viva.** Con dos, quién se queda el cargo es una decisión
+ * de negocio y la toma una persona mirando las fechas, no un comando adivinando.
+ */
+#[AsCommand(
+    name: 'app:pms:mover-cargos-de-cancelada',
+    description: 'Reengancha a la estancia viva los cargos colgados de una estancia cancelada.',
+)]
+final class PmsMoverCargosDeEstanciaCanceladaCommand extends Command
+{
+    public function __construct(private readonly EntityManagerInterface $em)
+    {
+        parent::__construct();
+    }
+
+    protected function configure(): void
+    {
+        $this->addArgument('reserva', InputArgument::REQUIRED, 'beds24_master_id de la reserva');
+        $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'No guarda: enseña lo que haría.');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $seco = (bool) $input->getOption('dry-run');
+        $masterId = (int) $input->getArgument('reserva');
+
+        $reserva = $this->em->getRepository(PmsReserva::class)->findOneBy(['beds24MasterId' => $masterId]);
+
+        if ($reserva === null) {
+            $io->error(sprintf('No existe la reserva %d.', $masterId));
+
+            return Command::FAILURE;
+        }
+
+        $vivas = [];
+
+        foreach ($reserva->getEventosCalendario() as $evento) {
+            if ($evento->getEstado()?->getId() !== PmsEventoEstado::CODIGO_CANCELADA) {
+                $vivas[] = $evento;
+            }
+        }
+
+        if (count($vivas) !== 1) {
+            $io->error(sprintf(
+                'Hay %d estancias vivas. Con una sola se sabe a dónde va el cargo; con más, lo decide una persona.',
+                count($vivas),
+            ));
+
+            return Command::FAILURE;
+        }
+
+        $destino = $vivas[0];
+        $filas = [];
+        $movidos = 0;
+
+        $info = $reserva->getInformacionFinanciera();
+
+        if ($info !== null) {
+            foreach ($info->getCargos() as $cargo) {
+                if ($cargo->getEvento()?->getEstado()?->getId() !== PmsEventoEstado::CODIGO_CANCELADA) {
+                    continue;
+                }
+
+                $filas[] = [
+                    $this->etiqueta($cargo),
+                    $cargo->getMoneda()?->getId() ?? '—',
+                    $cargo->getTotalLinea() ?? $cargo->getMonto() ?? '0.00',
+                    $this->nombreDe($cargo->getEvento()),
+                    $this->nombreDe($destino),
+                ];
+
+                if (!$seco) {
+                    $cargo->setEvento($destino);
+                }
+
+                ++$movidos;
+            }
+        }
+
+        if ($filas === []) {
+            $io->success('No hay cargos colgados de una estancia cancelada.');
+
+            return Command::SUCCESS;
+        }
+
+        $io->table(['Cargo', 'Moneda', 'Importe', 'Desde', 'Hacia'], $filas);
+
+        if ($seco) {
+            $io->warning(sprintf('Ensayo: se moverían %d.', $movidos));
+
+            return Command::SUCCESS;
+        }
+
+        $this->em->flush();
+        $io->success(sprintf('%d cargo(s) movido(s). Los totales se recalculan solos al guardar.', $movidos));
+
+        return Command::SUCCESS;
+    }
+
+    private function etiqueta(PmsCargoFinanciero $cargo): string
+    {
+        return $cargo->getDescripcion() ?? $cargo->getTipoCargo()->value ?? '(sin descripción)';
+    }
+
+    private function nombreDe(?PmsEventoCalendario $evento): string
+    {
+        if ($evento === null) {
+            return '(nivel reserva)';
+        }
+
+        return sprintf(
+            '%s %s→%s',
+            (string) $evento->getPmsUnidad()?->getNombre(),
+            $evento->getInicio()?->format('d/m') ?? '?',
+            $evento->getFin()?->format('d/m') ?? '?',
+        );
+    }
+}

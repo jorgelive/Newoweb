@@ -6,6 +6,8 @@ namespace App\Tests\Pms\Service\Finance;
 
 use App\Entity\Maestro\MaestroMoneda;
 use App\Pms\Entity\PmsCargoFinanciero;
+use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Enum\PmsMedioPago;
@@ -127,6 +129,44 @@ final class PmsTotalesPorMonedaTest extends TestCase
             PmsTotalesPorMoneda::de($info)->hayCargos(),
             'ni la estancia ni la penalización suman en una ficha anulada',
         );
+    }
+
+    /**
+     * 🔥 **El caso que no tenía solución antes del 08/09/2026.**
+     *
+     * `activa` es de la RESERVA ENTERA, y el huésped que cancela en la OTA y sigue como directa
+     * con otras fechas deja la ficha con las dos cosas dentro: la estancia muerta con los cargos
+     * del canal, y el arreglo nuevo con su precio tecleado a mano.
+     *
+     * Con la bandera abajo no contaba **nada** —saldo negativo con el dinero ya cobrado—; y
+     * subiéndola revivían los cargos del canal de la estancia muerta **junto** con el nuevo. No
+     * había posición correcta de esa bandera: pasó en la reserva 92657416 con 977 soles cobrados
+     * que el panel enseñaba como cero.
+     */
+    public function testUnaEstanciaCanceladaNoCobraAunqueLaFichaEsteACTIVA(): void
+    {
+        $info = $this->ficha(activa: true);
+
+        $muerta = $this->cargo($info, '290.31', $this->usd, PmsTipoCargo::ALOJAMIENTO);
+        $muerta->setEvento($this->estancia(PmsEventoEstado::CODIGO_CANCELADA));
+
+        // El precio del arreglo nuevo: de NIVEL RESERVA, sin estancia. Cuenta.
+        $this->cargo($info, '100.00', $this->usd, PmsTipoCargo::ALOJAMIENTO);
+
+        $totales = PmsTotalesPorMoneda::de($info);
+
+        self::assertSame('100.00', $totales->porMoneda['USD']['cargos'], 'sólo el arreglo nuevo');
+    }
+
+    /** Y una estancia VIVA sigue cobrando: la regla mira el estado, no la existencia de estancia. */
+    public function testUnaEstanciaVIVASigueCobrando(): void
+    {
+        $info = $this->ficha(activa: true);
+
+        $cargo = $this->cargo($info, '150.00', $this->usd, PmsTipoCargo::ALOJAMIENTO);
+        $cargo->setEvento($this->estancia(PmsEventoEstado::CODIGO_CONFIRMADA));
+
+        self::assertSame('150.00', PmsTotalesPorMoneda::de($info)->porMoneda['USD']['cargos']);
     }
 
     public function testEnUnaFichaAnuladaLosCOBROSSIGUENCONTANDO(): void
@@ -420,6 +460,18 @@ final class PmsTotalesPorMonedaTest extends TestCase
         $info->setTipoCambio($tipoCambio);
 
         return $info;
+    }
+
+    /** Una estancia con el estado que se le pida. */
+    private function estancia(string $codigoEstado): PmsEventoCalendario
+    {
+        $estado = new PmsEventoEstado();
+        $estado->setId($codigoEstado);
+
+        $evento = new PmsEventoCalendario();
+        $evento->setEstado($estado);
+
+        return $evento;
     }
 
     private function cargo(

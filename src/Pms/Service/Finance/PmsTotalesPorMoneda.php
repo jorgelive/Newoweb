@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Service\Finance;
 
 use App\Pms\Entity\PmsCargoFinanciero;
+use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Enum\PmsTipoCargo;
@@ -312,6 +313,19 @@ final readonly class PmsTotalesPorMoneda
         // también las viejas. Que se vuelve a poner **aquí** lo recuerda el propio panel: la
         // ficha de una reserva anulada con penalización lo dice en pantalla, que es donde se
         // mira. Ver `docs/PmsBeds24ReservasSync.md` §12.7.
+        // 🔥 **Una estancia CANCELADA no cobra, esté la ficha activa o no** (08/09/2026).
+        // `activa` es de la RESERVA ENTERA, y eso dejaba sin salida el caso que más ocurre: el
+        // huésped cancela en la OTA y sigue como directa con otras fechas. Con la bandera abajo no
+        // contaba ni el precio nuevo tecleado a mano —saldo negativo con el dinero ya cobrado—;
+        // subiéndola revivían los cargos del canal de la estancia muerta junto con el nuevo. No
+        // había posición correcta de esa bandera.
+        //
+        // ⚠️ Un cargo de NIVEL RESERVA no cuelga de ninguna estancia y sí cuenta: es justamente
+        // donde el operador teclea el precio del arreglo nuevo.
+        if ($cargo->getEvento()?->getEstado()?->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
+            return false;
+        }
+
         return $info->isActiva();
     }
 
