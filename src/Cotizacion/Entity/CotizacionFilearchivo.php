@@ -14,6 +14,7 @@ use App\Cotizacion\State\CotizacionFilearchivoMultipartProcessor;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Panel\Contract\RequiereAltaFidelidadInterface;
 use App\Panel\Entity\Trait\MediaTrait;
 use App\Security\Roles;
 use DateTimeImmutable;
@@ -54,7 +55,7 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
 #[ORM\Table(name: 'cotizacion_file_archivo')]
 #[ORM\HasLifecycleCallbacks]
 #[Vich\Uploadable]
-class CotizacionFilearchivo
+class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
 {
     use IdTrait;
     use TimestampTrait;
@@ -329,4 +330,15 @@ class CotizacionFilearchivo
 
     public function getVuelo(): ?CotizacionVuelo { return $this->vuelo; }
     public function setVuelo(?CotizacionVuelo $v): self { $this->vuelo = $v; return $this; }
+
+    /**
+     * Un escaneo de identidad se comprime con otro filtro: hay que poder LEERLO.
+     *
+     * {@see RequiereAltaFidelidadInterface} — y {@see ArchivoTipoEnum::esEscaneoDeIdentidad()} para
+     * cuáles son.
+     */
+    public function requiereAltaFidelidad(): bool
+    {
+        return $this->tipoArchivo?->esEscaneoDeIdentidad() === true;
+    }
 }

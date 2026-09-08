@@ -1138,6 +1138,58 @@ viaja como dato.
 permitía nginx (`client_max_body_size`). Aun así, **un ZIP por vuelo es mejor que uno gigante**:
 cada vuelo lleva ≤25 pax, entra de sobra, y la tabla de revisión es corta.
 
+#### La foto se guardaba tumbada, y nadie podía verlo (08/09/2026)
+
+Los escaneos **no se guardan crudos**: `VichWebpConversionListener` los convierte a WebP porque
+`CotizacionFilearchivo` usa `MediaTrait`. Y ese filtro llevaba `strip: ~` sin girar antes, así que
+borraba la etiqueta EXIF de orientación **sin haber girado los píxeles**. Medido:
+
+```
+ORIGEN     2400x1200  orientación=6   → el navegador la ve de pie
+ANTES      1600x800   orientación=0   → tumbada, para siempre
+DESPUÉS     800x1600  orientación=0   → de pie
+```
+
+🔥 **Y la combinación era la peor posible**: el navegador SÍ respeta el EXIF, así que el pasajero
+veía su pasaporte derecho en la previsualización, lo confirmaba, y al operador le llegaba girado
+—sin forma de comprobarlo, porque el escaneo no se le devuelve—. Cero errores en el log.
+
+Arreglado con `auto_rotate` **antes** de `strip`, en todos los sets de `liip_imagine.yaml`. Llevaba
+ahí desde siempre: afecta también a las galerías.
+
+⚠️ Y se quitó la salida rápida por «el MIME ya es el de destino»: dejaba pasar un webp **sin
+tocar**, ni girado ni acotado. El filtro no sólo cambia de formato.
+
+#### Un DNI se lee; una foto de habitación se mira (08/09/2026)
+
+Filtro propio `documento_identidad` (2400 px, calidad 88) en vez del normal (1600 px, calidad 80).
+A 1600 px, un DNI fotografiado sobre una mesa —que ocupa media foto— deja el número en ~800 px de
+ancho y la letra pequeña desaparece. Y **no hay segunda oportunidad**: el escaneo no se devuelve,
+así que un documento ilegible no se corrige mirándolo otra vez, se le vuelve a pedir a la persona.
+
+Lo elige {@see RequiereAltaFidelidadInterface}, que es un **método y no una interfaz marcadora**:
+la misma entidad guarda un boleto y un pasaporte, así que lo decide el ejemplar
+(`ArchivoTipoEnum::esEscaneoDeIdentidad()`), no la clase.
+
+Cuesta ~430 KB por documento contra los 145 KB medidos del filtro normal. Por los 399 documentos
+del grupo son 110 MB más.
+
+#### La carpeta del ZIP no se borraba nunca (08/09/2026)
+
+El comentario decía «se borra sola al aplicarla» y no había una línea que la borrara. Peor: para el
+camino del ZIP **Vich copia en vez de mover** —sólo mueve los `UploadedFile`, y ahí se le pasa un
+`File`—, así que cada carga aplicada dejaba **el extracto entero duplicado**, permanente.
+
+Tres frenos:
+
+| Cuándo | Qué |
+|---|---|
+| Al aplicar | `limpiar()`, y 🔥 **después del `flush()`**: la copia de Vich ocurre al guardar, borrar antes deja los adjuntos vacíos |
+| Al descartar | endpoint `…/archivos-zip/descartar` — antes «Descartar» sólo limpiaba la pantalla |
+| Al planificar | `barrerCargasViejas()`, las de más de un día: quien cierra la pestaña no pasa por ningún endpoint |
+
+Un disco lleno aquí ya tumbó producción una vez.
+
 #### El ZIP sustituye, no acumula (08/09/2026)
 
 Los ZIP de boarding passes no llegan una vez: llega uno, luego el corregido, luego «los que

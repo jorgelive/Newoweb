@@ -83,6 +83,21 @@ enum ArchivoTipoEnum: string
         };
     }
 
+    /**
+     * ¿Es un documento que hay que poder **leer**, y no sólo mirar?
+     *
+     * Un boleto se abre en el gate y basta con que se vea; de un pasaporte se copian un número y
+     * una fecha de caducidad. Por eso estos se comprimen con otro filtro
+     * ({@see \App\Panel\Contract\RequiereAltaFidelidadInterface}).
+     */
+    public function esEscaneoDeIdentidad(): bool
+    {
+        return match ($this) {
+            self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION => true,
+            self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => false,
+        };
+    }
+
     /** ¿Lo sube el propio pasajero desde su app, o sólo el operador? */
     public function loSubeElPasajero(): bool
     {

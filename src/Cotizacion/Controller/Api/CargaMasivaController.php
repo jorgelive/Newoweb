@@ -124,7 +124,33 @@ final class CargaMasivaController extends AbstractController
 
         $this->em->flush();
 
+        // 🔥 DESPUÉS del flush, nunca antes: Vich no mueve el fichero, lo COPIA —sólo mueve los
+        // `UploadedFile`—, y esa copia ocurre al guardar. Y hay que borrarla justamente por eso:
+        // como copia, cada ZIP aplicado dejaba el extracto entero duplicado, para siempre.
+        $this->carga->limpiar($carpeta);
+
         return $this->json(['creados' => count($creados)]);
+    }
+
+    /**
+     * El operador miró el reparto y no le gustó.
+     *
+     * ⚠️ Sin esto, «Descartar» sólo limpiaba la pantalla y el extracto se quedaba en el disco. Con
+     * ZIP de cientos de megas y tres intentos hasta acertar con el renombrado, eso es lo que llena
+     * el disco — y un disco lleno aquí ya tumbó producción una vez.
+     */
+    #[Route(
+        '/platform/sales/cotizacion_files/{id}/archivos-zip/descartar',
+        name: 'cotizacion_carga_masiva_descartar',
+        requirements: ['id' => '[0-9a-f-]{36}'],
+        methods: ['POST'],
+    )]
+    #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para subir documentos.')]
+    public function descartar(string $id, Request $request): JsonResponse
+    {
+        $this->carga->limpiar((string) $request->request->get('carpeta', ''));
+
+        return $this->json(['ok' => true]);
     }
 
     private function expediente(string $id): ?CotizacionFile

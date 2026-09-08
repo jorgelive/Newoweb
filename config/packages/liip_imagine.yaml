@@ -14,6 +14,8 @@ liip_imagine:
             quality: 80
             format: webp  # ✅ CORRECTO: Va aquí afuera, no dentro de 'filters'
             filters:
+                # 🔥 SIEMPRE antes de `strip`. Ver el aviso del final del archivo.
+                auto_rotate: ~
                 downscale: { max: [1600, 1600] }
                 strip: ~
 
@@ -22,6 +24,7 @@ liip_imagine:
             quality: 75
             format: webp  # ✅ CORRECTO: Define el formato de salida del set
             filters:
+                auto_rotate: ~
                 thumbnail: { size: [150, 150], mode: outbound, allow_upscale: true }
                 # ❌ ELIMINA: format: { name: webp } de aquí adentro
 
@@ -30,6 +33,7 @@ liip_imagine:
             quality: 85 # Un poco más alto porque el JPEG pierde más detalle que WebP
             format: jpeg
             filters:
+                auto_rotate: ~
                 downscale: { max: [ 1600, 1600 ] }
                 strip: ~
 
@@ -38,6 +42,7 @@ liip_imagine:
             quality: 75
             format: webp
             filters:
+                auto_rotate: ~
                 thumbnail: { size: [220, 124], mode: outbound, allow_upscale: true } # 16:9 para cards
                 strip: ~
 
@@ -47,5 +52,38 @@ liip_imagine:
             quality: 80
             format: webp
             filters:
+                auto_rotate: ~
                 downscale: { max: [1600, 900] }
                 strip: ~
+
+        # --- FILTRO 6: DOCUMENTO DE IDENTIDAD (pasaporte, DNI, autorización notarial) ---
+        # 🔥 No se reusa `pms_compress_initial` porque el trabajo es OTRO: una foto de habitación
+        # se mira, un DNI se LEE. A 1600 px, si el documento ocupa media foto —que es lo normal
+        # cuando alguien lo fotografía sobre una mesa—, el número queda en ~800 px de ancho y la
+        # letra pequeña se pierde. Y no hay segunda oportunidad: el escaneo no se le devuelve al
+        # pasajero, así que si no se lee, se le vuelve a pedir.
+        #
+        # 2400 px y calidad 88 son ~430 KB por documento contra los 145 KB medidos del filtro
+        # normal. Por 399 documentos son 110 MB más — a cambio de poder leerlos.
+        documento_identidad:
+            quality: 88
+            format: webp
+            filters:
+                auto_rotate: ~
+                downscale: { max: [2400, 2400] }
+                strip: ~
+
+# ⚠️⚠️ **`auto_rotate` VA ANTES DE `strip`, EN TODOS LOS SETS.**
+#
+# `strip` borra los metadatos EXIF, y ahí vive la etiqueta de orientación. Un móvil en vertical
+# guarda los píxeles apaisados y añade «gírala 90° al mostrar»; si se borra esa etiqueta sin haber
+# girado los píxeles antes, la imagen queda **tumbada para siempre**.
+#
+# Medido el 08/09/2026, antes de añadir `auto_rotate`:
+#
+#     ORIGEN     2400x1200  orientación=6   → el navegador la veía de pie
+#     RESULTADO  1600x800   orientación=0   → tumbada
+#
+# Y no daba ningún error. Peor aún con los documentos del pasajero: **el navegador SÍ respeta el
+# EXIF**, así que él veía su pasaporte derecho en la previsualización, lo confirmaba, y al operador
+# le llegaba girado — sin forma de comprobarlo, porque el escaneo no se devuelve.

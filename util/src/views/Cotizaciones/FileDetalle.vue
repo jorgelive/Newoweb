@@ -1473,6 +1473,16 @@ const elegirZip = async (evento: Event) => {
     (evento.target as HTMLInputElement).value = '';
 };
 
+/** Tirar la carga: también en el servidor, o el extracto se queda ocupando disco. */
+const descartarZip = async () => {
+    const carpeta = zipPlan.value?.carpeta;
+    zipPlan.value = null;
+
+    if (carpeta && file.value) {
+        await fileStore.descartarZip(String(extractIdStr(file.value.id ?? file.value['@id'])), carpeta);
+    }
+};
+
 const aplicarZip = async () => {
     if (!zipPlan.value?.carpeta || !file.value) return;
 
@@ -2283,7 +2293,7 @@ const eliminarDocumento = async (iri?: string) => {
                 </div>
 
                 <div class="flex gap-2">
-                  <button type="button" @click="zipPlan = null"
+                  <button type="button" @click="descartarZip"
                           class="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500 border border-slate-200 rounded-lg hover:bg-white transition-colors">
                     Descartar
                   </button>

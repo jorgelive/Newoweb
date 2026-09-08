@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Panel\EventListener\Media;
 
+use App\Panel\Contract\RequiereAltaFidelidadInterface;
 use App\Panel\Contract\RequiresJpegConversionInterface;
 use Liip\ImagineBundle\Imagine\Filter\FilterManager;
 use Liip\ImagineBundle\Model\Binary;
@@ -24,6 +25,15 @@ class VichWebpConversionListener
 
     // Filtro legacy para compatibilidad con canales externos como Beds24 (JPEG)
     private const FILTER_JPG  = 'pms_compress_legacy';
+
+    /**
+     * Filtro para lo que se LEE: pasaporte, DNI, autorización notarial. 2400 px y calidad 88.
+     *
+     * 🔥 A 1600 px un DNI fotografiado sobre una mesa deja el número en ~800 px de ancho y la letra
+     * pequeña se pierde. Y el escaneo no se le devuelve al pasajero, así que un documento ilegible
+     * no se arregla mirándolo otra vez: se le vuelve a pedir.
+     */
+    private const FILTER_DOC  = 'documento_identidad';
 
     public function __construct(
         private readonly FilterManager $filterManager
@@ -62,8 +72,20 @@ class VichWebpConversionListener
         $targetExt    = $requiresJpg ? 'jpg' : 'webp';
         $targetFilter = $requiresJpg ? self::FILTER_JPG : self::FILTER_WEBP;
 
-        // 4. Salida rápida: Si no es imagen, o ya está en el formato final, o es un SVG (vectorial), no tocamos nada.
-        if (!str_starts_with((string)$mimeType, 'image/') || $mimeType === $targetMime || $mimeType === 'image/svg+xml') {
+        // ⚠️ Esto NO lo decide la clase, lo decide el ejemplar: la misma entidad guarda un boleto
+        // y el escaneo de un pasaporte. Por eso es un método y no una interfaz marcadora.
+        if (!$requiresJpg && $object instanceof RequiereAltaFidelidadInterface && $object->requiereAltaFidelidad()) {
+            $targetFilter = self::FILTER_DOC;
+        }
+
+        // 4. Salida rápida: si no es imagen o es un SVG (vectorial), no tocamos nada.
+        //
+        // ⚠️ **Antes se salía también cuando el MIME ya era el de destino**, y eso dejaba pasar un
+        // webp SIN TOCAR: ni girado ni acotado. Un webp de 6000 px entraba entero. El filtro no
+        // sólo cambia de formato —también hace `auto_rotate` y `downscale`—, así que saltárselo por
+        // el formato era saltarse las otras dos cosas. El coste es una recodificación de más en ese
+        // caso, una sola vez, al subir.
+        if (!str_starts_with((string)$mimeType, 'image/') || $mimeType === 'image/svg+xml') {
             return;
         }
 

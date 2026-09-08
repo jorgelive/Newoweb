@@ -633,6 +633,27 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * El operador miró el reparto y no le gustó: se tira el extracto del servidor.
+     *
+     * ⚠️ No devuelve nada ni molesta si falla. Es limpieza: que no se pueda borrar la carpeta no
+     * es motivo para interrumpir a quien ya decidió que esa carga no valía.
+     */
+    const descartarZip = async (fileId: string, carpeta: string): Promise<void> => {
+        const cuerpo = new FormData();
+        cuerpo.append('carpeta', carpeta);
+
+        try {
+            await apiClient.post(
+                `/platform/sales/cotizacion_files/${fileId}/archivos-zip/descartar`,
+                cuerpo,
+                { headers: { 'Content-Type': 'multipart/form-data' } },
+            );
+        } catch {
+            // Silencio a propósito: ver el comentario de arriba.
+        }
+    };
+
     const updateDocument = async (
         iri: string,
         payload: { nombre?: I18nContent[] | null; tipoArchivo: string; sobreescribirTraduccion?: boolean }
@@ -707,6 +728,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         uploadDocument,
         planificarZip,
         aplicarZip,
+        descartarZip,
         deleteDocument,
         addPassenger,
         deletePassenger,

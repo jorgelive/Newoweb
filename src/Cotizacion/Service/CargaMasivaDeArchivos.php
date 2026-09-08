@@ -322,9 +322,11 @@ final readonly class CargaMasivaDeArchivos
         return null;
     }
 
-    /** Una carpeta por carga, que se borra sola al aplicarla. */
+    /** Una carpeta por carga. La borra {@see self::limpiar()}, no se va sola. */
     private function prepararTemporal(): string
     {
+        $this->barrerCargasViejas();
+
         $ruta = $this->projectDir . '/var/documentos/zip-' . bin2hex(random_bytes(6));
 
         if (!is_dir($ruta) && !mkdir($ruta, 0o775, true) && !is_dir($ruta)) {
@@ -421,5 +423,66 @@ final readonly class CargaMasivaDeArchivos
         }
 
         return $creados;
+    }
+
+    /**
+     * Borra una carga extraída.
+     *
+     * 🔥 **Hay que llamarla DESPUÉS del `flush()`, nunca antes.** Vich no mueve el fichero: para un
+     * `File` que no es un `UploadedFile` hace `copy()` —lo hemos leído en `FileSystemStorage`—, y
+     * esa copia ocurre al guardar. Borrar la carpeta antes deja los adjuntos sin contenido.
+     *
+     * Y por eso mismo la carpeta hay que borrarla: si Vich moviera, se vaciaría sola. Como copia,
+     * cada ZIP aplicado dejaba **el extracto entero duplicado**, para siempre.
+     */
+    public function limpiar(string $carpeta): void
+    {
+        if (!preg_match('/^zip-[0-9a-f]{12}$/', $carpeta)) {
+            return;
+        }
+
+        $this->borrarCarpeta($this->projectDir . '/var/documentos/' . $carpeta);
+    }
+
+    /**
+     * Las cargas que nadie aplicó ni descartó.
+     *
+     * ⚠️ El operador que sube un ZIP, ve 40 fallos y cierra la pestaña **no pasa por ningún
+     * endpoint**: su extracto se queda ahí. Con ZIP de cientos de megas y tres o cuatro intentos
+     * hasta acertar con el renombrado, eso es lo que llena el disco — y un disco lleno aquí ya
+     * tumbó producción una vez.
+     *
+     * Un día es de sobra: la revisión se hace en el momento.
+     */
+    private function barrerCargasViejas(): void
+    {
+        $limite = time() - 86400;
+
+        foreach (glob($this->projectDir . '/var/documentos/zip-*') ?: [] as $vieja) {
+            if (is_dir($vieja) && (int) filemtime($vieja) < $limite) {
+                $this->borrarCarpeta($vieja);
+            }
+        }
+    }
+
+    private function borrarCarpeta(string $ruta): void
+    {
+        if (!is_dir($ruta)) {
+            return;
+        }
+
+        // ⚠️ `scandir()` y no `glob()`: el índice se llama `.nombres` y `glob()` no ve los
+        // ocultos, así que la carpeta nunca quedaría vacía y `rmdir()` fallaría en silencio.
+        foreach (scandir($ruta) ?: [] as $entrada) {
+            if ($entrada === '.' || $entrada === '..') {
+                continue;
+            }
+
+            if (is_file($ruta . '/' . $entrada)) {
+                unlink($ruta . '/' . $entrada);
+            }
+        }
+
+        rmdir($ruta);
     }
 }
