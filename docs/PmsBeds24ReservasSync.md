@@ -4316,7 +4316,25 @@ clasificaba como una noche más.
 | `activa` | Qué suma `total_cargos` |
 |---|---|
 | `true` | Todos los cargos **de estancias vivas**, más los de nivel reserva |
-| `false` | Nada (ni la penalización, desde el 31/08/2026) |
+| `false` | Igual — desde el 08/09/2026 **la bandera ya no decide dinero** |
+
+#### 🔥 «Reactivar cobro» y «Anular cobro» se retiraron (08/09/2026)
+
+`activa` dejó de participar en la suma. Lo medido el día que se quitó, sobre producción: de **138
+fichas** con la bandera abajo, en **137 no cambiaba ni un céntimo** —sus cargos ya no contaban por
+colgar de estancias canceladas— y en la 138ª lo único que hacía era **esconder los S/. 977 que el
+operador acababa de teclear a mano**. Como interruptor de cobro estaba muerto, y el cartel prometía
+un «vuelve a activarla para que se cobren» que ya no era verdad.
+
+**La bandera sigue viva como MARCADOR DE ESTADO**, y la leen tres sitios que sí la necesitan:
+
+| Quién | Para qué |
+|---|---|
+| `PmsSituacionDeCobroResolver` | Distinguir «cancelada» de «viva sin precio». Sin esto, en una auditoría de 250 reservas siete canceladas se contaron como reservas a las que les falta el precio |
+| `PmsPrepagoEnlaceService` | No emitir enlace de adelanto sobre una cancelada |
+| `RegistrarCargoSkill` | Avisar al agente antes de dejarle añadir un cargo |
+
+Lo que se fue es el **interruptor**, no el estado.
 
 Los cargos **nunca se borran**: siguen en la tabla y visibles en el panel, sólo dejan de contar.
 
@@ -4362,8 +4380,17 @@ hacían inútil justo cuando se necesitaba:
 | Las canceladas salían en la lista **sin marcar** | Misma casita, mismas fechas: dos opciones idénticas, y elegir la muerta deja el cargo sin cobrar |
 
 Ahora el selector cuenta **todas** las estancias, la cancelada sale rotulada `· CANCELADA (no
-cobra)`, y la cabecera de un grupo cancelado con cargos lleva un botón **«Mover N»** que los
-reasigna todos de una vez.
+cobra)`, y la cabecera de un grupo cancelado lleva un botón **«Mover»**.
+
+⚠️ **La selección es cargo a cargo, no el bloque entero.** De los cuatro que deja una cancelación
+típica —alojamiento, servicio, limpieza y un «Cancel Fee» en cero— rara vez pasan todos al arreglo
+nuevo: el precio se renegocia, la limpieza puede que sí. Mover en bloque obliga a deshacer a mano
+lo que sobró, y deshacer es donde se cometen los errores.
+
+⚠️ **Y el cuadro de una estancia cancelada nace PLEGADO**, con su cuenta de cargos a la vista
+(`4 cargos de la estancia cancelada · no suman`). Son historia y no cobran: ocupaban media pantalla
+por encima de lo que sí hay que mirar. Plegado no puede leerse como vacío, o nadie lo vuelve a
+abrir.
 
 ⚠️ **Un PATCH por cargo y no uno en bloque**: no hay endpoint de lote, y cada cargo dispara los
 listeners de coherencia que recalculan los totales por moneda. Son tres o cuatro filas.
@@ -4374,6 +4401,36 @@ la que tiene el huésped. Pedir el interno obliga a una consulta a la base para 
 comando, y ésa es exactamente la fricción que hace que un comando no se use. `LIKE` porque el campo
 es un agregado: una reserva con dos estancias de canales distintos lleva las dos separadas por `|`.
 Si el localizador casa con más de una, no adivina: falla.
+
+#### 🔥 Mover un cargo no duraba nada: la sincronización lo devolvía (08/09/2026)
+
+`Beds24InvoiceReceivePersister` **reimputa la estancia de cada cargo en CADA sync**, y hace bien:
+es lo que hace que un cargo siga a su casita cuando el huésped se muda (§6.3.b). Pero convertía
+cualquier mudanza manual en un espejismo — el pull corre **cada 3–10 minutos**, así que el operador
+veía el cambio, se iba, y media hora después estaba deshecho. **Sin error y sin rastro.**
+
+Comprobado en la 5509354785: sus tres cargos del canal llevan `beds24BookingId = 92657416` y ese
+bookId **sigue teniendo link vivo** a la estancia cancelada. No los duplica ni los recrea en cero
+—el dedupe por `beds24ItemId` los encuentra—, pero los devuelve a la casita muerta.
+
+**Dos frenos, y son independientes a propósito:**
+
+| Freno | Qué protege | Dónde vive |
+|---|---|---|
+| `PmsCargoFinanciero::$imputacionFijada` | Lo que movió **una persona**. El automatismo cede ante ella, mismo criterio asimétrico que `datosLocked` (§9.3) | Columna `pms_cargo_financiero.imputacion_fijada` |
+| No reimputar a una estancia **cancelada** un cargo que ya tiene estancia | Que el **propio canal** arrastre dinero a un tramo muerto al cambiar un link | Condición en el persister, sin estado |
+
+⚠️ **El estado «cancelada» NO sirve por sí solo como candado**, y conviene saber por qué: sólo
+protege las mudanzas cuyo ORIGEN es una cancelada. Mover un cargo entre dos estancias **vivas**
+—repartir el precio en una reserva de dos casitas— la sincronización lo seguiría deshaciendo. Por
+eso la bandera explícita, además.
+
+⚠️ **Y el segundo freno sólo actúa si el cargo YA tiene estancia.** La primera imputación de un
+cargo suelto sí puede caer en una cancelada —es donde de verdad pertenece—, y bloquearla lo dejaría
+a nivel reserva, **donde sí contaría**: justo lo contrario de lo que se busca.
+
+⚠️ El candado es **sólo sobre la imputación**. Importes, estado y descripción se siguen
+sincronizando, que es de donde viene el valor de tener el canal enchufado.
 
 #### El «Cancel Fee» lo manda Booking, y casi siempre en cero
 

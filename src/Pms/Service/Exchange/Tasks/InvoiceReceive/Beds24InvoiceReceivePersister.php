@@ -6,9 +6,9 @@ namespace App\Pms\Service\Exchange\Tasks\InvoiceReceive;
 
 use App\Entity\Maestro\MaestroMoneda;
 use App\Pms\Dto\Beds24InvoiceItemDto;
-use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsCargoFinanciero;
 use App\Pms\Entity\PmsChannel;
+use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
@@ -109,8 +109,33 @@ readonly class Beds24InvoiceReceivePersister
                 // se rellena en filas importadas antes de que existiera esta resolución.
                 // Sólo cuando RESUELVE: un bookId todavía desconocido (sync a medias) no
                 // borra una imputación existente — el siguiente pull la corrige si toca.
+                //
+                // ⚠️ **Y NUNCA si el operador la fijó a mano.** Esta reimputación convertía
+                // cualquier mudanza manual en un espejismo: el pull corre cada 3–10 minutos y la
+                // deshacía en silencio, sin error y sin rastro. Hace falta moverlos —una reserva
+                // de OTA que se cancela y sigue como directa deja sus cargos colgados de una
+                // estancia que ya no cobra, y una de OTA no se reactiva nunca—, así que aquí el
+                // automatismo cede ante la persona. Mismo criterio asimétrico que `datosLocked`
+                // (§9.3), y sólo sobre la IMPUTACIÓN: importes y estado se siguen sincronizando.
                 $eventoResuelto = $eventosPorBookId[$existing->getBeds24BookingId() ?? ''] ?? null;
-                if ($eventoResuelto !== null && $eventoResuelto !== $existing->getEvento()) {
+
+                // ⚠️ **Y NUNCA mueve un cargo que YA tiene estancia hacia una CANCELADA.** Es un
+                // segundo freno, independiente del candado de arriba: desde el 08/09/2026 una
+                // estancia cancelada no cobra, así que arrastrar dinero hasta ella es apagarlo. El
+                // candado protege lo que movió una persona; esto protege de que el propio canal
+                // reenganche un cargo a un tramo muerto al cambiar un link.
+                //
+                // ⚠️ Sólo si YA tiene estancia: la primera imputación de un cargo suelto sí puede
+                // caer en una cancelada —es donde de verdad pertenece— y bloquearla lo dejaría a
+                // nivel reserva, donde SÍ contaría. Justo al revés de lo que se busca.
+                $iriaAUnaMuerta = $existing->getEvento() !== null
+                    && $eventoResuelto?->getEstado()?->getId() === PmsEventoEstado::CODIGO_CANCELADA;
+
+                if (!$existing->isImputacionFijada()
+                    && !$iriaAUnaMuerta
+                    && $eventoResuelto !== null
+                    && $eventoResuelto !== $existing->getEvento()
+                ) {
                     $existing->setEvento($eventoResuelto);
                     $cambio = true;
                 }

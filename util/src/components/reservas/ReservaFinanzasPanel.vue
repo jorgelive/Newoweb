@@ -641,18 +641,19 @@ const saldoPositivo = computed(() => cuadre.value !== null && !cuadre.value.cuad
  */
 const claseSaldo = computed(() => (saldoPositivo.value ? 'text-rose-600' : 'text-[#3E6D9C]'));
 
-/**
- * Activa/anula el cobro de la reserva (§12.7). Anular NO borra nada: los cargos siguen
- * visibles, sólo dejan de sumar al saldo.
+/*
+ * ⚠️ **«Reactivar cobro» / «Anular cobro» se retiraron el 08/09/2026.**
+ *
+ * `activa` dejó de decidir dinero: lo decide el estado de cada ESTANCIA. Medido sobre producción
+ * el día que se quitó: de 138 fichas con la bandera abajo, en 137 no cambiaba ni un céntimo —sus
+ * cargos ya no contaban por colgar de estancias canceladas— y en la 138ª lo único que hacía era
+ * esconder los S/. 977 que el operador acababa de teclear a mano.
+ *
+ * La bandera SIGUE viva como **marcador de estado**, y la leen tres sitios que sí la necesitan:
+ * `PmsSituacionDeCobroResolver` (distinguir «cancelada» de «viva sin precio»),
+ * `PmsPrepagoEnlaceService` (no emitir adelanto sobre una cancelada) y `RegistrarCargoSkill`.
+ * Lo que se fue es el interruptor, porque prometía un cobro que no dependía de él.
  */
-async function cambiarActiva(activa: boolean): Promise<void> {
-    error.value = null;
-    try {
-        await finanzas.setActiva(activa);
-    } catch (err) {
-        error.value = extractApiErrorMessage(err, 'No se pudo cambiar el estado de cobro.');
-    }
-}
 
 // ============================================================================
 // AGRUPACIÓN DE CARGOS POR ESTANCIA (reservas agrupadas, §11.6)
@@ -781,20 +782,53 @@ const estanciasVivas = computed(() =>
  */
 const hayVariasEstancias = computed(() => (finanzas.info?.estancias ?? []).length > 1);
 
-/** Qué grupo tiene abierto el desplegable de «mover». Sólo uno a la vez. */
+/** Qué grupo tiene abierto el panel de «mover». Sólo uno a la vez. */
 const moviendoGrupo = ref<string | null>(null);
 const moviendoDestino = ref<string>('');
 
 /**
- * Rescata de golpe los cargos de una estancia cancelada llevándolos a otra.
+ * Cuáles se mueven.
+ *
+ * ⚠️ **Se elige cargo a cargo, no el bloque entero.** De los cuatro que deja una cancelación
+ * típica —alojamiento, servicio, limpieza y un «Cancel Fee» en cero— rara vez pasan todos al
+ * arreglo nuevo: el precio se renegocia, la limpieza puede que sí. Mover en bloque obliga a
+ * deshacer a mano lo que sobró, y deshacer es donde se cometen los errores.
+ */
+const cargosAMover = ref<Set<string>>(new Set());
+
+function alternarCargoAMover(id: string): void {
+    const copia = new Set(cargosAMover.value);
+
+    if (copia.has(id)) {
+        copia.delete(id);
+    } else {
+        copia.add(id);
+    }
+
+    cargosAMover.value = copia;
+}
+
+function abrirMoverGrupo(grupo: GrupoCargos): void {
+    moviendoGrupo.value = grupo.clave;
+    moviendoDestino.value = '';
+    // Ninguno preseleccionado: elegir es la operación, no un trámite antes de ella.
+    cargosAMover.value = new Set();
+}
+
+/**
+ * Rescata los cargos marcados de una estancia cancelada llevándolos a otra.
  *
  * 🔥 Es la operación que faltaba. Una reserva de OTA **nunca se reactiva** —el huésped canceló en
  * el canal y no vuelve—, así que la bandera `activa` no era la respuesta: lo que hay que hacer es
- * llevar el dinero al arreglo nuevo. Antes había que abrir cargo por cargo, y sólo si el selector
- * llegaba a aparecer.
+ * llevar el dinero al arreglo nuevo.
  *
- * ⚠️ Un PATCH por cargo y no uno en bloque: no hay endpoint de lote, y cada cargo dispara los
- * listeners de coherencia que recalculan los totales por moneda. Son tres o cuatro filas.
+ * 🔥 **`imputacionFijada: true` es lo que hace que la mudanza dure.** Sin eso,
+ * `Beds24InvoiceReceivePersister` reimputa la estancia en cada sync y devuelve el cargo a la
+ * casita muerta — el pull corre cada 3–10 minutos, así que el operador ve el cambio, se va, y
+ * media hora después está deshecho sin un solo error.
+ *
+ * ⚠️ Un PATCH por cargo: no hay endpoint de lote, y cada uno dispara los listeners de coherencia
+ * que recalculan los totales por moneda.
  */
 async function moverCargosDelGrupo(grupo: GrupoCargos): Promise<void> {
     const destino = moviendoDestino.value;
@@ -803,21 +837,45 @@ async function moverCargosDelGrupo(grupo: GrupoCargos): Promise<void> {
 
     try {
         for (const cargo of grupo.cargos) {
-            if (!cargo.id) continue;
+            if (!cargo.id || !cargosAMover.value.has(cargo.id)) continue;
 
             await finanzas.patchCargo(cargo.id, {
                 evento: destino ? pmsEventoIri(destino) : null,
+                // Sin esto la sincronización lo devuelve a la estancia cancelada.
+                imputacionFijada: true,
                 // Mover no toca los textos: `false` para NO pisar las traducciones que ya tenga.
                 sobreescribirTraduccion: false,
             });
         }
 
         moviendoGrupo.value = null;
-        moviendoDestino.value = '';
+        cargosAMover.value = new Set();
     } catch (err) {
         error.value = err instanceof Error ? err.message : 'No se pudieron mover los cargos.';
     }
 }
+
+/**
+ * Los cuadros de estancia cancelada nacen PLEGADOS.
+ *
+ * Sus cargos son historia y no cobran: ocupan media pantalla contando algo que ya pasó, justo
+ * encima de lo que hay que mirar. Se abren de un toque cuando hay que rescatar algo de ahí.
+ */
+const gruposDesplegados = ref<Set<string>>(new Set());
+
+function alternarGrupo(clave: string): void {
+    const copia = new Set(gruposDesplegados.value);
+
+    if (copia.has(clave)) {
+        copia.delete(clave);
+    } else {
+        copia.add(clave);
+    }
+
+    gruposDesplegados.value = copia;
+}
+
+const grupoVisible = (g: GrupoCargos): boolean => !g.cancelada || gruposDesplegados.value.has(g.clave);
 
 /**
  * La cabecera de estancia se muestra SIEMPRE, aunque haya una sola.
@@ -1071,6 +1129,9 @@ async function guardarCargoOrThrow(): Promise<void> {
             // Obligatorio en el contrato de escritura. `false` en un cargo nuevo: no hay
             // traducción previa que pisar, y el servicio lo apaga solo tras traducir.
             sobreescribirTraduccion: false,
+            // Un cargo manual no lo reimputa nadie —no tiene `beds24BookingId`—, así que no hace
+            // falta fijarlo: el candado es para los que vienen del canal.
+            imputacionFijada: false,
         };
         await finanzas.createCargo(payload);
     } else if (cargoEditandoId.value) {
@@ -1097,6 +1158,16 @@ async function guardarCargoOrThrow(): Promise<void> {
             sobreescribirTraduccion: cargoForm.value.sobreescribirTraduccion,
             totalLinea: cargoForm.value.totalLinea || null,
             evento: cargoForm.value.evento ? pmsEventoIri(cargoForm.value.evento) : null,
+            // 🔥 Si el operador CAMBIÓ la estancia, se fija: si no, la sincronización de Beds24
+            // devuelve el cargo a la de antes en el siguiente pull —cada 3–10 minutos— y sin un
+            // solo error. Se pregunta al cargo ORIGINAL, no al formulario.
+            //
+            // ⚠️ Y si no la cambió, se conserva lo que ya tuviera: mandar `false` por defecto
+            // soltaría el candado de un cargo movido hace semanas sólo por editarle la descripción.
+            imputacionFijada: original !== undefined
+                && idDeIri(original.evento) !== (cargoForm.value.evento || null)
+                ? true
+                : (original?.imputacionFijada ?? false),
             ...(original && !original.tipoCambio && cargoForm.value.tipoCambio
                 ? { tipoCambio: cargoForm.value.tipoCambio }
                 : {}),
@@ -1733,15 +1804,15 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                 <p class="text-xs font-black text-amber-800">
                     <i class="fas fa-ban mr-1.5"></i>Reserva cancelada en el canal
                 </p>
+                <!-- ⚠️ Antes decía «vuelve a activarla para que se cobren» y ofrecía el botón.
+                     Era falso desde el 08/09/2026 y, para una reserva de OTA, inútil siempre: no
+                     se reactiva nunca. Lo que hay que hacer es MOVER los cargos al arreglo nuevo,
+                     y eso se hace ahí abajo, en la estancia cancelada. -->
                 <p class="text-[11px] font-bold text-amber-700/90 mt-1 leading-snug">
-                    Los cargos de la estancia se conservan pero <b>no suman al saldo</b>: solo cuenta la penalización.
-                    Si el huésped sigue adelante como reserva directa, vuelve a activarla para que se cobren.
+                    Los cargos de una estancia cancelada <b>no suman al saldo</b>, y se conservan como historia.
+                    Si el huésped sigue adelante con otras fechas, <b>mueve los cargos</b> a la estancia
+                    que sí ocurre — abajo, en el cuadro de la estancia cancelada.
                 </p>
-                <button v-if="!readOnly" type="button" @click="cambiarActiva(true)" :disabled="finanzas.isSaving"
-                    class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-lg text-[11px] font-black">
-                    <i class="fas" :class="finanzas.isSaving ? 'fa-circle-notch fa-spin' : 'fa-rotate-left'"></i>
-                    Reactivar cobro
-                </button>
 
                 <!-- ⚠️ EL RECORDATORIO. Ver `penalizacionSinCobrar`: la penalización dejó de
                      sumar el 31/08/2026 y esto es lo único que lo dice. Una cancelada no sale
@@ -1983,12 +2054,6 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             </span>
                         </InfoTooltip>
                     </span>
-                    <!-- Anular a mano: por ejemplo, un no-show que el canal no marcó. -->
-                    <button v-if="!readOnly && finanzas.info.activa !== false" type="button"
-                        @click="cambiarActiva(false)" :disabled="finanzas.isSaving"
-                        class="shrink-0 text-[10px] font-black text-slate-400 hover:text-rose-600 underline decoration-dotted">
-                        Anular cobro
-                    </button>
                 </p>
             </div>
 
@@ -2102,11 +2167,23 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                          era la salida — lo que hay que hacer es llevar el dinero al
                                          arreglo nuevo, y hasta hoy eso era abrir cargo por cargo.
                                          Sólo aparece si hay cargos que mover y sitio a donde. -->
-                                    <template v-if="g.cancelada && g.cargos.length && estanciasVivas.length">
+                                    <!-- Plegado por defecto: sus cargos son historia y no cobran,
+                                         así que no deben ocupar la pantalla por encima de lo que
+                                         sí hay que mirar. El número dice cuántos hay dentro, para
+                                         que plegado no se lea como vacío. -->
+                                    <button v-if="g.cancelada && g.cargos.length" type="button"
+                                        @click="alternarGrupo(g.clave)"
+                                        class="text-[10px] font-black uppercase tracking-wide text-slate-500 hover:bg-slate-200 border border-slate-300 rounded px-1.5 py-px whitespace-nowrap transition-colors">
+                                        <i class="fas text-[9px] mr-1"
+                                            :class="gruposDesplegados.has(g.clave) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                        {{ g.cargos.length }} cargo{{ g.cargos.length === 1 ? '' : 's' }}
+                                    </button>
+
+                                    <template v-if="g.cancelada && g.cargos.length && grupoVisible(g)">
                                         <button v-if="moviendoGrupo !== g.clave" type="button"
-                                            @click="moviendoGrupo = g.clave; moviendoDestino = ''"
+                                            @click="abrirMoverGrupo(g)"
                                             class="text-[10px] font-black uppercase tracking-wide text-[#376875] hover:bg-[#376875]/10 border border-[#376875]/30 rounded px-1.5 py-px whitespace-nowrap transition-colors">
-                                            <i class="fas fa-arrow-right-arrow-left mr-1"></i>Mover {{ g.cargos.length }}
+                                            <i class="fas fa-arrow-right-arrow-left mr-1"></i>Mover
                                         </button>
 
                                         <span v-else class="flex items-center gap-1 flex-wrap">
@@ -2117,9 +2194,12 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                                     {{ e.unidad ?? 'Estancia' }} · {{ fechaLegible(e.inicio) }} → {{ fechaLegible(e.fin) }}
                                                 </option>
                                             </select>
-                                            <button type="button" @click="moverCargosDelGrupo(g)" :disabled="finanzas.isSaving"
+                                            <!-- Deshabilitado hasta marcar alguno: el botón dice
+                                                 cuántos van, así que nunca se mueve «lo que sea». -->
+                                            <button type="button" @click="moverCargosDelGrupo(g)"
+                                                :disabled="finanzas.isSaving || !cargosAMover.size"
                                                 class="text-[10px] font-black uppercase tracking-wide text-white bg-[#376875] hover:bg-[#2b525d] disabled:opacity-40 rounded px-2 py-0.5 whitespace-nowrap transition-colors">
-                                                Mover
+                                                Mover {{ cargosAMover.size || '' }}
                                             </button>
                                             <button type="button" @click="moviendoGrupo = null"
                                                 class="text-[10px] font-bold text-slate-400 hover:text-slate-600 px-1">
@@ -2212,9 +2292,20 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     <!-- 👉 Indentado respecto a la barra de la estancia: es lo que hace visible
                          que estos cargos cuelgan de ESA casita y no de la reserva entera. Con
                          todo al mismo margen, la barra parecía un separador y no una cabecera. -->
-                    <div v-for="c in g.cargos" :key="c.id ?? ''" class="pl-6 pr-4 py-3 border-b border-slate-50 last:border-0">
+                    <!-- ⚠️ `grupoVisible` sólo pliega las CANCELADAS. Las vivas se ven siempre:
+                         plegar lo que hay que cobrar sería esconder el trabajo. -->
+                    <div v-for="c in g.cargos" v-show="grupoVisible(g)" :key="c.id ?? ''"
+                        class="pl-6 pr-4 py-3 border-b border-slate-50 last:border-0">
                         <!-- Fila normal -->
                         <div v-if="cargoEditandoId !== c.id" class="flex items-start justify-between gap-3">
+                            <!-- La casilla sólo existe mientras se está moviendo ESTE grupo: fuera
+                                 de esa operación no pinta nada y ensuciaría todas las filas. -->
+                            <label v-if="moviendoGrupo === g.clave && c.id"
+                                class="flex items-center pt-0.5 shrink-0 cursor-pointer">
+                                <input type="checkbox" :checked="cargosAMover.has(c.id)"
+                                    @change="alternarCargoAMover(c.id)"
+                                    class="w-4 h-4 accent-[#376875] cursor-pointer" />
+                            </label>
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <span v-if="tipoCargoOpt(c.tipoCargo)"
@@ -2423,6 +2514,12 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                          teclear el primer importe. -->
                     <p v-if="!g.cargos.length" class="pl-6 pr-4 py-3 text-xs font-bold text-slate-400 border-b border-slate-50 last:border-0">
                         Sin cargos en esta estancia.
+                    </p>
+
+                    <!-- Plegado NO es vacío. Sin esta línea, un cuadro cancelado con cuatro cargos
+                         dentro parecía uno sin nada, y el operador no volvería a abrirlo. -->
+                    <p v-else-if="!grupoVisible(g)" class="pl-6 pr-4 py-2 text-[11px] font-bold text-slate-400 border-b border-slate-50 last:border-0">
+                        {{ g.cargos.length }} cargo{{ g.cargos.length === 1 ? '' : 's' }} de la estancia cancelada · no suman
                     </p>
                     </template>
 

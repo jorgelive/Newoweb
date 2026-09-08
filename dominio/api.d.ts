@@ -24850,6 +24850,11 @@ export interface components {
              */
             tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
             /**
+             * @description El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
+             * @default false
+             */
+            imputacionFijada: boolean;
+            /**
              * Format: iri-reference
              * @description Moneda del importe (resolver contra maestro; default USD si no llega).
              * @example https://example.com/
@@ -24909,6 +24914,11 @@ export interface components {
              * @default false
              */
             esAutomatico: boolean;
+            /**
+             * @description El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
+             * @default false
+             */
+            imputacionFijada: boolean;
             moneda?: components["schemas"]["Moneda-pms_cargo.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
@@ -24963,6 +24973,11 @@ export interface components {
              * @enum {string|null}
              */
             tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            /**
+             * @description El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
+             * @default false
+             */
+            imputacionFijada: boolean;
             /**
              * Format: iri-reference
              * @description Moneda del importe (resolver contra maestro; default USD si no llega).
@@ -25022,6 +25037,11 @@ export interface components {
              * @default false
              */
             esAutomatico: boolean;
+            /**
+             * @description El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
+             * @default false
+             */
+            imputacionFijada: boolean;
             moneda?: components["schemas"]["Moneda-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
@@ -25089,6 +25109,11 @@ export interface components {
              * @default false
              */
             esAutomatico: boolean;
+            /**
+             * @description El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
+             * @default false
+             */
+            imputacionFijada: boolean;
             moneda?: components["schemas"]["Moneda.html-pms_cargo.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
@@ -25155,6 +25180,11 @@ export interface components {
              * @default false
              */
             esAutomatico: boolean;
+            /**
+             * @description El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
+             * @default false
+             */
+            imputacionFijada: boolean;
             moneda?: components["schemas"]["Moneda.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
@@ -25222,6 +25252,11 @@ export interface components {
              * @default false
              */
             esAutomatico: boolean;
+            /**
+             * @description El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
+             * @default false
+             */
+            imputacionFijada: boolean;
             moneda?: components["schemas"]["Moneda.jsonld-pms_cargo.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
@@ -25289,6 +25324,11 @@ export interface components {
              * @default false
              */
             esAutomatico: boolean;
+            /**
+             * @description El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
+             * @default false
+             */
+            imputacionFijada: boolean;
             moneda?: components["schemas"]["Moneda.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
@@ -25356,6 +25396,11 @@ export interface components {
              * @default false
              */
             esAutomatico: boolean;
+            /**
+             * @description El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
+             * @default false
+             */
+            imputacionFijada: boolean;
             moneda?: components["schemas"]["Moneda.multipart-pms_cargo.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;
@@ -25422,6 +25467,11 @@ export interface components {
              * @default false
              */
             esAutomatico: boolean;
+            /**
+             * @description El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
+             * @default false
+             */
+            imputacionFijada: boolean;
             moneda?: components["schemas"]["Moneda.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"] | null;
             /** @description Tipo de cambio venta USD→PEN del día de registro (snapshot histórico). */
             tipoCambio?: string | null;

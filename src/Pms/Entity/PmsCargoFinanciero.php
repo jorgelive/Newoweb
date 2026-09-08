@@ -173,6 +173,31 @@ class PmsCargoFinanciero
     private bool $esAutomatico = false;
 
     /**
+     * El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
+     *
+     * ── Por qué existe ──────────────────────────────────────────────────────
+     * 🔥 `Beds24InvoiceReceivePersister` **reimputa la estancia en CADA sync**, y hace bien: es lo
+     * que hace que un cargo siga a su casita cuando el huésped se muda (§6.3.b). Pero convierte
+     * cualquier mudanza manual en un espejismo — el pull corre cada 3–10 minutos y la deshace en
+     * silencio, sin error y sin rastro.
+     *
+     * Y hace falta moverlos: cuando una reserva de OTA se cancela y sigue como directa con otras
+     * fechas, sus cargos se quedan colgados de la estancia muerta, que desde el 08/09/2026 ya no
+     * cobra. Rescatarlos es la única salida, porque **una reserva de OTA no se reactiva nunca**.
+     *
+     * ⚠️ **Mismo criterio asimétrico que `datosLocked`** (§9.3): el automatismo cede ante la
+     * persona, no al revés. Y sólo bloquea la IMPUTACIÓN — importes, estado y descripción siguen
+     * sincronizándose, que es de donde viene el valor de tener el canal enchufado.
+     */
+    // ⚠️ Sale OBLIGATORIO en el esquema de escritura —API Platform lo hace con todo bool no
+    // nulable, y `ApiProperty(required: false)` no lo cambia—, así que el front lo manda siempre.
+    // No es molestia: obliga a decidir explícitamente si esta escritura fija la imputación o no,
+    // que es justo lo que no conviene dejar implícito.
+    #[ORM\Column(name: 'imputacion_fijada', type: 'boolean', options: ['default' => false])]
+    #[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]
+    private bool $imputacionFijada = false;
+
+    /**
      * Moneda del importe (resolver contra maestro; default USD si no llega).
      *
      * Está en `pms_cargo:patch` desde el 15/08/2026, y **el candado sigue puesto**: quien lo
@@ -314,6 +339,10 @@ class PmsCargoFinanciero
     public function setInformacionFinanciera(?PmsInformacionFinanciera $info): self { $this->informacionFinanciera = $info; return $this; }
 
     public function getEvento(): ?PmsEventoCalendario { return $this->evento; }
+
+    public function isImputacionFijada(): bool { return $this->imputacionFijada; }
+
+    public function setImputacionFijada(bool $fijada): self { $this->imputacionFijada = $fijada; return $this; }
     public function setEvento(?PmsEventoCalendario $evento): self { $this->evento = $evento; return $this; }
 
     public function getBeds24ItemId(): ?string { return $this->beds24ItemId; }
