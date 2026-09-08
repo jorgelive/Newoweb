@@ -9,6 +9,7 @@ use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use App\Cotizacion\Entity\CotizacionVuelo;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
+use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\File;
@@ -56,13 +57,14 @@ final readonly class CargaMasivaDeArchivos
     public function __construct(
         #[Autowire(param: 'kernel.project_dir')]
         private string $projectDir,
+        private EntityManagerInterface $em,
     ) {
     }
 
     /**
      * Qué haría con este ZIP, sin tocar nada.
      *
-     * @return list<array{fichero: string, pasajero: ?CotizacionFilepasajero, vuelo: ?CotizacionVuelo, problema: ?string, ruta: ?string}>
+     * @return list<array{fichero: string, pasajero: ?CotizacionFilepasajero, vuelo: ?CotizacionVuelo, problema: ?string, ruta: ?string, reemplaza: bool}>
      */
     public function planificar(CotizacionFile $file, string $rutaZip): array
     {
@@ -109,12 +111,12 @@ final readonly class CargaMasivaDeArchivos
             $extension = strtolower(pathinfo($nombre, PATHINFO_EXTENSION));
 
             if (!in_array($extension, self::EXTENSIONES, true)) {
-                $plan[] = $this->fila($nombre, null, null, sprintf('extensión «%s» no admitida', $extension));
+                $plan[] = $this->fila($file, $nombre, null, null, sprintf('extensión «%s» no admitida', $extension));
                 continue;
             }
 
             if ((int) $estado['size'] > self::MAX_BYTES_ENTRADA) {
-                $plan[] = $this->fila($nombre, null, null, 'pesa más de 10 MB');
+                $plan[] = $this->fila($file, $nombre, null, null, 'pesa más de 10 MB');
                 continue;
             }
 
@@ -138,7 +140,7 @@ final readonly class CargaMasivaDeArchivos
                 }
             }
 
-            $plan[] = $this->fila($nombre, $pasajero, $vuelo, $problema, $ruta);
+            $plan[] = $this->fila($file, $nombre, $pasajero, $vuelo, $problema, $ruta);
         }
 
         $zip->close();
@@ -272,11 +274,52 @@ final readonly class CargaMasivaDeArchivos
     }
 
     /**
-     * @return array{fichero: string, pasajero: ?CotizacionFilepasajero, vuelo: ?CotizacionVuelo, problema: ?string, ruta: ?string}
+     * @return array{fichero: string, pasajero: ?CotizacionFilepasajero, vuelo: ?CotizacionVuelo, problema: ?string, ruta: ?string, reemplaza: bool}
      */
-    private function fila(string $fichero, ?CotizacionFilepasajero $pasajero, ?CotizacionVuelo $vuelo, ?string $problema, ?string $ruta = null): array
-    {
-        return compact('fichero', 'pasajero', 'vuelo', 'problema', 'ruta');
+    private function fila(
+        CotizacionFile $file,
+        string $fichero,
+        ?CotizacionFilepasajero $pasajero,
+        ?CotizacionVuelo $vuelo,
+        ?string $problema,
+        ?string $ruta = null,
+    ): array {
+        $reemplaza = $problema === null && $this->boletoPrevio($file, $pasajero, $vuelo) !== null;
+
+        return compact('fichero', 'pasajero', 'vuelo', 'problema', 'ruta', 'reemplaza');
+    }
+
+    /**
+     * El boarding pass que esa persona YA tiene para ese vuelo, si lo hay.
+     *
+     * 🔥 **Es lo que impide que el pasajero acabe con dos.** Los ZIP llegan dos y tres veces —uno
+     * corregido, otro con los que faltaban, otro «por si acaso»— y sin esto cada pasada añade una
+     * copia más. En el gate eso no es un duplicado: es el cliente eligiendo entre dos documentos
+     * sin saber cuál vale, que es justo lo que esta pantalla existe para evitar.
+     */
+    private function boletoPrevio(
+        CotizacionFile $file,
+        ?CotizacionFilepasajero $pasajero,
+        ?CotizacionVuelo $vuelo,
+    ): ?CotizacionFilearchivo {
+        if ($pasajero === null || $vuelo === null) {
+            return null;
+        }
+
+        foreach ($file->getFilearchivos() as $previo) {
+            if ($previo->getTipoArchivo() !== ArchivoTipoEnum::BOLETO) {
+                continue;
+            }
+
+            $mismoPasajero = $previo->getPasajero()?->getId()?->equals($pasajero->getId() ?? $previo->getId()) === true;
+            $mismoVuelo = $previo->getVuelo()?->getId()?->equals($vuelo->getId() ?? $previo->getId()) === true;
+
+            if ($mismoPasajero && $mismoVuelo) {
+                return $previo;
+            }
+        }
+
+        return null;
     }
 
     /** Una carpeta por carga, que se borra sola al aplicarla. */
@@ -326,7 +369,7 @@ final readonly class CargaMasivaDeArchivos
             }
 
             [$pasajero, $vuelo] = $this->casar((string) $original, $porDocumento, $porVuelo);
-            $plan[] = $this->fila((string) $original, $pasajero, $vuelo, $this->queFalta($pasajero, $vuelo), $fichero);
+            $plan[] = $this->fila($file, (string) $original, $pasajero, $vuelo, $this->queFalta($pasajero, $vuelo), $fichero);
         }
 
         return $this->aplicar($file, $plan);
@@ -335,7 +378,7 @@ final readonly class CargaMasivaDeArchivos
     /**
      * Convierte en adjuntos las filas del plan que no tienen problema.
      *
-     * @param list<array{fichero: string, pasajero: ?CotizacionFilepasajero, vuelo: ?CotizacionVuelo, problema: ?string, ruta: ?string}> $plan
+     * @param list<array{fichero: string, pasajero: ?CotizacionFilepasajero, vuelo: ?CotizacionVuelo, problema: ?string, ruta: ?string, reemplaza: bool}> $plan
      *
      * @return list<CotizacionFilearchivo>
      */
@@ -346,6 +389,14 @@ final readonly class CargaMasivaDeArchivos
         foreach ($plan as $fila) {
             if ($fila['problema'] !== null || $fila['ruta'] === null || !is_file($fila['ruta'])) {
                 continue;
+            }
+
+            // ⚠️ Se vuelve a buscar aquí y no se confía en el `reemplaza` del plan: entre la
+            // previsualización y el «guardar» pudo entrar otro ZIP.
+            $previo = $this->boletoPrevio($file, $fila['pasajero'], $fila['vuelo']);
+
+            if ($previo !== null) {
+                $this->em->remove($previo);
             }
 
             $archivo = new CotizacionFilearchivo();

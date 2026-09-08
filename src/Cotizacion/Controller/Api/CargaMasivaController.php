@@ -81,6 +81,7 @@ final class CargaMasivaController extends AbstractController
                     ),
                     'vueloId' => $f['vuelo']?->getId()?->toRfc4122(),
                     'problema' => $f['problema'],
+                    'reemplaza' => $f['reemplaza'],
                     'ruta' => $f['ruta'] === null ? null : basename($f['ruta']),
                 ],
                 $plan,

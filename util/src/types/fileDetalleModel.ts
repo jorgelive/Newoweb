@@ -242,6 +242,8 @@ export interface FilaCargaZip {
     vuelo: string | null;
     vueloId: string | null;
     problema: string | null;
+  /** Ya había un boarding pass de esa persona para ese vuelo: éste lo sustituye. */
+  reemplaza: boolean;
     ruta: string | null;
 }
 

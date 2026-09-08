@@ -1453,6 +1453,14 @@ const zipAplicando = ref(false);
 const zipCasan = computed(() => (zipPlan.value?.filas ?? []).filter(f => !f.problema));
 const zipFallan = computed(() => (zipPlan.value?.filas ?? []).filter(f => f.problema));
 
+/**
+ * Cuántos pisan un boarding pass que ya estaba.
+ *
+ * 🔥 Los ZIP llegan dos y tres veces —uno corregido, otro con los que faltaban—. Sin sustituir,
+ * cada pasada dejaría una copia más y el cliente llegaría al gate eligiendo entre dos.
+ */
+const zipReemplazan = computed(() => zipCasan.value.filter(f => f.reemplaza).length);
+
 const elegirZip = async (evento: Event) => {
     const archivo = (evento.target as HTMLInputElement).files?.[0];
     if (!archivo || !file.value) return;
@@ -2245,6 +2253,9 @@ const eliminarDocumento = async (iri?: string) => {
               <div v-if="zipPlan" class="mt-3 pt-3 border-t border-violet-200">
                 <p class="text-[11px] font-black text-violet-900 mb-2">
                   {{ zipCasan.length }} se asignan · {{ zipFallan.length }} quedan fuera
+                  <span v-if="zipReemplazan" class="text-violet-600 font-bold">
+                    · {{ zipReemplazan }} sustituyen a uno que ya estaba
+                  </span>
                 </p>
 
                 <div class="max-h-48 overflow-y-auto space-y-1 mb-3">
@@ -2262,6 +2273,11 @@ const eliminarDocumento = async (iri?: string) => {
                     <div class="min-w-0">
                       <p class="font-bold text-slate-800 truncate">{{ fila.pasajero }}</p>
                       <p class="text-slate-500 truncate">{{ fila.vuelo }}</p>
+                      <!-- Que se vea ANTES de guardar: el anterior se borra, y si el bueno era
+                           aquél esto es la única oportunidad de pararlo. -->
+                      <p v-if="fila.reemplaza" class="text-violet-600 font-bold">
+                        <i class="fas fa-rotate mr-0.5"></i> sustituye al que ya tenía
+                      </p>
                     </div>
                   </div>
                 </div>

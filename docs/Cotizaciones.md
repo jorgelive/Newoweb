@@ -1138,6 +1138,21 @@ viaja como dato.
 permitía nginx (`client_max_body_size`). Aun así, **un ZIP por vuelo es mejor que uno gigante**:
 cada vuelo lleva ≤25 pax, entra de sobra, y la tabla de revisión es corta.
 
+#### El ZIP sustituye, no acumula (08/09/2026)
+
+Los ZIP de boarding passes no llegan una vez: llega uno, luego el corregido, luego «los que
+faltaban», luego uno «por si acaso». 🔥 **Sin sustituir, cada pasada deja una copia más** y el
+cliente llega al gate eligiendo entre dos documentos sin saber cuál vale — que es exactamente lo
+que la pantalla de revisión existe para evitar.
+
+`CargaMasivaDeArchivos::boletoPrevio()` busca el boleto que esa persona ya tenía **para ese mismo
+vuelo** y `aplicar()` lo borra antes de crear el nuevo. El plan lo enseña antes (`reemplaza` en la
+fila, «sustituye al que ya tenía» en violeta): el anterior se pierde, y si el bueno era aquél, ésa
+es la única oportunidad de pararlo.
+
+⚠️ **`aplicar()` vuelve a buscarlo y no se fía del `reemplaza` del plan**: entre la
+previsualización y el «Guardar» pudo entrar otro ZIP.
+
 #### El pasajero sube sus documentos desde su móvil (08/09/2026)
 
 Perseguir 133 pasaportes por WhatsApp, renombrarlos y subirlos uno a uno es el trabajo que esto
