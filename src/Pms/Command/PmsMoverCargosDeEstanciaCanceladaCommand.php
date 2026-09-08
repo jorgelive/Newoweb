@@ -48,7 +48,11 @@ final class PmsMoverCargosDeEstanciaCanceladaCommand extends Command
 
     protected function configure(): void
     {
-        $this->addArgument('reserva', InputArgument::REQUIRED, 'beds24_master_id de la reserva');
+        $this->addArgument(
+            'reserva',
+            InputArgument::REQUIRED,
+            'El localizador que se ve en el panel (p. ej. 5509354785), o el id interno de Beds24',
+        );
         $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'No guarda: enseña lo que haría.');
     }
 
@@ -56,15 +60,22 @@ final class PmsMoverCargosDeEstanciaCanceladaCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $seco = (bool) $input->getOption('dry-run');
-        $masterId = (int) $input->getArgument('reserva');
+        $buscado = trim((string) $input->getArgument('reserva'));
 
-        $reserva = $this->em->getRepository(PmsReserva::class)->findOneBy(['beds24MasterId' => $masterId]);
+        $reserva = $this->buscarReserva($buscado);
 
         if ($reserva === null) {
-            $io->error(sprintf('No existe la reserva %d.', $masterId));
+            $io->error(sprintf('No encuentro ninguna reserva con «%s».', $buscado));
 
             return Command::FAILURE;
         }
+
+        $io->writeln(sprintf(
+            '<info>%s</info> · %s · %s',
+            (string) $reserva->getReferenciaCanalAggregate(),
+            (string) $reserva->getUnidadesAggregate(),
+            $reserva->getFechaLlegada()?->format('d/m/Y') ?? '—',
+        ));
 
         $vivas = [];
 
@@ -129,6 +140,42 @@ final class PmsMoverCargosDeEstanciaCanceladaCommand extends Command
         $io->success(sprintf('%d cargo(s) movido(s). Los totales se recalculan solos al guardar.', $movidos));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Por el localizador que el operador VE, y sólo después por el id interno.
+     *
+     * ⚠️ **El panel no enseña `beds24MasterId` en ningún sitio.** Enseña la referencia del canal
+     * —«5509354785»—, que es la que el huésped también tiene y por la que se habla de una reserva.
+     * Pedir el id interno obliga a una consulta a la base para usar un comando, que es exactamente
+     * la fricción que hace que un comando no se use.
+     *
+     * `LIKE` porque el campo es un AGREGADO: una reserva con dos estancias de canales distintos
+     * lleva las dos referencias separadas por `|`.
+     */
+    private function buscarReserva(string $buscado): ?PmsReserva
+    {
+        $repo = $this->em->getRepository(PmsReserva::class);
+
+        /** @var list<PmsReserva> $porReferencia */
+        $porReferencia = $repo->createQueryBuilder('r')
+            ->where('r.referenciaCanalAggregate LIKE :ref')
+            ->setParameter('ref', '%' . $buscado . '%')
+            ->setMaxResults(2)
+            ->getQuery()
+            ->getResult();
+
+        if (count($porReferencia) === 1) {
+            return $porReferencia[0];
+        }
+
+        if (count($porReferencia) > 1) {
+            return null;
+        }
+
+        return ctype_digit($buscado)
+            ? $repo->findOneBy(['beds24MasterId' => (int) $buscado])
+            : null;
     }
 
     private function etiqueta(PmsCargoFinanciero $cargo): string

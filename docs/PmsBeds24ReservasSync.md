@@ -4368,6 +4368,13 @@ reasigna todos de una vez.
 ⚠️ **Un PATCH por cargo y no uno en bloque**: no hay endpoint de lote, y cada cargo dispara los
 listeners de coherencia que recalculan los totales por moneda. Son tres o cuatro filas.
 
+⚠️ **Y el comando se pide por el LOCALIZADOR que se ve, no por `beds24MasterId`.** El panel no
+enseña el id interno en ningún sitio: enseña la referencia del canal —«5509354785»—, que es además
+la que tiene el huésped. Pedir el interno obliga a una consulta a la base para poder usar un
+comando, y ésa es exactamente la fricción que hace que un comando no se use. `LIKE` porque el campo
+es un agregado: una reserva con dos estancias de canales distintos lleva las dos separadas por `|`.
+Si el localizador casa con más de una, no adivina: falla.
+
 #### El «Cancel Fee» lo manda Booking, y casi siempre en cero
 
 Medido el 08/09/2026 sobre producción: **24 penalizaciones, las 24 con `beds24ItemId`** —o sea,
