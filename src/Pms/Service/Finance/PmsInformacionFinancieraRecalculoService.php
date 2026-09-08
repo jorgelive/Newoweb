@@ -246,6 +246,11 @@ final class PmsInformacionFinancieraRecalculoService
             LEFT JOIN (
                 SELECT c.informacion_id, SUM($cargoConvertido) AS total
                 FROM pms_cargo_financiero c
+                -- ⚠️ `i2` SIGUE HACIENDO FALTA aunque ya no se filtre por `activa`: de ahí sale la
+                -- moneda base de `$cargoConvertido`. Al quitar el filtro se quitó también el JOIN
+                -- y el comando reventó con «Unknown column 'i2.moneda_id'» — un error de bulto que
+                -- ni PHPStan ni los tests ven, porque el SQL es una cadena.
+                INNER JOIN pms_informacion_financiera i2 ON i2.id = c.informacion_id
                 LEFT JOIN pms_evento_calendario ev ON ev.id = c.evento_id
                 WHERE c.tipo = 'charge' AND c.informacion_id IN ($in)
                   -- Mismo criterio que la consulta por moneda, aunque este total esté en retirada:

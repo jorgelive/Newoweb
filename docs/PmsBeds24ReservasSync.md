@@ -4356,6 +4356,11 @@ quedó atrás»), y esta vez con tres copias fuera de sitio:
 | `getDesglosePorTipo()` | El adelanto se calculaba sobre alojamiento de una estancia muerta |
 | `getLineasCliente()` | El huésped veía en su estado de cuenta líneas que su propio total no incluía |
 
+⚠️ **Y al quitar el filtro de `activa` del SQL viejo se quitó también su JOIN**, que seguía
+haciendo falta para la moneda base: `pms:finanzas:recalcular-totales` reventó en producción con
+`Unknown column 'i2.moneda_id'`. Ni PHPStan ni los tests lo ven — el SQL es una cadena. **Un
+comando que toca dinero se ejecuta después de tocarlo, no sólo se compila.**
+
 Ahora hay **una sola definición**: `PmsCargoFinanciero::cuentaParaElSaldo()`. Las tres la llaman, y
 `PmsTotalesPorMoneda::cargoCuenta()` delega en ella. El SQL sigue siendo una copia inevitable —se
 ejecuta en la base— pero es UNA, está citada desde la entidad, y hay tests que comparan resultados.
