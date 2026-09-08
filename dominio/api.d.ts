@@ -10956,6 +10956,8 @@ export interface components {
                 ejeLabel: string;
                 faltan: string[];
             }[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -10997,6 +10999,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -11404,6 +11408,8 @@ export interface components {
                 ejeLabel: string;
                 faltan: string[];
             }[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -11445,6 +11451,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -11786,6 +11794,8 @@ export interface components {
                 ejeLabel: string;
                 faltan: string[];
             }[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -11843,6 +11853,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -12201,6 +12213,8 @@ export interface components {
                 ejeLabel: string;
                 faltan: string[];
             }[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -12242,6 +12256,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */

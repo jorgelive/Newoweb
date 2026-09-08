@@ -235,7 +235,15 @@ export const construirParamsBiblia = (f: FiltrosBiblia): Record<string, string |
     if (f.desde) params['fechaServicio[after]'] = f.desde;
     if (f.hasta) params['fechaServicio[before]'] = f.hasta;
 
-    if (f.fileId) params['file'] = f.fileId;
+    // ⚠️ **`!== undefined` y NO un `if` a secas.** Un expediente elegido cuyo id venga vacío se
+    // manda igual: `UuidRelacionFilter` no entiende la cadena vacía y corta con `1 = 0`, o sea
+    // CERO resultados. Omitirlo devolvía la colección entera con el chip del expediente puesto en
+    // pantalla — 34 servicios de dos colegios distintos leídos como los de uno, y desde ahí se
+    // genera una orden de servicio.
+    //
+    // Pasó de verdad el 08/09/2026: la colección de expedientes no serializaba su `id`, así que
+    // llegaba `undefined` y se guardaba como ''. **Enseñar de menos se nota; enseñar de más, no.**
+    if (f.fileId !== undefined) params['file'] = f.fileId;
     if (f.cotizacionId) params['cotizacionServicio.cotizacion'] = f.cotizacionId;
     if (f.estadoReservaProveedor) params['estadoReservaProveedor'] = f.estadoReservaProveedor;
     if (f.estadoOperacion) params['estadoOperacion'] = f.estadoOperacion;

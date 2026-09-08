@@ -607,7 +607,11 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             const miembros = response.data['hydra:member'] || response.data['member'] || [];
 
             return miembros.map((f: Record<string, unknown>) => ({
-                id: String(f.id ?? ''),
+                // ⚠️ `@id` como respaldo: es la IRI de JSON-LD y viaja SIEMPRE, mientras que `id`
+                // depende de que el grupo de serialización lo publique. Faltaba, y el filtro de
+                // expediente de La Biblia salía vacío —o sea, sin filtrar—. `UuidRelacionFilter`
+                // acepta las dos formas a propósito, justo para esto.
+                id: String(f.id ?? f['@id'] ?? ''),
                 nombreGrupo: String(f.nombreGrupo ?? 'Sin nombre'),
                 pasajeroPrincipal: (f.pasajeroPrincipal as string | null) ?? null,
             }));

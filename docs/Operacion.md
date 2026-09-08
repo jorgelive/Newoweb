@@ -9,12 +9,14 @@ Alcance: `src/Operacion/` (entidades, enums, servicio, listener, comando), los e
 
 ---
 
+
 ## Índice
 
 1. [Vocabulario](#1-vocabulario)
 2. [Flujo: de cotización confirmada a La Biblia](#2-flujo-de-cotización-confirmada-a-la-biblia)
 3. [Reglas del snapshot](#3-reglas-del-snapshot) — incluye [3.3 comprable vs. referencia](#33), [3.5 reconciliación](#35), [3.4 consola](#34), [3.7 el file de la fila](#37), [3.8 congelado vs. vivo](#38)
 2.bis [Confirmar ya NO arma la operación](#2bis-confirmar-ya-no-arma-la-operación)
+2.quinquies [El filtro de expediente no filtraba](#2quinquies--el-filtro-de-expediente-de-la-biblia-no-filtraba-08092026)
 3.bis [Por qué La Biblia aparece vacía](#3bis-por-qué-la-biblia-aparece-vacía)
 4. [Los tres estados y por qué son tres](#4-los-tres-estados-y-por-qué-son-tres)
 5. [Órdenes de Servicio y bitácora](#5-órdenes-de-servicio-y-bitácora)
@@ -261,6 +263,36 @@ Borrar el **expediente** entero ya estaba frenado por la base: `operacion_orden_
 es `ON DELETE RESTRICT`. Frena, sí, pero con una excepción de clave foránea en crudo en vez de un
 mensaje. No se tocó porque nadie borra expedientes por la interfaz; si algún día se hace, merece
 el mismo trato que esto.
+
+## 2.quinquies 🔥 El filtro de expediente de La Biblia no filtraba (08/09/2026)
+
+El chip decía «Nune & Todd» y la lista traía **34 servicios: 20 suyos y 14 de otro colegio**. El
+filtro no llegaba a la consulta.
+
+**La cadena del fallo, entera:**
+
+1. `CotizacionFile` **no serializaba su `id`** en el grupo `file:read`, que es el de la colección
+   `/platform/sales/cotizacion_files` con la que se busca el expediente.
+2. El buscador hacía `id: String(f.id ?? '')` → **cadena vacía**.
+3. `construirParamsBiblia()` omitía lo vacío con un `if (f.fileId)`.
+4. La petición salía **sin filtro de expediente**, y el chip seguía en pantalla.
+
+⚠️ **Es el fallo con el peor disfraz posible: enseña de MÁS.** Una lista vacía se nota en un
+segundo; una lista con catorce filas de otro grupo se lee como propia — y desde ese cuadro se
+pulsa «Generar OS».
+
+**Tres arreglos, y los tres hacían falta:**
+
+| Dónde | Qué |
+|---|---|
+| `CotizacionFile::getId()` | Se publica también en `file:read` |
+| `operacionStore.buscarExpedientes()` | Respaldo por `@id`: la IRI de JSON-LD viaja siempre, y `UuidRelacionFilter` acepta las dos formas justo para esto |
+| `construirParamsBiblia()` | `!== undefined` en vez de un `if` a secas: un id vacío **se manda igual** y el filtro corta con `1 = 0` — cero resultados, que se ven |
+
+El tercero es el que impide que vuelva a pasar por otra puerta: mientras el `if` fuera de
+veracidad, cualquier futuro fallo que dejara el id vacío volvería a abrir la consulta entera.
+
+---
 
 ## 3. Reglas del snapshot
 

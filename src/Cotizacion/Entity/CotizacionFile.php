@@ -440,7 +440,7 @@ class CotizacionFile
     public function setPais(?MaestroPais $pais): self { $this->pais = $pais; return $this; }
 
     /**
-     * Se redeclara sobre IdTrait sólo para publicar el id en operacion:item:read.
+     * Se redeclara sobre IdTrait para publicar el id en `operacion:item:read` y en `file:read`.
      *
      * La Biblia necesita construir el IRI del expediente (agrupar servicios en una Orden
      * de Servicio) desde el objeto embebido; sin esto habría que parsear el identificador
@@ -448,8 +448,17 @@ class CotizacionFile
      *
      * Ojo: el lector de anotaciones de Doctrine sigue activo y parsea estos docblocks;
      * escribir la arroba de JSON-LD aquí rompe el arranque con un "annotation never imported".
+     *
+     * 🔥 **`file:read` se añadió el 08/09/2026, y su falta era un filtro que no filtraba.** El
+     * buscador de expedientes de La Biblia lee `f.id` de esta colección para armar el filtro;
+     * sin el id llegaba `undefined`, se guardaba como cadena vacía, y `construirParamsBiblia()`
+     * omite lo vacío — así que la petición salía **sin filtro de expediente**.
+     *
+     * El efecto es el peor de los dos posibles: el chip enseñaba «Nune & Todd» y la lista traía
+     * los 34 servicios del rango, 20 suyos y 14 de otro colegio. **Enseñar de menos se nota;
+     * enseñar de más, no** — y desde ahí se genera una orden de servicio.
      */
-    #[Groups(['operacion:item:read'])]
+    #[Groups(['operacion:item:read', 'file:read'])]
     public function getId(): ?Uuid { return $this->id; }
 
     public function getIdioma(): ?MaestroIdioma { return $this->idioma; }
