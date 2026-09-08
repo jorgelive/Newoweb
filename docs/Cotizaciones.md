@@ -1207,6 +1207,34 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### El ejemplo del cargador de vuelos enseñaba a perder la vuelta (08/09/2026)
+
+El diálogo traía **una** reserva con **un** vuelo, y su ayuda decía «se toca sólo lo que traes… nunca
+borra». Lo segundo es falso, y de la forma cara: **los vuelos de un PNR se REEMPLAZAN por los de la
+lista.** Un PNR declara ahí dónde viaja hoy, así que mandar la ida sin la vuelta desvincula la
+vuelta. Medido en un ensayo contra producción, declarando dos de los cuatro tramos de una conexión:
+
+```
+AX3LLL deja de viajar en CM749·22/09, CM337·22/09
+```
+
+Con el ejemplo viejo delante —un solo vuelo— eso es lo que alguien habría copiado.
+
+Ahora el ejemplo son **dos reservas completas**: un ida y vuelta directo con llegada al día
+siguiente, y una conexión de cuatro tramos. Entre las dos aparecen todas las claves que el
+importador entiende. Comprobado ejecutándolo contra `VuelosImportador` en ensayo: 0 problemas.
+
+⚠️ **Falta `pnr_nuevo` a propósito**: RENOMBRA, y en un ejemplo que se pega y se aplica eso es una
+trampa.
+
+⚠️ **Los PNR son inventados** (`AAAAAA`, `BBBBBB`). Uno real abre la reserva en la web de la
+aerolínea con sólo un apellido, y esto es código que se lee en muchos sitios. Además así pegar el
+ejemplo y aplicarlo no toca nada: el importador avisa de que ese PNR no existe y se salta la
+reserva — que es justo lo que debe hacer un ejemplo.
+
+⚠️ Y el importador acepta `pnr` **o** `localizador` como clave de la reserva; el ejemplo usa `pnr`,
+que es la que dice el diálogo.
+
 #### El manifiesto se lee para rellenar OTROS formularios (08/09/2026)
 
 Es lo que de verdad se hace con él: el del seguro, el de la aerolínea, el del hotel. Y hasta hoy

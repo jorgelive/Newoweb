@@ -891,21 +891,102 @@ const jsonVuelos = ref('');
 const cargandoVuelos = ref(false);
 const ensayoVuelos = ref<ResultadoVuelos | null>(null);
 
+/**
+ * Dos reservas COMPLETAS, comprobadas contra el importador real (ensayo: 0 problemas).
+ *
+ * La primera es un ida y vuelta directo con la llegada al día siguiente; la segunda, una conexión
+ * de cuatro tramos. Entre las dos aparecen todas las claves que el importador entiende: `pnr`,
+ * `emitido`, `notas` de la reserva, y por vuelo `numero`, `fecha`, `aerolinea`, `leg` y sus
+ * `notas`. Falta a propósito `pnr_nuevo`, que RENOMBRA: en un ejemplo que se pega y se aplica,
+ * eso es una trampa.
+ *
+ * 🔥 **Los cuatro tramos de la segunda están porque la lista REEMPLAZA.** Un PNR declara aquí
+ * dónde viaja hoy, así que un ejemplo con la mitad de los tramos enseña a desvincular la vuelta
+ * sin darse cuenta. Medido en el ensayo, declarando dos de cuatro: «AX3LLL deja de viajar en
+ * CM749·22/09, CM337·22/09».
+ *
+ * ⚠️ **PNR inventados a propósito** (`AAAAAA`, `BBBBBB`). Los reales abren la reserva en la web de
+ * la aerolínea con sólo un apellido, y esto es código que se lee en muchos sitios. Además, así
+ * pegar el ejemplo y aplicarlo no toca nada: el importador avisa de que ese PNR no existe y se
+ * salta la reserva, que es justo lo que debe pasar con un ejemplo.
+ */
 const EJEMPLO_VUELOS = `[
   {
-    "pnr": "YMFLHB",
-    "emitido": false,
-    "notas": ["Lista de nombres pendiente en el portal de Sky (plazo 12/09/2026)"],
+    "pnr": "AAAAAA",
+    "emitido": true,
+    "notas": ["Equipaje de bodega 23 kg incluido"],
     "vuelos": [
       {
-        "numero": "H2 5002",
-        "fecha": "2026-09-17",
-        "aerolinea": "Sky Airline",
+        "numero": "DM6771",
+        "fecha": "2026-09-18",
+        "aerolinea": "Arajet",
         "leg": {
-          "origen": "CUZ",
+          "origen": "LIM",
+          "destino": "PUJ",
+          "salida": "2026-09-18 03:00",
+          "llegada": "2026-09-18 09:19"
+        }
+      },
+      {
+        "numero": "DM6770",
+        "fecha": "2026-09-22",
+        "aerolinea": "Arajet",
+        "leg": {
+          "origen": "PUJ",
           "destino": "LIM",
-          "salida": "2026-09-17 06:50",
-          "llegada": "2026-09-17 08:35"
+          "salida": "2026-09-22 20:22",
+          "llegada": "2026-09-23 00:30"
+        },
+        "notas": ["Llega a Lima al día siguiente"]
+      }
+    ]
+  },
+  {
+    "pnr": "BBBBBB",
+    "emitido": false,
+    "vuelos": [
+      {
+        "numero": "CM264",
+        "fecha": "2026-09-18",
+        "aerolinea": "Copa Airlines",
+        "leg": {
+          "origen": "LIM",
+          "destino": "PTY",
+          "salida": "2026-09-18 02:35",
+          "llegada": "2026-09-18 06:12"
+        }
+      },
+      {
+        "numero": "CM177",
+        "fecha": "2026-09-18",
+        "aerolinea": "Copa Airlines",
+        "leg": {
+          "origen": "PTY",
+          "destino": "PUJ",
+          "salida": "2026-09-18 07:04",
+          "llegada": "2026-09-18 10:44"
+        }
+      },
+      {
+        "numero": "CM749",
+        "fecha": "2026-09-22",
+        "aerolinea": "Copa Airlines",
+        "leg": {
+          "origen": "PUJ",
+          "destino": "PTY",
+          "salida": "2026-09-22 18:01",
+          "llegada": "2026-09-22 19:40"
+        }
+      },
+      {
+        "numero": "CM337",
+        "fecha": "2026-09-22",
+        "aerolinea": "Copa Airlines",
+        "leg": {
+          "origen": "PTY",
+          "destino": "LIM",
+          "salida": "2026-09-22 21:20",
+          "llegada": "2026-09-23 00:55"
         }
       }
     ]
@@ -4010,13 +4091,17 @@ const eliminarDocumento = async (iri?: string) => {
             <span class="text-slate-400">— ver detalle</span>
           </summary>
           <div class="mt-2 text-slate-500 leading-relaxed space-y-1">
-            <p><b>Se toca sólo lo que traes.</b> Un archivo con un vuelo cambia ese vuelo; lo que no
-              aparece se queda como está. Nunca borra.</p>
+            <p><b>Sólo se tocan los PNR que traes</b>, pero de cada uno se declara TODO: sus
+              vuelos se <b>reemplazan</b> por los de la lista. Si mandas un PNR con la ida y te
+              olvidas la vuelta, esa vuelta deja de ser suya. Ningún vuelo se borra de la base —se
+              queda sin nadie y se avisa—, pero el pasajero deja de tenerlo.</p>
             <p><b>El PNR debe existir</b> en el expediente: si no, se avisa y no se crea. Para renombrar
               uno provisional usa <code class="font-mono">pnr_nuevo</code>.</p>
             <p><b>Un vuelo es un <code class="font-mono">leg</code>.</b> Una conexión son dos vuelos,
               cada uno con su número; lo que los une es que comparten PNR.</p>
             <p><code class="font-mono">emitido: false</code> marca la reserva pagada y sin billete.</p>
+            <p><b>Ensaya siempre antes.</b> El informe dice qué cambiaría y, sobre todo, de qué
+              vuelos dejaría de viajar cada PNR.</p>
           </div>
         </details>
 
@@ -4026,8 +4111,10 @@ const eliminarDocumento = async (iri?: string) => {
             <i class="fas fa-file-code mr-1"></i>Pegar un ejemplo
           </button>
         </div>
-        <textarea v-model="jsonVuelos" rows="12" spellcheck="false"
-                  placeholder="[{ &quot;pnr&quot;: &quot;YMFLHB&quot;, &quot;vuelos&quot;: [ … ] }]"
+        <!-- El placeholder ES el ejemplo completo: se ve la forma exacta antes de escribir nada, y
+                     «Pegar un ejemplo» lo mete de verdad para editarlo encima. -->
+        <textarea v-model="jsonVuelos" rows="16" spellcheck="false"
+                  :placeholder="EJEMPLO_VUELOS"
                   class="w-full font-mono text-[11px] border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-sky-200 focus:border-sky-400"></textarea>
 
         <!-- El informe del ensayo -->
