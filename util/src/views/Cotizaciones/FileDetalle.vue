@@ -993,6 +993,45 @@ const EJEMPLO_VUELOS = `[
   }
 ]`;
 
+/**
+ * Corregir UN vuelo, sin pasar por el JSON.
+ *
+ * 🔥 Son siete campos planos. La entidad nunca fue anidada —sólo el formato de carga, que va por
+ * PNR porque así escribe la aerolínea— y lo que más se hace es exactamente esto: mover veinte
+ * minutos un horario que la aerolínea reprogramó.
+ */
+const vueloEditando = ref<string | null>(null);
+const guardandoVuelo = ref(false);
+const vueloForm = ref({ numero: '', aerolinea: '', origen: '', destino: '', salida: '', llegada: '' });
+
+/** `datetime-local` quiere `2026-09-18T03:00`; el backend manda ISO con segundos. */
+const paraInput = (iso?: string | null): string => (iso ?? '').slice(0, 16);
+
+const abrirVuelo = (v: { id?: string | null; numero?: string | null; aerolinea?: string | null;
+                        origen?: string | null; destino?: string | null;
+                        salida?: string | null; llegada?: string | null }) => {
+  vueloEditando.value = String(v.id ?? '');
+  vueloForm.value = {
+    numero: v.numero ?? '',
+    aerolinea: v.aerolinea ?? '',
+    origen: v.origen ?? '',
+    destino: v.destino ?? '',
+    salida: paraInput(v.salida),
+    llegada: paraInput(v.llegada),
+  };
+};
+
+const guardarVuelo = async (v: { id?: string | null }) => {
+  guardandoVuelo.value = true;
+  const ok = await fileStore.editarVuelo(String(v.id ?? ''), { ...vueloForm.value });
+  guardandoVuelo.value = false;
+
+  if (!ok) { alert(fileStore.error || 'No se pudo guardar el vuelo.'); return; }
+
+  vueloEditando.value = null;
+  await cargarFile();
+};
+
 /** Baja el JSON de los vuelos que ya tiene el expediente, para editarlo y volver a cargarlo. */
 const descargarVuelos = async () => {
   if (!file.value) return;
@@ -2793,33 +2832,100 @@ const eliminarDocumento = async (iri?: string) => {
                 <!-- ── Los vuelos del viaje ─────────────────────────────────
                      En orden cronológico, que es como se mira un expediente: «qué pasa el día 23».
                      El PNR es el que agrupa a la gente, así que va delante de los pasajeros. -->
-                <div v-if="vuelos.length" class="mb-4 border border-slate-200 rounded-2xl overflow-hidden">
-                  <table class="w-full text-[11px]">
-                    <tbody>
-                      <tr v-for="v in vuelos" :key="`${v.numero}|${v.salida}`"
-                          class="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
-                        <td class="px-3 py-2 font-black text-slate-800 whitespace-nowrap">{{ v.numero }}</td>
-                        <td class="px-2 py-2 text-slate-500 font-bold whitespace-nowrap">{{ v.aerolinea }}</td>
-                        <td class="px-2 py-2 font-mono text-slate-700 whitespace-nowrap">
-                          {{ diaDe(v.salida) }}
-                          <span class="font-black">{{ horaDe(v.salida) }}</span>
-                          {{ v.origen }}
-                          <i class="fas fa-arrow-right text-[8px] text-slate-300 mx-1"></i>
-                          <span class="font-black">{{ horaDe(v.llegada) }}</span>
-                          {{ v.destino }}
-                          <!-- Un vuelo que llega al día siguiente no se avisa con una bandera: se ve. -->
-                          <span v-if="diaDe(v.llegada) !== diaDe(v.salida)"
-                                class="text-[9px] text-amber-600 font-bold ml-1">+1 día</span>
-                        </td>
-                        <td class="px-2 py-2 text-right">
-                          <span v-for="pnr in (v.pnrs || [])" :key="pnr"
-                                class="inline-block bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 ml-1 font-mono text-[10px]">
-                            {{ pnr }}
-                          </span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <!-- ⚠️ **Fichas y no tabla.** La tabla llevaba `whitespace-nowrap` en cada
+                     celda: en un móvil se desbordaba y **el destino se salía de la pantalla**, así
+                     que un vuelo se leía «CUZ →» y ahí acababa. Una ficha se envuelve. -->
+                <div v-if="vuelos.length" class="mb-4 space-y-2">
+                  <div v-for="v in vuelos" :key="String(v.id)"
+                       class="border border-slate-200 rounded-2xl px-3 py-2.5 hover:border-slate-300 transition-colors">
+                    <!-- ── Ficha en lectura ── -->
+                    <div v-if="vueloEditando !== v.id">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-black text-slate-800 text-xs">{{ v.numero }}</span>
+                        <span class="text-[11px] font-bold text-slate-500">{{ v.aerolinea }}</span>
+                        <span class="text-[11px] font-bold text-slate-400">{{ diaDe(v.salida) }}</span>
+                        <button type="button" @click="abrirVuelo(v)"
+                                class="ml-auto shrink-0 w-6 h-6 rounded-lg border border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200 transition-colors"
+                                title="Corregir este vuelo">
+                          <i class="fas fa-pencil-alt text-[10px]"></i>
+                        </button>
+                      </div>
+
+                      <p class="mt-1 font-mono text-[12px] text-slate-700 flex items-baseline gap-1.5 flex-wrap">
+                        <span class="font-black">{{ horaDe(v.salida) }}</span>
+                        <span class="font-bold">{{ v.origen }}</span>
+                        <i class="fas fa-arrow-right text-[9px] text-slate-300"></i>
+                        <span class="font-black">{{ horaDe(v.llegada) }}</span>
+                        <span class="font-bold">{{ v.destino }}</span>
+                        <!-- Un vuelo que llega al día siguiente no se avisa con una bandera: se ve. -->
+                        <span v-if="diaDe(v.llegada) !== diaDe(v.salida)"
+                              class="text-[10px] text-amber-600 font-bold">+1 día</span>
+                      </p>
+
+                      <div v-if="(v.pnrs || []).length" class="mt-1.5 flex flex-wrap gap-1">
+                        <span v-for="pnr in (v.pnrs || [])" :key="pnr"
+                              class="bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 font-mono text-[10px]">
+                          {{ pnr }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- ── Ficha en edición ──
+                         🔥 Un vuelo son SIETE campos planos: la entidad nunca fue anidada, sólo
+                         el JSON de carga, que va por PNR porque así escribe la aerolínea.
+                         ⚠️ Aquí NO se tocan los PNR: quién viaja en este vuelo lo declara la
+                         reserva. Esto corrige el HECHO —a qué hora sale—, no a quién le pasa. -->
+                    <form v-else @submit.prevent="guardarVuelo(v)" class="space-y-2">
+                      <div class="grid grid-cols-2 gap-2">
+                        <label class="col-span-2">
+                          <span class="text-[9px] font-black text-slate-400 uppercase">Número</span>
+                          <input v-model="vueloForm.numero" required
+                                 class="w-full border rounded-lg px-2 py-1.5 text-xs font-mono outline-none focus:border-indigo-500" />
+                        </label>
+                        <label class="col-span-2">
+                          <span class="text-[9px] font-black text-slate-400 uppercase">Aerolínea</span>
+                          <input v-model="vueloForm.aerolinea"
+                                 class="w-full border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-indigo-500" />
+                        </label>
+                        <label>
+                          <span class="text-[9px] font-black text-slate-400 uppercase">Origen</span>
+                          <input v-model="vueloForm.origen" maxlength="3" placeholder="LIM"
+                                 class="w-full border rounded-lg px-2 py-1.5 text-xs font-mono uppercase outline-none focus:border-indigo-500" />
+                        </label>
+                        <label>
+                          <span class="text-[9px] font-black text-slate-400 uppercase">Destino</span>
+                          <input v-model="vueloForm.destino" maxlength="3" placeholder="PUJ"
+                                 class="w-full border rounded-lg px-2 py-1.5 text-xs font-mono uppercase outline-none focus:border-indigo-500" />
+                        </label>
+                        <!-- ⚠️ La SALIDA fija también la fecha del vuelo, que es la mitad de su
+                             identidad: no hay un campo «fecha» aparte a propósito, porque dos
+                             campos para un mismo hecho acaban discrepando. -->
+                        <label>
+                          <span class="text-[9px] font-black text-slate-400 uppercase">Salida</span>
+                          <input v-model="vueloForm.salida" type="datetime-local"
+                                 class="w-full border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-indigo-500" />
+                        </label>
+                        <label>
+                          <span class="text-[9px] font-black text-slate-400 uppercase">Llegada</span>
+                          <input v-model="vueloForm.llegada" type="datetime-local"
+                                 class="w-full border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-indigo-500" />
+                        </label>
+                      </div>
+
+                      <p class="text-[9px] font-bold text-slate-400">
+                        Los PNR se cambian cargando el JSON: aquí sólo se corrige el vuelo.
+                      </p>
+
+                      <div class="flex justify-end gap-2">
+                        <button type="button" @click="vueloEditando = null"
+                                class="px-3 py-1.5 text-[10px] font-bold text-slate-500 border rounded-lg">Cancelar</button>
+                        <button type="submit" :disabled="guardandoVuelo"
+                                class="px-3 py-1.5 bg-indigo-600 text-white text-[10px] font-bold rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+                          <i v-if="guardandoVuelo" class="fas fa-spinner fa-spin mr-1"></i>Guardar
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
 
                 <p v-else class="text-[11px] text-slate-400 italic border border-dashed border-slate-200 rounded-2xl px-4 py-3">

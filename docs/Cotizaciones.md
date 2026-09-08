@@ -1221,6 +1221,36 @@ por WhatsApp y tecleándolo 133 veces. Es justo el dato que luego el pasajero bu
 rellena mirando la clave que tiene al lado, y con diez columnas de por medio se rellena la del
 vuelo equivocado.
 
+#### La entidad NO es anidada: sólo el formato de carga (08/09/2026)
+
+Es la pregunta que hizo Jorge al ver el JSON, y la respuesta cambia el diseño: **un
+`CotizacionVuelo` son siete campos planos** —número, aerolínea, origen, destino, salida, llegada—
+y eso es un formulario corriente. Lo anidado es el JSON, y lo está porque va **por PNR**, que es
+como escribe la aerolínea: «el localizador BONT3N ahora vuela estos cuatro tramos».
+
+Son dos trabajos distintos, y por eso conviven los dos caminos:
+
+| Qué pasó | Con qué se arregla |
+|---|---|
+| La aerolínea movió el JA7013 veinte minutos | **el formulario**: se abre la ficha del vuelo y se cambia la hora |
+| Llega el correo con las reservas emitidas | el **JSON**: 24 PNR de una vez |
+| Un PNR se reubicó en otro vuelo | el **JSON**: el vínculo es de la reserva, no del vuelo |
+
+⚠️ **El formulario NO toca los vínculos.** Quién viaja en este vuelo lo declara el PNR. Aquí se
+corrige el HECHO —a qué hora sale—, no a quién le pasa; mezclarlo daría dos sitios para cambiar lo
+mismo. La ficha lo dice en su pie.
+
+⚠️ **No hay campo «fecha»**, a propósito: `setSalida()` la fija, porque es la mitad de la identidad
+del vuelo y dos campos para un mismo hecho acaban discrepando. El efecto es que mover una salida a
+otro día puede chocar con `uniq_vuelo_file_numero_fecha` —pasa de verdad: el JA7027 vuela el 25 y
+el 27—, y eso se contesta con una frase que se entiende, no con un 500.
+
+#### La tabla de vuelos perdía el destino en el móvil
+
+Cada celda llevaba `whitespace-nowrap`, así que en una pantalla estrecha la tabla se desbordaba y
+**el destino se salía**: un vuelo se leía «CUZ →» y ahí acababa. Son fichas desde el 08/09/2026 —
+una ficha se envuelve, una fila con `nowrap` no.
+
 #### Se descarga lo que hay, se edita y se vuelve a cargar (08/09/2026)
 
 **Un formulario para esto no compensa.** Un PNR con cuatro tramos —cada uno con número, fecha,

@@ -370,6 +370,24 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /** Corrige UN vuelo. Los vínculos con los PNR no se tocan aquí: eso es cosa del JSON. */
+    const editarVuelo = async (
+        vueloId: string,
+        datos: Record<string, string | null>,
+    ): Promise<boolean> => {
+        error.value = null;
+
+        try {
+            await apiClient.patch(`/cotizacion/user/vuelos/${vueloId}`, datos);
+
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo guardar el vuelo.');
+
+            return false;
+        }
+    };
+
     const cargarVuelos = async (
         fileId: string,
         json: string,
@@ -782,6 +800,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         cargarPadron,
         cargarVuelos,
         descargarVuelos,
+        editarVuelo,
         eliminarGrupo,
         planificarOperacion,
         revisarCoherencia,
