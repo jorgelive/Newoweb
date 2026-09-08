@@ -1328,6 +1328,30 @@ reserva — que es justo lo que debe hacer un ejemplo.
 ⚠️ Y el importador acepta `pnr` **o** `localizador` como clave de la reserva; el ejemplo usa `pnr`,
 que es la que dice el diálogo.
 
+#### «A quién aplica»: el vuelo estaba detrás del ⓘ (08/09/2026)
+
+Cuatro filas idénticas —`Vuelo · Internacional · Copa Airlines`— distinguidas sólo por un PNR de
+seis letras. Con varias reservas de la misma aerolínea en **días distintos**, elegir exigía abrir
+el `ⓘ` de una en una. Y elegir a ciegas y comprobar después es cómo un componente acaba colgado
+del vuelo equivocado.
+
+Ahora cada fila lleva una **tercera línea** con el primer tramo:
+
+```
+Vuelo · Internacional · Copa Airlines          BNZXNE   8 pax  ⓘ
+CM264 · 18/09 02:35 LIM→PTY · +3
+```
+
+⚠️ **Sólo el PRIMER tramo, no los cuatro.** Una reserva de ida y vuelta con conexión son cuatro, y
+con 24 subgrupos eso serían cinco líneas por fila: la lista dejaría de poder recorrerse, que es el
+problema de partida con otra cara. Lo que distingue dos reservas de la misma aerolínea es **cuándo
+sale la primera**; los demás siguen en el `ⓘ`, y el `+N` dice que están ahí.
+
+⚠️ Formato compacto a propósito para el móvil: `18/09 02:35 LIM→PTY` cabe donde no cabe una frase.
+
+La misma línea aparece al **repasar** los subgrupos ya elegidos en la tarjeta del componente, que
+es cuando más barato sale descubrir que se marcó el vuelo de otro día.
+
 #### El manifiesto se lee para rellenar OTROS formularios (08/09/2026)
 
 Es lo que de verdad se hace con él: el del seguro, el de la aerolínea, el del hotel. Y hasta hoy

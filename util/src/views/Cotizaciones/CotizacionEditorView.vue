@@ -134,6 +134,33 @@ const detalleDeVuelos = (sg: SubgrupoOpcion): string => {
   return `${sg.clave}\n` + vuelos.map(linea).join('\n');
 };
 
+/**
+ * El PRIMER tramo, en una línea que quepa en un móvil: `H2 5002 · 17/09 06:50 CUZ→LIM · +3`.
+ *
+ * 🔥 Es la tercera línea de cada fila del selector, y existe porque el detalle estaba **detrás del
+ * `ⓘ`**: con cuatro «Vuelo · Nacional · Sky Airline» idénticos había que abrirlos de uno en uno
+ * para saber cuál es el del día 17. Elegir a ciegas y comprobar después es cómo un componente
+ * acaba colgado del vuelo equivocado.
+ *
+ * ⚠️ **Sólo el primero.** Una reserva de ida y vuelta con conexión son cuatro tramos, y con 24
+ * subgrupos eso serían cinco líneas por fila: la lista dejaría de poder recorrerse, que es el
+ * problema de partida con otra cara. Lo que distingue dos reservas de la misma aerolínea es
+ * cuándo SALE la primera; los demás siguen en el `ⓘ`, y el `+N` dice que están ahí.
+ */
+const resumenPrimerTramo = (sg: SubgrupoOpcion): string => {
+  const vuelos = sg.vuelosResumen ?? [];
+  const v = vuelos[0];
+
+  if (!v) return '';
+
+  const dia = (v.salida ?? '').slice(0, 10).split('-').reverse().slice(0, 2).join('/');
+  const hora = (v.salida ?? '').slice(11, 16);
+  const ruta = `${v.origen ?? '?'}→${v.destino ?? '?'}`;
+  const resto = vuelos.length > 1 ? ` · +${vuelos.length - 1}` : '';
+
+  return `${v.numero ?? '?'} · ${dia} ${hora} ${ruta}${resto}`;
+};
+
 // ── «A quién aplica»: varios subgrupos por componente ───────────────────────
 const grupoAbierto = ref(false);
 const filtroGrupos = ref('');
@@ -3100,7 +3127,16 @@ store.$onAction(({ name, args }) => {
                          class="mt-1.5 pl-2 border-l-2 border-orange-200 space-y-0.5" @click.stop>
                       <template v-for="iri in (comp.grupos ?? [])" :key="iri">
                         <div class="flex items-center gap-2 text-[10px] text-slate-500">
-                          <span class="flex-1 truncate">{{ etiquetaDeIri(iri) }}</span>
+                          <span class="flex-1 min-w-0">
+                            <span class="block truncate">{{ etiquetaDeIri(iri) }}</span>
+                            <!-- El mismo primer tramo que en el selector: aquí sirve para
+                                 REPASAR que se eligió el vuelo correcto, que es cuando más barato
+                                 sale descubrir el error. -->
+                            <span v-if="subgrupoDeIri(iri) && (subgrupoDeIri(iri)!.vuelosResumen ?? []).length"
+                                  class="block font-mono text-[9px] font-bold text-slate-400 truncate">
+                              {{ resumenPrimerTramo(subgrupoDeIri(iri)!) }}
+                            </span>
+                          </span>
                           <span class="font-mono text-slate-400 shrink-0">{{ claveDeIri(iri) }}</span>
                           <span class="shrink-0 w-12 text-right">{{ paxDeIri(iri) }} pax</span>
 
@@ -3678,7 +3714,27 @@ store.$onAction(({ name, args }) => {
                                    cortaba exactamente la palabra que hacía falta —Arajet o Copa— y
                                    dejaba cuatro filas idénticas. Truncar es correcto cuando lo
                                    importante va delante; aquí va detrás. Dos líneas caben. -->
-                              <span class="flex-1 min-w-0 break-words leading-tight">{{ etiquetaSubgrupo(sg) }}</span>
+                              <span class="flex-1 min-w-0">
+                                <span class="block break-words leading-tight">{{ etiquetaSubgrupo(sg) }}</span>
+                                <!-- ══ TERCERA LÍNEA: EL PRIMER TRAMO ══
+                                     🔥 El detalle existía, pero detrás del `ⓘ`: con cuatro «Vuelo ·
+                                     Nacional · Sky Airline» idénticos había que abrirlos de uno en
+                                     uno para saber cuál es el del día 17. Elegir a ciegas y
+                                     comprobar después es cómo un componente acaba colgado del
+                                     vuelo equivocado.
+                                     ⚠️ **Sólo el PRIMER tramo, no los cuatro.** Una reserva de ida
+                                     y vuelta con conexión son cuatro, y con 24 subgrupos eso son
+                                     cinco líneas por fila: la lista dejaría de poder recorrerse,
+                                     que es el problema de partida con otra cara. Lo que distingue
+                                     dos reservas de la misma aerolínea es cuándo SALE la primera;
+                                     el resto sigue en el `ⓘ`.
+                                     ⚠️ Compacto a propósito para el móvil: `17/09 06:50 CUZ→LIM`
+                                     cabe donde no cabe una frase. -->
+                                <span v-if="(sg.vuelosResumen ?? []).length"
+                                      class="block font-mono text-[10px] font-bold text-slate-400 leading-tight mt-0.5 truncate">
+                                  {{ resumenPrimerTramo(sg) }}
+                                </span>
+                              </span>
                               <!-- ⚠️ La CLAVE siempre, y en monoespaciado: es el localizador y es
                                    lo ÚNICO que distingue dos subgrupos con el mismo rótulo.
                                    «Vuelo · Nacional · Sky Airline» son dos, YMATXY e YMFLHB, con
