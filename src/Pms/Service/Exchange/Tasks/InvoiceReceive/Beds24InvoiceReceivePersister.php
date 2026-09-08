@@ -93,8 +93,19 @@ readonly class Beds24InvoiceReceivePersister
             }
 
             if ($existing) {
-                // Actualizamos sólo si cambió algún campo volátil (importes / estado / enriquecimiento).
-                $cambio = $this->aplicarCambiosVolatiles($existing, $dto, $monedaUsd, $tcVenta);
+                // 🔥 **Sí, lo encuentra aunque el operador lo haya movido de estancia.** El dedupe
+                // es por `beds24ItemId` sobre TODOS los cargos de la ficha —que es de la reserva
+                // entera—, nunca por evento. O sea que mover un cargo no duplica nada… y por eso
+                // mismo la sincronización podía pisarlo estuviera donde estuviera.
+                $cambio = false;
+
+                if (!$existing->isFijadoPorOperador()) {
+                    $cambio = $this->aplicarCambiosVolatiles($existing, $dto, $monedaUsd, $tcVenta);
+                }
+
+                // Los huecos se rellenan siempre: sólo escriben donde había `null`, así que no
+                // pueden destruir la decisión de nadie.
+                $cambio = $this->rellenarHuecos($existing, $dto, $monedaUsd, $tcVenta) || $cambio;
 
                 // El flag se reevalúa SIEMPRE, no sólo cuando cambian importes: hay
                 // que corregirlo también si la reserva cambió de canal, o si el cargo
@@ -131,7 +142,7 @@ readonly class Beds24InvoiceReceivePersister
                 $iriaAUnaMuerta = $existing->getEvento() !== null
                     && $eventoResuelto?->getEstado()?->getId() === PmsEventoEstado::CODIGO_CANCELADA;
 
-                if (!$existing->isImputacionFijada()
+                if (!$existing->isFijadoPorOperador()
                     && !$iriaAUnaMuerta
                     && $eventoResuelto !== null
                     && $eventoResuelto !== $existing->getEvento()
@@ -232,11 +243,23 @@ readonly class Beds24InvoiceReceivePersister
     {
         $cambio = false;
 
-        if ($dto->amount !== null && $dto->amount !== $cargo->getMonto()) {
+        // 🔥 **El canal NO pone a cero lo que ya tenía importe en una estancia cancelada.**
+        // Beds24 vacía el alojamiento de lo cancelado la mitad de las veces —18 de 35 medidos el
+        // 08/09/2026, contra 3 de 49 en las confirmadas—, y eso borra la única constancia de lo
+        // que valía esa estancia. Como un cargo de estancia cancelada ya no suma al saldo, el
+        // cero no arregla nada y sí destruye la historia que este módulo dice conservar.
+        //
+        // ⚠️ Sólo el paso a CERO, y sólo en cancelada: cualquier otra corrección entra, incluido
+        // el importe del «Cancel Fee» cuando llega más tarde.
+        $borrariaHistoria = $cargo->getEvento()?->getEstado()?->getId() === PmsEventoEstado::CODIGO_CANCELADA
+            && (float) ($dto->lineTotal ?? $dto->amount ?? '0') === 0.0
+            && (float) ($cargo->getTotalLinea() ?? $cargo->getMonto() ?? '0') !== 0.0;
+
+        if (!$borrariaHistoria && $dto->amount !== null && $dto->amount !== $cargo->getMonto()) {
             $cargo->setMonto($dto->amount);
             $cambio = true;
         }
-        if ($dto->lineTotal !== null && $dto->lineTotal !== $cargo->getTotalLinea()) {
+        if (!$borrariaHistoria && $dto->lineTotal !== null && $dto->lineTotal !== $cargo->getTotalLinea()) {
             $cargo->setTotalLinea($dto->lineTotal);
             $cambio = true;
         }
@@ -258,7 +281,20 @@ readonly class Beds24InvoiceReceivePersister
             $cambio = true;
         }
 
-        // Backfill de campos locales para cargos creados antes de esta capa (no pisamos lo existente).
+        return $cambio;
+    }
+
+    /**
+     * Rellena lo que está a `null`, y sólo eso.
+     *
+     * Separado de {@see self::aplicarCambiosVolatiles()} desde el 08/09/2026: aquello PISA y esto
+     * RELLENA, y por eso esto sigue corriendo sobre un cargo que el operador se quedó. Escribir
+     * donde no había nada no puede deshacer la decisión de nadie.
+     */
+    private function rellenarHuecos(PmsCargoFinanciero $cargo, Beds24InvoiceItemDto $dto, MaestroMoneda $moneda, ?string $tcVenta): bool
+    {
+        $cambio = false;
+
         if ($cargo->getTipoCargo() === null) {
             $cargo->setTipoCargo(PmsTipoCargo::desdeBeds24($dto->description, $dto->subType));
             $cambio = true;

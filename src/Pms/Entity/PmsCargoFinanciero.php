@@ -191,11 +191,11 @@ class PmsCargoFinanciero
      */
     // ⚠️ Sale OBLIGATORIO en el esquema de escritura —API Platform lo hace con todo bool no
     // nulable, y `ApiProperty(required: false)` no lo cambia—, así que el front lo manda siempre.
-    // No es molestia: obliga a decidir explícitamente si esta escritura fija la imputación o no,
+    // No es molestia: obliga a decidir explícitamente si esta escritura se queda el cargo o no,
     // que es justo lo que no conviene dejar implícito.
-    #[ORM\Column(name: 'imputacion_fijada', type: 'boolean', options: ['default' => false])]
+    #[ORM\Column(name: 'fijado_por_operador', type: 'boolean', options: ['default' => false])]
     #[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]
-    private bool $imputacionFijada = false;
+    private bool $fijadoPorOperador = false;
 
     /**
      * Moneda del importe (resolver contra maestro; default USD si no llega).
@@ -340,9 +340,9 @@ class PmsCargoFinanciero
 
     public function getEvento(): ?PmsEventoCalendario { return $this->evento; }
 
-    public function isImputacionFijada(): bool { return $this->imputacionFijada; }
+    public function isFijadoPorOperador(): bool { return $this->fijadoPorOperador; }
 
-    public function setImputacionFijada(bool $fijada): self { $this->imputacionFijada = $fijada; return $this; }
+    public function setFijadoPorOperador(bool $fijado): self { $this->fijadoPorOperador = $fijado; return $this; }
     public function setEvento(?PmsEventoCalendario $evento): self { $this->evento = $evento; return $this; }
 
     public function getBeds24ItemId(): ?string { return $this->beds24ItemId; }

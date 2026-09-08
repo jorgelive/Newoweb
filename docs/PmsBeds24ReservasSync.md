@@ -4417,7 +4417,7 @@ bookId **sigue teniendo link vivo** a la estancia cancelada. No los duplica ni l
 
 | Freno | Qué protege | Dónde vive |
 |---|---|---|
-| `PmsCargoFinanciero::$imputacionFijada` | Lo que movió **una persona**. El automatismo cede ante ella, mismo criterio asimétrico que `datosLocked` (§9.3) | Columna `pms_cargo_financiero.imputacion_fijada` |
+| `PmsCargoFinanciero::$fijadoPorOperador` | Lo que movió **una persona**. El automatismo cede ante ella, mismo criterio asimétrico que `datosLocked` (§9.3) | Columna `pms_cargo_financiero.fijado_por_operador` |
 | No reimputar a una estancia **cancelada** un cargo que ya tiene estancia | Que el **propio canal** arrastre dinero a un tramo muerto al cambiar un link | Condición en el persister, sin estado |
 
 ⚠️ **El estado «cancelada» NO sirve por sí solo como candado**, y conviene saber por qué: sólo
@@ -4429,8 +4429,45 @@ eso la bandera explícita, además.
 cargo suelto sí puede caer en una cancelada —es donde de verdad pertenece—, y bloquearla lo dejaría
 a nivel reserva, **donde sí contaría**: justo lo contrario de lo que se busca.
 
-⚠️ El candado es **sólo sobre la imputación**. Importes, estado y descripción se siguen
-sincronizando, que es de donde viene el valor de tener el canal enchufado.
+#### 🔥 …y tampoco duraban los IMPORTES (08/09/2026, tres horas después)
+
+El candado nació cubriendo sólo la imputación, y se quedó corto el mismo día. `monto` y
+`totalLinea` se pisan con lo que mande el canal — y **Beds24 pone a cero el alojamiento de lo
+cancelado**. Medido:
+
+| Estancia | Alojamientos en 0 |
+|---|---|
+| **cancelada** | **18 de 35** (51%) |
+| confirmada | 3 de 49 (6%) |
+
+`limpieza` y `servicio` no se ponen a cero nunca. Es el alojamiento —la línea más grande, y la que
+uno movería— la que se vacía.
+
+O sea que mover los 239.40 y volver media hora después podía dejarlos **en la casita de antes y en
+0.00**. Por eso la bandera se renombró a `fijadoPorOperador`: congela las dos cosas. Un nombre que
+describe la mitad de lo que hace es peor que uno genérico — el siguiente lector daría por hecho que
+los importes se siguen sincronizando.
+
+⚠️ **Lo que sí sigue entrando en un cargo fijado es el relleno de huecos** (`tipoCargo`, `moneda`,
+`tipoCambio` cuando están a `null`). Por eso `aplicarCambiosVolatiles()` se partió en dos: aquello
+**pisa** y `rellenarHuecos()` **rellena**. Escribir donde no había nada no deshace la decisión de
+nadie.
+
+#### El canal no pone a cero la historia de una estancia cancelada
+
+Segundo freno, independiente del candado: **un importe que ya no era cero no se pone a cero en una
+estancia cancelada.** Un cargo de estancia cancelada ya no suma al saldo, así que el cero no arregla
+nada — y sí borra la única constancia de lo que valía esa estancia, que este módulo dice conservar.
+
+⚠️ Sólo el paso a CERO, y sólo en cancelada: cualquier otra corrección entra, incluido el importe
+del «Cancel Fee» cuando llega más tarde.
+
+#### ¿Encuentra el persister un cargo que se movió de estancia?
+
+**Sí.** El dedupe recorre `$info->getCargos()` —todos los cargos de la ficha, que es de la reserva
+entera— buscando por `beds24ItemId`, **nunca por evento**. Mover un cargo no duplica nada.
+
+Y por eso mismo hacían falta los candados: lo encuentra estuviera donde estuviera, y lo pisaba.
 
 #### El «Cancel Fee» lo manda Booking, y casi siempre en cero
 

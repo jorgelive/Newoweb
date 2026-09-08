@@ -822,7 +822,7 @@ function abrirMoverGrupo(grupo: GrupoCargos): void {
  * el canal y no vuelve—, así que la bandera `activa` no era la respuesta: lo que hay que hacer es
  * llevar el dinero al arreglo nuevo.
  *
- * 🔥 **`imputacionFijada: true` es lo que hace que la mudanza dure.** Sin eso,
+ * 🔥 **`fijadoPorOperador: true` es lo que hace que la mudanza dure.** Sin eso,
  * `Beds24InvoiceReceivePersister` reimputa la estancia en cada sync y devuelve el cargo a la
  * casita muerta — el pull corre cada 3–10 minutos, así que el operador ve el cambio, se va, y
  * media hora después está deshecho sin un solo error.
@@ -841,8 +841,9 @@ async function moverCargosDelGrupo(grupo: GrupoCargos): Promise<void> {
 
             await finanzas.patchCargo(cargo.id, {
                 evento: destino ? pmsEventoIri(destino) : null,
-                // Sin esto la sincronización lo devuelve a la estancia cancelada.
-                imputacionFijada: true,
+                // Sin esto la sincronización lo devuelve a la estancia cancelada Y le pone el
+                // importe que mande el canal, que en lo cancelado suele ser 0.00.
+                fijadoPorOperador: true,
                 // Mover no toca los textos: `false` para NO pisar las traducciones que ya tenga.
                 sobreescribirTraduccion: false,
             });
@@ -1129,9 +1130,9 @@ async function guardarCargoOrThrow(): Promise<void> {
             // Obligatorio en el contrato de escritura. `false` en un cargo nuevo: no hay
             // traducción previa que pisar, y el servicio lo apaga solo tras traducir.
             sobreescribirTraduccion: false,
-            // Un cargo manual no lo reimputa nadie —no tiene `beds24BookingId`—, así que no hace
+            // Un cargo manual no lo toca nadie —no tiene `beds24BookingId`—, así que no hace
             // falta fijarlo: el candado es para los que vienen del canal.
-            imputacionFijada: false,
+            fijadoPorOperador: false,
         };
         await finanzas.createCargo(payload);
     } else if (cargoEditandoId.value) {
@@ -1164,10 +1165,10 @@ async function guardarCargoOrThrow(): Promise<void> {
             //
             // ⚠️ Y si no la cambió, se conserva lo que ya tuviera: mandar `false` por defecto
             // soltaría el candado de un cargo movido hace semanas sólo por editarle la descripción.
-            imputacionFijada: original !== undefined
+            fijadoPorOperador: original !== undefined
                 && idDeIri(original.evento) !== (cargoForm.value.evento || null)
                 ? true
-                : (original?.imputacionFijada ?? false),
+                : (original?.fijadoPorOperador ?? false),
             ...(original && !original.tipoCambio && cargoForm.value.tipoCambio
                 ? { tipoCambio: cargoForm.value.tipoCambio }
                 : {}),
