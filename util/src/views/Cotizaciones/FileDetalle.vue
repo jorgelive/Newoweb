@@ -613,7 +613,7 @@ const docForm = ref({
   nombre: '', tipoArchivo: '', sobreescribirTraduccion: false, fileObject: null as File | null,
   // De quién es y —si es un boarding pass— de qué vuelo. Ver la tabla de alcances en
   // `CotizacionFilearchivo`: pasajero + grupo significa «lo suyo, para ese vuelo».
-  pasajeroId: '', grupoId: ''
+  pasajeroId: '', grupoId: '', vueloId: ''
 });
 
 const extractIdStr = (val: unknown): string => val ? String(val).split('/').pop() ?? '' : '';
@@ -947,6 +947,9 @@ const aplicarVuelos = async () => {
     alert(fileStore.error || 'No se guardó nada: hay reservas con problemas.');
   }
 };
+
+/** La bóveda arranca plegada: ver el comentario de su cabecera. */
+const bovedaAbierta = ref(false);
 
 /** Vuelos del expediente, ya ordenados por el backend (`OrderBy salida`). */
 const vuelos = computed(() => file.value?.vuelos ?? []);
@@ -1424,19 +1427,45 @@ const pasajerosElegibles = computed(() =>
 );
 
 /**
- * De qué vuelo es el boarding pass: los subgrupos de reserva aérea.
+ * De qué VUELO es el boarding pass.
  *
- * Una persona que vuela Cusco–Lima, Lima–Panamá y Panamá–Punta Cana ida y vuelta tiene ocho, y sin
- * esto sólo se sabría de quién es cada uno, no de cuál.
+ * 🔥 **Ofrecía subgrupos de reserva aérea, y eso es justo lo que no servía.** La clave de un
+ * subgrupo es el PNR, y un PNR cubre ida y vuelta: `DM6771` y `DM6770` caen en el mismo. Quien
+ * vuela Cusco–Lima, Lima–Panamá y Panamá–Punta Cana ida y vuelta tiene ocho tarjetas y este
+ * desplegable sólo sabía decir cuatro cosas.
+ *
+ * El campo `vuelo` se añadió el 07/09/2026 para eso —y la carga por ZIP ya lo usaba—, pero este
+ * formulario se quedó escribiendo en `grupo`. Ver la tabla de alcances en `CotizacionFilearchivo`.
  */
 const vuelosElegibles = computed(() =>
-    (file.value?.grupos ?? [])
-        .filter(g => String(g.tipo) === 'reserva_aerea')
-        .map(g => ({
+    (file.value?.vuelos ?? []).map(v => ({
+        // Sin `@id`: JSON-LD lo añade en tiempo de ejecución pero no está en el esquema.
+        value: extractIdStr(v.id) ?? '',
+        label: [v.numero, [v.origen, v.destino].filter(Boolean).join(' → ')].filter(Boolean).join(' · '),
+        sublabel: diaDe(v.salida ?? v.fecha) || '',
+    })),
+);
+
+/**
+ * De qué SUBGRUPO es: cualquiera, no sólo los de vuelo.
+ *
+ * Es la tercera fila de la tabla de alcances —el namelist que manda la aerolínea con el PNR, la
+ * lista de una habitación— y el formulario nunca la ofreció, así que ese alcance existía en la
+ * base y no había forma de usarlo desde la pantalla.
+ *
+ * ⚠️ Con su EJE delante («Vuelo · 54X6ZM», «Habitación · 12»): un expediente tiene 9 grupos, 66
+ * habitaciones y 24 reservas aéreas, y una lista de claves sueltas no se lee.
+ */
+const subgruposElegibles = computed(() =>
+    (file.value?.grupos ?? []).map(g => {
+        const eje = GRUPO_TIPO_LABELS[String(g.tipo)]?.label ?? String(g.tipo ?? '');
+
+        return {
             value: extractIdStr(g.id ?? g['@id']) ?? '',
-            label: [g.clave, g.nombre].filter(Boolean).join(' · '),
-            sublabel: `${contarEnGrupo(g)} pax`,
-        })),
+            label: [eje, g.clave || g.nombre].filter(Boolean).join(' · '),
+            sublabel: [g.subeje, `${contarEnGrupo(g)} pax`].filter(Boolean).join(' · '),
+        };
+    }),
 );
 
 // ── Carga masiva por ZIP ────────────────────────────────────────────────────
@@ -1943,7 +1972,7 @@ const docEditandoIri = ref<string | null>(null);
 
 const abrirDocModal = () => {
   docEditandoIri.value = null; // modo creación
-  docForm.value = { nombre: '', tipoArchivo: '', sobreescribirTraduccion: false, fileObject: null, pasajeroId: '', grupoId: '' };
+  docForm.value = { nombre: '', tipoArchivo: '', sobreescribirTraduccion: false, fileObject: null, pasajeroId: '', grupoId: '', vueloId: '' };
   showDocModal.value = true;
   capas.abrir('doc', () => { showDocModal.value = false; docEditandoIri.value = null; });
 };
@@ -1959,6 +1988,7 @@ const abrirEdicionDoc = (doc: ApiCotizacionFilearchivo) => {
     // eso se borra y se vuelve a subir, que deja rastro.
     pasajeroId: '',
     grupoId: '',
+    vueloId: '',
   };
   showDocModal.value = true;
   capas.abrir('doc', () => { showDocModal.value = false; docEditandoIri.value = null; });
@@ -2008,6 +2038,10 @@ const guardarDocumento = async () => {
     }
     if (docForm.value.grupoId) {
       formData.append('grupo', `/platform/sales/cotizacion_file_grupos/${docForm.value.grupoId}`);
+    }
+    // ⚠️ `vuelo`, no `grupo`: un boarding pass es de un VUELO. Ver la tabla de alcances.
+    if (docForm.value.vueloId) {
+      formData.append('vuelo', `/platform/sales/cotizacion_vuelos/${docForm.value.vueloId}`);
     }
     success = await fileStore.uploadDocument(formData);
   }
@@ -2250,11 +2284,23 @@ const eliminarDocumento = async (iri?: string) => {
           </div>
 
           <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
-            <div class="flex items-center justify-between mb-4 border-b pb-3">
-              <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest"><i class="fas fa-folder-open mr-1 text-sky-500"></i> Bóveda Digital</h2>
-              <button @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200 shrink-0">+ Subir Doc</button>
+            <!-- ⚠️ **Plegada por defecto.** Un expediente grande son ~1 500 archivos y esto vive en
+                 la barra lateral, encima del resto: abierta empuja hacia abajo todo lo que se mira
+                 a diario. El contador va en la cabecera para que plegada no se lea como vacía. -->
+            <div class="flex items-center justify-between border-b pb-3"
+                 :class="bovedaAbierta ? 'mb-4' : ''">
+              <button type="button" @click="bovedaAbierta = !bovedaAbierta"
+                      class="flex items-center gap-2 min-w-0 flex-1 text-left group">
+                <i class="fas fa-folder-open text-sky-500"></i>
+                <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest">Bóveda Digital</h2>
+                <span class="text-[10px] font-bold text-slate-400">{{ (file?.filearchivos ?? []).length }}</span>
+                <i class="fas text-[10px] text-slate-300 group-hover:text-slate-500 transition-colors"
+                   :class="bovedaAbierta ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+              </button>
+              <button v-if="bovedaAbierta" @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200 shrink-0">+ Subir Doc</button>
             </div>
 
+            <template v-if="bovedaAbierta">
             <!-- ═══ CARGA MASIVA POR ZIP ═══
                  ~1 060 boarding passes en un grupo grande. El ZIP se nombra `DNI-VUELO` y el
                  servidor reparte — y valida que esa persona vuele ese vuelo, así que un
@@ -2358,6 +2404,7 @@ const eliminarDocumento = async (iri?: string) => {
                 </button>
               </div>
             </div>
+            </template>
           </div>
         </aside>
 
@@ -3803,13 +3850,27 @@ const eliminarDocumento = async (iri?: string) => {
               />
             </div>
 
+            <!-- El tercer alcance: del SUBGRUPO. El namelist que manda la aerolínea con el PNR,
+                 la lista de una habitación. Existía en la base y la pantalla no lo ofrecía. -->
+            <div v-if="!docForm.pasajeroId">
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                ¿O de qué subgrupo?
+                <span class="normal-case text-slate-400 font-medium">— un vuelo, una habitación</span>
+              </label>
+              <SearchableSelect
+                  v-model="docForm.grupoId"
+                  :options="subgruposElegibles"
+                  placeholder="De ningún subgrupo"
+              />
+            </div>
+
             <div v-if="docForm.pasajeroId && docForm.tipoArchivo === 'boleto'">
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">
                 ¿De qué vuelo?
                 <span class="normal-case text-slate-400 font-medium">— para distinguir sus boarding passes</span>
               </label>
               <SearchableSelect
-                  v-model="docForm.grupoId"
+                  v-model="docForm.vueloId"
                   :options="vuelosElegibles"
                   placeholder="Sin vuelo concreto"
               />

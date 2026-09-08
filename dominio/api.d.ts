@@ -15600,6 +15600,8 @@ export interface components {
             llegada?: string;
             /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
             notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -15665,6 +15667,8 @@ export interface components {
             llegada?: string;
             /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
             notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -15729,6 +15733,8 @@ export interface components {
             llegada?: string;
             /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
             notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -15793,6 +15799,8 @@ export interface components {
             llegada?: string;
             /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
             notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */

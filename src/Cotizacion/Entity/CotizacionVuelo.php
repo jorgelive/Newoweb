@@ -10,6 +10,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -157,6 +158,17 @@ class CotizacionVuelo
 
     public function getFile(): ?CotizacionFile { return $this->file; }
     public function setFile(?CotizacionFile $file): self { $this->file = $file; return $this; }
+
+    /**
+     * Se redeclara sobre `IdTrait` sólo para publicar el id en `file:item:read`.
+     *
+     * ⚠️ Sin esto el front no puede construir la IRI del vuelo, y el formulario de la bóveda no
+     * podía imputar un boarding pass a su vuelo: acababa imputándolo al SUBGRUPO —el PNR—, que es
+     * lo que no distingue la ida de la vuelta. La tabla de vuelos se apañaba con `numero|salida`
+     * como clave del bucle, así que el hueco no se notaba hasta que hizo falta escribir.
+     */
+    #[Groups(['file:item:read'])]
+    public function getId(): ?Uuid { return $this->id; }
 
     public function getNumero(): ?string { return $this->numero; }
     public function setNumero(?string $numero): self { $this->numero = $numero; return $this; }

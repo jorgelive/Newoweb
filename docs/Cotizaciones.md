@@ -1207,6 +1207,34 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### El formulario de la bóveda no llegaba a dos de los cuatro alcances (08/09/2026)
+
+`CotizacionFilearchivo` sostiene cuatro alcances —pasajero+vuelo, pasajero, grupo, expediente— y el
+formulario sólo ofrecía dos y medio:
+
+| Alcance | Antes | Ahora |
+|---|---|---|
+| pasajero + **vuelo** | El selector decía «¿De qué vuelo?» y escribía en **`grupo`** | Escribe en `vuelo` |
+| **grupo** solo | **No se ofrecía**: el alcance existía en la base y no había forma de usarlo | «¿O de qué subgrupo?», cualquier eje |
+
+🔥 **El primero es el que duele.** La clave de un subgrupo aéreo es el **PNR**, y un PNR cubre ida y
+vuelta: `DM6771` y `DM6770` caen en el mismo. Por eso se añadió el campo `vuelo` el 07/09/2026 — y
+la carga por ZIP ya lo usaba, pero **el formulario manual se quedó escribiendo en `grupo`**. O sea
+que un boarding pass subido a mano no se distinguía del de vuelta.
+
+⚠️ **Y `CotizacionVuelo` no publicaba su `id`.** La tabla de vuelos se apañaba con `numero|salida`
+como clave del bucle, así que el hueco no se notaba hasta que hubo que **escribir** la relación:
+sin id no hay IRI. Redeclarado sobre `IdTrait` con `file:item:read`, como ya hacía `CotizacionFile`.
+
+⚠️ La etiqueta del campo decía **«Archivo (PDF / IMG)»** y aquí cabe cualquier fichero — se subió un
+vídeo el mismo día. Un rótulo que describe menos de lo que admite hace dudar antes de intentarlo.
+
+#### La bóveda arranca plegada (08/09/2026)
+
+Vive en la barra lateral, encima de todo lo demás, y en un expediente grande son ~1 500 archivos.
+Abierta empujaba hacia abajo lo que se mira a diario. El contador va en la cabecera para que
+plegada no se lea como vacía, y el botón de subir aparece al abrirla.
+
 #### El icono decía PDF para todo (08/09/2026)
 
 Se subió un vídeo a la bóveda y la lista lo anunció como PDF. El icono estaba escrito a fuego
