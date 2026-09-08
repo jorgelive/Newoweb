@@ -1100,6 +1100,44 @@ arriesgarlo era perder el bimodal.
 espejo en los cuatro sitios (enum PHP, `util/utils/componenteTipo.ts`, La Biblia, la copia de
 `pax`). Lo que se afinó es la cláusula de silencio, que ya era exclusiva de `pax` antes de esto.
 
+#### Carga masiva de boarding passes por ZIP (08/09/2026)
+
+Un grupo de 133 personas que vuela Cusco–Lima, Lima–Panamá y Panamá–Punta Cana ida y vuelta son
+**~1 060 boarding passes**. De uno en uno por un formulario no es una molestia: es inviable.
+
+**La convención del nombre es `DOCUMENTO-VUELO`** — «12345678-DM6771.pdf»:
+
+- **el documento y no el nombre**, porque el nombre trae tildes, se escribe en otro orden y se
+  repite; un DNI no;
+- **el número de vuelo y no el PNR**, porque un PNR cubre ida y vuelta y volvería a no distinguir
+  `DM6771` de `DM6770`. Esto obligó a que el adjunto pudiera apuntar a un **vuelo**, que es de lo
+  que de verdad es un boarding pass.
+
+El separador es tolerante —guion, guion bajo, espacio— y el orden da igual: se prueban todos los
+trozos contra los documentos y contra los vuelos.
+
+🔥 **La validación cruzada es lo que de verdad protege.** El camino
+`pasajero → subgrupo(reserva_aerea) → vuelo` ya existía, así que no basta con que el documento y el
+vuelo existan por separado: se comprueba que **esa persona vuele ese vuelo**. Un renombrado torcido
+—el DNI de uno con el vuelo de otro— se marca en vez de guardarse mal, que es el fallo que nadie
+descubriría hasta el gate.
+
+⚠️ **Dos pasos, y el primero no escribe.** `/archivos-zip/plan` devuelve fila por fila qué haría;
+`/archivos-zip/aplicar` guarda lo que casa. Con mil ficheros, aplicar a ciegas es pedir un desastre
+callado.
+
+⚠️ **Aplicar NO se fía del navegador**: recalcula a quién pertenece cada fichero desde el nombre
+original, que viajó aparte en un `.nombres`. Si el cliente pudiera mandar «este fichero es de esta
+persona», bastaría editar la petición para colgarle a alguien el boarding pass de otro.
+
+⚠️ **Y el nombre original nunca se usa como nombre en disco**: un `../` dentro del ZIP escribiría
+fuera de la carpeta —el «zip slip»—. Se extrae por índice, con un nombre nuestro, y el original
+viaja como dato.
+
+⚠️ **Topes de subida.** `upload_max_filesize` estaba en 10 MB y se subió a 64 MB, que es lo que ya
+permitía nginx (`client_max_body_size`). Aun así, **un ZIP por vuelo es mejor que uno gigante**:
+cada vuelo lleva ≤25 pax, entra de sobra, y la tabla de revisión es corta.
+
 #### Los adjuntos salen de `public/` (07/09/2026)
 
 Hasta hoy los adjuntos del expediente vivían dentro de `public/` y se servían por URL directa, así

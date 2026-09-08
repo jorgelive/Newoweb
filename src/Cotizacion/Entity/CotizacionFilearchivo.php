@@ -88,18 +88,16 @@ class CotizacionFilearchivo
     /**
      * De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
      *
-     * | `pasajero` | `grupo` | qué es |
-     * |---|---|---|
-     * | ✓ | ✓ | **suyo, para ese vuelo**: su boarding pass del Lima–Panamá |
-     * | ✓ | — | suyo y nada más: el escaneo de su pasaporte, su autorización notarial |
-     * | — | ✓ | del grupo: el namelist que manda la aerolínea con el PNR |
-     * | — | — | del expediente: la factura, la confirmación |
+     * | `pasajero` | `vuelo` | `grupo` | qué es |
+     * |---|---|---|---|
+     * | ✓ | ✓ | — | **su boarding pass de ese vuelo**: Ana, DM6771, LIM→PUJ del 18 |
+     * | ✓ | — | — | suyo y nada más: el escaneo de su pasaporte, su autorización |
+     * | — | — | ✓ | del grupo: el namelist que manda la aerolínea con el PNR |
+     * | — | — | — | del expediente: la factura, la confirmación |
      *
-     * ⚠️ **La primera fila se añadió el 07/09/2026 y antes no existía.** Con `pasajero` a secas se
-     * sabe de quién es un boarding pass pero **no de qué vuelo**, y una persona de un grupo que
-     * vuela Cusco–Lima, Lima–Panamá y Panamá–Punta Cana ida y vuelta tiene ocho. El subgrupo de
-     * tipo `reserva_aerea` es justo lo que los distingue, y ya existía: 24 de ellos en el
-     * expediente que motivó esto.
+     * ⚠️ **La primera fila se añadió el 07/09/2026** y en dos intentos: primero con el subgrupo, que
+     * no servía —su clave es el PNR y un PNR cubre ida y vuelta—, y después con el vuelo, que es
+     * de lo que de verdad es un boarding pass.
      *
      * Un solo mecanismo para los cuatro alcances. Sin esto harían falta cuatro modelos.
      */
@@ -107,6 +105,29 @@ class CotizacionFilearchivo
     #[ORM\ManyToOne(targetEntity: CotizacionFilepasajero::class)]
     #[ORM\JoinColumn(name: 'pasajero_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
     private ?CotizacionFilepasajero $pasajero = null;
+
+    /**
+     * De qué VUELO es, cuando es un boarding pass.
+     *
+     * ⚠️ **Y no basta con el subgrupo, que es lo que había.** La `clave` de un subgrupo de reserva
+     * aérea es el **PNR** —`54X6ZM`—, y un PNR cubre ida y vuelta: `DM6771` y `DM6770` caen en el
+     * mismo, así que con `grupo` solo se vuelve a no distinguir cuál es cuál. Y quien vuela
+     * Cusco–Lima, Lima–Panamá y Panamá–Punta Cana ida y vuelta tiene ocho.
+     *
+     * Un boarding pass **es de un vuelo**, no de una reserva. Los vuelos ya existían como dato
+     * —número, fecha, aerolínea y ruta— y ya colgaban de los subgrupos; sólo faltaba que el
+     * archivo pudiera apuntar a uno.
+     *
+     * ⚠️ **El camino pasajero → vuelos ya existe** y no hace falta guardarlo:
+     * `pasajero → pasajero_grupo → grupo(reserva_aerea) → grupo_vuelo → vuelo`. Por eso la carga
+     * masiva puede **validar** que esa persona vuela de verdad ese vuelo —un renombrado mal hecho
+     * se marca en vez de guardarse torcido— y el formulario ofrece sus ocho, no los veinticuatro
+     * del expediente.
+     */
+    #[Groups(['file:item:read', 'file:write'])]
+    #[ORM\ManyToOne(targetEntity: CotizacionVuelo::class)]
+    #[ORM\JoinColumn(name: 'vuelo_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
+    private ?CotizacionVuelo $vuelo = null;
 
     #[Groups(['file:item:read', 'file:write'])]
     #[ORM\ManyToOne(targetEntity: CotizacionFileGrupo::class)]
@@ -305,4 +326,7 @@ class CotizacionFilearchivo
 
         return trim((string) $limpio, '-') . ($extension !== '' ? '.' . $extension : '');
     }
+
+    public function getVuelo(): ?CotizacionVuelo { return $this->vuelo; }
+    public function setVuelo(?CotizacionVuelo $v): self { $this->vuelo = $v; return $this; }
 }
