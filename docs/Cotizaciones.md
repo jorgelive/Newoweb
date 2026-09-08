@@ -1347,6 +1347,11 @@ con 24 subgrupos eso serían cinco líneas por fila: la lista dejaría de poder 
 problema de partida con otra cara. Lo que distingue dos reservas de la misma aerolínea es **cuándo
 sale la primera**; los demás siguen en el `ⓘ`, y el `+N` dice que están ahí.
 
+⚠️ **Va a lo ancho de la fila, no dentro de la columna del rótulo.** Metida ahí, el localizador y
+los «44 pax» le comían el sitio y quedaba `H2 5002 · 17/09 06:50…` — cortada **justo antes de la
+ruta**, que es lo que distingue la ida de la vuelta. Es el mismo fallo que ya tenía el rótulo:
+truncar donde lo importante va detrás. Sangrada bajo el rótulo, no bajo la casilla.
+
 ⚠️ Formato compacto a propósito para el móvil: `18/09 02:35 LIM→PTY` cabe donde no cabe una frase.
 
 La misma línea aparece al **repasar** los subgrupos ya elegidos en la tarjeta del componente, que
