@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
+import { RouterLink } from 'vue-router';
 import { useChatStore, type ApiConversation } from '@/stores/chat/chatStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { uuidDe } from '@/services/hydra';
@@ -24,6 +25,17 @@ const nuevoTipo = ref('telefono');
 const nuevoValor = ref('');
 const errorIdent = ref('');
 const ocupado = ref(false);
+
+/**
+ * Cuántos mensajes tiene el hilo, y su id para enlazarlo.
+ *
+ * Lo sirve el backend en `conversation:read` ({@see MessageConversation::getTotalMensajes()}).
+ * Con `0` no se ofrece enlace: llevar a un chat vacío no aclara nada, y decirlo con palabras sí.
+ */
+const totalMensajes = computed(() =>
+  Number((props.conversation as unknown as { totalMensajes?: number }).totalMensajes ?? 0));
+
+const idDelHilo = computed(() => uuidDe(props.conversation) ?? '');
 
 /** Vienen serializadas con la conversación (`conversation:read`). */
 interface IdentidadDelPanel {
@@ -311,6 +323,25 @@ const formatDateTime = (iso?: string | null) => {
                 </InfoTooltip>
               </div>
               <span class="text-[9px] font-bold text-slate-300 uppercase">de la persona, no de la reserva</span>
+            </div>
+
+            <!-- 🔥 **CUÁNTOS MENSAJES LLEVA ESTE HILO.**
+                 Un identificador retirado se conserva por dos motivos, y el primero —«quien
+                 escriba desde el número viejo tiene que seguir cayendo en su hilo»— **sólo existe
+                 si alguien escribió**. Sin este dato se decide a ciegas: un número de prueba que
+                 no ha tocado nadie y uno con 247 mensajes se ven exactamente igual en esta lista,
+                 y piden decisiones opuestas — uno se puede descartar, el otro no se toca jamás.
+                 ⚠️ «Sin mensajes» se dice, no se calla: un hueco se lee como «no lo he mirado». -->
+            <div class="mb-2">
+              <RouterLink v-if="totalMensajes > 0" :to="{ name: 'chat_conversation', params: { conversationId: idDelHilo } }"
+                          class="inline-flex items-center gap-1.5 text-[11px] font-black text-[#376875] hover:underline">
+                <i class="fas fa-comments text-[10px]"></i>
+                Ver la conversación · {{ totalMensajes }} {{ totalMensajes === 1 ? 'mensaje' : 'mensajes' }}
+              </RouterLink>
+              <span v-else class="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
+                <i class="fas fa-comment-slash text-[10px]"></i>
+                Sin mensajes: nadie ha escrito por ninguno de estos identificadores
+              </span>
             </div>
 
             <p v-if="!identidades.length" class="text-xs text-slate-400 font-bold mb-2">Ninguno todavía.</p>

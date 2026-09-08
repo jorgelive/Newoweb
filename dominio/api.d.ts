@@ -4345,6 +4345,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
+            /** @description Cuántos mensajes lleva este hilo. **Sirve para decidir, no para informar.** */
+            readonly totalMensajes?: number;
             contextOrigin?: string | null;
             /**
              * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
@@ -4417,6 +4419,8 @@ export interface components {
             createdAt?: string;
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
+            /** @description Cuántos mensajes lleva este hilo. **Sirve para decidir, no para informar.** */
+            readonly totalMensajes?: number;
             contextOrigin?: string | null;
             /**
              * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
@@ -4500,6 +4504,8 @@ export interface components {
             createdAt?: string;
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
+            /** @description Cuántos mensajes lleva este hilo. **Sirve para decidir, no para informar.** */
+            readonly totalMensajes?: number;
             contextOrigin?: string | null;
             /**
              * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
@@ -4574,6 +4580,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
+            /** @description Cuántos mensajes lleva este hilo. **Sirve para decidir, no para informar.** */
+            readonly totalMensajes?: number;
             contextOrigin?: string | null;
             /**
              * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
@@ -4646,6 +4654,8 @@ export interface components {
             createdAt?: string;
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
+            /** @description Cuántos mensajes lleva este hilo. **Sirve para decidir, no para informar.** */
+            readonly totalMensajes?: number;
             contextOrigin?: string | null;
             /**
              * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
@@ -4709,6 +4719,8 @@ export interface components {
             createdAt?: string;
             /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
             readonly whatsappSessionActive?: boolean;
+            /** @description Cuántos mensajes lleva este hilo. **Sirve para decidir, no para informar.** */
+            readonly totalMensajes?: number;
             contextOrigin?: string | null;
             /**
              * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`

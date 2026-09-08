@@ -10,6 +10,34 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 
 ---
 
+
+## 🔥 Ver si el hilo tiene mensajes ANTES de tocar sus identidades (08/09/2026)
+
+Un identificador retirado se conserva por dos motivos, y el primero —«quien escriba desde el número
+viejo tiene que seguir cayendo en su hilo»— **sólo existe si alguien escribió**. En la lista de
+identificadores, un número de prueba que no ha tocado nadie y uno con 247 mensajes **se veían
+exactamente igual**, y piden decisiones opuestas: uno se puede descartar, el otro no se toca jamás.
+
+`MessageConversation::getTotalMensajes()` lo publica en `conversation:read`, y el modal lo enseña
+con enlace al chat cuando hay algo que ver. Con cero, lo dice con palabras: *«Sin mensajes: nadie ha
+escrito por ninguno de estos identificadores»* — un hueco se lee como «no lo he mirado».
+
+⚠️ El `count()` va sobre la colección y Doctrine lo resuelve con un `COUNT`: un hilo de 247 mensajes
+no se trae entero para decir cuántos son.
+
+⚠️ **Y al añadirlo se robó el docblock de `getMessages()`**, que quedó con un `@return
+Collection<int, Message>` ajeno y sin su `#[Groups]` — el fallo exacto que describe `CLAUDE.md`, y
+que aquí no fue silencioso de milagro: `api:openapi:export` reventó al no poder instanciar el
+atributo. Al insertar un método, mirar qué hay inmediatamente encima.
+
+## El contacto del expediente se resolvía en edición pero NO en lectura
+
+La tarjeta «Datos del expediente» pintaba `file.telefono`, que es la **semilla**. El modo edición ya
+había quitado su `<input>` por este mismo motivo, pero la cara de lectura se quedó atrás: enseñaba
+el número viejo mientras los envíos —y ahora también la orden de servicio— salían al nuevo.
+
+Las dos caras usan ya `ContactoDeIdentidad`, que resuelve por el hilo.
+
 ## Índice
 
 1. [Vocabulario](#1-vocabulario)

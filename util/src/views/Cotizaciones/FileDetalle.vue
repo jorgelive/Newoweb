@@ -670,12 +670,15 @@ const modoVistaFile = ref(true);
 /** Lo que se lee en la cara de lectura, en el mismo orden que el formulario. */
 const datosDelFile = computed(() => {
     const f = file.value ?? {};
-    const contacto = [f.telefono ? formatearTelefono(f.telefono) : '', f.email ?? ''].filter(Boolean).join(' · ');
 
     return [
         { rotulo: 'Nombre Grupo', valor: f.nombreGrupo ?? '' },
         { rotulo: 'Titular', valor: f.pasajeroPrincipal ?? '' },
-        { rotulo: 'Contacto', valor: contacto },
+        // ⚠️ **El CONTACTO ya no sale de aquí.** `f.telefono` y `f.email` son la SEMILLA con la
+        // que se creó la identidad de esa persona; a partir de ahí el dato bueno vive en la
+        // identidad. Esta cara de lectura seguía pintando la semilla, así que enseñaba el número
+        // viejo mientras los envíos salían al nuevo — el mismo fallo que el modo edición ya había
+        // resuelto quitando su `<input>`. Lo pinta `ContactoDeIdentidad`, abajo del listado.
         { rotulo: 'País de Origen', valor: typeof f.pais === 'object' && f.pais ? (f.pais.nombre ?? '') : '' },
         // El rótulo del estado sale del mismo diccionario que el desplegable; si llegara uno que
         // no está —una migración a medias—, se enseña el valor crudo en vez de dejarlo en blanco.
@@ -2333,6 +2336,19 @@ const eliminarDocumento = async (iri?: string) => {
                 <dd class="text-sm font-bold text-slate-800 break-words" :class="!d.valor ? 'text-slate-300 italic font-medium' : ''">
                   {{ d.valor || '— sin definir' }}
                 </dd>
+              </div>
+
+              <!-- ⚠️ **El MISMO componente que en edición, y por el mismo motivo.** La cara de
+                   lectura pintaba `f.telefono`, que es la semilla: enseñaba el número viejo
+                   mientras los envíos salían al nuevo. Aquí se resuelve por el hilo, que es donde
+                   vive la verdad. Sin `v-model`: en lectura no se escribe, y sin los escuchas el
+                   componente no ofrece el campo de alta. -->
+              <div v-if="file">
+                <dt class="text-[10px] font-bold text-slate-400 uppercase mb-1">Contacto</dt>
+                <ContactoDeIdentidad context-type="cotizacion_file"
+                                     :context-id="String(extractIdStr(file.id ?? file['@id']) ?? '')"
+                                     :telefono="file.telefono ?? ''"
+                                     :correo="file.email ?? ''" />
               </div>
             </dl>
 

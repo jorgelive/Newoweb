@@ -545,6 +545,24 @@ class MessageConversation
     // =========================================================================
 
     /**
+     * Cuántos mensajes lleva este hilo. **Sirve para decidir, no para informar.**
+     *
+     * 🔥 Un identificador retirado se conserva por dos motivos, y el primero —«quien escriba desde
+     * el número viejo tiene que seguir cayendo en su hilo»— **sólo existe si alguien escribió**.
+     * Sin este dato, quien mira la lista de identificadores no puede distinguir un número de
+     * prueba que no ha tocado nadie de uno por el que hay 247 mensajes, y las dos cosas piden
+     * decisiones opuestas: uno se descarta, el otro no se toca jamás.
+     *
+     * ⚠️ `count()` sobre la colección, que Doctrine resuelve con un `COUNT` sin hidratar los
+     * mensajes: un hilo largo no se trae entero para decir cuántos son.
+     */
+    #[Groups(['conversation:read'])]
+    public function getTotalMensajes(): int
+    {
+        return $this->messages->count();
+    }
+
+    /**
      * @return Collection<int, Message>
      */
     #[Groups(['conversation:read'])]
