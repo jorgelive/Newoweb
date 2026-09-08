@@ -98,6 +98,34 @@ enum ArchivoTipoEnum: string
         };
     }
 
+    /**
+     * Cuántos meses se guarda **después del retorno del grupo**. `null` = no caduca.
+     *
+     * 🔥 **Es la única fuente de la caducidad.** No hay columna `caduca_el`: la fecha se calcula
+     * cada vez a partir del retorno del expediente, así que si el viaje se mueve, la caducidad se
+     * mueve con él. Una fecha guardada se habría quedado apuntando al viaje que se planeó.
+     *
+     * ⚠️ **El boarding pass caduca igual que el pasaporte, y no es exceso de celo.** Lleva nombre
+     * completo, vuelo, asiento y el LOCALIZADOR: con apellido y localizador se entra a la reserva
+     * en la web de la aerolínea. Pasado el viaje no aporta nada que compense tenerlo — y son ~542
+     * ficheros por grupo grande, sin techo.
+     *
+     * ⚠️ **`OTROS` no caduca a propósito.** Es el cajón donde acaba lo que no encajó en ningún
+     * tipo, así que no sabemos qué hay dentro; borrar por defecto lo que no se ha clasificado es
+     * cómo se pierde el único ejemplar de algo. Se queda hasta que alguien le ponga su tipo.
+     *
+     * ⚠️ Y esto **no toca {@see \App\Cotizacion\Entity\CotizacionPasajeroIdentificacion}**, que
+     * es el DATO —tipo, número, vencimiento, país— y se queda para siempre. Esa separación es lo
+     * que permite borrar la foto sin romper el expediente.
+     */
+    public function mesesDeRetencion(): ?int
+    {
+        return match ($this) {
+            self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO => 1,
+            self::FACTURA, self::RESERVA, self::OTROS => null,
+        };
+    }
+
     /** ¿Lo sube el propio pasajero desde su app, o sólo el operador? */
     public function loSubeElPasajero(): bool
     {

@@ -1284,10 +1284,32 @@ ya existía —24 en el expediente que lo motivó— y es justo lo que los disti
 ⚠️ **Y el DNI son DOS tipos, no uno con campo «cara»**: un control migratorio quiere las dos. Con
 un caso por cara, «¿a quién le falta algo?» se contesta mirando qué tipos tiene.
 
-**Caducan al mes del retorno**: `app:cotizacion:purgar-escaneos` borra fichero y fila de los
-escaneos de identidad. **No toca `CotizacionPasajeroIdentificacion`** —el número de pasaporte con
-el que se emitió un boleto se queda— ni los boletos, que el pasajero puede necesitar para una
-reclamación.
+**Caducan al mes del retorno**: `app:cotizacion:purgar-archivos` borra fichero y fila. **No toca
+`CotizacionPasajeroIdentificacion`** —el número de pasaporte con el que se emitió un boleto se
+queda—: esa separación es lo que permite borrar la foto sin romper el expediente.
+
+🔥 **El plazo NO vive en el comando: vive en `ArchivoTipoEnum::mesesDeRetencion()`**, `null` =
+no caduca. Así, añadir un tipo nuevo es decidir su plazo donde se declara, en vez de acordarse
+de un comando que está en otra carpeta.
+
+| Tipo | Plazo tras el retorno |
+|---|---|
+| Pasaporte, DNI ×2, autorización | 1 mes |
+| **Boleto / boarding pass** | **1 mes** |
+| Factura, confirmación de reserva, otros | no caduca |
+
+⚠️ **El boarding pass caduca igual que el pasaporte** (decidido el 08/09/2026; antes se quedaba
+para siempre «por si hay una reclamación»). Lleva nombre, vuelo, asiento y el **localizador** — y
+con apellido y localizador se entra a la reserva en la web de la aerolínea. Son ~542 ficheros por
+grupo grande y nadie los borraba. Lo que sostiene un expediente meses después es la **factura**,
+que no caduca.
+
+⚠️ **`OTROS` no caduca a propósito**: es el cajón de lo que no se clasificó, así que no sabemos qué
+hay dentro. Borrar por defecto lo no clasificado es como se pierde el único ejemplar de algo.
+
+⚠️ **Y no hay columna `caduca_el`.** La fecha se calcula cada vez desde el retorno del expediente
+(la última fecha de segmentos y componentes), así que si el viaje se mueve, la caducidad se mueve
+con él. Una fecha guardada seguiría apuntando al viaje que se planeó.
 
 ⚠️ Y una redacción que hubo que corregir de paso: el docblock del tipo decía «esto **no** es un
 documento de identidad», y se leía como que un pasaporte escaneado no cabía aquí. No era eso: lo

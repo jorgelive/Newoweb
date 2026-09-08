@@ -18,7 +18,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
- * Borra los escaneos de identidad **un mes después del retorno del grupo**.
+ * Borra los adjuntos caducados: cada tipo con su propio plazo desde el retorno del grupo.
  *
  * ── Por qué existe ──────────────────────────────────────────────────────────
  * Un pasaporte que ya no hace falta y sigue guardado es riesgo puro: no aporta nada y puede
@@ -29,17 +29,19 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * —una reclamación, un seguro— y no convierte el sistema en un archivo de documentos de identidad.
  *
  * ── Qué borra y qué NO ──────────────────────────────────────────────────────
- * Borra **el fichero** y la fila del adjunto: pasaportes, las dos caras del DNI y autorizaciones
- * notariales ({@see ArchivoTipoEnum::loSubeElPasajero()}).
+ * Borra **el fichero** y la fila del adjunto. El plazo NO está aquí: lo dice cada tipo en
+ * {@see ArchivoTipoEnum::mesesDeRetencion()}, y `null` significa que no caduca. Así añadir un tipo
+ * nuevo es decidir su plazo en el mismo sitio donde se declara, y no acordarse de este comando.
+ *
+ * ⚠️ **El boarding pass caduca igual que el pasaporte** (decisión del 08/09/2026). Lleva nombre,
+ * vuelo, asiento y el localizador —con apellido y localizador se entra a la reserva en la web de
+ * la aerolínea—, y son ~542 ficheros por grupo grande sin nadie que los borre. La factura, que es
+ * lo que de verdad sostiene un expediente meses después, no caduca.
  *
  * ⚠️ **No toca `CotizacionPasajeroIdentificacion`**, que es el DATO —tipo, número, vencimiento,
  * país— y se queda. Esa separación es justo lo que permite borrar la foto sin perder el
  * expediente: el número de pasaporte con el que se emitió un boleto sigue ahí para siempre; la
  * imagen, no.
- *
- * ⚠️ **Tampoco borra boletos ni boarding passes.** No llevan la misma carga y el pasajero puede
- * necesitarlos para una reclamación meses después. Si algún día se decide, es otro plazo y otra
- * llamada — no se cuela aquí de rebote.
  *
  * ── Cuándo acaba un viaje ───────────────────────────────────────────────────
  * El retorno es la **última fecha del expediente**: el mayor de los inicios de segmento y de los
@@ -47,13 +49,11 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * propio. Es la misma cuenta que hace `CotizacionFileCollectionProvider` para el cuadro.
  */
 #[AsCommand(
-    name: 'app:cotizacion:purgar-escaneos',
-    description: 'Borra los escaneos de identidad un mes después del retorno del grupo.',
+    name: 'app:cotizacion:purgar-archivos',
+    description: 'Borra los adjuntos caducados: cada tipo con su plazo desde el retorno del grupo.',
 )]
-final class PurgarEscaneosCommand extends Command
+final class PurgarArchivosCommand extends Command
 {
-    private const int MESES_DE_GRACIA = 1;
-
     public function __construct(
         private readonly EntityManagerInterface $em,
         #[Autowire(param: 'kernel.project_dir')]
@@ -75,16 +75,16 @@ final class PurgarEscaneosCommand extends Command
 
         $tipos = array_values(array_filter(
             ArchivoTipoEnum::cases(),
-            static fn (ArchivoTipoEnum $t): bool => $t->loSubeElPasajero(),
+            static fn (ArchivoTipoEnum $t): bool => $t->mesesDeRetencion() !== null,
         ));
 
-        /** @var list<CotizacionFilearchivo> $escaneos */
-        $escaneos = $this->em->createQuery(
+        /** @var list<CotizacionFilearchivo> $caducables */
+        $caducables = $this->em->createQuery(
             'SELECT a FROM App\Cotizacion\Entity\CotizacionFilearchivo a WHERE a.tipoArchivo IN (:tipos)'
         )->setParameter('tipos', $tipos)->getResult();
 
-        if ($escaneos === []) {
-            $io->success('No hay escaneos de identidad guardados.');
+        if ($caducables === []) {
+            $io->success('No hay adjuntos con caducidad guardados.');
 
             return Command::SUCCESS;
         }
@@ -94,10 +94,11 @@ final class PurgarEscaneosCommand extends Command
         $filas = [];
         $borrados = 0;
 
-        foreach ($escaneos as $archivo) {
+        foreach ($caducables as $archivo) {
             $file = $archivo->getFile();
+            $meses = $archivo->getTipoArchivo()?->mesesDeRetencion();
 
-            if ($file === null) {
+            if ($file === null || $meses === null) {
                 continue;
             }
 
@@ -105,7 +106,7 @@ final class PurgarEscaneosCommand extends Command
             $finPorFile[$clave] ??= $this->finDelViaje($file);
             $fin = $finPorFile[$clave];
 
-            $caduca = $fin?->modify(sprintf('+%d months', self::MESES_DE_GRACIA));
+            $caduca = $fin?->modify(sprintf('+%d months', $meses));
             $vencido = $caduca !== null && $caduca < $hoy;
 
             $filas[] = [
@@ -149,7 +150,7 @@ final class PurgarEscaneosCommand extends Command
         }
 
         $this->em->flush();
-        $io->success(sprintf('%d escaneo(s) borrado(s).', $borrados));
+        $io->success(sprintf('%d adjunto(s) caducado(s) borrado(s).', $borrados));
 
         return Command::SUCCESS;
     }
