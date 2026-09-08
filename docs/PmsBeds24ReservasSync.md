@@ -4361,6 +4361,13 @@ haciendo falta para la moneda base: `pms:finanzas:recalcular-totales` reventó e
 `Unknown column 'i2.moneda_id'`. Ni PHPStan ni los tests lo ven — el SQL es una cadena. **Un
 comando que toca dinero se ejecuta después de tocarlo, no sólo se compila.**
 
+⚠️⚠️ **Y el arreglo de eso reventó otra vez, por una trampa que merece su párrafo: el bloque es un
+HEREDOC, así que PHP interpola las variables TAMBIÉN dentro de un comentario `--`.** El comentario
+que explicaba el fallo nombraba la variable con su símbolo, y eso metió un `CASE` de seis líneas
+dentro del comentario: la primera quedó comentada y las otras cinco salieron a pasear por el SQL.
+
+**Regla: en los comentarios dentro de un heredoc SQL, los nombres de variable van sin el símbolo.**
+
 Ahora hay **una sola definición**: `PmsCargoFinanciero::cuentaParaElSaldo()`. Las tres la llaman, y
 `PmsTotalesPorMoneda::cargoCuenta()` delega en ella. El SQL sigue siendo una copia inevitable —se
 ejecuta en la base— pero es UNA, está citada desde la entidad, y hay tests que comparan resultados.

@@ -247,9 +247,14 @@ final class PmsInformacionFinancieraRecalculoService
                 SELECT c.informacion_id, SUM($cargoConvertido) AS total
                 FROM pms_cargo_financiero c
                 -- ⚠️ `i2` SIGUE HACIENDO FALTA aunque ya no se filtre por `activa`: de ahí sale la
-                -- moneda base de `$cargoConvertido`. Al quitar el filtro se quitó también el JOIN
-                -- y el comando reventó con «Unknown column 'i2.moneda_id'» — un error de bulto que
-                -- ni PHPStan ni los tests ven, porque el SQL es una cadena.
+                -- moneda base de la expresión de conversión. Al quitar el filtro se quitó también
+                -- el JOIN y el comando reventó con «Unknown column 'i2.moneda_id'».
+                --
+                -- ⚠️⚠️ Y OJO CON LOS COMENTARIOS AQUÍ DENTRO: esto es un HEREDOC, así que PHP
+                -- interpola las variables también dentro de un `--`. Escribir el nombre de la
+                -- variable con su símbolo metió un CASE de seis líneas dentro del comentario: la
+                -- primera quedó comentada y las otras cinco salieron a pasear por el SQL. En los
+                -- comentarios de este bloque, los nombres de variable van SIN símbolo.
                 INNER JOIN pms_informacion_financiera i2 ON i2.id = c.informacion_id
                 LEFT JOIN pms_evento_calendario ev ON ev.id = c.evento_id
                 WHERE c.tipo = 'charge' AND c.informacion_id IN ($in)
