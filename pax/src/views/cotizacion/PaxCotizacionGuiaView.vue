@@ -209,6 +209,31 @@ const fechaChip = (iso: string) => {
   });
 };
 
+/**
+ * Sus tarjetas de embarque, con el vuelo delante.
+ *
+ * 🔥 El pasajero tiene hasta ocho y todas se llaman «boleto». En la puerta de embarque lo que
+ * sirve para elegir la buena es «CUZ → LIM, 17 sep», no el nombre del fichero.
+ *
+ * ⚠️ Salen de `miIdentidad`, no de `documentosParaCliente`: la lista pública ya no lleva lo que
+ * tiene dueño, porque enumerar 542 tarjetas contaría quién vuela qué aunque el fichero esté
+ * protegido.
+ */
+const misBoletos = computed(() => store.miIdentidad?.documentos ?? []);
+
+/** «CUZ → LIM». Si no hay vuelo —un adjunto suyo que no es de vuelo— se cae al nombre. */
+const rutaDe = (d: { origen?: string | null; destino?: string | null }) =>
+  d.origen && d.destino ? `${d.origen} → ${d.destino}` : '';
+
+/** «17 sep». Fecha del vuelo, en el idioma que esté leyendo. */
+const fechaDeVuelo = (iso?: string | null) => {
+  if (!iso) return '';
+
+  return new Date(iso).toLocaleDateString(maestroStore.idiomaActual, {
+    day: 'numeric', month: 'short', timeZone: 'UTC',
+  });
+};
+
 // ── Itinerario de vista (segmentos → bloques por día) ────────────────────────
 // La composición vive en `@/dominio/itinerarioVista`: es lógica de negocio, no de pantalla, y
 // encerrada en este componente no la podía importar nadie —ni un PDF, ni un test, ni Node—.
@@ -1298,6 +1323,50 @@ const adelantoVista = computed(() => {
            se identificó — sin saber quién es, no hay a quién colgarle la foto. -->
       <div v-if="store.miIdentidad" class="max-w-3xl mx-auto px-4 no-imprimir">
         <MisDocumentos :localizador="props.localizador" />
+      </div>
+
+      <!-- ═══ TUS TARJETAS DE EMBARQUE ═══
+           🔥 El boarding pass lo tiene que enseñar el cliente en el gate, así que esto no es un
+           adjunto más: es lo que abre en la cola. Por eso va arriba, con el vuelo como título y
+           no con el nombre del fichero — tiene ocho y todos se llaman «boleto».
+           ⚠️ Sólo los suyos, y sólo identificado. `imageUrl` es `/archivo/{id}`, que comprueba de
+           quién es y devuelve 404 al que no. -->
+      <div v-if="misBoletos.length"
+           class="max-w-3xl mx-auto mb-6 bg-white rounded-[2rem] shadow-md shadow-slate-200/40 border border-slate-100 p-5 no-imprimir">
+        <div class="flex items-center gap-2 mb-3">
+          <i class="fas fa-plane-departure text-[#376875] text-sm"></i>
+          <p class="text-[11px] font-black uppercase tracking-[0.15em] text-[#376875]/70">
+            {{ maestroStore.t('cot_mis_tarjetas') || 'Tus tarjetas de embarque' }}
+          </p>
+        </div>
+
+        <p class="text-slate-500 text-[11px] leading-relaxed mb-3">
+          {{ maestroStore.t('cot_mis_tarjetas_aviso')
+            || 'Ábrelas y enséñalas en el control y en la puerta de embarque. Guárdalas en tu móvil antes de salir, por si no hay señal.' }}
+        </p>
+
+        <div class="space-y-2">
+          <a v-for="doc in misBoletos" :key="doc.id"
+             :href="`/archivo/${doc.id}`" target="_blank" rel="noopener"
+             class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200 hover:border-[#376875]/40 hover:bg-[#376875]/5 transition-colors">
+            <span class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-[#376875] flex items-center justify-center shrink-0">
+              <i class="fas fa-ticket"></i>
+            </span>
+
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-black text-gray-800 truncate">
+                {{ rutaDe(doc) || store.traducir(doc.nombre) || 'Tarjeta de embarque' }}
+              </p>
+              <p class="text-[11px] text-slate-500 truncate">
+                <span v-if="doc.fecha">{{ fechaDeVuelo(doc.fecha) }}</span>
+                <span v-if="doc.fecha && doc.numero" class="text-slate-300"> · </span>
+                <span v-if="doc.numero" class="font-bold">{{ doc.numero }}</span>
+              </p>
+            </div>
+
+            <i class="fas fa-arrow-up-right-from-square text-slate-300 text-xs shrink-0"></i>
+          </a>
+        </div>
       </div>
 
       <!-- ═══ LO TUYO ═══

@@ -365,7 +365,62 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         $file->setMiIdentidad([
             'nombre' => trim($pasajero->getNombre() . ' ' . $pasajero->getApellido()),
             'subgrupos' => $subgrupos,
+            'documentos' => $this->documentosDe($file, $pasajero),
         ]);
+    }
+
+    /**
+     * Los adjuntos que son **suyos**: su tarjeta de embarque de cada tramo.
+     *
+     * ── Por qué no salen por la lista de la portada ─────────────────────────
+     * 🔥 `getDocumentosParaCliente()` filtra por tipo, **no por persona**. Con ocho tramos y 133
+     * pasajeros eso son ~542 entradas en la portada, y cualquiera que abra el expediente con el
+     * localizador las vería todas. El fichero en sí está protegido —{@see ArchivoPrivadoController}
+     * comprueba de quién es y devuelve 404—, pero la LISTA seguiría contando quién vuela qué.
+     *
+     * Aquí van sólo los suyos, y sólo cuando se ha identificado con documento y fecha de
+     * nacimiento.
+     *
+     * ⚠️ **Con el vuelo delante, no con el nombre del fichero.** El pasajero tiene ocho tarjetas y
+     * todas se llaman igual; lo que necesita en la puerta de embarque es «CUZ → LIM, 17 sep», no
+     * «boleto». La fecha va en ISO y la formatea el front: esta app habla siete idiomas.
+     *
+     * ⚠️ **Ordenados por fecha de vuelo.** Es el orden en que los va a usar, y el que hace que el
+     * de mañana esté arriba.
+     *
+     * @return list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: ?string, numero: ?string, origen: ?string, destino: ?string, fecha: ?string}>
+     */
+    private function documentosDe(CotizacionFile $file, CotizacionFilepasajero $pasajero): array
+    {
+        $suyos = [];
+
+        foreach ($file->getFilearchivos() as $archivo) {
+            $mio = $archivo->getPasajero()?->getId()?->equals($pasajero->getId() ?? $archivo->getId()) === true;
+
+            // ⚠️ `esDevolvibleAlPasajero()` también aquí: el escaneo de su propio pasaporte es
+            // suyo y aun así no se le devuelve. Si sólo lo comprobara el controlador del fichero,
+            // esta lista lo anunciaría y el enlace daría 404 — peor que no enseñarlo.
+            if (!$mio || !$archivo->esDevolvibleAlPasajero() || ($archivo->getImageName() ?? '') === '') {
+                continue;
+            }
+
+            $vuelo = $archivo->getVuelo();
+            $fecha = $vuelo?->getSalida() ?? $vuelo?->getFecha();
+
+            $suyos[] = [
+                'id' => (string) $archivo->getId(),
+                'nombre' => $archivo->getNombre(),
+                'tipo' => $archivo->getTipoArchivo()?->value,
+                'numero' => $vuelo?->getNumero(),
+                'origen' => $vuelo?->getOrigen(),
+                'destino' => $vuelo?->getDestino(),
+                'fecha' => $fecha?->format('c'),
+            ];
+        }
+
+        usort($suyos, static fn (array $a, array $b): int => ($a['fecha'] ?? '') <=> ($b['fecha'] ?? ''));
+
+        return $suyos;
     }
 
     /** Minúsculas y sin tildes: la clave con la que se ORDENA, nunca la que se enseña. */

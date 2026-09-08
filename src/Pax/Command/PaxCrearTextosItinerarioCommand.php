@@ -78,6 +78,20 @@ final class PaxCrearTextosItinerarioCommand extends Command
         'cot_identificate_documento' => 'Número de documento',
         'cot_identificate_nacimiento' => 'Fecha de nacimiento',
         'cot_identificate_entrar' => 'Ver mi viaje',
+
+        // 🔥 **Lo que el pasajero TIENE que hacer, y en su idioma.** Estas seis nacieron con su
+        // respaldo `||` el 08/09/2026 y se siembran el mismo día, que es la lección de las de
+        // arriba: un respaldo en castellano no falla, sólo deja al extranjero delante de un texto
+        // que no entiende — y como no hay error, se descubre cruzando claves a mano.
+        //
+        // ⚠️ Del aviso de las tarjetas depende que llegue al aeropuerto con el boarding pass ya
+        // descargado. Es la frase de esta pantalla que más caro sale traducir tarde.
+        'cot_mis_tarjetas' => 'Tus tarjetas de embarque',
+        'cot_mis_tarjetas_aviso' => 'Ábrelas y enséñalas en el control y en la puerta de embarque. '
+            . 'Guárdalas en tu móvil antes de salir, por si no hay señal.',
+        'cot_mis_documentos' => 'Tus documentos',
+        'cot_mis_documentos_motivo' => 'Los necesitamos para emitir tus boletos y para el control migratorio. '
+            . 'Sólo los ve el equipo que arma tu viaje, y se borran un mes después de tu regreso.',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

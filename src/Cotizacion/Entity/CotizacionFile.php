@@ -407,9 +407,19 @@ class CotizacionFile
     }
 
     /**
-     * Documentos visibles para el cliente en el visor público.
-     * Filtra por ArchivoTipoEnum::esPublico() en vez de una lista de
-     * strings hardcodeada, para mantener la regla en un solo sitio.
+     * Documentos del EXPEDIENTE visibles para el cliente en el visor público.
+     *
+     * Filtra por `ArchivoTipoEnum::esPublico()` en vez de una lista de strings, para mantener la
+     * regla en un solo sitio.
+     *
+     * 🔥 **Y deja fuera los que tienen dueño.** Una tarjeta de embarque es de una persona: con
+     * ocho tramos y 133 pasajeros, listarlas aquí serían ~542 entradas que vería cualquiera que
+     * abra el expediente con el localizador. El fichero en sí está protegido —
+     * {@see \App\Cotizacion\Controller\Publico\ArchivoPrivadoController} devuelve 404 al que
+     * no es suyo—, pero **la lista seguiría contando quién vuela qué**, y eso ya es información.
+     *
+     * Lo personal sale por `miIdentidad.documentos`, que exige haberse identificado con documento
+     * y fecha de nacimiento. Aquí queda lo que es de todos: la entrada a Machu Picchu, el tren.
      *
      * @return list<CotizacionFilearchivo>
      */
@@ -418,6 +428,7 @@ class CotizacionFile
     {
         return $this->filearchivos->filter(
             fn(CotizacionFilearchivo $archivo) => $archivo->getTipoArchivo()?->esPublico() === true
+                && $archivo->getPasajero() === null
         )->getValues();
     }
 
@@ -607,7 +618,7 @@ class CotizacionFile
      * —su compañero de habitación, los de su PNR—. Sigue sin ser el padrón: son SUS grupos, y sólo
      * el nombre. Ni documento, ni fecha, ni el `codigo` del vecino, que es el localizador ajeno.
      *
-     * @var array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<array{nombre: string, rol: string|null}>}>}|null
+     * @var array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>}|null
      */
     #[ApiProperty(openapiContext: [
         'type' => 'object',
@@ -641,14 +652,48 @@ class CotizacionFile
                     'required' => ['eje', 'ejeLabel', 'subeje', 'clave', 'miembros'],
                 ],
             ],
+            // ⚠️ **Lo suyo, y sólo cuando se identificó.** Una tarjeta de embarque es de UNA
+            // persona: listarlas en `documentosParaCliente` serían ~542 entradas visibles para
+            // cualquiera con el localizador. El fichero está protegido, pero la lista contaría
+            // quién vuela qué. Lo llena `CotizacionFilePublicProvider::documentosDe()`.
+            'documentos' => [
+                'type' => 'array',
+                'items' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'id' => ['type' => 'string'],
+                        // ⚠️ Los dos `required` y `content` SIN `nullable`: si no, el esquema
+                        // generado dice `content?: string | null` y deja de encajar con
+                        // `PaxI18nContent`, que promete un texto. Una fila i18n sin contenido no
+                        // existe — el traductor la crea con el original si falla.
+                        'nombre' => ['type' => 'array', 'nullable' => true, 'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'language' => ['type' => 'string'],
+                                'content' => ['type' => 'string'],
+                            ],
+                            'required' => ['language', 'content'],
+                        ]],
+                        'tipo' => ['type' => 'string', 'nullable' => true],
+                        // El vuelo delante: el pasajero tiene ocho tarjetas y todas se llaman
+                        // igual. En la puerta lo que sirve es «CUZ → LIM, 17 sep».
+                        'numero' => ['type' => 'string', 'nullable' => true],
+                        'origen' => ['type' => 'string', 'nullable' => true],
+                        'destino' => ['type' => 'string', 'nullable' => true],
+                        // ISO: la formatea el front, que es quien sabe en qué idioma se lee.
+                        'fecha' => ['type' => 'string', 'nullable' => true],
+                    ],
+                    'required' => ['id'],
+                ],
+            ],
         ],
-        'required' => ['nombre', 'subgrupos'],
+        'required' => ['nombre', 'subgrupos', 'documentos'],
     ])]
     #[Groups(['pax_file:read'])]
     private ?array $miIdentidad = null;
 
     /**
-     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<array{nombre: string, rol: string|null}>}>}|null
+     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>}|null
      */
     public function getMiIdentidad(): ?array
     {
@@ -656,7 +701,7 @@ class CotizacionFile
     }
 
     /**
-     * @param array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<array{nombre: string, rol: string|null}>}>}|null $miIdentidad
+     * @param array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>}|null $miIdentidad
      */
     public function setMiIdentidad(?array $miIdentidad): self
     {

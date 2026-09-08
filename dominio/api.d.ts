@@ -10866,6 +10866,18 @@ export interface components {
                         rol?: string | null;
                     }[];
                 }[];
+                documentos: {
+                    id: string;
+                    nombre?: {
+                        language: string;
+                        content: string;
+                    }[] | null;
+                    tipo?: string | null;
+                    numero?: string | null;
+                    origen?: string | null;
+                    destino?: string | null;
+                    fecha?: string | null;
+                }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
@@ -10880,7 +10892,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
-            /** @description Documentos visibles para el cliente en el visor público. */
+            /** @description Documentos del EXPEDIENTE visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
@@ -11106,6 +11118,18 @@ export interface components {
                         rol?: string | null;
                     }[];
                 }[];
+                documentos: {
+                    id: string;
+                    nombre?: {
+                        language: string;
+                        content: string;
+                    }[] | null;
+                    tipo?: string | null;
+                    numero?: string | null;
+                    origen?: string | null;
+                    destino?: string | null;
+                    fecha?: string | null;
+                }[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read"][];
@@ -11155,6 +11179,18 @@ export interface components {
                         nombre: string;
                         rol?: string | null;
                     }[];
+                }[];
+                documentos: {
+                    id: string;
+                    nombre?: {
+                        language: string;
+                        content: string;
+                    }[] | null;
+                    tipo?: string | null;
+                    numero?: string | null;
+                    origen?: string | null;
+                    destino?: string | null;
+                    fecha?: string | null;
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -11251,6 +11287,18 @@ export interface components {
                         rol?: string | null;
                     }[];
                 }[];
+                documentos: {
+                    id: string;
+                    nombre?: {
+                        language: string;
+                        content: string;
+                    }[] | null;
+                    tipo?: string | null;
+                    numero?: string | null;
+                    origen?: string | null;
+                    destino?: string | null;
+                    fecha?: string | null;
+                }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
@@ -11265,7 +11313,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
-            /** @description Documentos visibles para el cliente en el visor público. */
+            /** @description Documentos del EXPEDIENTE visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
@@ -11439,6 +11487,18 @@ export interface components {
                         rol?: string | null;
                     }[];
                 }[];
+                documentos: {
+                    id: string;
+                    nombre?: {
+                        language: string;
+                        content: string;
+                    }[] | null;
+                    tipo?: string | null;
+                    numero?: string | null;
+                    origen?: string | null;
+                    destino?: string | null;
+                    fecha?: string | null;
+                }[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read"][];
@@ -11488,6 +11548,18 @@ export interface components {
                         nombre: string;
                         rol?: string | null;
                     }[];
+                }[];
+                documentos: {
+                    id: string;
+                    nombre?: {
+                        language: string;
+                        content: string;
+                    }[] | null;
+                    tipo?: string | null;
+                    numero?: string | null;
+                    origen?: string | null;
+                    destino?: string | null;
+                    fecha?: string | null;
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -11584,6 +11656,18 @@ export interface components {
                         rol?: string | null;
                     }[];
                 }[];
+                documentos: {
+                    id: string;
+                    nombre?: {
+                        language: string;
+                        content: string;
+                    }[] | null;
+                    tipo?: string | null;
+                    numero?: string | null;
+                    origen?: string | null;
+                    destino?: string | null;
+                    fecha?: string | null;
+                }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
@@ -11598,7 +11682,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
-            /** @description Documentos visibles para el cliente en el visor público. */
+            /** @description Documentos del EXPEDIENTE visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
@@ -11777,6 +11861,18 @@ export interface components {
                         rol?: string | null;
                     }[];
                 }[];
+                documentos: {
+                    id: string;
+                    nombre?: {
+                        language: string;
+                        content: string;
+                    }[] | null;
+                    tipo?: string | null;
+                    numero?: string | null;
+                    origen?: string | null;
+                    destino?: string | null;
+                    fecha?: string | null;
+                }[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read"][];
@@ -11826,6 +11922,18 @@ export interface components {
                         nombre: string;
                         rol?: string | null;
                     }[];
+                }[];
+                documentos: {
+                    id: string;
+                    nombre?: {
+                        language: string;
+                        content: string;
+                    }[] | null;
+                    tipo?: string | null;
+                    numero?: string | null;
+                    origen?: string | null;
+                    destino?: string | null;
+                    fecha?: string | null;
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -11922,6 +12030,18 @@ export interface components {
                         rol?: string | null;
                     }[];
                 }[];
+                documentos: {
+                    id: string;
+                    nombre?: {
+                        language: string;
+                        content: string;
+                    }[] | null;
+                    tipo?: string | null;
+                    numero?: string | null;
+                    origen?: string | null;
+                    destino?: string | null;
+                    fecha?: string | null;
+                }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
@@ -11936,7 +12056,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
-            /** @description Documentos visibles para el cliente en el visor público. */
+            /** @description Documentos del EXPEDIENTE visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
@@ -12110,6 +12230,18 @@ export interface components {
                         rol?: string | null;
                     }[];
                 }[];
+                documentos: {
+                    id: string;
+                    nombre?: {
+                        language: string;
+                        content: string;
+                    }[] | null;
+                    tipo?: string | null;
+                    numero?: string | null;
+                    origen?: string | null;
+                    destino?: string | null;
+                    fecha?: string | null;
+                }[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read"][];
@@ -12159,6 +12291,18 @@ export interface components {
                         nombre: string;
                         rol?: string | null;
                     }[];
+                }[];
+                documentos: {
+                    id: string;
+                    nombre?: {
+                        language: string;
+                        content: string;
+                    }[] | null;
+                    tipo?: string | null;
+                    numero?: string | null;
+                    origen?: string | null;
+                    destino?: string | null;
+                    fecha?: string | null;
                 }[];
             } | null;
             readonly localizador?: string | null;
@@ -12859,6 +13003,7 @@ export interface components {
              * @example https://example.com/
              */
             pasajero?: string | null;
+            vuelo?: components["schemas"]["CotizacionVuelo"] | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -12905,6 +13050,7 @@ export interface components {
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.read_file.item.read_timestamp.read"] | null;
+            vuelo?: components["schemas"]["CotizacionVuelo-file.read_file.item.read_timestamp.read"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"] | null;
             imageName?: string | null;
             imageSize?: number | null;
@@ -12928,6 +13074,7 @@ export interface components {
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile-file.write"];
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.write"] | null;
+            vuelo?: components["schemas"]["CotizacionVuelo-file.write"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo-file.write"] | null;
             imageName?: string | null;
             imageSize?: number | null;
@@ -12951,6 +13098,7 @@ export interface components {
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile-file.write"];
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.write"] | null;
+            vuelo?: components["schemas"]["CotizacionVuelo-file.write"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo-file.write"] | null;
             imageName?: string | null;
             imageSize?: number | null;
@@ -13007,6 +13155,7 @@ export interface components {
              * @example https://example.com/
              */
             pasajero?: string | null;
+            vuelo?: components["schemas"]["CotizacionVuelo.html"] | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -13053,6 +13202,7 @@ export interface components {
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"] | null;
+            vuelo?: components["schemas"]["CotizacionVuelo.html-file.read_file.item.read_timestamp.read"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"] | null;
             imageName?: string | null;
             imageSize?: number | null;
@@ -13109,6 +13259,7 @@ export interface components {
              * @example https://example.com/
              */
             pasajero?: string | null;
+            vuelo?: components["schemas"]["CotizacionVuelo.jsonld"] | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -13155,6 +13306,7 @@ export interface components {
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"] | null;
+            vuelo?: components["schemas"]["CotizacionVuelo.jsonld-file.read_file.item.read_timestamp.read"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"] | null;
             imageName?: string | null;
             imageSize?: number | null;
@@ -13211,6 +13363,7 @@ export interface components {
              * @example https://example.com/
              */
             pasajero?: string | null;
+            vuelo?: components["schemas"]["CotizacionVuelo.multipart"] | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -13257,6 +13410,7 @@ export interface components {
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"] | null;
+            vuelo?: components["schemas"]["CotizacionVuelo.multipart-file.read_file.item.read_timestamp.read"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"] | null;
             imageName?: string | null;
             imageSize?: number | null;
@@ -15409,6 +15563,7 @@ export interface components {
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
         };
+        "CotizacionVuelo-file.write": Record<string, never>;
         "CotizacionVuelo.html": {
             /**
              * Format: iri-reference

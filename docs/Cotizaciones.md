@@ -1138,6 +1138,28 @@ viaja como dato.
 permitía nginx (`client_max_body_size`). Aun así, **un ZIP por vuelo es mejor que uno gigante**:
 cada vuelo lleva ≤25 pax, entra de sobra, y la tabla de revisión es corta.
 
+#### La tarjeta de embarque, con el vuelo delante (08/09/2026)
+
+El pasajero tiene hasta ocho y **todas se llaman «boleto»**. En la cola del embarque lo que sirve
+para elegir la buena es `CUZ → LIM · 17 sep · JA7018`, así que la tarjeta se rotula con el vuelo y
+sólo cae al nombre del fichero si no hay vuelo asociado. Ordenadas por fecha: la de mañana arriba.
+
+🔥 **Y salen de `miIdentidad.documentos`, no de `documentosParaCliente`.** Ésa filtraba por TIPO y
+no por persona: con ocho tramos y 133 pasajeros, listar ahí las tarjetas serían ~542 entradas
+visibles para cualquiera que abriera el expediente con el localizador. El fichero en sí ya estaba
+protegido —`ArchivoPrivadoController` devuelve 404 al que no es suyo—, pero **la lista habría
+contado quién vuela qué**, y eso ya es información. `getDocumentosParaCliente()` deja fuera todo lo
+que tiene dueño; ahí quedan la entrada a Machu Picchu y el tren, que son de todos.
+
+⚠️ **`esDevolvibleAlPasajero()` se comprueba también en la lista**, no sólo en el controlador del
+fichero: el escaneo de su propio pasaporte es suyo y aun así no se le devuelve. Si sólo lo mirara
+el controlador, la lista lo anunciaría y el enlace daría 404 — peor que no enseñarlo.
+
+⚠️ La fecha viaja en **ISO** y la formatea el front: esta app habla siete idiomas. Y las cuatro
+cadenas nuevas se siembran con `pax:textos:itinerario` el mismo día que nacen, que es la lección
+de las seis anteriores — un respaldo `||` en castellano no falla, sólo deja al extranjero delante
+de un texto que no entiende.
+
 #### La foto se guardaba tumbada, y nadie podía verlo (08/09/2026)
 
 Los escaneos **no se guardan crudos**: `VichWebpConversionListener` los convierte a WebP porque
