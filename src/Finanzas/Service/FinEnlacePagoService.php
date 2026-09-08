@@ -44,6 +44,9 @@ final class FinEnlacePagoService
         private readonly string $paxHostUrl,
         #[Autowire('%finanzas.recargo_tarjeta_porcentaje%')]
         private readonly string $recargoTarjetaPorcentaje,
+        /** @var array<string, string> Tope antifraude por divisa: ver `services_finanzas.yaml`. */
+        #[Autowire('%finanzas.limite_por_cargo%')]
+        private readonly array $limitePorCargo,
     ) {}
 
     /**
@@ -144,6 +147,8 @@ final class FinEnlacePagoService
         $pasarelaElegida = $pasarela ?? $this->pasarelas->porDefecto();
         $this->pasarelas->para($pasarelaElegida);
 
+        $this->comprobarTope($total, $monedaId);
+
         $enlace = new FinEnlacePago();
         $enlace
             ->setToken($this->generarToken())
@@ -169,6 +174,43 @@ final class FinEnlacePagoService
         $this->em->flush();
 
         return $enlace;
+    }
+
+    /**
+     * El tope antifraude de la pasarela, comprobado **al emitir**.
+     *
+     * 🔥 **Mismo criterio que la validación de credenciales de dos líneas más arriba, y por el
+     * mismo motivo:** un cargo por encima del tope no falla al crear el enlace — falla cuando el
+     * cliente ya está pagando, con su tarjeta puesta, delante de un «rechazado» que no explica
+     * nada. Y quien tiene que decidir qué hacer —partir el cobro, usar transferencia— es el
+     * operador, que en ese momento ya no está mirando.
+     *
+     * ⚠️ **Se mira el TOTAL, no el neto.** Es lo que la pasarela ve. Un neto de 2 900 USD con el
+     * 5,5 % de recargo son 3 059,50: por debajo del tope y aun así rechazado.
+     *
+     * ⚠️ **Una divisa sin tope configurado NO se bloquea.** Es un límite del proveedor, no una
+     * política nuestra: inventarnos uno para una moneda que no conocemos impediría cobros que la
+     * pasarela sí acepta.
+     */
+    private function comprobarTope(string $total, string $monedaId): void
+    {
+        $tope = $this->limitePorCargo[$monedaId] ?? null;
+
+        if ($tope === null || (float) $total <= (float) $tope) {
+            return;
+        }
+
+        // El mensaje dice el importe QUE SE COBRARÍA —con recargo— y no el neto que se tecleó:
+        // es el que la pasarela compara, y decir el otro haría dudar de la cuenta.
+        throw new DomainException(sprintf(
+            'La pasarela no acepta un cargo de %s %s —su tope por operación es %s %s—. '
+            . 'Ese importe ya lleva el recargo de tarjeta, que es lo que se cobra. '
+            . 'Parte el cobro en varios enlaces o usa otro medio.',
+            $total,
+            $monedaId,
+            $tope,
+            $monedaId,
+        ));
     }
 
     /**

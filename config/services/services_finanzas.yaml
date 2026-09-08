@@ -51,6 +51,22 @@ parameters:
     # el porcentaje hay que tocar LOS DOS sitios — ver docs/FinanzasEnlacesPago.md §7.
     finanzas.recargo_tarjeta_porcentaje: '5.5'
 
+    # 🔥 **El tope ANTIFRAUDE de la pasarela, por cargo y por divisa.**
+    #
+    # No es una política nuestra: es lo que Culqi rechaza. Un cargo por encima **no falla al
+    # emitir el enlace, falla cuando el cliente ya está pagando** — con su tarjeta puesta, delante
+    # de una pantalla que dice «rechazado» sin decir por qué. Se comprueba al EMITIR para que el
+    # operador lo sepa cuando todavía puede partir el cobro.
+    #
+    # ⚠️ **Es el importe TOTAL, con el recargo**, que es lo que la pasarela ve. Un neto de 2 900
+    # con el 5,5 % son 3 059,50: por debajo del tope y aun así rechazado.
+    #
+    # ⚠️ Los valores de HOY (08/09/2026), y son provisionales: hay una solicitud de ampliación
+    # pendiente con Culqi. Por eso viven en configuración y no en el código.
+    finanzas.limite_por_cargo:
+        USD: '3000'
+        PEN: '10000'
+
 services:
 
     _defaults:

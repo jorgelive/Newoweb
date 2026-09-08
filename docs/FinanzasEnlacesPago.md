@@ -11,6 +11,39 @@ documento que cobra se lo cuenta un *resolver* que vive en el módulo dueño.
 está declarado en el enum pero **sin resolver**: emitir un cobro con ese origen falla a
 propósito.
 
+
+## 🔥 El tope antifraude de la pasarela, comprobado al EMITIR (08/09/2026)
+
+Culqi rechaza por encima de **3 000 USD** y **10 000 PEN** por operación. No es una política
+nuestra: es lo que la pasarela hace.
+
+**Y sin comprobarlo, ese rechazo no lo ve el operador: lo ve el cliente.** Con su tarjeta puesta,
+delante de una pantalla que dice «rechazado» sin decir por qué. Quien puede decidir qué hacer
+—partir el cobro, usar transferencia— es el operador, y en ese momento ya no está mirando.
+
+Se comprueba en `FinEnlacePagoService::comprobarTope()`, **justo al lado de la validación de
+credenciales y por el mismo motivo**: mejor fallar al emitir que dejar un enlace que revienta
+cuando el cliente ya lo abrió.
+
+⚠️⚠️ **Se mira el TOTAL, no el neto**, porque es lo que la pasarela ve. Medido con el recargo del
+5,5 % que ya está configurado:
+
+| Neto tecleado | Se cobra | Veredicto |
+|---|---|---|
+| 2 900 USD | **3 059,50** | **rechaza** — el neto estaba por debajo del tope |
+| 2 800 USD | 2 954,00 | pasa |
+| 9 600 PEN | **10 128,00** | **rechaza** |
+| 9 400 PEN | 9 917,00 | pasa |
+
+Las dos primeras filas son la razón de ser de la regla: un neto por debajo del tope que la pasarela
+rechaza igual. Comprobarlo contra el neto habría dejado pasar exactamente los casos que fallan.
+
+⚠️ **Una divisa sin tope configurado NO se bloquea.** Es un límite del proveedor, no nuestro:
+inventarnos uno para una moneda que no conocemos impediría cobros que la pasarela sí acepta.
+
+⚠️ **Los valores viven en `services_finanzas.yaml`, no en el código**, porque son provisionales:
+hay una ampliación solicitada a Culqi. Cuando la concedan, es una línea.
+
 ## 🅿️ IZIPAY ESTÁ PARADA (stalled) — 28/08/2026
 
 **No se toca el camino de Izipay hasta que esté implementada de verdad.** Su conector se
