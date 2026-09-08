@@ -4347,6 +4347,37 @@ es justamente donde el operador teclea el precio del arreglo nuevo.
 ⚠️ **Con esto «Reactivar» vuelve a significar lo que dice**: despierta lo que sigue vivo y deja
 dormido lo que se canceló. Antes era una trampa.
 
+#### 🔥 «Reactivar» no era la salida: mover los cargos sí (08/09/2026)
+
+**Una reserva de OTA nunca se reactiva.** El huésped canceló en el canal y no vuelve; y son
+justamente las de OTA las que traen los cargos automáticos. Así que la bandera `activa` nunca iba
+a ser la respuesta para ellas: lo que hay que hacer es **llevar el dinero al arreglo nuevo**.
+
+Eso ya se podía —el formulario del cargo tiene su selector de Estancia— pero con dos trabas que lo
+hacían inútil justo cuando se necesitaba:
+
+| Traba | Por qué dolía |
+|---|---|
+| El selector salía sólo con **más de una estancia VIVA** | Con una viva y una cancelada no aparecía, y los cargos atrapados en la muerta no tenían por dónde salir |
+| Las canceladas salían en la lista **sin marcar** | Misma casita, mismas fechas: dos opciones idénticas, y elegir la muerta deja el cargo sin cobrar |
+
+Ahora el selector cuenta **todas** las estancias, la cancelada sale rotulada `· CANCELADA (no
+cobra)`, y la cabecera de un grupo cancelado con cargos lleva un botón **«Mover N»** que los
+reasigna todos de una vez.
+
+⚠️ **Un PATCH por cargo y no uno en bloque**: no hay endpoint de lote, y cada cargo dispara los
+listeners de coherencia que recalculan los totales por moneda. Son tres o cuatro filas.
+
+#### El «Cancel Fee» lo manda Booking, y casi siempre en cero
+
+Medido el 08/09/2026 sobre producción: **24 penalizaciones, las 24 con `beds24ItemId`** —o sea,
+del canal, ninguna tecleada— y todas sobre reservas cuyo `canales_aggregate` incluye `booking`.
+De esas 24, **sólo 2 traen importe** (129.38 USD en total); las demás llegan a 0.00.
+
+Es el dato que sostiene la decisión del 31/08/2026 de que la penalización deje de contar: no es
+que se renuncie a cobrar algo, es que casi nunca hay nada que cobrar, y cuando lo hay no tenemos
+la tarjeta.
+
 ⚠️ Y saca a la luz las fichas donde el dinero se quedó pegado al tramo muerto: la **91881927**
 parecía saldada porque los USD 174.39 del tramo cancelado cuadraban con lo pagado, mientras la
 estancia viva no tenía precio. Para eso está `app:pms:mover-cargos-de-cancelada`, que reengancha

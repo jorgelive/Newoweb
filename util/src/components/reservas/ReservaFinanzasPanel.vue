@@ -771,7 +771,53 @@ const gruposCargos = computed<GrupoCargos[]>(() => {
 const estanciasVivas = computed(() =>
     (finanzas.info?.estancias ?? []).filter(e => e.estado !== 'cancelada'));
 
-const hayVariasEstancias = computed(() => estanciasVivas.value.length > 1);
+/**
+ * ¿Hay que ofrecer el selector de estancia al editar un cargo?
+ *
+ * 🔥 **Cuenta TODAS, no sólo las vivas** (08/09/2026). Miraba `estanciasVivas > 1`, y eso escondía
+ * el selector justo en el caso para el que hace falta: una casita cancelada y una viva. Los cargos
+ * atrapados en la muerta —que desde hoy ya no cobran— no tenían por dónde salir, porque ese
+ * desplegable es la única forma de moverlos.
+ */
+const hayVariasEstancias = computed(() => (finanzas.info?.estancias ?? []).length > 1);
+
+/** Qué grupo tiene abierto el desplegable de «mover». Sólo uno a la vez. */
+const moviendoGrupo = ref<string | null>(null);
+const moviendoDestino = ref<string>('');
+
+/**
+ * Rescata de golpe los cargos de una estancia cancelada llevándolos a otra.
+ *
+ * 🔥 Es la operación que faltaba. Una reserva de OTA **nunca se reactiva** —el huésped canceló en
+ * el canal y no vuelve—, así que la bandera `activa` no era la respuesta: lo que hay que hacer es
+ * llevar el dinero al arreglo nuevo. Antes había que abrir cargo por cargo, y sólo si el selector
+ * llegaba a aparecer.
+ *
+ * ⚠️ Un PATCH por cargo y no uno en bloque: no hay endpoint de lote, y cada cargo dispara los
+ * listeners de coherencia que recalculan los totales por moneda. Son tres o cuatro filas.
+ */
+async function moverCargosDelGrupo(grupo: GrupoCargos): Promise<void> {
+    const destino = moviendoDestino.value;
+
+    error.value = null;
+
+    try {
+        for (const cargo of grupo.cargos) {
+            if (!cargo.id) continue;
+
+            await finanzas.patchCargo(cargo.id, {
+                evento: destino ? pmsEventoIri(destino) : null,
+                // Mover no toca los textos: `false` para NO pisar las traducciones que ya tenga.
+                sobreescribirTraduccion: false,
+            });
+        }
+
+        moviendoGrupo.value = null;
+        moviendoDestino.value = '';
+    } catch (err) {
+        error.value = err instanceof Error ? err.message : 'No se pudieron mover los cargos.';
+    }
+}
 
 /**
  * La cabecera de estancia se muestra SIEMPRE, aunque haya una sola.
@@ -2049,6 +2095,38 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                         class="text-[10px] font-black uppercase tracking-wide text-slate-500 bg-slate-200 rounded px-1.5 py-px whitespace-nowrap">
                                         Cancelada
                                     </span>
+
+                                    <!-- ═══ RESCATAR LOS CARGOS ═══
+                                         🔥 Una reserva de OTA NUNCA se reactiva: el huésped canceló
+                                         en el canal y no vuelve. Así que «volver a activarla» no
+                                         era la salida — lo que hay que hacer es llevar el dinero al
+                                         arreglo nuevo, y hasta hoy eso era abrir cargo por cargo.
+                                         Sólo aparece si hay cargos que mover y sitio a donde. -->
+                                    <template v-if="g.cancelada && g.cargos.length && estanciasVivas.length">
+                                        <button v-if="moviendoGrupo !== g.clave" type="button"
+                                            @click="moviendoGrupo = g.clave; moviendoDestino = ''"
+                                            class="text-[10px] font-black uppercase tracking-wide text-[#376875] hover:bg-[#376875]/10 border border-[#376875]/30 rounded px-1.5 py-px whitespace-nowrap transition-colors">
+                                            <i class="fas fa-arrow-right-arrow-left mr-1"></i>Mover {{ g.cargos.length }}
+                                        </button>
+
+                                        <span v-else class="flex items-center gap-1 flex-wrap">
+                                            <select v-model="moviendoDestino"
+                                                class="text-[10px] font-bold border border-slate-300 rounded px-1.5 py-0.5 bg-white max-w-[11rem]">
+                                                <option value="">Toda la reserva</option>
+                                                <option v-for="e in estanciasVivas" :key="e.eventoId" :value="e.eventoId">
+                                                    {{ e.unidad ?? 'Estancia' }} · {{ fechaLegible(e.inicio) }} → {{ fechaLegible(e.fin) }}
+                                                </option>
+                                            </select>
+                                            <button type="button" @click="moverCargosDelGrupo(g)" :disabled="finanzas.isSaving"
+                                                class="text-[10px] font-black uppercase tracking-wide text-white bg-[#376875] hover:bg-[#2b525d] disabled:opacity-40 rounded px-2 py-0.5 whitespace-nowrap transition-colors">
+                                                Mover
+                                            </button>
+                                            <button type="button" @click="moviendoGrupo = null"
+                                                class="text-[10px] font-bold text-slate-400 hover:text-slate-600 px-1">
+                                                Cancelar
+                                            </button>
+                                        </span>
+                                    </template>
                                 </span>
                             </span>
                             <span class="flex items-center gap-2 text-xs font-black text-slate-700 shrink-0">
@@ -2227,7 +2305,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
                                     <option value="">Toda la reserva</option>
                                     <option v-for="e in finanzas.info?.estancias ?? []" :key="e.eventoId" :value="e.eventoId">
-                                        {{ e.unidad ?? 'Estancia' }} · {{ fechaLegible(e.inicio) }} → {{ fechaLegible(e.fin) }}
+                                        {{ e.unidad ?? 'Estancia' }} · {{ fechaLegible(e.inicio) }} → {{ fechaLegible(e.fin) }}{{ e.estado === 'cancelada' ? ' · CANCELADA (no cobra)' : '' }}
                                     </option>
                                 </select>
                             </label>
@@ -2380,7 +2458,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
                                 <option value="">Toda la reserva</option>
                                 <option v-for="e in finanzas.info?.estancias ?? []" :key="e.eventoId" :value="e.eventoId">
-                                    {{ e.unidad ?? 'Estancia' }} · {{ fechaLegible(e.inicio) }} → {{ fechaLegible(e.fin) }}
+                                    {{ e.unidad ?? 'Estancia' }} · {{ fechaLegible(e.inicio) }} → {{ fechaLegible(e.fin) }}{{ e.estado === 'cancelada' ? ' · CANCELADA (no cobra)' : '' }}
                                 </option>
                             </select>
                         </label>
