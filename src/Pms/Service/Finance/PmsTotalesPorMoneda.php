@@ -292,41 +292,25 @@ final readonly class PmsTotalesPorMoneda
      * el espejo sea exacto: en la base hoy no hay ni una fila con `tipo` nulo, pero la columna lo
      * admite y dos criterios distintos sobre la misma fila es justo lo que no puede pasar aquí.
      */
+    /**
+     * ¿Este cargo entra en la suma?
+     *
+     * 🔥 **Delega en {@see PmsCargoFinanciero::cuentaParaElSaldo()}, que es la ÚNICA definición.**
+     * Esta regla llegó a estar escrita cinco veces y al cambiarla el 08/09/2026 sólo se
+     * actualizaron dos: el depósito espejo de Airbnb, el cálculo del adelanto y el estado de
+     * cuenta del huésped se quedaron contando cargos de estancias canceladas que el saldo ya no
+     * contaba. Una regla de dinero repetida no se desincroniza con un error: se queda vieja en
+     * silencio.
+     *
+     * ⚠️ `$info` ya no se mira: `activa` dejó de decidir dinero. Se conserva el parámetro porque
+     * el espejo del SQL vive en este objeto y el día que vuelva a haber una condición de cabecera
+     * es aquí donde va.
+     */
     private static function cargoCuenta(PmsCargoFinanciero $cargo, PmsInformacionFinanciera $info): bool
     {
-        if ($cargo->getTipo() !== null && !$cargo->esCargo()) {
-            return false;
-        }
+        unset($info);
 
-        // ⚠️ **La penalización YA NO es la excepción** (31/08/2026). Decía
-        // `|| $cargo->getTipoCargo() === PmsTipoCargo::PENALIZACION`: en una ficha anulada los
-        // cargos de la estancia dejaban de sumar pero la penalización seguía contando, porque
-        // la regla se escribió dando por hecho que una cancelación se puede cobrar.
-        //
-        // **Y no se puede.** Bajo las condiciones actuales de las OTA no tenemos acceso a la
-        // tarjeta del huésped, así que una penalización de una reserva cancelada es deuda que
-        // nadie va a reclamar — y una reserva cancelada además desaparece del panel, así que
-        // nadie la vuelve a mirar. El resultado era saldo vivo, invisible y falso.
-        //
-        // ⚠️ **El cargo NO se borra**: sigue en la tabla con su importe, sólo deja de sumar. El
-        // día que la OTA dé acceso a la tarjeta se revierte esta línea y vuelven a contar todas,
-        // también las viejas. Que se vuelve a poner **aquí** lo recuerda el propio panel: la
-        // ficha de una reserva anulada con penalización lo dice en pantalla, que es donde se
-        // mira. Ver `docs/PmsBeds24ReservasSync.md` §12.7.
-        // 🔥 **Una estancia CANCELADA no cobra, esté la ficha activa o no** (08/09/2026).
-        // `activa` es de la RESERVA ENTERA, y eso dejaba sin salida el caso que más ocurre: el
-        // huésped cancela en la OTA y sigue como directa con otras fechas. Con la bandera abajo no
-        // contaba ni el precio nuevo tecleado a mano —saldo negativo con el dinero ya cobrado—;
-        // subiéndola revivían los cargos del canal de la estancia muerta junto con el nuevo. No
-        // había posición correcta de esa bandera.
-        //
-        // ⚠️ Un cargo de NIVEL RESERVA no cuelga de ninguna estancia y sí cuenta: es justamente
-        // donde el operador teclea el precio del arreglo nuevo.
-        if ($cargo->getEvento()?->getEstado()?->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
-            return false;
-        }
-
-        return $info->isActiva();
+        return $cargo->cuentaParaElSaldo();
     }
 
     /**

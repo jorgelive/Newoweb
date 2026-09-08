@@ -176,15 +176,18 @@ final class PmsInformacionFinancieraRecalculoService
                       --
                       -- ⚠️ `COALESCE`: un cargo de nivel reserva no tiene estancia y sí cuenta.
                       AND COALESCE(ev.estado_id, '') <> 'cancelada'
-                      -- Cabecera ANULADA: sólo cuenta la penalización (§12.7). Los cargos de la
-                      -- estancia siguen en la tabla —no se pierde historia—, pero dejan de sumar.
                       --
-                      -- ⚠️ ASIMÉTRICO A PROPÓSITO: los cobros NO llevan este filtro, porque el
-                      -- dinero entró igual y ocultarlo sería mentir. Antes el neteo lo escondía;
-                      -- ahora se ve como saldo negativo, y está bien que se vea. Lo que NO puede
-                      -- pasar es que «ninguna moneda debe» se lea como «pagada»: de eso se ocupa
+                      -- ⚠️ **`i2.activa` YA NO se filtra** (08/09/2026). Era una bandera de la
+                      -- RESERVA ENTERA y no tenía posición correcta: abajo no contaba ni el precio
+                      -- nuevo tecleado a mano, arriba revivían los cargos del canal de la estancia
+                      -- muerta. Ahora lo decide el estado de cada ESTANCIA, que es el dato que de
+                      -- verdad dice si eso se sirve o no. `activa` sigue viva como marcador.
+                      --
+                      -- ⚠️ ASIMÉTRICO A PROPÓSITO: los cobros NO llevan el filtro de estancia,
+                      -- porque el dinero entró igual y ocultarlo sería mentir. Se ve como saldo
+                      -- negativo, y está bien que se vea. Lo que NO puede pasar es que «ninguna
+                      -- moneda debe» se lea como «pagada»: de eso se ocupa
                       -- PmsEstadoPagoEventosService exigiendo además que HAYA cargos.
-                      AND i2.activa = 1
 
                     UNION ALL
 
@@ -243,9 +246,12 @@ final class PmsInformacionFinancieraRecalculoService
             LEFT JOIN (
                 SELECT c.informacion_id, SUM($cargoConvertido) AS total
                 FROM pms_cargo_financiero c
-                INNER JOIN pms_informacion_financiera i2 ON i2.id = c.informacion_id
+                LEFT JOIN pms_evento_calendario ev ON ev.id = c.evento_id
                 WHERE c.tipo = 'charge' AND c.informacion_id IN ($in)
-                  AND i2.activa = 1
+                  -- Mismo criterio que la consulta por moneda, aunque este total esté en retirada:
+                  -- dos definiciones distintas de «qué cuenta» sobre la misma fila es exactamente
+                  -- lo que este módulo lleva un mes pagando.
+                  AND COALESCE(ev.estado_id, '') <> 'cancelada'
                 GROUP BY c.informacion_id
             ) cc ON cc.informacion_id = i.id
             LEFT JOIN (

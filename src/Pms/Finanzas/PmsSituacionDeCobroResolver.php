@@ -105,8 +105,8 @@ final readonly class PmsSituacionDeCobroResolver
         }
 
         // ── 2 · VIGENCIA ────────────────────────────────────────────────────
-        // Cancelada: los cargos de la estancia se conservan pero no suman; sólo cuenta la
-        // penalización (§12.7). Si no queda saldo, no hay nada que reclamar.
+        // Cancelada: los cargos de las estancias canceladas se conservan como historia pero no
+        // suman. Si no queda saldo, no hay nada que reclamar.
         //
         // ⚠️ Va ANTES que `hayCargos()`, y el orden importa aunque el huésped vea lo mismo
         // —en los dos casos no hay nada que pagar—. Al revés, una cancelada sin cargos salía
@@ -114,7 +114,12 @@ final readonly class PmsSituacionDeCobroResolver
         // siete canceladas se contaron como «reservas vivas a las que les falta el precio», que
         // es una conclusión falsa sobre datos ciertos. El motivo es para explicar, y explicar
         // de menos es explicar mal.
-        if ($info->isActiva() === false && !$totales->quedaAlgoPorCobrar()) {
+        // ⚠️ **Se pregunta a la RESERVA, no a `activa`** (08/09/2026). Desde que la bandera dejó
+        // de decidir dinero, «inactiva» ya no implica «sin cargos»: una cancelada con el arreglo
+        // nuevo tecleado a nivel reserva tiene la bandera abajo Y algo que cobrar. Con la
+        // condición vieja eso se habría contado como «cancelada, nada que hacer» — que es
+        // exactamente la conclusión falsa sobre datos ciertos que esta rama existe para evitar.
+        if ($reserva->isCancelada() && !$totales->quedaAlgoPorCobrar()) {
             return $this->nada(PmsMotivoSinCobro::CANCELADA, $paraHuesped);
         }
 

@@ -4326,15 +4326,51 @@ colgar de estancias canceladas— y en la 138ª lo único que hacía era **escon
 operador acababa de teclear a mano**. Como interruptor de cobro estaba muerto, y el cartel prometía
 un «vuelve a activarla para que se cobren» que ya no era verdad.
 
-**La bandera sigue viva como MARCADOR DE ESTADO**, y la leen tres sitios que sí la necesitan:
+⚠️ **Y quitarla del CÁLCULO es la mitad que casi se queda sin hacer.** El 08/09/2026 se retiró el
+botón, se reescribieron el doc y el cartel del panel… y `AND i2.activa = 1` siguió en los dos SQL y
+`return $info->isActiva()` en el espejo PHP. El resultado era peor que antes: el cartel decía «mueve
+los cargos a la estancia que sí ocurre» y con la bandera abajo el cargo movido **tampoco sumaba**,
+y ya no quedaba ningún botón para subirla. Lo encontró una revisión, no las herramientas: PHPStan,
+578 tests, `vue-tsc` y ESLint estaban todos en verde.
 
-| Quién | Para qué |
-|---|---|
-| `PmsSituacionDeCobroResolver` | Distinguir «cancelada» de «viva sin precio». Sin esto, en una auditoría de 250 reservas siete canceladas se contaron como reservas a las que les falta el precio |
-| `PmsPrepagoEnlaceService` | No emitir enlace de adelanto sobre una cancelada |
-| `RegistrarCargoSkill` | Avisar al agente antes de dejarle añadir un cargo |
+**La bandera sigue viva como MARCADOR DE ESTADO**, pero los sitios que la leían como «cargos a
+cero» tuvieron que cambiar, porque esa implicación ya no existe:
+
+| Quién | Antes | Ahora |
+|---|---|---|
+| `PmsSituacionDeCobroResolver` | `!$info->isActiva()` | `$reserva->isCancelada()` — «inactiva» ya no implica «sin cargos»: una cancelada con el arreglo nuevo a nivel reserva tiene la bandera abajo **y** algo que cobrar |
+| `PmsPrepagoEnlaceService` | `!$info->isActiva()` | `$reserva->isCancelada()` — si no, le negaba el enlace de adelanto a un huésped que sí viene |
+| `RegistrarCargoSkill` | «en una cuenta anulada NINGÚN cargo suma» | Dice la verdad: suma si se imputa a la reserva o a una estancia en pie |
+| `PmsRecalcularTotalesCommand` | `AND i.activa = 1` al elegir qué recalcular | Sin filtro — dejaba fuera justo las fichas donde el cambio de regla tiene efecto |
 
 Lo que se fue es el **interruptor**, no el estado.
+
+#### 🔥 «Qué cargo cuenta» estaba escrito CINCO veces, y sólo se cambiaron dos
+
+Es la reincidencia exacta del aviso del 31/08 en `getLineasCliente()` («la cuarta copia que se
+quedó atrás»), y esta vez con tres copias fuera de sitio:
+
+| Copia | Qué rompía al quedarse vieja |
+|---|---|
+| `PmsInformacionFinanciera::getTotalCargosDelCanalPorMoneda()` | Es el OBJETIVO del depósito espejo de Airbnb/VRBO: apuntaba a una cifra mayor que los cargos → saldo negativo que no existe |
+| `getDesglosePorTipo()` | El adelanto se calculaba sobre alojamiento de una estancia muerta |
+| `getLineasCliente()` | El huésped veía en su estado de cuenta líneas que su propio total no incluía |
+
+Ahora hay **una sola definición**: `PmsCargoFinanciero::cuentaParaElSaldo()`. Las tres la llaman, y
+`PmsTotalesPorMoneda::cargoCuenta()` delega en ella. El SQL sigue siendo una copia inevitable —se
+ejecuta en la base— pero es UNA, está citada desde la entidad, y hay tests que comparan resultados.
+
+#### Y dos remates de la misma revisión
+
+⚠️ **El comando `mover-cargos-de-cancelada` no ponía el candado.** Se escribió antes de descubrir
+que el candado también tiene que congelar importes, así que movía el cargo y el siguiente pull le
+metía el 0.00 del canal. Además ahora **deja la penalización donde está** —moverla se la cobraría
+al huésped que sí viene— y **no cuenta `extension` ni `bloqueo` como estancias vivas**: una salida
+tardía hacía que dijera «hay 2 estancias vivas» y se negara justo cuando servía.
+
+⚠️ **Un cargo fijado no se podía soltar.** Un candado sin llave es una avería futura con fecha
+desconocida: un cargo movido por error dejaba de recibir importes del canal para siempre, sin aviso.
+Ahora el sello «Fijado» de la fila es un botón que lo devuelve al canal.
 
 Los cargos **nunca se borran**: siguen en la tabla y visibles en el panel, sólo dejan de contar.
 

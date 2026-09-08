@@ -119,15 +119,22 @@ final class PmsTotalesPorMonedaTest extends TestCase
      *
      * El cargo NO se borra: sigue en la tabla con su importe. Sólo deja de sumar.
      */
-    public function testEnUnaFichaAnuladaNoCuentaNADA(): void
+    public function testLaBanderaACTIVAYaNoDecideDINERO(): void
     {
+        // 🔥 Este test decía lo CONTRARIO hasta el 08/09/2026 —«en una ficha anulada no cuenta
+        // nada»— y era la regla. Cambió porque `activa` es de la RESERVA ENTERA y no tenía
+        // posición correcta: abajo no contaba ni el precio nuevo tecleado a mano tras pasar el
+        // huésped a directa; arriba revivían los cargos del canal de la estancia muerta.
+        //
+        // Ahora lo decide el estado de cada ESTANCIA. Medido el día del cambio: de 138 fichas con
+        // la bandera abajo, en 137 no cambiaba ni un céntimo.
         $info = $this->ficha(activa: false);
         $this->cargo($info, '300.00', $this->usd, PmsTipoCargo::ALOJAMIENTO);
-        $this->cargo($info, '50.00', $this->usd, PmsTipoCargo::PENALIZACION);
 
-        self::assertFalse(
-            PmsTotalesPorMoneda::de($info)->hayCargos(),
-            'ni la estancia ni la penalización suman en una ficha anulada',
+        self::assertSame(
+            '300.00',
+            PmsTotalesPorMoneda::de($info)->porMoneda['USD']['cargos'],
+            'la bandera de la cabecera ya no apaga un cargo que no cuelga de una estancia cancelada',
         );
     }
 
@@ -176,7 +183,11 @@ final class PmsTotalesPorMonedaTest extends TestCase
         // negativo, y está bien que se vea. Lo que NO puede pasar es que «ninguna moneda debe» se
         // lea como «pagada» — de eso se ocupa `hayCargos()`.
         $info = $this->ficha(activa: false);
-        $this->cargo($info, '300.00', $this->usd, PmsTipoCargo::ALOJAMIENTO);
+
+        // El cargo cuelga de una estancia CANCELADA: eso es lo que hoy lo apaga, no la bandera.
+        $muerto = $this->cargo($info, '300.00', $this->usd, PmsTipoCargo::ALOJAMIENTO);
+        $muerto->setEvento($this->estancia(PmsEventoEstado::CODIGO_CANCELADA));
+
         $this->pago($info, '120.00', $this->usd);
 
         $totales = PmsTotalesPorMoneda::de($info);

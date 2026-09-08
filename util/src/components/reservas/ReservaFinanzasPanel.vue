@@ -857,6 +857,23 @@ async function moverCargosDelGrupo(grupo: GrupoCargos): Promise<void> {
 }
 
 /**
+ * Suelta el candado: el canal vuelve a mandar sobre este cargo.
+ *
+ * ⚠️ **Tiene que existir una salida.** Un cargo movido por error quedaba fijado para siempre:
+ * importes y descripción del canal dejaban de entrar, sin aviso y sin forma de deshacerlo desde
+ * ninguna pantalla. Un candado sin llave es una avería futura con fecha desconocida.
+ */
+async function soltarCandado(id: string): Promise<void> {
+    error.value = null;
+
+    try {
+        await finanzas.patchCargo(id, { fijadoPorOperador: false, sobreescribirTraduccion: false });
+    } catch (err) {
+        error.value = err instanceof Error ? err.message : 'No se pudo soltar el candado.';
+    }
+}
+
+/**
  * Los cuadros de estancia cancelada nacen PLEGADOS.
  *
  * Sus cargos son historia y no cobran: ocupan media pantalla contando algo que ya pasó, justo
@@ -2323,6 +2340,15 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     <span v-else-if="!tipoCargoOpt(c.tipoCargo)" class="text-xs font-bold text-slate-400 truncate">
                                         Sin descripción
                                     </span>
+                                    <!-- El candado se VE y se puede soltar: si no, un cargo movido
+                                         por error deja de recibir los importes del canal para
+                                         siempre y nadie sabe por qué. -->
+                                    <button v-if="c.fijadoPorOperador && !readOnly && c.id" type="button"
+                                        @click="soltarCandado(c.id)" :disabled="finanzas.isSaving"
+                                        title="El canal no toca este cargo. Pulsa para devolvérselo."
+                                        class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-[#376875]/10 text-[#376875] hover:bg-[#376875]/20 transition-colors">
+                                        <i class="fas fa-lock mr-0.5"></i>Fijado
+                                    </button>
                                     <span v-if="c.manual"
                                         class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-slate-100 text-slate-500"
                                         title="Cargo creado manualmente">Manual</span>

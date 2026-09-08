@@ -88,10 +88,12 @@ final class PmsRecalcularTotalesCommand extends Command
             WHERE NOT EXISTS (SELECT 1 FROM pms_finanzas_total_moneda t WHERE t.informacion_id = i.id)
               AND (
                   EXISTS (
+                      -- ⚠️ Sin `i.activa`: dejó de decidir dinero el 08/09/2026, y con ella
+                      -- puesta las fichas de reservas canceladas no entraban en el recálculo,
+                      -- que es justo donde el cambio de regla tiene efecto.
                       SELECT 1 FROM pms_cargo_financiero c
                       WHERE c.informacion_id = i.id
                         AND COALESCE(c.tipo, 'charge') = 'charge'
-                        AND i.activa = 1
                   )
                OR EXISTS (SELECT 1 FROM pms_pago_financiero p WHERE p.informacion_id = i.id)
               )

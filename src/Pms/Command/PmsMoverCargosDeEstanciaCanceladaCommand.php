@@ -8,6 +8,7 @@ use App\Pms\Entity\PmsCargoFinanciero;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Enum\PmsTipoCargo;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -80,9 +81,21 @@ final class PmsMoverCargosDeEstanciaCanceladaCommand extends Command
         $vivas = [];
 
         foreach ($reserva->getEventosCalendario() as $evento) {
-            if ($evento->getEstado()?->getId() !== PmsEventoEstado::CODIGO_CANCELADA) {
-                $vivas[] = $evento;
+            $estado = $evento->getEstado()?->getId();
+
+            // ⚠️ **`extension` y `bloqueo` NO son estancias**: son la salida tardía y el bloqueo de
+            // calendario. Contarlas hacía que una reserva de una sola casita con salida tardía
+            // dijera «hay 2 estancias vivas» y el comando se negara justo cuando servía — o peor,
+            // que los cargos acabaran en la noche fantasma si el tramo real estaba cancelado.
+            if (in_array($estado, [
+                PmsEventoEstado::CODIGO_CANCELADA,
+                PmsEventoEstado::CODIGO_EXTENSION,
+                PmsEventoEstado::CODIGO_BLOQUEO,
+            ], true)) {
+                continue;
             }
+
+            $vivas[] = $evento;
         }
 
         if (count($vivas) !== 1) {
@@ -106,6 +119,13 @@ final class PmsMoverCargosDeEstanciaCanceladaCommand extends Command
                     continue;
                 }
 
+                // ⚠️ **La penalización se queda.** Es el «Cancel Fee» que manda el canal por haber
+                // cancelado: moverlo a la estancia nueva se lo cobraría al huésped que sí viene,
+                // por algo que ya no pasó. De 24 medidas, 2 traen importe — bastan para hacer daño.
+                if ($cargo->getTipoCargo() === PmsTipoCargo::PENALIZACION) {
+                    continue;
+                }
+
                 $filas[] = [
                     $this->etiqueta($cargo),
                     $cargo->getMoneda()?->getId() ?? '—',
@@ -116,6 +136,11 @@ final class PmsMoverCargosDeEstanciaCanceladaCommand extends Command
 
                 if (!$seco) {
                     $cargo->setEvento($destino);
+                    // 🔥 **Sin esto la mudanza no dura.** El persister reimputa en cada sync y le
+                    // pisa los importes con lo que mande el canal —que en lo cancelado es 0.00 la
+                    // mitad de las veces—. El panel ya lo hacía; este comando se escribió antes de
+                    // descubrirlo y se quedó atrás.
+                    $cargo->setFijadoPorOperador(true);
                 }
 
                 ++$movidos;

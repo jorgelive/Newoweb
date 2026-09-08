@@ -323,11 +323,14 @@ final readonly class PmsPrepagoEnlaceService
     {
             // ⚠️ Cabecera ANULADA (todas las estancias canceladas): aquí no se pide adelanto.
             //
-            // No basta con `pendiente()`: con la cabecera inactiva sus cargos dejan de sumar
-            // PERO la PENALIZACIÓN sigue contando (§12.7), así que la base no es cero y el
-            // calculador devolvería una fracción de la penalidad. Emitir un «Adelanto de
-            // reserva» sobre una reserva cancelada no tiene ningún sentido.
-            if (!$info->isActiva()) {
+            // Emitir un «Adelanto de reserva» sobre una reserva cancelada no tiene ningún
+            // sentido, así que se corta aquí aunque quede base que calcular.
+            //
+            // ⚠️ **Se pregunta a la RESERVA, no a `activa`** (08/09/2026). Desde que la bandera
+            // dejó de decidir dinero, «inactiva» ya no significa «cancelada»: puede quedar abajo
+            // en una reserva que siguió adelante como directa, y entonces esto le negaba el enlace
+            // de adelanto al huésped que sí va a venir.
+            if ($reserva->isCancelada()) {
                 $this->anularAutomaticosVigentes($id);
 
                 return null;

@@ -294,16 +294,17 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
         // ese consejo manda al operador a hacer un trabajo que tampoco va a mover el saldo.
         $advertencia = null;
 
-        if (!$info->isActiva()) {
-            $advertencia = sprintf(
-                'ATENCIÓN: esta cuenta está ANULADA (reserva cancelada). En una cuenta anulada '
-                . 'NINGÚN cargo suma al saldo —tampoco una penalización—, así que este cargo de '
-                . 'tipo «%s» se guardará como registro pero el saldo no se moverá. Bajo las '
-                . 'condiciones actuales de las OTA no tenemos acceso a la tarjeta del huésped, y '
-                . 'una cancelación no se puede cobrar. Díselo al operador antes de pedirle la '
-                . 'confirmación.',
-                $tipo->value
-            );
+        // ⚠️ **El aviso cambió el 08/09/2026 y decía algo que ya es falso.** Rezaba «en una cuenta
+        // anulada NINGÚN cargo suma al saldo», y desde que `activa` dejó de decidir dinero eso no
+        // es cierto: lo que no suma es un cargo colgado de una estancia CANCELADA. Un cargo a
+        // nivel reserva —el arreglo nuevo tras pasarse a directa— sí suma, y con el aviso viejo el
+        // agente le habría dicho al operador que no valía la pena teclearlo.
+        if ($info->isActiva() === false) {
+            $advertencia =
+                'AVISO: esta reserva se canceló en el canal. El cargo SÍ va a sumar al saldo si lo '
+                . 'imputas a la reserva o a una estancia que siga en pie; si lo imputas a una '
+                . 'estancia cancelada quedará sólo como registro histórico y no moverá el saldo. '
+                . 'Dile al operador a cuál lo vas a imputar antes de pedirle la confirmación.';
         }
 
         $resumen = array_filter([

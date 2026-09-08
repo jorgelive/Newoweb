@@ -511,4 +511,43 @@ class PmsCargoFinanciero
     {
         return $this->tipo === self::TIPO_CARGO;
     }
+
+    /**
+     * ¿Este cargo suma al saldo?
+     *
+     * 🔥 **La ÚNICA definición.** Estaba escrita cinco veces —el SQL de `recalcularPorMoneda()`,
+     * `PmsTotalesPorMoneda::cargoCuenta()` y tres métodos de `PmsInformacionFinanciera`— y al
+     * cambiar la regla el 08/09/2026 sólo se actualizaron dos. Las otras tres siguieron contando
+     * los cargos de una estancia cancelada, así que el depósito espejo de Airbnb apuntaba a un
+     * total que el saldo ya no tenía, el cálculo del adelanto se hacía sobre alojamiento muerto, y
+     * el estado de cuenta del huésped enseñaba líneas que no cuadraban con su propio total.
+     *
+     * Es exactamente el fallo que el comentario del 31/08 en `getLineasCliente()` describía como
+     * «la cuarta copia que se quedó atrás». Reaparecido, y por eso ahora hay un solo sitio.
+     *
+     * ⚠️ El SQL sigue siendo una copia inevitable —se ejecuta en la base—, pero es UNA, está
+     * citada aquí y hay tests que comparan los dos resultados.
+     *
+     * ── Qué NO cuenta ───────────────────────────────────────────────────────
+     * - Lo que no es un cargo (un abono, un ajuste): `tipo <> 'charge'`.
+     * - Lo que cuelga de una estancia **cancelada**: esa estancia no ocurre, y su precio es
+     *   historia. Un cargo de NIVEL RESERVA sí cuenta — es donde se teclea el arreglo nuevo.
+     *
+     * ⚠️ **`activa` ya NO participa** (08/09/2026). Es una bandera de la reserva entera, y con
+     * ella dentro no había posición correcta: abajo no contaba ni el precio nuevo tecleado a mano,
+     * arriba revivían los cargos del canal de la estancia muerta. Sigue viva como marcador de
+     * estado, no como interruptor de dinero.
+     *
+     * ⚠️ **Un `tipo` a `null` cuenta como cargo**, y no es indulgencia: lo rellena `prePersist`,
+     * así que una entidad recién añadida y sin flush lo tiene vacío — y leer la ficha justo en ese
+     * momento es un caso real. Lo cazó un test, no el análisis estático.
+     */
+    public function cuentaParaElSaldo(): bool
+    {
+        if ($this->tipo !== null && !$this->esCargo()) {
+            return false;
+        }
+
+        return $this->evento?->getEstado()?->getId() !== PmsEventoEstado::CODIGO_CANCELADA;
+    }
 }

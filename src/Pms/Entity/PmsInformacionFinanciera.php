@@ -357,8 +357,8 @@ class PmsInformacionFinanciera
 
             $tipo = $cargo->getTipoCargo() ?? PmsTipoCargo::OTRO;
 
-            // Sin excepción para la penalización: ver `getLineasCliente()` y §12.7.0.
-            if (!$this->activa) {
+            // 🔥 UNA sola definición: {@see PmsCargoFinanciero::cuentaParaElSaldo()}.
+            if (!$cargo->cuentaParaElSaldo()) {
                 continue;
             }
 
@@ -421,9 +421,13 @@ class PmsInformacionFinanciera
                 continue;
             }
 
-            // Cabecera ANULADA: no cuenta nada, tampoco la penalización — igual que el rollup
-            // desde el 31/08/2026. Ver §12.7.0.
-            if (!$this->activa) {
+            // 🔥 UNA sola definición: {@see PmsCargoFinanciero::cuentaParaElSaldo()}.
+            //
+            // ⚠️ Este total es el OBJETIVO del depósito espejo de Airbnb/VRBO
+            // ({@see \App\Pms\Service\PmsPagoOtaAutomaticoService::sincronizar()}). Cuando esta
+            // copia contaba la estancia cancelada y el saldo no, el depósito apuntaba a una cifra
+            // mayor que los cargos y salía un saldo negativo que no existía.
+            if (!$cargo->cuentaParaElSaldo()) {
                 continue;
             }
 
@@ -482,7 +486,11 @@ class PmsInformacionFinanciera
             // el problema original: la penalización dejaba de sumar en el total pero **seguía
             // apareciendo como línea** en el detalle del huésped, o sea un cargo visible que no
             // cuadraba con ninguna cifra. Ver §12.7.0 de `docs/PmsBeds24ReservasSync.md`.
-            if (!$this->activa) {
+            // 🔥 UNA sola definición: {@see PmsCargoFinanciero::cuentaParaElSaldo()}. Es
+            // literalmente la reincidencia que este comentario describe: al cambiar la regla el
+            // 08/09/2026 esta copia volvió a quedarse atrás y el huésped veía en su estado de
+            // cuenta los 290.31 de una estancia cancelada que su propio total no incluía.
+            if (!$cargo->cuentaParaElSaldo()) {
                 continue;
             }
 
