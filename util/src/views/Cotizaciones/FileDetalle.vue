@@ -1243,6 +1243,48 @@ const descargarCargado = () => {
   if (id) { void bajarHoja(`/cotizacion/user/padron/exportar/${id}`, 'padron-cargado.xlsx'); }
 };
 
+/**
+ * El .xlsx de «quién ha subido sus documentos».
+ *
+ * No es el padrón: aquel lleva los DATOS —números, vencimientos— y se vuelve a subir. Éste lleva el
+ * ESTADO de los tres escaneos y no se sube a ningún sitio; se ordena, se filtra y se convierte en
+ * la lista de a quién hay que escribir hoy.
+ *
+ * ⚠️ Respeta los filtros de la pantalla, y por eso manda la LISTA de ids en vez de los filtros:
+ * repetirlos en el servidor serían dos implementaciones de la misma pregunta, y la que se quedase
+ * corta lo haría en silencio.
+ */
+const descargarDocumentos = async () => {
+  const id = extractIdStr(file.value?.id || file.value?.['@id'] || '');
+  if (!id) return;
+
+  const ruta = `/cotizacion/user/manifiesto/documentos/${id}`;
+
+  if (!hayFiltros.value) {
+    void bajarHoja(ruta, 'documentos.xlsx');
+    return;
+  }
+
+  // ⚠️ `@id`, NO `id`: el pasajero no expone `id` en el grupo de lectura, sólo el IRI.
+  const ids = pasajerosFiltrados.value.map(p => extractIdStr(p['@id'] ?? p.id)).filter(Boolean);
+  if (!ids.length) return;
+
+  descargandoPlantilla.value = true;
+  try {
+    const { data } = await apiClient.post(ruta, { ids }, { responseType: 'blob' });
+    const url = URL.createObjectURL(data as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `documentos-${ids.length}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    alert('No se pudo descargar el archivo.');
+  } finally {
+    descargandoPlantilla.value = false;
+  }
+};
+
 // ── Filtros del manifiesto ─────────────────────────────────────────────────
 //
 // Con 133 personas y 108 subgrupos, la lista completa no sirve para nada: lo que se hace de
@@ -2605,7 +2647,17 @@ const eliminarDocumento = async (iri?: string) => {
                    :class="manifiestoAbierto ? 'rotate-180' : ''"></i>
               </button>
               <div v-if="manifiestoAbierto">
-              <div class="flex items-center justify-end mb-4">
+              <div class="flex flex-wrap items-center justify-end gap-2 mb-4">
+                <!-- Al lado de «Añadir Pax» y no entre los filtros: se baja para reclamar
+                     documentos, que es una tarea del manifiesto entero, no el remate de una
+                     búsqueda. Con filtros puestos se lleva sólo a los que se ven, y el rótulo lo
+                     dice para que no haya que adivinarlo. -->
+                <button v-if="file.filepasajeros?.length" type="button" @click="descargarDocumentos"
+                        :disabled="descargandoPlantilla"
+                        class="border border-teal-200 bg-teal-50 text-teal-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-100 disabled:opacity-40">
+                  <i class="fas mr-1.5" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-excel'"></i>
+                  Documentos<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }})</span>
+                </button>
                 <button @click="abrirPaxModal" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm">+ Añadir Pax</button>
               </div>
 

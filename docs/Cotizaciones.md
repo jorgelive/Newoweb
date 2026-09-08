@@ -1377,6 +1377,45 @@ editor, así que había que abrir el formulario para leerla.
 y de los subgrupos, y son los dos datos que pide todo control migratorio. El orden de un formulario
 que se rellena 131 veces no es estética.
 
+#### Quién ha subido sus documentos, en una hoja (08/09/2026)
+
+El manifiesto ya enseña los escaneos de cada persona, pero la pregunta que se hace de verdad no es
+«¿qué tiene Fulano?» sino **«¿a quién le escribo hoy?»** — y eso es una lista que se ordena, se
+filtra y se pega en un mensaje, no un panel que se recorre 133 veces.
+
+El botón **Documentos** del manifiesto baja un `.xlsx`
+({@see `App\Cotizacion\Service\Padron\ReporteDeDocumentos`}) con una fila por persona: grupo,
+apellidos, nombres, tipo, número de DNI, de pasaporte y de cualquier otro documento, y después el
+estado de los **tres escaneos** que se piden — DNI anverso, DNI reverso y pasaporte — en verde con
+su fecha de subida o en rojo con un guion. La última columna, `Qué falta`, ya viene redactada.
+
+⚠️ **No es la exportación del padrón, y no se vuelve a subir.** Aquella lleva los DATOS —números,
+vencimientos, ejes— y trae la columna `Id` precisamente para reimportarse. Ésta lleva el ESTADO y
+no tiene importador: son dos hojas distintas porque son dos preguntas distintas.
+
+⚠️ **Respeta los filtros de la pantalla**, y por eso manda la lista de ids por `POST` en vez de
+mandar los filtros: repetirlos en el servidor serían dos implementaciones de la misma pregunta, y
+la que se quedase corta lo haría en silencio. Sin filtros puestos es un `GET` y baja el expediente
+entero. Es el mismo par de verbos que `cotizacion_padron_exportar`, por el mismo motivo (los UUID
+de 133 personas no caben en una URL).
+
+##### La celda cuenta ARCHIVOS, no marca sí/no
+
+Si de un tipo hay más de uno, la celda lo dice —`05/09/2026 (2 archivos)`— y se pinta ámbar. No es
+adorno: **las dos vías de subida no se comportan igual**.
+
+- La del **pasajero** (`SubirDocumentoPasajeroController`) *reemplaza*: al subir un segundo
+  pasaporte borra el anterior, porque la segunda foto siempre es la buena — la primera salió
+  movida.
+- La del **operador** (API Platform, el formulario de la bóveda) *acumula*: no borra nada, y no hay
+  índice único en `cotizacion_file_archivo` que lo impida.
+
+O sea que sí, un operador puede dejar dos pasaportes o dos anversos colgados de la misma persona.
+Comprobado en producción el 08/09/2026: **cero duplicados** hoy (32 pasaportes, 30 anversos, 30
+reversos, todos de personas distintas). Se deja como está a propósito —hay casos legítimos, como el
+pasaporte viejo y el nuevo de quien lo renovó a mitad de trámite— y esta hoja es donde se ve si
+alguna vez deja de ser legítimo.
+
 #### El pasajero no veía los horarios de SU vuelo (08/09/2026)
 
 En «Lo tuyo», el subgrupo aéreo decía «Copa Airlines · BNZXNE · 8 personas»: con quién vuela y con
