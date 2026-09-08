@@ -63,6 +63,20 @@ const verGuia = (propuesta: number) => {
 };
 
 // --- HELPERS DE FORMATO ---
+/**
+ * Qué icono lleva cada adjunto.
+ *
+ * Lo dice el backend (`CotizacionFilearchivo::getTipoMedio()`); aquí sólo se traduce a un icono.
+ * Estuvo escrito a fuego como PDF, así que una foto o un vídeo se anunciaban como PDF.
+ */
+const iconoDe = (tipo?: string | null) => ({
+    pdf: 'far fa-file-pdf',
+    imagen: 'far fa-image',
+    video: 'far fa-file-video',
+    audio: 'far fa-file-audio',
+    hoja: 'far fa-file-excel',
+}[tipo ?? ''] ?? 'far fa-file');
+
 const formatearFecha = (iso?: string | null) => {
   if (!iso) return '';
   return new Date(iso.substring(0, 10) + 'T00:00:00').toLocaleDateString(maestroStore.idiomaActual, {
@@ -356,15 +370,19 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
         <h2 class="text-[#376875]/60 font-black uppercase tracking-[0.2em] text-[11px] mb-4">
           {{ maestroStore.t('cot_boletos_documentos') || 'Boletos y Documentos' }}
         </h2>
+        <!-- ⚠️ La clave del bucle es `imageUrl` y no `id`: `id` NO se serializa en
+             `pax_file:read`, así que todas las filas compartían la clave `undefined`. Lo tapaba un
+             tipo escrito a mano que declaraba un campo que la API no manda. -->
         <div class="flex flex-wrap gap-3">
           <a
               v-for="doc in store.documentos"
-              :key="doc.id"
+              :key="doc.imageUrl ?? ''"
               :href="doc.imageUrl ?? '#'"
               target="_blank"
               class="flex items-center gap-2 bg-slate-50 hover:bg-[#376875]/5 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-[#376875] transition-colors"
           >
-            <i class="fas fa-file-pdf text-[#E07845]"></i>
+            <!-- El icono sale del archivo: no todos los adjuntos son PDF. -->
+            <i :class="iconoDe(doc.tipoMedio)" class="text-[#E07845]"></i>
             {{ store.traducir(doc.nombre) || doc.tipoArchivo }}
           </a>
         </div>

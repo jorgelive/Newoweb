@@ -360,19 +360,21 @@ export type PaxFilepasajero = Omit<PasajeroBase, 'identificaciones'> & {
 /**
  * Un adjunto del expediente: boleto, factura, confirmación de reserva.
  *
- * ⚠️ Escrito a mano, así que **no lo protege el compilador**: cuando el backend renombró
- * `tipodocumento` → `tipoArchivo` y quitó `vencimiento`, este archivo siguió compilando y la
- * portada dejó de rotular los adjuntos en silencio. Es literalmente el caso que documenta
- * `CLAUDE.md`: un tipo escrito a mano que se queda corto no falla, miente.
- * Espejo de `App\Cotizacion\Entity\CotizacionFilearchivo`. **Al tocar una, tocar la otra.**
+ * ✅ **Anclado al esquema desde el 08/09/2026.** Estuvo escrito a mano, y eso no falla al
+ * compilar: **miente**. Cuando el backend renombró `tipodocumento` → `tipoArchivo` y quitó
+ * `vencimiento`, este archivo siguió compilando y la portada dejó de rotular los adjuntos en
+ * silencio. Se ancló al añadir `tipoMedio`, que es cuando volvió a hacer falta tocarlo.
+ *
+ * El único override es el i18n: el esquema lo ve como diccionario abierto y aquí se estrecha.
+ * Es de los tres motivos que `CLAUDE.md` admite.
  */
-export interface PaxFilearchivo {
+export type PaxFilearchivo = Omit<
+    components['schemas']['CotizacionFilearchivo-pax_file.read'],
+    'nombre'
+> & {
     '@id'?: string;
-    id?: string;
     nombre?: I18n;
-    tipoArchivo?: string | null;
-    imageUrl?: string | null;
-}
+};
 
 // --- Resumen de propuesta (card de la portada) ----------------------------------
 

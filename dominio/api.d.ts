@@ -13049,6 +13049,8 @@ export interface components {
             sobreescribirTraduccion: boolean;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
@@ -13075,6 +13077,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
         };
@@ -13137,6 +13141,8 @@ export interface components {
             }[] | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
         };
         "CotizacionFilearchivo-pax_file.read_pax_cotizacion.read": {
             /**
@@ -13149,6 +13155,8 @@ export interface components {
             }[] | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
         };
         "CotizacionFilearchivo.html": {
             /**
@@ -13201,6 +13209,8 @@ export interface components {
             sobreescribirTraduccion: boolean;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
@@ -13227,6 +13237,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
         };
@@ -13241,6 +13253,8 @@ export interface components {
             }[] | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
         };
         "CotizacionFilearchivo.html-pax_file.read_pax_cotizacion.read": {
             /**
@@ -13253,6 +13267,8 @@ export interface components {
             }[] | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
         };
         "CotizacionFilearchivo.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -13305,6 +13321,8 @@ export interface components {
             sobreescribirTraduccion: boolean;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
@@ -13331,6 +13349,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
         };
@@ -13345,6 +13365,8 @@ export interface components {
             }[] | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
         };
         "CotizacionFilearchivo.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -13357,6 +13379,8 @@ export interface components {
             }[] | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
         };
         "CotizacionFilearchivo.multipart": {
             /**
@@ -13409,6 +13433,8 @@ export interface components {
             sobreescribirTraduccion: boolean;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
@@ -13435,6 +13461,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
         };
@@ -13449,6 +13477,8 @@ export interface components {
             }[] | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
         };
         "CotizacionFilearchivo.multipart-pax_file.read_pax_cotizacion.read": {
             /**
@@ -13461,6 +13491,8 @@ export interface components {
             }[] | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
         };
         CotizacionFilepasajero: {
             nombre?: string;

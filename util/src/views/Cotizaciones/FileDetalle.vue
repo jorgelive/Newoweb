@@ -1450,6 +1450,23 @@ const zipPlan = ref<PlanCargaZip | null>(null);
 const zipCargando = ref(false);
 const zipAplicando = ref(false);
 
+/**
+ * Icono y color por clase de archivo.
+ *
+ * El backend dice QUÉ es (`CotizacionFilearchivo::getTipoMedio()`, que lo saca de la extensión que
+ * puso el `Namer` a partir del contenido); aquí sólo se elige cómo se pinta.
+ */
+const MEDIOS: Record<string, { icono: string; clase: string }> = {
+    pdf: { icono: 'far fa-file-pdf', clase: 'bg-rose-100 text-rose-600' },
+    imagen: { icono: 'far fa-image', clase: 'bg-sky-100 text-sky-600' },
+    video: { icono: 'far fa-file-video', clase: 'bg-violet-100 text-violet-600' },
+    audio: { icono: 'far fa-file-audio', clase: 'bg-amber-100 text-amber-600' },
+    hoja: { icono: 'far fa-file-excel', clase: 'bg-emerald-100 text-emerald-600' },
+    otro: { icono: 'far fa-file', clase: 'bg-slate-100 text-slate-500' },
+};
+
+const mediaDe = (tipo?: string | null) => MEDIOS[tipo ?? 'otro'] ?? MEDIOS.otro;
+
 const zipCasan = computed(() => (zipPlan.value?.filas ?? []).filter(f => !f.problema));
 const zipFallan = computed(() => (zipPlan.value?.filas ?? []).filter(f => f.problema));
 
@@ -2314,7 +2331,14 @@ const eliminarDocumento = async (iri?: string) => {
             <div v-else class="space-y-2">
               <div v-for="doc in file.filearchivos" :key="doc.id" class="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 group relative">
                 <a :href="doc.imageUrl || undefined" target="_blank" class="flex-1 flex items-center gap-3 min-w-0">
-                  <div class="w-8 h-8 rounded bg-sky-100 text-sky-600 flex items-center justify-center text-sm shrink-0"><i class="far fa-file-pdf"></i></div>
+                  <!-- ⚠️ El icono sale del ARCHIVO, no está escrito a fuego. Estuvo puesto a
+                       `fa-file-pdf` para todo, así que un vídeo o una foto de pasaporte se
+                       anunciaban como PDF: en una bóveda de ~1 500 archivos, eso obliga a
+                       abrirlos para saber qué son. -->
+                  <div class="w-8 h-8 rounded flex items-center justify-center text-sm shrink-0"
+                       :class="mediaDe(doc.tipoMedio).clase">
+                    <i :class="mediaDe(doc.tipoMedio).icono"></i>
+                  </div>
                   <div class="min-w-0">
                     <p class="text-[11px] font-black text-slate-800 truncate">{{ getDocNombre(doc) || getArchivoLabel(doc.tipoArchivo) }}</p>
                     <p class="text-[9px] font-bold text-slate-400 uppercase truncate">

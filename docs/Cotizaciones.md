@@ -1207,6 +1207,22 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### El icono decía PDF para todo (08/09/2026)
+
+Se subió un vídeo a la bóveda y la lista lo anunció como PDF. El icono estaba escrito a fuego
+—`far fa-file-pdf`— en las **dos** apps, así que un vídeo, una foto de pasaporte o una hoja de
+cálculo se veían igual que un boleto. No rompe nada, y por eso llevaba ahí desde siempre: sólo hace
+que la lista mienta. En una bóveda de ~1 500 archivos eso obliga a abrirlos para saber qué son.
+
+Lo dice ahora `CotizacionFilearchivo::getTipoMedio()` —`pdf`, `imagen`, `video`, `audio`, `hoja`,
+`otro`—, sacado de la **extensión del nombre en disco**, que la puso el `Namer` a partir de lo que
+Symfony dedujo del contenido, no del nombre que traía el cliente. Cada app elige su icono.
+
+⚠️ **Y al anclar `PaxFilearchivo` al esquema salió un fallo que el tipo a mano tapaba:** declaraba
+un `id` que `pax_file:read` **no serializa**, y la portada lo usaba como `:key` del `v-for`. Todas
+las filas compartían la clave `undefined`. Es exactamente lo que avisa `CLAUDE.md`: un tipo escrito
+a mano no se queda corto, **miente** — y aquí llevaba meses mintiendo sin un solo error.
+
 #### La tarjeta de embarque, con el vuelo delante (08/09/2026)
 
 El pasajero tiene hasta ocho y **todas se llaman «boleto»**. En la cola del embarque lo que sirve

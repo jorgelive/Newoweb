@@ -235,6 +235,37 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
     }
 
     public function getImageName(): ?string { return $this->imageName; }
+
+    /**
+     * Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar.
+     *
+     * ⚠️ **Las dos aplicaciones pintaban un icono de PDF a fuego**, así que un vídeo, una foto de
+     * pasaporte o una hoja de cálculo se anunciaban como PDF. No rompe nada y por eso llevaba ahí
+     * desde siempre: sólo hace que la lista mienta, y una bóveda con ~1 500 archivos que miente
+     * sobre lo que hay dentro obliga a abrirlos para saberlo.
+     *
+     * ⚠️ Se decide por la EXTENSIÓN del nombre en disco, que lo pone `MediaTokenNamer` a partir de
+     * lo que Symfony dedujo del contenido al subirlo — no del nombre que traía el cliente. Y el
+     * escaneo de identidad ya viene convertido a `webp` por
+     * {@see \App\Panel\EventListener\Media\VichWebpConversionListener}, así que aquí ya es
+     * imagen aunque el operador subiera un HEIC.
+     *
+     * @return 'pdf'|'imagen'|'video'|'audio'|'hoja'|'otro'
+     */
+    #[Groups(['file:item:read', 'pax_file:read'])]
+    public function getTipoMedio(): string
+    {
+        $extension = strtolower(pathinfo((string) $this->imageName, PATHINFO_EXTENSION));
+
+        return match ($extension) {
+            'pdf' => 'pdf',
+            'jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif', 'avif', 'bmp', 'tif', 'tiff' => 'imagen',
+            'mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp' => 'video',
+            'mp3', 'wav', 'ogg', 'm4a', 'aac' => 'audio',
+            'xls', 'xlsx', 'csv', 'ods' => 'hoja',
+            default => 'otro',
+        };
+    }
     public function setImageName(?string $imageName): self { $this->imageName = $imageName; return $this; }
 
     public function getImageSize(): ?int { return $this->imageSize; }
