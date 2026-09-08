@@ -186,8 +186,15 @@ class PmsCargoFinanciero
      * cobra. Rescatarlos es la única salida, porque **una reserva de OTA no se reactiva nunca**.
      *
      * ⚠️ **Mismo criterio asimétrico que `datosLocked`** (§9.3): el automatismo cede ante la
-     * persona, no al revés. Y sólo bloquea la IMPUTACIÓN — importes, estado y descripción siguen
-     * sincronizándose, que es de donde viene el valor de tener el canal enchufado.
+     * persona, no al revés.
+     *
+     * ⚠️ **Congela la imputación Y los importes.** Nació bloqueando sólo la estancia, y no bastaba:
+     * Beds24 vacía el alojamiento de lo cancelado la mitad de las veces —18 de 35 medidos el
+     * 08/09/2026—, así que el cargo llegaba a su estancia nueva y el siguiente pull lo ponía a
+     * cero. Un cargo rescatado en 0.00 está tan muerto como donde estaba.
+     *
+     * Lo que sí sigue entrando es {@see Beds24InvoiceReceivePersister::rellenarHuecos()}: sólo
+     * escribe donde había `null`, así que no puede destruir ninguna decisión.
      */
     // ⚠️ Sale OBLIGATORIO en el esquema de escritura —API Platform lo hace con todo bool no
     // nulable, y `ApiProperty(required: false)` no lo cambia—, así que el front lo manda siempre.

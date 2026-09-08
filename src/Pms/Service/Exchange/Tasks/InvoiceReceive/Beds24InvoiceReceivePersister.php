@@ -127,7 +127,9 @@ readonly class Beds24InvoiceReceivePersister
                 // de OTA que se cancela y sigue como directa deja sus cargos colgados de una
                 // estancia que ya no cobra, y una de OTA no se reactiva nunca—, así que aquí el
                 // automatismo cede ante la persona. Mismo criterio asimétrico que `datosLocked`
-                // (§9.3), y sólo sobre la IMPUTACIÓN: importes y estado se siguen sincronizando.
+                // (§9.3). ⚠️ Y el candado NO es sólo sobre la imputación: arriba congela también
+                // los importes, porque un cargo rescatado que el siguiente pull pone a cero está
+                // tan muerto como donde estaba.
                 $eventoResuelto = $eventosPorBookId[$existing->getBeds24BookingId() ?? ''] ?? null;
 
                 // ⚠️ **Y NUNCA mueve un cargo que YA tiene estancia hacia una CANCELADA.** Es un
