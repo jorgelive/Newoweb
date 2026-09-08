@@ -17,6 +17,7 @@ Alcance: `src/Operacion/` (entidades, enums, servicio, listener, comando), los e
 3. [Reglas del snapshot](#3-reglas-del-snapshot) — incluye [3.3 comprable vs. referencia](#33), [3.5 reconciliación](#35), [3.4 consola](#34), [3.7 el file de la fila](#37), [3.8 congelado vs. vivo](#38)
 2.bis [Confirmar ya NO arma la operación](#2bis-confirmar-ya-no-arma-la-operación)
 2.quinquies [El filtro de expediente no filtraba](#2quinquies--el-filtro-de-expediente-de-la-biblia-no-filtraba-08092026)
+2.sexies [El teléfono de la orden llegaba viejo](#2sexies--el-teléfono-de-la-orden-llegaba-viejo-08092026)
 3.bis [Por qué La Biblia aparece vacía](#3bis-por-qué-la-biblia-aparece-vacía)
 4. [Los tres estados y por qué son tres](#4-los-tres-estados-y-por-qué-son-tres)
 5. [Órdenes de Servicio y bitácora](#5-órdenes-de-servicio-y-bitácora)
@@ -291,6 +292,37 @@ pulsa «Generar OS».
 
 El tercero es el que impide que vuelva a pasar por otra puerta: mientras el `if` fuera de
 veracidad, cualquier futuro fallo que dejara el id vacío volvería a abrir la consulta entera.
+
+---
+
+## 2.sexies 🔥 El teléfono de la orden llegaba viejo (08/09/2026)
+
+Se cambió el teléfono de Nune en **identidad** —número nuevo, el de prueba retirado— y el mensaje
+al proveedor seguía llevando el viejo.
+
+**Dos capas de dato antiguo, una encima de otra:**
+
+1. `CotizacionFile::$telefono` **no se había actualizado**, y no tenía por qué: es la **SEMILLA**
+   con la que se sembró la identidad de esa persona. Desde ahí manda la identidad, que es donde se
+   corrige, se retira y se veta. Lo explica `ContactoDeIdentidad.vue`, que por eso quitó el
+   `<input>` de esa pantalla: *«un dato que se puede editar y no se usa es peor que uno que no se
+   puede editar»*.
+2. `OperacionOrdenEmision::congelarGrupos()` había copiado **esa semilla** al emitir, así que la
+   orden llevaba una copia congelada de un dato que ya era falso cuando se copió.
+
+**El arreglo distingue dos cosas que estaban mezcladas:**
+
+| Qué | Se congela | Por qué |
+|---|---|---|
+| localizador, pax, días, noches | **Sí** | Describen lo que se ENCARGÓ. Cambiarlos después es reescribir la historia |
+| teléfono | **No** | No es un término del acuerdo: es cómo se llama a alguien. Si cambia, el proveedor tiene que recibir el NUEVO |
+
+`OperacionOrdenDocumento::telefonoVivo()` lo resuelve al armar el mensaje con `ContactoDelAsunto`
+—el mismo servicio que usa la pantalla—, y **cae a lo congelado si la identidad no da nada**: un
+número viejo es más útil que ninguno.
+
+⚠️ Arregla también las órdenes YA emitidas, que es la mitad del valor: congelar el dato bueno al
+emitir habría dejado las de antes mintiendo para siempre.
 
 ---
 

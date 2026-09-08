@@ -7,6 +7,8 @@ namespace App\Operacion\Service;
 use App\Operacion\Entity\OperacionOrdenServicio;
 use App\Operacion\Entity\OperacionOrdenServicioItem;
 use App\Travel\Entity\TravelOrganizacion;
+use App\Cotizacion\Entity\CotizacionFile;
+use App\Message\Service\Conversacion\ContactoDelAsunto;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Uid\Uuid;
@@ -35,6 +37,7 @@ final readonly class OperacionOrdenDocumento
 {
     public function __construct(
         private EntityManagerInterface $em,
+        private ContactoDelAsunto $contacto,
         #[Autowire(param: 'operaciones_telefono_emergencia')]
         private string $telefonoEmergencia = '',
     )
@@ -71,7 +74,7 @@ final readonly class OperacionOrdenDocumento
                         $g['noches'] > 0 ? sprintf(', %d %s', $g['noches'], $g['noches'] === 1 ? 'noche' : 'noches') : ''
                     ))
                     : null,
-                $g['telefono'] !== '' ? sprintf('tel. %s', $g['telefono']) : null,
+                $this->telefonoVivo($g) !== '' ? sprintf('tel. %s', $this->telefonoVivo($g)) : null,
             ], static fn (?string $p): bool => $p !== null));
 
             if ($partes !== []) {
@@ -80,6 +83,44 @@ final readonly class OperacionOrdenDocumento
         }
 
         return $lineas;
+    }
+
+    /**
+     * El teléfono se resuelve **AHORA**, no se lee del congelado.
+     *
+     * 🔥 **Un teléfono no es un término del acuerdo: es cómo se llama a alguien.** El resto del
+     * bloque —localizador, pax, días, noches— se congela al emitir porque describe lo que se
+     * encargó, y cambiarlo después sería reescribir la historia. Un número de contacto es lo
+     * contrario: si cambia, el proveedor tiene que recibir el NUEVO. Congelarlo garantiza mandar
+     * un número que ya no contesta, que es justo lo que no sirve.
+     *
+     * ⚠️ **Y la semilla del expediente tampoco es la verdad.** `CotizacionFile::$telefono` es el
+     * dato con el que se sembró la identidad de esa persona; a partir de ahí manda la IDENTIDAD,
+     * que es donde se corrige, se retira y se veta ({@see ContactoDelAsunto}). Es exactamente lo
+     * que ya explica `ContactoDeIdentidad.vue`: un dato que se puede editar y no se usa es peor
+     * que uno que no se puede editar.
+     *
+     * Pasó el 08/09/2026: se cambió el teléfono en identidad y la orden seguía mandando el de
+     * prueba, porque `congelarGrupos()` había copiado la semilla al emitir.
+     *
+     * ⚠️ Si la identidad no da nada, se cae a lo congelado: un número viejo es más útil que
+     * ninguno, y quedarse callado obligaría a buscarlo en otra pantalla.
+     *
+     * @param array{localizador: string, telefono: string} $grupo
+     */
+    private function telefonoVivo(array $grupo): string
+    {
+        $file = $grupo['localizador'] === ''
+            ? null
+            : $this->em->getRepository(CotizacionFile::class)->findOneBy(['localizador' => $grupo['localizador']]);
+
+        if ($file === null) {
+            return $grupo['telefono'];
+        }
+
+        $vivo = $this->contacto->para('cotizacion_file', (string) $file->getId())['telefono'] ?? null;
+
+        return $vivo !== null && $vivo !== '' ? $vivo : $grupo['telefono'];
     }
 
     /**
