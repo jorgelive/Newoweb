@@ -22,7 +22,7 @@ import { ESTADO_FILE_LABELS } from '@/types/cotizacionEditorModel';
 import type { ApiPais } from '@/types/maestroModel';
 
 import {
-  getArchivoLabel, ARCHIVO_TIPO_LABELS, ARCHIVO_TIPOS_DEL_PASAJERO,
+  getArchivoLabel, ARCHIVO_TIPO_LABELS, ARCHIVO_TIPOS_DEL_PASAJERO, type PlanCargaZip,
   getSexoLabel, SEXO_LABELS,
   getDocIdLabel, DOCUMENTO_IDENTIDAD_LABELS, GRUPO_TIPO_LABELS, PASAJERO_TIPO_CONFIG, FILE_MODO_CONFIG,
   type ApiFileGrupo,
@@ -1439,6 +1439,51 @@ const vuelosElegibles = computed(() =>
         })),
 );
 
+// ── Carga masiva por ZIP ────────────────────────────────────────────────────
+//
+// 🔥 ~1 060 boarding passes en un expediente grande. De uno en uno no es una molestia: es
+// inviable. El ZIP se nombra `DOCUMENTO-VUELO` y el servidor reparte.
+//
+// ⚠️ **Dos pasos, y el primero no guarda nada.** Con mil ficheros, aplicar a ciegas mete el
+// boarding pass de uno en la ficha de otro y no se descubre hasta el gate.
+const zipPlan = ref<PlanCargaZip | null>(null);
+const zipCargando = ref(false);
+const zipAplicando = ref(false);
+
+const zipCasan = computed(() => (zipPlan.value?.filas ?? []).filter(f => !f.problema));
+const zipFallan = computed(() => (zipPlan.value?.filas ?? []).filter(f => f.problema));
+
+const elegirZip = async (evento: Event) => {
+    const archivo = (evento.target as HTMLInputElement).files?.[0];
+    if (!archivo || !file.value) return;
+
+    zipCargando.value = true;
+    zipPlan.value = await fileStore.planificarZip(String(extractIdStr(file.value.id ?? file.value['@id'])), archivo);
+    zipCargando.value = false;
+
+    if (!zipPlan.value) alert(fileStore.error || 'No se pudo leer el ZIP.');
+    (evento.target as HTMLInputElement).value = '';
+};
+
+const aplicarZip = async () => {
+    if (!zipPlan.value?.carpeta || !file.value) return;
+
+    zipAplicando.value = true;
+    const creados = await fileStore.aplicarZip(
+        String(extractIdStr(file.value.id ?? file.value['@id'])),
+        zipPlan.value.carpeta,
+    );
+    zipAplicando.value = false;
+
+    if (creados === null) {
+        alert(fileStore.error || 'No se pudo aplicar la carga.');
+        return;
+    }
+
+    zipPlan.value = null;
+    await cargarFile();
+};
+
 /**
  * De quién es un archivo, para la fila de la bóveda: «Ana Pérez · LA-2695».
  *
@@ -2173,6 +2218,66 @@ const eliminarDocumento = async (iri?: string) => {
             <div class="flex items-center justify-between mb-4 border-b pb-3">
               <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest"><i class="fas fa-folder-open mr-1 text-sky-500"></i> Bóveda Digital</h2>
               <button @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200 shrink-0">+ Subir Doc</button>
+            </div>
+
+            <!-- ═══ CARGA MASIVA POR ZIP ═══
+                 ~1 060 boarding passes en un grupo grande. El ZIP se nombra `DNI-VUELO` y el
+                 servidor reparte — y valida que esa persona vuele ese vuelo, así que un
+                 renombrado torcido sale marcado en vez de guardarse mal. -->
+            <div class="mb-3 rounded-2xl border border-violet-200 bg-violet-50/60 p-3">
+              <div class="flex items-center gap-2">
+                <i class="fas fa-file-zipper text-violet-500"></i>
+                <div class="min-w-0 flex-1">
+                  <p class="text-[11px] font-black text-violet-900">Carga masiva de boarding passes</p>
+                  <p class="text-[9px] font-bold text-violet-500 uppercase tracking-wider">
+                    ZIP con ficheros «DNI-VUELO» · ej. 12345678-DM6771.pdf
+                  </p>
+                </div>
+                <label class="shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors">
+                  <i v-if="zipCargando" class="fas fa-spinner fa-spin mr-1"></i>
+                  {{ zipCargando ? 'Leyendo…' : 'Subir ZIP' }}
+                  <input type="file" accept=".zip,application/zip" class="hidden" @change="elegirZip" />
+                </label>
+              </div>
+
+              <!-- El reparto, ANTES de guardar. Lo que casa arriba en verde y lo que no, abajo con
+                   su motivo: eso es lo que se corrige renombrando y volviendo a subir. -->
+              <div v-if="zipPlan" class="mt-3 pt-3 border-t border-violet-200">
+                <p class="text-[11px] font-black text-violet-900 mb-2">
+                  {{ zipCasan.length }} se asignan · {{ zipFallan.length }} quedan fuera
+                </p>
+
+                <div class="max-h-48 overflow-y-auto space-y-1 mb-3">
+                  <div v-for="fila in zipFallan" :key="fila.fichero"
+                       class="flex items-start gap-2 text-[10px] bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+                    <i class="fas fa-triangle-exclamation text-amber-500 mt-0.5"></i>
+                    <div class="min-w-0">
+                      <p class="font-bold text-amber-900 truncate">{{ fila.fichero }}</p>
+                      <p class="text-amber-700">{{ fila.problema }}</p>
+                    </div>
+                  </div>
+                  <div v-for="fila in zipCasan" :key="fila.fichero"
+                       class="flex items-start gap-2 text-[10px] bg-white border border-emerald-200 rounded-lg px-2 py-1.5">
+                    <i class="fas fa-check text-emerald-500 mt-0.5"></i>
+                    <div class="min-w-0">
+                      <p class="font-bold text-slate-800 truncate">{{ fila.pasajero }}</p>
+                      <p class="text-slate-500 truncate">{{ fila.vuelo }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex gap-2">
+                  <button type="button" @click="zipPlan = null"
+                          class="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500 border border-slate-200 rounded-lg hover:bg-white transition-colors">
+                    Descartar
+                  </button>
+                  <button type="button" @click="aplicarZip" :disabled="zipAplicando || !zipCasan.length"
+                          class="flex-1 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white rounded-lg transition-colors">
+                    <i v-if="zipAplicando" class="fas fa-spinner fa-spin mr-1"></i>
+                    Guardar {{ zipCasan.length }}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div v-if="!file.filearchivos?.length" class="bg-sky-50 border-2 border-dashed border-sky-200 rounded-2xl p-6 text-center text-sky-400">

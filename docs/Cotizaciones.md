@@ -1138,6 +1138,28 @@ viaja como dato.
 permitía nginx (`client_max_body_size`). Aun así, **un ZIP por vuelo es mejor que uno gigante**:
 cada vuelo lleva ≤25 pax, entra de sobra, y la tabla de revisión es corta.
 
+#### El pasajero sube sus documentos desde su móvil (08/09/2026)
+
+Perseguir 133 pasaportes por WhatsApp, renombrarlos y subirlos uno a uno es el trabajo que esto
+quita. La puerta ya existía —`IdentidadDelPasajero`, documento y fecha de nacimiento, con su freno
+a los intentos—; sólo faltaba la subida.
+
+🔥 **La previsualización no es un adorno: es la única oportunidad de ver si la foto vale.** Un
+escaneo de identidad **no se le devuelve nunca** a quien lo subió, así que si sale movida, cortada o
+con el flash reventando el holograma, no hay forma de comprobarlo después. Por eso el flujo es
+*elegir → mirar en grande → confirmar*, y no un `input` que envía al soltar.
+
+⚠️ **`<input capture>` y no una cámara propia con `getUserMedia`.** El `input` abre la cámara del
+sistema, con su enfoque, su HDR y su recorte; una cámara hecha a mano da peor foto, pide un permiso
+que asusta y falla en los navegadores embebidos —el de Instagram, el de Gmail—, que es justo por
+donde llega un enlace de viaje. Y sin `capture` fijo: mucha gente ya tiene la foto en la galería.
+
+⚠️ **El pasajero sale de la SESIÓN, no de la petición.** Si viniera en el cuerpo, bastaría con
+cambiarlo para subirle algo a otro.
+
+⚠️ **Reemplaza en vez de acumular**: la segunda foto es la buena, y guardar las dos deja al
+operador eligiendo entre una borrosa y otra.
+
 #### Los adjuntos salen de `public/` (07/09/2026)
 
 Hasta hoy los adjuntos del expediente vivían dentro de `public/` y se servían por URL directa, así

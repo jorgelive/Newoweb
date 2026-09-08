@@ -26,6 +26,7 @@ import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotSer
 import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnidades, resumenDeDuracion, mandaElSegmento } from '@dominio/cotizacion/index.ts';
 import type { BloqueVista as BloqueVistaBase } from '@dominio/cotizacion/index.ts';
 import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
+import MisDocumentos from '@/components/cotizacion/MisDocumentos.vue';
 
 /** El bloque con los tipos de `pax` dentro: el módulo es genérico y los devuelve intactos. */
 type BloqueVista = BloqueVistaBase<PaxCotServicio>;
@@ -1289,6 +1290,14 @@ const adelantoVista = computed(() => {
            subgrupos de quien mira, y el operador la ve entera. Ver AvisoVistaDeOperador. -->
       <div v-if="(store.file?.saltosDeOperador?.length ?? 0) > 0" class="max-w-3xl mx-auto px-4 pt-4 no-imprimir">
         <AvisoVistaDeOperador :saltos="store.file?.saltosDeOperador" />
+      </div>
+
+      <!-- ═══ SUS DOCUMENTOS ═══
+           Va antes que nada cuando falta algo: es lo único de esta pantalla que le pide ALGO al
+           pasajero, y si queda debajo del itinerario de siete días nadie lo ve. Sólo aparece si
+           se identificó — sin saber quién es, no hay a quién colgarle la foto. -->
+      <div v-if="store.miIdentidad" class="max-w-3xl mx-auto px-4 no-imprimir">
+        <MisDocumentos :localizador="props.localizador" />
       </div>
 
       <!-- ═══ LO TUYO ═══

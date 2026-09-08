@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { extractApiErrorMessage, esErrorSilencioso } from '@/services/apiError';
-import {ApiCotizacionFile, ApiCotizacionFileWrite, I18nContent} from '@/types/fileDetalleModel.ts';
+import {ApiCotizacionFile, ApiCotizacionFileWrite, I18nContent, PlanCargaZip} from '@/types/fileDetalleModel.ts';
 import type { PlanReconciliacion, AplicarPlanPayload, ResultadoAplicacion, InformeCoherencia } from '@/types/operacionModel';
 import type { EstadoFile } from '@/types/cotizacionEditorModel';
 
@@ -590,6 +590,49 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * Sube el ZIP y devuelve el REPARTO, sin guardar nada.
+     *
+     * Dos pasos a propósito: con ~1 000 boarding passes, aplicar a ciegas mete el de uno en la
+     * ficha de otro y no se descubre hasta el gate.
+     */
+    const planificarZip = async (fileId: string, zip: File): Promise<PlanCargaZip | null> => {
+        error.value = null;
+        const cuerpo = new FormData();
+        cuerpo.append('zip', zip);
+
+        try {
+            const { data } = await apiClient.post(
+                `/platform/sales/cotizacion_files/${fileId}/archivos-zip/plan`,
+                cuerpo,
+                { headers: { 'Content-Type': 'multipart/form-data' } },
+            );
+            return data as PlanCargaZip;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo leer el ZIP.');
+            return null;
+        }
+    };
+
+    /** Guarda lo que casa. El servidor recalcula el dueño: aquí sólo se manda qué carga era. */
+    const aplicarZip = async (fileId: string, carpeta: string): Promise<number | null> => {
+        error.value = null;
+        const cuerpo = new FormData();
+        cuerpo.append('carpeta', carpeta);
+
+        try {
+            const { data } = await apiClient.post(
+                `/platform/sales/cotizacion_files/${fileId}/archivos-zip/aplicar`,
+                cuerpo,
+                { headers: { 'Content-Type': 'multipart/form-data' } },
+            );
+            return Number(data?.creados ?? 0);
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo aplicar la carga.');
+            return null;
+        }
+    };
+
     const updateDocument = async (
         iri: string,
         payload: { nombre?: I18nContent[] | null; tipoArchivo: string; sobreescribirTraduccion?: boolean }
@@ -662,6 +705,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         createFile,
         updateFile,
         uploadDocument,
+        planificarZip,
+        aplicarZip,
         deleteDocument,
         addPassenger,
         deletePassenger,

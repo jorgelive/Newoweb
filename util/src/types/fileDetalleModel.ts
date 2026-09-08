@@ -229,3 +229,24 @@ export type ApiCotizacionVersion = Omit<
     titulo?: I18nContent[];
     resumen?: I18nContent[];
 };
+/**
+ * El reparto que propone el servidor para un ZIP de boarding passes.
+ *
+ * ⚠️ Espejo de `CargaMasivaController::plan()`. `problema` en `null` significa que esa fila se
+ * guardará; con texto, se queda fuera y se repasa a mano.
+ */
+export interface FilaCargaZip {
+    fichero: string;
+    pasajero: string | null;
+    pasajeroId: string | null;
+    vuelo: string | null;
+    vueloId: string | null;
+    problema: string | null;
+    ruta: string | null;
+}
+
+export interface PlanCargaZip {
+    /** La carpeta temporal donde quedó lo extraído: se manda al aplicar, para no volver a subir. */
+    carpeta: string | null;
+    filas: FilaCargaZip[];
+}
