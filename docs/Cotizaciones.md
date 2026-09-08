@@ -1357,6 +1357,11 @@ operador sí lo veía en el manifiesto.
 `miIdentidad.subgrupos[].vuelos` lleva ahora número, ruta y horas de cada tramo. Y el itinerario
 del viaje no servía para esto: el vuelo es de **su** subgrupo, no del grupo entero.
 
+⚠️ **Y el botón que los esconde los NOMBRA**: «Ver mis grupos **y vuelos**» cuando hay tramos
+dentro. Un disparador que no nombra lo mejor que esconde se pulsa menos, y quien busca a qué hora
+sale su vuelo no abre algo que sólo promete «grupos». Sin vuelos, el rótulo no promete lo que no
+está.
+
 ⚠️ **El «+1 día» no es un adorno.** Un vuelo que sale a las 20:22 y llega a las 00:30 aterriza al
 día siguiente, y quien lea sólo las horas hará mal las cuentas del traslado, del hotel y de a quién
 avisa para que le recoja.

@@ -225,6 +225,10 @@ const misBoletos = computed(() => store.miIdentidad?.documentos ?? []);
 const rutaDe = (d: { origen?: string | null; destino?: string | null }) =>
   d.origen && d.destino ? `${d.origen} → ${d.destino}` : '';
 
+/** ¿Alguno de sus subgrupos trae tramos? Decide cómo se llama el botón que los esconde. */
+const tengoVuelos = computed(() =>
+  (store.miIdentidad?.subgrupos ?? []).some(sg => (sg.vuelos?.length ?? 0) > 0));
+
 /** «03:00». La hora local del aeropuerto, tal como la imprime el billete. */
 const horaDeVuelo = (iso?: string | null) => (iso ?? '').slice(11, 16);
 
@@ -1420,9 +1424,17 @@ const adelantoVista = computed(() => {
                 :aria-expanded="misGruposAbiertos"
                 class="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-[#376875]/25 bg-[#376875]/4 px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-[#376875]/80 hover:bg-[#376875]/8 transition-colors">
           <i class="fas text-[10px]" :class="misGruposAbiertos ? 'fa-chevron-up' : 'fa-layer-group'"></i>
+          <!-- ⚠️ El rótulo nombra los VUELOS cuando los hay: desde que el subgrupo aéreo trae sus
+               tramos, detrás del botón está el horario del vuelo — y «Ver mis grupos» no invita a
+               abrirlo a quien busca eso. Un disparador que no nombra lo mejor que esconde se pulsa
+               menos. Cuando no hay vuelos no se promete lo que no está. -->
           {{ misGruposAbiertos
-            ? (maestroStore.t('cot_ocultar_mis_grupos') || 'Ocultar mis grupos')
-            : (maestroStore.t('cot_ver_mis_grupos') || 'Ver mis grupos') }}
+            ? (tengoVuelos
+              ? (maestroStore.t('cot_ocultar_mis_grupos_vuelos') || 'Ocultar mis grupos y vuelos')
+              : (maestroStore.t('cot_ocultar_mis_grupos') || 'Ocultar mis grupos'))
+            : (tengoVuelos
+              ? (maestroStore.t('cot_ver_mis_grupos_vuelos') || 'Ver mis grupos y vuelos')
+              : (maestroStore.t('cot_ver_mis_grupos') || 'Ver mis grupos')) }}
           <span class="text-[#E07845]">({{ store.miIdentidad.subgrupos.length }})</span>
         </button>
 

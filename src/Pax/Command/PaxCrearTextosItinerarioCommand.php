@@ -63,6 +63,10 @@ final class PaxCrearTextosItinerarioCommand extends Command
         'cot_rol_supervisor' => 'supervisa',
         'cot_ver_mis_grupos' => 'Ver mis grupos',
         'cot_ocultar_mis_grupos' => 'Ocultar mis grupos',
+        // Con vuelos dentro, el rótulo los nombra: detrás del botón está el horario del vuelo, y
+        // «Ver mis grupos» no invita a abrirlo a quien busca justo eso.
+        'cot_ver_mis_grupos_vuelos' => 'Ver mis grupos y vuelos',
+        'cot_ocultar_mis_grupos_vuelos' => 'Ocultar mis grupos y vuelos',
 
         // 🔥 **La puerta de entrada estaba entera en castellano.** Estas seis se escribieron con su
         // respaldo `||` y nunca se sembraron: un pasajero extranjero se topaba con el formulario
