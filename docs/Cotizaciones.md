@@ -1383,11 +1383,15 @@ El manifiesto ya enseña los escaneos de cada persona, pero la pregunta que se h
 «¿qué tiene Fulano?» sino **«¿a quién le escribo hoy?»** — y eso es una lista que se ordena, se
 filtra y se pega en un mensaje, no un panel que se recorre 133 veces.
 
-El botón **Documentos** del manifiesto baja un `.xlsx`
+El botón **Documentos cargados** del manifiesto baja un `.xlsx`
 ({@see `App\Cotizacion\Service\Padron\ReporteDeDocumentos`}) con una fila por persona: grupo,
 apellidos, nombres, tipo, número de DNI, de pasaporte y de cualquier otro documento, y después el
 estado de los **tres escaneos** que se piden — DNI anverso, DNI reverso y pasaporte —, la columna
 `Archivos` con el total, y `Qué falta` ya redactada.
+
+⚠️ **El icono es una flecha de descarga, no `fa-file-excel`.** Ése dibuja una X sobre el papel y,
+con la papelera roja del expediente a dos dedos, el botón se leía como «borrar documentos» — que es
+lo contrario de lo que hace. Un botón que parece destructivo no se pulsa.
 
 ⚠️ **No es la exportación del padrón, y no se vuelve a subir.** Aquella lleva los DATOS —números,
 vencimientos, ejes— y trae la columna `Id` precisamente para reimportarse. Ésta lleva el ESTADO y

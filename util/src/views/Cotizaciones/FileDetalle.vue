@@ -2651,12 +2651,16 @@ const eliminarDocumento = async (iri?: string) => {
                 <!-- Al lado de «Añadir Pax» y no entre los filtros: se baja para reclamar
                      documentos, que es una tarea del manifiesto entero, no el remate de una
                      búsqueda. Con filtros puestos se lleva sólo a los que se ven, y el rótulo lo
-                     dice para que no haya que adivinarlo. -->
+                     dice para que no haya que adivinarlo.
+
+                     ⚠️ El icono es una FLECHA DE DESCARGA, no `fa-file-excel`: ése dibuja una X
+                     sobre el papel y, con la papelera roja del expediente a dos dedos, se leía
+                     como «borrar documentos». Un botón que parece destructivo no se pulsa. -->
                 <button v-if="file.filepasajeros?.length" type="button" @click="descargarDocumentos"
                         :disabled="descargandoPlantilla"
                         class="border border-teal-200 bg-teal-50 text-teal-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-100 disabled:opacity-40">
-                  <i class="fas mr-1.5" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-excel'"></i>
-                  Documentos<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }})</span>
+                  <i class="fas mr-1.5" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
+                  Documentos cargados<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }})</span>
                 </button>
                 <button @click="abrirPaxModal" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm">+ Añadir Pax</button>
               </div>
