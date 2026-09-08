@@ -520,6 +520,17 @@ final class PadronFormato
 
         foreach (self::columnasDeEje() as $eje) {
             $cabeceras[] = $eje['columna'];
+
+            // ⚠️ **Y su columna de código, que faltaba.** `PREFIJO_CODIGO` está documentado, lo
+            // lee el importador y lo saca la EXPORTACIÓN de un expediente… pero no la plantilla en
+            // blanco, que es de donde parte quien empieza de cero. Una columna que sólo existe si
+            // ya tienes datos no la descubre nadie: se pide el localizador individual por
+            // WhatsApp y se teclea a mano 133 veces.
+            //
+            // Va **pegada a la suya** y no al final: se rellena mirando la clave que tiene al
+            // lado, y con diez columnas de por medio se rellena la del vuelo equivocado. Es
+            // opcional al leer, así que dejarla en blanco no rompe nada.
+            $cabeceras[] = self::PREFIJO_CODIGO.$eje['columna'];
         }
 
         // Los servicios NO salen de un enum: son los de este viaje. La plantilla trae los del

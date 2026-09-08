@@ -1207,6 +1207,32 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### La columna del código individual no salía en la plantilla en blanco (08/09/2026)
+
+`Cód. #Vuelo Internacional` —el localizador de **esa** persona dentro del PNR del grupo— está
+documentado, lo lee el importador y lo saca la **exportación** de un expediente. Pero
+`cabecerasDeGrupo()`, que es la plantilla **en blanco**, no la emitía.
+
+🔥 **Una columna que sólo existe si ya tienes datos no la descubre nadie.** Quien empieza de cero
+—que es siempre la primera vez— baja la plantilla, no la ve, y acaba pidiendo el código individual
+por WhatsApp y tecleándolo 133 veces. Es justo el dato que luego el pasajero busca en «Lo tuyo».
+
+⚠️ Va **pegada a la columna de su eje** y no al final, por lo mismo que en la exportación: se
+rellena mirando la clave que tiene al lado, y con diez columnas de por medio se rellena la del
+vuelo equivocado.
+
+#### El orden importa: primero el padrón, después los vuelos
+
+`VuelosImportador` **no crea localizadores**: un PNR que no está en el expediente se reporta y se
+salta (`«BONT3N no existe en el expediente: no se crea.»`). Y el padrón es quien crea los grupos de
+reserva aérea, con su clave.
+
+Así que subir el JSON de vuelos antes del Excel no da error: da un informe con **todas** las
+reservas rechazadas y cero cambios. No es reversible al revés — es simplemente que no hizo nada.
+
+Crear el PNR desde el JSON convertiría una errata en un grupo huérfano sin pasajeros, que es la
+familia de fallo que este modelo viene a cerrar.
+
 #### El ejemplo del cargador de vuelos enseñaba a perder la vuelta (08/09/2026)
 
 El diálogo traía **una** reserva con **un** vuelo, y su ayuda decía «se toca sólo lo que traes… nunca
