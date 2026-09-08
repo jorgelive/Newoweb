@@ -50,6 +50,7 @@ final readonly class ReporteDeDocumentos
     private const GRIS = 'FFF1F5F9';
 
     public const COL_FALTA = 'Qué falta';
+    public const COL_ARCHIVOS = 'Archivos';
 
     /** Las columnas, en el orden en que se leen. */
     private const CABECERAS = [
@@ -63,6 +64,7 @@ final readonly class ReporteDeDocumentos
         'DNI anverso',
         'DNI reverso',
         'Pasaporte (escaneo)',
+        self::COL_ARCHIVOS,
         self::COL_FALTA,
     ];
 
@@ -110,6 +112,7 @@ final readonly class ReporteDeDocumentos
         $completos = 0;
         $parciales = 0;
         $vacios = 0;
+        $archivos = 0;
 
         foreach ($file->getFilepasajeros() as $pasajero) {
             if ($permitidos !== null && !isset($permitidos[(string) $pasajero->getId()])) {
@@ -128,6 +131,7 @@ final readonly class ReporteDeDocumentos
             $this->texto($hoja, 7, $fila, $this->otrosDocumentos($pasajero));
 
             $columna = 8;
+            $total = 0;
             foreach (self::ESCANEOS as $etiqueta => $tipo) {
                 /** @var list<\DateTimeImmutable|null> $cuando */
                 $cuando = $subidos[$tipo->value] ?? [];
@@ -135,27 +139,45 @@ final readonly class ReporteDeDocumentos
 
                 if ($cuantos === 0) {
                     $faltan[] = $etiqueta;
-                    $this->texto($hoja, $columna, $fila, '—');
+                    $this->texto($hoja, $columna, $fila, '0');
                     $hoja->getStyle([$columna, $fila])->getFill()
                         ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::ROJO);
                 } else {
-                    $reciente = $cuando[0]?->format('d/m/Y') ?? 'sí';
-                    $this->texto($hoja, $columna, $fila, $cuantos > 1
-                        ? sprintf('%s (%d archivos)', $reciente, $cuantos)
-                        : $reciente);
+                    // ⚠️ La CANTIDAD siempre delante, aunque sea «1». Escribirla sólo cuando hay
+                    // varios convierte la ausencia del número en un dato que hay que deducir, y
+                    // una columna en la que casi todo son fechas no se lee como un recuento: el
+                    // duplicado pasaría desapercibido justo cuando importa.
+                    $reciente = $cuando[0]?->format('d/m/Y');
+                    $this->texto($hoja, $columna, $fila, $reciente === null
+                        ? (string) $cuantos
+                        : sprintf('%d · %s', $cuantos, $reciente));
                     // Ámbar para los duplicados: hay documento, pero hay que mirarlo.
                     $hoja->getStyle([$columna, $fila])->getFill()
                         ->setFillType(Fill::FILL_SOLID)->getStartColor()
                         ->setARGB($cuantos > 1 ? self::AMBAR : self::VERDE);
                 }
 
+                $total += $cuantos;
                 ++$columna;
+            }
+
+            // El total al lado de las tres celdas: con 3 se sabe que está completo sin sumarlas,
+            // y con 4 se sabe que sobra algo sin buscar cuál.
+            $hoja->setCellValueExplicit([$ultima - 1, $fila], (string) $total, DataType::TYPE_NUMERIC);
+            $hoja->getStyle([$ultima - 1, $fila])->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            if ($total > count(self::ESCANEOS)) {
+                $hoja->getStyle([$ultima - 1, $fila])->getFont()->setBold(true);
+                $hoja->getStyle([$ultima - 1, $fila])->getFill()
+                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::AMBAR);
             }
 
             $this->texto($hoja, $ultima, $fila, $faltan === [] ? 'Completo' : implode(', ', $faltan));
             if ($faltan !== []) {
                 $hoja->getStyle([$ultima, $fila])->getFont()->setBold(true);
             }
+
+            $archivos += $total;
 
             match (count($faltan)) {
                 0 => $completos++,
@@ -166,15 +188,16 @@ final readonly class ReporteDeDocumentos
             ++$fila;
         }
 
-        $total = $fila - 3;
+        $personas = $fila - 3;
 
         // El resumen ABAJO y no arriba: arriba desplazaría las filas y rompería el autofiltro.
         $hoja->setCellValue([1, $fila + 1], sprintf(
-            '%d personas · %d completas · %d a medias · %d sin nada',
-            $total,
-            $completos,
+            '%s · %s · %d a medias · %d sin nada · %s en total',
+            $this->plural($personas, 'persona', 'personas'),
+            $this->plural($completos, 'completa', 'completas'),
             $parciales,
             $vacios,
+            $this->plural($archivos, 'archivo', 'archivos'),
         ));
         $hoja->mergeCells([1, $fila + 1, $ultima, $fila + 1]);
         $hoja->getStyle([1, $fila + 1])->applyFromArray([
@@ -182,7 +205,7 @@ final readonly class ReporteDeDocumentos
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::GRIS]],
         ]);
 
-        if ($total > 0) {
+        if ($personas > 0) {
             $hoja->getStyle([1, 2, $ultima, $fila - 1])->getBorders()->getAllBorders()
                 ->setBorderStyle(Border::BORDER_THIN)->getColor()->setARGB('FFCBD5E1');
             $hoja->setAutoFilter($hoja->calculateWorksheetDimension());
@@ -203,6 +226,12 @@ final readonly class ReporteDeDocumentos
         $libro->disconnectWorksheets();
 
         return $contenido;
+    }
+
+    /** «1 persona» y no «1 personas»: el resumen filtrado llega a uno más a menudo de lo que parece. */
+    private function plural(int $cuantos, string $singular, string $plural): string
+    {
+        return sprintf('%d %s', $cuantos, $cuantos === 1 ? $singular : $plural);
     }
 
     private function texto(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $hoja, int $columna, int $fila, ?string $valor): void

@@ -1386,8 +1386,8 @@ filtra y se pega en un mensaje, no un panel que se recorre 133 veces.
 El botón **Documentos** del manifiesto baja un `.xlsx`
 ({@see `App\Cotizacion\Service\Padron\ReporteDeDocumentos`}) con una fila por persona: grupo,
 apellidos, nombres, tipo, número de DNI, de pasaporte y de cualquier otro documento, y después el
-estado de los **tres escaneos** que se piden — DNI anverso, DNI reverso y pasaporte — en verde con
-su fecha de subida o en rojo con un guion. La última columna, `Qué falta`, ya viene redactada.
+estado de los **tres escaneos** que se piden — DNI anverso, DNI reverso y pasaporte —, la columna
+`Archivos` con el total, y `Qué falta` ya redactada.
 
 ⚠️ **No es la exportación del padrón, y no se vuelve a subir.** Aquella lleva los DATOS —números,
 vencimientos, ejes— y trae la columna `Id` precisamente para reimportarse. Ésta lleva el ESTADO y
@@ -1401,8 +1401,14 @@ de 133 personas no caben en una URL).
 
 ##### La celda cuenta ARCHIVOS, no marca sí/no
 
-Si de un tipo hay más de uno, la celda lo dice —`05/09/2026 (2 archivos)`— y se pinta ámbar. No es
-adorno: **las dos vías de subida no se comportan igual**.
+Cada celda de escaneo lleva **la cantidad y la fecha del más reciente**: `1 · 01/09/2026`,
+`2 · 05/09/2026`, `0` si no hay nada. Verde con uno, ámbar con varios, rojo con ninguno. Y una
+columna `Archivos` con el total de la persona, en ámbar si pasa de tres.
+
+⚠️ **La cantidad va siempre, aunque sea «1».** Escribirla sólo cuando hay varios convierte la
+ausencia del número en un dato que hay que deducir, y una columna en la que casi todo son fechas no
+se lee como un recuento: el duplicado pasaría desapercibido justo cuando importa. Y no es adorno,
+porque **las dos vías de subida no se comportan igual**.
 
 - La del **pasajero** (`SubirDocumentoPasajeroController`) *reemplaza*: al subir un segundo
   pasaporte borra el anterior, porque la segunda foto siempre es la buena — la primera salió
