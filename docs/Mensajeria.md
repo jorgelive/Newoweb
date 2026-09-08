@@ -30,6 +30,21 @@ Collection<int, Message>` ajeno y sin su `#[Groups]` — el fallo exacto que des
 que aquí no fue silencioso de milagro: `api:openapi:export` reventó al no poder instanciar el
 atributo. Al insertar un método, mirar qué hay inmediatamente encima.
 
+## 🔥 `getTotalMensajes()` hidrataba la bandeja entera (08/09/2026)
+
+El comentario decía «`count()` que Doctrine resuelve con un `COUNT` sin hidratar», y **era falso**:
+eso sólo es cierto con `fetch: 'EXTRA_LAZY'`, que la relación no llevaba. Sin él,
+`Collection::count()` inicializa la colección — un `SELECT *` de todos los mensajes.
+
+Y este getter se publica en `conversation:read`, o sea **por cada hilo de la bandeja**: 30 hilos
+por página pasaron de una consulta con 30 filas a 31 consultas con miles de entidades hidratadas,
+con su texto y su JSON, en cada scroll y en cada refresco de Mercure. `cargarCabecera()`, que
+existe justamente «para no traerse los 247 mensajes», los traía por la puerta de atrás.
+
+Lo arregla una palabra en el mapeo. Lo caro fue escribir en el comentario una propiedad que el
+código no tenía: **un comentario que promete rendimiento hay que comprobarlo en el mapeo, no
+suponerlo.**
+
 ## 🔥 Fusionar dejó de ser sólo un comando (08/09/2026)
 
 El sistema **recomendaba fusionar por escrito** —«si son la misma persona, únelas con
@@ -52,6 +67,16 @@ referencias. Dejar elegir invitaría a acertar por casualidad.
 
 ⚠️ **Fusionar no se deshace**, y el diálogo lo dice: los mensajes quedan en una sola línea de
 tiempo y no hay forma de saber cuál venía de dónde.
+
+⚠️ **Un hilo YA fusionado no vuelve a jugar.** Conserva su `guest_phone` y su `createdAt` —el más
+viejo del par— así que sin la guarda, fusionar desde él lo resucitaba **y enterraba dentro al hilo
+vivo**: los mensajes del otro caían en una conversación que dice «esto se fusionó en B», y B no los
+tenía. Y el barrido no lo repara nunca, porque `gruposDuplicados()` excluye para siempre lo que
+tiene `fusionado_en`.
+
+⚠️ **Y el panel navega al SUPERVIVIENTE.** Puede no ser el hilo desde el que se pulsó —lo decide la
+antigüedad—, y quedarse allí es quedarse mirando un hilo archivado y sin identidades; dentro del
+chat, además, pudiendo escribirle a números que ya no son suyos.
 
 ⚠️ **Los hilos `staff` siguen fuera**, ahora también en el endpoint y con el motivo en el mensaje:
 `EscalarAlEquipoSkill` busca los avisos recientes filtrando por `contextType = 'staff'`, y al

@@ -111,7 +111,23 @@ final class FusionarHilosController extends AbstractController
         // busca los avisos recientes filtrando por `contextType = 'staff'`. Al fusionar, esos
         // mensajes dejarían de encontrarse y el enfriamiento fallaría ABIERTO — la guardia
         // volvería a sonar entera, de noche y sin causa evidente.
+        // 🔥 **Un hilo YA fusionado no vuelve a jugar.** Está archivado, con sus mensajes e
+        // identidades movidos y un `fusionado_en` que apunta a su superviviente — pero conserva su
+        // `guest_phone` y su `createdAt`, que es el más viejo del par. Sin esta guarda, fusionar
+        // desde él lo resucitaría Y enterraría dentro al hilo vivo: los mensajes del otro caerían
+        // en una conversación que dice «esto se fusionó en B», y B no los tendría. Y el barrido no
+        // lo repara nunca, porque `gruposDuplicados()` excluye para siempre lo que tiene
+        // `fusionado_en`.
         foreach ([$uno, $otro] as $hilo) {
+            $destino = $hilo->getContextData()['fusionado_en'] ?? null;
+
+            if (is_string($destino) && $destino !== '') {
+                return [null, null, sprintf(
+                    'Ese hilo ya se fusionó en otro (%s). Abre el superviviente y fusiona desde allí.',
+                    $destino,
+                )];
+            }
+
             if ($hilo->getContextType() === 'staff') {
                 return [null, null, 'Uno de los hilos es del equipo y ésos no se fusionan todavía: rompería el enfriamiento de la guardia.'];
             }

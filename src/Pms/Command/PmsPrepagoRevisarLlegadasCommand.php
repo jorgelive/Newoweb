@@ -112,8 +112,16 @@ final class PmsPrepagoRevisarLlegadasCommand extends Command
              FROM pms_reserva r
              INNER JOIN pms_informacion_financiera i ON i.reserva_id = r.id
              INNER JOIN fin_enlace_pago e ON e.origen_id = r.id AND e.origen_tipo = :tipo
-             WHERE i.activa = 1
-               AND r.fecha_llegada BETWEEN :desde AND :hoy
+             -- 🔥 **Sin `i.activa`, y es lo contrario de una limpieza.** Desde el 08/09/2026 esa
+             -- bandera dejó de decidir dinero, así que `PmsPrepagoEnlaceService` SÍ emite un
+             -- adelanto en una reserva con la bandera abajo que siguió adelante como directa. Con
+             -- el filtro puesto aquí, este comando —el que ANULA los enlaces automáticos vivos
+             -- cuando el huésped ya llegó— se saltaba justo esas fichas: el enlace se quedaba
+             -- vivo indefinidamente sobre alguien que ya está dentro.
+             --
+             -- Es la copia rezagada del otro lado del módulo, la hermana de las tres que se
+             -- unificaron en `PmsCargoFinanciero::cuentaParaElSaldo()`.
+             WHERE r.fecha_llegada BETWEEN :desde AND :hoy
                AND e.creado_por_id IS NULL
                AND e.estado IN (:pendiente, :fallido)
              ORDER BY r.fecha_llegada DESC',

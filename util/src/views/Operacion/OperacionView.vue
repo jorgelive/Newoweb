@@ -206,7 +206,13 @@ const restaurarFiltros = (): void => {
         if (typeof f.estadoOperacion === 'string') filtroEstadoOperacion.value = f.estadoOperacion;
         if (typeof f.ordenPorHora === 'boolean') ordenPorHora.value = f.ordenPorHora;
         if (f.filtroOs === '' || f.filtroOs === 'sin' || f.filtroOs === 'con') filtroOs.value = f.filtroOs;
-        if (f.expediente && typeof f.expediente === 'object') expedienteSeleccionado.value = f.expediente as ExpedienteOpcion;
+        // ⚠️ **Sin `id` no se restaura, se descarta.** Hasta el 08/09/2026 el buscador guardaba
+        // `id: ''` —era el fallo del filtro— y ahora un id vacío CORTA la consulta. Restaurar esa
+        // foto dejaría la Biblia en cero con el chip del expediente en pantalla y sin explicación:
+        // el operador vería su filtro puesto y ni un servicio. Se tira y se empieza sin filtro.
+        if (f.expediente && typeof f.expediente === 'object' && (f.expediente as ExpedienteOpcion).id) {
+            expedienteSeleccionado.value = f.expediente as ExpedienteOpcion;
+        }
         if (typeof f.cotizacion === 'string') cotizacionSeleccionada.value = f.cotizacion;
     } catch { /* storage corrupto: se ignora y arranca con los defaults */ }
 };

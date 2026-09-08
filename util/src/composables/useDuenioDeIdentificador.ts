@@ -42,6 +42,15 @@ export function useDuenioDeIdentificador(
     let temporizador: ReturnType<typeof setTimeout> | null = null;
 
     /**
+     * Nº de la consulta en curso.
+     *
+     * ⚠️ Cancelar el `setTimeout` no cancela una petición **ya en vuelo**: se teclea, sale A; se
+     * corrige, y A llega tarde y pinta el aviso del valor anterior — que ya no es cierto. Con el
+     * contador, sólo la última contestación tiene derecho a escribir.
+     */
+    let secuencia = 0;
+
+    /**
      * Con retardo: se teclea dígito a dígito y no hay que preguntar por cada uno.
      *
      * ⚠️ El resultado se limpia ANTES de la consulta, no después: si no, mientras se corrige un
@@ -55,18 +64,23 @@ export function useDuenioDeIdentificador(
         if (!valor || valor.trim().length < 4) return;
 
         comprobando.value = true;
+        const mia = ++secuencia;
+
         temporizador = setTimeout(async () => {
             try {
                 const { data } = await apiClient.get('/platform/message/identidades/duenio', {
                     params: { tipo, valor },
                 });
+
+                if (mia !== secuencia) return;
+
                 duenio.value = (data?.duenio as DuenioDeIdentificador | null) ?? null;
             } catch {
                 // Sin aviso es peor que con aviso, pero un error aquí no puede frenar el
                 // formulario: se falla en silencio y el guardado dirá lo que sea.
-                duenio.value = null;
+                if (mia === secuencia) duenio.value = null;
             }
-            comprobando.value = false;
+            if (mia === secuencia) comprobando.value = false;
         }, retardo);
     };
 
@@ -123,25 +137,36 @@ export function useDuenioDeIdentificador(
         }
     };
 
-    /** Aplica la fusión. **No se deshace**: los mensajes quedan en una sola línea de tiempo. */
-    const fusionar = async (miHiloId: string): Promise<string | null> => {
+    /**
+     * Aplica la fusión. **No se deshace**: los mensajes quedan en una sola línea de tiempo.
+     *
+     * ⚠️ Devuelve el id del SUPERVIVIENTE, que puede no ser el hilo desde el que se pulsó: lo
+     * decide la antigüedad. Si quien llama se queda donde estaba, se queda mirando un hilo
+     * archivado y **sin identidades** —y dentro del chat, pudiendo escribirle a números que ya no
+     * son suyos—.
+     */
+    const fusionar = async (miHiloId: string): Promise<{ supervivienteId: string } | { error: string }> => {
         const otro = duenio.value?.conversacionId;
 
-        if (!otro || !miHiloId) return 'No sé con qué hilo fusionar.';
+        if (!otro || !miHiloId) return { error: 'No sé con qué hilo fusionar.' };
 
         try {
-            await apiClient.post(`/platform/message/conversations/${miHiloId}/fusion`, { con: otro });
+            const { data } = await apiClient.post(
+                `/platform/message/conversations/${miHiloId}/fusion`,
+                { con: otro },
+            );
 
-            return null;
+            return { supervivienteId: String(data?.supervivienteId ?? miHiloId) };
         } catch (e: unknown) {
             const r = e as { response?: { data?: { error?: string } } };
 
-            return r.response?.data?.error ?? 'No se pudo fusionar.';
+            return { error: r.response?.data?.error ?? 'No se pudo fusionar.' };
         }
     };
 
     const limpiar = (): void => {
         if (temporizador) clearTimeout(temporizador);
+        ++secuencia;
         duenio.value = null;
         comprobando.value = false;
     };

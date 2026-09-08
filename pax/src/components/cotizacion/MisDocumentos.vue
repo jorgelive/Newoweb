@@ -217,7 +217,13 @@ const compacto = computed(() => quedanPorSubir.value === 0 && !desplegado.value)
   <!-- ═══ LA PREVISUALIZACIÓN ═══
        A pantalla completa y en grande, porque es la ÚNICA vez que se puede comprobar que la foto
        vale: después no se devuelve. -->
-  <div v-if="vistaPrevia" class="fixed inset-0 z-50 bg-slate-900/90 flex flex-col p-4">
+  <!-- ⚠️ **`Teleport` y banda de modal.** Este componente se monta DENTRO de la guía, entre
+       tarjetas; un ancestro con `sticky`, `transform` o `filter` crea contexto de apilamiento y
+       encierra este `fixed` dentro de él. Y aquí eso no es un detalle estético: esta
+       previsualización es la ÚNICA oportunidad de comprobar que el escaneo se lee, porque después
+       no se le devuelve. Si queda debajo de algo, el pasajero manda una foto movida sin saberlo. -->
+  <Teleport to="body">
+  <div v-if="vistaPrevia" class="fixed inset-0 z-[1000] bg-slate-900/90 flex flex-col p-4">
     <div class="flex items-center justify-between text-white mb-3 shrink-0">
       <p class="font-black text-sm">{{ tituloDe(eligiendo!) }}</p>
       <button @click="descartar" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
@@ -255,4 +261,5 @@ const compacto = computed(() => quedanPorSubir.value === 0 && !desplegado.value)
       </button>
     </div>
   </div>
+  </Teleport>
 </template>

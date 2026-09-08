@@ -5,6 +5,42 @@ Si un patrón se repite en dos vistas, su sitio es aquí y no duplicado en cada 
 
 ---
 
+
+## 🔥 La escalera de z-index, y la regla que de verdad importa (08/09/2026)
+
+La escalera está escrita en `SearchableSelect.vue` y se respeta:
+
+```
+10–50      adornos dentro de una tarjeta
+100–500    cabeceras pegajosas y barras de totales
+1000–1500  modales a pantalla completa
+5000       la lista teletransportada de SearchableSelect
+9990–9999  avisos globales: asistente, toasts, sesión caducada, banner de PWA
+```
+
+⚠️ **Pero el número no es lo que rompe: lo que rompe es quedar ATRAPADO.** `position: sticky`
+—como `transform` y `filter`— **crea contexto de apilamiento**, y un `fixed` que caiga dentro
+compite ahí adentro, no con la página. `EditConversationModal` tenía `z-[200]` y lo tapaba una
+cabecera con `z-30`: mil veces menos, y ganaba.
+
+**La regla:** *un overlay a pantalla completa dentro de un componente COMPARTIDO va siempre con
+`<Teleport to="body">`.* Un componente compartido se monta donde sea, así que no puede saber qué
+ancestros tendrá. Los modales que viven en la raíz de su vista no lo necesitan — y por eso los
+`z-1000` de las vistas funcionan sin teletransporte.
+
+**Auditoría del 08/09/2026** (39 usos fuera de banda, revisados uno a uno):
+
+| Qué | Veredicto |
+|---|---|
+| Modales de vistas con `z-1000` en su raíz | Correctos. No los toques |
+| `EditConversationModal`, `MisDocumentos`, `ConversacionVistaPrevia` | **Arreglados**: `Teleport` + banda 1000 |
+| `WysiwygEditor`, `AppSwitcher`, `InfoTooltip` (`z-[60]`) | Ya se teletransportan; el 60 es su propia banda de flotantes sobre modal y funciona |
+| `TarifaEditDrawer`, `TarifaMasivaDrawer`, `ReservaEditDrawer` (`z-40`) | Fuera de banda, pero **montados en la raíz de su vista**: funcionan. Si algún día se mueven dentro de otro componente, hay que teleportarlos primero |
+
+⚠️ **`z-1000`, `z-400` y `z-200` SIN corchetes son clases válidas**, no una errata: Tailwind 4
+genera utilidades numéricas arbitrarias. Comprobado en el CSS desplegado —`.z-1000`, `.z-400`,
+`.z-200` existen—. En v3 no habrían existido y el overlay se habría quedado sin `z-index`.
+
 ## Índice
 
 1. [FechaHoraPicker — el selector de fecha/hora del proyecto](#1-fechahorapicker--el-selector-de-fechahora-del-proyecto)

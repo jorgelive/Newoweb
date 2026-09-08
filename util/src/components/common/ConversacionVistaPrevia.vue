@@ -334,7 +334,12 @@ const ventanaAbierta = computed(() => conversacionActual.value?.whatsappSessionA
 <template>
     <!-- El velo sólo en modo fijado: en hover taparía el ítem del que se salió y
          el cursor no podría volver a la ventana. -->
-    <div v-if="abierta && modo === 'fijado'" class="fixed inset-0 z-400" @click="emit('cerrar')"></div>
+    <!-- ⚠️ El velo de un panel fijado es un `fixed` dentro de un componente que se monta en
+         cualquier sitio: sin `Teleport` lo encierra el primer ancestro con contexto de
+         apilamiento y deja de tapar lo que debe tapar. -->
+    <Teleport to="body">
+      <div v-if="abierta && modo === 'fijado'" class="fixed inset-0 z-[1000]" @click="emit('cerrar')"></div>
+    </Teleport>
 
     <Transition name="fade-scale">
         <div v-if="abierta" ref="panel"

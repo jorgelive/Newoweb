@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import { useDuenioDeIdentificador, type TipoIdentificador } from '@/composables/useDuenioDeIdentificador';
 import { useChatStore, type ApiConversation } from '@/stores/chat/chatStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
@@ -11,6 +11,7 @@ const props = defineProps<{ conversation: ApiConversation }>();
 const emit = defineEmits<{ close: [] }>();
 
 const store = useChatStore();
+const router = useRouter();
 const maestroStore = useMaestroStore();
 
 const saving = ref(false);
@@ -62,16 +63,26 @@ const pedirPreviaFusion = async (): Promise<void> => {
 
 const aplicarFusion = async (): Promise<void> => {
   fusionando.value = true;
-  const fallo = await duenioNuevo.fusionar(conversationUuid.value ?? '');
+  const r = await duenioNuevo.fusionar(conversationUuid.value ?? '');
   fusionando.value = false;
 
-  if (fallo) { errorIdent.value = fallo; return; }
+  if ('error' in r) { errorIdent.value = r.error; return; }
 
-  // El identificador que provocó el choque ya es de este hilo: se limpia el formulario y se
-  // relee, porque la lista de identidades acaba de cambiar.
   previaFusion.value = null;
   nuevoValor.value = '';
   duenioNuevo.limpiar();
+
+  // 🔥 **El superviviente puede NO ser este hilo**: lo decide la antigüedad, no quien pulsa. Si
+  // el que sobrevive es el otro, quedarse aquí es quedarse mirando un hilo archivado y sin
+  // identidades — y dentro del chat, pudiendo escribirle a números que ya no son suyos. Se cierra
+  // el modal y se va al que quedó vivo.
+  if (r.supervivienteId !== conversationUuid.value) {
+    emit('close');
+    await router.push({ name: 'chat_conversation', params: { conversationId: r.supervivienteId } });
+
+    return;
+  }
+
   await refrescarHilo();
 };
 
@@ -292,7 +303,20 @@ const formatDateTime = (iso?: string | null) => {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="emit('close')">
+  <!-- ⚠️⚠️ **`Teleport` y banda 1000–1500, y las dos cosas por el mismo fallo.**
+       Desde que este modal se abre también DENTRO del expediente —colgado de
+       `ContactoDeIdentidad`, dentro de un `<aside class="lg:sticky">`— tenía dos problemas a la
+       vez y sólo se veía uno:
+
+       1. `position: sticky` **crea contexto de apilamiento**. El modal quedaba encerrado en el del
+          `aside`, así que su z-index competía dentro de esa caja y no con la página: la cabecera
+          del expediente, con un `z-30` que numéricamente es MUCHO menor, le pasaba por encima.
+       2. `z-[200]` lo ponía en la banda de «cabeceras pegajosas y barras de totales», no en la de
+          modales. Funcionaba en el chat sólo porque allí no había nada de esa banda encima.
+
+       La escalera está escrita en `SearchableSelect.vue`; ésta es la banda que le toca. -->
+  <Teleport to="body">
+  <div class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="emit('close')">
     <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
       <header class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shrink-0">
         <h2 class="font-black text-base"><i class="fas fa-pen mr-2 text-[#E07845]"></i> Editar Conversación</h2>
@@ -574,4 +598,5 @@ const formatDateTime = (iso?: string | null) => {
       </div>
     </div>
   </div>
+  </Teleport>
 </template>

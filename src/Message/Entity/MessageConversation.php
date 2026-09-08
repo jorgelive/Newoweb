@@ -345,7 +345,17 @@ class MessageConversation
     private ?array $contextData = [];
 
     /** @var Collection<int, Message> */
-    #[ORM\OneToMany(mappedBy: 'conversation', targetEntity: Message::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    // 🔥 **`EXTRA_LAZY` NO es una optimización: es lo que hace verdad al `count()`.**
+    //
+    // `getTotalMensajes()` se publica en `conversation:read`, o sea que se serializa por CADA hilo
+    // de la bandeja. Sin `EXTRA_LAZY`, `Collection::count()` inicializa la colección: un `SELECT *`
+    // de todos los mensajes de ese hilo. La bandeja pasaba de una consulta con 30 filas a 31
+    // consultas con miles de entidades hidratadas —con su `text` y su `json`—, en cada scroll y en
+    // cada refresco de Mercure. Y `cargarCabecera()`, que existe justamente «para no traerse los
+    // 247 mensajes», los traía por la puerta de atrás.
+    //
+    // Con `EXTRA_LAZY`, Doctrine resuelve `count()` con un `COUNT(*)` y no hidrata nada.
+    #[ORM\OneToMany(mappedBy: 'conversation', targetEntity: Message::class, cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EXTRA_LAZY')]
     #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $messages;
 
@@ -553,8 +563,9 @@ class MessageConversation
      * prueba que no ha tocado nadie de uno por el que hay 247 mensajes, y las dos cosas piden
      * decisiones opuestas: uno se descarta, el otro no se toca jamás.
      *
-     * ⚠️ `count()` sobre la colección, que Doctrine resuelve con un `COUNT` sin hidratar los
-     * mensajes: un hilo largo no se trae entero para decir cuántos son.
+     * ⚠️ `count()` sobre la colección resuelve con un `COUNT` **sólo porque la relación es
+     * `EXTRA_LAZY`** (ver el mapeo de `$messages`). Sin esa palabra, esto hidrata el hilo entero en
+     * cada serialización — y se publica en la bandeja, o sea por cada hilo de la lista.
      */
     #[Groups(['conversation:read'])]
     public function getTotalMensajes(): int

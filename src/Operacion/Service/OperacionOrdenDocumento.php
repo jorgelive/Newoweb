@@ -59,6 +59,11 @@ final readonly class OperacionOrdenDocumento
         $lineas = [];
 
         foreach ($grupos as $g) {
+            // ⚠️ Una sola resolución por grupo. Escrito dos veces —en la condición y en el
+            // `sprintf`— cada grupo costaba el doble: dos búsquedas del expediente y dos del hilo,
+            // con su consulta de semillas cuando el hilo no tiene teléfono vivo.
+            $telefono = $this->telefonoVivo($g);
+
             $partes = array_values(array_filter([
                 $g['grupo'] !== '' ? sprintf('*%s*', $g['grupo']) : null,
                 $g['pasajero'] !== '' && $g['pasajero'] !== $g['grupo'] ? $g['pasajero'] : null,
@@ -74,7 +79,7 @@ final readonly class OperacionOrdenDocumento
                         $g['noches'] > 0 ? sprintf(', %d %s', $g['noches'], $g['noches'] === 1 ? 'noche' : 'noches') : ''
                     ))
                     : null,
-                $this->telefonoVivo($g) !== '' ? sprintf('tel. %s', $this->telefonoVivo($g)) : null,
+                $telefono !== '' ? sprintf('tel. %s', $telefono) : null,
             ], static fn (?string $p): bool => $p !== null));
 
             if ($partes !== []) {
