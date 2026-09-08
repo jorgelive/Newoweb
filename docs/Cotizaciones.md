@@ -1240,6 +1240,16 @@ Son dos trabajos distintos, y por eso conviven los dos caminos:
 corrige el HECHO —a qué hora sale—, no a quién le pasa; mezclarlo daría dos sitios para cambiar lo
 mismo. La ficha lo dice en su pie.
 
+⚠️ **El selector es `FechaHoraPicker`, no `<input type="datetime-local">`.** Se escribió con el
+nativo y el propio componente compartido advierte que no se use: saca AM/PM en un equipo con el SO
+en inglés —aquí se trabaja siempre en 24 h—, cambia de aspecto en cada navegador y no admite
+máscara al teclear. Con `borrable: false`, porque un vuelo sin hora de salida no existe.
+
+⚠️ **Y el suelo de la llegada es el DÍA de la salida, nunca la fecha completa.** `VueDatePicker`
+toma `min-date` también como límite de HORA y reajusta el valor: con la salida entera, un DM6770
+que despega a las 20:22 no dejaría poner la llegada a las 00:30 del día siguiente — que es
+exactamente ese vuelo. Es la misma trampa que ya documentaba `ReservaEditDrawer::soloDia()`.
+
 ⚠️ **No hay campo «fecha»**, a propósito: `setSalida()` la fija, porque es la mitad de la identidad
 del vuelo y dos campos para un mismo hecho acaban discrepando. El efecto es que mover una salida a
 otro día puede chocar con `uniq_vuelo_file_numero_fecha` —pasa de verdad: el JA7027 vuela el 25 y

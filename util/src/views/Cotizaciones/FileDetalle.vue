@@ -8,6 +8,7 @@ import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
 import MaskedDateInput from '@/components/MaskedDateInput.vue';   // ajusta ruta
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import ContactoDeIdentidad from '@/components/common/ContactoDeIdentidad.vue';
+import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import { uuidDe } from '@/services/hydra';
 import { formatearTelefono } from '@/utils/telefono';
 // El itinerario se escribe en el canónico de la casa —el mismo del chat, que normaliza el Markdown
@@ -2899,17 +2900,33 @@ const eliminarDocumento = async (iri?: string) => {
                         </label>
                         <!-- ⚠️ La SALIDA fija también la fecha del vuelo, que es la mitad de su
                              identidad: no hay un campo «fecha» aparte a propósito, porque dos
-                             campos para un mismo hecho acaban discrepando. -->
-                        <label>
+                             campos para un mismo hecho acaban discrepando.
+
+                             ⚠️ **`FechaHoraPicker` y NO `<input type="datetime-local">`**, que es
+                             lo que había aquí y el propio componente advierte que no se use: el
+                             nativo saca AM/PM en un equipo con el SO en inglés, cambia de aspecto
+                             en cada navegador y no admite máscara al teclear. Aquí se trabaja
+                             siempre en 24 h.
+
+                             ⚠️ `borrable: false`: un vuelo sin hora de salida no existe, y la «x»
+                             sólo servía para dejar el formulario en un estado que el backend
+                             rechaza. En la v14 del picker eso vive dentro de `input-attrs`, y el
+                             componente ya lo resuelve. -->
+                        <div>
                           <span class="text-[9px] font-black text-slate-400 uppercase">Salida</span>
-                          <input v-model="vueloForm.salida" type="datetime-local"
-                                 class="w-full border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-indigo-500" />
-                        </label>
-                        <label>
+                          <FechaHoraPicker v-model="vueloForm.salida" :borrable="false" />
+                        </div>
+                        <div>
                           <span class="text-[9px] font-black text-slate-400 uppercase">Llegada</span>
-                          <input v-model="vueloForm.llegada" type="datetime-local"
-                                 class="w-full border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-indigo-500" />
-                        </label>
+                          <!-- ⚠️ El suelo es el DÍA de la salida, **nunca la fecha completa**:
+                               `VueDatePicker` toma `min-date` también como límite de HORA y
+                               reajusta el valor. Con la salida entera, un DM6770 que despega a
+                               las 20:22 no dejaría poner la llegada a las 00:30 del día
+                               siguiente — que es exactamente este vuelo. Es la misma trampa que
+                               ya documenta `ReservaEditDrawer::soloDia()`. -->
+                          <FechaHoraPicker v-model="vueloForm.llegada" :borrable="false"
+                                           :min-date="(vueloForm.salida || '').slice(0, 10) || null" />
+                        </div>
                       </div>
 
                       <p class="text-[9px] font-bold text-slate-400">
