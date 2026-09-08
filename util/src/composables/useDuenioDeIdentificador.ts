@@ -95,11 +95,56 @@ export function useDuenioDeIdentificador(
               + 'Si no son la misma persona, corrige el dato antes de guardar.';
     });
 
+    /**
+     * Qué pasaría al fusionar con el hilo que ya tiene este identificador.
+     *
+     * ⚠️ **Se pregunta antes de aplicar y no se deduce.** Quién sobrevive lo decide la antigüedad
+     * —el hilo viejo tiene el historial largo y los enlaces que ya funcionan— y eso lo sabe el
+     * backend, no esta pantalla. Enseñar aquí una suposición y que el servidor hiciera otra cosa
+     * sería peor que no enseñar nada.
+     */
+    const previaDeFusion = async (miHiloId: string): Promise<{
+        superviviente: { id: string; nombre: string | null; mensajes: number; asuntos: number };
+        absorbido: { id: string; nombre: string | null; mensajes: number; asuntos: number };
+    } | null> => {
+        const otro = duenio.value?.conversacionId;
+
+        if (!otro || !miHiloId) return null;
+
+        try {
+            const { data } = await apiClient.get(
+                `/platform/message/conversations/${miHiloId}/fusion/previa`,
+                { params: { con: otro } },
+            );
+
+            return data;
+        } catch {
+            return null;
+        }
+    };
+
+    /** Aplica la fusión. **No se deshace**: los mensajes quedan en una sola línea de tiempo. */
+    const fusionar = async (miHiloId: string): Promise<string | null> => {
+        const otro = duenio.value?.conversacionId;
+
+        if (!otro || !miHiloId) return 'No sé con qué hilo fusionar.';
+
+        try {
+            await apiClient.post(`/platform/message/conversations/${miHiloId}/fusion`, { con: otro });
+
+            return null;
+        } catch (e: unknown) {
+            const r = e as { response?: { data?: { error?: string } } };
+
+            return r.response?.data?.error ?? 'No se pudo fusionar.';
+        }
+    };
+
     const limpiar = (): void => {
         if (temporizador) clearTimeout(temporizador);
         duenio.value = null;
         comprobando.value = false;
     };
 
-    return { duenio, comprobando, aviso, comprobar, limpiar };
+    return { duenio, comprobando, aviso, comprobar, limpiar, previaDeFusion, fusionar };
 }

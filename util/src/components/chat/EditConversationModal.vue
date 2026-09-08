@@ -36,9 +36,9 @@ const ocupado = ref(false);
  * Con `0` no se ofrece enlace: llevar a un chat vacío no aclara nada, y decirlo con palabras sí.
  */
 const totalMensajes = computed(() =>
-  Number((props.conversation as unknown as { totalMensajes?: number }).totalMensajes ?? 0));
+  Number((hilo.value as unknown as { totalMensajes?: number }).totalMensajes ?? 0));
 
-const idDelHilo = computed(() => uuidDe(props.conversation) ?? '');
+const idDelHilo = computed(() => uuidDe(hilo.value) ?? '');
 
 /**
  * ¿El identificador que se está tecleando ya es de otro hilo?
@@ -48,6 +48,32 @@ const idDelHilo = computed(() => uuidDe(props.conversation) ?? '');
  * fusionar. El composable redacta esa versión de la frase.
  */
 const duenioNuevo = useDuenioDeIdentificador(() => true);
+
+const previaFusion = ref<Awaited<ReturnType<typeof duenioNuevo.previaDeFusion>>>(null);
+const fusionando = ref(false);
+
+const pedirPreviaFusion = async (): Promise<void> => {
+  fusionando.value = true;
+  previaFusion.value = await duenioNuevo.previaDeFusion(conversationUuid.value ?? '');
+  fusionando.value = false;
+
+  if (!previaFusion.value) errorIdent.value = 'No se pudo preparar la fusión.';
+};
+
+const aplicarFusion = async (): Promise<void> => {
+  fusionando.value = true;
+  const fallo = await duenioNuevo.fusionar(conversationUuid.value ?? '');
+  fusionando.value = false;
+
+  if (fallo) { errorIdent.value = fallo; return; }
+
+  // El identificador que provocó el choque ya es de este hilo: se limpia el formulario y se
+  // relee, porque la lista de identidades acaba de cambiar.
+  previaFusion.value = null;
+  nuevoValor.value = '';
+  duenioNuevo.limpiar();
+  await refrescarHilo();
+};
 
 /** Vienen serializadas con la conversación (`conversation:read`). */
 interface IdentidadDelPanel {
@@ -78,8 +104,31 @@ const aliasDePlataforma = computed<Set<string>>(() => new Set(
     .filter((c): c is string => !!c)
 ));
 
+/**
+ * Copia local del hilo, y **no se lee del prop a secas**.
+ *
+ * ⚠️ Dentro del chat, tras tocar una identidad el store refresca `currentConversation` y el prop
+ * llega nuevo. Fuera del chat no hay tal cosa: quien abre este modal desde el expediente le pasa
+ * un objeto suelto, y sin esta copia la lista se quedaba mostrando el estado anterior — el
+ * operador retiraba un número, no veía el cambio, y lo retiraba otra vez.
+ */
+const hilo = ref<ApiConversation>(props.conversation);
+
+watch(() => props.conversation, (v) => { hilo.value = v; });
+
+/** Relee la cabecera —sin el historial— y repinta. */
+const refrescarHilo = async (): Promise<void> => {
+  const id = conversationUuid.value;
+
+  if (!id) return;
+
+  const fresco = await store.cargarCabecera(id);
+
+  if (fresco) hilo.value = fresco;
+};
+
 const identidades = computed<IdentidadDelPanel[]>(() => {
-  const filas = (props.conversation as unknown as { identidades?: unknown[] }).identidades ?? [];
+  const filas = (hilo.value as unknown as { identidades?: unknown[] }).identidades ?? [];
 
   return filas.map(f => {
     const i = f as Record<string, unknown>;
@@ -129,7 +178,10 @@ const anadir = async () => {
   if (!nuevoValor.value.trim()) return;
 
   ocupado.value = true;
-  errorIdent.value = await store.anadirIdentidad(nuevoTipo.value, nuevoValor.value) ?? '';
+  // ⚠️ Con el id EXPLÍCITO: este modal se abre también fuera del chat —desde el expediente o la
+  // reserva—, y ahí `currentConversation` no es ésta (o no hay ninguna).
+  errorIdent.value = await store.anadirIdentidad(nuevoTipo.value, nuevoValor.value, conversationUuid.value ?? undefined) ?? '';
+  await refrescarHilo();
   ocupado.value = false;
 
   if (!errorIdent.value) nuevoValor.value = '';
@@ -137,7 +189,8 @@ const anadir = async () => {
 
 const cambiar = async (id: string, cambios: { principal?: boolean; bloqueado?: boolean; retirada?: boolean }) => {
   ocupado.value = true;
-  errorIdent.value = await store.cambiarIdentidad(id, cambios) ?? '';
+  errorIdent.value = await store.cambiarIdentidad(id, cambios, conversationUuid.value ?? undefined) ?? '';
+  await refrescarHilo();
   ocupado.value = false;
 };
 
@@ -443,12 +496,44 @@ const formatDateTime = (iso?: string | null) => {
                  duro —«no se guardará»— porque este hilo ya existe y un identificador no se le
                  quita a su dueño: la salida es fusionar. Decirlo antes convierte un error en una
                  decisión informada. -->
-            <p v-if="duenioNuevo.aviso.value" class="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-2 leading-snug">
-              <i class="fas fa-circle-info mr-1"></i>{{ duenioNuevo.aviso.value }}
-              <RouterLink v-if="duenioNuevo.duenio.value"
-                          :to="{ name: 'chat_conversation', params: { conversationId: duenioNuevo.duenio.value.conversacionId } }"
-                          class="underline hover:no-underline">Ver ese hilo</RouterLink>
-            </p>
+            <div v-if="duenioNuevo.aviso.value" class="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-2 leading-snug">
+              <p>
+                <i class="fas fa-circle-info mr-1"></i>{{ duenioNuevo.aviso.value }}
+                <RouterLink v-if="duenioNuevo.duenio.value"
+                            :to="{ name: 'chat_conversation', params: { conversationId: duenioNuevo.duenio.value.conversacionId } }"
+                            class="underline hover:no-underline">Ver ese hilo</RouterLink>
+              </p>
+
+              <!-- 🔥 **La salida que el sistema recomienda, con un botón.** El mensaje decía «hay
+                   que fusionar» y fusionar sólo existía en la consola: quien se topa con esto es
+                   un operador en una pantalla, así que en la práctica la salida recomendada no
+                   existía y se acababa borrando algo. -->
+              <button v-if="!previaFusion" type="button" @click="pedirPreviaFusion" :disabled="fusionando"
+                      class="mt-1.5 px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors disabled:opacity-50">
+                <i class="fas fa-code-merge mr-1"></i>Fusionar los dos hilos
+              </button>
+
+              <!-- ⚠️ Se enseña QUÉ va a pasar antes de aplicarlo, y quién sobrevive: lo decide la
+                   ANTIGÜEDAD, no quien pulsa. Fusionar no se deshace — los mensajes quedan en una
+                   sola línea de tiempo y no hay forma de saber cuál venía de dónde. -->
+              <div v-else class="mt-1.5 bg-white border border-amber-300 rounded-lg p-2">
+                <p class="text-slate-600 font-bold leading-snug">
+                  Sobrevive <b class="text-slate-800">{{ previaFusion.superviviente.nombre || 'el hilo más antiguo' }}</b>
+                  ({{ previaFusion.superviviente.mensajes }} mensajes) y absorbe
+                  <b class="text-slate-800">{{ previaFusion.absorbido.nombre || 'el otro' }}</b>
+                  ({{ previaFusion.absorbido.mensajes }} mensajes, {{ previaFusion.absorbido.asuntos }} asuntos).
+                  <span class="text-amber-700">Esto no se deshace.</span>
+                </p>
+                <div class="flex gap-1.5 mt-1.5">
+                  <button type="button" @click="previaFusion = null"
+                          class="px-2 py-1 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500">Cancelar</button>
+                  <button type="button" @click="aplicarFusion" :disabled="fusionando"
+                          class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider disabled:opacity-50">
+                    <i v-if="fusionando" class="fas fa-circle-notch fa-spin mr-1"></i>Fusionar
+                  </button>
+                </div>
+              </div>
+            </div>
 
             <p v-if="errorIdent" class="text-[11px] font-bold text-red-500 mt-2 leading-snug">{{ errorIdent }}</p>
           </div>

@@ -726,8 +726,15 @@ export const useChatStore = defineStore('chatStore', () => {
      *                       backend, que es el único sitio donde se normaliza.
      * @returns {Promise<string | null>} `null` si fue bien; el motivo si no.
      */
-    const anadirIdentidad = async (tipo: string, valor: string): Promise<string | null> => {
-        const id = uuidOf(currentConversation.value);
+    /**
+     * @param conversacionId Explícito cuando el editor se abre FUERA del chat.
+     *
+     * ⚠️ Sin esto, editar las identidades de alguien obligaba a navegar al chat y cargar su
+     * historial entero — cientos de mensajes para corregir un teléfono. La acción nunca los
+     * necesitó: sólo hace falta saber de qué hilo son.
+     */
+    const anadirIdentidad = async (tipo: string, valor: string, conversacionId?: string): Promise<string | null> => {
+        const id = conversacionId ?? uuidOf(currentConversation.value);
         if (!id) return 'No hay ninguna conversación abierta.';
 
         try {
@@ -749,11 +756,13 @@ export const useChatStore = defineStore('chatStore', () => {
      * @param {object} cambios Campos a aplicar; los omitidos no se tocan.
      * @returns {Promise<string | null>} `null` si fue bien; el motivo si no.
      */
+    /** @param conversacionId Explícito cuando el editor se abre FUERA del chat. */
     const cambiarIdentidad = async (
         identidadId: string,
         cambios: { principal?: boolean; bloqueado?: boolean; retirada?: boolean },
+        conversacionId?: string,
     ): Promise<string | null> => {
-        const id = uuidOf(currentConversation.value);
+        const id = conversacionId ?? uuidOf(currentConversation.value);
         if (!id) return 'No hay ninguna conversación abierta.';
 
         try {
@@ -773,6 +782,24 @@ export const useChatStore = defineStore('chatStore', () => {
      * si todos sus teléfonos vivos lo están—, y ese flag lo pinta la barra de canales. Se
      * refrescan también los canales por lo mismo.
      */
+    /**
+     * La cabecera de un hilo, **sin su historial**.
+     *
+     * 🔥 Para editar las identidades de alguien no hace falta traerse sus 247 mensajes.
+     * `selectConversation()` los carga porque su trabajo es abrir el chat; esto sólo trae lo que
+     * el editor necesita, y así se puede abrir desde el expediente o desde la reserva sin salir
+     * de la pantalla.
+     */
+    const cargarCabecera = async (id: string): Promise<ApiConversation | null> => {
+        try {
+            const { data } = await apiClient.get(`/platform/message/conversations/${id}`);
+
+            return data as ApiConversation;
+        } catch {
+            return null;
+        }
+    };
+
     const refrescarConversacion = async (id: string): Promise<void> => {
         const { data } = await apiClient.get(`/platform/message/conversations/${id}`);
 
@@ -1141,6 +1168,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation
+        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation, cargarCabecera
     };
 });

@@ -19,9 +19,9 @@
 // ============================================================================
 
 import { ref, watch, computed, useAttrs } from 'vue';
-import { useRouter } from 'vue-router';
 import { apiClient } from '@/services/apiClient';
-import { useChatStore } from '@/stores/chat/chatStore.ts';
+import { useChatStore, type ApiConversation } from '@/stores/chat/chatStore.ts';
+import EditConversationModal from '@/components/chat/EditConversationModal.vue';
 import { uuidDe } from '@/services/hydra';
 import { formatearTelefono } from '@/utils/telefono';
 
@@ -70,7 +70,6 @@ const error = ref<string | null>(null);
 
 const attrs = useAttrs();
 const chatStore = useChatStore();
-const router = useRouter();
 
 const muestraCorreo = computed(() => props.conCorreo !== false);
 
@@ -224,12 +223,35 @@ const editar = async (): Promise<void> => {
             id = uuidDe(abierto.conversacion);
         }
 
-        if (id) await router.push({ path: '/chat', query: { id, editar: 'identidades' } });
+        // 🔥 **Aquí mismo, sin navegar al chat.** Antes esto empujaba a `/chat`, que carga el
+        // hilo Y su historial: cientos de mensajes traídos para corregir un teléfono, y encima
+        // sacando al operador de la pantalla en la que estaba trabajando. El editor sólo necesita
+        // la cabecera, así que se pide sólo eso.
+        if (id) {
+            hiloParaEditar.value = await chatStore.cargarCabecera(id);
+
+            if (hiloParaEditar.value === null) {
+                error.value = 'No se pudo abrir el editor de identificadores.';
+            }
+        }
     } catch {
         error.value = 'No se pudo abrir el editor de identificadores.';
     } finally {
         abriendo.value = false;
     }
+};
+
+/**
+ * El hilo cargado para el editor, o `null` si está cerrado.
+ *
+ * Al cerrarlo se recarga el contacto: puede que se haya cambiado el número principal, y el que
+ * esta tarjeta enseña se resuelve por la identidad.
+ */
+const hiloParaEditar = ref<ApiConversation | null>(null);
+
+const cerrarEditor = async (): Promise<void> => {
+    hiloParaEditar.value = null;
+    await cargar();
 };
 
 defineExpose({ recargar: cargar });
@@ -309,4 +331,8 @@ defineExpose({ recargar: cargar });
             <i class="fas fa-triangle-exclamation mr-1"></i>{{ error }}
         </p>
     </div>
+
+    <!-- El editor de identidades, encima y sin salir de aquí. Se le pasa la CABECERA que
+         acabamos de cargar: no hace falta el historial para tocar un número. -->
+    <EditConversationModal v-if="hiloParaEditar" :conversation="hiloParaEditar" @close="cerrarEditor" />
 </template>

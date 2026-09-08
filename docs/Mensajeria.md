@@ -30,6 +30,52 @@ Collection<int, Message>` ajeno y sin su `#[Groups]` — el fallo exacto que des
 que aquí no fue silencioso de milagro: `api:openapi:export` reventó al no poder instanciar el
 atributo. Al insertar un método, mirar qué hay inmediatamente encima.
 
+## 🔥 Fusionar dejó de ser sólo un comando (08/09/2026)
+
+El sistema **recomendaba fusionar por escrito** —«si son la misma persona, únelas con
+`app:message:fusionar-hilos`»— y fusionar sólo existía en la consola. Quien se topa con el choque
+es un operador en una pantalla, así que en la práctica **la salida recomendada no existía**: se
+acababa borrando un hilo o dejando el número atascado para siempre.
+
+`FusionadorDeHilos` saca del comando lo que **une** —mover mensajes, enlaces e identidades, y las
+reglas de cabecera— y deja en él lo que **encuentra**: el barrido de duplicados y su recuento.
+Misma regla, dos puertas.
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET …/{id}/fusion/previa?con=…` | Dice qué se va a unir: mensajes, asuntos y **quién sobrevive**. No escribe |
+| `POST …/{id}/fusion` | Lo aplica |
+
+⚠️ **Quién sobrevive lo decide la ANTIGÜEDAD, no quien pulsa.** El hilo viejo tiene el historial
+largo y los enlaces que ya funcionan; absorberlo en el nuevo movería más cosas y rompería más
+referencias. Dejar elegir invitaría a acertar por casualidad.
+
+⚠️ **Fusionar no se deshace**, y el diálogo lo dice: los mensajes quedan en una sola línea de
+tiempo y no hay forma de saber cuál venía de dónde.
+
+⚠️ **Los hilos `staff` siguen fuera**, ahora también en el endpoint y con el motivo en el mensaje:
+`EscalarAlEquipoSkill` busca los avisos recientes filtrando por `contextType = 'staff'`, y al
+fusionar esos mensajes dejarían de encontrarse — el enfriamiento fallaría **abierto** y la guardia
+volvería a sonar entera, de noche y sin causa evidente.
+
+## Editar identidades ya no obliga a cargar el chat (08/09/2026)
+
+`EditConversationModal` sólo vivía dentro de `ChatView`, y llegar hasta él pasaba por
+`selectConversation()`, que trae la conversación **y sus mensajes**. Corregir un teléfono costaba
+traerse cientos de mensajes y salir de la pantalla en la que se estaba trabajando.
+
+No los necesitaba: el editor sólo usa la cabecera y sus identidades. Ahora `cargarCabecera()` trae
+sólo eso y el modal se abre **encima del expediente o de la reserva**, desde el «Editar» de
+`ContactoDeIdentidad`.
+
+⚠️ Para eso, `anadirIdentidad()` y `cambiarIdentidad()` aceptan un id **explícito**: fuera del chat
+`currentConversation` no es ésta, o no hay ninguna.
+
+⚠️ Y el modal guarda una **copia local** del hilo en vez de leer el prop. Dentro del chat el store
+refresca `currentConversation` y el prop llega nuevo; fuera no hay tal cosa, así que sin la copia
+la lista se quedaba en el estado anterior — el operador retiraba un número, no veía el cambio, y lo
+retiraba otra vez.
+
 ## El aviso de «este número ya es de alguien» faltaba donde más duele (08/09/2026)
 
 `DuenioDeIdentificadorController` existía y hacía justo esto, pero sólo lo consumía
