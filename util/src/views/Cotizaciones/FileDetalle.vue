@@ -25,7 +25,7 @@ import type { ApiPais } from '@/types/maestroModel';
 import { paraBuscar } from '@/utils/texto';
 
 import {
-  getArchivoLabel, ARCHIVO_TIPO_LABELS, ARCHIVO_TIPOS_DEL_PASAJERO, type PlanCargaZip,
+  getArchivoLabel, ARCHIVO_TIPO_LABELS, ARCHIVO_TIPOS_DEL_PASAJERO, type PlanCargaZip, type DocumentoSuelto,
   getSexoLabel, SEXO_LABELS,
   getDocIdLabel, DOCUMENTO_IDENTIDAD_LABELS, GRUPO_TIPO_LABELS, PASAJERO_TIPO_CONFIG, FILE_MODO_CONFIG,
   type ApiFileGrupo,
@@ -1944,6 +1944,43 @@ const validarManifiesto = async () => {
     else alert(fileStore.error || 'No se pudo validar el manifiesto.');
 };
 
+/* ══ PANEL DE RESOLUCIÓN: los documentos que no son de nadie ══════════════ */
+
+const sueltos = ref<DocumentoSuelto[]>([]);
+const cargandoSueltos = ref(false);
+const resolviendo = ref<string | null>(null);
+const panelSueltos = ref(false);
+
+const cargarSueltos = async () => {
+    cargandoSueltos.value = true;
+    sueltos.value = await fileStore.documentosSueltos(String(extractIdStr(file.value?.id ?? file.value?.['@id'])));
+    cargandoSueltos.value = false;
+};
+
+const abrirPanelSueltos = async () => {
+    panelSueltos.value = true;
+    await cargarSueltos();
+};
+
+/**
+ * Resuelve UNO.
+ *
+ * ⚠️ **Se recarga la lista entera al terminar, no se quita la fila.** Crear una persona cambia los
+ * candidatos de los DEMÁS documentos sueltos —el siguiente ya puede casar por nombre con la que
+ * acaba de nacer—, así que una lista que sólo pierde su fila enseñaría candidatos caducados.
+ */
+const resolverSuelto = async (doc: DocumentoSuelto, accion: 'vincular' | 'crear', pasajeroId?: string) => {
+    if (accion === 'crear' && !confirm(`Se creará una persona nueva en el manifiesto con los datos de «${doc.documento?.nombre || doc.nombre}». ¿Seguro?`)) return;
+
+    resolviendo.value = doc.id;
+    const ok = await fileStore.resolverDocumento(doc.id, accion, pasajeroId);
+    resolviendo.value = null;
+
+    if (!ok) { alert(fileStore.error || 'No se pudo resolver.'); return; }
+
+    await Promise.all([cargarSueltos(), cargarFile()]);
+};
+
 /**
  * El buscador de la bóveda: con ~1 500 archivos, bajar a ojo hasta el de una persona no es
  * viable, y el nombre del fichero casi nunca es lo que se recuerda.
@@ -2757,7 +2794,14 @@ const eliminarDocumento = async (iri?: string) => {
                 <i class="fas text-[10px] text-slate-300 group-hover:text-slate-500 transition-colors"
                    :class="bovedaAbierta ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
               </button>
-              <button v-if="bovedaAbierta" @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200 shrink-0">+ Subir Doc</button>
+              <div v-if="bovedaAbierta" class="flex items-center gap-1 shrink-0">
+                <!-- Los documentos que no son de nadie. Va aquí y no en el manifiesto porque el
+                     problema es del archivo —«¿de quién es esto?»— y no de la persona. -->
+                <button @click="abrirPanelSueltos" class="bg-amber-100 text-amber-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-200">
+                  <i class="fas fa-user-slash mr-0.5"></i> Sin dueño
+                </button>
+                <button @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200">+ Subir Doc</button>
+              </div>
             </div>
 
             <template v-if="bovedaAbierta">
@@ -4589,6 +4633,84 @@ const eliminarDocumento = async (iri?: string) => {
     </div>
   </Teleport>
 
+
+  <!-- ══ PANEL DE RESOLUCIÓN ═══════════════════════════════════════════════
+       Los documentos que no son de nadie, con a quién podrían pertenecer.
+
+       🔑 **La ambigüedad se ENSEÑA, no se resuelve sola.** Dos hermanos con los mismos apellidos
+       no son un fallo del buscador: son el caso normal de una familia, y lo único que falta es
+       que alguien señale cuál. Por eso se listan todos los candidatos con su motivo — quien
+       decide tiene que saber si confirma un hecho o acepta una corazonada. -->
+  <Teleport to="body">
+    <div v-if="panelSueltos" class="fixed inset-0 z-1000 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <div class="bg-amber-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
+          <h3 class="font-black text-sm uppercase tracking-widest">
+            <i class="fas fa-user-slash mr-2"></i> Documentos sin dueño
+            <span v-if="sueltos.length" class="font-bold normal-case tracking-normal opacity-80">· {{ sueltos.length }}</span>
+          </h3>
+          <button @click="panelSueltos = false" class="text-amber-100 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="p-6 overflow-y-auto space-y-3">
+          <p v-if="cargandoSueltos" class="text-center text-slate-400 text-xs py-6">
+            <i class="fas fa-spinner fa-spin mr-1"></i> Buscando…
+          </p>
+
+          <div v-else-if="!sueltos.length" class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
+            <i class="fas fa-check-circle text-emerald-400 text-2xl mb-2"></i>
+            <p class="text-[11px] font-black text-emerald-800 uppercase tracking-widest">Todos tienen dueño</p>
+          </div>
+
+          <div v-for="doc in sueltos" :key="doc.id" class="border border-slate-200 rounded-2xl p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-[11px] font-black text-slate-800 truncate">{{ doc.nombre }}</p>
+                <p v-if="doc.documento" class="text-[10px] text-slate-500 mt-0.5">
+                  <span class="font-mono font-bold">{{ doc.documento.numero }}</span>
+                  · {{ doc.documento.nombre }}
+                  <span v-if="doc.documento.nacimiento" class="text-slate-400"> · nac. {{ doc.documento.nacimiento }}</span>
+                  <!-- Que se validó por aritmética o por parecido no es un detalle: es lo que
+                       decide cuánto se puede confiar en lo que hay escrito arriba. -->
+                  <span v-if="doc.documento.mrz" class="ml-1 text-emerald-600 font-bold"><i class="fas fa-shield-halved text-[8px]"></i> MRZ</span>
+                </p>
+                <p v-else class="text-[10px] text-slate-400 italic mt-0.5">
+                  todavía no se ha leído — pasa antes «Validar contra los escaneos»
+                </p>
+              </div>
+              <a v-if="doc.url" :href="doc.url" target="_blank"
+                 class="shrink-0 text-[10px] font-bold text-sky-600 hover:text-sky-700">ver <i class="fas fa-up-right-from-square text-[8px]"></i></a>
+            </div>
+
+            <div v-if="doc.leido" class="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
+              <button v-for="c in doc.candidatos" :key="c.id" type="button"
+                      :disabled="resolviendo === doc.id"
+                      @click="resolverSuelto(doc, 'vincular', c.id)"
+                      class="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-left transition-colors disabled:opacity-50"
+                      :class="c.seguro
+                        ? 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100'
+                        : 'border-amber-300 bg-amber-50 hover:bg-amber-100'">
+                <span class="min-w-0">
+                  <span class="block text-[11px] font-black text-slate-800 truncate">{{ c.nombre }}</span>
+                  <span class="block text-[9px]" :class="c.seguro ? 'text-emerald-700' : 'text-amber-700'">{{ c.motivo }}</span>
+                </span>
+                <i class="fas fa-link text-[10px] shrink-0" :class="c.seguro ? 'text-emerald-500' : 'text-amber-500'"></i>
+              </button>
+
+              <!-- Crear va SIEMPRE al final y en gris: es la única acción que añade una persona al
+                   manifiesto, y dos fichas de la misma persona rompen todos los conteos. Que sea
+                   el camino más largo es a propósito. -->
+              <button type="button" :disabled="resolviendo === doc.id" @click="resolverSuelto(doc, 'crear')"
+                      class="w-full px-3 py-2 rounded-xl border border-dashed border-slate-300 text-[10px] font-black uppercase tracking-wider text-slate-500 hover:bg-slate-50 disabled:opacity-50">
+                <i class="fas fa-user-plus mr-1"></i>
+                {{ doc.candidatos.length ? 'No es ninguno: crear ficha nueva' : 'Crear ficha nueva con estos datos' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 
   <PlanOperacionModal
       :cotizacion-id="planOperacionId"

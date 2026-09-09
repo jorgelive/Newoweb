@@ -252,3 +252,36 @@ export interface PlanCargaZip {
     carpeta: string | null;
     filas: FilaCargaZip[];
 }
+
+/**
+ * Un documento de la bóveda que no es de nadie, con a quién podría pertenecer.
+ *
+ * ⚠️ Espejo del JSON de `App\Api\Controller\Cotizacion\DocumentosSueltosController::plan()`, que
+ * **no es un `ApiResource`** y por tanto no entra en la introspección de OpenAPI: no sale en
+ * `api.d.ts` y hay que declararlo aquí. Si cambia el controlador, cambia esto.
+ */
+export interface DocumentoSuelto {
+    id: string;
+    nombre: string;
+    tipo: string | null;
+    url: string | null;
+    /** `false` = todavía no se ha leído; primero se pasa la tanda de validación. */
+    leido: boolean;
+    documento: {
+        numero: string | null;
+        nombre: string;
+        nacimiento: string | null;
+        vencimiento: string | null;
+        nacionalidad: string | null;
+        /** Respaldado por los dígitos de control de la banda, no sólo por la lectura. */
+        mrz: boolean;
+    } | null;
+    candidatos: {
+        id: string;
+        nombre: string;
+        /** `numero` = su documento ya está guardado (un hecho); `nombre` = sólo se parece. */
+        por: string;
+        motivo: string;
+        seguro: boolean;
+    }[];
+}

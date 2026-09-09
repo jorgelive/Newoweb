@@ -1881,6 +1881,67 @@ son los del documento — un número mal en un manifiesto es un problema en el a
 
 Coste de la tanda entera: **~$0,30**. Y no se vuelve a pagar: las lecturas quedaron cacheadas.
 
+#### El panel de resolución: la ambigüedad se enseña, no se resuelve sola (09/09/2026)
+
+Botón **«Sin dueño»** en la cabecera de la bóveda. Va ahí y no en el manifiesto porque el problema
+es del archivo —«¿de quién es esto?»— y no de la persona.
+
+`GET /cotizacion/user/documentos-sueltos/{id}` da el plan; `POST …/{id}/resolver` resuelve uno.
+
+⚠️ **Dos rutas y no una.** El plan se puede pedir las veces que haga falta y no toca nada; resolver
+escribe y puede **crear una persona**. Un endpoint que «hace lo que corresponda» es como se acaba
+creando gente por recargar una pantalla.
+
+##### `candidatosPara()` devuelve TODOS, y ése fue el cambio
+
+La primera versión devolvía `null` ante dos personas con el mismo nombre — «no sé» dicho de la peor
+manera: el panel no podía ofrecer las dos y quien miraba tenía que buscarlas a mano.
+
+🔥 **Dos hermanos con los mismos apellidos no son un fallo del buscador: son el caso normal de una
+familia.** Lo único que falta es que alguien señale cuál. Ahora se listan todos, cada uno con su
+motivo, y **la certeza va en el dato y no en el orden**: una lista «el mejor primero» hace que el
+primero se elija por estar arriba.
+
+| `por` | Qué es | Cómo se pinta |
+|---|---|---|
+| `numero` | su documento ya está guardado: un **hecho** | verde |
+| `nombre` | sólo se parece el nombre: una **sugerencia** | ámbar |
+
+⚠️ Si el número casa con uno y el nombre con otro, **salen los dos**. Eso es una contradicción que
+hay que poder ver, no esconder.
+
+##### Crear es el camino más largo, a propósito
+
+`crear` va siempre al final, en gris, con pregunta de confirmación, y su texto cambia a «**No es
+ninguno**: crear ficha nueva» cuando hay candidatos. Es la única acción que **añade una persona**, y
+dos fichas de la misma persona rompen todos los conteos del manifiesto sin que nadie las eche de
+menos.
+
+⚠️ **`ResolutorDeDocumentoSuelto::crear()` va en transacción.** Crear la persona, crear su
+identificación y colgarle el archivo son tres escrituras que no pueden quedar a medias: una persona
+sin su documento es una fila fantasma en el manifiesto.
+
+⚠️ **Y comprueba que el archivo sigue sin dueño antes de escribir.** Entre que el panel se pintó y
+alguien pulsó, otra persona pudo asignarlo; sin esto, dos operadores mirando la misma cola crean la
+misma persona dos veces.
+
+⚠️ **Se resuelve de uno en uno.** Un «resolver todos» aplicaría también las corazonadas por nombre
+—las que se equivocan en las familias— y deshacerlo son tantas decisiones como se tomaron de golpe.
+
+⚠️ **Al resolver se recarga la lista ENTERA, no se quita la fila.** Crear una persona cambia los
+candidatos de los demás documentos: el siguiente ya puede casar por nombre con la que acaba de
+nacer, y una lista que sólo pierde su fila enseñaría candidatos caducados.
+
+##### El país al crear
+
+Se resuelve por `nacionalidadIso2`, que ya viene traducida del ISO-3 del documento. Si ese país no
+está en `maestro_pais` (198 de ~249), **se deja vacío**: un país que falta en el maestro es un dato
+que añadir al maestro, no un error del documento — y no se inventa la fila.
+
+⚠️ `DocumentoSuelto` en `fileDetalleModel.ts` es un **tipo a mano**, y aquí está justificado: el
+controlador **no es un `ApiResource`**, así que no entra en la introspección de OpenAPI y no sale en
+`api.d.ts`. Es espejo de `DocumentosSueltosController::plan()`: si cambia uno, cambia el otro.
+
 #### La bóveda arranca plegada (08/09/2026)
 
 Vive en la barra lateral, encima de todo lo demás, y en un expediente grande son ~1 500 archivos.

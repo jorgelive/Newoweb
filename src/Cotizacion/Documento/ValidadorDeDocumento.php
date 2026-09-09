@@ -155,42 +155,73 @@ final readonly class ValidadorDeDocumento
     }
 
     /**
-     * A quién podría pertenecer, dentro de SU expediente.
+     * A quién podría pertenecer, dentro de SU expediente. **Todos los candidatos**, no el mejor.
      *
      * ⚠️ **Dentro de su expediente y sólo ahí.** Buscar por todo el sistema encontraría al mismo
      * DNI en otro grupo del año pasado y propondría cruzar dos expedientes — que es justo lo que
      * `validarDuenoDelMismoExpediente()` prohíbe al guardar.
      *
+     * 🔥 **Devuelve la lista entera y NO resuelve la ambigüedad.** Una versión anterior devolvía
+     * `null` cuando había dos personas con el mismo nombre, que es «no sé» dicho de la peor
+     * manera: el panel no podía ofrecer las dos y quien miraba tenía que buscarlas a mano. Dos
+     * hermanos con los mismos apellidos no son un fallo del buscador — son el caso normal de una
+     * familia, y lo único que falta es que alguien señale cuál.
+     *
+     * @return list<Candidato>
+     */
+    public function candidatosPara(CotizacionFilearchivo $archivo, DatosDeDocumento $leido): array
+    {
+        $numero = self::soloAlfanumerico((string) $leido->numero);
+        $seguros = [];
+        $porNombre = [];
+
+        foreach ($archivo->getFile()?->getFilepasajeros() ?? [] as $pasajero) {
+            $casaNumero = false;
+            foreach ($pasajero->getIdentificaciones() as $identificacion) {
+                if ($numero !== '' && self::soloAlfanumerico((string) $identificacion->getNumero()) === $numero) {
+                    $casaNumero = true;
+                    break;
+                }
+            }
+
+            if ($casaNumero) {
+                $seguros[] = Candidato::porNumero($pasajero, (string) $leido->numero);
+                continue;
+            }
+
+            if (self::mismoNombre($leido, $pasajero)) {
+                $porNombre[] = Candidato::porNombre($pasajero);
+            }
+        }
+
+        // Los seguros delante, pero **sin descartar los otros**: si el número casa con alguien y
+        // el nombre con otro, eso es una contradicción que hay que poder ver, no esconder.
+        return [...$seguros, ...$porNombre];
+    }
+
+    /**
      * @return array{CotizacionFilepasajero|null, string}
      */
     private function buscarDueno(CotizacionFilearchivo $archivo, DatosDeDocumento $leido): array
     {
-        $pasajeros = $archivo->getFile()?->getFilepasajeros() ?? [];
-        $numero = self::soloAlfanumerico((string) $leido->numero);
-        $porNombre = [];
+        $candidatos = $this->candidatosPara($archivo, $leido);
 
-        foreach ($pasajeros as $pasajero) {
-            foreach ($pasajero->getIdentificaciones() as $identificacion) {
-                if ($numero !== '' && self::soloAlfanumerico((string) $identificacion->getNumero()) === $numero) {
-                    return [$pasajero, sprintf('tiene guardado ese mismo número (%s)', $leido->numero)];
-                }
-            }
-
-            if (self::mismoNombre($leido, $pasajero)) {
-                $porNombre[] = $pasajero;
-            }
+        if ($candidatos === []) {
+            return [null, ''];
         }
 
-        // 🔥 **Dos con el mismo nombre no se resuelve adivinando.** Es el caso de las familias
-        // —hermanos con los dos apellidos iguales— que es justo donde el reparto se tuerce. Elegir
-        // uno al azar sería colgarle a alguien el documento de su hermano con cara de acierto.
-        if (count($porNombre) > 1) {
-            return [null, 'hay varias personas con ese nombre: hay que elegir a mano'];
+        $seguros = array_values(array_filter($candidatos, static fn (Candidato $c): bool => $c->esSeguro()));
+        if (count($seguros) === 1) {
+            return [$seguros[0]->pasajero, $seguros[0]->motivo];
         }
 
-        return $porNombre === []
-            ? [null, '']
-            : [$porNombre[0], 'coincide el nombre, pero NO tiene ese documento guardado: confírmalo'];
+        // 🔥 Varios candidatos no se resuelve adivinando: es el caso de las familias, y elegir uno
+        // sería colgarle a alguien el documento de su hermano con cara de acierto.
+        if (count($candidatos) > 1) {
+            return [null, sprintf('hay %d personas posibles: hay que elegir a mano', count($candidatos))];
+        }
+
+        return [$candidatos[0]->pasajero, $candidatos[0]->motivo];
     }
 
     private static function mismoNombre(DatosDeDocumento $leido, CotizacionFilepasajero $pasajero): bool

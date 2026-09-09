@@ -5,6 +5,7 @@ import { extractApiErrorMessage, esErrorSilencioso } from '@/services/apiError';
 import {ApiCotizacionFile, ApiCotizacionFileWrite, I18nContent, PlanCargaZip} from '@/types/fileDetalleModel.ts';
 import type { PlanReconciliacion, AplicarPlanPayload, ResultadoAplicacion, InformeCoherencia } from '@/types/operacionModel';
 import type { EstadoFile } from '@/types/cotizacionEditorModel';
+import type { DocumentoSuelto } from '@/types/fileDetalleModel';
 
 // ============================================================================
 // TIPOS AUTOGENERADOS Y EXTENDIDOS (HÍBRIDOS)
@@ -747,6 +748,42 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * Los documentos de la bóveda que no son de nadie, con sus candidatos. **No escribe nada**, así
+     * que se puede pedir al abrir el panel las veces que haga falta.
+     */
+    const documentosSueltos = async (fileId: string): Promise<DocumentoSuelto[]> => {
+        error.value = null;
+        try {
+            const { data } = await apiClient.get(`/cotizacion/user/documentos-sueltos/${fileId}`);
+            return (data as { documentos: DocumentoSuelto[] }).documentos ?? [];
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudieron cargar los documentos sueltos.');
+            return [];
+        }
+    };
+
+    /**
+     * Resuelve UNO: lo vincula a alguien o le crea la ficha.
+     *
+     * ⚠️ De uno en uno a propósito: un «resolver todos» aplicaría también las corazonadas por
+     * nombre, que son las que se equivocan en las familias.
+     */
+    const resolverDocumento = async (
+        archivoId: string,
+        accion: 'vincular' | 'crear',
+        pasajeroId?: string,
+    ): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.post(`/cotizacion/user/documentos-sueltos/${archivoId}/resolver`, { accion, pasajeroId });
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo resolver el documento.');
+            return false;
+        }
+    };
+
     const deleteDocument = async (iri: string): Promise<boolean> => {
         try {
             await apiClient.delete(iri);
@@ -819,6 +856,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         updatePassenger,
         updateDocument,
         validarManifiesto,
+        documentosSueltos,
+        resolverDocumento,
         cloneCotizacion,
         guardarHistorico,
         abrirOperativa,
