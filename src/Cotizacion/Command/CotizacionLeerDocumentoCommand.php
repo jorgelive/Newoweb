@@ -13,6 +13,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 use Throwable;
 use Vich\UploaderBundle\Storage\StorageInterface;
@@ -128,7 +129,10 @@ final class CotizacionLeerDocumentoCommand extends Command
         /** @var list<CotizacionFilearchivo> $todos */
         $todos = $this->em->getRepository(CotizacionFilearchivo::class)
             ->createQueryBuilder('a')
-            ->andWhere('IDENTITY(a.file) = :f')->setParameter('f', $fileId)
+            // ⚠️ Ver el aviso de `CotizacionValidarDocumentosCommand`: `binary(16)` contra
+            // texto no casa nunca y devuelve cero filas sin quejarse. Aquí llevaba desde que se
+            // escribió y no se había notado porque `--todos` no se había usado.
+            ->andWhere('a.file = :f')->setParameter('f', Uuid::fromString($fileId), UuidType::NAME)
             ->getQuery()->getResult();
 
         // ⚠️ `esEscaneoDeIdentidad()` ya existe en el enum y decide esto en un solo sitio. Una

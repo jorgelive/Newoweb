@@ -17,6 +17,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -68,7 +69,11 @@ final class CotizacionValidarDocumentosCommand extends Command
         /** @var list<CotizacionFilearchivo> $todos */
         $todos = $this->em->getRepository(CotizacionFilearchivo::class)
             ->createQueryBuilder('a')
-            ->andWhere('IDENTITY(a.file) = :f')->setParameter('f', $expediente)
+            // ⚠️ **El id va como Uuid tipado, no como cadena.** La columna es `binary(16)`, así
+            // que un `setParameter()` con el texto del UUID compara 36 caracteres contra 16
+            // bytes: no casa **nunca**, y no da error — devuelve cero filas y el comando dice
+            // «este expediente no tiene documentos», que suena a dato y es un fallo.
+            ->andWhere('a.file = :f')->setParameter('f', Uuid::fromString($expediente), UuidType::NAME)
             ->getQuery()->getResult();
 
         $archivos = array_values(array_filter(

@@ -542,6 +542,23 @@ es el modo de una sola vez.
 nadie se enterara— mientras que de los 104 comandos, cubiertos por el análisis, **no había ni uno
 roto**. Ver `tools/README.md`.
 
+⚠️ **Los UUID se guardan en `binary(16)`, y compararlos con texto no falla: devuelve vacío.**
+Un `->setParameter('f', $uuidComoTexto)` sin tipo compara 36 caracteres contra 16 bytes. No hay
+error, no hay aviso: hay **cero filas**, que es una respuesta perfectamente válida y por eso se
+lee como dato en vez de como fallo. En un comando salió como «este expediente no tiene
+documentos».
+
+Va tipado, siempre:
+
+```php
+->andWhere('a.file = :f')
+->setParameter('f', Uuid::fromString($id), UuidType::NAME)   // Symfony\Bridge\Doctrine\Types
+```
+
+Y en SQL crudo, `LOWER(HEX(id))` para leer y `UNHEX(...)` para comparar. Es la misma familia que
+`endsWith` sobre UUID en el front (`docs/Cotizaciones.md`): **fallan hacia el lado que no se ve**,
+el de «aquí no hay nada».
+
 Dos reglas más de datos:
 
 - **No se borra: se marca.** Una reserva cancelada, un asunto retirado o un enlace muerto siguen
