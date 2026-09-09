@@ -100,13 +100,24 @@ final readonly class Cotejo
         // si el error venía del padrón original.
         $cotejable = $guardado !== null && $guardado->tieneNumero() && $guardado->tieneNombre();
 
+        // ⚠️ **Informativa, NO bloqueante — y ésa es toda la sutileza.** Un documento girado con
+        // la MRZ cuadrando está PERFECTAMENTE leído: girarlo es cosmética y ayuda a las lecturas
+        // futuras, no arregla ésta. Metiéndolo entre los defectos, cada escaneo torcido caería a
+        // `observado` y llenaría la cola de trabajo de cosas que no hay que decidir.
+        //
+        // Pero tiene que salir en la FILA del manifiesto, no sólo dentro del visor: con 135
+        // personas, un aviso que hay que ir a buscar abriendo a cada una no lo encuentra nadie.
+        $informativas = $leido->rotacion !== 0
+            ? [sprintf('el escaneo está girado %d°: se puede enderezar desde el visor', $leido->rotacion)]
+            : [];
+
         if ($discrepancias === [] && $notas === []) {
             if ($leido->verificadoPorMrz()) {
-                return new self(ValidacionIdentificacionEnum::VALIDADO_MRZ, [], []);
+                return new self(ValidacionIdentificacionEnum::VALIDADO_MRZ, [], $informativas);
             }
 
             if ($cotejable) {
-                return new self(ValidacionIdentificacionEnum::VALIDADO_OCR, [], []);
+                return new self(ValidacionIdentificacionEnum::VALIDADO_OCR, [], $informativas);
             }
         }
 
@@ -125,7 +136,7 @@ final readonly class Cotejo
             $notas[] = 'sin banda MRZ legible: hubo que cotejar con el manifiesto (revisa la calidad del escaneo)';
         }
 
-        return new self(ValidacionIdentificacionEnum::OBSERVADO, $discrepancias, $notas);
+        return new self(ValidacionIdentificacionEnum::OBSERVADO, $discrepancias, [...$notas, ...$informativas]);
     }
 
     /** @return list<Discrepancia> */

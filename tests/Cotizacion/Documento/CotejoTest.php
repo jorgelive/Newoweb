@@ -290,4 +290,37 @@ final class CotejoTest extends TestCase
 
         self::assertSame([], Cotejo::de($sinTraducir, new FichaGuardada(numero: 'X1', nombreCompleto: 'Juan Perez', nacionalidad: 'PE'))->discrepancias);
     }
+
+    /**
+     * 🔥 Un escaneo girado con la MRZ cuadrando está PERFECTAMENTE leído: girarlo es cosmética.
+     * Si esto bajara a `observado`, cada foto torcida llenaría la cola de cosas que no hay que
+     * decidir — y la cola se deja de mirar entera.
+     */
+    #[Test]
+    public function unEscaneoGiradoAvisaPeroNoBajaElSello(): void
+    {
+        $girado = new DatosDeDocumento(
+            tipo: DocumentoTipoEnum::PASAPORTE,
+            numero: 'L898902C3',
+            nombres: 'ANNA MARIA',
+            apellidos: 'ERIKSSON',
+            nacimiento: Mrz::desde(self::L1, self::L2)?->nacimiento,
+            rotacion: 90,
+            mrz: Mrz::desde(self::L1, self::L2),
+        );
+
+        $cotejo = Cotejo::de($girado, new FichaGuardada(numero: 'L898902C3', nombreCompleto: 'Anna Maria Eriksson'));
+
+        self::assertSame(ValidacionIdentificacionEnum::VALIDADO_MRZ, $cotejo->estado);
+        self::assertStringContainsString('girado 90', $cotejo->resumen());
+    }
+
+    /** Y un escaneo derecho no dice nada: un aviso que sale siempre deja de leerse. */
+    #[Test]
+    public function unEscaneoDerechoNoDiceNada(): void
+    {
+        $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(numero: 'L898902C3', nombreCompleto: 'Anna Maria Eriksson'));
+
+        self::assertSame([], $cotejo->notas);
+    }
 }

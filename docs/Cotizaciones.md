@@ -1897,6 +1897,26 @@ Un campo aplicado al mostrar reintroduce ese fallo **con más consumidores que a
 el visor, la descarga del gate y **el propio lector de IA**, que leería la imagen cruda y volvería
 a fallar. Cualquiera que se olvide de aplicarlo la ve torcida, y ninguno da error.
 
+##### Dónde aparece el flag
+
+Se detecta **al leer el documento** —en la misma llamada que saca los datos, sin coste extra— y
+sale en **dos sitios**:
+
+| Dónde | Qué se ve |
+|---|---|
+| la **fila del manifiesto** | una nota: «el escaneo está girado 90°: se puede enderezar desde el visor» |
+| el **visor** | el botón de ese ángulo, resaltado, con «parece girado 90°» |
+
+🔥 **La nota es informativa, NO bloqueante, y ésa es toda la sutileza.** Un documento girado con la
+MRZ cuadrando está **perfectamente leído**: enderezarlo es cosmética y ayuda a las lecturas futuras,
+no arregla ésta. Si bajara el sello a `observado`, cada foto torcida llenaría la cola de trabajo de
+cosas que no hay que decidir — y una cola con más ruido que trabajo se deja de mirar entera. Hay un
+test por cada mitad: que avisa, y que no baja el sello.
+
+⚠️ **Y tenía que salir en la fila, no sólo en el visor.** La primera versión sólo lo enseñaba
+dentro del modal de cada persona: con 135 personas, un aviso que hay que ir a buscar abriendo a cada
+una no lo encuentra nadie.
+
 ⚠️ **Sólo múltiplos rectos (90/180/270).** Un escaneo torcido 7° existe, pero corregirlo obliga a
 reinterpolar todos los píxeles y rellenar esquinas: se pierde nitidez justo donde importa, en la
 letra pequeña. Los rectos son una permutación de píxeles y no pierden nada.
