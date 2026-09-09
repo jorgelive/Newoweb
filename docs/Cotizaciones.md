@@ -1955,6 +1955,50 @@ pasada.
 La caché de miniaturas se regenera sola — `CotizacionFilearchivoCacheListener` ya escucha
 `preUpdate`, así que basta con que el `flush()` toque la entidad.
 
+#### El dígito verificador del DNI: 8 de 10 avisos de número eran falsos (09/09/2026)
+
+Medido sobre el expediente real. De las 10 discrepancias de `número`, **sólo 2 eran de verdad**:
+
+| Lo que dice el documento | Lo que hay guardado | Casos |
+|---|---|---|
+| `73716768-8` | `73716768` | 6 — el escaneo trae el dígito, el padrón no |
+| `122298834` | `1222988343` | 2 — al revés: el padrón lo trae de más |
+| `125853071` | `61859757` | **2 — diferencias reales** |
+
+El DNI peruano son 8 dígitos **más uno de control**, y cada lado guarda una convención distinta sin
+que nadie lo haya acordado.
+
+⚠️ **La regla es SIMÉTRICA**, porque cualquiera de los dos lados puede ser el largo. Escrita en una
+sola dirección habría limpiado seis avisos y dejado dos — peor que no hacer nada, porque daría la
+impresión de estar resuelto.
+
+⚠️ **Y exactamente un carácter, no «hasta dos».** Con dos, `12229883` y `1222988343` pasarían por el
+mismo documento, y eso ya no es una convención: es un número mal tecleado. `Cotejo::mismoNumero()`,
+con un test por cada caso — incluido el de dos dígitos, que **sí** se señala.
+
+Las 2 diferencias reales no se parecen en nada entre sí, así que ninguna regla de prefijo las toca.
+
+#### Reprocesar a una sola persona (09/09/2026)
+
+`POST /cotizacion/user/manifiesto/pasajero/{id}/revalidar`, y un botón en su fila.
+
+⚠️ **No relee el documento**: coteja la lectura cacheada contra lo que hay guardado **ahora**. Es
+justo lo que hace falta tras corregir un dato —comprobar si el aviso se fue— y **cuesta cero**. Sólo
+paga si el escaneo se giró, porque girar tira la lectura a propósito.
+
+⚠️ **Va siempre a fondo**, sin saltarse lo resuelto. En la tanda, saltárselo es lo correcto; aquí
+sería no hacer nada y parecer que sí, porque quien pulsa acaba de tocar algo de esa persona.
+
+⚠️ `validarUna()` está **extraído** para que la tanda y el reprocesar hagan exactamente lo mismo.
+Duplicado, una regla cambiaría en un sitio y no en el otro, y nadie lo notaría hasta que los dos
+caminos dieran veredictos distintos del mismo documento.
+
+#### Cada valor lleva escrito de dónde sale (09/09/2026)
+
+La discrepancia se pintaba sólo con color —verde el documento, ámbar el manifiesto— y **el color no
+dice cuál es cuál**: había que deducirlo, y quien deduce mal **corrige el lado equivocado**. Ahora
+cada valor lleva su etiqueta (`DOC` / `GUARDADO`). Un color es un refuerzo, nunca la etiqueta.
+
 #### El visor por persona: el puente entre «no coincide» y «mira el papel» (09/09/2026)
 
 Botón **«Ver sus documentos»** en cada fila del manifiesto, justo debajo del veredicto. Abre un

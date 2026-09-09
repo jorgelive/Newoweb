@@ -71,38 +71,7 @@ final readonly class ValidadorDeManifiesto
                     break 2;
                 }
 
-                $tipo = $identificacion->getTipo();
-                $archivo = $tipo !== null ? $this->escaneoDe($pasajero, $tipo) : null;
-
-                if ($archivo === null) {
-                    // Sin escaneo no hay nada contra qué validar. Se deja constancia del porqué:
-                    // «sin validar» a secas se lee como «se me olvidó», y esto es «no hay foto».
-                    $identificacion->registrarValidacion(
-                        ValidacionIdentificacionEnum::NO_VALIDADO,
-                        [],
-                        ['no hay escaneo de este documento en la bóveda'],
-                    );
-                    // ⚠️ Suma en los DOS: `sin_documento` es un desglose de `NO_VALIDADO`, no un
-                    // estado aparte. Contándolo sólo aquí, el informe decía «Sin validar 0» con un
-                    // «de ésos, 8» debajo — y quien lo lea por encima concluye que está todo
-                    // cubierto cuando hay ocho números sin comprobar.
-                    ++$conteo[ValidacionIdentificacionEnum::NO_VALIDADO->value];
-                    ++$conteo['sin_documento'];
-                    continue;
-                }
-
-                $cotejo = $this->cotejar($archivo, $identificacion, $pasajero);
-
-                $identificacion->registrarValidacion(
-                    $cotejo->estado,
-                    array_map(static fn (Discrepancia $d): array => $d->aJson(), $cotejo->discrepancias),
-                    $cotejo->notas,
-                    // ⚠️ Sólo si de verdad se leyó: apuntar el archivo cuando la lectura falló
-                    // haría creer que ese escaneo respalda el veredicto.
-                    $archivo->getDatosLeidos() !== null ? $archivo : null,
-                );
-
-                ++$conteo[$cotejo->estado->value];
+                $this->validarUna($pasajero, $identificacion, $conteo);
                 ++$hechos;
             }
         }
@@ -110,6 +79,81 @@ final readonly class ValidadorDeManifiesto
         $this->em->flush();
 
         return $conteo;
+    }
+
+    /**
+     * Vuelve a cotejar los documentos de UNA persona, siempre a fondo.
+     *
+     * ⚠️ **Siempre a fondo, y por eso es un método aparte.** Quien pulsa «reprocesar» sobre una
+     * persona acaba de tocar algo suyo —corregir el manifiesto, girar su escaneo— y quiere ver el
+     * resultado: saltarse lo ya resuelto, que es lo correcto en la tanda, aquí sería no hacer nada
+     * y parecer que sí.
+     *
+     * No cuesta nada: la lectura está cacheada. Sólo paga si el escaneo se giró, porque girar la
+     * tira a propósito.
+     *
+     * @return array<string, int>
+     */
+    public function validarPasajero(CotizacionFilepasajero $pasajero): array
+    {
+        $conteo = array_fill_keys(array_column(ValidacionIdentificacionEnum::cases(), 'value'), 0);
+        $conteo['sin_documento'] = 0;
+
+        foreach ($pasajero->getIdentificaciones() as $identificacion) {
+            $this->validarUna($pasajero, $identificacion, $conteo);
+        }
+
+        $this->em->flush();
+
+        return $conteo;
+    }
+
+    /**
+     * Valida una identificación y anota el resultado en el conteo.
+     *
+     * ⚠️ Extraído para que la tanda y el «reprocesar» de una persona **hagan exactamente lo
+     * mismo**. Duplicado, el día que cambie una regla cambiaría en un sitio y no en el otro, y
+     * nadie lo notaría hasta que los dos caminos dieran veredictos distintos del mismo documento.
+     *
+     * @param array<string, int> $conteo
+     */
+    private function validarUna(
+        CotizacionFilepasajero $pasajero,
+        CotizacionPasajeroIdentificacion $identificacion,
+        array &$conteo,
+    ): void {
+        $tipo = $identificacion->getTipo();
+        $archivo = $tipo !== null ? $this->escaneoDe($pasajero, $tipo) : null;
+
+        if ($archivo === null) {
+            // Sin escaneo no hay nada contra qué validar. Se deja constancia del porqué: «sin
+            // validar» a secas se lee como «se me olvidó», y esto es «no hay foto».
+            $identificacion->registrarValidacion(
+                ValidacionIdentificacionEnum::NO_VALIDADO,
+                [],
+                ['no hay escaneo de este documento en la bóveda'],
+            );
+            // ⚠️ Suma en los DOS: `sin_documento` es un desglose de `NO_VALIDADO`, no un estado
+            // aparte. Contándolo sólo aquí, el informe decía «Sin validar 0» con un «de ésos, 8»
+            // debajo, y quien lo lea por encima concluye que está todo cubierto.
+            ++$conteo[ValidacionIdentificacionEnum::NO_VALIDADO->value];
+            ++$conteo['sin_documento'];
+
+            return;
+        }
+
+        $cotejo = $this->cotejar($archivo, $identificacion, $pasajero);
+
+        $identificacion->registrarValidacion(
+            $cotejo->estado,
+            array_map(static fn (Discrepancia $d): array => $d->aJson(), $cotejo->discrepancias),
+            $cotejo->notas,
+            // ⚠️ Sólo si de verdad se leyó: apuntar el archivo cuando la lectura falló haría creer
+            // que ese escaneo respalda el veredicto.
+            $archivo->getDatosLeidos() !== null ? $archivo : null,
+        );
+
+        ++$conteo[$cotejo->estado->value];
     }
 
     /**

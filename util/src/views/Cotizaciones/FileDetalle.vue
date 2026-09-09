@@ -1978,6 +1978,25 @@ const documentosDelVisor = computed(() => {
 });
 
 const girando = ref<string | null>(null);
+const revalidando = ref<string | null>(null);
+
+/**
+ * Vuelve a cotejar los documentos de UNA persona.
+ *
+ * ⚠️ **No relee el documento**: coteja la lectura que ya está contra lo que hay guardado AHORA. Es
+ * justo lo que hace falta tras corregir un dato del manifiesto —comprobar si el aviso se fue— y
+ * cuesta cero, porque la lectura está cacheada. Si el documento se giró, su lectura se tiró y ahí
+ * sí se vuelve a leer: ~$0,0016.
+ */
+const revalidarPax = async (pax: ApiCotizacionFilepasajero) => {
+    revalidando.value = String(pax.id);
+    const ok = await fileStore.revalidarPasajero(String(extractIdStr(pax.id ?? pax['@id'])));
+    revalidando.value = null;
+
+    if (!ok) { alert(fileStore.error || 'No se pudo reprocesar.'); return; }
+
+    await cargarFile();
+};
 
 /**
  * Cuántos grados dijo el modelo que hay que girar ESE escaneo. `0` = ya está derecho.
@@ -3281,12 +3300,21 @@ const eliminarDocumento = async (iri?: string) => {
                         <!-- Los DOS valores juntos: en el caso más frecuente —un dedazo en el año,
                              2026 por 2036— verlos uno al lado del otro ES la resolución, sin abrir
                              el escaneo ni cambiar de pantalla. -->
+                        <!-- ⚠️ **Cada valor lleva escrito de dónde sale.** Estaban sólo con color
+                             —verde el documento, ámbar el manifiesto— y el color no dice cuál es
+                             cuál: había que deducirlo, y quien deduce mal corrige el lado
+                             equivocado. Un color es un refuerzo, nunca la etiqueta. -->
                         <span v-for="(d, j) in (ident.discrepancias ?? [])" :key="j"
-                              class="ml-1 inline-flex items-center gap-1 text-amber-700">
+                              class="ml-1 inline-flex flex-wrap items-center gap-1 text-amber-700 align-middle">
                           <span class="font-bold">{{ d.campo }}:</span>
-                          <span class="font-mono bg-emerald-50 border border-emerald-200 rounded px-1">{{ d.documento }}</span>
-                          <i class="fas fa-arrow-left-long text-[7px] text-slate-300"></i>
-                          <span class="font-mono bg-amber-50 border border-amber-200 rounded px-1">{{ d.manifiesto }}</span>
+                          <span class="inline-flex items-center gap-1">
+                            <span class="text-[8px] font-black uppercase tracking-wider text-emerald-600">doc</span>
+                            <span class="font-mono bg-emerald-50 border border-emerald-200 rounded px-1">{{ d.documento }}</span>
+                          </span>
+                          <span class="inline-flex items-center gap-1">
+                            <span class="text-[8px] font-black uppercase tracking-wider text-amber-600">guardado</span>
+                            <span class="font-mono bg-amber-50 border border-amber-200 rounded px-1">{{ d.manifiesto }}</span>
+                          </span>
                         </span>
 
                         <span v-for="(n, j) in (ident.notasValidacion ?? [])" :key="`n-${j}`"
@@ -3299,10 +3327,23 @@ const eliminarDocumento = async (iri?: string) => {
                            módulo venía a quitar.
 
                            No cuesta nada: los escaneos ya están y su lectura está cacheada. -->
-                      <button v-if="tieneEscaneos(pax)" type="button" @click="paxDelVisor = pax"
-                              class="mt-1.5 inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white text-[9px] font-black uppercase tracking-wider text-slate-500 hover:border-sky-300 hover:text-sky-600 transition-colors">
-                        <i class="far fa-images text-[9px]"></i> Ver sus documentos
-                      </button>
+                      <div v-if="tieneEscaneos(pax)" class="mt-1.5 flex items-center gap-1">
+                        <button type="button" @click="paxDelVisor = pax"
+                                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white text-[9px] font-black uppercase tracking-wider text-slate-500 hover:border-sky-300 hover:text-sky-600 transition-colors">
+                          <i class="far fa-images text-[9px]"></i> Ver sus documentos
+                        </button>
+
+                        <!-- ⚠️ Reprocesar SOLO a esta persona. Sin esto, corregir un dato obligaba
+                             a relanzar la tanda entera del expediente para ver si el aviso se
+                             había ido — 135 personas para comprobar una. -->
+                        <button type="button" :disabled="revalidando === String(pax.id)"
+                                @click="revalidarPax(pax)"
+                                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white text-[9px] font-black uppercase tracking-wider text-slate-500 hover:border-teal-300 hover:text-teal-600 transition-colors disabled:opacity-40"
+                                title="Volver a cotejar sus documentos con lo que hay guardado ahora">
+                          <i class="fas text-[9px]" :class="revalidando === String(pax.id) ? 'fa-spinner fa-spin' : 'fa-rotate'"></i>
+                          Reprocesar
+                        </button>
+                      </div>
                       <!-- El vuelo, en la propia ficha: era el dato que había que ir a buscar abriendo
                            a cada persona, y es justo el que se mira para armar el aeropuerto. -->
                       <p v-for="v in vuelosDe(pax)" :key="v.id" class="text-[9px] font-bold text-sky-600 mt-1">

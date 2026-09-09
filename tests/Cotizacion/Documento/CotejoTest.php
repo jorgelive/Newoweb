@@ -323,4 +323,44 @@ final class CotejoTest extends TestCase
 
         self::assertSame([], $cotejo->notas);
     }
+
+    /**
+     * 🔥 El dígito verificador del DNI: 8 de las 10 discrepancias de número del expediente real
+     * eran falsas por esto, y **en las dos direcciones**.
+     */
+    #[Test]
+    public function elDigitoVerificadorNoEsUnaDiferencia(): void
+    {
+        // El escaneo lo trae y el padrón no — 6 casos reales.
+        self::assertSame([], Cotejo::de($this->dni('73716768-8'), new FichaGuardada(
+            numero: '73716768', nombreCompleto: 'Anna Maria Eriksson',
+        ))->discrepancias);
+
+        // Y al revés: el padrón lo trae de más — 2 casos reales.
+        self::assertSame([], Cotejo::de($this->dni('122298834'), new FichaGuardada(
+            numero: '1222988343', nombreCompleto: 'Anna Maria Eriksson',
+        ))->discrepancias);
+    }
+
+    /** Pero dos números distintos siguen siéndolo: son las que sí hay que mirar. */
+    #[Test]
+    public function dosNumerosDistintosSiguenSiendoUnaDiferencia(): void
+    {
+        $cotejo = Cotejo::de($this->dni('125853071'), new FichaGuardada(
+            numero: '61859757', nombreCompleto: 'Anna Maria Eriksson',
+        ));
+
+        self::assertSame('número', $cotejo->discrepancias[0]->campo);
+    }
+
+    /** Y dos caracteres de más ya NO es una convención: es un número mal tecleado. */
+    #[Test]
+    public function dosDigitosDeMasSiSeSenalan(): void
+    {
+        $cotejo = Cotejo::de($this->dni('12229883'), new FichaGuardada(
+            numero: '1222988343', nombreCompleto: 'Anna Maria Eriksson',
+        ));
+
+        self::assertSame('número', $cotejo->discrepancias[0]->campo);
+    }
 }

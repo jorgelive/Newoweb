@@ -144,7 +144,7 @@ final readonly class Cotejo
     {
         $diferencias = [];
 
-        if (self::distinto((string) $leido->numero, (string) $guardado->numero)) {
+        if (!self::mismoNumero((string) $leido->numero, (string) $guardado->numero)) {
             $diferencias[] = new Discrepancia('número', (string) $leido->numero, (string) $guardado->numero);
         }
 
@@ -182,12 +182,43 @@ final readonly class Cotejo
         return $diferencias;
     }
 
-    /** Compara ignorando lo que sólo es forma de escribir: espacios, guiones y caja. */
-    private static function distinto(string $a, string $b): bool
+    /**
+     * ¿Es el mismo documento? Ignora la forma de escribirlo **y el dígito verificador**.
+     *
+     * 🔥 **8 de las 10 discrepancias de número eran falsas por esto**, medido sobre el expediente
+     * real. El DNI peruano son 8 dígitos **más uno de control**, y cada lado guarda una convención
+     * distinta sin que nadie lo haya acordado:
+     *
+     * | Lo que dice el documento | Lo que hay guardado | Qué pasa |
+     * |---|---|---|
+     * | `73716768-8` | `73716768` | el escaneo trae el dígito, el padrón no — 6 casos |
+     * | `122298834` | `1222988343` | al revés: el padrón lo trae de más — 2 casos |
+     *
+     * ⚠️ **Por eso la regla es simétrica**: cualquiera de los dos lados puede ser el largo. Escrita
+     * en una sola dirección habría limpiado seis avisos y dejado dos, que es peor que no hacer
+     * nada — daría la impresión de estar resuelto.
+     *
+     * Y **exactamente un carácter**, no «hasta dos»: con dos, `12229883` y `1222988343` pasarían
+     * por el mismo documento, y eso ya no es una convención, es un número mal tecleado. Las 2
+     * diferencias de verdad del expediente —`125853071` contra `61859757`— no se parecen en nada,
+     * así que ninguna regla de prefijo las toca.
+     */
+    private static function mismoNumero(string $a, string $b): bool
     {
         $limpiar = static fn (string $v): string => strtoupper((string) preg_replace('/[^A-Z0-9]/i', '', $v));
+        [$uno, $otro] = [$limpiar($a), $limpiar($b)];
 
-        return $limpiar($a) !== $limpiar($b);
+        if ($uno === $otro) {
+            return true;
+        }
+
+        if ($uno === '' || $otro === '') {
+            return false;
+        }
+
+        [$corto, $largo] = strlen($uno) < strlen($otro) ? [$uno, $otro] : [$otro, $uno];
+
+        return strlen($largo) - strlen($corto) === 1 && str_starts_with($largo, $corto);
     }
 
     /**

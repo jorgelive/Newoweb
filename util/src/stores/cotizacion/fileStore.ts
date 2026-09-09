@@ -801,6 +801,21 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * Reprocesa a una sola persona. **No relee el documento** —la lectura está cacheada—, así que
+     * cuesta cero: coteja lo que ya se leyó contra lo que hay guardado AHORA.
+     */
+    const revalidarPasajero = async (pasajeroId: string): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.post(`/cotizacion/user/manifiesto/pasajero/${pasajeroId}/revalidar`, {});
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo reprocesar a esa persona.');
+            return false;
+        }
+    };
+
     const deleteDocument = async (iri: string): Promise<boolean> => {
         try {
             await apiClient.delete(iri);
@@ -876,6 +891,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         documentosSueltos,
         resolverDocumento,
         girarDocumento,
+        revalidarPasajero,
         cloneCotizacion,
         guardarHistorico,
         abrirOperativa,

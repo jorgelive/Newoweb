@@ -7,6 +7,7 @@ namespace App\Api\Controller\Cotizacion;
 use App\Cotizacion\Documento\Candidato;
 use App\Cotizacion\Documento\GiradorDeEscaneo;
 use App\Cotizacion\Documento\ResolutorDeDocumentoSuelto;
+use App\Cotizacion\Documento\ValidadorDeManifiesto;
 use App\Cotizacion\Documento\ValidadorDeDocumento;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
@@ -93,6 +94,30 @@ final class DocumentosSueltosController extends AbstractController
         }
 
         return new JsonResponse(['documentos' => $filas]);
+    }
+
+    /**
+     * Reprocesa a UNA persona: vuelve a cotejar sus documentos con lo que hay guardado ahora.
+     *
+     * ⚠️ **No relee el documento** —la lectura está cacheada—, así que cuesta cero. Es justo lo que
+     * hace falta tras corregir un dato del manifiesto: comprobar si el aviso se fue. Sin esto había
+     * que relanzar la tanda del expediente entero, 135 personas para verificar una.
+     */
+    #[Route(
+        '/cotizacion/user/manifiesto/pasajero/{id}/revalidar',
+        name: 'cotizacion_pasajero_revalidar',
+        requirements: ['id' => '[0-9a-fA-F-]{36}'],
+        methods: ['POST'],
+    )]
+    #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para validar documentos.')]
+    public function revalidar(string $id, EntityManagerInterface $em, ValidadorDeManifiesto $validador): Response
+    {
+        $pasajero = $em->getRepository(CotizacionFilepasajero::class)->find(Uuid::fromString($id));
+        if ($pasajero === null) {
+            return new JsonResponse(['error' => 'No encontré a esa persona.'], Response::HTTP_NOT_FOUND);
+        }
+
+        return new JsonResponse(['conteo' => $validador->validarPasajero($pasajero)]);
     }
 
     /**
