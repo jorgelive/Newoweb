@@ -57,6 +57,21 @@ services:
             $modelos: '%env(resolve:GOOGLE_AI_MODELS)%'
             $razonamiento: '%env(resolve:GOOGLE_AI_THINKING)%'
 
+    # ── VISIÓN ────────────────────────────────────────────────────────────────────────────
+    # Leer una imagen y devolver datos con la forma que se pida. NO pasa por el motor de
+    # conversación —ver el porqué en `LectorDeImagenInterface`— y NO usa los tramos de potencia:
+    # leer una MRZ es una CAPACIDAD (multimodal + salida estructurada), no «más cabeza», así que
+    # el modelo se fija aquí y no se hereda de `AGENT_IA_POTENCIA_*`.
+    #
+    # Vacío = el de `GOOGLE_AI_MODEL`. Se separa porque un modelo bueno redactando puede no leer
+    # un documento, y son documentos de identidad: el día que se cambie el modelo del chat, esto
+    # no debe moverse de rebote.
+    App\Agent\Vision\GoogleLectorDeImagen:
+        arguments:
+            $modelo: '%env(resolve:AGENT_IA_VISION_MODELO)%'
+
+    App\Agent\Vision\LectorDeImagenInterface: '@App\Agent\Vision\GoogleLectorDeImagen'
+
     # LA FRONTERA con los proveedores. Quién contesta cada llamada lo decide el registro con
     # AGENT_IA_PROVEEDOR (y el desplegable del panel, por petición): nada por encima de
     # AgentEngineInterface conoce ningún SDK ni ninguna API.

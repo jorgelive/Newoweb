@@ -1651,6 +1651,92 @@ por `exception_to_status`, así que el error llega al aviso del formulario.
 sin pasajero → 0; vuelo en algo que no es boleto → 0; vuelo de otro expediente → 0; parejas
 pasajero↔vuelo que no vuela → 0. **Nada torcido**: los arreglos son preventivos.
 
+#### Leer el pasaporte: la MRZ es lo que separa «el modelo dice» de «está comprobado» (09/09/2026)
+
+Primera pieza del reconocimiento de documentos: **lee y propone, no escribe nada todavía.**
+
+##### Por qué no es un Skill del agente, ni un tramo de potencia
+
+Dos encuadres que parecían naturales y no lo son:
+
+- **Skill no.** `SkillInterface` es una capacidad que el agente invoca *dentro de una
+  conversación*, y su contrato dice literal «Dominio puro: aquí no entra ningún proveedor». Un
+  «skill de Gemini» lo contradice de raíz.
+- **Tramo de potencia tampoco.** Alta/Media/Baja miden «cuánta cabeza hace falta». Leer una MRZ y
+  devolver JSON con esquema es una **capacidad** —multimodal, salida estructurada—, no más cabeza:
+  el modelo más caro sin visión vale cero aquí. Por eso `AGENT_IA_VISION_MODELO` va aparte, y así
+  cambiar el modelo del chat no mueve de rebote el que lee documentos de identidad.
+
+Y no pasa por `AgentEngineInterface`: `ConversationRequest::$mensaje` es un `string`, así que meter
+imágenes ahí obligaría a los **tres** motores a implementar visión para que uno la usara. No hay
+bucle, ni herramientas, ni historial: es una función con una imagen dentro.
+
+##### El reparto, que es lo que hace esto mantenible
+
+| Dónde | Qué sabe |
+|---|---|
+| `src/Agent/Vision/LectorDeImagenInterface` | «esta imagen, esta forma». **No sabe qué es un pasaporte.** |
+| `src/Agent/Vision/GoogleLectorDeImagen` | `inline_data`, `responseSchema`, `temperature 0` |
+| `src/Cotizacion/Documento/` | qué campos tiene un documento, qué es una MRZ, qué hay que dudar |
+
+No hizo falta tocar `GoogleAIClient`: `generarContenido()` recibe el cuerpo crudo.
+
+⚠️ **`responseSchema` en vez de pedir el JSON en el prompt.** Pedirlo en prosa funciona casi
+siempre, y ese «casi» es el fallo: un día llega con ```json delante y el `json_decode` revienta con
+un documento que se había leído bien. Y `temperature: 0`, porque dos lecturas del mismo pasaporte
+tienen que dar el mismo número o no se pueden comparar ni repetir un fallo.
+
+##### 🔑 La MRZ: aritmética en vez de confianza
+
+`CLAUDE.md` manda validar con código lo que decide un modelo, y aquí se puede cumplir a rajatabla
+porque **la banda del pasaporte lleva sus propios dígitos de control** (ICAO 9303, pesos 7-3-1).
+Un `7` leído como `1` rompe la suma y se caza sin preguntarle a nadie.
+
+`Mrz` es **el único trozo de todo esto con tests de verdad** —8, sobre el ejemplar publicado en la
+especificación, que trae sus dígitos ya calculados—, y puede tenerlos justamente porque no habla
+con nadie: sin red, sin base, sin contenedor. Cubren el caso que lo justifica todo (un dígito mal
+leído en el número no cuadra), que una fecha imposible dé **nada** en vez de correrse tres días
+—`createFromFormat` acepta el 30 de febrero—, y que un año de nacimiento de dos dígitos caiga en
+el siglo que toca.
+
+⚠️ **Sólo TD3 (pasaporte). El TD1 de las cédulas se RECHAZA en vez de leerse a medias**, porque
+son tres líneas de 30 con otras posiciones: leerlo con las de TD3 sacaría campos de los sitios
+equivocados y los dígitos no cuadrarían, así que parecería un error de lectura y no un formato no
+contemplado. Dos diagnósticos distintos que hay que poder distinguir.
+
+##### Se piden las DOS lecturas, y se contrastan
+
+Se le pide la MRZ transcrita carácter a carácter **y además** los campos de la zona impresa. Con
+eso, `LectorDeDocumentoIdentidad` hace tres cosas:
+
+1. Comprueba la MRZ con sus dígitos de control.
+2. Si cuadra, **la MRZ manda**. Si no cuadra, manda lo impreso — preferir una MRZ rota sería
+   elegir justo el dato del que ya sabemos que falla.
+3. Compara las dos: si el número impreso y el de la MRZ difieren, eso es un **aviso**, no un
+   empate que se resuelve solo.
+
+⚠️ El paso 3 es el que más vale y el más fácil de omitir. Pedir sólo la MRZ dejaría pasar una
+transcripción coherente consigo misma pero equivocada; pedir las dos la caza casi gratis.
+
+⚠️ **`DatosDeDocumento::verificadoPorMrz()` tiene que verse en pantalla.** Un dato respaldado por
+dígitos de control y otro que sólo dijo un modelo **no son la misma clase de dato**, y si se pintan
+igual la confirmación humana se convierte en un clic en vez de una revisión.
+
+##### Antes de dejarle escribir
+
+`app:cotizacion:leer-documento <uuid> [--todos]` lee y enseña, **sin guardar**. Existe para medir
+la tasa de acierto con los documentos de verdad de un grupo —fotografiados con su móvil, sobre una
+mesa— antes de decidir si esto puede tocar el manifiesto. Misma disciplina que el ZIP: plan
+primero, aplicar después.
+
+**Lo que falta**, y va después de esa medición: el visor con giro, comparar contra
+`CotizacionPasajeroIdentificacion` para archivos ya asignados, y crear/completar el manifiesto
+desde los no asignados. ⚠️ Sobre esto último, ojo con la clave: `PadronImportador` casa por
+`(tipo, numero)` y **no** por el nombre, y aborta ante dos personas con el mismo documento — hay un
+incidente detrás en el que una persona desapareció del padrón. El mismo pasaporte dos veces casa
+por su número y es seguro; DNI y pasaporte de la misma persona sólo se enlazan por el nombre, y eso
+tiene que ser una **propuesta que alguien confirma**, nunca una fusión silenciosa.
+
 #### La bóveda arranca plegada (08/09/2026)
 
 Vive en la barra lateral, encima de todo lo demás, y en un expediente grande son ~1 500 archivos.
@@ -7182,6 +7268,8 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Buscar en la bóveda, o mover un archivo de una persona a otra** → `bovedaDocs` / `bovedaIndexada` y `alcanceDelDoc()` en `FileDetalle.vue`. ⚠️ Los tres alcances son **excluyentes**: se resuelven juntos, nunca campo a campo. Reasignar no toca el fichero; para cambiar el fichero sigue habiendo que borrar y subir.
 - **Que el vuelo de un boarding pass sea de esa persona** → `ofreceVuelo` (cuándo se ve Y cuándo se guarda: una sola regla) y `vuelosDelElegido` (cruza por PNR). ⚠️ En la API **no hay red**: `vuelaEseVuelo()` es privado de la carga por ZIP. Ver §6.k.
 - **Quién puede ser dueño de un archivo** → `CotizacionFilearchivo::validarDuenoDelMismoExpediente()`, `PrePersist` + `PreUpdate`. Comprueba los **tres**: pasajero, grupo y vuelo.
+- **Leer un documento de identidad escaneado** → `LectorDeDocumentoIdentidad` (dominio) sobre `LectorDeImagenInterface` (proveedor). Probar sin guardar: `app:cotizacion:leer-documento`. ⚠️ El modelo se fija en `AGENT_IA_VISION_MODELO`, **no** en los tramos de potencia: es capacidad, no cabeza.
+- **Saber si un dato extraído es fiable** → `DatosDeDocumento::verificadoPorMrz()`. ⚠️ Tiene que **verse** en pantalla: con MRZ es aritmética, sin MRZ es sólo lo que dijo un modelo.
 - **Crear un servicio que no está en el catálogo** → botón «Manual» → `agregarComponente(id, true)` → `esManual`. Aporta su propio `nombreInternoSnapshot` (interno) y `tituloSnapshot` (público). Ver §6.h.
 - **Que un componente sin maestro se pueda nombrar y tipar** → `isComponenteSoloItems()` y `getNombreMaestroRef()` en `CotizacionEditorView.vue`, y `onTipoManualChange()` en el store. Ver §6.h — y ojo con lo que la cadena sigue exigiendo (tarifa, prestador, nombre).
 - **Saber qué se lleva la papelera de un párrafo** → el pie de la tarjeta en el Constructor de Storytelling, alimentado por `store.idSegmentoDeComponente()`. Ver §6.i.
