@@ -28,4 +28,13 @@ final readonly class FichaGuardada
     {
         return $this->numero !== null && trim($this->numero) !== '';
     }
+
+    /**
+     * El cotejo sin MRZ exige número **y** nombre. Sólo el número no basta: un número tecleado
+     * igual en dos fichas de la misma familia es justo el error que se busca.
+     */
+    public function tieneNombre(): bool
+    {
+        return $this->nombreCompleto !== null && trim($this->nombreCompleto) !== '';
+    }
 }

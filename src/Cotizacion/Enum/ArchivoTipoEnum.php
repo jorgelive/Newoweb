@@ -99,6 +99,30 @@ enum ArchivoTipoEnum: string
     }
 
     /**
+     * ¿Se puede someter al control de validación?
+     *
+     * ⚠️ **Es MÁS ESTRECHO que {@see self::esEscaneoDeIdentidad()}, y la diferencia importa.** Ahí
+     * caben los cuatro documentos que llevan datos personales —y por eso se comprimen con el
+     * filtro bueno y caducan pronto—; aquí sólo los dos que traen **un número y un nombre que
+     * cotejar**.
+     *
+     * 🔥 **El reverso del DNI no es un documento mal leído: es un documento que no se puede
+     * validar.** Metido en la misma cola salía como «no se pudo leer el número», que suena a fallo
+     * de calidad y manda a alguien a pedir otra vez un escaneo mejor de algo que nunca tuvo el
+     * dato. En una tanda real fueron 2 de 12 filas de ruido; con 86 reversos en el expediente,
+     * serían 86 — y una cola con más ruido que trabajo se deja de mirar entera.
+     *
+     * La autorización notarial, igual: es un permiso, no una identidad.
+     */
+    public function esValidable(): bool
+    {
+        return match ($this) {
+            self::PASAPORTE, self::DNI_ANVERSO => true,
+            self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => false,
+        };
+    }
+
+    /**
      * Cuántos meses se guarda **después del retorno del grupo**. `null` = no caduca.
      *
      * 🔥 **Es la única fuente de la caducidad.** No hay columna `caduca_el`: la fecha se calcula

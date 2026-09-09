@@ -1761,20 +1761,50 @@ falsificación. Significa: *lo que se lee concuerda con lo guardado, y la lectur
 por algo más que la palabra de un modelo.* Está escrito en el enum porque en pantalla se leerá
 como «documento correcto».
 
+##### Qué se valida, y qué no (afinado el 09/09/2026)
+
+⚠️ **`esValidable()` es MÁS ESTRECHO que `esEscaneoDeIdentidad()`,** y confundirlos costaba caro.
+En el segundo caben los cuatro documentos con datos personales —de ahí su filtro de compresión y
+su caducidad—; en el primero sólo los dos que traen **número y nombre que cotejar**: `PASAPORTE` y
+`DNI_ANVERSO`.
+
+🔥 **El reverso del DNI no es un documento mal leído: es uno que no se puede validar.** En la misma
+cola salía como «no se pudo leer el número», que suena a mala calidad y manda a alguien a pedir
+otra vez un escaneo de algo que nunca tuvo el dato. En la tanda real fueron 2 de 12 filas de ruido;
+con 86 reversos en el expediente serían 86 — y una cola con más ruido que trabajo se deja de mirar
+entera. La autorización notarial, igual: es un permiso, no una identidad.
+
 ##### De dónde sale el respaldo, que es lo que separa VALIDADO de OBSERVADO
 
-«Lo leyó un modelo» no es respaldo. Hacen falta dos fuentes que coincidan, y cada clase de
-documento la consigue por un camino distinto:
+«Lo leyó un modelo» no es respaldo. Hacen falta **dos fuentes que coincidan**, y hay dos maneras de
+conseguir la segunda:
 
-| | Segunda fuente | Si no la hay |
+| Respaldo | Cómo | ¿Necesita el manifiesto? |
 |---|---|---|
-| **Pasaporte** | los dígitos de control de la MRZ — aritmética, no depende de nadie | OBSERVADO |
-| **DNI y demás** | el número que **ya estaba** en el manifiesto | OBSERVADO |
+| **MRZ** | los dígitos de control del pasaporte — aritmética pura | no: se sostiene solo |
+| **Cotejo** | el número **y** el nombre coinciden con lo guardado | sí |
 
-🔥 **De ahí la regla que más fácil sería saltarse: un DNI que CREA su propia ficha no puede quedar
-VALIDADO.** Se compararía consigo mismo y saldría bien siempre — un sello verde puesto por el
-propio dato que había que comprobar. El pasaporte sí puede, porque su respaldo es la aritmética y
-no el manifiesto. Hay un test para cada mitad de esa asimetría.
+⚠️ **Un pasaporte sin MRZ legible NO se queda sin salida: cae al cotejo**, igual que un DNI. La
+banda no siempre entra en el escaneo, y negarle la validación a un pasaporte cuyo número y nombre
+concuerdan sería tratar «no pude comprobarlo por el camino bueno» como «no se puede comprobar». Lo
+que cambia es **cómo** quedó validado, no si lo está, y eso se ve en `verificadoPorMrz()`.
+
+⚠️ **El cotejo exige las DOS cosas.** Sólo el número no basta: un número tecleado igual en dos
+fichas de la misma familia es justo el error que se busca.
+
+🔥 **De ahí la regla que más fácil sería saltarse: sin nada guardado contra lo que cotejar, un
+documento sin MRZ no se valida solo.** Un DNI que acaba de CREAR su ficha se compararía consigo
+mismo y saldría bien siempre — un sello verde puesto por el dato que había que comprobar.
+
+##### Dos trampas de esta lógica, las dos cazadas por sus tests
+
+- **Las diferencias se calculan SIEMPRE que haya ficha, aunque esté a medias.** Una versión cortaba
+  al faltar el nombre guardado y **se callaba que el número no coincidía**, que es lo más
+  importante que hay que decir. Primero se reúne todo lo que está mal; sólo después se juzga.
+- **El aviso «sin banda MRZ» va sólo cuando ya NO se valida.** Añadirlo siempre lo convertía en un
+  defecto y bloqueaba la validación de **todo** pasaporte sin banda — lo contrario de lo que se
+  quiere. Que se validara por aritmética o cotejando no es una frase en la lista de lo que está
+  mal: es `verificadoPorMrz()`.
 
 ##### Los tres caminos
 

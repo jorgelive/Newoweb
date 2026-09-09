@@ -62,24 +62,66 @@ final class CotejoTest extends TestCase
         self::assertSame([], $cotejo->observaciones);
     }
 
-    /**
-     * 🔥 El caso que más importa: la lectura sale igual de completa y creíble, y sin MRZ **no está
-     * comprobada**. Si esto pasara a validado, el sello verde no significaría nada.
-     */
-    #[Test]
-    public function unPasaporteSinMrzComprobableNuncaLlegaAValidado(): void
+    private function pasaporteSinBanda(): DatosDeDocumento
     {
-        $sinBanda = new DatosDeDocumento(
+        return new DatosDeDocumento(
             tipo: DocumentoTipoEnum::PASAPORTE,
             numero: 'L898902C3',
             nombres: 'ANNA MARIA',
             apellidos: 'ERIKSSON',
         );
+    }
 
-        $cotejo = Cotejo::de($sinBanda, new FichaGuardada(numero: 'L898902C3', tipo: 'PASAPORTE'));
+    /**
+     * Sin banda legible el pasaporte NO se queda sin salida: cae al cotejo, como un DNI. La banda
+     * no siempre entra en el escaneo, y negarle la validación a un pasaporte cuyo número y nombre
+     * concuerdan sería tratar «no pude por el camino bueno» como «no se puede».
+     */
+    #[Test]
+    public function unPasaporteSinMrzSeValidaCotejandoNumeroYNombre(): void
+    {
+        $cotejo = Cotejo::de($this->pasaporteSinBanda(), new FichaGuardada(
+            numero: 'L898902C3',
+            tipo: 'PASAPORTE',
+            nombreCompleto: 'Anna María Eriksson',
+        ));
+
+        self::assertSame(ValidacionDocumentoEnum::VALIDADO, $cotejo->estado);
+    }
+
+    /** Pero se deja dicho por dónde se validó: no es lo mismo la aritmética que un parecido. */
+    #[Test]
+    public function seDiceQueSeValidoSinBanda(): void
+    {
+        $cotejo = Cotejo::de($this->pasaporteSinBanda(), new FichaGuardada(numero: 'L898902C3'));
+
+        // Sin nombre guardado no hay cotejo posible, así que además se explica la banda.
+        self::assertStringContainsString('sin banda MRZ', implode(' ', $cotejo->observaciones));
+    }
+
+    /**
+     * 🔥 **El cotejo exige las DOS cosas.** Con el número igual y el nombre de otra persona no se
+     * valida: un número tecleado igual en dos fichas de la misma familia es el error que se busca.
+     */
+    #[Test]
+    public function sinMrzElNumeroSoloNoBasta(): void
+    {
+        $cotejo = Cotejo::de($this->pasaporteSinBanda(), new FichaGuardada(
+            numero: 'L898902C3',
+            nombreCompleto: 'Roberto Carlos Quispe Mamani',
+        ));
 
         self::assertSame(ValidacionDocumentoEnum::OBSERVADO, $cotejo->estado);
-        self::assertStringContainsString('banda MRZ', implode(' ', $cotejo->observaciones));
+    }
+
+    /** Y sin nombre guardado no hay segunda fuente, aunque el número case. */
+    #[Test]
+    public function sinMrzYSinNombreGuardadoNoHayContraQueCotejar(): void
+    {
+        $cotejo = Cotejo::de($this->pasaporteSinBanda(), new FichaGuardada(numero: 'L898902C3'));
+
+        self::assertSame(ValidacionDocumentoEnum::OBSERVADO, $cotejo->estado);
+        self::assertStringContainsString('no hay contra qué cotejar', implode(' ', $cotejo->observaciones));
     }
 
     #[Test]
@@ -142,7 +184,7 @@ final class CotejoTest extends TestCase
     #[Test]
     public function unVencimientoGuardadoEnBlancoNoEsUnaDiferencia(): void
     {
-        $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(numero: 'L898902C3', vencimiento: null));
+        $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(numero: 'L898902C3', vencimiento: null, nombreCompleto: 'Anna Maria Eriksson'));
 
         self::assertSame(ValidacionDocumentoEnum::VALIDADO, $cotejo->estado);
     }

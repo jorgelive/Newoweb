@@ -18,18 +18,29 @@ use DateTimeImmutable;
  * ### De dónde sale el respaldo, que es lo que separa VALIDADO de OBSERVADO
  *
  * «Lo leyó un modelo» no es respaldo: un modelo lee un número equivocado con la misma seguridad
- * con la que lee treinta correctos. Hacen falta **dos fuentes que coincidan**, y las dos clases de
- * documento las consiguen por caminos distintos:
+ * con la que lee treinta correctos. Hacen falta **dos fuentes que coincidan**, y hay dos maneras
+ * de conseguir la segunda:
  *
- * | | Segunda fuente | Si no la hay |
+ * | Respaldo | Cómo | Necesita el manifiesto |
  * |---|---|---|
- * | **Pasaporte** | los dígitos de control de la MRZ — aritmética, no depende de nadie | OBSERVADO: es un escaneo del que no se puede responder |
- * | **DNI y demás** | el número que **ya estaba** en el manifiesto | OBSERVADO: no hay con qué cotejar |
+ * | **MRZ** | los dígitos de control del pasaporte — aritmética pura | no: se sostiene solo |
+ * | **Cotejo** | el número **y** el nombre coinciden con lo que ya estaba guardado | sí |
  *
- * 🔥 **Y de ahí sale la regla que más fácil sería saltarse: un DNI que CREA su propia ficha no
- * puede quedar VALIDADO.** Se compararía consigo mismo y saldría bien siempre — un sello verde
- * puesto por el propio dato que había que comprobar. El pasaporte sí puede, porque su respaldo es
- * la aritmética de la MRZ y no el manifiesto: es independiente de lo que se acabe de escribir.
+ * ⚠️ **El pasaporte sin MRZ legible NO se queda sin salida: cae al cotejo**, igual que un DNI. La
+ * banda no siempre entra en el escaneo, y negarle la validación a un pasaporte cuyo número y
+ * nombre concuerdan con el manifiesto sería tratar «no pude comprobarlo por el camino bueno» como
+ * «no se puede comprobar». Lo que cambia es **cómo** quedó validado, no si lo está — y eso se ve:
+ * {@see DatosDeDocumento::verificadoPorMrz()}.
+ *
+ * ⚠️ **El cotejo exige las DOS cosas, número y nombre.** Sólo el número no basta: un número
+ * tecleado igual en dos fichas de la misma familia es justo el error que se busca. Y sólo el
+ * nombre tampoco, por razones obvias.
+ *
+ * 🔥 **De ahí la regla que más fácil sería saltarse: sin nada guardado contra lo que cotejar, un
+ * documento sin MRZ no se valida solo.** Un DNI que acaba de CREAR su propia ficha se compararía
+ * consigo mismo y saldría bien siempre — un sello verde puesto por el dato que había que
+ * comprobar. El pasaporte con MRZ sí puede, porque su respaldo es independiente de lo que se acabe
+ * de escribir.
  */
 final readonly class Cotejo
 {
@@ -46,51 +57,49 @@ final readonly class Cotejo
      */
     public static function de(DatosDeDocumento $leido, ?FichaGuardada $guardado): self
     {
-        $observaciones = $leido->avisos;
-
         // Sin número no hay documento que valga: no se puede cotejar ni guardar, y decir
         // «observado» sugeriría que hay algo que revisar cuando lo que hay es una foto ilegible.
         if (!$leido->esUtilizable()) {
-            return new self(ValidacionDocumentoEnum::NO_VALIDADO, [...$observaciones, 'no se pudo leer el número del documento']);
+            return new self(ValidacionDocumentoEnum::NO_VALIDADO, [...$leido->avisos, 'no se pudo leer el número del documento']);
         }
 
-        $esPasaporte = $leido->tipo === DocumentoTipoEnum::PASAPORTE;
+        // ⚠️ **Las diferencias se calculan SIEMPRE que haya ficha, aunque esté a medias.** Una
+        // versión anterior cortaba antes al faltar el nombre guardado y se callaba que el número
+        // no coincidía — que es lo más importante que hay que decir. Primero se reúne todo lo que
+        // está mal, y sólo después se juzga.
+        $defectos = [
+            ...$leido->avisos,
+            ...($guardado !== null ? self::diferencias($leido, $guardado) : []),
+        ];
 
-        if ($esPasaporte && !$leido->verificadoPorMrz()) {
-            // ⚠️ Un pasaporte sin MRZ legible es el caso PELIGROSO, no el neutro: la lectura sale
-            // igual de completa y creíble que una comprobada, y sin este aviso las dos se ven
-            // iguales en pantalla. Casi siempre es resolución: la banda necesita el escaneo bueno.
-            $observaciones[] = 'no se pudo leer la banda MRZ: la lectura no está comprobada (revisa la calidad del escaneo)';
+        // Camino 1: la aritmética de la MRZ. Es la única que se sostiene sin manifiesto.
+        // Camino 2: el cotejo, que exige número Y nombre guardados — sólo el número no basta, un
+        // número tecleado igual en dos fichas de la misma familia es justo el error que se busca.
+        $respaldado = $leido->verificadoPorMrz()
+            || ($guardado !== null && $guardado->tieneNumero() && $guardado->tieneNombre());
+
+        if ($respaldado && $defectos === []) {
+            return new self(ValidacionDocumentoEnum::VALIDADO, []);
         }
 
-        if ($guardado === null || !$guardado->tieneNumero()) {
-            $observaciones[] = $guardado === null
-                ? 'el archivo no está asignado a ninguna persona del manifiesto'
-                : 'la persona no tenía documento guardado: no hay contra qué cotejar';
-
-            // El pasaporte con MRZ coherente se sostiene solo — su respaldo no es el manifiesto.
-            return new self(
-                $esPasaporte && $leido->verificadoPorMrz() && $leido->avisos === []
-                    ? ValidacionDocumentoEnum::VALIDADO
-                    : ValidacionDocumentoEnum::OBSERVADO,
-                $observaciones,
-            );
+        if (!$respaldado) {
+            $defectos[] = match (true) {
+                $guardado === null => 'el archivo no está asignado a ninguna persona del manifiesto',
+                !$guardado->tieneNumero() => 'la persona no tenía documento guardado: no hay contra qué cotejar',
+                default => 'la persona no tiene nombre guardado: no hay contra qué cotejar',
+            };
         }
 
-        foreach (self::diferencias($leido, $guardado) as $diferencia) {
-            $observaciones[] = $diferencia;
+        // ⚠️ Este aviso va SÓLO cuando ya no se valida, y como explicación de por qué hizo falta
+        // el manifiesto. Añadirlo siempre lo convertía en un defecto y **bloqueaba** la validación
+        // de todo pasaporte sin banda, que es justo lo contrario de lo que se quiere. Que se
+        // validara con MRZ o cotejando se sabe por `DatosDeDocumento::verificadoPorMrz()`, no por
+        // una frase en la lista de lo que está mal.
+        if (!$leido->verificadoPorMrz() && $leido->tipo === DocumentoTipoEnum::PASAPORTE) {
+            $defectos[] = 'sin banda MRZ legible: hubo que cotejar con el manifiesto (revisa la calidad del escaneo)';
         }
 
-        $respaldado = $esPasaporte
-            ? $leido->verificadoPorMrz()
-            // Para un DNI, coincidir con lo guardado ES el respaldo. Si hubiera diferencias, la
-            // lista de observaciones no estaría vacía y no se llega a VALIDADO de todos modos.
-            : true;
-
-        return new self(
-            $respaldado && $observaciones === [] ? ValidacionDocumentoEnum::VALIDADO : ValidacionDocumentoEnum::OBSERVADO,
-            $observaciones,
-        );
+        return new self(ValidacionDocumentoEnum::OBSERVADO, $defectos);
     }
 
     /** @return list<string> */

@@ -78,7 +78,12 @@ final class CotizacionValidarDocumentosCommand extends Command
 
         $archivos = array_values(array_filter(
             $todos,
-            static fn (CotizacionFilearchivo $a): bool => $a->getTipoArchivo()?->esEscaneoDeIdentidad() === true,
+            // ⚠️ `esValidable()`, NO `esEscaneoDeIdentidad()`: son dos conjuntos distintos. Sólo
+            // el pasaporte y el anverso del DNI traen número y nombre que cotejar; el reverso y
+            // la autorización no se pueden validar, y metidos aquí salían como «no se pudo leer
+            // el número» — que suena a mala calidad y manda a pedir otra vez algo que nunca tuvo
+            // el dato. Con 86 reversos, serían 86 filas de ruido en la cola.
+            static fn (CotizacionFilearchivo $a): bool => $a->getTipoArchivo()?->esValidable() === true,
         ));
 
         if ($limite > 0) {

@@ -140,7 +140,7 @@ final class CotizacionLeerDocumentoCommand extends Command
         // error: simplemente dejaría de leer esos documentos, en silencio.
         return array_values(array_filter(
             $todos,
-            static fn (CotizacionFilearchivo $a): bool => $a->getTipoArchivo()?->esEscaneoDeIdentidad() === true,
+            static fn (CotizacionFilearchivo $a): bool => $a->getTipoArchivo()?->esValidable() === true,
         ));
     }
 }
