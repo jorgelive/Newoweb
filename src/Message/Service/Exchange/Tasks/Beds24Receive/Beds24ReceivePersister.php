@@ -249,11 +249,26 @@ readonly class Beds24ReceivePersister
                 $message->setLanguageCode($currentConversationLang);
             }
 
-            // Fechas del Mensaje
+            // ⚠️ **Beds24 usa DOS convenciones de hora, y ésta no es la de las reservas.**
+            //
+            // `bookingTime`/`modifiedTime` de una RESERVA vienen en UTC sin decirlo, y por eso
+            // `Beds24BookingDto` las parsea declarando ese huso (ver `docs/PmsBeds24ReservasSync.md`
+            // §12.16). El `time` de un MENSAJE **no**: llega ya en hora local de la cuenta.
+            //
+            // Comprobado contra datos el 08/09/2026: de los 3.114 mensajes de Beds24 en base, los
+            // recientes tienen su `created_at` a 0-1 minuto de nuestro propio reloj. Si vinieran en
+            // UTC estarían 300 minutos por delante.
+            //
+            // ⚠️ **No «arregles» esto igual que las reservas.** Declarar UTC aquí desplazaría cada
+            // mensaje cinco horas al futuro y los descolocaría frente a los de WhatsApp en el mismo
+            // hilo. Una revisión automática lo señaló como fallo pendiente en septiembre de 2026;
+            // los datos dijeron lo contrario.
+            //
+            // El `setTimezone` que había aquí era un no-op con nombre engañoso —la variable se
+            // llamaba `$timeUtc` y no era UTC—, así que se quita: lo que llega ya es hora de pared.
             $msgDate = new DateTimeImmutable(); // Fallback
             if ($dto->time !== null) {
-                $timeUtc = $dto->time instanceof DateTimeImmutable ? $dto->time : DateTimeImmutable::createFromInterface($dto->time);
-                $msgDate = $timeUtc->setTimezone(new DateTimeZone('America/Lima'));
+                $msgDate = DateTimeImmutable::createFromInterface($dto->time);
             }
             $message->setCreatedAt($msgDate);
 

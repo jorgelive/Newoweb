@@ -55,8 +55,8 @@ final readonly class Beds24InvoiceItemDto
             lineTotal: self::toDecimalStringOrNull($data['lineTotal'] ?? null),
             vatRate: self::toDecimalStringOrNull($data['vatRate'] ?? null),
             createdBy: self::toStringOrNull($data['createdBy'] ?? null),
-            createTime: self::toDateTimeOrNull($data['createTime'] ?? null),
-            invoiceDate: self::toDateTimeOrNull($data['invoiceDate'] ?? null),
+            createTime: self::toInstanteUtcOrNull($data['createTime'] ?? null),
+            invoiceDate: self::toDiaOrNull($data['invoiceDate'] ?? null),
         );
     }
 
@@ -75,13 +75,51 @@ final readonly class Beds24InvoiceItemDto
         return (string) $v;
     }
 
-    private static function toDateTimeOrNull(mixed $v): ?DateTimeInterface
+    /**
+     * ⚠️ `createTime` viene en **UTC** y Beds24 no lo dice, igual que `bookingTime`.
+     *
+     * Comprobado con datos el 08/09/2026: de los cargos con esta fecha, **94** entraron por webhook
+     * con `fecha_creacion_beds24` exactamente **299-300 minutos por delante** de su propio
+     * `created_at`; los 34 que salen a cero son cargos nuestros, no de Beds24.
+     *
+     * Aquí se declara el huso real, así que sale un instante correcto. Pasarlo a hora de pared no
+     * se hace aquí: depende del establecimiento de la estancia, que un DTO de transporte no conoce.
+     * Lo hace `Beds24InvoiceReceivePersister`.
+     *
+     * ⚠️ **Esto NO vale para `invoiceDate`** — ver abajo. Beds24 usa dos formatos y mezclarlos
+     * retrocedería un día las facturas.
+     */
+    private static function toInstanteUtcOrNull(mixed $v): ?DateTimeInterface
     {
         $s = self::toStringOrNull($v);
         if ($s === null) return null;
 
         try {
-            return new DateTimeImmutable($s);
+            return new DateTimeImmutable($s, new \DateTimeZone('UTC'));
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * ⚠️ `invoiceDate` es un DÍA, no un instante, y la columna que lo recibe es `date`.
+     *
+     * Por eso **no se le declara huso ni se convierte**: `new DateTimeImmutable('2026-08-31', UTC)`
+     * pasado a hora de Lima es el 30 de agosto a las 19:00, y al guardarse en una columna `date`
+     * quedaría como **el día anterior**. Una factura fechada un día antes de lo que dice Beds24 es
+     * un descuadre contable que nadie relacionaría con zonas horarias.
+     *
+     * Es la distinción de `docs/ZonasHorarias.md` §2 aplicada dentro del mismo DTO: dos campos que
+     * llegan juntos y piden tratamiento opuesto.
+     */
+    private static function toDiaOrNull(mixed $v): ?DateTimeInterface
+    {
+        $s = self::toStringOrNull($v);
+        if ($s === null) return null;
+
+        try {
+            // Se toma sólo la parte de fecha: si algún día llegara con hora, la hora sobra.
+            return new DateTimeImmutable(substr($s, 0, 10));
         } catch (Throwable) {
             return null;
         }

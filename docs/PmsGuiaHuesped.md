@@ -606,9 +606,21 @@ algún día entra ese componente, esta clase es el único punto a sustituir.
 1. ~~La guía del huésped no tiene front.~~ **Hecha**: `HuespedGuiaView.vue` +
    `paxHuespedGuiaStore.ts` + `paxHuespedGuiaModel.ts`. Ver §5.1.
 
-2. **Zona horaria.** La ventana se calcula con `new \DateTimeImmutable()` del servidor.
-   `PmsEstablecimiento::getTimezone()` existe pero no participa. Mientras servidor y alojamiento
-   compartan `America/Lima` el cálculo es correcto; con un establecimiento en otra zona, no.
+2. ~~**Zona horaria.**~~ **Hecho (08/09/2026).** La ventana se calculaba con el reloj del
+   servidor; ahora `PmsGuiaAcceso::paraEvento()` pide el «ahora» a `$evento->zonaHoraria()` y
+   reinterpreta los dígitos de `inicio`/`fin` en esa zona antes de comparar. Doctrine devuelve las
+   fechas etiquetadas con el huso por defecto sean cuales sean los dígitos guardados, así que sin
+   ese paso el instante que representan es el de otro sitio.
+
+   Es lo que decide si se entregan los códigos de puerta y de caja, y con un alojamiento en otro
+   país la ventana se abría o se cerraba con horas de error sin que nada fallara de forma visible.
+   El estándar completo —hora de pared del establecimiento, y las dos categorías de fecha— está en
+   `docs/PmsBeds24ReservasSync.md` §12.16 y `docs/NodeEnElStack.md` §9.bis.
+
+   ⚠️ **No hay ni un test de `PmsGuiaAcceso`.** Se comprobó al revisar el cambio: `grep -rl
+   PmsGuiaAcceso tests/` no devuelve nada. La matriz de cuatro estados × cuatro visibilidades es
+   pura lógica sin base de datos —justo lo que la suite unitaria sí puede cubrir— y sigue sin
+   cubrir.
 
 3. **`Cache-Control: no-store` en el provider privado — sigue pendiente en el SERVIDOR.**
    El lado cliente ya está cubierto: `paxHuespedGuiaStore` pide con `cache: 'no-store'`, no

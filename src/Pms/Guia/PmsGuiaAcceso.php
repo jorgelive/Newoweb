@@ -21,11 +21,11 @@ use App\Pms\Enum\PmsGuiaVisibilidad;
  * desajuste se salda filtrando datos o bloqueando de más.
  *
  * Ventana horaria: se hereda la semántica que ya había —24 h antes de
- * `inicio`, hasta el final del día de `fin`— comparando en la zona del
- * servidor. Las fechas del evento se guardan en hora local del establecimiento,
- * así que mientras servidor y alojamiento compartan zona (America/Lima) el
- * cálculo es correcto; PmsEstablecimiento::getTimezone() existe pero todavía no
- * participa. Ver docs/PmsGuiaHuesped.md §3.
+ * `inicio`, hasta el final del día de `fin`— y desde el 08/09/2026 se compara
+ * en la zona del ESTABLECIMIENTO, no en la del servidor. Las fechas del evento
+ * se guardan en hora de pared del alojamiento, así que compararlas contra el
+ * reloj de la máquina sólo acertaba mientras los dos compartieran huso.
+ * `PmsEstablecimiento::zonaHoraria()` ya participa. Ver docs/PmsGuiaHuesped.md §3.
  */
 final readonly class PmsGuiaAcceso
 {
@@ -61,7 +61,15 @@ final readonly class PmsGuiaAcceso
             return self::publico();
         }
 
-        $ahora ??= new \DateTimeImmutable();
+        // ⚠️ El «ahora» se pide en la zona del ESTABLECIMIENTO, no en la del servidor.
+        //
+        // Las fechas del evento se guardan en hora de pared del alojamiento (el estándar del
+        // proyecto), así que compararlas contra el reloj de la máquina sólo funciona mientras los
+        // dos compartan huso. Aquí se decide si se entregan los códigos de puerta y de caja: con
+        // un alojamiento en otro país, la ventana se abriría o se cerraría con horas de error y
+        // nada fallaría de forma visible.
+        $zona = $evento->zonaHoraria();
+        $ahora ??= new \DateTimeImmutable('now', $zona);
 
         // 1 y 2. Estancia muerta (cancelada, bloqueo interno) o excluida a mano
         // por el operador: deja de ser cliente DE ESTA UNIDAD —puede tener otras
@@ -92,8 +100,14 @@ final readonly class PmsGuiaAcceso
             return new self(PmsGuiaAccesoEstado::SinPago);
         }
 
-        $liberaEn = \DateTimeImmutable::createFromInterface($inicio)
-            ->modify(sprintf('-%d hours', self::HORAS_ANTICIPACION));
+        // Doctrine devuelve las fechas etiquetadas con el huso por defecto, sean cuales sean los
+        // dígitos que se guardaron. Como lo guardado es hora de pared del alojamiento, hay que
+        // volver a leerlas EN SU ZONA antes de compararlas — si no, el instante que representan es
+        // el de otro sitio.
+        $inicioLocal = new \DateTimeImmutable($inicio->format('Y-m-d H:i:s'), $zona);
+        $finLocal = new \DateTimeImmutable($fin->format('Y-m-d H:i:s'), $zona);
+
+        $liberaEn = $inicioLocal->modify(sprintf('-%d hours', self::HORAS_ANTICIPACION));
 
         if ($ahora < $liberaEn) {
             return new self(PmsGuiaAccesoEstado::Pendiente, $liberaEn);
@@ -101,7 +115,7 @@ final readonly class PmsGuiaAcceso
 
         // El check-out cierra al final del día: el huésped sigue necesitando el
         // código de la caja para devolver las llaves la mañana que se va.
-        if ($ahora > \DateTimeImmutable::createFromInterface($fin)->setTime(23, 59, 59)) {
+        if ($ahora > $finLocal->setTime(23, 59, 59)) {
             return new self(PmsGuiaAccesoEstado::Expirada);
         }
 

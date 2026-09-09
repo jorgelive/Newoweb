@@ -150,8 +150,16 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                         : $f['totalVenta']
                 ),
                 'adelanto'        => $oculto ? null : $f['adelanto'],
+                // ⚠️ Como DÍA (`Y-m-d`), no como instante con desplazamiento.
+                //
+                // Salía en `DATE_ATOM` y el cliente sólo la enseña como «Válida hasta el 15 de
+                // septiembre»: una fecha de pared. Mandar un instante obligaba a `pax` a quedarse
+                // con los diez primeros caracteres, y eso acertaba únicamente mientras el
+                // desplazamiento que viajara fuese el de casa — con la cotización expirando a las
+                // 22:00 y un desplazamiento distinto, el día enseñado sería otro. Ver
+                // `dominio/fecha/naive.ts`: un hecho de pared y un instante no se mezclan.
                 'fechaExpiracion' => $f['fechaExpiracion'] instanceof \DateTimeInterface
-                    ? $f['fechaExpiracion']->format(DATE_ATOM) : null,
+                    ? $f['fechaExpiracion']->format('Y-m-d') : null,
                 'fechaInicio'     => $f['fechaInicio'] instanceof \DateTimeInterface
                     ? $f['fechaInicio']->format('Y-m-d')
                     : ($f['fechaInicio'] ? substr((string) $f['fechaInicio'], 0, 10) : null),

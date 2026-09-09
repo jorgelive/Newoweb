@@ -678,6 +678,19 @@ class PmsEventoCalendario
     public function setFechaReservaCanal(?DateTimeInterface $val): self { $this->fechaReservaCanal = $val; return $this; }
 
     public function getFechaModificacionCanal(): ?DateTimeInterface { return $this->fechaModificacionCanal; }
+
+    /**
+     * La zona horaria en la que se leen las fechas de este evento: la del establecimiento.
+     *
+     * Las fechas del evento se guardan en hora de pared del alojamiento, no del servidor. Mientras
+     * los dos compartan huso da igual; en cuanto no, todo lo que se le enseñe al huésped estaría
+     * movido sin que nada falle. Ver `PmsEstablecimiento::zonaHoraria()`.
+     */
+    public function zonaHoraria(): \DateTimeZone
+    {
+        return $this->pmsUnidad?->getEstablecimiento()?->zonaHoraria()
+            ?? new \DateTimeZone(date_default_timezone_get());
+    }
     public function setFechaModificacionCanal(?DateTimeInterface $val): self { $this->fechaModificacionCanal = $val; return $this; }
 
     public function getComentariosHuesped(): ?string { return $this->comentariosHuesped; }

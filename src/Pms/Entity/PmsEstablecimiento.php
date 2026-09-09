@@ -221,6 +221,39 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     public function setHoraCheckOut(?DateTimeInterface $horaCheckOut): self { $this->horaCheckOut = $horaCheckOut; return $this; }
 
     public function getTimezone(): ?string { return $this->timezone; }
+
+    /**
+     * La zona horaria del establecimiento, ya convertida y con respaldo.
+     *
+     * ⚠️ **Es la única forma correcta de saber qué hora es «aquí».** El proyecto guarda hora de
+     * pared, y la hora de pared de una reserva, de un evento o de un enchufe es la del sitio donde
+     * ocurren — no la del servidor que los procesa. `date_default_timezone_get()` acierta hoy por
+     * casualidad: hay un solo establecimiento y está en el mismo huso que la máquina. El día que
+     * haya uno en otro país, todo lo que se le enseñe y se le cobre a ese huésped estaría movido y
+     * el código seguiría pareciendo correcto.
+     *
+     * Este campo existía desde el principio sin participar en ningún cálculo — `PmsGuiaAcceso` lo
+     * lleva anotado por escrito. Aquí empieza a participar.
+     *
+     * El respaldo al huso de la aplicación es para el establecimiento sin configurar, no una
+     * alternativa legítima: si aparece en producción, es que falta rellenar el campo.
+     */
+    public function zonaHoraria(): \DateTimeZone
+    {
+        $timezone = $this->timezone;
+
+        if (!is_string($timezone) || $timezone === '') {
+            return new \DateTimeZone(date_default_timezone_get());
+        }
+
+        try {
+            return new \DateTimeZone($timezone);
+        } catch (\Throwable) {
+            // Un identificador inválido guardado a mano no puede tumbar una sincronización de
+            // reservas: se cae al huso de la aplicación, que al menos es un huso.
+            return new \DateTimeZone(date_default_timezone_get());
+        }
+    }
     public function setTimezone(?string $timezone): self { $this->timezone = $timezone; return $this; }
 
     // ============================================================

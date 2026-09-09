@@ -135,13 +135,28 @@ final class Beds24BookingDto
         return null;
     }
 
+    /**
+     * ⚠️ **Beds24 manda las fechas en UTC y NO lo dice.**
+     *
+     * El payload trae `"bookingTime": "2025-07-30T14:30:00"`: sin `Z`, sin desplazamiento, sin
+     * ninguna pista. Parsear esa cadena a secas la etiqueta con el huso de la aplicación, y
+     * entonces el instante queda mal por la diferencia entera — cinco horas en Perú.
+     *
+     * Se comprobó con datos reales el 08/09/2026: en reservas que entran por webhook casi al
+     * instante, `fecha_reserva_canal` iba **exactamente cinco horas** por delante de su propio
+     * `created_at`. Cuatro de cuatro.
+     *
+     * Aquí se declara el huso que realmente tienen, así que lo que sale es un instante correcto.
+     * Convertirlo a hora de pared **no se hace aquí**: eso depende del establecimiento de la
+     * reserva, que un DTO de transporte no conoce. Lo hace `BookingPullPersister`.
+     */
     private static function toDateTimeOrNull(mixed $v): ?DateTimeInterface
     {
         $s = self::toStringOrNull($v);
         if ($s === null) return null;
 
         try {
-            return new DateTimeImmutable($s);
+            return new DateTimeImmutable($s, new \DateTimeZone('UTC'));
         } catch (\Throwable) {
             return null;
         }

@@ -89,7 +89,8 @@ final class Beds24WebhookController extends AbstractController
                 // Primero intentamos con el timeStamp general del paquete
                 if (!empty($payload['timeStamp'])) {
                     try {
-                        $eventTimestamp = (new DateTimeImmutable($payload['timeStamp']))->getTimestamp();
+                        // Mismo caso: «2025-07-30T14:32:00», sin huso y en UTC.
+                        $eventTimestamp = (new DateTimeImmutable($payload['timeStamp'], new \DateTimeZone('UTC')))->getTimestamp();
                     } catch (Throwable) {}
                 }
                 // Si no, buscamos en la estructura de la reserva
@@ -101,7 +102,12 @@ final class Beds24WebhookController extends AbstractController
                             : ($payload['booking']['bookingTime'] ?? null);
 
                         if ($timeStr) {
-                            $eventTimestamp = (new DateTimeImmutable($timeStr))->getTimestamp();
+                            // UTC explícito: Beds24 manda «2025-07-30T14:32:00» sin huso, y
+                            // parsearla como local desplazaba el instante la diferencia entera —
+                            // cinco horas aquí. Con la ventana de 10 minutos de abajo eso
+                            // significaba que ningún evento de reserva se consideraba reciente
+                            // NUNCA, y el colchón de 15 s no llegaba a aplicarse a ninguno.
+                            $eventTimestamp = (new DateTimeImmutable($timeStr, new \DateTimeZone('UTC')))->getTimestamp();
                         }
                     } catch (Throwable) {}
                 }

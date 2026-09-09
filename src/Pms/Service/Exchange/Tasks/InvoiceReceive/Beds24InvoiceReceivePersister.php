@@ -54,6 +54,19 @@ readonly class Beds24InvoiceReceivePersister
             throw new RuntimeException("Reserva Beds24 $targetBookId no encontrada.");
         }
 
+        // La zona sale de la RESERVA, no de la estancia.
+        //
+        // ⚠️ Antes se sacaba del evento, y ahí había un agujero: un cargo se crea igual aunque no se
+        // resuelva la estancia —el propio código lo declara válido más abajo—, y en ese caso no
+        // había zona, se guardaba el instante en UTC tal cual, y **nadie lo corregía después**: ni
+        // la reimputación posterior, que asigna el evento pero no vuelve a tocar la fecha, ni la
+        // migración `Version20260909060000`, cuyo JOIN por `evento_id` no los alcanza.
+        //
+        // Por la reserva no hay hueco: este método ya lanza si no la encuentra, y
+        // `pms_reserva.establecimiento_id` es NOT NULL. La zona existe siempre.
+        $zonaDelAlojamiento = $reserva->getEstablecimiento()?->zonaHoraria()
+            ?? new \DateTimeZone(date_default_timezone_get());
+
         $info = $this->infoFactory->upsertForReserva($reserva);
 
         // Beds24 no envía moneda en los invoiceItems → default USD (regla de negocio).
@@ -190,7 +203,9 @@ readonly class Beds24InvoiceReceivePersister
 
             // NUEVO CONCEPTO
             $cargo = new PmsCargoFinanciero($extId);
-            $this->hidratar($cargo, $dto, $monedaUsd, $tcVenta);
+            // La zona va COMO ARGUMENTO: el cargo todavía no tiene evento —se le asigna dos líneas
+            // más abajo— y leerla de dentro caería a un respaldo en silencio.
+            $this->hidratar($cargo, $dto, $monedaUsd, $tcVenta, $zonaDelAlojamiento);
             $cargo->setEsAutomatico($esEspejoDeCanal);
             $cargo->setEvento($eventoDelCargo);
             $info->addCargo($cargo);
@@ -211,7 +226,13 @@ readonly class Beds24InvoiceReceivePersister
     /**
      * Vuelca todos los campos del DTO al cargo (usado al crear).
      */
-    private function hidratar(PmsCargoFinanciero $cargo, Beds24InvoiceItemDto $dto, MaestroMoneda $moneda, ?string $tcVenta): void
+    private function hidratar(
+        PmsCargoFinanciero $cargo,
+        Beds24InvoiceItemDto $dto,
+        MaestroMoneda $moneda,
+        ?string $tcVenta,
+        \DateTimeZone $zonaDelAlojamiento,
+    ): void
     {
         $cargo->setBeds24BookingId($dto->bookingId);
         $cargo->setBeds24InvoiceId($dto->invoiceId);
@@ -225,7 +246,14 @@ readonly class Beds24InvoiceReceivePersister
         $cargo->setTotalLinea($dto->lineTotal);
         $cargo->setTasaIva($dto->vatRate);
         $cargo->setCreadoPorBeds24($dto->createdBy);
-        $cargo->setFechaCreacionBeds24($dto->createTime);
+        // `createTime` llega como instante en UTC (lo declara el DTO) y aquí se pasa a hora de
+        // pared del alojamiento, que es la convención de toda la base. `invoiceDate` NO se toca:
+        // es un día y la columna es `date`; convertirlo lo retrocedería uno.
+        $cargo->setFechaCreacionBeds24(
+            $dto->createTime === null
+                ? null
+                : \DateTimeImmutable::createFromInterface($dto->createTime)->setTimezone($zonaDelAlojamiento)
+        );
         $cargo->setFechaFactura($dto->invoiceDate);
 
         // Enriquecimiento local (no viene de Beds24): moneda, clasificación y TC del día.

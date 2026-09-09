@@ -532,8 +532,11 @@ final class BookingPullPersister implements ResetInterface
             $evento->setReferenciaCanal($booking->apiReference);
             $evento->setChannel($this->resolveChannel($booking));
             $evento->setHoraLlegadaCanal($booking->arrivalTime);
-            $evento->setFechaReservaCanal($booking->bookingTime);
-            $evento->setFechaModificacionCanal($booking->modifiedTime);
+            // A hora de pared DEL ESTABLECIMIENTO, no del servidor. El DTO las entrega como
+            // instante en UTC —que es como las manda Beds24, sin decirlo— y aquí se pasan al huso
+            // del alojamiento, que es la convención de toda la base. Ver `zonaHoraria()`.
+            $evento->setFechaReservaCanal($this->aHoraDelEstablecimiento($booking->bookingTime, $evento));
+            $evento->setFechaModificacionCanal($this->aHoraDelEstablecimiento($booking->modifiedTime, $evento));
             $evento->setComentariosHuesped($booking->comments);
 
 
@@ -895,5 +898,21 @@ final class BookingPullPersister implements ResetInterface
         }
 
         return '0.00';
+    }
+
+    /**
+     * Pasa un instante a la hora de pared del establecimiento del evento.
+     *
+     * ⚠️ Se llama DESPUÉS de que el evento tenga su unidad: sin ella no hay establecimiento y se
+     * cae al huso de la aplicación, que hoy acierta por casualidad —un solo alojamiento, mismo
+     * huso que el servidor— y dejaría de acertar con el primero que esté en otro país.
+     */
+    private function aHoraDelEstablecimiento(?\DateTimeInterface $momento, ?\App\Pms\Entity\PmsEventoCalendario $evento): ?\DateTimeImmutable
+    {
+        if ($momento === null || $evento === null) {
+            return null;
+        }
+
+        return \DateTimeImmutable::createFromInterface($momento)->setTimezone($evento->zonaHoraria());
     }
 }

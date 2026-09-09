@@ -179,8 +179,15 @@ class PmsReservaMessageContext implements MessageContextInterface
             return MapaDeHitos::vacio();
         }
 
-        //TODO: Refactor: poner todo en UTC para mensajes
-        $tzLima = new DateTimeZone('America/Lima');
+        // El estándar del proyecto es HORA DE PARED del establecimiento, decidido el 08/09/2026.
+        // (Aquí había un TODO de pasarlo todo a UTC; se decidió lo contrario, porque es lo que ya
+        // guardan las otras doscientas tablas y una sola en otro huso obliga a compensar en cada
+        // consulta que la cruce.)
+        //
+        // ⚠️ Los hitos que salen de aquí van a `MomentoDeHito`, que sigue fijando
+        // `ZONA = 'America/Lima'` a fuego. El lado de ESCRITURA ya depende del establecimiento
+        // (`BookingPullPersister`); el de mensajería todavía no. Acierta mientras haya un solo
+        // alojamiento y esté en ese huso.
 
         // 🔹 HORAS
         $horaCheckInRaw  = $this->reserva->getEstablecimiento()?->getHoraCheckIn();
@@ -216,10 +223,15 @@ class PmsReservaMessageContext implements MessageContextInterface
         // 🔹 CREATED (caso mixto)
         $created = null;
         if ($this->reserva->getPrimeraFechaReservaCanal() !== null) {
-            $fechaCanal = $this->reserva->getPrimeraFechaReservaCanal();
-            $createdUtc = new \DateTimeImmutable($fechaCanal->format('Y-m-d H:i:s'), new \DateTimeZone('UTC'));
-            $createdLima = $createdUtc->setTimezone($tzLima);
-            $created = new \DateTimeImmutable($createdLima->format('Y-m-d H:i:s'));
+            // Ya viene en hora de pared del establecimiento: la convierte `BookingPullPersister`
+            // al persistirla, que es donde se sabe de qué alojamiento es.
+            //
+            // ⚠️ Aquí había una compensación —reinterpretar el valor como UTC y pasarlo a Lima—
+            // porque Beds24 manda las fechas en UTC sin decirlo y se guardaban con los dígitos
+            // ajenos. Se arregló en el ingreso el 08/09/2026 (`Beds24BookingDto`), así que esta
+            // corrección pasó de necesaria a **doble desplazamiento**: cinco horas en el otro
+            // sentido. Compensar en el consumidor sólo funciona mientras haya exactamente uno.
+            $created = \DateTimeImmutable::createFromInterface($this->reserva->getPrimeraFechaReservaCanal());
         } else {
             $createdAt = $this->reserva->getCreatedAt();
             if ($createdAt instanceof \DateTime) {

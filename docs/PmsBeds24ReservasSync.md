@@ -31,6 +31,8 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
     · [12.6 Gotcha: SearchFilter y UUID binario](#126--gotcha-searchfilter-no-funciona-sobre-relaciones-con-uuid-binario)
     · [12.11.b El link ya borrado (2ª causa del «new entity»)](#1211b-la-segunda-causa-del-mismo-error-el-link-ya-borrado)
     · [12.12 Borrado de una reserva o de una estancia](#1212-borrado-de-una-reserva-o-de-una-estancia)
+12.16. [Beds24 manda UTC y no lo dice](#1216-beds24-manda-utc-y-no-lo-dice-08092026)
+12.17. [Los emojis llegan como `?`](#1217-los-emojis-llegan-como--y-no-es-culpa-nuestra-08092026)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
 > Horario extra (early check-in / late check-out → evento `extension` invisible): §7.1.b.
@@ -5336,6 +5338,115 @@ cable trampa para el segundo conector, que es cuando el fallo aparecería.
 ⚠️ **La duplicación de los cinco guardas es deliberada.** La clase esperada es distinta por
 entidad; el día que una cola sea de otro canal, su guarda tiene que decir *otra* clase. Un trait
 compartido tendría que parametrizarse justo en lo que cambia.
+
+## 12.16 Beds24 manda UTC y no lo dice (08/09/2026)
+
+El payload trae `"bookingTime": "2025-07-30T14:30:00"` y `"timeStamp": "2025-07-30T14:32:00"`: **sin
+`Z`, sin desplazamiento, y en UTC**. `new DateTimeImmutable($s)` etiquetaba esas cadenas con el huso
+de la aplicación, así que en las columnas quedaban los dígitos de un sitio con la etiqueta de otro.
+
+**Cómo se vio, porque no daba error en ninguna parte.** En reservas que entran por webhook casi al
+instante, `fecha_reserva_canal` iba **exactamente cinco horas por delante de su propio
+`created_at`** — cuatro de cuatro. Tras el arreglo el desfase es de 0 a 26 segundos, que es la
+latencia real del webhook.
+
+| | Antes | Después |
+|---|---|---|
+| `B6XKD8` | `09-01 00:29:29` vs `08-31 19:29:48` | `08-31 19:29:29` vs `19:29:48` → **19 s** |
+| `YZFKP6` | `08-31 22:55:40` vs `17:55:40` | `17:55:40` vs `17:55:40` → **0 s** |
+
+### Qué se cambió
+
+| Dónde | Qué |
+|---|---|
+| `Beds24BookingDto::toDateTimeOrNull()` | Declara el huso real (`UTC`) al parsear. Devuelve un **instante correcto**, no hora de pared: un DTO de transporte no sabe de qué establecimiento es la reserva |
+| `BookingPullPersister::aHoraDelEstablecimiento()` | Convierte a hora de pared del alojamiento antes de persistir |
+| `Beds24WebhookController` | `timeStamp` y `modifiedTime` se parsean como UTC |
+| `PmsReservaMessageContext` | **Se quitó la compensación**, que pasó a ser un doble desplazamiento |
+| `Version20260909040000` | Corrige las 412 filas ya guardadas |
+
+⚠️ **Y la compensación en el consumidor era la trampa de fondo.** `PmsReservaMessageContext`
+reinterpretaba el valor como UTC y lo pasaba a Lima; el CRUD de EasyAdmin no hacía nada. Los dos
+leían la misma columna y uno de los dos tenía que estar mal — el panel enseñaba las reservas creadas
+cinco horas en el futuro. **Compensar donde se lee sólo funciona mientras haya exactamente un
+lector.** Se arregla donde el dato entra.
+
+⚠️ **Efecto de vuelta en el colchón de 15 s (§ del webhook).** La frontera de 10 minutos se calcula
+sobre `timeStamp`/`modifiedTime`, y con cinco horas de desfase **ningún evento de reserva se
+consideraba reciente nunca**: todos entraban directo y el colchón no se les aplicaba. Ahora la
+comparación es correcta, así que los eventos recientes sí esperan sus 15 s. Es un cambio de
+comportamiento real en producción, no sólo una limpieza — conviene mirar la latencia de los webhooks
+de reserva tras desplegar.
+
+### La regla que queda
+
+**Una fecha que llega de fuera declara su huso en la frontera; la hora de pared la pone quien conoce
+el establecimiento.** Son dos pasos y viven en sitios distintos a propósito: el primero es
+transporte, el segundo es dominio.
+
+⚠️ Y `date_default_timezone_get()` no es respuesta a la segunda. Es Lima por configuración de PHP,
+no porque nadie lo haya decidido para esa reserva: acierta hoy —un solo establecimiento, mismo huso
+que el servidor— y dejaría de acertar con el primero que esté en otro país, sin que nada fallara de
+forma visible. `PmsEstablecimiento::zonaHoraria()` es la respuesta.
+
+También pasó a depender del establecimiento `PmsGuiaAcceso`, que comparaba la ventana de entrega de
+**códigos de puerta y caja** contra el reloj del servidor — llevaba la deuda anotada por escrito
+desde antes.
+
+## 12.17 Los emojis llegan como `?`, y no es culpa nuestra (08/09/2026)
+
+Llevaba **meses** sin diagnosticar, y la respuesta es que **no hay nada que arreglar de este lado**:
+Beds24 los manda ya rotos.
+
+### La prueba
+
+`pms_beds24_webhook_audit.payload_raw` guarda `$request->getContent()` **sin tocar** —el cuerpo HTTP
+literal, antes de decodificar nada—. Uno real:
+
+```json
+"message":"\u00a1Hola! Renato ?\u2728\n\nFue un verdadero gusto recibirt
+```
+
+Esa cadena contiene los tres tamaños de carácter a la vez, y por eso identifica la causa exacta:
+
+| Carácter | Bytes en UTF-8 | Llegó | Qué descarta |
+|---|---|---|---|
+| `¡` → `\u00a1` | 2 | ✅ | **no es latin1**: ahí ya fallarían los acentos |
+| `✨` → `\u2728` | 3 | ✅ | **no es pérdida genérica de UTF-8** ni truncado |
+| 😊 | **4** | ❌ `?` | el corte está **justo** en el límite de `utf8mb3` |
+
+Un corte limpio en tres bytes sólo lo produce el `utf8` viejo de MySQL (`utf8mb3`). Y que sustituya
+por `?` en vez de rechazar el `INSERT` es la otra huella: es lo que hace MySQL cuando el modo no es
+estricto.
+
+En **1.960** auditorías de webhook no hay **ni una** secuencia `ud83` —el prefijo del par suplente
+con el que se escapa cualquier emoji de 4 bytes—. Nunca ha llegado uno intacto.
+
+### Lo que esto descarta de nuestro lado
+
+Todo, y está comprobado en producción:
+
+| | |
+|---|---|
+| `config/packages/doctrine.yaml` | `charset: utf8mb4` |
+| Conexión real en producción | `utf8mb4` en cliente, conexión, resultados y base |
+| Las 12 columnas de texto de `msg_message` | `utf8mb4_unicode_ci` |
+| El momento de la auditoría | antes de procesar, con `getContent()` sin decodificar |
+
+### Por qué pasa «en muchos casos» y no siempre
+
+Depende de qué emoji use el huésped. Los de 3 bytes pasan (`✨ ☀ ❤ ✔`); los de 4 no
+(`😊 🙏 👍 🎉`), que son casi todos los de cara y mano. Por eso parecía aleatorio.
+
+### Qué se puede hacer
+
+**Reportarlo a Beds24 con este payload.** El caso es lo bastante concreto —`\u2728` pasa, 4 bytes
+no— como para que su equipo lo ubique enseguida. Es un fallo suyo, no una limitación documentada de
+su API.
+
+⚠️ **Lo que NO se puede hacer es recuperarlo.** El dato se pierde en su sistema; cuando llega aquí
+ya es un `?` indistinguible de un signo de interrogación escrito por la persona. No hay forma de
+saber cuál era el emoji ni de detectar con fiabilidad cuáles lo fueron.
 
 ## 13. Dónde tocar para cambiar X
 
