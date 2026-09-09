@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Attribute\AutoTranslate;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
+use App\Cotizacion\Enum\ValidacionDocumentoEnum;
 use App\Cotizacion\State\CotizacionFilearchivoMultipartProcessor;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
@@ -134,6 +135,64 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
     #[ORM\ManyToOne(targetEntity: CotizacionFileGrupo::class)]
     #[ORM\JoinColumn(name: 'grupo_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
     private ?CotizacionFileGrupo $grupo = null;
+
+    /**
+     * En qué punto del control está este escaneo. Ver {@see ValidacionDocumentoEnum}.
+     *
+     * ⚠️ **Vive en el ARCHIVO y no en la identificación del pasajero**, aunque valide sus datos.
+     * Lo que se valida es *esta imagen contra el manifiesto*: la misma persona puede tener el
+     * pasaporte comprobado y el DNI observado, y un estado en la persona no sabría decir cuál de
+     * los dos hay que volver a pedir.
+     */
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(name: 'estado_validacion', type: 'string', length: 20, enumType: ValidacionDocumentoEnum::class, options: ['default' => 'no_validado'])]
+    private ValidacionDocumentoEnum $estadoValidacion = ValidacionDocumentoEnum::NO_VALIDADO;
+
+    /**
+     * Qué no encajó, en frases que se leen tal cual en la cola de trabajo.
+     *
+     * ⚠️ Se guarda el TEXTO y no un código de motivo: son para que una persona decida, no para
+     * que el programa ramifique. Un catálogo de códigos aquí envejecería mal —cada documento raro
+     * añade el suyo— y obligaría a mantener sus traducciones para nada.
+     *
+     * @var list<string>
+     */
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(name: 'observaciones_validacion', type: 'json')]
+    private array $observacionesValidacion = [];
+
+    /**
+     * Cuándo se miró por última vez.
+     *
+     * ⚠️ Hace falta **además** del estado: un `NO_VALIDADO` con fecha es «se intentó y no se pudo»
+     * y uno sin fecha es «nunca le ha tocado». Son dos colas distintas y sin esto se mezclan.
+     */
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(name: 'validado_en', type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $validadoEn = null;
+
+    public function getEstadoValidacion(): ValidacionDocumentoEnum { return $this->estadoValidacion; }
+
+    /** @return list<string> */
+    public function getObservacionesValidacion(): array { return $this->observacionesValidacion; }
+
+    public function getValidadoEn(): ?DateTimeImmutable { return $this->validadoEn; }
+
+    /**
+     * El resultado del control, siempre junto: estado, motivos y fecha se escriben a la vez o se
+     * contradicen. Con tres setters sueltos, un día alguien pone el estado y olvida las
+     * observaciones, y queda un «observado» que no dice de qué.
+     *
+     * @param list<string> $observaciones
+     */
+    public function registrarValidacion(ValidacionDocumentoEnum $estado, array $observaciones): self
+    {
+        $this->estadoValidacion = $estado;
+        $this->observacionesValidacion = $observaciones;
+        $this->validadoEn = new DateTimeImmutable();
+
+        return $this;
+    }
 
     /* ======================================================
      * PROPIEDADES DE VICH UPLOADER Y MEDIA TRAIT

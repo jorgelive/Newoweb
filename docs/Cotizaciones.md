@@ -1737,6 +1737,88 @@ incidente detrás en el que una persona desapareció del padrón. El mismo pasap
 por su número y es seguro; DNI y pasaporte de la misma persona sólo se enlazan por el nombre, y eso
 tiene que ser una **propuesta que alguien confirma**, nunca una fusión silenciosa.
 
+#### El control de validación: tres estados, y qué respalda cada uno (09/09/2026)
+
+Ya no es «leer un documento»: es un proceso con estado, cola de trabajo y una propuesta por
+documento. `ValidacionDocumentoEnum` en `cotizacion_file_archivo`.
+
+##### Por qué tres estados y no un booleano
+
+Con `validado sí/no`, un documento **sin revisar** y otro **cuyo número no cuadra** caen en el
+mismo cajón. Ese cajón se mira una vez, se ve enorme y se deja de mirar. Separados, la cola de
+trabajo es `OBSERVADO` —corta y accionable— y `NO_VALIDADO` es sólo «aún no le ha tocado».
+
+⚠️ **`validado_en` hace falta ADEMÁS del estado.** Un `NO_VALIDADO` **con** fecha es «se intentó y
+no se pudo»; **sin** fecha es «nunca le ha tocado». Son dos colas distintas y sin la fecha se
+mezclan.
+
+⚠️ **El estado vive en el ARCHIVO, no en la identificación del pasajero.** Lo que se valida es
+*esta imagen contra el manifiesto*: la misma persona puede tener el pasaporte comprobado y el DNI
+observado, y un estado en la persona no sabría decir cuál de los dos hay que volver a pedir.
+
+⚠️ **`VALIDADO` no significa «el documento es auténtico».** Nada de esto detecta una
+falsificación. Significa: *lo que se lee concuerda con lo guardado, y la lectura viene respaldada
+por algo más que la palabra de un modelo.* Está escrito en el enum porque en pantalla se leerá
+como «documento correcto».
+
+##### De dónde sale el respaldo, que es lo que separa VALIDADO de OBSERVADO
+
+«Lo leyó un modelo» no es respaldo. Hacen falta dos fuentes que coincidan, y cada clase de
+documento la consigue por un camino distinto:
+
+| | Segunda fuente | Si no la hay |
+|---|---|---|
+| **Pasaporte** | los dígitos de control de la MRZ — aritmética, no depende de nadie | OBSERVADO |
+| **DNI y demás** | el número que **ya estaba** en el manifiesto | OBSERVADO |
+
+🔥 **De ahí la regla que más fácil sería saltarse: un DNI que CREA su propia ficha no puede quedar
+VALIDADO.** Se compararía consigo mismo y saldría bien siempre — un sello verde puesto por el
+propio dato que había que comprobar. El pasaporte sí puede, porque su respaldo es la aritmética y
+no el manifiesto. Hay un test para cada mitad de esa asimetría.
+
+##### Los tres caminos
+
+```
+¿el archivo tiene dueño?
+  sí  → cotejar contra SU ficha                    → VALIDADO / OBSERVADO
+  no  → ¿alguien con ese MISMO NÚMERO?
+          sí  → proponer asociar        (seguro)
+          no  → ¿alguien con ese NOMBRE?
+                  sí  → proponer asociar (sugerencia)
+                  no  → proponer CREAR la ficha
+```
+
+🔑 **El orden no es negociable: primero el número, después el nombre.** Es la misma conclusión a la
+que llegó `PadronImportador` por las malas —«los nombres se escriben mal»—, y por eso aborta ante
+dos personas con el mismo documento: una vez una sobrescribió a otra y desapareció del padrón.
+
+🔥 **Dos personas con el mismo nombre NO se resuelven adivinando**: se devuelve «hay varias, elige a
+mano». Es el caso de las familias —hermanos con los dos apellidos iguales—, que es exactamente
+donde el reparto se tuerce, y elegir uno sería colgarle a alguien el documento de su hermano con
+cara de acierto.
+
+⚠️ **Se busca sólo DENTRO del expediente.** Buscar por todo el sistema encontraría el mismo DNI en
+un grupo del año pasado y propondría cruzar dos expedientes — justo lo que
+`validarDuenoDelMismoExpediente()` prohíbe al guardar.
+
+⚠️ **El nombre se compara flojo** (sin tildes, sin orden, sin partículas, ≥2 palabras en común)
+porque en un padrón se escribe de quince maneras y un aviso por cada una haría que nadie mirase la
+lista. `ValidadorDeDocumento` reutiliza el criterio de `Cotejo` en vez de escribir el suyo: con dos
+criterios, el proceso se contradiría según por qué rama entrase.
+
+##### Qué escribe y qué no
+
+`app:cotizacion:validar-documentos <expediente> [--aplicar] [--limite=N]`.
+
+- **Sin `--aplicar` no escribe nada**, ni el estado. Enseña el plan y se va.
+- **Con `--aplicar`** guarda estado y observaciones de todos, y ejecuta **sólo** las asociaciones
+  que casan **por número**. Crear fichas y asociar por nombre **no los hace nunca**: son las dos
+  decisiones que se toman mirando, y `CREAR` es la única acción que **añade una persona** al
+  manifiesto — dos fichas de la misma persona rompen los conteos y nadie las echa de menos.
+
+Las observaciones se guardan como **texto**, no como códigos: son para que una persona decida, no
+para que el programa ramifique.
+
 #### La bóveda arranca plegada (08/09/2026)
 
 Vive en la barra lateral, encima de todo lo demás, y en un expediente grande son ~1 500 archivos.
@@ -7270,6 +7352,9 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Quién puede ser dueño de un archivo** → `CotizacionFilearchivo::validarDuenoDelMismoExpediente()`, `PrePersist` + `PreUpdate`. Comprueba los **tres**: pasajero, grupo y vuelo.
 - **Leer un documento de identidad escaneado** → `LectorDeDocumentoIdentidad` (dominio) sobre `LectorDeImagenInterface` (proveedor). Probar sin guardar: `app:cotizacion:leer-documento`. ⚠️ El modelo se fija en `AGENT_IA_VISION_MODELO`, **no** en los tramos de potencia: es capacidad, no cabeza.
 - **Saber si un dato extraído es fiable** → `DatosDeDocumento::verificadoPorMrz()`. ⚠️ Tiene que **verse** en pantalla: con MRZ es aritmética, sin MRZ es sólo lo que dijo un modelo.
+- **Cambiar cuándo un documento queda validado u observado** → `Cotejo::de()`, y **sólo ahí**. Es la única pieza que juzga, no tiene dependencias y está cubierta por tests: si el criterio cambia sin tocar esos tests, el criterio está mal.
+- **Cambiar a quién se propone asociar un documento suelto** → `ValidadorDeDocumento::buscarDueno()`. ⚠️ Número antes que nombre, sólo dentro del expediente, y varios homónimos = no se elige.
+- **Que el proceso escriba de verdad** → `app:cotizacion:validar-documentos --aplicar`. Crear fichas y asociar por nombre no los hace nunca.
 - **Crear un servicio que no está en el catálogo** → botón «Manual» → `agregarComponente(id, true)` → `esManual`. Aporta su propio `nombreInternoSnapshot` (interno) y `tituloSnapshot` (público). Ver §6.h.
 - **Que un componente sin maestro se pueda nombrar y tipar** → `isComponenteSoloItems()` y `getNombreMaestroRef()` en `CotizacionEditorView.vue`, y `onTipoManualChange()` en el store. Ver §6.h — y ojo con lo que la cadena sigue exigiendo (tarifa, prestador, nombre).
 - **Saber qué se lleva la papelera de un párrafo** → el pie de la tarjeta en el Constructor de Storytelling, alimentado por `store.idSegmentoDeComponente()`. Ver §6.i.
