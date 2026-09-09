@@ -1355,3 +1355,22 @@ que el nombre no se metiera debajo.
 
 **La regla:** cuando una tarjeta clicable gane su primer botón interno, se le quita el clic a la
 tarjeta. No se añade un `.stop`.
+
+
+## Tirar para refrescar se disparaba DENTRO de los modales (09/09/2026)
+
+🔥 **El síntoma no se parecía a la causa.** «Entro a una ficha del manifiesto, salgo, y recarga
+todo: unos 15 segundos.» No era abrir ni cerrar: era que `GestoDeRecarga` se armaba dentro del
+propio diálogo. Se lee una ficha, se llega arriba del todo, se tira hacia abajo para seguir
+mirando — y `window.location.reload()` levanta la aplicación entera: bundle, catálogos, expediente.
+Quince segundos que el usuario atribuye a cerrar la ficha, porque es lo último que hizo.
+
+⚠️ **Se arregló en el gesto, NO marcando los modales.** `data-sin-recarga` existía desde el
+principio como salida de emergencia y **no lo llevaba ni uno**: ni los 8 diálogos de
+`FileDetalle`, ni ninguno del resto de la app. Una salida que hay que acordarse de poner en cada
+diálogo nuevo no la pone nadie, y el fallo vuelve con el siguiente.
+
+La regla que se cumple sola: **si el dedo aterriza dentro de algo `position: fixed`, no es la
+página**. Un overlay es `fixed` por definición, así que ningún diálogo —ni los que existen ni los
+que vengan— vuelve a armar el gesto. `data-sin-recarga` se queda para lo que maneje su propio
+táctil sin ser `fixed`.

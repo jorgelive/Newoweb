@@ -64,6 +64,22 @@ function scrollerDe(nodo: EventTarget | null): Element | null | typeof VETADO {
 
         const estilo = getComputedStyle(el);
 
+        // 🔥 **Dentro de algo `fixed` NO es la página, y por tanto no se recarga.** Este gesto
+        // recarga la aplicación ENTERA con `window.location.reload()` —bundle, catálogos, todo:
+        // unos 15 s en un expediente grande—, y se disparaba dentro de cualquier modal: leer una
+        // ficha, llegar arriba del todo, tirar hacia abajo para seguir mirando, y la app se caía
+        // y volvía a arrancar. El usuario no lo lee como «tiré para refrescar»: lo lee como que
+        // cerrar la ficha tarda quince segundos.
+        //
+        // ⚠️ **Se arregla aquí y no marcando los modales.** `data-sin-recarga` existe desde el
+        // principio y no lo llevaba **ni uno** de los 8 diálogos de `FileDetalle`, ni ninguno del
+        // resto de la app: una salida de emergencia que hay que acordarse de poner en cada
+        // diálogo nuevo no la pone nadie. Un overlay es `fixed` por definición, así que la regla
+        // se cumple sola.
+        if (estilo.position === 'fixed') {
+            return VETADO;
+        }
+
         if (/(auto|scroll|overlay)/.test(estilo.overflowY) && el.scrollHeight > el.clientHeight) {
             return el;
         }
