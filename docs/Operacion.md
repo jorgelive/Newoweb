@@ -4394,21 +4394,32 @@ puesto, así que hacer que se lea no cambia nada de lo que ya funcionaba.
 
 ### Y con el número solo tampoco basta
 
-Poner el número arregla que **nosotros** lo encontremos. Pero un proveedor **no busca por
-`OS-20260909-981`** en su bandeja: busca por el cliente o por el servicio. Así que el asunto lleva
-las tres cosas que identifican el encargo:
+Poner el número arregla que **nosotros** lo encontremos. Un proveedor **no busca por
+`OS-20260909-981`**, y menos aún lo reconoce de un vistazo entre veinte correos.
+
+Gmail enseña unos 70 caracteres en escritorio y **35 en el móvil**. Con el prefijo delante, de un
+asunto de 110 sólo se leía `Solicitud de Servicio OS-2026…`: los 38 primeros caracteres gastados en
+decir lo que el remitente ya dice, y fuera de la vista lo único que identifica el encargo.
+
+Así que va **lo que reconoce primero** y el número al final, que es donde se busca, no donde se
+mira:
 
 ```
-Solicitud de Servicio OS-20260909-981 · Pool Valle Sagrado · Nune & Todd x 2
-Solicitud de Servicio OS-20260909-981 · Pool Valle Sagrado · Nune & Todd x 2, Familia Pérez x 4
+Nune & Todd x 2 · 31 ago–4 sep · Transporte desde el Aeropuerto de… +4 · Solicitud OS-20260826-166
+        móvil ve → «Nune & Todd x 2 · 31 ago–4 sep · Tr»
 ```
 
-⚠️ El **primer** servicio, no todos: es el que abre la jornada y el que el proveedor reconoce; la
-lista entera va en el cuerpo. Y **cada expediente con su gente**, en plural cuando los hay — una
-orden puede agrupar varios grupos del mismo comprador, y ahí un «x 2» a secas mentiría sobre el
-total.
+### Cómo degrada cuando hay mucho
 
-Sale de `getGruposSnapshot()`, la misma foto que ya usa el encabezado del cuerpo: las dos
+| | |
+|---|---|
+| **Varias fechas** | rango: `31 ago–4 sep`. ⚠️ La del primer servicio a secas sería engañosa: medido en producción, **la mayoría de las órdenes abarcan dos o tres días** |
+| **Varios servicios** | el primero y `+4`. Avisa de que trae trabajo sin gastar el asunto enumerándolo; la lista entera ya va en el cuerpo |
+| **Título largo** | recortado por palabra a 34 caracteres. «Transporte desde el Aeropuerto de Lima al hotel en Lima» son 55, y detrás de eso se perdía quién viaja |
+| **3 o más expedientes** | se resume: `4 expedientes · 15 pax`. Listarlos serían 200 caracteres |
+| **Ningún grupo** | empieza por la fecha. Sigue siendo un asunto válido |
+
+Los grupos salen de `getGruposSnapshot()`, la misma foto que usa el encabezado del cuerpo: las dos
 superficies dicen lo mismo sin recalcular nada.
 
 ## 18. «Solicitud», no «Orden», de cara al proveedor (09/09/2026)

@@ -308,6 +308,22 @@ class OperacionOrdenServicioItem
     private const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
     /**
+     * El día, en corto y sin el nombre del día: «10 sep».
+     *
+     * Existe para el asunto del correo, donde `getEtiquetaDia()` —«Jue 10 sep»— gasta cuatro
+     * caracteres en un dato que ahí no ayuda: en un rango de tres días el nombre del primero no
+     * dice nada. En el cuerpo sí ayuda, y por eso son dos.
+     */
+    public function getDiaCorto(): string
+    {
+        $fecha = $this->fechaServicio;
+
+        return $fecha === null
+            ? ''
+            : sprintf('%d %s', (int) $fecha->format('j'), self::MESES[(int) $fecha->format('n') - 1]);
+    }
+
+    /**
      * «Mié 2 sep» — la etiqueta con la que se agrupan las líneas por jornada.
      *
      * Lleva el nombre del día y no sólo el número porque el proveedor cuadra su semana por días:

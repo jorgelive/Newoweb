@@ -201,9 +201,11 @@ final readonly class OperacionOrdenDocumento
         $bloques = 0;
 
         $primero = null;
+        $ultimo = null;
 
         foreach ($orden->getItemsOrdenados() as $item) {
             $primero ??= $item;
+            $ultimo = $item;
             $clave = $item->getFechaServicio()?->format('Y-m-d') ?? '';
             $porDia[$clave]['etiqueta'] ??= $item->getEtiquetaDia();
             $porDia[$clave]['lineas'][] = $this->linea($item, $rutas);
@@ -278,7 +280,7 @@ final readonly class OperacionOrdenDocumento
 
 
         return [
-            'asunto' => $this->asunto($orden, $primero),
+            'asunto' => $this->asunto($orden, $primero, $ultimo, $bloques),
             'cuerpo' => $cuerpo,
             'lineas' => $bloques,
         ];
@@ -343,34 +345,95 @@ final readonly class OperacionOrdenDocumento
      *
      * «Solicitud» y no «Orden» por lo mismo que el encabezado: quien lo lee nos vende.
      */
-    private function asunto(OperacionOrdenServicio $orden, ?OperacionOrdenServicioItem $primero): string
-    {
-        $partes = [sprintf('Solicitud de Servicio %s', $orden->getNumeroOs())];
+    /** Lo que cabe del título en un asunto antes de que el cliente de correo lo recorte. */
+    private const TITULO_EN_ASUNTO = 34;
 
-        if ($primero !== null && ($titulo = trim((string) $primero->getTituloParaProveedor())) !== '') {
-            $partes[] = $titulo;
-        }
+    /**
+     * El asunto del correo, ordenado por lo que le sirve a QUIEN LO RECIBE.
+     *
+     *     Nune & Todd x 2 · 31 ago–4 sep · Transporte desde el Aeropuerto de… +4 · Solicitud OS-20260826-166
+     *
+     * ── Por qué el número va al final ───────────────────────────────────────
+     *
+     * El primer correo de una orden salió titulado «Americana» —el nombre del propio
+     * destinatario— y no se encontraba. Se le puso el número, y con eso pasa lo contrario pero
+     * igual de inútil: **un proveedor no busca por `OS-20260826-166`**, y menos aún lo reconoce de
+     * un vistazo entre veinte correos.
+     *
+     * Gmail enseña unos 70 caracteres en escritorio y **35 en el móvil**. Con el prefijo delante,
+     * de un asunto de 110 sólo se leía «Solicitud de Servicio OS-2026…»: los 38 primeros
+     * caracteres gastados en decir lo que el remitente ya dice, y fuera de la vista lo único que
+     * identifica el encargo.
+     *
+     * Así que va lo que reconoce —quién viaja, cuándo, qué— y el número al final, que es donde se
+     * busca, no donde se mira.
+     *
+     * ── Y cómo degrada cuando hay mucho ─────────────────────────────────────
+     *
+     * | | |
+     * |---|---|
+     * | Varias fechas | rango: `31 ago–4 sep`. La del primer servicio a secas sería engañosa: en producción la mayoría de las órdenes abarcan dos o tres días |
+     * | Varios servicios | el primero y `+4`: avisa de que trae trabajo sin enumerarlo. La lista entera va en el cuerpo |
+     * | Título largo | recortado por palabra a {@see self::TITULO_EN_ASUNTO} |
+     * | 3 o más expedientes | se resume en `4 expedientes · 15 pax`. Listarlos serían 200 caracteres |
+     */
+    private function asunto(
+        OperacionOrdenServicio $orden,
+        ?OperacionOrdenServicioItem $primero,
+        ?OperacionOrdenServicioItem $ultimo,
+        int $lineas,
+    ): string {
+        $partes = [];
 
-        // Cada expediente con su gente. `getGruposSnapshot()` es la foto que ya usa el encabezado
-        // del cuerpo, así que las dos superficies dicen lo mismo sin recalcular nada.
-        $quienes = [];
+        // ── QUIÉN, primero: es lo que el proveedor reconoce ─────────────────
+        $nombres = [];
+        $totalPax = 0;
 
         foreach ($orden->getGruposSnapshot() as $grupo) {
-            // Sin `??`: `getGruposSnapshot()` declara la forma entera y PHPStan lo comprueba, así
-            // que un respaldo aquí sería defensa contra algo que el tipo ya impide.
             $nombre = trim($grupo['grupo']);
-            $pax = $grupo['pax'];
+            $totalPax += $grupo['pax'];
 
-            if ($nombre === '') {
-                continue;
+            if ($nombre !== '') {
+                $nombres[] = $grupo['pax'] > 0 ? sprintf('%s x %d', $nombre, $grupo['pax']) : $nombre;
+            }
+        }
+
+        if (count($nombres) > 2) {
+            $partes[] = sprintf('%d expedientes', count($nombres));
+
+            if ($totalPax > 0) {
+                $partes[] = sprintf('%d pax', $totalPax);
+            }
+        } elseif ($nombres !== []) {
+            $partes[] = implode(', ', $nombres);
+        }
+
+        // ── CUÁNDO ──────────────────────────────────────────────────────────
+        $desde = $primero?->getDiaCorto() ?? '';
+        $hasta = $ultimo?->getDiaCorto() ?? '';
+
+        if ($desde !== '') {
+            $partes[] = $hasta === '' || $hasta === $desde ? $desde : sprintf('%s–%s', $desde, $hasta);
+        }
+
+        // ── QUÉ ─────────────────────────────────────────────────────────────
+        if ($primero !== null && ($titulo = trim((string) $primero->getTituloParaProveedor())) !== '') {
+            // Se corta por palabra para no partir una a la mitad; el nombre entero va en el cuerpo.
+            if (mb_strlen($titulo) > self::TITULO_EN_ASUNTO) {
+                $corte = mb_substr($titulo, 0, self::TITULO_EN_ASUNTO);
+                $espacio = mb_strrpos($corte, ' ');
+                $titulo = rtrim($espacio !== false && $espacio > 12 ? mb_substr($corte, 0, $espacio) : $corte) . '…';
             }
 
-            $quienes[] = $pax > 0 ? sprintf('%s x %d', $nombre, $pax) : $nombre;
+            $partes[] = $lineas > 1 ? sprintf('%s +%d', $titulo, $lineas - 1) : $titulo;
         }
 
-        if ($quienes !== []) {
-            $partes[] = implode(', ', $quienes);
-        }
+        // ── Y LA REFERENCIA, al final ───────────────────────────────────────
+        //
+        // Con «Solicitud» a secas: el «de Servicio» completo gasta doce caracteres para no añadir
+        // nada que las otras partes no digan ya. Y si no hubiera nada más —una orden vacía— esto
+        // queda solo, que sigue siendo un asunto válido.
+        $partes[] = sprintf('Solicitud %s', $orden->getNumeroOs());
 
         return implode(' · ', $partes);
     }
