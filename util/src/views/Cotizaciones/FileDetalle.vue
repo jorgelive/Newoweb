@@ -1944,6 +1944,55 @@ const validarManifiesto = async () => {
     else alert(fileStore.error || 'No se pudo validar el manifiesto.');
 };
 
+/* ══ VISOR DE DOCUMENTOS DE UNA PERSONA ═══════════════════════════════════
+   El puente que faltaba entre «este dato no coincide» y «pues mira el papel».
+
+   ⚠️ **No cuesta NADA abrirlo.** No hay llamada a la IA: los escaneos ya están en la bóveda y su
+   lectura está cacheada en el propio archivo. Sólo paga un documento nuevo que nunca se haya
+   leído, y de eso se encarga la tanda, no el visor. */
+
+const paxDelVisor = ref<ApiCotizacionFilepasajero | null>(null);
+
+/** ¿Tiene algo que enseñar? Un botón que abre un modal vacío es peor que no tenerlo. */
+const tieneEscaneos = (pax: ApiCotizacionFilepasajero): boolean => {
+    const id = extractIdStr(pax.id ?? pax['@id']).toLowerCase();
+
+    return (file.value?.filearchivos ?? []).some(doc => claveDeRelacion(doc.pasajero) === id);
+};
+
+/**
+ * Los escaneos de esa persona, ya ordenados como se miran: primero el que respalda un veredicto.
+ *
+ * ⚠️ Se filtra del `file` que ya está cargado —no hay petición nueva—: los archivos vienen enteros
+ * en `file:item:read` y pedirlos otra vez por persona serían 135 peticiones para nada.
+ */
+const documentosDelVisor = computed(() => {
+    const suyo = paxDelVisor.value;
+    if (!suyo) return [];
+
+    const id = extractIdStr(suyo.id ?? suyo['@id']).toLowerCase();
+
+    return (file.value?.filearchivos ?? [])
+        .filter(doc => claveDeRelacion(doc.pasajero) === id)
+        .sort((a, b) => Number(b.tipoArchivo === 'pasaporte') - Number(a.tipoArchivo === 'pasaporte'));
+});
+
+/** Lo que el modelo leyó de ese escaneo, para poder compararlo con el papel a la vista. */
+const leidoDe = (doc: ApiCotizacionFilearchivo): Record<string, unknown> | null => {
+    const datos = (doc as { datosLeidos?: Record<string, unknown> | null }).datosLeidos;
+
+    return datos && typeof datos === 'object' ? datos : null;
+};
+
+/**
+ * Un PDF no se puede pintar en un `<img>`: se enlaza y se dice que es un PDF.
+ *
+ * ⚠️ Se pregunta a `tipoMedio`, que lo calcula el backend desde la extensión REAL en disco —la que
+ * puso el `Namer` a partir de lo que Symfony dedujo del contenido—, no del nombre que trajo el
+ * cliente. Fiarse del nombre es lo que hacía que un vídeo se anunciara como PDF.
+ */
+const esImagen = (doc: ApiCotizacionFilearchivo): boolean => String(doc.tipoMedio) === 'imagen';
+
 /* ══ PANEL DE RESOLUCIÓN: los documentos que no son de nadie ══════════════ */
 
 const sueltos = ref<DocumentoSuelto[]>([]);
@@ -3211,6 +3260,17 @@ const eliminarDocumento = async (iri?: string) => {
                         <span v-for="(n, j) in (ident.notasValidacion ?? [])" :key="`n-${j}`"
                               class="ml-1 text-slate-400 normal-case">{{ n }}</span>
                       </div>
+
+                      <!-- ⚠️ El puente que faltaba entre «este dato no coincide» y «pues mira el
+                           papel». Sin esto había que ir a la bóveda, buscar entre ~1 500 archivos
+                           el de esta persona y abrirlo — que es exactamente el trabajo que este
+                           módulo venía a quitar.
+
+                           No cuesta nada: los escaneos ya están y su lectura está cacheada. -->
+                      <button v-if="tieneEscaneos(pax)" type="button" @click="paxDelVisor = pax"
+                              class="mt-1.5 inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white text-[9px] font-black uppercase tracking-wider text-slate-500 hover:border-sky-300 hover:text-sky-600 transition-colors">
+                        <i class="far fa-images text-[9px]"></i> Ver sus documentos
+                      </button>
                       <!-- El vuelo, en la propia ficha: era el dato que había que ir a buscar abriendo
                            a cada persona, y es justo el que se mira para armar el aeropuerto. -->
                       <p v-for="v in vuelosDe(pax)" :key="v.id" class="text-[9px] font-bold text-sky-600 mt-1">
@@ -4633,6 +4693,90 @@ const eliminarDocumento = async (iri?: string) => {
     </div>
   </Teleport>
 
+
+  <!-- ══ VISOR DE DOCUMENTOS DE UNA PERSONA ════════════════════════════════
+       Se abre desde su fila del manifiesto, al lado del veredicto que hay que resolver.
+
+       🔑 **El papel y lo que se leyó de él, uno al lado del otro.** El veredicto ya dice
+       «vencimiento: 2036 ← 2026»; lo único que falta para cerrarlo es mirar el documento, y hasta
+       ahora eso obligaba a ir a la bóveda y buscarlo entre ~1 500 archivos. -->
+  <Teleport to="body">
+    <div v-if="paxDelVisor" class="fixed inset-0 z-1000 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4"
+         @click.self="paxDelVisor = null">
+      <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <div class="bg-slate-800 px-6 py-4 flex justify-between items-center text-white shrink-0">
+          <div class="min-w-0">
+            <h3 class="font-black text-sm uppercase tracking-widest truncate">
+              <i class="far fa-images mr-2"></i>{{ paxDelVisor.nombre }} {{ paxDelVisor.apellido }}
+            </h3>
+            <p class="text-[10px] font-bold text-slate-400 mt-0.5">
+              <span v-for="(ident, i) in (paxDelVisor.identificaciones ?? [])" :key="ident.id || i">
+                <span v-if="i"> · </span>{{ getDocIdLabel(ident.tipo) }}: {{ ident.numero }}
+              </span>
+            </p>
+          </div>
+          <button @click="paxDelVisor = null" class="text-slate-400 hover:text-white shrink-0"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="p-6 overflow-y-auto space-y-4">
+          <!-- Lo que hay que resolver, arriba y a la vista: si hay que bajar a buscarlo, se mira
+               el documento sin saber qué se estaba comprobando. -->
+          <div v-for="ident in identificacionesConVeredicto(paxDelVisor)" :key="`m-${ident.id}`"
+               v-show="(ident.discrepancias ?? []).length || (ident.notasValidacion ?? []).length"
+               class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p class="text-[10px] font-black uppercase tracking-wider text-amber-800">
+              {{ getDocIdLabel(ident.tipo) }} · {{ SELLO[ident.estadoValidacion!].texto }}
+            </p>
+            <p v-for="(d, j) in (ident.discrepancias ?? [])" :key="j" class="text-[11px] mt-1 flex items-center gap-2">
+              <span class="font-bold text-amber-900">{{ d.campo }}</span>
+              <span class="font-mono bg-emerald-100 border border-emerald-300 rounded px-1.5">{{ d.documento }}</span>
+              <span class="text-[9px] font-bold uppercase text-slate-400">dice el documento</span>
+              <span class="font-mono bg-white border border-amber-300 rounded px-1.5">{{ d.manifiesto }}</span>
+              <span class="text-[9px] font-bold uppercase text-slate-400">está guardado</span>
+            </p>
+            <p v-for="(n, j) in (ident.notasValidacion ?? [])" :key="`mn-${j}`" class="text-[10px] text-amber-700 mt-1">{{ n }}</p>
+          </div>
+
+          <div v-if="!documentosDelVisor.length" class="text-center text-slate-400 text-xs py-8">
+            No hay escaneos suyos en la bóveda.
+          </div>
+
+          <div v-for="doc in documentosDelVisor" :key="doc.id" class="rounded-2xl border border-slate-200 overflow-hidden">
+            <div class="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
+              <p class="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                {{ getArchivoLabel(doc.tipoArchivo) }}
+              </p>
+              <a :href="doc.imageUrl || undefined" target="_blank" class="text-[10px] font-bold text-sky-600 hover:text-sky-700 shrink-0">
+                abrir <i class="fas fa-up-right-from-square text-[8px]"></i>
+              </a>
+            </div>
+
+            <!-- `loading="lazy"`: son escaneos de 2400 px y una familia puede tener seis. -->
+            <a v-if="esImagen(doc)" :href="doc.imageUrl || undefined" target="_blank" class="block bg-slate-900/5">
+              <img :src="doc.imageUrl || undefined" :alt="getArchivoLabel(doc.tipoArchivo)" loading="lazy"
+                   class="w-full max-h-[60vh] object-contain">
+            </a>
+            <a v-else :href="doc.imageUrl || undefined" target="_blank"
+               class="flex items-center gap-3 px-4 py-6 hover:bg-slate-50 transition-colors">
+              <div class="w-10 h-10 rounded flex items-center justify-center" :class="mediaDe(doc.tipoMedio).clase">
+                <i :class="mediaDe(doc.tipoMedio).icono"></i>
+              </div>
+              <span class="text-[11px] font-bold text-slate-600">No se puede previsualizar aquí — ábrelo en otra pestaña</span>
+            </a>
+
+            <!-- Lo que el modelo sacó de ESTE escaneo. Con el papel arriba, comprobarlo es mirar. -->
+            <div v-if="leidoDe(doc)" class="px-4 py-2 border-t border-slate-100 flex flex-wrap gap-x-3 gap-y-1">
+              <span v-for="(valor, clave) in leidoDe(doc)" :key="clave"
+                    v-show="valor && !String(clave).startsWith('mrz')"
+                    class="text-[9px] text-slate-500">
+                <span class="font-bold uppercase text-slate-400">{{ clave }}</span> {{ valor }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 
   <!-- ══ PANEL DE RESOLUCIÓN ═══════════════════════════════════════════════
        Los documentos que no son de nadie, con a quién podrían pertenecer.

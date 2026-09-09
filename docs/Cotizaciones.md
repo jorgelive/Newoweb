@@ -1881,6 +1881,33 @@ son los del documento — un número mal en un manifiesto es un problema en el a
 
 Coste de la tanda entera: **~$0,30**. Y no se vuelve a pagar: las lecturas quedaron cacheadas.
 
+#### El visor por persona: el puente entre «no coincide» y «mira el papel» (09/09/2026)
+
+Botón **«Ver sus documentos»** en cada fila del manifiesto, justo debajo del veredicto. Abre un
+modal con **los escaneos de esa persona y lo que se leyó de cada uno**.
+
+🔑 **Era el eslabón que faltaba.** El veredicto ya dice «vencimiento: `2036` ← `2026`», pero para
+cerrarlo hay que mirar el documento — y hasta ahora eso obligaba a ir a la bóveda y buscarlo entre
+~1 500 archivos, que es justo el trabajo que este módulo venía a quitar.
+
+⚠️ **Abrirlo no cuesta NADA.** No hay llamada a la IA: los escaneos ya están guardados y su lectura
+está cacheada en el propio archivo. Sólo paga un documento nuevo que nunca se haya leído
+(~$0,0016), y de eso se encarga la tanda, no el visor.
+
+⚠️ **Ni una petición nueva.** Los archivos vienen enteros en `file:item:read`, así que el visor
+filtra sobre lo que ya está cargado. Pedirlos por persona serían 135 peticiones para nada.
+
+⚠️ **La discrepancia se repite ARRIBA, dentro del modal.** Si hay que bajar a buscarla, se acaba
+mirando el documento sin recordar qué se estaba comprobando.
+
+⚠️ `esImagen()` pregunta a **`tipoMedio`**, que el backend calcula desde la extensión real en disco
+—la que puso el `Namer` a partir de lo que Symfony dedujo del contenido—, no del nombre que trajo
+el cliente. Fiarse del nombre es lo que hacía que un vídeo se anunciara como PDF (§ «El icono decía
+PDF para todo»). Un PDF se enlaza en vez de meterlo en un `<img>`, que quedaría en blanco.
+
+⚠️ El botón sólo sale si esa persona **tiene** escaneos: un botón que abre un modal vacío es peor
+que no tenerlo.
+
 #### El panel de resolución: la ambigüedad se enseña, no se resuelve sola (09/09/2026)
 
 Botón **«Sin dueño»** en la cabecera de la bóveda. Va ahí y no en el manifiesto porque el problema
