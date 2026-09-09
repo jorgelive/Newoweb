@@ -662,8 +662,15 @@ migraciones:
 git pull --ff-only && composer dump-autoload --no-dev --optimize && php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
-Node vive en nvm y no está en el PATH de una sesión ssh no interactiva; los logs de producción
-ocultan el nivel `info`, así que los errores se buscan en `var/log/error.log`.
+Node vive en nvm y no está en el PATH de una sesión ssh no interactiva; los errores se buscan en
+`var/log/error.log`.
+
+⚠️ **Aquí decía que «los logs de producción ocultan el nivel `info`». Ya no es verdad**, y creerlo
+cuesta caro: hay un `var/log/info.log` en JSON con todo el día a día, desde que se quitó el
+`fingers_crossed` de `monolog.yaml` (que era lo que sí lo escondía, y sólo lo soltaba si en la
+misma petición había además un error). De ahí salieron el 09/09/2026 las cifras de consumo real
+del agente —168 llamadas, 1,58 M de tokens de entrada— que llevaban meses dándose por
+inmedibles. **Antes de decir «no hay datos», mira `info.log`.**
 
 ⚠️ **Y por lo mismo, `node` tampoco está en el PATH de php-fpm.** Desde que PHP invoca el cálculo
 compartido (`App\Dominio\EjecutorDeDominio`), el servidor necesita **`DOMINIO_NODE_BINARIO` con la

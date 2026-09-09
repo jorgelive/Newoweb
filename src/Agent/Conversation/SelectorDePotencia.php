@@ -16,9 +16,23 @@ use Psr\Log\LoggerInterface;
  *     AGENT_IA_POTENCIA_MEDIA=anthropic:claude-sonnet-5
  *     AGENT_IA_POTENCIA_BAJA=anthropic:claude-haiku-4-5-20251001
  *
+ * ⚠️ **Ese tercer ejemplo no cachearía nunca con los prefijos de aquí, y no lo dice.** El mínimo
+ * de Haiku 4.5 son 4 096 tokens; los tramos cortos no llegan, así que devuelve
+ * `cache_creation_input_tokens: 0` y sigue como si nada. Opus 5 lo tiene en 512 y Sonnet 5 en
+ * 1 024: **el mismo prefijo cachea o no según qué modelo haya en el tramo.** Ver
+ * `docs/Mensajeria.md` §13.5 bis.
+ *
  * **Los tramos pueden cruzar proveedores.** Es el motivo de que la clave lleve el proveedor
  * dentro en vez de heredar el de `AGENT_IA_PROVEEDOR`: el tramo bajo en Gemini Flash Lite y el
  * alto en Opus es una combinación razonable, y con una clave por tramo se prueba sin desplegar.
+ *
+ * ⚠️ **Pero que se pueda no quiere decir que convenga, y el motivo NO es el que se supone.** La
+ * caché es **por modelo**, no por proveedor: un salto Sonnet→Opus la tira exactamente igual que
+ * Anthropic→Google. Quedarse dentro de un proveedor no compra ni un token. Lo que sí se paga al
+ * cruzar es otra cosa: los prompts no son portables ({@see AgentEngineInterface}, «cambiar de
+ * motor obliga a recalibrarlos») y la paridad de funciones está rota entre proveedores. Por eso
+ * la recomendación operativa es **mismo proveedor en los tres tramos, por configuración**, y no
+ * prohibirlo aquí: prohibirlo quitaría la única forma de probar un proveedor nuevo en un tramo.
  *
  * ### 🔻 Aquí SÍ se cae hacia otro motor, al revés que en el registro
  *

@@ -151,12 +151,25 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
 
             // Coste y latencia por vuelta. Sin esto, un turno lento es una caja negra: no se
             // sabe si tarda la API, la generación de salida o una skill.
+            //
+            // 📏 **`cacheado` es la cifra que decide toda la política de modelos, y faltaba.**
+            // El motor de Anthropic lleva desde siempre su «caché leído / escrito»; éste
+            // registraba sólo el total de entrada, así que **no había forma de saber si la
+            // caché de Gemini acierta** — y la caché es implícita, o sea que no da ni un aviso
+            // cuando no. Medido sobre los logs de septiembre: la entrada es el **99,4 %** del
+            // consumo (1 582 006 tokens contra 9 145 de salida en 168 llamadas), así que
+            // discutir qué modelo se usa sin saber esto es discutir el 0,6 %.
+            //
+            // Y el MODELO en la línea, que tampoco estaba: con tres tramos de potencia
+            // apuntando a modelos distintos, un coste sin modelo no se puede atribuir.
             $uso = is_array($datos['usageMetadata'] ?? null) ? $datos['usageMetadata'] : [];
             $this->logger->info(sprintf(
-                'Agent (google): vuelta %d · %.1f s · entrada %d · pensamiento %d · salida %d tokens.',
+                'Agent (google): %s · vuelta %d · %.1f s · entrada %d · cacheado %d · pensamiento %d · salida %d tokens.',
+                $modelo,
                 $vuelta + 1,
                 microtime(true) - $cronometro,
                 (int) ($uso['promptTokenCount'] ?? 0),
+                (int) ($uso['cachedContentTokenCount'] ?? 0),
                 (int) ($uso['thoughtsTokenCount'] ?? 0),
                 (int) ($uso['candidatesTokenCount'] ?? 0)
             ));
@@ -337,8 +350,10 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
 
         $uso = is_array($datos['usageMetadata'] ?? null) ? $datos['usageMetadata'] : [];
         $this->logger->info(sprintf(
-            'Agent (google): cierre forzado · entrada %d · salida %d tokens.',
+            'Agent (google): %s · cierre forzado · entrada %d · cacheado %d · salida %d tokens.',
+            $modelo,
             (int) ($uso['promptTokenCount'] ?? 0),
+            (int) ($uso['cachedContentTokenCount'] ?? 0),
             (int) ($uso['candidatesTokenCount'] ?? 0)
         ));
 

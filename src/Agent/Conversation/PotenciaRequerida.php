@@ -18,6 +18,11 @@ namespace App\Agent\Conversation;
  * proveedores: el triaje en Anthropic y la recolección de datos en Gemini Flash Lite es una
  * configuración perfectamente válida.
  *
+ * ⚠️ **Que se pueda no quiere decir que convenga.** Cruzar proveedores no cuesta caché ni la
+ * ahorra —es por modelo—, pero sí obliga a recalibrar prompts y a convivir con la paridad rota
+ * de funciones entre proveedores. Ver el aviso de {@see SelectorDePotencia} y
+ * `docs/Mensajeria.md` §13.5 bis.
+ *
  * Qué va en cada tramo:
  *
  * - **Alta** — decidir algo que no se puede deshacer barato, o que exige leer entre líneas.

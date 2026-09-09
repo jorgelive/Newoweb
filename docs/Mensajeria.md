@@ -1727,7 +1727,7 @@ respuesta del propio bot redefina el idioma del huésped es un bucle esperando a
 | `AGENT_IA_ESPERA_RAFAGA` | Segundos de silencio antes de contestar a un `free_text`. **`15`**; `0` lo desactiva. Sólo se aplica cuando el pre-router dice que el huésped sigue escribiendo (~15 % del tráfico). Se suma a `check_delayed_interval` — sección anterior |
 | `AGENT_IA_TRIAJE` | Interruptor del clasificador de entrada. Con `0`, todo va por el camino largo con el catálogo entero, como antes — §13 |
 | `AGENT_IA_TRIAJE_POTENCIA` | Tramo del clasificador: `alta` \| `media`. Nunca `baja`: corre en TODOS los mensajes — §13.5 |
-| `AGENT_IA_POTENCIA_ALTA` / `_MEDIA` / `_BAJA` | Qué `proveedor:modelo` atiende cada paso. Pueden cruzar proveedores. Vacías = el de `AGENT_IA_PROVEEDOR` — §13.5 |
+| `AGENT_IA_POTENCIA_ALTA` / `_MEDIA` / `_BAJA` | Qué `proveedor:modelo` atiende cada paso. Pueden cruzar proveedores, pero ⚠️ **eso no cuesta caché ni la ahorra**: la caché es por modelo — §13.5 bis. Vacías = el de `AGENT_IA_PROVEEDOR` — §13.5 |
 
 El autoresponder nace apagado a propósito: es el único componente que **escribe a un cliente
 real** sin que nadie lo revise. Enciéndelo cuando hayas calibrado el prompt con §11.
@@ -4980,35 +4980,76 @@ propósito: significa que se está pagando el tramo que no era.
 Con las tres claves **vacías**, todo se atiende como antes: el motor de `AGENT_IA_PROVEEDOR`
 con su modelo por defecto. El mecanismo se puede desplegar sin cambiar nada.
 
-> 🚧 **Estado real de este entorno hoy.** Las tres claves apuntan a Anthropic (`opus-5`,
-> `sonnet-5`, `haiku-4.5`), pero `ANTHROPIC_API_KEY` está **vacía**, así que los tres tramos
-> degradan al mismo motor. Comprobado con `php tools/pruebas/probar-triaje.php`:
+> 🚧 **Estado real de este entorno (09/09/2026).** Las tres claves apuntan **a Google**, no a
+> Anthropic, y resuelven directamente — ya no degradan ni dejan `warning`:
 >
 > ```
->   alta   → google/gemini-3.6-flash (alta)
->   media  → google/gemini-3.6-flash (media)
->   baja   → google/gemini-3.6-flash (baja)
+>   AGENT_IA_POTENCIA_ALTA=google:gemini-3.7-flash
+>   AGENT_IA_POTENCIA_MEDIA=google:gemini-3.7-flash
+>   AGENT_IA_POTENCIA_BAJA=google:gemini-3.5-flash-lite
 > ```
 >
-> Es decir: **el mecanismo está puesto y verificado, pero todavía no separa nada** — hasta que
-> haya clave de Anthropic, los tres tramos son el mismo modelo y el ahorro de la charla se
-> reduce al catálogo que no se manda. Cada consulta deja un `warning` diciéndolo.
+> `ANTHROPIC_API_KEY` sigue vacía. Y como alta y media son **el mismo modelo**, hoy el mecanismo
+> separa dos cosas, no tres: lo que ahorra la charla es el tramo bajo y el catálogo que no se
+> manda. La versión anterior de este bloque decía `anthropic` y `gemini-3.6-flash`: llevaba
+> tiempo describiendo una configuración que ya no existía.
 
-#### La potencia de cada skill
+### 13.5 bis Lo que cuesta de verdad, medido (09/09/2026)
 
-`SkillDefinition::$siguientePaso` dice cuánta cabeza hace falta **después** de que el triaje
-haya elegido esa skill: pedir los datos que falten y redactar con lo que devuelva. No es la
-potencia para *elegirla* —eso lo decide el triaje, que ve todo el catálogo—.
+Sobre los logs de producción de septiembre —168 llamadas, `var/log/info.log`—:
 
-Por defecto `Media`, que es exactamente lo que hace hoy el agente entero: **ninguna de las 22
-skills cambia de comportamiento** hasta que alguien la baje a mano.
+| | |
+|---|---|
+| Tokens de **entrada** | 1 582 006 |
+| Tokens de **salida** | 9 145 |
+| Media de entrada por llamada | 9 416 |
+| Conversaciones → llamadas | 56 → 168 (3 vueltas de media, hasta 7) |
 
-> ⚠️ Hoy **ninguna** está bajada, y es deliberado. El candidato obvio eran `consultar_wifi` y
-> `consultar_codigos` —lo que queda tras elegirlas es leer un literal en voz alta—, pero su
-> salida es una **credencial que el huésped va a teclear**: un dígito mal en el código de la
-> puerta deja a alguien fuera de su casa a las 23:00 en Cusco. «Bajar de tramo es reversible»
-> deja de ser cierto cuando el error ya llegó al huésped. Se bajarán cuando haya con qué medir
-> la tasa de error, no antes.
+🔑 **La entrada es el 99,4 % del consumo.** El modelo elegido mueve el precio unitario; lo que
+mueve la factura es un prefijo de ~9 400 tokens reenviado tres veces por conversación. Cualquier
+optimización que no toque la entrada está optimizando el 0,6 %.
+
+⚠️ **Y la cifra de §13.3 (2 596 tokens de prefijo) no es lo que se manda.** Lo real en producción
+es cuatro veces más, lo que además cambia una conclusión importante: **supera el mínimo de 4 096
+tokens** que exige el caché implícito de Gemini 3.x, así que la caché *puede* funcionar. Antes de
+esta medición se daba por hecho que no.
+
+#### La caché es por MODELO, no por proveedor
+
+Es la corrección que más decisiones cambia. Quedarse dentro de un proveedor **no compra ni un
+token de caché**: un salto Sonnet→Opus la tira exactamente igual que Anthropic→Google. Anthropic
+lo dice explícitamente («caches are model-scoped»), Google también («this applies to the same
+model only»), y en DeepSeek es mecánico — es un KV-cache y esos tensores son de los pesos de *ese*
+modelo.
+
+Corolario: **la restricción «que los saltos de potencia se queden en el mismo proveedor» no se
+justifica por la caché.** Sí se justifica por otras tres razones, todas escritas ya en el código:
+los prompts no son portables (`AgentEngineInterface`: «cambiar de motor obliga a recalibrarlos»),
+la paridad de funciones está rota entre proveedores (DeepSeek sin structured outputs con esquema;
+en Gemini `maxOutputTokens` incluye el pensamiento, y eso ya apagó el triaje — §13.6 bis), y no
+hay resiliencia que perder, porque un 429 **no** degrada a otro proveedor.
+
+⚠️ **Cuidado con el ejemplo de más arriba: `claude-haiku-4-5` NO cachearía nunca aquí.** Su
+mínimo son 4 096 tokens y los prefijos de los tramos cortos no llegan. No da error: devuelve
+`cache_creation_input_tokens: 0` y sigue. Opus 5 tiene el mínimo en 512 y Sonnet 5 en 1 024, así
+que el mismo prefijo cachea o no según **qué modelo** haya en el tramo.
+
+#### 📏 Cómo se comprueba si acierta
+
+`GoogleAIEngine` **no registraba los tokens cacheados**, y era el único: Anthropic lleva desde
+siempre su «caché leído / escrito» y DeepSeek su «acierto / fallo». Como el caché de Gemini es
+implícito, no avisa cuando no acierta — así que era una caja negra justo en el proveedor que
+atiende el 100 % del tráfico. Desde el 09/09/2026 la línea lleva **modelo y `cacheado`**:
+
+```
+Agent (google): gemini-3.7-flash · vuelta 2 · 1.1 s · entrada 9416 · cacheado 8900 · pensamiento 0 · salida 54 tokens.
+```
+
+`cacheado` cerca de `entrada` en las vueltas 2 y siguientes es lo que se busca. `cacheado 0` en
+todas significa que el prefijo cambia entre vueltas y se está pagando entero cada vez.
+
+⚠️ **Y el MODELO en la línea también faltaba.** Con tres tramos apuntando a modelos distintos, un
+coste sin modelo no se puede atribuir a nadie.
 
 ### 13.6 El turno seco: `turnoDirecto()`
 
