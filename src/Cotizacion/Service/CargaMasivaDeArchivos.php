@@ -202,12 +202,21 @@ final readonly class CargaMasivaDeArchivos
      *
      * Por el camino que ya existía: sus subgrupos de reserva aérea y los vuelos de cada uno. Es la
      * comprobación que convierte «los dos existen» en «los dos van juntos».
+     *
+     * ⚠️ **Aquí había un `?? $suyo->getId()`, y decía lo contrario de lo que hay que decir.** Si el
+     * vuelo que llega no tuviera id, comparaba el vuelo CONSIGO MISMO: `true` contra el primer
+     * vuelo de la persona, o sea **aprobar la pareja sin comprobarla**. Ante la duda, esta función
+     * tiene que decir que no — su único trabajo es cazar el renombrado torcido, y un fichero
+     * aprobado a ciegas sale en verde en el plan y no se descubre hasta la puerta de embarque.
+     *
+     * Y sobraba: {@see \Symfony\Component\Uid\AbstractUid::equals()} acepta `mixed` y ya
+     * devuelve `false` con un `null`. Era un guarda de más que apagaba el guarda de verdad.
      */
     private function vuelaEseVuelo(CotizacionFilepasajero $pasajero, CotizacionVuelo $vuelo): bool
     {
         foreach ($pasajero->getPertenencias() as $pertenencia) {
             foreach ($pertenencia->getGrupo()?->getVuelos() ?? [] as $suyo) {
-                if ($suyo->getId()?->equals($vuelo->getId() ?? $suyo->getId()) === true) {
+                if ($suyo->getId()?->equals($vuelo->getId()) === true) {
                     return true;
                 }
             }

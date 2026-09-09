@@ -1122,6 +1122,23 @@ vuelo existan por separado: se comprueba que **esa persona vuele ese vuelo**. Un
 —el DNI de uno con el vuelo de otro— se marca en vez de guardarse mal, que es el fallo que nadie
 descubriría hasta el gate.
 
+⚠️ **Y esa comprobación estuvo escrita al revés en su caso de duda (corregido el 09/09/2026).**
+`vuelaEseVuelo()` comparaba `$suyo->getId()?->equals($vuelo->getId() ?? $suyo->getId())`: con un
+vuelo sin id, ese `??` comparaba **el vuelo consigo mismo** y devolvía `true` contra el primero que
+tuviera la persona. O sea, ante la duda **aprobaba** — y aprobar es justo lo que esta función no
+puede hacer: su único trabajo es cazar el renombrado torcido, y un fichero aprobado a ciegas sale
+en verde en el plan y no se descubre hasta el gate.
+
+Además sobraba: `AbstractUid::equals()` acepta `mixed` y ya devuelve `false` con un `null`
+(comprobado). Era un guarda de más —de los que se escriben para callar a un analizador— que apagaba
+el guarda de verdad, la misma familia que describe `CLAUDE.md` en «una firma falsa apaga los guardas
+de alrededor». No mordía hoy porque el `$vuelo` sale de un mapa cargado de la base y siempre tiene
+id; era latente.
+
+⚠️ **Sin test.** `vuelaEseVuelo()` y `queFalta()` son privadas y el servicio necesita el ORM, así
+que esta regla de decisión no la cubre la suite. Se verificó leyendo `AbstractUid::equals()` y
+probándolo (`equals(null)` → `false`).
+
 ⚠️ **Dos pasos, y el primero no escribe.** `/archivos-zip/plan` devuelve fila por fila qué haría;
 `/archivos-zip/aplicar` guarda lo que casa. Con mil ficheros, aplicar a ciegas es pedir un desastre
 callado.
