@@ -1332,3 +1332,26 @@ cambio que las destapó. Al pasar por allí, se cambian por `paraBuscar()`.
 
 El mismo helper lo usa el buscador de la Bóveda Digital — ver `docs/Cotizaciones.md`, «El vuelo
 viajaba escondido».
+
+
+## Una tarjeta con botones dentro ya no puede ser ella misma un botón (09/09/2026)
+
+Las fichas del manifiesto se abrían **al tocar la tarjeta entera**, y estaba razonado: «en un móvil
+el blanco es la mitad de la tarjeta, y apuntar a un icono de 28 px con el pulgar es la parte
+incómoda». Válido mientras dentro sólo hubiera texto.
+
+🔥 **Dejó de serlo al meterle botones propios** —ver documentos, reprocesar—: el mismo píxel pasó a
+tener dos significados, y tocar un botón disparaba **además** la apertura de la ficha, que en un
+expediente de 133 personas recarga el expediente entero (~15 s).
+
+⚠️ **La tentación es poner `.stop` en cada botón, y es tapar el fallo.** El problema no es la
+propagación: es que una superficie con acciones dentro ya no puede ser ella misma una acción. Con
+`.stop` el fallo vuelve cada vez que alguien añada un botón y no se acuerde — y no dará error,
+sólo un salto de pantalla que parece un clic mal dado.
+
+Se cambió por **una lupa explícita** junto a la plumita: lupa abre en lectura, plumita entra a
+editar. Y el `pr-16` de la cabecera pasó a `pr-24`, que con tres botones era lo que faltaba para
+que el nombre no se metiera debajo.
+
+**La regla:** cuando una tarjeta clicable gane su primer botón interno, se le quita el clic a la
+tarjeta. No se añade un `.stop`.

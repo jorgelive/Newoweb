@@ -3234,24 +3234,33 @@ const eliminarDocumento = async (iri?: string) => {
                 </p>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <!-- La tarjeta ENTERA abre la ficha en lectura: en un móvil el blanco es la mitad de
-                     la tarjeta y apuntar a un icono de 28 px con el pulgar es la parte incómoda.
-                     La plumita entra directa a editar; los dos botones paran la propagación para no
-                     disparar además la apertura de la tarjeta. -->
+                <!-- 🔥 **La tarjeta YA NO se abre al tocarla, y es un cambio a peor que salió bien.**
+                     Antes abría entera —«en un móvil apuntar a un icono de 28 px con el pulgar es
+                     la parte incómoda»— y eso valía mientras dentro sólo hubiera texto. Al meterle
+                     botones propios (ver documentos, reprocesar) la tarjeta pasó a tener dos
+                     significados en el mismo píxel: tocar un botón disparaba **además** la
+                     apertura de la ficha, que recarga el expediente entero. Un `.stop` en cada
+                     botón lo taparía, pero el problema no es la propagación: es que una superficie
+                     con botones dentro ya no puede ser ella misma un botón.
+
+                     La lupa abre en lectura, la plumita entra directa a editar. -->
                 <div v-for="(pax, idx) in pasajerosFiltrados" :key="pax['@id'] ?? pax.id"
-                     @click="abrirEdicionPax(pax)"
-                     class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative group cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all">
+                     class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative group hover:border-indigo-300 hover:shadow-md transition-all">
                   <div class="absolute top-3 right-3 flex items-center gap-1">
-                    <button @click.stop="abrirEdicionPax(pax, true)" title="Editar"
+                    <button @click="abrirEdicionPax(pax)" title="Ver la ficha"
+                            class="text-slate-300 hover:text-teal-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
+                      <i class="fas fa-magnifying-glass text-xs"></i>
+                    </button>
+                    <button @click="abrirEdicionPax(pax, true)" title="Editar"
                             class="text-slate-300 hover:text-indigo-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
                       <i class="fas fa-pencil-alt text-xs"></i>
                     </button>
-                    <button @click.stop="eliminarPasajero(pax['@id'])" title="Eliminar"
+                    <button @click="eliminarPasajero(pax['@id'])" title="Eliminar"
                             class="text-slate-300 hover:text-red-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
                       <i class="fas fa-trash-alt text-xs"></i>
                     </button>
                   </div>
-                  <div class="flex items-start gap-3 pr-16">
+                  <div class="flex items-start gap-3 pr-24">
                     <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-black text-xs flex items-center justify-center border border-indigo-200">{{ idx + 1 }}</div>
                     <div>
                       <h3 class="text-sm font-black text-slate-800 leading-tight">{{ pax.nombre }} {{ pax.apellido }}</h3>
