@@ -672,6 +672,24 @@ misma petición había además un error). De ahí salieron el 09/09/2026 las cif
 del agente —168 llamadas, 1,58 M de tokens de entrada— que llevaban meses dándose por
 inmedibles. **Antes de decir «no hay datos», mira `info.log`.**
 
+⚠️ **Una variable de entorno NUEVA no basta con ponerla en `.env`: tumba producción.** El
+servidor arranca de `.env.local.php` —un volcado de `.env.local`— y **no lee `.env`**, así que la
+variable simplemente NO EXISTE allí. Un `%env(resolve:NUEVA)%` revienta al compilar con
+«Environment variable not found», y eso no es el fallo del servicio que la usa: es el **contenedor
+entero**, o sea todas las peticiones, en el siguiente `cache:clear --env=prod`.
+
+Pasó el 09/09/2026 con `AGENT_IA_VISION_MODELO`. La web siguió en pie **de milagro**, porque el
+contenedor cacheado era anterior al despliegue; el fallo salió al ejecutar un comando a mano.
+
+La regla, según el tipo de variable:
+
+| | Cómo se declara |
+|---|---|
+| **Opcional** (su ausencia tiene un significado válido) | `%env(default:parametro:VAR)%` con el `parameters:` al lado. Así la ausencia vale lo mismo que el vacío y no puede tumbar nada. |
+| **Obligatoria** (sin ella el servicio miente) | `%env(resolve:VAR)%` **y añadirla a `.env.local` del servidor** en el mismo despliegue, regenerando `.env.local.php`. |
+
+Y se comprueba antes de desplegar, que cuesta un segundo: `env -u VAR php bin/console lint:container`.
+
 ⚠️ **Y por lo mismo, `node` tampoco está en el PATH de php-fpm.** Desde que PHP invoca el cálculo
 compartido (`App\Dominio\EjecutorDeDominio`), el servidor necesita **`DOMINIO_NODE_BINARIO` con la
 ruta absoluta** del binario de nvm. Sin esa variable el valor por defecto es `node` a secas:
