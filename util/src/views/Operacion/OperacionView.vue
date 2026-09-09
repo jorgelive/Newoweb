@@ -1895,9 +1895,41 @@ const alternarVisibilidad = async (
     }
 };
 
+/**
+ * Las líneas de la orden abierta, EN ORDEN.
+ *
+ * ⚠️ La colección llega ordenada por `['fechaServicio', 'horaRecojo']` desde Doctrine, y eso no
+ * basta: `horaRecojo` es el recojo **pactado**, que casi nadie tiene. Un servicio de las 08:00
+ * vendidas empataba a nulo con todos los demás y el orden lo acababa decidiendo la base — en una
+ * orden del 09/09/2026 el pool de las 08:00 salía el último de tres.
+ *
+ * Es el mismo fallo que este archivo ya tenía documentado y resuelto para el cuadro de tráfico; la
+ * tarjeta de la orden nunca lo recibió. Se ordena con `horaDeOrden()`, que es la misma función y
+ * por tanto la misma regla: la hora que se PINTA es la que ordena.
+ *
+ * El `OrderBy` de Doctrine no se puede arreglar —no sabe expresar «una hora u otra»— y forzarlo
+ * daría una tercera regla distinta de las dos que ya hay.
+ */
 const serviciosDeOrdenAbierta = computed<OperacionServicio[]>(() => {
     const orden = operacionStore.ordenesServicio.find(o => o.id === ordenExpandida.value);
-    return (orden?.operacionServicios ?? []) as unknown as OperacionServicio[];
+    const servicios = [...(orden?.operacionServicios ?? [])] as unknown as OperacionServicio[];
+
+    return servicios.sort((a, b) => {
+        const fa = a.fechaServicio ?? '';
+        const fb = b.fechaServicio ?? '';
+        if (fa !== fb) return fa.localeCompare(fb);
+
+        const ha = horaDeOrden(a);
+        const hb = horaDeOrden(b);
+        if (ha && hb) return ha.localeCompare(hb);
+        if (ha) return -1;
+        if (hb) return 1;
+
+        // Sin hora ninguna manda la naturaleza del servicio, igual que en el cuadro: el pool y los
+        // traslados abren la jornada, los tickets la cierran. La tabla vive en el enum de PHP y
+        // llega serializada — aquí no hay copia.
+        return (a.prioridadOperativa ?? 9) - (b.prioridadOperativa ?? 9);
+    });
 });
 
 /**

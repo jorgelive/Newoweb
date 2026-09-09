@@ -4246,3 +4246,114 @@ comprueba las dos mitades: que en reposo no diga nada, y que un cambio de presta
 ⚠️ Y el refactor se hizo con red: `app:operacion:ver-documento` vuelca el documento tal cual, y se
 comprobó que las tres órdenes de prueba salen **byte a byte idénticas** antes y después. Un espacio
 de más en esa composición no se ve a ojo y lo lee un proveedor.
+
+---
+
+## 15. La hora de recojo huérfana (09/09/2026)
+
+Una orden emitida le decía al proveedor **«🕐 10:00 · Almuerzo en Urubamba»** sobre un componente
+marcado como **horario libre**. El 10:00 no era la hora del almuerzo: era una `horaRecojo` que se
+había quedado huérfana. Y peor que enseñarla — se copió a `horaRecojoConfirmada`, campo que
+significa «el proveedor confirmó esta hora»: la orden afirmaba que Tunupa había confirmado un
+recojo que nadie le preguntó.
+
+### Cómo quedaba huérfana
+
+`horaRecojo` es **campo del operador**, decidido y escrito en dos sitios:
+`BibliaReconciliacionService` lo excluye de lo que gobierna la cotización —«no los toca jamás»— y
+`BibliaSnapshotService` dejó de snapshotearlo. Nadie lo escribe salvo una persona, por un único
+input — que se pinta con `v-if="admiteHora(servicio)"`.
+
+Así que al marcar «horario libre» pasan **tres cosas a la vez**:
+
+```
+se vacía horaComponente
+desaparece el input        ← el único control que podría limpiar horaRecojo
+horaRecojo se queda        ← invisible en la pantalla, y mandando en el documento
+```
+
+### Lo que NO se hizo
+
+| Descartado | Por qué |
+|---|---|
+| Que `sinHorario` mande al emitir | Tapa un valor que no debería existir y lo deja para la siguiente vía que lo lea |
+| Extender el comando de limpieza | Es fregar el suelo con el grifo abierto |
+
+El arreglo va en **la transición** —`HorarioLibreLimpiaHoraRecojoListener`—, que es el instante
+exacto en que el dato se queda huérfano y el único sitio donde se sabe que lo está. El campo sigue
+siendo del operador **mientras el componente admita hora**; cuando deja de admitirla, no es que el
+operador pierda su dato: es que el dato deja de significar algo.
+
+⚠️ **Sólo la transición `false → true`.** Lo que nació sin horario no tiene nada que limpiar, y lo
+que vuelve a admitir hora tampoco. Las cuatro mitades las comprueba
+`tools/pruebas/probar-horario-libre-limpia-recojo.php`.
+
+⚠️ **No alcanza al reparador de coherencia**, que marca `sin_horario` por SQL crudo y se salta los
+listeners. Ahí está decidido no tocarlo, y con motivo: lo que repara son **alojamientos**, y la hora
+de llegada a un hotel significa algo aunque la estadía no tenga horario.
+
+### Cómo se diagnosticó
+
+La primera hipótesis —una copia de la migración `Version20260817220000`— era **falsa**, y lo dijeron
+las fechas: el servicio se había tocado tres semanas después. Lo que cerró el caso fue una
+observación de quien opera: **ese campo está bloqueado en esa línea**. Si nadie pudo teclearlo
+estando bloqueado, no lo estaba cuando se escribió — y de ahí sale la transición como causa.
+
+---
+
+## 16. Dos ejes de orden que no se mezclan (09/09/2026)
+
+El pool de las 08:00 salía **el último de tres** en la tarjeta de una orden en borrador.
+
+### La causa: dos horas y sólo se miraba una
+
+La colección viva llega ordenada por `['fechaServicio', 'horaRecojo']`, y `horaRecojo` es el recojo
+**pactado**, que casi nadie tiene. Con las tres líneas a nulo, el orden lo decidía la base:
+
+| | `horaRecojo` | `horaComponente` |
+|---|---|---|
+| Almuerzo | — | — |
+| Boleto | — | — |
+| Pool | — | **08:00** |
+
+Es el mismo fallo que el cuadro de tráfico ya tenía documentado y resuelto —«ordenar sólo por
+`horaRecojo` mandaba al fondo del día a todo el que no tuviera un recojo pactado, la mayoría»—: la
+tarjeta de la orden nunca recibió esa corrección.
+
+⚠️ **El `OrderBy` de Doctrine no se puede arreglar**: no sabe expresar «una hora u otra». Se ordena
+al pintar, con `horaDeOrden()` — la misma función que el cuadro, o sea la misma regla: **la hora que
+se pinta es la que ordena**.
+
+### Y un desempate que faltaba
+
+En la orden emitida el orden era: fecha → ¿tiene hora? → la hora → `ordenItinerario`. Y eso **empata
+de verdad**: el pool y el boleto compartían `ordenItinerario` (1030001), así que entre ellos mandaba
+lo que devolviera la base. Se veía bien sólo porque el pool tenía hora — por suerte, no por diseño.
+
+Se añadió `getPrioridadOperativa()` como quinta clave, que es el criterio que el cuadro ya usaba.
+Comprobado que **ninguna orden existente cambia de orden** con
+`app:operacion:ver-documento`.
+
+### ⚠️ Por qué NO sirve el ordenador de `dominio`
+
+`posicionDeServicio()` (`dominio/cotizacion/itinerarioVista.ts`) parece lo que hace falta y no lo
+es, por dos motivos a la vez:
+
+| | `dominio` | Lo que pide una orden |
+|---|---|---|
+| **Granularidad** | ordena **servicios** dentro de un día | las líneas son **componentes del mismo servicio** |
+| **Eje** | `ordenNarrativo` — cómo se **cuenta** un viaje | `prioridad` — en qué orden se **despacha** |
+
+Y los dos ejes del enum dicen cosas distintas a propósito:
+
+```
+narrativo:   pool 30  ·  ticket 40      (llegar, hacer, comer, dormir)
+despacho:    pool 1   ·  ticket 4       (qué abre la jornada de trabajo)
+```
+
+Usarlos indistintamente sería exactamente el fallo que ese mismo archivo documenta: **cuando dos
+números significan cosas distintas, la solución no es separarlos, es no restarlos.**
+
+La tabla de despacho vive en `ComponenteTipoEnum::prioridad()` y llega al front **serializada**
+(`prioridadOperativa`): no hay copia en TypeScript, y por eso las tres superficies ordenan igual sin
+poder divergir.

@@ -10,7 +10,7 @@ no lo pesca ningún test unitario: se pesca ejecutando el flujo real contra fila
 
 | | Qué hay | Cómo se lee el resultado |
 |---|---|---|
-| `pruebas/` (33) | **Afirman**: terminan en ✅ o ❌ y devuelven código de salida | verde/rojo |
+| `pruebas/` (35) | **Afirman**: terminan en ✅ o ❌ y devuelven código de salida | verde/rojo |
 | `inspeccion/` (36) | **Vuelcan**: imprimen el estado de algo para mirarlo | se lee, no se aprueba |
 
 Mezclarlas era la mitad del problema: con las dos juntas, «prueba» no significaba nada.
@@ -53,6 +53,21 @@ importa es que salen de la máquina:
 
 `probar-ventana-cerrada` es la única con consecuencia fuera: mide **el código que devuelve Meta**
 —entrega, 131047 «more than 24 hours», u otro—, y para eso el mensaje tiene que salir.
+
+
+## Las de Operaciones, añadidas el 09/09/2026
+
+| | Qué comprueba |
+|---|---|
+| `pruebas/probar-divergencia-linea.php` | Que una orden ya emitida se entere de que La Biblia cambió por debajo. Cambia el prestador y comprueba que salta el aviso — y que en reposo NO dice nada |
+| `pruebas/probar-horario-libre-limpia-recojo.php` | Que al marcar un componente «horario libre» se limpie la hora de recojo que queda huérfana, y que **sin** transición no se toque nada |
+| `inspeccion/comparar-linea-orden.php` | Enseña lado a lado la línea congelada de una orden y la que saldría hoy: sirve para ver **qué** difiere cuando salta el aviso |
+
+Las dos primeras escriben de verdad y hacen `rollback`. La tercera sólo lee.
+
+⚠️ Las dos pruebas nacieron **cazando un fallo cada una** en el código que venían a probar: cinco
+falsos positivos por un ítem transitorio sin orden, y un diff en bloque que atropellaba la
+asimetría de la hora confirmada. Ninguno se veía leyendo.
 
 ## De dónde salen
 

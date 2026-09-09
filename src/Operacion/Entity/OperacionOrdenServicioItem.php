@@ -505,6 +505,26 @@ class OperacionOrdenServicioItem
     public function setOrdenItinerario(?int $v): self { $this->ordenItinerario = $v; return $this; }
 
     public function getTipoComponente(): ?string { return $this->tipoComponente; }
+
+    /**
+     * En qué orden se despacha esto cuando el reloj no lo decide.
+     *
+     * Sale de `ComponenteTipoEnum::prioridad()` —el pool y los traslados abren la jornada, los
+     * tickets la cierran— y **no de una copia**: el tipo está congelado en el ítem, la tabla vive
+     * en el enum, y leerla aquí es leerla allí.
+     *
+     * ⚠️ No confundir con `ordenNarrativo()`, que es el otro eje del mismo enum y dice cosas
+     * distintas a propósito: para contar un viaje el pool va en 30 y el ticket en 40; para
+     * despacharlo, el pool va en 1 y el ticket en 4. Uno ordena un relato y el otro una jornada de
+     * trabajo. Mezclarlos es el fallo que `dominio/cotizacion/itinerarioVista.ts` documenta.
+     *
+     * Los tipos desconocidos van al final, no al principio: un dato que no se entiende no puede
+     * encabezarle el día a nadie.
+     */
+    public function getPrioridadOperativa(): int
+    {
+        return ComponenteTipoEnum::tryFrom($this->tipoComponente ?? '')?->prioridad() ?? 9;
+    }
     public function setTipoComponente(?string $v): self { $this->tipoComponente = $v; return $this; }
 
     public function getNombreSegmento(): ?string { return $this->nombreSegmento; }

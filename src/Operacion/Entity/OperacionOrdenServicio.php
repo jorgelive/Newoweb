@@ -1299,6 +1299,16 @@ class OperacionOrdenServicio
                 $i->getHora() === null || $i->getHora() === '' ? 1 : 0,
                 (string) $i->getHora(),
                 $i->getOrdenItinerario() ?? PHP_INT_MAX,
+                // ⚠️ Y si el itinerario TAMBIÉN empata, decide el tipo.
+                //
+                // Pasa de verdad: en una orden del 09/09/2026 el pool y el boleto turístico
+                // compartían `ordenItinerario` (1030001), así que entre ellos no había desempate
+                // ninguno y mandaba el orden en que la base devolviera la colección. Se veía bien
+                // sólo porque el pool tenía hora — o sea, por suerte.
+                //
+                // Es el mismo criterio que el cuadro de tráfico ya usaba para sus filas sin hora
+                // (`prioridadOperativa`), así que las dos superficies dejan de poder discrepar.
+                $i->getPrioridadOperativa(),
             ];
 
             return $clave($a) <=> $clave($b);
