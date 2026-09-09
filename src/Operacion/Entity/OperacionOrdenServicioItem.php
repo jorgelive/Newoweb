@@ -654,4 +654,225 @@ class OperacionOrdenServicioItem
             $this->getVarianteParaProveedor(),
         ]);
     }
+    /**
+     * La línea que lee el proveedor, compuesta desde los datos CONGELADOS de este ítem.
+     *
+     * ── Por qué vive aquí y no en el servicio que arma el documento ─────────
+     *
+     * Porque hay que poder componer **la misma línea desde La Biblia viva** y compararlas: si el
+     * texto que el proveedor tiene en la mano ya no coincide con el que saldría hoy, la orden hay
+     * que reemitirla. Con la composición dentro de un servicio, la comparación necesitaba
+     * duplicarla; aquí la hacen los dos lados con el mismo código.
+     *
+     * ⚠️ **Y eso convierte la vigilancia en algo que se cumple solo.** Antes
+     * `OperacionOrdenServicio::getDivergencias()` miraba una lista de campos escogidos a mano: de
+     * los doce datos que esta línea imprime, vigilaba cuatro. Un cambio de prestador, de título o
+     * de variante no decía nada — y la ausencia de aviso se lee como «está todo bien». El día que
+     * se añada un dato más a esta línea, entra vigilado sin que nadie se acuerde.
+     *
+     * La regla que sale de ahí, y que ya estaba escrita al revés en el caso del importe: **se
+     * vigila lo que el documento imprime, y sólo eso.** Lo que no se imprime —el importe— no puede
+     * generar más que alarmas falsas.
+     *
+     * @param ?string $ruta       La línea de recojo/entrega, que la compone la ORDEN según qué le
+     *                            toca enseñar a cada ítem. Se pasa de fuera y no se deriva aquí:
+     *                            al comparar contra La Biblia se le da el mismo valor a los dos
+     *                            lados, porque los puntos ya tienen su propia vigilancia.
+     * @param bool    $multigrupo Si la orden lleva varios expedientes. Con uno solo, el encabezado
+     *                            ya dijo de quién es y repetirlo por renglón es ruido.
+     */
+    public function lineaParaProveedor(
+        ?string $ruta = null,
+        bool $multigrupo = false,
+        ?string $comprador = null,
+    ): string {
+        // ⚠️ El comprador entra por parámetro y no se lee siempre de la orden, porque al comparar
+        // contra La Biblia el ítem que se compone es TRANSITORIO y no tiene orden: leyéndolo de
+        // ahí salía vacío, el prestador «difería» de la nada y la línea viva imprimía un «opera X»
+        // que la congelada no tenía. Cinco falsos positivos en la primera prueba, todos por esto.
+        $comprador ??= $this->getOrden()?->getCompradorNombre();
+        // ⚠️ La fecha YA NO va en la línea: la lleva el encabezado del día. Repetirla en cada
+        // renglón era la mitad del ancho gastado en un dato que no cambia dentro del bloque.
+        $partes = [];
+
+        $hora = trim((string) $this->getHora());
+
+        if ($hora !== '') {
+            $partes[] = $hora;
+        }
+
+        // QUÉ hay que hacer, en negrita, y la variante de tarifa detrás entre paréntesis.
+        //
+        // ⚠️ Antes aquí iba `getDescripcion()` a secas, que es SÓLO la variante: al que hacía el
+        // traslado Ollantaytambo→Cusco le llegaba una línea que decía «Auto», y al hotelero
+        // «Hotel 4 estrellas por grupo». La variante importa —distingue el auto de la van— pero
+        // como calificador de un encargo, no como el encargo.
+        $partes[] = sprintf('*%s*', $this->getTituloParaProveedor());
+
+        if (($variante = $this->getVarianteParaProveedor()) !== null) {
+            $partes[] = $variante;
+        }
+
+        // QUÉ exactamente se le contrata: la habitación, la clase de tren. Va después de la
+        // variante porque la concreta —«Alojamiento en Cusco · Hotel 4 estrellas · Habitación
+        // premium»— y es el dato con el que el hotelero busca la reserva.
+        //
+        // Se calla si repite lo que ya se dijo: cuando el componente tiene servicio de prestador,
+        // `resolverDescripcion()` lo usa como descripción, así que variante y servicio coinciden.
+        $servicio = trim((string) $this->getPrestadorServicioNombre());
+
+        if ($servicio !== '' && $servicio !== $variante && $servicio !== $this->getTituloParaProveedor()) {
+            $partes[] = $servicio;
+        }
+
+        // La hora de recojo CONFIRMADA es la que vale; si no la hay todavía, no se inventa.
+        //
+        // ⚠️ Y sólo se dice cuando DIFIERE de la hora del servicio. En los datos reales coinciden
+        // casi siempre —«04:00 · Tacama · recojo 04:00»— y repetir el mismo dato dos veces por
+        // línea enseña a no leerlo, que es exactamente lo contrario de lo que hace falta el día
+        // que sí sean distintas.
+        if (($recojo = trim((string) $this->getHoraRecojoConfirmada())) !== '' && $recojo !== $hora) {
+            $partes[] = sprintf('recojo %s', $recojo);
+        }
+
+        if (($pax = $this->getCantidadPax()) !== null && $pax > 0) {
+            $partes[] = sprintf('%d pax', $pax);
+        }
+
+        // ⚠️ **Cuánto y hasta cuándo**, que es lo que faltaba. Al hotelero le llegaba «Lun 31 ago
+        // · Habitación Superior · 2 pax» — la entrada, sin salida y sin número de noches: el
+        // encargo sin su duración, y con la parte que más se pregunta por teléfono.
+        //
+        // Las dos redacciones viven en el ÍTEM, que es quien las pinta también en la página
+        // pública: escritas aquí también, cambiarían en un sitio y no en el otro.
+        if (($cuanto = $this->getCantidadParaProveedor()) !== null && $this->getSustantivoUnidad() !== null) {
+            $partes[] = $cuanto;
+        }
+
+        if (($hasta = $this->getHastaParaProveedor()) !== null) {
+            $partes[] = $hasta;
+        }
+
+        // ── Dónde recoge y dónde deja ───────────────────────────────────────
+        //
+        // Va en su propio renglón: metida en la ristra de la línea, entre la hora y los pax, una
+        // dirección de cuarenta caracteres sepulta todo lo demás. La redacción la compone el
+        // ítem, que es también quien la pinta en la página pública — ver `rutaParaLaOrden()`.
+        $ruta = $ruta;
+
+        // El prestador va sólo cuando NO es el destinatario: si coinciden, decírselo es ruido.
+        $prestador = trim((string) $this->getPrestadorNombre());
+        $comprador = trim((string) $comprador);
+
+        if ($prestador !== '' && $prestador !== $comprador) {
+            $partes[] = sprintf('opera %s', $prestador);
+        }
+
+        // El reloj marca dónde empieza cada servicio, que es lo que se busca al repasar el día.
+        // Un icono y no un guion porque en una lista de cinco el ojo salta a la forma, no al signo.
+        // El día del itinerario, sin negrita y al final: sitúa el servicio sin competir con él.
+        //
+        // La decisión de callarlo vive en la ENTIDAD (`getDiaParaProveedor()`), no aquí: antes se
+        // comparaba sólo contra el título y el twig hacía lo mismo por su cuenta, así que un día
+        // igual al componente salía duplicado. Una regla en un sitio, tres superficies que la
+        // consumen.
+        if (($dia = $this->getDiaParaProveedor()) !== null) {
+            $partes[] = $dia;
+        }
+
+        // De quién es la línea. **Sólo con más de un grupo**: con uno, el encabezado ya lo dijo y
+        // repetirlo en cada renglón es ruido.
+        if ($multigrupo && ($grupo = trim((string) $this->getNombreGrupo())) !== '') {
+            $partes[] = $grupo;
+        }
+
+        $linea = '🕐 ' . implode('  ·  ', $partes);
+
+        // El pin va en su propio renglón, alineado bajo el reloj: es una dirección larga y metida
+        // en la ristra sepulta la hora y los pax. Ver el comentario de arriba.
+        if ($ruta !== null) {
+            $linea .= "\n📍 " . $ruta;
+        }
+
+        // ── LO QUE HAY QUE SABER PARA OPERARLO ──────────────────────────────
+        //
+        // ⚠️ **Faltaba entero.** Aquí vive «Delta LATAM LA-2695 Aterriza 22:00», que es el dato
+        // con el que un chófer decide a qué hora sale de casa. Estaba en La Biblia y en la página
+        // pública, pero NO en el mensaje — o sea que por WhatsApp o correo, que es por donde el
+        // proveedor lo recibe de verdad, se le pedía recoger en un aeropuerto sin decirle el
+        // vuelo. Una línea por nota, porque son frases y encadenadas no se leen.
+        foreach ($this->getNotasPrestador() as $nota) {
+            $linea .= "\n📝 " . $nota;
+        }
+
+        return $linea;
+    }
+
+    /**
+     * La foto de una fila de La Biblia, en el momento de emitir.
+     *
+     * ── Por qué es una fábrica y no código suelto en la emisión ─────────────
+     *
+     * Porque hace falta **dos veces**: al emitir, para congelar el documento; y al vigilar, para
+     * componer «lo que diría la línea hoy» y compararlo con lo que se mandó
+     * ({@see \App\Operacion\Entity\OperacionOrdenServicio::getDivergencias()}). Con el mapeo
+     * escrito dentro del servicio de emisión, la vigilancia tenía que repetirlo — y un mapeo
+     * repetido se desincroniza el día que alguien añada un campo en un solo lado.
+     *
+     * ⚠️ **Los PUNTOS no se resuelven aquí, a propósito.** Necesitan el expediente y la cadena de
+     * alojamiento, o sea consultas y un servicio; los pone la emisión después. Para comparar no
+     * hacen falta: los puntos ya tienen su propia vigilancia, más específica que un diff de texto.
+     */
+    public static function desdeServicio(\App\Operacion\Entity\OperacionServicio $servicio): self
+    {
+        $negociado = (float) $servicio->getCostoNegociado();
+
+        $item = new self();
+        $item
+            ->setOperacionServicioId((string) $servicio->getId())
+            // Los DOS, siempre: qué es y dónde encaja. `descripcion` sola es la
+            // variante de tarifa, y sola le decía «Auto» al que hace el traslado.
+            ->setDescripcion($servicio->getDescripcionServicio())
+            ->setNombreComponente($servicio->getNombreComponente())
+            // El MOMENTO: sin él, el componente tiene que cargar con la ruta en su
+            // nombre, y eso es lo que multiplicó las tarifas por destino.
+            ->setNombreSegmento($servicio->getNombreSegmento())
+            // El TIPO decide cuál de los dos nombres va en grande, así que se congela
+            // con ellos: leerlo del maestro al pintar haría que una orden emitida se
+            // leyera distinta el día que el catálogo cambie de opinión.
+            ->setTipoComponente($servicio->getTipoComponente())
+            // Dónde iba en el itinerario: desempata las líneas sin hora.
+            ->setOrdenItinerario($servicio->getOrdenItinerario())
+            ->setContextoServicio($servicio->getContextoServicio())
+            ->setFechaServicio($servicio->getFechaServicio())
+            // La hora que se pidió: la pactada si la hay, si no la vendida.
+            ->setHora($servicio->getHoraRecojo() ?? $servicio->getHoraComponente())
+            // Nula si el proveedor todavía no la ha confirmado. Es lo que distingue
+            // «confirmó» de «cambió» cuando aparezca. Ver el docblock del ítem.
+            ->setHoraRecojoConfirmada($servicio->getHoraRecojo())
+            ->setCantidadPax($servicio->getCantidadPax())
+            ->setCantidad((string) $servicio->getCantidadComponente())
+            // Y en qué se cuenta: «4 noches» le dice al hotelero lo que «4» no le dice.
+            ->setSustantivoUnidad($servicio->getSustantivoUnidad())
+            // Y cuándo acaba: «4 noches» sin salida sigue dejando al hotelero a medias.
+            ->setFechaFin($servicio->getFechaFinServicio())
+            // De quién es la línea. Se pinta sólo si la orden lleva varios grupos.
+            ->setNombreGrupo($servicio->getFile()?->getNombreGrupo())
+            // Mientras nadie negocie, lo que se pide es lo cotizado: un cero se leería
+            // como «pactado en cero», que es lo contrario de «todavía sin pactar».
+            ->setImporte($negociado > 0.0 ? $servicio->getCostoNegociado() : $servicio->getCostoCotizado())
+            ->setMoneda($negociado > 0.0
+                ? ($servicio->getMonedaNegociada() ?? $servicio->getMonedaCotizada())
+                : $servicio->getMonedaCotizada())
+            // Por NOMBRE y el EFECTIVO: el documento no depende de que la ficha siga
+            // existiendo, y lo que se pidió es lo que operaciones decidió.
+            ->setPrestadorNombre($servicio->getPrestadorEfectivoNombre())
+            ->setPrestadorServicioNombre($servicio->getPrestadorServicioEfectivoNombre())
+            // Lo que hay que contarle: su redacción si el operador la escribió, si no los
+            // detalles que la cotización marcó para él. Congelado, como todo lo demás.
+            ->setNotasPrestador($servicio->getNotasPrestadorEfectivas());
+
+        return $item;
+    }
+
 }

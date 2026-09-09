@@ -4168,3 +4168,81 @@ la marca a dos sale más barato que ponérsela a quince**, y entre marcarla y qu
 lea sigue estando la emisión de la orden, que la ve una persona.
 
 A partir de ahí es una decisión por componente, en el editor de la cotización.
+
+---
+
+## 14. La vigilancia mira lo que el documento imprime (09/09/2026)
+
+### El caso
+
+El 08/09/2026 una sincronización con La Biblia cambió el prestador de una orden **ya emitida**, de
+«Tunupa Cusco» a «Tunupa Valle». El proveedor tenía en la mano un papel que nombraba a otro
+operador, y **nada avisó**. Peor: el operador miró la orden, no vio aviso, y la ausencia de aviso se
+lee como que está todo bien.
+
+### Por qué se escapaba
+
+`getDivergencias()` comparaba una **lista de campos escogidos a mano**. La línea imprime doce datos
+y vigilaba cuatro:
+
+| Se imprimía | ¿Se vigilaba? |
+|---|---|
+| fecha, pax, hora confirmada, puntos, notas | ✅ |
+| título, variante, servicio del prestador, **quién opera**, día, grupo, duración | ❌ |
+
+No era descuido: **el criterio nunca se escribió en positivo**. Estaba formulado, pero sólo para
+excluir —el importe no se vigila «porque este documento NO LLEVA IMPORTES»—, y esa misma frase da la
+regla completa al darle la vuelta.
+
+### La regla
+
+**Se vigila lo que el documento imprime, y sólo eso.** Si el papel que el proveedor tiene en la mano
+ya no dice lo que diría hoy, hay que reemitir. Si dice lo mismo, no hay nada que hacer.
+
+Y se cumple **por construcción**, no por disciplina: se compone la línea con los datos congelados y
+otra vez desde La Biblia viva, y se comparan como texto. El día que se añada un dato a la línea,
+entra vigilado sin que nadie se acuerde.
+
+### Cómo está montado
+
+```
+OperacionOrdenServicioItem::desdeServicio()     el mapeo servicio → ítem, UNA vez
+        │                                        (lo usa la emisión y lo usa la comparación)
+        ▼
+OperacionOrdenServicioItem::lineaParaProveedor() el formato, UNA vez
+        │                                        (lo usa el documento y lo usa la comparación)
+        ▼
+OperacionOrdenServicio::getDivergencias()        compone los dos lados y los compara
+```
+
+`OperacionOrdenDocumento::linea()` quedó delegando: la composición se movió al ítem justamente para
+que la comparación no tuviera que repetirla.
+
+### Tres cosas que NO participan en la comparación, y por qué
+
+| | Motivo |
+|---|---|
+| **La ruta** | Los puntos tienen vigilancia propia y más específica. Se pasa `null` a los dos lados |
+| **La hora** | Asimetría deliberada: que aparezca es el proveedor **confirmando** (cambio menor); que cambie es modificar el encargo. Un diff en bloque no distingue las dos |
+| **Las notas** | La misma asimetría |
+
+Se igualan copiándolas del congelado al transitorio, no excluyéndolas del formato: así el formato
+sigue siendo **uno solo**.
+
+### Dos trampas que costaron una prueba cada una
+
+⚠️ **El ítem transitorio no tiene orden.** La línea sólo imprime «opera X» cuando el prestador
+difiere del comprador, y el comprador se leía de `$item->getOrden()`. Sin orden salía vacío, todo
+prestador «difería», y la línea viva imprimía un «opera X» que la congelada nunca tuvo: **cinco
+falsos positivos** en la primera ejecución. Por eso el comprador entra por parámetro.
+
+⚠️ **El diff en bloque atropellaba la asimetría de la hora.** Lo cazó un test que ya existía
+—`laHoraQueAparecePorPrimeraVezEsUnCambioMenor`—: la primera versión trataba una confirmación normal
+del proveedor como divergencia, o sea obligaba a reemitir cada orden que sale bien.
+
+Las dos se descubrieron **ejecutando**, no leyendo. `tools/pruebas/probar-divergencia-linea.php`
+comprueba las dos mitades: que en reposo no diga nada, y que un cambio de prestador salte.
+
+⚠️ Y el refactor se hizo con red: `app:operacion:ver-documento` vuelca el documento tal cual, y se
+comprobó que las tres órdenes de prueba salen **byte a byte idénticas** antes y después. Un espacio
+de más en esa composición no se ve a ojo y lo lee un proveedor.

@@ -899,9 +899,68 @@ class OperacionOrdenServicio
             if ($notasItem !== [] && $notasItem !== $servicio->getNotasPrestadorEfectivas()) {
                 $avisos[] = sprintf('«%s»: cambió lo que se le pide al proveedor', $que);
             }
+
+            // ── LA RED QUE CUBRE TODO LO DEMÁS ──────────────────────────────
+            //
+            // Se compone la línea con los datos CONGELADOS y otra vez con los de La Biblia VIVA, y
+            // se comparan como texto. Si el papel que el proveedor tiene en la mano ya no dice lo
+            // que diría hoy, la orden hay que reemitirla — y da igual cuál de los doce datos haya
+            // cambiado.
+            //
+            // ⚠️ **Esto sustituye a ir enumerando campos, que es lo que fallaba.** De los doce
+            // datos que imprime la línea, arriba se vigilaban cuatro: un cambio de prestador, de
+            // título o de variante no decía nada. El 08/09/2026 una sincronización con La Biblia
+            // cambió el prestador de «Tunupa Cusco» a «Tunupa Valle» en una orden ya emitida y
+            // **no avisó** — y la ausencia de aviso se lee como que está todo bien.
+            //
+            // La regla, que ya estaba escrita al revés unas líneas más arriba para el importe:
+            // **se vigila lo que el documento imprime, y sólo eso.** El día que se añada un dato
+            // a la línea, entra vigilado sin que nadie tenga que acordarse.
+            //
+            // Los dos lados se componen SIN ruta y sin marca de multigrupo: los puntos ya tienen
+            // su vigilancia propia justo arriba —más específica que un diff— y el multigrupo es de
+            // la orden, no del servicio, así que no puede divergir.
+            if ($item->lineaParaProveedor(null, false, $this->compradorNombre) !== $this->desdeServicioVivo($servicio, $item)) {
+                $avisos[] = sprintf('«%s»: lo que se le mandó ya no dice lo mismo que La Biblia', $que);
+            }
         }
 
         return $avisos;
+    }
+
+    /**
+     * La línea que saldría HOY para esa fila de La Biblia.
+     *
+     * Se arma un ítem transitorio —sin persistir— con la misma fábrica que usa la emisión, y se le
+     * pide su línea. Así la comparación no repite ni el mapeo ni el formato: si mañana cambia
+     * cualquiera de los dos, cambian a la vez en los dos lados.
+     */
+    private function desdeServicioVivo(OperacionServicio $servicio, OperacionOrdenServicioItem $congelado): string
+    {
+        $vivo = OperacionOrdenServicioItem::desdeServicio($servicio);
+
+        // ── Lo que NO participa en la comparación, y por qué ────────────────
+        //
+        // La hora y las notas tienen arriba una vigilancia **más fina que un diff de texto**, y es
+        // una asimetría deliberada: que aparezcan por primera vez es el proveedor completando el
+        // documento —un cambio menor, que no obliga a reemitir— y que CAMBIEN es modificarle el
+        // encargo. Un diff en bloque no distingue las dos cosas y trataría una confirmación normal
+        // como divergencia, que es justo lo que este módulo evita.
+        //
+        // Lo cazó un test que ya existía (`laHoraQueAparecePorPrimeraVezEsUnCambioMenor`): la
+        // primera versión de esta comparación lo rompía.
+        //
+        // Se copian del congelado en vez de excluirse del formato porque así el formato sigue
+        // siendo UNO: la línea se compone igual en los dos lados y lo único que se iguala son los
+        // campos que ya mira otro.
+        $vivo
+            ->setHora($congelado->getHora())
+            ->setHoraRecojoConfirmada($congelado->getHoraRecojoConfirmada())
+            ->setNotasPrestador($congelado->getNotasPrestador());
+
+        // El comprador se le pasa: el ítem transitorio no tiene orden de la que leerlo, y sin él
+        // la línea viva imprimiría un «opera X» que la congelada nunca tuvo.
+        return $vivo->lineaParaProveedor(null, false, $this->compradorNombre);
     }
 
     /**

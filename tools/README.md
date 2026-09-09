@@ -11,7 +11,7 @@ no lo pesca ningún test unitario: se pesca ejecutando el flujo real contra fila
 | | Qué hay | Cómo se lee el resultado |
 |---|---|---|
 | `pruebas/` (33) | **Afirman**: terminan en ✅ o ❌ y devuelven código de salida | verde/rojo |
-| `inspeccion/` (35) | **Vuelcan**: imprimen el estado de algo para mirarlo | se lee, no se aprueba |
+| `inspeccion/` (36) | **Vuelcan**: imprimen el estado de algo para mirarlo | se lee, no se aprueba |
 
 Mezclarlas era la mitad del problema: con las dos juntas, «prueba» no significaba nada.
 
@@ -46,6 +46,7 @@ importa es que salen de la máquina:
 |---|---|---|
 | `probar-ventana-cerrada.php` | **Manda un WhatsApp de verdad** por la API de Meta, con nuestras credenciales, para ver si Direct Send sigue activo | recibe el número como argumento; el mensaje LLEGA a ese teléfono |
 | `probar-tuya.php` | Pide a la API de Tuya el estado de UN dispositivo, que ya sabes cuál es | sólo lectura; las credenciales van por variables de entorno, no por argumento |
+| `comparar-linea-orden.php` | Enseña lado a lado la línea CONGELADA de una orden y la que saldría hoy desde La Biblia | se lee; sirve para ver **qué** difiere cuando salta el aviso |
 | `ver-registro-domotica.php` | Escribe una suscripción y tres lecturas de verdad, enseña la bitácora y lo que lee el huésped, y hace **rollback**. Contrasta un aparato con contómetro contra uno que sólo conmuta | no guarda nada; sirve para ver la forma real sin esperar a que alguien encienda una estufa |
 | `listar-tuya.php` | Lista **todos** los del proyecto y deriva qué sabe hacer cada uno (`add_ele` → mide, `switch_1` → conmuta). Con `--energia` prueba además el endpoint horario que sostiene la facturación | ídem. Es el paso previo al alta: las capacidades no se teclean, se leen del aparato |
 | `probar-skills-por-moneda.php` | Maqueta de lo que las skills le enseñan al modelo | no sale a la red, pero lee reservas reales de producción |

@@ -52,52 +52,7 @@ final readonly class OperacionOrdenEmision
 
         if ($orden->getItems()->count() === 0) {
             foreach ($orden->getOperacionServicios() as $servicio) {
-                $negociado = (float) $servicio->getCostoNegociado();
-
-                $item = new OperacionOrdenServicioItem();
-                $item
-                    ->setOperacionServicioId((string) $servicio->getId())
-                    // Los DOS, siempre: qué es y dónde encaja. `descripcion` sola es la
-                    // variante de tarifa, y sola le decía «Auto» al que hace el traslado.
-                    ->setDescripcion($servicio->getDescripcionServicio())
-                    ->setNombreComponente($servicio->getNombreComponente())
-                    // El MOMENTO: sin él, el componente tiene que cargar con la ruta en su
-                    // nombre, y eso es lo que multiplicó las tarifas por destino.
-                    ->setNombreSegmento($servicio->getNombreSegmento())
-                    // El TIPO decide cuál de los dos nombres va en grande, así que se congela
-                    // con ellos: leerlo del maestro al pintar haría que una orden emitida se
-                    // leyera distinta el día que el catálogo cambie de opinión.
-                    ->setTipoComponente($servicio->getTipoComponente())
-                    // Dónde iba en el itinerario: desempata las líneas sin hora.
-                    ->setOrdenItinerario($servicio->getOrdenItinerario())
-                    ->setContextoServicio($servicio->getContextoServicio())
-                    ->setFechaServicio($servicio->getFechaServicio())
-                    // La hora que se pidió: la pactada si la hay, si no la vendida.
-                    ->setHora($servicio->getHoraRecojo() ?? $servicio->getHoraComponente())
-                    // Nula si el proveedor todavía no la ha confirmado. Es lo que distingue
-                    // «confirmó» de «cambió» cuando aparezca. Ver el docblock del ítem.
-                    ->setHoraRecojoConfirmada($servicio->getHoraRecojo())
-                    ->setCantidadPax($servicio->getCantidadPax())
-                    ->setCantidad((string) $servicio->getCantidadComponente())
-                    // Y en qué se cuenta: «4 noches» le dice al hotelero lo que «4» no le dice.
-                    ->setSustantivoUnidad($servicio->getSustantivoUnidad())
-                    // Y cuándo acaba: «4 noches» sin salida sigue dejando al hotelero a medias.
-                    ->setFechaFin($servicio->getFechaFinServicio())
-                    // De quién es la línea. Se pinta sólo si la orden lleva varios grupos.
-                    ->setNombreGrupo($servicio->getFile()?->getNombreGrupo())
-                    // Mientras nadie negocie, lo que se pide es lo cotizado: un cero se leería
-                    // como «pactado en cero», que es lo contrario de «todavía sin pactar».
-                    ->setImporte($negociado > 0.0 ? $servicio->getCostoNegociado() : $servicio->getCostoCotizado())
-                    ->setMoneda($negociado > 0.0
-                        ? ($servicio->getMonedaNegociada() ?? $servicio->getMonedaCotizada())
-                        : $servicio->getMonedaCotizada())
-                    // Por NOMBRE y el EFECTIVO: el documento no depende de que la ficha siga
-                    // existiendo, y lo que se pidió es lo que operaciones decidió.
-                    ->setPrestadorNombre($servicio->getPrestadorEfectivoNombre())
-                    ->setPrestadorServicioNombre($servicio->getPrestadorServicioEfectivoNombre())
-                    // Lo que hay que contarle: su redacción si el operador la escribió, si no los
-                    // detalles que la cotización marcó para él. Congelado, como todo lo demás.
-                    ->setNotasPrestador($servicio->getNotasPrestadorEfectivas());
+                $item = OperacionOrdenServicioItem::desdeServicio($servicio);
 
                 // ── Dónde recoge y dónde deja, CONGELADOS ────────────────────
                 //

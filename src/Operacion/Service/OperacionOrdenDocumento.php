@@ -308,123 +308,25 @@ final readonly class OperacionOrdenDocumento
      * que necesita para presentarse —hora de recojo y cuántos son—. La descripción va después
      * de la fecha a propósito: el proveedor busca por día, no por nombre de servicio.
      */
-    /** @param array<string, string> $rutas id de ítem → línea de recojo, si le toca enseñarla */
+    /**
+     * La línea de un ítem.
+     *
+     * ⚠️ La composición **vive en el ÍTEM** (`lineaParaProveedor()`), no aquí. Se movió el
+     * 09/09/2026 para que `OperacionOrdenServicio::getDivergencias()` pueda componer la misma
+     * línea desde La Biblia viva y compararla con la congelada: con el texto armado dentro de este
+     * servicio, comparar obligaba a escribir la composición dos veces.
+     *
+     * Aquí sólo se le pasa lo que sabe la ORDEN y el ítem no: qué ruta le toca enseñar y si hay
+     * varios expedientes.
+     *
+     * @param array<string, string> $rutas id de ítem → línea de recojo, si le toca enseñarla
+     */
     private function linea(OperacionOrdenServicioItem $item, array $rutas): string
     {
-        // ⚠️ La fecha YA NO va en la línea: la lleva el encabezado del día. Repetirla en cada
-        // renglón era la mitad del ancho gastado en un dato que no cambia dentro del bloque.
-        $partes = [];
-
-        $hora = trim((string) $item->getHora());
-
-        if ($hora !== '') {
-            $partes[] = $hora;
-        }
-
-        // QUÉ hay que hacer, en negrita, y la variante de tarifa detrás entre paréntesis.
-        //
-        // ⚠️ Antes aquí iba `getDescripcion()` a secas, que es SÓLO la variante: al que hacía el
-        // traslado Ollantaytambo→Cusco le llegaba una línea que decía «Auto», y al hotelero
-        // «Hotel 4 estrellas por grupo». La variante importa —distingue el auto de la van— pero
-        // como calificador de un encargo, no como el encargo.
-        $partes[] = sprintf('*%s*', $item->getTituloParaProveedor());
-
-        if (($variante = $item->getVarianteParaProveedor()) !== null) {
-            $partes[] = $variante;
-        }
-
-        // QUÉ exactamente se le contrata: la habitación, la clase de tren. Va después de la
-        // variante porque la concreta —«Alojamiento en Cusco · Hotel 4 estrellas · Habitación
-        // premium»— y es el dato con el que el hotelero busca la reserva.
-        //
-        // Se calla si repite lo que ya se dijo: cuando el componente tiene servicio de prestador,
-        // `resolverDescripcion()` lo usa como descripción, así que variante y servicio coinciden.
-        $servicio = trim((string) $item->getPrestadorServicioNombre());
-
-        if ($servicio !== '' && $servicio !== $variante && $servicio !== $item->getTituloParaProveedor()) {
-            $partes[] = $servicio;
-        }
-
-        // La hora de recojo CONFIRMADA es la que vale; si no la hay todavía, no se inventa.
-        //
-        // ⚠️ Y sólo se dice cuando DIFIERE de la hora del servicio. En los datos reales coinciden
-        // casi siempre —«04:00 · Tacama · recojo 04:00»— y repetir el mismo dato dos veces por
-        // línea enseña a no leerlo, que es exactamente lo contrario de lo que hace falta el día
-        // que sí sean distintas.
-        if (($recojo = trim((string) $item->getHoraRecojoConfirmada())) !== '' && $recojo !== $hora) {
-            $partes[] = sprintf('recojo %s', $recojo);
-        }
-
-        if (($pax = $item->getCantidadPax()) !== null && $pax > 0) {
-            $partes[] = sprintf('%d pax', $pax);
-        }
-
-        // ⚠️ **Cuánto y hasta cuándo**, que es lo que faltaba. Al hotelero le llegaba «Lun 31 ago
-        // · Habitación Superior · 2 pax» — la entrada, sin salida y sin número de noches: el
-        // encargo sin su duración, y con la parte que más se pregunta por teléfono.
-        //
-        // Las dos redacciones viven en el ÍTEM, que es quien las pinta también en la página
-        // pública: escritas aquí también, cambiarían en un sitio y no en el otro.
-        if (($cuanto = $item->getCantidadParaProveedor()) !== null && $item->getSustantivoUnidad() !== null) {
-            $partes[] = $cuanto;
-        }
-
-        if (($hasta = $item->getHastaParaProveedor()) !== null) {
-            $partes[] = $hasta;
-        }
-
-        // ── Dónde recoge y dónde deja ───────────────────────────────────────
-        //
-        // Va en su propio renglón: metida en la ristra de la línea, entre la hora y los pax, una
-        // dirección de cuarenta caracteres sepulta todo lo demás. La redacción la compone el
-        // ítem, que es también quien la pinta en la página pública — ver `rutaParaLaOrden()`.
-        $ruta = $rutas[$item->getId()?->toRfc4122() ?? ''] ?? null;
-
-        // El prestador va sólo cuando NO es el destinatario: si coinciden, decírselo es ruido.
-        $prestador = trim((string) $item->getPrestadorNombre());
-        $comprador = trim((string) $item->getOrden()?->getCompradorNombre());
-
-        if ($prestador !== '' && $prestador !== $comprador) {
-            $partes[] = sprintf('opera %s', $prestador);
-        }
-
-        // El reloj marca dónde empieza cada servicio, que es lo que se busca al repasar el día.
-        // Un icono y no un guion porque en una lista de cinco el ojo salta a la forma, no al signo.
-        // El día del itinerario, sin negrita y al final: sitúa el servicio sin competir con él.
-        //
-        // La decisión de callarlo vive en la ENTIDAD (`getDiaParaProveedor()`), no aquí: antes se
-        // comparaba sólo contra el título y el twig hacía lo mismo por su cuenta, así que un día
-        // igual al componente salía duplicado. Una regla en un sitio, tres superficies que la
-        // consumen.
-        if (($dia = $item->getDiaParaProveedor()) !== null) {
-            $partes[] = $dia;
-        }
-
-        // De quién es la línea. **Sólo con más de un grupo**: con uno, el encabezado ya lo dijo y
-        // repetirlo en cada renglón es ruido.
-        if ($item->getOrden()?->isMultigrupo() === true && ($grupo = trim((string) $item->getNombreGrupo())) !== '') {
-            $partes[] = $grupo;
-        }
-
-        $linea = '🕐 ' . implode('  ·  ', $partes);
-
-        // El pin va en su propio renglón, alineado bajo el reloj: es una dirección larga y metida
-        // en la ristra sepulta la hora y los pax. Ver el comentario de arriba.
-        if ($ruta !== null) {
-            $linea .= "\n📍 " . $ruta;
-        }
-
-        // ── LO QUE HAY QUE SABER PARA OPERARLO ──────────────────────────────
-        //
-        // ⚠️ **Faltaba entero.** Aquí vive «Delta LATAM LA-2695 Aterriza 22:00», que es el dato
-        // con el que un chófer decide a qué hora sale de casa. Estaba en La Biblia y en la página
-        // pública, pero NO en el mensaje — o sea que por WhatsApp o correo, que es por donde el
-        // proveedor lo recibe de verdad, se le pedía recoger en un aeropuerto sin decirle el
-        // vuelo. Una línea por nota, porque son frases y encadenadas no se leen.
-        foreach ($item->getNotasPrestador() as $nota) {
-            $linea .= "\n📝 " . $nota;
-        }
-
-        return $linea;
+        return $item->lineaParaProveedor(
+            $rutas[$item->getId()?->toRfc4122() ?? ''] ?? null,
+            $item->getOrden()?->isMultigrupo() === true,
+        );
     }
+
 }
