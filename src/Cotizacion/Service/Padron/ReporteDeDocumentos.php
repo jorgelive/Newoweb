@@ -52,6 +52,16 @@ final readonly class ReporteDeDocumentos
     public const COL_FALTA = 'Qué falta';
     public const COL_ARCHIVOS = 'Archivos';
 
+    /**
+     * Lo que NO cuadra con el escaneo, para quien tenga que arreglarlo.
+     *
+     * ⚠️ Va **la última** a propósito. Las columnas de la izquierda contestan «¿me falta un
+     * documento?», que es a lo que se abre esta hoja; ésta contesta «¿lo que tengo está bien?»,
+     * que es otra pregunta y llegó después. Metida en medio, empujaría a la derecha las tres
+     * columnas de estado que la gente ya sabe dónde están.
+     */
+    private const COL_OBSERVA = 'Observaciones';
+
     /** Las columnas, en el orden en que se leen. */
     private const CABECERAS = [
         'Grupo',
@@ -66,6 +76,7 @@ final readonly class ReporteDeDocumentos
         'Pasaporte (escaneo)',
         self::COL_ARCHIVOS,
         self::COL_FALTA,
+        self::COL_OBSERVA,
     ];
 
     /** Qué escaneo mira cada una de las tres columnas de estado, en su orden. */
@@ -74,6 +85,42 @@ final readonly class ReporteDeDocumentos
         'DNI reverso' => ArchivoTipoEnum::DNI_REVERSO,
         'Pasaporte (escaneo)' => ArchivoTipoEnum::PASAPORTE,
     ];
+
+    /**
+     * Lo que el control encontró en los documentos de esa persona, en una frase por documento.
+     *
+     * ⚠️ **Se compone con el CAMPO y los dos valores** —«DNI vencimiento: doc 2036-07-31 ≠ guardado
+     * 2026-07-19»— y no con un «tiene observaciones». Esta hoja se manda por correo a quien tiene
+     * que corregir, y ahí no hay botón que pulsar para ver el detalle: o va escrito, o hay que
+     * volver a la aplicación, que es justo lo que la hoja evita.
+     *
+     * ⚠️ Las notas informativas —el giro— **no entran**: son para la pantalla, donde hay un botón
+     * al lado. En una hoja de correcciones sólo serían ruido.
+     *
+     * @return list<string>
+     */
+    private function observacionesDe(CotizacionFilepasajero $pasajero): array
+    {
+        $frases = [];
+
+        foreach ($pasajero->getIdentificaciones() as $identificacion) {
+            $tipo = $identificacion->getTipo();
+            $etiqueta = $tipo !== null ? $tipo->value : 'DOC';
+
+            foreach ($identificacion->getDiscrepancias() as $d) {
+                $frases[] = sprintf('%s %s: doc %s ≠ guardado %s', $etiqueta, $d['campo'], $d['documento'], $d['manifiesto']);
+            }
+
+            foreach ($identificacion->getNotasValidacion() as $nota) {
+                // El giro se resuelve con un botón en la pantalla; aquí no aporta nada.
+                if (!str_contains($nota, 'girado')) {
+                    $frases[] = sprintf('%s: %s', $etiqueta, $nota);
+                }
+            }
+        }
+
+        return $frases;
+    }
 
     /**
      * @param list<string>|null $soloEstos ids de pasajero; `null` es el expediente entero
@@ -88,10 +135,19 @@ final readonly class ReporteDeDocumentos
 
         // Título: el expediente y CUÁNDO se sacó. Una hoja de faltantes sin fecha se reenvía
         // semanas después como si siguiera vigente.
+        // ⚠️ **Y si es un SUBCONJUNTO, lo dice en el título.** La hoja respeta los filtros de la
+        // pantalla, así que puede llevar 30 de 133 personas — y una vez descargada no hay forma de
+        // saberlo: se reenvía por correo como si fuera el manifiesto entero, y quien la reciba
+        // concluirá que a los otros 103 no les falta nada.
         $hoja->setCellValue([1, 1], sprintf(
-            'Documentos de identidad — %s — generado el %s',
+            'Documentos de identidad — %s — generado el %s%s',
             (string) $file->getNombreGrupo(),
             (new \DateTimeImmutable())->format('d/m/Y H:i'),
+            $soloEstos === null ? '' : sprintf(
+                ' — ⚠ SELECCIÓN FILTRADA: %d de %d personas',
+                count($soloEstos),
+                count($file->getFilepasajeros()),
+            ),
         ));
         $hoja->mergeCells([1, 1, $ultima, 1]);
         $hoja->getStyle([1, 1])->getFont()->setBold(true)->setSize(12);
@@ -113,6 +169,7 @@ final readonly class ReporteDeDocumentos
         $parciales = 0;
         $vacios = 0;
         $archivos = 0;
+        $observados = 0;
 
         foreach ($this->ordenados($file, $permitidos) as $pasajero) {
 
@@ -160,18 +217,26 @@ final readonly class ReporteDeDocumentos
 
             // El total al lado de las tres celdas: con 3 se sabe que está completo sin sumarlas,
             // y con 4 se sabe que sobra algo sin buscar cuál.
-            $hoja->setCellValueExplicit([$ultima - 1, $fila], (string) $total, DataType::TYPE_NUMERIC);
-            $hoja->getStyle([$ultima - 1, $fila])->getAlignment()
+            $hoja->setCellValueExplicit([$ultima - 2, $fila], (string) $total, DataType::TYPE_NUMERIC);
+            $hoja->getStyle([$ultima - 2, $fila])->getAlignment()
                 ->setHorizontal(Alignment::HORIZONTAL_CENTER);
             if ($total > count(self::ESCANEOS)) {
-                $hoja->getStyle([$ultima - 1, $fila])->getFont()->setBold(true);
-                $hoja->getStyle([$ultima - 1, $fila])->getFill()
+                $hoja->getStyle([$ultima - 2, $fila])->getFont()->setBold(true);
+                $hoja->getStyle([$ultima - 2, $fila])->getFill()
                     ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::AMBAR);
             }
 
-            $this->texto($hoja, $ultima, $fila, $faltan === [] ? 'Completo' : implode(', ', $faltan));
+            $this->texto($hoja, $ultima - 1, $fila, $faltan === [] ? 'Completo' : implode(', ', $faltan));
             if ($faltan !== []) {
-                $hoja->getStyle([$ultima, $fila])->getFont()->setBold(true);
+                $hoja->getStyle([$ultima - 1, $fila])->getFont()->setBold(true);
+            }
+
+            $observaciones = $this->observacionesDe($pasajero);
+            $this->texto($hoja, $ultima, $fila, implode(' · ', $observaciones));
+            if ($observaciones !== []) {
+                ++$observados;
+                $hoja->getStyle([$ultima, $fila])->getFill()
+                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::AMBAR);
             }
 
             $archivos += $total;
@@ -189,12 +254,13 @@ final readonly class ReporteDeDocumentos
 
         // El resumen ABAJO y no arriba: arriba desplazaría las filas y rompería el autofiltro.
         $hoja->setCellValue([1, $fila + 1], sprintf(
-            '%s · %s · %d a medias · %d sin nada · %s en total',
+            '%s · %s · %d a medias · %d sin nada · %s en total%s',
             $this->plural($personas, 'persona', 'personas'),
             $this->plural($completos, 'completa', 'completas'),
             $parciales,
             $vacios,
             $this->plural($archivos, 'archivo', 'archivos'),
+            $observados === 0 ? '' : sprintf(' · %d con observaciones', $observados),
         ));
         $hoja->mergeCells([1, $fila + 1, $ultima, $fila + 1]);
         $hoja->getStyle([1, $fila + 1])->applyFromArray([

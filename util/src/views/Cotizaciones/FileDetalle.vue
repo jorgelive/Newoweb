@@ -1281,7 +1281,9 @@ const descargarDocumentos = async () => {
     const url = URL.createObjectURL(data as Blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `documentos-${ids.length}.xlsx`;
+    // ⚠️ El NOMBRE también lo dice. El título dentro de la hoja avisa de que es una selección,
+    // pero un fichero adjunto se reenvía por su nombre y muchas veces sin abrirlo.
+    a.download = `documentos-filtrado-${ids.length}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   } catch {

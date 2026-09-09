@@ -1955,6 +1955,35 @@ pasada.
 La caché de miniaturas se regenera sola — `CotizacionFilearchivoCacheListener` ya escucha
 `preUpdate`, así que basta con que el `flush()` toque la entidad.
 
+#### La hoja de documentos: las observaciones dentro, y decir que va filtrada (09/09/2026)
+
+**Los filtros ya se respetaban** —el front manda la lista de ids en vez de repetir los filtros en el
+servidor, que serían dos implementaciones de la misma pregunta— y el botón ya mostraba el recuento.
+Lo que faltaba era lo de después.
+
+⚠️ **Una vez descargada, la hoja no decía que fuera un subconjunto.** Puede llevar 30 de 133
+personas y se reenvía por correo como si fuera el manifiesto entero — quien la reciba concluye que
+a los otros 103 no les falta nada. Ahora el título lo dice (`⚠ SELECCIÓN FILTRADA: 30 de 133`) **y
+el nombre del fichero también** (`documentos-filtrado-30.xlsx`): un adjunto se reenvía por su
+nombre, muchas veces sin abrirlo.
+
+##### La columna `Observaciones`
+
+Va **la última**, a propósito. Las columnas de la izquierda contestan «¿me falta un documento?», que
+es a lo que se abre esta hoja; ésta contesta «¿lo que tengo está bien?», que es otra pregunta y
+llegó después. Metida en medio empujaría a la derecha las tres columnas de estado que la gente ya
+sabe dónde están.
+
+⚠️ **Se compone con el campo y los DOS valores** —«DNI vencimiento: doc 2036-07-31 ≠ guardado
+2026-07-19»—, no con un «tiene observaciones». Esta hoja se manda por correo a quien tiene que
+corregir, y ahí no hay botón que pulsar para ver el detalle: o va escrito, o hay que volver a la
+aplicación, que es justo lo que la hoja evita.
+
+⚠️ **Las notas informativas —el giro— NO entran.** Son para la pantalla, donde hay un botón al lado
+que lo arregla. En una hoja de correcciones sólo serían ruido.
+
+El resumen del pie añade «N con observaciones» cuando las hay.
+
 #### El dígito verificador del DNI: 8 de 10 avisos de número eran falsos (09/09/2026)
 
 Medido sobre el expediente real. De las 10 discrepancias de `número`, **sólo 2 eran de verdad**:
