@@ -9,6 +9,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Pms\Entity\PmsUnidad;
 use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -136,9 +137,66 @@ class DomoticaDispositivo
     #[Groups(['domotica_dispositivo:read'])]
     private ?bool $encendido = null;
 
+    /**
+     * Cuándo reportó el APARATO su `switch_1` — no cuándo lo leímos nosotros.
+     *
+     * ⚠️ La diferencia no es sutil: `/status` devuelve los últimos valores conocidos de un aparato
+     * aunque lleve tres días desconectado, y sin ninguna marca de frescura. Si aquí se guardara el
+     * reloj del muestreo, un dato de hace 58 horas se vería como recién tomado. Sale de
+     * `shadow/properties`, que es el único endpoint que dice de cuándo es cada dato (§13.2).
+     */
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     #[Groups(['domotica_dispositivo:read'])]
     private ?DateTimeImmutable $estadoTomadoEn = null;
+
+    /**
+     * Cuándo reportó el aparato su `cur_power`. **Otra fecha distinta, y a propósito.**
+     *
+     * Un solo «tomado en» no puede describir este aparato: medido el 08/09/2026, el mismo enchufe
+     * tenía `switch_1` de hacía un minuto y `cur_power` de hacía NUEVE DÍAS. La potencia se emite
+     * por excepción —sólo cuando cambia—, así que su antigüedad no tiene nada que ver con la del
+     * resto y necesita su propia columna.
+     *
+     * Es lo que permite que la vista diga «850 W, hace un momento» o «sin datos recientes» en vez
+     * de enseñar un número viejo como si fuera de ahora.
+     */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    #[Groups(['domotica_dispositivo:read'])]
+    private ?DateTimeImmutable $potenciaTomadaEn = null;
+
+    /**
+     * ¿Está la nube en contacto con el aparato ahora mismo?
+     *
+     * Es el ÚNICO campo de `/v1.0/devices` que resultó fiable: el `update_time` de ese mismo
+     * endpoint marcaba las 16:03 mientras el aparato reportaba a las 18:14, porque describe cuándo
+     * se tocó el registro y no cuándo habló el cacharro.
+     *
+     * Con `enLinea = false` todo lo demás es historia, por muy plausible que parezca.
+     */
+    #[ORM\Column(type: 'boolean', nullable: true)]
+    #[Groups(['domotica_dispositivo:read'])]
+    private ?bool $enLinea = null;
+
+    /**
+     * ¿Se le enseña al huésped en `pax`?
+     *
+     * **Tercera pregunta independiente**, y hacen falta las tres. Un aparato puede *poder* medir
+     * (`mideConsumo`), *querer* ser muestreado (`activo`) y aun así no tener nada que hacer en la
+     * pantalla de un cliente: el detector de gas del pasillo, la lámpara de la cocina, el switch
+     * del corredor. Están atados a la casita porque físicamente están ahí, y eso es correcto —
+     * pero atar no es publicar.
+     *
+     * Hoy se enciende sólo para los **calefactores**, que son los que el huésped usa, paga y sobre
+     * los que pregunta.
+     *
+     * ⚠️ Nace en `false`, igual que las capacidades y por el mismo motivo: el error de dejar uno
+     * de menos es que alguien pregunte por qué no lo ve; el de dejar uno de más es enseñarle a un
+     * huésped un detector de gas o el consumo de una zona común. La asimetría no está equilibrada,
+     * así que el defecto va del lado barato.
+     */
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    #[Groups(['domotica_dispositivo:read'])]
+    private bool $visibleParaHuesped = false;
 
     /**
      * ¿Se le pide lectura al cron?
@@ -230,6 +288,20 @@ class DomoticaDispositivo
         $this->ubicacion = $ubicacion;
 
         return $this;
+    }
+
+    /**
+     * ⚠️ El id se genera aquí, y por eso hace falta constructor.
+     *
+     * `IdTrait` declara la estrategia `NONE`: Doctrine NO inventa identificadores, los pone la
+     * entidad. Sin esta llamada, el `persist()` muere con «entity has no ID» — que es justo lo que
+     * pasó la primera vez que algo intentó crear un aparato, en septiembre de 2026. El módulo
+     * llevaba escrito desde agosto y las tres entidades tenían el mismo agujero, porque hasta
+     * entonces nada las había instanciado nunca.
+     */
+    public function __construct()
+    {
+        $this->initializeId();
     }
 
     public function getUnidad(): ?PmsUnidad
@@ -345,12 +417,123 @@ class DomoticaDispositivo
      * mide, y se lee por otra vía —el `switch_1` del estado del dispositivo, no la API de
      * energía—. Mezclarlos obligaría a fingir un consumo para poder guardar un on/off.
      */
+    /**
+     * La zona horaria en la que se leen las fechas de ESTE aparato.
+     *
+     * ⚠️ **No es la del servidor: es la del establecimiento donde está enchufado.** El estándar del
+     * proyecto es guardar hora de pared, y la hora de pared de un aparato es la del sitio donde
+     * cuelga — no la de la máquina que lo consulta. Hoy coinciden (un solo establecimiento, en
+     * `America/Lima`) y por eso el atajo no dolería; el día que haya uno en otro huso, todo lo que
+     * se le enseñe al huésped y todo lo que se le cobre estaría movido, y el código de más arriba
+     * seguiría pareciendo correcto.
+     *
+     * `PmsGuiaAcceso` lleva anotada esta misma deuda desde antes: el campo existía y no participaba
+     * en ningún cálculo.
+     *
+     * El respaldo es el huso de la aplicación, y sólo lo usan los aparatos **sin unidad** —zonas
+     * comunes como el corredor o el tanque—, que no cuelgan de ningún establecimiento.
+     */
+    public function zonaHoraria(): DateTimeZone
+    {
+        return $this->unidad?->getEstablecimiento()?->zonaHoraria()
+            ?? new DateTimeZone(date_default_timezone_get());
+    }
+
+    /**
+     * Pasa un instante a la hora de pared de este aparato.
+     *
+     * Vive aquí y no en quien llama para que **no se pueda olvidar**: los `registrar*()` de abajo
+     * lo aplican solos. Una fecha que llega de una API trae su propio huso —el de Tuya es UTC—, y
+     * si se guarda tal cual quedan dígitos de un sitio con la etiqueta de otro. Ya pasó: cinco
+     * horas de desfase que hacían que `potenciaEsReciente()` diera «fresco» para siempre (§14.11).
+     */
+    private function aHoraLocal(DateTimeImmutable $momento): DateTimeImmutable
+    {
+        return $momento->setTimezone($this->zonaHoraria());
+    }
+
     public function registrarEstado(DateTimeImmutable $momento, ?bool $encendido): self
     {
         $this->encendido = $encendido;
-        $this->estadoTomadoEn = $momento;
+        $this->estadoTomadoEn = $this->aHoraLocal($momento);
 
         return $this;
+    }
+
+    public function getPotenciaTomadaEn(): ?DateTimeImmutable
+    {
+        return $this->potenciaTomadaEn;
+    }
+
+    /**
+     * Anota la potencia instantánea con la hora en que la reportó el APARATO.
+     *
+     * Separado de `registrarEstado()` porque las dos fechas divergen de verdad: la potencia se
+     * emite sólo al cambiar, así que un aparato que lleva días sin variar su consumo tiene un
+     * `switch_1` fresco y un `cur_power` rancio a la vez.
+     */
+    public function registrarPotencia(?int $vatios, ?DateTimeImmutable $momento): self
+    {
+        $this->potenciaVatios = $vatios;
+        $this->potenciaTomadaEn = $momento === null ? null : $this->aHoraLocal($momento);
+
+        return $this;
+    }
+
+    public function isVisibleParaHuesped(): bool
+    {
+        return $this->visibleParaHuesped;
+    }
+
+    public function setVisibleParaHuesped(bool $visibleParaHuesped): self
+    {
+        $this->visibleParaHuesped = $visibleParaHuesped;
+
+        return $this;
+    }
+
+    /**
+     * ¿Puede este aparato aparecer en la pantalla del huésped AHORA?
+     *
+     * Las dos condiciones juntas, en la entidad, para que `pax`, el panel y el asistente no las
+     * comprueben cada uno a su manera — que es como acaban discrepando. Sin unidad no hay forma de
+     * saber de quién es, así que no se enseña aunque esté marcado como visible.
+     */
+    public function sePuedeEnseñarAlHuesped(): bool
+    {
+        return $this->visibleParaHuesped && $this->unidad !== null;
+    }
+
+    public function isEnLinea(): ?bool
+    {
+        return $this->enLinea;
+    }
+
+    public function setEnLinea(?bool $enLinea): self
+    {
+        $this->enLinea = $enLinea;
+
+        return $this;
+    }
+
+    /**
+     * ¿Se puede enseñar la potencia como «ahora mismo»?
+     *
+     * Vive en la entidad para que la app del huésped, el panel y el asistente apliquen el MISMO
+     * criterio: un número sin esta comprobación es una afirmación sobre el presente que quizá
+     * tenga nueve días.
+     */
+    public function potenciaEsReciente(int $minutos = 15): bool
+    {
+        if ($this->enLinea !== true || $this->potenciaTomadaEn === null) {
+            return false;
+        }
+
+        // El «ahora» también se pide en la zona del aparato: comparar una hora de pared de Nairobi
+        // contra el reloj de Lima da una antigüedad inventada.
+        $limite = new DateTimeImmutable(sprintf('-%d minutes', $minutos), $this->zonaHoraria());
+
+        return $this->potenciaTomadaEn->format('Y-m-d H:i:s') >= $limite->format('Y-m-d H:i:s');
     }
 
     public function getFallosConsecutivos(): int
@@ -379,7 +562,7 @@ class DomoticaDispositivo
     public function registrarLectura(DateTimeImmutable $momento, string $lecturaTotal): self
     {
         $this->lecturaTotal = $lecturaTotal;
-        $this->lecturaTomadaEn = $momento;
+        $this->lecturaTomadaEn = $this->aHoraLocal($momento);
         $this->fallosConsecutivos = 0;
 
         return $this;

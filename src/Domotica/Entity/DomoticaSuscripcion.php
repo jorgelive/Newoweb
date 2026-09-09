@@ -133,6 +133,20 @@ class DomoticaSuscripcion
     #[Groups(['domotica_suscripcion:read'])]
     private ?DateTimeImmutable $cerradaEn = null;
 
+    /**
+     * ⚠️ El id se genera aquí, y por eso hace falta constructor.
+     *
+     * `IdTrait` declara la estrategia `NONE`: Doctrine NO inventa identificadores, los pone la
+     * entidad. Sin esta llamada, el `persist()` muere con «entity has no ID» — que es justo lo que
+     * pasó la primera vez que algo intentó crear un aparato, en septiembre de 2026. El módulo
+     * llevaba escrito desde agosto y las tres entidades tenían el mismo agujero, porque hasta
+     * entonces nada las había instanciado nunca.
+     */
+    public function __construct()
+    {
+        $this->initializeId();
+    }
+
     public function getDispositivo(): ?DomoticaDispositivo
     {
         return $this->dispositivo;
