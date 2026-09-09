@@ -542,6 +542,21 @@ es el modo de una sola vez.
 nadie se enterara— mientras que de los 104 comandos, cubiertos por el análisis, **no había ni uno
 roto**. Ver `tools/README.md`.
 
+⚠️ **Una columna `JSON NOT NULL` añadida a una tabla con filas se rellena con el literal JSON
+`null`, y eso NO es SQL NULL.** Satisface el `NOT NULL`, **no** lo caza un `WHERE … IS NULL`, y
+`json_decode('null')` devuelve `null` de PHP: Doctrine lo asigna a una propiedad `array` y suelta
+un `TypeError` **al leer**, no al migrar. La migración dice `[OK]` y el fallo sale días después,
+la primera vez que alguien abre una fila vieja.
+
+Pasó el 09/09/2026 con `observaciones_validacion`: la migración **ya llevaba** el guarda
+`WHERE … IS NULL` y saltó las 270 filas sin tocar una. La condición correcta es:
+
+```sql
+WHERE col IS NULL OR JSON_TYPE(col) = 'NULL'
+```
+
+Mejor aún: añadir la columna **nulable**, rellenarla, y sólo entonces ponerla `NOT NULL`.
+
 ⚠️ **Los UUID se guardan en `binary(16)`, y compararlos con texto no falla: devuelve vacío.**
 Un `->setParameter('f', $uuidComoTexto)` sin tipo compara 36 caracteres contra 16 bytes. No hay
 error, no hay aviso: hay **cero filas**, que es una respuesta perfectamente válida y por eso se
