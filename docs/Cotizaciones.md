@@ -1487,6 +1487,80 @@ sin id no hay IRI. Redeclarado sobre `IdTrait` con `file:item:read`, como ya hac
 ⚠️ La etiqueta del campo decía **«Archivo (PDF / IMG)»** y aquí cabe cualquier fichero — se subió un
 vídeo el mismo día. Un rótulo que describe menos de lo que admite hace dudar antes de intentarlo.
 
+#### Encontrar un archivo entre 1 500, y arreglarlo cuando está en las manos de otro (09/09/2026)
+
+Tres carencias de la misma lista, que sólo se ven cuando el expediente es grande de verdad.
+
+**1. No había buscador.** Con ~1 500 archivos, llegar al de una persona era bajar a ojo. El campo
+busca por **palabras sueltas en cualquier orden** —«ana dni» encuentra el DNI de Ana— y sobre lo
+mismo que se ve en la fila: nombre, tipo y dueño. Es deliberado que no busque por nada invisible:
+lo que se teclea es lo que se lee, y si no aparece se entiende por qué.
+
+Va **antes** que la carga por ZIP, que hasta ahora abría el panel: subir es ocasional, encontrar es
+lo de cada día.
+
+**2. El dueño se cortaba justo donde empieza a distinguir.** Compartía renglón con el tipo
+—«DNI — ANVERSO · Edgar Joaqu…»— y en una familia con el apellido repetido eso es exactamente lo que
+hay que leer. Ahora va en su propia línea.
+
+⚠️ **Y `duenoDelArchivo()` ignoraba el `vuelo`**, que es el alcance **más** frecuente: los ~1 060
+boarding passes que entran por ZIP se guardan con pasajero + vuelo, así que las ocho tarjetas de una
+misma persona se leían idénticas. Lee los tres alcances: persona, vuelo, subgrupo.
+
+**3. Reasignar de una persona a otra, sin borrar el archivo.** El bloque «¿De quién es?» estaba
+escondido al editar, y el comentario decía por qué: *«cambiarlo movería el archivo de manos sin
+decirlo; para eso se borra y se vuelve a subir, que deja rastro»*.
+
+🔥 **Se revierte, porque el rastro salía carísimo.** En las familias que comparten apellido el
+reparto se tuerce solo —lo hace quien sube, y lo hace el ZIP cuando el fichero viene mal nombrado—,
+y borrar obliga a **pedirle el documento otra vez a alguien que ya lo mandó**. Lo que se corrige es
+a quién APUNTA la fila; el fichero no se toca, y sigue sin poder reemplazarse desde aquí.
+
+⚠️ **Los tres alcances son excluyentes y el formulario esconde el que no toca**, así que se
+resuelven en un solo sitio —`alcanceDelDoc()`— y no campo a campo:
+
+| Se elige | `pasajero` | `grupo` | `vuelo` |
+|---|---|---|---|
+| una persona | ✓ | **null** | el suyo, si es boleto |
+| un subgrupo | null | ✓ | null |
+| nada | null | null | null |
+
+Sin eso, elegir persona sobre un archivo que era de un subgrupo **dejaba el `grupo` viejo puesto**:
+la fila decía las dos cosas y no era de ninguna. Era un fallo latente ya en la subida, donde los dos
+desplegables podían quedar rellenos; ahora las dos rutas —POST multipart y PATCH— salen de la misma
+función. La diferencia es que al **crear** se omite lo vacío (un IRI en blanco no lo resuelve API
+Platform) y al **editar** se manda `null`, que es lo que desasigna.
+
+No hizo falta tocar PHP: `pasajero`, `grupo` y `vuelo` ya estaban en el grupo `file:write`, que es el
+de denormalización del `Patch`.
+
+⚠️ **Y el invariante ya estaba puesto para esto sin que nadie lo hubiera previsto:**
+`CotizacionFilearchivo::validarDuenoDelMismoExpediente()` lleva `#[ORM\PrePersist]` **y**
+`#[ORM\PreUpdate]`, así que reasignar a una persona de OTRO expediente revienta igual que
+importarlo mal en lote. Se escribió pensando en la carga masiva; cubre la reasignación gratis.
+
+⚠️ **Los tres selectores son `limpiable`.** Desvincular es media reparación: un archivo que se coló
+en la persona equivocada muchas veces no es de nadie en concreto, y devolverlo al expediente entero
+tiene que ser un clic. Sin la bandera, `SearchableSelect` no enseña la «×» —es opt-in a propósito,
+porque la mayoría de esos selectores son obligatorios.
+
+#### Comparar UUIDs con `endsWith` falla en silencio y siempre hacia el mismo lado (09/09/2026)
+
+`duenoDelArchivo()` casaba el IRI de la relación contra el id de la fila con
+`iri.endsWith(String(id))`. Muerde por dos sitios, y los dos son mudos:
+
+| Qué llega | Qué pasa |
+|---|---|
+| el id en otra caja (`0198E5F1…` vs `0198e5f1…`) | no casa |
+| un `id` que no viene como texto | `String(obj)` es `[object Object]`, no casa |
+
+**Los dos fallan hacia el mismo lado**: no encuentra al dueño, la fila se queda muda y el archivo
+**parece del expediente entero** cuando en realidad es de alguien. Es decir, el fallo se disfraza
+del caso más común y nadie lo echa de menos.
+
+Ahora lo hace `mismoRecurso()`: último segmento, en minúsculas, y exige que no esté vacío —porque
+`'' === ''` casaba con cualquier fila sin id.
+
 #### La bóveda arranca plegada (08/09/2026)
 
 Vive en la barra lateral, encima de todo lo demás, y en un expediente grande son ~1 500 archivos.
@@ -7015,6 +7089,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Agrupar pasajeros (salón, grupo, habitación, reserva aérea)** → `CotizacionFileGrupo` + `CotizacionPasajeroGrupo` (§6.m). ⚠️ Ejes cruzados, no un árbol; y el `esJefe` va en la pertenencia.
 - **El DNI o el pasaporte de un pasajero, con su vencimiento** → `CotizacionPasajeroIdentificacion`, una fila por documento (§6.l). ⚠️ Sin fecha es «sin comprobar», nunca «vigente».
 - **Adjuntar un archivo a un expediente** → `CotizacionFilearchivo` (antes `…Filedocumento`, ver §6.k). ⚠️ No confundir con `CotizacionFilepasajero::$tipodocumento`, que sí es identidad.
+- **Buscar en la bóveda, o mover un archivo de una persona a otra** → `bovedaDocs` y `alcanceDelDoc()` en `FileDetalle.vue`. ⚠️ Los tres alcances son **excluyentes**: se resuelven juntos, nunca campo a campo. Reasignar no toca el fichero; para cambiar el fichero sigue habiendo que borrar y subir.
 - **Crear un servicio que no está en el catálogo** → botón «Manual» → `agregarComponente(id, true)` → `esManual`. Aporta su propio `nombreInternoSnapshot` (interno) y `tituloSnapshot` (público). Ver §6.h.
 - **Que un componente sin maestro se pueda nombrar y tipar** → `isComponenteSoloItems()` y `getNombreMaestroRef()` en `CotizacionEditorView.vue`, y `onTipoManualChange()` en el store. Ver §6.h — y ojo con lo que la cadena sigue exigiendo (tarifa, prestador, nombre).
 - **Saber qué se lleva la papelera de un párrafo** → el pie de la tarjeta en el Constructor de Storytelling, alimentado por `store.idSegmentoDeComponente()`. Ver §6.i.

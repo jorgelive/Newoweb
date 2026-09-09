@@ -1765,6 +1765,21 @@ const aplicarZip = async () => {
 };
 
 /**
+ * ¿Este IRI y este id son el mismo recurso? Compara el ÚLTIMO SEGMENTO, no la cadena entera.
+ *
+ * ⚠️ Esto se hacía con `iri.endsWith(id)` y con UUIDs eso muerde por dos sitios: un id que llegue
+ * en otra caja —`0198E5F1…` frente a `0198e5f1…`— no casa, y la fila se queda muda sin decir por
+ * qué; y un `id` que no venga como texto se convierte en `[object Object]`, que tampoco casa y
+ * tampoco avisa. Los dos fallan **en silencio y hacia el mismo lado**: el archivo parece del
+ * expediente entero cuando en realidad es de alguien.
+ */
+const mismoRecurso = (iri: string | undefined, id: unknown): boolean => {
+    const suyo = extractIdStr(iri).toLowerCase();
+    const mio = extractIdStr(id).toLowerCase();
+    return suyo !== '' && suyo === mio;
+};
+
+/**
  * De quién es un archivo, para la fila de la bóveda: «Ana Pérez · LA-2695».
  *
  * Vacío cuando cuelga del expediente entero, que es lo de siempre y no hace falta decirlo.
@@ -1772,17 +1787,48 @@ const aplicarZip = async () => {
 const duenoDelArchivo = (doc: ApiCotizacionFilearchivo): string => {
     const pasajeroIri = typeof doc.pasajero === 'string' ? doc.pasajero : (doc.pasajero as { '@id'?: string } | null)?.['@id'];
     const grupoIri = typeof doc.grupo === 'string' ? doc.grupo : (doc.grupo as { '@id'?: string } | null)?.['@id'];
+    const vueloIri = typeof doc.vuelo === 'string' ? doc.vuelo : (doc.vuelo as { '@id'?: string } | null)?.['@id'];
 
     const pasajero = (file.value?.filepasajeros ?? []).find(p =>
-        pasajeroIri?.endsWith(String(extractIdStr(p.id ?? p['@id']))));
-    const vuelo = (file.value?.grupos ?? []).find(g =>
-        grupoIri?.endsWith(String(extractIdStr(g.id ?? g['@id']))));
+        mismoRecurso(pasajeroIri, p.id ?? p['@id']));
+    const subgrupo = (file.value?.grupos ?? []).find(g =>
+        mismoRecurso(grupoIri, g.id ?? g['@id']));
+    // ⚠️ El VUELO faltaba, y es el alcance que más se usa: los ~1 060 boarding passes que entran
+    // por ZIP se guardan con pasajero + vuelo, así que la fila decía sólo el nombre y las ocho
+    // tarjetas de una misma persona se leían idénticas.
+    const vuelo = (file.value?.vuelos ?? []).find(v =>
+        mismoRecurso(vueloIri, v.id));
 
     return [
         pasajero ? [pasajero.nombre, pasajero.apellido].filter(Boolean).join(' ') : null,
-        vuelo ? (vuelo.clave || vuelo.nombre) : null,
+        vuelo ? [vuelo.numero, [vuelo.origen, vuelo.destino].filter(Boolean).join('→')].filter(Boolean).join(' ') : null,
+        subgrupo ? (subgrupo.clave || subgrupo.nombre) : null,
     ].filter(Boolean).join(' · ');
 };
+
+/**
+ * El buscador de la bóveda: con ~1 500 archivos, bajar a ojo hasta el de una persona no es
+ * viable, y el nombre del fichero casi nunca es lo que se recuerda.
+ *
+ * Se busca sobre lo MISMO que se ve en la fila —nombre, tipo y dueño—, y por palabras sueltas
+ * en cualquier orden: «ana dni» encuentra el DNI de Ana sin acertar el orden ni el texto exacto.
+ */
+const bovedaBusqueda = ref('');
+
+const bovedaDocs = computed(() => {
+    const docs = file.value?.filearchivos ?? [];
+    const palabras = bovedaBusqueda.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!palabras.length) return docs;
+
+    return docs.filter(doc => {
+        const paja = [
+            getDocNombre(doc),
+            getArchivoLabel(doc.tipoArchivo),
+            duenoDelArchivo(doc),
+        ].filter(Boolean).join(' ').toLowerCase();
+        return palabras.every(palabra => paja.includes(palabra));
+    });
+});
 
 /** El desplegable se vacía en cuanto elige: es un «añadir», no una selección que se queda. */
 const grupoPorAnadir = ref<string | number | null>(null);
@@ -2196,6 +2242,13 @@ const abrirDocModal = () => {
   capas.abrir('doc', () => { showDocModal.value = false; docEditandoIri.value = null; });
 };
 
+/** El id que hay detrás de una relación, venga como IRI o como objeto embebido. */
+const idDeRelacion = (rel: unknown): string => {
+  if (!rel) return '';
+  const iri = typeof rel === 'string' ? rel : (rel as { '@id'?: string })['@id'];
+  return iri ? extractIdStr(iri) : '';
+};
+
 const abrirEdicionDoc = (doc: ApiCotizacionFilearchivo) => {
   docEditandoIri.value = doc['@id'] || `/platform/sales/cotizacion_filearchivos/${extractIdStr(doc.id)}`;
   docForm.value = {
@@ -2203,11 +2256,13 @@ const abrirEdicionDoc = (doc: ApiCotizacionFilearchivo) => {
     tipoArchivo: doc.tipoArchivo || '',
     sobreescribirTraduccion: false,
     fileObject: null,
-    // Al editar no se reasigna el dueño: cambiarlo movería el archivo de manos sin decirlo. Para
-    // eso se borra y se vuelve a subir, que deja rastro.
-    pasajeroId: '',
-    grupoId: '',
-    vueloId: '',
+    // ⚠️ **Aquí SÍ se reasigna el dueño, y antes no se podía.** Decía «para eso se borra y se
+    // vuelve a subir, que deja rastro», y el rastro salía carísimo: en una familia con el mismo
+    // apellido el reparto se tuerce a menudo, y borrar el archivo obliga a pedirlo otra vez a
+    // alguien que ya lo mandó. Lo que se corrige es a QUIÉN apunta, no el fichero.
+    pasajeroId: idDeRelacion(doc.pasajero),
+    grupoId: idDeRelacion(doc.grupo),
+    vueloId: idDeRelacion(doc.vuelo),
   };
   showDocModal.value = true;
   capas.abrir('doc', () => { showDocModal.value = false; docEditandoIri.value = null; });
@@ -2218,18 +2273,39 @@ const handleFileUpload = (e: Event) => {
   if (target.files && target.files[0]) docForm.value.fileObject = target.files[0];
 };
 
+/**
+ * Los tres alcances tal y como los entiende {@see CotizacionFilearchivo}, resueltos en un solo
+ * sitio porque son **excluyentes** y el formulario esconde el que no toca:
+ *
+ * - con pasajero, el subgrupo sobra —el archivo es de la persona— y se manda a null;
+ * - el vuelo sólo significa algo colgando de un pasajero, así que se va con él.
+ *
+ * ⚠️ Sin esto, elegir persona sobre un archivo que era de un subgrupo dejaba el `grupo` viejo
+ * puesto: la fila decía las dos cosas y no era de ninguna.
+ */
+const alcanceDelDoc = () => {
+  const { pasajeroId, grupoId, vueloId } = docForm.value;
+  return {
+    pasajero: pasajeroId ? `/platform/sales/cotizacion_filepasajeros/${pasajeroId}` : null,
+    grupo: !pasajeroId && grupoId ? `/platform/sales/cotizacion_file_grupos/${grupoId}` : null,
+    // ⚠️ `vuelo`, no `grupo`: un boarding pass es de un VUELO. Ver la tabla de alcances.
+    vuelo: pasajeroId && vueloId ? `/platform/sales/cotizacion_vuelos/${vueloId}` : null,
+  };
+};
+
 const guardarDocumento = async () => {
   let success: boolean;
 
   if (docEditandoIri.value) {
-    // Modo edición: solo metadata, sin archivo (PATCH JSON → array i18n)
+    // Modo edición: metadata y dueño, sin archivo (PATCH JSON → array i18n)
     isSubmittingDoc.value = true;
     success = await fileStore.updateDocument(docEditandoIri.value, {
       nombre: docForm.value.nombre
           ? [{ content: docForm.value.nombre.trim(), language: 'es' }]
           : null,
       tipoArchivo: docForm.value.tipoArchivo,
-      sobreescribirTraduccion: docForm.value.sobreescribirTraduccion
+      sobreescribirTraduccion: docForm.value.sobreescribirTraduccion,
+      ...alcanceDelDoc(),
     });
   } else {
     // Modo creación: exige archivo (POST multipart)
@@ -2251,16 +2327,10 @@ const guardarDocumento = async () => {
     formData.append('file', `/platform/sales/cotizacion_files/${extractIdStr(file.value.id || file.value['@id'])}`);
 
     // ⚠️ Sólo si tienen valor: mandar la clave vacía haría que API Platform intentara resolver un
-    // IRI en blanco. Vacío significa «del expediente entero», que es un alcance legítimo.
-    if (docForm.value.pasajeroId) {
-      formData.append('pasajero', `/platform/sales/cotizacion_filepasajeros/${docForm.value.pasajeroId}`);
-    }
-    if (docForm.value.grupoId) {
-      formData.append('grupo', `/platform/sales/cotizacion_file_grupos/${docForm.value.grupoId}`);
-    }
-    // ⚠️ `vuelo`, no `grupo`: un boarding pass es de un VUELO. Ver la tabla de alcances.
-    if (docForm.value.vueloId) {
-      formData.append('vuelo', `/platform/sales/cotizacion_vuelos/${docForm.value.vueloId}`);
+    // IRI en blanco. Vacío significa «del expediente entero», que es un alcance legítimo — por eso
+    // aquí se OMITE lo que en el PATCH se manda como null.
+    for (const [campo, iri] of Object.entries(alcanceDelDoc())) {
+      if (iri) formData.append(campo, iri);
     }
     success = await fileStore.uploadDocument(formData);
   }
@@ -2533,6 +2603,16 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
 
             <template v-if="bovedaAbierta">
+            <!-- ⚠️ **El buscador va lo primero, antes que el ZIP.** Un expediente de grupo son
+                 ~1 500 archivos: subir uno es ocasional, encontrar uno es lo de cada día. Busca
+                 sobre lo mismo que se ve en la fila, así que lo que se lee es lo que se teclea. -->
+            <div class="relative mb-3">
+              <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-[10px]"></i>
+              <input v-model="bovedaBusqueda" type="search"
+                     placeholder="Buscar por persona, vuelo, tipo o nombre…"
+                     class="w-full border border-slate-200 rounded-xl pl-8 pr-3 py-2 text-[11px] font-bold text-slate-700 placeholder:font-medium placeholder:text-slate-300 outline-none focus:border-sky-400">
+            </div>
+
             <!-- ═══ CARGA MASIVA POR ZIP ═══
                  ~1 060 boarding passes en un grupo grande. El ZIP se nombra `DNI-VUELO` y el
                  servidor reparte — y valida que esa persona vuele ese vuelo, así que un
@@ -2606,8 +2686,21 @@ const eliminarDocumento = async (iri?: string) => {
               <p class="text-[10px] font-bold uppercase tracking-widest">Bóveda vacía</p>
             </div>
 
+            <!-- Bóveda con archivos pero ninguno casa: se dice cuántos hay detrás, para que no se
+                 lea como vacía y alguien vuelva a subir lo que ya está. -->
+            <div v-else-if="!bovedaDocs.length" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center">
+              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Sin coincidencias</p>
+              <button type="button" @click="bovedaBusqueda = ''"
+                      class="mt-1 text-[10px] font-black text-sky-600 hover:text-sky-700">
+                Ver los {{ (file?.filearchivos ?? []).length }} archivos
+              </button>
+            </div>
+
             <div v-else class="space-y-2">
-              <div v-for="doc in file.filearchivos" :key="doc.id" class="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 group relative">
+              <p v-if="bovedaBusqueda.trim()" class="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                {{ bovedaDocs.length }} de {{ (file?.filearchivos ?? []).length }}
+              </p>
+              <div v-for="doc in bovedaDocs" :key="doc.id" class="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 group relative">
                 <a :href="doc.imageUrl || undefined" target="_blank" class="flex-1 flex items-center gap-3 min-w-0">
                   <!-- ⚠️ El icono sale del ARCHIVO, no está escrito a fuego. Estuvo puesto a
                        `fa-file-pdf` para todo, así que un vídeo o una foto de pasaporte se
@@ -2619,12 +2712,13 @@ const eliminarDocumento = async (iri?: string) => {
                   </div>
                   <div class="min-w-0">
                     <p class="text-[11px] font-black text-slate-800 truncate">{{ getDocNombre(doc) || getArchivoLabel(doc.tipoArchivo) }}</p>
-                    <p class="text-[9px] font-bold text-slate-400 uppercase truncate">
-                      {{ getArchivoLabel(doc.tipoArchivo) }}
-                      <!-- ⚠️ De quién es, en la propia fila. Con ~1 500 archivos en un expediente
-                           grande, una lista que sólo dice el tipo obliga a abrirlos para saber
-                           cuál es cuál. -->
-                      <span v-if="duenoDelArchivo(doc)" class="normal-case text-slate-500">· {{ duenoDelArchivo(doc) }}</span>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase truncate">{{ getArchivoLabel(doc.tipoArchivo) }}</p>
+                    <!-- ⚠️ De quién es, EN SU PROPIA LÍNEA. Compartiendo renglón con el tipo se
+                         cortaba justo donde el nombre empieza a distinguir —«DNI · Edgar Joaq…»—,
+                         y en una familia con apellidos repetidos eso es exactamente lo que hay
+                         que leer para ver si está bien asignado. -->
+                    <p v-if="duenoDelArchivo(doc)" class="text-[10px] font-bold text-slate-600 truncate">
+                      <i class="fas fa-user text-[8px] text-slate-300 mr-1"></i>{{ duenoDelArchivo(doc) }}
                     </p>
                   </div>
                 </a>
@@ -4218,17 +4312,27 @@ const eliminarDocumento = async (iri?: string) => {
                Vacío = del expediente entero, que es lo de siempre. Con pasajero, es suyo; con
                pasajero Y vuelo, es su boarding pass DE ESE VUELO — que con ocho vuelos por
                persona es la única forma de distinguirlos. Ver la tabla de alcances en
-               `CotizacionFilearchivo`. -->
-          <div v-if="!docEditandoIri" class="grid grid-cols-1 gap-3 pt-3 border-t border-slate-100">
+               `CotizacionFilearchivo`.
+
+               ⚠️ **También al EDITAR, y ése es el cambio.** Estaba escondido en edición a
+               propósito, con el argumento de que borrar y volver a subir «deja rastro»; pero el
+               reparto se tuerce solo en las familias que comparten apellido, y borrar el archivo
+               obliga a pedírselo otra vez a quien ya lo mandó. Reasignar corrige a quién apunta,
+               no toca el fichero. -->
+          <div class="grid grid-cols-1 gap-3 pt-3 border-t border-slate-100">
             <div>
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">
                 ¿De quién es?
                 <span class="normal-case text-slate-400 font-medium">— vacío: de todo el expediente</span>
               </label>
+              <!-- `limpiable` porque desvincular es media reparación: un archivo que se coló en
+                   la persona equivocada a veces no es de NADIE en concreto, y devolverlo al
+                   expediente entero tiene que ser un clic, no borrarlo y volver a subirlo. -->
               <SearchableSelect
                   v-model="docForm.pasajeroId"
                   :options="pasajerosElegibles"
                   placeholder="Todo el expediente"
+                  limpiable
               />
             </div>
 
@@ -4243,6 +4347,7 @@ const eliminarDocumento = async (iri?: string) => {
                   v-model="docForm.grupoId"
                   :options="subgruposElegibles"
                   placeholder="De ningún subgrupo"
+                  limpiable
               />
             </div>
 
@@ -4255,6 +4360,7 @@ const eliminarDocumento = async (iri?: string) => {
                   v-model="docForm.vueloId"
                   :options="vuelosElegibles"
                   placeholder="Sin vuelo concreto"
+                  limpiable
               />
             </div>
 

@@ -708,7 +708,17 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
 
     const updateDocument = async (
         iri: string,
-        payload: { nombre?: I18nContent[] | null; tipoArchivo: string; sobreescribirTraduccion?: boolean }
+        // `pasajero`/`grupo`/`vuelo` van en `file:write`, así que el PATCH los acepta tal cual.
+        // `null` DESASIGNA —devuelve el archivo al expediente entero—, que es lo que hace falta
+        // para deshacer un reparto torcido sin borrar el fichero.
+        payload: {
+            nombre?: I18nContent[] | null;
+            tipoArchivo: string;
+            sobreescribirTraduccion?: boolean;
+            pasajero?: string | null;
+            grupo?: string | null;
+            vuelo?: string | null;
+        }
     ): Promise<boolean> => {
         error.value = null;
         try {
