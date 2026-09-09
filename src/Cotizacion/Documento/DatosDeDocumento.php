@@ -34,6 +34,15 @@ final readonly class DatosDeDocumento
         public ?string $sexo = null,
         public ?DateTimeImmutable $nacimiento = null,
         public ?DateTimeImmutable $vencimiento = null,
+        /**
+         * La nacionalidad ya traducida a ISO-2, que es la clave de `MaestroPais`.
+         *
+         * ⚠️ **El documento habla ISO-3 (`PER`) y el manifiesto ISO-2 (`PE`).** El puente lo pone
+         * `LectorDeDocumentoIdentidad` con `symfony/intl`; se guarda resuelto para que nadie
+         * compare las dos cosas creyendo que son la misma. `null` = no se pudo traducir, que es
+         * distinto de «no se leyó»: `$nacionalidad` conserva lo que dijo el documento.
+         */
+        public ?string $nacionalidadIso2 = null,
         public ?Mrz $mrz = null,
         public array $avisos = [],
     ) {}

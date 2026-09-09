@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Documento;
 
-use App\Cotizacion\Enum\ValidacionDocumentoEnum;
+use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
 use App\Enum\DocumentoTipoEnum;
 use DateTimeImmutable;
 
@@ -44,46 +44,74 @@ use DateTimeImmutable;
  */
 final readonly class Cotejo
 {
-    /** @param list<string> $observaciones */
+    /**
+     * @param list<Discrepancia> $discrepancias Campos en los que el manifiesto y el documento no
+     *        dicen lo mismo. Es lo que la pantalla pinta al lado de cada campo.
+     * @param list<string> $notas Lo que no es de ningún campo: vencido, banda ilegible, sin nada
+     *        contra qué cotejar. Va en prosa porque es para leerlo, no para ramificar.
+     */
     private function __construct(
-        public ValidacionDocumentoEnum $estado,
-        public array $observaciones,
+        public ValidacionIdentificacionEnum $estado,
+        public array $discrepancias,
+        public array $notas,
     ) {}
+
+    /** Todo lo que hay que decir, ya compuesto, para un log o una tabla de consola. */
+    public function resumen(): string
+    {
+        return implode(' · ', [
+            ...array_map(static fn (Discrepancia $d): string => $d->titulo(), $this->discrepancias),
+            ...$this->notas,
+        ]);
+    }
 
     /**
      * @param DatosDeDocumento $leido Lo que se sacó de la imagen.
      * @param FichaGuardada|null $guardado Lo que ya dice el manifiesto. `null` = el archivo no
      *        está asignado a nadie, o la persona se acaba de crear a partir de este documento.
      */
+    /** No se pudo leer el escaneo: no hay veredicto que dar, y se dice por qué. */
+    public static function ilegible(string $porque): self
+    {
+        return new self(ValidacionIdentificacionEnum::NO_VALIDADO, [], [$porque]);
+    }
+
     public static function de(DatosDeDocumento $leido, ?FichaGuardada $guardado): self
     {
         // Sin número no hay documento que valga: no se puede cotejar ni guardar, y decir
         // «observado» sugeriría que hay algo que revisar cuando lo que hay es una foto ilegible.
         if (!$leido->esUtilizable()) {
-            return new self(ValidacionDocumentoEnum::NO_VALIDADO, [...$leido->avisos, 'no se pudo leer el número del documento']);
+            return new self(
+                ValidacionIdentificacionEnum::NO_VALIDADO,
+                [],
+                [...$leido->avisos, 'no se pudo leer el número del documento'],
+            );
         }
 
         // ⚠️ **Las diferencias se calculan SIEMPRE que haya ficha, aunque esté a medias.** Una
-        // versión anterior cortaba antes al faltar el nombre guardado y se callaba que el número
-        // no coincidía — que es lo más importante que hay que decir. Primero se reúne todo lo que
-        // está mal, y sólo después se juzga.
-        $defectos = [
-            ...$leido->avisos,
-            ...($guardado !== null ? self::diferencias($leido, $guardado) : []),
-        ];
+        // versión anterior cortaba al faltar el nombre guardado y se callaba que el número no
+        // coincidía — lo más importante que hay que decir. Primero se reúne todo lo que está mal,
+        // y sólo después se juzga.
+        $discrepancias = $guardado !== null ? self::diferencias($leido, $guardado) : [];
+        $notas = $leido->avisos;
 
-        // Camino 1: la aritmética de la MRZ. Es la única que se sostiene sin manifiesto.
-        // Camino 2: el cotejo, que exige número Y nombre guardados — sólo el número no basta, un
-        // número tecleado igual en dos fichas de la misma familia es justo el error que se busca.
-        $respaldado = $leido->verificadoPorMrz()
-            || ($guardado !== null && $guardado->tieneNumero() && $guardado->tieneNombre());
+        // Dos caminos al sello verde, y **cuál fue importa**: la MRZ son dígitos de control, el
+        // cotejo son dos lecturas que coinciden. La segunda puede equivocarse en las dos a la vez
+        // si el error venía del padrón original.
+        $cotejable = $guardado !== null && $guardado->tieneNumero() && $guardado->tieneNombre();
 
-        if ($respaldado && $defectos === []) {
-            return new self(ValidacionDocumentoEnum::VALIDADO, []);
+        if ($discrepancias === [] && $notas === []) {
+            if ($leido->verificadoPorMrz()) {
+                return new self(ValidacionIdentificacionEnum::VALIDADO_MRZ, [], []);
+            }
+
+            if ($cotejable) {
+                return new self(ValidacionIdentificacionEnum::VALIDADO_OCR, [], []);
+            }
         }
 
-        if (!$respaldado) {
-            $defectos[] = match (true) {
+        if (!$leido->verificadoPorMrz() && !$cotejable) {
+            $notas[] = match (true) {
                 $guardado === null => 'el archivo no está asignado a ninguna persona del manifiesto',
                 !$guardado->tieneNumero() => 'la persona no tenía documento guardado: no hay contra qué cotejar',
                 default => 'la persona no tiene nombre guardado: no hay contra qué cotejar',
@@ -92,38 +120,44 @@ final readonly class Cotejo
 
         // ⚠️ Este aviso va SÓLO cuando ya no se valida, y como explicación de por qué hizo falta
         // el manifiesto. Añadirlo siempre lo convertía en un defecto y **bloqueaba** la validación
-        // de todo pasaporte sin banda, que es justo lo contrario de lo que se quiere. Que se
-        // validara con MRZ o cotejando se sabe por `DatosDeDocumento::verificadoPorMrz()`, no por
-        // una frase en la lista de lo que está mal.
+        // de todo pasaporte sin banda, que es lo contrario de lo que se quiere.
         if (!$leido->verificadoPorMrz() && $leido->tipo === DocumentoTipoEnum::PASAPORTE) {
-            $defectos[] = 'sin banda MRZ legible: hubo que cotejar con el manifiesto (revisa la calidad del escaneo)';
+            $notas[] = 'sin banda MRZ legible: hubo que cotejar con el manifiesto (revisa la calidad del escaneo)';
         }
 
-        return new self(ValidacionDocumentoEnum::OBSERVADO, $defectos);
+        return new self(ValidacionIdentificacionEnum::OBSERVADO, $discrepancias, $notas);
     }
 
-    /** @return list<string> */
+    /** @return list<Discrepancia> */
     private static function diferencias(DatosDeDocumento $leido, FichaGuardada $guardado): array
     {
         $diferencias = [];
 
         if (self::distinto((string) $leido->numero, (string) $guardado->numero)) {
-            $diferencias[] = sprintf('el número leído (%s) no es el guardado (%s)', $leido->numero, $guardado->numero);
+            $diferencias[] = new Discrepancia('número', (string) $leido->numero, (string) $guardado->numero);
         }
 
         if ($leido->tipo !== null && $guardado->tipo !== null && strtoupper($guardado->tipo) !== $leido->tipo->value) {
-            $diferencias[] = sprintf('es un %s y está guardado como %s', $leido->tipo->value, strtoupper($guardado->tipo));
+            $diferencias[] = new Discrepancia('tipo', $leido->tipo->value, strtoupper($guardado->tipo));
         }
 
-        // ⚠️ Sólo se señala si las DOS existen. Un vencimiento guardado en blanco no es un
-        // desacuerdo: es un hueco, y confundirlos llenaría la cola de trabajo de ruido.
-        if ($leido->vencimiento !== null && $guardado->vencimiento !== null
-            && $leido->vencimiento->format('Y-m-d') !== $guardado->vencimiento->format('Y-m-d')) {
-            $diferencias[] = sprintf(
-                'vence el %s y está guardado %s',
-                $leido->vencimiento->format('d/m/Y'),
-                $guardado->vencimiento->format('d/m/Y'),
-            );
+        // ⚠️ Sólo se señala si las DOS existen. Un dato guardado en blanco no es un desacuerdo:
+        // es un hueco que hay que COMPLETAR, y mezclarlos llenaría la cola de trabajo de ruido.
+        foreach ([
+            'vencimiento' => [$leido->vencimiento, $guardado->vencimiento],
+            'nacimiento' => [$leido->nacimiento, $guardado->nacimiento],
+        ] as $campo => [$delDocumento, $delManifiesto]) {
+            if ($delDocumento !== null && $delManifiesto !== null
+                && $delDocumento->format('Y-m-d') !== $delManifiesto->format('Y-m-d')) {
+                $diferencias[] = new Discrepancia($campo, $delDocumento->format('Y-m-d'), $delManifiesto->format('Y-m-d'));
+            }
+        }
+
+        // El país del documento viene en ISO-3 (`PER`) y el manifiesto guarda ISO-2 (`PE`), que es
+        // la CLAVE de `MaestroPais`. Quien llama ya trae el puente resuelto — aquí sólo se compara.
+        if ($leido->nacionalidadIso2 !== null && $guardado->nacionalidad !== null
+            && strtoupper($guardado->nacionalidad) !== $leido->nacionalidadIso2) {
+            $diferencias[] = new Discrepancia('nacionalidad', $leido->nacionalidadIso2, strtoupper($guardado->nacionalidad));
         }
 
         // El nombre se compara flojo —sin tildes ni orden— porque en un padrón se escribe de
@@ -131,7 +165,7 @@ final readonly class Cotejo
         $nombreLeido = trim(($leido->nombres ?? '') . ' ' . ($leido->apellidos ?? ''));
         if ($nombreLeido !== '' && $guardado->nombreCompleto !== null && trim($guardado->nombreCompleto) !== ''
             && !self::mismasPalabras($nombreLeido, $guardado->nombreCompleto)) {
-            $diferencias[] = sprintf('el nombre leído (%s) no se parece al guardado (%s)', $nombreLeido, trim($guardado->nombreCompleto));
+            $diferencias[] = new Discrepancia('nombre', $nombreLeido, trim($guardado->nombreCompleto));
         }
 
         return $diferencias;

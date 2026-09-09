@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Cotizacion\Documento;
 
 use App\Cotizacion\Entity\CotizacionFilepasajero;
-use App\Cotizacion\Enum\ValidacionDocumentoEnum;
+use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
 
 /**
  * Qué salió de mirar un documento, y qué se propone hacer con él.
@@ -17,10 +17,14 @@ use App\Cotizacion\Enum\ValidacionDocumentoEnum;
  */
 final readonly class ResultadoDeValidacion
 {
-    /** @param list<string> $observaciones */
+    /**
+     * @param list<Discrepancia> $discrepancias
+     * @param list<string> $notas
+     */
     private function __construct(
-        public ValidacionDocumentoEnum $estado,
-        public array $observaciones,
+        public ValidacionIdentificacionEnum $estado,
+        public array $discrepancias,
+        public array $notas,
         public Accion $accion,
         public ?DatosDeDocumento $leido = null,
         /** A quién se propone asociarlo. Null cuando la acción no es asociar. */
@@ -31,7 +35,7 @@ final readonly class ResultadoDeValidacion
 
     public static function ilegible(string $porque): self
     {
-        return new self(ValidacionDocumentoEnum::NO_VALIDADO, [$porque], Accion::NINGUNA);
+        return new self(ValidacionIdentificacionEnum::NO_VALIDADO, [], [$porque], Accion::NINGUNA);
     }
 
     public static function de(
@@ -41,6 +45,6 @@ final readonly class ResultadoDeValidacion
         ?CotizacionFilepasajero $candidato = null,
         string $motivo = '',
     ): self {
-        return new self($cotejo->estado, $cotejo->observaciones, $accion, $leido, $candidato, $motivo);
+        return new self($cotejo->estado, $cotejo->discrepancias, $cotejo->notas, $accion, $leido, $candidato, $motivo);
     }
 }

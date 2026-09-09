@@ -46,17 +46,9 @@ final readonly class ValidadorDeDocumento
 
     public function analizar(CotizacionFilearchivo $archivo): ResultadoDeValidacion
     {
-        $ruta = $this->almacen->resolvePath($archivo, 'imageFile');
-        if (!is_string($ruta) || !is_readable($ruta)) {
-            return ResultadoDeValidacion::ilegible('el fichero no está en disco');
-        }
-
-        try {
-            $leido = $this->lector->leer((string) file_get_contents($ruta), (string) mime_content_type($ruta));
-        } catch (Throwable $e) {
-            // No se propaga: en una tanda de cien, uno ilegible no puede parar los otros 99, y el
-            // motivo se guarda como observación para que se vea sin bucear en los logs.
-            return ResultadoDeValidacion::ilegible('no se pudo leer: ' . $e->getMessage());
+        $leido = $this->lecturaDe($archivo);
+        if ($leido === null) {
+            return ResultadoDeValidacion::ilegible($archivo->getLecturaError() ?? 'no se pudo leer el documento');
         }
 
         $dueno = $archivo->getPasajero();
@@ -88,6 +80,48 @@ final readonly class ValidadorDeDocumento
     }
 
     /**
+     * La lectura del documento, **pagando la IA como mucho una vez en su vida**.
+     *
+     * 🔑 Si ya se leyó, se reinterpreta lo guardado —gratis, sin red— y encima **con el criterio
+     * de hoy**: afinar una regla no obliga a releer nada. Si nunca se leyó, se lee y se guarda.
+     *
+     * ⚠️ **Un error de lectura también se guarda.** Sin eso, un documento ilegible y otro que
+     * nunca se intentó son indistinguibles —los dos con la lectura vacía— y la tanda lo
+     * reintentaría en cada pasada, pagando cada vez por el mismo fallo.
+     */
+    public function lecturaDe(CotizacionFilearchivo $archivo): ?DatosDeDocumento
+    {
+        $guardado = $archivo->getDatosLeidos();
+        if ($guardado !== null) {
+            return $this->lector->interpretar($guardado);
+        }
+
+        if ($archivo->seIntentoLeer()) {
+            return null;   // se intentó y falló; el motivo está en `lecturaError`
+        }
+
+        $ruta = $this->almacen->resolvePath($archivo, 'imageFile');
+        if (!is_string($ruta) || !is_readable($ruta)) {
+            $archivo->registrarLectura(null, 'el fichero no está en disco');
+
+            return null;
+        }
+
+        try {
+            $crudo = $this->lector->extraer((string) file_get_contents($ruta), (string) mime_content_type($ruta));
+        } catch (Throwable $e) {
+            // No se propaga: en una tanda de cien, uno ilegible no puede parar los otros 99.
+            $archivo->registrarLectura(null, mb_substr($e->getMessage(), 0, 255));
+
+            return null;
+        }
+
+        $archivo->registrarLectura($crudo);
+
+        return $this->lector->interpretar($crudo);
+    }
+
+    /**
      * Su ficha para ese tipo de documento. Si no tiene una de ese tipo, se coteja contra la que
      * tenga: alguien con DNI guardado que sube su pasaporte no es un desacuerdo, y `Cotejo` ya
      * sabe decir «es un PASAPORTE y está guardado como DNI».
@@ -107,11 +141,16 @@ final readonly class ValidadorDeDocumento
 
         $vencimiento = $elegida?->getVencimiento();
 
+        $nacimiento = $pasajero->getFechanacimiento();
+
         return new FichaGuardada(
             numero: $elegida?->getNumero(),
             tipo: $elegida?->getTipo()?->value,
             vencimiento: $vencimiento !== null ? DateTimeImmutable::createFromInterface($vencimiento) : null,
             nombreCompleto: trim(($pasajero->getNombre() ?? '') . ' ' . ($pasajero->getApellido() ?? '')),
+            nacimiento: $nacimiento !== null ? DateTimeImmutable::createFromInterface($nacimiento) : null,
+            // El id de `MaestroPais` ES el ISO-2, así que no hay nada que traducir de este lado.
+            nacionalidad: $pasajero->getPais()?->getId(),
         );
     }
 
@@ -169,7 +208,7 @@ final readonly class ValidadorDeDocumento
         return Cotejo::de(
             new DatosDeDocumento(numero: 'x', nombres: $leido->nombres, apellidos: $leido->apellidos),
             new FichaGuardada(numero: 'x', nombreCompleto: $suyo),
-        )->observaciones === [];
+        )->discrepancias === [];
     }
 
     private static function soloAlfanumerico(string $valor): string

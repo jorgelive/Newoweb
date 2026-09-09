@@ -6,6 +6,7 @@ namespace App\Cotizacion\Documento;
 
 use App\Agent\Vision\LectorDeImagenInterface;
 use App\Enum\DocumentoTipoEnum;
+use Symfony\Component\Intl\Countries;
 use DateTimeImmutable;
 
 /**
@@ -75,9 +76,35 @@ final readonly class LectorDeDocumentoIdentidad
 
     public function __construct(private LectorDeImagenInterface $lector) {}
 
+    /**
+     * Llama al proveedor. **Es lo único caro de esta clase**, y por eso está separado.
+     *
+     * @return array<string, mixed> La lectura cruda, tal cual, para guardarla.
+     */
+    public function extraer(string $bytes, string $mime): array
+    {
+        return $this->lector->leer($bytes, $mime, self::INSTRUCCION, self::ESQUEMA);
+    }
+
+    /** Atajo para quien no necesita cachear: extraer e interpretar de una vez. */
     public function leer(string $bytes, string $mime): DatosDeDocumento
     {
-        $crudo = $this->lector->leer($bytes, $mime, self::INSTRUCCION, self::ESQUEMA);
+        return $this->interpretar($this->extraer($bytes, $mime));
+    }
+
+    /**
+     * Convierte la lectura cruda en datos con criterio: comprueba la MRZ, decide quién manda y
+     * levanta los avisos.
+     *
+     * 🔑 **Separado de {@see self::extraer()} porque no cuesta nada y el documento no cambia.** La
+     * lectura se guarda una vez (`CotizacionFilearchivo::$datosLeidos`) y esto se vuelve a correr
+     * cada vez que hace falta: gratis, sin red, y **con el criterio de hoy**. Si mañana se afina
+     * una regla, los 400 documentos ya leídos se reinterpretan sin pagar una sola llamada.
+     *
+     * @param array<string, mixed> $crudo
+     */
+    public function interpretar(array $crudo): DatosDeDocumento
+    {
 
         $mrz = Mrz::desde($this->texto($crudo, 'mrzLinea1'), $this->texto($crudo, 'mrzLinea2'));
         $avisos = [];
@@ -118,10 +145,11 @@ final readonly class LectorDeDocumentoIdentidad
             nombres: $this->preferir($this->texto($crudo, 'nombres'), $fiable ? $mrz->nombres : null),
             apellidos: $this->preferir($this->texto($crudo, 'apellidos'), $fiable ? $mrz->apellidos : null),
             paisEmisor: $this->pais($this->texto($crudo, 'paisEmisor'), $fiable ? $mrz->paisEmisor : null),
-            nacionalidad: $this->pais($this->texto($crudo, 'nacionalidad'), $fiable ? $mrz->nacionalidad : null),
+            nacionalidad: $nacionalidad = $this->pais($this->texto($crudo, 'nacionalidad'), $fiable ? $mrz->nacionalidad : null),
             sexo: $fiable && $mrz->sexo !== null ? $mrz->sexo : $this->sexo($crudo),
             nacimiento: $fiable ? ($mrz->nacimiento ?? $nacimientoImpreso) : $nacimientoImpreso,
             vencimiento: $vencimiento,
+            nacionalidadIso2: $this->aIso2($nacionalidad),
             mrz: $mrz,
             avisos: $avisos,
         );
@@ -153,6 +181,26 @@ final readonly class LectorDeDocumentoIdentidad
     private function preferir(string $impreso, ?string $deLaMrz): ?string
     {
         return trim($impreso) !== '' ? trim($impreso) : ($deLaMrz !== null && $deLaMrz !== '' ? $deLaMrz : null);
+    }
+
+    /**
+     * ISO-3 del documento → ISO-2, que es la **clave** de `MaestroPais` (`PE`, `US`).
+     *
+     * ⚠️ **Los dos lados hablan códigos distintos y ninguno lo dice.** El pasaporte y la MRZ dan
+     * tres letras; `maestro_pais` tiene el ISO-2 como id. Comparar `PER` con `PE` no falla:
+     * **siempre difiere**, así que sin este puente cada documento sacaría una discrepancia de
+     * nacionalidad falsa y la cola de trabajo se volvería inservible.
+     *
+     * `null` cuando el código no existe en ISO (un `UTO` de ejemplo, o una lectura torcida). No se
+     * inventa nada: quien llama lo tratará como «no se pudo comprobar», no como «no coincide».
+     */
+    private function aIso2(?string $iso3): ?string
+    {
+        if ($iso3 === null || !Countries::alpha3CodeExists($iso3)) {
+            return null;
+        }
+
+        return Countries::getAlpha2Code($iso3);
     }
 
     /** ISO de tres letras, o nada: un país a medias no casa con `MaestroPais` y confunde. */

@@ -10,7 +10,6 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Attribute\AutoTranslate;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
-use App\Cotizacion\Enum\ValidacionDocumentoEnum;
 use App\Cotizacion\State\CotizacionFilearchivoMultipartProcessor;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
@@ -137,59 +136,61 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
     private ?CotizacionFileGrupo $grupo = null;
 
     /**
-     * En qué punto del control está este escaneo. Ver {@see ValidacionDocumentoEnum}.
+     * Lo que dijo este documento la última vez que se leyó, tal cual.
      *
-     * ⚠️ **Vive en el ARCHIVO y no en la identificación del pasajero**, aunque valide sus datos.
-     * Lo que se valida es *esta imagen contra el manifiesto*: la misma persona puede tener el
-     * pasaporte comprobado y el DNI observado, y un estado en la persona no sabría decir cuál de
-     * los dos hay que volver a pedir.
+     * 🔑 **Se guarda la LECTURA, no el veredicto — y ésa es la decisión que abarata todo lo
+     * demás.** El documento no cambia nunca; el manifiesto cambia todo el rato. Con la lectura
+     * cacheada, cada documento cuesta **una sola llamada a la IA en toda su vida** (~$0,0016) y la
+     * conciliación se recalcula al vuelo: un campo que alguien acaba de corregir desaparece de la
+     * cola al instante, sin volver a leer nada.
+     *
+     * Guardar el veredicto en su lugar habría obligado a invalidarlo a mano cada vez que alguien
+     * toca el manifiesto — y nadie se acuerda de eso.
+     *
+     * ⚠️ El veredicto vive en {@see CotizacionPasajeroIdentificacion}, al lado del número que
+     * juzga. Aquí no: aquí sólo está lo que se leyó.
+     *
+     * @var array<string, mixed>|null `null` = nunca se ha leído.
      */
     #[Groups(['file:item:read'])]
-    #[ORM\Column(name: 'estado_validacion', type: 'string', length: 20, enumType: ValidacionDocumentoEnum::class, options: ['default' => 'no_validado'])]
-    private ValidacionDocumentoEnum $estadoValidacion = ValidacionDocumentoEnum::NO_VALIDADO;
+    #[ORM\Column(name: 'datos_leidos', type: 'json', nullable: true)]
+    private ?array $datosLeidos = null;
+
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(name: 'leido_en', type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $leidoEn = null;
 
     /**
-     * Qué no encajó, en frases que se leen tal cual en la cola de trabajo.
+     * Por qué no se pudo leer.
      *
-     * ⚠️ Se guarda el TEXTO y no un código de motivo: son para que una persona decida, no para
-     * que el programa ramifique. Un catálogo de códigos aquí envejecería mal —cada documento raro
-     * añade el suyo— y obligaría a mantener sus traducciones para nada.
-     *
-     * @var list<string>
+     * ⚠️ Hace falta **además** de `datosLeidos`: sin esto, un documento ilegible y otro que nunca
+     * se intentó son la misma cosa —los dos con la lectura vacía—, y la tanda lo reintentaría
+     * eternamente sin que nadie supiera por qué falla.
      */
     #[Groups(['file:item:read'])]
-    #[ORM\Column(name: 'observaciones_validacion', type: 'json')]
-    private array $observacionesValidacion = [];
+    #[ORM\Column(name: 'lectura_error', type: 'string', length: 255, nullable: true)]
+    private ?string $lecturaError = null;
+
+    /** @return array<string, mixed>|null */
+    public function getDatosLeidos(): ?array { return $this->datosLeidos; }
+
+    public function getLeidoEn(): ?DateTimeImmutable { return $this->leidoEn; }
+
+    public function getLecturaError(): ?string { return $this->lecturaError; }
+
+    /** ¿Ya se intentó leer? Es lo que hace que la tanda no repita trabajo. */
+    public function seIntentoLeer(): bool { return $this->leidoEn !== null; }
 
     /**
-     * Cuándo se miró por última vez.
+     * La lectura y su fecha se escriben juntas, o se contradicen.
      *
-     * ⚠️ Hace falta **además** del estado: un `NO_VALIDADO` con fecha es «se intentó y no se pudo»
-     * y uno sin fecha es «nunca le ha tocado». Son dos colas distintas y sin esto se mezclan.
+     * @param array<string, mixed>|null $datos
      */
-    #[Groups(['file:item:read'])]
-    #[ORM\Column(name: 'validado_en', type: 'datetime_immutable', nullable: true)]
-    private ?DateTimeImmutable $validadoEn = null;
-
-    public function getEstadoValidacion(): ValidacionDocumentoEnum { return $this->estadoValidacion; }
-
-    /** @return list<string> */
-    public function getObservacionesValidacion(): array { return $this->observacionesValidacion; }
-
-    public function getValidadoEn(): ?DateTimeImmutable { return $this->validadoEn; }
-
-    /**
-     * El resultado del control, siempre junto: estado, motivos y fecha se escriben a la vez o se
-     * contradicen. Con tres setters sueltos, un día alguien pone el estado y olvida las
-     * observaciones, y queda un «observado» que no dice de qué.
-     *
-     * @param list<string> $observaciones
-     */
-    public function registrarValidacion(ValidacionDocumentoEnum $estado, array $observaciones): self
+    public function registrarLectura(?array $datos, ?string $error = null): self
     {
-        $this->estadoValidacion = $estado;
-        $this->observacionesValidacion = $observaciones;
-        $this->validadoEn = new DateTimeImmutable();
+        $this->datosLeidos = $datos;
+        $this->lecturaError = $error;
+        $this->leidoEn = new DateTimeImmutable();
 
         return $this;
     }

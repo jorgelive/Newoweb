@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Documento;
 
+use App\Cotizacion\Entity\CotizacionFilepasajero;
+use App\Cotizacion\Entity\CotizacionPasajeroIdentificacion;
 use DateTimeImmutable;
 
 /**
@@ -21,7 +23,33 @@ final readonly class FichaGuardada
         public ?string $tipo = null,
         public ?DateTimeImmutable $vencimiento = null,
         public ?string $nombreCompleto = null,
+        public ?DateTimeImmutable $nacimiento = null,
+        /** ISO-2, que es la CLAVE de `MaestroPais` — no un nombre de país. */
+        public ?string $nacionalidad = null,
     ) {}
+
+    /**
+     * Entidad → primitivas, **en un solo sitio**.
+     *
+     * ⚠️ Toma la identificación CONCRETA que se está validando, no «la primera que tenga». Con DNI
+     * y pasaporte a la vez, cotejar el pasaporte contra el número del DNI daría «número no
+     * coincide» siempre: un aviso perfectamente falso repetido en medio manifiesto.
+     */
+    public static function de(CotizacionFilepasajero $pasajero, CotizacionPasajeroIdentificacion $identificacion): self
+    {
+        $vencimiento = $identificacion->getVencimiento();
+        $nacimiento = $pasajero->getFechanacimiento();
+
+        return new self(
+            numero: $identificacion->getNumero(),
+            tipo: $identificacion->getTipo()?->value,
+            vencimiento: $vencimiento !== null ? DateTimeImmutable::createFromInterface($vencimiento) : null,
+            nombreCompleto: trim(($pasajero->getNombre() ?? '') . ' ' . ($pasajero->getApellido() ?? '')),
+            nacimiento: $nacimiento !== null ? DateTimeImmutable::createFromInterface($nacimiento) : null,
+            // El id de `MaestroPais` ES el ISO-2, así que de este lado no hay nada que traducir.
+            nacionalidad: $pasajero->getPais()?->getId(),
+        );
+    }
 
     /** Sin número guardado no hay nada contra lo que cotejar: la ficha está a medias. */
     public function tieneNumero(): bool

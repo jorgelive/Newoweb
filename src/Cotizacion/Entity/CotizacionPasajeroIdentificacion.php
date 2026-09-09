@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
 use App\Entity\Maestro\MaestroPais;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Enum\DocumentoTipoEnum;
+use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -94,6 +96,100 @@ class CotizacionPasajeroIdentificacion
     public function __toString(): string
     {
         return sprintf('%s %s', $this->tipo->value ?? 'DOC', $this->numero ?? '—');
+    }
+
+    /**
+     * El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+     *
+     * 🔑 **Aquí y no en el archivo, y ése es el giro que ordena todo el proceso.** El documento
+     * escaneado no es lo que se pone en duda —es el documento oficial de una persona—: lo que se
+     * valida es **lo que alguien tecleó en el manifiesto**. Así el sello se ve donde se mira el
+     * dato, al lado del número, y no en una lista de ficheros aparte.
+     */
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(name: 'estado_validacion', type: 'string', length: 20, enumType: ValidacionIdentificacionEnum::class, options: ['default' => 'no_validado'])]
+    private ValidacionIdentificacionEnum $estadoValidacion = ValidacionIdentificacionEnum::NO_VALIDADO;
+
+    /**
+     * En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`.
+     *
+     * ⚠️ **JSON y no texto, porque la pantalla lo pinta AL LADO de cada campo.** Una frase suelta
+     * obligaría al front a adivinar de qué campo habla para saber dónde ponerla. Y guarda **los
+     * dos valores**: en el caso más frecuente aquí —un dedazo en el año, `2026` por `2036`—,
+     * verlos uno junto al otro *es* la resolución, sin abrir el escaneo.
+     *
+     * @var list<array{campo: string, documento: string, manifiesto: string}>
+     */
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(name: 'discrepancias', type: 'json')]
+    private array $discrepancias = [];
+
+    /**
+     * Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar.
+     *
+     * En prosa a propósito: es para leerlo, no para ramificar. Un catálogo de códigos aquí
+     * envejecería mal —cada documento raro añade el suyo— y arrastraría traducciones para nada.
+     *
+     * @var list<string>
+     */
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(name: 'notas_validacion', type: 'json')]
+    private array $notasValidacion = [];
+
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(name: 'validado_en', type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $validadoEn = null;
+
+    /**
+     * Con qué escaneo se validó.
+     *
+     * ⚠️ `SET NULL` al borrarlo, no `CASCADE`: si alguien borra el archivo, **el veredicto se
+     * queda** —se emitió y es cierto que se emitió— pero pierde su respaldo, y eso tiene que
+     * poder verse. Un `CASCADE` borraría la validación en silencio y el número volvería a
+     * aparecer como validado sin nada detrás.
+     */
+    #[ORM\ManyToOne(targetEntity: CotizacionFilearchivo::class)]
+    #[ORM\JoinColumn(name: 'validado_con_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?CotizacionFilearchivo $validadoCon = null;
+
+    public function getEstadoValidacion(): ValidacionIdentificacionEnum { return $this->estadoValidacion; }
+
+    /** @return list<array{campo: string, documento: string, manifiesto: string}> */
+    public function getDiscrepancias(): array { return $this->discrepancias; }
+
+    /** @return list<string> */
+    public function getNotasValidacion(): array { return $this->notasValidacion; }
+
+    public function getValidadoEn(): ?DateTimeImmutable { return $this->validadoEn; }
+
+    public function getValidadoCon(): ?CotizacionFilearchivo { return $this->validadoCon; }
+
+    /**
+     * ¿Se puede saltar en la siguiente tanda? Es lo que la hace **idempotente**: lo resuelto no se
+     * vuelve a leer, así que una segunda pasada sólo cuesta lo que falta.
+     */
+    public function estaResuelta(): bool { return $this->estadoValidacion->estaResuelto(); }
+
+    /**
+     * El resultado entero, siempre junto: con setters sueltos, un día alguien pone el estado y
+     * olvida las discrepancias, y queda un «observado» que no dice de qué.
+     *
+     * @param list<array{campo: string, documento: string, manifiesto: string}> $discrepancias
+     * @param list<string> $notas
+     */
+    public function registrarValidacion(
+        ValidacionIdentificacionEnum $estado,
+        array $discrepancias,
+        array $notas,
+        ?CotizacionFilearchivo $con = null,
+    ): self {
+        $this->estadoValidacion = $estado;
+        $this->discrepancias = $discrepancias;
+        $this->notasValidacion = $notas;
+        $this->validadoCon = $con;
+        $this->validadoEn = new DateTimeImmutable();
+
+        return $this;
     }
 
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]

@@ -1737,117 +1737,96 @@ incidente detrás en el que una persona desapareció del padrón. El mismo pasap
 por su número y es seguro; DNI y pasaporte de la misma persona sólo se enlazan por el nombre, y eso
 tiene que ser una **propuesta que alguien confirma**, nunca una fusión silenciosa.
 
-#### El control de validación: tres estados, y qué respalda cada uno (09/09/2026)
+#### El control de validación vive en el MANIFIESTO, no en el archivo (09/09/2026)
 
-Ya no es «leer un documento»: es un proceso con estado, cola de trabajo y una propuesta por
-documento. `ValidacionDocumentoEnum` en `cotizacion_file_archivo`.
+🔑 **El giro que ordena todo el proceso.** El documento escaneado no es lo que se pone en duda —es
+el documento oficial de una persona—: lo que se valida es **lo que alguien tecleó en el
+manifiesto**. Así el sello se ve donde se mira el dato, al lado de cada número, y no en una lista
+de ficheros aparte.
 
-##### Por qué tres estados y no un booleano
+Se llegó aquí después de construirlo al revés. La primera versión ponía el estado en
+`CotizacionFilearchivo`; se descartó sin migrar nada porque las 273 filas seguían en `no_validado`.
 
-Con `validado sí/no`, un documento **sin revisar** y otro **cuyo número no cuadra** caen en el
-mismo cajón. Ese cajón se mira una vez, se ve enorme y se deja de mirar. Separados, la cola de
-trabajo es `OBSERVADO` —corta y accionable— y `NO_VALIDADO` es sólo «aún no le ha tocado».
+##### El reparto de columnas, y por qué abarata todo
 
-⚠️ **`validado_en` hace falta ADEMÁS del estado.** Un `NO_VALIDADO` **con** fecha es «se intentó y
-no se pudo»; **sin** fecha es «nunca le ha tocado». Son dos colas distintas y sin la fecha se
-mezclan.
+| Dónde | Qué guarda |
+|---|---|
+| `cotizacion_file_archivo` | **la lectura** (`datos_leidos`, `leido_en`, `lectura_error`) |
+| `cotizacion_pasajero_identificacion` | **el veredicto** (`estado_validacion`, `discrepancias`, `notas_validacion`, `validado_en`, `validado_con_id`) |
 
-⚠️ **El estado vive en el ARCHIVO, no en la identificación del pasajero.** Lo que se valida es
-*esta imagen contra el manifiesto*: la misma persona puede tener el pasaporte comprobado y el DNI
-observado, y un estado en la persona no sabría decir cuál de los dos hay que volver a pedir.
+🔑 **Se guarda la lectura, no el veredicto, y el veredicto se recalcula.** El documento no cambia
+nunca; el manifiesto cambia todo el rato. Con la lectura cacheada, cada documento cuesta **una
+llamada a la IA en toda su vida** (~$0,0016) y un campo recién corregido desaparece de la cola al
+instante. Guardar el veredicto en el archivo habría obligado a invalidarlo a mano en cada edición
+del manifiesto — y nadie se acuerda de eso.
 
-⚠️ **`VALIDADO` no significa «el documento es auténtico».** Nada de esto detecta una
-falsificación. Significa: *lo que se lee concuerda con lo guardado, y la lectura viene respaldada
-por algo más que la palabra de un modelo.* Está escrito en el enum porque en pantalla se leerá
-como «documento correcto».
+⚠️ Por eso `LectorDeDocumentoIdentidad` está partido en **`extraer()`** (la llamada cara) e
+**`interpretar()`** (puro, gratis). Afinar una regla mañana reinterpreta los 400 documentos ya
+leídos **sin pagar una sola llamada**.
 
-##### Qué se valida, y qué no (afinado el 09/09/2026)
+⚠️ **`lectura_error` hace falta además de `datos_leidos`.** Sin él, un documento ilegible y otro
+que nunca se intentó son la misma cosa —los dos con la lectura vacía— y la tanda lo reintentaría en
+cada pasada, pagando cada vez por el mismo fallo.
 
-⚠️ **`esValidable()` es MÁS ESTRECHO que `esEscaneoDeIdentidad()`,** y confundirlos costaba caro.
-En el segundo caben los cuatro documentos con datos personales —de ahí su filtro de compresión y
-su caducidad—; en el primero sólo los dos que traen **número y nombre que cotejar**: `PASAPORTE` y
-`DNI_ANVERSO`.
+⚠️ **`validado_con_id` es `SET NULL`, no `CASCADE`.** Si alguien borra el escaneo, el veredicto
+**se queda** —se emitió y es cierto que se emitió— pero pierde su respaldo, y eso tiene que poder
+verse. Un `CASCADE` lo borraría en silencio y el número seguiría marcado como validado sin nada
+detrás.
 
-🔥 **El reverso del DNI no es un documento mal leído: es uno que no se puede validar.** En la misma
-cola salía como «no se pudo leer el número», que suena a mala calidad y manda a alguien a pedir
-otra vez un escaneo de algo que nunca tuvo el dato. En la tanda real fueron 2 de 12 filas de ruido;
-con 86 reversos en el expediente serían 86 — y una cola con más ruido que trabajo se deja de mirar
-entera. La autorización notarial, igual: es un permiso, no una identidad.
+##### Cuatro estados, porque CÓMO se validó cambia cuánto vale
 
-##### De dónde sale el respaldo, que es lo que separa VALIDADO de OBSERVADO
+`ValidacionIdentificacionEnum`: `no_validado`, `observado`, `validado_ocr`, `validado_mrz`.
 
-«Lo leyó un modelo» no es respaldo. Hacen falta **dos fuentes que coincidan**, y hay dos maneras de
-conseguir la segunda:
-
-| Respaldo | Cómo | ¿Necesita el manifiesto? |
+| | Qué lo respalda | Se puede equivocar en |
 |---|---|---|
-| **MRZ** | los dígitos de control del pasaporte — aritmética pura | no: se sostiene solo |
-| **Cotejo** | el número **y** el nombre coinciden con lo guardado | sí |
+| `VALIDADO_MRZ` | dígitos de control de la banda: aritmética | nada que un OCR pueda leer mal |
+| `VALIDADO_OCR` | la lectura coincide con lo guardado | los dos a la vez, si el error venía del padrón original |
 
-⚠️ **Un pasaporte sin MRZ legible NO se queda sin salida: cae al cotejo**, igual que un DNI. La
-banda no siempre entra en el escaneo, y negarle la validación a un pasaporte cuyo número y nombre
-concuerdan sería tratar «no pude comprobarlo por el camino bueno» como «no se puede comprobar». Lo
-que cambia es **cómo** quedó validado, no si lo está, y eso se ve en `verificadoPorMrz()`.
+⚠️ **`VALIDADO_MRZ` sólo existe para el pasaporte**: el DNI peruano no lleva banda TD3. Que un DNI
+se quede siempre en `VALIDADO_OCR` no es que esté peor leído — **no hay banda que comprobar**, y
+confundirlo llevaría a perseguir una calidad de escaneo que no cambiaría nada. `aplicaA()` existe
+para que la pantalla no ofrezca un estado imposible: un desplegable que lo permite acaba teniéndolo
+en la base.
 
-⚠️ **El cotejo exige las DOS cosas.** Sólo el número no basta: un número tecleado igual en dos
-fichas de la misma familia es justo el error que se busca.
+##### Las discrepancias van estructuradas
 
-🔥 **De ahí la regla que más fácil sería saltarse: sin nada guardado contra lo que cotejar, un
-documento sin MRZ no se valida solo.** Un DNI que acaba de CREAR su ficha se compararía consigo
-mismo y saldría bien siempre — un sello verde puesto por el dato que había que comprobar.
+`[{campo, documento, manifiesto}]`, no una frase. **La pantalla las pinta al lado de cada campo**, y
+una cadena suelta obligaría al front a adivinar de qué campo habla. Guardan **los dos valores**
+porque en el caso más frecuente de este expediente —un dedazo en el año, `2026` por `2036`— verlos
+juntos *es* la resolución, sin abrir el escaneo. Las `notas` sí van en prosa: son lo que no es de
+ningún campo (vencido, banda ilegible) y es para leerlo, no para ramificar.
 
-##### Dos trampas de esta lógica, las dos cazadas por sus tests
+Campos cotejados: **número, tipo, vencimiento, nacimiento, nacionalidad y nombre**.
 
-- **Las diferencias se calculan SIEMPRE que haya ficha, aunque esté a medias.** Una versión cortaba
-  al faltar el nombre guardado y **se callaba que el número no coincidía**, que es lo más
-  importante que hay que decir. Primero se reúne todo lo que está mal; sólo después se juzga.
-- **El aviso «sin banda MRZ» va sólo cuando ya NO se valida.** Añadirlo siempre lo convertía en un
-  defecto y bloqueaba la validación de **todo** pasaporte sin banda — lo contrario de lo que se
-  quiere. Que se validara por aritmética o cotejando no es una frase en la lista de lo que está
-  mal: es `verificadoPorMrz()`.
+🔥 **La nacionalidad necesita un puente y sin él la cola es inservible.** El documento habla ISO-3
+(`PER`) y `maestro_pais` tiene el **ISO-2 como clave** (`PE`, 198 filas). Comparar `PER` con `PE` no
+falla: **siempre difiere**, así que cada documento sacaría una discrepancia falsa. Lo traduce
+`Countries::getAlpha2Code()` de `symfony/intl` —ya instalado— y se guarda ya resuelto en
+`DatosDeDocumento::$nacionalidadIso2`. Un código que no existe en ISO da `null`, que es «no se pudo
+comprobar», **no** «no coincide».
 
-##### Los tres caminos
+⚠️ Y ojo con el maestro: hay **dos** `MaestroPais`. El manifiesto usa `App\Entity\Maestro`
+(`maestro_pais`, id = ISO-2), no el de `src/Oweb/` (`mae_pais`, id entero + columna `iso2`).
 
-```
-¿el archivo tiene dueño?
-  sí  → cotejar contra SU ficha                    → VALIDADO / OBSERVADO
-  no  → ¿alguien con ese MISMO NÚMERO?
-          sí  → proponer asociar        (seguro)
-          no  → ¿alguien con ese NOMBRE?
-                  sí  → proponer asociar (sugerencia)
-                  no  → proponer CREAR la ficha
-```
+##### La tanda, y por qué se puede colgar de un botón
 
-🔑 **El orden no es negociable: primero el número, después el nombre.** Es la misma conclusión a la
-que llegó `PadronImportador` por las malas —«los nombres se escriben mal»—, y por eso aborta ante
-dos personas con el mismo documento: una vez una sobrescribió a otra y desapareció del padrón.
+`app:cotizacion:validar-documentos <expediente> [--forzar] [--limite=N]`.
 
-🔥 **Dos personas con el mismo nombre NO se resuelven adivinando**: se devuelve «hay varias, elige a
-mano». Es el caso de las familias —hermanos con los dos apellidos iguales—, que es exactamente
-donde el reparto se tuerce, y elegir uno sería colgarle a alguien el documento de su hermano con
-cara de acierto.
+Es **incremental**: `estaResuelto()` salta lo ya validado, así que una segunda pasada sólo cuesta
+lo que falta. Y aunque no lo saltara, la lectura está cacheada: lo caro se paga una vez por
+documento, no una por pasada. Pulsar el botón dos veces seguidas no cuesta el doble.
 
-⚠️ **Se busca sólo DENTRO del expediente.** Buscar por todo el sistema encontraría el mismo DNI en
-un grupo del año pasado y propondría cruzar dos expedientes — justo lo que
-`validarDuenoDelMismoExpediente()` prohíbe al guardar.
+⚠️ **Escribe el veredicto y NUNCA corrige el manifiesto.** Si el documento dice `2036` y el
+manifiesto `2026`, deja escrito que no coinciden y para ahí. Corregir es una decisión de una
+persona mirando los dos valores — a veces el equivocado será el escaneo.
 
-⚠️ **El nombre se compara flojo** (sin tildes, sin orden, sin partículas, ≥2 palabras en común)
-porque en un padrón se escribe de quince maneras y un aviso por cada una haría que nadie mirase la
-lista. `ValidadorDeDocumento` reutiliza el criterio de `Cotejo` en vez de escribir el suyo: con dos
-criterios, el proceso se contradiría según por qué rama entrase.
+⚠️ **Cada número se coteja contra SU ficha, no contra «la primera que tenga».** Con DNI y pasaporte
+a la vez, cotejar el pasaporte contra el número del DNI daría «número no coincide» **siempre**: un
+aviso falso repetido en medio manifiesto.
 
-##### Qué escribe y qué no
-
-`app:cotizacion:validar-documentos <expediente> [--aplicar] [--limite=N]`.
-
-- **Sin `--aplicar` no escribe nada**, ni el estado. Enseña el plan y se va.
-- **Con `--aplicar`** guarda estado y observaciones de todos, y ejecuta **sólo** las asociaciones
-  que casan **por número**. Crear fichas y asociar por nombre **no los hace nunca**: son las dos
-  decisiones que se toman mirando, y `CREAR` es la única acción que **añade una persona** al
-  manifiesto — dos fichas de la misma persona rompen los conteos y nadie las echa de menos.
-
-Las observaciones se guardan como **texto**, no como códigos: son para que una persona decida, no
-para que el programa ramifique.
+⚠️ **`CE` y `CI` no se pueden validar** —no hay tipo de archivo que les corresponda— y se quedan en
+`NO_VALIDADO` con su nota. Es correcto, no un fallo: inventarles un archivo genérico haría que se
+cotejaran contra el documento de otra cosa.
 
 #### La bóveda arranca plegada (08/09/2026)
 
