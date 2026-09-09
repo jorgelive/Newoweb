@@ -217,7 +217,7 @@ final readonly class OperacionOrdenDocumento
 
         // ── EL SALUDO ───────────────────────────────────────────────────────
         //
-        // Un mensaje que abre con «*Orden de Servicio OS-…*» se lee como un volcado de sistema.
+        // Un mensaje que abre con «*Solicitud de Servicio OS-…*» se lee como un volcado de sistema.
         // Al otro lado hay una persona y esto es una petición de trabajo, no un ticket.
         //
         // Con la RAZÓN SOCIAL y no el nombre comercial: es como se llama la empresa en lo que se
@@ -231,7 +231,17 @@ final readonly class OperacionOrdenDocumento
 
         $partes = array_filter([
             sprintf('Estimado equipo de %s:', $this->tratamientoDelDestinatario($orden)),
-            sprintf('*Orden de Servicio %s*', $orden->getNumeroOs()),
+            // ⚠️ **«Solicitud», no «Orden», de cara al proveedor.**
+            //
+            // Internamente es una Orden de Servicio y así se llama en todo el módulo, en la base y
+            // en el número (`OS-…`). Pero el que lo lee es quien NOS VENDE, y «orden» ahí suena a
+            // mandato: se le está pidiendo disponibilidad, no dándole una instrucción. El propio
+            // cuerpo lo dice dos párrafos después —«Por favor confirmar recepción y
+            // disponibilidad»—, así que el encabezado contradecía al pie.
+            //
+            // El código interno NO cambia: renombrarlo dentro sería tocar cien sitios para decir
+            // lo mismo, y el número seguiría siendo `OS-`. Lo que cambia es cómo se presenta.
+            sprintf('*Solicitud de Servicio %s*', $orden->getNumeroOs()),
             $grupos === [] ? null : implode("\n", $grupos),
             $partesCuerpo === []
                 ? '(sin líneas: la orden todavía no se ha emitido)'
@@ -265,7 +275,8 @@ final readonly class OperacionOrdenDocumento
 
 
         return [
-            'asunto' => sprintf('Orden de Servicio %s', $orden->getNumeroOs()),
+            // Mismo criterio que el encabezado: al proveedor se le solicita, no se le ordena.
+            'asunto' => sprintf('Solicitud de Servicio %s', $orden->getNumeroOs()),
             'cuerpo' => $cuerpo,
             'lineas' => $bloques,
         ];

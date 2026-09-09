@@ -15,7 +15,9 @@
 <head>
     <meta charset="utf-8">
     {% if not paraPdf %}<meta name="viewport" content="width=device-width, initial-scale=1">{% endif %}
-    <title>Orden de Servicio {{ orden.numeroOs }}</title>
+    {# «Solicitud» y no «Orden»: esta página la abre el proveedor, y se le pide disponibilidad,
+       no se le da una instrucción. Ver `OperacionOrdenDocumento::para()`. #}
+    <title>Solicitud de Servicio {{ orden.numeroOs }}</title>
     <style>
         body { font-family: DejaVu Sans, Arial, sans-serif; color: #1e293b; font-size: 12px;
                margin: 0; padding: 24px; background: #f8fafc; }
@@ -55,7 +57,7 @@
 </head>
 <body>
 <div class="hoja">
-    <h1>Orden de Servicio {{ orden.numeroOs }}</h1>
+    <h1>Solicitud de Servicio {{ orden.numeroOs }}</h1>
     <p class="sub">
         {{ orden.compradorNombre|default('') }}
         {% if orden.items|length %} · {{ orden.items|length }} servicio(s){% endif %}

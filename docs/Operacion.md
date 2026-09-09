@@ -4357,3 +4357,52 @@ números significan cosas distintas, la solución no es separarlos, es no restar
 La tabla de despacho vive en `ComponenteTipoEnum::prioridad()` y llega al front **serializada**
 (`prioridadOperativa`): no hay copia en TypeScript, y por eso las tres superficies ordenan igual sin
 poder divergir.
+
+---
+
+## 17. El primer correo de una orden llegó titulado «Americana» (09/09/2026)
+
+El correo **se envió bien** —`success`, HTTP 200, a `reservas@americanadeturismo.net`, con el cuerpo
+completo— pero salió con el asunto **«Americana»**: el nombre del propio destinatario. No se
+encontraba buscando el número de OS, ni en su bandeja ni en la nuestra.
+
+### La cadena
+
+`OperacionOrdenDocumento::para()` **sí compone** el asunto correcto y lo devuelve en
+`$doc['asunto']`. `OperacionOrdenEnvio` **no lo usaba**: el mensaje recibía cuerpo, idioma y una
+metadata con el número, pero ningún asunto.
+
+Y sin asunto propio, `EmailSendEnqueuer::asunto()` cae a su respaldo:
+
+```
+1. ¿lleva plantilla?  → el asunto de la plantilla     (una orden no lleva)
+2. si no              → la etiqueta del primer enlace  ← «Americana»
+3. si no              → el nombre del huésped
+```
+
+⚠️ **Y el paso que faltaba estaba prometido en un comentario.** Decía «del asunto del mensaje si lo
+lleva; si no, del primero del hilo», y el código saltaba directo al bucle: `getSubjectExternal()`
+no se consultaba nunca. Ningún mensaje podía llevar su propio título por correo, pusiera lo que
+pusiera.
+
+Es la **segunda cicatriz del mismo tipo en ese método**: dos líneas más abajo hay otra de un
+comentario que prometía un orden «por relevancia» que resultó falso.
+
+Se arregló en los dos sitios —el encolador cumple lo que dice, y la orden pone su asunto—, y se
+midió el alcance antes: **cero** de los 7.142 mensajes de producción tenían `subjectExternal`
+puesto, así que hacer que se lea no cambia nada de lo que ya funcionaba.
+
+## 18. «Solicitud», no «Orden», de cara al proveedor (09/09/2026)
+
+El documento abría con «*Orden de Servicio OS-…*». Quien lo lee **nos vende**, y ahí «orden» suena a
+mandato: se le está pidiendo disponibilidad, no dándole una instrucción. El propio cuerpo lo dice
+dos párrafos después —«Por favor confirmar recepción y disponibilidad»—, así que el encabezado
+contradecía al pie.
+
+Cambia en las tres superficies que ve el proveedor: el encabezado del mensaje, el asunto del correo
+y el título de la página pública.
+
+⚠️ **Dentro NO cambia nada.** Sigue siendo una Orden de Servicio en el código, en la base y en el
+número (`OS-…`), y los mensajes de error que lee el operador siguen diciendo «orden». Renombrarlo
+por dentro sería tocar cien sitios para decir lo mismo, y el número seguiría delatándolo. Lo que
+cambia es **cómo se presenta**, que es lo único que el proveedor ve.

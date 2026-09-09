@@ -283,7 +283,25 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
             }
         }
 
-        // Del asunto del mensaje si lo lleva; si no, del primero del hilo.
+        // ⚠️ **El asunto DEL MENSAJE, que hasta el 09/09/2026 este método decía mirar y no
+        // miraba.** El comentario prometía «del asunto del mensaje si lo lleva» y el código saltaba
+        // directo al bucle de abajo, así que ningún mensaje podía llevar su propio título por
+        // correo — pusiera lo que pusiera en `subjectExternal`.
+        //
+        // Se vio con la primera orden de servicio enviada: el documento componía «Orden de
+        // Servicio OS-20260909-981», y al proveedor le llegó un correo titulado **«Americana»**,
+        // su propio nombre, porque cayó al respaldo de la etiqueta del hilo. Ni él podía buscarlo
+        // ni nosotros encontrarlo.
+        //
+        // Es la segunda cicatriz del mismo tipo en este método: dos líneas más abajo hay otra de
+        // un comentario que prometía un orden «por relevancia» que era falso.
+        $propio = trim((string) $message->getSubjectExternal());
+
+        if ($propio !== '') {
+            return $propio;
+        }
+
+        // Si el mensaje no trae asunto, el del primero del hilo.
         //
         // ⚠️ Aquí decía que `EnlacesDeConversacion::de()` los devuelve «ordenados por
         // relevancia». **Es falso**: devuelve el orden de los proveedores (`createdAt ASC`). La

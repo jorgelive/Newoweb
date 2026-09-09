@@ -199,6 +199,12 @@ final readonly class OperacionOrdenEnvio
         $cuerpo = $doc['cuerpo'];
 
         $mensaje->setContentExternal($cuerpo);
+        // ⚠️ El asunto se compone en `OperacionOrdenDocumento` y hasta el 09/09/2026 **no se
+        // usaba**: se calculaba, se devolvía en `$doc['asunto']` y se quedaba ahí. El correo salía
+        // titulado con la etiqueta del hilo —el nombre del proveedor— porque el encolador caía a
+        // su respaldo. Para el destinatario, un correo titulado con su propia empresa; para
+        // nosotros, imposible de encontrar por número.
+        $mensaje->setSubjectExternal($doc['asunto']);
         $mensaje->setLanguageCode('es');
         $mensaje->addMetadata('orden_servicio', (string) $orden->getNumeroOs());
 
