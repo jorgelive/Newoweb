@@ -1277,3 +1277,37 @@ es donde CSS no llega; lo que se pueda resolver con una clase de Tailwind se res
 
 ⚠️ El umbral es **640 px, el `sm` de Tailwind**, a propósito: con otro número el comportamiento
 salta a un ancho distinto del que salta el diseño, y nadie entiende por qué.
+
+---
+
+## La pestaña también es navegación (09/09/2026)
+
+En el Centro de Operaciones, estando en **Órdenes** el gesto «atrás» no volvía a La Biblia: se salía
+de la vista entera y se aterrizaba en la lista de expedientes.
+
+### Por qué
+
+Toda esa vista cuelga de `useCapasEnHistorial` —fichas, modales, modo edición—, que guarda lo
+abierto en la query (`?capa=servicio.servicio-edicion`) y deja que el router lo empuje y lo saque.
+Funciona bien. Pero `activeTab` se había quedado **fuera**, como un `ref` suelto: cambiar de
+pestaña no creaba entrada de historial, así que «atrás» consumía la anterior — la de la ruta desde
+la que se entró.
+
+Y es justo el estado en el que más rato se está.
+
+### Query, no capa
+
+Se resolvió con `?tab=ordenes` y no como una capa más, y la distinción importa: **las capas son
+cosas que se apilan encima** —un modal sobre una ficha— y cerrarlas es retroceder. Órdenes no está
+encima de La Biblia: es su hermana. Con una query se consigue el mismo «atrás» y de regalo el
+enlace se puede compartir y sobrevive a recargar.
+
+La Biblia va **sin parámetro** por ser el defecto, así que la URL normal queda limpia.
+
+⚠️ **El estado sigue a la URL, no al revés.** El clic en la pestaña, el gesto «atrás», el «adelante»
+y entrar por un enlace pegado acaban los cuatro en lo mismo —un cambio de query— y se reacciona en
+un solo `watch`. Con el `ref` como fuente de verdad, «atrás» habría cambiado la URL sin cambiar la
+pantalla.
+
+⚠️ **Y el `watch` va SIN `immediate`.** `onMounted` ya lee la query para arrancar donde toca; con
+las dos cosas, entrar en la vista cargaba La Biblia **dos veces**. Eso no se ve, sólo se paga.

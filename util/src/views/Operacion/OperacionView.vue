@@ -12,7 +12,8 @@
  * qué está llegando, después se decide qué se deja de generar.
  */
 import { ref, onMounted, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import type { LocationQueryRaw } from 'vue-router';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import EditorCostoNegociado from '@/components/operacion/EditorCostoNegociado.vue';
 import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type BitacoraEstado, type PagoProveedor, type ExpedienteDetalle, type ProveedorOpcion , type DocumentoDeOrden } from '@/stores/operacion/operacionStore';
@@ -45,6 +46,7 @@ import { useCapasEnHistorial } from '@/composables/useCapasEnHistorial';
 
 const operacionStore = useOperacionStore();
 const router = useRouter();
+const route = useRoute();
 
 const activeTab = ref<'biblia' | 'ordenes'>('biblia');
 
@@ -360,8 +362,60 @@ const refrescar = async () => {
     else await cargarOrdenes();
 };
 
+/**
+ * Cambiar de pestaña ES navegar, y hasta hoy no lo era.
+ *
+ * ⚠️ **`activeTab` era un ref suelto**, así que estando en Órdenes el gesto «atrás» no volvía a La
+ * Biblia: se iba de la vista entera y aterrizabas en la lista de expedientes. Toda la vista cuelga
+ * de `useCapasEnHistorial` —fichas, modales, modo edición— pero la pestaña se había quedado fuera,
+ * que es justo el estado en el que más rato se está.
+ *
+ * Va en la QUERY y no como capa: las capas son cosas que se apilan ENCIMA —un modal sobre una
+ * ficha— y Órdenes no está encima de La Biblia, es su hermana. Con `?tab=ordenes` se consigue lo
+ * mismo y de regalo el enlace se puede compartir y sobrevive a recargar.
+ *
+ * `push` y no `replace`: es lo que crea la entrada de historial, o sea lo que hace que «atrás»
+ * tenga adónde volver. La Biblia es el defecto, así que se va SIN parámetro — una URL limpia para
+ * el caso normal.
+ */
 const cambiarTab = async (tab: 'biblia' | 'ordenes') => {
-    activeTab.value = tab;
+    if (tab === activeTab.value) return;
+
+    await router.push({ query: tab === 'biblia' ? sinTab() : { ...route.query, tab: 'ordenes' } });
+};
+
+/** La query sin `tab`, para volver a La Biblia sin dejar el parámetro puesto. */
+const sinTab = (): LocationQueryRaw => {
+    const { tab: _descartado, ...resto } = route.query;
+
+    return resto;
+};
+
+/**
+ * Y el estado sigue a la URL, no al revés.
+ *
+ * Es lo que hace que funcione igual el clic en la pestaña, el gesto «atrás», el «adelante» y
+ * entrar por un enlace pegado: los cuatro acaban en el mismo sitio —un cambio de query— y aquí se
+ * reacciona una sola vez. Con el ref como fuente de verdad, «atrás» habría cambiado la URL sin
+ * cambiar la pantalla.
+ *
+ * ⚠️ **Sin `immediate`**, y no es un descuido: `onMounted` ya lee la query para arrancar en la
+ * pestaña que toca. Con las dos cosas, entrar en la vista cargaba La Biblia **dos veces** —una por
+ * el `immediate` y otra por el montaje— y eso no se ve, sólo se paga.
+ */
+watch(() => route.query.tab, async (valor) => {
+    const destino = pestanaDeLaUrl(valor);
+
+    if (destino === activeTab.value) return;
+
+    activeTab.value = destino;
+    await cargarPestana(destino);
+});
+
+/** Qué pestaña pide la URL. Sin parámetro, La Biblia: es el defecto y deja la URL limpia. */
+const pestanaDeLaUrl = (valor: unknown): 'biblia' | 'ordenes' => valor === 'ordenes' ? 'ordenes' : 'biblia';
+
+const cargarPestana = async (tab: 'biblia' | 'ordenes'): Promise<void> => {
     if (tab === 'biblia') await cargarBiblia();
     else await cargarOrdenes();
 };
@@ -2555,7 +2609,9 @@ onMounted(async () => {
         operacionStore.fetchMonedas(),
         operacionStore.fetchProveedores(),
     ]);
-    await cargarBiblia();
+    // La pestaña la decide la URL, para que un enlace pegado con `?tab=ordenes` abra donde dice.
+    activeTab.value = pestanaDeLaUrl(route.query.tab);
+    await cargarPestana(activeTab.value);
 });
 
 // El registro de escuchas de `popstate` y la limpieza al navegar fuera los hace ahora
