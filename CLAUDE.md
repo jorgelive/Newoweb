@@ -201,6 +201,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Service/Phone/`, listeners de integridad de teléfonos, `util/src/utils/telefono.ts` | `docs/Telefonos.md` |
 | `src/Agent/Alexa/`, `VoiceAssistant`, `AlexaController` (el agente por voz) | `docs/AgentVoz.md` |
 | `src/Service/Translate/`, `AutoTranslationEventListener`, `#[AutoTranslate]`, `AutoTranslateControlTrait` | `docs/Autotraduccion.md` |
+| Fechas, husos horarios, `APP_ZONA_HORARIA`, `PmsEstablecimiento::$timezone`, `dominio/fecha/` | `docs/ZonasHorarias.md` — el estándar es **hora de pared del establecimiento**; léelo antes de tocar cualquier fecha |
 | `src/Logging/`, `config/packages/monolog.yaml`, rotación de logs | `docs/Logging.md` |
 | `config/packages/mailer.yaml`, variables `MAILER_*`, envío por Graph | `docs/CorreoSaliente.md` |
 | `src/Domotica/`, `TuyaExchangeClient`, aparatos inteligentes (consumo y estado) | `docs/Domotica.md` |
