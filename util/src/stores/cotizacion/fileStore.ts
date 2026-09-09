@@ -730,6 +730,23 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * Lanza el control de validación sobre el manifiesto entero.
+     *
+     * ⚠️ Idempotente en el servidor: lo ya validado se salta y la lectura de cada documento está
+     * cacheada, así que pulsar dos veces no cuesta el doble. Por eso el botón no confirma.
+     */
+    const validarManifiesto = async (fileId: string): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.post(`/platform/sales/client/cotizacion_file/${fileId}/validar-manifiesto`, {});
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo validar el manifiesto.');
+            return false;
+        }
+    };
+
     const deleteDocument = async (iri: string): Promise<boolean> => {
         try {
             await apiClient.delete(iri);
@@ -801,6 +818,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         extraerResumenPreview,
         updatePassenger,
         updateDocument,
+        validarManifiesto,
         cloneCotizacion,
         guardarHistorico,
         abrirOperativa,

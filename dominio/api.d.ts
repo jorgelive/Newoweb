@@ -700,6 +700,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/sales/client/cotizacion_file/{id}/validar-manifiesto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a CotizacionFile resource.
+         * @description Creates a CotizacionFile resource.
+         */
+        post: operations["api_salesclientcotizacion_file_idvalidar-manifiesto_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/sales/cotizacion_files": {
         parameters: {
             query?: never;
@@ -10926,6 +10946,43 @@ export interface components {
             updatedAt?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile-file.item.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            email?: string | null;
+            telefono?: string | null;
+            pais?: components["schemas"]["Pais-file.item.read"] | null;
+            contacto?: components["schemas"]["MaestroContacto-file.item.read"] | null;
+            /** @default es */
+            idiomaCliente: string;
+            /**
+             * @default abierto
+             * @enum {string}
+             */
+            estado: "abierto" | "cerrado" | "archivado";
+            cotizaciones?: components["schemas"]["Cotizacion-file.item.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero-file.item.read"][];
+            filearchivos?: components["schemas"]["CotizacionFilearchivo-file.item.read"][];
+            readonly vuelos?: components["schemas"]["CotizacionVuelo-file.item.read"][];
+            grupos?: components["schemas"]["CotizacionFileGrupo-file.item.read"][];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
+            /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
+            subgruposIncompletos?: {
+                eje: string;
+                ejeLabel: string;
+                faltan: string[];
+            }[];
+            readonly localizador?: string | null;
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile-file.read_file.item.read_timestamp.read": {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
@@ -11378,6 +11435,43 @@ export interface components {
             updatedAt?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.html-file.item.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            email?: string | null;
+            telefono?: string | null;
+            pais?: components["schemas"]["Pais.html-file.item.read"] | null;
+            contacto?: components["schemas"]["MaestroContacto.html-file.item.read"] | null;
+            /** @default es */
+            idiomaCliente: string;
+            /**
+             * @default abierto
+             * @enum {string}
+             */
+            estado: "abierto" | "cerrado" | "archivado";
+            cotizaciones?: components["schemas"]["Cotizacion.html-file.item.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-file.item.read"][];
+            filearchivos?: components["schemas"]["CotizacionFilearchivo.html-file.item.read"][];
+            readonly vuelos?: components["schemas"]["CotizacionVuelo.html-file.item.read"][];
+            grupos?: components["schemas"]["CotizacionFileGrupo.html-file.item.read"][];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
+            /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
+            subgruposIncompletos?: {
+                eje: string;
+                ejeLabel: string;
+                faltan: string[];
+            }[];
+            readonly localizador?: string | null;
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.html-file.read_file.item.read_timestamp.read": {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
@@ -11778,6 +11872,44 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.jsonld-file.item.read": {
+            filearchivos?: components["schemas"]["CotizacionFilearchivo.jsonld-file.item.read"][];
+            readonly vuelos?: components["schemas"]["CotizacionVuelo.jsonld-file.item.read"][];
+            grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read"][];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
+            /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
+            subgruposIncompletos?: {
+                eje: string;
+                ejeLabel: string;
+                faltan: string[];
+            }[];
+            readonly localizador?: string | null;
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
+        } & (components["schemas"]["HydraItemBaseSchema"] & {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            email?: string | null;
+            telefono?: string | null;
+            pais?: components["schemas"]["Pais.jsonld-file.item.read"] | null;
+            contacto?: components["schemas"]["MaestroContacto.jsonld-file.item.read"] | null;
+            /** @default es */
+            idiomaCliente: string;
+            /**
+             * @default abierto
+             * @enum {string}
+             */
+            estado: "abierto" | "cerrado" | "archivado";
+            cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.item.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-file.item.read"][];
+        });
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-file.read_file.item.read_timestamp.read": {
             filearchivos?: components["schemas"]["CotizacionFilearchivo.jsonld-file.read_file.item.read_timestamp.read"][];
@@ -12183,6 +12315,43 @@ export interface components {
             updatedAt?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.multipart-file.item.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            email?: string | null;
+            telefono?: string | null;
+            pais?: components["schemas"]["Pais.multipart-file.item.read"] | null;
+            contacto?: components["schemas"]["MaestroContacto.multipart-file.item.read"] | null;
+            /** @default es */
+            idiomaCliente: string;
+            /**
+             * @default abierto
+             * @enum {string}
+             */
+            estado: "abierto" | "cerrado" | "archivado";
+            cotizaciones?: components["schemas"]["Cotizacion.multipart-file.item.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-file.item.read"][];
+            filearchivos?: components["schemas"]["CotizacionFilearchivo.multipart-file.item.read"][];
+            readonly vuelos?: components["schemas"]["CotizacionVuelo.multipart-file.item.read"][];
+            grupos?: components["schemas"]["CotizacionFileGrupo.multipart-file.item.read"][];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
+            /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
+            subgruposIncompletos?: {
+                eje: string;
+                ejeLabel: string;
+                faltan: string[];
+            }[];
+            readonly localizador?: string | null;
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.multipart-file.read_file.item.read_timestamp.read": {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
@@ -12500,6 +12669,39 @@ export interface components {
              */
             readonly totalMiembros?: number;
         };
+        "CotizacionFileGrupo-file.item.read": {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
+            detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
+            id?: string;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
+            readonly totalMiembros?: number;
+        };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo-file.item.read_timestamp.read": {
             /** @enum {string} */
@@ -12704,6 +12906,39 @@ export interface components {
              */
             readonly totalMiembros?: number;
         };
+        "CotizacionFileGrupo.html-file.item.read": {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
+            detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
+            id?: string;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
+            readonly totalMiembros?: number;
+        };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.html-file.item.read_timestamp.read": {
             /** @enum {string} */
@@ -12849,6 +13084,40 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
+            readonly totalMiembros?: number;
+        };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
+            detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
+            id?: string;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
@@ -13018,6 +13287,39 @@ export interface components {
              */
             readonly totalMiembros?: number;
         };
+        "CotizacionFileGrupo.multipart-file.item.read": {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
+            detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
+            id?: string;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
+            readonly totalMiembros?: number;
+        };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.multipart-file.item.read_timestamp.read": {
             /** @enum {string} */
@@ -13145,6 +13447,14 @@ export interface components {
              * @example https://example.com/
              */
             grupo?: string | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -13180,6 +13490,36 @@ export interface components {
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
+        "CotizacionFilearchivo-file.item.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            file?: components["schemas"]["CotizacionFile-file.item.read"];
+            pasajero?: components["schemas"]["CotizacionFilepasajero-file.item.read"] | null;
+            vuelo?: components["schemas"]["CotizacionVuelo-file.item.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo-file.item.read"] | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
+            imageName?: string | null;
+            imageSize?: number | null;
+            nombre?: {
+                [key: string]: string | null;
+            }[] | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
+        };
         "CotizacionFilearchivo-file.read_file.item.read_timestamp.read": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
@@ -13190,6 +13530,14 @@ export interface components {
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.read_file.item.read_timestamp.read"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo-file.read_file.item.read_timestamp.read"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"] | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
             nombre?: {
@@ -13305,6 +13653,14 @@ export interface components {
              * @example https://example.com/
              */
             grupo?: string | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -13340,6 +13696,36 @@ export interface components {
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
+        "CotizacionFilearchivo.html-file.item.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            file?: components["schemas"]["CotizacionFile.html-file.item.read"];
+            pasajero?: components["schemas"]["CotizacionFilepasajero.html-file.item.read"] | null;
+            vuelo?: components["schemas"]["CotizacionVuelo.html-file.item.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo.html-file.item.read"] | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
+            imageName?: string | null;
+            imageSize?: number | null;
+            nombre?: {
+                [key: string]: string | null;
+            }[] | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
+        };
         "CotizacionFilearchivo.html-file.read_file.item.read_timestamp.read": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
@@ -13350,6 +13736,14 @@ export interface components {
             pasajero?: components["schemas"]["CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo.html-file.read_file.item.read_timestamp.read"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"] | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
             nombre?: {
@@ -13417,6 +13811,14 @@ export interface components {
              * @example https://example.com/
              */
             grupo?: string | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -13452,6 +13854,36 @@ export interface components {
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
+        "CotizacionFilearchivo.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            file?: components["schemas"]["CotizacionFile.jsonld-file.item.read"];
+            pasajero?: components["schemas"]["CotizacionFilepasajero.jsonld-file.item.read"] | null;
+            vuelo?: components["schemas"]["CotizacionVuelo.jsonld-file.item.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read"] | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
+            imageName?: string | null;
+            imageSize?: number | null;
+            nombre?: {
+                [key: string]: string | null;
+            }[] | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
+        };
         "CotizacionFilearchivo.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
@@ -13462,6 +13894,14 @@ export interface components {
             pasajero?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo.jsonld-file.read_file.item.read_timestamp.read"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"] | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
             nombre?: {
@@ -13529,6 +13969,14 @@ export interface components {
              * @example https://example.com/
              */
             grupo?: string | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -13564,6 +14012,36 @@ export interface components {
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
+        "CotizacionFilearchivo.multipart-file.item.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            file?: components["schemas"]["CotizacionFile.multipart-file.item.read"];
+            pasajero?: components["schemas"]["CotizacionFilepasajero.multipart-file.item.read"] | null;
+            vuelo?: components["schemas"]["CotizacionVuelo.multipart-file.item.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo.multipart-file.item.read"] | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
+            imageName?: string | null;
+            imageSize?: number | null;
+            nombre?: {
+                [key: string]: string | null;
+            }[] | null;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
+        };
         "CotizacionFilearchivo.multipart-file.read_file.item.read_timestamp.read": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
@@ -13574,6 +14052,14 @@ export interface components {
             pasajero?: components["schemas"]["CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo.multipart-file.read_file.item.read_timestamp.read"] | null;
             grupo?: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"] | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
             nombre?: {
@@ -13662,6 +14148,47 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
+        };
+        "CotizacionFilepasajero-file.item.read": {
+            nombre?: string;
+            apellido?: string;
+            pais?: components["schemas"]["Pais-file.item.read"];
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-file.item.read"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo-file.item.read"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
             /** @description Obtiene el primer bloque del apellido. */
             readonly apellidoPaterno?: string | null;
             /** @description Obtiene el segundo bloque del apellido. */
@@ -13926,6 +14453,47 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        "CotizacionFilepasajero.html-file.item.read": {
+            nombre?: string;
+            apellido?: string;
+            pais?: components["schemas"]["Pais.html-file.item.read"];
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-file.item.read"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.html-file.item.read"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
+        };
         "CotizacionFilepasajero.html-file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -14096,6 +14664,47 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
+        };
+        "CotizacionFilepasajero.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string;
+            apellido?: string;
+            pais?: components["schemas"]["Pais.jsonld-file.item.read"];
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-file.item.read"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.jsonld-file.item.read"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
             /** @description Obtiene el primer bloque del apellido. */
             readonly apellidoPaterno?: string | null;
             /** @description Obtiene el segundo bloque del apellido. */
@@ -14302,6 +14911,47 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        "CotizacionFilepasajero.multipart-file.item.read": {
+            nombre?: string;
+            apellido?: string;
+            pais?: components["schemas"]["Pais.multipart-file.item.read"];
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart-file.item.read"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.multipart-file.item.read"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
+        };
         "CotizacionFilepasajero.multipart-file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -14450,6 +15100,15 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionPasajeroGrupo-file.item.read": {
+            grupo: components["schemas"]["CotizacionFileGrupo-file.item.read"];
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
+            id?: string;
+        };
         "CotizacionPasajeroGrupo-file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo-file.item.read_timestamp.read"];
             /**
@@ -14502,6 +15161,15 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionPasajeroGrupo.html-file.item.read": {
+            grupo: components["schemas"]["CotizacionFileGrupo.html-file.item.read"];
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
+            id?: string;
+        };
         "CotizacionPasajeroGrupo.html-file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.html-file.item.read_timestamp.read"];
             /**
@@ -14550,6 +15218,15 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionPasajeroGrupo.jsonld-file.item.read": {
+            grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read"];
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
+            id?: string;
+        };
         "CotizacionPasajeroGrupo.jsonld-file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read_timestamp.read"];
             /**
@@ -14597,6 +15274,15 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        "CotizacionPasajeroGrupo.multipart-file.item.read": {
+            grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.item.read"];
+            /**
+             * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
+             *     habitación, su asiento.
+             */
+            codigo?: string | null;
+            id?: string;
         };
         "CotizacionPasajeroGrupo.multipart-file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.item.read_timestamp.read"];
@@ -14648,11 +15334,61 @@ export interface components {
              * @example https://example.com/
              */
             paisEmisor?: string | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Con qué escaneo se validó.
+             * @example https://example.com/
+             */
+            readonly validadoCon?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion-file.item.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            paisEmisor?: components["schemas"]["Pais-file.item.read"] | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            id?: string;
         };
         "CotizacionPasajeroIdentificacion-file.item.read_timestamp.read": {
             /**
@@ -14668,6 +15404,20 @@ export interface components {
              */
             vencimiento?: string | null;
             paisEmisor?: components["schemas"]["Pais-file.item.read_timestamp.read"] | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -14688,6 +15438,20 @@ export interface components {
              */
             vencimiento?: string | null;
             paisEmisor?: components["schemas"]["Pais-file.read_file.item.read_timestamp.read"] | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -14769,11 +15533,61 @@ export interface components {
              * @example https://example.com/
              */
             paisEmisor?: string | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Con qué escaneo se validó.
+             * @example https://example.com/
+             */
+            readonly validadoCon?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion.html-file.item.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            paisEmisor?: components["schemas"]["Pais.html-file.item.read"] | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            id?: string;
         };
         "CotizacionPasajeroIdentificacion.html-file.item.read_timestamp.read": {
             /**
@@ -14789,6 +15603,20 @@ export interface components {
              */
             vencimiento?: string | null;
             paisEmisor?: components["schemas"]["Pais.html-file.item.read_timestamp.read"] | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -14809,6 +15637,20 @@ export interface components {
              */
             vencimiento?: string | null;
             paisEmisor?: components["schemas"]["Pais.html-file.read_file.item.read_timestamp.read"] | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -14869,11 +15711,61 @@ export interface components {
              * @example https://example.com/
              */
             paisEmisor?: string | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Con qué escaneo se validó.
+             * @example https://example.com/
+             */
+            readonly validadoCon?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion.jsonld-file.item.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            paisEmisor?: components["schemas"]["Pais.jsonld-file.item.read"] | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            id?: string;
         };
         "CotizacionPasajeroIdentificacion.jsonld-file.item.read_timestamp.read": {
             /**
@@ -14889,6 +15781,20 @@ export interface components {
              */
             vencimiento?: string | null;
             paisEmisor?: components["schemas"]["Pais.jsonld-file.item.read_timestamp.read"] | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -14909,6 +15815,20 @@ export interface components {
              */
             vencimiento?: string | null;
             paisEmisor?: components["schemas"]["Pais.jsonld-file.read_file.item.read_timestamp.read"] | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -14969,11 +15889,61 @@ export interface components {
              * @example https://example.com/
              */
             paisEmisor?: string | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Con qué escaneo se validó.
+             * @example https://example.com/
+             */
+            readonly validadoCon?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion.multipart-file.item.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            paisEmisor?: components["schemas"]["Pais.multipart-file.item.read"] | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            id?: string;
         };
         "CotizacionPasajeroIdentificacion.multipart-file.item.read_timestamp.read": {
             /**
@@ -14989,6 +15959,20 @@ export interface components {
              */
             vencimiento?: string | null;
             paisEmisor?: components["schemas"]["Pais.multipart-file.item.read_timestamp.read"] | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -15009,6 +15993,20 @@ export interface components {
              */
             vencimiento?: string | null;
             paisEmisor?: components["schemas"]["Pais.multipart-file.read_file.item.read_timestamp.read"] | null;
+            /**
+             * @description El veredicto del control sobre ESTE número. Ver {@see ValidacionIdentificacionEnum}.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: vencido, banda ilegible, sin nada contra qué cotejar. */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -15703,6 +16701,32 @@ export interface components {
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
         };
+        "CotizacionVuelo-file.item.read": {
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
         "CotizacionVuelo-file.read_file.item.read_timestamp.read": {
             /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
             numero: string;
@@ -15767,6 +16791,32 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
+        "CotizacionVuelo.html-file.item.read": {
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
         };
@@ -15836,6 +16886,32 @@ export interface components {
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
         };
+        "CotizacionVuelo.jsonld-file.item.read": {
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
         "CotizacionVuelo.jsonld-file.read_file.item.read_timestamp.read": {
             /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
             numero: string;
@@ -15899,6 +16975,32 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
+        "CotizacionVuelo.multipart-file.item.read": {
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
         };
@@ -17402,6 +18504,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "MaestroContacto-file.item.read": Record<string, never>;
         "MaestroContacto-file.read_file.item.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
@@ -17465,6 +18568,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "MaestroContacto.html-file.item.read": Record<string, never>;
         "MaestroContacto.html-file.read_file.item.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
@@ -17526,6 +18630,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "MaestroContacto.jsonld-file.item.read": Record<string, never>;
         "MaestroContacto.jsonld-file.read_file.item.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
@@ -17587,6 +18692,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "MaestroContacto.multipart-file.item.read": Record<string, never>;
         "MaestroContacto.multipart-file.read_file.item.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
@@ -24484,6 +25590,15 @@ export interface components {
          * @description Entidad MaestroPais.
          *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
          */
+        "Pais-file.item.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
         "Pais-file.item.read_timestamp.read": {
             id?: string;
             nombre?: string;
@@ -24539,6 +25654,15 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.html-file.item.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
         };
         /**
          * @description Entidad MaestroPais.
@@ -24604,6 +25728,15 @@ export interface components {
          * @description Entidad MaestroPais.
          *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
          */
+        "Pais.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
         "Pais.jsonld-file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
             nombre?: string;
@@ -24659,6 +25792,15 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.multipart-file.item.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
         };
         /**
          * @description Entidad MaestroPais.
@@ -38840,6 +39982,62 @@ export interface operations {
                     "application/ld+json": components["schemas"]["Error.jsonld"];
                     "application/problem+json": components["schemas"]["Error"];
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "api_salesclientcotizacion_file_idvalidar-manifiesto_post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionFile identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new CotizacionFile resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["CotizacionFile"];
+                "application/json": components["schemas"]["CotizacionFile"];
+                "text/html": components["schemas"]["CotizacionFile"];
+                "multipart/form-data": components["schemas"]["CotizacionFile"];
+            };
+        };
+        responses: {
+            /** @description CotizacionFile resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld-file.item.read"];
+                    "application/json": components["schemas"]["CotizacionFile-file.item.read"];
+                    "text/html": components["schemas"]["CotizacionFile.html-file.item.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart-file.item.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
                 };
             };
         };

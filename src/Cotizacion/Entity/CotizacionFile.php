@@ -16,6 +16,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Patch;
 use App\Api\Provider\Cotizacion\CotizacionFileCollectionProvider;
+use App\Cotizacion\ApiPlatform\State\ValidarManifiestoProcessor;
 use App\Cotizacion\ApiPlatform\State\CotizacionFileItemProvider;
 use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
 use App\Cotizacion\ApiPlatform\Filter\CotizacionFileNombreFilter;
@@ -89,6 +90,20 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             denormalizationContext: ['groups' => ['file:write']],
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear expedientes.'
+        ),
+
+        // El botón de validar el manifiesto contra los escaneos. Devuelve el expediente entero
+        // para que el front repinte los veredictos sin una segunda vuelta — con 135 personas se
+        // nota. Ver ValidarManifiestoProcessor: es idempotente y no corrige nada.
+        new Post(
+            uriTemplate: '/client/cotizacion_file/{id}/validar-manifiesto',
+            normalizationContext: ['groups' => ['file:item:read']],
+            securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para validar documentos.',
+            read: true,
+            deserialize: false,
+            validate: false,
+            processor: ValidarManifiestoProcessor::class
         ),
         new Put(
             denormalizationContext: ['groups' => ['file:write']],

@@ -1828,6 +1828,59 @@ aviso falso repetido en medio manifiesto.
 `NO_VALIDADO` con su nota. Es correcto, no un fallo: inventarles un archivo genérico haría que se
 cotejaran contra el documento de otra cosa.
 
+#### El botón, y por qué no lleva confirmación (09/09/2026)
+
+`POST /platform/sales/client/cotizacion_file/{id}/validar-manifiesto` →
+`ValidarManifiestoProcessor`. En pantalla, un botón en la cabecera del manifiesto con el contador
+de observados al lado.
+
+⚠️ **No pide confirmar, y es una decisión, no un olvido.** Pulsarlo dos veces seguidas **no cuesta
+el doble**: lo ya resuelto se salta y la lectura de cada documento está cacheada en el archivo. No
+hay nada que confirmar porque no hay nada que perder.
+
+⚠️ **Devuelve el expediente entero** (`file:item:read`) en vez de un resumen: con 135 personas, una
+segunda vuelta para repintar se nota.
+
+⚠️ **El botón va FUERA del botón que pliega la sección.** Dentro, pulsarlo plegaría el manifiesto
+justo cuando llegan los resultados que se quieren ver.
+
+⚠️ Y al lado dice **«escribe el veredicto, no corrige el manifiesto»**. Un botón llamado «validar»
+invita a pensar que arregla; aquí lo que se corrige lo corrige una persona mirando los dos valores,
+porque a veces el equivocado es el escaneo.
+
+##### El sello va pegado al número
+
+En la ficha de cada persona, no en una pantalla aparte: lo que se valida es lo que alguien tecleó,
+así que el veredicto tiene que verse **donde se mira el dato**. Una lista aparte hay que acordarse
+de ir a mirarla.
+
+La discrepancia se pinta con **los dos valores juntos** —`2036` ← `2026`— porque en el caso más
+frecuente eso *es* la resolución: se ve el dedazo sin abrir el escaneo ni cambiar de pantalla.
+
+⚠️ **Las `no_validado` SIN nota no se pintan.** Son las que nadie ha mirado todavía, y marcar las
+263 en gris antes de la primera pasada llenaría el manifiesto de ruido. Las que traen nota —«no hay
+escaneo en la bóveda»— sí: eso es información.
+
+⚠️ **`SELLO` en `FileDetalle.vue` es espejo de `ValidacionIdentificacionEnum::getColor()`: se tocan
+los dos.** Y los dos verdes son distintos a propósito — `validado_mrz` son dígitos de control,
+`validado_ocr` son dos lecturas que coinciden y pueden fallar las dos si el error venía del padrón
+original. Pintarlos igual borraría la única diferencia que importa.
+
+##### Lo que dio la primera tanda real (263 números)
+
+| | |
+|---|---|
+| Validado (MRZ) | 63 |
+| Validado (OCR) | 90 |
+| **Observado** | **30** |
+| Sin validar | 80 — todos por «no hay escaneo en la bóveda» |
+
+De los 183 con escaneo, **153 validados (84 %)**. Y los 30 observados, por campo: **17
+vencimientos**, **8 números**, 1 nacimiento. Diecisiete fechas mal tecleadas y ocho números que no
+son los del documento — un número mal en un manifiesto es un problema en el aeropuerto.
+
+Coste de la tanda entera: **~$0,30**. Y no se vuelve a pagar: las lecturas quedaron cacheadas.
+
 #### La bóveda arranca plegada (08/09/2026)
 
 Vive en la barra lateral, encima de todo lo demás, y en un expediente grande son ~1 500 archivos.

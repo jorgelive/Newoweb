@@ -1894,6 +1894,57 @@ const duenoDelArchivo = (doc: ApiCotizacionFilearchivo): string => {
 };
 
 /**
+ * Cómo se pinta cada veredicto. Espejo de `ValidacionIdentificacionEnum::getColor()` en PHP —
+ * **hay que tocar los dos** si se añade un estado.
+ *
+ * ⚠️ Los dos verdes NO son el mismo verde a propósito. `validado_mrz` lo respaldan dígitos de
+ * control; `validado_ocr` son dos lecturas que coinciden, y ésas pueden equivocarse las dos si el
+ * error venía del padrón original. Pintarlos igual borraría la única diferencia que importa.
+ */
+const SELLO: Record<string, { texto: string; clase: string; icono: string }> = {
+    no_validado: { texto: 'sin validar', clase: 'bg-white text-slate-400 border-slate-200', icono: 'fa-circle-question' },
+    observado: { texto: 'observado', clase: 'bg-amber-50 text-amber-700 border-amber-300', icono: 'fa-triangle-exclamation' },
+    validado_ocr: { texto: 'validado OCR', clase: 'bg-sky-50 text-sky-700 border-sky-300', icono: 'fa-check' },
+    validado_mrz: { texto: 'validado MRZ', clase: 'bg-emerald-50 text-emerald-700 border-emerald-300', icono: 'fa-shield-halved' },
+};
+
+/**
+ * Las identificaciones que ya pasaron por el control.
+ *
+ * ⚠️ Se filtran las `no_validado` **sin nota**: son las que nadie ha mirado todavía, y pintar
+ * «sin validar» en las 263 antes de la primera pasada llenaría el manifiesto de gris sin decir
+ * nada. Las que sí traen nota —«no hay escaneo en la bóveda»— se quedan: eso sí es información.
+ */
+const identificacionesConVeredicto = (pax: ApiCotizacionFilepasajero) =>
+    (pax.identificaciones ?? []).filter(i =>
+        i.estadoValidacion && (i.estadoValidacion !== 'no_validado' || (i.notasValidacion ?? []).length > 0));
+
+/** Cuántas piden que alguien decida. Es el número que va en el botón. */
+const observadas = computed(() =>
+    (file.value?.filepasajeros ?? []).flatMap(p => p.identificaciones ?? [])
+        .filter(i => i.estadoValidacion === 'observado').length);
+
+const validando = ref(false);
+
+/**
+ * El botón. Lanza la tanda sobre todo el manifiesto.
+ *
+ * ⚠️ **Se puede pulsar dos veces sin pagar dos veces**: el backend salta lo ya resuelto y cachea
+ * la lectura de cada documento. Por eso no lleva confirmación — no hay nada que confirmar.
+ *
+ * ⚠️ Y **no corrige nada**: escribe el veredicto. Corregir el manifiesto es una decisión de quien
+ * mira los dos valores, porque a veces el equivocado es el escaneo.
+ */
+const validarManifiesto = async () => {
+    validando.value = true;
+    const ok = await fileStore.validarManifiesto(String(extractIdStr(file.value?.id ?? file.value?.['@id'])));
+    validando.value = false;
+
+    if (ok) await cargarFile();
+    else alert(fileStore.error || 'No se pudo validar el manifiesto.');
+};
+
+/**
  * El buscador de la bóveda: con ~1 500 archivos, bajar a ojo hasta el de una persona no es
  * viable, y el nombre del fichero casi nunca es lo que se recuerda.
  *
@@ -2858,6 +2909,26 @@ const eliminarDocumento = async (iri?: string) => {
                 <i class="fas fa-chevron-down text-slate-400 text-xs transition-transform shrink-0 group-hover:text-teal-500"
                    :class="manifiestoAbierto ? 'rotate-180' : ''"></i>
               </button>
+
+              <!-- ⚠️ Fuera del botón que pliega: dentro, pulsarlo plegaría la sección justo
+                   cuando llegan los resultados que se quieren ver. -->
+              <div v-if="manifiestoAbierto" class="flex items-center gap-2 -mt-2 mb-4">
+                <button type="button" @click="validarManifiesto" :disabled="validando"
+                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-wider transition-colors">
+                  <i class="fas" :class="validando ? 'fa-spinner fa-spin' : 'fa-shield-halved'"></i>
+                  {{ validando ? 'Leyendo documentos…' : 'Validar contra los escaneos' }}
+                </button>
+
+                <span v-if="observadas" class="inline-flex items-center gap-1 text-[10px] font-black text-amber-700">
+                  <i class="fas fa-triangle-exclamation"></i> {{ observadas }} por revisar
+                </span>
+
+                <!-- Se dice lo que NO hace, porque un botón llamado «validar» invita a pensar que
+                     arregla. Aquí lo que se corrige lo corrige una persona. -->
+                <span class="text-[9px] text-slate-400">
+                  escribe el veredicto, no corrige el manifiesto
+                </span>
+              </div>
               <div v-if="manifiestoAbierto">
               <div class="flex flex-wrap items-center justify-end gap-2 mb-4">
                 <!-- Al lado de «Añadir Pax» y no entre los filtros: se baja para reclamar
@@ -3069,6 +3140,33 @@ const eliminarDocumento = async (iri?: string) => {
                           <span v-if="i"> · </span>{{ getDocIdLabel(ident.tipo) }}: {{ ident.numero }}
                         </span>
                       </p>
+
+                      <!-- ⚠️ **El sello va AQUÍ, pegado al número, y no en una lista aparte.** Lo
+                           que se valida es lo que alguien tecleó en el manifiesto, así que el
+                           veredicto tiene que verse donde se mira el dato. En una pantalla aparte
+                           habría que acordarse de ir a mirarla. -->
+                      <div v-for="ident in identificacionesConVeredicto(pax)" :key="`v-${ident.id}`"
+                           class="mt-1.5 text-[9px]">
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full font-black uppercase tracking-wider border"
+                              :class="SELLO[ident.estadoValidacion!].clase">
+                          <i class="fas text-[8px]" :class="SELLO[ident.estadoValidacion!].icono"></i>
+                          {{ getDocIdLabel(ident.tipo) }} · {{ SELLO[ident.estadoValidacion!].texto }}
+                        </span>
+
+                        <!-- Los DOS valores juntos: en el caso más frecuente —un dedazo en el año,
+                             2026 por 2036— verlos uno al lado del otro ES la resolución, sin abrir
+                             el escaneo ni cambiar de pantalla. -->
+                        <span v-for="(d, j) in (ident.discrepancias ?? [])" :key="j"
+                              class="ml-1 inline-flex items-center gap-1 text-amber-700">
+                          <span class="font-bold">{{ d.campo }}:</span>
+                          <span class="font-mono bg-emerald-50 border border-emerald-200 rounded px-1">{{ d.documento }}</span>
+                          <i class="fas fa-arrow-left-long text-[7px] text-slate-300"></i>
+                          <span class="font-mono bg-amber-50 border border-amber-200 rounded px-1">{{ d.manifiesto }}</span>
+                        </span>
+
+                        <span v-for="(n, j) in (ident.notasValidacion ?? [])" :key="`n-${j}`"
+                              class="ml-1 text-slate-400 normal-case">{{ n }}</span>
+                      </div>
                       <!-- El vuelo, en la propia ficha: era el dato que había que ir a buscar abriendo
                            a cada persona, y es justo el que se mira para armar el aeropuerto. -->
                       <p v-for="v in vuelosDe(pax)" :key="v.id" class="text-[9px] font-bold text-sky-600 mt-1">
