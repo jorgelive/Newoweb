@@ -126,6 +126,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onBeforeUnmount } from 'vue';
+import { paraBuscar } from '@/utils/texto';
 
 /**
  * Valor de una opción: siempre un identificador (id o IRI), o null cuando no hay
@@ -361,8 +362,11 @@ const faltanCaracteres = computed(() =>
 
 const filteredOptions = computed(() => {
   if (!searchQuery.value) return props.options;
-  const q = searchQuery.value.toLowerCase();
-  return props.options.filter(o => `${o.label} ${o.sublabel ?? ''}`.toLowerCase().includes(q));
+  // ⚠️ **Sin tildes en los dos lados.** Con un padrón peruano —Núñez, José, Rodríguez— «perez»
+  // se teclea sin acento siempre, y con `toLowerCase()` a secas no encontraba a los Pérez: el
+  // desplegable salía vacío, que se lee como «esa persona no está», no como «escribe el acento».
+  const q = paraBuscar(searchQuery.value);
+  return props.options.filter(o => paraBuscar(`${o.label} ${o.sublabel ?? ''}`).includes(q));
 });
 
 /**

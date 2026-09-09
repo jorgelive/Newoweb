@@ -1311,3 +1311,24 @@ pantalla.
 
 ⚠️ **Y el `watch` va SIN `immediate`.** `onMounted` ya lee la query para arrancar donde toca; con
 las dos cosas, entrar en la vista cargaba La Biblia **dos veces**. Eso no se ve, sólo se paga.
+
+## `SearchableSelect`: buscar sin tildes (09/09/2026)
+
+El filtro era `toLowerCase()` a secas, así que **«perez» no encontraba «Pérez»**. Con un padrón
+peruano —Núñez, José, Rodríguez— eso no es un caso borde: es el de todos los días.
+
+Y falla del peor modo posible: quien busca no ve un error, ve **un desplegable vacío**, y de un
+desplegable vacío se concluye «esa persona no está en la lista», no «te falta el acento». Con 133
+pasajeros y 108 subgrupos, el desplegable es la única forma de llegar.
+
+Se normaliza con `paraBuscar()` (`util/src/utils/texto.ts`): NFD y fuera los diacríticos
+combinantes, en **los dos lados** de la comparación. La «ñ» acaba comparándose como «n», que es lo
+que conviene: quien teclea «nunez» encuentra a los Núñez.
+
+⚠️ **Ya había dos copias inline de esta normalización** en `CotizacionEditorView.vue` y una en
+`pax/src/views/cotizacion/PaxCotizacionGuiaView.vue`, escritas cada una por su lado. Las de
+`CotizacionEditorView` siguen ahí: no se tocaron por no meter mano en un archivo grande fuera del
+cambio que las destapó. Al pasar por allí, se cambian por `paraBuscar()`.
+
+El mismo helper lo usa el buscador de la Bóveda Digital — ver `docs/Cotizaciones.md`, «El vuelo
+viajaba escondido».

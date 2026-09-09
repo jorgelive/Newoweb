@@ -1547,19 +1547,92 @@ porque la mayoría de esos selectores son obligatorios.
 #### Comparar UUIDs con `endsWith` falla en silencio y siempre hacia el mismo lado (09/09/2026)
 
 `duenoDelArchivo()` casaba el IRI de la relación contra el id de la fila con
-`iri.endsWith(String(id))`. Muerde por dos sitios, y los dos son mudos:
+`iri.endsWith(String(id))`. Con UUIDs eso muerde por la caja: un id que llegue como `0198E5F1…`
+frente a `0198e5f1…` no casa, no encuentra al dueño, y **el archivo parece del expediente entero
+cuando en realidad es de alguien**. El fallo se disfraza del caso más común, que es como no se
+descubre nunca.
 
-| Qué llega | Qué pasa |
-|---|---|
-| el id en otra caja (`0198E5F1…` vs `0198e5f1…`) | no casa |
-| un `id` que no viene como texto | `String(obj)` es `[object Object]`, no casa |
+Ahora las tres relaciones se resuelven contra `indiceDeDuenos`, un `Map` con **las claves en
+minúsculas**, que arregla la caja y el coste a la vez (ver abajo).
 
-**Los dos fallan hacia el mismo lado**: no encuentra al dueño, la fila se queda muda y el archivo
-**parece del expediente entero** cuando en realidad es de alguien. Es decir, el fallo se disfraza
-del caso más común y nadie lo echa de menos.
+#### El dueño costaba 43 ms de render y se recalculaba en cada tecla (09/09/2026)
 
-Ahora lo hace `mismoRecurso()`: último segmento, en minúsculas, y exige que no esté vacío —porque
-`'' === ''` casaba con cualquier fila sin id.
+Medido con los tamaños reales de un grupo grande —1 500 archivos, 133 pasajeros, 99 subgrupos,
+24 vuelos—:
+
+| Qué | Antes | Ahora |
+|---|---|---|
+| Filtrar la bóveda (una tecla) | 22 ms | ~0 (la paja se calcula una vez por lista) |
+| Render de 1 500 filas | 43 ms | **0,7 ms** |
+
+Eran tres `find()` por archivo, pagados **dos veces por fila** —la plantilla llama a
+`duenoDelArchivo()` en el `v-if` y otra vez para pintar—. En un móvil eso son ~200 ms, y no sólo
+al teclear: **Vue no cachea las llamadas a función de la plantilla**, así que se repetía en
+cualquier cambio reactivo con la bóveda abierta.
+
+`indiceDeDuenos` es un `computed` que se reconstruye sólo cuando cambia `file.value`;
+`duenoDelArchivo()` pasa a ser tres `Map.get()`. Y `bovedaIndexada` calcula la paja de búsqueda
+una vez por lista en vez de una por tecla.
+
+#### El vuelo viajaba escondido, y el vuelo era de otra persona (09/09/2026)
+
+Dos fallos mudos que abrió el propio formulario de reasignación, los dos en la misma pareja
+pasajero↔vuelo. Ninguno da error; los dos dejan la fila diciendo algo falso.
+
+**1. La regla del formulario y la del guardado no eran la misma.** El selector de vuelo se veía con
+`pasajeroId && tipoArchivo === 'boleto'`; `alcanceDelDoc()` guardaba con `pasajeroId && vueloId`. Y
+`abrirEdicionDoc()` precarga `vueloId` siempre. Resultado: editar un boarding pass y cambiarle el
+tipo a «Pasaporte» guardaba **un pasaporte con vuelo**, con el selector escondido — imposible de
+limpiar sin volver a ponerle `boleto`.
+
+⚠️ **La regla es ahora una sola, `ofreceVuelo`**, y gobierna las dos cosas. Un vuelo ya puesto
+mantiene el selector abierto aunque el tipo deje de ser `boleto`: **nada que se mande puede estar
+fuera de la pantalla**.
+
+**2. El desplegable ofrecía los 24 vuelos del expediente, no los 8 de esa persona.** El docblock de
+`CotizacionFilearchivo::$vuelo` decía que ofrecía «sus ocho, no los veinticuatro» y era falso: nada
+comprobaba la pareja, ni en el formulario ni en la API. Sólo lo hacía la carga por ZIP
+(`CargaMasivaDeArchivos::vuelaEseVuelo()`, privado). Y al reasignar de Ana a Beatriz **el vuelo de
+Ana seguía preseleccionado**, así que el caso de uso que motiva el formulario era justo el que
+dejaba la pareja torcida.
+
+Tres cosas, en la pantalla y no en la base:
+
+- `vuelosDelElegido` acota a los suyos. ⚠️ **Se cruza por el PNR**, no por la relación:
+  `CotizacionFileGrupo::$vuelos` **no está serializado** —el `#[Groups]` que hay pegado debajo es
+  de `$notas`, no suyo— y publicar esa `ManyToMany` la metería entera en cada subgrupo. Desde el
+  navegador el camino es el de `vuelosDe()`: la `clave` del subgrupo aéreo es el PNR y cada vuelo
+  trae los suyos en `pnrs`.
+- Si la persona **no tiene vuelos atados todavía**, no se acota: bloquear el guardado por un dato
+  que aún no ha llegado es peor que ofrecer de más.
+- El vuelo **que ya está puesto no se cae de la lista** aunque no sea suyo — se marca «⚠️ no lo
+  vuela». Si desapareciera, `SearchableSelect` enseñaría un hueco con un valor detrás que el
+  operador no puede ver ni quitar.
+
+⚠️ **Y elegir otra persona suelta el vuelo del anterior — colgado de `@change`, no de un `watch`.**
+Un `watch` sobre `docForm.pasajeroId` también dispara cuando `abrirEdicionDoc()` **precarga** el
+formulario, así que borraría el vuelo bueno justo al abrir la edición de un boarding pass: el dato
+se perdería *al mirarlo*. `SearchableSelect` sólo emite `change` cuando el operador elige o vacía.
+
+**Lo que NO se hizo:** subir `vuelaEseVuelo()` a la entidad como invariante. Recorre pertenencias y
+grupos por cada archivo, y en `PrePersist` eso son N+1 consultas sobre una carga de ~1 060 boarding
+passes que **ya valida esa pareja** antes de guardar. Queda como agujero conocido para quien
+escriba por la API directamente.
+
+#### `validarDuenoDelMismoExpediente()` no miraba el `vuelo` (09/09/2026)
+
+El bucle recorría `pasajero` y `grupo`. Se escribió cuando el único alcance con riesgo era la
+importación en lote, y **`vuelo` se añadió después** (07/09/2026). Por la pantalla no se alcanza
+—el desplegable sale del mismo expediente—, pero por la API se le podía colgar el vuelo de otro.
+Es una entrada más en el mismo array; `CotizacionVuelo::getFile()` ya existía.
+
+⚠️ El resto del invariante sí estaba bien y **cubre la reasignación por PATCH gratis**:
+`#[ORM\PreUpdate]` dispara al cambiar una asociación *to-one*, y el `DomainException` sale como 422
+por `exception_to_status`, así que el error llega al aviso del formulario.
+
+**Auditoría en producción el 09/09/2026** (260 archivos): `pasajero` y `grupo` a la vez → 0; vuelo
+sin pasajero → 0; vuelo en algo que no es boleto → 0; vuelo de otro expediente → 0; parejas
+pasajero↔vuelo que no vuela → 0. **Nada torcido**: los arreglos son preventivos.
 
 #### La bóveda arranca plegada (08/09/2026)
 
@@ -7089,7 +7162,9 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Agrupar pasajeros (salón, grupo, habitación, reserva aérea)** → `CotizacionFileGrupo` + `CotizacionPasajeroGrupo` (§6.m). ⚠️ Ejes cruzados, no un árbol; y el `esJefe` va en la pertenencia.
 - **El DNI o el pasaporte de un pasajero, con su vencimiento** → `CotizacionPasajeroIdentificacion`, una fila por documento (§6.l). ⚠️ Sin fecha es «sin comprobar», nunca «vigente».
 - **Adjuntar un archivo a un expediente** → `CotizacionFilearchivo` (antes `…Filedocumento`, ver §6.k). ⚠️ No confundir con `CotizacionFilepasajero::$tipodocumento`, que sí es identidad.
-- **Buscar en la bóveda, o mover un archivo de una persona a otra** → `bovedaDocs` y `alcanceDelDoc()` en `FileDetalle.vue`. ⚠️ Los tres alcances son **excluyentes**: se resuelven juntos, nunca campo a campo. Reasignar no toca el fichero; para cambiar el fichero sigue habiendo que borrar y subir.
+- **Buscar en la bóveda, o mover un archivo de una persona a otra** → `bovedaDocs` / `bovedaIndexada` y `alcanceDelDoc()` en `FileDetalle.vue`. ⚠️ Los tres alcances son **excluyentes**: se resuelven juntos, nunca campo a campo. Reasignar no toca el fichero; para cambiar el fichero sigue habiendo que borrar y subir.
+- **Que el vuelo de un boarding pass sea de esa persona** → `ofreceVuelo` (cuándo se ve Y cuándo se guarda: una sola regla) y `vuelosDelElegido` (cruza por PNR). ⚠️ En la API **no hay red**: `vuelaEseVuelo()` es privado de la carga por ZIP. Ver §6.k.
+- **Quién puede ser dueño de un archivo** → `CotizacionFilearchivo::validarDuenoDelMismoExpediente()`, `PrePersist` + `PreUpdate`. Comprueba los **tres**: pasajero, grupo y vuelo.
 - **Crear un servicio que no está en el catálogo** → botón «Manual» → `agregarComponente(id, true)` → `esManual`. Aporta su propio `nombreInternoSnapshot` (interno) y `tituloSnapshot` (público). Ver §6.h.
 - **Que un componente sin maestro se pueda nombrar y tipar** → `isComponenteSoloItems()` y `getNombreMaestroRef()` en `CotizacionEditorView.vue`, y `onTipoManualChange()` en el store. Ver §6.h — y ojo con lo que la cadena sigue exigiendo (tarifa, prestador, nombre).
 - **Saber qué se lleva la papelera de un párrafo** → el pie de la tarjeta en el Constructor de Storytelling, alimentado por `store.idSegmentoDeComponente()`. Ver §6.i.

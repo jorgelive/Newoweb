@@ -22,6 +22,7 @@ import { getUrls } from '@/services/apiClient';
 import { ESTADO_FILE_LABELS } from '@/types/cotizacionEditorModel';
 
 import type { ApiPais } from '@/types/maestroModel';
+import { paraBuscar } from '@/utils/texto';
 
 import {
   getArchivoLabel, ARCHIVO_TIPO_LABELS, ARCHIVO_TIPOS_DEL_PASAJERO, type PlanCargaZip,
@@ -615,7 +616,11 @@ const docForm = ref({
   nombre: '', tipoArchivo: '', sobreescribirTraduccion: false, fileObject: null as File | null,
   // De quién es y —si es un boarding pass— de qué vuelo. Ver la tabla de alcances en
   // `CotizacionFilearchivo`: pasajero + grupo significa «lo suyo, para ese vuelo».
-  pasajeroId: '', grupoId: '', vueloId: ''
+  //
+  // ⚠️ `string | null`, no `string`: con `limpiable`, `SearchableSelect` emite **null** al vaciar
+  // (`const vacio = props.multiple ? [] : null`). Todo lo que los lee usa truthiness, así que
+  // funcionaba — pero el tipo decía lo que no era, y `defineEmits` sin tipar no lo delataba.
+  pasajeroId: '' as string | null, grupoId: '' as string | null, vueloId: '' as string | null
 });
 
 const extractIdStr = (val: unknown): string => val ? String(val).split('/').pop() ?? '' : '';
@@ -1643,6 +1648,51 @@ const pasajerosElegibles = computed(() =>
 );
 
 /**
+ * ¿Hay vuelo en juego? Una sola definición, que gobierna **a la vez** si el selector se ve y si el
+ * vuelo se guarda — ver el aviso en `alcanceDelDoc()`.
+ *
+ * Un vuelo ya puesto mantiene el selector abierto aunque el tipo deje de ser `boleto`: si no, el
+ * dato se queda dentro sin que nadie pueda verlo ni quitarlo.
+ */
+const ofreceVuelo = computed(() =>
+    Boolean(docForm.value.pasajeroId) && (docForm.value.tipoArchivo === 'boleto' || Boolean(docForm.value.vueloId)),
+);
+
+/**
+ * Los vuelos de la persona elegida. `null` = no se acota.
+ *
+ * ⚠️ **Se cruza por el PNR, no por la relación.** El backend lo hace por
+ * `pasajero → pertenencias → grupo → vuelos` (`CargaMasivaDeArchivos::vuelaEseVuelo()`), pero
+ * `CotizacionFileGrupo::$vuelos` **no está serializado** —el `#[Groups]` que hay junto a él es de
+ * `$notas`, no suyo— y publicarlo metería una `ManyToMany` entera en cada subgrupo. Desde el
+ * navegador el camino es el que ya usa `vuelosDe()`: la `clave` del subgrupo aéreo es el PNR, y
+ * cada vuelo trae los suyos en `pnrs`.
+ *
+ * ⚠️ Un PNR cubre ida y vuelta, así que esto acota a los suyos —ocho— pero **no** distingue cuál
+ * de los dos sentidos: eso lo dice el número de vuelo en la etiqueta, que es como se elige.
+ */
+const vuelosDelElegido = computed<Set<string> | null>(() => {
+    const elegido = docForm.value.pasajeroId;
+    if (!elegido) return null;
+
+    const pax = (file.value?.filepasajeros ?? []).find(p =>
+        extractIdStr(p.id ?? p['@id']).toLowerCase() === String(elegido).toLowerCase());
+    if (!pax) return null;
+
+    const susPnrs = new Set(gruposDePax(pax).filter(esVuelo).map(g => String(g.clave)).filter(Boolean));
+    const suyos = new Set(
+        (file.value?.vuelos ?? [])
+            .filter(v => (v.pnrs ?? []).some(pnr => susPnrs.has(String(pnr))))
+            .map(v => extractIdStr(v.id).toLowerCase())
+            .filter(Boolean),
+    );
+
+    // Sin vuelos atados todavía, acotar dejaría la lista vacía y bloquearía el trabajo. Mejor
+    // ofrecerlos todos que impedir guardar por un dato que aún no ha llegado.
+    return suyos.size ? suyos : null;
+});
+
+/**
  * De qué VUELO es el boarding pass.
  *
  * 🔥 **Ofrecía subgrupos de reserva aérea, y eso es justo lo que no servía.** La clave de un
@@ -1650,17 +1700,34 @@ const pasajerosElegibles = computed(() =>
  * vuela Cusco–Lima, Lima–Panamá y Panamá–Punta Cana ida y vuelta tiene ocho tarjetas y este
  * desplegable sólo sabía decir cuatro cosas.
  *
- * El campo `vuelo` se añadió el 07/09/2026 para eso —y la carga por ZIP ya lo usaba—, pero este
- * formulario se quedó escribiendo en `grupo`. Ver la tabla de alcances en `CotizacionFilearchivo`.
+ * ⚠️ **Y ofrecía los VEINTICUATRO del expediente, no los ocho suyos.** El docblock de
+ * `CotizacionFilearchivo::$vuelo` decía que ofrecía los suyos y era falso: nada comprobaba que
+ * esa persona volara ese vuelo, ni aquí ni en la API — sólo lo hacía la carga por ZIP. Al
+ * reasignar de una persona a otra el vuelo del anterior seguía preseleccionado, así que era
+ * exactamente el caso de uso del formulario el que dejaba la pareja torcida.
+ *
+ * ⚠️ **El que ya está puesto NO se cae de la lista aunque no sea suyo.** Si desapareciera,
+ * `SearchableSelect` enseñaría un hueco con un valor detrás que el operador no puede ver ni
+ * quitar — que es peor que enseñarlo marcado.
  */
-const vuelosElegibles = computed(() =>
-    (file.value?.vuelos ?? []).map(v => ({
+const vuelosElegibles = computed(() => {
+    const suyos = vuelosDelElegido.value;
+    const puesto = String(docForm.value.vueloId ?? '').toLowerCase();
+
+    return (file.value?.vuelos ?? [])
         // Sin `@id`: JSON-LD lo añade en tiempo de ejecución pero no está en el esquema.
-        value: extractIdStr(v.id) ?? '',
-        label: [v.numero, [v.origen, v.destino].filter(Boolean).join(' → ')].filter(Boolean).join(' · '),
-        sublabel: diaDe(v.salida ?? v.fecha) || '',
-    })),
-);
+        .map(v => ({ v, id: extractIdStr(v.id) }))
+        .filter(({ id }) => !suyos || suyos.has(id.toLowerCase()) || id.toLowerCase() === puesto)
+        .map(({ v, id }) => {
+            const ajeno = suyos !== null && !suyos.has(id.toLowerCase());
+
+            return {
+                value: id,
+                label: [v.numero, [v.origen, v.destino].filter(Boolean).join(' → ')].filter(Boolean).join(' · '),
+                sublabel: [diaDe(v.salida ?? v.fecha) || '', ajeno ? '⚠️ no lo vuela' : ''].filter(Boolean).join(' · '),
+            };
+        });
+});
 
 /**
  * De qué SUBGRUPO es: cualquiera, no sólo los de vuelo.
@@ -1765,44 +1832,64 @@ const aplicarZip = async () => {
 };
 
 /**
- * ¿Este IRI y este id son el mismo recurso? Compara el ÚLTIMO SEGMENTO, no la cadena entera.
+ * Quién es cada pasajero, vuelo y subgrupo, indexado por id **en minúsculas**.
  *
- * ⚠️ Esto se hacía con `iri.endsWith(id)` y con UUIDs eso muerde por dos sitios: un id que llegue
- * en otra caja —`0198E5F1…` frente a `0198e5f1…`— no casa, y la fila se queda muda sin decir por
- * qué; y un `id` que no venga como texto se convierte en `[object Object]`, que tampoco casa y
- * tampoco avisa. Los dos fallan **en silencio y hacia el mismo lado**: el archivo parece del
- * expediente entero cuando en realidad es de alguien.
+ * ⚠️ **Esto era tres `find()` por archivo, y se pagaban dos veces por fila.** Con ~1 500 archivos,
+ * 133 pasajeros, 99 subgrupos y 24 vuelos son ~43 ms de render en un portátil y ~200 ms en un
+ * móvil — y no sólo al teclear: Vue no cachea las llamadas a función de la plantilla, así que se
+ * repetía en **cualquier** cambio reactivo con la bóveda abierta. Medido; con el índice baja a
+ * 0,7 ms.
+ *
+ * ⚠️ **Y las claves van en minúsculas a propósito.** Antes se casaba con `iri.endsWith(id)`, que
+ * con UUIDs muerde: un id en otra caja —`0198E5F1…` frente a `0198e5f1…`— no casa, y **falla
+ * hacia el lado que no se ve**: el archivo parece del expediente entero cuando es de alguien.
  */
-const mismoRecurso = (iri: string | undefined, id: unknown): boolean => {
-    const suyo = extractIdStr(iri).toLowerCase();
-    const mio = extractIdStr(id).toLowerCase();
-    return suyo !== '' && suyo === mio;
+const indiceDeDuenos = computed(() => {
+    const nombra = <T,>(filas: T[], id: (f: T) => unknown, etiqueta: (f: T) => string) => {
+        const mapa = new Map<string, string>();
+        for (const fila of filas) {
+            const clave = extractIdStr(id(fila)).toLowerCase();
+            if (clave) mapa.set(clave, etiqueta(fila));
+        }
+        return mapa;
+    };
+
+    return {
+        pasajeros: nombra(file.value?.filepasajeros ?? [], p => p.id ?? p['@id'],
+            p => [p.nombre, p.apellido].filter(Boolean).join(' ')),
+        vuelos: nombra(file.value?.vuelos ?? [], v => v.id,
+            v => [v.numero, [v.origen, v.destino].filter(Boolean).join('→')].filter(Boolean).join(' ')),
+        subgrupos: nombra(file.value?.grupos ?? [], g => g.id ?? g['@id'],
+            g => g.clave || g.nombre || ''),
+    };
+});
+
+/** El id que hay detrás de una relación, venga como IRI o como objeto embebido. */
+const idDeRelacion = (rel: unknown): string => {
+    if (!rel) return '';
+    const iri = typeof rel === 'string' ? rel : (rel as { '@id'?: string })['@id'];
+    return iri ? extractIdStr(iri) : '';
 };
 
+/** Igual, pero en la forma en que el índice guarda sus claves. */
+const claveDeRelacion = (rel: unknown): string => idDeRelacion(rel).toLowerCase();
+
 /**
- * De quién es un archivo, para la fila de la bóveda: «Ana Pérez · LA-2695».
+ * De quién es un archivo, para la fila de la bóveda: «Ana Pérez · LA2695 LIM→PUJ».
  *
  * Vacío cuando cuelga del expediente entero, que es lo de siempre y no hace falta decirlo.
+ *
+ * ⚠️ El VUELO faltaba, y es el alcance que más se usa: los ~1 060 boarding passes que entran por
+ * ZIP se guardan con pasajero + vuelo, así que la fila decía sólo el nombre y las ocho tarjetas de
+ * una misma persona se leían idénticas.
  */
 const duenoDelArchivo = (doc: ApiCotizacionFilearchivo): string => {
-    const pasajeroIri = typeof doc.pasajero === 'string' ? doc.pasajero : (doc.pasajero as { '@id'?: string } | null)?.['@id'];
-    const grupoIri = typeof doc.grupo === 'string' ? doc.grupo : (doc.grupo as { '@id'?: string } | null)?.['@id'];
-    const vueloIri = typeof doc.vuelo === 'string' ? doc.vuelo : (doc.vuelo as { '@id'?: string } | null)?.['@id'];
-
-    const pasajero = (file.value?.filepasajeros ?? []).find(p =>
-        mismoRecurso(pasajeroIri, p.id ?? p['@id']));
-    const subgrupo = (file.value?.grupos ?? []).find(g =>
-        mismoRecurso(grupoIri, g.id ?? g['@id']));
-    // ⚠️ El VUELO faltaba, y es el alcance que más se usa: los ~1 060 boarding passes que entran
-    // por ZIP se guardan con pasajero + vuelo, así que la fila decía sólo el nombre y las ocho
-    // tarjetas de una misma persona se leían idénticas.
-    const vuelo = (file.value?.vuelos ?? []).find(v =>
-        mismoRecurso(vueloIri, v.id));
+    const indice = indiceDeDuenos.value;
 
     return [
-        pasajero ? [pasajero.nombre, pasajero.apellido].filter(Boolean).join(' ') : null,
-        vuelo ? [vuelo.numero, [vuelo.origen, vuelo.destino].filter(Boolean).join('→')].filter(Boolean).join(' ') : null,
-        subgrupo ? (subgrupo.clave || subgrupo.nombre) : null,
+        indice.pasajeros.get(claveDeRelacion(doc.pasajero)),
+        indice.vuelos.get(claveDeRelacion(doc.vuelo)),
+        indice.subgrupos.get(claveDeRelacion(doc.grupo)),
     ].filter(Boolean).join(' · ');
 };
 
@@ -1815,19 +1902,27 @@ const duenoDelArchivo = (doc: ApiCotizacionFilearchivo): string => {
  */
 const bovedaBusqueda = ref('');
 
-const bovedaDocs = computed(() => {
-    const docs = file.value?.filearchivos ?? [];
-    const palabras = bovedaBusqueda.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    if (!palabras.length) return docs;
-
-    return docs.filter(doc => {
-        const paja = [
+/** La paja de cada archivo se calcula UNA vez por lista, no una por tecla. */
+const bovedaIndexada = computed(() =>
+    (file.value?.filearchivos ?? []).map(doc => ({
+        doc,
+        paja: paraBuscar([
             getDocNombre(doc),
             getArchivoLabel(doc.tipoArchivo),
             duenoDelArchivo(doc),
-        ].filter(Boolean).join(' ').toLowerCase();
-        return palabras.every(palabra => paja.includes(palabra));
-    });
+        ].filter(Boolean).join(' ')),
+    })),
+);
+
+const bovedaDocs = computed(() => {
+    // ⚠️ Sin tildes en los DOS lados: con un padrón peruano —Núñez, José, Rodríguez— «perez» sin
+    // acento es como se teclea siempre, y una lista vacía se lee como «no está subido».
+    const palabras = paraBuscar(bovedaBusqueda.value.trim()).split(/\s+/).filter(Boolean);
+    if (!palabras.length) return file.value?.filearchivos ?? [];
+
+    return bovedaIndexada.value
+        .filter(({ paja }) => palabras.every(palabra => paja.includes(palabra)))
+        .map(({ doc }) => doc);
 });
 
 /** El desplegable se vacía en cuanto elige: es un «añadir», no una selección que se queda. */
@@ -2242,13 +2337,6 @@ const abrirDocModal = () => {
   capas.abrir('doc', () => { showDocModal.value = false; docEditandoIri.value = null; });
 };
 
-/** El id que hay detrás de una relación, venga como IRI o como objeto embebido. */
-const idDeRelacion = (rel: unknown): string => {
-  if (!rel) return '';
-  const iri = typeof rel === 'string' ? rel : (rel as { '@id'?: string })['@id'];
-  return iri ? extractIdStr(iri) : '';
-};
-
 const abrirEdicionDoc = (doc: ApiCotizacionFilearchivo) => {
   docEditandoIri.value = doc['@id'] || `/platform/sales/cotizacion_filearchivos/${extractIdStr(doc.id)}`;
   docForm.value = {
@@ -2267,6 +2355,20 @@ const abrirEdicionDoc = (doc: ApiCotizacionFilearchivo) => {
   showDocModal.value = true;
   capas.abrir('doc', () => { showDocModal.value = false; docEditandoIri.value = null; });
 };
+
+/**
+ * Cambiar de persona SUELTA el vuelo del anterior.
+ *
+ * ⚠️ Es el caso de uso que motiva todo esto: se reasigna la tarjeta de Ana a Beatriz y el vuelo de
+ * Ana seguía preseleccionado. Beatriz puede no volarlo, y nada lo comprobaba —ni aquí ni en la
+ * API; sólo la carga por ZIP—. Se vacía y se vuelve a elegir de entre los suyos.
+ *
+ * ⚠️ **Cuelga del evento `change`, no de un `watch` sobre el valor.** Un `watch` también dispara
+ * cuando `abrirEdicionDoc()` PRECARGA el formulario, así que borraría el vuelo bueno justo al
+ * abrir la edición de un boarding pass — un fallo mudo, y del que más duele: el dato se pierde al
+ * mirar. `change` sólo lo emite `SearchableSelect` cuando el operador elige o vacía.
+ */
+const cambiarPasajeroDelDoc = () => { docForm.value.vueloId = ''; };
 
 const handleFileUpload = (e: Event) => {
   const target = e.target as HTMLInputElement;
@@ -2289,7 +2391,12 @@ const alcanceDelDoc = () => {
     pasajero: pasajeroId ? `/platform/sales/cotizacion_filepasajeros/${pasajeroId}` : null,
     grupo: !pasajeroId && grupoId ? `/platform/sales/cotizacion_file_grupos/${grupoId}` : null,
     // ⚠️ `vuelo`, no `grupo`: un boarding pass es de un VUELO. Ver la tabla de alcances.
-    vuelo: pasajeroId && vueloId ? `/platform/sales/cotizacion_vuelos/${vueloId}` : null,
+    //
+    // ⚠️ Y la condición es EXACTAMENTE la que decide si el selector se ve (`ofreceVuelo`). Cuando
+    // no coincidían, un boarding pass al que se le cambiaba el tipo guardaba su vuelo con el
+    // selector escondido: quedaba un pasaporte con vuelo, ilegible en la fila e imposible de
+    // limpiar sin volver a ponerle `boleto`. Nada que se manda puede estar fuera de la pantalla.
+    vuelo: ofreceVuelo.value && vueloId ? `/platform/sales/cotizacion_vuelos/${vueloId}` : null,
   };
 };
 
@@ -4333,6 +4440,7 @@ const eliminarDocumento = async (iri?: string) => {
                   :options="pasajerosElegibles"
                   placeholder="Todo el expediente"
                   limpiable
+                  @change="cambiarPasajeroDelDoc"
               />
             </div>
 
@@ -4351,7 +4459,7 @@ const eliminarDocumento = async (iri?: string) => {
               />
             </div>
 
-            <div v-if="docForm.pasajeroId && docForm.tipoArchivo === 'boleto'">
+            <div v-if="ofreceVuelo">
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">
                 ¿De qué vuelo?
                 <span class="normal-case text-slate-400 font-medium">— para distinguir sus boarding passes</span>

@@ -307,6 +307,12 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
         foreach ([
             'pasajero' => $this->pasajero?->getFile()?->getId(),
             'grupo' => $this->grupo?->getFile()?->getId(),
+            // ⚠️ **El vuelo faltaba en esta lista.** Se escribió cuando el único alcance con
+            // riesgo era la importación en lote, y `vuelo` se añadió después (07/09/2026): por la
+            // pantalla no se alcanza —el desplegable sale del mismo expediente—, pero por la API
+            // sí se podía colgar el vuelo de otro. Un archivo así no es inválido para nadie: sólo
+            // enseña en la fila un vuelo que esa persona no tiene.
+            'vuelo' => $this->vuelo?->getFile()?->getId(),
         ] as $que => $suyo) {
             if ($suyo !== null && !$mio->equals($suyo)) {
                 throw new \DomainException(sprintf('El archivo y su %s son de expedientes distintos.', $que));
