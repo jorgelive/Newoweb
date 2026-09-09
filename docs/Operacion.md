@@ -4392,6 +4392,25 @@ Se arregló en los dos sitios —el encolador cumple lo que dice, y la orden pon
 midió el alcance antes: **cero** de los 7.142 mensajes de producción tenían `subjectExternal`
 puesto, así que hacer que se lea no cambia nada de lo que ya funcionaba.
 
+### Y con el número solo tampoco basta
+
+Poner el número arregla que **nosotros** lo encontremos. Pero un proveedor **no busca por
+`OS-20260909-981`** en su bandeja: busca por el cliente o por el servicio. Así que el asunto lleva
+las tres cosas que identifican el encargo:
+
+```
+Solicitud de Servicio OS-20260909-981 · Pool Valle Sagrado · Nune & Todd x 2
+Solicitud de Servicio OS-20260909-981 · Pool Valle Sagrado · Nune & Todd x 2, Familia Pérez x 4
+```
+
+⚠️ El **primer** servicio, no todos: es el que abre la jornada y el que el proveedor reconoce; la
+lista entera va en el cuerpo. Y **cada expediente con su gente**, en plural cuando los hay — una
+orden puede agrupar varios grupos del mismo comprador, y ahí un «x 2» a secas mentiría sobre el
+total.
+
+Sale de `getGruposSnapshot()`, la misma foto que ya usa el encabezado del cuerpo: las dos
+superficies dicen lo mismo sin recalcular nada.
+
 ## 18. «Solicitud», no «Orden», de cara al proveedor (09/09/2026)
 
 El documento abría con «*Orden de Servicio OS-…*». Quien lo lee **nos vende**, y ahí «orden» suena a

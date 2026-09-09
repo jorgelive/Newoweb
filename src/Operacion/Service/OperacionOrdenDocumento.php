@@ -200,7 +200,10 @@ final readonly class OperacionOrdenDocumento
         $porDia = [];
         $bloques = 0;
 
+        $primero = null;
+
         foreach ($orden->getItemsOrdenados() as $item) {
+            $primero ??= $item;
             $clave = $item->getFechaServicio()?->format('Y-m-d') ?? '';
             $porDia[$clave]['etiqueta'] ??= $item->getEtiquetaDia();
             $porDia[$clave]['lineas'][] = $this->linea($item, $rutas);
@@ -275,8 +278,7 @@ final readonly class OperacionOrdenDocumento
 
 
         return [
-            // Mismo criterio que el encabezado: al proveedor se le solicita, no se le ordena.
-            'asunto' => sprintf('Solicitud de Servicio %s', $orden->getNumeroOs()),
+            'asunto' => $this->asunto($orden, $primero),
             'cuerpo' => $cuerpo,
             'lineas' => $bloques,
         ];
@@ -319,6 +321,60 @@ final readonly class OperacionOrdenDocumento
      * que necesita para presentarse —hora de recojo y cuántos son—. La descripción va después
      * de la fecha a propósito: el proveedor busca por día, no por nombre de servicio.
      */
+    /**
+     * El asunto del correo: qué es, de quién y cuánta gente.
+     *
+     * ── Por qué no basta el número ──────────────────────────────────────────
+     *
+     * El primer correo de una orden salió titulado «Americana» —el nombre del propio
+     * destinatario— y no había forma de encontrarlo. Se arregló poniéndole el número, y con el
+     * número solo pasa lo contrario pero igual de inútil: un proveedor **no busca por
+     * `OS-20260909-981`** en su bandeja. Busca por el nombre del cliente o por el servicio.
+     *
+     * Así que lleva las tres cosas que identifican el encargo:
+     *
+     *     Solicitud de Servicio OS-20260909-981 · Pool Valle Sagrado · Nune & Todd x 2
+     *
+     * ⚠️ El **primer servicio**, no todos: es el que abre la jornada y el que el proveedor
+     * reconoce. La lista entera va en el cuerpo, y en un asunto no cabe.
+     *
+     * ⚠️ Y **los expedientes con su gente**, en plural cuando los hay: una orden puede agrupar
+     * varios grupos del mismo comprador, y ahí «x 2» a secas mentiría sobre el total.
+     *
+     * «Solicitud» y no «Orden» por lo mismo que el encabezado: quien lo lee nos vende.
+     */
+    private function asunto(OperacionOrdenServicio $orden, ?OperacionOrdenServicioItem $primero): string
+    {
+        $partes = [sprintf('Solicitud de Servicio %s', $orden->getNumeroOs())];
+
+        if ($primero !== null && ($titulo = trim((string) $primero->getTituloParaProveedor())) !== '') {
+            $partes[] = $titulo;
+        }
+
+        // Cada expediente con su gente. `getGruposSnapshot()` es la foto que ya usa el encabezado
+        // del cuerpo, así que las dos superficies dicen lo mismo sin recalcular nada.
+        $quienes = [];
+
+        foreach ($orden->getGruposSnapshot() as $grupo) {
+            // Sin `??`: `getGruposSnapshot()` declara la forma entera y PHPStan lo comprueba, así
+            // que un respaldo aquí sería defensa contra algo que el tipo ya impide.
+            $nombre = trim($grupo['grupo']);
+            $pax = $grupo['pax'];
+
+            if ($nombre === '') {
+                continue;
+            }
+
+            $quienes[] = $pax > 0 ? sprintf('%s x %d', $nombre, $pax) : $nombre;
+        }
+
+        if ($quienes !== []) {
+            $partes[] = implode(', ', $quienes);
+        }
+
+        return implode(' · ', $partes);
+    }
+
     /**
      * La línea de un ítem.
      *
