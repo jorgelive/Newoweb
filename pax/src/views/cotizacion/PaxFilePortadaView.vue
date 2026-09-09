@@ -8,6 +8,7 @@ import { ref, onMounted, watch} from 'vue';
 import { useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
+import { fmtNaiveDia } from '@dominio/fecha/index.ts';
 import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
 
 const props = defineProps<{
@@ -77,15 +78,20 @@ const iconoDe = (tipo?: string | null) => ({
     hoja: 'far fa-file-excel',
 }[tipo ?? ''] ?? 'far fa-file');
 
-const formatearFecha = (iso?: string | null) => {
-  if (!iso) return '';
-  return new Date(iso.substring(0, 10) + 'T00:00:00').toLocaleDateString(maestroStore.idiomaActual, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'America/Lima',
-  });
-};
+/**
+ * ⚠️ Un día natural NO se convierte a ninguna zona.
+ *
+ * Antes se construía la medianoche LOCAL del visitante (`'…T00:00:00'`) y se formateaba forzando
+ * `America/Lima`: para cualquiera al este de Lima —toda Europa, África, Asia y Oceanía— la fecha
+ * de inicio del viaje y el «Válida hasta» salían **un día antes**. En Perú salía bien, que es por
+ * lo que sobrevivió. Ver `dominio/fecha/naive.ts`.
+ */
+const formatearFecha = (iso?: string | null) => fmtNaiveDia(
+  iso ?? '',
+  { day: '2-digit', month: 'short', year: 'numeric' },
+  maestroStore.idiomaActual,
+  '',
+);
 
 const seleccionarIdioma = (id: string) => {
   maestroStore.setIdioma(id);

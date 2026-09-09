@@ -634,6 +634,92 @@ test `defined`, que sólo funciona con variables simples — y desde fuera se ve
 `DominioNoDisponible`. Vale anotarlo: cuando una tubería nueva falla, el sospechoso obvio es el
 eslabón nuevo, y no siempre lo es.
 
+## 9.bis `dominio/fecha`: la hora de pared, y por qué `pax` la enseñaba mal — 08/09/2026
+
+El tercer módulo de `dominio/`, y el que llegó por la peor de las razones: **la regla ya existía y
+sólo una de las dos apps la tenía.**
+
+### El fallo
+
+El servidor serializa las fechas del establecimiento como hora de pared —`2026-08-31T14:00:00`, sin
+`Z` y sin desplazamiento—. `pax` hacía:
+
+```ts
+new Date(fechaStr).toLocaleTimeString(idioma, { timeZone: 'America/Lima' })
+```
+
+Eso son **dos desplazamientos, no uno**: `new Date()` interpreta la cadena en la zona **del
+turista**, y `timeZone` la mueve otra vez. Medido:
+
+| Zona del huésped | Check-in de las 14:00 se enseñaba como |
+|---|---|
+| `America/Lima` | `02:00 p. m.` ✅ |
+| `Europe/Madrid` | **`07:00 a. m.`** |
+| `Asia/Tokyo` | **`12:00 a. m.`** (medianoche, y la fecha cambia) |
+
+En Lima salía bien, que es exactamente por qué sobrevivió meses. Y el comentario al lado de la línea
+decía, sin ironía: *«🔥 Importante: Evita que el navegador del turista cambie la hora»*. Quien lo
+escribió **vio el problema real** y el arreglo lo empeoró justo para la gente a la que protegía.
+
+Lo mismo en `PaxFilePortadaView`, donde la fecha de inicio del viaje y el «Válida hasta» salían
+**un día antes** para cualquier visitante al este de Lima.
+
+### Las dos clases de hora, que piden lo contrario
+
+Es la distinción de la que cuelga todo, y no tenerla escrita es lo que produjo el fallo:
+
+| | Qué es | Cómo se manda | Cómo se enseña |
+|---|---|---|---|
+| **Hecho de pared** | check-in 14:00, fechas de estancia, «válida hasta» | naive, sin huso | **sin convertir**, ni a la del visitante ni a la de la casa |
+| **Instante** | pago recibido, enlace que caduca, códigos que se liberan | ISO **con desplazamiento** (`DATE_ATOM`) | se convierte con `new Date()` normal |
+
+«Check-in a las 14:00» no es un momento en el tiempo: es un hecho sobre una casa. El huésped que
+mira vuelos desde Madrid necesita leer **14:00**, que es cuando puede entrar — ni 21:00 ni 07:00.
+
+⚠️ **Por eso `pax` NO necesita conocer la zona del establecimiento**, que era la salida que parecía
+obvia. En la primera categoría no se convierte; en la segunda el desplazamiento viaja dentro de la
+cadena. `PmsGuia::liberaEn` ya se serializa con `DATE_ATOM` y `HuespedGuiaView` lo muestra en hora
+de la casa: eso es correcto y se dejó como estaba.
+
+Si algún día se quiere **etiquetar** («14:00, hora de Cusco»), eso es texto de UI, no una zona
+horaria.
+
+### La técnica: UTC como riel, no como destino
+
+Se ancla todo a UTC —que no tiene horario de verano— y se leen los componentes en UTC. Los dígitos
+de pared sobreviven intactos en cualquier zona. No se está «pasando a UTC»: se usa UTC como una
+regla graduada que no se mueve.
+
+**Regla de oro: nunca pases una cadena naive por `new Date(str)`, ni para calcular ni para mostrar.**
+
+### Por qué en `dominio/` y no copiado
+
+La implementación llevaba escrita desde antes en `util/src/utils/naiveDate.ts`, con el porqué
+explicado y hasta con la frase «úsalo en los formateadores de sólo lectura que hoy hacen
+`new Date(iso).toLocaleTimeString(...)`» — el bug exacto de `pax`. **`pax` nunca la recibió.**
+
+Copiarla habría sido escribir dos veces la misma regla, que es lo que `CLAUDE.md` prohíbe y lo que
+ya había producido este fallo. Se movió a `dominio/fecha/`, `util` la reexporta desde su archivo de
+siempre para no tocar imports, y `calcularUnidades` se queda en `util` porque sólo adapta una firma.
+
+### Las pruebas corren en cinco husos, y eso es la mitad del valor
+
+`dominio/fecha/naive.test.ts` pasaría **igual de verde con el código roto** si se ejecutara sólo en
+`America/Lima` — que es la máquina de quien lo escribe. Por eso se corre en varias zonas:
+
+```bash
+cd dominio && npm test        # la suite + las fechas en cinco husos
+cd dominio && npm run test:solo   # sólo la suite, para iterar rápido
+```
+
+`npm test` encadena `test:zonas`, y es el que llama `.claude/hooks/tests-guard.sh`. Así el candado
+cubre lo que el módulo existe para proteger, en vez de correr una sola vez en la zona de quien
+edita.
+
+⚠️ Una prueba que sólo se ejecuta en la zona del desarrollador **no prueba nada sobre zonas
+horarias**. Es la versión de fechas de la regla de `tools/`: lo que no se ejecuta contra las
+condiciones reales no está probado, por muy verde que salga.
+
 ## 10. Qué framework para Node (ninguno, todavía) — 02/09/2026
 
 La pregunta llega sola en cuanto se planea migrar mucho cálculo: *«¿qué framework uso para

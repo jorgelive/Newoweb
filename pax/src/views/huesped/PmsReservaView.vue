@@ -8,6 +8,7 @@ import { usePmsReservaStore } from '@/stores/huesped/paxHuespedReservaStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { useConfigDelFront } from '@/composables/useConfigDelFront';
 import { totalConRecargo } from '@dominio/finanzas';
+import { fmtNaive, fmtNaiveDia } from '@dominio/fecha/index.ts';
 import type { PmsEventoCalendario } from '@/types/paxHuespedModel';
 
 const props = defineProps<{
@@ -89,31 +90,34 @@ const formatearOcupacion = (adultosRaw?: number | null, ninosRaw?: number | null
 };
 
 // --- HELPER PARA FECHAS (Forzando GMT-5 / Lima) ---
-const formatearFecha = (fechaStr: string) => {
-  if (!fechaStr) return '--';
-  const fecha = new Date(fechaStr);
+/**
+ * ⚠️ Estas fechas NO se convierten a ninguna zona, y es lo contrario de lo que había aquí.
+ *
+ * El servidor manda hora de pared del alojamiento (`2026-08-31T14:00:00`, sin `Z`). «Check-in a las
+ * 14:00» es un hecho sobre la casa, no un instante: el huésped que mira vuelos desde Madrid
+ * necesita leer 14:00, que es cuando puede entrar.
+ *
+ * Antes se hacía `new Date(cadena)` —que la interpreta en la zona DEL TURISTA— y luego se
+ * formateaba forzando `America/Lima`. Dos desplazamientos, no uno: en Madrid el check-in de las
+ * 14:00 salía como «07:00 a. m.» y en Tokio como «12:00 a. m.». En Lima salía bien, que es por qué
+ * nadie lo vio. El comentario que acompañaba a la línea decía «evita que el navegador del turista
+ * cambie la hora».
+ *
+ * `fmtNaive` ancla los dígitos al riel de UTC y los lee ahí mismo: sobreviven intactos en cualquier
+ * zona del mundo. Ver `dominio/fecha/naive.ts` y sus pruebas, que corren en cinco husos.
+ */
+const formatearFecha = (fechaStr: string) => fmtNaive(
+  fechaStr,
+  { day: '2-digit', month: 'short', year: 'numeric' },
+  maestroStore.idiomaActual,
+);
 
-  return fecha.toLocaleDateString(maestroStore.idiomaActual, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'America/Lima' // 🔥 Forzamos zona horaria de Cusco
-  });
-};
-
-// --- HELPER PARA HORAS (Forzando GMT-5 / Lima) ---
-const formatearHora = (fechaStr: string) => {
-  if (!fechaStr) return '';
-  const fecha = new Date(fechaStr);
-
-  // Formato: 03:00 PM (Siempre en hora Perú)
-  return fecha.toLocaleTimeString(maestroStore.idiomaActual, {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: 'America/Lima' // 🔥 Importante: Evita que el navegador del turista cambie la hora
-  });
-};
+const formatearHora = (fechaStr: string) => fmtNaive(
+  fechaStr,
+  { hour: '2-digit', minute: '2-digit', hour12: true },
+  maestroStore.idiomaActual,
+  '',
+);
 
 /**
  * Abre la guía de UNA estancia.
@@ -538,16 +542,14 @@ const simboloReferencia = computed(
 const pagosDetalle = computed(() => finanzas.value?.pagos ?? []);
 
 /** Fecha corta del pago: 'YYYY-MM-DD' -> '15 jun 2026' en el idioma activo. */
-const fechaPago = (iso: string | null): string => {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-').map(Number);
-  if (!y || !m || !d) return '';
-  // Se construye en UTC y se lee en UTC: la fecha es un día natural, no un
-  // instante, y en zonas negativas `new Date('2026-06-15')` retrocede un día.
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(maestroStore.idiomaActual, {
-    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
-  });
-};
+// Ya era correcta —anclaba a UTC a mano, que es la técnica buena— y pasa al helper compartido para
+// que la regla viva en un sitio y no en cada vista que la recuerde.
+const fechaPago = (iso: string | null): string => fmtNaiveDia(
+  iso ?? '',
+  { day: 'numeric', month: 'short', year: 'numeric' },
+  maestroStore.idiomaActual,
+  '',
+);
 
 const formatMonto = (v: number): string => {
   // Único sitio que formatea importes, así que el conmutador se aplica aquí y la

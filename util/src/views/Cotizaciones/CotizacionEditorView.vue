@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, onUnmounted, type DirectiveBinding } from 'vue';
+import { fmtNaive } from '@/utils/naiveDate.ts';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useVolverAtras } from '@/composables/useVolverAtras';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
@@ -1212,10 +1213,21 @@ const opcionesPlantillas = computed(() => {
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
 
-const formatFecha = (fecha?: string | null) => {
-  if (!fecha) return '--';
-  return new Date(fecha).toLocaleDateString('es-PE', { weekday: 'long', day: '2-digit', month: 'short', timeZone: 'UTC' });
-};
+/**
+ * ⚠️ Es el patrón inverso al que rompía `pax`, y falla igual de callado.
+ *
+ * Hacía `new Date(cadena)` —que la interpreta en la zona del NAVEGADOR— y luego formateaba en
+ * `UTC`. Con una fecha sin hora daba lo mismo; con una que sí la lleva —las de servicio— un
+ * servicio de las 20:00 del jueves se enseñaba como viernes, porque en Lima esa hora local ya es
+ * del día siguiente en UTC.
+ *
+ * `fmtNaive` ancla los dígitos y los lee en el mismo sitio: sale el día que dice el dato.
+ */
+const formatFecha = (fecha?: string | null) => fmtNaive(
+  fecha ?? '',
+  { weekday: 'long', day: '2-digit', month: 'short' },
+  'es-PE',
+);
 
 const formatMoneda = (monto?: number | string, moneda?: string) => {
   const num = typeof monto === 'string' ? parseFloat(monto) : (monto ?? 0);

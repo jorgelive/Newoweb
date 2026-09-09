@@ -5,10 +5,12 @@
   "type": "module",
   "description": "Reglas de negocio que ejecutan el navegador y el servidor. Sin Vue, sin DOM, sin base de datos.",
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run && npm run test:zonas",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.cli.json --noEmit && tsc -p tsconfig.test.json --noEmit",
-    "gen:api": "php ../bin/console cache:pool:clear --all --quiet && php ../bin/console api:openapi:export -o .openapi.json && openapi-typescript .openapi.json -o api.d.ts && rm .openapi.json"
+    "gen:api": "php ../bin/console cache:pool:clear --all --quiet && php ../bin/console api:openapi:export -o .openapi.json && openapi-typescript .openapi.json -o api.d.ts && rm .openapi.json",
+    "test:solo": "vitest run",
+    "test:zonas": "for tz in America/Lima Europe/Madrid Asia/Tokyo Pacific/Kiritimati UTC; do echo \"— $tz\"; TZ=$tz vitest run fecha || exit 1; done"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
