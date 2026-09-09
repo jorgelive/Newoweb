@@ -792,6 +792,26 @@ function onBorrado(): void {
 // ============================================================================
 const dragError = ref<string | null>(null);
 
+/**
+ * La fecha que pinta FullCalendar, en hora de pared, lista para mandar a la API.
+ *
+ * ⚠️ **No se manda `toISOString()`.** El calendario trabaja con `timeZone: 'local'`, así que un
+ * arrastre a las 14:00 produce un `Date` local; `toISOString()` lo pasa a UTC y manda
+ * `…T19:00:00.000Z`. El backend guarda hora de pared, así que la estancia quedaría con
+ * `inicio = 19:00` y `fin = 15:00`.
+ *
+ * Lo que eso rompe no es cosmético: `PmsGuiaAcceso` calcula la ventana de entrega de los **códigos
+ * de puerta y de caja** sobre esas fechas, así que el huésped los recibiría **cinco horas tarde**;
+ * y los hitos de mensajería se corren lo mismo. `pmsReservaModel.ts` ya describe este fallo como
+ * corregido en el cajón de edición — el calendario se había quedado fuera.
+ */
+function comoHoraDePared(fecha: Date): string {
+    const p = (n: number) => String(n).padStart(2, '0');
+
+    return `${fecha.getFullYear()}-${p(fecha.getMonth() + 1)}-${p(fecha.getDate())}`
+        + `T${p(fecha.getHours())}:${p(fecha.getMinutes())}:${p(fecha.getSeconds())}`;
+}
+
 async function onEventDrop(info: EventDropArg): Promise<void> {
     const extendedProps = info.event.extendedProps as PmsEventoExtendedProps;
     // `start`/`end` son `Date | null` en el tipo; un evento que se acaba de arrastrar
@@ -800,8 +820,8 @@ async function onEventDrop(info: EventDropArg): Promise<void> {
 
     try {
         await reservasStore.patchEvento(extendedProps.eventoId, {
-            inicio: info.event.start.toISOString(),
-            fin: info.event.end.toISOString(),
+            inicio: comoHoraDePared(info.event.start),
+            fin: comoHoraDePared(info.event.end),
             // `newResource` solo viene si el arrastre cambió de fila (de casita).
             pmsUnidad: info.newResource ? pmsUnidadIri(info.newResource.id) : undefined,
         });
@@ -819,8 +839,8 @@ async function onEventResize(info: EventResizeDoneArg): Promise<void> {
 
     try {
         await reservasStore.patchEvento(extendedProps.eventoId, {
-            inicio: info.event.start.toISOString(),
-            fin: info.event.end.toISOString(),
+            inicio: comoHoraDePared(info.event.start),
+            fin: comoHoraDePared(info.event.end),
         });
         dragError.value = null;
     } catch (err) {

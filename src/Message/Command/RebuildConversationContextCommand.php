@@ -77,7 +77,15 @@ class RebuildConversationContextCommand extends Command
                             WHEN m.status = :statusCancelled THEN NULL
                             
                             -- 2. Ignorar los que están programados para el FUTURO
-                            WHEN COALESCE(m.scheduled_at, m.created_at) > NOW() THEN NULL
+                            --
+                            -- ⚠️ El «ahora» se liga desde PHP, no se pide a MySQL: MySQL corre en
+                            -- UTC y estas columnas guardan hora de pared. Este comando se ejecuta
+                            -- a las 03:00 de Lima, cuando el reloj de MySQL marca las 08:00, así
+                            -- que todo mensaje programado entre esas dos horas contaba como YA
+                            -- ENVIADO — `lastMessageAt` saltaba a un mensaje futuro y, si era
+                            -- saliente, la conversación se marcaba leída y sus entrantes pasaban
+                            -- de `received` a `read`. Ver `docs/ZonasHorarias.md` §6.
+                            WHEN COALESCE(m.scheduled_at, m.created_at) > :ahora THEN NULL
                             
                             -- 3. ACEPTAR TODOS LOS DEMÁS (sent, received, read, y también queued/pending/failed actuales)
                             ELSE COALESCE(m.scheduled_at, m.created_at)
@@ -86,7 +94,7 @@ class RebuildConversationContextCommand extends Command
                     MAX(
                         CASE 
                             WHEN m.status = :statusCancelled THEN NULL
-                            WHEN COALESCE(m.scheduled_at, m.created_at) > NOW() THEN NULL
+                            WHEN COALESCE(m.scheduled_at, m.created_at) > :ahora THEN NULL
                             WHEN m.direction = :outgoing THEN COALESCE(m.scheduled_at, m.created_at)
                             ELSE NULL 
                         END
@@ -104,6 +112,7 @@ class RebuildConversationContextCommand extends Command
             [
                 'statusCancelled' => Message::STATUS_CANCELLED,
                 'outgoing'        => Message::DIRECTION_OUTGOING,
+                'ahora'           => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
                 'binaryIds'       => array_map(fn($uuid) => $uuid->toBinary(), $conversationIds),
             ],
             [

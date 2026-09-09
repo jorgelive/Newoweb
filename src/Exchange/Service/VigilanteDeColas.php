@@ -78,10 +78,21 @@ final readonly class VigilanteDeColas
         $lineas = [];
         $fallidas = 0;
 
+        // ⚠️ El corte se calcula en PHP, no con la función de reloj de MySQL, y no es estilo.
+        //
+        // MySQL corre en **UTC** y PHP en la zona de la operación: medido en producción, el reloj
+        // de MySQL devuelve 01:29 mientras PHP dice 20:29. Las columnas guardan hora de pared, así
+        // que restar el intervalo en SQL dejaba una ventana real de **19 horas** — y con `--horas`
+        // de 5 o menos el corte caía en el futuro y esto **no contaba nada nunca**.
+        //
+        // Que fallara callado es lo peor: es el candado que vigila las colas de Beds24, y uno que
+        // no mira da la misma sensación de seguridad que uno que sí. Ver `docs/ZonasHorarias.md` §6.
+        $corte = (new \DateTimeImmutable(sprintf('-%d hours', max(1, $horas))))->format('Y-m-d H:i:s');
+
         foreach (self::AUDITORIAS as $tabla => $etiqueta) {
             $n = $this->contar(
-                "SELECT COUNT(*) FROM {$tabla} WHERE status = 'partial_error' AND created_at >= (NOW() + INTERVAL :horas HOUR)",
-                ['horas' => -max(1, $horas)],
+                "SELECT COUNT(*) FROM {$tabla} WHERE status = 'partial_error' AND created_at >= :corte",
+                ['corte' => $corte],
             );
 
             if (null === $n) {
@@ -93,8 +104,8 @@ final readonly class VigilanteDeColas
 
         foreach (self::COLAS as $tabla => $etiqueta) {
             $n = $this->contar(
-                "SELECT COUNT(*) FROM {$tabla} WHERE status = 'failed' AND updated_at >= (NOW() + INTERVAL :horas HOUR)",
-                ['horas' => -max(1, $horas)],
+                "SELECT COUNT(*) FROM {$tabla} WHERE status = 'failed' AND updated_at >= :corte",
+                ['corte' => $corte],
             );
 
             if (null === $n) {

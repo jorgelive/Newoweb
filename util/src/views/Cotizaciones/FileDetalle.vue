@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {ref, onMounted, onUnmounted, watch, computed, nextTick} from 'vue';
+import { hoyNaive } from '@/utils/naiveDate.ts';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useVolverAtras } from '@/composables/useVolverAtras';
 // El gesto «atrás» del móvil cierra la capa de arriba en vez de sacarte de la pantalla.
@@ -1465,7 +1466,14 @@ const filtrosAbiertos = ref(false);
 const estadoDocumentalDe = (pax: ApiCotizacionFilepasajero): Set<string> => {
     const hoy = new Date();
     const enUnAnio = new Date(hoy.getFullYear() + 1, hoy.getMonth(), hoy.getDate());
-    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    // ⚠️ Componentes LOCALES, no `toISOString()`: éste da el día en UTC y desde las 19:00 de Lima
+    // adelanta uno, así que un pasaporte que vence hoy salía «vencido» en esta lista mientras la
+    // ficha de al lado —ya corregida— lo daba por vigente. Ver `dominio/fecha/naive.ts`.
+    const iso = (d: Date) => {
+        const p = (n: number) => String(n).padStart(2, '0');
+
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    };
     const estados = new Set<string>();
 
     for (const doc of pax.identificaciones ?? []) {
@@ -2088,7 +2096,10 @@ const paxEnFoco = computed<ApiCotizacionFilepasajero | undefined>(() =>
 
 /** Un documento vencido no es un matiz: es alguien que no embarca. Se marca. */
 const documentosDe = computed(() => {
-    const hoy = new Date().toISOString().slice(0, 10);
+    // ⚠️ `hoyNaive()`, no `toISOString()`: éste da el día en UTC y desde las 19:00 de Lima ya es
+    // mañana, así que un pasaporte que vence HOY se marcaba vencido esa misma tarde. Ver
+    // `dominio/fecha/naive.ts`.
+    const hoy = hoyNaive();
 
     return (paxEnFoco.value?.identificaciones ?? []).map((d) => {
         const vence = d.vencimiento ? d.vencimiento.split('T')[0] : '';

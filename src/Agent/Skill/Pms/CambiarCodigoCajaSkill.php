@@ -216,12 +216,21 @@ final readonly class CambiarCodigoCajaSkill implements SkillInterface, SkillDomi
             JOIN pms_reserva r  ON r.id = e.reserva_id
             WHERE e.estado_id IN ('pendiente', 'confirmada', 'requerimiento')
               AND e.evento_origen_id IS NULL
-              AND DATE(e.inicio) <= CURDATE()
-              AND DATE(e.fin)    >= CURDATE()
+              AND DATE(e.inicio) <= :hoy
+              AND DATE(e.fin)    >= :hoy
             ORDER BY u.nombre
         SQL;
 
-        $filas = $this->em->getConnection()->executeQuery($sql)->fetchAllAssociative();
+        // ⚠️ El «hoy» se liga desde PHP, no se le pide a MySQL.
+        //
+        // MySQL corre en UTC y estas columnas guardan hora de pared: entre las 19:00 y la
+        // medianoche de Lima, `CURDATE()` ya es mañana, así que la lista de «quién está dentro con
+        // el código viejo» metía a los que **llegan mañana** — gente que todavía no tiene ese
+        // código. Sobraba, no faltaba, pero el agente lo contaba como si estuvieran alojados.
+        // Ver `docs/ZonasHorarias.md` §6.
+        $filas = $this->em->getConnection()->executeQuery($sql, [
+            'hoy' => (new \DateTimeImmutable())->format('Y-m-d'),
+        ])->fetchAllAssociative();
 
         return array_map(
             static fn (array $f): string => sprintf(

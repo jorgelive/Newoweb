@@ -63,7 +63,7 @@ import {
     totalesInternosVacios
 } from '@/types/cotizacionEditorModel.ts';
 
-import {
+import { hoyNaive,
     parseNaiveAsUTC,
     calcularUnidades,
     formatNaiveFromUTC,
@@ -232,7 +232,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     // ============================================================================
 
     const getFechaLimpia = (val: unknown): string => {
-        if (!val) return new Date().toISOString().split('T')[0];
+        // `hoyNaive()` y no `toISOString()`: éste da el día en UTC, que desde las 19:00 de Lima ya
+        // es mañana. Ver `dominio/fecha/naive.ts`.
+        if (!val) return hoyNaive();
         const str = String(val);
         return str.includes('T') ? str.split('T')[0] : str;
     };
@@ -1946,7 +1948,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         isCargaInicial.value = true;
         try {
             try {
-                const tcResponse = await apiClient.post('/platform/maestro/tipo-cambio/consultar', { fecha: getFechaLimpia(new Date().toISOString()) });
+                const tcResponse = await apiClient.post('/platform/maestro/tipo-cambio/consultar', { fecha: hoyNaive() });
                 const tc = parseFloat(tcResponse.data.promedio);
 
                 // ⚠️ UN TIPO DE CAMBIO DE 1 NO ES UN VALOR POR DEFECTO, ES UN ERROR.
@@ -3060,7 +3062,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const cots = cotizacion.value.cotservicios || [];
         const fechaBase = cots.length > 0
             ? getFechaLimpia(cots[cots.length - 1].fechaInicioAbsoluta)
-            : (modoCatalogo.value ? FECHA_BASE_NOMINAL : getFechaLimpia(new Date().toISOString()));
+            : (modoCatalogo.value ? FECHA_BASE_NOMINAL : hoyNaive());
 
         /**
          * ⚠️ **Si el día ya está colocado a mano, el servicio nuevo NACE con sitio.**
