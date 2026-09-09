@@ -1881,6 +1881,41 @@ son los del documento — un número mal en un manifiesto es un problema en el a
 
 Coste de la tanda entera: **~$0,30**. Y no se vuelve a pagar: las lecturas quedaron cacheadas.
 
+#### Girar un escaneo: el ángulo se detecta, pero se hornea en los píxeles (09/09/2026)
+
+La extracción devuelve además **`rotacion`** —0, 90, 180 o 270 grados en sentido horario— y viaja
+gratis dentro de `datos_leidos`, porque sale de la misma pasada que los datos. El visor precarga el
+botón con ese valor, así que el caso normal es **un clic** y no adivinar el sentido.
+
+🔥 **Pero girar REESCRIBE el fichero, y esto es lo que no se debe cambiar.** Guardar el ángulo y
+aplicarlo al mostrar es exactamente el fallo que documenta `liip_imagine.yaml` del 08/09/2026: la
+orientación vivía en el EXIF, el navegador la respetaba y el procesador no, así que **el huésped
+veía su pasaporte derecho, lo confirmaba, y al operador le llegaba tumbado** — sin forma de
+comprobarlo, porque el escaneo no se le devuelve.
+
+Un campo aplicado al mostrar reintroduce ese fallo **con más consumidores que antes**: la bóveda,
+el visor, la descarga del gate y **el propio lector de IA**, que leería la imagen cruda y volvería
+a fallar. Cualquiera que se olvide de aplicarlo la ve torcida, y ninguno da error.
+
+⚠️ **Sólo múltiplos rectos (90/180/270).** Un escaneo torcido 7° existe, pero corregirlo obliga a
+reinterpolar todos los píxeles y rellenar esquinas: se pierde nitidez justo donde importa, en la
+letra pequeña. Los rectos son una permutación de píxeles y no pierden nada.
+
+⚠️ **No se recomprime al girar.** El fichero ya pasó por `documento_identidad` al subirse; volver a
+comprimir restaría nitidez en cada giro.
+
+⚠️ **Los PDF se rechazan con una frase**, no se giran. Hacerlo obliga a rasterizarlos, y eso cambia
+un PDF de identidad por una imagen peor sin que nadie lo haya pedido.
+
+🔑 **Girar TIRA la lectura** (`registrarLectura(null)`). Un documento torcido casi siempre se leyó
+mal —es la razón de girarlo—, así que conservarla dejaría el veredicto apoyado en lo que se leyó
+del revés. Sin lectura, la siguiente tanda lo relee ya derecho: ~$0,0016, que es justo lo que se
+buscaba al girarlo. La pantalla lo avisa: ese veredicto se queda sin respaldo hasta la próxima
+pasada.
+
+La caché de miniaturas se regenera sola — `CotizacionFilearchivoCacheListener` ya escucha
+`preUpdate`, así que basta con que el `flush()` toque la entidad.
+
 #### El visor por persona: el puente entre «no coincide» y «mira el papel» (09/09/2026)
 
 Botón **«Ver sus documentos»** en cada fila del manifiesto, justo debajo del veredicto. Abre un

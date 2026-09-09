@@ -1977,6 +1977,38 @@ const documentosDelVisor = computed(() => {
         .sort((a, b) => Number(b.tipoArchivo === 'pasaporte') - Number(a.tipoArchivo === 'pasaporte'));
 });
 
+const girando = ref<string | null>(null);
+
+/**
+ * Cuántos grados dijo el modelo que hay que girar ESE escaneo. `0` = ya está derecho.
+ *
+ * Se lee de la lectura cacheada, así que no cuesta nada: viene de la misma pasada que sacó los
+ * datos. Es lo que precarga el botón — así el caso normal es un clic y no adivinar el sentido.
+ */
+const giroSugerido = (doc: ApiCotizacionFilearchivo): number => {
+    const grados = Number(leidoDe(doc)?.rotacion ?? 0);
+
+    return [90, 180, 270].includes(grados) ? grados : 0;
+};
+
+/**
+ * Gira y recarga.
+ *
+ * ⚠️ **Avisa de que hay que revalidar.** Girar tira la lectura a propósito —un documento torcido
+ * casi siempre se leyó mal, que es la razón de girarlo— así que su veredicto se queda sin respaldo
+ * hasta la siguiente tanda. Callarlo dejaría un sello verde apoyado en una lectura que ya no
+ * existe.
+ */
+const girarDoc = async (doc: ApiCotizacionFilearchivo, grados: number) => {
+    girando.value = String(doc.id);
+    const ok = await fileStore.girarDocumento(String(extractIdStr(doc.id)), grados);
+    girando.value = null;
+
+    if (!ok) { alert(fileStore.error || 'No se pudo girar.'); return; }
+
+    await cargarFile();
+};
+
 /** Lo que el modelo leyó de ese escaneo, para poder compararlo con el papel a la vista. */
 const leidoDe = (doc: ApiCotizacionFilearchivo): Record<string, unknown> | null => {
     const datos = (doc as { datosLeidos?: Record<string, unknown> | null }).datosLeidos;
@@ -4746,9 +4778,30 @@ const eliminarDocumento = async (iri?: string) => {
               <p class="text-[10px] font-black uppercase tracking-wider text-slate-600">
                 {{ getArchivoLabel(doc.tipoArchivo) }}
               </p>
-              <a :href="doc.imageUrl || undefined" target="_blank" class="text-[10px] font-bold text-sky-600 hover:text-sky-700 shrink-0">
-                abrir <i class="fas fa-up-right-from-square text-[8px]"></i>
-              </a>
+              <div class="flex items-center gap-2 shrink-0">
+                <!-- ⚠️ Girar REESCRIBE el fichero. No es una preferencia de visualización: si el
+                     ángulo viviera aparte, cualquiera que se olvide de aplicarlo lo vería
+                     torcido —el gate, el lector de IA— y ninguno daría error. Ya pasó con el
+                     EXIF. -->
+                <template v-if="esImagen(doc)">
+                  <span v-if="giroSugerido(doc)" class="text-[9px] font-black uppercase tracking-wider text-amber-600">
+                    parece girado {{ giroSugerido(doc) }}°
+                  </span>
+                  <button v-for="g in [90, 180, 270]" :key="g" type="button"
+                          :disabled="girando === String(doc.id)"
+                          @click="girarDoc(doc, g)"
+                          class="w-6 h-6 rounded border text-[9px] font-black transition-colors disabled:opacity-40"
+                          :class="g === giroSugerido(doc)
+                            ? 'border-amber-400 bg-amber-100 text-amber-700'
+                            : 'border-slate-200 bg-white text-slate-400 hover:text-slate-700'"
+                          :title="`Girar ${g}° y reescribir el fichero`">
+                    {{ g }}
+                  </button>
+                </template>
+                <a :href="doc.imageUrl || undefined" target="_blank" class="text-[10px] font-bold text-sky-600 hover:text-sky-700">
+                  abrir <i class="fas fa-up-right-from-square text-[8px]"></i>
+                </a>
+              </div>
             </div>
 
             <!-- `loading="lazy"`: son escaneos de 2400 px y una familia puede tener seis. -->

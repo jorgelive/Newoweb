@@ -47,6 +47,10 @@ final readonly class LectorDeDocumentoIdentidad
         banda: sirven para contrastar las dos lecturas.
 
         Fechas en formato AAAA-MM-DD. Países en ISO-3166 de tres letras. Sexo M o F.
+
+        En «rotacion», di cuántos grados hay que girar la imagen EN SENTIDO HORARIO para que el
+        texto quede derecho y se lea de izquierda a derecha: 0, 90, 180 o 270. Si ya está derecha,
+        0. Fíjate en la orientación del TEXTO, no en la forma de la foto.
         TXT;
 
     /** @var array<string, mixed> */
@@ -68,10 +72,13 @@ final readonly class LectorDeDocumentoIdentidad
             'vencimiento' => ['type' => 'string'],
             'mrzLinea1' => ['type' => 'string'],
             'mrzLinea2' => ['type' => 'string'],
+            // ⚠️ `integer` con `enum` no lo admite el esquema de Google: va como texto y se
+            // valida abajo. Un `enum` de números devuelve 400 sin decir cuál es el problema.
+            'rotacion' => ['type' => 'string', 'enum' => ['0', '90', '180', '270']],
         ],
         // Todos requeridos y vacíos cuando no se lean: un campo AUSENTE y un campo VACÍO se
         // distinguen mal al leer el JSON, y la diferencia no aporta nada aquí.
-        'required' => ['tipo', 'numero', 'nombres', 'apellidos', 'paisEmisor', 'nacionalidad', 'sexo', 'nacimiento', 'vencimiento', 'mrzLinea1', 'mrzLinea2'],
+        'required' => ['tipo', 'numero', 'nombres', 'apellidos', 'paisEmisor', 'nacionalidad', 'sexo', 'nacimiento', 'vencimiento', 'mrzLinea1', 'mrzLinea2', 'rotacion'],
     ];
 
     public function __construct(private LectorDeImagenInterface $lector) {}
@@ -150,6 +157,7 @@ final readonly class LectorDeDocumentoIdentidad
             nacimiento: $fiable ? ($mrz->nacimiento ?? $nacimientoImpreso) : $nacimientoImpreso,
             vencimiento: $vencimiento,
             nacionalidadIso2: $this->aIso2($nacionalidad),
+            rotacion: $this->rotacion($crudo),
             mrz: $mrz,
             avisos: $avisos,
         );
@@ -181,6 +189,23 @@ final readonly class LectorDeDocumentoIdentidad
     private function preferir(string $impreso, ?string $deLaMrz): ?string
     {
         return trim($impreso) !== '' ? trim($impreso) : ($deLaMrz !== null && $deLaMrz !== '' ? $deLaMrz : null);
+    }
+
+    /**
+     * Cuántos grados hay que girar la imagen para que se lea derecha.
+     *
+     * ⚠️ **Sólo los cuatro múltiplos rectos.** Un escaneo torcido 7° existe, pero corregirlo
+     * obliga a reinterpolar todos los píxeles y a rellenar las esquinas — se pierde nitidez justo
+     * donde hace falta, en la letra pequeña. Los rectos son una permutación de píxeles: no pierden
+     * nada. Cualquier otro valor se trata como 0.
+     *
+     * @param array<string, mixed> $crudo
+     */
+    private function rotacion(array $crudo): int
+    {
+        $grados = (int) $this->texto($crudo, 'rotacion');
+
+        return in_array($grados, [90, 180, 270], true) ? $grados : 0;
     }
 
     /**

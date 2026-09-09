@@ -784,6 +784,23 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * Gira el escaneo. **Reescribe el fichero**, no guarda un ángulo para aplicarlo al mostrar.
+     *
+     * ⚠️ Tira la lectura del documento: uno torcido casi siempre se leyó mal —es la razón de
+     * girarlo—, así que la siguiente tanda lo relee ya derecho.
+     */
+    const girarDocumento = async (archivoId: string, grados: number): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.post(`/cotizacion/user/documentos-sueltos/${archivoId}/girar`, { grados });
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo girar el documento.');
+            return false;
+        }
+    };
+
     const deleteDocument = async (iri: string): Promise<boolean> => {
         try {
             await apiClient.delete(iri);
@@ -858,6 +875,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         validarManifiesto,
         documentosSueltos,
         resolverDocumento,
+        girarDocumento,
         cloneCotizacion,
         guardarHistorico,
         abrirOperativa,

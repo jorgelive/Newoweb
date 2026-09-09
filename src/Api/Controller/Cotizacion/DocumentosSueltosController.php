@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Api\Controller\Cotizacion;
 
 use App\Cotizacion\Documento\Candidato;
+use App\Cotizacion\Documento\GiradorDeEscaneo;
 use App\Cotizacion\Documento\ResolutorDeDocumentoSuelto;
 use App\Cotizacion\Documento\ValidadorDeDocumento;
 use App\Cotizacion\Entity\CotizacionFile;
@@ -76,6 +77,7 @@ final class DocumentosSueltosController extends AbstractController
                     'vencimiento' => $leido->vencimiento?->format('Y-m-d'),
                     'nacionalidad' => $leido->nacionalidadIso2,
                     'mrz' => $leido->verificadoPorMrz(),
+                    'rotacion' => $leido->rotacion,
                 ],
                 'candidatos' => $leido === null ? [] : array_map(
                     static fn (Candidato $c): array => [
@@ -91,6 +93,45 @@ final class DocumentosSueltosController extends AbstractController
         }
 
         return new JsonResponse(['documentos' => $filas]);
+    }
+
+    /**
+     * Gira el escaneo, **reescribiendo el fichero**.
+     *
+     * ⚠️ No guarda un ángulo para aplicarlo al mostrar: eso es el fallo del EXIF que ya costó caro
+     * —el huésped veía su pasaporte derecho y al operador le llegaba tumbado—. Ver
+     * {@see GiradorDeEscaneo}.
+     */
+    #[Route(
+        '/cotizacion/user/documentos-sueltos/{id}/girar',
+        name: 'cotizacion_documento_girar',
+        requirements: ['id' => '[0-9a-fA-F-]{36}'],
+        methods: ['POST'],
+    )]
+    #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para editar documentos.')]
+    public function girar(
+        string $id,
+        Request $peticion,
+        EntityManagerInterface $em,
+        GiradorDeEscaneo $girador,
+    ): Response {
+        $archivo = $em->getRepository(CotizacionFilearchivo::class)->find(Uuid::fromString($id));
+        if ($archivo === null) {
+            return new JsonResponse(['error' => 'No encontré el documento.'], Response::HTTP_NOT_FOUND);
+        }
+
+        /** @var array{grados?: int|string} $cuerpo */
+        $cuerpo = $peticion->toArray();
+
+        try {
+            $girador->girar($archivo, (int) ($cuerpo['grados'] ?? 0));
+        } catch (Throwable $e) {
+            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_CONFLICT);
+        }
+
+        // Se dice que hay que releer: quien llama tiene que saber que el veredicto de ese
+        // documento se quedó sin respaldo hasta la siguiente tanda.
+        return new JsonResponse(['girado' => true, 'hayQueReleer' => true]);
     }
 
     /**

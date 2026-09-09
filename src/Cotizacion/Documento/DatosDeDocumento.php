@@ -43,6 +43,17 @@ final readonly class DatosDeDocumento
          * distinto de «no se leyó»: `$nacionalidad` conserva lo que dijo el documento.
          */
         public ?string $nacionalidadIso2 = null,
+        /**
+         * Cuántos grados EN SENTIDO HORARIO hay que girar el escaneo para que se lea derecho.
+         *
+         * ⚠️ **Es un diagnóstico, no una corrección.** Se guarda para poder ofrecer el giro con el
+         * valor ya puesto, pero **la corrección se hornea en los píxeles**: guardar el ángulo
+         * aparte y aplicarlo al mostrar es exactamente el fallo que ya costó caro con el EXIF
+         * —ver el aviso de `config/packages/liip_imagine.yaml`—, donde el huésped veía su
+         * pasaporte derecho y al operador le llegaba tumbado. Con dos consumidores más (el gate,
+         * el propio lector) ese fallo se multiplicaría.
+         */
+        public int $rotacion = 0,
         public ?Mrz $mrz = null,
         public array $avisos = [],
     ) {}
