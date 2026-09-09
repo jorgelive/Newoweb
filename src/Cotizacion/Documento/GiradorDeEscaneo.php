@@ -26,7 +26,27 @@ use Vich\UploaderBundle\Storage\StorageInterface;
  *
  * ⚠️ **Sólo múltiplos rectos.** Un giro de 7° obliga a reinterpolar todos los píxeles y a rellenar
  * esquinas: se pierde nitidez justo donde importa, en la letra pequeña. 90/180/270 son una
- * permutación de píxeles y no pierden nada.
+ * permutación de píxeles y el giro en sí no pierde nada — lo que pierde es volver a escribir.
+ *
+ * 🔥 **CADA GIRO REENCODEA, y eso sí cuesta calidad.** Aquí decía que «el giro no toca la
+ * compresión» y era **falso**. Medido sobre un escaneo real de 2400×1800 en el servidor:
+ *
+ * | | Peso |
+ * |---|---|
+ * | original | 192 KB |
+ * | 1 giro | 164 KB (−14 %) |
+ * | 2 giros | 156 KB (−19 %) |
+ * | 4 giros | 139 KB (−27 %) |
+ *
+ * Es **pérdida de generación**: reescribir un webp con pérdida vuelve a cuantizar lo que ya estaba
+ * cuantizado. Y `setImageCompressionQuality()` **no cambia nada** —88, 92 y 95 dan el mismo byte
+ * count que el defecto—: este Imagick sólo distingue con pérdida de sin pérdida. Sin pérdida son
+ * 2 426 KB, doce veces más, o sea ~1 GB para los 400 documentos del grupo: descartado.
+ *
+ * Una pasada es asumible; encadenarlas no. Por eso el visor **sugiere el ángulo detectado**, para
+ * que el caso normal sea un solo clic. Si esto llega a molestar, el arreglo es guardar una copia
+ * del fichero antes del primer giro y regirar siempre desde ella: acota la pérdida a una
+ * generación para siempre, a cambio de un fichero más por documento girado.
  */
 final readonly class GiradorDeEscaneo
 {
@@ -58,8 +78,6 @@ final readonly class GiradorDeEscaneo
         try {
             $imagen = new Imagick($ruta);
             $imagen->rotateImage('none', $grados);
-            // El giro no toca la compresión: el fichero ya pasó por el filtro `documento_identidad`
-            // al subirse, y volver a comprimirlo restaría nitidez a la letra pequeña en cada giro.
             $imagen->writeImage($ruta);
             $imagen->clear();
         } catch (ImagickException $e) {

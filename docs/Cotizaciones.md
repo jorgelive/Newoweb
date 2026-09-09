@@ -1921,8 +1921,27 @@ una no lo encuentra nadie.
 reinterpolar todos los píxeles y rellenar esquinas: se pierde nitidez justo donde importa, en la
 letra pequeña. Los rectos son una permutación de píxeles y no pierden nada.
 
-⚠️ **No se recomprime al girar.** El fichero ya pasó por `documento_identidad` al subirse; volver a
-comprimir restaría nitidez en cada giro.
+🔥 **Cada giro REENCODEA, y eso cuesta calidad.** Aquí llegó a decir que «no se recomprime» y era
+**falso**. Medido en el servidor sobre un escaneo real de 2400×1800:
+
+| | Peso |
+|---|---|
+| original | 192 KB |
+| 1 giro | 164 KB (**−14 %**) |
+| 2 giros | 156 KB (−19 %) |
+| 4 giros | 139 KB (**−27 %**) |
+
+Es **pérdida de generación**: reescribir un webp con pérdida vuelve a cuantizar lo ya cuantizado.
+⚠️ Y `setImageCompressionQuality()` **no cambia nada** —88, 92 y 95 dan el mismo tamaño que el
+defecto—: este Imagick sólo distingue con pérdida de sin pérdida. Sin pérdida son 2 426 KB, **doce
+veces más**, ~1 GB para los 400 documentos del grupo: descartado.
+
+Una pasada es asumible; encadenarlas no. Por eso el visor **sugiere el ángulo detectado**: que el
+caso normal sea un solo clic no es cosmética, es lo que acota la pérdida.
+
+**Si llega a molestar**, el arreglo es guardar una copia antes del primer giro y regirar siempre
+desde ella — acota la pérdida a una generación para siempre, a cambio de un fichero más por
+documento girado. No se hizo todavía porque sólo paga la pena si se gira mucho.
 
 ⚠️ **Los PDF se rechazan con una frase**, no se giran. Hacerlo obliga a rasterizarlos, y eso cambia
 un PDF de identidad por una imagen peor sin que nadie lo haya pedido.
