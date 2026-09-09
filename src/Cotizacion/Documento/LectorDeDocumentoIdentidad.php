@@ -58,7 +58,11 @@ final readonly class LectorDeDocumentoIdentidad
             'apellidos' => ['type' => 'string'],
             'paisEmisor' => ['type' => 'string'],
             'nacionalidad' => ['type' => 'string'],
-            'sexo' => ['type' => 'string', 'enum' => ['M', 'F', '']],
+            // ⚠️ Sin `enum`, aunque los valores sean M y F. Un `enum` NO admite la cadena vacía
+            // —Google devuelve 400: «enum[2]: cannot be empty»— y quitar el vacío de la lista
+            // dejaría al modelo obligado a elegir uno de los dos: en un documento donde el sexo
+            // no se lee, eso es **obligarle a adivinar**. Se acepta texto libre y se valida abajo.
+            'sexo' => ['type' => 'string'],
             'nacimiento' => ['type' => 'string'],
             'vencimiento' => ['type' => 'string'],
             'mrzLinea1' => ['type' => 'string'],
@@ -115,7 +119,7 @@ final readonly class LectorDeDocumentoIdentidad
             apellidos: $this->preferir($this->texto($crudo, 'apellidos'), $fiable ? $mrz->apellidos : null),
             paisEmisor: $this->pais($this->texto($crudo, 'paisEmisor'), $fiable ? $mrz->paisEmisor : null),
             nacionalidad: $this->pais($this->texto($crudo, 'nacionalidad'), $fiable ? $mrz->nacionalidad : null),
-            sexo: $fiable && $mrz->sexo !== null ? $mrz->sexo : ($this->texto($crudo, 'sexo') ?: null),
+            sexo: $fiable && $mrz->sexo !== null ? $mrz->sexo : $this->sexo($crudo),
             nacimiento: $fiable ? ($mrz->nacimiento ?? $nacimientoImpreso) : $nacimientoImpreso,
             vencimiento: $vencimiento,
             mrz: $mrz,
@@ -162,6 +166,19 @@ final readonly class LectorDeDocumentoIdentidad
         }
 
         return null;
+    }
+
+    /**
+     * M o F, o nada. Lo que venga en texto libre —«Masculino», «MALE», «V»— se queda en la
+     * primera letra sólo si es una de las dos; cualquier otra cosa es no haberlo leído.
+     *
+     * @param array<string, mixed> $crudo
+     */
+    private function sexo(array $crudo): ?string
+    {
+        $inicial = strtoupper(substr(trim($this->texto($crudo, 'sexo')), 0, 1));
+
+        return in_array($inicial, ['M', 'F'], true) ? $inicial : null;
     }
 
     /** @param array<string, mixed> $crudo */
