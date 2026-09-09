@@ -82,6 +82,11 @@ final readonly class ValidadorDeManifiesto
                         [],
                         ['no hay escaneo de este documento en la bóveda'],
                     );
+                    // ⚠️ Suma en los DOS: `sin_documento` es un desglose de `NO_VALIDADO`, no un
+                    // estado aparte. Contándolo sólo aquí, el informe decía «Sin validar 0» con un
+                    // «de ésos, 8» debajo — y quien lo lea por encima concluye que está todo
+                    // cubierto cuando hay ocho números sin comprobar.
+                    ++$conteo[ValidacionIdentificacionEnum::NO_VALIDADO->value];
                     ++$conteo['sin_documento'];
                     continue;
                 }
