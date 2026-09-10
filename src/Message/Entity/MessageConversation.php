@@ -574,9 +574,31 @@ class MessageConversation
     }
 
     /**
+     * ⚠️ **NO se serializa, y quitarle el grupo fue la segunda mitad del arreglo del 10/09/2026.**
+     *
+     * Llevaba `#[Groups(['conversation:read'])]`, así que **cada** conversación servida por la
+     * API arrastraba la lista entera de sus mensajes. En la bandeja —30 hilos por página— eso
+     * eran, medido en producción: **1 191 IRIs, 107 KB de los 126 KB de la respuesta (el 85 %) y
+     * 30 consultas extra**, una por hilo, hidratando 1 191 entidades con su `text` y su `json`.
+     *
+     * Nadie lo leía. El chat carga los mensajes por su propio endpoint
+     * (`/conversations/{id}/messages`, paginado), y no hay una sola referencia a
+     * `conversation.messages` en `util/` ni en `pax/`.
+     *
+     * Es el mismo fallo que `Message::$metadata` y del mismo día: un campo caro publicado «por si
+     * acaso» que nadie consume y que nada delata — no da error, sólo engorda la respuesta y
+     * multiplica las consultas.
+     *
+     * ⚠️ **Y anulaba el `EXTRA_LAZY` de la propiedad.** Ese `fetch` está puesto para que
+     * `getTotalMensajes()` resuelva con un `COUNT(*)` sin hidratar nada (ver el comentario de la
+     * propiedad); pero entregarle la colección al serializador la inicializa entera, así que la
+     * optimización quedaba anulada justo en el sitio que la motivó.
+     *
+     * El método se queda público: lo usan `MessageRuleEngine`, el persistidor de Beds24 y el
+     * panel. Lo que se va es la anotación.
+     *
      * @return Collection<int, Message>
      */
-    #[Groups(['conversation:read'])]
     public function getMessages(): Collection
     {
         return $this->messages;

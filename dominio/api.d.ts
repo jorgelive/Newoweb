@@ -4431,7 +4431,6 @@ export interface components {
             whatsappSessionValidUntil?: string | null;
             /** @default 0 */
             unreadCount: number;
-            messages?: string[];
             identidades?: components["schemas"]["MessageIdentidad-conversation.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -4516,7 +4515,6 @@ export interface components {
             whatsappSessionValidUntil?: string | null;
             /** @default 0 */
             unreadCount: number;
-            messages?: string[];
             identidades?: components["schemas"]["MessageIdentidad.html-conversation.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -4666,7 +4664,6 @@ export interface components {
             whatsappSessionValidUntil?: string | null;
             /** @default 0 */
             unreadCount: number;
-            messages?: string[];
             identidades?: components["schemas"]["MessageIdentidad.jsonld-conversation.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -4731,7 +4728,6 @@ export interface components {
             whatsappSessionValidUntil?: string | null;
             /** @default 0 */
             unreadCount: number;
-            messages?: string[];
             identidades?: components["schemas"]["MessageIdentidad.multipart-conversation.read"][];
             /** Format: uuid */
             readonly id?: string | null;

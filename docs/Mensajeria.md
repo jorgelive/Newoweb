@@ -5313,6 +5313,38 @@ página de 30 mensajes de 2 377 KB a **4,7 KB**, y sobreviven `beds24` (2 811), 
 - **El N+1 de `message:read`:** serializa cuatro colecciones por mensaje
   (`whatsappMetaSendQueues`, `emailSendQueues`, `beds24SendQueues`, `attachments`) — **120
   consultas** por página de 30. Medido en 59 ms, así que hoy no duele.
+
+#### Y la bandeja arrastraba lo mismo, por otra puerta
+
+Con el chat ya rápido, el endpoint más lento pasó a ser la lista de hilos:
+**126 KB y 0,66 s de servidor**. La causa era gemela: `MessageConversation::getMessages()` también
+llevaba `#[Groups(['conversation:read'])]`, así que cada conversación servida arrastraba la lista
+entera de sus mensajes.
+
+Medido en producción sobre la primera página de la bandeja:
+
+| | |
+|---|---|
+| Hilos por página | 30 |
+| Mensajes que arrastraban | **1 191** |
+| Peso de esos IRIs | **107 KB de los 126** — el 85 % |
+| Consultas extra | **30**, una por hilo |
+
+Y nadie los leía: el chat carga los mensajes por su propio endpoint paginado, y no hay una sola
+referencia a `conversation.messages` en `util/` ni en `pax/`.
+
+⚠️ **Además anulaba el `EXTRA_LAZY` de la propiedad.** Ese `fetch` está puesto para que
+`getTotalMensajes()` resuelva con un `COUNT(*)` sin hidratar nada — y entregarle la colección al
+serializador la inicializa entera, así que la optimización quedaba muerta justo donde se necesitaba.
+
+El método sigue público (lo usan `MessageRuleEngine`, el persistidor de Beds24 y el panel); lo que
+se fue es la anotación.
+
+> **El patrón, que es lo que hay que llevarse:** los tres casos —`metadata`, `messages`, y el
+> `getTotalMensajes()` de antes— son **campos caros publicados «por si acaso» que nadie consume**.
+> No dan error, no salen en los tests, no los ve PHPStan ni `vue-tsc`: sólo engordan la respuesta
+> y multiplican las consultas hasta que alguien cronometra. La comprobación barata es al revés:
+> antes de poner un `#[Groups]` sobre una colección o un JSON, buscar quién lo lee en el front.
 - **Trabajo duplicado en los workers:** 899 veces en ago-sep dos `messenger-worker` con PIDs
   consecutivos escribieron el mismo `dispatch_errors` con un segundo de diferencia. No corrompe
   —por eso la auditoría no lo marcaba— pero es el mismo mensaje despachado dos veces.
