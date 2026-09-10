@@ -321,12 +321,24 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
     }
 
     /**
-     * La cifra de la pastilla: la de su moneda si hay una, la convertida si hay dos.
+     * La cifra de la pastilla **y la moneda en la que está**: la suya si hay una, la convertida
+     * si hay dos.
      *
      * Con una sola moneda **no se convierte nada** y la barra se lee exactamente igual que antes
      * del rediseño, que es el 99 % de los casos.
+     *
+     * ⚠️ **Devuelve la moneda porque no siempre es la de la ficha, y eso ya se pintó mal.**
+     * `PmsInformacionFinanciera::$moneda` es la moneda del CUADRE; los cargos pueden estar en
+     * otra, y con una sola moneda esta rama devuelve el importe **tal como se pactó**, sin
+     * convertir. Pegarle el símbolo de la ficha convertía S/ 130.00 en `US$130` — creíble,
+     * mudo y falso: la misma barra enseñaba un total en soles y un saldo en dólares.
+     *
+     * Hoy es una reserva de 91 (10/09/2026), pero nada obliga a que la moneda de la ficha sea
+     * la de sus cargos, así que el símbolo tiene que salir de la MISMA rama que hizo el número.
+     *
+     * @return array{monto: string, moneda: string}|null
      */
-    private function cifraDeBarra(?PmsTotalesPorMoneda $totales, string $campo): ?string
+    private function cifraDeBarra(?PmsTotalesPorMoneda $totales, string $campo): ?array
     {
         if ($totales === null) {
             return null;
@@ -335,9 +347,12 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         if (!$totales->esMixta()) {
             // Copia local: `reset()` recibe el array POR REFERENCIA y `porMoneda` es readonly.
             $filas = $totales->porMoneda;
+            $moneda = array_key_first($filas);
             $unica = reset($filas);
 
-            return $unica === false ? null : $unica[$campo];
+            return $unica === false || $moneda === null
+                ? null
+                : ['monto' => $unica[$campo], 'moneda' => $moneda];
         }
 
         // Con dos monedas, el total se lleva a la de cuadre igual que el saldo. Sin tipo de
@@ -360,7 +375,44 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             };
         }
 
-        return number_format($suma, 2, '.', '');
+        // Convertido a la moneda del cuadre: ésa es la moneda de esta cifra, no la de ningún cargo.
+        return ['monto' => number_format($suma, 2, '.', ''), 'moneda' => $totales->monedaCuadre];
+    }
+
+    /**
+     * El símbolo de una moneda, buscado entre las que la ficha ya tiene en memoria.
+     *
+     * Sin consulta nueva: el calendario carga las cabeceras en lote con sus cargos y pagos, y
+     * cada uno trae su `MaestroMoneda` hidratada. Una consulta al maestro por evento sería el
+     * N+1 que ese lote existe para evitar.
+     *
+     * Si la moneda no aparece —no debería: si hay una cifra en ella, hay un cargo o un pago que
+     * la trajo— se devuelve su id (`PEN`, `USD`). Feo, pero **honesto**: antes que un símbolo
+     * equivocado, ninguno.
+     */
+    private function simboloDe(?PmsInformacionFinanciera $finanzas, ?string $moneda): ?string
+    {
+        if ($finanzas === null || $moneda === null) {
+            return null;
+        }
+
+        $candidatas = [$finanzas->getMoneda()];
+
+        foreach ($finanzas->getCargos() as $cargo) {
+            $candidatas[] = $cargo->getMoneda();
+        }
+
+        foreach ($finanzas->getPagos() as $pago) {
+            $candidatas[] = $pago->getMoneda();
+        }
+
+        foreach ($candidatas as $candidata) {
+            if ($candidata !== null && $candidata->getId() === $moneda) {
+                return $candidata->getSimbolo() ?? $moneda;
+            }
+        }
+
+        return $moneda;
     }
 
     /**
@@ -419,6 +471,10 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         // Sin cargos no hay cifras que pintar: un bloqueo o una reserva recién
         // creada mandan null y la barra simplemente no muestra la línea de dinero.
         $hayCifras = $totales !== null && $totales->hayCargos();
+
+        // La cifra de la pastilla viene con su moneda pegada: se calcula una vez y de ahí salen
+        // el importe y su símbolo, para que no puedan volver a separarse.
+        $barra = $hayCifras ? $this->cifraDeBarra($totales, 'cargos') : null;
 
         return [
             'context' => $reserva ? 'reserva' : 'bloqueo',
@@ -479,8 +535,14 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             //
             // `convertido` avisa de que la cifra pasó por una tasa, para que la barra la marque
             // con `≈` y el tooltip enseñe el detalle exacto de cada moneda.
-            'simbolo' => $hayCifras ? $finanzas->getMoneda()?->getSimbolo() : null,
-            'total' => $hayCifras ? $this->cifraDeBarra($totales, 'cargos') : null,
+            //
+            // ⚠️ **Hay DOS símbolos porque puede haber dos monedas en la misma barra.** `saldo`
+            // es el cuadre y va siempre en la moneda de la ficha; `total` puede venir en la de
+            // los cargos, que no tiene por qué ser la misma. Un solo `simbolo` para los dos
+            // etiquetaba soles como dólares — ver `cifraDeBarra()`.
+            'simbolo' => $hayCifras ? $this->simboloDe($finanzas, $totales->monedaCuadre) : null,
+            'simboloTotal' => $hayCifras ? $this->simboloDe($finanzas, $barra['moneda'] ?? null) : null,
+            'total' => $barra['monto'] ?? null,
             'saldo' => $hayCifras ? $totales->cuadre : null,
             'convertido' => $hayCifras && $totales->esMixta(),
             // Lo que hace que la pastilla no se ponga roja por diez céntimos de redondeo del

@@ -1164,7 +1164,10 @@ const calendarOptions: CalendarOptions = {
             p.salidaTardia ? '<span class="fc-reserva-dato fc-reserva-tarde" title="Salida tardía"><i class="fas fa-right-from-bracket"></i></span>' : '',
             p.pax ? `<span class="fc-reserva-dato fc-reserva-num"><i class="fas fa-user"></i>${escaparHtml(String(p.pax))}</span>` : '',
             p.noches ? `<span class="fc-reserva-dato fc-reserva-num"><i class="fas fa-moon"></i>${escaparHtml(String(p.noches))}</span>` : '',
-            p.total ? `<span class="fc-reserva-dato fc-reserva-total">${escaparHtml(importeCorto(p.total, p.simbolo))}</span>` : '',
+            // ⚠️ `simboloTotal`, NO `simbolo`: el total puede venir en la moneda de los cargos y
+            // el saldo va siempre en la del cuadre. Con un solo símbolo, una reserva con cargos
+            // en soles y ficha en dólares enseñaba `US$130` sobre S/ 130.00.
+            p.total ? `<span class="fc-reserva-dato fc-reserva-total">${escaparHtml(importeCorto(p.total, p.simboloTotal ?? p.simbolo))}</span>` : '',
             saldoPill(p),
         ].filter(Boolean);
 
@@ -1316,6 +1319,30 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
             + `</div>`;
     };
 
+    // 💱 EL DESGLOSE QUE ESTE TOOLTIP LLEVABA PROMETIENDO SIN ENSEÑARLO
+    // ─────────────────────────────────────────────────────────────────
+    // El backend manda `totales` —el reparto exacto por moneda, sin convertir— precisamente
+    // «para el tooltip», y el tooltip nunca lo leyó: pintaba `US$437.99` a secas mientras la
+    // pastilla de al lado decía `≈US$438`. El mismo número con dos niveles de verdad, y el que
+    // se leía como exacto era justo el aproximado.
+    //
+    // El `≈` va también aquí por eso: una cifra convertida es la misma cifra en los dos sitios.
+    const aprox = p.convertido ? '≈' : '';
+
+    const desglose = (p.totales?.length ?? 0) > 1
+        ? `<div class="fc-tip-desglose">`
+            + `<div class="fc-tip-desglose-tit">Sin convertir</div>`
+            + (p.totales ?? []).map(t =>
+                `<div class="fc-tip-fila">`
+                + `<span class="fc-tip-et">${escaparHtml(t.moneda)}</span>`
+                // «saldo de cargos» a secas se lee como un jeroglífico: la primera versión decía
+                // «-256.88 de 0.00» y había que adivinar cuál era cuál. Con las etiquetas puestas
+                // se entiende que pagó de más en soles y debe en dólares, que es el caso entero.
+                + `<span class="fc-tip-val">cargos ${escaparHtml(t.cargos)} · saldo ${escaparHtml(t.saldo)}</span>`
+                + `</div>`).join('')
+            + `</div>`
+        : '';
+
     return `
         <div class="fc-tip">
             <div class="fc-tip-cab">
@@ -1328,8 +1355,9 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
             ${fila('Estado', p.estado)}
             ${fila('Pago', p.estadoPago)}
             ${fila(canal.texto, p.referenciaCanal)}
-            ${p.total ? fila('Total', `${p.simbolo ?? ''}${p.total}`) : ''}
-            ${p.saldo ? fila('Saldo', `${p.simbolo ?? ''}${p.saldo}`) : ''}
+            ${p.total ? fila('Total', `${aprox}${p.simboloTotal ?? p.simbolo ?? ''}${p.total}`) : ''}
+            ${p.saldo ? fila('Saldo', `${aprox}${p.simbolo ?? ''}${p.saldo}`) : ''}
+            ${desglose}
             ${p.porImputar ? `<div class="fc-tip-aviso">Pagó en otra moneda · falta imputar el cobro</div>` : ''}
         </div>`;
 }
@@ -1670,6 +1698,23 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
     border: 1.5px solid #fff;
     box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.15);
     pointer-events: none;          /* que no se coma el `title` del icono */
+}
+
+/* El desglose por moneda: la verdad detrás del `≈`. Va separado por una línea y con el título
+   en pequeño porque no es la cifra que se busca —ésa es la de arriba—, es la que la explica. */
+.fc-tip-desglose {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.fc-tip-desglose-tit {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 2px;
 }
 
 /* El aviso del tooltip: dice QUÉ hay que hacer, no sólo que pasa algo. Un anillo violeta sin

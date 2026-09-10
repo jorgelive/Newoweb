@@ -988,61 +988,14 @@ mucho mejor que esconderlo. Lo que falta es **dejar rastro de la contradicción*
 
 ---
 
-## El calendario etiqueta soles como dólares — 10/09/2026
+## ✅ CERRADO (10/09/2026): el calendario etiquetaba soles como dólares
 
-Detectado a ojo sobre el calendario de reservas: el tooltip de una barra decía `TOTAL US$1668.15`
-y la mezcla de monedas «se veía rara». Al revisarlo hay **dos defectos distintos**, y sólo el
-primero es el que se ve.
+Se anotó y se arregló el mismo día. El símbolo salía de la moneda de la ficha y el importe de la
+de los cargos: una reserva enseñaba `US$130` sobre S/ 130.00, con el saldo al lado en dólares de
+verdad. Y el tooltip nunca leyó el desglose por moneda que el backend le mandaba «para el
+tooltip», así que la pastilla decía `≈US$438` y él `US$437.99`.
 
-### 1. El símbolo sale de la ficha; el importe, de los cargos
-
-En `PmsEventosSpaCalendarProvider::eventoDeEstancia()`:
-
-```php
-'simbolo' => $hayCifras ? $finanzas->getMoneda()?->getSimbolo() : null,   // ← moneda de la FICHA
-'total'   => $hayCifras ? $this->cifraDeBarra($totales, 'cargos') : null, // ← moneda de los CARGOS
-```
-
-Para una reserva de una sola moneda, `cifraDeBarra()` devuelve la cifra **tal como se pactó**, sin
-convertir (`PmsTotalesPorMoneda` no convierte, y su docblock lo dice). Pero el símbolo que se le
-pega delante es el de `PmsInformacionFinanciera::$moneda`. **Cuando las dos no coinciden, el
-calendario pone un símbolo a un número que no le corresponde**, en la barra y en el tooltip.
-
-Verificado contra producción el 10/09/2026:
-
-| ficha | cargos | fichas |
-|---|---|---|
-| USD | USD | 83 |
-| PEN | PEN | 7 |
-| **USD** | **PEN** | **1** ← S/ 130.00 mostrados como `US$130` |
-
-Una sola hoy, y por eso no ha explotado. Pero no hay nada que impida que sean más: nadie obliga a
-que la moneda de la ficha sea la de sus cargos, y el desajuste **no produce ningún error** — sólo
-una cifra creíble con la etiqueta equivocada, que es la peor forma de estar mal.
-
-⚠️ **El arreglo no es «copiar la moneda de los cargos» sin mirar.** Con dos monedas sí se convierte
-a la de la ficha (esa rama de `cifraDeBarra()` usa `tipoCambio`), así que ahí el símbolo actual es
-el correcto. El símbolo tiene que salir de **la misma rama** que produjo el número, no de la ficha
-por defecto.
-
-### 2. El tooltip promete un desglose que nunca escribió nadie
-
-El comentario del backend dice, literalmente, que `convertido` existe
-
-> «para que la barra la marque con `≈` **y el tooltip enseñe el detalle exacto de cada moneda**».
-
-La barra sí lo hace (`saldoPill()` en `util/src/views/Reservas/ReservasView.vue` antepone `≈` y
-cambia el `title`). El tooltip **no**: `tooltipDeEvento()` imprime `fila('Total', simbolo + total)`
-y `fila('Saldo', simbolo + saldo)` a secas, sin `≈`, sin nota y sin desglose.
-
-El resultado es que en una reserva de dos monedas la barra dice `≈US$438` y el tooltip que se abre
-al lado dice `US$437.99` — **el mismo número con dos niveles de verdad distintos**, y el que se lee
-como exacto es el que no lo es. Hoy afecta a **3 fichas** con dos monedas.
-
-### Dónde tocar
-
-| Necesidad | Archivo | Método |
-|---|---|---|
-| Que el símbolo acompañe al número que lo generó | `src/Calendar/Provider/PmsEventosSpaCalendarProvider.php` | `cifraDeBarra()` — que devuelva importe **y** moneda |
-| Que el tooltip diga que la cifra pasó por una tasa | `util/src/views/Reservas/ReservasView.vue` | `tooltipDeEvento()` — leer `p.convertido`, igual que `saldoPill()` |
-| Desglose por moneda en el tooltip | ambos | hoy el evento **no lleva** `porMoneda`: hay que exponerlo antes |
+El detalle, el porqué de que el símbolo tenga que salir de la misma rama que el número, y el
+riesgo vecino que **sigue abierto** —`calcularCuadre()` descarta en silencio el saldo de una
+moneda sin tipo de cambio, hoy 0 fichas— están en `docs/Calendar_architecture.md`, sección «Dos
+monedas en la misma barra».

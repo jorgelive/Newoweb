@@ -298,6 +298,18 @@ export interface PmsEventoExtendedProps {
      */
     simbolo?: string | null;
     /**
+     * El símbolo del **total**, que no siempre es el de `simbolo`.
+     *
+     * ⚠️ `simbolo` es el de la moneda del CUADRE (la de la ficha), y ésa es la del `saldo`. El
+     * `total` sale de los cargos y con una sola moneda **no se convierte**: si los cargos están
+     * en soles y la ficha en dólares, son dos monedas en la misma barra. Usar `simbolo` para los
+     * dos enseñaba `US$130` sobre S/ 130.00 — creíble, mudo y falso.
+     *
+     * Espejo de `PmsEventosSpaCalendarProvider::cifraDeBarra()`, que devuelve importe y moneda
+     * juntos para que no puedan volver a separarse.
+     */
+    simboloTotal?: string | null;
+    /**
      * ¿La cifra de la barra pasó por un tipo de cambio?
      *
      * Sólo cuando la reserva tiene movimiento en dos monedas. La pastilla la marca con `≈` y el

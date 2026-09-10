@@ -1316,6 +1316,90 @@ serían un fallo de pintado que nadie sabría leer.
 El tooltip dice **qué hacer**, no sólo que pasa algo: «Pagó en otra moneda · falta imputar el
 cobro». Un anillo sin explicación es un adorno hasta que alguien pregunta qué significa.
 
+## Dos monedas en la misma barra: un símbolo por cifra
+
+⚠️ **Hasta el 10/09/2026 el calendario etiquetaba soles como dólares**, y no había forma de
+notarlo salvo mirando: una cifra creíble con el símbolo equivocado no rompe nada.
+
+### La causa: el símbolo y el número venían de sitios distintos
+
+```php
+'simbolo' => $finanzas->getMoneda()?->getSimbolo(),   // ← moneda de la FICHA
+'total'   => $this->cifraDeBarra($totales, 'cargos'), // ← moneda de los CARGOS
+```
+
+`PmsInformacionFinanciera::$moneda` es la moneda del **cuadre**, no la de los cargos. Y con una
+sola moneda `cifraDeBarra()` devuelve el importe **tal como se pactó, sin convertir** — porque
+`PmsTotalesPorMoneda` no convierte, y su docblock lo dice. Cuando las dos no coinciden, el
+símbolo miente.
+
+Lo peor es lo que quedaba en pantalla: **la misma barra enseñaba el total en soles y el saldo en
+dólares, los dos con `US$` delante.**
+
+| ficha | cargos | reservas (10/09/2026) | qué se veía |
+|---|---|---|---|
+| USD | USD | 83 | correcto |
+| PEN | PEN | 7 | correcto |
+| **USD** | **PEN** | **1** | `US$130` sobre S/ 130.00 |
+
+Una sola hoy, y por eso no explotó. Pero **nada obliga** a que la moneda de la ficha sea la de sus
+cargos: no es una invariante, es una coincidencia con 90 de 91 casos a favor.
+
+### El arreglo: la moneda viaja pegada al número
+
+`cifraDeBarra()` devuelve `{monto, moneda}` en vez de un decimal suelto, y cada rama declara la
+suya: la de los cargos si no hubo conversión, `monedaCuadre` si la hubo. El payload lleva dos
+símbolos —`simbolo` para el saldo, `simboloTotal` para el total— porque de verdad puede haber dos
+monedas ahí.
+
+**No se arregla «copiando la moneda de los cargos»**, que es lo primero que se piensa: en la rama
+mixta el total SÍ se convierte a la de la ficha y ahí el símbolo viejo era el correcto. El
+símbolo tiene que salir de la misma rama que hizo el número, y por eso salen juntos del método en
+vez de calcularse aparte — dos cálculos paralelos vuelven a separarse en cuanto alguien toque uno.
+
+`simboloDe()` resuelve el símbolo entre las monedas que la ficha **ya tiene hidratadas** (la suya,
+las de sus cargos y las de sus pagos): el calendario carga las cabeceras en lote con sus hijos, así
+que una consulta al maestro por evento sería el N+1 que ese lote existe para evitar.
+
+### Y el tooltip enseña por fin el desglose que prometía
+
+El comentario del backend decía, desde que se escribió, que `convertido` existe «para que la barra
+la marque con `≈` **y el tooltip enseñe el detalle exacto de cada moneda**». El campo `totales`
+—el reparto por moneda, sin convertir— viajaba en el payload y estaba declarado en
+`PmsEventoExtendedProps`. **El tooltip nunca lo leyó.**
+
+Resultado: la pastilla decía `≈US$438` y el tooltip que se abre al lado decía `US$437.99` — el
+mismo número con dos niveles de verdad, y el que se leía como exacto era justo el aproximado. Hoy
+el tooltip lleva el `≈` y un bloque «Sin convertir» con los cargos y el saldo de cada moneda,
+**etiquetados**: la primera versión ponía «-256.88 de 0.00» y había que adivinar cuál era cuál.
+
+Así se lee la reserva mixta que hay hoy en producción, y por primera vez se entiende de un vistazo:
+
+```
+TOTAL              ≈US$131.41
+SALDO                ≈US$0.41
+SIN CONVERTIR
+PEN     cargos 0.00 · saldo -256.88     ← pagó de más en soles
+USD   cargos 131.41 · saldo   76.25     ← debe en dólares
+Pagó en otra moneda · falta imputar el cobro
+```
+
+> **La lección, que no es del calendario:** el campo estaba, el tipo estaba, el comentario decía
+> para qué era. Lo único que faltaba era la línea que lo pintaba, y nada podía cazarlo — ni
+> PHPStan, ni `vue-tsc`, ni los tests. Un campo opcional que nadie lee se ve **exactamente igual**
+> que uno que no existe.
+
+### ⚠️ Un riesgo que queda al lado, y hoy no muerde
+
+`PmsTotalesPorMoneda::calcularCuadre()` **descarta el saldo** de una moneda distinta a la base
+cuando la ficha no tiene tipo de cambio (`if ($tc <= 0.0) continue;`). No devuelve `null` ni avisa:
+el saldo desaparece de la suma, y la pastilla saldría **verde sobre una deuda real**.
+
+Hoy no ocurre —0 fichas con cargo en otra moneda y sin tipo de cambio, medido el 10/09/2026— y por
+eso no se toca aquí. Pero es la misma familia que lo de arriba, un grado más cara: aquí el error
+no sería la etiqueta, sería la cifra. Compárese con `cifraDeBarra()`, que en el mismo caso devuelve
+`null` y deja la barra sin número, «que es más honesto que sumar peras con manzanas».
+
 ## El panel financiero avisa al calendario
 
 Un cobro registrado con los atajos del panel cambia **el color de la barra** —`resolveColor()`
