@@ -111,11 +111,32 @@ final readonly class GiradorDeEscaneo
         // sobre lo ya reescrito: −14 % el primero, −27 % al cuarto. Con ella, girar diez veces
         // cuesta lo mismo que girar una, porque siempre se parte del original.
         $original = $ruta . self::SUFIJO_ORIGINAL;
-        if (!file_exists($original) && !copy($ruta, $original)) {
+
+        // ⚠️ **`link()` y no `file_exists()` + `copy()`.** Comprobar y luego copiar son dos pasos, y
+        // entre ellos cabe otra petición: dos giros a la vez y el segundo copiaría como «original»
+        // el fichero que el primero acaba de girar — original falso y doble giro para siempre.
+        // `link()` crea sólo si no existe, en una sola operación del sistema de ficheros.
+        if (!file_exists($original)) {
+            // El `@` es deliberado y acotado: que falle porque otro lo creó primero es el caso
+            // NORMAL de la carrera, no un error. Cualquier otro fallo lo destapa el `is_file()`.
+            @link($ruta, $original);
+        }
+
+        if (!is_file($original)) {
             throw new RuntimeException('No se pudo guardar la copia original antes de girar.');
         }
 
         $acumulado = ((($archivo->getRotacionAplicada() + $grados) % 360) + 360) % 360;
+
+        // ⚠️ Un enlace duro comparte inodo: escribir sobre el fichero vivo con `writeImage()` lo
+        // reemplaza (crea y renombra), así que el original sobrevive. Pero si alguna vez se
+        // escribiera EN SITIO, los dos cambiarían a la vez. Se rompe el enlace en cuanto hay algo
+        // que preservar de verdad.
+        if ($archivo->getRotacionAplicada() === 0 && fileinode($ruta) === fileinode($original)) {
+            $contenido = (string) file_get_contents($original);
+            unlink($original);
+            file_put_contents($original, $contenido);
+        }
 
         try {
             if ($acumulado === 0) {

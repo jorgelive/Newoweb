@@ -1881,6 +1881,76 @@ son los del documento — un número mal en un manifiesto es un problema en el a
 
 Coste de la tanda entera: **~$0,30**. Y no se vuelve a pagar: las lecturas quedaron cacheadas.
 
+#### Lo que sacó la revisión de Fable (09/09/2026)
+
+Nada de esto lo cazaba PHPStan, ni los tests, ni el typecheck. Cinco eran mudos.
+
+##### El veredicto no se invalidaba nunca
+
+🔥 **Corregir mal un número ya validado lo dejaba en verde para siempre.** La tanda salta lo
+resuelto, así que nada volvía a mirarlo. Ahora los setters de los campos que se cotejan —número,
+tipo, vencimiento— llaman a `invalidarVeredicto()` y el número vuelve a la cola con su motivo.
+
+🔥 **Y un veredicto sin su escaneo tampoco cuenta como resuelto.** `validado_con_id` es
+`SET NULL` al borrar el archivo, así que cuando el pasajero re-sube su documento desde `pax` —que
+borra el viejo y crea otro— el número seguía en verde **y el escaneo nuevo no se leía jamás**.
+`estaResuelta()` exige ahora el respaldo vivo.
+
+##### Una ficha creada desde el escaneo se validaba contra sí misma
+
+El panel de sueltos escribe número y nombre desde la lectura; en la siguiente tanda el cotejo veía
+un manifiesto que coincide al 100 % —porque salió de ahí— y lo sellaba `VALIDADO_OCR`. **Un sello
+verde puesto por el propio dato que había que comprobar.**
+
+⚠️ La guarda de `Cotejo` («sin nada guardado no se valida solo») protegía **sólo la ruta en
+memoria**: en cuanto la ficha persiste, deja de existir. Por eso hace falta `copiada_del_escaneo`,
+que la sobrevive — y se apaga en cuanto una persona toca el dato, porque a partir de ahí ya no es
+una copia: es lo que alguien afirma.
+
+##### El botón perdía las lecturas pagadas
+
+php-fpm corta a los **90 s** y un expediente nuevo son ~183 lecturas × 3,5 s ≈ **10 minutos**. Con
+un solo `flush()` al final, el corte tiraba **todas las lecturas ya pagadas** y la siguiente
+pulsación volvía a pagarlas para tampoco terminar. Ahora se guarda **según se lee**: cada pulsación
+avanza lo que le dé tiempo y nada se paga dos veces.
+
+##### `strtr()` con dos cadenas opera byte a byte
+
+`«José Pérez Núñez»` salía como `JOSO` y `REZ`. Latente aquí —los doce nombres con tilde compartían
+otras palabras— pero «José Pérez» a secas habría dado un «nombre no coincide» falso. Ahora usa
+`Transliterator`, que cubre cualquier alfabeto y no la lista de acentos que uno recuerde.
+
+##### «Dos palabras en común» no distinguía a dos hermanos
+
+`PEDRO QUISPE MAMANI` con el número de `JUAN QUISPE MAMANI` compartía los dos apellidos y se
+validaba — **el caso exacto que este control existe para cazar**. En una familia, los apellidos son
+lo que TIENEN en común; lo que separa es el nombre de pila.
+
+⚠️ **El primer arreglo —mirar «las dos primeras palabras»— también fallaba**, porque en «Pedro
+Quispe Mamani» el apellido cae ahí dentro. La solución no era adivinar mejor: era **dejar de
+concatenar**. Las dos fuentes traen nombre y apellidos separados de origen, así que se comparan
+campo con campo y no hay nada que adivinar.
+
+##### La carrera al girar
+
+`file_exists()` + `copy()` son dos pasos y entre ellos cabe otra petición: dos giros a la vez y el
+segundo copiaría como «original» el fichero que el primero acaba de girar. Ahora usa `link()`, que
+crea sólo si no existe, en una sola operación.
+
+##### 58 notas fósiles
+
+«El escaneo está girado N°» las escribió la versión que ponía el giro en el veredicto. Al sacarlo
+de ahí dejaron de escribirse, pero las guardadas **no se van solas** —la tanda salta lo validado—
+así que un documento ya enderezado seguía diciendo que estaba torcido. Y eso manda a girarlo otra
+vez, a un 14 % de calidad por giro. Limpiadas por migración.
+
+##### Y código muerto
+
+`ValidadorDeDocumento::analizar()`, `buscarDueno()`, `fichaDe()`, `ResultadoDeValidacion` y `Accion`
+quedaron sin consumidor al mover la orquestación a `ValidadorDeManifiesto`. `fichaDe()` además
+**duplicaba `FichaGuardada::de()` con la regla contraria** —«la primera identificación que tenga»
+en vez de la que se está validando—, que es justo el fallo del que se dejó aviso escrito.
+
 #### Dos fallos que sólo se veían mirando los datos (09/09/2026, revisión)
 
 **1. La regla del dígito verificador escondió un pasaporte mal tecleado.** Se aplicaba a

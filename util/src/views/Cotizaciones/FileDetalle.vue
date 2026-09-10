@@ -1942,10 +1942,13 @@ const validando = ref(false);
  */
 const validarManifiesto = async () => {
     validando.value = true;
-    const ok = await fileStore.validarManifiesto(String(extractIdStr(file.value?.id ?? file.value?.['@id'])));
+    // ⚠️ El processor devuelve el expediente ENTERO ya actualizado, así que se usa esa
+    // respuesta en vez de volver a pedirlo: con 133 personas y 315 archivos eran dos descargas del
+    // mismo payload grande por cada pulsación.
+    const actualizado = await fileStore.validarManifiesto(String(extractIdStr(file.value?.id ?? file.value?.['@id'])));
     validando.value = false;
 
-    if (ok) await cargarFile();
+    if (actualizado) file.value = actualizado;
     else alert(fileStore.error || 'No se pudo validar el manifiesto.');
 };
 

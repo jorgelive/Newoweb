@@ -57,7 +57,7 @@ final class CotejoTest extends TestCase
         $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(
             numero: 'L898902C3',
             tipo: 'PASAPORTE',
-            nombreCompleto: 'Anna María Eriksson',
+            nombres: 'Anna María', apellidos: 'Eriksson',
         ));
 
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_MRZ, $cotejo->estado);
@@ -86,7 +86,7 @@ final class CotejoTest extends TestCase
         $cotejo = Cotejo::de($this->pasaporteSinBanda(), new FichaGuardada(
             numero: 'L898902C3',
             tipo: 'PASAPORTE',
-            nombreCompleto: 'Anna María Eriksson',
+            nombres: 'Anna María', apellidos: 'Eriksson',
         ));
 
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_OCR, $cotejo->estado);
@@ -111,7 +111,7 @@ final class CotejoTest extends TestCase
     {
         $cotejo = Cotejo::de($this->pasaporteSinBanda(), new FichaGuardada(
             numero: 'L898902C3',
-            nombreCompleto: 'Roberto Carlos Quispe Mamani',
+            nombres: 'Roberto Carlos', apellidos: 'Quispe Mamani',
         ));
 
         self::assertSame(ValidacionIdentificacionEnum::OBSERVADO, $cotejo->estado);
@@ -153,7 +153,7 @@ final class CotejoTest extends TestCase
         $cotejo = Cotejo::de($this->dni(), new FichaGuardada(
             numero: '12345678',
             tipo: 'DNI',
-            nombreCompleto: 'Anna Maria Eriksson',
+            nombres: 'Anna Maria', apellidos: 'Eriksson',
         ));
 
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_OCR, $cotejo->estado);
@@ -190,7 +190,7 @@ final class CotejoTest extends TestCase
     #[Test]
     public function unVencimientoGuardadoEnBlancoNoEsUnaDiferencia(): void
     {
-        $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(numero: 'L898902C3', vencimiento: null, nombreCompleto: 'Anna Maria Eriksson'));
+        $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(numero: 'L898902C3', vencimiento: null, nombres: 'Anna Maria', apellidos: 'Eriksson'));
 
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_MRZ, $cotejo->estado);
     }
@@ -201,7 +201,7 @@ final class CotejoTest extends TestCase
         $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(
             numero: 'L898902C3',
             // Orden cambiado, tilde, coma y una partícula de más: es la misma persona.
-            nombreCompleto: 'ERIKSSON, Anna María de los',
+            nombres: 'Anna María', apellidos: 'ERIKSSON',
         ));
 
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_MRZ, $cotejo->estado);
@@ -212,7 +212,7 @@ final class CotejoTest extends TestCase
     {
         $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(
             numero: 'L898902C3',
-            nombreCompleto: 'Roberto Carlos Quispe Mamani',
+            nombres: 'Roberto Carlos', apellidos: 'Quispe Mamani',
         ));
 
         self::assertSame(ValidacionIdentificacionEnum::OBSERVADO, $cotejo->estado);
@@ -234,7 +234,7 @@ final class CotejoTest extends TestCase
     #[Test]
     public function distingueValidadoPorMrzDeValidadoCotejando(): void
     {
-        $ficha = new FichaGuardada(numero: 'L898902C3', nombreCompleto: 'Anna Maria Eriksson');
+        $ficha = new FichaGuardada(numero: 'L898902C3', nombres: 'Anna Maria', apellidos: 'Eriksson');
 
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_MRZ, Cotejo::de($this->pasaporte(), $ficha)->estado);
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_OCR, Cotejo::de($this->pasaporteSinBanda(), $ficha)->estado);
@@ -253,7 +253,7 @@ final class CotejoTest extends TestCase
     #[Test]
     public function unDniSinBandaSeQuedaEnOcrPeroPodriaLlegarAMrz(): void
     {
-        $estado = Cotejo::de($this->dni(), new FichaGuardada(numero: '12345678', nombreCompleto: 'Anna Maria Eriksson'))->estado;
+        $estado = Cotejo::de($this->dni(), new FichaGuardada(numero: '12345678', nombres: 'Anna Maria', apellidos: 'Eriksson'))->estado;
 
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_OCR, $estado);
         self::assertTrue(ValidacionIdentificacionEnum::VALIDADO_MRZ->aplicaA(DocumentoTipoEnum::DNI));
@@ -272,7 +272,7 @@ final class CotejoTest extends TestCase
     {
         $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(
             numero: 'L898902C3',
-            nombreCompleto: 'Anna Maria Eriksson',
+            nombres: 'Anna Maria', apellidos: 'Eriksson',
             nacimiento: new DateTimeImmutable('1974-08-21'),
         ));
 
@@ -289,7 +289,7 @@ final class CotejoTest extends TestCase
     #[Test]
     public function laNacionalidadSeComparaEnIso2YNoEnIso3(): void
     {
-        $ficha = new FichaGuardada(numero: 'X1', nombreCompleto: 'Juan Perez', nacionalidad: 'PE');
+        $ficha = new FichaGuardada(numero: 'X1', nombres: 'Juan', apellidos: 'Perez', nacionalidad: 'PE');
         $base = ['numero' => 'X1', 'nombres' => 'JUAN', 'apellidos' => 'PEREZ'];
 
         $peruano = new DatosDeDocumento(...$base, nacionalidadIso2: 'PE');
@@ -305,7 +305,7 @@ final class CotejoTest extends TestCase
     {
         $sinTraducir = new DatosDeDocumento(numero: 'X1', nombres: 'JUAN', apellidos: 'PEREZ', nacionalidadIso2: null);
 
-        self::assertSame([], Cotejo::de($sinTraducir, new FichaGuardada(numero: 'X1', nombreCompleto: 'Juan Perez', nacionalidad: 'PE'))->discrepancias);
+        self::assertSame([], Cotejo::de($sinTraducir, new FichaGuardada(numero: 'X1', nombres: 'Juan', apellidos: 'Perez', nacionalidad: 'PE'))->discrepancias);
     }
 
     /**
@@ -328,7 +328,7 @@ final class CotejoTest extends TestCase
             mrz: Mrz::desde(self::L1, self::L2),
         );
 
-        $cotejo = Cotejo::de($girado, new FichaGuardada(numero: 'L898902C3', nombreCompleto: 'Anna Maria Eriksson'));
+        $cotejo = Cotejo::de($girado, new FichaGuardada(numero: 'L898902C3', nombres: 'Anna Maria', apellidos: 'Eriksson'));
 
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_MRZ, $cotejo->estado);
         self::assertSame([], $cotejo->notas);
@@ -338,7 +338,7 @@ final class CotejoTest extends TestCase
     #[Test]
     public function unEscaneoDerechoNoDiceNada(): void
     {
-        $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(numero: 'L898902C3', nombreCompleto: 'Anna Maria Eriksson'));
+        $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(numero: 'L898902C3', nombres: 'Anna Maria', apellidos: 'Eriksson'));
 
         self::assertSame([], $cotejo->notas);
     }
@@ -352,12 +352,12 @@ final class CotejoTest extends TestCase
     {
         // El escaneo lo trae y el padrón no.
         self::assertSame([], Cotejo::de($this->dni('73716768-8'), new FichaGuardada(
-            numero: '73716768', tipo: 'DNI', nombreCompleto: 'Anna Maria Eriksson',
+            numero: '73716768', tipo: 'DNI', nombres: 'Anna Maria', apellidos: 'Eriksson',
         ))->discrepancias);
 
         // Y al revés: el padrón lo trae de más.
         self::assertSame([], Cotejo::de($this->dni('73716768'), new FichaGuardada(
-            numero: '737167688', tipo: 'DNI', nombreCompleto: 'Anna Maria Eriksson',
+            numero: '737167688', tipo: 'DNI', nombres: 'Anna Maria', apellidos: 'Eriksson',
         ))->discrepancias);
     }
 
@@ -376,7 +376,7 @@ final class CotejoTest extends TestCase
         $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(
             numero: 'L898902C33',   // el de la MRZ es 'L898902C3'
             tipo: 'PASAPORTE',
-            nombreCompleto: 'Anna Maria Eriksson',
+            nombres: 'Anna Maria', apellidos: 'Eriksson',
         ));
 
         self::assertSame('número', $cotejo->discrepancias[0]->campo);
@@ -388,7 +388,7 @@ final class CotejoTest extends TestCase
     public function unDniTruncadoNoSeTolera(): void
     {
         $cotejo = Cotejo::de($this->dni('7371676'), new FichaGuardada(
-            numero: '73716768', tipo: 'DNI', nombreCompleto: 'Anna Maria Eriksson',
+            numero: '73716768', tipo: 'DNI', nombres: 'Anna Maria', apellidos: 'Eriksson',
         ));
 
         self::assertSame('número', $cotejo->discrepancias[0]->campo);
@@ -399,7 +399,7 @@ final class CotejoTest extends TestCase
     public function dosNumerosDistintosSiguenSiendoUnaDiferencia(): void
     {
         $cotejo = Cotejo::de($this->dni('125853071'), new FichaGuardada(
-            numero: '61859757', nombreCompleto: 'Anna Maria Eriksson',
+            numero: '61859757', nombres: 'Anna Maria', apellidos: 'Eriksson',
         ));
 
         self::assertSame('número', $cotejo->discrepancias[0]->campo);
@@ -410,9 +410,53 @@ final class CotejoTest extends TestCase
     public function dosDigitosDeMasSiSeSenalan(): void
     {
         $cotejo = Cotejo::de($this->dni('12229883'), new FichaGuardada(
-            numero: '1222988343', tipo: 'DNI', nombreCompleto: 'Anna Maria Eriksson',
+            numero: '1222988343', tipo: 'DNI', nombres: 'Anna Maria', apellidos: 'Eriksson',
         ));
 
         self::assertSame('número', $cotejo->discrepancias[0]->campo);
+    }
+
+    /**
+     * 🔥 **REGRESIÓN: `strtr()` con dos cadenas opera BYTE A BYTE.** «José Pérez Núñez» salía como
+     * `JOSO` y `REZ`, así que dos escrituras del mismo nombre —una con tildes y otra sin— no
+     * compartían ni una palabra. Estaba latente en el expediente real y habría sacado un «nombre
+     * no coincide» falso en cuanto alguien se llamara «José Pérez» y nada más.
+     */
+    #[Test]
+    public function lasTildesNoRompenLaComparacionDeNombres(): void
+    {
+        $conTildes = new DatosDeDocumento(numero: 'X1', nombres: 'JOSÉ', apellidos: 'PÉREZ');
+
+        self::assertSame([], Cotejo::de($conTildes, new FichaGuardada(
+            numero: 'X1', nombres: 'Jose', apellidos: 'Perez',
+        ))->discrepancias);
+    }
+
+    /**
+     * 🔥 **Dos hermanos comparten los dos apellidos**, que es exactamente el caso que este control
+     * existe para cazar: un número tecleado en la ficha del hermano equivocado. Con «dos palabras
+     * en común» bastaba para validarlo.
+     */
+    #[Test]
+    public function dosHermanosNoSonLaMismaPersona(): void
+    {
+        $pedro = new DatosDeDocumento(numero: 'X1', nombres: 'PEDRO', apellidos: 'QUISPE MAMANI');
+
+        $cotejo = Cotejo::de($pedro, new FichaGuardada(
+            numero: 'X1', nombres: 'Juan', apellidos: 'Quispe Mamani',
+        ));
+
+        self::assertSame('nombre', $cotejo->discrepancias[0]->campo);
+    }
+
+    /** Pero la misma persona con el orden cambiado sigue siendo la misma. */
+    #[Test]
+    public function elOrdenDeNombreYApellidosSigueDandoIgual(): void
+    {
+        $pedro = new DatosDeDocumento(numero: 'X1', nombres: 'PEDRO LUIS', apellidos: 'QUISPE MAMANI');
+
+        self::assertSame([], Cotejo::de($pedro, new FichaGuardada(
+            numero: 'X1', nombres: 'Pedro Luis', apellidos: 'QUISPE MAMANI',
+        ))->discrepancias);
     }
 }

@@ -98,7 +98,10 @@ final readonly class Cotejo
         // Dos caminos al sello verde, y **cuál fue importa**: la MRZ son dígitos de control, el
         // cotejo son dos lecturas que coinciden. La segunda puede equivocarse en las dos a la vez
         // si el error venía del padrón original.
-        $cotejable = $guardado !== null && $guardado->tieneNumero() && $guardado->tieneNombre();
+        // 🔥 Una ficha COPIADA del escaneo no es una segunda fuente: es la misma. Cotejarla
+        // sería compararla consigo misma y saldría bien siempre.
+        $cotejable = $guardado !== null && !$guardado->copiadaDelEscaneo
+            && $guardado->tieneNumero() && $guardado->tieneNombre();
 
         // 🔥 **Aquí HUBO un aviso de giro, y estaba en el sitio equivocado.**
         //
@@ -122,6 +125,7 @@ final readonly class Cotejo
         if (!$leido->verificadoPorMrz() && !$cotejable) {
             $notas[] = match (true) {
                 $guardado === null => 'el archivo no está asignado a ninguna persona del manifiesto',
+                $guardado->copiadaDelEscaneo => 'esta ficha se creó copiando el escaneo: hace falta que alguien la confirme',
                 !$guardado->tieneNumero() => 'la persona no tenía documento guardado: no hay contra qué cotejar',
                 default => 'la persona no tiene nombre guardado: no hay contra qué cotejar',
             };
@@ -175,9 +179,9 @@ final readonly class Cotejo
         // El nombre se compara flojo —sin tildes ni orden— porque en un padrón se escribe de
         // quince maneras y un aviso por cada una haría que nadie mirase la lista.
         $nombreLeido = trim(($leido->nombres ?? '') . ' ' . ($leido->apellidos ?? ''));
-        if ($nombreLeido !== '' && $guardado->nombreCompleto !== null && trim($guardado->nombreCompleto) !== ''
-            && !self::mismasPalabras($nombreLeido, $guardado->nombreCompleto)) {
-            $diferencias[] = new Discrepancia('nombre', $nombreLeido, trim($guardado->nombreCompleto));
+        if ($nombreLeido !== '' && $guardado->tieneNombre()
+            && !self::mismaPersona($leido, $guardado)) {
+            $diferencias[] = new Discrepancia('nombre', $nombreLeido, $guardado->nombreCompleto());
         }
 
         return $diferencias;
@@ -231,23 +235,64 @@ final readonly class Cotejo
     }
 
     /**
-     * ¿Comparten al menos dos palabras? «MARIA DEL CARMEN VELASQUEZ» y «VELASQUEZ ZEGARRA, MARIA»
-     * son la misma persona escrita de dos maneras, y ninguna comparación de cadenas lo diría.
+     * ¿Son la misma persona? Apellidos **y** nombre de pila, comparados por separado.
+     *
+     * 🔥 **Con «dos palabras en común» no distinguía a dos hermanos**, que es justo el caso que
+     * este control existe para cazar: `PEDRO QUISPE MAMANI` con el número de `JUAN QUISPE MAMANI`
+     * compartía los dos apellidos y se validaba. **En una familia, los apellidos son lo que TIENEN
+     * en común**; lo que los separa es el nombre de pila.
+     *
+     * 🔥 Y el primer intento de arreglarlo —mirar «las dos primeras palabras»— también fallaba,
+     * porque en «Pedro Quispe Mamani» el apellido cae ahí dentro. La solución no era adivinar
+     * mejor: era **dejar de concatenar**. Las dos fuentes traen nombre y apellidos separados de
+     * origen, así que se comparan campo con campo y no hay nada que adivinar.
+     *
+     * Sigue siendo flojo con el orden, las tildes y las partículas: en un padrón un nombre se
+     * escribe de quince maneras, y un aviso por cada una haría que nadie mirase la lista.
      */
-    private static function mismasPalabras(string $a, string $b): bool
+    private static function mismaPersona(DatosDeDocumento $leido, FichaGuardada $guardado): bool
     {
-        $normalizar = static function (string $texto): array {
-            $sinTildes = (string) preg_replace('/[^A-Z ]/', ' ', strtr(strtoupper($texto), 'ÁÉÍÓÚÜÑÀÈÌÒÙÂÊÎÔÛÃÕÇ', 'AEIOUUNAEIOUAEIOUAOC'));
+        $apellidosCoinciden = self::compartenAlguna($leido->apellidos, $guardado->apellidos);
+        $nombresCoinciden = self::compartenAlguna($leido->nombres, $guardado->nombres);
 
-            // Las partículas no distinguen a nadie: «DE», «DEL» y «LA» aparecen en media lista.
-            return array_values(array_diff(
-                array_filter(explode(' ', $sinTildes), static fn (string $p): bool => strlen($p) > 2),
-                ['DEL', 'LOS', 'LAS', 'VAN', 'VON'],
-            ));
-        };
+        // Si a un lado le falta el campo entero, no se puede exigir: se acepta con el otro. Un
+        // padrón a medias es un hueco, no un desacuerdo.
+        $hayApellidos = self::palabras((string) $leido->apellidos) !== [] && self::palabras((string) $guardado->apellidos) !== [];
+        $hayNombres = self::palabras((string) $leido->nombres) !== [] && self::palabras((string) $guardado->nombres) !== [];
 
-        $comunes = array_intersect($normalizar($a), $normalizar($b));
+        return (!$hayApellidos || $apellidosCoinciden) && (!$hayNombres || $nombresCoinciden);
+    }
 
-        return count($comunes) >= 2;
+    /** ¿Comparten al menos una palabra que distinga? */
+    private static function compartenAlguna(?string $a, ?string $b): bool
+    {
+        return array_intersect(self::palabras((string) $a), self::palabras((string) $b)) !== [];
+    }
+
+    /**
+     * Las palabras que distinguen, ya normalizadas.
+     *
+     * 🔥 **Esto usaba `strtr()` con dos cadenas, que opera BYTE A BYTE.** Con nombres acentuados
+     * destrozaba la palabra sin dar error: `«José Pérez Núñez»` salía como `JOSO` y `REZ`. En este
+     * expediente estaba latente —los doce nombres con tilde compartían otras palabras— pero
+     * «José Pérez» a secas habría sacado un «el nombre no coincide» falso.
+     *
+     * `Transliterator` cubre cualquier alfabeto, no sólo la lista de acentos que uno recuerde.
+     *
+     * @return list<string>
+     */
+    private static function palabras(string $texto): array
+    {
+        static $translit = null;
+        $translit ??= \Transliterator::create('Any-Latin; Latin-ASCII; Upper');
+
+        $limpio = $translit?->transliterate($texto) ?: mb_strtoupper($texto);
+        $soloLetras = (string) preg_replace('/[^A-Z ]/', ' ', $limpio);
+
+        // Las partículas no distinguen a nadie: «DE», «DEL» y «LA» aparecen en media lista.
+        return array_values(array_unique(array_diff(
+            array_filter(explode(' ', $soloLetras), static fn (string $p): bool => strlen($p) > 2),
+            ['DEL', 'LOS', 'LAS', 'VAN', 'VON'],
+        )));
     }
 }

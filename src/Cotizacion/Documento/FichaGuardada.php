@@ -22,10 +22,21 @@ final readonly class FichaGuardada
         public ?string $numero = null,
         public ?string $tipo = null,
         public ?DateTimeImmutable $vencimiento = null,
-        public ?string $nombreCompleto = null,
+        /**
+         * ⚠️ **Nombre y apellidos SEPARADOS, no concatenados.** Estaban juntos y `Cotejo` tenía
+         * que volver a partirlos a ojo para distinguir a dos hermanos — y fallaba, porque en
+         * «Pedro Quispe Mamani» el apellido cae dentro de las primeras palabras. Las dos fuentes
+         * los tienen separados de origen: el documento en su MRZ y su zona impresa, el manifiesto
+         * en dos columnas. Juntarlos para volver a separarlos era tirar la información y luego
+         * adivinarla.
+         */
+        public ?string $nombres = null,
+        public ?string $apellidos = null,
         public ?DateTimeImmutable $nacimiento = null,
         /** ISO-2, que es la CLAVE de `MaestroPais` — no un nombre de país. */
         public ?string $nacionalidad = null,
+        /** Ver `CotizacionPasajeroIdentificacion::isCopiadaDelEscaneo()`: no se coteja consigo misma. */
+        public bool $copiadaDelEscaneo = false,
     ) {}
 
     /**
@@ -44,10 +55,12 @@ final readonly class FichaGuardada
             numero: $identificacion->getNumero(),
             tipo: $identificacion->getTipo()?->value,
             vencimiento: $vencimiento !== null ? DateTimeImmutable::createFromInterface($vencimiento) : null,
-            nombreCompleto: trim(($pasajero->getNombre() ?? '') . ' ' . ($pasajero->getApellido() ?? '')),
+            nombres: $pasajero->getNombre(),
+            apellidos: $pasajero->getApellido(),
             nacimiento: $nacimiento !== null ? DateTimeImmutable::createFromInterface($nacimiento) : null,
             // El id de `MaestroPais` ES el ISO-2, así que de este lado no hay nada que traducir.
             nacionalidad: $pasajero->getPais()?->getId(),
+            copiadaDelEscaneo: $identificacion->isCopiadaDelEscaneo(),
         );
     }
 
@@ -63,6 +76,12 @@ final readonly class FichaGuardada
      */
     public function tieneNombre(): bool
     {
-        return $this->nombreCompleto !== null && trim($this->nombreCompleto) !== '';
+        return trim(($this->nombres ?? '') . ($this->apellidos ?? '')) !== '';
+    }
+
+    /** Para enseñarlo en un aviso: «Juan Pérez Quispe». */
+    public function nombreCompleto(): string
+    {
+        return trim(($this->nombres ?? '') . ' ' . ($this->apellidos ?? ''));
     }
 }

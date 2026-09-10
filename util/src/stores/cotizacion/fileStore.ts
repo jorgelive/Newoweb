@@ -737,14 +737,16 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * ⚠️ Idempotente en el servidor: lo ya validado se salta y la lectura de cada documento está
      * cacheada, así que pulsar dos veces no cuesta el doble. Por eso el botón no confirma.
      */
-    const validarManifiesto = async (fileId: string): Promise<boolean> => {
+    const validarManifiesto = async (fileId: string): Promise<ApiCotizacionFile | null> => {
         error.value = null;
         try {
-            await apiClient.post(`/platform/sales/client/cotizacion_file/${fileId}/validar-manifiesto`, {});
-            return true;
+            // Devuelve el expediente ya actualizado: quien llama lo usa tal cual en vez de volver
+            // a pedirlo. Eran dos descargas del mismo payload grande por pulsación.
+            const { data } = await apiClient.post(`/platform/sales/client/cotizacion_file/${fileId}/validar-manifiesto`, {});
+            return data as ApiCotizacionFile;
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'No se pudo validar el manifiesto.');
-            return false;
+            return null;
         }
     };
 

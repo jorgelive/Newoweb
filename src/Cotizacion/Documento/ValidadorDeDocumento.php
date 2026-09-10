@@ -7,6 +7,7 @@ namespace App\Cotizacion\Documento;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use App\Enum\DocumentoTipoEnum;
+use Doctrine\ORM\EntityManagerInterface;
 use DateTimeImmutable;
 use Throwable;
 use Vich\UploaderBundle\Storage\StorageInterface;
@@ -42,42 +43,8 @@ final readonly class ValidadorDeDocumento
     public function __construct(
         private LectorDeDocumentoIdentidad $lector,
         private StorageInterface $almacen,
+        private EntityManagerInterface $em,
     ) {}
-
-    public function analizar(CotizacionFilearchivo $archivo): ResultadoDeValidacion
-    {
-        $leido = $this->lecturaDe($archivo);
-        if ($leido === null) {
-            return ResultadoDeValidacion::ilegible($archivo->getLecturaError() ?? 'no se pudo leer el documento');
-        }
-
-        $dueno = $archivo->getPasajero();
-
-        if ($dueno !== null) {
-            return ResultadoDeValidacion::de(
-                Cotejo::de($leido, $this->fichaDe($dueno, $leido->tipo)),
-                $leido,
-                Accion::NINGUNA,
-            );
-        }
-
-        // Sin dueño no hay contra qué cotejar, así que el cotejo sale OBSERVADO — y **además** se
-        // busca a quién podría pertenecer. Las dos cosas a la vez: el estado describe el
-        // documento, la acción describe el trabajo pendiente.
-        $cotejo = Cotejo::de($leido, null);
-        [$candidato, $motivo] = $this->buscarDueno($archivo, $leido);
-
-        if ($candidato === null) {
-            return ResultadoDeValidacion::de(
-                $cotejo,
-                $leido,
-                Accion::CREAR,
-                motivo: 'nadie del manifiesto casa por número ni por nombre',
-            );
-        }
-
-        return ResultadoDeValidacion::de($cotejo, $leido, Accion::ASOCIAR, $candidato, $motivo);
-    }
 
     /**
      * La lectura del documento, **pagando la IA como mucho una vez en su vida**.
@@ -112,46 +79,21 @@ final readonly class ValidadorDeDocumento
         } catch (Throwable $e) {
             // No se propaga: en una tanda de cien, uno ilegible no puede parar los otros 99.
             $archivo->registrarLectura(null, mb_substr($e->getMessage(), 0, 255));
+            $this->em->flush();
 
             return null;
         }
 
         $archivo->registrarLectura($crudo);
 
+        // 🔥 **Se guarda AQUÍ, no al final de la tanda.** La lectura es lo único caro —3,5 s y
+        // dinero— y php-fpm corta a los 90 s: un expediente nuevo son ~183 lecturas, o sea diez
+        // minutos. Con un solo `flush()` al final, el corte tiraba **todas las lecturas ya
+        // pagadas** y la siguiente pulsación volvía a pagarlas para tampoco terminar. Guardando
+        // según se leen, cada pulsación avanza lo que le dé tiempo y nada se paga dos veces.
+        $this->em->flush();
+
         return $this->lector->interpretar($crudo);
-    }
-
-    /**
-     * Su ficha para ese tipo de documento. Si no tiene una de ese tipo, se coteja contra la que
-     * tenga: alguien con DNI guardado que sube su pasaporte no es un desacuerdo, y `Cotejo` ya
-     * sabe decir «es un PASAPORTE y está guardado como DNI».
-     */
-    private function fichaDe(CotizacionFilepasajero $pasajero, ?DocumentoTipoEnum $tipo): FichaGuardada
-    {
-        $identificaciones = $pasajero->getIdentificaciones();
-        $elegida = null;
-
-        foreach ($identificaciones as $identificacion) {
-            if ($tipo !== null && $identificacion->getTipo() === $tipo) {
-                $elegida = $identificacion;
-                break;
-            }
-            $elegida ??= $identificacion;
-        }
-
-        $vencimiento = $elegida?->getVencimiento();
-
-        $nacimiento = $pasajero->getFechanacimiento();
-
-        return new FichaGuardada(
-            numero: $elegida?->getNumero(),
-            tipo: $elegida?->getTipo()?->value,
-            vencimiento: $vencimiento !== null ? DateTimeImmutable::createFromInterface($vencimiento) : null,
-            nombreCompleto: trim(($pasajero->getNombre() ?? '') . ' ' . ($pasajero->getApellido() ?? '')),
-            nacimiento: $nacimiento !== null ? DateTimeImmutable::createFromInterface($nacimiento) : null,
-            // El id de `MaestroPais` ES el ISO-2, así que no hay nada que traducir de este lado.
-            nacionalidad: $pasajero->getPais()?->getId(),
-        );
     }
 
     /**
@@ -199,37 +141,10 @@ final readonly class ValidadorDeDocumento
         return [...$seguros, ...$porNombre];
     }
 
-    /**
-     * @return array{CotizacionFilepasajero|null, string}
-     */
-    private function buscarDueno(CotizacionFilearchivo $archivo, DatosDeDocumento $leido): array
-    {
-        $candidatos = $this->candidatosPara($archivo, $leido);
-
-        if ($candidatos === []) {
-            return [null, ''];
-        }
-
-        $seguros = array_values(array_filter($candidatos, static fn (Candidato $c): bool => $c->esSeguro()));
-        if (count($seguros) === 1) {
-            return [$seguros[0]->pasajero, $seguros[0]->motivo];
-        }
-
-        // 🔥 Varios candidatos no se resuelve adivinando: es el caso de las familias, y elegir uno
-        // sería colgarle a alguien el documento de su hermano con cara de acierto.
-        if (count($candidatos) > 1) {
-            return [null, sprintf('hay %d personas posibles: hay que elegir a mano', count($candidatos))];
-        }
-
-        return [$candidatos[0]->pasajero, $candidatos[0]->motivo];
-    }
-
     private static function mismoNombre(DatosDeDocumento $leido, CotizacionFilepasajero $pasajero): bool
     {
-        $leidoCompleto = trim(($leido->nombres ?? '') . ' ' . ($leido->apellidos ?? ''));
-        $suyo = trim(($pasajero->getNombre() ?? '') . ' ' . ($pasajero->getApellido() ?? ''));
-
-        if ($leidoCompleto === '' || $suyo === '') {
+        if (trim(($leido->nombres ?? '') . ($leido->apellidos ?? '')) === ''
+            || trim(($pasajero->getNombre() ?? '') . ($pasajero->getApellido() ?? '')) === '') {
             return false;
         }
 
@@ -238,7 +153,7 @@ final readonly class ValidadorDeDocumento
         // contradice consigo mismo según por qué rama entre.
         return Cotejo::de(
             new DatosDeDocumento(numero: 'x', nombres: $leido->nombres, apellidos: $leido->apellidos),
-            new FichaGuardada(numero: 'x', nombreCompleto: $suyo),
+            new FichaGuardada(numero: 'x', nombres: $pasajero->getNombre(), apellidos: $pasajero->getApellido()),
         )->discrepancias === [];
     }
 

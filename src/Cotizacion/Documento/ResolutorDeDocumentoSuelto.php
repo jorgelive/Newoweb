@@ -106,6 +106,9 @@ final readonly class ResolutorDeDocumentoSuelto
                 $identificacion->setTipo($leido->tipo);
                 $identificacion->setNumero($leido->numero);
                 $identificacion->setVencimiento($leido->vencimiento);
+                // ⚠️ Marcada, o la siguiente tanda la validaría contra el mismo escaneo del que
+                // salió. Ver `isCopiadaDelEscaneo()`.
+                $identificacion->marcarCopiadaDelEscaneo();
                 $this->em->persist($identificacion);
             }
 
