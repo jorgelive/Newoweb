@@ -278,6 +278,23 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
      * GETTERS Y SETTERS
      * ====================================================== */
 
+    /**
+     * ⚠️ **Redeclarado sobre `IdTrait` para que el front lo VEA.** El trait no lleva grupos, así
+     * que `id` no se serializaba y el archivo sólo salía con su `@id`. Eso rompía dos cosas a la
+     * vez y ninguna daba error:
+     *
+     * - `:key="doc.id"` en la bóveda: **todas las filas compartían la clave `undefined`**. Es el
+     *   mismo incidente que ya está documentado en `PaxFilearchivo`.
+     * - `extractIdStr(doc.id)` devolvía `''`, así que la URL de girar quedaba
+     *   `/documentos-sueltos//girar` y el servidor contestaba **«Not Found»** — un 404 de rutas,
+     *   no el mensaje del controlador, que es lo que delató que el id iba vacío.
+     *
+     * Mismo arreglo que se le hizo a {@see CotizacionVuelo} cuando hubo que escribir su relación:
+     * sin id no hay IRI que construir.
+     */
+    #[Groups(['file:item:read'])]
+    public function getId(): ?\Symfony\Component\Uid\Uuid { return $this->id; }
+
     public function getTipoArchivo(): ?ArchivoTipoEnum { return $this->tipoArchivo; }
     public function setTipoArchivo(?ArchivoTipoEnum $tipoArchivo): self { $this->tipoArchivo = $tipoArchivo; return $this; }
 

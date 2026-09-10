@@ -2028,6 +2028,31 @@ La discrepancia se pintaba sólo con color —verde el documento, ámbar el mani
 dice cuál es cuál**: había que deducirlo, y quien deduce mal **corrige el lado equivocado**. Ahora
 cada valor lleva su etiqueta (`DOC` / `GUARDADO`). Un color es un refuerzo, nunca la etiqueta.
 
+#### Dos fallos del visor, y los dos ya estaban documentados en otro sitio (09/09/2026)
+
+**1. Girar contestaba «Not Found».** `CotizacionFilearchivo` **no exponía `id`** —`IdTrait` no lleva
+grupos—, así que el front sólo veía el `@id`. `extractIdStr(doc.id)` devolvía `''` y la URL quedaba
+`/documentos-sueltos//girar`: un 404 **del router**, no del controlador. Que el mensaje fuera «Not
+Found» en inglés y no «No encontré el documento» es lo que lo delató.
+
+⚠️ Y rompía otra cosa a la vez, en silencio: `:key="doc.id"` en la bóveda hacía que **todas las
+filas compartieran la clave `undefined`**. Es el mismo incidente ya documentado para
+`PaxFilearchivo` en §2.
+
+Arreglado como se arregló `CotizacionVuelo` cuando hubo que escribir su relación: **redeclarando
+`getId()` con `#[Groups(['file:item:read'])]`**. `pax_file:read` sigue sin él, que es lo correcto.
+
+**2. El gesto de atrás salía del expediente en vez de cerrar el panel.** El visor y el panel de
+sueltos se abrían con un `v-if` suelto, **sin registrarse en `useCapasEnHistorial`** — que existe
+exactamente para esto. Un diálogo que no está en la pila no existe para el botón atrás, así que el
+móvil hacía lo único que podía: retroceder en el historial de verdad.
+
+Ahora van por `capas.abrir('visor-doc' | 'sueltos', …)`, como el resto.
+
+⚠️ **La regla que sale de los dos:** un diálogo nuevo en esta vista se abre **siempre** por
+`capas`, y un recurso al que haya que construirle una URL **tiene que exponer su `id`**. Los dos
+fallos existían ya en el proyecto, escritos, y los repetí igual.
+
 #### El visor por persona: el puente entre «no coincide» y «mira el papel» (09/09/2026)
 
 Botón **«Ver sus documentos»** en cada fila del manifiesto, justo debajo del veredicto. Abre un

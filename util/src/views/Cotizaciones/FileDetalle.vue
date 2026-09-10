@@ -1955,6 +1955,21 @@ const validarManifiesto = async () => {
 
 const paxDelVisor = ref<ApiCotizacionFilepasajero | null>(null);
 
+/**
+ * Abre el visor **como capa**, no como un `v-if` suelto.
+ *
+ * 🔥 **Sin esto, el gesto de atrás no cerraba el visor: salía del expediente.** Es el motivo de que
+ * `useCapasEnHistorial` exista, y yo abrí dos diálogos nuevos sin registrarlos — así que el móvil
+ * hacía lo único que podía hacer: retroceder en el historial de verdad. Un diálogo que no está en
+ * la pila no existe para el botón atrás.
+ */
+const abrirVisor = (pax: ApiCotizacionFilepasajero) => {
+    paxDelVisor.value = pax;
+    capas.abrir('visor-doc', () => { paxDelVisor.value = null; });
+};
+
+const cerrarVisor = () => capas.cerrar('visor-doc');
+
 /** ¿Tiene algo que enseñar? Un botón que abre un modal vacío es peor que no tenerlo. */
 const tieneEscaneos = (pax: ApiCotizacionFilepasajero): boolean => {
     const id = extractIdStr(pax.id ?? pax['@id']).toLowerCase();
@@ -2061,6 +2076,8 @@ const cargarSueltos = async () => {
 
 const abrirPanelSueltos = async () => {
     panelSueltos.value = true;
+    // Misma razón que el visor: sin registrarlo, «atrás» se lleva por delante el expediente.
+    capas.abrir('sueltos', () => { panelSueltos.value = false; });
     await cargarSueltos();
 };
 
@@ -3339,7 +3356,7 @@ const eliminarDocumento = async (iri?: string) => {
 
                            No cuesta nada: los escaneos ya están y su lectura está cacheada. -->
                       <div v-if="tieneEscaneos(pax)" class="mt-1.5 flex items-center gap-1">
-                        <button type="button" @click="paxDelVisor = pax"
+                        <button type="button" @click="abrirVisor(pax)"
                                 class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white text-[9px] font-black uppercase tracking-wider text-slate-500 hover:border-sky-300 hover:text-sky-600 transition-colors">
                           <i class="far fa-images text-[9px]"></i> Ver sus documentos
                         </button>
@@ -4786,7 +4803,7 @@ const eliminarDocumento = async (iri?: string) => {
        ahora eso obligaba a ir a la bóveda y buscarlo entre ~1 500 archivos. -->
   <Teleport to="body">
     <div v-if="paxDelVisor" class="fixed inset-0 z-1000 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4"
-         @click.self="paxDelVisor = null">
+         @click.self="cerrarVisor()">
       <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         <div class="bg-slate-800 px-6 py-4 flex justify-between items-center text-white shrink-0">
           <div class="min-w-0">
@@ -4799,7 +4816,7 @@ const eliminarDocumento = async (iri?: string) => {
               </span>
             </p>
           </div>
-          <button @click="paxDelVisor = null" class="text-slate-400 hover:text-white shrink-0"><i class="fas fa-times"></i></button>
+          <button @click="cerrarVisor()" class="text-slate-400 hover:text-white shrink-0"><i class="fas fa-times"></i></button>
         </div>
 
         <div class="p-6 overflow-y-auto space-y-4">
@@ -4898,7 +4915,7 @@ const eliminarDocumento = async (iri?: string) => {
             <i class="fas fa-user-slash mr-2"></i> Documentos sin dueño
             <span v-if="sueltos.length" class="font-bold normal-case tracking-normal opacity-80">· {{ sueltos.length }}</span>
           </h3>
-          <button @click="panelSueltos = false" class="text-amber-100 hover:text-white"><i class="fas fa-times"></i></button>
+          <button @click="capas.cerrar('sueltos')" class="text-amber-100 hover:text-white"><i class="fas fa-times"></i></button>
         </div>
 
         <div class="p-6 overflow-y-auto space-y-3">

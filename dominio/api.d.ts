@@ -13513,6 +13513,8 @@ export interface components {
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -13543,6 +13545,8 @@ export interface components {
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -13719,6 +13723,8 @@ export interface components {
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -13749,6 +13755,8 @@ export interface components {
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -13877,6 +13885,8 @@ export interface components {
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -13907,6 +13917,8 @@ export interface components {
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -14035,6 +14047,8 @@ export interface components {
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -14065,6 +14079,8 @@ export interface components {
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
