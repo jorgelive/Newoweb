@@ -195,8 +195,22 @@ final readonly class NotificadorPushConversacion
      */
     private function destinatariosDelFallo(bool $esPorLaVentana): array
     {
+        // ⚠️ **Las dos ramas son GUARDIAS EXPLÍCITAS, y ninguna cae por herencia.**
+        //
+        // Antes esto salía a todo el que alcanzara `MENSAJES_SHOW`, que `ROLE_SUPER_ADMIN`
+        // hereda vía `ROLE_ADMIN` → `MENSAJES_DELETE` → … Es decir: el administrador recibía
+        // todos los avisos **de refilón**, no porque nadie lo hubiera decidido, y con él
+        // cualquiera que algún día herede el permiso. Un aviso que llega a alguien por la forma
+        // del árbol de roles no tiene dueño: nadie se siente responsable de atenderlo y nadie
+        // nota si deja de llegar.
+        //
+        // Ahora cada rama nombra a su guardia y se filtra por la columna LITERAL. Quien deba
+        // recibir, que lo tenga escrito.
         if ($esPorLaVentana) {
-            return $this->destinatarios();
+            return $this->guardiaConDispositivo(
+                Roles::CUSTOMER_SUPPORT,
+                'la ventana de 24 h se arregla mandando una plantilla, y eso lo hace una persona'
+            );
         }
 
         // ⚠️ **Tener el rol no es poder recibir.** Este aviso sale por PUSH WEB, así que lo que
@@ -210,21 +224,38 @@ final readonly class NotificadorPushConversacion
         // vacía —así que el respaldo de abajo no habría saltado—, `sendToUser()` habría escrito
         // un `warning` y el aviso se habría perdido con todo el aspecto de haber salido.
         // Encaminar a una guardia sin dispositivos es peor que no encaminar: parece que funciona.
-        $tecnicos = array_values(array_filter(
-            $this->usuarios->findByRole(Roles::TECH_SUPPORT),
+        return $this->guardiaConDispositivo(
+            Roles::TECH_SUPPORT,
+            'un canal vetado o ausente no se arregla desde el chat'
+        );
+    }
+
+    /**
+     * Los de una guardia que además PUEDEN recibir, o el respaldo si no queda ninguno.
+     *
+     * @return list<\App\Entity\User>
+     */
+    private function guardiaConDispositivo(string $rol, string $porQue): array
+    {
+        $guardia = array_values(array_filter(
+            $this->usuarios->findByRole($rol),
             fn (User $u): bool => $this->tieneDispositivo($u)
         ));
 
-        if ($tecnicos === []) {
-            $this->logger->error(
-                '[PushConversacion] La guardia técnica no puede recibir: sin nadie con ROLE_TECH_SUPPORT y al menos un dispositivo suscrito. El aviso sale a la guardia de mensajería.',
-                ['rol' => Roles::TECH_SUPPORT]
-            );
-
-            return $this->destinatarios();
+        if ($guardia !== []) {
+            return $guardia;
         }
 
-        return $tecnicos;
+        // ⚠️ El respaldo es AMPLIO a propósito, y es el único sitio donde se cae por herencia:
+        // perder el aviso es peor que mandárselo a quien no toca. Se registra como `error`
+        // —no como warning— porque es un fallo de configuración que alguien tiene que reparar,
+        // y si no se ve, cada aviso de este tipo acabará en el buzón equivocado para siempre.
+        $this->logger->error(
+            '[PushConversacion] Guardia sin nadie que pueda recibir: hace falta el rol Y un dispositivo suscrito. El aviso sale al respaldo amplio.',
+            ['rol' => $rol, 'motivo_de_la_guardia' => $porQue]
+        );
+
+        return $this->destinatarios();
     }
 
     /** ¿Tiene al menos un dispositivo al que empujar? Sin esto, el rol es decorativo. */
