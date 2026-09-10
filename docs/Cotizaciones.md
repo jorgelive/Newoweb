@@ -1881,6 +1881,19 @@ son los del documento — un número mal en un manifiesto es un problema en el a
 
 Coste de la tanda entera: **~$0,30**. Y no se vuelve a pagar: las lecturas quedaron cacheadas.
 
+#### El filtro «Observado», junto a los de vencimiento (09/09/2026)
+
+Un chip más en la fila de **Documentos**, con su recuento: es lo que convierte los 30 observados en
+una lista de trabajo en vez de una cifra.
+
+⚠️ **Va en la MISMA fila que Vencido / Vence < 1 año / Sin comprobar, no en un grupo aparte.**
+El primero describe *trabajo pendiente* y los otros tres describen *el documento*, así que la
+tentación es separarlos. Pero quien abre estos filtros se hace **una sola pregunta** —«¿qué
+documentos me dan problema?»— y tener que mirar en dos sitios para responderla es lo que hace que
+no se mire ninguno.
+
+Sale primero de los cuatro, porque es el único sobre el que hay algo que hacer hoy.
+
 #### Lo que sacó la revisión de Fable (09/09/2026)
 
 Nada de esto lo cazaba PHPStan, ni los tests, ni el typecheck. Cinco eran mudos.

@@ -1463,10 +1463,15 @@ const porJerarquia = (a: ApiCotizacionFilepasajero, b: ApiCotizacionFilepasajero
 
 // ── Alerta de documentos ──────────────────────────────────────────────────
 //
-// ⚠️ Los tres estados son distintos y ninguno se puede leer como los otros:
+// ⚠️ Cuatro estados distintos, y ninguno se puede leer como los otros:
+//   observado     → el escaneo no dice lo mismo que el manifiesto: alguien tiene que decidir
 //   vencido       → hoy ya no sirve
 //   vence pronto  → sirve hoy y no el día del viaje, o no lo aceptan en frontera
 //   sin comprobar → NO es «vigente». No sabemos, y eso es exactamente lo que hay que mirar.
+//
+// El primero describe TRABAJO PENDIENTE y los otros tres describen el documento. Van juntos a
+// propósito: quien abre estos filtros se pregunta «¿qué documentos me dan problema?», y tener que
+// mirar en dos sitios para responder a una sola pregunta es lo que hace que no se mire ninguno.
 const filtroDocumento = ref<string[]>([]);
 const filtrosAbiertos = ref(false);
 
@@ -1484,6 +1489,11 @@ const estadoDocumentalDe = (pax: ApiCotizacionFilepasajero): Set<string> => {
     const estados = new Set<string>();
 
     for (const doc of pax.identificaciones ?? []) {
+        // El veredicto del control va en la MISMA lista que los estados de vencimiento, y no en
+        // un grupo aparte: quien mira estos filtros se pregunta «¿qué documentos me dan problema?»
+        // y un documento observado es exactamente eso. Separarlos obligaría a mirar en dos sitios.
+        if (doc.estadoValidacion === 'observado') { estados.add('observado'); }
+
         const vence = doc.vencimiento ? doc.vencimiento.split('T')[0] : '';
         if (!vence) { estados.add('sin_fecha'); continue; }
         if (vence < iso(hoy)) { estados.add('vencido'); continue; }
@@ -1494,6 +1504,9 @@ const estadoDocumentalDe = (pax: ApiCotizacionFilepasajero): Set<string> => {
 };
 
 const ETIQUETAS_DOCUMENTO: Record<string, { label: string; clase: string; punto: string }> = {
+    // Primero, porque es la cola de trabajo: son los que esperan a que alguien decida algo. Los
+    // otros tres describen el documento; éste describe lo que hay pendiente de hacer.
+    observado:  { label: 'Observado',     clase: 'bg-amber-100 text-amber-800 border-amber-300',  punto: 'bg-amber-600' },
     vencido:    { label: 'Vencido',       clase: 'bg-red-100 text-red-700 border-red-200',       punto: 'bg-red-500' },
     pronto:     { label: 'Vence < 1 año', clase: 'bg-orange-100 text-orange-700 border-orange-200', punto: 'bg-orange-500' },
     sin_fecha:  { label: 'Sin comprobar', clase: 'bg-amber-100 text-amber-800 border-amber-200',  punto: 'bg-amber-500' },
