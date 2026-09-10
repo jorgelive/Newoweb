@@ -154,9 +154,14 @@ final class DocumentosSueltosController extends AbstractController
             return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_CONFLICT);
         }
 
-        // Se dice que hay que releer: quien llama tiene que saber que el veredicto de ese
-        // documento se quedó sin respaldo hasta la siguiente tanda.
-        return new JsonResponse(['girado' => true, 'hayQueReleer' => true]);
+        // Se devuelve lo justo para que la pantalla se actualice **sin recargar el expediente**:
+        // la marca de tiempo rompe la caché de la imagen y la orientación nueva quita el aviso.
+        // Antes se recargaba entero y cada giro costaba ~20 s, de los que 16 eran esa recarga.
+        return new JsonResponse([
+            'girado' => true,
+            'actualizado' => $archivo->getUpdatedAt()?->format('U'),
+            'bordeSuperior' => $archivo->getDatosLeidos()['bordeSuperior'] ?? 'arriba',
+        ]);
     }
 
     /**

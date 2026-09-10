@@ -790,14 +790,19 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * ⚠️ Tira la lectura del documento: uno torcido casi siempre se leyó mal —es la razón de
      * girarlo—, así que la siguiente tanda lo relee ya derecho.
      */
-    const girarDocumento = async (archivoId: string, grados: number): Promise<boolean> => {
+    const girarDocumento = async (
+        archivoId: string,
+        grados: number,
+    ): Promise<{ actualizado?: string; bordeSuperior?: string } | null> => {
         error.value = null;
         try {
-            await apiClient.post(`/cotizacion/user/documentos-sueltos/${archivoId}/girar`, { grados });
-            return true;
+            const { data } = await apiClient.post(`/cotizacion/user/documentos-sueltos/${archivoId}/girar`, { grados });
+            // Devuelve lo justo para parchear la pantalla en sitio: recargar el expediente entero
+            // por un fichero costaba 16 de los 20 segundos que tardaba un giro.
+            return data as { actualizado?: string; bordeSuperior?: string };
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'No se pudo girar el documento.');
-            return false;
+            return null;
         }
     };
 

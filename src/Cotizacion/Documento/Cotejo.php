@@ -100,16 +100,14 @@ final readonly class Cotejo
         // si el error venía del padrón original.
         $cotejable = $guardado !== null && $guardado->tieneNumero() && $guardado->tieneNombre();
 
-        // ⚠️ **Informativa, NO bloqueante — y ésa es toda la sutileza.** Un documento girado con
-        // la MRZ cuadrando está PERFECTAMENTE leído: girarlo es cosmética y ayuda a las lecturas
-        // futuras, no arregla ésta. Metiéndolo entre los defectos, cada escaneo torcido caería a
-        // `observado` y llenaría la cola de trabajo de cosas que no hay que decidir.
+        // 🔥 **Aquí HUBO un aviso de giro, y estaba en el sitio equivocado.**
         //
-        // Pero tiene que salir en la FILA del manifiesto, no sólo dentro del visor: con 135
-        // personas, un aviso que hay que ir a buscar abriendo a cada una no lo encuentra nadie.
-        $informativas = $leido->rotacion !== 0
-            ? [sprintf('el escaneo está girado %d°: se puede enderezar desde el visor', $leido->rotacion)]
-            : [];
+        // El giro es una propiedad del ARCHIVO, no del veredicto de un número. Ponerlo aquí traía
+        // dos fallos: enderezar obligaba a recalcular el veredicto —una llamada a la IA y una
+        // recarga del expediente por cada clic, 20 s— y sólo cubría **el escaneo que respalda ese
+        // número**, así que girar el anverso hacía desaparecer el aviso con el reverso todavía
+        // torcido. Ahora lo lee la pantalla de `datos_leidos`, escaneo por escaneo.
+        $informativas = [];
 
         if ($discrepancias === [] && $notas === []) {
             if ($leido->verificadoPorMrz()) {

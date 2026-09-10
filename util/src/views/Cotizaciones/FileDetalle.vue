@@ -1973,6 +1973,25 @@ const abrirVisor = (pax: ApiCotizacionFilepasajero) => {
 
 const cerrarVisor = () => capas.cerrar('visor-doc');
 
+/**
+ * Los escaneos torcidos de una persona, **todos**, no sólo el que respalda un número.
+ *
+ * 🔥 **Esto vivía en el veredicto de la identificación y estaba mal.** Traía dos fallos: enderezar
+ * obligaba a recalcular el veredicto —una llamada a la IA y una recarga del expediente por cada
+ * clic— y sólo miraba el escaneo que valida ese número, así que girar el anverso hacía desaparecer
+ * el aviso **con el reverso todavía torcido**.
+ *
+ * El giro es una propiedad del ARCHIVO. Se lee de `datosLeidos`, que ya viene cargado, así que
+ * cuesta cero y se actualiza en cuanto cambia el archivo.
+ */
+const escaneosTorcidos = (pax: ApiCotizacionFilepasajero) => {
+    const id = extractIdStr(pax.id ?? pax['@id']).toLowerCase();
+
+    return (file.value?.filearchivos ?? [])
+        .filter(doc => claveDeRelacion(doc.pasajero) === id && giroSugerido(doc) > 0)
+        .map(doc => ({ etiqueta: getArchivoLabel(doc.tipoArchivo), grados: giroSugerido(doc) }));
+};
+
 /** ¿Tiene algo que enseñar? Un botón que abre un modal vacío es peor que no tenerlo. */
 const tieneEscaneos = (pax: ApiCotizacionFilepasajero): boolean => {
     const id = extractIdStr(pax.id ?? pax['@id']).toLowerCase();
@@ -2040,12 +2059,20 @@ const giroSugerido = (doc: ApiCotizacionFilearchivo): number => {
  */
 const girarDoc = async (doc: ApiCotizacionFilearchivo, grados: number) => {
     girando.value = String(doc.id);
-    const ok = await fileStore.girarDocumento(String(extractIdStr(doc.id)), grados);
+    const respuesta = await fileStore.girarDocumento(String(extractIdStr(doc.id)), grados);
     girando.value = null;
 
-    if (!ok) { alert(fileStore.error || 'No se pudo girar.'); return; }
+    if (!respuesta) { alert(fileStore.error || 'No se pudo girar.'); return; }
 
-    await cargarFile();
+    // ⚠️ **No se recarga el expediente.** Antes sí, y de los ~20 s que costaba un giro, 16 eran
+    // eso: 133 personas, sus identificaciones, 267 archivos y los vuelos, para reflejar el cambio
+    // de UN fichero. Girar tarda 0,4 s en el servidor; el resto lo ponía la pantalla.
+    //
+    // Se parchea en sitio lo único que cambió: la marca de tiempo —que rompe la caché de la
+    // imagen— y la orientación, que quita el aviso.
+    const editable = doc as { updatedAt?: string; datosLeidos?: Record<string, unknown> | null };
+    editable.updatedAt = String(respuesta.actualizado ?? Date.now());
+    if (editable.datosLeidos) editable.datosLeidos.bordeSuperior = respuesta.bordeSuperior;
 };
 
 /**
@@ -3375,6 +3402,14 @@ const eliminarDocumento = async (iri?: string) => {
                         <span v-for="(n, j) in (ident.notasValidacion ?? [])" :key="`n-${j}`"
                               class="ml-1 text-slate-400 normal-case">{{ n }}</span>
                       </div>
+
+                      <!-- ⚠️ Un aviso por CADA escaneo torcido, con cuál es. Antes salía uno solo,
+                           colgado del veredicto del número, y girar el anverso lo hacía
+                           desaparecer con el reverso todavía torcido. -->
+                      <p v-for="(t, j) in escaneosTorcidos(pax)" :key="`t-${j}`"
+                         class="mt-1 text-[9px] font-bold text-amber-600">
+                        <i class="fas fa-rotate text-[8px] mr-1"></i>{{ t.etiqueta }}: falta girar {{ t.grados }}°
+                      </p>
 
                       <!-- ⚠️ El puente que faltaba entre «este dato no coincide» y «pues mira el
                            papel». Sin esto había que ir a la bóveda, buscar entre ~1 500 archivos

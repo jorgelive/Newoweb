@@ -62,8 +62,41 @@ final readonly class GiradorDeEscaneo
     public function __construct(
         private EntityManagerInterface $em,
         private StorageInterface $almacen,
-        private ValidadorDeManifiesto $validador,
     ) {}
+
+    /**
+     * La lectura, con la orientación puesta al día — sin volver a leer nada.
+     *
+     * Si al documento le faltaban `r` grados y le aplicamos `g`, ahora le faltan `r − g`. Es
+     * aritmética, no una observación: el giro lo hicimos nosotros y sabemos exactamente cuánto.
+     *
+     * ⚠️ `null` cuando nunca se leyó, y entonces sigue sin leerse: no se inventa una lectura.
+     *
+     * @param array<string, mixed>|null $leido
+     * @return array<string, mixed>|null
+     */
+    private static function conOrientacionCorregida(?array $leido, int $grados): ?array
+    {
+        if ($leido === null) {
+            return null;
+        }
+
+        $faltaban = match (strtolower(is_string($leido['bordeSuperior'] ?? null) ? $leido['bordeSuperior'] : '')) {
+            'izquierda' => 90,
+            'abajo' => 180,
+            'derecha' => 270,
+            default => 0,
+        };
+
+        $leido['bordeSuperior'] = match ((($faltaban - $grados) % 360 + 360) % 360) {
+            90 => 'izquierda',
+            180 => 'abajo',
+            270 => 'derecha',
+            default => 'arriba',
+        };
+
+        return $leido;
+    }
 
     public function girar(CotizacionFilearchivo $archivo, int $grados): void
     {
@@ -114,27 +147,28 @@ final readonly class GiradorDeEscaneo
 
         $archivo->setRotacionAplicada($acumulado);
 
-        // 🔑 **Se OLVIDA la lectura, no se registra una vacía.** Un documento torcido casi siempre
-        // se leyó mal —es la razón de girarlo—, así que conservarla dejaría el veredicto apoyado
-        // en lo que se leyó del revés. Ver el aviso de `olvidarLectura()`: hacerlo con
-        // `registrarLectura(null)` dejaba el archivo marcado como ilegible **para siempre**.
-        $archivo->olvidarLectura();
+        // 🔑 **La lectura se CORRIGE, no se tira — y eso es lo que quita los 16 segundos.**
+        //
+        // Antes se borraba y se revalidaba a la persona en el acto, lo que obligaba a una llamada
+        // a la IA (3,5 s) y a que el front recargase el expediente entero. Pero **girar no cambia
+        // lo que dice el documento**: el número, las fechas y la MRZ son los mismos. Lo único que
+        // deja de ser cierto es la orientación, y ésa se sabe sin preguntarle a nadie — acabamos
+        // de aplicarla nosotros.
+        //
+        // Un escaneo que se leyó BIEN estando torcido no necesita releerse por enderezarlo.
+        $archivo->registrarLectura(self::conOrientacionCorregida($archivo->getDatosLeidos(), $grados));
         $archivo->setImageSize(filesize($ruta) ?: $archivo->getImageSize());
 
         // El `preUpdate` de `CotizacionFilearchivoCacheListener` limpia la caché de Liip, así que
         // las miniaturas se regeneran solas. Sin este flush seguirían enseñando la versión vieja.
         $this->em->flush();
 
-        // 🔑 **Y se revalida a su dueño en el acto**, que es lo que borra la sugerencia de giro.
-        // El aviso «el escaneo está girado 270°» vive en el VEREDICTO de la identificación, no en
-        // el archivo: sin recalcularlo, el documento queda derecho y la ficha sigue diciendo que
-        // está torcido — que es peor que no avisar, porque manda a girar otra vez uno que ya está
-        // bien, y cada giro cuesta calidad.
+        // ⚠️ **Ya NO se revalida a la persona aquí.** El aviso de giro salía del veredicto, así
+        // que enderezar obligaba a recalcularlo —una llamada a la IA y una recarga del expediente
+        // por cada clic—. Y encima sólo cubría el escaneo que respalda ese número: girar el
+        // anverso hacía desaparecer el aviso con el reverso todavía torcido.
         //
-        // Relee el documento ya enderezado (~$0,0016), que es justo lo que se buscaba al girarlo.
-        $dueno = $archivo->getPasajero();
-        if ($dueno !== null) {
-            $this->validador->validarPasajero($dueno);
-        }
+        // El giro es una propiedad del ARCHIVO, no del veredicto. Vive en `datos_leidos` y la
+        // pantalla lo lee de ahí, escaneo por escaneo.
     }
 }

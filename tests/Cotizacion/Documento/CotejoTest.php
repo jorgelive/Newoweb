@@ -309,12 +309,14 @@ final class CotejoTest extends TestCase
     }
 
     /**
-     * 🔥 Un escaneo girado con la MRZ cuadrando está PERFECTAMENTE leído: girarlo es cosmética.
-     * Si esto bajara a `observado`, cada foto torcida llenaría la cola de cosas que no hay que
-     * decidir — y la cola se deja de mirar entera.
+     * 🔥 **El giro NO entra en el veredicto**, ni siquiera como nota. Es una propiedad del archivo,
+     * y meterlo aquí obligaba a recalcular el veredicto al enderezar —20 s por clic— y sólo cubría
+     * el escaneo que respalda ese número, no los demás de la misma persona.
+     *
+     * Un escaneo girado con la MRZ cuadrando está además PERFECTAMENTE leído: girarlo es cosmética.
      */
     #[Test]
-    public function unEscaneoGiradoAvisaPeroNoBajaElSello(): void
+    public function unEscaneoGiradoNoTocaElVeredicto(): void
     {
         $girado = new DatosDeDocumento(
             tipo: DocumentoTipoEnum::PASAPORTE,
@@ -329,7 +331,7 @@ final class CotejoTest extends TestCase
         $cotejo = Cotejo::de($girado, new FichaGuardada(numero: 'L898902C3', nombreCompleto: 'Anna Maria Eriksson'));
 
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_MRZ, $cotejo->estado);
-        self::assertStringContainsString('girado 90', $cotejo->resumen());
+        self::assertSame([], $cotejo->notas);
     }
 
     /** Y un escaneo derecho no dice nada: un aviso que sale siempre deja de leerse. */

@@ -1881,6 +1881,40 @@ son los del documento — un número mal en un manifiesto es un problema en el a
 
 Coste de la tanda entera: **~$0,30**. Y no se vuelve a pagar: las lecturas quedaron cacheadas.
 
+#### El giro estaba en el veredicto, y ése era el error de fondo (09/09/2026)
+
+Un giro tardaba **~20 segundos**. Medido en el servidor: girar y reescribir son **0,42 s** y una
+lectura de IA **3,5 s**. Los otros **16 los ponía la pantalla**, recargando el expediente entero
+—133 personas, sus identificaciones, 267 archivos y los vuelos— para reflejar el cambio de UN
+fichero.
+
+🔥 **La causa era haber metido el aviso de giro en el veredicto de la identificación**, y de ahí
+salían los tres síntomas a la vez:
+
+| Síntoma | Por qué |
+|---|---|
+| 20 s por clic | enderezar obligaba a recalcular el veredicto → releer con IA + recargar todo |
+| «el DNI está girado» sin decir cuál | el veredicto sólo mira **el escaneo que respalda ese número** |
+| girar uno borraba el aviso del otro | el reverso nunca se valida, así que su giro era invisible |
+
+**El giro es una propiedad del ARCHIVO, no del veredicto de un número.** Vive en `datos_leidos` y
+la pantalla lo lee de ahí, **escaneo por escaneo**: ahora hay un aviso por cada uno, diciendo cuál
+es y cuántos grados le faltan.
+
+##### Y girar ya no relee: corrige la orientación con aritmética
+
+**Girar no cambia lo que dice el documento.** El número, las fechas y la MRZ son los mismos; lo
+único que deja de ser cierto es la orientación, y ésa se sabe sin preguntarle a nadie — la acabamos
+de aplicar nosotros. Si al escaneo le faltaban `r` grados y le aplicamos `g`, ahora le faltan
+`r − g`.
+
+Así que la lectura **se corrige, no se tira**. Un escaneo que se leyó bien estando torcido no
+necesita releerse por enderezarlo — y eran muchos: de los 105 validados por MRZ, buena parte están
+girados.
+
+⚠️ Y el endpoint devuelve **sólo lo que cambió** —la marca de tiempo y la orientación nueva— para
+que el front parchee en sitio. Recargar el expediente por un fichero era el 80 % del tiempo.
+
 #### El DNI peruano SÍ lleva banda, y estaba en el anverso (09/09/2026)
 
 🔥 **Se daba por hecho que no la tenía.** Está escrito en tres sitios de este doc: «el DNI peruano no
