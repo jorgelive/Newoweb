@@ -50,6 +50,15 @@ use Vich\UploaderBundle\Storage\StorageInterface;
  */
 final readonly class GiradorDeEscaneo
 {
+    /**
+     * La copia intacta vive **al lado**, con este sufijo.
+     *
+     * ⚠️ Hace falta **borrarla con el archivo**: es un documento de identidad, y la política de
+     * retención no distingue entre el fichero y su copia. De eso se encarga
+     * {@see \App\Cotizacion\EventListener\EscaneoOriginalListener}.
+     */
+    public const SUFIJO_ORIGINAL = '.original';
+
     public function __construct(
         private EntityManagerInterface $em,
         private StorageInterface $almacen,
@@ -76,14 +85,34 @@ final readonly class GiradorDeEscaneo
             throw new RuntimeException('Los PDF no se giran aquí: vuelve a subirlo derecho.');
         }
 
+        // 🔑 **La copia intacta, guardada ANTES del primer giro.** Sin ella, cada giro reescribe
+        // sobre lo ya reescrito: −14 % el primero, −27 % al cuarto. Con ella, girar diez veces
+        // cuesta lo mismo que girar una, porque siempre se parte del original.
+        $original = $ruta . self::SUFIJO_ORIGINAL;
+        if (!file_exists($original) && !copy($ruta, $original)) {
+            throw new RuntimeException('No se pudo guardar la copia original antes de girar.');
+        }
+
+        $acumulado = ((($archivo->getRotacionAplicada() + $grados) % 360) + 360) % 360;
+
         try {
-            $imagen = new Imagick($ruta);
-            $imagen->rotateImage('none', $grados);
-            $imagen->writeImage($ruta);
-            $imagen->clear();
+            if ($acumulado === 0) {
+                // Vuelta al punto de partida: se restaura el original **tal cual**. Girar 90° para
+                // completar los 360 volvería a reencodear y dejaría peor lo que ya estaba bien.
+                if (!copy($original, $ruta)) {
+                    throw new RuntimeException('No se pudo restaurar el original.');
+                }
+            } else {
+                $imagen = new Imagick($original);
+                $imagen->rotateImage('none', $acumulado);
+                $imagen->writeImage($ruta);
+                $imagen->clear();
+            }
         } catch (ImagickException $e) {
             throw new RuntimeException('No se pudo girar: ' . $e->getMessage(), 0, $e);
         }
+
+        $archivo->setRotacionAplicada($acumulado);
 
         // 🔑 **Se OLVIDA la lectura, no se registra una vacía.** Un documento torcido casi siempre
         // se leyó mal —es la razón de girarlo—, así que conservarla dejaría el veredicto apoyado

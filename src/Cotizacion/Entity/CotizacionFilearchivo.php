@@ -178,6 +178,30 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
 
     public function getLecturaError(): ?string { return $this->lecturaError; }
 
+    /**
+     * Cuánto se ha girado este escaneo respecto de su copia original, en grados horarios.
+     *
+     * ⚠️ **NO es «cómo hay que mostrarlo».** Los píxeles del fichero vivo ya están derechos —eso
+     * es innegociable, ver `GiradorDeEscaneo`—. Esto existe por un motivo distinto y estrecho:
+     * poder **regirar siempre desde el original** en vez de encadenar reescrituras. Cada giro
+     * sobre el fichero vivo cuesta un 14 % de calidad; desde el original, girar diez veces cuesta
+     * lo mismo que girar una.
+     *
+     * Nadie más debería leer este campo. Si alguien lo usa para rotar al pintar, habremos vuelto
+     * al fallo del EXIF con otro nombre.
+     */
+    #[ORM\Column(name: 'rotacion_aplicada', type: 'smallint', options: ['default' => 0])]
+    private int $rotacionAplicada = 0;
+
+    public function getRotacionAplicada(): int { return $this->rotacionAplicada; }
+
+    public function setRotacionAplicada(int $grados): self
+    {
+        $this->rotacionAplicada = ((($grados % 360) + 360) % 360);
+
+        return $this;
+    }
+
     /** ¿Ya se intentó leer? Es lo que hace que la tanda no repita trabajo. */
     public function seIntentoLeer(): bool { return $this->leidoEn !== null; }
 
