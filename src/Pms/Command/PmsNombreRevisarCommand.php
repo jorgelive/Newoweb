@@ -183,6 +183,12 @@ final class PmsNombreRevisarCommand extends Command
             ['Quedaría' => $veredicto['invertido'] && $veredicto['confianza'] === OrdenDelNombre::CONFIANZA_EXIGIDA
                 ? sprintf('«%s» / «%s»', $apellido, $nombre)
                 : 'igual que vino'],
+            // El orden y la CAJA son dos decisiones con distinta vara —cruzar campos exige
+            // confianza alta, recapitalizar no— así que se enseñan por separado. Verlas juntas en
+            // una sola línea haría creer que una depende de la otra.
+            ['Cómo se escribe' => OrdenDelNombre::mereceCapitalizacion($nombre) || OrdenDelNombre::mereceCapitalizacion($apellido)
+                ? sprintf('«%s» / «%s»', $veredicto['nombreCapitalizado'], $veredicto['apellidoCapitalizado'])
+                : 'la caja ya venía informada: no se toca'],
             ['Motivo' => $veredicto['motivo']],
         );
 
