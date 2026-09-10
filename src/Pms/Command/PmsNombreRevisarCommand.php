@@ -223,17 +223,27 @@ final class PmsNombreRevisarCommand extends Command
             apellidoActual: $reserva->getApellidoCliente(),
         );
 
-        if ($par === null) {
+        // ⚠️ **Por la misma puerta que el handler.** Antes el comando aplicaba sólo el ORDEN y el
+        // handler además la caja, así que `--aplicar` dejaba los nombres gritando y una reserva
+        // nueva no. Dos caminos que escriben el mismo dato deciden en el mismo sitio.
+        [$queda, $quedaApellido] = OrdenDelNombre::comoQuedaria($veredicto, $nombre, $apellido);
+        $cambia = $queda !== $nombre || $quedaApellido !== $apellido;
+
+        if (!$cambia) {
             return [$loc, $nombre, $apellido, $veredicto['invertido'] ? 'invertido' : 'correcto',
                 $veredicto['confianza'], 'se queda', $veredicto['motivo']];
         }
 
+        // `comoQuedaria()` ya respetó el veredicto: si no procedía cruzar, devolvió el mismo
+        // orden y lo único que cambia es la caja.
         if ($aplicar) {
-            $reserva->setNombreCliente($par[0])->setApellidoCliente($par[1]);
+            $reserva->setNombreCliente($queda)->setApellidoCliente($quedaApellido);
         }
 
-        return [$loc, $nombre, $apellido, '<info>invertido</info>', $veredicto['confianza'],
-            sprintf('%s → «%s» / «%s»', $aplicar ? '<info>APLICADO</info>' : 'se cambiaría', $par[0], $par[1]),
+        return [$loc, $nombre, $apellido,
+            $par !== null ? '<info>invertido</info>' : 'correcto',
+            $veredicto['confianza'],
+            sprintf('%s → «%s» / «%s»', $aplicar ? '<info>APLICADO</info>' : 'se cambiaría', $queda, $quedaApellido),
             $veredicto['motivo']];
     }
 }

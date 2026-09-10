@@ -57,58 +57,26 @@ final readonly class RevisarOrdenDelNombreDispatchHandler
     ) {}
 
     /**
-     * El texto bien escrito, **sólo si la caja original no decía nada**.
-     *
-     * ⚠️ Y sólo si el modelo devolvió las MISMAS letras. Se le pidió que no tradujera ni
-     * añadiera nombres, pero una petición no es un cierre: se comprueba con código, que es la
-     * regla de este proyecto para todo lo que decide un modelo. Si difiere en algo más que caja y
-     * tildes, se descarta y el nombre se queda como vino.
-     */
-    private function capitalizado(string $original, string $propuesto): string
-    {
-        if (trim($propuesto) === '' || !OrdenDelNombre::mereceCapitalizacion($original)) {
-            return $original;
-        }
-
-        return $this->mismasLetras($original, $propuesto) ? trim($propuesto) : $original;
-    }
-
-    /** ¿Es el mismo texto salvo caja y tildes? `Transliterator` cubre cualquier alfabeto. */
-    private function mismasLetras(string $a, string $b): bool
-    {
-        static $translit = null;
-        $translit ??= \Transliterator::create('Any-Latin; Latin-ASCII; Upper');
-
-        $plano = static function (string $t) use ($translit): string {
-            $limpio = $translit?->transliterate($t) ?: mb_strtoupper($t);
-
-            return (string) preg_replace('/[^A-Z0-9]/', '', $limpio);
-        };
-
-        return $plano($a) === $plano($b);
-    }
-
-    /**
      * Arregla la caja dejando el orden intacto.
      *
      * Se llama en el camino de «no estaba cruzado», que es el 90 % de las veces y hasta ahora no
-     * escribía nada.
+     * escribía nada. La decisión entera —orden y caja— la toma {@see OrdenDelNombre::comoQuedaria()};
+     * aquí sólo se guarda.
      *
      * @param array{invertido: bool, confianza: string, motivo: string, nombreCapitalizado: string, apellidoCapitalizado: string} $veredicto
      */
     private function aplicarSoloCaja(PmsReserva $reserva, RevisarOrdenDelNombreDispatch $dispatch, array $veredicto): void
     {
-        $nombre = $this->capitalizado($dispatch->nombre, $veredicto['nombreCapitalizado']);
-        $apellido = $this->capitalizado($dispatch->apellido, $veredicto['apellidoCapitalizado']);
+        [$nombre, $apellido] = OrdenDelNombre::comoQuedaria($veredicto, $dispatch->nombre, $dispatch->apellido);
+
+        if ($nombre === $reserva->getNombreCliente() && $apellido === $reserva->getApellidoCliente()) {
+            return;   // nada que cambiar
+        }
 
         // ⚠️ Contra lo que hay AHORA en la reserva, no contra lo que se juzgó: entre medias pudo
         // entrar otro pull y pisarlo. Mismo cuidado que `OrdenDelNombre::esNuestroIntercambio()`.
-        if ($nombre === $reserva->getNombreCliente() && $apellido === $reserva->getApellidoCliente()) {
-            return;
-        }
-
         if ($dispatch->nombre !== $reserva->getNombreCliente() || $dispatch->apellido !== $reserva->getApellidoCliente()) {
-            return;   // ya no es el nombre que se mandó a juzgar
+            return;
         }
 
         $reserva->setNombreCliente($nombre);
@@ -184,13 +152,7 @@ final readonly class RevisarOrdenDelNombreDispatchHandler
             return;
         }
 
-        [$nombre, $apellido] = $par;
-
-        // La capitalización se aplica sobre el par YA ordenado: si venían cruzados, el nombre bien
-        // escrito que devolvió el modelo corresponde al campo del que salió, no al de destino.
-        [$nombre, $apellido] = $veredicto['invertido']
-            ? [$this->capitalizado($nombre, $veredicto['apellidoCapitalizado']), $this->capitalizado($apellido, $veredicto['nombreCapitalizado'])]
-            : [$this->capitalizado($nombre, $veredicto['nombreCapitalizado']), $this->capitalizado($apellido, $veredicto['apellidoCapitalizado'])];
+        [$nombre, $apellido] = OrdenDelNombre::comoQuedaria($veredicto, $dispatch->nombre, $dispatch->apellido);
 
         $reserva->setNombreCliente($nombre);
         $reserva->setApellidoCliente($apellido);

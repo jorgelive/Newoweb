@@ -61,6 +61,67 @@ final readonly class OrdenDelNombre
      *
      * Es la misma asimetría de todo este módulo: dejarlo quieto no cuesta nada.
      */
+    /**
+     * Cómo queda el par tras aplicar el veredicto entero: orden **y** caja.
+     *
+     * 🔥 **Aquí y sólo aquí, porque el handler y el comando llegaron a hacer cosas distintas.** El
+     * handler aplicaba las dos y el comando sólo el orden, así que `--aplicar` dejaba los nombres
+     * gritando y la reserva nueva no. Dos caminos que escriben el mismo dato tienen que decidir en
+     * el mismo sitio, o el que se quede corto lo hace en silencio.
+     *
+     * Las dos decisiones tienen **varas distintas y es a propósito**: cruzar los campos le cambia
+     * el nombre a una persona y exige confianza alta; recapitalizar no cambia quién es nadie.
+     *
+     * @param array{invertido: bool, confianza: string, nombreCapitalizado: string, apellidoCapitalizado: string} $veredicto
+     * @return array{string, string}
+     */
+    public static function comoQuedaria(array $veredicto, string $nombre, string $apellido): array
+    {
+        $cruzar = $veredicto['invertido']
+            && mb_strtolower(trim($veredicto['confianza'])) === self::CONFIANZA_EXIGIDA;
+
+        // Lo capitalizado viene etiquetado por el campo del que SALIÓ, así que al cruzar hay que
+        // cruzarlo también: el «nombre bien escrito» acaba en el campo del apellido.
+        [$finalNombre, $finalApellido] = $cruzar ? [$apellido, $nombre] : [$nombre, $apellido];
+        [$propNombre, $propApellido] = $cruzar
+            ? [$veredicto['apellidoCapitalizado'], $veredicto['nombreCapitalizado']]
+            : [$veredicto['nombreCapitalizado'], $veredicto['apellidoCapitalizado']];
+
+        return [
+            self::conLaCajaBuena($finalNombre, $propNombre),
+            self::conLaCajaBuena($finalApellido, $propApellido),
+        ];
+    }
+
+    /**
+     * El texto bien escrito, si procede.
+     *
+     * ⚠️ **Se comprueba que sean las MISMAS letras.** Al modelo se le pidió que no tradujera ni
+     * añadiera nombres, pero una petición no es un cierre —es la regla de este proyecto para todo
+     * lo que decide un modelo—. Si difiere en algo más que caja y tildes, se descarta.
+     *
+     * De rebote, eso protege un caso real: `B0UZA` lleva un CERO donde va una O. El modelo
+     * devolvería «Bouza», que se rechaza — es un dedazo del canal, no un problema de caja, y
+     * arreglarlo sería que el sistema decidiera por su cuenta que una letra estaba mal.
+     */
+    private static function conLaCajaBuena(string $original, string $propuesto): string
+    {
+        if (trim($propuesto) === '' || !self::mereceCapitalizacion($original)) {
+            return $original;
+        }
+
+        static $translit = null;
+        $translit ??= \Transliterator::create('Any-Latin; Latin-ASCII; Upper');
+
+        $plano = static function (string $t) use ($translit): string {
+            $limpio = $translit?->transliterate($t) ?: mb_strtoupper($t);
+
+            return (string) preg_replace('/[^A-Z0-9]/', '', $limpio);
+        };
+
+        return $plano($original) === $plano($propuesto) ? trim($propuesto) : $original;
+    }
+
     public static function mereceCapitalizacion(?string $texto): bool
     {
         $t = trim((string) $texto);
