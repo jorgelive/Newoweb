@@ -995,7 +995,67 @@ de los cargos: una reserva enseñaba `US$130` sobre S/ 130.00, con el saldo al l
 verdad. Y el tooltip nunca leyó el desglose por moneda que el backend le mandaba «para el
 tooltip», así que la pastilla decía `≈US$438` y él `US$437.99`.
 
-El detalle, el porqué de que el símbolo tenga que salir de la misma rama que el número, y el
-riesgo vecino que **sigue abierto** —`calcularCuadre()` descarta en silencio el saldo de una
-moneda sin tipo de cambio, hoy 0 fichas— están en `docs/Calendar_architecture.md`, sección «Dos
-monedas en la misma barra».
+El detalle y el porqué de que el símbolo tenga que salir de la misma rama que el número están en
+`docs/Calendar_architecture.md`, sección «Dos monedas en la misma barra».
+
+⚠️ **Al cerrarlo se anotó aquí un segundo riesgo que resultó FALSO**: que sin tipo de cambio la
+pastilla saldría verde sobre una deuda real. `cuadra()` comprueba `hayMonedaSinConvertir()` antes
+de mirar el cuadre y contesta que no cuadra — comprobado con datos reales en transacción. Queda
+dicho en el doc, porque la hipótesis es plausible y alguien la volverá a tener.
+
+---
+
+## El maestro de tipo de cambio lleva 15 días parado — 10/09/2026
+
+`maestro_tipocambio` termina el **26/08/2026**. Hoy es el 10/09. Verificado en producción con
+`php bin/console app:test-tipocambio 2026-09-10`:
+
+```
+WARNING [app] Consulta mensual SUNAT vacía. Intentando diaria.
+Fecha Solicitada    2026-09-10
+Fecha del Dato      2026-08-26      ← Fallback
+```
+
+**No falla nada, y por eso lleva quince días así.** `TipocambioManager::findLastAvailableInDb()`
+tiene doble respaldo y sirve la última cotización que haya; la nota de *Fallback* sólo la ve quien
+ejecuta ese comando de prueba.
+
+### Lo que sí se está estropeando
+
+`PmsTipoCambioSnapshotListener` sella cada cargo, cada cobro y cada ficha con `venta()` — que hoy
+devuelve **3.350, la del 26/08**. El docblock del campo dice que es «cuánto valía el dólar el día
+en que ese dinero se movió»: eso hoy no es cierto para nada creado desde el 26/08.
+
+No es una pérdida de dinero —el error de una tasa de hace dos semanas es de milésimas— pero es
+justo el dato que existe para poder **reconstruir una cuenta a posteriori** y decirle a un huésped
+a cuánto se le cambió.
+
+### Dónde mirar
+
+| Necesidad | Dónde |
+|---|---|
+| Por qué la consulta a SUNAT vuelve vacía | `TipocambioManager::fetchExternalData()` — intenta mes y luego día |
+| Que el maestro se llene solo | **no hay cron**: hoy se rellena sólo cuando alguien pide una fecha |
+| Comprobar el estado | `php bin/console app:test-tipocambio <fecha>` |
+
+⚠️ Y de paso: `pms:finanzas:completar-tipo-cambio` **sólo repasa cargos y pagos**, no fichas
+(`findBy(['tipoCambio' => null])` sobre `PmsCargoFinanciero` y `PmsPagoFinanciero`). Hoy hay 3
+cargos y 6 pagos sin sellar y 0 fichas, pero una ficha que naciera sin tasa no la recupera nadie:
+su listener sólo corre en `prePersist`.
+
+---
+
+## `PmsInformacionFinanciera` no tiene ni una restricción de validación — 10/09/2026
+
+La entidad no lleva **ningún** `#[Assert]`, y su `Patch` expone `tipoCambio` en
+`pms_finanzas:write`. Un `PATCH {"tipoCambio": "0"}` con `ROLE_RESERVAS_WRITE` entra sin más.
+
+`PmsMonedaBaseService::cambiar()` sí valida (`if (!$tc || (float) $tc <= 0) throw`), y el candado
+`assertTipoCambioNoBloqueado()` protege los cargos y los pagos una vez sellados — **pero ninguno
+de los dos cubre la cabecera**.
+
+No es urgente: hoy hay 0 fichas a cero, y `cuadra()` no se deja engañar por una tasa a cero
+(§«El tipo de cambio a cero» en `docs/Calendar_architecture.md`). Lo que quedaría mintiendo es la
+cifra del cuadre, que es la que el operador lee para decidir cuánto cobrar en la otra moneda.
+
+Un `#[Assert\Positive]` sobre el campo lo cierra.

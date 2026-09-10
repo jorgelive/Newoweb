@@ -1389,16 +1389,64 @@ Pagó en otra moneda · falta imputar el cobro
 > PHPStan, ni `vue-tsc`, ni los tests. Un campo opcional que nadie lee se ve **exactamente igual**
 > que uno que no existe.
 
-### ⚠️ Un riesgo que queda al lado, y hoy no muerde
+### El tipo de cambio a cero: lo que sí pasa y lo que NO
 
-`PmsTotalesPorMoneda::calcularCuadre()` **descarta el saldo** de una moneda distinta a la base
-cuando la ficha no tiene tipo de cambio (`if ($tc <= 0.0) continue;`). No devuelve `null` ni avisa:
-el saldo desaparece de la suma, y la pastilla saldría **verde sobre una deuda real**.
+Al escribir esta sección se anotó aquí un riesgo —«sin tipo de cambio la pastilla saldría verde
+sobre una deuda real»— y **es falso**. Se comprobó el 10/09/2026 con datos reales en transacción
+con `rollback`, y queda escrito porque la hipótesis es plausible y alguien la volverá a tener.
 
-Hoy no ocurre —0 fichas con cargo en otra moneda y sin tipo de cambio, medido el 10/09/2026— y por
-eso no se toca aquí. Pero es la misma familia que lo de arriba, un grado más cara: aquí el error
-no sería la etiqueta, sería la cifra. Compárese con `cifraDeBarra()`, que en el mismo caso devuelve
-`null` y deja la barra sin número, «que es más honesto que sumar peras con manzanas».
+`PmsTotalesPorMoneda::calcularCuadre()` **sí** descarta el saldo de una moneda distinta a la base
+cuando no hay tipo de cambio (`if ($tc <= 0.0) continue;`). Lo que no ocurre es la consecuencia:
+`cuadra()` —que es quien decide el color y quien alimenta `pago-total`— **no mira el cuadre a
+secas**. Antes comprueba `hayMonedaSinConvertir()`, con el motivo escrito al lado desde que se
+escribió:
+
+> «Sin tipo de cambio falta una moneda entera dentro de `$cuadre`. Que dé cero no significa que
+> esté pagada, significa que no se pudo mirar: se contesta que NO cuadra.»
+
+Medido sobre la ficha mixta que hay en producción:
+
+| tipo de cambio | cuadre | `hayMonedaSinConvertir()` | `cuadra()` | pastilla |
+|---|---|---|---|---|
+| `3.387` | 0.41 | false | true | verde |
+| `0.000` | 76.25 | **true** | **false** | **roja** |
+| `NULL` | 76.25 | **true** | **false** | **roja** |
+
+**La segunda línea de defensa existe y funciona.** Lo que queda es cosmético: el `saldo` que viaja
+al calendario es `$totales->cuadre`, así que en ese estado la barra enseñaría una cifra incompleta
+con la pastilla en rojo. Confuso, no peligroso.
+
+### ⚠️ Lo que sí conviene saber del tipo de cambio
+
+Tres cosas, medidas el 10/09/2026 contra producción:
+
+1. **A cero no llega por sí solo.** `TipocambioManager::findLastAvailableInDb()` tiene doble
+   respaldo —la última cotización `<= fecha`, y si no, la última que haya— así que mientras la
+   tabla tenga filas (hoy 116) nunca devuelve `null`. En 367 fichas hay **0 nulos y 0 ceros**;
+   el mínimo es 3.350.
+
+2. **Por `null` sí, y ya pasó**: `PmsTipoCambioSnapshotListener` tolera que `venta()` devuelva
+   `null` a propósito («un problema con la cotización no puede impedir anotar un cobro que ya se
+   recibió»). Hoy hay **3 cargos y 6 pagos** sin sellar. En fichas ninguno — pero el listener sólo
+   corre en `prePersist`, y `pms:finanzas:completar-tipo-cambio` **sólo repasa cargos y pagos**:
+   una ficha que naciera sin tasa no la recupera nadie.
+
+3. **La puerta sin guarda es la API.** `PmsMonedaBaseService::cambiar()` valida `<= 0` y lanza,
+   pero el `Patch` de `PmsInformacionFinanciera` expone `tipoCambio` en `pms_finanzas:write`
+   **sin una sola restricción de validación** — la entidad no tiene ningún `#[Assert]`. Un
+   `PATCH {"tipoCambio": "0"}` con `ROLE_RESERVAS_WRITE` entra. No rompe el color por lo de
+   arriba, pero deja la cifra del cuadre mintiendo.
+
+### 🚨 Y una que no es del calendario: el maestro lleva 15 días parado
+
+`maestro_tipocambio` termina el **26/08/2026**; hoy es el 10/09. `app:test-tipocambio` lo enseña en
+producción: la consulta mensual a SUNAT vuelve vacía, la diaria también, y `findLastAvailableInDb`
+sirve la del 26/08 con una nota de *Fallback* que nadie lee. **No hay ninguna entrada de cron que
+sincronice el maestro**: se rellena solo cuando alguien pide una fecha, y ese camino está roto.
+
+Nada falla por eso —el respaldo hace su trabajo— y por eso lleva quince días así: **cada cargo,
+cada cobro y cada ficha nueva desde el 26/08 se está sellando con la cotización del 26/08**. El
+campo dice ser «cuánto valía el dólar el día en que ese dinero se movió», y hoy no lo es.
 
 ## El panel financiero avisa al calendario
 
