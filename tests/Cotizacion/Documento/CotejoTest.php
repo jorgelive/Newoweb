@@ -240,14 +240,31 @@ final class CotejoTest extends TestCase
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_OCR, Cotejo::de($this->pasaporteSinBanda(), $ficha)->estado);
     }
 
-    /** ⚠️ Un DNI NUNCA puede llegar a MRZ: no lleva banda, y perseguir eso no cambiaría nada. */
+    /**
+     * 🔥 **Este test decía «un DNI NUNCA puede llegar a MRZ» y la creencia era falsa.**
+     *
+     * Se daba por hecho que el DNI peruano no lleva banda. El nuevo la lleva en el **anverso**, en
+     * formato TD1, así que un DNI también puede quedar respaldado por aritmética. Falló en rojo el
+     * día que se corrigió, que es exactamente para lo que estaba escrito.
+     *
+     * Sin banda legible sigue quedándose en OCR — que no es peor lectura, es que no hay dígitos
+     * que comprobar.
+     */
     #[Test]
-    public function unDniNoPuedeEstarValidadoPorMrz(): void
+    public function unDniSinBandaSeQuedaEnOcrPeroPodriaLlegarAMrz(): void
     {
         $estado = Cotejo::de($this->dni(), new FichaGuardada(numero: '12345678', nombreCompleto: 'Anna Maria Eriksson'))->estado;
 
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_OCR, $estado);
-        self::assertFalse(ValidacionIdentificacionEnum::VALIDADO_MRZ->aplicaA(DocumentoTipoEnum::DNI));
+        self::assertTrue(ValidacionIdentificacionEnum::VALIDADO_MRZ->aplicaA(DocumentoTipoEnum::DNI));
+    }
+
+    /** Los que de verdad no tienen banda de ninguna clase sí quedan excluidos. */
+    #[Test]
+    public function unCarneDeExtranjeriaNoPuedeLlegarAMrz(): void
+    {
+        self::assertFalse(ValidacionIdentificacionEnum::VALIDADO_MRZ->aplicaA(DocumentoTipoEnum::CE));
+        self::assertFalse(ValidacionIdentificacionEnum::VALIDADO_MRZ->aplicaA(DocumentoTipoEnum::RUC));
     }
 
     #[Test]

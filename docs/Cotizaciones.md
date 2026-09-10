@@ -1881,6 +1881,54 @@ son los del documento — un número mal en un manifiesto es un problema en el a
 
 Coste de la tanda entera: **~$0,30**. Y no se vuelve a pagar: las lecturas quedaron cacheadas.
 
+#### El DNI peruano SÍ lleva banda, y estaba en el anverso (09/09/2026)
+
+🔥 **Se daba por hecho que no la tenía.** Está escrito en tres sitios de este doc: «el DNI peruano no
+lleva banda TD3», «que un DNI se quede siempre en `VALIDADO_OCR` no es que esté peor leído». Era
+falso: **el DNI nuevo lleva MRZ en el ANVERSO, formato TD1** —tres líneas de 30—, y se vio mirando
+un escaneo de cerca.
+
+Con eso, **un DNI puede llegar a `VALIDADO_MRZ`**, respaldado por aritmética igual que un pasaporte.
+Son 86 anversos del padrón que pasan de «dos lecturas que coinciden» a «los dígitos cuadran».
+
+| | Formato | Dónde |
+|---|---|---|
+| Pasaporte | TD3, 2 × 44 | página de datos |
+| **DNI peruano** | **TD1, 3 × 30** | **anverso** |
+
+⚠️ **El formato se decide por la LONGITUD, no por la letra inicial.** La `P` del pasaporte no vale
+como única señal: un TD1 también empieza por letra (`I<PER…`).
+
+⚠️ **Y `tipo()` decía «hay MRZ ⇒ es un pasaporte».** Con TD1 eso guardaría un DNI como PASAPORTE,
+con el número del DNI dentro. Ahora manda el prefijo del formato.
+
+⚠️ Los dígitos de control son **los mismos cuatro**, en otras posiciones. La cuenta se escribe una
+vez; duplicada acabaría divergiendo y un DNI daría por bueno lo que un pasaporte rechaza.
+
+Lo que sigue sin poder llegar a MRZ es lo que no tiene banda de ninguna clase —`CE`, `RUC`—, y hay
+un test para cada mitad.
+
+⚠️ **El test que decía «un DNI NUNCA puede llegar a MRZ» falló en rojo el día que se corrigió**, que
+es exactamente para lo que estaba escrito.
+
+##### Y por eso no hace falta juntar anverso y reverso
+
+Con la banda en el anverso, **el anverso se sostiene solo**: número, fechas, sexo y nacionalidad
+salen de ahí con sus dígitos. El reverso sigue sin ser validable y eso es correcto — no es un
+documento mal leído, es uno que no tiene qué cotejar.
+
+#### El giro: «falta girar», no «parece girado» (09/09/2026)
+
+El número es una **acción** —cuántos grados en sentido horario hay que aplicar— y el rótulo lo
+describía como un **estado**. Un escaneo que se ve girado 90° necesita **270°** para enderezarse,
+así que «parece girado 270°» contradice al ojo y hace dudar del botón que está bien. El valor
+siempre fue correcto; mentía la frase.
+
+⚠️ **Y la imagen no se refrescaba tras girar.** El fichero se reescribe **en su sitio** —a
+propósito, para que los píxeles sean la verdad— así que la URL no cambia y el navegador seguía
+sirviendo la versión vieja: se giraba, la petición iba bien, y en pantalla no pasaba nada. Se le
+cuelga `?v=<updatedAt>`, que cambia en cada escritura.
+
 #### Girar un escaneo: el ángulo se detecta, pero se hornea en los píxeles (09/09/2026)
 
 La extracción devuelve además **`rotacion`** —0, 90, 180 o 270 grados en sentido horario— y viaja

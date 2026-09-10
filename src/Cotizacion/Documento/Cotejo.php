@@ -132,7 +132,10 @@ final readonly class Cotejo
         // ⚠️ Este aviso va SÓLO cuando ya no se valida, y como explicación de por qué hizo falta
         // el manifiesto. Añadirlo siempre lo convertía en un defecto y **bloqueaba** la validación
         // de todo pasaporte sin banda, que es lo contrario de lo que se quiere.
-        if (!$leido->verificadoPorMrz() && $leido->tipo === DocumentoTipoEnum::PASAPORTE) {
+        // ⚠️ El DNI entra en esta lista desde que se descubrió que el nuevo peruano lleva TD1 en
+        // el anverso. Antes sólo el pasaporte podía «echar de menos» su banda.
+        if (!$leido->verificadoPorMrz()
+            && in_array($leido->tipo, [DocumentoTipoEnum::PASAPORTE, DocumentoTipoEnum::DNI], true)) {
             $notas[] = 'sin banda MRZ legible: hubo que cotejar con el manifiesto (revisa la calidad del escaneo)';
         }
 

@@ -72,11 +72,17 @@ enum ValidacionIdentificacionEnum: string
     /**
      * ¿Este estado tiene sentido para ese tipo de documento?
      *
-     * Existe para que la pantalla no ofrezca «validado con MRZ» en un DNI: un desplegable que
-     * permite elegir un estado imposible acaba teniéndolo en la base.
+     * ⚠️ **Aquí se excluía el DNI de `VALIDADO_MRZ`, y era falso.** Se daba por hecho que el DNI
+     * peruano no lleva banda; el nuevo la lleva en el ANVERSO, en formato TD1. Así que un DNI
+     * también puede quedar respaldado por aritmética, y son 86 anversos del padrón.
+     *
+     * Los que siguen sin poder son los que no tienen banda de ninguna clase — carné de
+     * extranjería, RUC—, y ésos se quedan en `VALIDADO_OCR`, que no es peor lectura: es que no hay
+     * dígitos que comprobar.
      */
     public function aplicaA(DocumentoTipoEnum $tipo): bool
     {
-        return $this !== self::VALIDADO_MRZ || $tipo === DocumentoTipoEnum::PASAPORTE;
+        return $this !== self::VALIDADO_MRZ
+            || in_array($tipo, [DocumentoTipoEnum::PASAPORTE, DocumentoTipoEnum::DNI], true);
     }
 }

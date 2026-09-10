@@ -102,4 +102,70 @@ final class MrzTest extends TestCase
 
         self::assertTrue($mrz?->esCoherente());
     }
+
+    /* ══ TD1: el DNI peruano nuevo, que SÍ lleva banda en el anverso ══════════ */
+
+    // Tomado de un escaneo real del expediente (Rodrigo Gonzalo Cuellar Farfán).
+    private const D1 = 'I<PER73724061<6<<<<<<<<<<<<<<<';
+    private const D2 = '0908302M2608307PER<<<<<<<<<<<8';
+    private const D3 = 'CUELLAR<<RODRIGO<GONZALO<<<<<<';
+
+    #[Test]
+    public function leeUnDniPeruanoDeTresLineas(): void
+    {
+        $mrz = Mrz::desde(self::D1, self::D2, self::D3);
+
+        self::assertNotNull($mrz);
+        self::assertSame('73724061', $mrz->numero);
+        self::assertSame('PER', $mrz->paisEmisor);
+        self::assertSame('PER', $mrz->nacionalidad);
+        self::assertSame('CUELLAR', $mrz->apellidos);
+        self::assertSame('RODRIGO GONZALO', $mrz->nombres);
+        self::assertSame('M', $mrz->sexo);
+        self::assertSame('2009-08-30', $mrz->nacimiento?->format('Y-m-d'));
+        self::assertSame('2026-08-30', $mrz->vencimiento?->format('Y-m-d'));
+    }
+
+    /** Los dígitos del número y de las dos fechas tienen que cuadrar, como en el pasaporte. */
+    #[Test]
+    public function losDigitosDelDniCuadran(): void
+    {
+        $mrz = Mrz::desde(self::D1, self::D2, self::D3);
+
+        self::assertNotContains('número de documento', $mrz?->problemas ?? ['x']);
+        self::assertNotContains('fecha de nacimiento', $mrz?->problemas ?? ['x']);
+        self::assertNotContains('fecha de vencimiento', $mrz?->problemas ?? ['x']);
+    }
+
+    /** Y un dígito mal leído en el número del DNI se caza igual que en un pasaporte. */
+    #[Test]
+    public function unDigitoMalLeidoEnElDniNoCuadra(): void
+    {
+        $mrz = Mrz::desde(str_replace('73724061<6', '73724061<9', self::D1), self::D2, self::D3);
+
+        self::assertContains('número de documento', $mrz?->problemas ?? []);
+    }
+
+    /** El formato se decide por la LONGITUD: dos líneas de 30 no son ni un TD1 ni un TD3. */
+    #[Test]
+    public function dosLineasDeTreintaNoSonNingunFormato(): void
+    {
+        self::assertNull(Mrz::desde(self::D1, self::D2));
+    }
+
+    /**
+     * Y un pasaporte con una tercera línea de sobra se sigue leyendo como pasaporte.
+     *
+     * ⚠️ Esto empezó siendo una expectativa mía equivocada —esperaba `null`— y el código tenía
+     * razón: al modelo se le pide SIEMPRE la tercera línea, así que en un pasaporte llega vacía o
+     * con lo que haya pillado. Rechazar el TD3 por eso tiraría una banda perfectamente buena.
+     */
+    #[Test]
+    public function unaTerceraLineaDeSobraNoEstropeaUnPasaporte(): void
+    {
+        $mrz = Mrz::desde(self::L1, self::L2, self::D3);
+
+        self::assertSame('L898902C3', $mrz?->numero);
+        self::assertTrue($mrz?->esCoherente());
+    }
 }

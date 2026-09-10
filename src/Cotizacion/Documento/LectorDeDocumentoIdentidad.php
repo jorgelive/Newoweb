@@ -37,11 +37,14 @@ final readonly class LectorDeDocumentoIdentidad
         deja el campo vacío. Un dato inventado con la forma correcta es peor que un hueco, porque
         se guarda igual y nadie vuelve a mirarlo.
 
-        Si el documento tiene banda legible por máquina (las dos líneas de caracteres con «<» al
-        pie de un pasaporte), transcríbela EXACTA en mrzLinea1 y mrzLinea2: cada carácter, los «<»
-        incluidos, sin espacios y sin arreglar nada de lo que te parezca un error. Esas dos líneas
-        llevan dígitos de control y se comprueban aparte, así que una transcripción fiel vale más
-        que una transcripción bonita.
+        Si el documento tiene banda legible por máquina —las líneas de caracteres con «<»—
+        transcríbela EXACTA: cada carácter, los «<» incluidos, sin espacios y sin arreglar nada de
+        lo que te parezca un error. Lleva dígitos de control y se comprueba aparte, así que una
+        transcripción fiel vale más que una bonita.
+
+        Un pasaporte tiene DOS líneas de 44: van en mrzLinea1 y mrzLinea2, y mrzLinea3 vacía.
+        Un DNI peruano tiene TRES líneas de 30 en el ANVERSO: van en las tres. Cuenta los
+        caracteres: si te salen menos de los que toca, es que falta alguno por transcribir.
 
         Rellena además los campos sueltos leyéndolos de la zona IMPRESA del documento, no de la
         banda: sirven para contrastar las dos lecturas.
@@ -73,6 +76,9 @@ final readonly class LectorDeDocumentoIdentidad
             'vencimiento' => ['type' => 'string'],
             'mrzLinea1' => ['type' => 'string'],
             'mrzLinea2' => ['type' => 'string'],
+            // ⚠️ La tercera es del TD1 del DNI, que lleva la banda en el ANVERSO. Se creía que el
+            // DNI peruano no tenía, y por eso se quedaba siempre en `VALIDADO_OCR`.
+            'mrzLinea3' => ['type' => 'string'],
             // 🔥 **Se pregunta DÓNDE está la cabecera, no cuántos grados hay que girar.** La
             // pregunta anterior —«cuántos grados en sentido horario»— obliga al modelo a razonar
             // sobre una convención de giro, y ahí falla: **dos escaneos en la misma posición
@@ -82,7 +88,7 @@ final readonly class LectorDeDocumentoIdentidad
         ],
         // Todos requeridos y vacíos cuando no se lean: un campo AUSENTE y un campo VACÍO se
         // distinguen mal al leer el JSON, y la diferencia no aporta nada aquí.
-        'required' => ['tipo', 'numero', 'nombres', 'apellidos', 'paisEmisor', 'nacionalidad', 'sexo', 'nacimiento', 'vencimiento', 'mrzLinea1', 'mrzLinea2', 'bordeSuperior'],
+        'required' => ['tipo', 'numero', 'nombres', 'apellidos', 'paisEmisor', 'nacionalidad', 'sexo', 'nacimiento', 'vencimiento', 'mrzLinea1', 'mrzLinea2', 'mrzLinea3', 'bordeSuperior'],
     ];
 
     public function __construct(private LectorDeImagenInterface $lector) {}
@@ -117,7 +123,11 @@ final readonly class LectorDeDocumentoIdentidad
     public function interpretar(array $crudo): DatosDeDocumento
     {
 
-        $mrz = Mrz::desde($this->texto($crudo, 'mrzLinea1'), $this->texto($crudo, 'mrzLinea2'));
+        $mrz = Mrz::desde(
+            $this->texto($crudo, 'mrzLinea1'),
+            $this->texto($crudo, 'mrzLinea2'),
+            $this->texto($crudo, 'mrzLinea3'),
+        );
         $avisos = [];
 
         foreach ($mrz !== null ? $mrz->problemas : [] as $problema) {
@@ -168,14 +178,18 @@ final readonly class LectorDeDocumentoIdentidad
     }
 
     /**
-     * Una MRZ que empieza por `P` ES un pasaporte, lo diga el modelo o no: está en el formato,
-     * no en la apariencia.
+     * El tipo, con la banda por delante cuando la hay.
+     *
+     * ⚠️ **Antes decía «hay MRZ ⇒ es un pasaporte», y eso dejó de ser cierto** al descubrir que el
+     * DNI peruano lleva TD1 en el anverso: un DNI con banda se habría guardado como PASAPORTE, con
+     * el número del DNI dentro. Ahora manda el prefijo del formato —`P` es pasaporte, `I`/`A`/`C`
+     * son documentos de identidad— y sólo si no hay banda se cree lo que dijo el modelo.
      */
     /** @param array<string, mixed> $crudo */
     private function tipo(array $crudo, ?Mrz $mrz): ?DocumentoTipoEnum
     {
         if ($mrz !== null) {
-            return DocumentoTipoEnum::PASAPORTE;
+            return $mrz->esPasaporte() ? DocumentoTipoEnum::PASAPORTE : DocumentoTipoEnum::DNI;
         }
 
         return DocumentoTipoEnum::tryFrom(strtoupper($this->texto($crudo, 'tipo')));

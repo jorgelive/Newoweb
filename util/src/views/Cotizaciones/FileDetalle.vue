@@ -1902,6 +1902,9 @@ const duenoDelArchivo = (doc: ApiCotizacionFilearchivo): string => {
  * ⚠️ Los dos verdes NO son el mismo verde a propósito. `validado_mrz` lo respaldan dígitos de
  * control; `validado_ocr` son dos lecturas que coinciden, y ésas pueden equivocarse las dos si el
  * error venía del padrón original. Pintarlos igual borraría la única diferencia que importa.
+ *
+ * ⚠️ Y desde que se vio que el DNI peruano nuevo lleva banda TD1 en el anverso, **`validado_mrz`
+ * ya no es sólo del pasaporte**.
  */
 const SELLO: Record<string, { texto: string; clase: string; icono: string }> = {
     no_validado: { texto: 'sin validar', clase: 'bg-white text-slate-400 border-slate-200', icono: 'fa-circle-question' },
@@ -2043,6 +2046,30 @@ const girarDoc = async (doc: ApiCotizacionFilearchivo, grados: number) => {
     if (!ok) { alert(fileStore.error || 'No se pudo girar.'); return; }
 
     await cargarFile();
+};
+
+/**
+ * La URL del escaneo con una marca que cambia cuando el fichero cambia.
+ *
+ * ⚠️ Girar **reescribe el fichero en su sitio** —los píxeles son la verdad—, así que la URL es la
+ * misma y el navegador sigue sirviendo la versión vieja de su caché: se gira, la petición va bien,
+ * y en pantalla no pasa nada. `updatedAt` cambia en cada escritura de la entidad.
+ */
+const urlFresca = (doc: ApiCotizacionFilearchivo): string | undefined => {
+    const url = doc.imageUrl;
+    if (!url) return undefined;
+
+    const marca = String(doc.updatedAt ?? doc.createdAt ?? '').replace(/\D/g, '');
+
+    return marca ? `${url}${url.includes('?') ? '&' : '?'}v=${marca}` : url;
+};
+
+/** Las claves crudas del modelo, en castellano legible. */
+const ETIQUETA_LEIDA: Record<string, string> = {
+    paisEmisor: 'país emisor',
+    bordeSuperior: 'cabecera',
+    rotacion: 'falta girar',
+    numero: 'número',
 };
 
 /** Lo que el modelo leyó de ese escaneo, para poder compararlo con el papel a la vista. */
@@ -4853,8 +4880,13 @@ const eliminarDocumento = async (iri?: string) => {
                      torcido —el gate, el lector de IA— y ninguno daría error. Ya pasó con el
                      EXIF. -->
                 <template v-if="esImagen(doc)">
+                  <!-- ⚠️ **«Falta girar», no «parece girado».** El número es una ACCIÓN —cuántos
+                       grados en sentido horario hay que aplicar— y el rótulo lo describía como un
+                       ESTADO. Un escaneo que se ve girado 90° necesita 270° para enderezarse, así
+                       que «parece girado 270°» contradice al ojo y hace dudar del botón que está
+                       bien. El valor siempre fue correcto; lo que mentía era la frase. -->
                   <span v-if="giroSugerido(doc)" class="text-[9px] font-black uppercase tracking-wider text-amber-600">
-                    parece girado {{ giroSugerido(doc) }}°
+                    falta girar {{ giroSugerido(doc) }}°
                   </span>
                   <button v-for="g in [90, 180, 270]" :key="g" type="button"
                           :disabled="girando === String(doc.id)"
@@ -4863,7 +4895,7 @@ const eliminarDocumento = async (iri?: string) => {
                           :class="g === giroSugerido(doc)
                             ? 'border-amber-400 bg-amber-100 text-amber-700'
                             : 'border-slate-200 bg-white text-slate-400 hover:text-slate-700'"
-                          :title="`Girar ${g}° y reescribir el fichero`">
+                          :title="`Girar ${g}° en sentido horario y reescribir el fichero`">
                     {{ g }}
                   </button>
                 </template>
@@ -4874,8 +4906,12 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
 
             <!-- `loading="lazy"`: son escaneos de 2400 px y una familia puede tener seis. -->
-            <a v-if="esImagen(doc)" :href="doc.imageUrl || undefined" target="_blank" class="block bg-slate-900/5">
-              <img :src="doc.imageUrl || undefined" :alt="getArchivoLabel(doc.tipoArchivo)" loading="lazy"
+            <!-- ⚠️ **La URL no cambia al girar, así que el navegador servía la imagen VIEJA.** El
+                 fichero se reescribe en su sitio —a propósito, para que los píxeles sean la
+                 verdad— y eso deja la caché mintiendo: se gira, la petición va bien, y en pantalla
+                 sigue torcida. Se le cuelga la marca de tiempo, que cambia en cada escritura. -->
+            <a v-if="esImagen(doc)" :href="urlFresca(doc)" target="_blank" class="block bg-slate-900/5">
+              <img :src="urlFresca(doc)" :alt="getArchivoLabel(doc.tipoArchivo)" loading="lazy"
                    class="w-full max-h-[60vh] object-contain">
             </a>
             <a v-else :href="doc.imageUrl || undefined" target="_blank"
@@ -4891,7 +4927,7 @@ const eliminarDocumento = async (iri?: string) => {
               <span v-for="(valor, clave) in leidoDe(doc)" :key="clave"
                     v-show="valor && !String(clave).startsWith('mrz')"
                     class="text-[9px] text-slate-500">
-                <span class="font-bold uppercase text-slate-400">{{ clave }}</span> {{ valor }}
+                <span class="font-bold uppercase text-slate-400">{{ ETIQUETA_LEIDA[String(clave)] ?? clave }}</span> {{ valor }}
               </span>
             </div>
           </div>
