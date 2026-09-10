@@ -220,16 +220,51 @@ final class BookingPullPersister implements ResetInterface
                 ];
             }
 
-            $reserva = $this->upsertReservaFull(
-                booking: $booking,
-                isPrincipal: $isLinkPrincipal,
-                establecimiento: $establecimiento,
-                reservaExistente: $reservaDeLink
-            );
+            // 🔥 **EL PULL NO INVENTA RESERVAS.** (10/09/2026)
+            //
+            // Si el evento YA EXISTE —tiene link— y no tiene reserva, es porque no debe tenerla.
+            // El caso real son los BLOQUEOS: una casita cerrada por una obra, un evento o una
+            // noche del pintor. Se crean desde el panel sin reserva a propósito, se empujan a
+            // Beds24 para tapar el calendario, y al volver por el barrido `upsertReservaFull()`
+            // les estrenaba una — que entra luego en los conteos por canal, en los listados y en
+            // el rollup de finanzas como si fuera una venta.
+            //
+            // ⚠️ **Sólo se calla el alta; la pasada NO se corta**, y ésa es la diferencia con la
+            // «REGLA CRÍTICA» de arriba. `setLastSeenAt()` vive dentro de `upsertEvento()`, y es
+            // lo único que confirma que el bloqueo sigue existiendo en Beds24: cortando antes,
+            // el día que alguien lo borrara allí no habría forma de enterarse.
+            //
+            // ⚠️ **Por qué basta con esto y no hace falta mirar el estado ni el canal.** Se
+            // probaron las dos condiciones y las dos resultaron ser siempre ciertas aquí, por una
+            // razón del negocio y no del código: **nada se edita en Beds24**. Lo único que cambia
+            // allí es lo que mandan las OTA —que llegan como bookings nuevos, sin link previo— y
+            // lo que empujamos nosotros. Así que un evento con link y sin reserva sólo puede ser
+            // un bloqueo nuestro, con el `black` que le mandamos, y no puede convertirse en algo
+            // que sí necesite reserva sin pasar antes por el PMS — donde la reserva ya existiría y
+            // esta condición no dispararía. Añadir esos términos habría sido escribir dos
+            // comprobaciones que nunca son falsas.
+            //
+            // ⚠️ Consecuencia asumida: si algún día se borrara una reserva dejando huérfanos su
+            // evento y su link, el pull ya no la repone. Es lo correcto —resucitar en silencio es
+            // peor que no hacerlo—, pero es un cambio de comportamiento, no una limpieza.
+            //
+            // Alcance medido el 10/09/2026: en toda la base, los eventos con link principal y sin
+            // reserva son **exactamente 2, y los dos son bloqueos**.
+            if ($existingLink !== null && $reservaDeLink === null) {
+                $reserva = null;
+                $reservaAction = 'none';
+            } else {
+                $reserva = $this->upsertReservaFull(
+                    booking: $booking,
+                    isPrincipal: $isLinkPrincipal,
+                    establecimiento: $establecimiento,
+                    reservaExistente: $reservaDeLink
+                );
 
-            // Determinamos si se creó o actualizó observando si tiene ID (aunque el persist lo asigna después, el objeto en memoria es nuevo)
-            // Una forma simple es verificar si estaba en el cache antes.
-            $reservaAction = $reserva->getId() ? 'updated' : 'created';
+                // Determinamos si se creó o actualizó observando si tiene ID (aunque el persist lo asigna después, el objeto en memoria es nuevo)
+                // Una forma simple es verificar si estaba en el cache antes.
+                $reservaAction = $reserva->getId() ? 'updated' : 'created';
+            }
         }
 
         // 6. GESTIÓN DEL EVENTO

@@ -19,6 +19,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
     · [6.3.c Los estados del link: cuáles se usan de verdad](#63c-los-estados-del-link-cuáles-se-usan-de-verdad)
 7. [Camino C — Push de vuelta a Beds24](#7-camino-c--push-de-vuelta-a-beds24)
     · [7.1.c Cancelarlo todo NO convierte la reserva en directa](#71c-cancelarlo-todo-no-convierte-la-reserva-en-directa-10092026)
+    · [7.1.d El pull no inventa reservas](#71d-el-pull-no-inventa-reservas-10092026)
 8. [Motor de Exchange — ExchangeOrchestrator](#8-motor-de-exchange--exchangeorchestrator)
     · [8.1 Quién llena la cola — reactivo vs. Timeline Enqueuer](#81-quién-llena-la-cola--el-listener-reactivo-vs-el-timeline-enqueuer)
 9. [Anti-duplicación y Seguridad](#9-anti-duplicación-y-seguridad)
@@ -1224,6 +1225,52 @@ cancelada queda en `airbnb` con `monto_total = 0`, que es lo que describe la rea
 ⚠️ **Tras desplegar hay que rehacer el rollup**: el `UPDATE` sólo corre para las reservas que algo
 toca, así que las 117 siguen en `directo` hasta que se las nombre. Lo hace
 `php bin/console app:message:rebuild-context`, que recalcula todas las reservas con conversación.
+
+### 7.1.d El pull no inventa reservas (10/09/2026)
+
+Un BLOQUEO —una casita cerrada por una obra, un evento o la noche del pintor— se crea desde el
+panel **sin reserva**, a propósito, y se empuja a Beds24 para tapar el calendario. Al volver por
+el barrido, `upsertReservaFull()` le estrenaba una: el evento tenía link, no tenía reserva, y el
+único corte que había exigía `!$isLinkPrincipal` —está pensado para los espejos—, así que el
+principal pasaba de largo. Esa reserva entra luego en los conteos por canal, en los listados y en
+el rollup de finanzas como si fuera una venta.
+
+```php
+if ($existingLink !== null && $reservaDeLink === null) {
+    $reserva = null;
+    $reservaAction = 'none';
+}
+```
+
+**Si el evento ya existe y no tiene reserva, es porque no debe tenerla.** El pull sólo crea
+reservas para bookings que no ha visto nunca.
+
+⚠️ **Sólo se calla el alta; la pasada NO se corta**, y ésa es la diferencia con la regla del
+espejo de al lado. `setLastSeenAt()` vive dentro de `upsertEvento()` y es lo único que confirma
+que el bloqueo sigue existiendo en Beds24: cortando antes, el día que alguien lo borrara allí no
+habría forma de enterarse.
+
+⚠️ **Por qué NO hace falta mirar el estado ni el canal.** Se probaron los dos términos y los dos
+resultaron ser siempre ciertos aquí, por una razón del negocio y no del código: **nada se edita
+en Beds24**. Lo único que cambia allí es lo que mandan las OTA —que llegan como bookings nuevos,
+sin link previo— y lo que empujamos nosotros. Así que un evento con link y sin reserva sólo puede
+ser un bloqueo nuestro, con el `black` que le mandamos; y no puede convertirse en algo que sí
+necesite reserva sin pasar antes por el PMS, donde la reserva ya existiría y la condición no
+dispararía. Una directa tampoco se vuelve OTA nunca. Añadir esos términos habría sido escribir
+dos comprobaciones que no pueden ser falsas.
+
+⚠️ **Consecuencia asumida**: si se borrara una reserva dejando huérfanos su evento y su link, el
+pull ya no la repone. Es lo correcto —resucitar en silencio es peor—, pero es un cambio de
+comportamiento, no una limpieza.
+
+> Alcance medido el 10/09/2026: en toda la base, los eventos con link principal y sin reserva son
+> **exactamente 2, y los dos son bloqueos**. La consulta que lo comprueba:
+> ```sql
+> SELECT e.estado_id, COUNT(*) FROM pms_evento_calendario e
+> WHERE e.reserva_id IS NULL AND e.evento_origen_id IS NULL
+>   AND EXISTS (SELECT 1 FROM pms_evento_beds24_link l WHERE l.evento_id=e.id AND l.es_principal=1)
+> GROUP BY e.estado_id;
+> ```
 
 ### 7.2 Tres perfiles de payload
 
