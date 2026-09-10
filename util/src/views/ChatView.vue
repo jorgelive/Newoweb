@@ -1101,6 +1101,49 @@ const aplicarFormato = (marca: string) => {
   });
 };
 
+/**
+ * «Pegar» propio, junto al clip y las marcas de formato.
+ *
+ * No duplica nada del navegador: en Android el menú del sistema sobre un campo de texto se lo
+ * queda quien quiera —el «Abrir en modo de lectura» de una app instalada, por ejemplo— y ahí
+ * «Pegar» simplemente NO SALE. El operador se queda mirando un menú que no es de este panel y
+ * sin forma de meter lo que acaba de copiar; no hay nada que reordenar en nuestro menú de
+ * mensajes, porque ese menú ni siquiera se está abriendo.
+ *
+ * ⚠️ Pega en el CURSOR y respeta la selección, como haría el del sistema: la alternativa fácil
+ * —añadir al final— destroza un mensaje a medio escribir.
+ *
+ * ⚠️ `readText()` puede negarse (permiso denegado, o navegador que no lo implementa). Se dice
+ * con el camino manual, que es el único que queda; callar dejaría el botón como si no hiciera
+ * nada.
+ */
+const pegarDelPortapapeles = async (event: MouseEvent) => {
+  const area = messageTextarea.value;
+  if (!area) return;
+
+  let pegado = '';
+  try {
+    pegado = await navigator.clipboard.readText();
+  } catch {
+    showMobileError('El navegador no dejó leer el portapapeles. Mantén pulsado el área de escritura y usa «Pegar» del sistema.', event);
+    return;
+  }
+
+  if (!pegado) return;
+
+  const inicio = area.selectionStart ?? newMessageText.value.length;
+  const fin = area.selectionEnd ?? inicio;
+
+  newMessageText.value = newMessageText.value.slice(0, inicio) + pegado + newMessageText.value.slice(fin);
+
+  nextTick(() => {
+    area.focus();
+    const cursor = inicio + pegado.length;
+    area.setSelectionRange(cursor, cursor);
+    adjustTextareaHeight();
+  });
+};
+
 const getDispatchError = (msg: ApiMessage, channelKeyword: string): string | null => {
   const meta = msg.metadata;
   if (!meta) return null;
@@ -1748,6 +1791,9 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
               <!-- Formateador ligero: marcas del canónico (espejo de FormatoDeTexto.php).
                    WhatsApp las pinta, Beds24 las pierde con gracia, el panel las renderiza. -->
               <template v-if="!selectedTemplateId">
+                <button type="button" title="Pegar del portapapeles" @click="pegarDelPortapapeles" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#376875] bg-white shadow-sm border border-slate-100 rounded-full transition-all">
+                  <i class="far fa-clipboard text-xs"></i>
+                </button>
                 <button type="button" title="Negrita (*texto*)" @click="aplicarFormato('*')" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#376875] bg-white shadow-sm border border-slate-100 rounded-full transition-all">
                   <i class="fas fa-bold text-xs"></i>
                 </button>

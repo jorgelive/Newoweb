@@ -18,6 +18,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
     · [6.3.b Cambiar de casita: qué link se mueve y cuál se recrea](#63b-cambiar-de-casita-qué-link-se-mueve-y-cuál-se-recrea)
     · [6.3.c Los estados del link: cuáles se usan de verdad](#63c-los-estados-del-link-cuáles-se-usan-de-verdad)
 7. [Camino C — Push de vuelta a Beds24](#7-camino-c--push-de-vuelta-a-beds24)
+    · [7.1.c Cancelarlo todo NO convierte la reserva en directa](#71c-cancelarlo-todo-no-convierte-la-reserva-en-directa-10092026)
 8. [Motor de Exchange — ExchangeOrchestrator](#8-motor-de-exchange--exchangeorchestrator)
     · [8.1 Quién llena la cola — reactivo vs. Timeline Enqueuer](#81-quién-llena-la-cola--el-listener-reactivo-vs-el-timeline-enqueuer)
 9. [Anti-duplicación y Seguridad](#9-anti-duplicación-y-seguridad)
@@ -935,6 +936,8 @@ repasar al añadir cualquier vista nueva de eventos:
 | Estancias del drawer (SPA) | `ReservaEditDrawer`, filtro al mapear `detalles` |
 | Buscador de reservas | `PmsReservaBuscarController` |
 | **Rollup de la reserva** | `PmsReservaRecalculoService`: `AND e.estado_id != 'extension'` en el `WHERE` |
+
+> El otro filtro del mismo rollup —el de estado `cancelada`— tiene su propia trampa: §7.1.c.
 | Coste teórico del panel | `PmsCargosAutomaticosService::aplica()` la descarta, como a los bloqueos |
 
 > ⚠️ **El rollup es el que más duele si se olvida.** Sin ese filtro, `fecha_salida` de la reserva
@@ -1167,6 +1170,59 @@ negativo. Es lo que había que reconstruir a mano con scripts cada vez que algo 
 - **Cómo se comprueba que el push salió**: la cola **no crea filas nuevas** para la estancia,
   reutiliza la del link por `dedupe_key` y la devuelve a `pending`. Contar filas despista; hay
   que mirar el `status`. Las extensiones, al ser eventos nuevos, sí estrenan sus propias filas.
+
+### 7.1.c Cancelarlo todo NO convierte la reserva en directa (10/09/2026)
+
+El rollup de canal del `PmsReservaRecalculoService` decidía así:
+
+```sql
+MAX(CASE WHEN e.estado_id != 'cancelada' AND e.channel_id != 'directo' THEN e.channel_id END)
+-- …y luego  r.channel_id = COALESCE(s.canalDominante, 'directo')
+```
+
+Cancelada la última estancia de OTA, la expresión da `NULL` y la reserva pasaba a **`directo`**.
+`canales_aggregate` seguía diciendo «airbnb» —dos columnas del mismo `UPDATE` contradiciéndose, que
+es la señal barata de que el rollup se partió—, pero quien decide es `channel_id`:
+
+```
+PmsReserva::esDePlataforma()   →  false
+PmsMessageDataResolver         →  es_plataforma: false
+Beds24SendEnqueuer::create()   →  «No se permite enviar mensajes por la API de Beds24
+                                   a reservas directas (Canal: directo).»
+CanalesDisponibles::para()     →  beds24 «sin_datos_o_vetado» → botón apagado en el chat
+```
+
+🔥 **Y el huésped seguía escribiendo por ese mismo canal.** Airbnb no cierra el hilo al caducar una
+consulta: los entrantes llegaban con `channel_id = 'beds24'` y cada respuesta —incluidas las del
+agente— moría con esa excepción. El hilo quedaba mudo **de un lado solo**, que es la avería que no
+se ve: en el panel el mensaje aparece escrito, con su hora, y sólo un icono rojo diminuto dice que
+no salió. Caso real: consulta de Airbnb `92359575` (Katherine, 09–11 sep), cancelada por el webhook
+de las 22:10 del 09/09; desde entonces **ninguna** respuesta del sistema llegó a Beds24.
+
+**El arreglo es la misma CASCADA que ya usaban las fechas**: canal de un evento vivo, y si no queda
+ninguno, el de los cancelados.
+
+```sql
+COALESCE(
+    MAX(CASE WHEN e.estado_id != 'cancelada' AND e.channel_id != 'directo' THEN e.channel_id END),
+    CASE WHEN COUNT(CASE WHEN e.estado_id != 'cancelada' THEN 1 END) = 0
+         THEN MAX(CASE WHEN e.channel_id != 'directo' THEN e.channel_id END) END
+) AS canalDominante
+```
+
+⚠️ **El segundo escalón exige que no quede NINGÚN evento vivo**, y no basta con que el primero dé
+`NULL`: eso pasa también cuando el único evento vivo es `directo` —se canceló la parte de la OTA y
+la estancia se rehízo por fuera—. Ahí la reserva **sí** es directa, y resucitar el canal viejo la
+mandaría a facturar y a escribir por un canal abandonado. Con la guarda, de 131 reservas que hoy
+dicen `directo` teniendo eventos de OTA, cambian **117**; las 14 restantes son justo ese caso.
+
+⚠️ **El canal de una reserva es de DÓNDE VINO, y eso no lo borra una cancelación.** Lo que sí
+depende de los eventos vivos son los importes, y ésos ya suman 0 por su propio `CASE`: una reserva
+cancelada queda en `airbnb` con `monto_total = 0`, que es lo que describe la realidad.
+
+⚠️ **Tras desplegar hay que rehacer el rollup**: el `UPDATE` sólo corre para las reservas que algo
+toca, así que las 117 siguen en `directo` hasta que se las nombre. Lo hace
+`php bin/console app:message:rebuild-context`, que recalcula todas las reservas con conversación.
 
 ### 7.2 Tres perfiles de payload
 

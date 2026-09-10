@@ -67,6 +67,24 @@ final class PmsReservaRecalculoService
         // el 06 cuando se va el 05. Se filtran por `evento_origen_id` y no por
         // estado: al retirarlas pasan a `cancelada` y seguirían siendo extensiones
         // (§7.1.b del doc).
+        //
+        // ⚠️ `canalDominante` cae en CASCADA, igual que las fechas: primero el canal de un evento
+        // VIVO, y si no queda ninguno, el de los cancelados. Sin ese segundo escalón, una estancia
+        // de Airbnb cancelada entera se quedaba con `channel_id = 'directo'` —mientras
+        // `canales_aggregate` seguía diciendo «airbnb», que es la señal de que las dos columnas se
+        // habían separado—, y `esDePlataforma()` pasaba a `false`. Consecuencia real (10/09/2026,
+        // reserva de Katherine): al caducar una consulta de Airbnb, `Beds24SendEnqueuer` empezó a
+        // responder «no se permite enviar mensajes a reservas directas» a CADA respuesta, y el
+        // panel apagaba el botón de Beds24 — pero el huésped seguía escribiendo por ese mismo
+        // canal, que Airbnb no cierra al cancelar. El hilo quedaba mudo por un lado solo.
+        //
+        // El canal de una reserva es de DÓNDE VINO, y eso no lo borra una cancelación. Lo que sí
+        // depende de los eventos vivos son los importes, y ésos ya suman 0 por su propio CASE.
+        //
+        // ⚠️ El segundo escalón exige que NO QUEDE NINGÚN evento vivo, y no basta con que el
+        // primero dé NULL: eso pasa también cuando el único evento vivo es `directo`. Ahí la
+        // reserva SÍ se volvió directa —se canceló la parte de la OTA y se rehizo por fuera— y
+        // resucitar el canal viejo la mandaría a facturar y a escribir por un canal abandonado.
 
         foreach (array_chunk($reservaIds, 400) as $chunk) {
             $binaryIds = [];
@@ -93,7 +111,11 @@ LEFT JOIN (
         GROUP_CONCAT(DISTINCT CASE WHEN e.estado_id != '$estadoCancelada' THEN NULLIF(TRIM(u.nombre), '') END SEPARATOR ', ') AS unidadesAgregadas,
         MIN(e.fecha_reserva_canal) AS minFechaReserva,
         MAX(e.fecha_modificacion_canal) AS maxFechaModif,
-        MAX(CASE WHEN e.estado_id != '$estadoCancelada' AND e.channel_id != 'directo' THEN e.channel_id END) AS canalDominante
+        COALESCE(
+            MAX(CASE WHEN e.estado_id != '$estadoCancelada' AND e.channel_id != 'directo' THEN e.channel_id END),
+            CASE WHEN COUNT(CASE WHEN e.estado_id != '$estadoCancelada' THEN 1 END) = 0
+                 THEN MAX(CASE WHEN e.channel_id != 'directo' THEN e.channel_id END) END
+        ) AS canalDominante
     FROM pms_evento_calendario e
     LEFT JOIN pms_unidad u ON e.pms_unidad_id = u.id 
     WHERE e.reserva_id IN ($in)

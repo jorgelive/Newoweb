@@ -11,6 +11,37 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 ---
 
 
+## 🔥 Una OTA cancelada dejaba el hilo mudo de un lado solo (10/09/2026)
+
+Al caducar una consulta de Airbnb, el rollup de `PmsReservaRecalculoService` marcaba la reserva
+como `directo`, y desde ahí `Beds24SendEnqueuer` rechazaba **cada** respuesta —«no se permite
+enviar mensajes por la API de Beds24 a reservas directas»— mientras el huésped seguía escribiendo
+por ese mismo canal, que Airbnb no cierra. La causa y el arreglo, en
+`docs/PmsBeds24ReservasSync.md` §7.1.c.
+
+Lo que toca a este módulo son las **dos formas de enterarse**, y ninguna funcionó:
+
+- En el chat, el fallo es un icono rojo de 9 px junto a la hora del mensaje. El texto sigue ahí,
+  escrito, con su burbuja normal. Nada distingue «enviado» de «rechazado» a un metro de distancia.
+- El botón de Beds24 se apagaba con su 🚫 y el motivo en el `title` — que en móvil **no existe**:
+  no hay hover, y el botón está `disabled`, así que tampoco recibe el toque.
+
+⚠️ Y con WhatsApp cerrado por las 24 h, el compositor se quedaba **sin ninguna salida marcada**;
+`send()` responde «Selecciona al menos un canal de envío», que describe lo que falta pero no que
+no queda ninguno que elegir.
+
+## «Pegar» propio en el compositor (10/09/2026)
+
+En Android el menú del sistema sobre el área de escritura se lo puede quedar cualquier app
+instalada —un «Abrir en modo de lectura», por ejemplo— y ahí **«Pegar» no sale**. No es nada que
+este panel pueda reordenar: ese menú no es suyo, y el menú que sí lo es (`Copiar texto`) sólo se
+abre sobre las burbujas de mensaje, nunca sobre el `textarea`.
+
+Así que el compositor trae su propio botón, junto al clip y las marcas de formato. Pega **en el
+cursor** y respeta la selección, como el del sistema: añadir al final destroza un mensaje a medio
+escribir. Si `navigator.clipboard.readText()` se niega —permiso denegado, navegador sin soporte—,
+lo dice con el camino manual; callar dejaría el botón como si no hiciera nada.
+
 ## 🔥 Ver si el hilo tiene mensajes ANTES de tocar sus identidades (08/09/2026)
 
 Un identificador retirado se conserva por dos motivos, y el primero —«quien escriba desde el número

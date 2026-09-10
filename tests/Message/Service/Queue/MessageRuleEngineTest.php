@@ -535,6 +535,78 @@ final class MessageRuleEngineTest extends TestCase
     }
 
     /**
+     * LA DESPEDIDA DE LA OTA SOBRE UNA RESERVA CANCELADA.
+     *
+     * Este par de pruebas existe por un arreglo concreto: hasta el 10/09/2026 una estancia de
+     * OTA cancelada entera se quedaba con `channel_id = 'directo'`, así que el `origen` del
+     * asunto era `directo` y las reglas «Despedida a Booking / a Airbnb» —filtradas por
+     * `allowedSources`— **nunca llegaban a mirarlas**. Al corregir el canal
+     * (`docs/PmsBeds24ReservasSync.md` §7.1.c) esas reservas empiezan a decir `booking` y el
+     * filtro sí les pega, en producción y de golpe.
+     *
+     * Lo que las protege es la muerte del asunto, que se comprueba ANTES que la segmentación
+     * (`MessageRuleEngine::debeAplicar()`). Queda fijado aquí para que no dependa del orden en
+     * que estén escritas dos condiciones.
+     */
+    #[Test]
+    public function la_despedida_de_la_ota_no_sale_en_una_reserva_cancelada(): void
+    {
+        $reserva      = new PmsReserva();
+        $conversacion = new MessageConversation('pms_reserva', (string) $reserva->getId());
+
+        $this->enlace(
+            $conversacion,
+            MapaDeHitos::de([ConversationMilestoneInterface::END => $this->hito('+30 days noon')]),
+            $reserva,
+            'booking'
+        )->setVinculo(VinculoComercial::Terminado);
+
+        $this->motor([$this->despedidaDeBooking()])
+            ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
+
+        self::assertCount(
+            0,
+            $this->mensajesDelSistema($conversacion),
+            'Una reserva cancelada no se despide del huésped, aunque su canal sea el de la OTA.'
+        );
+    }
+
+    /**
+     * El control positivo del anterior. Sin él, un `origen` mal escrito o un hito con clave
+     * equivocada darían CERO mensajes por el motivo equivocado y la prueba pasaría vacía:
+     * diría «no sale» cuando lo cierto es «no se evaluó nada».
+     */
+    #[Test]
+    public function la_misma_despedida_si_sale_cuando_la_reserva_sigue_viva(): void
+    {
+        $reserva      = new PmsReserva();
+        $conversacion = new MessageConversation('pms_reserva', (string) $reserva->getId());
+        $fin          = $this->hito('+30 days noon');
+
+        $this->enlace(
+            $conversacion,
+            MapaDeHitos::de([ConversationMilestoneInterface::END => $fin]),
+            $reserva,
+            'booking'
+        )->setVinculo(VinculoComercial::Cliente);
+
+        $this->motor([$this->despedidaDeBooking()])
+            ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
+
+        $mensajes = $this->mensajesDelSistema($conversacion);
+
+        self::assertCount(1, $mensajes, 'Con la reserva viva, la despedida de Booking sí se programa.');
+        self::assertSame($this->esperado($fin, 60), $mensajes[0]->getScheduledAt()?->getTimestamp());
+    }
+
+    /** La regla de producción, tal cual: hito de salida, +1 h, y sólo para Booking. */
+    private function despedidaDeBooking(): MessageRule
+    {
+        return $this->regla(ConversationMilestoneInterface::END, 60, nombre: 'Despedida a Booking')
+            ->setAllowedSources(['booking']);
+    }
+
+    /**
      * El modo legado NO cambia: sin enlaces, la cancelación sigue viajando en el estado del
      * hilo y el aviso de cancelación sigue saliendo. Es la compatibilidad dura del despliegue:
      * las conversaciones de hoy se comportan igual hasta que alguien les cuelgue enlaces.
