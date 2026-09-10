@@ -29,6 +29,15 @@ security:
         # Necesita ver el chat para poder responder, de ahí ROLE_MENSAJES_SHOW.
         ROLE_CUSTOMER_SUPPORT:   [ROLE_MENSAJES_SHOW]
 
+        # Guardia TÉCNICA: a quién avisa el sistema cuando se contradice a sí mismo (un envío sin
+        # canal posible, un espejo que ningún link reclama). Mismo motivo que arriba: el aviso
+        # enlaza al mensaje que no salió, y sin ROLE_MENSAJES_SHOW ese enlace lleva a un 403.
+        #
+        # ⚠️ Esto NO decide quién recibe. Las guardias se filtran por la columna `user.roles`
+        # LITERAL, así que heredar TECH_SUPPORT de otro rol no mete a nadie en la lista; esta
+        # línea sólo dice qué puede ABRIR quien ya está en ella.
+        ROLE_TECH_SUPPORT:       [ROLE_MENSAJES_SHOW]
+
         # Admin: Control total de los módulos de negocio
         ROLE_ADMIN:
             - ROLE_USER
