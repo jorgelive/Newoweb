@@ -3364,7 +3364,7 @@ const eliminarDocumento = async (iri?: string) => {
 
                      La lupa abre en lectura, la plumita entra directa a editar. -->
                 <div v-for="(pax, idx) in pasajerosFiltrados" :key="pax['@id'] ?? pax.id"
-                     class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative group hover:border-indigo-300 hover:shadow-md transition-all">
+                     class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm relative group hover:border-indigo-300 hover:shadow-md transition-all">
                   <div class="absolute top-3 right-3 flex items-center gap-1">
                     <button @click="abrirEdicionPax(pax)" title="Ver la ficha"
                             class="text-slate-300 hover:text-teal-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
@@ -3379,11 +3379,22 @@ const eliminarDocumento = async (iri?: string) => {
                       <i class="fas fa-trash-alt text-xs"></i>
                     </button>
                   </div>
-                  <div class="flex items-start gap-3 pr-24">
-                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-black text-xs flex items-center justify-center border border-indigo-200">{{ idx + 1 }}</div>
+                  <!-- ⚠️ **El nombre en su propia fila, y a dos líneas.** Iba en la misma columna que
+                       todo lo demás, con un `pr-24` que apenas cubría los tres botones: un nombre
+                       largo se metía DEBAJO de ellos —«Santiago Ariel Gon🔍✏️🗑ia»— y encima el
+                       hueco de los botones estrechaba también las etiquetas y los documentos, que
+                       no lo necesitan.
+
+                       Ahora el hueco lo reserva sólo esta fila, el nombre parte en dos líneas si
+                       hace falta, y **el resto baja debajo del número** a ancho completo. -->
+                  <div class="flex items-start gap-2 pr-[6.5rem]">
+                    <div class="w-8 h-8 shrink-0 rounded-full bg-indigo-100 text-indigo-600 font-black text-xs flex items-center justify-center border border-indigo-200">{{ idx + 1 }}</div>
+                    <h3 class="text-sm font-black text-slate-800 leading-tight min-w-0 pt-1">{{ pax.nombre }} {{ pax.apellido }}</h3>
+                  </div>
+
+                  <div class="mt-2">
                     <div>
-                      <h3 class="text-sm font-black text-slate-800 leading-tight">{{ pax.nombre }} {{ pax.apellido }}</h3>
-                      <div class="flex flex-wrap gap-1 mt-2">
+                      <div class="flex flex-wrap gap-1.5">
                         <!-- ⚠️ El ROL primero. «Adulto PR» es la tarifa de PeruRail —adulto o niño para
                              el tren— y no dice si es coordinador, supervisor o participante, que es
                              lo que se busca al mirar la lista. Cada rol con su color: en 131 fichas,

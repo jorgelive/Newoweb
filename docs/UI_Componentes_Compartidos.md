@@ -1395,3 +1395,22 @@ se comporta como columna cuando de verdad hay dos.
 lista de tareas: que alguien no esté en ningún vuelo puede ser lo correcto —no viaja en avión—, y
 desplegado ocupaba media pantalla con cuatro listas de nombres que parecían pendientes. Es
 información para consultar, así que se enseña como lo que es y se abre cuando alguien quiere leerla.
+
+
+## La ficha del manifiesto: el nombre debajo de los botones (09/09/2026)
+
+El nombre iba en la misma columna que todo lo demás, y esa columna llevaba un `pr-24` para dejar
+sitio a los tres botones de la esquina. Dos problemas a la vez:
+
+- **96 px no bastan para tres botones de 28 px con sus huecos y el margen**, así que un nombre largo
+  se metía por debajo: «Santiago Ariel Gon🔍✏️🗑ia».
+- Y el hueco reservado **estrechaba también las etiquetas y los documentos**, que no lo necesitan
+  porque van muy por debajo de los botones.
+
+⚠️ **El hueco lo reserva ahora sólo la fila del nombre.** El resto baja debajo del número y usa
+el ancho completo de la tarjeta, que es donde se agradece: los sellos de validación y las
+discrepancias son largos. El nombre parte en dos líneas cuando hace falta, con `min-w-0` para que
+el flex le deje.
+
+El padding de la tarjeta baja de `p-4` a `p-3`: con las etiquetas, los sellos, los avisos de giro y
+dos botones dentro, la ficha había crecido bastante desde que se diseñó.
