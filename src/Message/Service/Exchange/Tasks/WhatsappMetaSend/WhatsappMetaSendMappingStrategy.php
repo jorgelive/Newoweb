@@ -122,6 +122,26 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // 🔥 ESCENARIO B: ENVÍO DE MENSAJE
                 $conversation = $msg->getConversation();
 
+                // 🚧 EL VETO DEL CANAL SE COMPRUEBA **AQUÍ**, no al encolar.
+                //
+                // Éste es el momento en que el mensaje de verdad sale, así que es el único
+                // momento en que la pregunta «¿está habilitado WhatsApp?» tiene una respuesta
+                // que sirva. Antes vivía en `WhatsappMetaSendEnqueuer::createQueueEntity()`, o
+                // sea al CREAR la fila, y eso mataba mensajes programados con días de
+                // antelación por un bloqueo que se levantaba mucho antes de que les tocara
+                // salir — con el resultado de que un huésped se alojó sin guía de llegada ni
+                // aviso de check-out (10/09/2026).
+                //
+                // El `RuntimeException` cae en el `catch` de abajo y `parseResponse()` lo
+                // convierte en un `ItemResult` fallido con este motivo: la fila de la cola
+                // cuenta lo que le pasó **hoy**, y no una foto de hace tres días.
+                if ($conversation !== null && $conversation->isWhatsappDisabled()) {
+                    throw new RuntimeException(sprintf(
+                        'Envío cancelado: El canal WhatsApp para esta conversación está DESHABILITADO. Motivo: %s',
+                        $conversation->getWhatsappDisabledReason() ?? 'Desconocido'
+                    ));
+                }
+
                 // ── De QUÉ asunto se redacta ─────────────────────────────────────
                 // Del asunto del MENSAJE cuando lo lleva estampado, y sólo si no, del contexto de la
                 // conversación. Con varios asuntos colgando de un mismo hilo, tomar siempre el de la

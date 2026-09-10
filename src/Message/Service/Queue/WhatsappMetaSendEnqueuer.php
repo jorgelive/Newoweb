@@ -43,13 +43,23 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
             throw new RuntimeException('El mensaje no tiene una conversación asociada.');
         }
 
-        // 🔥 VALIDACIÓN DE CANAL HABILITADO
-        if ($conversation->isWhatsappDisabled()) {
-            throw new RuntimeException(sprintf(
-                'Envío cancelado: El canal WhatsApp para esta conversación está DESHABILITADO. Motivo: %s',
-                $conversation->getWhatsappDisabledReason() ?? 'Desconocido'
-            ));
-        }
+        // 🚧 **AQUÍ NO SE MIRA SI EL CANAL ESTÁ HABILITADO, y es deliberado.**
+        //
+        // Esto es CREAR la fila de la cola; el envío ocurre después, en `$runAt`, que puede ser
+        // dentro de tres días. Preguntar aquí «¿está WhatsApp habilitado?» es contestar con el
+        // estado de hoy una pregunta que se resolverá el jueves.
+        //
+        // Y no es teórico: el 10/09/2026 se midió el caso. La guía de llegada y el aviso de
+        // check-out de un huésped se crearon el 07/09 a las 22:56 con el canal bloqueado desde
+        // el panel, **y el aviso de check-out estaba programado para el 10/09 a las 12:00**. Se
+        // dio por muerto tres días antes de tocarle salir. El canal se rehabilitó, y los dos
+        // siguieron en `failed` para siempre —nadie reintenta lo que ya se declaró perdido—: el
+        // huésped se alojó sin recibir ninguna de las dos cosas.
+        //
+        // El veto vive en {@see \App\Message\Service\Exchange\Tasks\WhatsappMetaSend\WhatsappMetaSendMappingStrategy},
+        // que es donde el mensaje de verdad sale. **Un solo sitio**, con el estado de ese
+        // momento. La cola ya es el mecanismo de aplazamiento; poner una segunda comprobación
+        // aquí sería preguntar lo mismo dos veces y en el momento equivocado una de ellas.
 
         // =========================================================================
         // 1. CONFIGURACIÓN BASE COMPARTIDA
@@ -223,10 +233,14 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
     /**
      * Sin teléfono no hay WhatsApp, y con el canal vetado tampoco.
      *
-     * ⚠️ El veto se comprueba AQUÍ además de en `createQueueEntity()`. No es redundante: el
-     * panel pregunta por esta vía para saber qué casillas ofrecer, y sin la comprobación
-     * ofrecería WhatsApp en un hilo que Meta ya rechazó — el operador escribiría, le diría
-     * «enviado» y el mensaje moriría en el encolador.
+     * ⚠️ **Que aquí se mire el veto y en `createQueueEntity()` no, no es una incoherencia.**
+     * Son dos preguntas distintas: ésta es «¿le ofrezco WhatsApp al operador AHORA?», y el
+     * ahora de una casilla del panel es el ahora de verdad. Sin la comprobación, el panel
+     * ofrecería WhatsApp en un hilo que Meta ya rechazó.
+     *
+     * Encolar es lo contrario: la fila corre en `$runAt`, que puede ser dentro de tres días, y
+     * ahí el estado de hoy no dice nada. Por eso el veto del ENVÍO vive en un solo sitio, la
+     * estrategia de mapeo, y no se repite al crear la fila.
      *
      * El asunto no entra: un teléfono alcanza a la persona, no a una de sus reservas.
      */

@@ -5349,6 +5349,60 @@ se fue es la anotación.
   consecutivos escribieron el mismo `dispatch_errors` con un segundo de diferencia. No corrompe
   —por eso la auditoría no lo marcaba— pero es el mismo mensaje despachado dos veces.
 
+### 13.5 quinquies El veto del canal se preguntaba tres días antes de tocar enviar (10/09/2026)
+
+Un huésped se alojó sin recibir la guía de llegada ni el aviso de check-out. La cronología:
+
+| cuándo | qué |
+|---|---|
+| 07/09 22:56 | Se materializan los dos mensajes. WhatsApp estaba bloqueado desde el panel |
+| 07/09 22:56 | `WhatsappMetaSendEnqueuer` lanza ⇒ los dos quedan en `failed` |
+| — | **El aviso de check-out estaba programado para el 10/09 a las 12:00**: se dio por muerto tres días antes |
+| 10/09 15:50 | Se desbloquea el canal. Los dos siguen en `failed`: nadie reintenta lo que ya se declaró perdido |
+
+#### La causa: la pregunta correcta en el momento equivocado
+
+`createQueueEntity()` **crea la fila de la cola**; el envío ocurre después, en `$runAt`. Preguntar
+ahí «¿está WhatsApp habilitado?» es contestar con el estado de hoy una pregunta que se resolverá
+el jueves. **La cola ya es el mecanismo de aplazamiento**; meterle un veto de estado al crearla lo
+anula.
+
+El veto se movió a `WhatsappMetaSendMappingStrategy`, que es donde el mensaje de verdad sale. El
+`RuntimeException` cae en el `catch` que ya existía y `parseResponse()` lo convierte en un
+`ItemResult` fallido: la fila cuenta lo que le pasó **hoy**, no una foto de hace tres días.
+
+⚠️ **El primer intento fue peor y se corrigió tras una objeción del dueño del producto.** Consistía
+en dejar el veto al encolar «sólo si el envío es inmediato» y añadir otro al enviar — dos sitios
+preguntando lo mismo con condiciones distintas. Eso no arregla el mecanismo, lo duplica. La
+justificación que le di («así el operador tiene respuesta inmediata») no se sostenía: el worker
+corre cada tres minutos y el estado de la cola ya se ve en el panel.
+
+#### Lo que NO es incoherencia
+
+`WhatsappMetaSendEnqueuer::disponiblePara()` **sí** mira el veto, y debe seguir haciéndolo: es otra
+pregunta —«¿le ofrezco la casilla de WhatsApp al operador AHORA?»— y el ahora de una casilla del
+panel es el ahora de verdad.
+
+#### Dónde está de verdad la masa, medida
+
+Este arreglo tapa un agujero real, pero conviene saber su tamaño. De las guías de llegada fallidas:
+
+| motivo | n |
+|---|---|
+| «No se pudo generar ninguna cola para los canales solicitados» | **69** |
+| Beds24 rechaza por reserva directa, y no quedaba otro canal | **25** |
+| No se pudo resolver el número de teléfono | **9** |
+| WhatsApp deshabilitado ← lo que arregla esta sección | **1** |
+
+⚠️ **Y una hipótesis que la reunión destapó y aún no está verificada:** en una reserva **directa**
+la guía tiene un único canal posible. Beds24 la rechaza por definición —no hay OTA a la que
+escribir— así que si WhatsApp no puede usarse no queda nada y el mensaje muere. El correo está
+declarado como identidad y no se usa de respaldo. Eso explicaría los 25 y los 9, y quizá parte de
+los 69.
+
+Antes de tocar nada ahí hay que confirmarlo: y sí, una reserva directa **sí** debe recibir la guía
+—la regla no filtra por origen y hay **31 directas que la recibieron**, 17 leídas y 14 enviadas—.
+
 ### 13.6 El turno seco: `turnoDirecto()`
 
 Las dos piezas nuevas necesitan algo que `conversar()` no daba: **una llamada sin herramientas
