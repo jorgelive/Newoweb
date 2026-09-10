@@ -1909,6 +1909,24 @@ anidado. `recomputeSingleEntityChangeSet()` es el mecanismo previsto, y ya se us
 ⚠️ `NUMERO_DE` es **espejo** de `ValidadorDeManifiesto::ESCANEO_DE`: si un día el DNI se
 valida contra otro escaneo, hay que tocar los dos.
 
+#### «Sin emitir» no se podía quitar (10/09/2026)
+
+🔥 **`emitido` sólo lo ponía el cargador de vuelos por JSON, y no había ninguna pantalla que lo
+tocara.** Es un estado que cambia solo con el tiempo —la aerolínea emite los billetes y ya está—,
+así que dejarlo únicamente en la carga significaba **volver a cargar el JSON entero para corregir un
+booleano**, o que la cabecera de Vuelos siguiera diciendo «3 sin emitir» para siempre.
+
+El campo ya estaba en `file:write`: se podía escribir por API y nadie lo hacía. Ahora hay un
+interruptor en el modal del subgrupo.
+
+⚠️ **Vive en el SUBGRUPO y no en el vuelo, y ésa es la razón de que cueste encontrarlo.** Lo
+que se emite son los billetes de una **reserva**, y una reserva cubre ida y vuelta: los dos vuelos
+de un mismo PNR se emiten juntos. Ponerlo en el vuelo obligaría a marcar dos veces lo mismo y
+permitiría estados imposibles —la ida emitida y la vuelta no, con el mismo billete.
+
+Por eso el interruptor sólo sale cuando el subgrupo es del eje aéreo: en una habitación no
+significa nada.
+
 #### «Sin foto» y «Observado» son dos trabajos distintos (10/09/2026)
 
 Dos chips en la fila de Documentos, y **la distinción importa más que los chips**:

@@ -275,7 +275,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      */
     const actualizarGrupo = async (
         iri: string,
-        payload: { tipo?: string; subeje?: string; clave?: string; nombre?: string | null; detalle?: string | null }
+        payload: { tipo?: string; subeje?: string; clave?: string; nombre?: string | null; detalle?: string | null; emitido?: boolean }
     ): Promise<boolean> => {
         error.value = null;
         try {

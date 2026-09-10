@@ -2383,7 +2383,7 @@ const modoGestionGrupos = ref(false);
  * las pertenencias de todos los que iban dentro. Corregirlo es un `PATCH` que la API ya ofrecía.
  */
 const grupoEditando = ref<string | null>(null);
-const grupoForm = ref({ tipo: '', subeje: '', clave: '', nombre: '', detalle: '' });
+const grupoForm = ref({ tipo: '', subeje: '', clave: '', nombre: '', detalle: '', emitido: true });
 const guardandoGrupo = ref(false);
 
 const editarGrupo = (g: ApiFileGrupo) => {
@@ -2395,6 +2395,7 @@ const editarGrupo = (g: ApiFileGrupo) => {
         clave: g.clave ?? '',
         nombre: g.nombre ?? '',
         detalle: g.detalle ?? '',
+        emitido: g.emitido !== false,
     };
 };
 
@@ -2410,6 +2411,7 @@ const guardarGrupo = async () => {
         // lo normaliza igual, pero `null` dice la intención.
         nombre: grupoForm.value.nombre || null,
         detalle: grupoForm.value.detalle || null,
+        emitido: grupoForm.value.emitido,
     });
     guardandoGrupo.value = false;
 
@@ -4809,6 +4811,26 @@ const eliminarDocumento = async (iri?: string) => {
             <textarea v-model="grupoForm.detalle" rows="3"
                       placeholder="* Ida DM6771 · LIM 18/09 03:00 → PUJ 09:19"
                       class="w-full border rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-500 placeholder:text-slate-300"></textarea>
+          </div>
+
+          <!-- 🔥 **«Sin emitir» sólo lo ponía el cargador de JSON, y no había forma de quitarlo.**
+               Es un estado que cambia solo con el tiempo —la aerolínea emite y ya está— así que
+               dejarlo únicamente en la carga significaba volver a cargar el JSON entero para
+               corregir un booleano, o que se quedara mintiendo para siempre.
+
+               ⚠️ Vive en el SUBGRUPO y no en el vuelo: lo que se emite son los billetes de una
+               reserva, y una reserva cubre ida y vuelta. Por eso el interruptor está aquí. -->
+          <div v-if="String(grupoForm.tipo) === EJE_AEREO" class="rounded-xl border border-slate-200 p-3">
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input v-model="grupoForm.emitido" type="checkbox" class="mt-0.5 w-4 h-4 accent-teal-600">
+              <span class="min-w-0">
+                <span class="block text-[11px] font-black text-slate-700 uppercase tracking-wide">Billetes emitidos</span>
+                <span class="block text-[10px] text-slate-400 leading-snug">
+                  Desmárcalo si la reserva está pagada y todavía sin billete. Es lo que cuenta el
+                  «sin emitir» de la cabecera de Vuelos.
+                </span>
+              </span>
+            </label>
           </div>
 
           <!-- ⚠️ Cambiar la clave RENOMBRA: las pertenencias apuntan al id, así que la gente se
