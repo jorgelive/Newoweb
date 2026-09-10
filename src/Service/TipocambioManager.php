@@ -17,6 +17,35 @@ class TipocambioManager
 {
     private const MONEDA_TARGET = MaestroMoneda::DB_ID_USD;
 
+    /**
+     * De dónde sale el tipo de cambio SUNAT.
+     *
+     * ⚠️ **Era `https://api.apis.net.pe/v1/tipo-cambio-sunat` y ese proveedor se mudó.**
+     * apis.net.pe migró a decolecta.com y de paso reestructuró las rutas; la vieja empezó a
+     * devolver 404 —con token y sin él— el 26/08/2026 y nadie se enteró hasta el 10/09, porque
+     * el respaldo de `findLastAvailableInDb()` seguía sirviendo la última cotización buena.
+     *
+     * El token también es nuevo: se saca en https://decolecta.com/profile y NO es el de
+     * apis.net.pe, que allí responde 401.
+     */
+    private const ENDPOINT = 'https://api.decolecta.com/v1/tipo-cambio/sunat';
+
+    /**
+     * Los nombres de los campos en la respuesta, que **también cambiaron**.
+     *
+     * ⚠️ Ésta es la mitad silenciosa de la migración y la que casi cuesta otra quincena a
+     * ciegas. Antes venía `{fecha, compra, venta}`; ahora
+     * `{date, buy_price, sell_price, base_currency, quote_currency}`. Si se hubiera cambiado
+     * sólo la URL, `parseResponse()` habría descartado **todas** las filas en su `isset()` y
+     * devuelto un array vacío: exactamente el mismo síntoma que el proveedor caído, con la API
+     * funcionando. Un error que se disfraza del error anterior es el peor de depurar.
+     *
+     * Van como constantes para que el día que vuelvan a cambiar se vea en un sitio y no en tres.
+     */
+    private const CAMPO_FECHA = 'date';
+    private const CAMPO_COMPRA = 'buy_price';
+    private const CAMPO_VENTA = 'sell_price';
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly HttpClientInterface $client,
@@ -87,9 +116,10 @@ class TipocambioManager
      */
     private function fetchExternalData(DateTime $fecha): array
     {
-        // Intento A: Mes completo
+        // Intento A: Mes completo. `month` va SIN cero delante —la API lo declara `integer`
+        // del 1 al 12— y por eso es `(int)` y no `format('m')`, que daría «09».
         $data = $this->callApi([
-            'month' => $fecha->format('m'),
+            'month' => (string) (int) $fecha->format('m'),
             'year'  => $fecha->format('Y'),
         ]);
 
@@ -97,11 +127,11 @@ class TipocambioManager
             return $this->parseResponse($data);
         }
 
-        $this->logger->warning('Consulta mensual SUNAT vacía. Intentando diaria.');
+        $this->logger->warning('Consulta mensual del tipo de cambio vacía. Intentando diaria.');
 
-        // Intento B: Día exacto
+        // Intento B: Día exacto. El parámetro es `date`, no `fecha`.
         $data = $this->callApi([
-            'fecha' => $fecha->format('Y-m-d')
+            'date' => $fecha->format('Y-m-d')
         ]);
 
         return $this->parseResponse($data);
@@ -111,7 +141,7 @@ class TipocambioManager
      * Llama a la API y devuelve SIEMPRE una lista de filas, venga una o vengan treinta.
      *
      * La API contesta de dos formas según se le pida un día o un mes: un objeto suelto
-     * (`{fecha, compra, venta}`) o una lista de esos objetos. Normalizar aquí es lo que le
+     * (`{date, buy_price, sell_price}`) o una lista de esos objetos. Normalizar aquí es lo que le
      * permite a `parseResponse()` recorrer sin preguntarse cuál de las dos le tocó.
      *
      * @param array<string, string> $queryParams
@@ -121,30 +151,45 @@ class TipocambioManager
     private function callApi(array $queryParams): array
     {
         try {
-            $response = $this->client->request('GET', 'https://api.apis.net.pe/v1/tipo-cambio-sunat', [
+            $response = $this->client->request('GET', self::ENDPOINT, [
                 'query' => $queryParams,
                 'headers' => [
                     'Authorization' => 'Bearer ' . $this->sunatApiToken,
-                    'Referer'       => 'https://apis.net.pe/tipo-de-cambio-sunat-api',
+                    'Content-Type'  => 'application/json',
                     'Accept'        => 'application/json',
                 ],
                 'timeout' => 8,
             ]);
 
-            if ($response->getStatusCode() === 200) {
+            $codigo = $response->getStatusCode();
+
+            if ($codigo === 200) {
                 $raw = $response->toArray();
 
-                if (isset($raw['fecha'])) {
+                if (isset($raw[self::CAMPO_FECHA])) {
                     return [$raw];
                 }
 
                 // Lo que no sea una fila se descarta aquí en vez de más adelante: `parseResponse()`
-                // ya lo ignoraba —un `isset($item['fecha'])` sobre un escalar es falso—, así que
-                // no cambia lo que entra, sólo dónde se decide.
+                // ya lo ignoraba —un `isset()` sobre un escalar es falso—, así que no cambia lo
+                // que entra, sólo dónde se decide.
                 return array_values(array_filter($raw, 'is_array'));
             }
+
+            // 🔴 **ESTO ES LO QUE FALTÓ QUINCE DÍAS.** El `catch` de abajo sólo ve excepciones de
+            // red; un 404 o un 401 son respuestas perfectamente válidas de HttpClient y salían de
+            // aquí como un `[]` mudo, indistinguible de «hoy no hay cotización». Con el respaldo
+            // sirviendo la última tasa buena, el proveedor pudo morirse sin que nadie lo notara:
+            // del 26/08 al 10/09/2026 se sellaron 49 cargos, 20 pagos y 18 fichas con la tasa del
+            // 26/08, y el único rastro era un WARNING de «consulta vacía» repetido 74 veces.
+            $this->logger->error(sprintf(
+                'API de tipo de cambio devolvió HTTP %d para %s. Se usará la última cotización '
+                . 'disponible, que puede estar desfasada.',
+                $codigo,
+                http_build_query($queryParams)
+            ));
         } catch (Exception $e) {
-            $this->logger->error('Error API SUNAT: ' . $e->getMessage());
+            $this->logger->error('Error API tipo de cambio: ' . $e->getMessage());
         }
 
         return [];
@@ -159,16 +204,16 @@ class TipocambioManager
     {
         $dtos = [];
         foreach ($lista as $item) {
-            if (!isset($item['fecha'], $item['compra'], $item['venta'])) {
+            if (!isset($item[self::CAMPO_FECHA], $item[self::CAMPO_COMPRA], $item[self::CAMPO_VENTA])) {
                 continue;
             }
-            $fechaStr = substr((string)$item['fecha'], 0, 10);
+            $fechaStr = substr((string) $item[self::CAMPO_FECHA], 0, 10);
 
             $dtos[$fechaStr] = new ExchangeRateDto(
                 new DateTimeImmutable($fechaStr), // El time vendrá 00:00:00 por defecto en immutable desde Y-m-d
-                (string) $item['compra'],
-                (string) $item['venta'],
-                (string) ($item['moneda'] ?? self::MONEDA_TARGET)
+                (string) $item[self::CAMPO_COMPRA],
+                (string) $item[self::CAMPO_VENTA],
+                (string) ($item['base_currency'] ?? self::MONEDA_TARGET)
             );
         }
         return $dtos;

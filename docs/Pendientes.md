@@ -1005,7 +1005,7 @@ dicho en el doc, porque la hipótesis es plausible y alguien la volverá a tener
 
 ---
 
-## El maestro de tipo de cambio lleva 15 días parado — 10/09/2026
+## ⏳ El maestro de tipo de cambio lleva 15 días parado — 10/09/2026 · CÓDIGO LISTO, FALTA LA LLAVE
 
 `maestro_tipocambio` termina el **26/08/2026**. Hoy es el 10/09. Verificado en producción con
 `php bin/console app:test-tipocambio 2026-09-10`:
@@ -1030,13 +1030,45 @@ No es una pérdida de dinero —el error de una tasa de hace dos semanas es de m
 justo el dato que existe para poder **reconstruir una cuenta a posteriori** y decirle a un huésped
 a cuánto se le cambió.
 
-### Dónde mirar
+### La causa: el proveedor se mudó
+
+`apis.net.pe` migró a **decolecta.com** y reestructuró las rutas. La vieja devuelve 404 **con
+token y sin él**, así que no era la cuenta ni la cuota.
+
+`TipocambioManager` ya apunta al destino nuevo:
+
+| | antes | ahora |
+|---|---|---|
+| URL | `api.apis.net.pe/v1/tipo-cambio-sunat` | `api.decolecta.com/v1/tipo-cambio/sunat` |
+| día | `?fecha=YYYY-MM-DD` | `?date=YYYY-MM-DD` |
+| mes | `?month=09` | `?month=9` (entero, sin cero) |
+| campos | `{fecha, compra, venta}` | `{date, buy_price, sell_price, base_currency}` |
+
+⚠️ **Los nombres de los campos son la mitad peligrosa.** Cambiar sólo la URL habría dejado
+`parseResponse()` descartando todas las filas en su `isset()` y devolviendo vacío: **el mismo
+síntoma exacto que el proveedor caído, con la API funcionando**. Lo cazaron los tests de
+`TipocambioManagerTest` antes de llegar a producción.
+
+### 🔑 Lo único que falta
+
+Crear la cuenta en **https://decolecta.com/profile** (1 000 peticiones/mes gratis; se gastan ~30)
+y poner la API key en `SUNAT_API_TOKEN`, **en el `.env.local` del servidor y en el local**.
+
+La variable conserva el nombre a propósito: renombrarla obligaría a añadirla a `.env.local` en el
+mismo despliegue, y una variable que falta en `.env.local.php` no rompe su servicio — rompe el
+**contenedor entero** en el siguiente `cache:clear` (CLAUDE.md, «Despliegue»).
+
+Sin llave, el sistema sigue exactamente como hoy: respaldo con la última cotización, ahora con un
+`error()` en el log en vez de en silencio.
+
+### Lo que sigue pendiente
 
 | Necesidad | Dónde |
 |---|---|
-| Por qué la consulta a SUNAT vuelve vacía | `TipocambioManager::fetchExternalData()` — intenta mes y luego día |
-| Que el maestro se llene solo | **no hay cron**: hoy se rellena sólo cuando alguien pide una fecha |
+| Que el maestro se llene solo | **no hay cron**: se rellena de rebote, cuando nace un cargo de madrugada. Un cron a media mañana lo dejaría en base antes de que nadie lo pida, y la llamada externa saldría de la ruta crítica de guardar un cobro |
+| Re-sellar lo ya escrito | 49 cargos, 20 pagos y 18 fichas del 27/08 al 10/09 llevan 3.350. `pms:finanzas:completar-tipo-cambio` sólo rellena los `null`, no corrige los sellados: haría falta un modo aparte |
 | Comprobar el estado | `php bin/console app:test-tipocambio <fecha>` |
+| El `TipocambioManager` de `src/Oweb/` | Sigue apuntando al proveedor muerto. Es legado en retirada y sólo lo usan los comprobantes viejos, así que **no se tocó**: duplicar el arreglo en código que se va a borrar. Si esos comprobantes siguen emitiéndose, hay que decidirlo |
 
 ⚠️ Y de paso: `pms:finanzas:completar-tipo-cambio` **sólo repasa cargos y pagos**, no fichas
 (`findBy(['tipoCambio' => null])` sobre `PmsCargoFinanciero` y `PmsPagoFinanciero`). Hoy hay 3
