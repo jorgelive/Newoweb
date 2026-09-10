@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use App\Cotizacion\Enum\ArchivoTipoEnum;
 use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
 use App\Entity\Maestro\MaestroPais;
 use App\Entity\Trait\IdTrait;
@@ -176,6 +177,20 @@ class CotizacionPasajeroIdentificacion
         $this->copiadaDelEscaneo = true;
 
         return $this;
+    }
+
+    /**
+     * Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+     * cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+     *
+     * ⚠️ **Se expone calculado para que el front NO reimplemente la pareja.** La pantalla necesita
+     * saber a quién le falta el escaneo, y deducirlo allí sería un cuarto sitio donde el mapeo
+     * escaneo↔número tiene que decir lo mismo. Aquí se lee un valor.
+     */
+    #[Groups(['file:item:read'])]
+    public function getTipoDeEscaneo(): ?string
+    {
+        return $this->tipo !== null ? ArchivoTipoEnum::paraValidar($this->tipo)?->value : null;
     }
 
     public function getEstadoValidacion(): ValidacionIdentificacionEnum { return $this->estadoValidacion; }

@@ -1909,6 +1909,31 @@ anidado. `recomputeSingleEntityChangeSet()` es el mecanismo previsto, y ya se us
 ⚠️ `NUMERO_DE` es **espejo** de `ValidadorDeManifiesto::ESCANEO_DE`: si un día el DNI se
 valida contra otro escaneo, hay que tocar los dos.
 
+#### «Sin foto» y «Observado» son dos trabajos distintos (10/09/2026)
+
+Dos chips en la fila de Documentos, y **la distinción importa más que los chips**:
+
+| | Qué significa | Quién lo resuelve |
+|---|---|---|
+| **Observado** | el escaneo no dice lo mismo que el manifiesto | quien corrige el manifiesto, mirando |
+| **Sin foto** | el número está tecleado y **nadie subió el escaneo** | quien **escribe** al pasajero |
+
+🔥 **Juntarlos habría mezclado dos trabajos que hacen personas distintas en momentos
+distintos.** «Sin foto» no es una validación pendiente: no hay nada que comprobar todavía. Son 44
+personas a las que hay que pedirles el documento, y ésa es una lista que se usa entera de una
+sentada.
+
+##### El mapeo escaneo↔número llegó a estar en tres sitios
+
+Para saber a quién le falta la foto hay que saber **qué escaneo respalda cada número**, y esa
+pareja estaba en `ValidadorDeManifiesto`, repetida en `EscaneoNuevoInvalidaVeredictoListener`, y a
+punto de deducirse a ojo en el front — un cuarto.
+
+⚠️ Son mapeos que **tienen que decir lo mismo o el sistema se contradice**: uno valida el DNI
+contra el anverso y otro cree que lo respalda otra cosa. Ahora la única definición es
+`ArchivoTipoEnum::respaldaA()` —con su inverso `paraValidar()`— y la identificación expone
+`tipoDeEscaneo` calculado, así que el front **lee un valor** en vez de reimplementar la regla.
+
 #### El filtro «Observado», junto a los de vencimiento (09/09/2026)
 
 Un chip más en la fila de **Documentos**, con su recuento: es lo que convierte los 30 observados en

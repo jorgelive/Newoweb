@@ -1465,6 +1465,7 @@ const porJerarquia = (a: ApiCotizacionFilepasajero, b: ApiCotizacionFilepasajero
 //
 // ⚠️ Cuatro estados distintos, y ninguno se puede leer como los otros:
 //   observado     → el escaneo no dice lo mismo que el manifiesto: alguien tiene que decidir
+//   sin foto      → tiene el número tecleado y NADIE ha subido el escaneo: hay que escribirle
 //   vencido       → hoy ya no sirve
 //   vence pronto  → sirve hoy y no el día del viaje, o no lo aceptan en frontera
 //   sin comprobar → NO es «vigente». No sabemos, y eso es exactamente lo que hay que mirar.
@@ -1488,11 +1489,27 @@ const estadoDocumentalDe = (pax: ApiCotizacionFilepasajero): Set<string> => {
     };
     const estados = new Set<string>();
 
+    const susEscaneos = new Set(
+        (file.value?.filearchivos ?? [])
+            .filter(a => claveDeRelacion(a.pasajero) === extractIdStr(pax.id ?? pax['@id']).toLowerCase())
+            .map(a => String(a.tipoArchivo)),
+    );
+
     for (const doc of pax.identificaciones ?? []) {
         // El veredicto del control va en la MISMA lista que los estados de vencimiento, y no en
         // un grupo aparte: quien mira estos filtros se pregunta «¿qué documentos me dan problema?»
         // y un documento observado es exactamente eso. Separarlos obligaría a mirar en dos sitios.
         if (doc.estadoValidacion === 'observado') { estados.add('observado'); }
+
+        // 🔥 **Falta la FOTO, que no es lo mismo que faltar la validación.** Tiene el número
+        // tecleado pero nadie ha subido el escaneo, así que no hay nada que comprobar — y sobre
+        // todo: es a quien hay que **escribirle**, no a quien hay que revisar. Mezclarlo con
+        // «observado» juntaría dos trabajos que hacen personas distintas en momentos distintos.
+        //
+        // ⚠️ `tipoDeEscaneo` lo calcula el backend: qué escaneo respalda este número. Deducirlo
+        // aquí sería un cuarto sitio donde esa pareja tiene que decir lo mismo.
+        const necesita = (doc as { tipoDeEscaneo?: string | null }).tipoDeEscaneo;
+        if (necesita && !susEscaneos.has(necesita)) { estados.add('sin_escaneo'); }
 
         const vence = doc.vencimiento ? doc.vencimiento.split('T')[0] : '';
         if (!vence) { estados.add('sin_fecha'); continue; }
@@ -1506,7 +1523,8 @@ const estadoDocumentalDe = (pax: ApiCotizacionFilepasajero): Set<string> => {
 const ETIQUETAS_DOCUMENTO: Record<string, { label: string; clase: string; punto: string }> = {
     // Primero, porque es la cola de trabajo: son los que esperan a que alguien decida algo. Los
     // otros tres describen el documento; éste describe lo que hay pendiente de hacer.
-    observado:  { label: 'Observado',     clase: 'bg-amber-100 text-amber-800 border-amber-300',  punto: 'bg-amber-600' },
+    observado:   { label: 'Observado',     clase: 'bg-amber-100 text-amber-800 border-amber-300',  punto: 'bg-amber-600' },
+    sin_escaneo: { label: 'Sin foto',      clase: 'bg-violet-100 text-violet-700 border-violet-300', punto: 'bg-violet-500' },
     vencido:    { label: 'Vencido',       clase: 'bg-red-100 text-red-700 border-red-200',       punto: 'bg-red-500' },
     pronto:     { label: 'Vence < 1 año', clase: 'bg-orange-100 text-orange-700 border-orange-200', punto: 'bg-orange-500' },
     sin_fecha:  { label: 'Sin comprobar', clase: 'bg-amber-100 text-amber-800 border-amber-200',  punto: 'bg-amber-500' },

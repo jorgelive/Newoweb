@@ -6,8 +6,6 @@ namespace App\Cotizacion\EventListener;
 
 use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\Entity\CotizacionPasajeroIdentificacion;
-use App\Cotizacion\Enum\ArchivoTipoEnum;
-use App\Enum\DocumentoTipoEnum;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Events;
@@ -32,12 +30,6 @@ use Doctrine\ORM\Events;
 #[AsDoctrineListener(event: Events::onFlush)]
 final readonly class EscaneoNuevoInvalidaVeredictoListener
 {
-    /** Qué número respalda cada escaneo. Espejo de `ValidadorDeManifiesto::ESCANEO_DE`. */
-    private const NUMERO_DE = [
-        ArchivoTipoEnum::DNI_ANVERSO->value => DocumentoTipoEnum::DNI,
-        ArchivoTipoEnum::PASAPORTE->value => DocumentoTipoEnum::PASAPORTE,
-    ];
-
     public function onFlush(OnFlushEventArgs $args): void
     {
         $em = $args->getObjectManager();
@@ -66,7 +58,7 @@ final readonly class EscaneoNuevoInvalidaVeredictoListener
      */
     private function veredictosQueCaducan(CotizacionFilearchivo $archivo, \Doctrine\ORM\UnitOfWork $uow): array
     {
-        $tipoNumero = self::NUMERO_DE[$archivo->getTipoArchivo()?->value] ?? null;
+        $tipoNumero = $archivo->getTipoArchivo()?->respaldaA();
         if ($tipoNumero === null) {
             return [];   // un boleto o un reverso no respalda ningún número
         }

@@ -31,19 +31,6 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 final readonly class ValidadorDeManifiesto
 {
-    /**
-     * Qué escaneo respalda qué número. Un DNI se comprueba contra el **anverso** —el reverso no
-     * lleva número— y un pasaporte contra el escaneo del pasaporte.
-     *
-     * ⚠️ `CE` y `CI` no tienen escaneo propio en el catálogo de tipos de archivo, así que **no se
-     * pueden validar**: se quedan en `NO_VALIDADO` y eso es correcto, no un fallo. Inventarles un
-     * archivo genérico haría que se cotejaran contra el documento de otra cosa.
-     */
-    private const ESCANEO_DE = [
-        DocumentoTipoEnum::DNI->value => ArchivoTipoEnum::DNI_ANVERSO,
-        DocumentoTipoEnum::PASAPORTE->value => ArchivoTipoEnum::PASAPORTE,
-    ];
-
     public function __construct(
         private EntityManagerInterface $em,
         private ValidadorDeDocumento $validador,
@@ -179,7 +166,7 @@ final readonly class ValidadorDeManifiesto
     /** El escaneo que respalda ese tipo de documento, si esa persona lo tiene subido. */
     private function escaneoDe(CotizacionFilepasajero $pasajero, DocumentoTipoEnum $tipo): ?CotizacionFilearchivo
     {
-        $buscado = self::ESCANEO_DE[$tipo->value] ?? null;
+        $buscado = ArchivoTipoEnum::paraValidar($tipo);
         if ($buscado === null) {
             return null;
         }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Enum;
 
+use App\Enum\DocumentoTipoEnum;
+
 /**
  * Qué clase de archivo es un adjunto del expediente.
  *
@@ -114,6 +116,38 @@ enum ArchivoTipoEnum: string
      *
      * La autorización notarial, igual: es un permiso, no una identidad.
      */
+    /**
+     * Qué NÚMERO del manifiesto respalda este escaneo, si respalda alguno.
+     *
+     * 🔥 **La única definición de la pareja escaneo↔número.** Llegó a estar en tres sitios —el
+     * validador, el listener que invalida veredictos y, en el front, deducida a ojo— y son mapeos
+     * que tienen que decir lo mismo o el sistema se contradice: uno valida el DNI contra el
+     * anverso y otro cree que lo respalda otra cosa.
+     *
+     * ⚠️ El reverso del DNI y la autorización **no respaldan ningún número**: no lo llevan. Eso no
+     * es una carencia del escaneo, es lo que son.
+     */
+    public function respaldaA(): ?DocumentoTipoEnum
+    {
+        return match ($this) {
+            self::DNI_ANVERSO => DocumentoTipoEnum::DNI,
+            self::PASAPORTE => DocumentoTipoEnum::PASAPORTE,
+            self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => null,
+        };
+    }
+
+    /** El camino inverso: qué escaneo hace falta para poder validar este número. */
+    public static function paraValidar(DocumentoTipoEnum $tipo): ?self
+    {
+        foreach (self::cases() as $caso) {
+            if ($caso->respaldaA() === $tipo) {
+                return $caso;
+            }
+        }
+
+        return null;
+    }
+
     public function esValidable(): bool
     {
         return match ($this) {

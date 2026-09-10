@@ -15414,11 +15414,21 @@ export interface components {
              * @example https://example.com/
              */
             readonly validadoCon?: string | null;
+            /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion-file.item.read": {
             /**
@@ -15449,6 +15459,11 @@ export interface components {
             /** Format: date-time */
             readonly validadoEn?: string | null;
             id?: string;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion-file.item.read_timestamp.read": {
             /**
@@ -15483,6 +15498,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion-file.read_file.item.read_timestamp.read": {
             /**
@@ -15517,6 +15537,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion-file.write": {
             /**
@@ -15613,11 +15638,21 @@ export interface components {
              * @example https://example.com/
              */
             readonly validadoCon?: string | null;
+            /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion.html-file.item.read": {
             /**
@@ -15648,6 +15683,11 @@ export interface components {
             /** Format: date-time */
             readonly validadoEn?: string | null;
             id?: string;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion.html-file.item.read_timestamp.read": {
             /**
@@ -15682,6 +15722,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion.html-file.read_file.item.read_timestamp.read": {
             /**
@@ -15716,6 +15761,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion.html-pax_file.read": {
             /**
@@ -15791,11 +15841,21 @@ export interface components {
              * @example https://example.com/
              */
             readonly validadoCon?: string | null;
+            /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion.jsonld-file.item.read": {
             /**
@@ -15826,6 +15886,11 @@ export interface components {
             /** Format: date-time */
             readonly validadoEn?: string | null;
             id?: string;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion.jsonld-file.item.read_timestamp.read": {
             /**
@@ -15860,6 +15925,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion.jsonld-file.read_file.item.read_timestamp.read": {
             /**
@@ -15894,6 +15964,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion.jsonld-pax_file.read": {
             /**
@@ -15969,11 +16044,21 @@ export interface components {
              * @example https://example.com/
              */
             readonly validadoCon?: string | null;
+            /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion.multipart-file.item.read": {
             /**
@@ -16004,6 +16089,11 @@ export interface components {
             /** Format: date-time */
             readonly validadoEn?: string | null;
             id?: string;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion.multipart-file.item.read_timestamp.read": {
             /**
@@ -16038,6 +16128,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion.multipart-file.read_file.item.read_timestamp.read": {
             /**
@@ -16072,6 +16167,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
+             *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
+             */
+            readonly tipoDeEscaneo?: string | null;
         };
         "CotizacionPasajeroIdentificacion.multipart-pax_file.read": {
             /**
