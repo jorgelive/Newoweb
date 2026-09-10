@@ -21,6 +21,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use InvalidArgumentException;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 use App\Message\Contract\MessageQueueItemInterface;
@@ -249,9 +250,27 @@ class Message
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $subjectExternal = null;
 
-    /** @var array<string, mixed> Bolsa abierta por canal: `whatsapp`, `beds24`, trazas de despacho… */
+    /**
+     * Bolsa abierta por canal: `whatsapp`, `beds24`, trazas de despacho…
+     *
+     * ⚠️ **NO se publica entera, y ésa es la corrección del 10/09/2026.** Llevaba
+     * `#[Groups(['message:read'])]` encima, así que cada página de mensajes mandaba al navegador
+     * el JSON completo — incluido el `_debug_trace` de auditoría, que había crecido hasta **45,5
+     * MB en 3 248 mensajes, el 97 % de la columna**.
+     *
+     * Medido en producción sobre una conversación de 80 mensajes: la respuesta de
+     * `/conversations/{id}/messages` pesaba **2,75 MB** contra una mediana de 58 KB, y el log de
+     * nginx enseñaba dónde se iba el tiempo — `req=7.894 up=0.347`: la aplicación contestaba en
+     * 347 ms y los otros **7,5 segundos eran transferir el JSON al navegador**. Con las otras
+     * llamadas del chat encima, abrir un hilo tardaba diez segundos.
+     *
+     * Lo publica ahora {@see self::getMetadataPublica()}, que manda **sólo las cuatro claves que
+     * el front lee**. El resto se queda en el servidor: no es que sea secreto, es que nadie lo
+     * mira y pesa cien veces más que el mensaje.
+     *
+     * @var array<string, mixed>
+     */
     #[ORM\Column(type: 'json')]
-    #[Groups(['message:read'])]
     private array $metadata = [];
 
     #[ORM\Column(length: 20, options: ['default' => self::DIRECTION_OUTGOING])]
@@ -522,6 +541,39 @@ class Message
     /** @return array<string, mixed> */
     public function getMetadata(): array { return array_merge(['beds24' => [], 'whatsappMeta' => []], $this->metadata); }
 
+    /**
+     * Lo único de `metadata` que sale por la API, y por qué es una lista cerrada.
+     *
+     * Estas cuatro claves son **exactamente** las que lee `util/src/views/ChatView.vue`: los
+     * acuses de cada canal (`sent_at`, `delivered_at`, `read_at`, `error_code`, `reactions`) y los
+     * avisos de despacho. Todo lo demás que se guarde ahí —payloads crudos de webhook, trazas,
+     * lo que venga— se queda en el servidor.
+     *
+     * ⚠️ **Es lista blanca y no lista negra a propósito.** Excluir `_debug_trace` habría arreglado
+     * el caso de hoy y dejado la puerta abierta al siguiente: cualquiera que guarde un payload
+     * nuevo en esta bolsa lo publicaría sin enterarse, y el síntoma tarda meses en salir porque
+     * empieza pesando kilobytes. Con lista blanca, publicar algo nuevo exige nombrarlo aquí.
+     *
+     * El nombre expuesto sigue siendo `metadata` (`SerializedName`) para no romper el front ni el
+     * esquema: cambia lo que va dentro, no cómo se llama.
+     *
+     * @return array<string, mixed>
+     */
+    #[Groups(['message:read'])]
+    #[SerializedName('metadata')]
+    public function getMetadataPublica(): array
+    {
+        $publicas = array_intersect_key(
+            $this->metadata,
+            array_flip(['beds24', 'whatsappMeta', 'dispatch_errors', 'dispatch_warnings'])
+        );
+
+        // `beds24` y `whatsappMeta` siempre presentes, como hacía `getMetadata()`: el front
+        // encadena `metadata?.beds24?.sent_at` y un `undefined` intermedio le da igual, pero
+        // mantener la forma evita que alguien tenga que averiguarlo.
+        return array_merge(['beds24' => [], 'whatsappMeta' => []], $publicas);
+    }
+
     /** @param array<string, mixed> $metadata */
     public function setMetadata(array $metadata): self
     {
@@ -534,7 +586,6 @@ class Message
         $meta = $this->metadata;
         $meta[$key] = $value;
         $this->metadata = $meta;
-        $this->appendDebugTrace('global', "set_$key", $value);
         return $this;
     }
 
@@ -589,7 +640,6 @@ class Message
         $meta['beds24'][$key] = $value;
 
         $this->metadata = $meta;
-        $this->appendDebugTrace('beds24', "set_$key", $value);
         return $this;
     }
 
@@ -621,7 +671,6 @@ class Message
         $meta['whatsappMeta'][$key] = $value;
 
         $this->metadata = $meta;
-        $this->appendDebugTrace('whatsappMeta', "set_$key", $value);
         return $this;
     }
 
@@ -775,33 +824,34 @@ class Message
     // =========================================================================
 
     /**
-     * HACK DE AUDITORÍA: Rastrea quién y cuándo modifica el JSON.
-     * Esto dejará una huella en el JSON de la base de datos para cazar sobre escrituras.
+     * ⚠️ **AQUÍ VIVÍA `appendDebugTrace()`, y se retiró el 10/09/2026.**
+     *
+     * Era un «HACK DE AUDITORÍA» —lo decía su propio docblock— puesto para cazar un bug real:
+     * dos procesos leían `metadata`, cada uno añadía su clave y el segundo pisaba la del primero.
+     * Apilaba en el JSON una entrada con `debug_backtrace()` **en cada escritura**, con el valor
+     * entero dentro.
+     *
+     * Se quitó porque el bug está cerrado y se comprobó, no se supuso. Repasando todas las
+     * escrituras de julio a septiembre contra el metadata final: **3 558 comprobadas, 0 cuyo
+     * rastro no sobreviva**. Las 899 escrituras concurrentes que quedan escriben el MISMO valor
+     * y las 124 «distintas» son progresión legítima (`resolved:false` → `resolved:true`).
+     *
+     * Y el precio de dejarlo puesto estaba medido: **45,5 MB en 3 248 mensajes, el 97 % de la
+     * columna**, y 3 479 entradas en el peor mensaje.
+     *
+     * ⚠️ **Al investigarlo se le atribuyó además un «Out of sort memory» de MySQL, y era falso.**
+     * Un `SELECT id, metadata … ORDER BY … LIMIT 30` sobre esta tabla muere con
+     * `sort_buffer_size` en 256 KB — pero **falla igual con el metadata ya purgado y sobre
+     * mensajes que nunca tuvieron traza**, y no falla si en vez de la columna JSON se pide
+     * `content_local`, que es TEXT. Es el ancho DECLARADO de la columna lo que MySQL reserva en
+     * el buffer, no lo que hay dentro. Un problema real y distinto, anterior a esto, que no se
+     * arregla borrando datos. Producción lo esquiva porque el paginador de Doctrine pide los ids
+     * primero y las entidades después.
+     *
+     * **Si el bug vuelve, no se resucita esto.** Un instrumento de diagnóstico que crece sin
+     * límite dentro del dato que vigila acaba costando más que el fallo: se acota por número de
+     * entradas, se guarda fuera de la fila, o se pone detrás de una variable de entorno.
      */
-    private function appendDebugTrace(string $channel, string $action, mixed $value): void
-    {
-        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
-
-        $callerClass = $trace[1]['class'] ?? 'Función global/Closure';
-        $callerMethod = $trace[1]['function'] ?? 'Unknown';
-
-        $meta = $this->metadata;
-        if (!isset($meta['_debug_trace'])) {
-            $meta['_debug_trace'] = [];
-        }
-
-        $meta['_debug_trace'][] = [
-            'timestamp' => new DateTimeImmutable()->format('Y-m-d H:i:s.v'),
-            'sapi'      => php_sapi_name(),
-            'pid'       => getmypid(),
-            'channel'   => $channel,
-            'action'    => $action,
-            'value'     => $value,
-            'caller'    => $callerClass . '::' . $callerMethod,
-        ];
-
-        $this->metadata = $meta;
-    }
 
     /**
      * Agrupa todas las colas físicas asociadas a este mensaje en una única colección agnóstica.

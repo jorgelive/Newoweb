@@ -5219,6 +5219,104 @@ trivial de conseguir borrando el bloque de fechas, y eso ya costó una cotizaci�
 Verificado también que sigue resolviendo fechas relativas: preguntado «del 8 al 10 de noviembre»
 el 10/09/2026, contesta `2026-11-08 a 2026-11-10`.
 
+### 13.5 quater Abrir un hilo tardaba 10 segundos, y era un hack de depuración (10/09/2026)
+
+Reportado como «algunas conversaciones tardan hasta 10 segundos en cargar». No era la base de
+datos, ni el servidor, ni el volumen de mensajes.
+
+#### Dónde estaba el tiempo
+
+El log de tiempos de nginx (`symfony_app_tiempos.log`) separa las dos mitades, y ahí se ve entero:
+
+```
+req=7.894   up=0.347      ← la aplicación contestó en 347 ms
+req=6.260   up=0.535
+req=5.936   up=0.349
+```
+
+`req` es el total de la petición; `up` lo que tardó PHP. **Los 7,5 segundos restantes eran
+transferir el JSON al navegador.** Con `/canales`, `/asuntos` y `/read` encima, diez segundos.
+
+> **La lección de método:** medir `up` antes que nada. Media jornada de perfilado de consultas
+> habría sido tiempo tirado — la aplicación nunca fue el problema.
+
+#### Por qué pesaba 2,75 MB
+
+| respuesta de `/conversations/{id}/messages` | |
+|---|---|
+| mediana | 58 KB |
+| las lentas | **2,75 MB** |
+
+Desglose de una conversación de 80 mensajes:
+
+| columna | peso |
+|---|---|
+| `metadata` | **2 377 KB** |
+| `content_local` | 7 KB |
+| `content_external` | 7 KB |
+
+El contenido real eran 14 KB. Todo lo demás era `metadata`, y dentro de ella `_debug_trace`: el
+rastro que `Message::appendDebugTrace()` apilaba **en cada escritura**, con `debug_backtrace()` y
+el valor entero dentro. En toda la tabla: **45,5 MB de 46,7, el 97 %**, sobre 3 248 mensajes, con
+3 479 entradas en el peor.
+
+Y `metadata` llevaba `#[Groups(['message:read'])]`, así que salía completo por la API. **El front
+nunca leyó `_debug_trace`.**
+
+#### Por qué se pudo quitar el hack
+
+Existía para cazar un bug real —dos procesos leían `metadata`, cada uno añadía su clave y el
+segundo pisaba la del primero—. Antes de retirarlo se comprobó si seguía ocurriendo, contra los
+datos:
+
+| comprobación | resultado |
+|---|---|
+| Escrituras jul–sep repasadas contra el metadata final | **3 558** |
+| Cuyo rastro NO sobrevive | **0** |
+| Escrituras concurrentes (<5 s, procesos distintos) con el mismo valor | 899 |
+| Con valor distinto | 124, y todas progresión legítima (`resolved:false` → `resolved:true`) |
+
+⚠️ **El primer filtro que probé era malo y daba 1 344 «sobreescrituras».** Contaba «dos PIDs
+distintos tocaron el mismo campo», pero un mensaje se escribe durante meses por crons distintos:
+eso es operación normal. La firma de una carrera es la **proximidad temporal**, no la identidad
+del proceso.
+
+#### El arreglo, en tres piezas
+
+1. **`metadata` sale de `message:read`.** Lo publica `getMetadataPublica()`, con `SerializedName`
+   para no cambiar el nombre, y devuelve **sólo** `beds24`, `whatsappMeta`, `dispatch_errors` y
+   `dispatch_warnings` — exactamente lo que lee `ChatView.vue`.
+
+   ⚠️ **Lista blanca, no lista negra.** Excluir `_debug_trace` habría arreglado este caso y dejado
+   la puerta abierta al siguiente: quien guarde mañana un payload en esa bolsa lo publicaría sin
+   enterarse, y el síntoma tarda meses en salir porque empieza pesando kilobytes.
+
+2. **`appendDebugTrace()` se retira**, con las tres llamadas que la usaban.
+
+3. **`app:message:purgar-traza`** limpia lo acumulado. Va por SQL y no por ORM a propósito, contra
+   la regla general del proyecto: por el ORM dispararía `postUpdate` de cada mensaje, y ahí vive
+   `MessageAutoResponderListener` — purgar habría podido **despertar al autorespondedor sobre
+   3 248 mensajes viejos**. Lleva `--dry-run` y `--respaldo`.
+
+Medido tras purgar la copia local: la columna pasa de **36,7 MB a 1,2 MB**, el metadata de una
+página de 30 mensajes de 2 377 KB a **4,7 KB**, y sobreviven `beds24` (2 811), `whatsappMeta`
+(2 619) e `inbound_intent` (2 120).
+
+#### ⚠️ Dos cosas que quedan, y una que creí y era falsa
+
+- **Lo falso:** atribuí a la traza un «Out of sort memory» de MySQL. **No era eso.** Un
+  `SELECT id, metadata … ORDER BY … LIMIT 30` falla con la tabla ya purgada y sobre mensajes que
+  nunca tuvieron traza, y no falla pidiendo `content_local` (TEXT). Es el ancho **declarado** de
+  la columna JSON lo que MySQL reserva en el `sort_buffer_size` de 256 KB. Problema real,
+  anterior, y que no se arregla borrando datos. Producción lo esquiva porque el paginador de
+  Doctrine pide ids primero.
+- **El N+1 de `message:read`:** serializa cuatro colecciones por mensaje
+  (`whatsappMetaSendQueues`, `emailSendQueues`, `beds24SendQueues`, `attachments`) — **120
+  consultas** por página de 30. Medido en 59 ms, así que hoy no duele.
+- **Trabajo duplicado en los workers:** 899 veces en ago-sep dos `messenger-worker` con PIDs
+  consecutivos escribieron el mismo `dispatch_errors` con un segundo de diferencia. No corrompe
+  —por eso la auditoría no lo marcaba— pero es el mismo mensaje despachado dos veces.
+
 ### 13.6 El turno seco: `turnoDirecto()`
 
 Las dos piezas nuevas necesitan algo que `conversar()` no daba: **una llamada sin herramientas

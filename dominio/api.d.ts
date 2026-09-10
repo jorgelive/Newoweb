@@ -19032,10 +19032,6 @@ export interface components {
             attachments?: components["schemas"]["MessageAttachment-message.read"][];
             contentLocal?: string | null;
             contentExternal?: string | null;
-            /** @description Bolsa abierta por canal: `whatsapp`, `beds24`, trazas de despacho… */
-            metadata?: {
-                [key: string]: string | null;
-            };
             /** @default outgoing */
             direction: string;
             /** @default pending */
@@ -19055,6 +19051,10 @@ export interface components {
             readonly effectiveDateTime?: string | null;
             /** @description Determina de forma robusta si este mensaje es una programación futura. */
             readonly scheduledForFuture?: boolean;
+            /** @description Lo único de `metadata` que sale por la API, y por qué es una lista cerrada. */
+            readonly metadata?: {
+                [key: string]: string | null;
+            };
         };
         /**
          * @description Entidad que representa un mensaje individual dentro de una conversación.
@@ -19114,10 +19114,6 @@ export interface components {
             attachments?: components["schemas"]["MessageAttachment.html-message.read"][];
             contentLocal?: string | null;
             contentExternal?: string | null;
-            /** @description Bolsa abierta por canal: `whatsapp`, `beds24`, trazas de despacho… */
-            metadata?: {
-                [key: string]: string | null;
-            };
             /** @default outgoing */
             direction: string;
             /** @default pending */
@@ -19137,6 +19133,10 @@ export interface components {
             readonly effectiveDateTime?: string | null;
             /** @description Determina de forma robusta si este mensaje es una programación futura. */
             readonly scheduledForFuture?: boolean;
+            /** @description Lo único de `metadata` que sale por la API, y por qué es una lista cerrada. */
+            readonly metadata?: {
+                [key: string]: string | null;
+            };
         };
         /**
          * @description Entidad que representa un mensaje individual dentro de una conversación.
@@ -19165,10 +19165,6 @@ export interface components {
             attachments?: components["schemas"]["MessageAttachment.jsonld-message.read"][];
             contentLocal?: string | null;
             contentExternal?: string | null;
-            /** @description Bolsa abierta por canal: `whatsapp`, `beds24`, trazas de despacho… */
-            metadata?: {
-                [key: string]: string | null;
-            };
             /** @default outgoing */
             direction: string;
             /** @default pending */
@@ -19188,6 +19184,10 @@ export interface components {
             readonly effectiveDateTime?: string | null;
             /** @description Determina de forma robusta si este mensaje es una programación futura. */
             readonly scheduledForFuture?: boolean;
+            /** @description Lo único de `metadata` que sale por la API, y por qué es una lista cerrada. */
+            readonly metadata?: {
+                [key: string]: string | null;
+            };
         };
         /**
          * @description Entidad que representa un mensaje individual dentro de una conversación.
@@ -19216,10 +19216,6 @@ export interface components {
             attachments?: components["schemas"]["MessageAttachment.multipart-message.read"][];
             contentLocal?: string | null;
             contentExternal?: string | null;
-            /** @description Bolsa abierta por canal: `whatsapp`, `beds24`, trazas de despacho… */
-            metadata?: {
-                [key: string]: string | null;
-            };
             /** @default outgoing */
             direction: string;
             /** @default pending */
@@ -19239,6 +19235,10 @@ export interface components {
             readonly effectiveDateTime?: string | null;
             /** @description Determina de forma robusta si este mensaje es una programación futura. */
             readonly scheduledForFuture?: boolean;
+            /** @description Lo único de `metadata` que sale por la API, y por qué es una lista cerrada. */
+            readonly metadata?: {
+                [key: string]: string | null;
+            };
         };
         "MessageAttachment-message.read": {
             fileName?: string | null;
