@@ -1089,3 +1089,100 @@ No es urgente: hoy hay 0 fichas a cero, y `cuadra()` no se deja engañar por una
 cifra del cuadre, que es la que el operador lee para decidir cuánto cobrar en la otra moneda.
 
 Un `#[Assert\Positive]` sobre el campo lo cierra.
+
+---
+
+## Cotizaciones se lleva 10× más tiempo de servidor que el chat entero — 10/09/2026
+
+Salió al medir el chat: con la mensajería ya arreglada, el ranking de tiempo de servidor por
+endpoint (día completo, `symfony_app_tiempos.log`) queda así:
+
+```
+ 333.3 s   263 llamadas   1.27 s media  /sales/client/cotizacion/cotizacion_file/5SRAJV/1
+ 186.7 s    40 llamadas   4.67 s media  /sales/cotizacion_files/{id}
+  48.5 s   437 llamadas   0.11 s media  /message/conversations/unread-summary
+```
+
+**520 segundos al día entre esos dos**; la mensajería entera no llega a 50. El perfil de ambos:
+
+| | |
+|---|---|
+| Respuesta media | **717 KB** (máximo **4,3 MB**) |
+| `req` media | 3,78 s |
+| `up` media | **1,69 s** (máximo 8,44 s) |
+
+⚠️ **Aquí es distinto a lo del chat**: allí `up` era 0,347 s y todo el tiempo era transferencia.
+Aquí `up` es 1,69 s, o sea que **la mitad del problema sí está en el servidor**. Hay que mirar
+las dos cosas.
+
+Y el primero de los dos es **la vista del cliente**: quien espera esos 1,27 s es el huésped
+mirando su cotización, no el operador.
+
+### Por dónde empezar
+
+La sospecha, por haberlo visto tres veces esta semana en mensajería, es el mismo patrón: **campos
+caros publicados «por si acaso» que nadie consume**. `Message::$metadata` (45 MB de traza),
+`MessageConversation::getMessages()` (1 191 IRIs por página) y en su día `getTotalMensajes()`.
+
+Pero **medir antes de tocar**: en cotizaciones `up` no es despreciable, así que puede ser otra
+cosa —N+1, snapshots JSON, el cálculo financiero— y la respuesta del chat no se puede extrapolar.
+El método que funcionó: leer `req` y `up` por separado en el log de nginx antes de perfilar nada.
+
+---
+
+## Un canal deshabilitado deja mensajes muertos, y desbloquear no los revive — 10/09/2026
+
+**El caso:** conversación de David Espejo (Giuliana), Casita 3, 09→15 sept, reserva **directa**.
+
+| cuándo | qué pasó |
+|---|---|
+| 07/09 22:56 | Se programan la guía de llegada (08/09 08:00) y el aviso de check-out (10/09 12:00) |
+| 07/09 22:56 | WhatsApp estaba deshabilitado a mano ⇒ las dos fallan al encolar |
+| 10/09 15:50 | El operador desmarca la casilla desde el panel |
+| ahora | Los dos mensajes siguen en `failed`. **Nadie los reintenta.** |
+
+El huésped **está alojado ahora mismo** y no recibió ni la guía de llegada ni el aviso de salida.
+
+### Lo que se ve y lo que es
+
+El panel enseña «Motivo: **Bloqueado a mano desde el panel**» junto a una casilla
+**desmarcada** — porque el texto es la foto del 07/09 guardada en `metadata.dispatch_errors`, y
+el estado actual es otro. El operador no tiene forma de saber que está leyendo historia.
+
+Comprobado: `msg_conversation.whatsapp_disabled = 0`, ninguna `msg_identidad` con `bloqueado = 1`.
+
+**Alcance:** 3 mensajes en 2 conversaciones (desde el 13/08/2026). Poco volumen, consecuencia
+alta: son avisos con fecha, y cuando se descubren ya no sirven.
+
+### Qué hace falta
+
+`MessageConversation::setWhatsappDisabled(false)` ya levanta el veto de las identidades — le falta
+el otro lado: **reencolar lo que murió por ese veto**. Y decidir el borde: un aviso de check-out
+de hace tres días no se manda, se descarta. Reintentar a ciegas es peor que no reintentar.
+
+---
+
+## 93 mensajes con icono rojo que no son un fallo — 10/09/2026
+
+En una reserva **directa**, Beds24 refusa el envío con:
+
+> `[Beds24] Operación denegada: No se permite enviar mensajes por la API de Beds24 a reservas
+> directas (Canal: directo).`
+
+Eso **no es un fallo: es la regla funcionando**. No hay OTA a la que escribir. Pero se anota en
+`metadata.dispatch_errors` y se pinta en rojo igual que un error de verdad.
+
+**Alcance: 93 mensajes en 25 conversaciones.**
+
+⚠️ **Y el problema no es la estética.** Entrenar a la gente a ignorar iconos rojos es exactamente
+cómo se pierde el rojo que sí importa — el caso de arriba, sin ir más lejos, se lee igual.
+
+### Ya está medio resuelto, y ahí está la pista
+
+`MessageDispatcher::anotarDesenlace()` documenta este mismo caso —«el primero salta siempre que
+Beds24 está vetado, o sea **en las reservas directas**»— y lo arregló **para los mensajes
+entrantes**, donde escribía `failed` sobre la pregunta del huésped. Los salientes se quedaron
+como estaban.
+
+La vía existe: `metadata.dispatch_warnings` está declarado y el front ya lo lee. Un veto de
+negocio previsible es un **aviso**, no un error.
