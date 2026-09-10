@@ -15,6 +15,8 @@ use App\Service\WebPushNotificationService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
 use Throwable;
+use App\Entity\User;
+use App\Entity\PushSubscription;
 
 /**
  * Arma y despacha la notificación push de una conversación con mensajes nuevos.
@@ -197,20 +199,38 @@ final readonly class NotificadorPushConversacion
             return $this->destinatarios();
         }
 
-        $tecnicos = $this->usuarios->findByRole(Roles::TECH_SUPPORT);
+        // ⚠️ **Tener el rol no es poder recibir.** Este aviso sale por PUSH WEB, así que lo que
+        // hace falta es un dispositivo suscrito — no el teléfono, que es lo que pide la OTRA
+        // guardia ({@see \App\Message\Service\Aviso\AvisoAlEquipoService}, que manda WhatsApp).
+        // El mismo rol puede estar bien configurado para una y roto para la otra.
+        //
+        // Y ese hueco es real, medido el 10/09/2026: el único candidato a la guardia técnica
+        // tenía teléfono y **cero dispositivos suscritos**, mientras que el superadmin tenía tres
+        // dispositivos y ningún teléfono. Filtrando sólo por rol, la lista NO habría quedado
+        // vacía —así que el respaldo de abajo no habría saltado—, `sendToUser()` habría escrito
+        // un `warning` y el aviso se habría perdido con todo el aspecto de haber salido.
+        // Encaminar a una guardia sin dispositivos es peor que no encaminar: parece que funciona.
+        $tecnicos = array_values(array_filter(
+            $this->usuarios->findByRole(Roles::TECH_SUPPORT),
+            fn (User $u): bool => $this->tieneDispositivo($u)
+        ));
 
         if ($tecnicos === []) {
             $this->logger->error(
-                '[PushConversacion] Nadie tiene ROLE_TECH_SUPPORT: el aviso técnico sale a la guardia de mensajería.',
+                '[PushConversacion] La guardia técnica no puede recibir: sin nadie con ROLE_TECH_SUPPORT y al menos un dispositivo suscrito. El aviso sale a la guardia de mensajería.',
                 ['rol' => Roles::TECH_SUPPORT]
             );
 
             return $this->destinatarios();
         }
 
-        // `array_values` porque `findByRole()` devuelve el resultado de Doctrine y la firma
-        // promete una lista: sin reindexar, PHPStan lo ve como `array`, no como `list`.
-        return array_values($tecnicos);
+        return $tecnicos;
+    }
+
+    /** ¿Tiene al menos un dispositivo al que empujar? Sin esto, el rol es decorativo. */
+    private function tieneDispositivo(User $usuario): bool
+    {
+        return $this->em->getRepository(PushSubscription::class)->count(['user' => $usuario]) > 0;
     }
 
     /**
