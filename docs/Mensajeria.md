@@ -6531,6 +6531,8 @@ arreglar** — ver el aviso al final de esta sección.
 | Que la plantilla del escalado empiece a salir de verdad | Meta + `app:whatsapp:sync-templates` | Está insertada como `PENDING`: hasta que Meta la apruebe, el encolador la rechaza |
 | Cambiar el NOMBRE de un marcador de una plantilla aprobada | Panel → Push a Meta → botón **«Borrar en Meta»**, y volver a subir 4 SEMANAS después | Meta no deja renombrarlos ni recrear antes del plazo. Lo borrado se marca `DELETED` aquí. Sólo si ese idioma no tiene tráfico |
 | **Subir una plantilla a Meta sin pasar por el panel** | `msg:meta:push <code> --idiomas=es,en` | Mismo servicio que el botón. El idioma es obligatorio (`--todos` a sabiendas): subir uno **reabre su revisión**. `--ver` no sube nada, sólo enseña qué idiomas hay y en qué estado |
+| **Ver qué le llega al huésped, sin enviarle nada** | `msg:plantilla:ver <code> <localizador>` | Hidrata contra una reserva REAL con el mismo `HidratadorDeMarcadores` del envío. `--canal=beds24\|link\|meta`, `--idioma` |
+| Cambiar cómo se sustituye un `{{ marcador }}` | `HidratadorDeMarcadores` | Existe con `null` → nada; ausente → se deja crudo. **Es `array_key_exists`, no `??`** — con `??` un huésped leyó «un pago por {{ importe_a_pagar }}» |
 | Mandar una plantilla con datos que NO están en el contexto | `Message::setVariablesPlantilla()` | Se fusionan pisando a las del resolver en `WhatsappMetaSendMappingStrategy` |
 | Cambiar cuándo un número «es» de una reserva | `PmsReservaRepository` | `findVivasByTelefono()` + `DIAS_GRACIA_TRAS_SALIDA` / `DIAS_ANTICIPACION` |
 | Cambiar qué estados dan derecho a consultar la propia reserva | `PmsEventoEstado` | `IDENTIFICAN_HUESPED` — **no** reutilizar `OCUPAN_UNIDAD`, ver su docblock |
@@ -7202,6 +7204,40 @@ en cada sitio. Estaba todo aquí y en ningún lado donde lo viera quien escribe 
 el error en el momento. Una ayuda desactualizada es peor que ninguna — la de
 `whatsapp_link_tmpl` decía «esta plantilla no se envía automáticamente» justo cuando pasó a ser el
 cuerpo principal.
+
+### 🔎 Ver el mensaje antes de mandarlo
+
+Hasta el 10/09/2026 la única forma de saber qué le llegaba al huésped era mandárselo. No es un
+detalle de comodidad: los cuerpos llevan `{{ bloque_pago }}`, `{{ medios_de_pago }}` y
+`{{ estancias }}`, que **no son campos** —son textos que redacta el dominio mirando la situación
+de cobro, la audiencia del huésped y los días que faltan—. Razonar sobre lo que «debería» salir
+es como se llega a conclusiones falsas sobre datos ciertos.
+
+```bash
+bin/console msg:plantilla:ver politicas_booking H6Q49C
+bin/console msg:plantilla:ver pago_texto H6Q49C --canal=link --idioma=en
+```
+
+Enseña el **cuerpo** hidratado y avisa si ese canal lleva la botonera encendida (los botones se
+añaden debajo al enviar). Un marcador que el resolver no conoce sale en rojo **y el comando
+falla**: llegaría crudo al huésped, y eso no es un aviso, es un fallo.
+
+#### `HidratadorDeMarcadores`, porque la regla estaba escrita tres veces
+
+La sustitución vivía copiada en `Beds24SendMappingStrategy`, `WhatsappMetaSendMappingStrategy` y
+`EmailSendMappingStrategy`: misma expresión regular, misma regla. Ahora está en
+`src/Message/Service/Formato/HidratadorDeMarcadores.php`, y la previsualización usa **el mismo
+servicio que el envío** — si el panel miente, es que el cable también.
+
+| La clave… | Qué sale | Por qué |
+|---|---|---|
+| existe con valor | el valor | lo esperado |
+| existe y vale `null` o `''` | **nada** | hay variables que valen vacío a propósito: `bloque_pago` cuando no hay nada que cobrar |
+| **no existe** | el marcador crudo | es un fallo de la plantilla y tiene que verse |
+
+⚠️ Beds24 ya está migrado. **Meta y correo siguen con su copia**: tienen matices propios —el
+correo apunta los marcadores sin resolver en `failedReason` de la cola— y se pliegan cuando se
+toquen, no antes de que `pago` esté aprobada.
 
 ### 🔥 Dentro de la ventana se mandaba el cuerpo de META, no el rico (01/09/2026)
 

@@ -12,6 +12,7 @@ use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
 use App\Message\Service\MessageDataResolverRegistry;
 use App\Message\Service\Formato\FormatoDeTexto;
+use App\Message\Service\Formato\HidratadorDeMarcadores;
 use Vich\UploaderBundle\Storage\StorageInterface;
 
 final readonly class Beds24SendMappingStrategy implements MappingStrategyInterface
@@ -19,7 +20,8 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
     public function __construct(
         private MessageDataResolverRegistry $resolverRegistry,
         private StorageInterface $vichStorage,
-        private FormatoDeTexto $formato
+        private FormatoDeTexto $formato,
+        private HidratadorDeMarcadores $hidratador
     ) {}
 
     /**
@@ -111,13 +113,10 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             $variables = $resolver !== null ? $resolver->getMessageVariables($asuntoId, $templateLang) : [];
 
             // 2. INTERPOLACIÓN DE VARIABLES (Soporta {{ var }} y {{var}})
-            if (!empty($variables) && str_contains($content, '{{')) {
-                $content = preg_replace_callback('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', function ($matches) use ($variables) {
-                    $key = trim($matches[1]);
-                    // Si la variable existe en nuestro resolver, la ponemos; si no, dejamos el tag original
-                    return array_key_exists($key, $variables) ? (string)$variables[$key] : $matches[0];
-                }, $content);
-            }
+            // La regla —existe con null se sustituye por nada, ausente se deja crudo— vive en
+            // HidratadorDeMarcadores, que es el mismo que usa la previsualización. Así lo que
+            // enseña el panel es lo que sale por el cable.
+            $content = $this->hidratador->hidratar($content, $variables);
 
             // 3. 🎯 RENDERIZADO OMNICANAL DE BOTONES (UX MEJORADO)
             // 🔥 VALIDACIÓN: Verificamos si el usuario bloqueó la generación de botones para Beds24
