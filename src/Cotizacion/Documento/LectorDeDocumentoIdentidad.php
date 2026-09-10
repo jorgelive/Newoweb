@@ -48,9 +48,10 @@ final readonly class LectorDeDocumentoIdentidad
 
         Fechas en formato AAAA-MM-DD. Países en ISO-3166 de tres letras. Sexo M o F.
 
-        En «rotacion», di cuántos grados hay que girar la imagen EN SENTIDO HORARIO para que el
-        texto quede derecho y se lea de izquierda a derecha: 0, 90, 180 o 270. Si ya está derecha,
-        0. Fíjate en la orientación del TEXTO, no en la forma de la foto.
+        En «bordeSuperior», di en qué lado de la IMAGEN cae la parte de ARRIBA del documento — la
+        cabecera, donde pone el país o el título. Responde sólo: arriba, derecha, abajo o
+        izquierda. Si el documento se ve derecho, es «arriba». Fíjate en el texto, no en la forma
+        de la foto.
         TXT;
 
     /** @var array<string, mixed> */
@@ -72,13 +73,16 @@ final readonly class LectorDeDocumentoIdentidad
             'vencimiento' => ['type' => 'string'],
             'mrzLinea1' => ['type' => 'string'],
             'mrzLinea2' => ['type' => 'string'],
-            // ⚠️ `integer` con `enum` no lo admite el esquema de Google: va como texto y se
-            // valida abajo. Un `enum` de números devuelve 400 sin decir cuál es el problema.
-            'rotacion' => ['type' => 'string', 'enum' => ['0', '90', '180', '270']],
+            // 🔥 **Se pregunta DÓNDE está la cabecera, no cuántos grados hay que girar.** La
+            // pregunta anterior —«cuántos grados en sentido horario»— obliga al modelo a razonar
+            // sobre una convención de giro, y ahí falla: **dos escaneos en la misma posición
+            // salían como 90 y 270**. Dónde cae un borde es una pregunta posicional, que es lo
+            // que un modelo de visión sí resuelve. Los grados los calcula {@see self::rotacion()}.
+            'bordeSuperior' => ['type' => 'string', 'enum' => ['arriba', 'derecha', 'abajo', 'izquierda']],
         ],
         // Todos requeridos y vacíos cuando no se lean: un campo AUSENTE y un campo VACÍO se
         // distinguen mal al leer el JSON, y la diferencia no aporta nada aquí.
-        'required' => ['tipo', 'numero', 'nombres', 'apellidos', 'paisEmisor', 'nacionalidad', 'sexo', 'nacimiento', 'vencimiento', 'mrzLinea1', 'mrzLinea2', 'rotacion'],
+        'required' => ['tipo', 'numero', 'nombres', 'apellidos', 'paisEmisor', 'nacionalidad', 'sexo', 'nacimiento', 'vencimiento', 'mrzLinea1', 'mrzLinea2', 'bordeSuperior'],
     ];
 
     public function __construct(private LectorDeImagenInterface $lector) {}
@@ -192,20 +196,28 @@ final readonly class LectorDeDocumentoIdentidad
     }
 
     /**
-     * Cuántos grados hay que girar la imagen para que se lea derecha.
+     * De «dónde cae la cabecera» a «cuántos grados hay que girar en sentido horario».
      *
-     * ⚠️ **Sólo los cuatro múltiplos rectos.** Un escaneo torcido 7° existe, pero corregirlo
-     * obliga a reinterpolar todos los píxeles y a rellenar las esquinas — se pierde nitidez justo
-     * donde hace falta, en la letra pequeña. Los rectos son una permutación de píxeles: no pierden
-     * nada. Cualquier otro valor se trata como 0.
+     * 🔥 **Esta conversión estaba en el modelo y por eso fallaba.** Se le preguntaba directamente
+     * por los grados y **dos escaneos en la misma posición contestaban 90 y 270**. Girar es una
+     * convención con dos sentidos posibles; dónde cae un borde es un hecho que se ve. Se le
+     * pregunta el hecho y la convención se aplica aquí, donde es una tabla de cuatro filas que no
+     * cambia de opinión.
+     *
+     * Girar la imagen en sentido horario lleva `arriba → derecha → abajo → izquierda → arriba`.
+     * Así que si la cabecera está a la **derecha**, hace falta el giro que la lleve de vuelta
+     * arriba: 270°, no 90°.
      *
      * @param array<string, mixed> $crudo
      */
     private function rotacion(array $crudo): int
     {
-        $grados = (int) $this->texto($crudo, 'rotacion');
-
-        return in_array($grados, [90, 180, 270], true) ? $grados : 0;
+        return match (strtolower($this->texto($crudo, 'bordeSuperior'))) {
+            'izquierda' => 90,
+            'abajo' => 180,
+            'derecha' => 270,
+            default => 0,   // «arriba», y también lo que no se reconozca: ante la duda, no girar
+        };
     }
 
     /**
