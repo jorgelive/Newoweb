@@ -1897,6 +1897,25 @@ Un campo aplicado al mostrar reintroduce ese fallo **con más consumidores que a
 el visor, la descarga del gate y **el propio lector de IA**, que leería la imagen cruda y volvería
 a fallar. Cualquiera que se olvide de aplicarlo la ve torcida, y ninguno da error.
 
+##### Girar limpia su propia sugerencia — y dos fallos que salieron al hacerlo
+
+Al enderezar un escaneo, el aviso «está girado 270°» tiene que desaparecer. Vive en el **veredicto
+de la identificación**, no en el archivo, así que no basta con tirar la lectura: hay que
+**recalcular el veredicto**. `GiradorDeEscaneo` revalida al dueño en el acto.
+
+⚠️ Sin eso, el documento queda derecho y la ficha sigue diciendo que está torcido — **peor que no
+avisar**, porque manda a girar otra vez uno que ya está bien, y cada giro cuesta calidad.
+
+🔥 **Y girar dejaba el documento inservible para siempre.** Usaba `registrarLectura(null)`, que
+vacía la lectura pero **deja `leidoEn` puesto** — y esa combinación significa «se intentó y falló»:
+`ValidadorDeDocumento::lecturaDe()` devuelve `null` para siempre y el documento se queda en
+`no_validado` sin que nada vuelva a mirarlo. **La única acción cuyo propósito es que se relea era
+justo la que impedía releerlo**, y no daba ningún error.
+
+Ahora hay `olvidarLectura()`, que devuelve el archivo a «nunca se ha leído» —los tres campos a
+`null`— y está separado de `registrarLectura()` precisamente para que no se confundan otra vez. El
+docblock de `registrarLectura()` lo dice.
+
 ##### Dónde aparece el flag
 
 Se detecta **al leer el documento** —en la misma llamada que saca los datos, sin coste extra— y

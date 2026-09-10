@@ -53,6 +53,7 @@ final readonly class GiradorDeEscaneo
     public function __construct(
         private EntityManagerInterface $em,
         private StorageInterface $almacen,
+        private ValidadorDeManifiesto $validador,
     ) {}
 
     public function girar(CotizacionFilearchivo $archivo, int $grados): void
@@ -84,15 +85,27 @@ final readonly class GiradorDeEscaneo
             throw new RuntimeException('No se pudo girar: ' . $e->getMessage(), 0, $e);
         }
 
-        // 🔑 **Se tira la lectura.** Un documento torcido casi siempre se leyó mal —es la razón de
-        // girarlo—, así que conservar esa lectura dejaría el veredicto apoyado en lo que se leyó
-        // del revés. Al quedar sin lectura, la siguiente tanda lo vuelve a leer ya derecho: cuesta
-        // ~$0,0016 y es exactamente lo que se quería conseguir girándolo.
-        $archivo->registrarLectura(null);
+        // 🔑 **Se OLVIDA la lectura, no se registra una vacía.** Un documento torcido casi siempre
+        // se leyó mal —es la razón de girarlo—, así que conservarla dejaría el veredicto apoyado
+        // en lo que se leyó del revés. Ver el aviso de `olvidarLectura()`: hacerlo con
+        // `registrarLectura(null)` dejaba el archivo marcado como ilegible **para siempre**.
+        $archivo->olvidarLectura();
         $archivo->setImageSize(filesize($ruta) ?: $archivo->getImageSize());
 
         // El `preUpdate` de `CotizacionFilearchivoCacheListener` limpia la caché de Liip, así que
         // las miniaturas se regeneran solas. Sin este flush seguirían enseñando la versión vieja.
         $this->em->flush();
+
+        // 🔑 **Y se revalida a su dueño en el acto**, que es lo que borra la sugerencia de giro.
+        // El aviso «el escaneo está girado 270°» vive en el VEREDICTO de la identificación, no en
+        // el archivo: sin recalcularlo, el documento queda derecho y la ficha sigue diciendo que
+        // está torcido — que es peor que no avisar, porque manda a girar otra vez uno que ya está
+        // bien, y cada giro cuesta calidad.
+        //
+        // Relee el documento ya enderezado (~$0,0016), que es justo lo que se buscaba al girarlo.
+        $dueno = $archivo->getPasajero();
+        if ($dueno !== null) {
+            $this->validador->validarPasajero($dueno);
+        }
     }
 }

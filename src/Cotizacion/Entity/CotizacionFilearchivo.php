@@ -182,7 +182,28 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
     public function seIntentoLeer(): bool { return $this->leidoEn !== null; }
 
     /**
+     * Devuelve el archivo a «nunca se ha leído», para que la siguiente tanda lo lea otra vez.
+     *
+     * 🔥 **No es `registrarLectura(null)`, y confundirlos costaba el documento entero.** Ése deja
+     * `leidoEn` puesto, que es lo que significa «se intentó y falló»: con la lectura vacía y la
+     * fecha puesta, `ValidadorDeDocumento::lecturaDe()` devuelve `null` **para siempre** y el
+     * documento se queda en `no_validado` sin que nada vuelva a mirarlo. Girar un escaneo lo
+     * dejaba así: la única acción cuyo propósito es que se relea era la que impedía releerlo.
+     */
+    public function olvidarLectura(): self
+    {
+        $this->datosLeidos = null;
+        $this->lecturaError = null;
+        $this->leidoEn = null;
+
+        return $this;
+    }
+
+    /**
      * La lectura y su fecha se escriben juntas, o se contradicen.
+     *
+     * ⚠️ Para **borrar** una lectura no vale pasar `null` aquí: eso deja la fecha puesta, que
+     * significa «se intentó y falló». Para eso está {@see self::olvidarLectura()}.
      *
      * @param array<string, mixed>|null $datos
      */
