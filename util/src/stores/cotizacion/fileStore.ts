@@ -764,6 +764,21 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
     };
 
     /**
+     * Lee un documento suelto con la IA. **Cuesta ~$0,0016 y ~3,5 s**, así que se pide de uno en
+     * uno y a propósito: la tanda del manifiesto nunca toca un archivo sin dueño.
+     */
+    const leerDocumentoSuelto = async (archivoId: string): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.post(`/cotizacion/user/documentos-sueltos/${archivoId}/leer`, {});
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo leer el documento.');
+            return false;
+        }
+    };
+
+    /**
      * Resuelve UNO: lo vincula a alguien o le crea la ficha.
      *
      * ⚠️ De uno en uno a propósito: un «resolver todos» aplicaría también las corazonadas por
@@ -894,6 +909,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         updateDocument,
         validarManifiesto,
         documentosSueltos,
+        leerDocumentoSuelto,
         resolverDocumento,
         girarDocumento,
         revalidarPasajero,

@@ -2192,6 +2192,28 @@ es del archivo —«¿de quién es esto?»— y no de la persona.
 escribe y puede **crear una persona**. Un endpoint que «hace lo que corresponda» es como se acaba
 creando gente por recargar una pantalla.
 
+##### Un documento sin dueño era un callejón sin salida
+
+🔥 **La tanda de validación nunca toca un archivo sin dueño.** Recorre `pasajeros →
+identificaciones → su escaneo` (`escaneoDe()` hace `findBy(['pasajero' => …])`), así que un
+huérfano no entra por ninguna parte. Y el panel sólo ofrece acciones sobre lo ya leído.
+
+Resultado: subías una foto sin asignar, el panel la listaba diciendo «pasa antes *Validar contra
+los escaneos*» — **y esa tanda no iba a leerla jamás**. La instrucción no es que no ayudara:
+mandaba a un sitio que no iba a hacer nada.
+
+Ahora cada suelto sin leer trae su botón **«Leer el documento»**, con lo que tarda escrito al lado.
+
+⚠️ **A petición y de uno en uno, no al abrir el panel.** Leer cuesta ~$0,0016 y ~3,5 s; con
+cincuenta sueltos, hacerlo al abrir serían cincuenta llamadas y tres minutos que nadie pidió.
+
+⚠️ El endpoint **hace `flush()`**: `lecturaDe()` deja la lectura puesta en la entidad pero no
+guarda —quien orquesta decide cuándo—, y sin ese flush la llamada a la IA se pagaría otra vez en la
+siguiente vuelta.
+
+⚠️ Al leer uno **se recarga la lista entera**: pueden aparecerle candidatos, y también cambiarles
+los candidatos a los demás si el número casa con alguien.
+
 ##### `candidatosPara()` devuelve TODOS, y ése fue el cambio
 
 La primera versión devolvía `null` ante dos personas con el mismo nombre — «no sé» dicho de la peor

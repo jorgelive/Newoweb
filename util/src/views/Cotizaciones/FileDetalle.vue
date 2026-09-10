@@ -2120,6 +2120,25 @@ const esImagen = (doc: ApiCotizacionFilearchivo): boolean => String(doc.tipoMedi
 const sueltos = ref<DocumentoSuelto[]>([]);
 const cargandoSueltos = ref(false);
 const resolviendo = ref<string | null>(null);
+const leyendo = ref<string | null>(null);
+
+/**
+ * Lee un documento suelto para poder resolverlo.
+ *
+ * ⚠️ **A petición y de uno en uno.** Leer cuesta ~$0,0016 y 3,5 s; con cincuenta sueltos, hacerlo
+ * al abrir el panel serían cincuenta llamadas y tres minutos que nadie pidió.
+ */
+const leerSuelto = async (doc: DocumentoSuelto) => {
+    leyendo.value = doc.id;
+    const ok = await fileStore.leerDocumentoSuelto(doc.id);
+    leyendo.value = null;
+
+    if (!ok) { alert(fileStore.error || 'No se pudo leer.'); return; }
+
+    // Se recarga la lista: al leerlo pueden aparecerle candidatos, y también cambiarle los
+    // candidatos a los demás si el número casa con alguien.
+    await cargarSueltos();
+};
 const panelSueltos = ref(false);
 
 const cargarSueltos = async () => {
@@ -5011,15 +5030,28 @@ const eliminarDocumento = async (iri?: string) => {
                        decide cuánto se puede confiar en lo que hay escrito arriba. -->
                   <span v-if="doc.documento.mrz" class="ml-1 text-emerald-600 font-bold"><i class="fas fa-shield-halved text-[8px]"></i> MRZ</span>
                 </p>
+                <!-- ⚠️ Aquí decía «pasa antes Validar contra los escaneos», y esa tanda **nunca
+                     toca un archivo sin dueño**: recorre personas → sus documentos. La
+                     instrucción mandaba a un sitio que no iba a hacer nada. -->
                 <p v-else class="text-[10px] text-slate-400 italic mt-0.5">
-                  todavía no se ha leído — pasa antes «Validar contra los escaneos»
+                  todavía no se ha leído
                 </p>
               </div>
               <a v-if="doc.url" :href="doc.url" target="_blank"
                  class="shrink-0 text-[10px] font-bold text-sky-600 hover:text-sky-700">ver <i class="fas fa-up-right-from-square text-[8px]"></i></a>
             </div>
 
-            <div v-if="doc.leido" class="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
+            <!-- Sin leer no hay a quién proponer: primero se lee, y se dice lo que cuesta. -->
+            <div v-if="!doc.leido" class="mt-3 pt-3 border-t border-slate-100">
+              <button type="button" :disabled="leyendo === doc.id" @click="leerSuelto(doc)"
+                      class="w-full px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-wider transition-colors">
+                <i class="fas mr-1" :class="leyendo === doc.id ? 'fa-spinner fa-spin' : 'fa-eye'"></i>
+                {{ leyendo === doc.id ? 'Leyendo…' : 'Leer el documento' }}
+              </button>
+              <p class="mt-1 text-center text-[9px] text-slate-400">unos 4 segundos · lo lee una sola vez</p>
+            </div>
+
+            <div v-else class="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
               <button v-for="c in doc.candidatos" :key="c.id" type="button"
                       :disabled="resolviendo === doc.id"
                       @click="resolverSuelto(doc, 'vincular', c.id)"

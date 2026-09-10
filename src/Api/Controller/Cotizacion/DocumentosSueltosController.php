@@ -165,6 +165,48 @@ final class DocumentosSueltosController extends AbstractController
     }
 
     /**
+     * Lee UN documento suelto y devuelve lo que dice, con sus candidatos.
+     *
+     * 🔥 **Sin esto, un documento sin dueño era un callejón sin salida.** La tanda de validación
+     * recorre `pasajeros → identificaciones → su escaneo`, así que **nunca toca un archivo sin
+     * dueño**; y el panel sólo ofrece acciones sobre lo ya leído. Resultado: subías una foto sin
+     * asignar, el panel la listaba diciendo «pasa antes Validar contra los escaneos» — y esa tanda
+     * no iba a leerla jamás. La instrucción no sólo no ayudaba: mandaba a un sitio equivocado.
+     *
+     * ⚠️ **De uno en uno y a petición**, no al abrir el panel. Leer cuesta ~$0,0016 y 3,5 s; con
+     * cincuenta sueltos, abrir el panel dispararía cincuenta llamadas y tres minutos de espera sin
+     * que nadie lo haya pedido.
+     */
+    #[Route(
+        '/cotizacion/user/documentos-sueltos/{id}/leer',
+        name: 'cotizacion_documento_suelto_leer',
+        requirements: ['id' => '[0-9a-fA-F-]{36}'],
+        methods: ['POST'],
+    )]
+    #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para leer documentos.')]
+    public function leer(
+        string $id,
+        EntityManagerInterface $em,
+        ValidadorDeDocumento $validador,
+    ): Response {
+        $archivo = $em->getRepository(CotizacionFilearchivo::class)->find(Uuid::fromString($id));
+        if ($archivo === null) {
+            return new JsonResponse(['error' => 'No encontré el documento.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $leido = $validador->lecturaDe($archivo);
+        // `lecturaDe()` deja la lectura puesta en la entidad pero NO guarda: quien orquesta decide
+        // cuándo. Aquí es ahora, o la llamada a la IA se pagaría otra vez en la siguiente vuelta.
+        $em->flush();
+
+        if ($leido === null) {
+            return new JsonResponse(['error' => $archivo->getLecturaError() ?? 'no se pudo leer'], Response::HTTP_CONFLICT);
+        }
+
+        return new JsonResponse(['leido' => true]);
+    }
+
+    /**
      * Resuelve UNO: lo vincula a alguien, o le crea la ficha.
      *
      * ⚠️ **De uno en uno a propósito.** Un «resolver todos» aplicaría también las corazonadas por
