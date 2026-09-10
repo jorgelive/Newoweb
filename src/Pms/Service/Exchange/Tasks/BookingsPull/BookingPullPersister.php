@@ -21,6 +21,7 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
 use Symfony\Contracts\Service\ResetInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Persister para PULL/Webhooks de Beds24.
@@ -58,6 +59,9 @@ final class BookingPullPersister implements ResetInterface
         private readonly PmsEventoCalendarioFactory $eventoFactory,
         private readonly PhoneSanitizer $phoneSanitizer,
         private readonly NombreSanitizer $nombreSanitizer,
+        // Sólo para dejar rastro de lo que se decide NO escribir: un `skipped` que no se explica
+        // es indistinguible de que el barrido no haya pasado por ahí.
+        private readonly LoggerInterface $logger,
     ) {}
 
     /**
@@ -122,6 +126,53 @@ final class BookingPullPersister implements ResetInterface
         $isLinkPrincipal = $existingLink
             ? $existingLink->isEsPrincipal()
             : ($booking->custom2 !== 'MIRROR');
+
+        // 🔥 **UN ESPEJO QUE NADIE RECLAMA NO ESTRENA NADA.** (10/09/2026)
+        //
+        // Un espejo lo creamos NOSOTROS por API para bloquear el listing gemelo, y su sitio es un
+        // link `es_principal = 0` colgando del evento de la estancia real. Si llega por el barrido
+        // y no hay link que lo reclame, el link se perdió (§6.3.b) — y eso es una inconsistencia,
+        // no una reserva nueva.
+        //
+        // Sin esta guarda, el `else` de `upsertEvento()` lo adoptaba como principal y le estrenaba
+        // evento, reserva y su propio par de links: **se le hacía un espejo al espejo**. Quedaron
+        // 33 reservas fantasma entre el 02/03 y el 28/07/2026 —«(M) Pintor Mario», «(M) Evento
+        // (Bloqueo)», «(M) Xiomi Directa»—, todas por pull y **ninguna por webhook**, que es
+        // coherente: un link espejo no tiene disparador que genere webhook.
+        //
+        // ⚠️ **`datosLocked` no las frenó y no era su trabajo.** Ese candado impide SOBRESCRIBIR
+        // campos que ya tienen dueño; no decide si nace una fila. Su término `$isPrincipal` sí
+        // habría frenado la escritura del nombre, pero nació el 02/04 (11 fantasmas son
+        // anteriores) y hasta el 30/07 preguntaba por un `custom2` que nuestros espejos aún no
+        // llevaban: la guarda no se saltó, se le mintió. Ahora la marca existe y se puede usar.
+        //
+        // ⚠️ **Sólo se abstiene de ESTRENAR.** Un espejo con su link sigue pasando de largo por
+        // aquí y refrescando su `lastSeenAt` más abajo, que es lo único que aporta su pull y lo
+        // que confirma que sigue vivo en Beds24.
+        //
+        // ⚠️ Y el `custom2` sólo lo llevan los espejos empujados desde el 30/07. Uno anterior que
+        // pierda su link entraría igual: su única señal es el `firstName: "(M) …"`, que es más
+        // débil —lo escribimos nosotros, pero nada impide que un huésped se llame así— y por eso
+        // no se usa para decidir, sino para avisar.
+        if (!$existingLink && $booking->custom2 === 'MIRROR') {
+            $this->logger->warning(
+                'Espejo huérfano en el pull: llegó un espejo que ningún link reclama. No se crea nada.',
+                [
+                    'beds24_book_id' => $bookingIdStr,
+                    'room_id'        => $booking->roomId,
+                    'llegada'        => $booking->arrival,
+                    'salida'         => $booking->departure,
+                    'nombre'         => $booking->firstName,
+                    'que_significa'  => 'El link es_principal=0 de la estancia real se perdió; hay que reponerlo.',
+                ]
+            );
+
+            return [
+                'status'  => 'skipped',
+                'action'  => 'ignored',
+                'message' => "Espejo huérfano (ID: $bookingIdStr): ningún link lo reclama. No se crea evento ni reserva.",
+            ];
+        }
 
         // 4. DETECCIÓN DE JERARQUÍA
         $masterIdReal = $this->resolveMasterIdReal($booking);

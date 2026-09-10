@@ -75,6 +75,30 @@ final class Roles
     public const CUSTOMER_SUPPORT   = 'ROLE_CUSTOMER_SUPPORT';
 
     /**
+     * Recibe las alertas de que el SISTEMA se contradice a sí mismo.
+     *
+     * ⚠️ **No es {@see self::CUSTOMER_SUPPORT} y confundirlos rompe las dos guardias.** La de
+     * atención al cliente existe porque un huésped se quedó esperando: quien la recibe abre el
+     * chat y le contesta, y el aviso sirve aunque no sepa nada del código. Ésta existe porque un
+     * dato dejó de cuadrar con otro —un espejo de Beds24 que ningún link reclama, un rollup que
+     * discrepa de su propio agregado—: no hay nadie esperando al otro lado, y lo que hay que
+     * hacer no se puede hacer desde el chat.
+     *
+     * Meterlas en el mismo rol tiene las dos formas de salir mal: la guardia de huéspedes
+     * recibiendo de madrugada un aviso sobre un `bookId` con el que no puede hacer nada, y las
+     * inconsistencias diluidas entre avisos de huéspedes hasta que alguien deja de mirarlas.
+     *
+     * Hoy sólo lo tiene Jorge. Es deliberado y no es el estado final: en cuanto haya alguien más
+     * que sepa reponer un link o releer un rollup, se le da — pero un rol con la lista vacía no
+     * avisa a nadie, y eso es peor que no tenerlo, porque parece que sí.
+     *
+     * ⚠️ Como todas las guardias, se filtra por la columna `user.roles` LITERAL
+     * ({@see \App\Repository\UserRepository::findByRole()}), no por la jerarquía de
+     * `security.yaml`: tenerlo sólo por herencia de `ROLE_SUPER_ADMIN` NO cuenta.
+     */
+    public const TECH_SUPPORT       = 'ROLE_TECH_SUPPORT';
+
+    /**
      * Rol SINTÉTICO del huésped. Ningún `User` lo tiene ni debe tenerlo: se lo asigna
      * `AgentActor::huesped()` a quien escribe por el chat sin ser del equipo.
      *
@@ -114,6 +138,9 @@ final class Roles
         $sistema = [
             '👑 Super Admin'           => self::SUPER_ADMIN,
             '🔧 Admin Sistema'         => self::ADMIN,
+            // Guardia TÉCNICA: recibe las alertas de inconsistencia del sistema. Va aquí y no en
+            // CAMPO —donde está la de atención al cliente— porque no es un puesto de terreno.
+            '🩺 Soporte técnico (recibe alertas)' => self::TECH_SUPPORT,
         ];
 
         $oficina = [

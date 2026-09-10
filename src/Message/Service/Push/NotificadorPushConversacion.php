@@ -99,7 +99,7 @@ final readonly class NotificadorPushConversacion
                 return;
             }
 
-            foreach ($this->destinatarios() as $usuario) {
+            foreach ($this->destinatariosDelFallo($esPorLaVentana) as $usuario) {
                 $this->push->sendToUser($usuario, [
                     'title' => $this->quienEscribio($mensaje) . ($conversacion->getGuestName() ?? 'el huésped'),
                     'body' => $this->motivoDe($mensaje) . ($esPorLaVentana
@@ -159,6 +159,58 @@ final readonly class NotificadorPushConversacion
         }
 
         return $elegibles;
+    }
+
+    /**
+     * A quién le sirve ESTE fallo, que no es siempre la misma persona.
+     *
+     * ── La frontera, que ya existía sin nombre ──────────────────────────────
+     * `avisarEnvioFallido()` recibía desde el principio un `$esPorLaVentana`, y esa bandera
+     * separa exactamente los dos mundos:
+     *
+     * | motivo | quién lo arregla | qué hace |
+     * |---|---|---|
+     * | Ventana de 24 h cerrada | una PERSONA del equipo | manda una plantilla y reabre |
+     * | Todo lo demás | quien toca el sistema | canal vetado, sin `bookId`, sin config… |
+     *
+     * El segundo grupo —«no se permite enviar a reservas directas por Beds24», «ningún canal
+     * disponible para este mensaje»— no se arregla desde el chat. Mandárselo a todo el que
+     * pueda LEER mensajes tiene las dos formas de salir mal: gente que no puede hacer nada
+     * recibiendo `bookId`s de madrugada, y el aviso que sí importa diluido entre los que no.
+     *
+     * ⚠️ **La guardia técnica se filtra LITERAL, la de mensajería por JERARQUÍA**, y la
+     * diferencia es deliberada. `MENSAJES_SHOW` es un permiso: heredarlo de `ROLE_ADMIN` cuenta,
+     * porque describe lo que puedes ver. `TECH_SUPPORT` es una guardia: dice a quién se le
+     * escribe al móvil, y eso no se hereda de ser administrador. Mismo criterio que
+     * {@see \App\Security\Roles::COBRADOR} y `CUSTOMER_SUPPORT`.
+     *
+     * ⚠️ **Si la guardia técnica está vacía, el aviso NO se pierde**: cae a la de mensajería y se
+     * registra como error. Un rol sin nadie detrás es un fallo de configuración, y callarlo aquí
+     * convertiría cada fallo técnico en un aviso que nadie recibe y nadie echa de menos — que es
+     * justo el silencio que este servicio existe para romper.
+     *
+     * @return list<\App\Entity\User>
+     */
+    private function destinatariosDelFallo(bool $esPorLaVentana): array
+    {
+        if ($esPorLaVentana) {
+            return $this->destinatarios();
+        }
+
+        $tecnicos = $this->usuarios->findByRole(Roles::TECH_SUPPORT);
+
+        if ($tecnicos === []) {
+            $this->logger->error(
+                '[PushConversacion] Nadie tiene ROLE_TECH_SUPPORT: el aviso técnico sale a la guardia de mensajería.',
+                ['rol' => Roles::TECH_SUPPORT]
+            );
+
+            return $this->destinatarios();
+        }
+
+        // `array_values` porque `findByRole()` devuelve el resultado de Doctrine y la firma
+        // promete una lista: sin reindexar, PHPStan lo ve como `array`, no como `list`.
+        return array_values($tecnicos);
     }
 
     /**
