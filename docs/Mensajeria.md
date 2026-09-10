@@ -6530,6 +6530,7 @@ arreglar** — ver el aviso al final de esta sección.
 | Cambiar el aviso de escalado **fuera** de la ventana de 24 h | plantilla `aviso_escalado_interno` | El cuerpo se edita en el panel; los parámetros los pone `EscalarAlEquipoSkill::variablesDelAviso()`. Si añades uno, tiene que llegar SIEMPRE con valor o el envío revienta |
 | Que la plantilla del escalado empiece a salir de verdad | Meta + `app:whatsapp:sync-templates` | Está insertada como `PENDING`: hasta que Meta la apruebe, el encolador la rechaza |
 | Cambiar el NOMBRE de un marcador de una plantilla aprobada | Panel → Push a Meta → botón **«Borrar en Meta»**, y volver a subir 4 SEMANAS después | Meta no deja renombrarlos ni recrear antes del plazo. Lo borrado se marca `DELETED` aquí. Sólo si ese idioma no tiene tráfico |
+| **Subir una plantilla a Meta sin pasar por el panel** | `msg:meta:push <code> --idiomas=es,en` | Mismo servicio que el botón. El idioma es obligatorio (`--todos` a sabiendas): subir uno **reabre su revisión**. `--ver` no sube nada, sólo enseña qué idiomas hay y en qué estado |
 | Mandar una plantilla con datos que NO están en el contexto | `Message::setVariablesPlantilla()` | Se fusionan pisando a las del resolver en `WhatsappMetaSendMappingStrategy` |
 | Cambiar cuándo un número «es» de una reserva | `PmsReservaRepository` | `findVivasByTelefono()` + `DIAS_GRACIA_TRAS_SALIDA` / `DIAS_ANTICIPACION` |
 | Cambiar qué estados dan derecho a consultar la propia reserva | `PmsEventoEstado` | `IDENTIFICAN_HUESPED` — **no** reutilizar `OCUPAN_UNIDAD`, ver su docblock |
@@ -7695,6 +7696,24 @@ Se unifica en **tú** porque las de usted son 2 de 8 y las de tú son 4, porque 
 3. **Los cuerpos de Beds24 y del enlace, cuando se quiera.** Son nuestros: `politicas_booking`
    entera y las reformulaciones de Beds24 no le piden permiso a nadie.
 4. **Las despedidas al final.** Son las de menos riesgo y las que menos cambian.
+
+### Con qué se suben
+
+Por el panel hay un botón por plantilla; para una tanda está el comando, que llama al **mismo**
+`WhatsappMetaTemplatePushService`:
+
+```bash
+bin/console msg:meta:push pago --ver              # qué idiomas hay y en qué estado
+bin/console msg:meta:push pago --idiomas=es,en    # sube sólo esos dos
+```
+
+**El idioma no tiene valor por omisión, y es deliberado.** Subir un idioma reabre su revisión en
+Meta: mandar los siete porque uno fue rechazado devuelve a `PENDING` seis que ya estaban
+aprobadas, y hasta que Meta las mire otra vez no salen fuera de la ventana de 24 h. Para subirlos
+todos hay que pedirlo (`--todos`).
+
+Lo que el comando **no** hace es dar por aprobado nada: el estado real lo trae
+`app:whatsapp:sync-templates` a las 03:15, y hasta entonces `is_official_meta` sigue en `false`.
 
 ⚠️ **Cada reformulación de un cuerpo de Meta es una rotación completa** —crear `x_v2`, repuntar,
 borrar— con el bloqueo de 30 días detrás. Conviene mandarlas **en una sola tanda**, no de una en
