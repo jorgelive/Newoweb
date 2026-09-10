@@ -1005,7 +1005,7 @@ dicho en el doc, porque la hipótesis es plausible y alguien la volverá a tener
 
 ---
 
-## ⏳ El maestro de tipo de cambio lleva 15 días parado — 10/09/2026 · CÓDIGO LISTO, FALTA LA LLAVE
+## ✅ CERRADO (10/09/2026): el maestro de tipo de cambio llevaba 15 días parado
 
 `maestro_tipocambio` termina el **26/08/2026**. Hoy es el 10/09. Verificado en producción con
 `php bin/console app:test-tipocambio 2026-09-10`:
@@ -1049,23 +1049,21 @@ token y sin él**, así que no era la cuenta ni la cuota.
 síntoma exacto que el proveedor caído, con la API funcionando**. Lo cazaron los tests de
 `TipocambioManagerTest` antes de llegar a producción.
 
-### 🔑 Lo único que falta
+### Resuelto el mismo día
 
-Crear la cuenta en **https://decolecta.com/profile** (1 000 peticiones/mes gratis; se gastan ~30)
-y poner la API key en `SUNAT_API_TOKEN`, **en el `.env.local` del servidor y en el local**.
+Llave nueva de decolecta instalada en los dos `.env.local` (y `composer dump-env prod` en el
+servidor, sin lo cual no habría servido de nada: producción arranca de `.env.local.php`). El
+maestro pasó de **116 filas / 26-08** a **131 filas / 10-09**, con el hueco del 27 al 31 de agosto
+tapado — `persistMonthData()` sólo rellena el mes de la fecha que se le pide, así que agosto
+necesitó su propia llamada.
 
-La variable conserva el nombre a propósito: renombrarla obligaría a añadirla a `.env.local` en el
-mismo despliegue, y una variable que falta en `.env.local.php` no rompe su servicio — rompe el
-**contenedor entero** en el siguiente `cache:clear` (CLAUDE.md, «Despliegue»).
+Y el cron que nunca existió: `app:pms:tipo-cambio:sincronizar`, 08:00 de Lima, que **falla y avisa**
+si el maestro se queda atrás. El detalle en `docs/PmsBeds24ReservasSync.md` §12.18.
 
-Sin llave, el sistema sigue exactamente como hoy: respaldo con la última cotización, ahora con un
-`error()` en el log en vez de en silencio.
-
-### Lo que sigue pendiente
+### Lo que SÍ sigue pendiente
 
 | Necesidad | Dónde |
 |---|---|
-| Que el maestro se llene solo | **no hay cron**: se rellena de rebote, cuando nace un cargo de madrugada. Un cron a media mañana lo dejaría en base antes de que nadie lo pida, y la llamada externa saldría de la ruta crítica de guardar un cobro |
 | Re-sellar lo ya escrito | 49 cargos, 20 pagos y 18 fichas del 27/08 al 10/09 llevan 3.350. `pms:finanzas:completar-tipo-cambio` sólo rellena los `null`, no corrige los sellados: haría falta un modo aparte |
 | Comprobar el estado | `php bin/console app:test-tipocambio <fecha>` |
 | El `TipocambioManager` de `src/Oweb/` | Sigue apuntando al proveedor muerto. Es legado en retirada y sólo lo usan los comprobantes viejos, así que **no se tocó**: duplicar el arreglo en código que se va a borrar. Si esos comprobantes siguen emitiéndose, hay que decidirlo |

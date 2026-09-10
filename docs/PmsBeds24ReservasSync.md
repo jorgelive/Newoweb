@@ -5543,6 +5543,78 @@ su API.
 ya es un `?` indistinguible de un signo de interrogación escrito por la persona. No hay forma de
 saber cuál era el emoji ni de detectar con fiabilidad cuáles lo fueron.
 
+## 12.18 El tipo de cambio se sincronizaba de rebote, y el proveedor se murió (10/09/2026)
+
+Nadie sincronizaba el maestro de tipo de cambio. Se llenaba **de rebote**: cuando nacía un cargo,
+`PmsTipoCambioSnapshotListener` pedía la tasa del día, `TipocambioManager` no la encontraba en
+base, la traía de la API y de paso persistía el mes entero. Funcionó meses — una fila por día,
+escrita a las 00:23, a las 04:13, a la hora que entrara una reserva.
+
+Y falló de la única forma que no se ve.
+
+### La cadena completa
+
+1. **El proveedor se mudó.** `apis.net.pe` migró a **decolecta.com** y reestructuró las rutas. La
+   nuestra empezó a devolver `404` el 26/08/2026, con token y sin él.
+2. **El 404 no era una excepción.** `HttpClient` sólo lanza ante fallos de red; un 404 es una
+   respuesta perfectamente válida, así que el `catch` de `callApi()` no lo veía y el método
+   devolvía `[]` — **indistinguible de «hoy no hay cotización»**.
+3. **El respaldo hizo su trabajo.** `findLastAvailableInDb()` tiene doble red —la última `<= fecha`
+   y, si no, la última que haya— así que siguió sirviendo la cotización del 26/08 sin protestar.
+4. **Todo lo demás siguió normal.** Del 27/08 al 10/09 se sellaron **49 cargos, 20 pagos y 18
+   fichas** con la tasa del 26/08. El único rastro: un `WARNING` de «consulta mensual vacía»
+   repetido **74 veces** en `info.log`, entre el ruido del resto.
+
+> **La lección:** el respaldo funcionó tan bien que tapó que la fuente estaba muerta. Un fallback
+> silencioso convierte una caída en una deriva, y una deriva no se descubre — se hereda.
+
+### Lo que cambió en el cliente
+
+| | antes | ahora |
+|---|---|---|
+| URL | `api.apis.net.pe/v1/tipo-cambio-sunat` | `api.decolecta.com/v1/tipo-cambio/sunat` |
+| día | `?fecha=YYYY-MM-DD` | `?date=YYYY-MM-DD` |
+| mes | `?month=09` | `?month=9` — entero, sin cero delante |
+| respuesta | `{fecha, compra, venta}` | `{date, buy_price, sell_price, base_currency}` |
+
+⚠️ **Los nombres de los campos son la mitad peligrosa de esta migración.** Cambiar sólo la URL
+habría dejado `parseResponse()` descartando **todas** las filas en su `isset()` y devolviendo
+vacío: el mismo síntoma exacto que el proveedor caído, con la API funcionando. Un fallo disfrazado
+del fallo anterior es el peor de diagnosticar. Lo cazaron los tests de `TipocambioManagerTest`,
+que existían justo para eso.
+
+Van como constantes (`CAMPO_FECHA`, `CAMPO_COMPRA`, `CAMPO_VENTA`) para que el próximo cambio se
+vea en un sitio y no en tres.
+
+### El cron, que es lo que faltaba de verdad
+
+`app:pms:tipo-cambio:sincronizar`, todos los días a las **08:00 de Lima** (13:40 UTC — el servidor
+va en UTC).
+
+**Traer el dato ya lo hacía el rebote. Lo que faltaba era notar la ausencia**, así que el comando
+termina en `FAILURE` y manda un push a quien tenga `OPERACIONES_SHOW` cuando el maestro pasa de
+**2 días** de retraso. Los dos canales a propósito: el código de salida es lo que hace que el cron
+lo mande por correo, el push es lo que hace que alguien de operaciones se entere el mismo día.
+
+⚠️ **El umbral no es 1, y no es pereza.** SUNAT publica todos los días —fines de semana incluidos,
+repitiendo el último día hábil— pero la cotización del día en curso tarda unas horas en salir. Con
+umbral 1, un cron madrugador sonaría cada mañana y en un mes nadie lo miraría. Con 2, un aviso es
+siempre un problema real.
+
+⚠️ **El respaldo se queda.** No se toca `findLastAvailableInDb()`: que un cobro no se pueda anotar
+porque SUNAT no responde sería peor que sellarlo con la tasa de ayer. Lo que se añade es alguien
+que mire.
+
+La zona horaria se fija a `America/Lima` dentro del comando, no se hereda del servidor: en UTC, a
+partir de las 19:00 de Lima «hoy» ya es mañana y se pediría una cotización que aún no existe.
+
+### Lo que sigue pendiente
+
+Los **49 cargos, 20 pagos y 18 fichas** sellados con la tasa del 26/08 siguen así.
+`pms:finanzas:completar-tipo-cambio` sólo rellena los `null`, no corrige los ya sellados — haría
+falta un modo aparte, y decidir si se re-sella un hecho histórico o se deja constancia de que fue
+estimado. Anotado en `docs/Pendientes.md`.
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
