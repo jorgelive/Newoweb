@@ -81,19 +81,8 @@ final readonly class GiradorDeEscaneo
             return null;
         }
 
-        $faltaban = match (strtolower(is_string($leido['bordeSuperior'] ?? null) ? $leido['bordeSuperior'] : '')) {
-            'izquierda' => 90,
-            'abajo' => 180,
-            'derecha' => 270,
-            default => 0,
-        };
-
-        $leido['bordeSuperior'] = match ((($faltaban - $grados) % 360 + 360) % 360) {
-            90 => 'izquierda',
-            180 => 'abajo',
-            270 => 'derecha',
-            default => 'arriba',
-        };
+        $faltaban = Orientacion::grados(is_string($leido['bordeSuperior'] ?? null) ? $leido['bordeSuperior'] : null);
+        $leido['bordeSuperior'] = Orientacion::borde($faltaban - $grados);
 
         return $leido;
     }

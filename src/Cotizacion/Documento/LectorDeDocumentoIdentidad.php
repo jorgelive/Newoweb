@@ -210,28 +210,16 @@ final readonly class LectorDeDocumentoIdentidad
     }
 
     /**
-     * De «dónde cae la cabecera» a «cuántos grados hay que girar en sentido horario».
+     * Los grados que faltan, según dónde cayó la cabecera.
      *
-     * 🔥 **Esta conversión estaba en el modelo y por eso fallaba.** Se le preguntaba directamente
-     * por los grados y **dos escaneos en la misma posición contestaban 90 y 270**. Girar es una
-     * convención con dos sentidos posibles; dónde cae un borde es un hecho que se ve. Se le
-     * pregunta el hecho y la convención se aplica aquí, donde es una tabla de cuatro filas que no
-     * cambia de opinión.
-     *
-     * Girar la imagen en sentido horario lleva `arriba → derecha → abajo → izquierda → arriba`.
-     * Así que si la cabecera está a la **derecha**, hace falta el giro que la lleve de vuelta
-     * arriba: 270°, no 90°.
+     * ⚠️ El mapeo vive en {@see Orientacion} y **sólo ahí**: llegó a estar repetido aquí y en el
+     * girador, y el front leía una clave que ya no existía.
      *
      * @param array<string, mixed> $crudo
      */
     private function rotacion(array $crudo): int
     {
-        return match (strtolower($this->texto($crudo, 'bordeSuperior'))) {
-            'izquierda' => 90,
-            'abajo' => 180,
-            'derecha' => 270,
-            default => 0,   // «arriba», y también lo que no se reconozca: ante la duda, no girar
-        };
+        return Orientacion::grados($this->texto($crudo, 'bordeSuperior'));
     }
 
     /**

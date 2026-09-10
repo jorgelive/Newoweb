@@ -2044,7 +2044,12 @@ const revalidarPax = async (pax: ApiCotizacionFilepasajero) => {
  * datos. Es lo que precarga el botón — así el caso normal es un clic y no adivinar el sentido.
  */
 const giroSugerido = (doc: ApiCotizacionFilearchivo): number => {
-    const grados = Number(leidoDe(doc)?.rotacion ?? 0);
+    // ⚠️ **Del campo calculado por el backend, NO de `datosLeidos`.** Esto leía
+    // `datosLeidos.rotacion`, una clave que el modelo dejó de devolver al cambiarle la pregunta:
+    // 211 de 211 lecturas traían `bordeSuperior` y ninguna `rotacion`, así que toda la interfaz de
+    // giro estaba invisible **sin dar un solo error**. El mapeo vive en PHP (`Orientacion`) y aquí
+    // se lee un número: un espejo en TypeScript se volvería a desincronizar.
+    const grados = Number((doc as { rotacionPendiente?: number }).rotacionPendiente ?? 0);
 
     return [90, 180, 270].includes(grados) ? grados : 0;
 };
@@ -2070,8 +2075,9 @@ const girarDoc = async (doc: ApiCotizacionFilearchivo, grados: number) => {
     //
     // Se parchea en sitio lo único que cambió: la marca de tiempo —que rompe la caché de la
     // imagen— y la orientación, que quita el aviso.
-    const editable = doc as { updatedAt?: string; datosLeidos?: Record<string, unknown> | null };
+    const editable = doc as { updatedAt?: string; rotacionPendiente?: number; datosLeidos?: Record<string, unknown> | null };
     editable.updatedAt = String(respuesta.actualizado ?? Date.now());
+    editable.rotacionPendiente = respuesta.rotacionPendiente ?? 0;
     if (editable.datosLeidos) editable.datosLeidos.bordeSuperior = respuesta.bordeSuperior;
 };
 

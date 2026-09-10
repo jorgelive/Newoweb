@@ -808,13 +808,13 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
     const girarDocumento = async (
         archivoId: string,
         grados: number,
-    ): Promise<{ actualizado?: string; bordeSuperior?: string } | null> => {
+    ): Promise<{ actualizado?: string; bordeSuperior?: string; rotacionPendiente?: number } | null> => {
         error.value = null;
         try {
             const { data } = await apiClient.post(`/cotizacion/user/documentos-sueltos/${archivoId}/girar`, { grados });
             // Devuelve lo justo para parchear la pantalla en sitio: recargar el expediente entero
             // por un fichero costaba 16 de los 20 segundos que tardaba un giro.
-            return data as { actualizado?: string; bordeSuperior?: string };
+            return data as { actualizado?: string; bordeSuperior?: string; rotacionPendiente?: number };
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'No se pudo girar el documento.');
             return null;

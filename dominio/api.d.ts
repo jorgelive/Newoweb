@@ -13455,6 +13455,11 @@ export interface components {
             readonly leidoEn?: string | null;
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
+            /**
+             * @description Cuánto se ha girado este escaneo respecto de su copia original, en grados horarios.
+             * @default 0
+             */
+            rotacionAplicada: number;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -13481,6 +13486,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -13515,6 +13522,8 @@ export interface components {
             }[] | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -13551,6 +13560,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -13665,6 +13676,11 @@ export interface components {
             readonly leidoEn?: string | null;
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
+            /**
+             * @description Cuánto se ha girado este escaneo respecto de su copia original, en grados horarios.
+             * @default 0
+             */
+            rotacionAplicada: number;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -13691,6 +13707,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -13725,6 +13743,8 @@ export interface components {
             }[] | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -13761,6 +13781,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -13827,6 +13849,11 @@ export interface components {
             readonly leidoEn?: string | null;
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
+            /**
+             * @description Cuánto se ha girado este escaneo respecto de su copia original, en grados horarios.
+             * @default 0
+             */
+            rotacionAplicada: number;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -13853,6 +13880,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -13887,6 +13916,8 @@ export interface components {
             }[] | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -13923,6 +13954,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -13989,6 +14022,11 @@ export interface components {
             readonly leidoEn?: string | null;
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
+            /**
+             * @description Cuánto se ha girado este escaneo respecto de su copia original, en grados horarios.
+             * @default 0
+             */
+            rotacionAplicada: number;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -14015,6 +14053,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -14049,6 +14089,8 @@ export interface components {
             }[] | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
@@ -14085,6 +14127,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */

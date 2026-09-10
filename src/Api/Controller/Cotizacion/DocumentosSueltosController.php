@@ -161,6 +161,7 @@ final class DocumentosSueltosController extends AbstractController
             'girado' => true,
             'actualizado' => $archivo->getUpdatedAt()?->format('U'),
             'bordeSuperior' => $archivo->getDatosLeidos()['bordeSuperior'] ?? 'arriba',
+            'rotacionPendiente' => $archivo->getRotacionPendiente(),
         ]);
     }
 

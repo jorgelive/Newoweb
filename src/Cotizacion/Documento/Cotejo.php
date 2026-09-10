@@ -145,7 +145,7 @@ final readonly class Cotejo
     {
         $diferencias = [];
 
-        if (!self::mismoNumero((string) $leido->numero, (string) $guardado->numero)) {
+        if (!self::mismoNumero((string) $leido->numero, (string) $guardado->numero, $leido->tipo, $guardado->tipo)) {
             $diferencias[] = new Discrepancia('número', (string) $leido->numero, (string) $guardado->numero);
         }
 
@@ -184,27 +184,26 @@ final readonly class Cotejo
     }
 
     /**
-     * ¿Es el mismo documento? Ignora la forma de escribirlo **y el dígito verificador**.
+     * ¿Es el mismo documento? Ignora la forma de escribirlo **y el dígito verificador del DNI**.
      *
-     * 🔥 **8 de las 10 discrepancias de número eran falsas por esto**, medido sobre el expediente
-     * real. El DNI peruano son 8 dígitos **más uno de control**, y cada lado guarda una convención
-     * distinta sin que nadie lo haya acordado:
+     * 🔥 **La tolerancia es SÓLO del DNI, y no acotarla ya tapó un error real.** El DNI peruano
+     * son 8 dígitos más uno de control, y cada lado del sistema guarda una convención distinta:
+     * de 10 discrepancias de número, 8 eran esa diferencia y ninguna era un fallo.
      *
-     * | Lo que dice el documento | Lo que hay guardado | Qué pasa |
-     * |---|---|---|
-     * | `73716768-8` | `73716768` | el escaneo trae el dígito, el padrón no — 6 casos |
-     * | `122298834` | `1222988343` | al revés: el padrón lo trae de más — 2 casos |
+     * Pero la primera versión aplicaba la regla a **cualquier** tipo, y un pasaporte **no lleva
+     * dígito de control**. Resultado, encontrado en producción:
      *
-     * ⚠️ **Por eso la regla es simétrica**: cualquiera de los dos lados puede ser el largo. Escrita
-     * en una sola dirección habría limpiado seis avisos y dejado dos, que es peor que no hacer
-     * nada — daría la impresión de estar resuelto.
+     *     PASAPORTE   manifiesto 1222988343   documento 122298834   →  VALIDADO_MRZ
      *
-     * Y **exactamente un carácter**, no «hasta dos»: con dos, `12229883` y `1222988343` pasarían
-     * por el mismo documento, y eso ya no es una convención, es un número mal tecleado. Las 2
-     * diferencias de verdad del expediente —`125853071` contra `61859757`— no se parecen en nada,
-     * así que ninguna regla de prefijo las toca.
+     * Un número de pasaporte con un dígito de más, en verde y «respaldado por aritmética». Es
+     * justo el problema de aeropuerto que este control existe para cazar, y la regla que limpiaba
+     * el ruido lo escondió. Un filtro de ruido que se come una señal es peor que el ruido.
+     *
+     * ⚠️ Por eso ahora se exige **las tres cosas**: que el documento sea un DNI, que las
+     * longitudes sean exactamente 8 y 9, y que el largo empiece por el corto. Un DNI truncado a 7
+     * dígitos —`7371676` contra `73716768`— vuelve a ser una diferencia, que es lo que es.
      */
-    private static function mismoNumero(string $a, string $b): bool
+    private static function mismoNumero(string $a, string $b, ?DocumentoTipoEnum $tipoLeido, ?string $tipoGuardado): bool
     {
         $limpiar = static fn (string $v): string => strtoupper((string) preg_replace('/[^A-Z0-9]/i', '', $v));
         [$uno, $otro] = [$limpiar($a), $limpiar($b)];
@@ -217,9 +216,18 @@ final readonly class Cotejo
             return false;
         }
 
+        // Cualquiera de los dos lados basta para decir «esto es un DNI»: el manifiesto puede
+        // tenerlo mal tipado y el documento traer su tipo bien, o al revés.
+        $esDni = $tipoLeido === DocumentoTipoEnum::DNI
+            || strtoupper((string) $tipoGuardado) === DocumentoTipoEnum::DNI->value;
+
+        if (!$esDni) {
+            return false;
+        }
+
         [$corto, $largo] = strlen($uno) < strlen($otro) ? [$uno, $otro] : [$otro, $uno];
 
-        return strlen($largo) - strlen($corto) === 1 && str_starts_with($largo, $corto);
+        return strlen($corto) === 8 && strlen($largo) === 9 && str_starts_with($largo, $corto);
     }
 
     /**

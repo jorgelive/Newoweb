@@ -344,21 +344,54 @@ final class CotejoTest extends TestCase
     }
 
     /**
-     * 🔥 El dígito verificador del DNI: 8 de las 10 discrepancias de número del expediente real
-     * eran falsas por esto, y **en las dos direcciones**.
+     * 🔥 El dígito verificador **del DNI**: 8 de las 10 discrepancias de número del expediente real
+     * eran falsas por esto, en las dos direcciones. 8 dígitos contra 9.
      */
     #[Test]
-    public function elDigitoVerificadorNoEsUnaDiferencia(): void
+    public function elDigitoVerificadorDelDniNoEsUnaDiferencia(): void
     {
-        // El escaneo lo trae y el padrón no — 6 casos reales.
+        // El escaneo lo trae y el padrón no.
         self::assertSame([], Cotejo::de($this->dni('73716768-8'), new FichaGuardada(
-            numero: '73716768', nombreCompleto: 'Anna Maria Eriksson',
+            numero: '73716768', tipo: 'DNI', nombreCompleto: 'Anna Maria Eriksson',
         ))->discrepancias);
 
-        // Y al revés: el padrón lo trae de más — 2 casos reales.
-        self::assertSame([], Cotejo::de($this->dni('122298834'), new FichaGuardada(
-            numero: '1222988343', nombreCompleto: 'Anna Maria Eriksson',
+        // Y al revés: el padrón lo trae de más.
+        self::assertSame([], Cotejo::de($this->dni('73716768'), new FichaGuardada(
+            numero: '737167688', tipo: 'DNI', nombreCompleto: 'Anna Maria Eriksson',
         ))->discrepancias);
+    }
+
+    /**
+     * 🔥 **REGRESIÓN, con un caso real de producción.** La tolerancia se aplicaba a cualquier tipo
+     * y un pasaporte NO lleva dígito de control, así que esto quedó en verde:
+     *
+     *     PASAPORTE   manifiesto 1222988343   documento 122298834   →  VALIDADO_MRZ
+     *
+     * Un número de pasaporte con un dígito de más, «respaldado por aritmética». Es el problema de
+     * aeropuerto que este control existe para cazar, escondido por la regla que limpiaba el ruido.
+     */
+    #[Test]
+    public function unPasaporteConUnDigitoDeMasNoSeTolera(): void
+    {
+        $cotejo = Cotejo::de($this->pasaporte(), new FichaGuardada(
+            numero: 'L898902C33',   // el de la MRZ es 'L898902C3'
+            tipo: 'PASAPORTE',
+            nombreCompleto: 'Anna Maria Eriksson',
+        ));
+
+        self::assertSame('número', $cotejo->discrepancias[0]->campo);
+        self::assertNotSame(ValidacionIdentificacionEnum::VALIDADO_MRZ, $cotejo->estado);
+    }
+
+    /** Y un DNI truncado tampoco: 7 contra 8 no es la convención, es un número mal tecleado. */
+    #[Test]
+    public function unDniTruncadoNoSeTolera(): void
+    {
+        $cotejo = Cotejo::de($this->dni('7371676'), new FichaGuardada(
+            numero: '73716768', tipo: 'DNI', nombreCompleto: 'Anna Maria Eriksson',
+        ));
+
+        self::assertSame('número', $cotejo->discrepancias[0]->campo);
     }
 
     /** Pero dos números distintos siguen siéndolo: son las que sí hay que mirar. */
@@ -377,7 +410,7 @@ final class CotejoTest extends TestCase
     public function dosDigitosDeMasSiSeSenalan(): void
     {
         $cotejo = Cotejo::de($this->dni('12229883'), new FichaGuardada(
-            numero: '1222988343', nombreCompleto: 'Anna Maria Eriksson',
+            numero: '1222988343', tipo: 'DNI', nombreCompleto: 'Anna Maria Eriksson',
         ));
 
         self::assertSame('número', $cotejo->discrepancias[0]->campo);

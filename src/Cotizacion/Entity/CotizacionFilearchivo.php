@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Attribute\AutoTranslate;
+use App\Cotizacion\Documento\Orientacion;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
 use App\Cotizacion\State\CotizacionFilearchivoMultipartProcessor;
 use App\Entity\Trait\AutoTranslateControlTrait;
@@ -175,6 +176,23 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
     public function getDatosLeidos(): ?array { return $this->datosLeidos; }
 
     public function getLeidoEn(): ?DateTimeImmutable { return $this->leidoEn; }
+
+    /**
+     * Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está.
+     *
+     * 🔥 **Calculado y expuesto, en vez de que el front lo deduzca.** La pantalla leía
+     * `datosLeidos.rotacion`, una clave que el modelo dejó de devolver al cambiarle la pregunta:
+     * 211 de 211 lecturas tenían `bordeSuperior` y **ninguna** `rotacion`, así que toda la interfaz
+     * de giro estaba invisible y no daba ningún error. Un espejo en TypeScript habría vuelto a
+     * desincronizarse; un número calculado aquí, no.
+     */
+    #[Groups(['file:item:read'])]
+    public function getRotacionPendiente(): int
+    {
+        $borde = $this->datosLeidos['bordeSuperior'] ?? null;
+
+        return Orientacion::grados(is_string($borde) ? $borde : null);
+    }
 
     public function getLecturaError(): ?string { return $this->lecturaError; }
 

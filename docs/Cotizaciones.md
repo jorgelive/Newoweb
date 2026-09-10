@@ -1881,6 +1881,34 @@ son los del documento — un número mal en un manifiesto es un problema en el a
 
 Coste de la tanda entera: **~$0,30**. Y no se vuelve a pagar: las lecturas quedaron cacheadas.
 
+#### Dos fallos que sólo se veían mirando los datos (09/09/2026, revisión)
+
+**1. La regla del dígito verificador escondió un pasaporte mal tecleado.** Se aplicaba a
+**cualquier** tipo, y un pasaporte **no lleva dígito de control**. En producción:
+
+```
+PASAPORTE   manifiesto 1222988343   documento 122298834   →  VALIDADO_MRZ
+```
+
+Un número de pasaporte con un dígito de más, en verde y «respaldado por aritmética». Es justo el
+problema de aeropuerto que este control existe para cazar, y **la regla que limpiaba el ruido se lo
+comió**. Un filtro de ruido que se come una señal es peor que el ruido.
+
+Ahora se exigen las tres cosas: **que sea un DNI**, longitudes **exactamente 8 y 9**, y prefijo. Un
+DNI truncado a 7 vuelve a ser una diferencia. Hay un test de regresión con el caso real.
+
+⚠️ Y este doc llamaba a ese caso «convención del padrón»: era un pasaporte. El error estaba también
+en la explicación.
+
+**2. Toda la interfaz de giro estaba invisible.** La pantalla leía `datosLeidos.rotacion`, una clave
+que **el modelo dejó de devolver** al cambiarle la pregunta a `bordeSuperior`. Medido: **211 de 211
+lecturas tienen `bordeSuperior` y cero tienen `rotacion`**. Ni «falta girar», ni el botón resaltado
+— y sin un solo error.
+
+El mapeo llegó a estar en tres sitios (lector, girador, y un cuarto que el front leía). Ahora vive
+en **`Orientacion`** y sólo ahí, la entidad lo expone calculado (`rotacionPendiente`) y el front
+**lee un número**: un espejo en TypeScript se habría vuelto a desincronizar.
+
 #### El giro estaba en el veredicto, y ése era el error de fondo (09/09/2026)
 
 Un giro tardaba **~20 segundos**. Medido en el servidor: girar y reescribir son **0,42 s** y una
