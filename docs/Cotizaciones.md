@@ -1881,6 +1881,34 @@ son los del documento — un número mal en un manifiesto es un problema en el a
 
 Coste de la tanda entera: **~$0,30**. Y no se vuelve a pagar: las lecturas quedaron cacheadas.
 
+#### «No hay escaneo» seguía escrito con los escaneos delante (09/09/2026)
+
+🔥 **Un veredicto es la foto de un momento, y una foto de una AUSENCIA caduca en cuanto aparece
+lo que faltaba.** Caso real, con las horas:
+
+```
+20:56   la tanda escribe «no hay escaneo de este documento en la bóveda»   ← era verdad
+23:34   se suben los tres documentos
+        la ficha sigue diciendo que no hay ninguno, con el visor enseñándolos
+```
+
+Y no era el único caso: **un escaneo mejor de un documento ya `validado_mrz` no se miraba nunca**,
+porque la tanda salta lo resuelto.
+
+`EscaneoNuevoInvalidaVeredictoListener` devuelve a la cola el veredicto del número que ese escaneo
+respalda, en cuanto el escaneo llega o cambia de manos.
+
+⚠️ **Cubre también la reasignación.** El changeset dice de quién ERA el archivo, así que mover
+un documento de una persona a otra invalida los dos veredictos: el nuevo, que gana respaldo, y el
+anterior, **que se queda con un sello apoyado en un escaneo que ya no es suyo**.
+
+⚠️ **`onFlush` y no `postPersist`.** Hay que modificar otra entidad dentro de la misma
+transacción, y en `postPersist` el `UnitOfWork` ya cerró los cambios: haría falta un `flush()`
+anidado. `recomputeSingleEntityChangeSet()` es el mecanismo previsto, y ya se usa así aquí.
+
+⚠️ `NUMERO_DE` es **espejo** de `ValidadorDeManifiesto::ESCANEO_DE`: si un día el DNI se
+valida contra otro escaneo, hay que tocar los dos.
+
 #### El filtro «Observado», junto a los de vencimiento (09/09/2026)
 
 Un chip más en la fila de **Documentos**, con su recuento: es lo que convierte los 30 observados en

@@ -211,6 +211,26 @@ class CotizacionPasajeroIdentificacion
      * número ya validado lo dejaba **en verde para siempre**: la tanda salta lo resuelto, así que
      * nada volvía a mirarlo. Un sello que sobrevive al dato que sellaba es peor que no tenerlo.
      */
+    /**
+     * Un escaneo nuevo deja el veredicto viejo sin valor: vuelve a la cola.
+     *
+     * 🔥 **Sin esto, el veredicto seguía afirmando algo que dejó de ser cierto.** Caso real: a las
+     * 20:56 la tanda escribió «no hay escaneo de este documento en la bóveda» —era verdad— y a las
+     * 23:34 alguien subió los tres documentos. La ficha siguió diciendo que no había ninguno,
+     * **con los documentos delante en el visor**. Un veredicto es una foto de un momento, y una
+     * foto de una AUSENCIA caduca en cuanto aparece lo que faltaba.
+     *
+     * Y no vale sólo para ese caso: un escaneo mejor de un documento ya `validado_mrz` tampoco se
+     * miraba nunca, porque la tanda salta lo resuelto.
+     */
+    public function hayEscaneoNuevo(): self
+    {
+        $this->invalidarVeredicto();
+        $this->notasValidacion = ['hay un escaneo nuevo sin validar'];
+
+        return $this;
+    }
+
     private function invalidarVeredicto(): void
     {
         if ($this->estadoValidacion === ValidacionIdentificacionEnum::NO_VALIDADO) {
