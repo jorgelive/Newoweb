@@ -1374,3 +1374,24 @@ La regla que se cumple sola: **si el dedo aterriza dentro de algo `position: fix
 página**. Un overlay es `fixed` por definición, así que ningún diálogo —ni los que existen ni los
 que vengan— vuelve a armar el gesto. `data-sin-recarga` se queda para lo que maneje su propio
 táctil sin ser `fixed`.
+
+
+## El expediente: cuatro secciones sueltas contra una tarjeta (09/09/2026)
+
+La Bóveda Digital vivía en una tarjeta blanca y el Manifiesto, los Vuelos, los Subgrupos y Cargar
+datos eran texto suelto sobre el fondo. Las dos mitades de la misma pantalla se leían como dos
+diseños distintos, y en móvil —donde van una debajo de otra— se notaba más, porque la tarjeta
+marcaba dónde acaba una sección y el texto suelto no.
+
+Ahora las cuatro llevan la misma tarjeta. El plegado y el resumen en el rótulo se quedan como
+estaban: son 131 personas y 16 vuelos, y desplegado todo son seis pantallas de scroll.
+
+⚠️ **En una columna, la barra lateral NO es una barra: es la primera sección.** El `<aside>`
+conservaba el ancho de la columna de escritorio —340-380 px— así que la Bóveda quedaba metida hacia
+dentro mientras las demás iban a sangre. `w-full` con el `minmax` acotado a `lg:` lo arregla: sólo
+se comporta como columna cuando de verdad hay dos.
+
+⚠️ **El aviso «Hay gente sin asignar» va PLEGADO, con el recuento en el rótulo.** No es una
+lista de tareas: que alguien no esté en ningún vuelo puede ser lo correcto —no viaja en avión—, y
+desplegado ocupaba media pantalla con cuatro listas de nombres que parecían pendientes. Es
+información para consultar, así que se enseña como lo que es y se abre cuando alguien quiere leerla.

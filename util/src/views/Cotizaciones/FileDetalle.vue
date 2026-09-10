@@ -2393,6 +2393,21 @@ const guardarGrupo = async () => {
    resumen del rótulo es lo que evita tener que abrir para saber si es la que busca. */
 const manifiestoAbierto = ref(false);
 const vuelosAbiertos = ref(false);
+
+/**
+ * El aviso de gente sin asignar, plegado.
+ *
+ * ⚠️ **No es una lista de tareas.** Que alguien no esté en ningún vuelo puede ser lo correcto
+ * —no viaja en avión—, así que desplegarlo por defecto convertía media pantalla de información en
+ * algo que parece pendiente. El recuento va en el rótulo para que plegado no se lea como vacío.
+ */
+const sinAsignarAbierto = ref(false);
+
+/** «24 en grupo · 2 en habitación · 3 en vuelo»: lo que decide si hace falta abrirlo. */
+const resumenSinAsignar = computed(() =>
+    (file.value?.subgruposIncompletos ?? [])
+        .map(h => `${h.faltan.length} en ${String(h.ejeLabel).toLowerCase()}`)
+        .join(' · '));
 const cargaAbierta = ref(false);
 const subgruposAbiertos = ref(false);
 
@@ -2814,9 +2829,14 @@ const eliminarDocumento = async (iri?: string) => {
     </main>
 
     <main v-else class="flex-1 overflow-y-auto p-6 md:p-8">
+      <!-- ⚠️ **En una columna, la barra lateral NO es una barra: es la primera sección.**
+           Conservaba el ancho de columna que tiene en escritorio —340-380 px— así que la Bóveda
+           quedaba metida hacia dentro mientras el Manifiesto y los Vuelos iban a sangre, y las dos
+           mitades de la misma pantalla no alineaban. `lg:max-w-none` sólo actúa cuando de verdad
+           hay dos columnas. -->
       <div class="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-[minmax(340px,380px)_1fr] gap-8 items-start pb-20">
 
-        <aside class="space-y-6 lg:sticky lg:top-0 min-w-0">
+        <aside class="w-full space-y-6 lg:sticky lg:top-0 min-w-0">
 
           <div class="panel-giratorio">
           <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm cara" :class="{ 'de-canto': girandoFile }">
@@ -3141,7 +3161,7 @@ const eliminarDocumento = async (iri?: string) => {
                  Un expediente de grupo son 131 personas, 16 vuelos y 109 subgrupos: desplegado todo,
                  llegar a lo de abajo son seis pantallas de scroll. Quien abre un expediente viene a
                  UNA cosa, y el rótulo ya le dice si está en la que busca. -->
-            <div class="mb-8">
+            <div class="mb-8 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
               <button type="button" @click="manifiestoAbierto = !manifiestoAbierto"
                       class="w-full flex items-center justify-between gap-3 mb-4 text-left group">
                 <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
@@ -3475,7 +3495,7 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
 
             <!-- El itinerario del viaje. Se consulta, no se edita: se carga abajo. -->
-            <div class="mb-8">
+            <div class="mb-8 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
               <button type="button" @click="vuelosAbiertos = !vuelosAbiertos"
                       class="w-full flex items-center justify-between gap-3 mb-4 text-left group">
                 <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
@@ -3635,7 +3655,7 @@ const eliminarDocumento = async (iri?: string) => {
                  manifiesto y lo que viene después, y quien baja a esta zona va a otra cosa. El
                  rótulo dice de un vistazo lo que hay dentro, que es lo único que se consulta a
                  diario. -->
-            <div v-if="file.usaPadron" class="mb-8">
+            <div v-if="file.usaPadron" class="mb-8 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
               <button type="button" @click="subgruposAbiertos = !subgruposAbiertos"
                       class="w-full flex items-center justify-between gap-3 mb-4 text-left group">
                 <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
@@ -3771,7 +3791,7 @@ const eliminarDocumento = async (iri?: string) => {
                  Estaba partido —la hoja arriba, los vuelos en medio— y son la misma tarea con dos
                  orígenes: el colegio manda el Excel, la aerolínea manda el JSON. Va al final porque
                  es el andamio: se usa al montar el expediente, no al consultarlo. -->
-            <div class="mb-8">
+            <div class="mb-8 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
               <button type="button" @click="cargaAbierta = !cargaAbierta"
                       class="w-full flex items-center justify-between gap-3 mb-4 text-left group">
                 <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
@@ -3902,17 +3922,32 @@ const eliminarDocumento = async (iri?: string) => {
                  reclamarlo. Si el vuelo se parte en dos y alguien no está en ninguno, abre su
                  viaje y no ve ningún vuelo — y no echa de menos lo que no sabía que existía.
                  Ver CoberturaDeSubgrupos. -->
+            <!-- ⚠️ **Plegado, con el recuento en el rótulo.** Desplegado ocupaba media pantalla
+                 con cuatro listas de nombres, y **no todo el mundo tiene que estar en todos los
+                 ejes**: quien no va en avión no está en ningún vuelo, y eso es correcto. Es
+                 información para consultar, no una tarea pendiente, así que se enseña como lo
+                 que es y se abre cuando alguien quiere leerla. -->
             <div v-if="file?.subgruposIncompletos?.length"
-                 class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-              <p class="text-[11px] font-black uppercase tracking-widest text-amber-700 flex items-center gap-2 mb-2">
-                <i class="fas fa-triangle-exclamation"></i>
-                Hay gente sin asignar
-              </p>
+                 class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 overflow-hidden">
+              <button type="button" @click="sinAsignarAbierto = !sinAsignarAbierto"
+                      class="w-full flex items-center justify-between gap-2 p-4 text-left">
+                <span class="text-[11px] font-black uppercase tracking-widest text-amber-700 flex items-center gap-2 min-w-0">
+                  <i class="fas fa-triangle-exclamation shrink-0"></i>
+                  <span class="truncate">
+                    Hay gente sin asignar
+                    <span class="font-bold normal-case tracking-normal opacity-70">· {{ resumenSinAsignar }}</span>
+                  </span>
+                </span>
+                <i class="fas fa-chevron-down text-amber-500 text-xs transition-transform shrink-0"
+                   :class="sinAsignarAbierto ? 'rotate-180' : ''"></i>
+              </button>
+              <div v-if="sinAsignarAbierto" class="px-4 pb-4">
               <div v-for="hallazgo in file.subgruposIncompletos" :key="hallazgo.eje" class="text-xs text-amber-900 leading-relaxed mb-1.5 last:mb-0">
                 <span class="font-black">{{ hallazgo.ejeLabel }}:</span>
                 <span class="font-bold">{{ hallazgo.faltan.length }}</span>
                 {{ hallazgo.faltan.length === 1 ? 'persona no está' : 'personas no están' }} en ningún subgrupo —
                 <span class="text-amber-700">{{ hallazgo.faltan.slice(0, 6).join(', ') }}<span v-if="hallazgo.faltan.length > 6"> y {{ hallazgo.faltan.length - 6 }} más</span></span>
+              </div>
               </div>
             </div>
 
