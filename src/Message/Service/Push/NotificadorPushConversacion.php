@@ -72,9 +72,13 @@ final readonly class NotificadorPushConversacion
      * era directa —así que WhatsApp era el único canal— y la ventana de 24 h estaba cerrada. El
      * mensaje no salió, nadie se enteró, y la huésped no recibió respuesta a lo que preguntó.
      *
-     * Sólo para lo que escribe una PERSONA. Un automático que falla es cosa del motor de
-     * reglas y avisar de cada uno llenaría el móvil de todo el equipo sin que nadie pueda
-     * hacer nada distinto.
+     * Para lo que escribe una PERSONA y, desde el 10/09/2026, para lo que escribe el AGENTE:
+     * los dos son mensajes que alguien está esperando ahora. Los automáticos programados siguen
+     * fuera —avisar de cada uno llenaría el móvil sin que nadie pueda hacer nada distinto—, y el
+     * reparto lo decide `AvisoEnvioFallidoListener`, que es donde está la cuenta que lo sostiene.
+     *
+     * ⚠️ Por eso el título distingue quién escribió: «tu mensaje» sobre una respuesta que el
+     * operador no redactó le hace buscar en su historial algo que nunca envió.
      *
      * El cuerpo lleva el motivo tal cual lo guardó el despachador —«la ventana de 24 h ha
      * caducado», «no se permite enviar a reservas directas por Beds24»— porque es lo único que
@@ -97,7 +101,7 @@ final readonly class NotificadorPushConversacion
 
             foreach ($this->destinatarios() as $usuario) {
                 $this->push->sendToUser($usuario, [
-                    'title' => 'No salió tu mensaje a ' . ($conversacion->getGuestName() ?? 'el huésped'),
+                    'title' => $this->quienEscribio($mensaje) . ($conversacion->getGuestName() ?? 'el huésped'),
                     'body' => $this->motivoDe($mensaje) . ($esPorLaVentana
                         ? ' → Mándale una plantilla (guía, tours, llegada): en cuanto conteste, podrás escribirle normal.'
                         : ''),
@@ -109,6 +113,14 @@ final readonly class NotificadorPushConversacion
         } catch (Throwable $e) {
             $this->logger->error('[PushConversacion] Fallo al avisar de un envío fallido: ' . $e->getMessage(), ['exception' => $e]);
         }
+    }
+
+    /** Encabezado según quién redactó lo que no salió. Ver el aviso de `avisarEnvioFallido()`. */
+    private function quienEscribio(Message $mensaje): string
+    {
+        return ($mensaje->getMetadata()['generado_por'] ?? null) === 'ia'
+            ? 'No salió la respuesta del asistente a '
+            : 'No salió tu mensaje a ';
     }
 
     /**

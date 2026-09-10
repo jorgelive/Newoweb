@@ -59,8 +59,9 @@ readonly class MessageDispatcher
         // Se admite el mensaje SIN texto cuando lleva plantilla —el cuerpo se hidrata al
         // enviar— o cuando lleva adjunto, que es una foto y ya es contenido.
         if ($this->estaVacio($message)) {
-            $message->setStatus(Message::STATUS_FAILED);
-            $message->addMetadata('dispatch_errors', ['El mensaje no tiene texto, ni plantilla, ni adjunto: no se envía nada vacío.']);
+            $this->anotarDesenlace($message, Message::STATUS_FAILED, 'dispatch_errors', [
+                'El mensaje no tiene texto, ni plantilla, ni adjunto: no se envía nada vacío.',
+            ]);
 
             $this->logger->warning(sprintf(
                 'Mensaje %s descartado por vacío: sin texto, sin plantilla y sin adjuntos.',
@@ -117,8 +118,7 @@ readonly class MessageDispatcher
             //
             // Se vuelve alcanzable de verdad con el corte por asunto —un expediente de viaje
             // con sólo Beds24 marcado se queda sin nada—, así que el final tiene que decirlo.
-            $message->setStatus(Message::STATUS_FAILED);
-            $message->addMetadata('dispatch_errors', [
+            $this->anotarDesenlace($message, Message::STATUS_FAILED, 'dispatch_errors', [
                 'Ningún canal disponible para este mensaje: o no se marcó ninguno, o los marcados no existen para este asunto.',
             ]);
 
@@ -133,21 +133,18 @@ readonly class MessageDispatcher
         if (empty($queues)) {
             // FRACASO TOTAL: Había canales previstos, pero NINGUNO generó una cola.
             // (Ya sea porque todos lanzaron excepción, o todos retornaron null por reglas de negocio)
-            $message->setStatus(Message::STATUS_FAILED);
-
             $motivo = empty($errors)
                 ? ['No se pudo generar ninguna cola para los canales solicitados (posible restricción de negocio por canal).']
                 : $errors;
 
-            $message->addMetadata('dispatch_errors', $motivo);
+            $this->anotarDesenlace($message, Message::STATUS_FAILED, 'dispatch_errors', $motivo);
 
         } else {
             // ÉXITO (Total o Parcial): Al menos una cola se generó correctamente.
-            $message->setStatus(Message::STATUS_QUEUED);
+            $this->anotarDesenlace($message, Message::STATUS_QUEUED, 'dispatch_partial_errors', $errors);
 
             // Si hubo éxito, pero algún otro canal falló, dejamos registro de auditoría
             if (!empty($errors)) {
-                $message->addMetadata('dispatch_partial_errors', $errors);
                 $this->logger->warning(sprintf(
                     'Mensaje %s encolado con fallos parciales: %s',
                     $message->getId()?->toRfc4122() ?? 'N/A',
@@ -184,6 +181,55 @@ readonly class MessageDispatcher
 
         return trim((string) $message->getContentLocal()) === ''
             && trim((string) $message->getContentExternal()) === '';
+    }
+
+    /**
+     * Escribe el desenlace del despacho en el mensaje — salvo que el mensaje NO SEA NUESTRO.
+     *
+     * Un mensaje ENTRANTE llega a `dispatch()` por una sola puerta: el acuse de lectura de
+     * `MarkConversationReadController`, que le reinyecta su canal de origen para fabricar el
+     * recibo hacia la OTA (el patrón proactivo que explica allí un comentario largo). Pero ahí
+     * el mensaje es **la pregunta del huésped**, recién marcada como `read`, y el desenlace que
+     * se está calculando es el del RECIBO, no el suyo.
+     *
+     * Escribirlo encima decía dos mentiras distintas, las dos medidas en producción:
+     *
+     * | qué se escribía | cuántos | qué parecía |
+     * |---|---|---|
+     * | `failed` + `dispatch_errors` | 17 | la pregunta del huésped, fallida y con icono rojo |
+     * | `queued` → `sent` | 9 | «enviado» sobre algo que él escribió |
+     *
+     * El primero salta siempre que Beds24 está vetado —o sea, **en las reservas directas**— y
+     * además esconde el mensaje de cualquier consulta que filtre por `received`/`read`. El
+     * segundo es peor por silencioso: «enviado» sobre un entrante ni siquiera se lee como raro.
+     *
+     * ⚠️ El recibo se sigue encolando igual. Lo único que no se toca es el estado de quien
+     * escribió: un fallo al acusar recibo es un problema NUESTRO, y contarlo en su mensaje es
+     * contarlo en el sitio de otro.
+     *
+     * @param list<string> $motivos Vacío = no se anota metadata, sólo el estado.
+     */
+    private function anotarDesenlace(
+        Message $message,
+        string $estado,
+        string $clave,
+        array $motivos = []
+    ): void {
+        if ($message->getDirection() === Message::DIRECTION_INCOMING) {
+            $this->logger->info('Desenlace no anotado: el mensaje es entrante y el despacho era su acuse de lectura.', [
+                'mensaje' => $message->getId()?->toRfc4122(),
+                'estado_que_se_iba_a_escribir' => $estado,
+                'motivos' => $motivos,
+            ]);
+
+            return;
+        }
+
+        $message->setStatus($estado);
+
+        if ($motivos !== []) {
+            $message->addMetadata($clave, $motivos);
+        }
     }
 
     /**

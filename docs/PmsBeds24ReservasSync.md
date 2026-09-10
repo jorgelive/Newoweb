@@ -33,6 +33,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
     · [12.11.b El link ya borrado (2ª causa del «new entity»)](#1211b-la-segunda-causa-del-mismo-error-el-link-ya-borrado)
     · [12.12 Borrado de una reserva o de una estancia](#1212-borrado-de-una-reserva-o-de-una-estancia)
 12.16. [Beds24 manda UTC y no lo dice](#1216-beds24-manda-utc-y-no-lo-dice-08092026)
+    · [Corrección 10/09/2026: los mensajes también vienen en UTC](#-corrección-del-10092026-los-mensajes-también-vienen-en-utc)
 12.17. [Los emojis llegan como `?`](#1217-los-emojis-llegan-como--y-no-es-culpa-nuestra-08092026)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
@@ -5433,6 +5434,44 @@ consideraba reciente nunca**: todos entraban directo y el colchón no se les apl
 comparación es correcta, así que los eventos recientes sí esperan sus 15 s. Es un cambio de
 comportamiento real en producción, no sólo una limpieza — conviene mirar la latencia de los webhooks
 de reserva tras desplegar.
+
+### ⚠️ Corrección del 10/09/2026: los MENSAJES también vienen en UTC
+
+Esta sección decía que Beds24 usa dos convenciones y que el `time` de un mensaje «llega ya en hora
+local de la cuenta». **Es falso.** El mismo commit quitó del persistidor de mensajes un
+`setTimezone(America/Lima)` calificándolo de «no-op con nombre engañoso», y no lo era: era lo único
+que normalizaba el huso antes de guardar. Sin él, cada entrante quedó **cinco horas en el futuro** y
+el chat empezó a pintar la pregunta del huésped por encima de la respuesta que la contestaba.
+
+El payload, mirado por fin: de **1.890 webhooks con mensajes en la auditoría, 1.890 traen
+`"time":"…Z"` y ninguno viene sin la `Z`**. Beds24 usa UNA convención —UTC— y en los mensajes hasta
+la declara. Lo que cambia entre reservas y mensajes es sólo si la `Z` está escrita.
+
+🔥 **La comprobación que avaló el error medía la salida del código bueno.** Decía: «de los 3.114
+mensajes en base, los recientes tienen su `created_at` a 0-1 minuto de nuestro reloj; si vinieran en
+UTC estarían 300 minutos por delante». Pero esas filas las había escrito el código **con** el
+`setTimezone`, así que sólo probaban que la conversión funcionaba. La entrada no se miró nunca.
+
+> **Para saber en qué huso llega un dato hay que mirar el PAYLOAD, no la columna que alguien ya
+> normalizó.** Una comprobación contra datos ya procesados confirma el procesamiento, no la fuente.
+
+Y el mismo fallo ya había ocurrido:
+
+| cuándo | qué | filas torcidas |
+|---|---|---|
+| 12–15/03/2026 | aún no existía la conversión | 17 |
+| 15/03/2026 | se añade `setTimezone()` (`2a67eb1f`) | — |
+| 08/09/2026 | se quita por «no-op» (`4f25a89c`) | — |
+| 09–10/09/2026 | vuelve a pasar | 4 |
+
+`Version20260910120000` corrige las 21. **Elige las filas por el reloj real de inserción, no por
+fecha**: el id es un UUID v7 y sus primeros 48 bits son los milisegundos en que se insertó la fila,
+así que una sana difiere de su `created_at` en segundos —la latencia del webhook— y una torcida en
+cinco horas. Filtrar por rango habría arrastrado mensajes legítimos de huéspedes que escriben de
+madrugada.
+
+Y la conversión restaurada usa **el huso del establecimiento**, no `America/Lima` a mano — que es la
+forma completa de la regla de abajo, y la que esta sección predicaba sin aplicarla a los mensajes.
 
 ### La regla que queda
 

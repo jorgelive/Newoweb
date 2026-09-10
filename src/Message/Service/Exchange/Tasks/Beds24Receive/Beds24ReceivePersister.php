@@ -65,6 +65,11 @@ readonly class Beds24ReceivePersister
         $conversation = $this->conversationFactory->upsertFromContext($context);
         $channel = $this->em->getReference(MessageChannel::class, 'beds24');
 
+        // El huso del alojamiento, resuelto UNA vez para todo el lote: es el mismo para todos los
+        // mensajes de una reserva y `zonaHoraria()` cae al huso de la aplicación si no hay ninguno.
+        $husoDelAlojamiento = $reserva->getEstablecimiento()?->zonaHoraria()
+            ?? new DateTimeZone(date_default_timezone_get());
+
         $stats = ['imported' => 0, 'updated' => 0, 'skipped' => 0];
 
         foreach ($messages as $dto) {
@@ -249,27 +254,35 @@ readonly class Beds24ReceivePersister
                 $message->setLanguageCode($currentConversationLang);
             }
 
-            // ⚠️ **Beds24 usa DOS convenciones de hora, y ésta no es la de las reservas.**
+            // 🔥 **El `time` de un mensaje SÍ viene en UTC, y lo dice con una `Z`.** (10/09/2026)
             //
-            // `bookingTime`/`modifiedTime` de una RESERVA vienen en UTC sin decirlo, y por eso
-            // `Beds24BookingDto` las parsea declarando ese huso (ver `docs/PmsBeds24ReservasSync.md`
-            // §12.16). El `time` de un MENSAJE **no**: llega ya en hora local de la cuenta.
+            // El 08/09 se escribió aquí lo contrario —«llega ya en hora local de la cuenta»— y se
+            // quitó un `setTimezone()` por considerarlo «un no-op con nombre engañoso». No lo era:
+            // era lo único que normalizaba el huso antes de guardar. Sin él, cada entrante quedó
+            // **cinco horas en el futuro**, y el chat empezó a pintar la pregunta del huésped por
+            // encima de la respuesta que la contestaba.
             //
-            // Comprobado contra datos el 08/09/2026: de los 3.114 mensajes de Beds24 en base, los
-            // recientes tienen su `created_at` a 0-1 minuto de nuestro propio reloj. Si vinieran en
-            // UTC estarían 300 minutos por delante.
+            // ⚠️ **La comprobación que lo avaló medía la salida del código bueno.** Decía: «los
+            // mensajes recientes tienen su `created_at` a 0-1 minuto de nuestro reloj, luego el
+            // dato de entrada es local». Pero esas filas las había escrito el código CON el
+            // `setTimezone`, así que sólo probaban que la conversión funcionaba. La entrada no se
+            // miró nunca. Para saber en qué huso llega un dato hay que mirar **el payload**, no la
+            // columna que alguien ya normalizó.
             //
-            // ⚠️ **No «arregles» esto igual que las reservas.** Declarar UTC aquí desplazaría cada
-            // mensaje cinco horas al futuro y los descolocaría frente a los de WhatsApp en el mismo
-            // hilo. Una revisión automática lo señaló como fallo pendiente en septiembre de 2026;
-            // los datos dijeron lo contrario.
+            // El payload, mirado por fin: de 1.890 webhooks con mensajes en la auditoría,
+            // **1.890 traen `"time":"…Z"` y ninguno viene sin la `Z`**. Beds24 usa la misma
+            // convención que en las reservas; lo que cambia es que aquí sí la declara.
             //
-            // El `setTimezone` que había aquí era un no-op con nombre engañoso —la variable se
-            // llamaba `$timeUtc` y no era UTC—, así que se quita: lo que llega ya es hora de pared.
-            $msgDate = new DateTimeImmutable(); // Fallback
+            // Se restaura la conversión y se aplica la regla de §12.16 en su forma completa: la
+            // hora de pared la pone quien conoce el establecimiento, no `America/Lima` a mano —
+            // eso acierta hoy y dejaría de acertar con el primer alojamiento en otro país.
+            $msgDate = new DateTimeImmutable('now', $husoDelAlojamiento);
+
             if ($dto->time !== null) {
-                $msgDate = DateTimeImmutable::createFromInterface($dto->time);
+                $msgDate = DateTimeImmutable::createFromInterface($dto->time)
+                    ->setTimezone($husoDelAlojamiento);
             }
+
             $message->setCreatedAt($msgDate);
 
             // Adjuntos

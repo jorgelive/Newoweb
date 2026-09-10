@@ -11,6 +11,59 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 ---
 
 
+## 🔥 El acuse de lectura marcaba `failed` el mensaje del HUÉSPED (10/09/2026)
+
+`MarkConversationReadController` fabrica el recibo hacia la OTA con un patrón proactivo: marca el
+entrante como `read`, le reinyecta su canal de origen y llama a `MessageDispatcher::dispatch()` a
+mano, porque el listener reactivo ignora los `UPDATE` sobre entrantes.
+
+Pero el despachador escribe el desenlace **en el mensaje que despacha**, y ahí ese mensaje no es
+nuestro: es la pregunta del huésped. Dos mentiras distintas, las dos medidas en producción:
+
+| qué se escribía encima | filas | qué parecía |
+|---|---|---|
+| `failed` + `dispatch_errors` | 17 | la pregunta del huésped, fallida y con su icono rojo |
+| `queued` → `sent` | 9 | «enviado» sobre algo que escribió él |
+
+La primera salta **siempre que Beds24 está vetado**, o sea en las reservas directas —por eso
+aparecía junto al bug del canal, sin ser el mismo—, y además esconde el mensaje de cualquier
+consulta que filtre por `received`/`read`. La segunda es peor por silenciosa: «enviado» sobre un
+entrante ni siquiera se lee como raro.
+
+Los cuatro sitios que escribían el estado pasan por `MessageDispatcher::anotarDesenlace()`, que se
+abstiene si el mensaje es entrante. **El recibo se sigue encolando igual**: lo único que no se toca
+es el estado de quien escribió — un fallo al acusar recibo es un problema nuestro, y contarlo en su
+mensaje es contarlo en el sitio de otro.
+
+⚠️ `MessageDispatcherTest` lo fija con un control positivo (`un_saliente_si_se_marca_fallido_con_su_motivo`).
+Sin él, las dos pruebas del entrante pasarían igual con un despachador que no marcara nada: dirían
+«no se tocó» cuando lo cierto sería «no se evaluó».
+
+## El aviso de envío fallido cubre ahora al AGENTE (10/09/2026)
+
+`AvisoEnvioFallidoListener` exigía `SENDER_HOST`, con un motivo escrito y bueno: avisar de cada
+automático llenaría el móvil del equipo con algo que no puede arreglar en el momento. Pero eso deja
+fuera un caso que no es un automático de agenda — **la respuesta del agente a un huésped que acaba
+de preguntar y sigue esperando**, donde además no hay ninguna persona que sospeche.
+
+La cuenta que decide el reparto: de 305 fallidos de `system`, **302 son de regla programada y 3 del
+agente** (`generado_por = 'ia'`) en seis meses. Cubrir al agente no abre la puerta; deja pasar tres
+avisos en medio año.
+
+| quién escribió | ¿avisa? | por qué |
+|---|---|---|
+| Persona (`SENDER_HOST`) | sí | lo escribió y se fue creyendo que salió |
+| Agente (`ia`) | **sí, nuevo** | el huésped está esperando ahora |
+| Regla programada | no | ~1,6 al día; su sitio es un resumen, no un empujón por cada uno |
+
+⚠️ Y el título distingue quién redactó: «no salió **tu** mensaje» sobre una respuesta que el
+operador no escribió le manda a buscar en su historial algo que nunca envió.
+
+⚠️ **Lo que sigue sin resolverse** son los 302: 207 llevan como motivo «posible restricción de
+negocio por canal», que no dice qué hacer, porque `WhatsappMetaSendEnqueuer` devuelve `null` en
+silencio en vez de lanzar con su razón como hace Beds24. Antes de avisar de más, que el motivo sea
+real.
+
 ## 🔥 Una OTA cancelada dejaba el hilo mudo de un lado solo (10/09/2026)
 
 Al caducar una consulta de Airbnb, el rollup de `PmsReservaRecalculoService` marcaba la reserva
