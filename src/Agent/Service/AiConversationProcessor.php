@@ -852,8 +852,8 @@ final readonly class AiConversationProcessor
         $dominio = $this->dominios->para($actor->contextoTipo(), $perfil);
 
         return $dominio === ''
-            ? $this->reglasComunes($actor)
-            : $this->reglasComunes($actor) . "\n\n" . $dominio;
+            ? $this->reglasComunes()
+            : $this->reglasComunes() . "\n\n" . $dominio;
     }
 
     /**
@@ -892,33 +892,35 @@ final readonly class AiConversationProcessor
         return preg_replace('/^\s*\[\d{1,2}\/\d{1,2}\]\s*/u', '', $texto) ?? $texto;
     }
 
-    private function reglasComunes(ActorInterface $actor): string
+    private function reglasComunes(): string
     {
-        // 📅 QUÉ DÍA ES HOY. Sin esto el modelo no puede resolver «del 8 al 10 de noviembre»,
-        // y no falla en voz alta: elige un año, cotiza tarifas de un noviembre PASADO y suena
-        // perfectamente seguro. Ocurrió en producción —79.00 y 181.00 en vez de 65.00 y
-        // 141.00— y costó rato entender que los números no eran inventados, eran de 2025.
+        // 🔥 **AQUÍ ESTABAN LA FECHA Y EL FORMATO DEL CANAL, y por eso no se cacheaba nada.**
         //
-        // El asistente del panel lo lleva desde siempre; este prompt no, y ésa era toda la
-        // diferencia entre una cotización buena y una mala con el MISMO modelo y la MISMA
-        // skill.
-        $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ_PERU));
-
-        // Compartidas con el asistente del panel y el de voz: ver ReglasCompartidas.
+        // Este bloque abre el PREFIJO de la petición: va delante de todo y es igual para todas
+        // las conversaciones. Son 1 242 tokens, pero detrás de él —y también antes de los
+        // mensajes— viajan las declaraciones de las herramientas, otros 5 842: el prefijo real
+        // que la caché podría cubrir son **~7 100 tokens** por turno de huésped. La caché de
+        // prefijo casa byte a byte desde el principio, así que dos líneas volátiles arriba del
+        // todo dejaban fuera todo lo que venía detrás, herramientas incluidas.
+        //
+        // Medido en producción antes de moverlas: la entrada es el **99,4 %** del consumo del
+        // agente y el caché acertaba en el **0 %** —104 781 tokens de entrada, cero cacheados—.
+        //
+        // ⚠️ **Y era condición necesaria, no suficiente**: Gemini no cachea nada por debajo de
+        // 4 096 tokens y no lo avisa. Se comprueba con `app:agent:prefijo`, que mide el prefijo
+        // entero —reglas + herramientas— y no sólo este texto. Un prospecto se queda en 4 476:
+        // por encima del mínimo, pero con poco margen, así que adelgazar el catálogo de skills
+        // de un perfil puede dejarlo por debajo sin que nadie lo note.
+        //
+        // Las dos se fueron a {@see self::contexto()}, que es la parte volátil por contrato
+        // ({@see ConversationRequest}) y ya llevaba el perfil, los límites y los temas por esta
+        // misma razón. El comentario que lo explica lleva ahí desde el principio; la fecha y el
+        // canal simplemente nunca se movieron.
         $copiar = ReglasCompartidas::DATOS_QUE_SE_COPIAN;
         $parametros = ReglasCompartidas::NO_INVENTES_PARAMETROS;
-        $formatoCanal = $this->formatoSegunCanal($actor);
 
         return <<<PROMPT
         Eres el asistente de un alojamiento en Cusco, Perú.
-
-        {$formatoCanal}
-
-        Hoy es {$hoy->format('Y-m-d')} ({$hoy->format('l')}), zona horaria America/Lima.
-        Úsalo para resolver fechas relativas: si dicen «del 8 al 10 de noviembre» sin año, se
-        refieren a la PRÓXIMA vez que ocurra esa fecha, nunca a una pasada. Ante la duda,
-        pregunta el año antes de cotizar: una tarifa del año que no es parece correcta y no
-        hay forma de que el cliente lo note.
 
         En el historial cada turno viene con su fecha delante, así: «[12/08] texto». Esa marca
         es NUESTRA, para que sepas cuándo se dijo cada cosa. NO la escribas nunca en tu
@@ -1217,7 +1219,27 @@ final readonly class AiConversationProcessor
         $temas = $this->conocimiento->bloqueDeCategorias($actor);
         $temas = $temas === '' ? '' : "\n" . $temas;
 
+        // 📅 QUÉ DÍA ES HOY. Sin esto el modelo no puede resolver «del 8 al 10 de noviembre», y
+        // no falla en voz alta: elige un año, cotiza tarifas de un noviembre PASADO y suena
+        // perfectamente seguro. Ocurrió en producción —79.00 y 181.00 en vez de 65.00 y 141.00—
+        // y costó rato entender que los números no eran inventados, eran de 2025.
+        //
+        // ⚠️ **Vive aquí y no en las reglas, aunque parezca parte de ellas.** Cambia cada día, así
+        // que en el prefijo cacheado invalidaba los ~8 000 tokens que iban detrás. Sigue yendo en
+        // la instrucción de sistema y delante de los mensajes: el modelo la ve igual de bien.
+        $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ_PERU));
+
+        // 📱 Cómo se escribe en este canal. Mismo motivo: depende del actor, no de las reglas.
+        $formatoCanal = $this->formatoSegunCanal($actor);
+        $formatoCanal = $formatoCanal === '' ? '' : "\n" . $formatoCanal;
+
         $contexto = <<<CONTEXTO
+        Hoy es {$hoy->format('Y-m-d')} ({$hoy->format('l')}), zona horaria America/Lima.
+        Úsalo para resolver fechas relativas: si dicen «del 8 al 10 de noviembre» sin año, se
+        refieren a la PRÓXIMA vez que ocurra esa fecha, nunca a una pasada. Ante la duda,
+        pregunta el año antes de cotizar: una tarifa del año que no es parece correcta y no hay
+        forma de que el cliente lo note.
+        {$formatoCanal}
         Hablas con {$huesped}.{$dominio}{$quien}{$limites}{$temas}
         Responde SIEMPRE en el idioma con código "{$idioma}".
         CONTEXTO;

@@ -4979,12 +4979,16 @@ El caché de Anthropic vive **1 hora** (`ttl: '1h'`) y el prefijo es **el mismo 
 huéspedes**: no hay un caché por conversación, hay uno por catálogo. Cada mensaje que entra en
 esa hora —da igual de qué reserva— lo lee a 0,1× y le renueva el TTL.
 
-> 🚧 **TODO (Google):** Gemini no cachea prefijos tan pequeños — su caché explícito exige un
-> mínimo de tokens que el catálogo actual no alcanza, así que con Google el prefijo se paga
-> entero en cada mensaje. Cuando el catálogo de skills crezca lo bastante para superar ese
-> mínimo, evaluar el context caching explícito de Gemini (crear el caché del catálogo y
-> referenciarlo por nombre). Hasta entonces la optimización de caché es sólo Anthropic, que es
-> el proveedor para el que se optimiza primero.
+> ✅ **RESUELTO (Google), 10/09/2026 — y la premisa era falsa.** Aquí decía que el prefijo no
+> llegaba al mínimo de Gemini. Sí llega: contando las declaraciones de herramientas son ~7 100
+> tokens, no los ~2 600 del prompt a secas (§13.5 bis). Lo que impedía la caché no era el tamaño
+> sino el **orden** —la fecha y el formato de canal abrían el prompt—, y corregido acierta el
+> 82 % con la caché **implícita**, sin necesidad del caché explícito que este TODO proponía
+> evaluar. Ver §13.5 ter.
+>
+> ⚠️ La moraleja vale más que el arreglo: este TODO llevaba meses dando por perdida una
+> optimización a partir de una cifra que nadie había medido. La medición llegó cuando
+> `GoogleAIEngine` empezó a registrar `cacheado`, y contestó en una tarde.
 
 El índice se monta con la **primera frase** de cada `definicion()->descripcion`, así que no hay
 una segunda lista que mantener: añadir una skill la mete en el triaje sola. Y es la frase que
@@ -5134,6 +5138,86 @@ todas significa que el prefijo cambia entre vueltas y se está pagando entero ca
 
 ⚠️ **Y el MODELO en la línea también faltaba.** Con tres tramos apuntando a modelos distintos, un
 coste sin modelo no se puede atribuir a nadie.
+
+### 13.5 ter La caché acertaba el 0 %, y eran dos líneas mal colocadas (10/09/2026)
+
+La métrica de arriba, en cuanto hubo tráfico real, contestó lo peor posible:
+
+```
+llamadas con la métrica nueva: 13
+entrada total: 104 781   cacheado: 0   (0 %)
+```
+
+**Cero. No «poco»: ninguna.** El prefijo superaba el mínimo de Gemini, el tráfico era suficiente,
+y aun así no acertaba una sola vez.
+
+#### La causa
+
+La caché de prefijo casa **byte a byte y desde el primer carácter**. El prompt del huésped abría
+con dos bloques que cambian:
+
+| Bloque | Cada cuánto cambia |
+|---|---|
+| `Hoy es {fecha} ({día})` | cada día |
+| `formatoSegunCanal($actor)` | según el canal de quien escribe |
+
+Iban dentro de `AiConversationProcessor::reglasComunes()`, que es la **instrucción de sistema**, y
+por tanto delante de todo lo demás. Con la fecha arriba, cada día empieza con la caché vacía; con
+el formato de canal arriba, WhatsApp y Booking no comparten ni un token.
+
+Lo llamativo es que el arreglo estaba escrito desde el principio en otro sitio: el contrato de
+`ConversationRequest` ya dice que `systemPrompt` es la parte estable y `contexto` la volátil, y
+`contexto()` ya llevaba el perfil, los límites de canal y el índice de temas **por esta misma
+razón**, cada uno con su comentario explicándolo. La fecha y el canal simplemente nunca se
+movieron.
+
+#### El arreglo
+
+Las dos se fueron a `contexto()`. Siguen viajando en la instrucción de sistema —Gemini recibe
+`systemInstruction.parts = [reglas, contexto]`— así que el modelo las ve igual de bien; lo único
+que cambia es que ahora van **después** del bloque estable.
+
+⚠️ **`reglasComunes()` perdió el parámetro `$actor`, y eso es la mitad del arreglo.** Sin nada
+volátil dentro, el método ya no puede depender de quién escribe, y la firma pasa a garantizar el
+invariante en vez de confiarlo a que nadie vuelva a interpolar algo ahí.
+
+#### El resultado, medido
+
+| | entrada | cacheado | |
+|---|---|---|---|
+| Antes | 104 781 (13 llamadas) | **0** | 0 % |
+| Primera llamada tras el cambio | 19 812 | 0 | la caché se escribe |
+| Segunda y tercera, idénticas | 19 793 | **16 232** | **82 %** |
+
+La primera llamada de un prefijo nuevo siempre sale a 0: es la que lo escribe.
+
+#### `app:agent:prefijo`
+
+`AgentPrefijoCommand` mide el prefijo y **falla** si se vuelve a partir. Imprime el `sha1` de las
+reglas por actor y suma las declaraciones de herramientas, que es la mitad larga:
+
+```
+ actor                  sha1(reglas)   reglas   herramientas   prefijo   ≥ 4096
+ huésped · whatsapp     eb5ab858675a   1 242    5 842          7 084     sí
+ huésped · booking      eb5ab858675a   1 242    5 842          7 084     sí
+ prospecto · whatsapp   f58dcf9f7756   1 213    3 263          4 476     sí
+```
+
+Dos cosas que sólo se ven aquí:
+
+- ⚠️ **El texto de las reglas son 1 242 tokens; el prefijo real son ~7 100.** Lo que se cachea
+  incluye las declaraciones de las herramientas, que van delante de los mensajes y pesan cuatro
+  veces más que el prompt. Discutir el tamaño del prompt sin contarlas es discutir el 18 %.
+- ⚠️ **El prospecto está a 380 tokens del mínimo.** Ve menos skills, así que su prefijo es más
+  corto; quitarle una herramienta más lo deja por debajo de 4 096 y Gemini dejará de cachearle
+  **sin decir nada**. Por eso el comando imprime la columna.
+
+El comando comprueba además que la fecha **no** haya vuelto al prefijo: un prefijo idéntico es
+trivial de conseguir borrando el bloque de fechas, y eso ya costó una cotización a tarifas de
+2025 (§13.5 bis y el comentario de `contexto()`).
+
+Verificado también que sigue resolviendo fechas relativas: preguntado «del 8 al 10 de noviembre»
+el 10/09/2026, contesta `2026-11-08 a 2026-11-10`.
 
 ### 13.6 El turno seco: `turnoDirecto()`
 
