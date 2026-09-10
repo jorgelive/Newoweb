@@ -50,6 +50,31 @@ final readonly class OrdenDelNombre
      * Hacen falta las dos partes y con algo de letra: sin apellido no hay orden que discutir, y
      * un apellido de una letra —`H`, como lo trunca Airbnb— tampoco se puede juzgar.
      */
+    /**
+     * ¿La CAJA de este texto no dice nada y se puede reescribir?
+     *
+     * 🔥 **Sólo cuando viene TODO en mayúsculas o TODO en minúsculas.** Un canal que manda
+     * «JOSE ANTONIO ALVAREZ» no está afirmando nada sobre cómo se escribe ese nombre: está
+     * gritando porque su formulario lo guardó así. Pero uno que manda «Jose Antonio Alvarez» sí
+     * afirma algo —alguien lo tecleó— y reescribirlo sería **corregirle el nombre a una persona
+     * porque a nosotros nos parece que le falta una tilde**.
+     *
+     * Es la misma asimetría de todo este módulo: dejarlo quieto no cuesta nada.
+     */
+    public static function mereceCapitalizacion(?string $texto): bool
+    {
+        $t = trim((string) $texto);
+
+        if ($t === '' || preg_match('/\p{L}/u', $t) !== 1) {
+            return false;
+        }
+
+        $tieneMinuscula = preg_match('/\p{Ll}/u', $t) === 1;
+        $tieneMayuscula = preg_match('/\p{Lu}/u', $t) === 1;
+
+        return $tieneMinuscula !== $tieneMayuscula;   // todo de una caja: la caja no informa
+    }
+
     public static function mereceRevision(?string $nombre, ?string $apellido): bool
     {
         $n = trim((string) $nombre);

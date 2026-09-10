@@ -46,7 +46,7 @@ final readonly class RevisorDeOrdenDeNombre
      * como `warning`, que sí se ve en producción. El veredicto en sí lo registra quien lo use:
      * este servicio no sabe si se está simulando o trabajando.
      *
-     * @return array{invertido: bool, confianza: string, motivo: string}|null
+     * @return array{invertido: bool, confianza: string, motivo: string, nombreCapitalizado: string, apellidoCapitalizado: string}|null
      */
     public function veredicto(string $nombre, string $apellido): ?array
     {
@@ -97,6 +97,8 @@ final readonly class RevisorDeOrdenDeNombre
             'invertido' => (bool) ($veredicto['invertido'] ?? false),
             'confianza' => (string) ($veredicto['confianza'] ?? ''),
             'motivo' => (string) ($veredicto['motivo'] ?? 'sin motivo'),
+            'nombreCapitalizado' => (string) ($veredicto['nombreCapitalizado'] ?? ''),
+            'apellidoCapitalizado' => (string) ($veredicto['apellidoCapitalizado'] ?? ''),
         ];
     }
 
@@ -118,7 +120,7 @@ final readonly class RevisorDeOrdenDeNombre
         (Booking, Airbnb). A veces vienen cruzados: el campo del nombre trae los apellidos y el
         del apellido trae los nombres de pila.
 
-        Tu único trabajo es decir si están cruzados.
+        Tienes dos trabajos: decir si están cruzados, y devolverlos bien escritos.
 
         Cómo se decide:
         - Piensa en qué cultura encaja cada token. «Rodriguez Barrera» son dos apellidos
@@ -128,6 +130,16 @@ final readonly class RevisorDeOrdenDeNombre
         - Si el par funciona igual de bien en los dos sentidos, o no reconoces la procedencia,
           la confianza es «baja» y se queda como está. Dejarlo quieto no cuesta nada; cruzarlo
           mal le cambia el nombre a una persona.
+
+        Y escríbelos como se escriben de verdad: «JOSE ANTONIO ALVAREZ» es «José Antonio
+        Álvarez». Pon las tildes que le correspondan al nombre en su idioma, respeta las
+        partículas en minúscula —«de la Cruz», «van der Berg»— y las mayúsculas interiores que
+        algunos apellidos llevan —«McDonald», «O'Brien», «D'Angelo»—.
+
+        NO cambies las letras ni el orden de las palabras dentro de cada campo, no traduzcas, y no
+        añadas ni quites nombres. Sólo la caja y las tildes. Si no reconoces de dónde es el
+        nombre, devuélvelo con la primera letra de cada palabra en mayúscula y sin inventar
+        tildes.
 
         Responde sólo con el veredicto.
         PROMPT;
@@ -154,8 +166,23 @@ final readonly class RevisorDeOrdenDeNombre
                     'type' => 'string',
                     'description' => 'Media línea en español explicando la decisión.',
                 ],
+                // 🔥 **La capitalización se pide en la MISMA llamada, y por eso sale gratis.** Ya
+                // se está pagando un turno para juzgar el orden; añadir dos campos a la respuesta
+                // no añade otra llamada. Y hace lo que `ucwords()` no puede: `ucwords('JOSE')` da
+                // `Jose`, nunca `José` — restaurar una tilde exige saber de qué nombre se trata,
+                // que es justamente lo que este modelo está haciendo ya para decidir el orden.
+                'nombreCapitalizado' => [
+                    'type' => 'string',
+                    'description' => 'El campo_nombre bien escrito: mismas palabras y mismo orden, '
+                        . 'con su caja y sus tildes.',
+                ],
+                'apellidoCapitalizado' => [
+                    'type' => 'string',
+                    'description' => 'El campo_apellido bien escrito: mismas palabras y mismo '
+                        . 'orden, con su caja y sus tildes.',
+                ],
             ],
-            'required' => ['invertido', 'confianza', 'motivo'],
+            'required' => ['invertido', 'confianza', 'motivo', 'nombreCapitalizado', 'apellidoCapitalizado'],
         ];
     }
 }
