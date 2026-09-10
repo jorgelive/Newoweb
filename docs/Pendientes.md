@@ -1186,3 +1186,68 @@ como estaban.
 
 La vía existe: `metadata.dispatch_warnings` está declarado y el front ya lo lee. Un veto de
 negocio previsible es un **aviso**, no un error.
+
+---
+
+## Volver a medir el reparto de fallos: la cuenta que lo decidía está caducada — 10/09/2026
+
+El aviso de envío fallido se reparte hoy entre dos guardias, y **quién queda fuera se decidió con
+una cuenta que el mismo día dejó de ser válida**.
+
+La cuenta, medida en producción el 10/09/2026 sobre los salientes en `failed`:
+
+| origen | cuántos | ¿avisa? |
+|---|---|---|
+| Persona (`SENDER_HOST`) | 16 | sí, desde siempre |
+| Agente (`SENDER_SYSTEM` con `generado_por = 'ia'`) | **3** en seis meses | sí, desde el 10/09 |
+| Regla programada (`SENDER_SYSTEM` sin `generado_por`) | **302** | **no** |
+
+El argumento para dejar fuera los 302 es bueno y está escrito en `AvisoEnvioFallidoListener`:
+~1,6 al día, y avisar de cada uno llenaría el móvil con algo que nadie puede arreglar en el
+momento. Su sitio natural es un resumen, no un empujón por cada uno.
+
+⚠️ **Pero los 302 se contaron ANTES de mover el veto de canal.** El commit «El veto del canal se
+preguntaba tres días antes de tocar enviar» sacó la comprobación de `WhatsappMetaSendEnqueuer::createQueueEntity()`
+—donde se resolvía con el estado del día de la creación— y la dejó sólo en la estrategia de
+envío. Una parte de esos 302 son exactamente eso: mensajes declarados muertos antes de tocarles
+salir, con el canal ya rehabilitado cuando llegó su hora (el caso medido está en el pendiente
+«Un canal deshabilitado deja mensajes muertos»).
+
+O sea que **el número que sostiene la decisión ya no describe la realidad**, y puede haberse
+movido en cualquiera de los dos sentidos: menos fallos totales porque dejaron de morir antes de
+tiempo, o los mismos repartidos de otra forma.
+
+### Qué medir, y por qué son dos preguntas y no una
+
+```sql
+-- 1. ¿Sigue siendo 302 contra 3? Sólo cuenta lo posterior al arreglo del veto.
+SELECT COALESCE(JSON_UNQUOTE(JSON_EXTRACT(metadata,'$.generado_por')),'(regla programada)') AS origen,
+       COUNT(*) n
+FROM msg_message
+WHERE direction='outgoing' AND status='failed' AND sender_type='system'
+  AND created_at > '2026-09-10'
+GROUP BY origen;
+
+-- 2. De los de regla, ¿cuántos traen un motivo con el que alguien pueda ACTUAR?
+SELECT JSON_UNQUOTE(JSON_EXTRACT(metadata,'$.dispatch_errors[0]')) AS motivo, COUNT(*) n
+FROM msg_message
+WHERE direction='outgoing' AND status='failed' AND sender_type='system'
+  AND created_at > '2026-09-10'
+GROUP BY motivo ORDER BY n DESC;
+```
+
+La segunda es la que decide de verdad. En la medición vieja, **207 de los 302 decían «posible
+restricción de negocio por canal»**, que no dice qué hacer: sale de que
+`WhatsappMetaSendEnqueuer` devolvía `null` en silencio en vez de lanzar con su razón como sí hace
+Beds24. Un resumen construido sobre ese motivo no le sirve a nadie. **Antes de avisar de más, que
+el motivo sea real.**
+
+### Qué se decide con esto
+
+- Si el volumen cae mucho, los automáticos pueden entrar en la guardia técnica sin resumen.
+- Si se mantiene, hace falta el resumen diario — y hace falta antes arreglar el motivo.
+- Y en los dos casos, comprobar que la guardia técnica no se llene: hoy la sostiene una sola
+  persona, y `ROLE_TECH_SUPPORT` sin nadie con dispositivo suscrito cae al respaldo amplio.
+
+> Cuándo: pasada al menos una semana desde el 10/09/2026, para que haya ciclos de envío completos
+> con el veto ya movido. Antes de esa fecha la muestra mezcla los dos comportamientos.
