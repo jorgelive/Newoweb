@@ -113,29 +113,17 @@ final class PmsRedactorDeCobro
 
         // ── 2 · POR QUÉ es esa cifra ────────────────────────────────────────────
         //
-        // Sólo con adelanto, y en la misma línea que el total: «59.43 de 356.55» se entiende
-        // solo, y ahí es donde el total sirve. Sin esto, el huésped ve un número suelto sobre
-        // una reserva de otro importe.
+        // Sólo con adelanto: «Equivalente a la primera noche» explica un número que, sin eso, no
+        // se parece a nada de la reserva.
         //
         // El texto de la política NO se escribe aquí: sale del enum del establecimiento virtual
         // vía `claveDeLaPolitica`. Ver `PmsSituacionDeCobro`.
-        if ($adelanto) {
-            $porQue = array_filter([
-                $situacion->claveDeLaPolitica !== null
-                    ? $this->t($situacion->claveDeLaPolitica, $idioma)
-                    : '',
-                $this->totalDeLaReserva($reserva) !== null
-                    ? sprintf(
-                        '%s: %s',
-                        $this->t('res_total_reserva', $idioma),
-                        $this->importe((string) $this->totalDeLaReserva($reserva), $moneda, null)
-                    )
-                    : '',
-            ]);
-
-            if ($porQue !== []) {
-                $lineas[] = sprintf('_%s_', implode(' · ', $porQue));
-            }
+        //
+        // ⚠️ **El total ya no va en esta línea** (11/09/2026). Iba aquí —«59.43 de 356.55» se
+        // entiende solo—, pero quedaba entre el adelanto y la tarjeta: tres cifras seguidas de
+        // las que sólo una es la que se paga, y la mayor en medio. Se mudó al final, el paso 5.
+        if ($adelanto && $situacion->claveDeLaPolitica !== null) {
+            $lineas[] = sprintf('_%s_', $this->t($situacion->claveDeLaPolitica, $idioma));
         }
 
         // ── 3 · LA TARJETA, porque cambia el número ─────────────────────────────
@@ -174,6 +162,26 @@ final class PmsRedactorDeCobro
                     $moneda,
                     $situacion->pagoAlLlegar->importe->enSoles
                 )
+            );
+        }
+
+        // ── 5 · EL TOTAL, al final y como referencia ────────────────────────────
+        //
+        // Pedido por Jorge el 11/09/2026: la primera cifra que se ve tiene que ser la que se
+        // paga, y la más pequeña. Al final se lee como lo que es —adelanto más saldo— y no como
+        // una tercera cantidad que pagar. Es también el sitio que ya le da la ficha de `pax`, que
+        // lo pone al pie del detalle de cargos.
+        //
+        // Sólo con adelanto, igual que antes: pidiendo el total, la primera línea YA es ese
+        // número, y repetirlo abajo se leería como una segunda deuda.
+        $total = $adelanto ? $this->totalDeLaReserva($reserva) : null;
+
+        if ($total !== null) {
+            $lineas[] = '';
+            $lineas[] = sprintf(
+                '_%s: %s_',
+                $this->t('res_total_reserva', $idioma),
+                $this->importe($total, $moneda, null)
             );
         }
 

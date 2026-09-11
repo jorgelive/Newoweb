@@ -11368,14 +11368,17 @@ posible: la prosa vive en el cuerpo, traducido a siete idiomas por `AutoTranslat
 entran por `{{ bloque_pago }}`. Se puede reformular una bienvenida sin tocar el dinero, y al
 revés.
 
-El formato quedó cerrado con Jorge el 31/08/2026, y son **tres formas**:
+El formato quedó cerrado con Jorge el 31/08/2026 —con el total movido al final el 11/09—, y son
+**tres formas**:
 
 ```
 *Adelanto para asegurar tu reserva:* USD 60.96
-_Equivalente a la primera noche · Total de la reserva: USD 304.80_
+_Equivalente a la primera noche_
 _Con tarjeta de crédito: USD 64.31 — Incluye 5.5% de comisión_
 
 *Saldo (a tu llegada, al entregarte las llaves):* USD 243.84
+
+_Total de la reserva: USD 304.80_
 ```
 ```
 *Saldo por pagar:* USD 260.40
@@ -11389,8 +11392,14 @@ _Con tarjeta de crédito: USD 113.67 (S/ 380.79) — Incluye 5.5% de comisión_
 #### Las cuatro decisiones de forma
 
 **1 · Abre por la petición, no por el total.** El total es orden de contabilidad; en un WhatsApp
-la primera línea es el asunto, y el asunto es «adelanta 60.96». El total va detrás y en la misma
-línea que el porqué, que es donde de verdad sirve: *60.96 de 304.80* se entiende solo.
+la primera línea es el asunto, y el asunto es «adelanta 60.96».
+
+**Y el total va AL FINAL, como referencia** (11/09/2026). Primero iba en la línea del porqué
+—*60.96 de 304.80* se entiende solo—, pero así quedaba entre el adelanto y la tarjeta: tres
+cifras seguidas de las que sólo una es la que se paga, y la mayor en medio. Jorge: *«que el
+primer monto que ven sea más pequeño»*. Abajo se lee como la suma de adelanto y saldo, que es lo
+que es, y coincide con la ficha de `pax`, que lo pone al pie del detalle de cargos. Sigue
+saliendo sólo con adelanto: pidiendo el total, la primera línea ya es ese número.
 
 **2 · Los medios NO viajan; la tarjeta sí.** La regla:
 
