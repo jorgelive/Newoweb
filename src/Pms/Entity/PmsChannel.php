@@ -55,8 +55,10 @@ class PmsChannel
     /**
      * Canales cuyo chat NO acepta imágenes.
      *
-     * Booking transporta sólo texto, así que a un huésped suyo hay que decirle que la captura
-     * del pago la mande por WhatsApp. Es un dato del CANAL, y por eso vive aquí y no en
+     * ⚠️ **Es en UN sentido.** En Booking el HUÉSPED no puede adjuntar imágenes —su caja de
+     * mensaje no tiene botón para ello—; el alojamiento sí puede mandárselas. Así que lo que no
+     * cabe es la captura del pago que tiene que mandarnos él, y a un huésped suyo hay que decirle
+     * que la mande por WhatsApp. Es un dato del CANAL, y por eso vive aquí y no en
      * `FinMedioCobro`: el catálogo de cobro lo comparten el PMS y las cotizaciones, y no tiene
      * por qué saber qué es Booking. Estuvo metido dentro de las notas de Yape y Plin, y el
      * resultado era que a un huésped que había reservado **directo** se le hablaba del chat de

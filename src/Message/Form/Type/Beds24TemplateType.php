@@ -39,9 +39,10 @@ class Beds24TemplateType extends AbstractType
                     'Va al chat de Booking o Airbnb. <b>Aquí no hay ventana de 24 h</b>: se escribe siempre y '
                     . 'con el largo que haga falta.',
                     'Variables: <code>{{guest_name}}</code>, <code>{{estancias}}</code>, '
-                    . '<code>{{bloque_pago}}</code>, <code>{{account_url}}</code>, <code>{{guide_url}}</code>…<br><br>'
-                    . '⚠️ El chat de <b>Booking no transporta imágenes</b>: si pides una captura, di que la '
-                    . 'manden por WhatsApp.'
+                    . '<code>{{bloque_pago}}</code>, <code>{{account_url}}</code>, <code>{{guide_url}}</code>, '
+                    . '<code>{{whatsapp_numero}}</code>…<br><br>'
+                    . '⚠️ En el chat de Booking <b>el huésped no puede adjuntar imágenes</b> (nosotros sí): '
+                    . 'si le pides una captura, dile que la mande por WhatsApp al <code>{{whatsapp_numero}}</code>.'
                 ),
                 'help_html' => true,
                 'allow_add' => true,

@@ -31,8 +31,29 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         #[Autowire('%pax_catalog_url%')]
         private readonly string $paxCatalogUrl,
         #[Autowire('%pax_catalog_url_nd%')]
-        private readonly string $paxCatalogUrlNd
+        private readonly string $paxCatalogUrlNd,
+        #[Autowire('%whatsapp_oficial%')]
+        private readonly string $whatsappOficial,
     ) {}
+
+    /**
+     * El WhatsApp oficial, como se escribe y como enlace.
+     *
+     * Existe para decirle al huésped de Booking a dónde mandar la captura del pago: en el chat de
+     * Booking el huésped no puede adjuntar imágenes, aunque nosotros sí
+     * (`PmsChannel::CHAT_SIN_IMAGENES`). Se da el NÚMERO y no
+     * sólo el enlace porque es lo único comprobado que llega intacto por ese chat —el número de
+     * Yape lleva meses saliendo en la bienvenida— y un móvil lo convierte en pulsable igual.
+     *
+     * @return array{whatsapp_numero: string, whatsapp_url: string}
+     */
+    private function whatsappOficial(): array
+    {
+        return [
+            'whatsapp_numero' => $this->whatsappOficial,
+            'whatsapp_url' => 'https://wa.me/' . preg_replace('/\D/', '', $this->whatsappOficial),
+        ];
+    }
 
     public function supports(string $contextType): bool
     {
@@ -247,7 +268,7 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // una sábana— sino para cuando hay que demostrarle a la OTA que se dio la
             // información completa. Se manda a mano desde el panel, no por una regla.
             'medios_de_pago_todos'  => $idioma !== null ? $this->redactor->mediosConDatos($reserva, $idioma, todas: true, enlaceTarjeta: $accountUrl) : null,
-        ];
+        ] + $this->whatsappOficial();
     }
 
     /**
@@ -295,6 +316,6 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'account_detail_url'    => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator . '#detalle',
             'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
             'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
-        ];
+        ] + $this->whatsappOficial();
     }
 }

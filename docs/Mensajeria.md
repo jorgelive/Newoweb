@@ -6533,6 +6533,7 @@ arreglar** — ver el aviso al final de esta sección.
 | **Subir una plantilla a Meta sin pasar por el panel** | `msg:meta:push <code> --idiomas=es,en` | Mismo servicio que el botón. El idioma es obligatorio (`--todos` a sabiendas): subir uno **reabre su revisión**. `--ver` no sube nada, sólo enseña qué idiomas hay y en qué estado |
 | **Ver qué le llega al huésped, sin enviarle nada** | `msg:plantilla:ver <code> <localizador>` | Hidrata contra una reserva REAL con el mismo `HidratadorDeMarcadores` del envío. `--canal=beds24\|link\|meta`, `--idioma` |
 | **Cambiar el texto de una plantilla desde la consola** | `msg:plantilla:cuerpo <code> --exportar` → editar → `--desde=<archivo>` | Por el ORM, así que `AutoTranslate` rehace los otros seis idiomas (y el comando dice cuáles). Parte del texto VIVO, no pisa lo editado en el panel. Sólo `beds24` y `link`: el de Meta se cambia rotando (§18) |
+| Cambiar el WhatsApp oficial que se da en las plantillas | `config/services/services_parameters.yaml` → `whatsapp_oficial` | Sale por `{{ whatsapp_numero }}` y `{{ whatsapp_url }}`. Es el número de la API de Meta (`display_phone_number` de los webhooks), **no** ninguno de los teléfonos de `PmsEstablecimiento` |
 | Cambiar cómo se sustituye un `{{ marcador }}` | `HidratadorDeMarcadores` | Existe con `null` → nada; ausente → se deja crudo. **Es `array_key_exists`, no `??`** — con `??` un huésped leyó «un pago por {{ importe_a_pagar }}» |
 | Mandar una plantilla con datos que NO están en el contexto | `Message::setVariablesPlantilla()` | Se fusionan pisando a las del resolver en `WhatsappMetaSendMappingStrategy` |
 | Cambiar cuándo un número «es» de una reserva | `PmsReservaRepository` | `findVivasByTelefono()` + `DIAS_GRACIA_TRAS_SALIDA` / `DIAS_ANTICIPACION` |
@@ -7192,7 +7193,7 @@ una plantilla no lee este documento:
 
 | Cuerpo | Cuándo sale | Límites |
 |---|---|---|
-| `beds24_tmpl` | chat de la OTA (Booking, Airbnb) | ninguno; **no hay ventana** que se cierre. Booking no transporta imágenes |
+| `beds24_tmpl` | chat de la OTA (Booking, Airbnb) | ninguno; **no hay ventana** que se cierre. En Booking el huésped no puede adjuntar imágenes (nosotros sí) |
 | `whatsapp_link_tmpl` | WhatsApp **dentro** de la ventana de 24 h · y el enlace manual `wa.me` | ninguno: es el sitio del texto bueno |
 | `whatsapp_meta_tmpl` | WhatsApp **fuera** de la ventana | 1024 caracteres, texto congelado por Meta, sin saltos de línea en los parámetros |
 
@@ -11504,6 +11505,21 @@ de la lista se leía como parte de lo que venía después. Las tres frases nueva
 ⚠️ **El precio**: esas frases ya no se editan en el cuerpo de la plantilla sino en los textos de la
 interfaz. Se asumió porque sólo `politicas_booking` usa la variable y porque lo que se bifurca en
 un cuerpo sin condicionales se acaba escribiendo mal en uno de los casos.
+
+#### El comprobante, por WhatsApp y con el número escrito (11/09/2026)
+
+`politicas_booking` pedía «envíanos el comprobante» por el chat de Booking, donde **el huésped no
+puede adjuntar imágenes** —su caja de mensaje no tiene botón para ello; nosotros sí podemos
+mandárselas— (`PmsChannel::CHAT_SIN_IMAGENES`). Ahora dice a dónde: *«envíanos el comprobante por
+WhatsApp al {{ whatsapp_numero }}»*.
+
+El número es el **WhatsApp oficial** —el de la API de Meta, `+51 970 393 305`—, que no es ninguno
+de los tres teléfonos de `PmsEstablecimiento` (comercial, atención, Yape). Estaba tecleado a mano
+en `solicitar_mensaje_whatsapp`; ahora es el parámetro `whatsapp_oficial` y dos variables.
+
+Va como **número** y no sólo como enlace `wa.me` porque es lo único comprobado que llega intacto por
+el chat de Booking: el número de Yape lleva meses saliendo en la bienvenida. Si Booking recortara
+enlaces a WhatsApp, un enlace solo dejaría al huésped sin a dónde escribir; un número no.
 
 ⚠️ **Para el botón de la plantilla de Meta hace falta `account_path`**, no `account_url`: en un
 botón `url` aprobado el dominio es fijo y sólo viaja el sufijo. Existían `guide_path` y

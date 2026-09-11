@@ -347,8 +347,9 @@ class MessageTemplateCrudController extends BaseCrudController
                 '<b>El chat de la OTA</b> (Booking, Airbnb) por Beds24: <b>sin ventana de 24 h</b> '
                 . 'y sin tope de largo.',
 
-                '⚠️ <b>El chat de Booking no transporta imágenes.</b> Si el texto pide una '
-                . 'captura, dilo mandándola por WhatsApp.<br><br>'
+                '⚠️ <b>En el chat de Booking el huésped no puede adjuntar imágenes</b> (nosotros '
+                . 'sí). Si el texto le pide una captura, dile que la mande por WhatsApp al '
+                . '<code>{{whatsapp_numero}}</code>.<br><br>'
 
                 . '☑️ <b>«Ocultar botones interactivos»:</b> el sistema puede añadir al final del '
                 . 'mensaje una lista con los enlaces de los botones, porque el chat de la OTA no '

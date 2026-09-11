@@ -44,6 +44,14 @@ parameters:
     operaciones_sin_valor: ''
     operaciones_telefono_emergencia: '%env(default:operaciones_sin_valor:OPERACIONES_TELEFONO_EMERGENCIA)%'
 
+    # El WhatsApp OFICIAL: el número conectado a la API de Meta, al que llegan los webhooks
+    # (`display_phone_number` en `msg_meta_webhook_audit`). ⚠️ NO es ninguno de los tres
+    # teléfonos de `PmsEstablecimiento` —comercial, atención, Yape—: es el de la integración, y
+    # por eso vive aquí, junto a las URLs de pax, y no en la ficha del establecimiento.
+    # Lo leen las plantillas por `{{ whatsapp_numero }}` y `{{ whatsapp_url }}`; antes estaba
+    # tecleado a mano en el cuerpo de `solicitar_mensaje_whatsapp`.
+    whatsapp_oficial: '+51 970 393 305'
+
     pax_book_guide_url: '%env(PAX_HOST_URL)%/huesped/reserva'
     pax_book_guide_url_nd: 'huesped/reserva'
     # ⚠️ El catálogo de tours vive en `/catalogo/{localizador}` — ver `pax/src/router/index.ts`.
