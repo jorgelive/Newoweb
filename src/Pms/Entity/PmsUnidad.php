@@ -113,8 +113,28 @@ class PmsUnidad
     // 🔐 SEGURIDAD Y CONECTIVIDAD
     // ============================================================
 
+    /**
+     * Código de la cerradura inteligente. **Hoy vacío en todas las casitas, y es lo correcto**:
+     * no hay smart lock instalado todavía. Se rellenará cuando lo haya.
+     *
+     * ⚠️ Hasta el 11/09/2026 este campo guardaba `#1`…`#7`, que **no es el código de ninguna
+     * puerta**: es el número grabado en la llave que se saca de la caja fuerte. El nombre bastó
+     * para que el agente le dijera a un huésped «el código de la puerta es #5» y lo mandara a
+     * buscar un número que no existe — las puertas no se numeran, por seguridad. Ese dato vive
+     * ahora en {@see self::$numeroDeLlave}.
+     */
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $codigoPuerta = null;
+
+    /**
+     * El número grabado en la llave que le toca a esta casita dentro de la caja fuerte.
+     *
+     * Es lo que el huésped necesita para saber **cuál** de las llaves coger. Para saber **dónde**
+     * está su puerta no hay número: cada casita tiene su ítem «Puerta del Departamento» en la
+     * guía, que la describe («la segunda puerta verde, al pie de las gradas»).
+     */
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $numeroDeLlave = null;
 
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $codigoCaja = null;
@@ -398,6 +418,18 @@ class PmsUnidad
     public function getCodigoPuerta(): ?string
     {
         return $this->codigoPuerta;
+    }
+
+    public function getNumeroDeLlave(): ?string
+    {
+        return $this->numeroDeLlave;
+    }
+
+    public function setNumeroDeLlave(?string $numeroDeLlave): self
+    {
+        $this->numeroDeLlave = $numeroDeLlave;
+
+        return $this;
     }
 
     public function setCodigoPuerta(?string $codigoPuerta): self

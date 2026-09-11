@@ -172,7 +172,7 @@ final class PmsGuiaInterpolador
      * cargado. Sin esta lista, una unidad sin `codigoCaja` filtraría el
      * placeholder crudo en lugar del mensaje de bloqueo.
      */
-    private const CLAVES_SENSIBLES = ['door_code', 'safe_code', 'keybox_main', 'keybox_sec'];
+    private const CLAVES_SENSIBLES = ['door_code', 'numero_llave', 'safe_code', 'keybox_main', 'keybox_sec'];
 
     /**
      * El valor se envuelve en un `<span>` para que herede el estilo que ya

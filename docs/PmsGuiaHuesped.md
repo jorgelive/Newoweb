@@ -856,10 +856,43 @@ lo está. Los temas informativos —la ducha, el wifi— no se marcan.
 
 ### 🔑 Los códigos de entrada: `consultar_codigos`
 
-La caja de las llaves (`PmsEstablecimiento::$codigoCajaPrincipal`) y la puerta de la casita
-(`PmsUnidad::$codigoPuerta`). Sirve igual para las dos formas de pedirlo, que son la misma
+La caja de las llaves (`PmsEstablecimiento::$codigoCajaPrincipal`) y el número de la llave de la
+casita (`PmsUnidad::$numeroDeLlave`). Sirve igual para las dos formas de pedirlo, que son la misma
 consulta: el huésped preguntando «¿cuál es el código?» y el operador diciendo «mándale el código
 a Ana» — con el dato en la mano, el agente encadena `enviar_mensaje_huesped`.
+
+#### 🔥 Las puertas NO están numeradas (11/09/2026)
+
+`PmsUnidad` tiene dos campos y **sólo uno tiene datos hoy**:
+
+| campo | qué es | hoy | en la guía |
+|---|---|---|---|
+| `numeroDeLlave` | el número grabado en la llave que hay que sacar de la caja | `#1`…`#7` | `{{ numero_llave }}` |
+| `codigoPuerta` | el código del smart lock | **vacío**, no está instalado | `{{ door_code }}` |
+
+Hasta esa fecha el número de la llave vivía en `codigoPuerta`, con la etiqueta «Smart Lock
+(Puerta)» en el panel y saliendo de la skill como `puerta_de_la_casita`. El dato era correcto; la
+etiqueta, no. Y el agente hizo lo único que podía hacer con ella: le escribió a un huésped **«el
+código de la caja de seguridad es 4074E y el de la puerta es #5»** y lo mandó a buscar un número
+que no existe en ninguna puerta. Lo corrigió una persona a mano: *«La llave es la número 5»*.
+
+**Las puertas no se numeran por seguridad.** Para encontrarlas está el ítem «Puerta del
+Departamento», que existe para las siete casitas y las describe: «la segunda puerta verde, al pie
+de las gradas», «sube las gradas del final del pasaje y gira a la derecha».
+
+Por eso `consultar_codigos` devuelve, junto al número, una clave `como_encontrar_la_puerta` que
+dice **en positivo** lo que el agente sí debe hacer —mirar ese ítem— en vez de prohibirle nombrar
+puertas: el modelo no obedece supresiones (`CLAUDE.md`).
+
+⚠️ **Sin alias.** `{{ door_code }}` dejó de resolver al número de llave el mismo día; el único
+texto que lo usaba —«Toma la Llave `{{ door_code }}` del interior»— pasó a `{{ numero_llave }}` en
+los siete idiomas (`Version20260911180000`). Mantener el alias habría sobrevivido al smart lock, y
+entonces habría dos marcadores llamándose igual para dos cosas distintas.
+
+⚠️ Ese renombrado va **por SQL pese a tocar un campo traducido**, que es la excepción a la regla de
+`CLAUDE.md`: no cambia el contenido, renombra un token idéntico en todos los idiomas. Por el ORM,
+`AutoTranslationEventListener` re-traduciría siete textos HTML largos para sustituir doce
+caracteres, y una traducción nueva puede mover el marcador o romperlo.
 
 **Tres condiciones, y cada una dice algo distinto:**
 

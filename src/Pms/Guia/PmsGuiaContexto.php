@@ -69,7 +69,11 @@ final readonly class PmsGuiaContexto
         }
 
         $sensibles = array_filter([
-            'door_code'   => $unidad->getCodigoPuerta(),
+            // `door_code` es el smart lock, hoy vacío en todas las casitas: `array_filter` lo
+            // deja fuera solo. `numero_llave` es lo que el huésped necesita hoy para saber cuál
+            // de las llaves de la caja es la suya.
+            'door_code'    => $unidad->getCodigoPuerta(),
+            'numero_llave' => $unidad->getNumeroDeLlave(),
             'safe_code'   => $unidad->getCodigoCaja(),
             'keybox_main' => $establecimiento?->getCodigoCajaPrincipal(),
             'keybox_sec'  => $establecimiento?->getCodigoCajaSecundaria(),

@@ -28,7 +28,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Los códigos para entrar: la caja de las llaves y la puerta de la casita.
+ * Lo que hace falta para entrar: el código de la caja de las llaves y el número de la llave.
  *
  * Sirve para las dos formas de pedirlo, que son la misma consulta:
  *
@@ -120,8 +120,9 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
     public function definicion(): SkillDefinition
     {
         return new SkillDefinition(
-            descripcion: 'Los códigos para entrar: el de la caja fuerte donde están las llaves y '
-                . 'el de la puerta de la casita. Úsala igual si el huésped pregunta «¿cuál es el '
+            descripcion: 'Lo que hace falta para entrar: el código de la caja fuerte donde están '
+                . 'las llaves y el NÚMERO DE LA LLAVE que le toca a su casita. Úsala igual si el '
+                . 'huésped pregunta «¿cuál es el '
                 . 'código?» que si el operador dice «mándale el código a Ana» — te devuelve el '
                 . 'dato y tú lo envías. Para el WiFi usa consultar_wifi, no ésta. Si viene '
                 . 'bloqueado, NO te lo inventes ni lo busques en otro sitio: di el motivo tal '
@@ -147,7 +148,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
                     . 'Y si un OPERADOR pregunta por la caja en general —«¿cuál es el código de '
                     . 'la caja?», sin hablar de ningún huésped— OMÍTELO: la caja de las llaves '
                     . 'es de la casa y te la doy sin más. Sólo pásalo cuando el operador '
-                    . 'pregunte por alguien en concreto o quiera el código de una puerta.',
+                    . 'pregunte por alguien en concreto o quiera el número de llave de una casita.',
                     requerido: false),
                 SkillParameter::texto('casita', 'Nombre o slug de la casita, si la reserva tiene '
                     . 'varias.', requerido: false),
@@ -227,7 +228,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
                     $eleccion['candidatas']
                 ))),
                 'pregunta' => 'Esta reserva tiene varias casitas y cada una tiene su propia '
-                    . 'puerta. Pregúntale al huésped en cuál está y vuelve a llamarme con «casita».',
+                    . 'llave. Pregúntale al huésped en cuál está y vuelve a llamarme con «casita».',
             ]);
         }
 
@@ -274,8 +275,18 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
             ], static fn ($v) => $v !== null));
         }
 
-        // Condición 3, por código: el establecimiento guarda el de la caja de llaves y la
-        // unidad el de su puerta. Que falte uno no impide dar el otro.
+        // Condición 3, por dato: el establecimiento guarda el código de la caja de llaves y la
+        // unidad el número de SU llave. Que falte uno no impide dar el otro.
+        //
+        // ⚠️ **Las puertas NO están numeradas, y el 11/09/2026 esto le costó un paseo a un
+        // huésped.** El dato de la unidad se llamaba `codigoPuerta` y salía de aquí como
+        // `puerta_de_la_casita`, así que el modelo escribió «el código de la puerta es #5» y
+        // mandó a alguien a buscar un número que no existe en ninguna puerta. El número estaba
+        // grabado en la LLAVE. Hoy el campo es `numeroDeLlave` y `codigoPuerta` queda reservado
+        // para el smart lock, que todavía no está instalado.
+        //
+        // Por eso el resultado lleva el hecho **en positivo** —lo que el agente SÍ debe decir—
+        // en vez de una prohibición: el prompt no obedece supresiones (`CLAUDE.md`).
         $codigos = [];
         $faltan = [];
 
@@ -287,12 +298,26 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
             $faltan[] = 'el de la caja de las llaves';
         }
 
-        $puerta = trim((string) $unidad->getCodigoPuerta());
+        $numeroDeLlave = trim((string) $unidad->getNumeroDeLlave());
 
-        if ($puerta !== '') {
-            $codigos['puerta_de_la_casita'] = $puerta;
+        if ($numeroDeLlave !== '') {
+            $codigos['numero_de_la_llave'] = $numeroDeLlave;
+            $codigos['como_encontrar_la_puerta'] = sprintf(
+                'Las puertas no llevan número: el %s es el de la llave que tiene que sacar de la '
+                . 'caja. Para decirle dónde está su puerta, usa consultar_guia y busca «Puerta '
+                . 'del Departamento» de %s, que la describe.',
+                $numeroDeLlave,
+                $unidad->getNombre()
+            );
         } else {
-            $faltan[] = sprintf('el de la puerta de %s', $unidad->getNombre());
+            $faltan[] = sprintf('el número de la llave de %s', $unidad->getNombre());
+        }
+
+        // El smart lock, cuando lo haya. Hoy está vacío en todas las casitas.
+        $smartLock = trim((string) $unidad->getCodigoPuerta());
+
+        if ($smartLock !== '') {
+            $codigos['codigo_del_smart_lock'] = $smartLock;
         }
 
         // Alguna unidad tiene además su propia caja; la mayoría no.
