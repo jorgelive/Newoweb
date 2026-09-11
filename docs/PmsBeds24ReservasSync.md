@@ -870,13 +870,18 @@ fechas, las 17 se partieron en tres grupos:
 |---|---|---|
 | Duplicado de una reserva real que existe | `UDKAY9` `ZBEM4E` `S8XTNF` `4K8WGF` `7MXV5R` `NATUCQ` `66V3MR` `CRNKEZ` | sobran |
 | Espejo de un bloqueo | `N2E6SC` («Pintor Mario») `U85CVT` («Arreglar») `F3FWVW` («Evento (Bloqueo)») | sobran |
-| **Único registro de lo que parece una estancia real** | `46Q86C` `W9PGR3` `D4VFFZ` `YUKB4J` `VANJKN` `QBDNFK` | **no se tocan sin decisión** |
+| **Estancias REALES** | `46Q86C` `W9PGR3` `D4VFFZ` `YUKB4J` `VANJKN` `QBDNFK` | no se borran: se les quita el «(M) » |
 
 El tercero no tiene ninguna otra estancia en esa casita esas noches, guarda teléfonos reales que no
 están en ninguna otra reserva, y a dos (`W9PGR3`, `VANJKN`) les llegaron la guía y el check-out por
-WhatsApp —uno leído—. Todo apunta a huéspedes que se alojaron y cuya reserva original ya no existe,
-y a que el fantasma es lo único que queda de su estancia. Eso sólo lo puede decidir quien conoce a
-los huéspedes: por eso el comando **no elige**, recibe los localizadores a mano.
+WhatsApp —uno leído—. **Confirmado con el dueño el 11/09/2026: esos huéspedes se alojaron.** Su
+reserva original ya no está, así que lo que queda es el único registro de su estancia: no se borran.
+`Version20260911100000` les quita el «(M) » del `titulo_cache` —el prefijo estaba sólo ahí; nombre,
+apellido y hilo ya estaban limpios— y con eso dejan de parecer espejos.
+
+Eso es justo lo que el comando **no** puede decidir, y por eso recibe los localizadores a mano: la
+diferencia entre una copia y el último rastro de una estancia no está en los datos, está en saber si
+esa persona durmió allí.
 
 Qué comprueba y qué hace, en su docblock. Lo esencial:
 
