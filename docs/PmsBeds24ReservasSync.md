@@ -16,6 +16,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
     · [5.4 La verificación del equipo es para los canales que NO cobran](#54--la-verificación-del-equipo-es-para-los-canales-que-no-cobran)
 6. [El Mecanismo de Espejo Virtual](#6-el-mecanismo-de-espejo-virtual)
     · [6.3.b Cambiar de casita: qué link se mueve y cuál se recrea](#63b-cambiar-de-casita-qué-link-se-mueve-y-cuál-se-recrea)
+    · [6.3.d El espejo que vuelve como reserva: las reservas fantasma](#63d-el-espejo-que-vuelve-como-reserva-las-reservas-fantasma-10092026)
     · [6.3.c Los estados del link: cuáles se usan de verdad](#63c-los-estados-del-link-cuáles-se-usan-de-verdad)
 7. [Camino C — Push de vuelta a Beds24](#7-camino-c--push-de-vuelta-a-beds24)
     · [7.1.c Cancelarlo todo NO convierte la reserva en directa](#71c-cancelarlo-todo-no-convierte-la-reserva-en-directa-10092026)
@@ -816,6 +817,92 @@ hacía nada salvo desinformar a quien mirara la ficha después.
 > consuma. Un estado a medio cablear es peor que no tenerlo, porque se lee como una promesa.
 
 ---
+
+### 6.3.d El espejo que vuelve como reserva: las reservas fantasma (10/09/2026)
+
+Un espejo es un booking que creamos **nosotros** para tapar el listing gemelo, y su sitio es un
+link `es_principal = 0` colgando del evento de la estancia real. Si ese link se pierde y el espejo
+vuelve por el barrido, **ningún link lo reclama**, y hasta el 10/09/2026 el pull lo adoptaba como
+si fuera una reserva nueva: evento con título «(M) …», reserva, su propio par de links —**se le
+hacía un espejo al espejo**— y a veces hilo de chat.
+
+**Cómo llegaron, medido:** 33 eventos «(M) …» adoptados entre el 02/03 y el 28/07/2026, **todos
+por pull y ninguno por webhook**. Es coherente: un link espejo no tiene disparador que genere
+webhook; sólo el barrido podía traerlos.
+
+**Por qué no los paró nada:**
+
+- `custom2 = 'MIRROR'` es la marca que distingue un espejo, y **nuestros espejos no la llevaban
+  hasta el 30/07/2026** (`af8b1268`). El pull preguntaba `$booking->custom2 !== 'MIRROR'`, Beds24 le
+  devolvía un booking sin marca, y la respuesta era «principal» de buena fe.
+- `datosLocked` no era su trabajo: impide **sobrescribir** campos que ya tienen dueño, no decide si
+  nace una fila. Su término `$isPrincipal` sí habría frenado la escritura del nombre, pero nació el
+  02/04/2026 —11 fantasmas son anteriores— y a los otros 22 se le mintió por lo de arriba.
+
+#### La guarda
+
+`BookingPullPersister::upsert()`, justo después de resolver el link:
+
+```php
+if (!$existingLink && $booking->custom2 === 'MIRROR') {
+    // warning con bookId, unidad y fechas → skipped/ignored, no se crea NADA
+}
+```
+
+- **Sólo se abstiene de estrenar.** Un espejo con su link sigue pasando y refrescando su
+  `lastSeenAt`, que es lo único que aporta su pull.
+- ⚠️ **No cubre los espejos empujados antes del 30/07**: no llevan la marca. Hoy no importa —todos
+  los fantasmas son de fechas pasadas y el barrido arranca en `hoy − 1`—, pero si alguno de esos
+  espejos viejos se reactivara, entraría igual. Su única señal sería el `firstName: "(M) …"`, que es
+  más débil y por eso no se usa para decidir.
+- Complementa a §7.1.d («el pull no inventa reservas»), que cierra el caso simétrico: el
+  **principal** de un bloqueo sin reserva.
+
+#### La limpieza: `app:pms:retirar-fantasmas`
+
+Lo que dejaron: **17 reservas cuyos eventos son todos «(M) …»**, más 13 eventos «(M) …» colgando
+de reservas reales.
+
+⚠️ **«Todos sus eventos son (M)» NO basta para saber que una reserva sobra.** Cruzadas por casita y
+fechas, las 17 se partieron en tres grupos:
+
+| grupo | reservas | qué son |
+|---|---|---|
+| Duplicado de una reserva real que existe | `UDKAY9` `ZBEM4E` `S8XTNF` `4K8WGF` `7MXV5R` `NATUCQ` `66V3MR` `CRNKEZ` | sobran |
+| Espejo de un bloqueo | `N2E6SC` («Pintor Mario») `U85CVT` («Arreglar») `F3FWVW` («Evento (Bloqueo)») | sobran |
+| **Único registro de lo que parece una estancia real** | `46Q86C` `W9PGR3` `D4VFFZ` `YUKB4J` `VANJKN` `QBDNFK` | **no se tocan sin decisión** |
+
+El tercero no tiene ninguna otra estancia en esa casita esas noches, guarda teléfonos reales que no
+están en ninguna otra reserva, y a dos (`W9PGR3`, `VANJKN`) les llegaron la guía y el check-out por
+WhatsApp —uno leído—. Todo apunta a huéspedes que se alojaron y cuya reserva original ya no existe,
+y a que el fantasma es lo único que queda de su estancia. Eso sólo lo puede decidir quien conoce a
+los huéspedes: por eso el comando **no elige**, recibe los localizadores a mano.
+
+Qué comprueba y qué hace, en su docblock. Lo esencial:
+
+- **Rechaza** una reserva con fechas por venir, con dinero, con mensajes programados o con un push
+  en curso — y con `--ejecutar` no toca ninguna mientras quede una rechazada en la lista.
+- **Los hilos se fusionan por persona**, así que el asunto fantasma puede colgar del hilo de un
+  huésped real. Si la cabecera del hilo es otra reserva, **sólo se retira el asunto** y los mensajes
+  se quedan: son lo que se le mandó a esa persona. Si la cabecera es el fantasma, el hilo se borra
+  sólo si no tiene entrantes, nada entregado, ni teléfono o correo de nadie; si no, **la reserva se
+  rechaza**, porque ese hilo es de alguien.
+- Las **cáscaras de fusión** —hilos vacíos con `fusionado_en` que conservan la cabecera vieja— se
+  van con el fantasma: `fusionado_en` sólo lo leen la fusión y su barrido; nadie redirige por él.
+- Va por **SQL, no por ORM**, al revés que `app:pms:cabeceras:huerfanas`: aquí los listeners son el
+  problema. `Beds24BookingsPushQueueListener` encolaría un DELETE a Beds24 por cada link (§12.12.2)
+  y `PmsReservaDeleteListener` vetaría las confirmadas. Son fechas pasadas: en Beds24 no hay nada que
+  ganar.
+- `--ensayo` borra dentro de una transacción, comprueba que salió exactamente lo previsto y la
+  deshace. `--ejecutar` exige antes un respaldo JSONL **y comprueba su tamaño** — el de §12.14 existía,
+  se llamaba bien y pesaba 0 bytes.
+
+⚠️ **Esto no contradice «no se borra: se marca» (`CLAUDE.md`).** Lo que se borra no le pasó a nadie:
+son copias de una reserva que existe o de un bloqueo. Lo que sí es historia se queda.
+
+> **Pendiente:** los 6 del tercer grupo, y los 13 eventos «(M) …» dentro de reservas reales
+> (todos pasados, 12 sin cancelar), que son otra limpieza: sacar un evento de una reserva viva
+> mueve su rollup.
 
 ### 6.4 Sólo el link principal escribe los datos de la estancia
 
@@ -5684,6 +5771,9 @@ estimado. Anotado en `docs/Pendientes.md`.
 | Cambiar si el canal puede confirmar una estancia solo | `BookingPullPersister` | `resolveEstado()` — **lee §5.4 antes**: los que ya cobraron (Airbnb, VRBO) sí confirman; Booking no. El `(int)$status === 0` del final parece un bug y no lo es |
 | Añadir un parámetro multivaluado a cualquier GET de Beds24 | `BookingsPullMappingStrategy`, `Beds24InvoiceReceiveMappingStrategy` | montarlo en `fullUrl`; un array en el `payload` sale como `x[0]=` y Beds24 lo ignora |
 | Tocar cascadas del grafo evento/link/cola de push | `Beds24BookingsPushQueueCreator` | `enqueueForLink()` — **lee §12.11 antes** |
+| Qué hace el pull con un espejo que ningún link reclama | `BookingPullPersister` | `upsert()`, la guarda de `custom2 === 'MIRROR'` — §6.3.d |
+| Que el pull no le invente reserva a un evento que ya existe sin ella | `BookingPullPersister` | `upsert()`, rama madre/individual — §7.1.d |
+| Retirar reservas fantasma (espejos adoptados) | `PmsRetirarReservasFantasmaCommand` | `app:pms:retirar-fantasmas <loc…>` — informe por defecto, `--ensayo`, `--ejecutar`. **La lista la decide una persona**: §6.3.d |
 | Que el refresco de tarifas deje de re-encolar lo idéntico (§8.1) | `Beds24RatesPushQueueCreator` | `enqueueForInterval()` — añadir dedupe por valor contra el último `success` de la unidad+fecha |
 | Cambiar el paso/horizonte del barrido de tarifas (§8.1) | `Beds24RatesPushJob` | `getStepInterval()` (`P2W`) / `getHorizonteMaximo()` |
 | Podar filas `success` viejas de una cola que creció (§2, §8.1) | `app:exchange:vigilar-colas` (cron min 25) | ahí va el `DELETE ... status='success' AND created_at < ...` |
