@@ -905,7 +905,21 @@ Qué comprueba y qué hace, en su docblock. Lo esencial:
 ⚠️ **Esto no contradice «no se borra: se marca» (`CLAUDE.md`).** Lo que se borra no le pasó a nadie:
 son copias de una reserva que existe o de un bloqueo. Lo que sí es historia se queda.
 
-> **Pendiente:** los 6 del tercer grupo, y los 13 eventos «(M) …» dentro de reservas reales
+#### Ejecutado el 11/09/2026
+
+Las **11** de los dos primeros grupos, retiradas. Respaldo doble antes de tocar nada: el JSONL del
+comando (104 filas) y un `mysqldump --where` de las nueve tablas implicadas (424 KB, 104 filas
+también — se cruzaron). Después: **0 fantasmas**, 0 eventos o links huérfanos, 0 enlaces apuntando a
+una reserva que no existe, y los cinco hilos compartidos en pie con sus mensajes (Anel 12, Rene 6,
+Carmen 4, Joshep 4, Noortje 1), ya con un solo asunto.
+
+⚠️ **Un resto que el comando no ve:** el hilo de Joshep se quedó llamándose «(M) Joshep Aliaga».
+`guest_name` es una copia que escribe `MessageConversationFactory::upsertFromContext()` desde el
+asunto, y se había fijado cuando el fantasma era su cabecera. Se corrigió al valor que escribiría el
+factory desde la reserva real. **Si se retira un asunto de un hilo, hay que mirar si el hilo se
+llamaba como él.**
+
+> **Pendiente:** los 13 eventos «(M) …» dentro de reservas reales
 > (todos pasados, 12 sin cancelar), que son otra limpieza: sacar un evento de una reserva viva
 > mueve su rollup.
 
