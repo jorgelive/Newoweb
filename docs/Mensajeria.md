@@ -7200,6 +7200,23 @@ campo por campo, en colapsables: qué hace cada casilla, por qué `is_active` y 
 no son lo mismo, por qué el nombre de Meta lleva sufijo desde el primer día, y qué variables caben
 en cada sitio. Estaba todo aquí y en ningún lado donde lo viera quien escribe los textos.
 
+#### Las ayudas van PLEGADAS, y el resumen es la mitad del trabajo
+
+Escritas de corrido ocupaban más que el formulario: en un móvil, el panel de WhatsApp/Meta eran
+cinco párrafos antes de la primera casilla. Ahora pasan por
+`App\Panel\Helper\AyudaPlegable::html($resumen, $detalle)` — un `<details>` nativo, sin JS.
+
+⚠️ **El resumen no es el título de un desplegable vacío**: es la frase que hay que poder leer sin
+abrir nada. La prueba es que si se puede sustituir por «más información» sin perder nada, está mal
+escrito. En estos paneles el resumen lleva siempre lo que cambia una decisión —«sólo fuera de la
+ventana de 24 h», «Meta lo congela al aprobarlo»— y el detalle, los límites y el porqué.
+
+El marcado vivía en `BaseCrudController::ayudaPlegable()`, que sigue existiendo y delega: los
+`FormType` de `src/Message/Form/Type/` también lo usan, y un formulario que importe un controlador
+para pintar una ayuda es la dependencia que este repo ya pagó una vez con `App\Contract`. En un
+`FormType` hace falta `'help_html' => true`; en un campo del CRUD no, porque el `form_theme` ya lo
+pinta con `|raw`.
+
 ⚠️ **Si cambias algo de esto, cambia las dos:** el documento reconstruye el porqué, la ayuda evita
 el error en el momento. Una ayuda desactualizada es peor que ninguna — la de
 `whatsapp_link_tmpl` decía «esta plantilla no se envía automáticamente» justo cuando pasó a ser el

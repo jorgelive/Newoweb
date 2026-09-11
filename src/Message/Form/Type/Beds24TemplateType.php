@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Message\Form\Type;
 
 use App\Panel\Form\Type\TranslationLongTextType;
+use App\Panel\Helper\AyudaPlegable;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
@@ -34,9 +35,14 @@ class Beds24TemplateType extends AbstractType
             ->add('body', CollectionType::class, [
                 'entry_type' => TranslationLongTextType::class,
                 'label' => 'Cuerpo del mensaje',
-                'help' => 'Va al chat de Booking o Airbnb. <b>Aquí no hay ventana de 24 h</b>: se puede escribir siempre y con el largo que haga falta.<br>'
-                    . 'Variables: <code>{{guest_name}}</code>, <code>{{estancias}}</code>, <code>{{bloque_pago}}</code>, <code>{{account_url}}</code>, <code>{{guide_url}}</code>…<br>'
-                    . '⚠️ El chat de <b>Booking no transporta imágenes</b>: si pides una captura, di que la manden por WhatsApp.',
+                'help' => AyudaPlegable::html(
+                    'Va al chat de Booking o Airbnb. <b>Aquí no hay ventana de 24 h</b>: se escribe siempre y '
+                    . 'con el largo que haga falta.',
+                    'Variables: <code>{{guest_name}}</code>, <code>{{estancias}}</code>, '
+                    . '<code>{{bloque_pago}}</code>, <code>{{account_url}}</code>, <code>{{guide_url}}</code>…<br><br>'
+                    . '⚠️ El chat de <b>Booking no transporta imágenes</b>: si pides una captura, di que la '
+                    . 'manden por WhatsApp.'
+                ),
                 'help_html' => true,
                 'allow_add' => true,
                 'allow_delete' => true,

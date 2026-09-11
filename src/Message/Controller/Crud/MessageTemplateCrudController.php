@@ -14,6 +14,7 @@ use App\Message\Service\Meta\Template\WhatsappMetaTemplateInventario;
 use App\Message\Service\Meta\Template\WhatsappMetaTemplatePushService;
 use App\Message\Service\Meta\Template\WhatsappMetaTemplateSyncService;
 use App\Panel\Controller\Crud\BaseCrudController;
+use App\Panel\Helper\AyudaPlegable;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -302,16 +303,17 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setIcon('fab fa-whatsapp')
             ->collapsible()
             ->renderCollapsed()
-            ->setHelp(
-                '<b>Este cuerpo se usa SÓLO fuera de la ventana de 24 h.</b> Si el huésped '
-                . 'escribió hace menos de 24 h, lo que sale es el de «Enlace WhatsApp» — más '
-                . 'largo y sin restricciones. Aquí escribe la versión corta.<br><br>'
+            ->setHelp(AyudaPlegable::html(
+                '<b>Sólo fuera de la ventana de 24 h</b>, y <b>Meta lo congela al aprobarlo</b>: '
+                . 'aquí se escribe la versión corta.',
 
-                . '⚠️ <b>Meta aprueba este texto y lo congela.</b> Cambiar una palabra obliga a '
-                . 'subir una plantilla nueva con otro nombre y borrar la vieja, y borrar bloquea '
-                . 'ese nombre <b>30 días</b>. Por eso el «Nombre en Meta» lleva sufijo '
-                . '(<code>pago_v1</code>): la siguiente es <code>_v2</code> y no te topas con el '
-                . 'bloqueo.<br><br>'
+                'Si el huésped escribió hace menos de 24 h, lo que sale es el cuerpo de «Enlace '
+                . 'WhatsApp» — más largo y sin restricciones.<br><br>'
+
+                . '⚠️ <b>Cambiar una palabra obliga a subir una plantilla nueva</b> con otro nombre '
+                . 'y borrar la vieja, y borrar bloquea ese nombre <b>30 días</b>. Por eso el '
+                . '«Nombre en Meta» lleva sufijo (<code>pago_v1</code>): la siguiente es '
+                . '<code>_v2</code> y no te topas con el bloqueo.<br><br>'
 
                 . '<b>Lo que Meta NO acepta aquí:</b> parámetros con saltos de línea, tabuladores '
                 . 'o cuatro espacios seguidos; el cuerpo no puede empezar ni acabar con una '
@@ -326,7 +328,7 @@ class MessageTemplateCrudController extends BaseCrudController
                 . 'decide si el canal de WhatsApp se ofrece siquiera; lo segundo, si puede salir '
                 . 'fuera de la ventana. Una plantilla pensada sólo para texto libre va '
                 . '<b>activada</b> y <b>no oficial</b>.'
-            );
+            ));
         yield Field::new('whatsappMetaTmpl', '')
             ->setFormType(WhatsappMetaTemplateType::class)
             ->onlyOnForms()
@@ -341,18 +343,18 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setIcon('fa fa-bed')
             ->collapsible()
             ->renderCollapsed()
-            ->setHelp(
-                '<b>El chat de la OTA</b> (Booking, Airbnb) a través de Beds24. Aquí <b>no hay '
-                . 'ventana de 24 h</b>: se puede escribir siempre, con el largo que haga falta.<br><br>'
+            ->setHelp(AyudaPlegable::html(
+                '<b>El chat de la OTA</b> (Booking, Airbnb) por Beds24: <b>sin ventana de 24 h</b> '
+                . 'y sin tope de largo.',
 
-                . '⚠️ <b>El chat de Booking no transporta imágenes.</b> Si el texto pide una '
+                '⚠️ <b>El chat de Booking no transporta imágenes.</b> Si el texto pide una '
                 . 'captura, dilo mandándola por WhatsApp.<br><br>'
 
                 . '☑️ <b>«Ocultar botones interactivos»:</b> el sistema puede añadir al final del '
                 . 'mensaje una lista con los enlaces de los botones, porque el chat de la OTA no '
                 . 'tiene botones de verdad. Márcala si <b>ya escribiste los enlaces dentro del '
                 . 'texto</b>, o saldrán dos veces.'
-            );
+            ));
 
         yield Field::new('beds24Tmpl', '')
             ->setFormType(Beds24TemplateType::class)
@@ -368,10 +370,12 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setIcon('fab fa-whatsapp')
             ->collapsible()
             ->renderCollapsed()
-            ->setHelp(
-                '⚠️ <b>Esto ya no es sólo el botón de «abrir WhatsApp Web».</b> Desde el '
-                . '01/09/2026, cuando el huésped escribió hace menos de 24 h, <b>éste es el cuerpo '
-                . 'que se le envía</b> — no el de Meta. Lo que escribas aquí es lo que va a leer.<br><br>'
+            ->setHelp(AyudaPlegable::html(
+                '⚠️ <b>Dentro de la ventana de 24 h, éste es el cuerpo que se envía</b> — no el de '
+                . 'Meta. Ya no es sólo el botón de «abrir WhatsApp Web».',
+
+                'Desde el 01/09/2026, cuando el huésped escribió hace menos de 24 h, lo que '
+                . 'escribas aquí es lo que va a leer.<br><br>'
 
                 . '<b>Es el sitio para el texto bueno:</b> sin tope de caracteres, sin aprobación '
                 . 'de nadie, y admite variables que ocupan varias líneas como '
@@ -382,7 +386,7 @@ class MessageTemplateCrudController extends BaseCrudController
                 . 'correcto: estos textos se escriben con sus enlaces dentro. Desmárcala sólo si '
                 . 'escribiste el cuerpo <b>sin</b> enlaces y quieres que el sistema los añada al '
                 . 'final.'
-            );
+            ));
 
         yield Field::new('whatsappLinkTmpl', '')
             ->setFormType(WhatsappLinkTemplateType::class)

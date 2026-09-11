@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Message\Form\Type;
 
 use App\Panel\Form\Type\TranslationLongTextType;
+use App\Panel\Helper\AyudaPlegable;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
@@ -33,12 +34,15 @@ class WhatsappLinkTemplateType extends AbstractType
             ->add('body', CollectionType::class, [
                 'entry_type' => TranslationLongTextType::class,
                 'label' => 'Textos para WhatsApp (envío dentro de la ventana y enlace manual wa.me)',
-                'help' => '💡 <b>Ojo:</b> desde el 01/09/2026 este cuerpo NO es sólo para el enlace manual. '
-                    . 'Cuando el huésped escribió hace menos de 24 h, <b>es el que se le envía</b> — en vez del de Meta, '
-                    . 'que es más corto porque tiene que caber en una plantilla aprobada.<br><br>'
+                'help' => AyudaPlegable::html(
+                    '💡 <b>No es sólo para el enlace manual:</b> dentro de la ventana de 24 h, <b>es el cuerpo '
+                    . 'que se le envía</b>.',
+                    'Desde el 01/09/2026, cuando el huésped escribió hace menos de 24 h sale éste en vez del de '
+                    . 'Meta, que es más corto porque tiene que caber en una plantilla aprobada.<br><br>'
                     . '<b>Es el sitio para el texto bueno:</b> sin tope de caracteres y sin aprobación de nadie. '
-                    . 'Admite variables de varias líneas como <code>{{bloque_pago}}</code> o <code>{{estancias}}</code>, '
-                    . 'que en Meta no caben.',
+                    . 'Admite variables de varias líneas como <code>{{bloque_pago}}</code> o '
+                    . '<code>{{estancias}}</code>, que en Meta no caben.'
+                ),
                 'help_html' => true,
                 'allow_add' => true,
                 'allow_delete' => true,
