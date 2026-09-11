@@ -36,7 +36,7 @@ las entidades `PmsGuia*` / `PmsUnidad` / `PmsEstablecimiento`, `src/Api/Controll
 | **Catálogo** | `PmsCatalogo`. Una por unidad. El escaparate público, con estructura propia (§2.b). |
 | **Bloque** | `PmsCatalogoBloque`. Agrupa el contenido del escaparate. Vive en la RELACIÓN, no en el ítem. |
 | **Acceso** | `PmsGuiaAcceso`. Situación de quien pide la guía. Se calcula por petición, no se guarda. |
-| **Ventana** | Desde 24 h antes del check-in hasta el final del día del check-out. |
+| **Ventana** | Desde **30 h** antes del check-in hasta el final del día del check-out. Atada a `recordatorio_llegada`: ver §3. |
 | **Placeholder** | `{{ door_code }}` dentro del cuerpo de un ítem. Lo resuelve el backend. |
 
 ---
@@ -180,6 +180,30 @@ deja de tener base»).
 
 ## 3. La matriz de acceso
 
+### La ventana es de 30 horas, y va atada al recordatorio (11/09/2026)
+
+Era de 24. El recordatorio del día anterior (`recordatorio_llegada`) sale a `start −1800` —30 h
+antes, las **08:00** para una entrada a las 14:00— y promete «instrucciones para el recojo de
+llaves» y «clave de WiFi». Las dos fichas son `solo-ventana`, así que durante **seis horas** el
+mensaje mandaba al huésped a un candado, el día en que más las busca.
+
+Había dos arreglos y se eligió abrir antes, no escribir más tarde: las 08:00 del día anterior es
+buena hora para el mensaje. Y no cambia nada de seguridad que importe: los códigos son **fijos
+por unidad y por establecimiento** (`PmsGuiaContexto`: `getCodigoPuerta()`,
+`getCodigoCajaPrincipal()`), no por reserva, así que seis horas antes no enseñan nada que el
+huésped anterior no conozca. Lo que protege la ventana es que un código no circule semanas antes
+de la llegada, y eso sigue igual.
+
+⚠️ **Las dos cifras viven en sitios distintos y tienen que moverse juntas**: la ventana es
+`PmsGuiaAcceso::HORAS_ANTICIPACION` (código) y el recordatorio es una fila de `msg_rule`
+(datos). Si el recordatorio se adelanta, vuelve el candado.
+
+Nada más había que tocar: la guía de `pax`, las skills `consultar_codigos` y `consultar_wifi` y
+los avisos de `PmsGuiaMensajes` enseñan la hora que calcula el servidor (`liberaEn`), no un
+número escrito. Los «24 h» a mano estaban en docblocks, en la etiqueta y la ayuda del panel, y en
+el cuerpo de `bienvenida`.
+
+
 Son **dos ejes**. El vertical lo calcula `PmsGuiaAcceso::paraEvento()` a partir de la estancia;
 el horizontal lo elige el editor en cada ítem (`PmsGuiaVisibilidad`). `permite()` los cruza, y
 **es el único sitio donde se decide qué se ve.**
@@ -202,7 +226,7 @@ Cada peldaño añade **una** condición al anterior, y por eso no pueden contrad
 |---|---|---|---|---|
 | `Publico` (sin estancia) | ✓ | ✗ | ✗ | ✗ |
 | `SinPago` | ✓ | ✓ | 🔒 | 🔒 |
-| `Pendiente` (faltan >24 h) | ✓ | ✓ | ✓ | 🔒 |
+| `Pendiente` (faltan >30 h) | ✓ | ✓ | ✓ | 🔒 |
 | `Activa` (ventana abierta) | ✓ | ✓ | ✓ | ✓ |
 | `Expirada` (post check-out) | ✓ | ✓ | ✓ | 🔒 |
 
@@ -842,7 +866,7 @@ a Ana» — con el dato en la mano, el agente encadena `enviar_mensaje_huesped`.
 | Condición | De dónde sale | Qué pasa si falla |
 |---|---|---|
 | La estancia da acceso | `PmsGuiaAcceso::paraEvento()` | «la reserva no está confirmada» |
-| La ventana está abierta | `estaAbierto()` (24 h antes → check-out) | «lo tendrá desde el 08/08 a las 14:00» |
+| La ventana está abierta | `estaAbierto()` (30 h antes → check-out) | «lo tendrá desde el 08/08 a las 08:00» |
 | El campo está **relleno** | El propio valor | «falta configurarlo en el panel» |
 
 La tercera es la que se olvida y la que más confunde: **«todavía no» y «falta ponerlo» no son lo

@@ -20,8 +20,8 @@ use App\Pms\Enum\PmsGuiaVisibilidad;
  * copiarAlPortapapeles). Con dos implementaciones de la misma regla, cualquier
  * desajuste se salda filtrando datos o bloqueando de más.
  *
- * Ventana horaria: se hereda la semántica que ya había —24 h antes de
- * `inicio`, hasta el final del día de `fin`— y desde el 08/09/2026 se compara
+ * Ventana horaria: desde 30 h antes de `inicio` hasta el final del día de
+ * `fin` —ver `HORAS_ANTICIPACION` para el porqué del 30— y desde el 08/09/2026 se compara
  * en la zona del ESTABLECIMIENTO, no en la del servidor. Las fechas del evento
  * se guardan en hora de pared del alojamiento, así que compararlas contra el
  * reloj de la máquina sólo acertaba mientras los dos compartieran huso.
@@ -29,8 +29,26 @@ use App\Pms\Enum\PmsGuiaVisibilidad;
  */
 final readonly class PmsGuiaAcceso
 {
-    /** Ventana de cortesía antes del check-in en la que se liberan los códigos. */
-    private const HORAS_ANTICIPACION = 24;
+    /**
+     * Ventana de cortesía antes del check-in en la que se liberan los códigos.
+     *
+     * ⚠️ **Es 30 y no 24, y va atada a `recordatorio_llegada`.** Hasta el 11/09/2026 era 24, y
+     * el recordatorio del día anterior sale a `start −1800` —30 h antes, las 08:00 para una
+     * entrada a las 14:00— prometiendo «instrucciones para el recojo de llaves» y «clave de
+     * WiFi». Las dos fichas son `solo-ventana`, así que durante seis horas el mensaje mandaba
+     * al huésped a un candado, justo el día en que más las busca.
+     *
+     * Se abrió la ventana y no se atrasó el mensaje por decisión del dueño: las 08:00 del día
+     * antes es buena hora para escribir, y los códigos son fijos por unidad
+     * (`PmsGuiaContexto`), no por reserva — seis horas antes no enseñan nada que el huésped
+     * anterior no conozca ya. Lo que protege la ventana es que un código no circule semanas
+     * antes de la llegada, y eso sigue igual.
+     *
+     * **Si se mueve la regla del recordatorio, se mueve esto** (y al revés): el recordatorio
+     * tiene que salir con la ventana ya abierta. Viven en sitios distintos —esto es código, la
+     * regla es una fila de `msg_rule`— y por eso se dice aquí.
+     */
+    private const HORAS_ANTICIPACION = 30;
 
     public function __construct(
         public PmsGuiaAccesoEstado $estado,

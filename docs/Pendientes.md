@@ -48,18 +48,6 @@ antelación» no se puede implementar hasta que ese dato exista.
 
 ---
 
-## `recordatorio_llegada` manda a las llaves seis horas antes de que se abran
-
-Sale a `start −1800` (30 h antes de la entrada) y promete «🔑 Instrucciones para el recojo de
-llaves». Pero la ficha «Llaves (general)» es `solo-ventana` y `PmsGuiaAcceso::paraEvento()` la
-abre a las **24 h** (`HORAS_ANTICIPACION`). Durante seis horas el recordatorio lleva a un candado.
-
-Se arregla bajando la regla a `−1440` o menos, o diciendo en el texto cuándo se abren. Es la
-plantilla del día anterior, la que va a pedir también la **hora de llegada**: conviene hacer las
-dos cosas en la misma reescritura. Verificado el 11/09/2026 contra el código y `msg_rule`.
-
----
-
 ## 3. Sueltos
 
 - **El CRUD de medios de cobro va con `MAESTROS_WRITE`.** Son datos financieros —cuentas

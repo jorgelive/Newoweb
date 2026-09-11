@@ -31,10 +31,10 @@ enum PmsGuiaAccesoEstado: string
      */
     case SinPago = 'sin_pago';
 
-    /** Pagada, pero aún faltan más de 24 h para el check-in. */
+    /** Pagada, pero aún faltan más de 30 h para el check-in (`PmsGuiaAcceso::HORAS_ANTICIPACION`). */
     case Pendiente = 'pendiente';
 
-    /** Ventana abierta: desde 24 h antes del check-in hasta el check-out. */
+    /** Ventana abierta: desde 30 h antes del check-in hasta el check-out. */
     case Activa = 'activa';
 
     /** Ya pasó el check-out. */

@@ -42,8 +42,9 @@ use Symfony\Component\Uid\Uuid;
  *
  * 1. **La estancia da acceso** — {@see PmsGuiaAcceso::paraEvento()}: ni cancelada, ni de otro,
  *    ni sin pago cuando el pago es lo que abre.
- * 2. **La ventana está abierta** — desde 24 h antes del check-in hasta el check-out. Un código
- *    entregado tres semanas antes circula por WhatsApp mucho después de que el huésped se vaya.
+ * 2. **La ventana está abierta** — desde 30 h antes del check-in hasta el check-out
+ *    (`PmsGuiaAcceso::HORAS_ANTICIPACION`). Un código entregado tres semanas antes circula
+ *    por WhatsApp mucho después de que el huésped se vaya.
  * 3. **El campo está relleno.** Que no haya código configurado NO es lo mismo que no poder
  *    verlo, y se dice distinto: uno es «todavía no», el otro es «falta ponerlo en el panel».
  *

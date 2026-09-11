@@ -7726,7 +7726,7 @@ plantilla propia —`politicas_booking`— y la bienvenida se queda corta como l
 | **`welcome_directo`** (nueva) | la que no existe; con el enlace de su reserva | sí |
 | **`pago_texto`** (nueva) | prosa + `{{ bloque_pago }}`; texto libre | **no** |
 | **`pago`** (nueva) | corta, un botón `url` al enlace de su reserva | **sí, y es la cola larga** |
-| `recordatorio_llegada` | se queda; revisar que no repita lo que ya dice la guía | no si sólo cambia Beds24 |
+| `recordatorio_llegada` | se queda; revisar que no repita lo que ya dice la guía. **Pide la hora de llegada** (va aquí, no en la bienvenida) | no si sólo cambia Beds24 |
 | `check_out` | 1079 caracteres de lista: parte a enlace + recordatorio corto | sí |
 | `despedida_booking` / `despedida_airbnb` | son casi idénticas; sólo cambia la mención a las 5⭐ | sí |
 
@@ -7747,7 +7747,7 @@ abierta.
 |---|---|
 | Tú, en los dos canales | la misma voz; se acaba el usted de un lado y el tú del otro |
 | Sin «gracias por reservar» | en Booking lo dice `politicas_booking` siete minutos antes |
-| Las llaves, con «se habilita 24 h antes» | su ficha es `solo-ventana`: `PmsGuiaAcceso` la abre con pago confiable y a menos de 24 h. Sin el paréntesis, el huésped abre un candado |
+| Las llaves, con «se habilita 24 h antes» | su ficha es `solo-ventana`: `PmsGuiaAcceso` la abre con pago confiable y dentro de la ventana. Sin el paréntesis, el huésped abre un candado. ⚠️ Desde el 11/09/2026 la ventana es de **30 h**: el cuerpo de Meta dice 24 y se queda así hasta la próxima rotación —promete de menos, nunca de más— |
 | La calefacción, sin precio | precio y condiciones viven en su ficha de la guía; dos sitios con el mismo precio son dos sitios que actualizar |
 | Sin tours | las dos viejas están en `MARKETING` por la promoción; las que sólo hablan de la guía están en `UTILITY` |
 | Sin fechas en la de Meta | `{{ estancias }}` lleva saltos de línea y Meta no los admite en un parámetro |

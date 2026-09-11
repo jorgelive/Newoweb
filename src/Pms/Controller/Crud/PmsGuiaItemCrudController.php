@@ -178,7 +178,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                 . '(es el único que aparece en el catálogo). '
                 . '<strong>Cliente</strong>: cualquiera con el localizador, haya pagado o no — normas, cómo llegar. '
                 . '<strong>Cliente confirmado</strong>: además, con pago confiable. '
-                . '<strong>Solo en ventana</strong>: además, solo desde 24 h antes del check-in y hasta el check-out '
+                . '<strong>Solo en ventana</strong>: además, solo desde 30 h antes del check-in —el día anterior a las 08:00 si se entra a las 14:00, que es cuando sale el recordatorio— y hasta el check-out '
                 . '(úsalo para códigos de puerta, caja fuerte y WiFi). '
                 . 'Los dos últimos, si no se cumplen, NO desaparecen: el huésped ve el título con un candado '
                 . 'y qué le falta para abrirlo.'

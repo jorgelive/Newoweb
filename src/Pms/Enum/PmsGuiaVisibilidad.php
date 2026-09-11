@@ -38,7 +38,7 @@ enum PmsGuiaVisibilidad: string
             self::Publico           => '🌐 Público (catálogo)',
             self::Cliente           => '👤 Cliente (con localizador)',
             self::ClienteConfirmado => '✅ Cliente confirmado (con pago)',
-            self::SoloVentana       => '🔑 Solo en ventana (24 h antes del check-in)',
+            self::SoloVentana       => '🔑 Solo en ventana (30 h antes del check-in)',
         };
     }
 
