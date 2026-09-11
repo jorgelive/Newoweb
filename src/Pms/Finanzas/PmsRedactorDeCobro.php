@@ -6,6 +6,7 @@ namespace App\Pms\Finanzas;
 
 use App\Pax\Service\TextosUi;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Enum\PmsMedioPago;
 use App\Pms\Enum\PmsMotivoSinCobro;
 use App\Pms\Enum\PmsQueSePide;
 use App\Pms\Service\Finance\PmsTotalesPorMoneda;
@@ -213,18 +214,43 @@ final class PmsRedactorDeCobro
      * mensaje cambia con él.
      *
      * Sólo los `prioritario` — ver {@see \App\Finanzas\Entity\FinMedioCobro::isPrioritario()}.
-     * La tarjeta no sale: no tiene ficha que dar y su enlace lo escribe el cuerpo.
+     *
+     * ── La tarjeta ENTRA en la lista, y trae el encabezado (11/09/2026) ─────────
+     * Antes se saltaba («no tiene ficha que dar») y el cuerpo de la plantilla la escribía a mano
+     * debajo de `{{ medios_de_pago }}`. Eso dejaba dos defectos que el cuerpo no podía arreglar,
+     * porque la sustitución de marcadores no tiene condicionales:
+     *
+     * - con otros medios, el bloque de la tarjeta quedaba pegado a lo último de la lista —la
+     *   línea de «¿Necesitas otro banco?»—, como si fuera parte de la transferencia;
+     * - sin otros medios, quedaba «Puedes pagarlo por:», dos líneas en blanco y una lista de uno.
+     *
+     * El read-model ya la trata como un medio más —`PmsSituacionDeCobroResolver` la añade siempre
+     * al final, «la opción cara»—, así que aquí se respeta eso en vez de esconderla. Y como lo que
+     * se dice cambia según haya o no otros medios, el encabezado viene con ella: es la regla del
+     * reparto de §«La invitación y el enlace van en el CUERPO» leída al revés — lo que es igual en
+     * todos los casos va en el cuerpo, y lo que se bifurca, aquí.
+     *
+     * `$enlaceTarjeta` es `account_url`: la tarjeta no tiene número que dar, tiene la ficha del
+     * huésped, que es donde vive el enlace de pago vigente. Sin él no se ofrece la tarjeta — un
+     * medio sin forma de usarlo es la «media ficha» que no se enseña.
      */
-    public function mediosConDatos(PmsReserva $reserva, string $idioma, bool $todas = false): string
+    public function mediosConDatos(PmsReserva $reserva, string $idioma, bool $todas = false, ?string $enlaceTarjeta = null): string
     {
         $situacion = $todas
             ? $this->situaciones->paraHuesped($reserva, soloPrioritarios: false)
             : $this->situacion($reserva);
         $lineas = [];
-        $hayMas = false;
+        $tarjeta = null;
 
         foreach ($situacion->medios as $medio) {
             if ($medio->fichas === []) {
+                // Sin ficha sólo hay uno: la tarjeta. Se aparta para el final, que es donde la
+                // pone el read-model y donde tiene que ir — abrir por la opción con recargo
+                // empuja a pagar de más a quien podía transferir.
+                if ($medio->codigo === PmsMedioPago::TARJETA_CREDITO->value) {
+                    $tarjeta = $medio;
+                }
+
                 continue;
             }
 
@@ -254,20 +280,47 @@ final class PmsRedactorDeCobro
                 }
             }
 
-            $hayMas = $hayMas || $medio->hayMasFichas;
+            // ⚠️ **Que se sepa que hay más, aunque no se listen.** El bloque enseña una o dos
+            // cuentas para no ser una sábana, y sin esta línea quien no sea de esos bancos
+            // concluye que el suyo no está — y en una disputa con la OTA, un chat con dos
+            // cuentas se lee como «información incompleta». Con ella, lo que queda dicho es que
+            // se dio todo y que el resto está a una pregunta.
+            //
+            // Va DEBAJO DE SU MEDIO y con el formato de una nota, no al pie de la lista: habla de
+            // bancos, y al pie quedaba entre las cuentas y la tarjeta, leyéndose como parte de lo
+            // que venía después.
+            if ($medio->hayMasFichas) {
+                $lineas[] = '   _' . $this->t('res_mas_cuentas', $idioma) . '_';
+            }
         }
 
-        // ⚠️ **Que se sepa que hay más, aunque no se listen.** El bloque enseña una o dos cuentas
-        // para no ser una sábana, y sin esta línea quien no sea de esos bancos concluye que el
-        // suyo no está — y en una disputa con la OTA, un chat con dos cuentas se lee como
-        // «información incompleta». Con ella, lo que queda dicho es que se dio todo y que el
-        // resto está a una pregunta.
-        if ($hayMas && $lineas !== []) {
-            $lineas[] = '';
-            $lineas[] = $this->t('res_mas_cuentas', $idioma);
+        $conTarjeta = $tarjeta !== null && $enlaceTarjeta !== null && $enlaceTarjeta !== '';
+
+        // ── Sólo la tarjeta: una frase, no una lista de uno ──────────────────────────
+        //
+        // Pasa con quien no paga desde Perú y llega en menos de dos días: las cuentas son para
+        // Perú y a Western Union ya no le da tiempo. «Puedes pagarlo por:» con un único punto
+        // debajo se lee como una lista a la que le falta algo.
+        if ($lineas === []) {
+            return $conTarjeta
+                ? sprintf(
+                    "%s %s\n🔗 %s",
+                    $this->t('res_solo_tarjeta', $idioma),
+                    $this->t('res_enlace_tarjeta', $idioma),
+                    $enlaceTarjeta
+                )
+                : '';
         }
 
-        return implode("\n", $lineas);
+        if ($conTarjeta) {
+            $lineas[] = sprintf('▪️ *%s*', $this->t('res_medio_tarjeta_credito', $idioma));
+            $lineas[] = '   ' . $this->t('res_enlace_tarjeta', $idioma);
+            $lineas[] = '   🔗 ' . $enlaceTarjeta;
+        }
+
+        // «pagarlo»: el antecedente es «el prepago» del cuerpo de `politicas_booking`, la única
+        // plantilla que usa esto. Si otra lo adopta con otro antecedente, la frase es de aquí.
+        return $this->t('res_puedes_pagar_por', $idioma) . "\n\n" . implode("\n", $lineas);
     }
 
     /**

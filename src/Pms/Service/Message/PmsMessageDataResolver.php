@@ -156,6 +156,10 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         $info = $this->entityManager->getRepository(PmsInformacionFinanciera::class)
             ->findOneBy(['reserva' => $reserva]);
 
+        // Una vez: lo usan `account_url` y la tarjeta de `medios_de_pago`, y tienen que ser el
+        // mismo enlace.
+        $accountUrl = rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador . '#resumen';
+
         return [
             'guest_name'            => $reserva->getNombreCliente(),
             'guest_full_name'       => trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente()),
@@ -202,7 +206,7 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // ⚠️ El ancla del resumen es EXPLÍCITA aunque sea el estado por defecto: quien
             // recibe esto por WhatsApp no ve la página, ve la URL, y un enlace tiene que decir a
             // qué lleva. Ver `docs/PmsBeds24ReservasSync.md` §12.5.2.
-            'account_url'           => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador . '#resumen',
+            'account_url'           => $accountUrl,
             // ⚠️ La variante SIN dominio, que es la que aceptan los botones `url` de Meta: allí
             // el dominio es fijo en la plantilla aprobada y sólo viaja el sufijo. Sin esta clave,
             // el botón de la plantilla de pago no tenía a dónde apuntar y habría acabado usando
@@ -236,11 +240,13 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // chat de la OTA. Salen del catálogo y no tecleadas: así el filtro de audiencia se
             // aplica solo —un europeo ve Western Union, no una cuenta peruana— y cuando cambie un
             // número, cambia el mensaje. Ver `PmsRedactorDeCobro::mediosConDatos()`.
-            'medios_de_pago'        => $idioma !== null ? $this->redactor->mediosConDatos($reserva, $idioma) : null,
+            // La tarjeta entra en la lista con el enlace a la ficha, que es donde vive el cobro
+            // vigente — ver `mediosConDatos()`.
+            'medios_de_pago'        => $idioma !== null ? $this->redactor->mediosConDatos($reserva, $idioma, enlaceTarjeta: $accountUrl) : null,
             // La versión LARGA, con todas las cuentas. No es para el mensaje de siempre —sería
             // una sábana— sino para cuando hay que demostrarle a la OTA que se dio la
             // información completa. Se manda a mano desde el panel, no por una regla.
-            'medios_de_pago_todos'  => $idioma !== null ? $this->redactor->mediosConDatos($reserva, $idioma, todas: true) : null,
+            'medios_de_pago_todos'  => $idioma !== null ? $this->redactor->mediosConDatos($reserva, $idioma, todas: true, enlaceTarjeta: $accountUrl) : null,
         ];
     }
 

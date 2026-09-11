@@ -11469,6 +11469,42 @@ lógica que se bifurca; y el cuerpo ya es i18n con `AutoTranslate`, así que se 
 deliberado: la ficha existe y se puede abrir. Si algún día molesta, se arregla en el disparador
 (`hayAlgoQuePedir()`) y no metiendo otra rama en el redactor.
 
+#### …salvo en `{{ medios_de_pago }}`, donde la tarjeta y su encabezado van DENTRO (11/09/2026)
+
+La misma regla, leída al revés: lo que es igual en todos los casos va en el cuerpo, **y lo que se
+bifurca va en el redactor**. En `politicas_booking` la tarjeta estaba escrita a mano debajo de
+`{{ medios_de_pago }}`, y eso fallaba de dos maneras que el cuerpo no puede arreglar, porque la
+sustitución de marcadores no tiene condicionales:
+
+| Caso | Lo que salía |
+|---|---|
+| hay otros medios | el bloque de la tarjeta pegado a lo último de la lista —«¿Necesitas otro banco?»—, como si fuera parte de la transferencia |
+| sólo queda la tarjeta (paga desde fuera y llega en < 2 días) | «Puedes pagarlo por:», dos líneas en blanco y una lista de un solo punto |
+
+El read-model **ya trataba la tarjeta como un medio más** —`PmsSituacionDeCobroResolver` la añade
+siempre al final, «la opción cara»—; era el redactor el que se la saltaba. Ahora
+`PmsRedactorDeCobro::mediosConDatos()` la pone la última, con el enlace a la ficha
+(`account_url`, que le pasa el resolver), y trae el encabezado:
+
+```
+Puedes pagarlo por:                          Puedes pagarlo con tarjeta de crédito. El
+                                             enlace de pago seguro y el detalle de tu
+▪️ *Transferencia bancaria*                   cuenta están aquí:
+   BCP · 285-03306263-1-25 · USD · …          🔗 https://pax…/P9Y2XK#resumen
+   _¿Necesitas otro banco? Escríbenos…_
+▪️ *Tarjeta de crédito*                       ← cuando la tarjeta es lo único que queda
+   El enlace de pago seguro… están aquí:
+   🔗 https://pax…/P9Y2XK#resumen
+```
+
+«¿Necesitas otro banco?» pasa **debajo de su medio**, con formato de nota: habla de bancos, y al pie
+de la lista se leía como parte de lo que venía después. Las tres frases nuevas —`res_puedes_pagar_por`,
+`res_solo_tarjeta`, `res_enlace_tarjeta`— viven en `pax_ui_i18n` y entran por `pax:textos:cobro`.
+
+⚠️ **El precio**: esas frases ya no se editan en el cuerpo de la plantilla sino en los textos de la
+interfaz. Se asumió porque sólo `politicas_booking` usa la variable y porque lo que se bifurca en
+un cuerpo sin condicionales se acaba escribiendo mal en uno de los casos.
+
 ⚠️ **Para el botón de la plantilla de Meta hace falta `account_path`**, no `account_url`: en un
 botón `url` aprobado el dominio es fijo y sólo viaja el sufijo. Existían `guide_path` y
 `tours_catalog_path` pero no el de la cuenta, así que el botón habría acabado apuntando a

@@ -107,29 +107,29 @@ final class MessageCrearPlantillasPagoCommand extends Command
      * - **El plazo se redacta como derecho reservado** —«podemos liberar la reserva»— y no como
      *   cuenta atrás: es lo que permite cancelar cuando haga falta, sin obligar a perseguir un
      *   reloj que nadie mira.
+     * - **Ni encabezado sobre el bloque ni tarjeta escrita a mano** (11/09/2026). La primera
+     *   línea de `{{ bloque_pago }}` ya es su título, y un «Prepago para asegurar tu reserva»
+     *   encima repetía la frase. Y «Puedes pagarlo por:» y la tarjeta viven ahora dentro de
+     *   `{{ medios_de_pago }}`, porque cambian según haya o no otros medios — ver
+     *   `PmsRedactorDeCobro::mediosConDatos()`.
+     *
+     * ⚠️ Esta constante es el cuerpo con el que NACE la plantilla; el vivo se edita en el panel
+     * o con `msg:plantilla:cuerpo`. Sincronizada con producción el 11/09/2026.
      */
     private const string CUERPO_POLITICAS = <<<'TXT'
         Hola {{guest_name}}, gracias por reservar con nosotros.
 
         Tu reserva: {{estancias}}
 
-        📄 *Confirmación de Booking.com*
-        Envíanos el PDF de tu reserva: App de Booking.com → tu reserva → Opciones → Descargar para usar sin conexión.
-
-        💳 *Prepago para asegurar tu reserva*
         {{bloque_pago}}
 
         Si no recibimos el prepago dentro de las 24 horas siguientes, de acuerdo con nuestras políticas en Booking.com, podemos liberar la reserva.
 
-        Puedes pagarlo por:
-
         {{medios_de_pago}}
 
-        ▪️ *Tarjeta de crédito*
-        El enlace de pago seguro y el detalle de tu cuenta están aquí:
-        🔗 {{account_url}}
+        Una vez hecho el prepago, envíanos el comprobante.
 
-        Una vez hecho el prepago, envíanos el comprobante por aquí.
+        Muchas gracias
         TXT;
 
     public function __construct(private readonly EntityManagerInterface $em)

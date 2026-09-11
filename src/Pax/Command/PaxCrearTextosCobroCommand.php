@@ -164,6 +164,21 @@ final class PaxCrearTextosCobroCommand extends Command
         // Sin esta línea, quien no sea de esos bancos concluye que el suyo no está — y las otras
         // seis siguen ahí, sólo que sin volcárselas en la primera pantalla.
         'res_mas_cuentas' => '¿Necesitas otro banco? Escríbenos y te lo pasamos.',
+
+        // ── Los medios de pago de un MENSAJE, con la tarjeta dentro (11/09/2026) ────
+        //
+        // Vivían en el cuerpo de `politicas_booking`, con la tarjeta escrita a mano debajo de
+        // `{{ medios_de_pago }}`. Pasan al redactor porque lo que se dice cambia según haya o no
+        // otros medios, y la sustitución de marcadores no tiene condicionales. Ver
+        // `PmsRedactorDeCobro::mediosConDatos()`.
+        //
+        // «pagarlo»: el antecedente es «el prepago» del cuerpo. Es la única plantilla que usa
+        // `{{ medios_de_pago }}`.
+        'res_puedes_pagar_por' => 'Puedes pagarlo por:',
+        // Cuando la tarjeta es lo único que queda —paga desde fuera y llega en menos de dos
+        // días—: una frase, no una lista de un solo punto.
+        'res_solo_tarjeta' => 'Puedes pagarlo con tarjeta de crédito.',
+        'res_enlace_tarjeta' => 'El enlace de pago seguro y el detalle de tu cuenta están aquí:',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
