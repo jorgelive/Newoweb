@@ -7730,6 +7730,48 @@ plantilla propia —`politicas_booking`— y la bienvenida se queda corta como l
 | `check_out` | 1079 caracteres de lista: parte a enlace + recordatorio corto | sí |
 | `despedida_booking` / `despedida_airbnb` | son casi idénticas; sólo cambia la mención a las 5⭐ | sí |
 
+### ✅ Las bienvenidas: una sola, `bienvenida` (11/09/2026)
+
+Con el cobro mudado a `politicas_booking`, `welcome_booking` y `welcome_airbnb` decían lo mismo.
+Pasan a **una plantilla** con dos reglas —cada una con su minuto— y una sola aprobación en Meta.
+La crea `msg:plantillas:bienvenida`, cuyo docblock tiene el porqué de cada línea del texto.
+
+**Lo que se midió antes de escribirla, y que no estaba en ningún sitio:** cada bienvenida sale
+por los **dos** canales —60 de 60 en 60 días—, y por WhatsApp sale la plantilla de **Meta** (59
+de 60), porque al minuto de reservar la ventana de 24 h siempre está cerrada. Así que el huésped
+de Booking recibía a la vez «le saluda Susan» por el chat de la OTA y «soy tu anfitriona» por
+WhatsApp. El cuerpo de enlace de una bienvenida **casi no se lee**: sólo sale con la ventana
+abierta.
+
+| Decisión | Por qué |
+|---|---|
+| Tú, en los dos canales | la misma voz; se acaba el usted de un lado y el tú del otro |
+| Sin «gracias por reservar» | en Booking lo dice `politicas_booking` siete minutos antes |
+| Las llaves, con «se habilita 24 h antes» | su ficha es `solo-ventana`: `PmsGuiaAcceso` la abre con pago confiable y a menos de 24 h. Sin el paréntesis, el huésped abre un candado |
+| La calefacción, sin precio | precio y condiciones viven en su ficha de la guía; dos sitios con el mismo precio son dos sitios que actualizar |
+| Sin tours | las dos viejas están en `MARKETING` por la promoción; las que sólo hablan de la guía están en `UTILITY` |
+| Sin fechas en la de Meta | `{{ estancias }}` lleva saltos de línea y Meta no los admite en un parámetro |
+| Sin hora de llegada | va en la plantilla del día anterior |
+
+#### El orden lo impone el comando, no la memoria
+
+```bash
+bin/console msg:plantillas:bienvenida            # crea
+bin/console msg:meta:push bienvenida --todos     # sube
+bin/console msg:plantillas:bienvenida --activar  # cuando Meta apruebe
+```
+
+`--activar` **se niega** si algún idioma no está en `APPROVED` —mismo criterio que
+`WhatsappMetaSendEnqueuer`—, porque repuntar antes deja la de WhatsApp sin salir y un envío
+automático fallido no avisa a nadie. Y crea la regla de `politicas_booking` **en el mismo paso**:
+antes, la bienvenida vieja aún lleva las cuentas y llegarían dos veces; después, sin la regla, no
+llegarían.
+
+⚠️ **Las reglas se REPUNTAN, no se crean.** El motor reconoce lo ya enviado por `rule_id`
+(`messageBelongsToRule()`): con reglas nuevas, las reservas de las dos últimas horas recibirían
+una segunda bienvenida. Crear la regla de las políticas sí es seguro: la guarda de «Prevención de
+Spam Histórico» de `MessageRuleEngine` no dispara un hito `CREATED` sobre reservas viejas.
+
 ### El trato: **tú**, y no es una preferencia
 
 Hoy conviven los dos **en el mismo hilo y en el mismo día**: las dos bienvenidas hablan de usted
