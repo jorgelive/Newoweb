@@ -2671,6 +2671,21 @@ const ejemploDetalle = computed(() => ejemploDe.value.detalle);
  * Escribirlo no arregla el modelo —eso sería un maestro de aerolíneas o normalizar al guardar—,
  * pero convierte una trampa invisible en una regla que se puede seguir.
  */
+/**
+ * Qué ayuda está abierta. `null` = ninguna.
+ *
+ * ⚠️ **Con `title` no bastaba, y es un fallo de bulto en esta app.** El atributo `title` sólo se
+ * ve al pasar el ratón por encima, y esto se usa **desde el móvil**: no hay hover, así que las
+ * «i» no hacían absolutamente nada. Se tocan y despliegan el texto debajo del campo.
+ *
+ * El `title` se queda para quien esté en escritorio: ahí sigue siendo lo más cómodo.
+ */
+const ayudaAbierta = ref<string | null>(null);
+
+const alternarAyuda = (campo: string) => {
+    ayudaAbierta.value = ayudaAbierta.value === campo ? null : campo;
+};
+
 const ayudaSubeje = computed(() => ejemploDe.value.ayudaSubeje);
 const ayudaClave = computed(() => ejemploDe.value.ayudaClave);
 const ayudaNombre = computed(() => ejemploDe.value.ayudaNombre);
@@ -3998,11 +4013,16 @@ const eliminarDocumento = async (iri?: string) => {
                 <div>
                   <label class="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
                     {{ etiquetaSubeje }}
-                    <i class="fas fa-circle-info text-slate-300 cursor-help" :title="ayudaSubeje"></i>
+                    <button type="button" @click="alternarAyuda('subeje')" :title="ayudaSubeje"
+                            class="p-1 -m-1 hover:text-slate-500"
+                            :class="ayudaAbierta === 'subeje' ? 'text-teal-600' : 'text-slate-300'">
+                      <i class="fas fa-circle-info"></i>
+                    </button>
                   </label>
                   <input v-model="nuevoGrupo.subeje" type="text" :placeholder="ejemploSubeje" maxlength="60"
                          @keyup.enter="agregarGrupo"
                          class="w-36 border rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 placeholder:text-slate-300">
+                  <p v-if="ayudaAbierta === 'subeje'" class="text-[9px] text-slate-500 mt-1 leading-tight max-w-56">{{ ayudaSubeje }}</p>
                 </div>
                 <!-- Aquí el `uppercase` del campo SÍ se queda, y no es lo mismo que en los
                      títulos: la clave se normaliza a mayúsculas al guardar —de ella depende la
@@ -4011,18 +4031,26 @@ const eliminarDocumento = async (iri?: string) => {
                 <div>
                   <label class="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
                     Clave
-                    <i class="fas fa-circle-info text-slate-300 cursor-help" :title="ayudaClave"></i>
+                    <button type="button" @click="alternarAyuda('clave')" :title="ayudaClave"
+                            class="p-1 -m-1 hover:text-slate-500"
+                            :class="ayudaAbierta === 'clave' ? 'text-teal-600' : 'text-slate-300'">
+                      <i class="fas fa-circle-info"></i>
+                    </button>
                   </label>
                   <input v-model="nuevoGrupo.clave" type="text" :placeholder="ejemploClave" maxlength="60"
                          @keyup.enter="agregarGrupo"
                          class="w-40 border rounded-lg px-3 py-2 text-sm font-bold uppercase outline-none focus:border-teal-500 placeholder:font-normal placeholder:normal-case placeholder:text-slate-300">
+                  <p v-if="ayudaAbierta === 'clave'" class="text-[9px] text-slate-500 mt-1 leading-tight max-w-56">{{ ayudaClave }}</p>
                 </div>
                 <div class="flex-1 min-w-40">
                   <label class="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
                     Nombre (opcional)
                     <!-- La «i» del nombre va destacada: es el campo del que depende que el filtro
                          agrupe, y no hay nada en la pantalla que lo delate. -->
-                    <i class="fas fa-circle-info text-teal-500 cursor-help" :title="ayudaNombre"></i>
+                    <button type="button" @click="alternarAyuda('nombre')" :title="ayudaNombre"
+                            class="p-1 -m-1 text-teal-500 hover:text-teal-600">
+                      <i class="fas fa-circle-info"></i>
+                    </button>
                   </label>
                   <input v-model="nuevoGrupo.nombre" type="text" :placeholder="ejemploNombre" maxlength="150"
                          @keyup.enter="agregarGrupo"
