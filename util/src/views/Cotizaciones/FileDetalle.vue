@@ -1292,6 +1292,52 @@ const descargarCargado = () => {
  * repetirlos en el servidor serían dos implementaciones de la misma pregunta, y la que se quedase
  * corta lo haría en silencio.
  */
+/**
+ * Baja el ZIP con los escaneos de identidad, para reenviárselo al alojamiento.
+ *
+ * Un hotel pide los documentos de los huéspedes antes de la llegada. Hasta ahora eso era bajar
+ * los ficheros uno a uno de la bóveda y renombrarlos a mano.
+ *
+ * Respeta los filtros igual que la hoja, y por el mismo motivo: se manda la LISTA de ids resuelta
+ * en vez de repetir los filtros en el servidor.
+ *
+ * ⚠️ Puede tardar: son decenas de imágenes a 2400 px. El botón se bloquea mientras tanto — sin
+ * eso, dos clics son dos ZIP generándose a la vez sobre el mismo expediente.
+ */
+const descargandoEscaneos = ref(false);
+
+const descargarEscaneos = async () => {
+  const id = extractIdStr(file.value?.id || file.value?.['@id'] || '');
+  if (!id) return;
+
+  const ruta = `/cotizacion/user/manifiesto/escaneos/${id}`;
+  const ids = hayFiltros.value
+    ? pasajerosFiltrados.value.map(p => extractIdStr(p['@id'] ?? p.id)).filter(Boolean)
+    : null;
+
+  if (ids !== null && !ids.length) return;
+
+  descargandoEscaneos.value = true;
+  try {
+    const { data } = ids === null
+      ? await apiClient.get(ruta, { responseType: 'blob' })
+      : await apiClient.post(ruta, { ids }, { responseType: 'blob' });
+
+    const url = URL.createObjectURL(data as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    // El nombre lo pone el servidor en el Content-Disposition, pero un `download` vacío deja al
+    // navegador inventándose «descarga.zip»: se repite aquí lo esencial.
+    a.download = ids === null ? 'documentos.zip' : `documentos-${ids.length}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    alert('No se pudo generar el paquete de documentos.');
+  } finally {
+    descargandoEscaneos.value = false;
+  }
+};
+
 const descargarDocumentos = async () => {
   const id = extractIdStr(file.value?.id || file.value?.['@id'] || '');
   if (!id) return;
@@ -3346,6 +3392,13 @@ const eliminarDocumento = async (iri?: string) => {
                         class="border border-teal-200 bg-teal-50 text-teal-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-100 disabled:opacity-40">
                   <i class="fas mr-1.5" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
                   Documentos cargados<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }})</span>
+                </button>
+                <button v-if="file.filepasajeros?.length" type="button" @click="descargarEscaneos"
+                        :disabled="descargandoEscaneos"
+                        title="ZIP con los escaneos de identidad, nombrados por persona y número, más la hoja del manifiesto"
+                        class="border border-teal-200 bg-teal-50 text-teal-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-100 disabled:opacity-40">
+                  <i class="fas mr-1.5" :class="descargandoEscaneos ? 'fa-spinner fa-spin' : 'fa-file-zipper'"></i>
+                  Enviar al hotel<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }})</span>
                 </button>
                 <button @click="abrirPaxModal" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm">+ Añadir Pax</button>
               </div>
