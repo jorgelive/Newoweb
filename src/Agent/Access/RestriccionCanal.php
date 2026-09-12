@@ -91,11 +91,26 @@ enum RestriccionCanal: string
     /**
      * Variables del resolver que no pueden viajar al modelo por este canal.
      *
-     * Son enlaces a sitio propio. Para una OTA sin confirmar es de lo más sensible que hay:
-     * no es sólo un dato, es sacar la conversación —y con ella la venta— de la plataforma,
-     * que es precisamente lo que penalizan. Y la guía que hay al otro lado del enlace lleva
-     * dentro la dirección, el wifi y los teléfonos, así que un solo enlace se salta de golpe
-     * toda la resta por categorías.
+     * Son enlaces a sitio propio, y lo que se protege es la conversación **antes** de que haya
+     * reserva: en una consulta abierta de una OTA, un enlace fuera es una invitación a cerrar el
+     * trato de ALOJAMIENTO por fuera. Eso es lo prohibido. Y la guía que hay al otro lado lleva
+     * dentro la dirección, el wifi y los teléfonos, así que un solo enlace se salta de golpe toda
+     * la resta por categorías.
+     *
+     * ⚠️ **Promocionar tours y excursiones NO está prohibido.** Un alojamiento puede ofrecer sus
+     * propias experiencias, y se hace en todo el mundo; lo que no puede es ofrecer el alojamiento
+     * por fuera de la plataforma. Si `tours_catalog_url` se bloquea aquí no es por el catálogo en
+     * sí, sino por el momento: en una consulta sin reserva, cualquier enlace propio mueve la
+     * conversación fuera.
+     *
+     * ⚠️ Y **sólo aplica antes de confirmar**. Ver {@see self::deOrigenYVinculo()}: con la reserva
+     * hecha no hay restricción ninguna, que es por lo que las bienvenidas —que salen al minuto de
+     * reservar— llevan el catálogo de tours sin problema.
+     *
+     * 🔥 Este docblock decía «sacar la venta de la plataforma, que es precisamente lo que
+     * penalizan» sin distinguir alojamiento de tours ni acotar el momento. El 12/09/2026 esa
+     * frase, leída a medias, llevó a desaconsejar poner el catálogo de tours en la bienvenida —
+     * donde no había nada que desaconsejar.
      *
      * La lista vive aquí y no en la skill porque es política de canal, no de reserva: el día
      * que se añada otra URL al resolver, se bloquea en un sitio y vale para todas.
