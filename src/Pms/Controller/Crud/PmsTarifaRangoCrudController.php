@@ -143,7 +143,7 @@ final class PmsTarifaRangoCrudController extends BaseCrudController
             ->formatValue(fn($value) => (string) $value);
 
         // Campos Principales
-        yield AssociationField::new('unidad', 'Unidad PMS')
+        yield AssociationField::new('unidad', 'Casita')
             ->setRequired(true);
 
         yield DateField::new('fechaInicio', 'Inicio')

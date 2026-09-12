@@ -87,7 +87,7 @@ final class PmsRatesPushQueueCrudController extends BaseCrudController
         // --- PANEL 1: CONTEXTO DE MAPEO ---
         yield FormField::addPanel('Contexto de Mapeo')->setIcon('fa fa-map-marker-alt');
 
-        yield AssociationField::new('unidad', 'Unidad PMS')
+        yield AssociationField::new('unidad', 'Casita')
             ->setRequired(true);
 
         yield AssociationField::new('unidadBeds24Map', 'Mapa Beds24')

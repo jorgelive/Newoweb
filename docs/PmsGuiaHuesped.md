@@ -28,6 +28,23 @@ las entidades `PmsGuia*` / `PmsUnidad` / `PmsEstablecimiento`, `src/Api/Controll
 
 ## 1. Vocabulario
 
+### 🏷️ «Casita» en la pantalla, `unidad` en el código (12/09/2026)
+
+La entidad es `PmsUnidad` y así se llama **en todo el código, la API y `pax`**. Eso no cambia: es el
+nombre del modelo.
+
+Lo que sí se unificó son las **etiquetas del panel**, que iban a dos voces —el menú decía
+«Unidades» y la pantalla de al lado «Medios de las casitas»—. Ahora todas dicen **casita**, que es
+como las llama quien las gestiona y lo que dicen los propios datos: las siete se llaman «Casita N».
+
+⚠️ **Al huésped no le afecta**, y conviene saber por qué: nunca lee ninguna de las dos palabras. Ve
+el nombre de su casita. Todas las apariciones de «Unidad» en `pax` son identificadores de código,
+no texto visible.
+
+⚠️ El día que entre un establecimiento cuyas unidades no sean casitas —habitaciones de hotel—, la
+etiqueta mentirá y habrá que volver a tocarla. Se aceptó a sabiendas: son etiquetas, no datos, y el
+panel lo lee un equipo que dice «casita».
+
 | Término | Significado |
 |---|---|
 | **Guía** | `PmsGuia`. Una por unidad (`OneToOne`). Es el CMS: título + secciones ordenadas. |

@@ -174,7 +174,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->setHelp(BaseCrudController::ayudaPlegable(
                 'Cuatro niveles; cada uno añade <strong>una condición</strong> al anterior.',
                 'Cuatro niveles, cada uno añade UNA condición al anterior. '
-                . '<strong>Público</strong>: sale en el catálogo de la unidad, visible para cualquiera sin reserva '
+                . '<strong>Público</strong>: sale en el catálogo de la casita, visible para cualquiera sin reserva '
                 . '(es el único que aparece en el catálogo). '
                 . '<strong>Cliente</strong>: cualquiera con el localizador, haya pagado o no — normas, cómo llegar. '
                 . '<strong>Cliente confirmado</strong>: además, con pago confiable. '

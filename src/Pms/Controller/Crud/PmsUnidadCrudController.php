@@ -63,8 +63,8 @@ final class PmsUnidadCrudController extends BaseCrudController
 
     public function configureCrud(Crud $crud): Crud
     {
-        return $crud->setEntityLabelInSingular('Unidad')
-            ->setEntityLabelInPlural('Unidades')
+        return $crud->setEntityLabelInSingular('Casita')
+            ->setEntityLabelInPlural('Casitas')
             ->setDefaultSort(['nombre' => 'ASC'])
             ->showEntityActionsInlined()
             ->setPaginatorPageSize(50);

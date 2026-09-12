@@ -2035,7 +2035,7 @@ async function ejecutarBorrado(): Promise<void> {
                                 <div v-if="readOnly" class="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
                                     <div class="grid grid-cols-2 gap-x-4 gap-y-3 p-4">
                                         <div>
-                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Unidad</p>
+                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Casita</p>
                                             <p class="text-sm font-bold text-slate-800 mt-0.5">{{ nombreUnidad(entry) }}</p>
                                         </div>
                                         <div>
@@ -2108,7 +2108,7 @@ async function ejecutarBorrado(): Promise<void> {
                                 <!-- ===== FORM (crear / editar) ===== -->
                                 <div v-else class="grid grid-cols-2 gap-3">
                                     <label class="col-span-2">
-                                        <span class="text-xs font-bold text-slate-500">Unidad</span>
+                                        <span class="text-xs font-bold text-slate-500">Casita</span>
                                         <!-- `bg-white` explícito: sin él heredaba el tinte del cuerpo de la
                                              estancia y se leía como deshabilitado justo en las directas, que son
                                              las únicas donde la casita SÍ se puede cambiar. El gris queda

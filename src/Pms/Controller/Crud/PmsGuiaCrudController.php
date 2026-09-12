@@ -77,7 +77,7 @@ class PmsGuiaCrudController extends BaseCrudController
             ->setIcon('fa fa-cog')
             ->collapsible(); // Esto crea el efecto Accordion
 
-        yield AssociationField::new('unidad', 'Unidad / Propiedad')
+        yield AssociationField::new('unidad', 'Casita')
             ->setRequired(true)
             ->setFormTypeOption('attr', ['required' => true])
             ->setColumns(12);

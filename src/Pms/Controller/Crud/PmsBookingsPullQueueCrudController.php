@@ -98,8 +98,8 @@ final class PmsBookingsPullQueueCrudController extends BaseCrudController
             ->setFormTypeOption('disabled', true)
             ->onlyOnDetail();
 
-        yield AssociationField::new('unidades', 'Unidades Filtradas')
-            ->setHelp('Si se deja vacío, se asumen todas las unidades configuradas.');
+        yield AssociationField::new('unidades', 'Casitas filtradas')
+            ->setHelp('Si se deja vacío, se asumen todas las casitas configuradas.');
 
         yield DateField::new('arrivalFrom', 'Llegadas Desde')->setColumns(6);
         yield DateField::new('arrivalTo', 'Llegadas Hasta')->setColumns(6);

@@ -233,7 +233,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         yield $fReserva;
 
         // 🔥 OPTIMIZACIÓN: Se eliminan array_merge anidados por opciones directas.
-        yield AssociationField::new('pmsUnidad', 'Unidad')
+        yield AssociationField::new('pmsUnidad', 'Casita')
             ->setRequired(true)
             ->setFormTypeOptions(['placeholder' => false])
             ->setFormTypeOption('attr', [

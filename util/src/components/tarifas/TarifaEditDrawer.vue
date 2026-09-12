@@ -375,7 +375,7 @@ async function eliminar(): Promise<void> {
                 <div v-if="readOnly" class="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
                     <div class="grid grid-cols-2 gap-x-4 gap-y-3 p-4">
                         <div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Unidad</p>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Casita</p>
                             <p class="text-sm font-bold text-slate-800 mt-0.5">{{ nombreUnidad }}</p>
                         </div>
                         <div>
@@ -425,7 +425,7 @@ async function eliminar(): Promise<void> {
                 <!-- ===== FORM (crear / editar) ===== -->
                 <div v-else class="grid grid-cols-2 gap-3">
                     <label class="col-span-2">
-                        <span class="text-xs font-bold text-slate-500">Unidad</span>
+                        <span class="text-xs font-bold text-slate-500">Casita</span>
                         <select v-model="form.unidad"
                             class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
                             <option value="">-</option>

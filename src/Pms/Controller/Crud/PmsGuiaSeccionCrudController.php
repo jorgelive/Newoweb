@@ -77,7 +77,7 @@ class PmsGuiaSeccionCrudController extends BaseCrudController
             ->setColumns(12);
 
         yield BooleanField::new('esComun', 'Sección Común')
-            ->setHelp('Si se activa, podrá ser vinculada a cualquier Guía de Unidad.')
+            ->setHelp('Si se activa, podrá ser vinculada a la guía de cualquier casita.')
             ->renderAsSwitch(true)
             ->setColumns(6);
 

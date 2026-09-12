@@ -274,7 +274,7 @@ class PmsTarifaRango
 
     public function __toString(): string
     {
-        $unidad = $this->unidad ? $this->unidad->getNombre() : 'Unidad';
+        $unidad = $this->unidad ? $this->unidad->getNombre() : 'Casita';
         $inicio = $this->fechaInicio ? $this->fechaInicio->format('Y-m-d') : '...';
         $fin = $this->fechaFin ? $this->fechaFin->format('Y-m-d') : '...';
 

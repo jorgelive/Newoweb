@@ -217,7 +217,7 @@ class MessageConversationCrudController extends BaseCrudController
             ->hideOnForm()
             ->setColumns(3);
 
-        yield ArrayField::new('contextItems', 'Unidades / Casitas')
+        yield ArrayField::new('contextItems', 'Casitas')
             ->hideOnForm()
             ->setColumns(4);
 

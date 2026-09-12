@@ -232,7 +232,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::subMenu('Maestros PMS', 'fa fa-hotel')
             ->setSubItems([
                 MenuItem::linkTo(PmsEstablecimientoCrudController::class, 'Establecimientos', 'fa fa-building'),
-                MenuItem::linkTo(PmsUnidadCrudController::class, 'Unidades', 'fa fa-door-open'),
+                MenuItem::linkTo(PmsUnidadCrudController::class, 'Casitas', 'fa fa-door-open'),
                 MenuItem::linkTo(PmsUnidadMediaCrudController::class, 'Medios de las casitas', 'fa fa-map-location-dot'),
                 MenuItem::linkTo(PmsEstablecimientoMediaCrudController::class, 'Medios del establecimiento', 'fa fa-vault'),
                 MenuItem::linkTo(PmsEstablecimientoVirtualCrudController::class, 'Establecimientos Virtuales', 'fa fa-building-flag'),
