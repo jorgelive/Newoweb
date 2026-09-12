@@ -8448,7 +8448,8 @@ cosa y tiene otro dueño.
 
 | Necesidad | Archivo | Método |
 |---|---|---|
-| Qué tipos se mandan | `PaqueteDeEscaneos` | `TIPOS` — hoy pasaporte y DNI (las dos caras); la autorización notarial no, es un permiso, no una identidad |
+| Qué tipos se PUEDEN mandar | `PaqueteDeEscaneos` | `TIPOS` — pasaporte y DNI (las dos caras); la autorización notarial no, es un permiso, no una identidad |
+| Cuáles se mandan de verdad | lo elige quien descarga | `tiposPedidos()` los valida contra `TIPOS` |
 | Cómo se llaman los ficheros | `PaqueteDeEscaneos` | `nombreEnElZip()` |
 | Lo que se cuenta en el sobre | `PaqueteDeEscaneos` | `leeme()` |
 | Permisos y cabeceras | `PaqueteEscaneosController` | `__invoke()` |
@@ -8608,3 +8609,50 @@ preguntó, no — y son dos preguntas que se parecen lo suficiente como para con
 | Invertir una pastilla | `alternarNegado()` |
 | La regla de combinación | el `computed` de `pasajerosFiltrados`: `porEje` vs `negados` |
 | Que la exportación la respete | nada: la hoja y el ZIP mandan `pasajerosFiltrados` ya resuelto |
+
+---
+
+## Tres correcciones del sobre, salidas de usarlo (11/09/2026)
+
+### El botón decía a quién mandarlo
+
+Se llamaba **«Enviar al hotel»**. El ZIP se le manda a quien lo pida —un hotel, la discoteca del
+Coco Bongo, una aerolínea—, y el nombre lo estrechaba a un destinatario: hacía dudar de si servía
+para los demás. Ahora dice **«Descargar escaneos»**, que es lo que hace; a quién se le manda lo
+decide quien descarga.
+
+### No se podía elegir qué documentos van
+
+`TIPOS` era una constante fija: pasaporte + DNI anverso + DNI reverso, siempre los tres.
+
+⚠️ **No es comodidad, son documentos de identidad de terceros.** Un hotel pide el documento; una
+discoteca que exige mayoría de edad, sólo el que lleva la fecha de nacimiento; una aerolínea, el
+pasaporte. Mandar los tres siempre es enviarle a alguien el DNI de una persona que sólo pidió el
+pasaporte.
+
+El botón abre ahora un panel con las tres casillas, **las tres marcadas de salida** para que no
+cambie el resultado de quien no se pare a elegir. Y el `LEEME.txt` dice qué se incluyó: quien
+recibe el sobre no sabe qué se dejó fuera, y «no está el DNI» se lee como un olvido si no pone que
+fue a propósito.
+
+⚠️ **La lista de tipos se valida contra `TIPOS` en el servidor** (`tiposPedidos()`). Llega del
+cuerpo de una petición: sin filtrar, pedir `["factura"]` sacaría de la casa las facturas del
+expediente por un endpoint pensado para identidades. Lo que no está en la lista se ignora; si no
+queda nada, se mandan todos.
+
+Detalle de implementación: con tipos elegidos hay que ir por `POST` aunque no haya filtro de
+gente, porque un `GET` no lleva cuerpo. Por eso, sin filtros pero con selección, se mandan los ids
+de todo el mundo.
+
+### La negación no se encontraba
+
+Funcionaba, pero sólo aparece **después** de añadir un subgrupo desde el desplegable: hasta
+entonces no hay ninguna etiqueta que invertir, así que había que descubrirlo por casualidad. Ahora
+lo dice una línea encima de las etiquetas — «Toca una etiqueta para invertirla: **SIN** = los que
+NO lo tienen».
+
+### Y las «i» no hacían nada en el móvil
+
+Se pusieron con el atributo `title`: tooltip de escritorio, que necesita **hover**. Esta app se usa
+desde el teléfono. Ahora las «i» son botones que despliegan el texto bajo su campo; el `title` se
+queda para escritorio.

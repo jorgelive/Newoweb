@@ -55,10 +55,15 @@ use ZipArchive;
 final readonly class PaqueteDeEscaneos
 {
     /**
-     * Qué escaneos se mandan.
+     * Qué escaneos se pueden mandar. Cuál de ellos se manda **lo elige quien descarga**.
      *
-     * El reverso del DNI entra —el registro peruano lo pide— y la autorización notarial no: es un
-     * permiso de viaje de un menor, no una identidad, y no es lo que el hotel está pidiendo.
+     * ⚠️ **Era una constante fija, y no servía.** Un hotel pide el documento de identidad; una
+     * discoteca que exige mayoría de edad, sólo el que lleva la fecha de nacimiento; una aerolínea,
+     * el pasaporte y nada más. Mandar los tres siempre es mandar de más — y estos ficheros son
+     * documentos de identidad de terceros: enviar el DNI de alguien a quien sólo pidió el
+     * pasaporte no es un detalle de comodidad.
+     *
+     * La autorización notarial sigue fuera: es un permiso de viaje de un menor, no una identidad.
      */
     private const TIPOS = [
         ArchivoTipoEnum::PASAPORTE,
@@ -88,9 +93,13 @@ final readonly class PaqueteDeEscaneos
      * controlador lo sirve con `BinaryFileResponse`, que va en trozos.
      *
      * @param list<string>|null $soloEstos Ids de pasajero, o `null` para todo el expediente.
+     * @param list<string>|null $soloTipos Valores de {@see ArchivoTipoEnum}, o `null` para todos
+     *                                     los de identidad.
      */
-    public function generar(CotizacionFile $file, ?array $soloEstos = null): string
+    public function generar(CotizacionFile $file, ?array $soloEstos = null, ?array $soloTipos = null): string
     {
+        $tipos = $this->tiposPedidos($soloTipos);
+
         $ruta = tempnam(sys_get_temp_dir(), 'escaneos_');
 
         if ($ruta === false) {
@@ -115,7 +124,7 @@ final readonly class PaqueteDeEscaneos
 
             $suyos = 0;
 
-            foreach ($this->escaneosDe($file, $pasajero) as $archivo) {
+            foreach ($this->escaneosDe($file, $pasajero, $tipos) as $archivo) {
                 $origen = $this->rutaFisica($archivo);
 
                 if ($origen === null) {
@@ -144,7 +153,7 @@ final readonly class PaqueteDeEscaneos
         // La hoja del manifiesto: los datos, para que las imágenes se puedan cotejar.
         // Estos dos SÍ se comprimen: son texto, y ahí DEFLATE sí gana.
         $zip->addFromString('manifiesto.xlsx', $this->reporte->generar($file, $soloEstos));
-        $zip->addFromString('LEEME.txt', $this->leeme($file, $incluidos, $sinEscaneo, $this->sueltos($file)));
+        $zip->addFromString('LEEME.txt', $this->leeme($file, $incluidos, $sinEscaneo, $this->sueltos($file, $tipos), $tipos));
 
         $zip->close();
 
@@ -158,22 +167,53 @@ final readonly class PaqueteDeEscaneos
     }
 
     /**
+     * Los tipos que de verdad se van a meter.
+     *
+     * ⚠️ **Lista blanca contra `TIPOS`, no lo que venga.** El parámetro llega del cuerpo de una
+     * petición: sin filtrar, pedir `["factura"]` sacaría de la casa las facturas del expediente
+     * por un endpoint pensado para documentos de identidad. Lo que no esté en la lista se ignora,
+     * y si no queda nada se mandan todos —que es lo mismo que no elegir—.
+     *
+     * @param list<string>|null $pedidos
+     *
+     * @return list<ArchivoTipoEnum>
+     */
+    private function tiposPedidos(?array $pedidos): array
+    {
+        if ($pedidos === null || $pedidos === []) {
+            return self::TIPOS;
+        }
+
+        $validos = [];
+
+        foreach (self::TIPOS as $tipo) {
+            if (in_array($tipo->value, $pedidos, true)) {
+                $validos[] = $tipo;
+            }
+        }
+
+        return $validos === [] ? self::TIPOS : $validos;
+    }
+
+    /**
      * Los escaneos de identidad de esta persona.
      *
      * Se recorre desde el EXPEDIENTE y se filtra por pasajero, y no al revés, porque el archivo
      * es quien apunta al pasajero ({@see CotizacionFilearchivo::getPasajero()}): no hay colección
      * inversa que recorrer.
      *
+     * @param list<ArchivoTipoEnum> $tipos
+     *
      * @return list<CotizacionFilearchivo>
      */
-    private function escaneosDe(CotizacionFile $file, CotizacionFilepasajero $pasajero): array
+    private function escaneosDe(CotizacionFile $file, CotizacionFilepasajero $pasajero, array $tipos): array
     {
         $suyos = [];
 
         foreach ($file->getFilearchivos() as $archivo) {
             $tipo = $archivo->getTipoArchivo();
 
-            if ($tipo === null || !in_array($tipo, self::TIPOS, true)) {
+            if ($tipo === null || !in_array($tipo, $tipos, true)) {
                 continue;
             }
 
@@ -289,14 +329,15 @@ final readonly class PaqueteDeEscaneos
     }
 
     /** Cuántos escaneos de identidad hay sin dueño: no se pueden nombrar, así que no viajan. */
-    private function sueltos(CotizacionFile $file): int
+    /** @param list<ArchivoTipoEnum> $tipos */
+    private function sueltos(CotizacionFile $file, array $tipos): int
     {
         $n = 0;
 
         foreach ($file->getFilearchivos() as $archivo) {
             $tipo = $archivo->getTipoArchivo();
 
-            if ($tipo !== null && in_array($tipo, self::TIPOS, true) && $archivo->getPasajero() === null) {
+            if ($tipo !== null && in_array($tipo, $tipos, true) && $archivo->getPasajero() === null) {
                 $n++;
             }
         }
@@ -312,13 +353,20 @@ final readonly class PaqueteDeEscaneos
      * abriendo el ZIP — que es lo único que va a abrir.
      *
      * @param list<string> $sinEscaneo
+     * @param list<ArchivoTipoEnum> $tipos
      */
-    private function leeme(CotizacionFile $file, int $incluidos, array $sinEscaneo, int $sueltos): string
+    private function leeme(CotizacionFile $file, int $incluidos, array $sinEscaneo, int $sueltos, array $tipos): string
     {
         $lineas = [
             sprintf('Escaneos de identidad — %s', (string) $file->getNombreGrupo()),
             sprintf('Generado el %s', date('d/m/Y H:i')),
             '',
+            // Qué se pidió, dicho dentro del sobre: quien lo recibe no sabe qué se dejó fuera, y
+            // «no está el DNI» se lee como un olvido si no pone que no se mandó a propósito.
+            sprintf('Incluye: %s.', implode(', ', array_map(
+                static fn (ArchivoTipoEnum $t): string => $t->getLabel(),
+                $tipos,
+            ))),
             sprintf('%d escaneos incluidos.', $incluidos),
             'La hoja «manifiesto.xlsx» lleva los datos de cada persona.',
             '',

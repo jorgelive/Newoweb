@@ -59,9 +59,10 @@ final class PaqueteEscaneosController extends AbstractController
         }
 
         $soloEstos = null;
+        $soloTipos = null;
 
         if ($peticion->isMethod('POST')) {
-            /** @var array{ids?: list<string>} $cuerpo */
+            /** @var array{ids?: list<string>, tipos?: list<string>} $cuerpo */
             $cuerpo = $peticion->toArray();
             $ids = array_values(array_filter(
                 array_map(static fn (mixed $v): string => trim((string) $v), $cuerpo['ids'] ?? []),
@@ -73,9 +74,18 @@ final class PaqueteEscaneosController extends AbstractController
             }
 
             $soloEstos = $ids;
+
+            // Qué tipos de escaneo entran. Lista vacía o ausente = todos los de identidad.
+            // La lista blanca la aplica el servicio, no esto: ver `tiposPedidos()`.
+            $tipos = array_values(array_filter(
+                array_map(static fn (mixed $v): string => trim((string) $v), $cuerpo['tipos'] ?? []),
+                static fn (string $v): bool => $v !== '',
+            ));
+
+            $soloTipos = $tipos === [] ? null : $tipos;
         }
 
-        $ruta = $paquete->generar($file, $soloEstos);
+        $ruta = $paquete->generar($file, $soloEstos, $soloTipos);
 
         $nombre = preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) $file->getNombreGrupo()) ?? 'expediente';
         $sufijo = $soloEstos === null ? '' : sprintf('-%d', count($soloEstos));

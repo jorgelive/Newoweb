@@ -1305,30 +1305,60 @@ const descargarCargado = () => {
  * eso, dos clics son dos ZIP generándose a la vez sobre el mismo expediente.
  */
 const descargandoEscaneos = ref(false);
+const panelEscaneos = ref(false);
+
+/**
+ * Qué escaneos entran en el ZIP.
+ *
+ * ⚠️ **No es comodidad: son documentos de identidad de terceros.** Un hotel pide el documento; una
+ * discoteca que exige mayoría de edad, sólo el que lleva la fecha de nacimiento; una aerolínea, el
+ * pasaporte. Mandar los tres siempre es mandarle a alguien el DNI de una persona que sólo pidió el
+ * pasaporte.
+ *
+ * Arrancan los tres marcados —que es lo que hacía antes— para que no cambie el resultado de quien
+ * no se pare a elegir.
+ */
+const TIPOS_ESCANEO = [
+  { valor: 'pasaporte', etiqueta: 'Pasaporte' },
+  { valor: 'dni_anverso', etiqueta: 'DNI anverso' },
+  { valor: 'dni_reverso', etiqueta: 'DNI reverso' },
+];
+
+const tiposEscaneo = ref<string[]>(TIPOS_ESCANEO.map(t => t.valor));
+
+const alternarTipoEscaneo = (valor: string) => {
+  tiposEscaneo.value = tiposEscaneo.value.includes(valor)
+    ? tiposEscaneo.value.filter(v => v !== valor)
+    : [...tiposEscaneo.value, valor];
+};
 
 const descargarEscaneos = async () => {
   const id = extractIdStr(file.value?.id || file.value?.['@id'] || '');
   if (!id) return;
 
   const ruta = `/cotizacion/user/manifiesto/escaneos/${id}`;
-  const ids = hayFiltros.value
-    ? pasajerosFiltrados.value.map(p => extractIdStr(p['@id'] ?? p.id)).filter(Boolean)
-    : null;
+  // Con tipos elegidos hay que ir por POST aunque no haya filtro de gente: el GET no lleva cuerpo.
+  // Por eso, sin filtros, se mandan los ids de todo el mundo.
+  const todosLosTipos = tiposEscaneo.value.length === TIPOS_ESCANEO.length;
+  const ids = (hayFiltros.value ? pasajerosFiltrados.value : (todosLosTipos ? [] : pasajerosConsiderados.value))
+    .map(p => extractIdStr(p['@id'] ?? p.id)).filter(Boolean);
 
-  if (ids !== null && !ids.length) return;
+  if (!tiposEscaneo.value.length) { alert('Elige al menos un tipo de documento.'); return; }
+  if (hayFiltros.value && !ids.length) return;
 
   descargandoEscaneos.value = true;
+  panelEscaneos.value = false;
   try {
-    const { data } = ids === null
+    const { data } = ids.length === 0
       ? await apiClient.get(ruta, { responseType: 'blob' })
-      : await apiClient.post(ruta, { ids }, { responseType: 'blob' });
+      : await apiClient.post(ruta, { ids, tipos: tiposEscaneo.value }, { responseType: 'blob' });
 
     const url = URL.createObjectURL(data as Blob);
     const a = document.createElement('a');
     a.href = url;
     // El nombre lo pone el servidor en el Content-Disposition, pero un `download` vacío deja al
     // navegador inventándose «descarga.zip»: se repite aquí lo esencial.
-    a.download = ids === null ? 'documentos.zip' : `documentos-${ids.length}.zip`;
+    a.download = ids.length === 0 ? 'documentos.zip' : `documentos-${ids.length}.zip`;
     a.click();
     URL.revokeObjectURL(url);
   } catch {
@@ -3501,13 +3531,39 @@ const eliminarDocumento = async (iri?: string) => {
                   <i class="fas mr-1.5" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
                   Documentos cargados<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }})</span>
                 </button>
-                <button v-if="file.filepasajeros?.length" type="button" @click="descargarEscaneos"
-                        :disabled="descargandoEscaneos"
-                        title="ZIP con los escaneos de identidad, nombrados por persona y número, más la hoja del manifiesto"
-                        class="border border-teal-200 bg-teal-50 text-teal-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-100 disabled:opacity-40">
-                  <i class="fas mr-1.5" :class="descargandoEscaneos ? 'fa-spinner fa-spin' : 'fa-file-zipper'"></i>
-                  Enviar al hotel<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }})</span>
-                </button>
+                <!-- ⚠️ **Ya no dice «Enviar al hotel».** El ZIP se le manda a quien lo pida —un
+                     hotel, la discoteca del Coco Bongo, una aerolínea— y el botón no debe decidir
+                     a quién: el nombre lo estrechaba a un solo destinatario y hacía dudar de si
+                     servía para los demás. -->
+                <div v-if="file.filepasajeros?.length" class="relative">
+                  <button type="button" @click="panelEscaneos = !panelEscaneos"
+                          :disabled="descargandoEscaneos"
+                          class="border border-teal-200 bg-teal-50 text-teal-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-100 disabled:opacity-40">
+                    <i class="fas mr-1.5" :class="descargandoEscaneos ? 'fa-spinner fa-spin' : 'fa-file-zipper'"></i>
+                    Descargar escaneos<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }})</span>
+                    <i class="fas fa-chevron-down ml-1.5 text-[9px] opacity-60"></i>
+                  </button>
+
+                  <div v-if="panelEscaneos"
+                       class="absolute right-0 z-20 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-3 space-y-2">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Qué documentos incluir</p>
+                    <label v-for="t in TIPOS_ESCANEO" :key="t.valor"
+                           class="flex items-center gap-2 text-[11px] font-bold text-slate-600 cursor-pointer">
+                      <input type="checkbox" :checked="tiposEscaneo.includes(t.valor)"
+                             @change="alternarTipoEscaneo(t.valor)"
+                             class="rounded border-slate-300 text-teal-600 focus:ring-teal-500">
+                      {{ t.etiqueta }}
+                    </label>
+                    <p class="text-[9px] text-slate-400 leading-tight pt-1 border-t border-slate-100">
+                      Van con el nombre y el número de cada persona, más la hoja del manifiesto.
+                      {{ hayFiltros ? 'Respeta los filtros de abajo.' : 'Sin filtros: el expediente entero.' }}
+                    </p>
+                    <button type="button" @click="descargarEscaneos" :disabled="!tiposEscaneo.length"
+                            class="w-full bg-teal-600 text-white py-2 rounded-lg text-[11px] font-bold hover:bg-teal-700 disabled:opacity-40">
+                      Descargar ZIP
+                    </button>
+                  </div>
+                </div>
                 <button @click="abrirPaxModal" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm">+ Añadir Pax</button>
               </div>
 
@@ -3611,6 +3667,15 @@ const eliminarDocumento = async (iri?: string) => {
                       {{ nombre }}
                     </button>
                   </div>
+
+                  <!-- ⚠️ La negación no se ve hasta que hay una etiqueta puesta, y por eso se
+                       dice aquí. Antes había que descubrir por casualidad que la etiqueta se toca:
+                       el subgrupo se añade desde el desplegable de arriba y sólo entonces aparece
+                       algo que invertir. -->
+                  <p v-if="gruposFiltrados.length" class="text-[9px] text-slate-400 mt-2 leading-tight">
+                    Toca una etiqueta para invertirla: <span class="font-black text-rose-600">SIN</span>
+                    = los que NO lo tienen. La «×» la quita.
+                  </p>
 
                   <div v-if="gruposFiltrados.length" class="flex flex-wrap gap-1.5 mt-2">
                     <!-- ⚠️ La pastilla negada NO es la misma con otro color: lleva «SIN» delante.
