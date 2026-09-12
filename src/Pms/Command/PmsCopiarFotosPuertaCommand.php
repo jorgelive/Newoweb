@@ -28,9 +28,13 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * hash en las siete casitas. Eso lo delata sin ambigüedad, y además es la prueba de por qué este
  * plan existe — cambiarlo hoy son siete subidas.
  *
- * Así que la regla es: **un archivo que aparece en más de una casita es el croquis; lo demás son
- * fotos de esa puerta**. No hay hash escrito en el código: se calcula al vuelo, así que el día que
- * el croquis cambie el comando sigue acertando.
+ * Así que la regla es: **un CONTENIDO que aparece en más de una casita es el croquis; lo demás son
+ * fotos de esa puerta**. El hash no se escribe en el código, se calcula al vuelo: el día que el
+ * croquis cambie, el comando sigue acertando.
+ *
+ * ⚠️ **Por contenido y no por nombre**: cada subida a la galería genera un nombre nuevo, así que el
+ * mismo dibujo está guardado con siete nombres distintos. Comparar nombres no excluía nada — lo
+ * sacó el `--dry-run`, que dio las siete casitas como ambiguas.
  *
  * ⚠️ **Donde hay más de una foto, NO elige.** La Casita 4 tiene dos —la puerta en primer plano y
  * el pasaje con la flecha señalándola— y las dos son razonables. Elegir por ella sería decidir con
@@ -80,18 +84,31 @@ final class PmsCopiarFotosPuertaCommand extends Command
             return Command::SUCCESS;
         }
 
-        // Un archivo que aparece en más de una casita es el croquis compartido, no una puerta.
-        $vecesPorArchivo = [];
+        // ⚠️ Se agrupa por CONTENIDO, no por nombre de archivo. Cada subida a la galería genera un
+        // nombre nuevo (`TOKEN_fecha.webp`), así que el croquis —el mismo dibujo subido siete
+        // veces— tiene siete nombres distintos y un solo hash. Agrupar por nombre no excluía nada:
+        // lo cazó el `--dry-run`, que sacó las siete casitas como «elige una a mano».
+        $vecesPorContenido = [];
+        $hashPorArchivo = [];
 
         foreach ($candidatas as $fila) {
-            $vecesPorArchivo[$fila['archivo']] = ($vecesPorArchivo[$fila['archivo']] ?? 0) + 1;
+            $ruta = $this->publicDir . $this->rutaGaleria . '/' . $fila['archivo'];
+            $hash = is_file($ruta) ? (md5_file($ruta) ?: '') : '';
+
+            $hashPorArchivo[$fila['archivo']] = $hash;
+
+            if ($hash !== '') {
+                $vecesPorContenido[$hash] = ($vecesPorContenido[$hash] ?? 0) + 1;
+            }
         }
 
         /** @var array<string, list<string>> $fotosPorUnidad */
         $fotosPorUnidad = [];
 
         foreach ($candidatas as $fila) {
-            if (($vecesPorArchivo[$fila['archivo']] ?? 0) > 1) {
+            $hash = $hashPorArchivo[$fila['archivo']] ?? '';
+
+            if ($hash !== '' && ($vecesPorContenido[$hash] ?? 0) > 1) {
                 continue;
             }
 
