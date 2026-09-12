@@ -68,6 +68,7 @@ use App\Pms\Controller\Crud\PmsReservaHuespedCrudController;
 use App\Pms\Controller\Crud\PmsTarifaRangoCrudController;
 use App\Pms\Controller\Crud\PmsUnidadBeds24MapCrudController;
 use App\Pms\Controller\Crud\PmsUnidadCrudController;
+use App\Pms\Controller\Crud\PmsUnidadMediaCrudController;
 
 // 🔥 NUEVAS IMPORTACIONES MÓDULO TRAVEL (Agencia & Tours)
 use App\Travel\Controller\Crud\TravelOrganizacionCrudController;
@@ -231,6 +232,7 @@ class DashboardController extends AbstractDashboardController
             ->setSubItems([
                 MenuItem::linkTo(PmsEstablecimientoCrudController::class, 'Establecimientos', 'fa fa-building'),
                 MenuItem::linkTo(PmsUnidadCrudController::class, 'Unidades', 'fa fa-door-open'),
+                MenuItem::linkTo(PmsUnidadMediaCrudController::class, 'Medios de las casitas', 'fa fa-map-location-dot'),
                 MenuItem::linkTo(PmsEstablecimientoVirtualCrudController::class, 'Establecimientos Virtuales', 'fa fa-building-flag'),
                 MenuItem::linkTo(PmsChannelCrudController::class, 'Canales de Venta', 'fa fa-shopping-cart'),
                 MenuItem::linkTo(PmsEventAssignmentActivityCrudController::class, 'Tareas / Actividades', 'fa fa-clipboard-list'),

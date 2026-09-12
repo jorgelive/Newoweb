@@ -282,7 +282,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
         // huésped.** El dato de la unidad se llamaba `codigoPuerta` y salía de aquí como
         // `puerta_de_la_casita`, así que el modelo escribió «el código de la puerta es #5» y
         // mandó a alguien a buscar un número que no existe en ninguna puerta. El número estaba
-        // grabado en la LLAVE. Hoy el campo es `numeroDeLlave` y `codigoPuerta` queda reservado
+        // grabado en la LLAVE. Hoy el campo es `numero` y `codigoPuerta` queda reservado
         // para el smart lock, que todavía no está instalado.
         //
         // Por eso el resultado lleva el hecho **en positivo** —lo que el agente SÍ debe decir—
@@ -298,19 +298,20 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
             $faltan[] = 'el de la caja de las llaves';
         }
 
-        $numeroDeLlave = trim((string) $unidad->getNumeroDeLlave());
+        $numero = $unidad->getNumero() !== null ? (string) $unidad->getNumero() : '';
 
-        if ($numeroDeLlave !== '') {
-            $codigos['numero_de_la_llave'] = $numeroDeLlave;
+        if ($numero !== '') {
+            $codigos['numero_de_la_llave'] = $numero;
             $codigos['como_encontrar_la_puerta'] = sprintf(
-                'Las puertas no llevan número: el %s es el de la llave que tiene que sacar de la '
-                . 'caja. Para decirle dónde está su puerta, usa consultar_guia y busca «Puerta '
-                . 'del Departamento» de %s, que la describe.',
-                $numeroDeLlave,
+                'El %s es el número de su llave Y el que identifica su puerta EN EL CROQUIS de su '
+                . 'guía. Las puertas no lo llevan escrito en la calle, así que no le digas que '
+                . 'busque un número: remítele al ítem «Puerta del Departamento» de %s, que trae '
+                . 'el recorrido y el croquis.',
+                $numero,
                 $unidad->getNombre()
             );
         } else {
-            $faltan[] = sprintf('el número de la llave de %s', $unidad->getNombre());
+            $faltan[] = sprintf('el número de %s', $unidad->getNombre());
         }
 
         // El smart lock, cuando lo haya. Hoy está vacío en todas las casitas.

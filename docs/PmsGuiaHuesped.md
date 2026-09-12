@@ -347,9 +347,22 @@ cuando está en la puerta es mandarlo al sitio equivocado en el peor momento.
 
 ## 3.c 📐 PLAN: los medios de la casita (croquis, foto y vídeo) — 11/09/2026
 
-> **Estado: plan aprobado, sin implementar.** Escrito antes de tocar código para poder revisar el
-> modelo entero de una vez. Al ejecutarlo, esta sección se reescribe en presente y se borra este
-> aviso.
+> **Estado (11/09/2026): pasos 1 a 4 hechos, el 5 es contenido y lo tiene que hacer una persona.**
+> Lo construido ya está en presente más abajo; lo que falta queda marcado.
+>
+> | paso | qué | estado |
+> |---|---|---|
+> | 1 | La frase «las puertas no llevan número» de `ConsultarCodigosSkill` | ✅ corregida |
+> | 2 | `PmsUnidad::$numero` entra, `numeroDeLlave` sale | ✅ |
+> | 3 | `PmsUnidadMedia` + enum + CRUD («Medios de las casitas» en el menú) | ✅ |
+> | 4 | Las cuatro claves en contexto e interpolador | ✅ |
+> | 5 | **Los siete croquis nuevos, uno por casita** | ⏳ contenido |
+> | 6 | Que el agente deje de borrar media y pueda mandarla | ⏳ **va después del 5** |
+> | 7 | El `agente_contenido` de los siete ítems | ⏳ contenido |
+>
+> ⚠️ **El 6 no puede adelantarse al 5**: hoy el único croquis que existe numera las siete puertas,
+> así que dárselo al agente sería repartirlo entero a todo el mundo — justo lo que este plan
+> deshace.
 
 ### De dónde sale
 
@@ -460,27 +473,47 @@ porque el huésped ya recibe el enlace a su guía en el mismo mensaje.
 | El ítem lleva su copia | **deja de llevarla**: un dato en dos sitios es un dato que un día se cambia en uno solo (§3.b) |
 | `agente_contenido` de los 7 ítems: sólo el recorrido en palabras | añadir que su puerta está identificada con su número **en su croquis** — hoy el agente no lo sabe, y por eso no supo remitir a ninguna parte |
 
-### Orden de los pasos
+### Cómo quedó montado
 
-1. **Corregir la línea viva.** `ConsultarCodigosSkill` dice hoy «las puertas no llevan número».
-   Con el croquis delante eso es falso: no lo llevan **en la calle**, pero sí en su croquis, y la
-   guía del huésped se lo afirma. Es una línea y está saliendo mal ahora mismo.
-2. `PmsUnidad::$numero` entra, `numeroDeLlave` sale (migración: mueve `#5` → `5`).
-3. `PmsUnidadMedia` + enum + CRUD, con `CROQUIS` y `VIDEO_INGRESO`; `FOTO_PUERTA` puede esperar.
-4. Las cuatro claves en `PmsGuiaContexto` e interpolador. El front no se toca.
-5. Los siete croquis nuevos (contenido, de Jorge) y el traslado desde las galerías.
-6. `ConsultarGuiaSkill` deja de borrar media; `ConsultarCodigosSkill` devuelve el croquis.
-7. Los `agente_contenido` de los siete ítems.
+`PmsUnidadMedia` cuelga de la unidad con `tipo` (`PmsUnidadMediaTipo`), y el tipo decide **dónde
+vive el contenido**: `CROQUIS` y `FOTO_PUERTA` son archivo, `VIDEO_INGRESO` es URL. Por eso existe
+`PmsUnidadMediaTipo::esArchivo()`: el CRUD y `getValor()` preguntan al tipo en vez de adivinar por
+cuál de las dos columnas viene relleno.
 
-⚠️ **Los pasos 1 y 2 no dependen de los croquis nuevos** y se pueden hacer ya. El 6 sin el 5 daría
-el croquis viejo —el de las siete puertas— a todo el mundo, así que **el 6 va después del 5**.
+Una restricción única `(unidad, tipo)`: el croquis de la Casita 5 es uno.
+
+⚠️ **La URL pública de los archivos la pone un listener**, `PmsUnidadMediaAssetListener`, igual que
+para las imágenes de la unidad: la ruta es configuración (`pms.path.unidad_images`) y no puede
+vivir dentro de la entidad. Sin él, `getValor()` devolvería `TOKEN_croquis.webp` y la guía pintaría
+una imagen rota.
+
+⚠️ **La URL de vídeo se valida como YouTube**, no como «una URL». El front la incrusta, así que un
+enlace a otra cosa no daría error: pintaría un reproductor vacío delante del huésped.
+
+⚠️ **Una clave sin medio cargado sale BLOQUEADA, no vacía.** Una casita a la que le falta su croquis
+enseña el marco con el mensaje, no un hueco. Un hueco silencioso se queda para siempre porque nadie
+lo echa de menos.
+
+Y dónde se sube: **Panel → Medios de las casitas**.
 
 ### El hueco, visible a propósito
 
-Mientras falten croquis, **no** se pone un sustituto automático: si a una casita le falta el suyo y
-el agente manda el general sin decirlo, nadie se entera nunca de que falta y el apaño se queda de
-por vida. La skill dirá qué está dando, y el panel tiene que dejar ver de un vistazo a qué casitas
-les falta. **El hueco visible se llena; el tapado, no.**
+Mientras falten croquis, **no** hay sustituto automático: si a una casita le falta el suyo y el
+agente manda el general sin decirlo, nadie se entera nunca de que falta y el apaño se queda de por
+vida. Por eso una clave sin medio sale como bloqueada y no como hueco. **El hueco visible se llena;
+el tapado, no.**
+
+### Lo que queda (pasos 5 a 7)
+
+- **Los siete croquis**, uno por casita y con sólo su número. Es contenido.
+- **Las 15 imágenes** que hoy están en las galerías de los ítems «Puerta del Departamento» no se
+  movieron a `pms_unidad_media`: el croquis actual es el de las siete puertas y copiarlo sería dar
+  por bueno lo que se va a cambiar. Entran a mano cuando existan los nuevos, y entonces el ítem
+  deja su copia y escribe `{{ croquis }}`.
+- **`ConsultarGuiaSkill` sigue borrando la media** para el agente. Se cambia en el paso 6, después
+  de tener los croquis nuevos.
+- **`agente_contenido` de los siete ítems** no menciona el número ni el croquis: ahí está el hueco
+  por el que el agente no supo remitir a ninguna parte.
 
 
 ## 4. Flujo de una petición

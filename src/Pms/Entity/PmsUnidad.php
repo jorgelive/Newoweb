@@ -13,6 +13,7 @@ use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Panel\Entity\Trait\MediaTrait;
+use App\Pms\Enum\PmsUnidadMediaTipo;
 use App\Security\Roles;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -121,20 +122,36 @@ class PmsUnidad
      * puerta**: es el número grabado en la llave que se saca de la caja fuerte. El nombre bastó
      * para que el agente le dijera a un huésped «el código de la puerta es #5» y lo mandara a
      * buscar un número que no existe — las puertas no se numeran, por seguridad. Ese dato vive
-     * ahora en {@see self::$numeroDeLlave}.
+     * ahora en {@see self::$numero}.
      */
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $codigoPuerta = null;
 
     /**
-     * El número grabado en la llave que le toca a esta casita dentro de la caja fuerte.
+     * El número de la casita. **Uno solo, con tres usos.**
      *
-     * Es lo que el huésped necesita para saber **cuál** de las llaves coger. Para saber **dónde**
-     * está su puerta no hay número: cada casita tiene su ítem «Puerta del Departamento» en la
-     * guía, que la describe («la segunda puerta verde, al pie de las gradas»).
+     * Es el que va grabado en la llave que se saca de la caja fuerte, el que identifica su puerta
+     * en el croquis de su guía, y el que se lee en su propio nombre («Casita 5»).
+     *
+     * ⚠️ **No se parte en tres campos, y es deliberado.** Tres columnas que deben coincidir son
+     * tres oportunidades de contradecirse, y nada lo impediría: hasta el 11/09/2026 el número
+     * vivía a la vez dentro del texto `nombre` y en una columna aparte, así que podía haber una
+     * «Casita 5» con llave `#4` sin que saltara nada. El día que una cerradura nueva traiga otro
+     * número grabado, eso será información NUEVA y tendrá su campo entonces, con su motivo
+     * escrito. Partir cuando la realidad diverge es barato; sincronizar tres campos, no.
+     *
+     * ⚠️ **Y la diferenciación de uso va en las PALABRAS de cada consumidor**, no aquí: la skill
+     * dice «su llave» o «en su croquis», la guía escribe «Toma la Llave {{ numero }}». Nombrar el
+     * campo por uno de sus usos fue exactamente el fallo que costó que el agente anunciara «el
+     * código de la puerta es #5» (ver `docs/PmsGuiaHuesped.md` §3.c).
      */
-    #[ORM\Column(type: 'string', length: 50, nullable: true)]
-    private ?string $numeroDeLlave = null;
+    #[ORM\Column(type: 'smallint', nullable: true)]
+    private ?int $numero = null;
+
+    /** @var Collection<int, PmsUnidadMedia> */
+    #[ORM\OneToMany(mappedBy: 'unidad', targetEntity: PmsUnidadMedia::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['orden' => 'ASC'])]
+    private Collection $medios;
 
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $codigoCaja = null;
@@ -361,6 +378,7 @@ class PmsUnidad
         $this->tarifaQueues = new ArrayCollection();
         $this->bookingsPullQueues = new ArrayCollection();
         $this->serviciosCanales = new ArrayCollection();
+        $this->medios = new ArrayCollection();
         $this->wifiNetworks = []; // Inicializamos array vacío
         $this->id = Uuid::v7();
     }
@@ -420,14 +438,35 @@ class PmsUnidad
         return $this->codigoPuerta;
     }
 
-    public function getNumeroDeLlave(): ?string
+    /** @return Collection<int, PmsUnidadMedia> */
+    public function getMedios(): Collection
     {
-        return $this->numeroDeLlave;
+        return $this->medios;
     }
 
-    public function setNumeroDeLlave(?string $numeroDeLlave): self
+    /**
+     * El medio de un tipo, o `null`. **Es el acceso que justifica que esto no viva en la galería
+     * de un ítem de guía**: una llamada, sin depender de que exista el ítem correcto.
+     */
+    public function medio(PmsUnidadMediaTipo $tipo): ?PmsUnidadMedia
     {
-        $this->numeroDeLlave = $numeroDeLlave;
+        foreach ($this->medios as $medio) {
+            if ($medio->getTipo() === $tipo) {
+                return $medio;
+            }
+        }
+
+        return null;
+    }
+
+    public function getNumero(): ?int
+    {
+        return $this->numero;
+    }
+
+    public function setNumero(?int $numero): self
+    {
+        $this->numero = $numero;
 
         return $this;
     }

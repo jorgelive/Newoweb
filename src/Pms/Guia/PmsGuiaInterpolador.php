@@ -95,6 +95,11 @@ final class PmsGuiaInterpolador
 
         $texto = $this->resolverMediaVentana($texto, $acceso, $idioma, $revelar);
 
+        // Los medios de la casita van ANTES que las claves simples: `{{ croquis }}` no es un dato
+        // que se pinte como texto, es una imagen. Aquí se convierte en el bloque que el front ya
+        // sabe pintar y ya no llega abajo.
+        $texto = $this->resolverMediaDeLaCasita($texto, $contexto, $acceso, $idioma, $revelar);
+
         return preg_replace_callback(
             self::REGEX_CLAVE,
             static function (array $m) use ($contexto, $acceso, $idioma, $revelar): string {
@@ -123,6 +128,55 @@ final class PmsGuiaInterpolador
             },
             $texto,
         ) ?? $texto;
+    }
+
+    /**
+     * Los medios de la casita (`{{ croquis }}`, `{{ foto_puerta }}`, `{{ video_ingreso }}`,
+     * `{{ video_caja_fuerte }}`) pasan a ser el bloque que el front pinta.
+     *
+     * ── Por qué una clave simple y no `{{ img_ventana: url }}` ──────────────
+     * Porque la URL tiene que vivir **en la casa, no en el texto**. Escrita dentro del contenido
+     * hay que repetirla en los siete idiomas de `descripcion`, y cambiar un vídeo son siete
+     * ediciones por ítem y por casita. Con la clave, el editor escribe `{{ croquis }}` y la URL
+     * sale de {@see \App\Pms\Entity\PmsUnidadMedia}.
+     *
+     * El desenlace es el mismo que el de `{{ video_ventana: … }}` y se reutiliza a propósito:
+     * ventana abierta → `{{ img: url }}` / `{{ video: url }}`; cerrada → el marco con el mensaje,
+     * **sin que la URL viaje**. El front no se entera de que había una condición.
+     *
+     * ⚠️ Una clave sin medio cargado —una casita a la que todavía le falta su croquis— sale como
+     * bloqueada, no como hueco. Es deliberado: un hueco silencioso se queda para siempre porque
+     * nadie lo echa de menos; el marco se ve y se llena. Ver `docs/PmsGuiaHuesped.md` §3.c.
+     */
+    private function resolverMediaDeLaCasita(
+        string $texto,
+        PmsGuiaContexto $contexto,
+        PmsGuiaAcceso $acceso,
+        string $idioma,
+        bool $revelar,
+    ): string {
+        foreach (self::MEDIOS_DE_LA_CASITA as $clave => $esVideo) {
+            if (!str_contains($texto, $clave)) {
+                continue;
+            }
+
+            $url = $contexto->sensibles[$clave] ?? null;
+            $bloque = $revelar && $url !== null && $url !== ''
+                ? sprintf('{{ %s: %s }}', $esVideo ? 'video' : 'img', $url)
+                : sprintf(
+                    '{{ %s: %s }}',
+                    $esVideo ? 'videobloqueado' : 'imgbloqueado',
+                    trim(PmsGuiaMensajes::bloqueo($acceso, $idioma), '[]')
+                );
+
+            $texto = (string) preg_replace(
+                sprintf('/\{\{\s*%s\s*\}\}/i', preg_quote($clave, '/')),
+                str_replace('$', '\$', $bloque),
+                $texto
+            );
+        }
+
+        return $texto;
     }
 
     /**
@@ -172,7 +226,18 @@ final class PmsGuiaInterpolador
      * cargado. Sin esta lista, una unidad sin `codigoCaja` filtraría el
      * placeholder crudo en lugar del mensaje de bloqueo.
      */
-    private const CLAVES_SENSIBLES = ['door_code', 'numero_llave', 'safe_code', 'keybox_main', 'keybox_sec'];
+    private const CLAVES_SENSIBLES = ['door_code', 'numero', 'safe_code', 'keybox_main', 'keybox_sec'];
+
+    /**
+     * Los medios de la casita y si cada uno es vídeo. Salen de `PmsUnidadMedia` y del
+     * establecimiento, no del texto — ver `resolverMediaDeLaCasita()`.
+     */
+    private const MEDIOS_DE_LA_CASITA = [
+        'croquis'           => false,
+        'foto_puerta'       => false,
+        'video_ingreso'     => true,
+        'video_caja_fuerte' => true,
+    ];
 
     /**
      * El valor se envuelve en un `<span>` para que herede el estilo que ya

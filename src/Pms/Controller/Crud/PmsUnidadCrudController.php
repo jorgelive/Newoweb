@@ -178,14 +178,14 @@ final class PmsUnidadCrudController extends BaseCrudController
         // `{codigo_puerta}` y `{codigo_caja}`, que no los resuelve NADIE: la regex del
         // interpolador (`PmsGuiaInterpolador`) sólo entiende `{{ clave }}`. Quien siguiera la
         // ayuda escribía un marcador muerto y el huésped lo veía en crudo en su guía.
-        yield TextField::new('numeroDeLlave', 'Número de la llave (en la caja)')
+        yield IntegerField::new('numero', 'Número de la casita')
             ->hideOnIndex()
             ->setColumns(6)
-            ->setHelp('El número grabado en la llave de esta casita. En la guía: '
-                . '<code>{{ numero_llave }}</code>. Sólo se muestra dentro de la ventana de la '
-                . 'estancia; fuera de ella sale el mensaje de bloqueo.<br>'
-                . '<strong>Las puertas no se numeran</strong>: para encontrarla está el ítem '
-                . '«Puerta del Departamento» de la guía, que la describe.');
+            ->setHelp('Un número con tres usos: va grabado en su llave, identifica su puerta en '
+                . 'el croquis y se lee en el nombre. En la guía: <code>{{ numero }}</code>. '
+                . 'Sólo se muestra dentro de la ventana de la estancia.<br>'
+                . '<strong>Las puertas no lo llevan escrito en la calle</strong>: se identifican '
+                . 'en el croquis de cada casita.');
 
         yield TextField::new('codigoPuerta', 'Smart Lock (pendiente de instalar)')
             ->hideOnIndex()

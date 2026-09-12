@@ -6,6 +6,7 @@ namespace App\Pms\Guia;
 
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsUnidad;
+use App\Pms\Enum\PmsUnidadMediaTipo;
 
 /**
  * Diccionario de valores con los que se resuelven los `{{ placeholders }}` del
@@ -68,12 +69,23 @@ final readonly class PmsGuiaContexto
             return new self($valores);
         }
 
+        // Los medios de la casita son SENSIBLES como los códigos: el recorrido hasta tu puerta y
+        // cómo se abre la caja no son para cualquiera que abra el catálogo. `array_filter` deja
+        // fuera los que aún no existen —hoy, todos— sin que haya que preguntarlo aquí.
+        $croquis = $unidad->medio(PmsUnidadMediaTipo::CROQUIS)?->getValor();
+        $fotoPuerta = $unidad->medio(PmsUnidadMediaTipo::FOTO_PUERTA)?->getValor();
+        $videoIngreso = $unidad->medio(PmsUnidadMediaTipo::VIDEO_INGRESO)?->getValor();
+
         $sensibles = array_filter([
+            'croquis'           => $croquis,
+            'foto_puerta'       => $fotoPuerta,
+            'video_ingreso'     => $videoIngreso,
+            'video_caja_fuerte' => $establecimiento?->getVideoCajaFuerteUrl(),
             // `door_code` es el smart lock, hoy vacío en todas las casitas: `array_filter` lo
-            // deja fuera solo. `numero_llave` es lo que el huésped necesita hoy para saber cuál
-            // de las llaves de la caja es la suya.
+            // deja fuera solo. `numero` es el de la casita: el que lleva su llave y el que
+            // identifica su puerta en su croquis.
             'door_code'    => $unidad->getCodigoPuerta(),
-            'numero_llave' => $unidad->getNumeroDeLlave(),
+            'numero'       => $unidad->getNumero() !== null ? (string) $unidad->getNumero() : null,
             'safe_code'   => $unidad->getCodigoCaja(),
             'keybox_main' => $establecimiento?->getCodigoCajaPrincipal(),
             'keybox_sec'  => $establecimiento?->getCodigoCajaSecundaria(),

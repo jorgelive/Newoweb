@@ -143,6 +143,33 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $codigoCajaSecundaria = null;
 
+    /**
+     * Vídeo de cómo se abre la caja de las llaves. **Lo único de los medios de acceso que sí es
+     * general**: la caja es una para todas las casitas.
+     *
+     * El croquis, la foto de la puerta y el vídeo del ingreso son de cada casita y viven en
+     * {@see \App\Pms\Entity\PmsUnidadMedia}. En la guía: `{{ video_caja_fuerte }}`.
+     */
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[Assert\Url(message: 'Tiene que ser una URL completa, empezando por https://')]
+    #[Assert\Regex(
+        pattern: '#^https://(www\.)?(youtube\.com/|youtu\.be/)#i',
+        message: 'Sólo se aceptan URLs de YouTube: es lo que el front sabe incrustar.'
+    )]
+    private ?string $videoCajaFuerteUrl = null;
+
+    public function getVideoCajaFuerteUrl(): ?string
+    {
+        return $this->videoCajaFuerteUrl;
+    }
+
+    public function setVideoCajaFuerteUrl(?string $videoCajaFuerteUrl): self
+    {
+        $this->videoCajaFuerteUrl = $videoCajaFuerteUrl;
+
+        return $this;
+    }
+
     // ============================================================
     // RELACIONES
     // ============================================================
