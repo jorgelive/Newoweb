@@ -108,24 +108,12 @@ final class PmsUnidadCrudController extends BaseCrudController
         $basePath = '/' . ltrim($pathRelativo, '/');
         $uploadDir = Parametro::texto($this->params->get('app.public_dir'), 'app.public_dir') . '/' . ltrim($pathRelativo, '/');
 
-        // --- COLUMNA 1: VISTA PREVIA (Index) ---
+        // --- VISTA PREVIA (Index) ---
+        // Sale del medio `PORTADA` de la casita, no de una columna de esta entidad: la subida vive
+        // en «Medios de las casitas», con el croquis y el vídeo.
         yield LiipImageField::new('imageUrl', 'Vista Previa')
             ->onlyOnIndex()
-            ->setSortable(false)
-            ->formatValue(function ($value, $entity) {
-                if ($entity instanceof PmsUnidad && !$entity->isImage($entity->getImageName())) {
-                    return $entity->getIconPathFor($entity->getImageName());
-                }
-                return $value;
-            });
-
-        // --- COLUMNA 2: SUBIDA DE ARCHIVO ---
-        yield TextField::new('imageFile', 'Archivo / Imagen')
-            ->setFormType(VichImageType::class)
-            ->setFormTypeOptions(['allow_delete' => true, 'download_uri' => false])
-            ->onlyOnForms()
-            ->setHelp('Soporta imágenes (JPG, PNG, WEBP). Máx 5MB.')
-            ->setColumns(12);
+            ->setSortable(false);
 
         yield TextField::new('codigoInterno', 'Código interno')
             ->setRequired(false);

@@ -447,6 +447,7 @@ resuelto por el mismo juez (`PmsGuiaAcceso::permite()`):
 
 | clave | nivel | por qué |
 |---|---|---|
+| `{{ portada }}` | `Publico` | es el escaparate: sale sin reserva, en el catálogo y en la web |
 | `{{ croquis }}`, `{{ foto_puerta }}` | `Cliente` | quien tiene su localizador puede ver dónde va a dormir; una puerta verde no abre nada |
 | `{{ video_ingreso }}`, `{{ video_caja_fuerte }}` | `SoloVentana` | enseñan el recorrido hasta dentro y cómo se abre la caja |
 
@@ -455,6 +456,17 @@ niveles y un sí/no los colapsa en dos: obliga a elegir entre enseñar de más o
 crea un segundo vocabulario para lo mismo. Los medios viajan en su propio cajón del contexto
 (`$medios`, cada uno con su nivel) justo por eso: `valores`/`sensibles` sólo distinguen «siempre»
 de «con ventana».
+
+🔥 **Y la portada se mudó aquí también (12/09/2026).** Vivía como columna de `PmsUnidad`
+(`image_name` + su `UploadableField`, su listener de URL y su listener de caché) mientras el resto
+de medios ya estaban fuera: el mismo patrón que se estaba deshaciendo. `PmsUnidad::getImageUrl()`
+**sigue existiendo y sigue publicándose en los tres grupos**; sólo cambió de dónde lee, así que ni
+la API ni `PmsUnidadCatalogoProvider` ni `pax` se enteraron. Y los archivos no se movieron: la
+portada ya usaba el mismo mapeo de Vich que los medios.
+
+⚠️ El listener de caché de Liip se mudó con ella. Si se hubiera quedado mirando a `PmsUnidad`,
+cambiar una portada dejaría la miniatura vieja servida desde la caché **sin ningún error**: sólo
+una foto que no se actualiza.
 
 ⚠️ **La regla vive en el enum y en ningún sitio más.** Si viviera en el contexto habría que
 repetirla en el agente, en el catálogo y en cada consumidor nuevo, y bastaría olvidarla una vez

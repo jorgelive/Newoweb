@@ -32,6 +32,16 @@ enum PmsUnidadMediaTipo: string
     /** La puerta real, como se ve. Opcional: el croquis ya la ubica y la identifica. */
     case FOTO_PUERTA = 'foto_puerta';
 
+    /**
+     * La foto de portada de la casita: la que sale en el catálogo y en la web.
+     *
+     * ⚠️ **Vivía como campo de `PmsUnidad`** (`imageName` + su `UploadableField`) hasta el
+     * 12/09/2026. Es el mismo patrón que se retiró para el croquis: una entidad que acumula los
+     * medios que cuelgan de ella. Ahora todos los medios de la casita están en un solo sitio y con
+     * un solo vocabulario de acceso.
+     */
+    case PORTADA = 'portada';
+
     /** El recorrido hasta la puerta, en vídeo. URL de YouTube. */
     case VIDEO_INGRESO = 'video_ingreso';
 
@@ -53,6 +63,7 @@ enum PmsUnidadMediaTipo: string
      *
      * | tipo | nivel | por qué |
      * |---|---|---|
+     * | `PORTADA` | `Publico` | es el escaparate: sale sin reserva |
      * | `CROQUIS`, `FOTO_PUERTA` | `Cliente` | quien tiene su localizador puede ver dónde va a dormir; una puerta verde no abre nada |
      * | `VIDEO_INGRESO` | `SoloVentana` | enseña el recorrido hasta dentro |
      *
@@ -63,6 +74,9 @@ enum PmsUnidadMediaTipo: string
     public function visibilidad(): PmsGuiaVisibilidad
     {
         return match ($this) {
+            // La portada es el escaparate: sale sin reserva de por medio, como las fotos del
+            // alojamiento en la web.
+            self::PORTADA => PmsGuiaVisibilidad::Publico,
             self::CROQUIS, self::FOTO_PUERTA => PmsGuiaVisibilidad::Cliente,
             self::VIDEO_INGRESO => PmsGuiaVisibilidad::SoloVentana,
         };
@@ -72,7 +86,7 @@ enum PmsUnidadMediaTipo: string
     public function esArchivo(): bool
     {
         return match ($this) {
-            self::CROQUIS, self::FOTO_PUERTA => true,
+            self::CROQUIS, self::FOTO_PUERTA, self::PORTADA => true,
             self::VIDEO_INGRESO => false,
         };
     }
@@ -80,6 +94,7 @@ enum PmsUnidadMediaTipo: string
     public function etiqueta(): string
     {
         return match ($this) {
+            self::PORTADA => 'Portada (la que sale en el catálogo y la web)',
             self::CROQUIS => 'Croquis (sólo con el número de esta puerta)',
             self::FOTO_PUERTA => 'Foto de la puerta',
             self::VIDEO_INGRESO => 'Vídeo del ingreso (YouTube)',

@@ -737,12 +737,6 @@ parameters:
 			path: src/Pms/Entity/PmsUnidad.php
 
 		-
-			message: '#^Property App\\Pms\\Entity\\PmsUnidad\:\:\$imageUpdatedAt is never read, only written\.$#'
-			identifier: property.onlyWritten
-			count: 1
-			path: src/Pms/Entity/PmsUnidad.php
-
-		-
 			message: '#^Right side of && is always true\.$#'
 			identifier: booleanAnd.rightAlwaysTrue
 			count: 1

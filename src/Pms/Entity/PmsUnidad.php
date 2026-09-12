@@ -80,26 +80,6 @@ class PmsUnidad
     #[Assert\Length(max: 150)]
     private ?string $slug = null;
 
-    #[Vich\UploadableField(mapping: 'unidad_images', fileNameProperty: 'imageName')]
-    #[Assert\File(
-        maxSize: "5M",
-        mimeTypes: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
-        mimeTypesMessage: "Formato no válido. Use JPG, PNG, WEBP o PDF."
-    )]
-    private ?File $imageFile = null;
-
-    #[ORM\Column(type: 'string', nullable: true)]
-    private ?string $imageName = null;
-
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?DateTimeInterface $imageUpdatedAt = null;
-
-    /**
-     * PROPIEDAD VIRTUAL (No es columna de DB).
-     * El AssetListener inyectará aquí la URL pública completa.
-     * Usado por LiipImageField en EasyAdmin.
-     */
-    private ?string $imageUrl = null;
 
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $codigoInterno = null;
@@ -402,21 +382,24 @@ class PmsUnidad
     public function getSlug(): ?string { return $this->slug; }
     public function setSlug(?string $val): self { $this->slug = $val; return $this; }
 
+    /**
+     * La portada de la casita, para el catálogo, `pax` y la web.
+     *
+     * ⚠️ **El contrato no cambió, cambió de dónde sale.** Hasta el 12/09/2026 era una columna de
+     * esta entidad (`imageName` + su `UploadableField`) y la URL la inyectaba un listener en una
+     * propiedad virtual. Ahora es un medio más de la casita
+     * ({@see \App\Pms\Enum\PmsUnidadMediaTipo::PORTADA}), como el croquis y el vídeo del
+     * ingreso — que es lo que evita que esta entidad acabe siendo el cajón de todo lo que cuelga
+     * de ella.
+     *
+     * Los tres grupos de serialización y `pax` siguen leyendo exactamente lo mismo: por eso el
+     * movimiento salió barato.
+     */
     #[Groups(['pax_reserva:read', 'pax_guia:read', 'pax_catalogo:read'])]
-    public function getImageUrl(): ?string { return $this->imageUrl; }
-    public function setImageUrl(?string $url): self { $this->imageUrl = $url; return $this; }
-
-    public function setImageFile(?File $imageFile = null): void
+    public function getImageUrl(): ?string
     {
-        $this->imageFile = $imageFile;
-        if (null !== $imageFile) {
-            $this->imageUpdatedAt = new DateTimeImmutable();
-        }
+        return $this->medio(PmsUnidadMediaTipo::PORTADA)?->getValor();
     }
-    public function getImageFile(): ?File { return $this->imageFile; }
-
-    public function getImageName(): ?string { return $this->imageName; }
-    public function setImageName(?string $imageName): void { $this->imageName = $imageName; }
 
     public function getCodigoInterno(): ?string { return $this->codigoInterno; }
     public function setCodigoInterno(?string $val): self { $this->codigoInterno = $val; return $this; }
