@@ -635,8 +635,38 @@ const fetchCatalogos = async () => {
   }
 };
 
+/**
+ * ¿Se está refrescando sobre algo ya pintado? Sirve para no esconder la pantalla.
+ *
+ * Es lo que distingue la PRIMERA carga —no hay nada que enseñar, el spinner es correcto— de las
+ * doce recargas posteriores, que ocurren con el expediente delante.
+ */
+const refrescando = ref(false);
+
+/**
+ * Recarga el expediente entero.
+ *
+ * ⚠️ **Sólo tapa la pantalla si no hay nada pintado todavía.** Antes ponía `isLoading` siempre, y
+ * el `v-if="isLoading"` del `<main>` sustituye TODO el contenido por un spinner. Con doce sitios
+ * llamando aquí —y uno de ellos `guardarPasajero()`, que con «Guardar y siguiente» se dispara
+ * **una vez por persona del manifiesto**— el expediente desaparecía y volvía en cada guardado.
+ *
+ * Y no es una recarga barata: `/platform/sales/cotizacion_files/{id}` mide **717 KB de media y
+ * hasta 4,3 MB**, con 1,69 s de servidor y picos de 8,44 s (medido el 10/09/2026 en el log de
+ * tiempos de nginx). Blanquear la pantalla durante eso, por persona, es la mitad del problema.
+ *
+ * La otra mitad —no recargar el expediente entero para un cambio de un pasajero— es de fondo y
+ * está anotada con el trabajo del endpoint en `docs/Pendientes.md`: aquí se arregla lo que se ve,
+ * no lo que pesa.
+ *
+ * El indicador de `refrescando` no es decorativo: sin él, un guardado sobre datos que tardan
+ * cuatro segundos en volver se lee como que ya está, y alguien edita encima de lo viejo.
+ */
 const cargarFile = async () => {
-  isLoading.value = true;
+  const primeraVez = !file.value?.['@id'];
+
+  isLoading.value = primeraVez;
+  refrescando.value = !primeraVez;
   watchActivo = false; // Apagamos el guardián mientras hidratamos para no disparar falsas alarmas
   try {
     const response = await apiClient.get(`/platform/sales/cotizacion_files/${route.params.id}`);
@@ -648,6 +678,7 @@ const cargarFile = async () => {
     router.push('/cotizacion');
   } finally {
     isLoading.value = false;
+    refrescando.value = false;
     // Encendemos el guardián con un ligero delay tras pintar la UI
     setTimeout(() => {
       watchActivo = true;
@@ -2617,6 +2648,37 @@ const esDocDeIdentidad = computed(
   () => ARCHIVO_TIPOS_DEL_PASAJERO.includes(docForm.value.tipoArchivo as ArchivoTipoValue),
 );
 
+/**
+ * Deja en la lista la versión recién guardada de un pasajero, sin volver a pedir el expediente.
+ *
+ * El GET del expediente pesa **717 KB de media y hasta 4,3 MB**, con picos de 8,44 s de servidor
+ * (medido el 10/09/2026). Con «Guardar y siguiente» eso ocurría **una vez por persona del
+ * manifiesto**: en un grupo de treinta, treinta viajes para cambiar un apellido.
+ *
+ * Se empareja por identidad y no por índice: la lista se reordena por grupo y por coordinador,
+ * así que la posición no es estable entre pintados.
+ *
+ * ⚠️ **Por el UUID y no por `@id` a secas.** `abrirEdicionPax()` ya contempla que `@id` pueda
+ * faltar y lo reconstruye desde `id`; si aquí sólo se mirara `@id`, un pasajero sin él no casaría,
+ * `findIndex` daría -1 y la lista se quedaría con los datos VIEJOS sin dar ningún error — que es
+ * peor que recargar de más. Devuelve `false` cuando no encuentra a quién sustituir, y quien llama
+ * recarga.
+ */
+const sustituirPasajero = (guardado: ApiCotizacionFilepasajero): boolean => {
+  const lista = file.value?.filepasajeros;
+  if (!lista) return false;
+
+  const clave = extractIdStr(guardado['@id'] || guardado.id);
+  if (!clave) return false;
+
+  const i = lista.findIndex(p => extractIdStr(p['@id'] || p.id) === clave);
+  if (i === -1) return false;
+
+  lista.splice(i, 1, guardado);
+
+  return true;
+};
+
 const guardarPasajero = async () => {
   // SearchableSelect no dispara la validación nativa del form: validamos a mano.
   // validate() pinta el error dentro del componente y devuelve si es válido.
@@ -2632,9 +2694,22 @@ const guardarPasajero = async () => {
 
   let success: boolean;
 
+  // Al EDITAR, lo guardado se sustituye en la lista y no se recarga el expediente.
+  //
+  // ⚠️ **Sólo al editar, y la diferencia importa.** Editar cambia los datos de alguien que ya
+  // está en la lista; crear cambia LA LISTA —aparece una persona, y de ella dependen el orden,
+  // los contadores y a quién salta «Guardar y siguiente»—. Por eso la creación sigue recargando.
+  //
+  // Es seguro porque el PATCH devuelve el pasajero con `file:item:read`, la misma forma con la
+  // que viaja dentro del expediente: no hay ningún campo suyo que esté en `file:read` y no en
+  // `file:item:read` (comprobado el 11/09/2026). Si algún día lo hubiera, la ficha se quedaría
+  // con ese campo en blanco hasta la siguiente recarga — y no daría ningún error.
+  let guardado: ApiCotizacionFilepasajero | null = null;
+
   if (paxEditandoIri.value) {
     // Modo edición
-    success = await fileStore.updatePassenger(paxEditandoIri.value, payloadDePax());
+    guardado = await fileStore.updatePassenger(paxEditandoIri.value, payloadDePax());
+    success = guardado !== null;
   } else {
     // Modo creación (igual que antes)
     const payload = {
@@ -2654,7 +2729,12 @@ const guardarPasajero = async () => {
     if (!seguir) {
       capas.cerrar('pax');
     }
-    await cargarFile();
+
+    // Si no se pudo sustituir —no se encontró a quién— se recarga: mejor un viaje de más que una
+    // ficha enseñando lo de antes.
+    if (guardado === null || !sustituirPasajero(guardado)) {
+      await cargarFile();
+    }
 
     if (seguir) {
       paxEditandoIri.value = iriGuardado;
@@ -2876,9 +2956,17 @@ const eliminarDocumento = async (iri?: string) => {
       </div>
     </header>
 
+    <!-- Sólo en la PRIMERA carga: después se refresca sin esconder el expediente. Ver `cargarFile()`. -->
     <main v-if="isLoading" class="flex-1 flex justify-center items-center">
       <i class="fas fa-spinner fa-spin text-4xl text-slate-300"></i>
     </main>
+
+    <!-- La franja de «refrescando». Ocupa alto propio en vez de flotar sobre el contenido: una
+         cinta superpuesta tapa la primera fila justo cuando se está mirando qué cambió. -->
+    <div v-if="refrescando"
+         class="shrink-0 bg-sky-50 border-b border-sky-200 px-4 py-1.5 flex items-center gap-2 text-[11px] font-bold text-sky-700">
+      <i class="fas fa-circle-notch fa-spin"></i> Actualizando el expediente…
+    </div>
 
     <main v-else class="flex-1 overflow-y-auto p-6 md:p-8">
       <!-- ⚠️ **En una columna, la barra lateral NO es una barra: es la primera sección.**

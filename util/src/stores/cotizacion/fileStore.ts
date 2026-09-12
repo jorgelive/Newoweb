@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { extractApiErrorMessage, esErrorSilencioso } from '@/services/apiError';
-import {ApiCotizacionFile, ApiCotizacionFileWrite, I18nContent, PlanCargaZip} from '@/types/fileDetalleModel.ts';
+import {ApiCotizacionFile, ApiCotizacionFilepasajero, ApiCotizacionFileWrite, I18nContent, PlanCargaZip} from '@/types/fileDetalleModel.ts';
 import type { PlanReconciliacion, AplicarPlanPayload, ResultadoAplicacion, InformeCoherencia } from '@/types/operacionModel';
 import type { EstadoFile } from '@/types/cotizacionEditorModel';
 import type { DocumentoSuelto } from '@/types/fileDetalleModel';
@@ -858,14 +858,25 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
-    const updatePassenger = async (iri: string, payload: PasajeroPayload): Promise<boolean> => {
+    /**
+     * Guarda un pasajero y **devuelve cómo quedó**.
+     *
+     * ⚠️ Devolvía `boolean` y tiraba la respuesta, así que quien llamaba no tenía más remedio que
+     * recargar el expediente entero para ver el cambio — y ese GET pesa hasta 4,3 MB. El PATCH ya
+     * trae el pasajero serializado con `file:item:read`, que es **la misma forma** con la que
+     * viaja dentro del expediente (comprobado: no hay ningún campo suyo que esté en `file:read` y
+     * no en `file:item:read`). Con eso, quien edita puede sustituirlo en su lista y no viajar.
+     *
+     * `null` si falló; el motivo queda en `error`.
+     */
+    const updatePassenger = async (iri: string, payload: PasajeroPayload): Promise<ApiCotizacionFilepasajero | null> => {
         error.value = null;
         try {
-            await apiClient.patch(iri, payload);
-            return true;
+            const { data } = await apiClient.patch<ApiCotizacionFilepasajero>(iri, payload);
+            return data;
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'Error al actualizar el pasajero.');
-            return false;
+            return null;
         }
     };
 

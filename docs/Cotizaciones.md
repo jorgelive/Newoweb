@@ -8297,3 +8297,52 @@ guardián y no el lector — el lector no decide nada y no se puede ejercitar si
 | Cambiar el nombre por convención | `CotizacionFilearchivoMultipartProcessor` | `nombrarSiEsDeIdentidad()` |
 | Cómo se le pide la caja al modelo | `LectorDeDocumentoIdentidad` | `INSTRUCCION` + el esquema |
 | Qué propuestas se aceptan | `src/Pms/Nombre/OrdenDelNombre.php` | `conLaCajaBuena()` |
+
+---
+
+## Guardar un pasajero recargaba el expediente entero (11/09/2026)
+
+Reportado como «cada vez que guardo un ítem del manifiesto carga toda la página». Las dos mitades
+del problema eran distintas y se arreglaron por separado.
+
+### La pantalla se quedaba en blanco
+
+`cargarFile()` ponía `isLoading = true` siempre, y el `v-if="isLoading"` del `<main>` **sustituye
+todo el contenido por un spinner**. Con **doce** sitios llamando a `cargarFile()`, el expediente
+desaparecía y volvía por cualquier cosa.
+
+Ahora sólo tapa la pantalla si no hay nada pintado todavía (`!file.value['@id']`). La regla se
+mantiene sola: ningún llamador tiene que acordarse de pasar un flag. Los refrescos posteriores
+enseñan una franja «Actualizando el expediente…» que **ocupa alto propio** — una cinta superpuesta
+taparía la primera fila justo cuando se mira qué cambió.
+
+⚠️ El indicador no es decorativo: sin él, un refresco de cuatro segundos se lee como que ya
+terminó, y alguien edita encima de datos viejos.
+
+### Y el viaje no hacía falta
+
+`/platform/sales/cotizacion_files/{id}` pesa **717 KB de media y hasta 4,3 MB**, con 1,69 s de
+servidor y picos de 8,44 s (log de tiempos de nginx, 10/09/2026). Con «Guardar y siguiente» eso
+ocurría **una vez por persona**: en un grupo de treinta, treinta viajes para cambiar un apellido.
+
+`fileStore.updatePassenger()` devolvía `boolean` y tiraba la respuesta del PATCH, así que quien
+llamaba no tenía más remedio que recargar. Ahora devuelve el pasajero guardado y
+`sustituirPasajero()` lo cambia en la lista.
+
+**Por qué es seguro:** el PATCH normaliza con `file:item:read`, la misma forma con la que el
+pasajero viaja dentro del expediente — comprobado que no hay ningún campo suyo en `file:read` que
+no esté también en `file:item:read`. Y todo lo derivado (contadores, alertas, agrupaciones) sale
+de computeds sobre `file.value.filepasajeros`, así que sustituir el elemento los recalcula.
+
+Tres decisiones que sostienen esto:
+
+1. **Sólo al EDITAR.** Crear cambia *la lista* —aparece una persona, y de ella dependen el orden,
+   los contadores y a quién salta «Guardar y siguiente»—, así que la creación sigue recargando.
+2. **Se empareja por UUID, no por índice ni por `@id` a secas.** La lista se reordena por grupo y
+   por coordinador, y `abrirEdicionPax()` ya contempla que `@id` pueda faltar.
+3. **Si no encuentra a quién sustituir, recarga.** Devolver `false` y caer en `cargarFile()` es un
+   viaje de más; quedarse callado sería una ficha enseñando lo de antes, que es peor y mudo.
+
+⚠️ **Lo que esto NO arregla:** el endpoint sigue pesando lo que pesa, y los otros once llamadores
+siguen recargándolo entero. Eso está anotado en `docs/Pendientes.md` con el trabajo del endpoint —
+aquí se arregló lo que se ve, no lo que pesa.
