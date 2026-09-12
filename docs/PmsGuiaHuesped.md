@@ -590,7 +590,13 @@ pantalla de medios.
 casitas les falta algo, que es la pregunta que uno se hace cuando gestiona siete.
 
 ⚠️ **Estuvo también incrustado dentro de la casita y se retiró (12/09/2026).** Dos puertas a lo
-mismo es el patrón que este plan deshace: se edita en un sitio.
+mismo es el patrón que este plan deshace: se edita en un sitio. Con el editor se fue también la
+rama `isEmbedded()` del CRUD, que ya no recorría nadie.
+
+⚠️ **Los desplegables obligatorios llevan `attr.required` además de `setRequired()`**, como los del
+resto del panel. `setRequired()` sólo valida al enviar; es el atributo del widget el que le quita
+la **✕ de limpiar**. Sin él se ofrece vaciar un campo que no admite vacío: la ✕ deja el formulario
+en un estado que luego rebota, y quien la pulsa se entera al guardar.
 
 ### El hueco, visible a propósito
 

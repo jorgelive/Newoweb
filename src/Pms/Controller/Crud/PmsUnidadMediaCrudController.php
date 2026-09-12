@@ -35,6 +35,10 @@ use Vich\UploaderBundle\Form\Type\VichImageType;
  * incrusta como vídeo, así que otra cosa no daría error, pintaría un reproductor vacío delante del
  * huésped.
  *
+ * ⚠️ **Esta es la única pantalla**: no se incrusta dentro de la casita. Tuvo una rama para el caso
+ * incrustado y se retiró con el editor que la usaba (12/09/2026); una rama que nadie recorre sólo
+ * sirve para que alguien la mantenga sin motivo.
+ *
  * @extends BaseCrudController<PmsUnidadMedia>
  */
 class PmsUnidadMediaCrudController extends BaseCrudController
@@ -76,20 +80,20 @@ class PmsUnidadMediaCrudController extends BaseCrudController
         $pathRelativo = Parametro::texto($this->params->get('pms.path.unidad_images'), 'pms.path.unidad_images');
         $basePath = '/' . ltrim($pathRelativo, '/');
 
-        // Incrustado dentro de la casita, el campo sobra: ya se sabe de quién es. Se manda oculto
-        // —no se quita— porque el formulario lo necesita para atar la fila nueva.
-        if ($this->isEmbedded()) {
-            yield AssociationField::new('unidad')
-                ->setFormTypeOption('row_attr', ['class' => 'd-none'])
-                ->setLabel(false);
-        } else {
-            yield AssociationField::new('unidad', 'Casita')
-                ->setRequired(true)
-                ->setSortable(true);
-        }
+        // ⚠️ `attr.required` además de `setRequired()`, como el resto de los desplegables
+        // obligatorios del panel (`PmsEstablecimiento`, `PmsReserva`…). `setRequired()` sólo valida
+        // al enviar; es el atributo del widget el que le quita la **✕ de limpiar**. Sin él se
+        // ofrece vaciar un campo que no admite vacío: la ✕ deja el formulario en un estado que
+        // luego rebota, y el que la pulsa se entera al guardar.
+        yield AssociationField::new('unidad', 'Casita')
+            ->setRequired(true)
+            ->setFormTypeOption('attr', ['required' => true])
+            ->setSortable(true);
 
         yield ChoiceField::new('tipo', 'Tipo')
             ->setChoices(PmsUnidadMediaTipo::opciones())
+            ->setRequired(true)
+            ->setFormTypeOption('attr', ['required' => true])
             ->setSortable(true)
             ->setHelp('En la guía se pide con <code>{{ croquis }}</code>, '
                 . '<code>{{ foto_puerta }}</code> o <code>{{ video_ingreso }}</code>, según el tipo.');
