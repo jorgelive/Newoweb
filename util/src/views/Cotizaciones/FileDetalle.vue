@@ -1326,6 +1326,39 @@ const TIPOS_ESCANEO = [
 
 const tiposEscaneo = ref<string[]>(TIPOS_ESCANEO.map(t => t.valor));
 
+/**
+ * Cuántos ESCANEOS hay de cada tipo, sobre la gente que se va a exportar.
+ *
+ * ⚠️ **Cuenta ficheros, no personas, y ésa es la corrección.** El botón decía «(124)» —las
+ * personas del filtro— y el ZIP traía otra cosa: quien no ha subido su foto cuenta como persona y
+ * no como fichero. Quien recibía el sobre contaba y no le cuadraba, y el que lo mandó no podía
+ * saberlo hasta abrirlo.
+ *
+ * Se calcula sobre `filearchivos` del expediente, que ya está cargado: no hace falta preguntar al
+ * servidor para saber qué vas a mandar antes de mandarlo.
+ */
+const escaneosPorTipo = computed<Record<string, number>>(() => {
+  const gente = new Set(
+    (hayFiltros.value ? pasajerosFiltrados.value : pasajerosConsiderados.value)
+      .map(p => extractIdStr(p['@id'] ?? p.id)),
+  );
+  const mapa: Record<string, number> = {};
+
+  for (const a of file.value?.filearchivos ?? []) {
+    const dueno = extractIdStr(a.pasajero as string | undefined);
+    // Sin dueño no viaja: no se puede nombrar. Ver `PaqueteDeEscaneos`.
+    if (!dueno || !gente.has(dueno)) continue;
+    const tipo = String(a.tipoArchivo);
+    mapa[tipo] = (mapa[tipo] ?? 0) + 1;
+  }
+
+  return mapa;
+});
+
+/** Los ficheros que llevará el ZIP con lo marcado ahora mismo. */
+const totalEscaneosElegidos = computed(() =>
+  tiposEscaneo.value.reduce((n, t) => n + (escaneosPorTipo.value[t] ?? 0), 0));
+
 const alternarTipoEscaneo = (valor: string) => {
   tiposEscaneo.value = tiposEscaneo.value.includes(valor)
     ? tiposEscaneo.value.filter(v => v !== valor)
@@ -1358,7 +1391,9 @@ const descargarEscaneos = async () => {
     a.href = url;
     // El nombre lo pone el servidor en el Content-Disposition, pero un `download` vacío deja al
     // navegador inventándose «descarga.zip»: se repite aquí lo esencial.
-    a.download = ids.length === 0 ? 'documentos.zip' : `documentos-${ids.length}.zip`;
+    // También el nombre del fichero: se reenvía sin abrirlo, y «documentos-124» sobre un ZIP de
+    // 117 es una promesa que alguien va a contar.
+    a.download = `documentos-${totalEscaneosElegidos.value}.zip`;
     a.click();
     URL.revokeObjectURL(url);
   } catch {
@@ -3540,7 +3575,9 @@ const eliminarDocumento = async (iri?: string) => {
                           :disabled="descargandoEscaneos"
                           class="border border-teal-200 bg-teal-50 text-teal-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-100 disabled:opacity-40">
                     <i class="fas mr-1.5" :class="descargandoEscaneos ? 'fa-spinner fa-spin' : 'fa-file-zipper'"></i>
-                    Descargar escaneos<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }})</span>
+                    <!-- El número del botón es de FICHEROS, no de personas: es lo que va a
+                         bajar. Decía las personas del filtro y prometía de más. -->
+                    Descargar escaneos<span v-if="totalEscaneosElegidos"> ({{ totalEscaneosElegidos }})</span>
                     <i class="fas fa-chevron-down ml-1.5 text-[9px] opacity-60"></i>
                   </button>
 
@@ -3552,15 +3589,20 @@ const eliminarDocumento = async (iri?: string) => {
                       <input type="checkbox" :checked="tiposEscaneo.includes(t.valor)"
                              @change="alternarTipoEscaneo(t.valor)"
                              class="rounded border-slate-300 text-teal-600 focus:ring-teal-500">
-                      {{ t.etiqueta }}
+                      <span class="flex-1">{{ t.etiqueta }}</span>
+                      <!-- El número REAL de ficheros de ese tipo, no de personas. Sin esto se
+                           marcaba a ciegas y la cuenta sólo se veía al abrir el ZIP. -->
+                      <span class="tabular-nums" :class="escaneosPorTipo[t.valor] ? 'text-slate-500' : 'text-slate-300'">
+                        {{ escaneosPorTipo[t.valor] ?? 0 }}
+                      </span>
                     </label>
                     <p class="text-[9px] text-slate-400 leading-tight pt-1 border-t border-slate-100">
-                      Van con el nombre y el número de cada persona, más la hoja del manifiesto.
+                      Van con el nombre y el número de cada persona, más una hoja con los datos.
                       {{ hayFiltros ? 'Respeta los filtros de abajo.' : 'Sin filtros: el expediente entero.' }}
                     </p>
-                    <button type="button" @click="descargarEscaneos" :disabled="!tiposEscaneo.length"
+                    <button type="button" @click="descargarEscaneos" :disabled="!totalEscaneosElegidos"
                             class="w-full bg-teal-600 text-white py-2 rounded-lg text-[11px] font-bold hover:bg-teal-700 disabled:opacity-40">
-                      Descargar ZIP
+                      Descargar {{ totalEscaneosElegidos }} documento{{ totalEscaneosElegidos === 1 ? '' : 's' }}
                     </button>
                   </div>
                 </div>

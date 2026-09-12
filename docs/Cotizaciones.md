@@ -8656,3 +8656,51 @@ NO lo tienen».
 Se pusieron con el atributo `title`: tooltip de escritorio, que necesita **hover**. Esta app se usa
 desde el teléfono. Ahora las «i» son botones que despliegan el texto bajo su campo; el `title` se
 queda para escritorio.
+
+---
+
+## La hoja del sobre y la cuenta que no cuadraba (12/09/2026)
+
+### Dentro iba el informe de control, y no era lo que tocaba
+
+El ZIP llevaba `manifiesto.xlsx`, o sea `ReporteDeDocumentos` — el informe de CONTROL: quién ha
+subido qué, qué falta, qué observó la validación. Se metió porque ya existía y salía gratis, y eso
+era justamente el error.
+
+⚠️ **Quien recibe el sobre no tiene nuestro problema.** Necesita cotejar los ficheros que le
+llegaron con una lista de personas, números y caducidades. Mandarle además nuestras observaciones
+internas —«nombre no coincide», «sin comprobar»— es enseñarle dudas sobre sus propios huéspedes que
+no le tocaba resolver, y de paso le entierra el dato que sí buscaba.
+
+Ahora va `documentos.xlsx` ({@see ListaDelPaquete}): **Apellidos · Nombres · Documento · Número ·
+Vence · Archivo**, y nada más.
+
+Dos decisiones que la hacen contable:
+
+- **Una fila por DOCUMENTO, no por persona.** Quien lleva pasaporte y DNI sale dos veces. Así
+  **una fila = un fichero** y la lista se puede contar contra el ZIP. Con una fila por persona y
+  columnas por tipo, la cuenta sólo cuadraba si nadie tenía dos documentos.
+- **Sólo de los tipos que se piden.** Si se manda únicamente el pasaporte, la hoja no menciona el
+  DNI: una columna vacía en un documento que sale de casa se lee como un dato que falta, no como
+  uno que no se pidió.
+
+Y las filas se apuntan **mientras se añaden los ficheros al ZIP**, no recorriendo el expediente
+otra vez: recalcularlas aparte sería una segunda implementación de «qué va dentro», y la que se
+quedara corta mentiría.
+
+⚠️ El número va como TEXTO en la celda. Un DNI peruano empieza por cero más veces de las que
+parece, y Excel se lo come: `08123456` llega como `8123456` y ya no casa con nada.
+
+### El botón prometía personas y entregaba ficheros
+
+Decía **«Descargar escaneos (124)»** — las personas del filtro. Pero quien no ha subido su foto
+cuenta como persona y **no** como fichero, así que el ZIP traía menos. El que lo recibía contaba y
+no le cuadraba, y el que lo mandó no podía saberlo hasta abrirlo.
+
+Ahora el panel enseña, junto a cada casilla, **cuántos escaneos de ese tipo hay de verdad** en la
+selección actual, el botón dice el total de ficheros, y el nombre del ZIP lleva ese mismo número —
+se reenvía sin abrirlo, y `documentos-124` sobre un sobre de 117 es una promesa que alguien va a
+contar.
+
+Se calcula en el front sobre `filearchivos`, que ya está cargado: no hace falta preguntar al
+servidor qué vas a mandar antes de mandarlo.

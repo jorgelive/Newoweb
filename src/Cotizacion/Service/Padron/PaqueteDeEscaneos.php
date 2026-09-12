@@ -48,9 +48,13 @@ use ZipArchive;
  * otro— se queda fuera y aparece contado en `LEEME.txt`. Lo mismo con quien no tiene ningún
  * escaneo: el hueco se dice, no se calla.
  *
- * 🔥 **Dentro va también la hoja del manifiesto**, la misma que genera {@see ReporteDeDocumentos}.
- * Es lo que convierte un montón de imágenes en algo que el hotel puede cotejar, y no cuesta nada:
- * ese informe ya existía.
+ * 🔥 **Dentro va también `documentos.xlsx`** ({@see ListaDelPaquete}): una fila por fichero, con
+ * nombre, número y caducidad. Es lo que convierte un montón de imágenes en algo cotejable.
+ *
+ * ⚠️ **NO es el informe de control.** Al principio se metía {@see ReporteDeDocumentos}, que ya
+ * existía y salía gratis — y estaba mal: lleva las observaciones de la validación y una cuenta de
+ * PERSONAS, así que quien no tenía foto salía en la hoja y no en el sobre. El destinatario
+ * contaba y no le cuadraba.
  */
 final readonly class PaqueteDeEscaneos
 {
@@ -80,7 +84,7 @@ final readonly class PaqueteDeEscaneos
 
     public function __construct(
         private StorageInterface $almacen,
-        private ReporteDeDocumentos $reporte,
+        private ListaDelPaquete $lista,
         private LoggerInterface $logger,
     ) {}
 
@@ -116,6 +120,8 @@ final readonly class PaqueteDeEscaneos
         $incluidos = 0;
         $sinEscaneo = [];
         $usados = [];
+        /** @var list<array{pasajero: CotizacionFilepasajero, tipo: ArchivoTipoEnum, archivo: string}> $filas */
+        $filas = [];
 
         foreach ($file->getFilepasajeros() as $pasajero) {
             if ($permitidos !== null && !isset($permitidos[(string) $pasajero->getId()])) {
@@ -142,6 +148,15 @@ final readonly class PaqueteDeEscaneos
                     $zip->setCompressionIndex($zip->numFiles - 1, ZipArchive::CM_STORE);
                     $incluidos++;
                     $suyos++;
+
+                    // La fila se apunta AQUÍ y no recorriendo otra vez: así la lista sólo puede
+                    // contener lo que de verdad entró. Recalcularla aparte sería una segunda
+                    // implementación de «qué va dentro», y la que se quedara corta mentiría.
+                    $tipoArchivo = $archivo->getTipoArchivo();
+
+                    if ($tipoArchivo !== null) {
+                        $filas[] = ['pasajero' => $pasajero, 'tipo' => $tipoArchivo, 'archivo' => $nombre];
+                    }
                 }
             }
 
@@ -152,7 +167,14 @@ final readonly class PaqueteDeEscaneos
 
         // La hoja del manifiesto: los datos, para que las imágenes se puedan cotejar.
         // Estos dos SÍ se comprimen: son texto, y ahí DEFLATE sí gana.
-        $zip->addFromString('manifiesto.xlsx', $this->reporte->generar($file, $soloEstos));
+        //
+        // ⚠️ **La lista es del PAQUETE, no el informe de control.** Antes iba
+        // `ReporteDeDocumentos`, que lleva las observaciones de la validación —«nombre no
+        // coincide», «sin comprobar»—: eso es para nosotros. Enseñarle a un hotel nuestras dudas
+        // sobre sus huéspedes no le toca resolverlo, y le entierra el dato que sí buscaba. Además
+        // prometía una cuenta de personas que no cuadra con los ficheros: quien no tiene foto
+        // salía en la hoja y no en el sobre.
+        $zip->addFromString('documentos.xlsx', $this->lista->generar($file, $filas));
         $zip->addFromString('LEEME.txt', $this->leeme($file, $incluidos, $sinEscaneo, $this->sueltos($file, $tipos), $tipos));
 
         $zip->close();
