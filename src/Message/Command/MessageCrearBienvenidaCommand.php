@@ -41,6 +41,20 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *    vieja sigue llevando las cuentas y el huésped de Booking las recibiría dos veces; después,
  *    sin la regla, no las recibiría ninguna.
  *
+ * ── 🚫 Las DIRECTAS no reciben bienvenida, y es una decisión ────────────────
+ * No es un hueco por llenar. Una reserva directa llega por una **negociación personalizada** —se
+ * habló con esa persona, se acordó precio y condiciones—, así que un mensaje automático al minuto
+ * de reservar llegaría detrás de una conversación que ya existe y diría menos que ella.
+ *
+ * ⚠️ **Y técnicamente sí se podría**, que es lo que hace tentador proponerlo: `bienvenida` no
+ * nombra a ninguna OTA —a diferencia de las viejas, que decían «Reservado vía: Booking.com»— y
+ * está aprobada en Meta, así que saldría por WhatsApp aunque la ventana de 24 h esté cerrada. En
+ * 90 días fueron 30 directas, 24 con teléfono. Poderse, se puede; no se quiere.
+ *
+ * Si algún día cambia, sería una TERCERA regla con `allowed_sources: ['directo']` — y habría que
+ * decidir aparte qué se les dice del pago: `politicas_booking` no sirve, habla de las políticas de
+ * Booking.
+ *
  * ── Por qué se REPUNTAN las reglas y no se crean otras ──────────────────────
  * `MessageRuleEngine::messageBelongsToRule()` reconoce lo ya enviado por el `rule_id`. Una regla
  * nueva no reconocería las bienvenidas que salieron con la vieja, y a las reservas de las últimas
