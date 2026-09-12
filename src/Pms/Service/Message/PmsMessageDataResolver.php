@@ -15,6 +15,7 @@ use App\Pms\Entity\PmsReserva;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
+use App\Pms\Enum\PmsEstablecimientoMediaTipo;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 #[AutoconfigureTag('app.message_data_resolver')]
@@ -25,6 +26,8 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         private readonly TelefonoDeContacto $telefonos,
         private readonly PmsRedactorDeCobro $redactor,
         private readonly PmsRedactorDeEstancias $estancias,
+        #[Autowire('%pax_host_url%')]
+        private string $paxHostUrl,
         #[Autowire('%pax_book_guide_url%')]
         private readonly string $paxBookGuideUrl,
         #[Autowire('%pax_book_guide_url_nd%')]
@@ -60,6 +63,47 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'whatsapp_numero' => $numero,
             'whatsapp_url' => $numero === '' ? '' : 'https://wa.me/' . preg_replace('/\D/', '', $numero),
         ];
+    }
+
+    /**
+     * Las fotos y vídeos de las dos cajas fuertes, como enlace.
+     *
+     * ── Por qué son variables y no se pegan en la plantilla ─────────────────
+     * Porque el archivo se reemplaza y la URL cambia: `MediaTokenNamer` le da un nombre nuevo y
+     * Vich borra el viejo (`delete_on_update`). Una URL tecleada dentro de una plantilla está
+     * copiada en cuatro canales × siete idiomas, y el día del reemplazo las veintiocho apuntan a
+     * un 404 sin que nada avise. Así la plantilla escribe `{{ foto_caja_dinero }}` y el valor se
+     * resuelve al enviar.
+     *
+     * ⚠️ **Las de la caja del DINERO también salen aquí, y es el único sitio.** No entran en la
+     * guía —{@see PmsEstablecimientoMediaTipo::visibilidad()} devuelve `null` y
+     * `PmsGuiaContexto::construir()` no las carga—, así que el huésped no puede pedirlas: sólo
+     * llegan si un operador manda la plantilla, y `enviar_plantilla` exige `ROLE_MENSAJES_WRITE`.
+     *
+     * ⚠️ **Absolutas, con el host de `pax`.** El listener deja una ruta (`/carga/…`), que la web
+     * resuelve contra su origen; esto acaba en un WhatsApp, donde no hay origen. Se usa el host de
+     * `pax` porque es el que el huésped ya ve en el enlace de su guía.
+     *
+     * Un medio que no se ha subido sale como cadena vacía, igual que el WhatsApp: la plantilla
+     * tiene que sostenerse sin él.
+     *
+     * @return array<string, string>
+     */
+    private function mediosDelAlojamiento(?PmsEstablecimiento $establecimiento): array
+    {
+        $salida = [];
+
+        foreach (PmsEstablecimientoMediaTipo::cases() as $tipo) {
+            $valor = (string) ($establecimiento?->medio($tipo)?->getValor() ?? '');
+
+            if ($valor !== '' && !str_starts_with($valor, 'http')) {
+                $valor = rtrim($this->paxHostUrl, '/') . '/' . ltrim($valor, '/');
+            }
+
+            $salida[$tipo->clave()] = $valor;
+        }
+
+        return $salida;
     }
 
     public function supports(string $contextType): bool
@@ -275,7 +319,8 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // una sábana— sino para cuando hay que demostrarle a la OTA que se dio la
             // información completa. Se manda a mano desde el panel, no por una regla.
             'medios_de_pago_todos'  => $idioma !== null ? $this->redactor->mediosConDatos($reserva, $idioma, todas: true, enlaceTarjeta: $accountUrl) : null,
-        ] + $this->whatsappDelAlojamiento($reserva->getEstablecimiento());
+        ] + $this->whatsappDelAlojamiento($reserva->getEstablecimiento())
+          + $this->mediosDelAlojamiento($reserva->getEstablecimiento());
     }
 
     /**
@@ -309,6 +354,10 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'room_name'             => 'Casita Principal',
             'channel_name'          => 'Booking.com',
             'guest_country'         => 'Perú',
+            'foto_caja_llaves'      => rtrim($this->paxHostUrl, '/') . '/carga/pms/pms_establecimiento/images/ejemplo.webp',
+            'foto_caja_dinero'      => rtrim($this->paxHostUrl, '/') . '/carga/pms/pms_establecimiento/images/ejemplo.webp',
+            'video_caja_llaves'     => 'https://youtu.be/ejemplo',
+            'video_caja_dinero'     => 'https://youtu.be/ejemplo',
             'guide_url'             => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator,
             'guide_path'            => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $dummyLocator,
             // ⚠️ Los marcadores nuevos van TAMBIÉN aquí. Este array alimenta el `example`

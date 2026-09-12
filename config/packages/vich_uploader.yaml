@@ -60,6 +60,18 @@ vich_uploader:
             delete_on_update: true
             delete_on_remove: true
 
+        # Los medios del EDIFICIO: las dos cajas fuertes. Mapeo aparte del de las unidades porque
+        # cuelgan de otra entidad; mismo namer universal.
+        establecimiento_images:
+            uri_prefix: '%pms.path.establecimiento_images%'
+            upload_destination: '%app.public_dir%%pms.path.establecimiento_images%'
+
+            namer: App\Panel\Naming\MediaTokenNamer
+
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true
+
         message_attachments:
             uri_prefix: '%message.path.message_attachments%'
             upload_destination: '%app.public_dir%%message.path.message_attachments%'

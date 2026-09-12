@@ -7,6 +7,7 @@ namespace App\Pms\Guia;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Enum\PmsGuiaVisibilidad;
+use App\Pms\Enum\PmsEstablecimientoMediaTipo;
 use App\Pms\Enum\PmsUnidadMediaTipo;
 
 /**
@@ -85,12 +86,28 @@ final readonly class PmsGuiaContexto
             }
         }
 
-        $videoCaja = $establecimiento?->getVideoCajaFuerteUrl();
+        // 🔒 LOS DEL EDIFICIO, Y AQUÍ SE DECIDE QUÉ ENTRA EN LA GUÍA.
+        //
+        // `PmsEstablecimientoMediaTipo::visibilidad()` devuelve `null` para lo que no es del
+        // huésped —las dos fotos y vídeos de la caja del DINERO, que entrega un operador—, y ese
+        // `null` se respeta **sólo aquí**. Es lo que lo hace seguro: ésta es la única puerta por
+        // la que un medio entra en la guía, así que escribir `{{ foto_caja_dinero }}` en un ítem
+        // no filtra nada — no hay valor que resolver y el marcador se quita.
+        //
+        // Si esta comprobación se copiara a un segundo sitio, el día que alguien añada un tipo
+        // nuevo tendría que acordarse de los dos. Por eso no se copia.
+        foreach (PmsEstablecimientoMediaTipo::cases() as $tipo) {
+            $nivel = $tipo->visibilidad();
 
-        if ($videoCaja !== null && $videoCaja !== '') {
-            // El de la caja es del establecimiento, no de la casita, pero se sirve igual y con el
-            // nivel más alto: enseña cómo se abre.
-            $medios['video_caja_fuerte'] = ['valor' => $videoCaja, 'nivel' => PmsGuiaVisibilidad::SoloVentana];
+            if ($nivel === null) {
+                continue;
+            }
+
+            $valor = $establecimiento?->medio($tipo)?->getValor();
+
+            if ($valor !== null && $valor !== '') {
+                $medios[$tipo->clave()] = ['valor' => $valor, 'nivel' => $nivel];
+            }
         }
 
         // Sin estancia no se cargan credenciales en memoria siquiera: el

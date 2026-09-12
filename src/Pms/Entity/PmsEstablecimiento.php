@@ -12,6 +12,7 @@ use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\ChannelConfigProviderInterface;
 use DateTimeInterface;
+use App\Pms\Enum\PmsEstablecimientoMediaTipo;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -146,30 +147,39 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     private ?string $codigoCajaSecundaria = null;
 
     /**
-     * Vídeo de cómo se abre la caja de las llaves. **Lo único de los medios de acceso que sí es
-     * general**: la caja es una para todas las casitas.
+     * Los medios del EDIFICIO: las dos cajas fuertes del pasaje.
+     *
+     * ⚠️ **Esto fue un campo suelto (`videoCajaFuerteUrl`) y no funcionó.** Existió un día entero
+     * vacío porque nadie lo puso en el panel: la guía pedía `{{ video_caja_fuerte }}`, resolvía a
+     * nada, y el vídeo seguía copiado a mano dentro de un ítem en los siete idiomas. Añadir tres
+     * campos más —la foto de las llaves, y el vídeo y la foto del dinero— habría sido repetir esa
+     * historia cuatro veces.
      *
      * El croquis, la foto de la puerta y el vídeo del ingreso son de cada casita y viven en
-     * {@see \App\Pms\Entity\PmsUnidadMedia}. En la guía: `{{ video_caja_fuerte }}`.
+     * {@see PmsUnidadMedia}: aquí sólo lo que es una cosa para las siete.
+     *
+     * @var Collection<int, PmsEstablecimientoMedia>
      */
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    #[Assert\Url(message: 'Tiene que ser una URL completa, empezando por https://')]
-    #[Assert\Regex(
-        pattern: '#^https://(www\.)?(youtube\.com/|youtu\.be/)#i',
-        message: 'Sólo se aceptan URLs de YouTube: es lo que el front sabe incrustar.'
-    )]
-    private ?string $videoCajaFuerteUrl = null;
+    #[ORM\OneToMany(mappedBy: 'establecimiento', targetEntity: PmsEstablecimientoMedia::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['orden' => 'ASC'])]
+    private Collection $medios;
 
-    public function getVideoCajaFuerteUrl(): ?string
+    /** @return Collection<int, PmsEstablecimientoMedia> */
+    public function getMedios(): Collection
     {
-        return $this->videoCajaFuerteUrl;
+        return $this->medios;
     }
 
-    public function setVideoCajaFuerteUrl(?string $videoCajaFuerteUrl): self
+    /** El medio de un tipo, o `null` si no se ha subido. Uno por tipo: lo impone la base. */
+    public function medio(PmsEstablecimientoMediaTipo $tipo): ?PmsEstablecimientoMedia
     {
-        $this->videoCajaFuerteUrl = $videoCajaFuerteUrl;
+        foreach ($this->medios as $medio) {
+            if ($medio->getTipo() === $tipo) {
+                return $medio;
+            }
+        }
 
-        return $this;
+        return null;
     }
 
     // ============================================================
@@ -193,6 +203,7 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
         $this->unidades = new ArrayCollection();
         $this->reservas = new ArrayCollection();
         $this->virtualEstablecimientos = new ArrayCollection();
+        $this->medios = new ArrayCollection();
         $this->id = Uuid::v7();
     }
 

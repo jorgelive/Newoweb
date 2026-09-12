@@ -154,7 +154,7 @@ final class PmsGuiaInterpolador
 
     /**
      * Los medios de la casita (`{{ croquis }}`, `{{ foto_puerta }}`, `{{ video_ingreso }}`,
-     * `{{ video_caja_fuerte }}`) pasan a ser el bloque que el front pinta.
+     * `{{ video_caja_llaves }}`) pasan a ser el bloque que el front pinta.
      *
      * ── Por qué una clave simple y no `{{ img_ventana: url }}` ──────────────
      * Porque la URL tiene que vivir **en la casa, no en el texto**. Escrita dentro del contenido
@@ -273,7 +273,12 @@ final class PmsGuiaInterpolador
         'croquis'           => false,
         'foto_puerta'       => false,
         'video_ingreso'     => true,
-        'video_caja_fuerte' => true,
+        // Del EDIFICIO, no de la casita, pero se sirven igual. Sólo las de las LLAVES: las de la
+        // caja del DINERO no entran en el contexto —`PmsEstablecimientoMediaTipo::visibilidad()`
+        // devuelve `null`—, así que aunque alguien escriba `{{ foto_caja_dinero }}` no hay valor
+        // que resolver y el marcador se quita.
+        'video_caja_llaves' => true,
+        'foto_caja_llaves'  => false,
     ];
 
     /**

@@ -435,8 +435,45 @@ PmsUnidadMedia
 | `FOTO_PUERTA` | la puerta real, como se ve | 7 (opcional, ver abajo) |
 | `VIDEO_INGRESO` | el recorrido hasta ella, YouTube | 7 |
 
-Y lo único que de verdad es general va como campo del establecimiento, no aquí:
-`PmsEstablecimiento::$videoCajaFuerteUrl` — la caja es una para todos.
+Y lo que es del EDIFICIO va en `PmsEstablecimientoMedia`, su gemela: las cajas son una para las
+siete casitas.
+
+### Las dos cajas, y por qué una no sale en la guía (13/09/2026)
+
+| tipo | para qué | quién lo ve |
+|---|---|---|
+| `VIDEO_CAJA_LLAVES`, `FOTO_CAJA_LLAVES` | el huésped saca su llave al llegar | él mismo, `SoloVentana` |
+| `VIDEO_CAJA_DINERO`, `FOTO_CAJA_DINERO` | dejar un pago en efectivo | **nadie por su cuenta** |
+
+🔒 **Lo del dinero devuelve `null` en `visibilidad()`, y eso no es un nivel más bajo: es no estar
+en la escalera.** `PmsGuiaVisibilidad` mide cuánta confianza pide el huésped, y sus cuatro peldaños
+significan «lo verá cuando pase X». Esto no lo verá nunca por ahí. Meter un quinto caso obligaría a
+enseñarle a `permite()` y a todos sus consumidores a no enseñar.
+
+⚠️ **El `null` se respeta en UN solo sitio**, `PmsGuiaContexto::construir()`, que es la única
+puerta por la que un medio entra en la guía. Por eso es seguro: escribir `{{ foto_caja_dinero }}`
+en un ítem no filtra nada — no hay valor que resolver y el marcador se quita. Copiar esa
+comprobación a un segundo sitio es lo que la rompería.
+
+**Sale por `enviar_plantilla`**, que exige `ROLE_MENSAJES_WRITE` y está cerrada por
+`GuardiaDeSkills`, no por una frase en el prompt. El operador le dice al agente «envíale las
+instrucciones de la caja del dinero» y el agente manda la plantilla.
+
+⚠️ **La URL no se teclea en la plantilla.** `PmsMessageDataResolver` la publica como variable
+(`{{ foto_caja_dinero }}`), igual que `guide_url`. Pegada en el texto estaría copiada en cuatro
+canales × siete idiomas, y al reemplazar el archivo —`MediaTokenNamer` renombra y Vich borra el
+viejo— las veintiocho copias apuntarían a un 404 sin que nada avise.
+
+#### Esto fue un campo suelto, y falló
+
+`video_caja_fuerte_url` se creó el 11/09/2026 como columna de `PmsEstablecimiento` y **sobrevivió
+un día entero vacío**: nadie lo puso en el panel, así que la guía pedía su marcador, resolvía a
+nada, y el vídeo seguía copiado a mano dentro de un ítem en los siete idiomas. Cuatro campos
+habrían sido cuatro veces esa historia; con la entidad, un medio nuevo es un caso del enum.
+
+⚠️ Y el marcador pasa a `{{ video_caja_llaves }}`: con dos cajas, «caja fuerte» ya no dice cuál.
+Nombre ambiguo entre dos cosas que abren sitios distintos es el patrón del `{{ door_code }}` que
+acabó anunciando «el código de la puerta es #5».
 
 ### 🔥 Siete croquis, no uno
 
@@ -459,7 +496,7 @@ ve. Si hay que empezar por algo, son los siete croquis: `FOTO_PUERTA` puede qued
 | `{{ croquis }}` | `PmsUnidadMedia` tipo `CROQUIS` |
 | `{{ foto_puerta }}` | `PmsUnidadMedia` tipo `FOTO_PUERTA` |
 | `{{ video_ingreso }}` | `PmsUnidadMedia` tipo `VIDEO_INGRESO` |
-| `{{ video_caja_fuerte }}` | `PmsEstablecimiento` |
+| `{{ video_caja_llaves }}`, `{{ foto_caja_llaves }}` | `PmsEstablecimientoMedia` |
 
 **Cada medio declara su NIVEL**, con el mismo vocabulario que los ítems (`PmsGuiaVisibilidad`) y
 resuelto por el mismo juez (`PmsGuiaAcceso::permite()`):
@@ -468,7 +505,7 @@ resuelto por el mismo juez (`PmsGuiaAcceso::permite()`):
 |---|---|---|
 | `{{ portada }}` | `Publico` | es el escaparate: sale sin reserva, en el catálogo y en la web |
 | `{{ croquis }}`, `{{ foto_puerta }}` | `Cliente` | quien tiene su localizador puede ver dónde va a dormir; una puerta verde no abre nada |
-| `{{ video_ingreso }}`, `{{ video_caja_fuerte }}` | `SoloVentana` | enseñan el recorrido hasta dentro y cómo se abre la caja |
+| `{{ video_ingreso }}`, `{{ video_caja_llaves }}`, `{{ foto_caja_llaves }}` | `SoloVentana` | enseñan el recorrido hasta dentro y cómo se abre la caja |
 
 ⚠️ **Empezó siendo un booleano `esSensible()` y se quedaba corto.** La guía clasifica por cuatro
 niveles y un sí/no los colapsa en dos: obliga a elegir entre enseñar de más o de menos, y encima

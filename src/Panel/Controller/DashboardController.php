@@ -46,6 +46,7 @@ use App\Pms\Controller\Crud\PmsBeds24WebhookAuditCrudController;
 use App\Pms\Controller\Crud\PmsBookingsPullQueueCrudController;
 use App\Pms\Controller\Crud\PmsBookingsPushQueueCrudController;
 use App\Pms\Controller\Crud\PmsChannelCrudController;
+use App\Pms\Controller\Crud\PmsEstablecimientoMediaCrudController;
 use App\Pms\Controller\Crud\PmsEstablecimientoCrudController;
 use App\Finanzas\Controller\Crud\FinMedioCobroCrudController;
 use App\Pms\Controller\Crud\PmsEstablecimientoVirtualCrudController;
@@ -233,6 +234,7 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkTo(PmsEstablecimientoCrudController::class, 'Establecimientos', 'fa fa-building'),
                 MenuItem::linkTo(PmsUnidadCrudController::class, 'Unidades', 'fa fa-door-open'),
                 MenuItem::linkTo(PmsUnidadMediaCrudController::class, 'Medios de las casitas', 'fa fa-map-location-dot'),
+                MenuItem::linkTo(PmsEstablecimientoMediaCrudController::class, 'Medios del establecimiento', 'fa fa-vault'),
                 MenuItem::linkTo(PmsEstablecimientoVirtualCrudController::class, 'Establecimientos Virtuales', 'fa fa-building-flag'),
                 MenuItem::linkTo(PmsChannelCrudController::class, 'Canales de Venta', 'fa fa-shopping-cart'),
                 MenuItem::linkTo(PmsEventAssignmentActivityCrudController::class, 'Tareas / Actividades', 'fa fa-clipboard-list'),
