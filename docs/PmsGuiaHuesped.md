@@ -504,7 +504,13 @@ enlace a otra cosa no daría error: pintaría un reproductor vacío delante del 
 enseña el marco con el mensaje, no un hueco. Un hueco silencioso se queda para siempre porque nadie
 lo echa de menos.
 
-Y dónde se sube: **Panel → Medios de las casitas**.
+**Dónde se sube: dentro de la propia casita** (Unidades → Modificar → «Croquis, foto de la puerta
+y vídeo del ingreso»), y además en su pantalla propia, **Panel → Medios de las casitas**, para ver
+de un vistazo a qué casitas les falta algo.
+
+⚠️ Primero sólo existía la pantalla aparte, y no se encontraba: quien va a subir el croquis de la
+Casita 1 lo busca **en la Casita 1**. «Cada casa debería tener su croquis» no se lee como una
+entrada de menú. Mismo patrón que la galería dentro de su ítem de guía.
 
 ### El hueco, visible a propósito
 

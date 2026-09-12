@@ -76,9 +76,17 @@ class PmsUnidadMediaCrudController extends BaseCrudController
         $pathRelativo = Parametro::texto($this->params->get('pms.path.unidad_images'), 'pms.path.unidad_images');
         $basePath = '/' . ltrim($pathRelativo, '/');
 
-        yield AssociationField::new('unidad', 'Casita')
-            ->setRequired(true)
-            ->setSortable(true);
+        // Incrustado dentro de la casita, el campo sobra: ya se sabe de quién es. Se manda oculto
+        // —no se quita— porque el formulario lo necesita para atar la fila nueva.
+        if ($this->isEmbedded()) {
+            yield AssociationField::new('unidad')
+                ->setFormTypeOption('row_attr', ['class' => 'd-none'])
+                ->setLabel(false);
+        } else {
+            yield AssociationField::new('unidad', 'Casita')
+                ->setRequired(true)
+                ->setSortable(true);
+        }
 
         yield ChoiceField::new('tipo', 'Tipo')
             ->setChoices(PmsUnidadMediaTipo::opciones())

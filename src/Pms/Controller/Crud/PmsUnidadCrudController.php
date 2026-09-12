@@ -10,6 +10,7 @@ use App\Panel\Form\Type\WifiNetworkType;
 use App\Pms\Entity\PmsGuiaItemGaleria;
 use App\Pms\Entity\PmsUnidad;
 use App\Security\Roles;
+use App\Pms\Entity\PmsUnidadMedia;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -186,6 +187,20 @@ final class PmsUnidadCrudController extends BaseCrudController
                 . 'Sólo se muestra dentro de la ventana de la estancia.<br>'
                 . '<strong>Las puertas no lo llevan escrito en la calle</strong>: se identifican '
                 . 'en el croquis de cada casita.');
+
+        // Los medios se editan AQUÍ, dentro de la casita, además de en su propia pantalla. Es donde
+        // se buscan: «cada casa debería tener su croquis» no se lee como una entrada de menú
+        // aparte. Mismo patrón que la galería dentro de su ítem de guía.
+        yield CollectionField::new('medios', 'Croquis, foto de la puerta y vídeo del ingreso')
+            ->hideOnIndex()
+            ->useEntryCrudForm(PmsUnidadMediaCrudController::class)
+            ->setFormTypeOption('prototype_data', new PmsUnidadMedia())
+            ->setFormTypeOption('by_reference', false)
+            ->allowAdd()
+            ->allowDelete()
+            ->renderExpanded()
+            ->setColumns(12)
+            ->setHelp('Uno de cada tipo por casita. El croquis debe numerar <strong>sólo esta puerta</strong>.');
 
         yield TextField::new('codigoPuerta', 'Smart Lock (pendiente de instalar)')
             ->hideOnIndex()
