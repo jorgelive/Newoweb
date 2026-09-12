@@ -480,7 +480,17 @@ vive el contenido**: `CROQUIS` y `FOTO_PUERTA` son archivo, `VIDEO_INGRESO` es U
 `PmsUnidadMediaTipo::esArchivo()`: el CRUD y `getValor()` preguntan al tipo en vez de adivinar por
 cuál de las dos columnas viene relleno.
 
-Una restricción única `(unidad, tipo)`: el croquis de la Casita 5 es uno.
+**Una restricción única `(unidad, tipo)`, y es deliberada.** El marcador `{{ foto_puerta }}` tiene
+que resolver a UNA imagen; sin la restricción decidiría `orden`, y entonces subir una foto con
+orden 0 cambiaría **en silencio** lo que ve todo huésped que abra su guía. Nadie asocia «subí una
+foto» con «cambié la que se manda».
+
+Si una segunda imagen dice algo **distinto** —el pasaje, además de la puerta—, eso es otro tipo, y
+para eso el enum está abierto. Si es la misma cosa repetida, sobra: su sitio es la galería.
+
+⚠️ La restricción la impone la base, pero quien la explica es `#[UniqueEntity]`: sin ella, subir un
+segundo croquis a la misma casita devolvía un error crudo de clave duplicada —correcto e ilegible—,
+y quien lo veía no sabía que lo que tenía que hacer era reemplazar el que ya hay.
 
 ⚠️ **La URL pública de los archivos la pone un listener**, `PmsUnidadMediaAssetListener`, igual que
 para las imágenes de la unidad: la ruta es configuración (`pms.path.unidad_images`) y no puede

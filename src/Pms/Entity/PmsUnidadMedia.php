@@ -10,6 +10,7 @@ use App\Panel\Entity\Trait\MediaTrait;
 use App\Pms\Enum\PmsUnidadMediaTipo;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -48,8 +49,21 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_unidad_media')]
-// Un tipo, un medio por casita: el croquis de la Casita 5 es uno. Si algún día hace falta una
-// serie (varias fotos del mismo ingreso), se quita esta restricción y manda `orden`.
+// La restricción de arriba la impone la BASE; ésta la explica ANTES, en el formulario. Sin ella,
+// intentar subir un segundo croquis a la misma casita devuelve un error crudo de clave duplicada:
+// correcto pero ilegible, y quien lo ve no sabe que lo que tiene que hacer es reemplazar el que ya
+// hay.
+#[UniqueEntity(
+    fields: ['unidad', 'tipo'],
+    message: 'Esta casita ya tiene ese medio. Cada casita tiene UNO de cada tipo: edita el que ya existe o bórralo antes de subir otro.'
+)]
+// **Un tipo, un medio por casita**, y la restricción es deliberada: el marcador `{{ foto_puerta }}`
+// tiene que resolver a UNA imagen. Sin ella decidiría `orden`, y entonces subir una foto con orden
+// 0 cambiaría en silencio lo que ve todo huésped que abra su guía — nadie asocia «subí una foto»
+// con «cambié la que se manda».
+//
+// Si una segunda imagen dice algo DISTINTO —el pasaje, además de la puerta—, eso es otro tipo, y
+// para eso el enum está abierto. Si es la misma cosa repetida, sobra y su sitio es la galería.
 #[ORM\UniqueConstraint(name: 'uniq_unidad_tipo', columns: ['unidad_id', 'tipo'])]
 #[ORM\HasLifecycleCallbacks]
 #[Vich\Uploadable]
