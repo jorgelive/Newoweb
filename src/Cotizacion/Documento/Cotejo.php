@@ -65,18 +65,21 @@ final readonly class Cotejo
         ]);
     }
 
-    /**
-     * @param DatosDeDocumento $leido Lo que se sacó de la imagen.
-     * @param FichaGuardada|null $guardado Lo que ya dice el manifiesto. `null` = el archivo no
-     *        está asignado a nadie, o la persona se acaba de crear a partir de este documento.
-     */
     /** No se pudo leer el escaneo: no hay veredicto que dar, y se dice por qué. */
     public static function ilegible(string $porque): self
     {
         return new self(ValidacionIdentificacionEnum::NO_VALIDADO, [], [$porque]);
     }
 
-    public static function de(DatosDeDocumento $leido, ?FichaGuardada $guardado): self
+    /**
+     * @param DatosDeDocumento $leido Lo que se sacó de la imagen.
+     * @param FichaGuardada|null $guardado Lo que ya dice el manifiesto. `null` = el archivo no
+     *        está asignado a nadie, o la persona se acaba de crear a partir de este documento.
+     * @param Mrz|null $aval La banda de **otra cara** del mismo documento, cuando ésta no la
+     *        lleva. Es el caso del DNIe: el número va impreso en el anverso y la MRZ, en el
+     *        reverso. Sin esto, un DNI jamás llegaba a «validado por MRZ».
+     */
+    public static function de(DatosDeDocumento $leido, ?FichaGuardada $guardado, ?Mrz $aval = null): self
     {
         // Sin número no hay documento que valga: no se puede cotejar ni guardar, y decir
         // «observado» sugeriría que hay algo que revisar cuando lo que hay es una foto ilegible.
@@ -94,6 +97,25 @@ final readonly class Cotejo
         // y sólo después se juzga.
         $discrepancias = $guardado !== null ? self::diferencias($leido, $guardado) : [];
         $notas = $leido->avisos;
+
+        // 🔥 **La banda de la otra cara vale igual que la propia, pero SÓLO si es del mismo
+        // documento.** Se compara el número antes de darla por buena: dos caras de DNIs distintos
+        // en la misma ficha —un archivo mal asignado— es exactamente el fallo que esto persigue,
+        // y aceptar el aval a ciegas lo sellaría en verde.
+        $verificado = $leido->verificadoPorMrz();
+        if (!$verificado && $aval !== null && $aval->esCoherente()) {
+            // Mismos criterios que contra el manifiesto, y por el mismo motivo: el DNI convive con
+            // el CUI de 9 dígitos, así que «41501189» y «415011895» son el mismo documento.
+            if (self::mismoNumero($aval->numero, (string) $leido->numero, $leido->tipo, $leido->tipo?->value)) {
+                $verificado = true;
+            } else {
+                $notas[] = sprintf(
+                    'la banda del reverso dice %s y el anverso %s: son dos documentos distintos',
+                    $aval->numero,
+                    (string) $leido->numero,
+                );
+            }
+        }
 
         // Dos caminos al sello verde, y **cuál fue importa**: la MRZ son dígitos de control, el
         // cotejo son dos lecturas que coinciden. La segunda puede equivocarse en las dos a la vez
@@ -113,7 +135,7 @@ final readonly class Cotejo
         $informativas = [];
 
         if ($discrepancias === [] && $notas === []) {
-            if ($leido->verificadoPorMrz()) {
+            if ($verificado) {
                 return new self(ValidacionIdentificacionEnum::VALIDADO_MRZ, [], $informativas);
             }
 
@@ -122,7 +144,7 @@ final readonly class Cotejo
             }
         }
 
-        if (!$leido->verificadoPorMrz() && !$cotejable) {
+        if (!$verificado && !$cotejable) {
             $notas[] = match (true) {
                 $guardado === null => 'el archivo no está asignado a ninguna persona del manifiesto',
                 $guardado->copiadaDelEscaneo => 'esta ficha se creó copiando el escaneo: hace falta que alguien la confirme',
@@ -131,14 +153,22 @@ final readonly class Cotejo
             };
         }
 
-        // ⚠️ Este aviso va SÓLO cuando ya no se valida, y como explicación de por qué hizo falta
-        // el manifiesto. Añadirlo siempre lo convertía en un defecto y **bloqueaba** la validación
-        // de todo pasaporte sin banda, que es lo contrario de lo que se quiere.
-        // ⚠️ El DNI entra en esta lista desde que se descubrió que el nuevo peruano lleva TD1 en
-        // el anverso. Antes sólo el pasaporte podía «echar de menos» su banda.
-        if (!$leido->verificadoPorMrz()
+        // ⚠️ Este aviso va SÓLO cuando ya no se valida. Añadirlo siempre lo convertía en un
+        // defecto y **bloqueaba** la validación de todo pasaporte sin banda, que es lo contrario
+        // de lo que se quiere.
+        //
+        // 🔥 **Decía «hubo que cotejar con el manifiesto» y a menudo era MENTIRA**: sale también
+        // cuando no había con qué cotejar, justo debajo de la nota que dice eso mismo. Dos frases
+        // seguidas contradiciéndose en la misma tarjeta.
+        //
+        // 🔥 Y a un DNI le decía «revisa la calidad del escaneo» mandando a arreglar una foto
+        // impecable: la banda se buscaba en el anverso, que no la lleva. Ahora que se busca donde
+        // está, el aviso dice dónde mirar en vez de echarle la culpa al escaneo.
+        if (!$verificado
             && in_array($leido->tipo, [DocumentoTipoEnum::PASAPORTE, DocumentoTipoEnum::DNI], true)) {
-            $notas[] = 'sin banda MRZ legible: hubo que cotejar con el manifiesto (revisa la calidad del escaneo)';
+            $notas[] = $leido->tipo === DocumentoTipoEnum::DNI
+                ? 'sin banda MRZ verificada: el DNIe la lleva en el REVERSO, comprueba que esté subido y legible'
+                : 'sin banda MRZ legible: revisa la calidad del escaneo';
         }
 
         return new self(ValidacionIdentificacionEnum::OBSERVADO, $discrepancias, [...$notas, ...$informativas]);

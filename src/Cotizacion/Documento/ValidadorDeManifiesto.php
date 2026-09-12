@@ -230,17 +230,48 @@ final readonly class ValidadorDeManifiesto
             return Cotejo::ilegible($archivo->getLecturaError() ?? 'no se pudo leer el escaneo');
         }
 
-        return Cotejo::de($leido, FichaGuardada::de($pasajero, $identificacion));
+        return Cotejo::de(
+            $leido,
+            FichaGuardada::de($pasajero, $identificacion),
+            $leido->verificadoPorMrz() ? null : $this->bandaDeLaOtraCara($pasajero, $identificacion->getTipo()),
+        );
+    }
+
+    /**
+     * La MRZ de la OTRA cara, para los documentos que no la llevan donde va el número.
+     *
+     * 🔥 **El DNIe peruano lleva su banda en el REVERSO, y esa cara no se leía nunca.** Estaba
+     * marcada como que no respalda ningún número —cierto: no lo lleva impreso— y de ahí se dedujo
+     * que no servía para nada. Resultado: **ningún DNI podía llegar a «validado por MRZ»**, por
+     * bueno que fuera el escaneo, y encima se le echaba la culpa a la foto del anverso.
+     *
+     * ⚠️ Sólo se pide si la propia cara no trae banda buena, así que al pasaporte —que la lleva en
+     * la misma página que el número— no le cuesta ni una lectura de más.
+     */
+    private function bandaDeLaOtraCara(CotizacionFilepasajero $pasajero, ?DocumentoTipoEnum $tipo): ?Mrz
+    {
+        $cara = $tipo !== null ? ArchivoTipoEnum::paraVerificar($tipo) : null;
+        // Para el pasaporte la cara que verifica es la que ya se leyó: no hay otra que mirar.
+        if ($cara === null || $cara === ArchivoTipoEnum::paraValidar($tipo)) {
+            return null;
+        }
+
+        $archivo = $this->escaneoPorTipo($pasajero, $cara);
+
+        return $archivo !== null ? $this->validador->lecturaDe($archivo)?->mrz : null;
     }
 
     /** El escaneo que respalda ese tipo de documento, si esa persona lo tiene subido. */
     private function escaneoDe(CotizacionFilepasajero $pasajero, DocumentoTipoEnum $tipo): ?CotizacionFilearchivo
     {
         $buscado = ArchivoTipoEnum::paraValidar($tipo);
-        if ($buscado === null) {
-            return null;
-        }
 
+        return $buscado !== null ? $this->escaneoPorTipo($pasajero, $buscado) : null;
+    }
+
+    /** El escaneo de ese tipo concreto que tiene esa persona, o `null`. */
+    private function escaneoPorTipo(CotizacionFilepasajero $pasajero, ArchivoTipoEnum $buscado): ?CotizacionFilearchivo
+    {
         /** @var list<CotizacionFilearchivo> $archivos */
         $archivos = $this->em->getRepository(CotizacionFilearchivo::class)
             ->findBy(['pasajero' => $pasajero, 'tipoArchivo' => $buscado]);

@@ -459,4 +459,60 @@ final class CotejoTest extends TestCase
             numero: 'X1', nombres: 'Pedro Luis', apellidos: 'QUISPE MAMANI',
         ))->discrepancias);
     }
+
+    /**
+     * Una MRZ TD1 como la del reverso de un DNIe peruano: tres líneas de 30.
+     *
+     * ⚠️ Los dígitos de control están **calculados**, no copiados de una foto: el par (check del
+     * número, check compuesto) tiene que cuadrar entre sí o `Mrz::desde()` devuelve `null` y el
+     * test pasaría a probar otra cosa sin decirlo.
+     *
+     * @param string $numero Los 8 dígitos del DNI
+     * @param string $checks El dígito del número y el compuesto, que van juntos
+     */
+    private function bandaDelReverso(string $numero = '41501189', string $checks = '30'): ?Mrz
+    {
+        return Mrz::desde(
+            str_pad('I<PER' . $numero . $checks[0], 30, '<'),
+            '7808227M2907136PER' . str_repeat('<', 11) . $checks[1],
+            str_pad('DIAZ<<RAY<DANTE', 30, '<'),
+        );
+    }
+
+    /**
+     * 🔥 El caso que estuvo roto: sin el aval, **ningún DNI podía llegar al sello por MRZ**, porque
+     * la banda se buscaba en el anverso y el DNIe la lleva en el reverso.
+     */
+    #[Test]
+    public function laBandaDelReversoValidaElDniDelAnverso(): void
+    {
+        $cotejo = Cotejo::de($this->dni('41501189'), null, $this->bandaDelReverso());
+
+        self::assertSame(ValidacionIdentificacionEnum::VALIDADO_MRZ, $cotejo->estado);
+        self::assertSame([], $cotejo->notas);
+    }
+
+    /** Sin ficha contra la que cotejar y sin aval, se queda observado: es lo que pasaba siempre. */
+    #[Test]
+    public function sinAvalElMismoDniSeQuedaObservado(): void
+    {
+        $cotejo = Cotejo::de($this->dni('41501189'), null);
+
+        self::assertSame(ValidacionIdentificacionEnum::OBSERVADO, $cotejo->estado);
+        // Y el aviso manda a mirar el reverso, no a rehacer una foto que está bien.
+        self::assertStringContainsString('REVERSO', implode(' ', $cotejo->notas));
+    }
+
+    /**
+     * ⚠️ El aval NO se acepta a ciegas: dos caras de documentos distintos en la misma ficha es un
+     * archivo mal asignado, y sellarlo en verde sería justo el fallo que esto persigue.
+     */
+    #[Test]
+    public function unaBandaDeOtroDocumentoNoAvalaNada(): void
+    {
+        $cotejo = Cotejo::de($this->dni('41501189'), null, $this->bandaDelReverso('73716768', '30'));
+
+        self::assertSame(ValidacionIdentificacionEnum::OBSERVADO, $cotejo->estado);
+        self::assertStringContainsString('dos documentos distintos', implode(' ', $cotejo->notas));
+    }
 }

@@ -58,9 +58,15 @@ final readonly class EscaneoNuevoInvalidaVeredictoListener
      */
     private function veredictosQueCaducan(CotizacionFilearchivo $archivo, \Doctrine\ORM\UnitOfWork $uow): array
     {
-        $tipoNumero = $archivo->getTipoArchivo()?->respaldaA();
+        // 🔥 **El reverso del DNI cuenta, y antes no.** No lleva el número impreso —`respaldaA()`
+        // es `null`— pero lleva la MRZ que lo verifica, así que subirlo puede llevar ese DNI de
+        // «observado» a «validado por MRZ». Mirando sólo `respaldaA()`, subir el reverso no
+        // caducaba nada: el veredicto viejo se quedaba puesto y el escaneo nuevo no servía de nada
+        // hasta que alguien pulsara reprocesar sin saber por qué.
+        $tipo = $archivo->getTipoArchivo();
+        $tipoNumero = $tipo?->respaldaA() ?? $tipo?->verificaA();
         if ($tipoNumero === null) {
-            return [];   // un boleto o un reverso no respalda ningún número
+            return [];   // un boleto o una autorización no dicen nada de ningún número
         }
 
         $duenos = [$archivo->getPasajero()];

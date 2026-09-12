@@ -1979,6 +1979,42 @@ Tres cosas que NO hace, y son el motivo de que se pueda dejar automático:
 | No se fía del tipo que dice el OCR | El tipo lo manda la **etiqueta** del archivo, que la puso una persona. Si no coinciden, no adopta: eso es un archivo mal etiquetado, y crear la ficha equivocada es peor que no crearla |
 | No da el número por bueno | Nace con `marcarCopiadaDelEscaneo()`, igual que la ficha entera de `ResolutorDeDocumentoSuelto::crear()`. No es una segunda fuente: es la misma foto, así que queda **observado** pidiendo confirmación |
 
+##### 🔥 La banda del DNIe está en el REVERSO, y se buscaba en el anverso (12/09/2026)
+
+**Ningún DNI podía llegar nunca a «validado por MRZ».** No por un fallo de lectura: por una
+afirmación falsa escrita con toda seguridad en un comentario del enum —«el reverso del DNI no
+respalda ningún número: no lo lleva»— y en otro de `Cotejo` —«el nuevo peruano lleva TD1 en el
+anverso»—. Las dos cosas son mentira: el DNIe peruano lleva su MRZ TD1 (tres líneas de 30) en el
+**reverso**, y es la única cara que la lleva.
+
+Como el reverso figuraba como que no respalda nada, **no se leía jamás**: `datosLeidos` a `NULL`
+para siempre. Y el aviso remataba la faena diciéndole al operador «revisa la calidad del escaneo»,
+mandándolo a rehacer una foto impecable por una banda que se buscaba en la cara equivocada.
+
+Comprobado con un DNIe real antes de tocar nada: el reverso se lee y su MRZ sale **coherente**
+(`problemas: []`), con número, nacimiento y vencimiento cuadrando con el anverso.
+
+**El arreglo separa dos preguntas que no son la misma**, y que el DNI contesta con caras distintas:
+
+| Método | Pregunta | DNI |
+|---|---|---|
+| `ArchivoTipoEnum::respaldaA()` | ¿qué número lleva **impreso en claro**? (lo que se coteja) | anverso |
+| `ArchivoTipoEnum::verificaA()` | ¿qué número puede **verificar por MRZ**? | **reverso** |
+
+El pasaporte contesta lo mismo a las dos, porque lleva número y banda en la misma página — y por
+eso no le cuesta ni una lectura de más: el aval sólo se busca cuando la propia cara no trae banda
+buena.
+
+`Cotejo::de()` acepta ahora un tercer argumento, la banda de la otra cara. ⚠️ **No la acepta a
+ciegas: compara el número primero.** Dos caras de DNIs distintos en la misma ficha es un archivo
+mal asignado —justo el fallo que todo esto persigue— y avalarlo sellaría el error en verde. Usa el
+mismo criterio que contra el manifiesto, así que el DNI de 8 dígitos y el CUI de 9 siguen siendo el
+mismo documento.
+
+⚠️ **Y el listener tenía el mismo agujero.** `EscaneoNuevoInvalidaVeredictoListener` miraba sólo
+`respaldaA()`, así que **subir el reverso no caducaba ningún veredicto**: el escaneo nuevo no
+servía de nada hasta que alguien pulsara reprocesar sin saber por qué. Ahora mira las dos.
+
 #### El filtro «Observado», junto a los de vencimiento (09/09/2026)
 
 Un chip más en la fila de **Documentos**, con su recuento: es lo que convierte los 30 observados en

@@ -124,8 +124,9 @@ enum ArchivoTipoEnum: string
      * que tienen que decir lo mismo o el sistema se contradice: uno valida el DNI contra el
      * anverso y otro cree que lo respalda otra cosa.
      *
-     * ⚠️ El reverso del DNI y la autorización **no respaldan ningún número**: no lo llevan. Eso no
-     * es una carencia del escaneo, es lo que son.
+     * ⚠️ **«Respaldar» aquí es llevar el número IMPRESO en claro**, que es lo que se coteja contra
+     * el manifiesto. La autorización no lleva ninguno. El reverso del DNI tampoco lo lleva impreso
+     * — pero sí lo lleva en la MRZ, y eso es otra cosa: {@see verificaA()}.
      */
     public function respaldaA(): ?DocumentoTipoEnum
     {
@@ -134,6 +135,44 @@ enum ArchivoTipoEnum: string
             self::PASAPORTE => DocumentoTipoEnum::PASAPORTE,
             self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => null,
         };
+    }
+
+    /**
+     * Qué número puede **verificar por MRZ** este escaneo: la banda con dígitos de control.
+     *
+     * 🔥 **Aquí decía que el reverso del DNI no lleva número, y era FALSO.** El DNIe peruano lleva
+     * su MRZ TD1 —tres líneas de 30— en el **reverso**, y es la única cara que la lleva: el
+     * anverso no tiene banda ninguna. Como el reverso estaba marcado como que no respalda nada, no
+     * se leía nunca, así que **ningún DNI podía llegar a «validado por MRZ»**: todos se quedaban
+     * en el cotejo con el manifiesto, y los que no tenían con qué cotejar, en observado.
+     *
+     * Y encima el aviso decía «sin banda MRZ legible (revisa la calidad del escaneo)», mandando a
+     * arreglar una foto impecable por una banda que estábamos buscando en la cara equivocada.
+     *
+     * Se separa de `respaldaA()` a propósito: son dos preguntas distintas y el DNI las contesta
+     * con caras distintas. Juntarlas obligaría a que la cara del número impreso y la de la banda
+     * fueran la misma, que es justo lo que no pasa.
+     */
+    public function verificaA(): ?DocumentoTipoEnum
+    {
+        return match ($this) {
+            // El pasaporte se verifica solo: número impreso y banda van en la misma página.
+            self::PASAPORTE => DocumentoTipoEnum::PASAPORTE,
+            self::DNI_REVERSO => DocumentoTipoEnum::DNI,
+            self::DNI_ANVERSO, self::AUTORIZACION, self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => null,
+        };
+    }
+
+    /** El camino inverso: qué escaneo lleva la banda que verifica este número. */
+    public static function paraVerificar(DocumentoTipoEnum $tipo): ?self
+    {
+        foreach (self::cases() as $caso) {
+            if ($caso->verificaA() === $tipo) {
+                return $caso;
+            }
+        }
+
+        return null;
     }
 
     /** El camino inverso: qué escaneo hace falta para poder validar este número. */
