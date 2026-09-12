@@ -12,6 +12,7 @@ use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillResult;
 use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Service\Message\PmsMessageDataResolver;
 use App\Pms\Service\Reserva\PmsEspacioEstancia;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Message\Service\MessageDataResolverRegistry;
@@ -117,6 +118,22 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface, SkillDom
         if ($bloqueadas !== []) {
             $datos = array_diff_key($datos, array_flip($bloqueadas));
         }
+
+        // 🔒 Y FUERA LO QUE ABRE ALGO, siempre y para todos.
+        //
+        // 🔥 El 12/09/2026 entraron en el diccionario del resolver los códigos de las dos cajas
+        // fuertes y los medios de la del dinero. Esta skill lo vuelca ENTERO, así que un huésped
+        // preguntando «¿cuál es mi reserva?» recibía los dos códigos y la foto de dónde se deja
+        // el efectivo — sin ventana, sin haber pagado y sin que un operador decidiera nada.
+        //
+        // El diccionario nació para rellenar plantillas, que manda un operador; aquí lo lee un
+        // modelo al servicio del huésped. Son dos audiencias y el volcado las confundía.
+        //
+        // ⚠️ **No es una resta condicional.** Ni siquiera al equipo: para eso está
+        // `consultar_codigos`, que comprueba la ventana y explica el motivo cuando toca callar.
+        // Un `if ($actor->esDelEquipo())` aquí sería una segunda puerta a lo mismo, con su propia
+        // regla, y las reglas duplicadas divergen.
+        $datos = array_diff_key($datos, array_flip(PmsMessageDataResolver::CLAVES_DE_ACCESO));
 
         // 🔗 El id es lo que permite ENCADENAR: sin él, el modelo no puede pasar esta
         // reserva a la siguiente skill y cada consulta muere en sí misma. `getMessageVariables()`

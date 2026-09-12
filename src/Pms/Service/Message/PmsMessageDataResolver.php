@@ -66,7 +66,36 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
     }
 
     /**
-     * Las fotos y vídeos de las dos cajas fuertes, como enlace.
+     * 🔒 Las claves que ABREN ALGO y no pueden viajar por el mero hecho de estar en el diccionario.
+     *
+     * ── Por qué existe esta lista ───────────────────────────────────────────
+     * `getMessageVariables()` nació para rellenar PLANTILLAS, que las manda un operador. Quien la
+     * consume además de las plantillas —{@see \App\Agent\Skill\Pms\ConsultarMiReservaSkill}— la
+     * vuelca entera al modelo, y eso estuvo bien mientras aquí sólo hubiera fechas, importes y
+     * enlaces.
+     *
+     * 🔥 **Dejó de estarlo el 12/09/2026**, cuando entraron los códigos de las dos cajas y los
+     * medios de la del dinero: un huésped preguntando «¿cuál es mi reserva?» recibía los dos
+     * códigos y la foto de dónde se deja el efectivo, sin ventana y sin haber pagado. Justo lo que
+     * `PmsGuiaAcceso` y `ConsultarCodigosSkill` llevan semanas cuidando por los otros caminos.
+     *
+     * ⚠️ **La lista vive aquí y no en la skill** porque quien añade una clave nueva edita ESTE
+     * archivo. Una lista en el consumidor es una lista que el que amplía el diccionario no ve.
+     *
+     * Las plantillas SÍ las usan —`caja_dinero` no existe sin ellas—: ahí el filtro es quién puede
+     * mandarlas, `ROLE_MENSAJES_WRITE` sobre `enviar_plantilla`.
+     */
+    public const array CLAVES_DE_ACCESO = [
+        'codigo_caja_llaves',
+        'codigo_caja_dinero',
+        'foto_caja_llaves',
+        'foto_caja_dinero',
+        'video_caja_llaves',
+        'video_caja_dinero',
+    ];
+
+    /**
+     * Los códigos de las dos cajas y sus fotos y vídeos, como enlace.
      *
      * ── Por qué son variables y no se pegan en la plantilla ─────────────────
      * Porque el archivo se reemplaza y la URL cambia: `MediaTokenNamer` le da un nombre nuevo y
@@ -75,14 +104,13 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
      * un 404 sin que nada avise. Así la plantilla escribe `{{ foto_caja_dinero }}` y el valor se
      * resuelve al enviar.
      *
-     * ⚠️ **Las de la caja del DINERO también salen aquí, y es el único sitio.** No entran en la
-     * guía —{@see PmsEstablecimientoMediaTipo::visibilidad()} devuelve `null` y
-     * `PmsGuiaContexto::construir()` no las carga—, así que el huésped no puede pedirlas: sólo
-     * llegan si un operador manda la plantilla, y `enviar_plantilla` exige `ROLE_MENSAJES_WRITE`.
+     * ⚠️ **Todo lo que sale de aquí está en {@see self::CLAVES_DE_ACCESO}**, porque abre algo. Lo
+     * usan las plantillas, que manda un operador con `ROLE_MENSAJES_WRITE`; quien lea este
+     * diccionario para otra cosa tiene que restarlas.
      *
-     * ⚠️ **Absolutas, con el host de `pax`.** El listener deja una ruta (`/carga/…`), que la web
-     * resuelve contra su origen; esto acaba en un WhatsApp, donde no hay origen. Se usa el host de
-     * `pax` porque es el que el huésped ya ve en el enlace de su guía.
+     * ⚠️ **Las URL, absolutas y con el host de `pax`.** El listener deja una ruta (`/carga/…`),
+     * que la web resuelve contra su origen; esto acaba en un WhatsApp, donde no hay origen. Se usa
+     * el host de `pax` porque es el que el huésped ya ve en el enlace de su guía.
      *
      * Un medio que no se ha subido sale como cadena vacía, igual que el WhatsApp: la plantilla
      * tiene que sostenerse sin él.
