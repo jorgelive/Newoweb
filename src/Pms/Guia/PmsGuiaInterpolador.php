@@ -161,22 +161,17 @@ final class PmsGuiaInterpolador
                 continue;
             }
 
-            // Dónde llegó la clave dice si exige ventana, y eso lo decidió el TIPO al construir el
-            // contexto (`PmsUnidadMediaTipo::esSensible()`): el croquis y la foto viajan siempre,
-            // los vídeos esperan. Aquí no se vuelve a decidir, se obedece.
-            $publico = array_key_exists($clave, $contexto->valores);
-            $url = $publico
-                ? $contexto->valores[$clave]
-                : ($contexto->sensibles[$clave] ?? null);
+            // Quién puede verlo lo decidió el TIPO al construir el contexto y lo resuelve el mismo
+            // juez que para los ítems: `PmsGuiaAcceso::permite()`. Aquí no se vuelve a decidir.
+            $medio = $contexto->medios[$clave] ?? null;
 
-            $hayUrl = $url !== null && $url !== '';
-
-            if ($hayUrl && ($publico || $revelar)) {
-                $bloque = sprintf('{{ %s: %s }}', $esVideo ? 'video' : 'img', $url);
-            } elseif ($publico) {
-                // Un medio público que todavía no existe —una casita sin croquis— no pinta un
-                // marco de «bloqueado»: eso mentiría. Se quita el marcador y ya.
+            if ($medio === null) {
+                // Un medio que todavía no existe —una casita sin croquis— NO pinta un marco de
+                // «bloqueado»: eso diría «se te mostrará más adelante» sobre algo que no hay. Se
+                // quita el marcador. El hueco se ve donde se arregla, en la pantalla de medios.
                 $bloque = '';
+            } elseif ($acceso->permite($medio['nivel'])) {
+                $bloque = sprintf('{{ %s: %s }}', $esVideo ? 'video' : 'img', $medio['valor']);
             } else {
                 $bloque = sprintf(
                     '{{ %s: %s }}',

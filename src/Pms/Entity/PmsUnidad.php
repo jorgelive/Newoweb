@@ -564,6 +564,19 @@ class PmsUnidad
         return '';
     }
 
+    /**
+     * Stub para la columna «Limpieza / servicio» del listado, por el mismo motivo que
+     * {@see self::getVirtualPaxExtra()}.
+     *
+     * ⚠️ **Faltaba, y el listado lo decía en voz baja**: EasyAdmin no encuentra la propiedad y
+     * pinta «Inaccesible» en la celda, que parece un permiso denegado y no un getter ausente.
+     * Ni PHPStan ni los tests lo ven — la columna se declara con una cadena.
+     */
+    public function getVirtualLimpiezaServicio(): string
+    {
+        return '';
+    }
+
     public function getPaxIncluidos(): int { return $this->paxIncluidos; }
     public function setPaxIncluidos(int $val): self { $this->paxIncluidos = max(0, $val); return $this; }
 

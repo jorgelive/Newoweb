@@ -6,6 +6,7 @@ namespace App\Pms\Guia;
 
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsUnidad;
+use App\Pms\Enum\PmsGuiaVisibilidad;
 use App\Pms\Enum\PmsUnidadMediaTipo;
 
 /**
@@ -23,16 +24,23 @@ final readonly class PmsGuiaContexto
     /**
      * @param array<string, string> $valores   Claves siempre sustituibles (nombre, fechas, unidad).
      * @param array<string, string> $sensibles Claves que exigen ventana abierta (códigos de acceso).
-     * La misma forma que declara `PmsUnidad::getWifiNetworks()`, que es de donde viene: una
-     * sola verdad. Declararla aquí con las claves obligatorias prometía que siempre están, y
-     * son opcionales — una red guardada sin contraseña es un caso real.
+     *
+     * `$redesWifi` tiene la misma forma que declara `PmsUnidad::getWifiNetworks()`, que es de
+     * donde viene: una sola verdad. Declararla aquí con las claves obligatorias prometía que
+     * siempre están, y son opcionales — una red guardada sin contraseña es un caso real.
      *
      * @param list<array{ssid?: string|null, password?: string|null, ubicacion?: list<array{language?: string, content?: string|null}>}> $redesWifi
+     *
+     * @param array<string, array{valor: string, nivel: PmsGuiaVisibilidad}> $medios
+     *        El croquis, la foto de la puerta y los vídeos, **cada uno con el nivel desde el que se
+     *        puede ver**. Van aparte de `valores`/`sensibles` porque esos dos cubos sólo distinguen
+     *        «siempre» de «con ventana», y la guía clasifica por cuatro niveles.
      */
     public function __construct(
         public array $valores = [],
         public array $sensibles = [],
         public array $redesWifi = [],
+        public array $medios = [],
     ) {
     }
 
@@ -63,39 +71,36 @@ final readonly class PmsGuiaContexto
             'end_date'    => $evento?->getFin()?->format('d/m/Y'),
         ], static fn (?string $v): bool => null !== $v && '' !== $v);
 
-        // ⚠️ **Qué medio exige ventana lo dice su TIPO**, no esta lista: `PmsUnidadMediaTipo::esSensible()`.
-        // El croquis y la foto de la puerta se ven siempre —una puerta verde no abre nada, y van a
-        // acabar publicados en la web—; el vídeo del ingreso enseña el recorrido hasta dentro y
-        // espera a la ventana, como los códigos.
-        $mediosPublicos = [];
-        $mediosConVentana = [];
+        // ⚠️ **Los medios van en su propio cajón, con su NIVEL**, no repartidos entre `valores` y
+        // `sensibles`: la guía clasifica por cuatro niveles y esos dos cubos sólo distinguen dos.
+        // Quién puede ver cada tipo lo dice `PmsUnidadMediaTipo::visibilidad()` y lo resuelve
+        // `PmsGuiaAcceso::permite()`, el mismo juez que para los ítems.
+        $medios = [];
 
         foreach (PmsUnidadMediaTipo::cases() as $tipo) {
             $valor = $unidad->medio($tipo)?->getValor();
 
-            if ($valor === null || $valor === '') {
-                continue;
-            }
-
-            if ($tipo->esSensible()) {
-                $mediosConVentana[$tipo->clave()] = $valor;
-            } else {
-                $mediosPublicos[$tipo->clave()] = $valor;
+            if ($valor !== null && $valor !== '') {
+                $medios[$tipo->clave()] = ['valor' => $valor, 'nivel' => $tipo->visibilidad()];
             }
         }
 
-        $valores = [...$valores, ...$mediosPublicos];
+        $videoCaja = $establecimiento?->getVideoCajaFuerteUrl();
+
+        if ($videoCaja !== null && $videoCaja !== '') {
+            // El de la caja es del establecimiento, no de la casita, pero se sirve igual y con el
+            // nivel más alto: enseña cómo se abre.
+            $medios['video_caja_fuerte'] = ['valor' => $videoCaja, 'nivel' => PmsGuiaVisibilidad::SoloVentana];
+        }
 
         // Sin estancia no se cargan credenciales en memoria siquiera: el
-        // catálogo público no tiene por qué poder equivocarse.
+        // catálogo público no tiene por qué poder equivocarse. Los MEDIOS sí viajan: su nivel ya
+        // dice quién puede verlos, y el catálogo resuelve con el mismo `permite()`.
         if (null === $evento) {
-            return new self($valores);
+            return new self($valores, [], [], $medios);
         }
 
         $sensibles = array_filter([
-            // El de la caja es del establecimiento y exige ventana por lo mismo que el del
-            // ingreso: enseña cómo se abre.
-            'video_caja_fuerte' => $establecimiento?->getVideoCajaFuerteUrl(),
             // `door_code` es el smart lock, hoy vacío en todas las casitas: `array_filter` lo
             // deja fuera solo. `numero` es el de la casita: el que lleva su llave y el que
             // identifica su puerta en su croquis.
@@ -106,6 +111,6 @@ final readonly class PmsGuiaContexto
             'keybox_sec'  => $establecimiento?->getCodigoCajaSecundaria(),
         ], static fn (?string $v): bool => null !== $v && '' !== $v);
 
-        return new self($valores, [...$sensibles, ...$mediosConVentana], $unidad->getWifiNetworks());
+        return new self($valores, $sensibles, $unidad->getWifiNetworks(), $medios);
     }
 }

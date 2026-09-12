@@ -442,17 +442,23 @@ ve. Si hay que empezar por algo, son los siete croquis: `FOTO_PUERTA` puede qued
 | `{{ video_ingreso }}` | `PmsUnidadMedia` tipo `VIDEO_INGRESO` |
 | `{{ video_caja_fuerte }}` | `PmsEstablecimiento` |
 
-**Qué exige ventana lo decide el TIPO**, no quien lo consume: `PmsUnidadMediaTipo::esSensible()`.
+**Cada medio declara su NIVEL**, con el mismo vocabulario que los ítems (`PmsGuiaVisibilidad`) y
+resuelto por el mismo juez (`PmsGuiaAcceso::permite()`):
 
-| clave | ventana de 30 h | por qué |
+| clave | nivel | por qué |
 |---|---|---|
-| `{{ croquis }}`, `{{ foto_puerta }}` | **no** | una puerta verde no abre nada, y van a acabar publicadas en la web |
-| `{{ video_ingreso }}`, `{{ video_caja_fuerte }}` | **sí** | enseñan el recorrido hasta dentro y cómo se abre la caja |
+| `{{ croquis }}`, `{{ foto_puerta }}` | `Cliente` | quien tiene su localizador puede ver dónde va a dormir; una puerta verde no abre nada |
+| `{{ video_ingreso }}`, `{{ video_caja_fuerte }}` | `SoloVentana` | enseñan el recorrido hasta dentro y cómo se abre la caja |
 
-⚠️ **La regla vive en el enum y en ningún sitio más.** Si viviera en el contexto de la guía habría
-que repetirla en el agente, en el catálogo y en cada consumidor nuevo, y bastaría olvidarla una vez
-para publicar un vídeo que no tocaba. El interpolador no decide: mira si la clave llegó en
-`valores` o en `sensibles` y obedece.
+⚠️ **Empezó siendo un booleano `esSensible()` y se quedaba corto.** La guía clasifica por cuatro
+niveles y un sí/no los colapsa en dos: obliga a elegir entre enseñar de más o de menos, y encima
+crea un segundo vocabulario para lo mismo. Los medios viajan en su propio cajón del contexto
+(`$medios`, cada uno con su nivel) justo por eso: `valores`/`sensibles` sólo distinguen «siempre»
+de «con ventana».
+
+⚠️ **La regla vive en el enum y en ningún sitio más.** Si viviera en el contexto habría que
+repetirla en el agente, en el catálogo y en cada consumidor nuevo, y bastaría olvidarla una vez
+para publicar algo que no tocaba. El interpolador no decide: pregunta `permite()` y obedece.
 
 ⚠️ **Un medio público que falta se quita del texto; uno con ventana sale como bloqueado.** La
 diferencia importa: decirle a alguien «esto se te mostrará más adelante» cuando en realidad no

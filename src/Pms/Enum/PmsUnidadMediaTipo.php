@@ -42,22 +42,29 @@ enum PmsUnidadMediaTipo: string
     }
 
     /**
-     * ¿Exige la ventana de acceso de la estancia (30 h antes, §3) o se puede ver siempre?
+     * Desde qué nivel de acceso se puede ver, con el MISMO vocabulario que el resto de la guía
+     * ({@see \App\Pms\Enum\PmsGuiaVisibilidad}) y resuelto por el mismo juez
+     * ({@see \App\Pms\Guia\PmsGuiaAcceso::permite()}).
+     *
+     * ⚠️ **Era un booleano y se quedaba corto.** La guía clasifica por cuatro niveles —público,
+     * con localizador, pagado, y con la ventana de 30 h abierta— y un `esSensible()` los colapsa
+     * en dos: obliga a elegir entre enseñar de más o de menos, y encima crea un segundo
+     * vocabulario para lo mismo.
+     *
+     * | tipo | nivel | por qué |
+     * |---|---|---|
+     * | `CROQUIS`, `FOTO_PUERTA` | `Cliente` | quien tiene su localizador puede ver dónde va a dormir; una puerta verde no abre nada |
+     * | `VIDEO_INGRESO` | `SoloVentana` | enseña el recorrido hasta dentro |
      *
      * **Lo decide el tipo, no quien lo consume.** Si la respuesta viviera en el contexto de la
      * guía habría que repetirla en el agente, en el catálogo y en cada sitio nuevo, y bastaría
-     * olvidarla una vez para publicar un vídeo que no tocaba.
-     *
-     * | tipo | ventana | por qué |
-     * |---|---|---|
-     * | `CROQUIS`, `FOTO_PUERTA` | no | una puerta verde no abre nada, y van a acabar publicados en la web |
-     * | `VIDEO_INGRESO` | **sí** | enseña el recorrido hasta dentro |
+     * olvidarla una vez para publicar algo que no tocaba.
      */
-    public function esSensible(): bool
+    public function visibilidad(): PmsGuiaVisibilidad
     {
         return match ($this) {
-            self::CROQUIS, self::FOTO_PUERTA => false,
-            self::VIDEO_INGRESO => true,
+            self::CROQUIS, self::FOTO_PUERTA => PmsGuiaVisibilidad::Cliente,
+            self::VIDEO_INGRESO => PmsGuiaVisibilidad::SoloVentana,
         };
     }
 
