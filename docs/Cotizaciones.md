@@ -8452,3 +8452,55 @@ cosa y tiene otro dueño.
 | Cómo se llaman los ficheros | `PaqueteDeEscaneos` | `nombreEnElZip()` |
 | Lo que se cuenta en el sobre | `PaqueteDeEscaneos` | `leeme()` |
 | Permisos y cabeceras | `PaqueteEscaneosController` | `__invoke()` |
+
+---
+
+## Lo que la revisión encontró y las herramientas no (11/09/2026)
+
+Dos fallos introducidos el mismo día en que se «arreglaron» esas pantallas. PHPStan, PHPUnit,
+`vue-tsc` y ESLint pasaron limpios con los dos dentro.
+
+### El `v-else` se enganchó al hermano equivocado
+
+Al meter la franja de «Actualizando el expediente…» **entre** el spinner y el contenido:
+
+```html
+<main v-if="isLoading">spinner</main>
+<div  v-if="refrescando">franja</div>   ← insertada aquí
+<main v-else>contenido</main>           ← su v-else pasó a ser el de la FRANJA
+```
+
+`v-else` se engancha al hermano inmediatamente anterior con `v-if`. Resultado, **lo contrario de
+lo que el cambio pretendía**: en la primera carga se pintaban spinner y contenido a la vez, y en
+cada refresco desaparecía el `<main>` entero — el blanqueo seguía, en los once llamadores que aún
+recargan.
+
+Se arregla escribiendo la condición (`v-if="!isLoading"`) en vez de heredarla. Con la condición
+escrita, insertar algo en medio deja de importar.
+
+⚠️ **No lo ve nada.** `vue-tsc` no analiza el emparejamiento, y `vue/valid-v-else` tampoco protesta
+porque sí hay un `v-if` delante — el marcado es válido, sólo que dice otra cosa. Es la misma
+familia que el aviso de CLAUDE.md sobre atributos mal puestos: **el fallo no es un error, es un
+cambio de significado.**
+
+### Un `null` que el serializador rechaza antes de llegar al procesador
+
+`CotizacionFilearchivo::setNombre(array $nombre)` no admite `null`, y el formulario mandaba
+`nombre: docForm.nombre ? [...] : null` al editar. Ese `null` era **inalcanzable** mientras el
+campo fue obligatorio; en cuanto un escaneo de identidad pudo guardarse sin nombre, vaciarlo pasó
+a ser un camino normal — y devolvía un 400.
+
+O sea: el procesador se añadió al `Patch` para nombrar por convención al editar, y desde la
+pantalla **nunca llegaba a ejecutarse para el caso que lo justificó**. Ahora se manda `[]`.
+
+> **La lección de método:** el test de `NombrePorConvencionTest` estaba verde y ejercitaba la
+> pieza correcta. Lo que no ejercitaba era el serializador, que es donde moría la petición. Un
+> test verde sobre la unidad no dice que la pantalla funcione.
+
+### Y una que resultó no aplicar
+
+Se sospechó que el caché de metadata de API Platform pudiera sobrevivir a `cache:pool:clear`
+porque `cache.system` encadena APCu, y un clear desde CLI no vacía el APCu de php-fpm. **En este
+servidor APCu no está instalado** (`php -m` no lo lista, no hay `conf.d`), así que el pool es
+PhpFiles y el clear basta. Queda escrito porque la hipótesis era razonable y alguien la volverá a
+tener.

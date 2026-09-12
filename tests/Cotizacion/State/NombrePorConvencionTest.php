@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Cotizacion\State;
 
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
@@ -29,7 +30,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 final class NombrePorConvencionTest extends TestCase
 {
-    private function procesar(CotizacionFilearchivo $archivo): CotizacionFilearchivo
+    private function procesar(CotizacionFilearchivo $archivo, ?Operation $operacion = null): CotizacionFilearchivo
     {
         // El persistidor de Doctrine devuelve lo que le llega: aquí sólo interesa qué se le pasa.
         $persistidor = new class implements ProcessorInterface {
@@ -41,7 +42,7 @@ final class NombrePorConvencionTest extends TestCase
         };
 
         $procesador = new CotizacionFilearchivoMultipartProcessor($persistidor, new RequestStack());
-        $salida = $procesador->process($archivo, new Post());
+        $salida = $procesador->process($archivo, $operacion ?? new Post());
 
         self::assertInstanceOf(CotizacionFilearchivo::class, $salida);
 
@@ -102,6 +103,30 @@ final class NombrePorConvencionTest extends TestCase
         self::assertSame(
             [['language' => 'es', 'content' => 'Pasaporte (escaneo)']],
             $this->procesar($archivo)->getNombre(),
+        );
+    }
+
+    /**
+     * El mismo trato al EDITAR, que es donde el procesador se añadió después.
+     *
+     * ⚠️ Estaba sólo en el `Post`: crear un pasaporte lo nombraba y editarlo vaciando el nombre lo
+     * dejaba sin ninguno — la misma pantalla con dos resultados según por dónde entres.
+     *
+     * ⚠️ **Y este test no basta por sí solo, conviene saberlo.** Ejercita el procesador, no el
+     * serializador: el 11/09/2026 el camino real seguía roto por otro sitio —el front mandaba
+     * `nombre: null` y `setNombre(array)` lo rechazaba con un 400 antes de llegar aquí—. Un test
+     * verde sobre la pieza correcta no dice que la pantalla funcione.
+     */
+    #[Test]
+    public function al_editar_tambien_se_nombra_por_convencion(): void
+    {
+        $archivo = (new CotizacionFilearchivo())->setTipoArchivo(ArchivoTipoEnum::PASAPORTE);
+        // Es lo que manda el formulario al vaciar el nombre: lista vacía, no null.
+        $archivo->setNombre([]);
+
+        self::assertSame(
+            [['language' => 'es', 'content' => 'Pasaporte (escaneo)']],
+            $this->procesar($archivo, new Patch())->getNombre(),
         );
     }
 

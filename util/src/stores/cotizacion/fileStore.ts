@@ -713,7 +713,9 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         // `null` DESASIGNA —devuelve el archivo al expediente entero—, que es lo que hace falta
         // para deshacer un reparto torcido sin borrar el fichero.
         payload: {
-            nombre?: I18nContent[] | null;
+            // Sin `| null`: la entidad tipa `setNombre(array)` y un null se va en 400. «Sin
+            // nombre» se manda como lista vacía.
+            nombre?: I18nContent[];
             tipoArchivo: string;
             sobreescribirTraduccion?: boolean;
             pasajero?: string | null;

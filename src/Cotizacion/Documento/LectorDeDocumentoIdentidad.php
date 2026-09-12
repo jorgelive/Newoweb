@@ -241,9 +241,14 @@ final readonly class LectorDeDocumentoIdentidad
      * `0` con `O` y `1` con `I`, y sin el cotejo una «corrección» de caja colaría la letra
      * cambiada como si fuera un nombre bien escrito.
      *
-     * Y si la MRZ ganó la partida —`preferir()` devuelve su versión— la propuesta se descarta
-     * sola: la MRZ va sin tildes y en ASCII, así que casi nunca casará con lo capitalizado. Es el
-     * lado correcto: la MRZ está ahí porque lo impreso no se leyó.
+     * ⚠️ **Aquí decía que si la MRZ gana, la propuesta «se descarta sola porque la MRZ va sin
+     * tildes». Es falso**, y conviene que no vuelva: `conLaCajaBuena()` translitera LOS DOS lados
+     * a ASCII antes de comparar, así que una propuesta con las mismas letras se acepta igual sobre
+     * el nombre de la MRZ — es justo el caso `JOSE PEREZ NUNEZ` → `José Pérez Núñez` que fija el
+     * test. Lo que sí la descarta ahí es otra cosa: que la MRZ recorta a 39 caracteres, o que lo
+     * impreso viniera vacío y no haya propuesta que aplicar.
+     *
+     * El comportamiento es el correcto; la explicación era la equivocada.
      */
     private function capitalizado(?string $nombre, string $propuesto): ?string
     {

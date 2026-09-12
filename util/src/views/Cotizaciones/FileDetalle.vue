@@ -2886,9 +2886,14 @@ const guardarDocumento = async () => {
     // Modo edición: metadata y dueño, sin archivo (PATCH JSON → array i18n)
     isSubmittingDoc.value = true;
     success = await fileStore.updateDocument(docEditandoIri.value, {
+      // ⚠️ Lista VACÍA y no `null`. `CotizacionFilearchivo::setNombre(array)` no admite null, así
+      // que un `nombre: null` lo rechaza el serializador con un 400 **antes** de llegar al
+      // procesador. Era inalcanzable mientras el campo fue obligatorio; desde que un escaneo de
+      // identidad puede guardarse sin nombre, vaciarlo es un camino normal — y con `[]` el
+      // procesador hace su trabajo y le pone el nombre por convención.
       nombre: docForm.value.nombre
           ? [{ content: docForm.value.nombre.trim(), language: 'es' }]
-          : null,
+          : [],
       tipoArchivo: docForm.value.tipoArchivo,
       sobreescribirTraduccion: docForm.value.sobreescribirTraduccion,
       ...alcanceDelDoc(),
@@ -3014,7 +3019,14 @@ const eliminarDocumento = async (iri?: string) => {
       <i class="fas fa-circle-notch fa-spin"></i> Actualizando el expediente…
     </div>
 
-    <main v-else class="flex-1 overflow-y-auto p-6 md:p-8">
+    <!-- ⚠️ `v-if="!isLoading"` y NO `v-else`, aunque el hermano de arriba sea un `v-if`.
+         Aquí había un `v-else` y funcionaba… hasta que se metió la franja de «refrescando» EN
+         MEDIO: `v-else` se engancha al hermano inmediatamente anterior con `v-if`, que pasó a ser
+         la franja. Resultado, justo lo contrario de lo que se quería: en la primera carga se
+         pintaban el spinner y el contenido a la vez, y en cada refresco desaparecía el `<main>`
+         entero. Ni `vue-tsc` ni `vue/valid-v-else` lo ven — hay un `v-if` delante, así que es
+         válido. Con la condición escrita, insertar algo en medio deja de importar. -->
+    <main v-if="!isLoading" class="flex-1 overflow-y-auto p-6 md:p-8">
       <!-- ⚠️ **En una columna, la barra lateral NO es una barra: es la primera sección.**
            Conservaba el ancho de columna que tiene en escritorio —340-380 px— así que la Bóveda
            quedaba metida hacia dentro mientras el Manifiesto y los Vuelos iban a sangre, y las dos
