@@ -99,7 +99,7 @@ final class CotejoTest extends TestCase
         $cotejo = Cotejo::de($this->pasaporteSinBanda(), new FichaGuardada(numero: 'L898902C3'));
 
         // Sin nombre guardado no hay cotejo posible, así que además se explica la banda.
-        self::assertStringContainsString('sin banda MRZ', $cotejo->resumen());
+        self::assertStringContainsString('no se pudo leer la banda MRZ', $cotejo->resumen());
     }
 
     /**
@@ -496,11 +496,42 @@ final class CotejoTest extends TestCase
     #[Test]
     public function sinAvalElMismoDniSeQuedaObservado(): void
     {
-        $cotejo = Cotejo::de($this->dni('41501189'), null);
+        $cotejo = Cotejo::de($this->dni('41501189'), null, null, faltaLaOtraCara: true);
 
         self::assertSame(ValidacionIdentificacionEnum::OBSERVADO, $cotejo->estado);
-        // Y el aviso manda a mirar el reverso, no a rehacer una foto que está bien.
-        self::assertStringContainsString('REVERSO', implode(' ', $cotejo->notas));
+        // Y el aviso pide lo que falta, en vez de mandar a rehacer una foto que está bien.
+        self::assertStringContainsString('falta el reverso', implode(' ', $cotejo->notas));
+    }
+
+    /**
+     * ⚠️ «Súbela» y «mírala» son dos trabajos distintos, y el aviso tiene que decir cuál. Con el
+     * reverso ya subido, pedirlo otra vez manda a buscar algo que está ahí delante.
+     */
+    #[Test]
+    public function conElReversoSubidoPeroIlegibleElAvisoNoLoPideOtraVez(): void
+    {
+        $notas = implode(' ', Cotejo::de($this->dni('41501189'), null, null)->notas);
+
+        self::assertStringContainsString('no se pudo verificar', $notas);
+        self::assertStringNotContainsString('falta el reverso', $notas);
+    }
+
+    /**
+     * 🔥 El aviso de la banda NO se pone encima de una discrepancia. Si el número del escaneo no
+     * coincide con el del manifiesto, el problema es ése: nombrar además la banda es ruido tapando
+     * lo único que hay que leer.
+     */
+    #[Test]
+    public function sobreUnaDiscrepanciaElAvisoDeLaBandaNoAparece(): void
+    {
+        $cotejo = Cotejo::de($this->dni('41501189'), new FichaGuardada(
+            numero: '73716768',
+            tipo: 'DNI',
+            nombres: 'Anna María', apellidos: 'Eriksson',
+        ), null, faltaLaOtraCara: true);
+
+        self::assertSame('número', $cotejo->discrepancias[0]->campo);
+        self::assertStringNotContainsString('banda', implode(' ', $cotejo->notas));
     }
 
     /**

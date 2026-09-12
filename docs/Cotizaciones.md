@@ -2015,6 +2015,26 @@ mismo documento.
 `respaldaA()`, así que **subir el reverso no caducaba ningún veredicto**: el escaneo nuevo no
 servía de nada hasta que alguien pulsara reprocesar sin saber por qué. Ahora mira las dos.
 
+##### El aviso de la banda: cuándo sale y qué dice
+
+Nunca sale sobre algo que se validó — ni por MRZ ni por cotejo: el bloque de validación devuelve
+antes. Pero **sí salía encima de una discrepancia**, y ahí sobra: si el número del escaneo no
+coincide con el del manifiesto, el problema es ése, y nombrar además la banda es ruido tapando lo
+único que hay que leer. Ahora se pone sólo cuando la banda **es el motivo** de que no se pueda
+validar, o sea cuando tampoco había con qué cotejar.
+
+Y dice **qué falta**, no de quién es la culpa. «Súbela» y «mírala» son dos trabajos distintos, así
+que `Cotejo::de()` recibe `faltaLaOtraCara` para poder separarlos:
+
+| Situación | Qué dice |
+|---|---|
+| DNI sin el reverso subido | `falta el reverso del DNI: ahí va la banda que lo valida solo` |
+| DNI con el reverso subido que no verifica | `no se pudo verificar la banda del reverso` |
+| Pasaporte | `no se pudo leer la banda MRZ del escaneo` |
+
+⚠️ Sin ese booleano el aviso tenía que decir las dos cosas a la vez —«comprueba que esté subido y
+legible»— y no servía para ninguna: mandaba a buscar algo que a lo mejor ya estaba ahí delante.
+
 #### El filtro «Observado», junto a los de vencimiento (09/09/2026)
 
 Un chip más en la fila de **Documentos**, con su recuento: es lo que convierte los 30 observados en

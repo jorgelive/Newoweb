@@ -230,10 +230,18 @@ final readonly class ValidadorDeManifiesto
             return Cotejo::ilegible($archivo->getLecturaError() ?? 'no se pudo leer el escaneo');
         }
 
+        if ($leido->verificadoPorMrz()) {
+            return Cotejo::de($leido, FichaGuardada::de($pasajero, $identificacion));
+        }
+
+        $cara = $this->caraQueVerifica($identificacion->getTipo());
+        $escaneo = $cara !== null ? $this->escaneoPorTipo($pasajero, $cara) : null;
+
         return Cotejo::de(
             $leido,
             FichaGuardada::de($pasajero, $identificacion),
-            $leido->verificadoPorMrz() ? null : $this->bandaDeLaOtraCara($pasajero, $identificacion->getTipo()),
+            $escaneo !== null ? $this->validador->lecturaDe($escaneo)?->mrz : null,
+            faltaLaOtraCara: $cara !== null && $escaneo === null,
         );
     }
 
@@ -248,17 +256,17 @@ final readonly class ValidadorDeManifiesto
      * ⚠️ Sólo se pide si la propia cara no trae banda buena, así que al pasaporte —que la lleva en
      * la misma página que el número— no le cuesta ni una lectura de más.
      */
-    private function bandaDeLaOtraCara(CotizacionFilepasajero $pasajero, ?DocumentoTipoEnum $tipo): ?Mrz
+    private function caraQueVerifica(?DocumentoTipoEnum $tipo): ?ArchivoTipoEnum
     {
-        $cara = $tipo !== null ? ArchivoTipoEnum::paraVerificar($tipo) : null;
-        // Para el pasaporte la cara que verifica es la que ya se leyó: no hay otra que mirar.
-        if ($cara === null || $cara === ArchivoTipoEnum::paraValidar($tipo)) {
+        if ($tipo === null) {
             return null;
         }
 
-        $archivo = $this->escaneoPorTipo($pasajero, $cara);
+        $cara = ArchivoTipoEnum::paraVerificar($tipo);
 
-        return $archivo !== null ? $this->validador->lecturaDe($archivo)?->mrz : null;
+        // Para el pasaporte la cara que verifica es la que ya se leyó: no hay otra que mirar, y
+        // devolverla haría que se leyera dos veces la misma imagen.
+        return $cara === ArchivoTipoEnum::paraValidar($tipo) ? null : $cara;
     }
 
     /** El escaneo que respalda ese tipo de documento, si esa persona lo tiene subido. */

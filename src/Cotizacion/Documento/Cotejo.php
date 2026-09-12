@@ -78,9 +78,16 @@ final readonly class Cotejo
      * @param Mrz|null $aval La banda de **otra cara** del mismo documento, cuando ésta no la
      *        lleva. Es el caso del DNIe: el número va impreso en el anverso y la MRZ, en el
      *        reverso. Sin esto, un DNI jamás llegaba a «validado por MRZ».
+     * @param bool $faltaLaOtraCara Esa cara **no está subida**, que es distinto de estar subida y
+     *        no servir. Separa «súbela» de «mírala»: sin distinguirlo, el aviso tenía que decir
+     *        las dos cosas a la vez y no servía para ninguna.
      */
-    public static function de(DatosDeDocumento $leido, ?FichaGuardada $guardado, ?Mrz $aval = null): self
-    {
+    public static function de(
+        DatosDeDocumento $leido,
+        ?FichaGuardada $guardado,
+        ?Mrz $aval = null,
+        bool $faltaLaOtraCara = false,
+    ): self {
         // Sin número no hay documento que valga: no se puede cotejar ni guardar, y decir
         // «observado» sugeriría que hay algo que revisar cuando lo que hay es una foto ilegible.
         if (!$leido->esUtilizable()) {
@@ -157,18 +164,24 @@ final readonly class Cotejo
         // defecto y **bloqueaba** la validación de todo pasaporte sin banda, que es lo contrario
         // de lo que se quiere.
         //
-        // 🔥 **Decía «hubo que cotejar con el manifiesto» y a menudo era MENTIRA**: sale también
-        // cuando no había con qué cotejar, justo debajo de la nota que dice eso mismo. Dos frases
-        // seguidas contradiciéndose en la misma tarjeta.
+        // 🔥 **Y sólo cuando la banda es EL MOTIVO de que no se valide**, que es lo que faltaba:
+        // salía también encima de una discrepancia, donde no pinta nada. Si el número del escaneo
+        // no coincide con el del manifiesto, el problema es ése y el aviso de la banda es ruido
+        // tapando lo único que hay que leer. Con algo contra lo que cotejar, la banda ya no es la
+        // única salida, así que tampoco hace falta nombrarla.
         //
-        // 🔥 Y a un DNI le decía «revisa la calidad del escaneo» mandando a arreglar una foto
-        // impecable: la banda se buscaba en el anverso, que no la lleva. Ahora que se busca donde
-        // está, el aviso dice dónde mirar en vez de echarle la culpa al escaneo.
-        if (!$verificado
+        // 🔥 Antes decía «hubo que cotejar con el manifiesto» **también cuando no había con qué
+        // cotejar**, justo debajo de la nota que dice eso mismo: dos frases seguidas
+        // contradiciéndose en la misma tarjeta. Y a un DNI le pedía «revisa la calidad del
+        // escaneo» mandando a rehacer una foto impecable, porque la banda se buscaba en el
+        // anverso. El aviso ahora dice **qué falta**, no de quién es la culpa.
+        if (!$verificado && !$cotejable && $discrepancias === []
             && in_array($leido->tipo, [DocumentoTipoEnum::PASAPORTE, DocumentoTipoEnum::DNI], true)) {
-            $notas[] = $leido->tipo === DocumentoTipoEnum::DNI
-                ? 'sin banda MRZ verificada: el DNIe la lleva en el REVERSO, comprueba que esté subido y legible'
-                : 'sin banda MRZ legible: revisa la calidad del escaneo';
+            $notas[] = match (true) {
+                $leido->tipo !== DocumentoTipoEnum::DNI => 'no se pudo leer la banda MRZ del escaneo',
+                $faltaLaOtraCara => 'falta el reverso del DNI: ahí va la banda que lo valida solo',
+                default => 'no se pudo verificar la banda del reverso',
+            };
         }
 
         return new self(ValidacionIdentificacionEnum::OBSERVADO, $discrepancias, [...$notas, ...$informativas]);
