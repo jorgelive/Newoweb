@@ -442,7 +442,22 @@ ve. Si hay que empezar por algo, son los siete croquis: `FOTO_PUERTA` puede qued
 | `{{ video_ingreso }}` | `PmsUnidadMedia` tipo `VIDEO_INGRESO` |
 | `{{ video_caja_fuerte }}` | `PmsEstablecimiento` |
 
-Son **claves sensibles**, como los códigos: sólo viajan con la ventana de la estancia abierta.
+**Qué exige ventana lo decide el TIPO**, no quien lo consume: `PmsUnidadMediaTipo::esSensible()`.
+
+| clave | ventana de 30 h | por qué |
+|---|---|---|
+| `{{ croquis }}`, `{{ foto_puerta }}` | **no** | una puerta verde no abre nada, y van a acabar publicadas en la web |
+| `{{ video_ingreso }}`, `{{ video_caja_fuerte }}` | **sí** | enseñan el recorrido hasta dentro y cómo se abre la caja |
+
+⚠️ **La regla vive en el enum y en ningún sitio más.** Si viviera en el contexto de la guía habría
+que repetirla en el agente, en el catálogo y en cada consumidor nuevo, y bastaría olvidarla una vez
+para publicar un vídeo que no tocaba. El interpolador no decide: mira si la clave llegó en
+`valores` o en `sensibles` y obedece.
+
+⚠️ **Un medio público que falta se quita del texto; uno con ventana sale como bloqueado.** La
+diferencia importa: decirle a alguien «esto se te mostrará más adelante» cuando en realidad no
+existe es mentirle. El hueco de un croquis que falta se ve donde se arregla —la pantalla de
+medios—, no en la guía del huésped.
 
 La maquinaria ya existe y no hay que inventarla: `PmsGuiaInterpolador` sabe degradar
 `{{ video_ventana: url }}` a `{{ video: url }}` con la ventana abierta y a

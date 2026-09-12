@@ -41,6 +41,26 @@ enum PmsUnidadMediaTipo: string
         return $this->value;
     }
 
+    /**
+     * ¿Exige la ventana de acceso de la estancia (30 h antes, §3) o se puede ver siempre?
+     *
+     * **Lo decide el tipo, no quien lo consume.** Si la respuesta viviera en el contexto de la
+     * guía habría que repetirla en el agente, en el catálogo y en cada sitio nuevo, y bastaría
+     * olvidarla una vez para publicar un vídeo que no tocaba.
+     *
+     * | tipo | ventana | por qué |
+     * |---|---|---|
+     * | `CROQUIS`, `FOTO_PUERTA` | no | una puerta verde no abre nada, y van a acabar publicados en la web |
+     * | `VIDEO_INGRESO` | **sí** | enseña el recorrido hasta dentro |
+     */
+    public function esSensible(): bool
+    {
+        return match ($this) {
+            self::CROQUIS, self::FOTO_PUERTA => false,
+            self::VIDEO_INGRESO => true,
+        };
+    }
+
     /** ¿Se sube un archivo, o se pega una URL? */
     public function esArchivo(): bool
     {

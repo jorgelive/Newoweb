@@ -63,23 +63,38 @@ final readonly class PmsGuiaContexto
             'end_date'    => $evento?->getFin()?->format('d/m/Y'),
         ], static fn (?string $v): bool => null !== $v && '' !== $v);
 
+        // ⚠️ **Qué medio exige ventana lo dice su TIPO**, no esta lista: `PmsUnidadMediaTipo::esSensible()`.
+        // El croquis y la foto de la puerta se ven siempre —una puerta verde no abre nada, y van a
+        // acabar publicados en la web—; el vídeo del ingreso enseña el recorrido hasta dentro y
+        // espera a la ventana, como los códigos.
+        $mediosPublicos = [];
+        $mediosConVentana = [];
+
+        foreach (PmsUnidadMediaTipo::cases() as $tipo) {
+            $valor = $unidad->medio($tipo)?->getValor();
+
+            if ($valor === null || $valor === '') {
+                continue;
+            }
+
+            if ($tipo->esSensible()) {
+                $mediosConVentana[$tipo->clave()] = $valor;
+            } else {
+                $mediosPublicos[$tipo->clave()] = $valor;
+            }
+        }
+
+        $valores = [...$valores, ...$mediosPublicos];
+
         // Sin estancia no se cargan credenciales en memoria siquiera: el
         // catálogo público no tiene por qué poder equivocarse.
         if (null === $evento) {
             return new self($valores);
         }
 
-        // Los medios de la casita son SENSIBLES como los códigos: el recorrido hasta tu puerta y
-        // cómo se abre la caja no son para cualquiera que abra el catálogo. `array_filter` deja
-        // fuera los que aún no existen —hoy, todos— sin que haya que preguntarlo aquí.
-        $croquis = $unidad->medio(PmsUnidadMediaTipo::CROQUIS)?->getValor();
-        $fotoPuerta = $unidad->medio(PmsUnidadMediaTipo::FOTO_PUERTA)?->getValor();
-        $videoIngreso = $unidad->medio(PmsUnidadMediaTipo::VIDEO_INGRESO)?->getValor();
-
         $sensibles = array_filter([
-            'croquis'           => $croquis,
-            'foto_puerta'       => $fotoPuerta,
-            'video_ingreso'     => $videoIngreso,
+            // El de la caja es del establecimiento y exige ventana por lo mismo que el del
+            // ingreso: enseña cómo se abre.
             'video_caja_fuerte' => $establecimiento?->getVideoCajaFuerteUrl(),
             // `door_code` es el smart lock, hoy vacío en todas las casitas: `array_filter` lo
             // deja fuera solo. `numero` es el de la casita: el que lleva su llave y el que
@@ -91,6 +106,6 @@ final readonly class PmsGuiaContexto
             'keybox_sec'  => $establecimiento?->getCodigoCajaSecundaria(),
         ], static fn (?string $v): bool => null !== $v && '' !== $v);
 
-        return new self($valores, $sensibles, $unidad->getWifiNetworks());
+        return new self($valores, [...$sensibles, ...$mediosConVentana], $unidad->getWifiNetworks());
     }
 }

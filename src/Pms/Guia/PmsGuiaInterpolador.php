@@ -144,9 +144,10 @@ final class PmsGuiaInterpolador
      * ventana abierta → `{{ img: url }}` / `{{ video: url }}`; cerrada → el marco con el mensaje,
      * **sin que la URL viaje**. El front no se entera de que había una condición.
      *
-     * ⚠️ Una clave sin medio cargado —una casita a la que todavía le falta su croquis— sale como
-     * bloqueada, no como hueco. Es deliberado: un hueco silencioso se queda para siempre porque
-     * nadie lo echa de menos; el marco se ve y se llena. Ver `docs/PmsGuiaHuesped.md` §3.c.
+     * ⚠️ **Un medio PÚBLICO que falta se quita del texto; uno CON VENTANA sale como bloqueado.**
+     * La diferencia importa: decirle a alguien «esto se te mostrará más adelante» cuando en
+     * realidad no existe es mentirle. El hueco de un croquis que falta se ve donde se arregla —la
+     * pantalla de medios—, no en la guía del huésped. Ver `docs/PmsGuiaHuesped.md` §3.c.
      */
     private function resolverMediaDeLaCasita(
         string $texto,
@@ -160,14 +161,29 @@ final class PmsGuiaInterpolador
                 continue;
             }
 
-            $url = $contexto->sensibles[$clave] ?? null;
-            $bloque = $revelar && $url !== null && $url !== ''
-                ? sprintf('{{ %s: %s }}', $esVideo ? 'video' : 'img', $url)
-                : sprintf(
+            // Dónde llegó la clave dice si exige ventana, y eso lo decidió el TIPO al construir el
+            // contexto (`PmsUnidadMediaTipo::esSensible()`): el croquis y la foto viajan siempre,
+            // los vídeos esperan. Aquí no se vuelve a decidir, se obedece.
+            $publico = array_key_exists($clave, $contexto->valores);
+            $url = $publico
+                ? $contexto->valores[$clave]
+                : ($contexto->sensibles[$clave] ?? null);
+
+            $hayUrl = $url !== null && $url !== '';
+
+            if ($hayUrl && ($publico || $revelar)) {
+                $bloque = sprintf('{{ %s: %s }}', $esVideo ? 'video' : 'img', $url);
+            } elseif ($publico) {
+                // Un medio público que todavía no existe —una casita sin croquis— no pinta un
+                // marco de «bloqueado»: eso mentiría. Se quita el marcador y ya.
+                $bloque = '';
+            } else {
+                $bloque = sprintf(
                     '{{ %s: %s }}',
                     $esVideo ? 'videobloqueado' : 'imgbloqueado',
                     trim(PmsGuiaMensajes::bloqueo($acceso, $idioma), '[]')
                 );
+            }
 
             $texto = (string) preg_replace(
                 sprintf('/\{\{\s*%s\s*\}\}/i', preg_quote($clave, '/')),
@@ -231,6 +247,10 @@ final class PmsGuiaInterpolador
     /**
      * Los medios de la casita y si cada uno es vídeo. Salen de `PmsUnidadMedia` y del
      * establecimiento, no del texto — ver `resolverMediaDeLaCasita()`.
+     *
+     * ⚠️ Aquí **no** se dice cuál exige ventana: eso lo decide `PmsUnidadMediaTipo::esSensible()` y
+     * se nota en si la clave llegó en `valores` o en `sensibles`. Repetirlo aquí sería tener la
+     * misma regla en dos sitios, y el día que un tipo cambie de lado sólo cambiaría uno.
      */
     private const MEDIOS_DE_LA_CASITA = [
         'croquis'           => false,
