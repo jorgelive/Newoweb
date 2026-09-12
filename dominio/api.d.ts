@@ -27273,6 +27273,12 @@ export interface components {
             /** @description El móvil asociado a Yape, para cobrar. */
             telefonoYape?: string | null;
             codigoCajaSecundaria?: string | null;
+            /**
+             * Format: uri
+             * @description Vídeo de cómo se abre la caja de las llaves. **Lo único de los medios de acceso que sí es
+             *     general**: la caja es una para todas las casitas.
+             */
+            videoCajaFuerteUrl?: string | null;
             unidades?: components["schemas"]["PmsUnidad"][];
             reservas?: components["schemas"]["PmsReserva"][];
             virtualEstablecimientos?: components["schemas"]["PmsEstablecimientoVirtual"][];
@@ -27317,6 +27323,12 @@ export interface components {
             /** @description El móvil asociado a Yape, para cobrar. */
             telefonoYape?: string | null;
             codigoCajaSecundaria?: string | null;
+            /**
+             * Format: uri
+             * @description Vídeo de cómo se abre la caja de las llaves. **Lo único de los medios de acceso que sí es
+             *     general**: la caja es una para todas las casitas.
+             */
+            videoCajaFuerteUrl?: string | null;
             unidades?: components["schemas"]["PmsUnidad.html"][];
             reservas?: components["schemas"]["PmsReserva.html"][];
             virtualEstablecimientos?: components["schemas"]["PmsEstablecimientoVirtual.html"][];
@@ -27361,6 +27373,12 @@ export interface components {
             /** @description El móvil asociado a Yape, para cobrar. */
             telefonoYape?: string | null;
             codigoCajaSecundaria?: string | null;
+            /**
+             * Format: uri
+             * @description Vídeo de cómo se abre la caja de las llaves. **Lo único de los medios de acceso que sí es
+             *     general**: la caja es una para todas las casitas.
+             */
+            videoCajaFuerteUrl?: string | null;
             unidades?: components["schemas"]["PmsUnidad.jsonld"][];
             reservas?: components["schemas"]["PmsReserva.jsonld"][];
             virtualEstablecimientos?: components["schemas"]["PmsEstablecimientoVirtual.jsonld"][];
@@ -27405,6 +27423,12 @@ export interface components {
             /** @description El móvil asociado a Yape, para cobrar. */
             telefonoYape?: string | null;
             codigoCajaSecundaria?: string | null;
+            /**
+             * Format: uri
+             * @description Vídeo de cómo se abre la caja de las llaves. **Lo único de los medios de acceso que sí es
+             *     general**: la caja es una para todas las casitas.
+             */
+            videoCajaFuerteUrl?: string | null;
             unidades?: components["schemas"]["PmsUnidad.multipart"][];
             reservas?: components["schemas"]["PmsReserva.multipart"][];
             virtualEstablecimientos?: components["schemas"]["PmsEstablecimientoVirtual.multipart"][];
@@ -32015,7 +32039,14 @@ export interface components {
             capacidad?: number | null;
             /** @default true */
             activo: boolean;
+            /**
+             * @description Código de la cerradura inteligente. **Hoy vacío en todas las casitas, y es lo correcto**:
+             *     no hay smart lock instalado todavía. Se rellenará cuando lo haya.
+             */
             codigoPuerta?: string | null;
+            /** @description El número de la casita. **Uno solo, con tres usos.** */
+            numero?: number | null;
+            readonly medios?: components["schemas"]["PmsUnidadMedia"][];
             codigoCaja?: string | null;
             /** @description Almacena múltiples redes WiFi. */
             wifiNetworks?: {
@@ -32308,7 +32339,14 @@ export interface components {
             capacidad?: number | null;
             /** @default true */
             activo: boolean;
+            /**
+             * @description Código de la cerradura inteligente. **Hoy vacío en todas las casitas, y es lo correcto**:
+             *     no hay smart lock instalado todavía. Se rellenará cuando lo haya.
+             */
             codigoPuerta?: string | null;
+            /** @description El número de la casita. **Uno solo, con tres usos.** */
+            numero?: number | null;
+            readonly medios?: components["schemas"]["PmsUnidadMedia.html"][];
             codigoCaja?: string | null;
             /** @description Almacena múltiples redes WiFi. */
             wifiNetworks?: {
@@ -32605,7 +32643,14 @@ export interface components {
             capacidad?: number | null;
             /** @default true */
             activo: boolean;
+            /**
+             * @description Código de la cerradura inteligente. **Hoy vacío en todas las casitas, y es lo correcto**:
+             *     no hay smart lock instalado todavía. Se rellenará cuando lo haya.
+             */
             codigoPuerta?: string | null;
+            /** @description El número de la casita. **Uno solo, con tres usos.** */
+            numero?: number | null;
+            readonly medios?: components["schemas"]["PmsUnidadMedia.jsonld"][];
             codigoCaja?: string | null;
             /** @description Almacena múltiples redes WiFi. */
             wifiNetworks?: {
@@ -32918,7 +32963,14 @@ export interface components {
             capacidad?: number | null;
             /** @default true */
             activo: boolean;
+            /**
+             * @description Código de la cerradura inteligente. **Hoy vacío en todas las casitas, y es lo correcto**:
+             *     no hay smart lock instalado todavía. Se rellenará cuando lo haya.
+             */
             codigoPuerta?: string | null;
+            /** @description El número de la casita. **Uno solo, con tres usos.** */
+            numero?: number | null;
+            readonly medios?: components["schemas"]["PmsUnidadMedia.multipart"][];
             codigoCaja?: string | null;
             /** @description Almacena múltiples redes WiFi. */
             wifiNetworks?: {
@@ -33281,6 +33333,166 @@ export interface components {
             updatedAt?: string | null;
             readonly channelPropId?: string | null;
             readonly esPrincipal?: boolean;
+        };
+        PmsUnidadMedia: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            unidad?: string;
+            /**
+             * @default croquis
+             * @enum {string}
+             */
+            tipo: "croquis" | "foto_puerta" | "video_ingreso";
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            /** Format: date-time */
+            imageUpdatedAt?: string | null;
+            /**
+             * Format: uri
+             * @description La URL, para los tipos que no son archivo.
+             */
+            url?: string | null;
+            /**
+             * @description Para el día que un tipo admita varios. Hoy la restricción única lo deja en uno.
+             * @default 0
+             */
+            orden: number;
+            /** @description PROPIEDAD VIRTUAL: la rellena el listener de Liip para la vista previa del panel. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Lo que hay que servir, venga de un archivo o de una URL. */
+            readonly valor?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "PmsUnidadMedia.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            unidad?: string;
+            /**
+             * @default croquis
+             * @enum {string}
+             */
+            tipo: "croquis" | "foto_puerta" | "video_ingreso";
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            /** Format: date-time */
+            imageUpdatedAt?: string | null;
+            /**
+             * Format: uri
+             * @description La URL, para los tipos que no son archivo.
+             */
+            url?: string | null;
+            /**
+             * @description Para el día que un tipo admita varios. Hoy la restricción única lo deja en uno.
+             * @default 0
+             */
+            orden: number;
+            /** @description PROPIEDAD VIRTUAL: la rellena el listener de Liip para la vista previa del panel. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Lo que hay que servir, venga de un archivo o de una URL. */
+            readonly valor?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "PmsUnidadMedia.jsonld": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            unidad?: string;
+            /**
+             * @default croquis
+             * @enum {string}
+             */
+            tipo: "croquis" | "foto_puerta" | "video_ingreso";
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            /** Format: date-time */
+            imageUpdatedAt?: string | null;
+            /**
+             * Format: uri
+             * @description La URL, para los tipos que no son archivo.
+             */
+            url?: string | null;
+            /**
+             * @description Para el día que un tipo admita varios. Hoy la restricción única lo deja en uno.
+             * @default 0
+             */
+            orden: number;
+            /** @description PROPIEDAD VIRTUAL: la rellena el listener de Liip para la vista previa del panel. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Lo que hay que servir, venga de un archivo o de una URL. */
+            readonly valor?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "PmsUnidadMedia.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            unidad?: string;
+            /**
+             * @default croquis
+             * @enum {string}
+             */
+            tipo: "croquis" | "foto_puerta" | "video_ingreso";
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            /** Format: date-time */
+            imageUpdatedAt?: string | null;
+            /**
+             * Format: uri
+             * @description La URL, para los tipos que no son archivo.
+             */
+            url?: string | null;
+            /**
+             * @description Para el día que un tipo admita varios. Hoy la restricción única lo deja en uno.
+             * @default 0
+             */
+            orden: number;
+            /** @description PROPIEDAD VIRTUAL: la rellena el listener de Liip para la vista previa del panel. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Lo que hay que servir, venga de un archivo o de una URL. */
+            readonly valor?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
         };
         Segmento: {
             servicios?: string[];

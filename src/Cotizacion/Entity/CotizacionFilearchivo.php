@@ -42,6 +42,12 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
         ),
         new Patch(
             denormalizationContext: ['groups' => ['file:write']],
+            // El MISMO procesador que el POST, y no por copiar: es quien pone el nombre por
+            // convención a un escaneo de identidad. Sin él, crear un pasaporte lo dejaba llamado
+            // «Pasaporte (escaneo)» y **editarlo borrando el nombre lo dejaba sin ninguno** — la
+            // misma pantalla dando dos resultados distintos según por dónde entres.
+            // Su parte de subida no estorba aquí: comprueba si viene el fichero antes de tocarlo.
+            processor: CotizacionFilearchivoMultipartProcessor::class,
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar documentos.'
         ),
@@ -416,7 +422,27 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
     /**
      * @return list<array{language?: string, content?: string|null}>
      */
-    public function getNombre(): array { return $this->nombre; }
+    /**
+     * ⚠️ **Devolvía `$this->nombre` a pelo sobre una propiedad `?array`: con la columna a `null`
+     * era un `TypeError`, no un array vacío.**
+     *
+     * Y `null` es el estado normal, no un caso raro: la columna es `nullable`, el formulario sólo
+     * manda la clave `nombre[0][...]` si el operador escribió algo, y desde el 11/09/2026 los
+     * escaneos de identidad se suben **a propósito sin nombre**. Cualquiera que llamara a este
+     * getter sobre un archivo recién subido se llevaba un 500.
+     *
+     * No lo veía nadie: PHPStan no marca este `return.type` en `Entity/`, los tests no tocaban
+     * esta ruta, y el getter sólo se llamaba sobre filas que ya tenían nombre. Se destapó al
+     * escribir `CotizacionFilearchivoMultipartProcessor::nombrarSiEsDeIdentidad()`, que pregunta
+     * justo por el archivo sin nombre.
+     *
+     * El arreglo es hacer verdad el tipo declarado, no ensanchar la firma: **quien lee un nombre
+     * quiere una lista de traducciones, y «no hay ninguna» es una lista vacía**. Ensancharlo a
+     * `?array` habría repartido el `null` por los diez sitios que lo consumen.
+     *
+     * @return list<array{language?: string, content?: string|null}>
+     */
+    public function getNombre(): array { return $this->nombre ?? []; }
     /**
      * @param list<array{language?: string, content?: string|null}> $nombre
      */

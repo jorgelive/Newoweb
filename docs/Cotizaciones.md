@@ -8253,6 +8253,27 @@ que ya listaba los mismos cuatro. **Si entra un tipo nuevo en el enum, entra tam
 > identidad **gasta una traducción a siete idiomas** de un texto que nadie lee — es un adjunto
 > interno que ni siquiera se le devuelve al pasajero (`esDevolvibleAlPasajero()` es `false`).
 
+#### ⚠️ Y dos cosas que salieron al revisar el cambio, no al escribirlo
+
+**`CotizacionFilearchivo::getNombre(): array` devolvía `null`.** La propiedad es `?array` y el
+getter no lo contemplaba: sobre un archivo sin nombre era un `TypeError`, o sea un 500. Y `null`
+no es un caso raro — la columna es `nullable`, el formulario sólo manda `nombre[0][...]` si el
+operador escribió algo, y desde este cambio los escaneos de identidad se suben **a propósito sin
+nombre**. Nadie lo veía porque nadie preguntaba por el nombre de un archivo recién subido: PHPStan
+no marca ese `return.type` dentro de `Entity/` y no había test de esa ruta.
+
+Se arregla haciendo verdad el tipo declarado (`?? []`), no ensanchando la firma: quien lee un
+nombre quiere una lista de traducciones, y «no hay ninguna» es una lista vacía. Ensancharlo a
+`?array` habría repartido el `null` por los diez sitios que lo consumen.
+
+**El procesador estaba sólo en el `Post`.** Crear un pasaporte lo dejaba llamado «Pasaporte
+(escaneo)» y **editarlo borrando el nombre lo dejaba sin ninguno**: la misma pantalla con dos
+resultados según por dónde entres. Ahora el `Patch` usa el mismo procesador — su parte de subida
+no estorba, comprueba si viene el fichero antes de tocarlo.
+
+Las dos están cubiertas por `tests/Cotizacion/State/NombrePorConvencionTest.php`, que prueba
+justamente el archivo **sin** nombre.
+
 ### 2. Los nombres del escaneo se capitalizan, con cotejo
 
 Un pasaporte imprime `RAY DANTE DIAZ ARREDONDO`. La app muestra nombres capitalizados. El lector
