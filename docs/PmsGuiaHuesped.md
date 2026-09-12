@@ -16,6 +16,7 @@ las entidades `PmsGuia*` / `PmsUnidad` / `PmsEstablecimiento`, `src/Api/Controll
 2. [Las dos audiencias y el enum que las separa](#2-las-dos-audiencias-y-el-enum-que-las-separa)
 2b. [El catálogo es una entidad propia](#2b-el-catálogo-es-una-entidad-propia-no-la-guía-filtrada)
 3. [La matriz de acceso](#3-la-matriz-de-acceso)
+3c. [PLAN: los medios de la casita (croquis, foto y vídeo)](#3c--plan-los-medios-de-la-casita-croquis-foto-y-vídeo--11092026)
 4. [Flujo de una petición](#4-flujo-de-una-petición)
 5. [Rutas, slugs y endpoints](#5-rutas-slugs-y-endpoints)
 6. [Qué se arregló y qué sigue roto](#6-qué-se-arregló-y-qué-sigue-roto)
@@ -343,6 +344,144 @@ inalcanzables para cualquiera que ya pudiera entrar.
 ⚠️ **`telefonoPrincipal` es otra cosa**: el comercial, el que está en la web y en las OTA y se
 sirve al catálogo público. Son **tres números para tres usos**, y mandar al huésped al comercial
 cuando está en la puerta es mandarlo al sitio equivocado en el peor momento.
+
+## 3.c 📐 PLAN: los medios de la casita (croquis, foto y vídeo) — 11/09/2026
+
+> **Estado: plan aprobado, sin implementar.** Escrito antes de tocar código para poder revisar el
+> modelo entero de una vez. Al ejecutarlo, esta sección se reescribe en presente y se borra este
+> aviso.
+
+### De dónde sale
+
+El 11/09/2026 el agente le escribió a un huésped **«el código de la caja de seguridad es 4074E y el
+de la puerta es #5»**. Lo corrigió una persona a mano: *«La llave es la número 5»*. El dato era
+correcto —ese `#5` está grabado en la llave y es el que identifica su puerta **en el croquis**—,
+pero el campo se llamaba `codigoPuerta` y la skill lo servía como `puerta_de_la_casita`, así que el
+modelo lo anunció como lo que su etiqueta decía: un código de puerta. Las puertas no lo llevan
+escrito en la calle.
+
+El primer arreglo (mismo día) separó el dato: `numeroDeLlave` con los `#1`…`#7` y `codigoPuerta`
+vacío, reservado al smart lock. **Este plan termina el trabajo**, porque quedaron tres cosas:
+
+1. El número tiene **tres usos** —la casita, la llave y el croquis— y `numeroDeLlave` nombra uno.
+2. El agente **no ve** el croquis ni las fotos: `ConsultarGuiaSkill` borra los bloques de media.
+3. El croquis es **general** —numera las siete puertas— y vive copiado dentro de cada ítem.
+
+### El modelo
+
+**Un número, no tres.** `PmsUnidad::$numero` (entero), y `numeroDeLlave` se retira.
+
+No es «el número de la llave»: es el número de la casita, que es el que va grabado en la llave, el
+que aparece en su croquis y el que se lee en su nombre. Hoy ese número vive en dos sitios que nadie
+vigila —el texto `"Casita 5"` y `numero_de_llave` `"#5"`—, así que nada impide una «Casita 5» con
+llave `#4`.
+
+⚠️ **La diferenciación de uso va en las palabras de cada consumidor, no en la base.** Tres campos
+que deben coincidir son tres oportunidades de contradecirse. El día que una cerradura nueva traiga
+otro número grabado, eso será **información nueva** y tendrá su campo *entonces*, con su motivo
+escrito. Partir cuando la realidad diverge es barato; sincronizar tres campos a mano es caro para
+siempre.
+
+⚠️ **`nombre` se queda como texto libre**, sin derivarlo de `numero`: derivarlo toca mensajes,
+panel y listados por poca ganancia, y un «Casita 7-A» o un anexo sin número lo aguanta el texto y
+no el entero.
+
+**Una entidad para los medios de la casita.**
+
+```
+PmsUnidadMedia
+  unidad  → PmsUnidad
+  tipo    → PmsUnidadMediaTipo (enum)
+  imagen  → archivo (Vich, como la galería)   ┐ según el tipo
+  url     → URL de YouTube                     ┘
+  orden
+```
+
+| tipo | qué es | cuántos |
+|---|---|---|
+| `CROQUIS` | el plano del sitio **numerando sólo su puerta** | 7 |
+| `FOTO_PUERTA` | la puerta real, como se ve | 7 (opcional, ver abajo) |
+| `VIDEO_INGRESO` | el recorrido hasta ella, YouTube | 7 |
+
+Y lo único que de verdad es general va como campo del establecimiento, no aquí:
+`PmsEstablecimiento::$videoCajaFuerteUrl` — la caja es una para todos.
+
+### 🔥 Siete croquis, no uno
+
+El croquis actual numera **las siete puertas** y está copiado en los siete ítems (15 archivos en
+galería, ninguno compartido: cambiarlo son siete subidas). La decisión es hacer **siete croquis,
+cada uno con el número de su puerta y sólo el suyo**.
+
+Eso no es orden, es coherencia con la regla de seguridad que ya existía: **las puertas no se
+numeran físicamente para que nadie sepa cuál es cuál**. Mandarle a cada huésped el plano con las
+siete numeradas lo deshace. Con el croquis por casita, cada uno ve identificada la suya y ninguna
+más.
+
+⚠️ **Y hace `FOTO_PUERTA` opcional.** El croquis ya ubica e identifica; la foto sólo añade cómo se
+ve. Si hay que empezar por algo, son los siete croquis: `FOTO_PUERTA` puede quedarse vacío.
+
+### Las cuatro claves, y por qué el front no se toca
+
+| clave | sale de |
+|---|---|
+| `{{ croquis }}` | `PmsUnidadMedia` tipo `CROQUIS` |
+| `{{ foto_puerta }}` | `PmsUnidadMedia` tipo `FOTO_PUERTA` |
+| `{{ video_ingreso }}` | `PmsUnidadMedia` tipo `VIDEO_INGRESO` |
+| `{{ video_caja_fuerte }}` | `PmsEstablecimiento` |
+
+Son **claves sensibles**, como los códigos: sólo viajan con la ventana de la estancia abierta.
+
+La maquinaria ya existe y no hay que inventarla: `PmsGuiaInterpolador` sabe degradar
+`{{ video_ventana: url }}` a `{{ video: url }}` con la ventana abierta y a
+`{{ videobloqueado: … }}` con ella cerrada, y el front ya pinta los cuatro bloques
+(`RichContentEngine.ts`). Lo único nuevo es **de dónde sale la URL**: hoy se escribe dentro del
+texto y por tanto **siete veces, una por idioma**, porque `descripcion` está traducido; con esto
+vive en la casa y cambiarla es un campo.
+
+⚠️ Hoy ese mecanismo está casi sin usar —1 ítem con `{{ video: }}`, 0 con `video_ventana`— así que
+no hay casi nada que migrar. Es el momento barato de hacerlo.
+
+### El agente (la opción C)
+
+`ConsultarGuiaSkill` borra hoy `{{ img: }}`, `{{ video: }}`, `{{ map: }}` con este argumento
+escrito: *«una URL de imagen no ayuda a explicar cómo va la ducha»*. Para la ducha es verdad; para
+una puerta que sólo se identifica en un plano, la imagen **es** la respuesta. Pasa a resolverlos a
+URL plana en vez de borrarlos.
+
+Y aquí el modelo abarata el trabajo: **los vídeos son YouTube, así que al agente le basta texto**.
+El adjunto de verdad sólo lo necesitarían el croquis y la foto — y aun ésos pueden ir como enlace,
+porque el huésped ya recibe el enlace a su guía en el mismo mensaje.
+
+### Qué pasa con lo que ya hay
+
+| hoy | después |
+|---|---|
+| 15 imágenes en las galerías de los 7 ítems «Puerta del Departamento» | el croquis de cada casita pasa a `PmsUnidadMedia`; el ítem lo referencia con `{{ croquis }}` |
+| El ítem lleva su copia | **deja de llevarla**: un dato en dos sitios es un dato que un día se cambia en uno solo (§3.b) |
+| `agente_contenido` de los 7 ítems: sólo el recorrido en palabras | añadir que su puerta está identificada con su número **en su croquis** — hoy el agente no lo sabe, y por eso no supo remitir a ninguna parte |
+
+### Orden de los pasos
+
+1. **Corregir la línea viva.** `ConsultarCodigosSkill` dice hoy «las puertas no llevan número».
+   Con el croquis delante eso es falso: no lo llevan **en la calle**, pero sí en su croquis, y la
+   guía del huésped se lo afirma. Es una línea y está saliendo mal ahora mismo.
+2. `PmsUnidad::$numero` entra, `numeroDeLlave` sale (migración: mueve `#5` → `5`).
+3. `PmsUnidadMedia` + enum + CRUD, con `CROQUIS` y `VIDEO_INGRESO`; `FOTO_PUERTA` puede esperar.
+4. Las cuatro claves en `PmsGuiaContexto` e interpolador. El front no se toca.
+5. Los siete croquis nuevos (contenido, de Jorge) y el traslado desde las galerías.
+6. `ConsultarGuiaSkill` deja de borrar media; `ConsultarCodigosSkill` devuelve el croquis.
+7. Los `agente_contenido` de los siete ítems.
+
+⚠️ **Los pasos 1 y 2 no dependen de los croquis nuevos** y se pueden hacer ya. El 6 sin el 5 daría
+el croquis viejo —el de las siete puertas— a todo el mundo, así que **el 6 va después del 5**.
+
+### El hueco, visible a propósito
+
+Mientras falten croquis, **no** se pone un sustituto automático: si a una casita le falta el suyo y
+el agente manda el general sin decirlo, nadie se entera nunca de que falta y el apaño se queda de
+por vida. La skill dirá qué está dando, y el panel tiene que dejar ver de un vistazo a qué casitas
+les falta. **El hueco visible se llena; el tapado, no.**
+
 
 ## 4. Flujo de una petición
 
