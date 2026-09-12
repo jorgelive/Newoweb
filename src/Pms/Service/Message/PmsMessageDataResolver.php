@@ -91,7 +91,20 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
      */
     private function mediosDelAlojamiento(?PmsEstablecimiento $establecimiento): array
     {
-        $salida = [];
+        // 🔑 Los códigos de las DOS cajas, que hasta ahora no viajaban por plantilla.
+        //
+        // Sin ellos no se puede escribir la plantilla del dinero: decirle a alguien que deje un
+        // pago en una caja sin darle el código es no decirle nada. El de las llaves ya sale en la
+        // guía (`{{ keybox_main }}`); el de la otra caja **no lo usaba nadie**.
+        //
+        // ⚠️ Van con el nombre de lo que son —llaves y dinero—, no «principal» y «secundaria».
+        // Un nombre que no dice qué abre es el patrón del `{{ door_code }}` que acabó anunciando
+        // «el código de la puerta es #5». La correspondencia es la del ítem «Llaves (general)»:
+        // las llaves están en la caja de abajo y su código es el principal.
+        $salida = [
+            'codigo_caja_llaves' => (string) ($establecimiento?->getCodigoCajaPrincipal() ?? ''),
+            'codigo_caja_dinero' => (string) ($establecimiento?->getCodigoCajaSecundaria() ?? ''),
+        ];
 
         foreach (PmsEstablecimientoMediaTipo::cases() as $tipo) {
             $valor = (string) ($establecimiento?->medio($tipo)?->getValor() ?? '');
@@ -354,6 +367,8 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'room_name'             => 'Casita Principal',
             'channel_name'          => 'Booking.com',
             'guest_country'         => 'Perú',
+            'codigo_caja_llaves'    => '4074E',
+            'codigo_caja_dinero'    => '2013E',
             'foto_caja_llaves'      => rtrim($this->paxHostUrl, '/') . '/carga/pms/pms_establecimiento/images/ejemplo.webp',
             'foto_caja_dinero'      => rtrim($this->paxHostUrl, '/') . '/carga/pms/pms_establecimiento/images/ejemplo.webp',
             'video_caja_llaves'     => 'https://youtu.be/ejemplo',
