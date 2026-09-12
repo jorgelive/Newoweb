@@ -3166,7 +3166,7 @@ const eliminarDocumento = async (iri?: string) => {
 
           <div class="panel-giratorio">
           <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm cara" :class="{ 'de-canto': girandoFile }">
-            <div class="flex items-center justify-between mb-5 border-b pb-3 gap-2">
+            <div class="flex items-center justify-between mb-5 border-b border-slate-200 pb-3 gap-2">
               <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
                 <i class="fas fa-folder-open mr-2 text-[#E07845]"></i> Datos del Expediente
               </h2>
@@ -3328,7 +3328,9 @@ const eliminarDocumento = async (iri?: string) => {
             <!-- ⚠️ **Plegada por defecto.** Un expediente grande son ~1 500 archivos y esto vive en
                  la barra lateral, encima del resto: abierta empuja hacia abajo todo lo que se mira
                  a diario. El contador va en la cabecera para que plegada no se lea como vacía. -->
-            <div class="flex items-center justify-between border-b pb-3"
+            <!-- `border-slate-200` explícito: `border-b` a secas usa el gris por defecto de Tailwind,
+                 que aquí sale casi negro y compite con el título en vez de separarlo. -->
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3"
                  :class="bovedaAbierta ? 'mb-4' : ''">
               <button type="button" @click="bovedaAbierta = !bovedaAbierta"
                       class="flex items-center gap-2 min-w-0 flex-1 text-left group">
@@ -3534,7 +3536,7 @@ const eliminarDocumento = async (iri?: string) => {
                        como «los documentos», y lo que baja es una HOJA de control: quién ha subido
                        qué y a quién le falta. Junto a un botón que sí baja los documentos, el
                        nombre viejo era la confusión entera. -->
-                  <i class="fas mr-1.5" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-excel'"></i>
+                  <i class="fas mr-1.5" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
                   Hoja de control<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }} pax)</span>
                 </button>
                 <!-- ⚠️ **Ya no dice «Enviar al hotel».** El ZIP se le manda a quien lo pida —un
