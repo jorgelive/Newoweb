@@ -75,6 +75,12 @@ final readonly class PaqueteDeEscaneos
         ArchivoTipoEnum::DNI_REVERSO,
     ];
 
+    /**
+     * El nombre de la hoja, en un solo sitio. Estaba escrito dos veces —al añadirla al ZIP y en el
+     * texto del LEEME— y el LEEME se quedó nombrando un fichero que ya no existía.
+     */
+    private const HOJA = 'documentos.xlsx';
+
     /** Prefijo corto por tipo: cabe en el nombre y se lee de un vistazo. */
     private const PREFIJO = [
         'pasaporte' => 'PAS',
@@ -174,7 +180,7 @@ final readonly class PaqueteDeEscaneos
         // sobre sus huéspedes no le toca resolverlo, y le entierra el dato que sí buscaba. Además
         // prometía una cuenta de personas que no cuadra con los ficheros: quien no tiene foto
         // salía en la hoja y no en el sobre.
-        $zip->addFromString('documentos.xlsx', $this->lista->generar($file, $filas));
+        $zip->addFromString(self::HOJA, $this->lista->generar($file, $filas));
         $zip->addFromString('LEEME.txt', $this->leeme($file, $incluidos, $sinEscaneo, $this->sueltos($file, $tipos), $tipos));
 
         $zip->close();
@@ -390,7 +396,10 @@ final readonly class PaqueteDeEscaneos
                 $tipos,
             ))),
             sprintf('%d escaneos incluidos.', $incluidos),
-            'La hoja «manifiesto.xlsx» lleva los datos de cada persona.',
+            // El nombre del fichero se escribe UNA vez, en addFromString(). Aquí iba escrito otra
+            // vez a mano y se quedó diciendo «manifiesto.xlsx» cuando la hoja pasó a llamarse
+            // «documentos.xlsx»: el destinatario buscaba dentro del ZIP un fichero inexistente.
+            sprintf('La hoja «%s» lleva una fila por documento.', self::HOJA),
             '',
             'Los ficheros se llaman: Apellidos, Nombres - TIPO numero.ext',
         ];

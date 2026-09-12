@@ -8428,8 +8428,15 @@ Un escaneo **sin pasajero asignado** no se puede nombrar. En vez de meterlo con 
 volver al panel a comprobar quién falta: si falta alguien tiene que enterarse abriendo lo único
 que va a abrir.
 
-Dentro va también `manifiesto.xlsx`, el mismo `ReporteDeDocumentos` que ya existía — es lo que
-convierte un montón de imágenes en algo que el hotel puede cotejar, y no costaba nada.
+Dentro va también `documentos.xlsx` (`ListaDelPaquete`) — es lo que convierte un montón de
+imágenes en algo que el hotel puede cotejar. Una fila por fichero; el detalle y el porqué de que
+NO sea `ReporteDeDocumentos`, más abajo.
+
+⚠️ **El nombre de esa hoja se escribía dos veces** —al meterla en el ZIP y otra vez a mano en el
+texto del `LEEME.txt`— y al renombrarla sólo cambió la primera: el sobre llevaba `documentos.xlsx`
+y la carta decía «busca manifiesto.xlsx». Nadie lo ve desde dentro, porque el LEEME sólo lo lee
+quien recibe el ZIP. Ahora sale de `PaqueteDeEscaneos::HOJA`, que es la constante que usan los dos
+sitios.
 
 ### Que esto saca pasaportes de casa
 
@@ -8452,6 +8459,8 @@ cosa y tiene otro dueño.
 | Cuáles se mandan de verdad | lo elige quien descarga | `tiposPedidos()` los valida contra `TIPOS` |
 | Cómo se llaman los ficheros | `PaqueteDeEscaneos` | `nombreEnElZip()` |
 | Lo que se cuenta en el sobre | `PaqueteDeEscaneos` | `leeme()` |
+| Cómo se llama la hoja de datos | `PaqueteDeEscaneos` | `HOJA` — el ZIP y el `LEEME.txt` la nombran desde ahí, nunca a mano |
+| Qué columnas lleva esa hoja | `ListaDelPaquete` | `generar()` |
 | Permisos y cabeceras | `PaqueteEscaneosController` | `__invoke()` |
 
 ---
