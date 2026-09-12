@@ -932,16 +932,19 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
             // entera: un código sigue saliendo tapado fuera de la ventana y un medio sigue
             // preguntando a `PmsUnidadMediaTipo::visibilidad()`. Aquí no se decide nada nuevo.
             //
-            // No pasa por `aTextoPlano()`, y es a propósito: el override se escribe en texto
-            // plano, sin HTML. Lo que sí hace falta es `resolverBloquesDelFront()`, porque el
-            // interpolador deja `{{ croquis }}` convertido en `{{ img: … }}` y aquí no hay
-            // navegador que lo pinte.
-            return $this->resolverBloquesDelFront(
+            // ⚠️ **Y se le quitan las etiquetas DESPUÉS de interpolar**, aunque el override se
+            // escriba en texto plano: el que mete HTML no es el editor, es el interpolador. Cada
+            // valor sale envuelto en `<span class="guia-dato">` para que la web lo distinga, y sin
+            // esta limpieza el modelo leería el span en voz alta.
+            //
+            // No sirve `aTextoPlano()`: ése además colapsa los espacios, y aquí los saltos de
+            // línea son del autor —hay overrides de dos párrafos— y se perderían.
+            return $this->sinEtiquetas($this->resolverBloquesDelFront(
                 $this->interpolador->interpolarUno($override, $contexto, $acceso, $idioma),
                 $contexto,
                 $acceso,
                 $idioma
-            );
+            ));
         }
 
         return $this->aTextoPlano($this->resolverBloquesDelFront(
@@ -1206,6 +1209,19 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
     }
 
     /** El HTML del editor, legible: sin etiquetas y sin los saltos que deja el WYSIWYG. */
+    /**
+     * Quita las etiquetas **conservando los saltos de línea del autor**.
+     *
+     * Para el `agente_contenido`, que se escribe en texto plano: lo único que hay que limpiar es el
+     * `<span class="guia-dato">` con el que el interpolador envuelve cada valor para que la web lo
+     * distinga. {@see self::aTextoPlano()} no vale aquí porque además colapsa los espacios, y un
+     * override de dos párrafos se quedaría en un bloque.
+     */
+    private function sinEtiquetas(string $texto): string
+    {
+        return trim(html_entity_decode(strip_tags($texto), ENT_QUOTES | ENT_HTML5));
+    }
+
     private function aTextoPlano(string $html): string
     {
         // Los bloques se separan con un espacio ANTES de quitar etiquetas: si no,
