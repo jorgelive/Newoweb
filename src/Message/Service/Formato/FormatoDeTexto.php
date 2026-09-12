@@ -135,6 +135,33 @@ final readonly class FormatoDeTexto
     }
 
     /**
+     * Los VALORES de las variables de una plantilla, sin marcas de formato.
+     *
+     * ── Por qué existe, si ya está `paraTextoPlano()` ───────────────────────────
+     * Porque lo usan dos y tienen que decir lo mismo: el envío por Beds24
+     * ({@see \App\Message\Service\Exchange\Tasks\Beds24Send\Beds24SendMappingStrategy}) y la
+     * previsualización (`msg:plantilla:ver`). La primera vez que se escribió sólo en el envío, el
+     * comando enseñaba asteriscos que ya no llegaban — una previsualización que miente es peor
+     * que no tenerla.
+     *
+     * El cuerpo del autor NO pasa por aquí: quien escribe un cuerpo de Beds24 sabe que ese canal
+     * no tiene formato. Lo que pasa son las variables, que salen del redactor en el formato
+     * canónico —el de WhatsApp— porque el mismo texto se manda también por ahí.
+     *
+     * Lo que no es texto —noches, número de pax— se devuelve tal cual.
+     *
+     * @param array<string, mixed> $variables
+     * @return array<string, mixed>
+     */
+    public function valoresParaTextoPlano(array $variables): array
+    {
+        return array_map(
+            fn (mixed $valor): mixed => is_string($valor) ? $this->paraTextoPlano($valor) : $valor,
+            $variables
+        );
+    }
+
+    /**
      * Aparta las URLs, aplica la transformación y las devuelve intactas.
      *
      * Una URL lleva guiones bajos y asteriscos con todo el derecho (`/mi_guia`), y el quitado

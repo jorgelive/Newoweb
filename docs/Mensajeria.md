@@ -7251,8 +7251,11 @@ Las variables no las escribe nadie. `{{ bloque_pago }}` y `{{ medios_de_pago }}`
 redactor en el formato canónico —el de WhatsApp—, porque el mismo texto se manda también por ahí.
 Así que a Booking llegaba `*Adelanto para asegurar tu reserva:*` con los asteriscos puestos.
 
-`Beds24SendMappingStrategy` pasa ahora cada valor de texto por `paraTextoPlano()` antes de
-hidratar. Las URLs no sufren: esa función las aparta antes de tocar nada, que es justo por lo que
+`Beds24SendMappingStrategy` pasa ahora cada valor de texto por
+`FormatoDeTexto::valoresParaTextoPlano()` antes de hidratar — **y `msg:plantilla:ver` llama a la
+misma función**, porque la primera versión la escribió sólo el envío y el comando seguía
+enseñando unos asteriscos que ya no llegaban. Una previsualización que miente es peor que no
+tenerla. Las URLs no sufren: esa función las aparta antes de tocar nada, que es justo por lo que
 existe. Lo que sigue sin tocarse es el cuerpo del autor — si alguien escribe `*negrita*` en un
 cuerpo de Beds24, llega con asteriscos, y eso se arregla escribiéndolo bien (`recordatorio_llegada`
 todavía lleva `*Sobre la Casita:*`).

@@ -123,10 +123,9 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             //
             // `paraTextoPlano()` aparta las URLs antes de tocar nada, así que un enlace con
             // guiones bajos sale intacto. Los valores que no son texto —noches, pax— se dejan.
-            $variables = array_map(
-                fn (mixed $valor): mixed => is_string($valor) ? $this->formato->paraTextoPlano($valor) : $valor,
-                $variables
-            );
+            // La misma función que usa `msg:plantilla:ver`, para que lo que enseña el comando sea
+            // lo que sale por el cable.
+            $variables = $this->formato->valoresParaTextoPlano($variables);
 
             // 2. INTERPOLACIÓN DE VARIABLES (Soporta {{ var }} y {{var}})
             // La regla —existe con null se sustituye por nada, ausente se deja crudo— vive en

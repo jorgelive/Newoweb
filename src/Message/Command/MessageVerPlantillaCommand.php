@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Message\Command;
 
 use App\Message\Entity\MessageTemplate;
+use App\Message\Service\Formato\FormatoDeTexto;
 use App\Message\Service\Formato\HidratadorDeMarcadores;
 use App\Message\Service\MessageDataResolverRegistry;
 use App\Pms\Entity\PmsReserva;
@@ -54,6 +55,7 @@ final class MessageVerPlantillaCommand extends Command
         private readonly EntityManagerInterface $em,
         private readonly MessageDataResolverRegistry $resolvers,
         private readonly HidratadorDeMarcadores $hidratador,
+        private readonly FormatoDeTexto $formato,
     ) {
         parent::__construct();
     }
@@ -112,6 +114,13 @@ final class MessageVerPlantillaCommand extends Command
 
         $resolver = $this->resolvers->getResolver('pms_reserva');
         $variables = $resolver?->getMessageVariables((string) $reserva->getId(), $idioma) ?? [];
+
+        // Beds24 acaba en la bandeja de Airbnb o Booking, que enseñan el texto tal cual: el envío
+        // le quita las marcas a los valores y aquí hay que hacer lo mismo, o el comando enseñaría
+        // unos asteriscos que no llegan.
+        if ($canal === 'beds24') {
+            $variables = $this->formato->valoresParaTextoPlano($variables);
+        }
 
         $faltantes = $this->hidratador->sinResolver($cuerpo, $variables);
         $texto = $this->hidratador->hidratar($cuerpo, $variables);
