@@ -680,6 +680,37 @@ guía del huésped dio 500 para todos los huéspedes** hasta que alguien lo not�
 Después de desplegar algo que toque una entidad, comprobar:
 `php bin/console doctrine:migrations:status` — y que `New` sea 0.
 
+⚠️ **Si el despliegue toca `util/` o `pax/`, hay que CONSTRUIR el front.** El hook `post-merge`
+sólo limpiaba la caché y reiniciaba los workers, así que un cambio de front se desplegaba y **no
+llegaba a nadie**: `git pull` limpio, `git log` diciendo que está desplegado, y los usuarios
+viendo el bundle anterior. No hay error, no hay línea en ningún log — se descubre cuando alguien
+pregunta «¿y esto dónde está?». Se detectó el 11/09/2026 tras construirlo cuatro veces a mano en
+una sola sesión.
+
+Desde entonces lo hace el hook, **sólo para la app que cambió**:
+
+```bash
+CAMBIADOS="$(git diff --name-only HEAD@{1} HEAD)"
+for APP in util pax; do
+    if echo "$CAMBIADOS" | grep -q "^$APP/"; then
+        ( export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; cd "$APP" && npm run build )
+    fi
+done
+```
+
+Sólo la que cambió por el mismo motivo que el `dump-autoload` no está: encarecer todos los
+despliegues por algo que pasa a veces no compensa. Aquí sí está en el hook porque **pasa casi
+siempre** y el fallo es mudo.
+
+⚠️ **El SERVICE WORKER no es un paso aparte.** `npm run build` es `vite build && node
+scripts/pwa-postbuild.mjs`: el primero genera `*-service-worker.js` con VitePWA y el segundo
+regenera el `shell.html` y **verifica que SW, shell y bundles se correspondan** («✅ Consistencia
+SW ↔ shell ↔ bundles verificada»). Si esa línea no sale, el SW no se podrá instalar.
+
+Lo que sí queda del lado del cliente: el navegador sirve lo cacheado hasta que activa el SW nuevo.
+Cerrar la app del todo y reabrirla basta; por eso un cambio recién desplegado se «ve viejo» un
+rato.
+
 ⚠️ **Si el despliegue RENOMBRA o MUEVE clases, hace falta `composer dump-autoload` en el
 servidor**, y cuanto antes: `optimize-autoloader` está activo, así que el classmap sigue
 apuntando a los archivos viejos hasta que se regenera. El 19/08/2026, renombrando `Proveedor` a
