@@ -1678,8 +1678,21 @@ const pasajerosFiltrados = computed<ApiCotizacionFilepasajero[]>(() => {
     // Acumular todo con Y era un error mío: elegir dos habitaciones daba cero, porque nadie está
     // en dos a la vez. La pregunta real es «los del grupo 5 que estén en HA01 **o** HA02», que es
     // exactamente el comportamiento de cualquier filtro por facetas.
+    // ⚠️ **Las NEGACIONES no siguen esa regla, y no es un descuido.**
+    //
+    // Un positivo dentro del mismo eje es una ALTERNATIVA —«HA01 o HA02»— porque nadie está en
+    // dos habitaciones. Una negación es una RESTRICCIÓN: «que no vaya al Coco Bongo **y** que no
+    // lleve traslado» son dos condiciones, las dos tienen que cumplirse. Meterlas en el mismo O
+    // daría «que le falte alguno de los dos», que es casi todo el mundo.
     const porEje = new Map<string, string[]>();
+    const negados: string[] = [];
+
     for (const iri of gruposFiltrados.value) {
+        if (gruposNegados.value.has(iri)) {
+            negados.push(extractIdStr(iri));
+            continue;
+        }
+
         const eje = String(grupoDeIri(iri)?.tipo ?? '');
         porEje.set(eje, [...(porEje.get(eje) ?? []), extractIdStr(iri)]);
     }
@@ -1689,10 +1702,16 @@ const pasajerosFiltrados = computed<ApiCotizacionFilepasajero[]>(() => {
 
         if (filtroRol.value.length && !filtroRol.value.includes(String(pax.tipo))) return false;
 
-        if (porEje.size) {
+        if (porEje.size || negados.length) {
             const ids = new Set(suyos.map(g => extractIdStr(iriDeGrupoPlano(g))));
+
             for (const elegidos of porEje.values()) {
                 if (!elegidos.some(id => ids.has(id))) return false;
+            }
+
+            // Y para cada negado: si lo tiene, fuera.
+            for (const id of negados) {
+                if (ids.has(id)) return false;
             }
         }
 
@@ -2339,10 +2358,37 @@ const anadirFiltro = (iri: string) => {
 
 const quitarFiltro = (iri: string) => {
     gruposFiltrados.value = gruposFiltrados.value.filter(x => x !== iri);
+    gruposNegados.value.delete(iri);
+};
+
+/**
+ * Los subgrupos que se piden AL REVÉS: «los que NO van al Coco Bongo».
+ *
+ * ── Por qué hace falta ──────────────────────────────────────────────────────
+ * La pregunta que llega del proveedor casi nunca es sólo «dame los del Coco Bongo»: es «los del
+ * Coco Bongo **que no** lleven traslado», o «los que **no** están en ningún vuelo nacional». Sin
+ * negación eso se resolvía descargando todo y descartando a mano, que es exactamente el trabajo
+ * que el filtro existe para quitar.
+ *
+ * ── Y NO es lo mismo que un campo «no tiene» ────────────────────────────────
+ * ⚠️ Esto contesta «no está en el subgrupo», que incluye a quien **todavía no se le ha
+ * asignado**. Un campo de negación explícita —«se le ofreció y dijo que no»— es otra cosa y sigue
+ * sin existir: la pertenencia sólo sabe decir «sí». Para armar lo que se le manda a un proveedor
+ * esta negación basta; para saber a quién ya se le preguntó, no.
+ */
+const gruposNegados = ref<Set<string>>(new Set());
+
+/** Pasa un subgrupo ya elegido de «los que están» a «los que NO están», y al revés. */
+const alternarNegado = (iri: string) => {
+    if (gruposNegados.value.has(iri)) gruposNegados.value.delete(iri);
+    else gruposNegados.value.add(iri);
+    // `Set` no es reactivo por mutación en un `ref`: se reasigna para que los computed despierten.
+    gruposNegados.value = new Set(gruposNegados.value);
 };
 
 const limpiarFiltros = () => {
     gruposFiltrados.value = [];
+    gruposNegados.value = new Set();
     filtroRol.value = [];
     filtroAerolinea.value = [];
     filtroDocumento.value = [];
@@ -3552,9 +3598,22 @@ const eliminarDocumento = async (iri?: string) => {
                   </div>
 
                   <div v-if="gruposFiltrados.length" class="flex flex-wrap gap-1.5 mt-2">
+                    <!-- ⚠️ La pastilla negada NO es la misma con otro color: lleva «SIN» delante.
+                         El color solo no sobrevive a una captura de pantalla reenviada por
+                         WhatsApp, y confundir «los del Coco Bongo» con «los que NO van» es
+                         mandarle al proveedor la lista contraria. La palabra lo dice aunque la
+                         pantalla esté en blanco y negro. -->
                     <span v-for="iri in gruposFiltrados" :key="iri"
-                          class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg pl-2.5 pr-1 py-1 text-[11px] font-black">
-                      {{ [grupoDeIri(iri)?.clave, grupoDeIri(iri)?.nombre].filter(Boolean).join(' · ') }}
+                          class="inline-flex items-center gap-1 border rounded-lg pl-2.5 pr-1 py-1 text-[11px] font-black"
+                          :class="gruposNegados.has(iri)
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-indigo-50 text-indigo-700 border-indigo-200'">
+                      <button type="button" @click="alternarNegado(iri)"
+                              :title="gruposNegados.has(iri) ? 'Ahora excluye a los que lo tienen. Toca para volver a incluirlos.' : 'Toca para invertirlo: los que NO lo tienen'"
+                              class="hover:opacity-70">
+                        <span v-if="gruposNegados.has(iri)" class="mr-0.5">SIN</span>
+                        {{ [grupoDeIri(iri)?.clave, grupoDeIri(iri)?.nombre].filter(Boolean).join(' · ') }}
+                      </button>
                       <button type="button" @click="quitarFiltro(iri)" class="px-1 hover:text-red-500"><i class="fas fa-times text-[10px]"></i></button>
                     </span>
                   </div>

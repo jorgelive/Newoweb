@@ -8552,3 +8552,59 @@ convierte una trampa invisible en una regla que se puede seguir, y eso era lo qu
 > 🚧 Pendiente relacionado: **la pertenencia sólo sabe decir «sí»**. No hay forma de distinguir «a
 > éste se le ofreció el servicio y NO va» de «todavía no se le ha asignado», y son cosas distintas
 > al armar lo que se le manda a un proveedor.
+
+---
+
+## La negación del filtro de subgrupos (11/09/2026)
+
+La pregunta que llega de un proveedor casi nunca es «dame los del Coco Bongo»: es «los del Coco
+Bongo **que no** lleven traslado», o «los que **no** están en ningún vuelo nacional». Eso se
+resolvía descargando todo y descartando a mano — justo el trabajo que el filtro existe para
+quitar.
+
+Ahora una pastilla de subgrupo ya elegida se toca y se invierte. La negada se pinta en rojo y
+**lleva «SIN» delante**.
+
+⚠️ **La palabra no sobra por tener el color.** Una captura reenviada por WhatsApp llega en
+cualquier contraste, y confundir «los del Coco Bongo» con «los que NO van» es mandarle al
+proveedor la lista contraria. El color se pierde; la palabra no.
+
+### La semántica: positivos O, negaciones Y
+
+| | regla | por qué |
+|---|---|---|
+| Positivos, mismo eje | **O** | «HA01 o HA02»: nadie está en dos habitaciones |
+| Positivos, ejes distintos | **Y** | «Coco Bongo **y** vuelo internacional» |
+| **Negaciones** | **Y, siempre** | Son restricciones, no alternativas |
+
+⚠️ **Las negaciones NO siguen la regla del eje, y no es un descuido.** Meterlas en el mismo O daría
+«que le falte alguno de los dos», que es casi todo el mundo. Comprobado con seis personas de
+ejemplo antes de escribirlo:
+
+```
+los del Coco Bongo                     → Ana, Beto
+los que NO van al Coco Bongo           → Cira, Dani, Eva, Fito
+Coco Bongo SIN traslado                → Beto
+ni Coco ni traslado (dos negados)      → Dani, Eva, Fito
+HA01 o HA02 (positivos, mismo eje)     → Eva, Fito
+```
+
+La tercera línea es la que justifica todo esto, y la cuarta la que se habría torcido con la regla
+del eje.
+
+### ⚠️ Esto NO es el campo «no tiene»
+
+Esta negación contesta **«no está en el subgrupo»**, lo que incluye a quien **todavía no se le ha
+asignado**. Un campo de negación explícita —«se le ofreció y dijo que no»— sigue sin existir: la
+pertenencia sólo sabe decir «sí».
+
+Para armar lo que se le manda a un proveedor, esta negación basta. Para saber a quién ya se le
+preguntó, no — y son dos preguntas que se parecen lo suficiente como para confundirlas.
+
+### Dónde tocar
+
+| Necesidad | Dónde |
+|---|---|
+| Invertir una pastilla | `alternarNegado()` |
+| La regla de combinación | el `computed` de `pasajerosFiltrados`: `porEje` vs `negados` |
+| Que la exportación la respete | nada: la hoja y el ZIP mandan `pasajerosFiltrados` ya resuelto |
