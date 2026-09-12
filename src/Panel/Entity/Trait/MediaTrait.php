@@ -90,7 +90,7 @@ trait MediaTrait
             if (method_exists($this, 'getFileName')) {
                 $fileName = $this->getFileName(); // Estándar general
             } elseif (method_exists($this, 'getImageName')) {
-                $fileName = $this->getImageName(); // Estándar de PmsUnidad
+                $fileName = $this->getImageName(); // Estándar de las entidades de imagen (PmsUnidadMedia, galería…)
             }
         }
 

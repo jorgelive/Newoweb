@@ -12,7 +12,6 @@ use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
-use App\Panel\Entity\Trait\MediaTrait;
 use App\Pms\Enum\PmsUnidadMediaTipo;
 use App\Security\Roles;
 use DateTimeImmutable;
@@ -20,11 +19,9 @@ use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
-use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 /**
  * Entidad PmsUnidad.
@@ -45,14 +42,16 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_unidad')]
 #[ORM\HasLifecycleCallbacks]
-#[Vich\Uploadable]
+// ⚠️ **Ya no es `#[Vich\Uploadable]` ni usa `MediaTrait` (12/09/2026).** Las dos cosas estaban por
+// la portada, y la portada se fue a `PmsUnidadMedia`. Sin un `UploadableField` que las justifique,
+// el atributo y el trait sólo decían que aquí se suben archivos —que ya no es verdad— y el trait
+// arrastraba además una columna `token` que nadie leía. Los medios de la casita se suben en
+// `PmsUnidadMedia`, y es ahí donde viven Vich, el namer y el token.
 class PmsUnidad
 {
     use IdTrait;
     use TimestampTrait;
     use AutoTranslateControlTrait; // 👈 Agrega control de traducción y sobreescritura
-
-    use MediaTrait;
 
     #[ORM\ManyToOne(targetEntity: PmsEstablecimiento::class, inversedBy: 'unidades')]
     #[ORM\JoinColumn(name: 'establecimiento_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16)')]

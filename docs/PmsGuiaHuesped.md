@@ -544,10 +544,39 @@ para eso el enum está abierto. Si es la misma cosa repetida, sobra: su sitio es
 segundo croquis a la misma casita devolvía un error crudo de clave duplicada —correcto e ilegible—,
 y quien lo veía no sabía que lo que tenía que hacer era reemplazar el que ya hay.
 
-⚠️ **La URL pública de los archivos la pone un listener**, `PmsUnidadMediaAssetListener`, igual que
-para las imágenes de la unidad: la ruta es configuración (`pms.path.unidad_images`) y no puede
-vivir dentro de la entidad. Sin él, `getValor()` devolvería `TOKEN_croquis.webp` y la guía pintaría
+**Vich y Liip, exactamente igual que el resto del panel.** Mapeo `unidad_images` con
+`MediaTokenNamer` e `inject_on_load: false`, la conversión a WebP al subir por
+`VichWebpConversionListener` —que reconoce la entidad por `MediaTrait`, no por una lista— y la
+pareja de listeners de siempre:
+
+| pieza | quién |
+|---|---|
+| URL pública al leer | `PmsUnidadMediaAssetListener` (`postLoad`/`postPersist`/`postUpdate`) |
+| invalidar miniatura al escribir | `PmsUnidadMediaCacheListener` (`preUpdate`/`preRemove`) |
+| nombre del archivo | `MediaTokenNamer`, con el `token` de `MediaTrait` |
+| vista previa en el panel | `LiipImageField` sobre `imageUrl` |
+
+⚠️ **La URL pública la pone el listener y no la entidad**: la ruta es configuración
+(`pms.path.unidad_images`). Sin él, `getValor()` devolvería `TOKEN_croquis.webp` y la guía pintaría
 una imagen rota.
+
+⚠️ **Los dos listeners van en pareja siempre.** Si sólo estuviera el de assets, cambiar una portada
+dejaría la miniatura vieja servida desde la caché **sin ningún error**: una foto que no se
+actualiza y nadie sabe por qué.
+
+#### Lo que quedó atrás del traslado, y se retiró (12/09/2026)
+
+Al mudarse la portada, tres cosas se quedaron señalando a la entidad vieja:
+
+- `PmsUnidadCacheListener` ya escuchaba a `PmsUnidadMedia`, pero **seguía llamándose como la
+  unidad**. Un nombre que miente sobre a quién escucha es justo el que hace que nadie mire ahí el
+  día que una miniatura no se actualice. Ahora es `PmsUnidadMediaCacheListener`, simétrico con su
+  gemelo como todas las demás parejas.
+- `PmsUnidad` conservaba `#[Vich\Uploadable]`, `MediaTrait` y la columna `token` **sin un solo
+  `UploadableField`**. Un token sin archivo no es inofensivo: dice que aquí se suben cosas, y quien
+  busque dónde se sube la portada se va por el camino equivocado. Lo retira
+  `Version20260912160000`.
+- Un `{@see PmsUnidadAssetListener}` que apuntaba a una clase ya borrada.
 
 ⚠️ **La URL de vídeo se valida como YouTube**, no como «una URL». El front la incrusta, así que un
 enlace a otra cosa no daría error: pintaría un reproductor vacío delante del huésped.
