@@ -1226,45 +1226,6 @@ const bajarHoja = async (ruta: string, nombre: string) => {
   }
 };
 
-/**
- * La misma hoja, pero SÓLO con quien cumple los filtros.
- *
- * ⚠️ Los ids van por POST aunque no escriba nada: son UUID de 36 caracteres, y 131 personas son
- * 4 700 caracteres de URL —por encima de lo que aguantan varios proxys, y lo que se corta ahí no
- * da un error, da una exportación a la que le faltan filas—.
- *
- * ⚠️ Y se manda la LISTA, no los filtros. Repetir los filtros en el servidor serían dos
- * implementaciones de la misma pregunta, y la que se quedase corta lo haría en silencio. El panel
- * ya sabe quién cumple: sólo tiene que decirlo.
- */
-const descargarFiltrado = async () => {
-    const id = extractIdStr(file.value?.id || file.value?.['@id'] || '');
-    // ⚠️ `@id`, NO `id`. El pasajero **no expone `id`** en el grupo de lectura —a diferencia del
-    // subgrupo o de la identificación, que sí—: sólo llega el IRI de JSON-LD. Con `p.id` la lista
-    // salía entera vacía, el `if` de abajo cortaba, y el botón no hacía absolutamente nada: ni
-    // descarga, ni error, ni rastro.
-    const ids = pasajerosFiltrados.value.map(p => extractIdStr(p['@id'] ?? p.id)).filter(Boolean);
-    if (!id || !ids.length) return;
-
-    descargandoPlantilla.value = true;
-    try {
-        const { data } = await apiClient.post(
-            `/cotizacion/user/padron/exportar/${id}`,
-            { ids },
-            { responseType: 'blob' },
-        );
-        const url = URL.createObjectURL(data as Blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `padron-filtrado-${ids.length}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
-    } catch {
-        alert('No se pudo descargar el archivo.');
-    } finally {
-        descargandoPlantilla.value = false;
-    }
-};
 
 /** La plantilla en blanco, con ejemplos e instrucciones. */
 const descargarPlantilla = () => bajarHoja('/cotizacion/user/padron/plantilla', 'padron-plantilla.xlsx');
@@ -1338,14 +1299,20 @@ const tiposEscaneo = ref<string[]>(TIPOS_ESCANEO.map(t => t.valor));
  * servidor para saber qué vas a mandar antes de mandarlo.
  */
 const escaneosPorTipo = computed<Record<string, number>>(() => {
+  // ⚠️ `@id` y no `id`: el pasajero NO expone `id` en su grupo de lectura, sólo el IRI. Y en
+  // minúsculas, para casar con `claveDeRelacion` del otro lado.
   const gente = new Set(
     (hayFiltros.value ? pasajerosFiltrados.value : pasajerosConsiderados.value)
-      .map(p => extractIdStr(p['@id'] ?? p.id)),
+      .map(p => extractIdStr(p['@id'] ?? p.id).toLowerCase()),
   );
   const mapa: Record<string, number> = {};
 
   for (const a of file.value?.filearchivos ?? []) {
-    const dueno = extractIdStr(a.pasajero as string | undefined);
+    // ⚠️ `claveDeRelacion` y no `extractIdStr`: normaliza a minúsculas, y es lo que ya usa
+    // `estadoDocumentalDe()` para esta misma comparación. Con `extractIdStr` a secas los dos lados
+    // no casaban y el panel enseñaba **0 en los tres tipos** — sin error, sólo un cero que parecía
+    // un expediente sin escaneos.
+    const dueno = claveDeRelacion(a.pasajero);
     // Sin dueño no viaja: no se puede nombrar. Ver `PaqueteDeEscaneos`.
     if (!dueno || !gente.has(dueno)) continue;
     const tipo = String(a.tipoArchivo);
@@ -3563,8 +3530,12 @@ const eliminarDocumento = async (iri?: string) => {
                 <button v-if="file.filepasajeros?.length" type="button" @click="descargarDocumentos"
                         :disabled="descargandoPlantilla"
                         class="border border-teal-200 bg-teal-50 text-teal-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-100 disabled:opacity-40">
-                  <i class="fas mr-1.5" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
-                  Documentos cargados<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }})</span>
+                  <!-- ⚠️ El nombre dice QUÉ trae, no de dónde sale. «Documentos cargados» se leía
+                       como «los documentos», y lo que baja es una HOJA de control: quién ha subido
+                       qué y a quién le falta. Junto a un botón que sí baja los documentos, el
+                       nombre viejo era la confusión entera. -->
+                  <i class="fas mr-1.5" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-excel'"></i>
+                  Hoja de control<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }} pax)</span>
                 </button>
                 <!-- ⚠️ **Ya no dice «Enviar al hotel».** El ZIP se le manda a quien lo pida —un
                      hotel, la discoteca del Coco Bongo, una aerolínea— y el botón no debe decidir
@@ -3577,7 +3548,7 @@ const eliminarDocumento = async (iri?: string) => {
                     <i class="fas mr-1.5" :class="descargandoEscaneos ? 'fa-spinner fa-spin' : 'fa-file-zipper'"></i>
                     <!-- El número del botón es de FICHEROS, no de personas: es lo que va a
                          bajar. Decía las personas del filtro y prometía de más. -->
-                    Descargar escaneos<span v-if="totalEscaneosElegidos"> ({{ totalEscaneosElegidos }})</span>
+                    Descargar escaneos<span v-if="totalEscaneosElegidos"> ({{ totalEscaneosElegidos }} ficheros)</span>
                     <i class="fas fa-chevron-down ml-1.5 text-[9px] opacity-60"></i>
                   </button>
 
@@ -3750,14 +3721,11 @@ const eliminarDocumento = async (iri?: string) => {
                       </span>
                     </p>
                     <div class="flex items-center gap-3">
-                      <!-- Sólo con filtros puestos: sin ellos ya está «Descargar con lo cargado», y
-                           dos botones que hacen lo mismo obligan a pensar cuál es cuál. -->
-                      <button v-if="hayFiltros && pasajerosFiltrados.length" type="button" @click="descargarFiltrado"
-                              :disabled="descargandoPlantilla"
-                              class="text-[10px] font-black uppercase tracking-widest text-teal-600 hover:text-teal-800 disabled:opacity-40">
-                        <i class="fas mr-1" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
-                        Exportar estos {{ pasajerosFiltrados.length }}
-                      </button>
+                      <!-- ⚠️ **Aquí había un «Exportar estos N» y se retiró: hacía LO MISMO que el
+                           botón de arriba.** Su propio comentario decía «dos botones que hacen lo
+                           mismo obligan a pensar cuál es cuál», y al añadir el ZIP quedaron tres
+                           descargas repartidas por la pantalla —dos idénticas— sin forma de saber
+                           cuál era cuál. El de arriba ya respeta los filtros y dice el recuento. -->
                       <button v-if="hayFiltros" type="button" @click="limpiarFiltros"
                               class="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700">
                         Limpiar filtros
