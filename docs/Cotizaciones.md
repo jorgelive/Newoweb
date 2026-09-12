@@ -8367,3 +8367,88 @@ Tres decisiones que sostienen esto:
 ⚠️ **Lo que esto NO arregla:** el endpoint sigue pesando lo que pesa, y los otros once llamadores
 siguen recargándolo entero. Eso está anotado en `docs/Pendientes.md` con el trabajo del endpoint —
 aquí se arregló lo que se ve, no lo que pesa.
+
+---
+
+## El sobre de documentos para el hotel (11/09/2026)
+
+Un alojamiento pide los escaneos de identidad de los huéspedes antes de la llegada —en Perú los
+necesita para el registro—. Se hacía bajando los ficheros de la bóveda uno a uno y renombrándolos
+a mano: con un grupo de treinta, media tarde y un reparto que se tuerce.
+
+`PaqueteDeEscaneos` arma un ZIP; el botón «Enviar al hotel» está junto al de la hoja, y respeta
+los filtros de la pantalla igual que ella (mandando la lista de ids resuelta, no repitiendo los
+filtros en el servidor).
+
+### La convención del nombre, que NO es la de entrada
+
+    Diaz Arredondo, Ray Dante - PAS 125998545.jpg
+    Quispe Mamani, Ana - DNI 46523178.jpg
+
+Al **subir** por lote la convención es `DOCUMENTO-VUELO` y su docblock explica por qué el número y
+no el nombre: «el nombre trae tildes, se escribe en otro orden y se repite; un DNI no». Ahí el
+lector es una **máquina** que tiene que casar sin ambigüedad.
+
+Aquí el lector es **una persona en recepción** buscando un apellido en una lista, así que el orden
+se invierte: el apellido delante hace que el ZIP salga **ordenado por persona** al abrirlo, que es
+como se recorre. El número sigue porque es lo único que no se repite, y el prefijo (`PAS`, `DNI`,
+`DNI-rev`) distingue a quien manda los dos.
+
+⚠️ **Sin tildes ni «ñ».** Un ZIP recorrido en Windows con las herramientas del sistema todavía
+interpreta los nombres en CP437: `Núñez` llega como `NÃºÃ±ez`. Se translitera con la misma pieza
+que usa el resto del proyecto.
+
+El número sale de la identificación que **ese** escaneo respalda (`ArchivoTipoEnum::respaldaA()`,
+la única definición de esa pareja). Si la persona no lo tiene cargado, el fichero se queda sin
+número en vez de coger otro: un pasaporte etiquetado con el número del DNI es peor que uno sin
+número.
+
+### ⚠️ Sin comprimir, y está medido
+
+Un JPEG ya está comprimido. Sobre los 374 escaneos del expediente más grande (104 MB en disco):
+
+| | tiempo | tamaño |
+|---|---|---|
+| `CM_DEFLATE` | **4,2 s** | 107,4 MB |
+| `CM_STORE` | **0,5 s** | 107,7 MB |
+
+Casi cuatro segundos de CPU por el **0,3 %**, con php-fpm cortando a los 90 s. Los escaneos van
+con `CM_STORE`; la hoja y el `LEEME.txt` sí se comprimen, que son texto.
+
+> La preocupación de partida —«374 imágenes no caben en 90 segundos»— resultó infundada: son
+> medio segundo. Pero sólo se supo midiendo, y la medición cambió el diseño igual.
+
+### Lo que NO entra, y se dice dentro
+
+Un escaneo **sin pasajero asignado** no se puede nombrar. En vez de meterlo con su nombre original
+—que es como el documento de alguien acaba en el sobre de otro— se queda fuera y sale contado en
+`LEEME.txt`, junto a la lista de quién no tiene ningún documento.
+
+⚠️ **Los huecos se cuentan DENTRO del paquete a propósito.** Quien lo reenvía al hotel no va a
+volver al panel a comprobar quién falta: si falta alguien tiene que enterarse abriendo lo único
+que va a abrir.
+
+Dentro va también `manifiesto.xlsx`, el mismo `ReporteDeDocumentos` que ya existía — es lo que
+convierte un montón de imágenes en algo que el hotel puede cotejar, y no costaba nada.
+
+### Que esto saca pasaportes de casa
+
+| | |
+|---|---|
+| Permiso | `RESERVAS_WRITE`, el mismo que guarda el manifiesto. No es enlace público ni firmado |
+| Caché | `no-store` |
+| El temporal | `deleteFileAfterSend()` — sin eso queda un sobre con documentos en `/tmp` |
+| Cómo se sirve | `BinaryFileResponse`, no un string: 107 MB en memoria es pedir un `memory_limit` |
+
+Y **no** se le devuelve al pasajero: `ArchivoTipoEnum::esDevolvibleAlPasajero()` explica por qué su
+propio escaneo no baja a su móvil. Ésta es la vía del operador hacia el alojamiento, que es otra
+cosa y tiene otro dueño.
+
+### Dónde tocar
+
+| Necesidad | Archivo | Método |
+|---|---|---|
+| Qué tipos se mandan | `PaqueteDeEscaneos` | `TIPOS` — hoy pasaporte y DNI (las dos caras); la autorización notarial no, es un permiso, no una identidad |
+| Cómo se llaman los ficheros | `PaqueteDeEscaneos` | `nombreEnElZip()` |
+| Lo que se cuenta en el sobre | `PaqueteDeEscaneos` | `leeme()` |
+| Permisos y cabeceras | `PaqueteEscaneosController` | `__invoke()` |

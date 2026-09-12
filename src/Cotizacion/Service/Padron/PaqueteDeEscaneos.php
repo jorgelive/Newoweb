@@ -126,6 +126,11 @@ final readonly class PaqueteDeEscaneos
                 $usados[$nombre] = true;
 
                 if ($zip->addFile($origen, $nombre)) {
+                    // ⚠️ **Sin comprimir, y está medido.** Un JPEG ya está comprimido: sobre los
+                    // 374 escaneos del expediente más grande (104 MB), DEFLATE tarda 4,2 s y
+                    // deja 107,4 MB; STORE tarda 0,5 s y deja 107,7 MB. Se pagan casi cuatro
+                    // segundos de CPU por el 0,3 % — y php-fpm corta a los 90 s.
+                    $zip->setCompressionIndex($zip->numFiles - 1, ZipArchive::CM_STORE);
                     $incluidos++;
                     $suyos++;
                 }
@@ -137,6 +142,7 @@ final readonly class PaqueteDeEscaneos
         }
 
         // La hoja del manifiesto: los datos, para que las imágenes se puedan cotejar.
+        // Estos dos SÍ se comprimen: son texto, y ahí DEFLATE sí gana.
         $zip->addFromString('manifiesto.xlsx', $this->reporte->generar($file, $soloEstos));
         $zip->addFromString('LEEME.txt', $this->leeme($file, $incluidos, $sinEscaneo, $this->sueltos($file)));
 
