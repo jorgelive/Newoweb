@@ -2566,24 +2566,43 @@ const creandoGrupo = ref(false);
  * habitación se dice el hotel y de un servicio, la ciudad o la fecha. La palabra tiene que ser
  * la del eje que hay delante, o el campo parece pedir otra cosa.
  */
-const EJEMPLOS_EJE: Record<string, { subeje: string; ejemploSubeje: string; clave: string; nombre: string; detalle: string }> = {
+const EJEMPLOS_EJE: Record<string, {
+  subeje: string; ejemploSubeje: string; clave: string; nombre: string; detalle: string;
+  ayudaSubeje: string; ayudaClave: string; ayudaNombre: string;
+}> = {
   grupo: {
     subeje: 'Matiz', ejemploSubeje: 'Salón · Bus', clave: 'B · 5',
     nombre: 'QUINTO B', detalle: 'Los que van al taller de danza\nProfesora responsable: *Ana Ríos*',
+    ayudaSubeje: 'Parte la lista en secciones: verás «Grupo Salón» y «Grupo Bus» por separado.',
+    ayudaClave: 'Identifica el grupo y no se repite. Se guarda en mayúsculas.',
+    ayudaNombre: 'Sólo una etiqueta que se lee al lado de la clave.',
   },
   habitacion: {
     subeje: 'Hotel', ejemploSubeje: 'Sonesta · Terra', clave: 'HA13',
     nombre: 'DOBLE MATRIMONIAL', detalle: 'Piso 3, vista al patio\nCheck-in 15:00 · check-out 11:00',
+    ayudaSubeje: 'Parte la lista por hotel: «Habitación Sonesta» aparte de «Habitación Terra».',
+    ayudaClave: 'El número de habitación. Es lo que la identifica — «DOBLE» no.',
+    ayudaNombre: 'El tipo de habitación, como etiqueta. No agrupa nada.',
   },
   reserva_aerea: {
     subeje: 'Tramo', ejemploSubeje: 'Nacional · Cusco-Puno', clave: 'JA2CWN',
     nombre: 'ARAJET · DOBLE',
     detalle: 'Ida DM6771 · LIM 18/09/2026 03:00 → PUJ 18/09/2026 09:19'
       + '\nRetorno DM6770 · PUJ 22/09/2026 20:22 → LIM 23/09/2026 00:30',
+    ayudaSubeje: 'Parte la lista en secciones: «Vuelo Nacional» aparte de «Vuelo Internacional».',
+    ayudaClave: 'El localizador (PNR). Uno por reserva: no agrupa aerolíneas.',
+    // 🔥 La razón por la que existe toda esta ayuda. Ver el aviso de `aerolineasPorEje()`.
+    ayudaNombre: '🔑 La AEROLÍNEA. Es lo único que junta los PNR en un botón de filtro: '
+      + 'ocho reservas con «Arajet» escrito igual dan un botón «Arajet». Escrito distinto '
+      + '—«ARAJET», «Arajet SA»— salen botones separados y ninguno trae a toda la gente.',
   },
   servicio: {
     subeje: 'Matiz', ejemploSubeje: 'Punta Cana · Día 3', clave: 'COCOBONGO',
     nombre: 'NOCHE EN COCO BONGO', detalle: 'Sólo mayores de 18\nTraslado incluido desde el hotel',
+    ayudaSubeje: 'Parte la lista en secciones, si tienes muchos: «Servicio Punta Cana» aparte de «Servicio Lima».',
+    ayudaClave: 'Identifica el servicio y no se repite. Se guarda en mayúsculas.',
+    ayudaNombre: 'El nombre para leer. Escrito IGUAL en varios subgrupos, los junta en uno solo '
+      + 'al filtrar — igual que la aerolínea en los vuelos.',
   },
 };
 
@@ -2593,6 +2612,22 @@ const ejemploSubeje = computed(() => ejemploDe.value.ejemploSubeje);
 const ejemploClave = computed(() => ejemploDe.value.clave);
 const ejemploNombre = computed(() => ejemploDe.value.nombre);
 const ejemploDetalle = computed(() => ejemploDe.value.detalle);
+
+/**
+ * Qué hace cada campo, dicho en el eje que se está usando.
+ *
+ * ⚠️ **La ayuda del NOMBRE es la que motivó esto.** Nadie podía adivinar que el botón «Arajet»
+ * del filtro sale de que el `nombre` esté escrito igual en ocho subgrupos: no hay ningún campo
+ * «aerolínea», ni maestro, ni normalización. Es una coincidencia de texto que hoy sale bien
+ * porque alguien la escribió consistente, y el día que se teclee «Copa» en vez de «Copa
+ * Airlines» aparecerá un botón nuevo sin que nada avise.
+ *
+ * Escribirlo no arregla el modelo —eso sería un maestro de aerolíneas o normalizar al guardar—,
+ * pero convierte una trampa invisible en una regla que se puede seguir.
+ */
+const ayudaSubeje = computed(() => ejemploDe.value.ayudaSubeje);
+const ayudaClave = computed(() => ejemploDe.value.ayudaClave);
+const ayudaNombre = computed(() => ejemploDe.value.ayudaNombre);
 
 const agregarGrupo = async () => {
   if (!file.value || !nuevoGrupo.value.clave.trim()) return;
@@ -3902,8 +3937,9 @@ const eliminarDocumento = async (iri?: string) => {
                      haría que `#Habitacion doble` entrara como tramo «doble» en vez de
                      denunciarse. Aquí son dos campos y no hay nada que adivinar. -->
                 <div>
-                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                  <label class="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
                     {{ etiquetaSubeje }}
+                    <i class="fas fa-circle-info text-slate-300 cursor-help" :title="ayudaSubeje"></i>
                   </label>
                   <input v-model="nuevoGrupo.subeje" type="text" :placeholder="ejemploSubeje" maxlength="60"
                          @keyup.enter="agregarGrupo"
@@ -3914,16 +3950,25 @@ const eliminarDocumento = async (iri?: string) => {
                      unicidad, ver `CotizacionFileGrupo::$clave`—, así que el campo enseña
                      exactamente lo que se va a guardar. -->
                 <div>
-                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Clave</label>
+                  <label class="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                    Clave
+                    <i class="fas fa-circle-info text-slate-300 cursor-help" :title="ayudaClave"></i>
+                  </label>
                   <input v-model="nuevoGrupo.clave" type="text" :placeholder="ejemploClave" maxlength="60"
                          @keyup.enter="agregarGrupo"
                          class="w-40 border rounded-lg px-3 py-2 text-sm font-bold uppercase outline-none focus:border-teal-500 placeholder:font-normal placeholder:normal-case placeholder:text-slate-300">
                 </div>
                 <div class="flex-1 min-w-40">
-                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Nombre (opcional)</label>
+                  <label class="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                    Nombre (opcional)
+                    <!-- La «i» del nombre va destacada: es el campo del que depende que el filtro
+                         agrupe, y no hay nada en la pantalla que lo delate. -->
+                    <i class="fas fa-circle-info text-teal-500 cursor-help" :title="ayudaNombre"></i>
+                  </label>
                   <input v-model="nuevoGrupo.nombre" type="text" :placeholder="ejemploNombre" maxlength="150"
                          @keyup.enter="agregarGrupo"
                          class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 placeholder:text-slate-300">
+                  <p class="text-[9px] text-slate-400 mt-1 leading-tight">{{ ayudaNombre }}</p>
                 </div>
                 <button @click="agregarGrupo" :disabled="creandoGrupo || !nuevoGrupo.clave.trim()"
                         class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
@@ -4967,7 +5012,11 @@ const eliminarDocumento = async (iri?: string) => {
                      class="w-full border rounded-lg px-3 py-2 text-sm font-bold uppercase outline-none focus:border-indigo-500">
             </div>
             <div>
-              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre</label>
+              <label class="flex items-center gap-1 text-[10px] font-bold text-slate-500 uppercase mb-1">
+                Nombre
+                <i class="fas fa-circle-info text-teal-500 cursor-help"
+                   title="Escrito IGUAL en varios subgrupos, los junta en un solo botón al filtrar: ocho reservas con «Arajet» dan un botón «Arajet». Cambiarlo aquí lo separa del resto."></i>
+              </label>
               <input v-model="grupoForm.nombre" type="text" maxlength="150" placeholder="ARAJET · DOBLE"
                      class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 placeholder:text-slate-300">
             </div>

@@ -8504,3 +8504,51 @@ porque `cache.system` encadena APCu, y un clear desde CLI no vacía el APCu de p
 servidor APCu no está instalado** (`php -m` no lo lista, no hay `conf.d`), así que el pool es
 PhpFiles y el clear basta. Queda escrito porque la hipótesis era razonable y alguien la volverá a
 tener.
+
+---
+
+## El botón «Arajet» no existe como dato (11/09/2026)
+
+En el filtro del manifiesto hay una pastilla **Arajet** y otra **Copa Airlines**. No hay ningún
+campo «aerolínea» en ninguna parte:
+
+```js
+porTramo.get(tramo).add(String(g.nombre));   // un Set de cadenas
+```
+
+La pastilla sale de que `CotizacionFileGrupo::$nombre` esté **escrito igual** en los ocho
+subgrupos de esa aerolínea. Un `Set` colapsa las repetidas; ocho PNR con `Arajet` dan una entrada.
+
+⚠️ **Es una coincidencia de texto, no una agrupación modelada.** Escrito `ARAJET` en uno y
+`Arajet` en otro salen **dos pastillas**, y ninguna de las dos trae a toda la gente de esa
+aerolínea. El campo es texto libre, está marcado como opcional, y nada avisa. En los diez
+servicios del padrón de Punta Cana el `nombre` está **vacío**, así que ahí no agrupa nada — no es
+que servicios funcione distinto, es que nadie rellenó el campo del que depende.
+
+### Las tres vistas del mismo dato, que se confunden
+
+| dónde | qué agrupa |
+|---|---|
+| Lista de subgrupos | **nada** — una fila por subgrupo (un PNR cada una) |
+| Cabecera de sección | `getEtiquetaDeEje()` = `tipo` + `subeje` → «Vuelo Internacional (13)» |
+| Pastillas del filtro | `nombre`, dentro de cada `subeje` |
+
+Por eso la lista enseña `54X6ZM · Arajet · 2 pax` y `JA2CWN · Arajet · 24 pax` como filas
+distintas, y el filtro los junta en un botón. Son dos preguntas distintas: «qué reservas hay» y
+«de qué aerolínea es la gente».
+
+### Lo que se hizo, y lo que NO
+
+Se escribió en la interfaz. Cada campo del formulario de subgrupos lleva una «i» que dice qué hace
+**en el eje que se está usando** —el sufijo se llama Tramo en un vuelo, Hotel en una habitación y
+Matiz en un servicio, y ya lo hacía—, y la del **Nombre** va destacada y además repetida bajo el
+campo, porque es la única cuyo efecto no se ve en ningún sitio. También en el modal de corregir,
+que es donde alguien reescribe un nombre y lo separa del resto sin enterarse.
+
+**No se tocó el modelo.** Agrupar de verdad pide o un maestro de aerolíneas o normalizar al
+guardar y sugerir las que ya existen en el expediente. Decisión aplazada a propósito: escribirlo
+convierte una trampa invisible en una regla que se puede seguir, y eso era lo que hacía falta hoy.
+
+> 🚧 Pendiente relacionado: **la pertenencia sólo sabe decir «sí»**. No hay forma de distinguir «a
+> éste se le ofreció el servicio y NO va» de «todavía no se le ha asignado», y son cosas distintas
+> al armar lo que se le manda a un proveedor.
