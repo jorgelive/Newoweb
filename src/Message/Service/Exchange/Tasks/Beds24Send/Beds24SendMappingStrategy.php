@@ -112,6 +112,22 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             // Extraemos las variables una sola vez para usarlas en texto y botones
             $variables = $resolver !== null ? $resolver->getMessageVariables($asuntoId, $templateLang) : [];
 
+            // ⚠️ **Las marcas de formato se quitan de los VALORES, aunque venga de plantilla.**
+            //
+            // Abajo, el texto libre se degrada y el de plantilla no: el cuerpo de Beds24 lo
+            // escribe una persona sabiendo que este canal no tiene formato. Pero las variables no
+            // las escribe nadie: `{{ bloque_pago }}` y `{{ medios_de_pago }}` salen del redactor
+            // en el formato canónico —el de WhatsApp—, porque el mismo texto se manda también por
+            // ahí. Sin esto, a la bandeja de Booking llegaba «*Adelanto para asegurar tu
+            // reserva:*» con los asteriscos puestos.
+            //
+            // `paraTextoPlano()` aparta las URLs antes de tocar nada, así que un enlace con
+            // guiones bajos sale intacto. Los valores que no son texto —noches, pax— se dejan.
+            $variables = array_map(
+                fn (mixed $valor): mixed => is_string($valor) ? $this->formato->paraTextoPlano($valor) : $valor,
+                $variables
+            );
+
             // 2. INTERPOLACIÓN DE VARIABLES (Soporta {{ var }} y {{var}})
             // La regla —existe con null se sustituye por nada, ausente se deja crudo— vive en
             // HidratadorDeMarcadores, que es el mismo que usa la previsualización. Así lo que

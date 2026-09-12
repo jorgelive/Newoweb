@@ -123,22 +123,20 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
             ->setIcon('fa fa-phone')
             ->renderCollapsed();
 
-        yield TextField::new('telefonoPrincipal', 'Teléfono comercial')
+        yield TextField::new('telefonoPrincipal', 'WhatsApp de atención al público')
             ->hideOnIndex()
             ->setColumns(6)
-            ->setHelp('El PÚBLICO: web, OTA y catálogo del huésped. No es el de atención.');
+            ->setHelp('El número por el que escribe la gente, y el <b>único que se publica</b>: '
+                . 'botón «Consulta por WhatsApp» del catálogo, tarjeta del anfitrión en la guía y '
+                . '<code>{{whatsapp_numero}}</code> en las plantillas. Hoy es el de la API de Meta, '
+                . 'así que lo contesta el sistema. <b>Nunca un móvil personal</b>: lo que se ponga '
+                . 'aquí lo ve cualquiera que abra el catálogo.');
 
         yield TextField::new('telefonoAtencion', 'Teléfono de atención')
             ->hideOnIndex()
             ->setColumns(6)
             ->setHelp('Al que se manda a un huésped que no puede entrar. Se lo da el agente '
                 . '<b>automáticamente</b> cuando no hay código que entregar.');
-
-        yield TextField::new('telefonoYape', 'Teléfono del Yape')
-            ->hideOnIndex()
-            ->setColumns(6)
-            ->setHelp('Por donde se cobra. Contesta igual que el de atención, pero se guarda '
-                . 'aparte para poder cambiarlo sin tocar el otro.');
 
         yield TextField::new('emailContacto', 'Email')
             ->hideOnIndex()

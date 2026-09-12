@@ -84,6 +84,19 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     #[Assert\NotNull(message: 'Debes seleccionar un país.')]
     private ?MaestroPais $pais = null;
 
+    /**
+     * El WhatsApp por el que se atiende al público, y el único que se publica.
+     *
+     * Lo enseñan el botón «Consulta por WhatsApp» del catálogo, la tarjeta del anfitrión de la
+     * guía (`PmsGuiaContexto::$host_whatsapp`) y las plantillas por `{{ whatsapp_numero }}`.
+     *
+     * ⚠️ **Nunca un móvil personal.** Hasta el 11/09/2026 llevaba el de Jorge, así que los
+     * interesados del catálogo y los huéspedes de la guía le escribían a su móvil sin que eso
+     * estuviera decidido en ningún sitio. Hoy lleva el número de la API de Meta: lo contesta el
+     * sistema, que es a donde se quiere llevar todo.
+     *
+     * ⚠️ Y no es el de urgencias: ése es `telefonoAtencion`, que contesta una persona.
+     */
     #[ORM\Column(type: 'string', length: 30, nullable: true)]
     #[Assert\Length(max: 30)]
     private ?string $telefonoPrincipal = null;
@@ -128,17 +141,6 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
      */
     #[ORM\Column(name: 'telefono_atencion', type: 'string', length: 30, nullable: true)]
     private ?string $telefonoAtencion = null;
-
-    /**
-     * El móvil asociado a Yape, para cobrar.
-     *
-     * Se guarda aparte del de atención aunque hoy los dos contesten: son **dos hechos
-     * distintos** —«llámame» y «págame aquí»— y el día que el Yape cambie de titular, o que se
-     * pase a otra billetera, tendrían que poder moverse por separado. Mezclarlos obliga a
-     * adivinar cuál es cuál en cada uso.
-     */
-    #[ORM\Column(name: 'telefono_yape', type: 'string', length: 30, nullable: true)]
-    private ?string $telefonoYape = null;
 
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $codigoCajaSecundaria = null;
@@ -290,8 +292,6 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     public function getTelefonoAtencion(): ?string { return $this->telefonoAtencion; }
     public function setTelefonoAtencion(?string $telefono): self { $this->telefonoAtencion = $telefono; return $this; }
 
-    public function getTelefonoYape(): ?string { return $this->telefonoYape; }
-    public function setTelefonoYape(?string $telefono): self { $this->telefonoYape = $telefono; return $this; }
 
     public function getCodigoCajaPrincipal(): ?string
     {

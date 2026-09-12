@@ -8,6 +8,7 @@ use App\Message\Contract\MessageDataResolverInterface;
 use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Finanzas\PmsRedactorDeCobro;
 use App\Pms\Entity\PmsReserva;
@@ -32,26 +33,32 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         private readonly string $paxCatalogUrl,
         #[Autowire('%pax_catalog_url_nd%')]
         private readonly string $paxCatalogUrlNd,
-        #[Autowire('%whatsapp_oficial%')]
-        private readonly string $whatsappOficial,
     ) {}
 
     /**
-     * El WhatsApp oficial, como se escribe y como enlace.
+     * El WhatsApp por el que se atiende, como se escribe y como enlace.
      *
      * Existe para decirle al huésped de Booking a dónde mandar la captura del pago: en el chat de
      * Booking el huésped no puede adjuntar imágenes, aunque nosotros sí
-     * (`PmsChannel::CHAT_SIN_IMAGENES`). Se da el NÚMERO y no
-     * sólo el enlace porque es lo único comprobado que llega intacto por ese chat —el número de
-     * Yape lleva meses saliendo en la bienvenida— y un móvil lo convierte en pulsable igual.
+     * (`PmsChannel::CHAT_SIN_IMAGENES`). Se da el NÚMERO y no sólo el enlace porque es lo único
+     * comprobado que llega intacto por ese chat —el número de Yape lleva meses saliendo en la
+     * bienvenida— y un móvil lo convierte en pulsable igual.
+     *
+     * ⚠️ **Sale del ESTABLECIMIENTO, no de un parámetro.** Estuvo unas horas en
+     * `config/services_parameters.yaml` y era el sitio equivocado: es el teléfono del alojamiento
+     * —`telefonoPrincipal`, el mismo que enseña el catálogo público y la tarjeta del anfitrión de
+     * la guía—, así que con dos alojamientos cada uno tiene el suyo. El de la AGENCIA es otra
+     * cosa y vive en `agencia_telefono_emergencia`.
      *
      * @return array{whatsapp_numero: string, whatsapp_url: string}
      */
-    private function whatsappOficial(): array
+    private function whatsappDelAlojamiento(?PmsEstablecimiento $establecimiento): array
     {
+        $numero = trim((string) $establecimiento?->getTelefonoPrincipal());
+
         return [
-            'whatsapp_numero' => $this->whatsappOficial,
-            'whatsapp_url' => 'https://wa.me/' . preg_replace('/\D/', '', $this->whatsappOficial),
+            'whatsapp_numero' => $numero,
+            'whatsapp_url' => $numero === '' ? '' : 'https://wa.me/' . preg_replace('/\D/', '', $numero),
         ];
     }
 
@@ -268,7 +275,7 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // una sábana— sino para cuando hay que demostrarle a la OTA que se dio la
             // información completa. Se manda a mano desde el panel, no por una regla.
             'medios_de_pago_todos'  => $idioma !== null ? $this->redactor->mediosConDatos($reserva, $idioma, todas: true, enlaceTarjeta: $accountUrl) : null,
-        ] + $this->whatsappOficial();
+        ] + $this->whatsappDelAlojamiento($reserva->getEstablecimiento());
     }
 
     /**
@@ -316,6 +323,6 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'account_detail_url'    => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator . '#detalle',
             'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
             'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
-        ] + $this->whatsappOficial();
+        ] + $this->whatsappDelAlojamiento(null);
     }
 }

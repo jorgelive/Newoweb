@@ -41,7 +41,7 @@ final readonly class OperacionOrdenDocumento
     public function __construct(
         private EntityManagerInterface $em,
         private ContactoDelAsunto $contacto,
-        #[Autowire(param: 'operaciones_telefono_emergencia')]
+        #[Autowire(param: 'agencia_telefono_emergencia')]
         private string $telefonoEmergencia = '',
     )
     {

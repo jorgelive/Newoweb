@@ -51,7 +51,7 @@ final class OrdenPublicaController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly OperacionOrdenDocumento $documento,
-        #[Autowire(param: 'operaciones_telefono_emergencia')]
+        #[Autowire(param: 'agencia_telefono_emergencia')]
         private readonly string $telefonoEmergencia = '',
     ) {
     }

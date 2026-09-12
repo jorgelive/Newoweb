@@ -480,12 +480,11 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
     /**
      * Por dónde puede resolverlo una persona cuando el código no sale.
      *
-     * Los dos contestan; el de Yape es además por donde se paga. Se devuelven los dos con su
-     * etiqueta para que el modelo elija según lo que haga falta —hablar o pagar— en vez de
-     * tener que adivinar cuál es cuál.
+     * Es el de ATENCIÓN y sólo ése: el que contesta un humano cuando alguien está en la puerta
+     * sin poder entrar.
      *
-     * `null` si el establecimiento no los tiene puestos: mejor no ofrecer un teléfono que
-     * ofrecer uno inventado.
+     * `null` si el establecimiento no lo tiene puesto: mejor no ofrecer un teléfono que ofrecer
+     * uno inventado.
      *
      * @return array<string, string>|null
      */
@@ -493,18 +492,20 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
     {
         $establecimiento = $unidad->getEstablecimiento();
 
-        $contacto = array_filter([
-            'telefono' => trim((string) $establecimiento?->getTelefonoAtencion()),
-            'telefono_yape' => trim((string) $establecimiento?->getTelefonoYape()),
-        ], static fn (string $v): bool => $v !== '');
+        $telefono = trim((string) $establecimiento?->getTelefonoAtencion());
 
-        if ($contacto === []) {
+        if ($telefono === '') {
             return null;
         }
 
-        return $contacto + [
-            'nota' => 'Por los dos contesta una persona. El de «telefono_yape» es además el '
-                . 'número del Yape, así que es el que se da para pagar por ahí.',
+        // ⚠️ **Uno, y de urgencias.** Aquí se devolvía también el móvil del Yape —el personal de
+        // Susan— como segundo contacto. Los números personales dejaron de darse (11/09/2026): si
+        // lo que hace falta es pagar por Yape, el número con su titular lo da el catálogo de
+        // cobro (`consultar_medios_pago`), que además dice a nombre de quién va.
+        return [
+            'telefono' => $telefono,
+            'nota' => 'Contesta una persona. Es para urgencias —alguien en la puerta sin poder '
+                . 'entrar—, no para consultas normales.',
         ];
     }
 

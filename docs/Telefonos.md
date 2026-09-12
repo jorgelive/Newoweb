@@ -158,6 +158,51 @@ espacios, que es para leer, no para una agenda.
 ruta que `debug:router` no lista, que parece un fallo del front. El propio `routes.yaml` lo
 avisa en el bloque de Operación — y aun así volvió a pasar.
 
+## 5 bis. Los teléfonos NUESTROS (11/09/2026)
+
+Todo lo anterior es sobre el teléfono **del huésped**. Los nuestros no estaban escritos en
+ningún sitio y llegaron a vivir en cinco: la entidad del establecimiento, el `.env`, un
+parámetro del YAML, el contenido de la guía y el cuerpo de una plantilla. El resultado es que el
+móvil personal de Jorge era el que enseñaban el catálogo público y la tarjeta del anfitrión de la
+guía, sin que eso lo hubiera decidido nadie.
+
+### Dos titulares, y no se mezclan
+
+| Titular | Dónde vive | Por qué ahí |
+|---|---|---|
+| **El alojamiento** | `PmsEstablecimiento` | es una entidad y admite varios: cada uno puede atender por su número |
+| **La agencia** | `AGENCIA_TELEFONO_EMERGENCIA` en `.env` → parámetro `agencia_telefono_emergencia` | **hoy no tiene entidad viva**: la única `UserOrganizacion` es de `Oweb`, que se retira |
+
+⚠️ **No se unificaron a propósito.** Son cosas distintas —el alojamiento es PMS, la agencia vende
+tours— y juntarlas obligaría a inventar hoy un modelo de multiagencia que nadie necesita. El día
+que la agencia sea una fila, el parámetro se muda y sólo cambia de dónde lee
+`OperacionOrdenDocumento`.
+
+### Los del alojamiento, por su papel
+
+| Campo | Papel | Quién lo lee |
+|---|---|---|
+| `telefonoPrincipal` | **el que se publica**: por él escribe la gente | catálogo público (`CatalogoUnidadView`), tarjeta del anfitrión de la guía (`PmsGuiaContexto::$host_whatsapp`), plantillas (`{{ whatsapp_numero }}`, `{{ whatsapp_url }}`) |
+| `telefonoAtencion` | **urgencias**: contesta una persona | `ConsultarCodigosSkill` cuando no hay código que entregar, botón «Necesito ayuda» de la ficha «Llaves» |
+
+Hoy `telefonoPrincipal` es el número de la **API de Meta**, así que lo que se publica lo contesta
+el sistema. Es la dirección acordada: todo por ese número, y el de atención sólo para urgencias.
+
+⚠️ **`telefonoYape` se eliminó** (`Version20260911230000`). Era la misma cifra que ya lleva
+`fin_medio_cobro` en sus filas de Yape y Plin —con titular y moneda, que la columna no tenía— y
+`ConsultarCodigosSkill` lo ofrecía como segundo contacto, siendo un móvil personal. Para pagar
+por Yape está el catálogo de cobro; para una urgencia, el de atención.
+
+### Lo que queda escrito a mano, y por qué
+
+- El botón «Necesito ayuda» de la ficha «Llaves» lleva `https://wa.me/51961281953` en su
+  `metadata`: los botones de la guía **no interpolan variables**, sólo los cuerpos.
+- La descripción de «Horario solicitudes» lista dos números. La copia del **agente** ya se limpió
+  en `Version20260827234500`; la que lee el huésped en la app, no. Puede usar
+  `{{ host_whatsapp }}`, que sí se interpola.
+- Las organizaciones internas (`OpenPeru Tickets`, `Transportes OpenPeru`) llevan su propio
+  `telefono`, y es correcto que lo lleven: son datos de cada organización, no del alojamiento.
+
 ## 6. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
@@ -172,3 +217,6 @@ avisa en el bloque de Operación — y aun así volvió a pasar.
 | Cambiar la vCard del EXPEDIENTE | `src/Cotizacion/Controller/Api/CotizacionFileVcardController.php` | `__invoke()` — nombre de agenda y nota |
 | Cambiar cómo se buscan reservas por teléfono | `src/Pms/Repository/PmsReservaRepository.php` | `findVivasByTelefono()` |
 | Normalizar teléfonos de un canal nuevo | el persister del canal | inyectar `PhoneSanitizer` |
+| **Cambiar el número por el que nos escribe la gente** | CRUD de establecimientos | `telefonoPrincipal` — sale en catálogo, guía y plantillas, §5 bis |
+| **Cambiar el de urgencias del alojamiento** | CRUD de establecimientos | `telefonoAtencion` |
+| **Cambiar el de urgencias de la AGENCIA** (órdenes de servicio) | `.env` / `.env.local` | `AGENCIA_TELEFONO_EMERGENCIA` |

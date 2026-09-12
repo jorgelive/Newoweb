@@ -6533,7 +6533,7 @@ arreglar** — ver el aviso al final de esta sección.
 | **Subir una plantilla a Meta sin pasar por el panel** | `msg:meta:push <code> --idiomas=es,en` | Mismo servicio que el botón. El idioma es obligatorio (`--todos` a sabiendas): subir uno **reabre su revisión**. `--ver` no sube nada, sólo enseña qué idiomas hay y en qué estado |
 | **Ver qué le llega al huésped, sin enviarle nada** | `msg:plantilla:ver <code> <localizador>` | Hidrata contra una reserva REAL con el mismo `HidratadorDeMarcadores` del envío. `--canal=beds24\|link\|meta`, `--idioma` |
 | **Cambiar el texto de una plantilla desde la consola** | `msg:plantilla:cuerpo <code> --exportar` → editar → `--desde=<archivo>` | Por el ORM, así que `AutoTranslate` rehace los otros seis idiomas (y el comando dice cuáles). Parte del texto VIVO, no pisa lo editado en el panel. Sólo `beds24` y `link`: el de Meta se cambia rotando (§18) |
-| Cambiar el WhatsApp oficial que se da en las plantillas | `config/services/services_parameters.yaml` → `whatsapp_oficial` | Sale por `{{ whatsapp_numero }}` y `{{ whatsapp_url }}`. Es el número de la API de Meta (`display_phone_number` de los webhooks), **no** ninguno de los teléfonos de `PmsEstablecimiento` |
+| Cambiar el WhatsApp que se da en las plantillas | CRUD de establecimientos → `telefonoPrincipal` | Sale por `{{ whatsapp_numero }}` y `{{ whatsapp_url }}`, y es el MISMO que publican el catálogo y la guía. Ver `docs/Telefonos.md` §5 bis |
 | Cambiar cómo se sustituye un `{{ marcador }}` | `HidratadorDeMarcadores` | Existe con `null` → nada; ausente → se deja crudo. **Es `array_key_exists`, no `??`** — con `??` un huésped leyó «un pago por {{ importe_a_pagar }}» |
 | Mandar una plantilla con datos que NO están en el contexto | `Message::setVariablesPlantilla()` | Se fusionan pisando a las del resolver en `WhatsappMetaSendMappingStrategy` |
 | Cambiar cuándo un número «es» de una reserva | `PmsReservaRepository` | `findVivasByTelefono()` + `DIAS_GRACIA_TRAS_SALIDA` / `DIAS_ANTICIPACION` |
@@ -7240,6 +7240,22 @@ bin/console msg:plantilla:ver pago_texto H6Q49C --canal=link --idioma=en
 Enseña el **cuerpo** hidratado y avisa si ese canal lleva la botonera encendida (los botones se
 añaden debajo al enviar). Un marcador que el resolver no conoce sale en rojo **y el comando
 falla**: llegaría crudo al huésped, y eso no es un aviso, es un fallo.
+
+#### Las marcas de formato se quitan de los VALORES, no del cuerpo (11/09/2026)
+
+`FormatoDeTexto` degrada el texto libre según el canal —Beds24 va **sin marcas**, porque acaba en
+la bandeja de Airbnb o Booking, que lo enseñan tal cual—, pero **sólo cuando no hay plantilla**:
+el cuerpo de Beds24 lo escribe una persona sabiendo que ese canal no tiene formato.
+
+Las variables no las escribe nadie. `{{ bloque_pago }}` y `{{ medios_de_pago }}` salen del
+redactor en el formato canónico —el de WhatsApp—, porque el mismo texto se manda también por ahí.
+Así que a Booking llegaba `*Adelanto para asegurar tu reserva:*` con los asteriscos puestos.
+
+`Beds24SendMappingStrategy` pasa ahora cada valor de texto por `paraTextoPlano()` antes de
+hidratar. Las URLs no sufren: esa función las aparta antes de tocar nada, que es justo por lo que
+existe. Lo que sigue sin tocarse es el cuerpo del autor — si alguien escribe `*negrita*` en un
+cuerpo de Beds24, llega con asteriscos, y eso se arregla escribiéndolo bien (`recordatorio_llegada`
+todavía lleva `*Sobre la Casita:*`).
 
 #### `HidratadorDeMarcadores`, porque la regla estaba escrita tres veces
 
@@ -11513,9 +11529,10 @@ puede adjuntar imágenes** —su caja de mensaje no tiene botón para ello; noso
 mandárselas— (`PmsChannel::CHAT_SIN_IMAGENES`). Ahora dice a dónde: *«envíanos el comprobante por
 WhatsApp al {{ whatsapp_numero }}»*.
 
-El número es el **WhatsApp oficial** —el de la API de Meta, `+51 970 393 305`—, que no es ninguno
-de los tres teléfonos de `PmsEstablecimiento` (comercial, atención, Yape). Estaba tecleado a mano
-en `solicitar_mensaje_whatsapp`; ahora es el parámetro `whatsapp_oficial` y dos variables.
+El número sale de `PmsEstablecimiento::$telefonoPrincipal`, el mismo que publican el catálogo y la
+tarjeta del anfitrión de la guía; hoy es el de la API de Meta. Estuvo unas horas en un parámetro
+del YAML y era el sitio equivocado —es del alojamiento, no de la agencia—. Ver `docs/Telefonos.md`
+§5 bis, que es donde está el mapa entero.
 
 Va como **número** y no sólo como enlace `wa.me` porque es lo único comprobado que llega intacto por
 el chat de Booking: el número de Yape lleva meses saliendo en la bienvenida. Si Booking recortara
