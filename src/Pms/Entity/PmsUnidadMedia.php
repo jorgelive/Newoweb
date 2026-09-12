@@ -11,6 +11,7 @@ use App\Pms\Enum\PmsUnidadMediaTipo;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
@@ -98,6 +99,14 @@ class PmsUnidadMedia
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
     #[Assert\PositiveOrZero]
     private int $orden = 0;
+
+    public function __construct()
+    {
+        // El id se asigna aquí, como en el resto de entidades del módulo: `IdTrait` declara la
+        // columna pero no genera el valor, y sin esto `persist()` revienta con «missing an
+        // assigned ID».
+        $this->id = Uuid::v7();
+    }
 
     /** PROPIEDAD VIRTUAL: la rellena el listener de Liip para la vista previa del panel. */
     private ?string $imageUrl = null;
