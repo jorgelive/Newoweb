@@ -5255,6 +5255,23 @@ const eliminarDocumento = async (iri?: string) => {
             <i class="fas fa-info-circle"></i> El archivo no se puede reemplazar aquí. Elimina y sube uno nuevo si necesitas cambiarlo.
           </div>
 
+          <!-- ⚠️ **El TIPO va antes que el NOMBRE, y el orden ES el arreglo.**
+               El nombre depende del tipo: su marcador de posición y el aviso de «si lo dejas
+               vacío se llamará…» los decide el tipo elegido. Debajo, el formulario pedía
+               rellenar un campo cuya ayuda todavía no se podía leer. Y en un escaneo de
+               identidad el nombre ni siquiera se pide, así que el primer campo obligatorio de
+               verdad es el tipo. -->
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tipo de archivo *</label>
+            <select v-model="docForm.tipoArchivo" required class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-sky-500">
+              <option v-for="(label, valor) in ARCHIVO_TIPO_LABELS" :key="valor" :value="valor">{{ label }}</option>
+            </select>
+            <!-- Aquí hubo un «Vencimiento (Opcional)» que decía «útil para alertar sobre Pasaportes
+                 o Visas vencidas»: un campo de IDENTIDAD en una entidad de ARCHIVOS. Nadie lo llenó
+                 nunca —0 de 7 filas en producción— y el vencimiento de un documento de identidad va
+                 en el pasajero, no en un adjunto del expediente. -->
+          </div>
+
           <div>
             <div class="flex items-center justify-between mb-1">
               <label class="block text-[10px] font-bold text-slate-500 uppercase">
@@ -5281,17 +5298,6 @@ const eliminarDocumento = async (iri?: string) => {
                   : 'Se traduce automáticamente; las traducciones existentes se conservan.' }}
               </template>
             </p>
-          </div>
-
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tipo de archivo *</label>
-            <select v-model="docForm.tipoArchivo" required class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-sky-500">
-              <option v-for="(label, valor) in ARCHIVO_TIPO_LABELS" :key="valor" :value="valor">{{ label }}</option>
-            </select>
-            <!-- Aquí hubo un «Vencimiento (Opcional)» que decía «útil para alertar sobre Pasaportes
-                 o Visas vencidas»: un campo de IDENTIDAD en una entidad de ARCHIVOS. Nadie lo llenó
-                 nunca —0 de 7 filas en producción— y el vencimiento de un documento de identidad va
-                 en el pasajero, no en un adjunto del expediente. -->
           </div>
 
           <!-- ── DE QUIÉN ES ────────────────────────────────────────────────
