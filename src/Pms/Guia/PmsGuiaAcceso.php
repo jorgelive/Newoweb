@@ -48,7 +48,11 @@ final readonly class PmsGuiaAcceso
      * tiene que salir con la ventana ya abierta. Viven en sitios distintos —esto es código, la
      * regla es una fila de `msg_rule`— y por eso se dice aquí.
      */
-    private const HORAS_ANTICIPACION = 30;
+    /**
+     * Pública para que `app:pms:verificar-ventana-guia` pueda compararla con el offset de la regla
+     * del recordatorio, que es la otra mitad de esta invariante y vive en base de datos.
+     */
+    public const int HORAS_ANTICIPACION = 30;
 
     public function __construct(
         public PmsGuiaAccesoEstado $estado,

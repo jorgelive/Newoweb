@@ -302,6 +302,25 @@ Los dos primeros son nuevos y arreglan una fuga real. Ver §6.
 
 ---
 
+### 🔒 La ventana vive en un sitio, pero tiene una mitad en base de datos
+
+`PmsGuiaAcceso::HORAS_ANTICIPACION` (30 h) es **la única constante**: las demás menciones del
+código son docblocks que apuntan a ella, no copias.
+
+⚠️ **Pero la invariante tiene dos mitades y sólo una es código.** El recordatorio de llegada sale
+de una fila de `msg_rule` (`Guia de llegada`, hito `start`, offset `−1800` min), editable desde el
+panel. Hoy coinciden —30 h y 30 h—, y nada lo impone.
+
+Ya se separaron una vez: hasta el 11/09/2026 la ventana era de 24 h y el recordatorio salía a 30,
+así que **durante seis horas el mensaje mandaba al huésped a un candado**, el día en que más busca
+esos datos.
+
+`app:pms:verificar-ventana-guia` lo comprueba y devuelve código ≠ 0 si alguna regla activa sobre
+`start` se adelanta a la ventana. No compara igualdad —una regla que sale *después* no molesta—,
+comprueba lo que de verdad importa: que ningún mensaje mande a la guía antes de que abra. No
+arregla: cuál de los dos números mover es decisión de producto, y ya se tomó una vez en cada
+sentido.
+
 ## 3.b 🔥 Un dato que DEBE salir no puede vivir en un ítem de guía
 
 Los teléfonos de atención estaban escritos dentro del texto del ítem «Horario solicitudes
