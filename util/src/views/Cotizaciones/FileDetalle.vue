@@ -17,7 +17,7 @@ import { formatearTelefono } from '@/utils/telefono';
 import { formatoAHtml } from '@/utils/formatoDeTexto';
 import PlanOperacionModal from '@/components/operacion/PlanOperacionModal.vue';
 import { apiClient } from '@/services/apiClient';
-import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
+import { useCotizacionFileStore, type VeredictoDeDocumento } from '@/stores/cotizacion/fileStore';
 import { getUrls } from '@/services/apiClient';
 import { ESTADO_FILE_LABELS } from '@/types/cotizacionEditorModel';
 
@@ -2109,16 +2109,52 @@ const sePuedeConfirmar = (ident: { copiadaDelEscaneo?: boolean; estadoValidacion
 
 const confirmando = ref<string | null>(null);
 
-/** Firma ese documento y recarga: el sello lo escribe la revalidación, no esta pantalla. */
-const confirmarDocumento = async (ident: { id?: string | number | null }) => {
-    const id = String(extractIdStr(ident.id));
+/**
+ * Escribe los veredictos que acaba de devolver el servidor sobre los que hay pintados.
+ *
+ * 🔥 **La alternativa era recargar el expediente entero**, y eso es lo que se hacía: 717 KB de
+ * media y hasta 4,3 MB para cambiar una pastilla. Se notaba — pulsabas y el cambio aparecía
+ * cuando acababa de recargarse la página, con la franja de «actualizando» por medio.
+ *
+ * ⚠️ **Se parchea campo a campo, no se reemplaza el objeto.** Lo que llega es un JSON plano y lo
+ * pintado viene de API Platform con su `@id` y sus relaciones: sustituirlo dejaría la fila sin la
+ * mitad de lo que la plantilla lee, y el fallo saldría en otro sitio.
+ *
+ * ⚠️ Si aparece una identificación que no estaba —validar puede crear la del DNI a partir del
+ * escaneo— sí toca recargar: no hay dónde parchearla.
+ */
+const aplicarVeredictos = async (pax: ApiCotizacionFilepasajero, veredictos: VeredictoDeDocumento[]) => {
+    const actuales = pax.identificaciones ?? [];
+
+    if (veredictos.length !== actuales.length) { await cargarFile(); return; }
+
+    for (const v of veredictos) {
+        const fila = actuales.find(i => String(extractIdStr(i.id)) === v.id);
+        if (!fila) { await cargarFile(); return; }
+
+        // ⚠️ El cast es por los `readonly` del esquema, y son correctos: describen que esos campos
+        // no se MANDAN a la API —los escribe el validador del servidor— no que este objeto sea
+        // inmutable. Aquí se está copiando encima lo que ese mismo servidor acaba de devolver, que
+        // es la única fuente que puede escribirlos.
+        const escribible = fila as unknown as Pick<VeredictoDeDocumento,
+            'estadoValidacion' | 'discrepancias' | 'notasValidacion' | 'copiadaDelEscaneo'>;
+
+        escribible.estadoValidacion = v.estadoValidacion;
+        escribible.discrepancias = v.discrepancias;
+        escribible.notasValidacion = v.notasValidacion;
+        escribible.copiadaDelEscaneo = v.copiadaDelEscaneo;
+    }
+};
+
+/** Firma ese documento. El sello lo escribe la revalidación del servidor, no esta pantalla. */
+const confirmarDocumento = async (pax: ApiCotizacionFilepasajero, ident: { id?: string | number | null }) => {
     confirmando.value = String(ident.id);
-    const ok = await fileStore.confirmarIdentificacion(id);
+    const veredictos = await fileStore.confirmarIdentificacion(String(extractIdStr(ident.id)));
     confirmando.value = null;
 
-    if (!ok) { alert(fileStore.error || 'No se pudo confirmar ese documento.'); return; }
+    if (!veredictos) { alert(fileStore.error || 'No se pudo confirmar ese documento.'); return; }
 
-    await cargarFile();
+    await aplicarVeredictos(pax, veredictos);
 };
 
 /** Cuántas piden que alguien decida. Es el número que va en el botón. */
@@ -2229,12 +2265,13 @@ const revalidando = ref<string | null>(null);
  */
 const revalidarPax = async (pax: ApiCotizacionFilepasajero) => {
     revalidando.value = String(pax.id);
-    const ok = await fileStore.revalidarPasajero(String(extractIdStr(pax.id ?? pax['@id'])));
+    const veredictos = await fileStore.revalidarPasajero(String(extractIdStr(pax.id ?? pax['@id'])));
     revalidando.value = null;
 
-    if (!ok) { alert(fileStore.error || 'No se pudo reprocesar.'); return; }
+    if (!veredictos) { alert(fileStore.error || 'No se pudo reprocesar.'); return; }
 
-    await cargarFile();
+    // ⚠️ Tenía el mismo problema que confirmar: reprocesar a UNA persona se traía las 132.
+    await aplicarVeredictos(pax, veredictos);
 };
 
 /**
@@ -3896,7 +3933,7 @@ const eliminarDocumento = async (iri?: string) => {
                              confirmar: es un clic de más que enseña a dar clics de más. -->
                         <button v-if="sePuedeConfirmar(ident)" type="button"
                                 :disabled="confirmando === String(ident.id)"
-                                @click="confirmarDocumento(ident)"
+                                @click="confirmarDocumento(pax, ident)"
                                 class="ml-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-teal-300 bg-teal-50 text-teal-700 font-black uppercase tracking-wider hover:bg-teal-100 disabled:opacity-50">
                           <i class="fas fa-user-check text-[8px]"></i>
                           {{ confirmando === String(ident.id) ? 'Confirmando…' : 'Lo he mirado, está bien' }}

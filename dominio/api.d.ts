@@ -15461,6 +15461,11 @@ export interface components {
             /** Format: date-time */
             readonly validadoEn?: string | null;
             /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
+            /**
              * Format: date-time
              * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
              */
@@ -15501,6 +15506,11 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
             /**
              * Format: date-time
              * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
@@ -15546,6 +15556,11 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
             /**
              * Format: date-time
              * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
@@ -15709,6 +15724,11 @@ export interface components {
             /** Format: date-time */
             readonly validadoEn?: string | null;
             /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
+            /**
              * Format: date-time
              * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
              */
@@ -15749,6 +15769,11 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
             /**
              * Format: date-time
              * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
@@ -15794,6 +15819,11 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
             /**
              * Format: date-time
              * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
@@ -15936,6 +15966,11 @@ export interface components {
             /** Format: date-time */
             readonly validadoEn?: string | null;
             /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
+            /**
              * Format: date-time
              * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
              */
@@ -15976,6 +16011,11 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
             /**
              * Format: date-time
              * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
@@ -16021,6 +16061,11 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
             /**
              * Format: date-time
              * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
@@ -16163,6 +16208,11 @@ export interface components {
             /** Format: date-time */
             readonly validadoEn?: string | null;
             /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
+            /**
              * Format: date-time
              * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
              */
@@ -16203,6 +16253,11 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
             /**
              * Format: date-time
              * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
@@ -16248,6 +16303,11 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * @description ¿Se creó COPIANDO un escaneo, en vez de haberla tecleado alguien?
+             * @default false
+             */
+            readonly copiadaDelEscaneo: boolean;
             /**
              * Format: date-time
              * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.

@@ -2082,6 +2082,27 @@ Cómo se comporta:
 - `estaResuelto()` lo incluye, o la siguiente tanda lo devolvería a `OBSERVADO` y la firma duraría
   hasta la próxima pasada.
 
+##### Y reprocesar a una persona se traía las 132 (12/09/2026)
+
+Los endpoints de reprocesar y confirmar devolvían **sólo un conteo**, así que la pantalla no tenía
+con qué repintar y pedía el expediente completo: 717 KB de media, hasta 4,3 MB, con picos de 8 s de
+servidor — para cambiar una pastilla. Se veía tal cual: pulsabas, no pasaba nada, y la validación
+aparecía cuando terminaba de recargarse toda la página, con la franja de «actualizando» por medio.
+
+`DocumentosSueltosController::veredictosDe()` devuelve ahora los veredictos de esa persona y el
+front los escribe encima de los pintados (`aplicarVeredictos()` en `FileDetalle.vue`). El cambio se
+ve al instante y no se descarga nada más.
+
+| Detalle | Por qué |
+|---|---|
+| Devuelve **todas** las identificaciones de la persona, no la tocada | validar puede **crear** alguna (`adoptarEscaneosSinFicha()`), y devolviendo una sola esas no aparecerían hasta la siguiente recarga |
+| Se parchea **campo a campo**, no se reemplaza el objeto | lo que llega es JSON plano y lo pintado viene de API Platform con su `@id`; sustituirlo dejaría la fila sin la mitad de lo que lee la plantilla |
+| Si el número de filas no cuadra, **sí** recarga | apareció una identificación nueva y no hay dónde parchearla |
+
+⚠️ El cast de `readonly` en `aplicarVeredictos()` está comentado en el sitio y es legítimo: esos
+campos son de sólo lectura **hacia la API** —los escribe el validador del servidor—, no inmutables
+en el estado local, y lo que se copia encima es la respuesta de ese mismo servidor.
+
 ⚠️ **La migración se escribió A MANO.** `doctrine:migrations:diff` para estas dos columnas generó
 además `DROP TABLE energia_dispositivo`, `energia_lectura`, `energia_suscripcion` y cambios en
 `pms_establecimiento` y `pms_unidad`: el desfase entero entre la base local y la de producción,

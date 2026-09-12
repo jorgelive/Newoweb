@@ -118,7 +118,44 @@ final class DocumentosSueltosController extends AbstractController
             return new JsonResponse(['error' => 'No encontré a esa persona.'], Response::HTTP_NOT_FOUND);
         }
 
-        return new JsonResponse(['conteo' => $validador->validarPasajero($pasajero)]);
+        $conteo = $validador->validarPasajero($pasajero);
+
+        return new JsonResponse(['conteo' => $conteo, 'identificaciones' => self::veredictosDe($pasajero)]);
+    }
+
+    /**
+     * Los veredictos de esa persona, para que la pantalla los pinte **sin recargar el expediente**.
+     *
+     * 🔥 **Reprocesar a una persona costaba traerse las 132.** El endpoint sólo devolvía un conteo,
+     * así que el front no tenía con qué repintar y recargaba el expediente entero: 717 KB de media
+     * y hasta 4,3 MB, con picos de 8 s de servidor — para cambiar una pastilla. Se veía: pulsabas,
+     * no pasaba nada, y la validación aparecía cuando terminaba de recargarse toda la página.
+     *
+     * ⚠️ Se devuelven **todas** las de la persona, no sólo la tocada: validar a alguien puede
+     * crear identificaciones nuevas ({@see ValidadorDeManifiesto::adoptarEscaneosSinFicha()}), y
+     * devolviendo sólo una, ésas no aparecerían hasta la siguiente recarga.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function veredictosDe(CotizacionFilepasajero $pasajero): array
+    {
+        $filas = [];
+        foreach ($pasajero->getIdentificaciones() as $i) {
+            $filas[] = [
+                'id' => (string) $i->getId(),
+                'tipo' => $i->getTipo()?->value,
+                'numero' => $i->getNumero(),
+                'vencimiento' => $i->getVencimiento()?->format('Y-m-d'),
+                'estadoValidacion' => $i->getEstadoValidacion()->value,
+                'discrepancias' => $i->getDiscrepancias(),
+                'notasValidacion' => $i->getNotasValidacion(),
+                'copiadaDelEscaneo' => $i->isCopiadaDelEscaneo(),
+                'confirmadaEn' => $i->getConfirmadaEn()?->format(DATE_ATOM),
+                'confirmadaPor' => $i->getConfirmadaPor(),
+            ];
+        }
+
+        return $filas;
     }
 
     /**
@@ -161,7 +198,9 @@ final class DocumentosSueltosController extends AbstractController
         $identificacion->confirmarAMano($this->getUser()?->getUserIdentifier() ?? 'desconocido');
         $em->flush();
 
-        return new JsonResponse(['conteo' => $validador->validarPasajero($pasajero)]);
+        $conteo = $validador->validarPasajero($pasajero);
+
+        return new JsonResponse(['conteo' => $conteo, 'identificaciones' => self::veredictosDe($pasajero)]);
     }
 
     /**

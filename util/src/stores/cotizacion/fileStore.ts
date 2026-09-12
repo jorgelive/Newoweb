@@ -36,6 +36,28 @@ export interface PasajeroPayload {
     file?: string;
 }
 
+/**
+ * El veredicto de UN documento tras validarlo, tal como lo devuelven los endpoints de reprocesar y
+ * confirmar. Espejo de `DocumentosSueltosController::veredictosDe()`.
+ *
+ * 🔥 **Existe para no recargar el expediente entero por una pastilla.** Esos endpoints devolvían
+ * sólo un conteo, así que la pantalla no tenía con qué repintar y pedía el expediente completo
+ * —717 KB de media, hasta 4,3 MB—: pulsabas y el cambio aparecía cuando terminaba de recargarse
+ * toda la página.
+ */
+export interface VeredictoDeDocumento {
+    id: string;
+    tipo: string | null;
+    numero: string | null;
+    vencimiento: string | null;
+    estadoValidacion: string;
+    discrepancias: Array<{ campo: string; documento: string; manifiesto: string }>;
+    notasValidacion: string[];
+    copiadaDelEscaneo: boolean;
+    confirmadaEn: string | null;
+    confirmadaPor: string | null;
+}
+
 export interface ApiIdioma {
     id: string;         // código de idioma: 'es', 'en', 'pt'...
     nombre: string;
@@ -829,14 +851,15 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * Reprocesa a una sola persona. **No relee el documento** —la lectura está cacheada—, así que
      * cuesta cero: coteja lo que ya se leyó contra lo que hay guardado AHORA.
      */
-    const revalidarPasajero = async (pasajeroId: string): Promise<boolean> => {
+    const revalidarPasajero = async (pasajeroId: string): Promise<VeredictoDeDocumento[] | null> => {
         error.value = null;
         try {
-            await apiClient.post(`/cotizacion/user/manifiesto/pasajero/${pasajeroId}/revalidar`, {});
-            return true;
+            const { data } = await apiClient.post(
+                `/cotizacion/user/manifiesto/pasajero/${pasajeroId}/revalidar`, {});
+            return (data?.identificaciones ?? []) as VeredictoDeDocumento[];
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'No se pudo reprocesar a esa persona.');
-            return false;
+            return null;
         }
     };
 
@@ -850,14 +873,15 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * ⚠️ Va por IDENTIFICACIÓN, no por persona: alguien puede tener el pasaporte mirado y el DNI
      * no, y confirmar «a la persona» sellaría de paso documentos que nadie ha abierto.
      */
-    const confirmarIdentificacion = async (identificacionId: string): Promise<boolean> => {
+    const confirmarIdentificacion = async (identificacionId: string): Promise<VeredictoDeDocumento[] | null> => {
         error.value = null;
         try {
-            await apiClient.post(`/cotizacion/user/manifiesto/identificacion/${identificacionId}/confirmar`, {});
-            return true;
+            const { data } = await apiClient.post(
+                `/cotizacion/user/manifiesto/identificacion/${identificacionId}/confirmar`, {});
+            return (data?.identificaciones ?? []) as VeredictoDeDocumento[];
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'No se pudo confirmar ese documento.');
-            return false;
+            return null;
         }
     };
 
