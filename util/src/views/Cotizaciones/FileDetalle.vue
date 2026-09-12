@@ -3491,7 +3491,7 @@ const eliminarDocumento = async (iri?: string) => {
                  UNA cosa, y el rótulo ya le dice si está en la que busca. -->
             <div class="mb-8 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
               <button type="button" @click="manifiestoAbierto = !manifiestoAbierto"
-                      class="w-full flex items-center justify-between gap-3 mb-4 text-left group">
+                      class="w-full flex items-center justify-between gap-3 border-b border-slate-200 pb-3 mb-4 text-left group">
                 <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
                   <i class="fas fa-users mr-2 text-teal-500"></i> Manifiesto
                   <span class="text-slate-300 font-bold normal-case tracking-normal ml-1">{{ resumenManifiesto }}</span>
@@ -3899,7 +3899,7 @@ const eliminarDocumento = async (iri?: string) => {
             <!-- El itinerario del viaje. Se consulta, no se edita: se carga abajo. -->
             <div class="mb-8 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
               <button type="button" @click="vuelosAbiertos = !vuelosAbiertos"
-                      class="w-full flex items-center justify-between gap-3 mb-4 text-left group">
+                      class="w-full flex items-center justify-between gap-3 border-b border-slate-200 pb-3 mb-4 text-left group">
                 <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
                   <i class="fas fa-plane-departure mr-2 text-teal-500"></i> Vuelos
                   <span class="text-slate-300 font-bold normal-case tracking-normal ml-1">{{ resumenVuelos }}</span>
@@ -4059,7 +4059,7 @@ const eliminarDocumento = async (iri?: string) => {
                  diario. -->
             <div v-if="file.usaPadron" class="mb-8 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
               <button type="button" @click="subgruposAbiertos = !subgruposAbiertos"
-                      class="w-full flex items-center justify-between gap-3 mb-4 text-left group">
+                      class="w-full flex items-center justify-between gap-3 border-b border-slate-200 pb-3 mb-4 text-left group">
                 <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
                   <i class="fas fa-layer-group mr-2 text-teal-500"></i> Subgrupos
                   <span class="text-slate-300 font-bold normal-case tracking-normal ml-1">{{ resumenSubgrupos }}</span>
@@ -4227,7 +4227,7 @@ const eliminarDocumento = async (iri?: string) => {
                  es el andamio: se usa al montar el expediente, no al consultarlo. -->
             <div class="mb-8 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
               <button type="button" @click="cargaAbierta = !cargaAbierta"
-                      class="w-full flex items-center justify-between gap-3 mb-4 text-left group">
+                      class="w-full flex items-center justify-between gap-3 border-b border-slate-200 pb-3 mb-4 text-left group">
                 <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
                   <i class="fas fa-file-import mr-2 text-teal-500"></i> Cargar datos
                   <span class="text-slate-300 font-bold normal-case tracking-normal ml-1">{{ resumenCarga }}</span>
@@ -4349,7 +4349,7 @@ const eliminarDocumento = async (iri?: string) => {
 
           <div>
           </div>
-            <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4"><i class="fas fa-code-branch mr-2 text-[#E07845]"></i> Historial de Propuestas</h2>
+            <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-200 pb-3 mb-4"><i class="fas fa-code-branch mr-2 text-[#E07845]"></i> Historial de Propuestas</h2>
 
             <!-- ⚠️ QUIÉN SE QUEDA FUERA al partir el grupo.
                  Va arriba y sin plegar a propósito: es un aviso sobre gente que NO puede
