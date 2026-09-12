@@ -259,7 +259,7 @@ final class PmsGuiaInterpolador
      * cargado. Sin esta lista, una unidad sin `codigoCaja` filtraría el
      * placeholder crudo en lugar del mensaje de bloqueo.
      */
-    private const CLAVES_SENSIBLES = ['door_code', 'numero', 'safe_code', 'keybox_main', 'keybox_sec'];
+    private const CLAVES_SENSIBLES = ['door_code', 'numero', 'codigo_caja_casita', 'codigo_caja_llaves', 'codigo_caja_dinero'];
 
     /**
      * Los medios de la casita y si cada uno es vídeo. Salen de `PmsUnidadMedia` y del

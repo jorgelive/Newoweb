@@ -104,17 +104,22 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
         // ============================================================
         yield FormField::addPanel('Seguridad y Accesos (Edificio)')
             ->setIcon('fa fa-key')
-            ->setHelp('Códigos generales para entrar al establecimiento (Portón, Recepción, Almacén de Llaves).');
+            ->setHelp('Las dos cajas fuertes del pasaje. <strong>Cada una se llama por lo que '
+                . 'guarda</strong>: se llamaban «principal» y «secundaria», y esos nombres no '
+                . 'dicen cuál abre qué.');
 
-        yield TextField::new('codigoCajaPrincipal', 'Caja Fuerte / Portón (Principal)')
+        yield TextField::new('codigoCajaLlaves', 'Código de la caja de las LLAVES (la de abajo)')
             ->setColumns(6)
             ->hideOnIndex()
-            ->setHelp('Variable para guías: <b>{caja_principal}</b>');
+            ->setHelp('La que abre el huésped al llegar. En la guía: '
+                . '<code>{{ codigo_caja_llaves }}</code>.');
 
-        yield TextField::new('codigoCajaSecundaria', 'Caja Secundaria / Almacén')
+        yield TextField::new('codigoCajaDinero', 'Código de la caja del DINERO (la de arriba)')
             ->setColumns(6)
             ->hideOnIndex()
-            ->setHelp('Variable para guías: <b>{caja_secundaria}</b>');
+            ->setHelp('Donde el huésped deja un pago en efectivo. <strong>No sale en la guía</strong>: '
+                . 'se lo manda un operador con la plantilla, que usa '
+                . '<code>{{ codigo_caja_dinero }}</code>.');
 
         // 🎥 Los medios de las cajas fuertes NO están aquí: viven en «Medios del establecimiento»
         // ({@see PmsEstablecimientoMediaCrudController}).

@@ -123,9 +123,9 @@ final readonly class PmsGuiaContexto
             // identifica su puerta en su croquis.
             'door_code'    => $unidad->getCodigoPuerta(),
             'numero'       => $unidad->getNumero() !== null ? (string) $unidad->getNumero() : null,
-            'safe_code'   => $unidad->getCodigoCaja(),
-            'keybox_main' => $establecimiento?->getCodigoCajaPrincipal(),
-            'keybox_sec'  => $establecimiento?->getCodigoCajaSecundaria(),
+            'codigo_caja_casita'   => $unidad->getCodigoCajaCasita(),
+            'codigo_caja_llaves' => $establecimiento?->getCodigoCajaLlaves(),
+            'codigo_caja_dinero'  => $establecimiento?->getCodigoCajaDinero(),
         ], static fn (?string $v): bool => null !== $v && '' !== $v);
 
         return new self($valores, $sensibles, $unidad->getWifiNetworks(), $medios);

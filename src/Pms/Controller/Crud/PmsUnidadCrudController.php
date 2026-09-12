@@ -186,11 +186,12 @@ final class PmsUnidadCrudController extends BaseCrudController
                 . '<code>{{ door_code }}</code>. <strong>Hoy va vacío</strong>: lo que hay que '
                 . 'rellenar es el número de la llave, al lado.');
 
-        yield TextField::new('codigoCaja', 'Caja Fuerte')
+        yield TextField::new('codigoCajaCasita', 'Código de la caja fuerte DENTRO de la casita')
             ->hideOnIndex()
             ->setColumns(6)
-            ->setHelp('En la guía: <code>{{ safe_code }}</code>. Mismo trato que el de la '
-                . 'puerta: sólo dentro de la ventana.');
+            ->setHelp('La del interior del departamento, no las dos del pasaje. En la guía: '
+                . '<code>{{ codigo_caja_casita }}</code>. Mismo trato que el de la puerta: sólo '
+                . 'dentro de la ventana.');
 
         // ---------------------------------------------------------------------
         // PANEL: WIFI & TRADUCCIONES (Oculto en Index)

@@ -133,7 +133,7 @@ class PmsUnidad
     private Collection $medios;
 
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
-    private ?string $codigoCaja = null;
+    private ?string $codigoCajaCasita = null;
 
     /**
      * Almacena múltiples redes WiFi.
@@ -459,14 +459,14 @@ class PmsUnidad
         return $this;
     }
 
-    public function getCodigoCaja(): ?string
+    public function getCodigoCajaCasita(): ?string
     {
-        return $this->codigoCaja;
+        return $this->codigoCajaCasita;
     }
 
-    public function setCodigoCaja(?string $codigoCaja): self
+    public function setCodigoCajaCasita(?string $codigoCajaCasita): self
     {
-        $this->codigoCaja = $codigoCaja;
+        $this->codigoCajaCasita = $codigoCajaCasita;
         return $this;
     }
 

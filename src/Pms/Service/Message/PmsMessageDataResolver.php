@@ -95,15 +95,15 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         //
         // Sin ellos no se puede escribir la plantilla del dinero: decirle a alguien que deje un
         // pago en una caja sin darle el código es no decirle nada. El de las llaves ya sale en la
-        // guía (`{{ keybox_main }}`); el de la otra caja **no lo usaba nadie**.
+        // guía (`{{ codigo_caja_llaves }}`); el de la otra caja **no lo usaba nadie**.
         //
         // ⚠️ Van con el nombre de lo que son —llaves y dinero—, no «principal» y «secundaria».
         // Un nombre que no dice qué abre es el patrón del `{{ door_code }}` que acabó anunciando
         // «el código de la puerta es #5». La correspondencia es la del ítem «Llaves (general)»:
         // las llaves están en la caja de abajo y su código es el principal.
         $salida = [
-            'codigo_caja_llaves' => (string) ($establecimiento?->getCodigoCajaPrincipal() ?? ''),
-            'codigo_caja_dinero' => (string) ($establecimiento?->getCodigoCajaSecundaria() ?? ''),
+            'codigo_caja_llaves' => (string) ($establecimiento?->getCodigoCajaLlaves() ?? ''),
+            'codigo_caja_dinero' => (string) ($establecimiento?->getCodigoCajaDinero() ?? ''),
         ];
 
         foreach (PmsEstablecimientoMediaTipo::cases() as $tipo) {

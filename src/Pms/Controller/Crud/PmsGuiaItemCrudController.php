@@ -501,9 +501,9 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                 <strong>Datos protegidos — solo dentro de la ventana</strong>
                 <div style="margin:6px 0 12px;">
                     <code>{{ door_code }}</code>
-                    <code>{{ safe_code }}</code>
-                    <code>{{ keybox_main }}</code>
-                    <code>{{ keybox_sec }}</code>
+                    <code>{{ codigo_caja_casita }}</code>
+                    <code>{{ codigo_caja_llaves }}</code>
+                    <code>{{ codigo_caja_dinero }}</code>
                     <div class="text-muted" style="margin-top:4px;">
                         Fuera de la ventana se sustituyen por «Disponible el …» / «Disponible al
                         confirmar». El valor real no sale del servidor.

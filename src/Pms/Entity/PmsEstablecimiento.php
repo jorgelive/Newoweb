@@ -125,7 +125,7 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     // ============================================================
 
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
-    private ?string $codigoCajaPrincipal = null;
+    private ?string $codigoCajaLlaves = null;
 
     /**
      * El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca.
@@ -144,7 +144,7 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     private ?string $telefonoAtencion = null;
 
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
-    private ?string $codigoCajaSecundaria = null;
+    private ?string $codigoCajaDinero = null;
 
     /**
      * Los medios del EDIFICIO: las dos cajas fuertes del pasaje.
@@ -246,7 +246,7 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
 
     // Datos de contacto comercial: alimentan el botón de consulta del catálogo.
     // Son públicos por naturaleza (están en la web y en las OTA), a diferencia
-    // de codigoCajaPrincipal/Secundaria, que no tienen grupo ninguno.
+    // de codigoCajaLlaves/codigoCajaDinero, que no tienen grupo ninguno.
     #[Groups(['pax_catalogo:read'])]
     public function getTelefonoPrincipal(): ?string { return $this->telefonoPrincipal; }
     public function setTelefonoPrincipal(?string $telefonoPrincipal): self { $this->telefonoPrincipal = $telefonoPrincipal; return $this; }
@@ -304,25 +304,25 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     public function setTelefonoAtencion(?string $telefono): self { $this->telefonoAtencion = $telefono; return $this; }
 
 
-    public function getCodigoCajaPrincipal(): ?string
+    public function getCodigoCajaLlaves(): ?string
     {
-        return $this->codigoCajaPrincipal;
+        return $this->codigoCajaLlaves;
     }
 
-    public function setCodigoCajaPrincipal(?string $codigoCajaPrincipal): self
+    public function setCodigoCajaLlaves(?string $codigoCajaLlaves): self
     {
-        $this->codigoCajaPrincipal = $codigoCajaPrincipal;
+        $this->codigoCajaLlaves = $codigoCajaLlaves;
         return $this;
     }
 
-    public function getCodigoCajaSecundaria(): ?string
+    public function getCodigoCajaDinero(): ?string
     {
-        return $this->codigoCajaSecundaria;
+        return $this->codigoCajaDinero;
     }
 
-    public function setCodigoCajaSecundaria(?string $codigoCajaSecundaria): self
+    public function setCodigoCajaDinero(?string $codigoCajaDinero): self
     {
-        $this->codigoCajaSecundaria = $codigoCajaSecundaria;
+        $this->codigoCajaDinero = $codigoCajaDinero;
         return $this;
     }
 

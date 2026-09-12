@@ -53,7 +53,7 @@ use Symfony\Component\Uid\Uuid;
  *
  * ### 💰 La caja del DINERO no sale nunca por aquí
  *
- * `PmsEstablecimiento::$codigoCajaSecundaria` es la caja de la recaudación, no la de las llaves.
+ * `PmsEstablecimiento::$codigoCajaDinero` es la caja de la recaudación, no la de las llaves.
  * No es contenido de huésped bajo ninguna condición: no aparece en esta skill ni con el actor
  * del equipo. Se consulta y se cambia con `cambiar_codigo_caja`, que exige rol de escritura.
  */
@@ -290,7 +290,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
         $codigos = [];
         $faltan = [];
 
-        $cajaLlaves = trim((string) $unidad->getEstablecimiento()?->getCodigoCajaPrincipal());
+        $cajaLlaves = trim((string) $unidad->getEstablecimiento()?->getCodigoCajaLlaves());
 
         if ($cajaLlaves !== '') {
             $codigos['caja_de_las_llaves'] = $cajaLlaves;
@@ -322,7 +322,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
         }
 
         // Alguna unidad tiene además su propia caja; la mayoría no.
-        $cajaUnidad = trim((string) $unidad->getCodigoCaja());
+        $cajaUnidad = trim((string) $unidad->getCodigoCajaCasita());
 
         if ($cajaUnidad !== '') {
             $codigos['caja_de_la_casita'] = $cajaUnidad;
@@ -411,7 +411,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
             );
         }
 
-        $codigo = trim((string) $establecimientos[0]->getCodigoCajaPrincipal());
+        $codigo = trim((string) $establecimientos[0]->getCodigoCajaLlaves());
 
         if ($codigo === '') {
             return SkillResult::ok([

@@ -28,7 +28,7 @@ use Doctrine\ORM\EntityManagerInterface;
  *
  * ### ⚠️ La principal la están usando ahora mismo
  *
- * Su código va en la guía (`{{ keybox_main }}`) y en los mensajes ya enviados. Cambiarlo mientras
+ * Su código va en la guía (`{{ codigo_caja_llaves }}`) y en los mensajes ya enviados. Cambiarlo mientras
  * hay gente alojada **los deja fuera**: el que recibió el código viejo por WhatsApp hace tres
  * días vuelve a las 23:00 y no entra. Por eso la previsualización dice cuántos huéspedes lo están
  * usando y quiénes son — el dato que decide si se cambia ahora o mañana.
@@ -145,8 +145,8 @@ final readonly class CambiarCodigoCajaSkill implements SkillInterface, SkillDomi
         $esPrincipal = $caja === 'principal';
 
         $actual = $esPrincipal
-            ? $establecimiento->getCodigoCajaPrincipal()
-            : $establecimiento->getCodigoCajaSecundaria();
+            ? $establecimiento->getCodigoCajaLlaves()
+            : $establecimiento->getCodigoCajaDinero();
 
         if (trim((string) $actual) === $codigo) {
             return SkillResult::ok([
@@ -178,8 +178,8 @@ final readonly class CambiarCodigoCajaSkill implements SkillInterface, SkillDomi
         }
 
         $esPrincipal
-            ? $establecimiento->setCodigoCajaPrincipal($codigo)
-            : $establecimiento->setCodigoCajaSecundaria($codigo);
+            ? $establecimiento->setCodigoCajaLlaves($codigo)
+            : $establecimiento->setCodigoCajaDinero($codigo);
 
         $this->em->flush();
 

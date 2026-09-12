@@ -321,7 +321,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         // tener su versión para el agente sin perder nada.
         //
         // Se enumeran dos claves a mano en vez de volcar `$contexto->valores`: ahí dentro
-        // también viven `door_code`, `safe_code` y `keybox_main` cuando la ventana está
+        // también viven `door_code`, `codigo_caja_casita` y `codigo_caja_llaves` cuando la ventana está
         // abierta, y un volcado es la forma clásica de que un día salgan sin querer.
         $base = array_filter([
             'casita' => $unidad->getNombre(),

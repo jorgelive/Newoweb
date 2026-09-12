@@ -28,6 +28,31 @@ las entidades `PmsGuia*` / `PmsUnidad` / `PmsEstablecimiento`, `src/Api/Controll
 
 ## 1. Vocabulario
 
+### 🔑 Las tres cajas fuertes, cada una por lo que guarda (12/09/2026)
+
+| dónde | qué guarda | marcador |
+|---|---|---|
+| pasaje, **abajo** | las llaves de la casita | `{{ codigo_caja_llaves }}` |
+| pasaje, **arriba** | la recaudación en efectivo | `{{ codigo_caja_dinero }}` |
+| dentro del departamento | lo del huésped | `{{ codigo_caja_casita }}` |
+
+⚠️ **Se llamaban `keybox_main`, `keybox_sec` y `safe_code`, y era peor que desordenado**:
+«principal» y «secundaria» no dicen cuál abre qué, y `keybox_sec` llamaba *caja de llaves* a la que
+guarda el dinero. Con tres cajas y mensajes que mandan a alguien a marcar un código, un nombre que
+no distingue es el patrón del `{{ door_code }}` que acabó anunciando «el código de la puerta es #5».
+
+La correspondencia **no se dedujo**: está escrita en `ConsultarCodigosSkill` —*«`codigoCajaSecundaria`
+es la caja de la recaudación, no la de las llaves»*— y el ítem «Llaves (general)» manda al huésped a
+la caja de abajo con el código principal todos los días, así que si estuviera cambiado nadie
+entraría.
+
+Salió barato porque `keybox_sec` y `safe_code` **no aparecían en ningún contenido**: lo único que se
+sustituyó de verdad fue `{{ keybox_main }}` en un ítem, en sus siete idiomas.
+
+⚠️ El de la caja del dinero **no sale en la guía**: viaja por plantilla, con
+`{{ codigo_caja_dinero }}`, que publica `PmsMessageDataResolver`. Hasta el 12/09/2026 no lo usaba
+absolutamente nadie.
+
 ### 🏷️ «Casita» en la pantalla, `unidad` en el código (12/09/2026)
 
 La entidad es `PmsUnidad` y así se llama **en todo el código, la API y `pax`**. Eso no cambia: es el
