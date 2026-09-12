@@ -517,6 +517,29 @@ Y aquí el modelo abarata el trabajo: **los vídeos son YouTube, así que al age
 El adjunto de verdad sólo lo necesitarían el croquis y la foto — y aun ésos pueden ir como enlace,
 porque el huésped ya recibe el enlace a su guía en el mismo mensaje.
 
+#### Hecho el 12/09/2026, y por qué no basta
+
+`resolverBloquesDelFront()` ya no borra `{{ img: }}` ni `{{ video: }}`: los entrega como **enlace
+absoluto**, con el host de `pax` por delante —el mismo que el huésped ya ve en el enlace de su
+guía— porque el interpolador da ruta y esto acaba en un WhatsApp. `{{ map: }}` y `{{ widget: }}`
+se siguen borrando: eso sí es maquetación. Y `{{ imgbloqueado: }}` / `{{ videobloqueado: }}`
+entregan su motivo en vez de desaparecer, porque *existe y todavía no toca* no es lo mismo que *no
+existe*.
+
+El radio es pequeño y está medido: **0 ítems** con `{{ img: }}` en línea, **1** con `{{ video: }}`
+y **7** con `{{ croquis }}` — los de las puertas.
+
+🔥 **Pero por sí solo esto no le entrega el croquis al agente en ninguno de los siete.** Los siete
+ítems tienen `agente_contenido`, y `cuerpoParaElAgente()` devuelve ese override **tal cual**: no
+pasa por el interpolador ni por `resolverBloquesDelFront()`, así que el cuerpo publicado —donde
+vive `{{ croquis }}`— no se llega a mirar. El paso 6 deja lista la tubería; lo que falta es que el
+texto del agente pueda pedir el medio.
+
+⚠️ **Y hay un problema de fondo más grande que el croquis: hoy un `agente_contenido` no puede
+referirse a NINGÚN dato.** Ni al número de la llave, ni al croquis, ni a nada. Escribirlo a mano en
+los siete overrides es poner un dato en dos sitios —el mismo patrón que causó el «el código de la
+puerta es #5»— y §3.b dice justo lo contrario. Decisión pendiente antes del paso 7.
+
 ### Qué pasa con lo que ya hay
 
 | hoy | después |

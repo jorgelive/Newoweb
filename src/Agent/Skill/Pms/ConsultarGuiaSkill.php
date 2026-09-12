@@ -25,6 +25,7 @@ use App\Agent\Service\EscaleraDeTemas;
 use App\Pms\Guia\PmsGuiaEstanciaResolver;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\String\UnicodeString;
 use Symfony\Component\Uid\Uuid;
 
@@ -107,6 +108,12 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         private PmsGuiaArbolFiltro $filtro,
         private PmsGuiaEstanciaResolver $estancias,
         private EscaleraDeTemas $escalera,
+        // El croquis y la foto de la puerta salen del interpolador como RUTA (`/carga/…`): la
+        // ruta pública es configuración y la guía web la resuelve contra su propio origen. Aquí
+        // no hay origen que valga —esto acaba en un WhatsApp—, así que se antepone el host que
+        // el huésped ya ve en el enlace de su guía.
+        #[Autowire('%pax_host_url%')]
+        private string $hostPax = '',
     ) {}
 
     public function nombre(): string
@@ -935,8 +942,13 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
      *   `guia.redesWifi`. Aquí no se resuelve porque la credencial es de la otra skill.
      * - **`{{ medios_pago }}`** → una remisión a `consultar_medios_pago`, por lo mismo: los
      *   números de cobro viven en el catálogo `FinMedioCobro`, no en el texto.
-     * - **`{{ img: … }}`, `{{ video: … }}`, `{{ map: … }}`, `{{ widget: … }}`** → se borran.
-     *   Son maquetación: una URL de imagen no ayuda a explicar cómo va la ducha.
+     * - **`{{ img: … }}`, `{{ video: … }}`** → se quedan, como enlace absoluto. Se borraban con
+     *   el argumento de que «una URL de imagen no ayuda a explicar cómo va la ducha», que era
+     *   cierto para la ducha: para una puerta que sólo se identifica en un plano, la imagen **es**
+     *   la respuesta. Sus variantes `…bloqueado` entregan el motivo, porque existir y no tocar
+     *   todavía no es lo mismo que no existir.
+     * - **`{{ map: … }}`, `{{ widget: … }}`** → se borran. Eso sí es maquetación: sin navegador
+     *   que los pinte no queda nada que contar.
      * - **Cualquier otra clave suelta** → se borra. Para el interpolador es una errata del
      *   editor que «tiene que verse en la revisión», pero al huésped no se le lee una errata.
      *
@@ -968,10 +980,54 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
             $texto
         );
 
+        // 🖼️ La imagen y el vídeo SE QUEDAN, en forma de enlace.
+        //
+        // Se borraban con el resto de la maquetación y el argumento era bueno para lo que había:
+        // «una URL de imagen no ayuda a explicar cómo va la ducha». Para una puerta que sólo se
+        // identifica en un plano, la imagen **es** la respuesta, y borrarla dejaba al agente
+        // describiendo con palabras algo que tenía dibujado al lado.
+        //
+        // El agente redacta TEXTO —no adjunta archivos—, así que el enlace es la única forma que
+        // tiene de entregarlo. Los vídeos ya son de YouTube y viajan tal cual.
+        $texto = (string) preg_replace_callback(
+            '/\{\{\s*(img|video)\s*:\s*(.*?)\s*\}\}/is',
+            fn (array $m): string => sprintf(
+                ' (%s que puedes enviarle: %s) ',
+                $m[1] === 'video' ? 'vídeo' : 'imagen',
+                $this->enlaceAbsoluto($m[2])
+            ),
+            $texto
+        );
+
+        // Bloqueado NO es lo mismo que inexistente: existe y todavía no toca. Si se borrara, el
+        // agente no sabría que hay un vídeo que enseñar cuando se abra la ventana, y respondería
+        // como si no existiera.
+        $texto = (string) preg_replace(
+            '/\{\{\s*(?:img|video)bloqueado\s*:\s*(.*?)\s*\}\}/is',
+            ' ($1) ',
+            $texto
+        );
+
         // Bloques con `:` (maquetación) y claves sueltas que nadie resolvió.
         $texto = (string) preg_replace('/\{\{\s*[a-z0-9_]+\s*:.*?\}\}/is', ' ', $texto);
 
         return (string) preg_replace('/\{\{\s*[a-z0-9_]+\s*\}\}/i', ' ', $texto);
+    }
+
+    /**
+     * La ruta de un medio, con host, para que sobreviva a salir de aquí.
+     *
+     * ⚠️ **Se antepone `pax_host_url`, no el del panel**, aunque los dos sirven el archivo: es el
+     * host que el huésped ya ve en el enlace de su guía, así que no le llega un dominio nuevo que
+     * no reconoce. Lo que ya viene absoluto —los YouTube— no se toca.
+     */
+    private function enlaceAbsoluto(string $valor): string
+    {
+        if ($valor === '' || preg_match('#^[a-z][a-z0-9+.-]*://#i', $valor) === 1) {
+            return $valor;
+        }
+
+        return rtrim($this->hostPax, '/') . '/' . ltrim($valor, '/');
     }
 
     /**
