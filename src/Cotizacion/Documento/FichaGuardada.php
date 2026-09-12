@@ -37,6 +37,11 @@ final readonly class FichaGuardada
         public ?string $nacionalidad = null,
         /** Ver `CotizacionPasajeroIdentificacion::isCopiadaDelEscaneo()`: no se coteja consigo misma. */
         public bool $copiadaDelEscaneo = false,
+        /**
+         * Una persona ya la miró y dijo que está bien. Es el único respaldo que puede tener una
+         * ficha copiada del escaneo, porque cotejarla sería compararla consigo misma.
+         */
+        public bool $confirmada = false,
     ) {}
 
     /**
@@ -61,6 +66,7 @@ final readonly class FichaGuardada
             // El id de `MaestroPais` ES el ISO-2, así que de este lado no hay nada que traducir.
             nacionalidad: $pasajero->getPais()?->getId(),
             copiadaDelEscaneo: $identificacion->isCopiadaDelEscaneo(),
+            confirmada: $identificacion->getConfirmadaEn() !== null,
         );
     }
 

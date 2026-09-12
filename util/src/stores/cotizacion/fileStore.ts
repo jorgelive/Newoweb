@@ -840,6 +840,27 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * «Lo he mirado y está bien»: el respaldo humano de una ficha que salió del propio escaneo.
+     *
+     * 🔥 Es la única salida que tiene: su número no se puede cotejar contra el escaneo del que
+     * salió, así que sin esto quedaba observada para siempre pidiendo una confirmación que no se
+     * podía dar en ninguna parte.
+     *
+     * ⚠️ Va por IDENTIFICACIÓN, no por persona: alguien puede tener el pasaporte mirado y el DNI
+     * no, y confirmar «a la persona» sellaría de paso documentos que nadie ha abierto.
+     */
+    const confirmarIdentificacion = async (identificacionId: string): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.post(`/cotizacion/user/manifiesto/identificacion/${identificacionId}/confirmar`, {});
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo confirmar ese documento.');
+            return false;
+        }
+    };
+
     const deleteDocument = async (iri: string): Promise<boolean> => {
         try {
             await apiClient.delete(iri);
@@ -928,6 +949,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         resolverDocumento,
         girarDocumento,
         revalidarPasajero,
+        confirmarIdentificacion,
         cloneCotizacion,
         guardarHistorico,
         abrirOperativa,

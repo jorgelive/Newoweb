@@ -141,6 +141,11 @@ final readonly class Cotejo
         // torcido. Ahora lo lee la pantalla de `datos_leidos`, escaneo por escaneo.
         $informativas = [];
 
+        // Una ficha copiada del escaneo no se puede cotejar, pero sí la puede respaldar alguien que
+        // haya mirado el documento. Va DESPUÉS de los otros dos: si hay respaldo de máquina, ése
+        // manda, y el sello tiene que decir de dónde salió.
+        $confirmada = $guardado?->confirmada === true;
+
         if ($discrepancias === [] && $notas === []) {
             if ($verificado) {
                 return new self(ValidacionIdentificacionEnum::VALIDADO_MRZ, [], $informativas);
@@ -149,9 +154,13 @@ final readonly class Cotejo
             if ($cotejable) {
                 return new self(ValidacionIdentificacionEnum::VALIDADO_OCR, [], $informativas);
             }
+
+            if ($confirmada) {
+                return new self(ValidacionIdentificacionEnum::CONFIRMADO, [], $informativas);
+            }
         }
 
-        if (!$verificado && !$cotejable) {
+        if (!$verificado && !$cotejable && !$confirmada) {
             $notas[] = match (true) {
                 $guardado === null => 'el archivo no está asignado a ninguna persona del manifiesto',
                 $guardado->copiadaDelEscaneo => 'esta ficha se creó copiando el escaneo: hace falta que alguien la confirme',
@@ -175,7 +184,7 @@ final readonly class Cotejo
         // contradiciéndose en la misma tarjeta. Y a un DNI le pedía «revisa la calidad del
         // escaneo» mandando a rehacer una foto impecable, porque la banda se buscaba en el
         // anverso. El aviso ahora dice **qué falta**, no de quién es la culpa.
-        if (!$verificado && !$cotejable && $discrepancias === []
+        if (!$verificado && !$cotejable && !$confirmada && $discrepancias === []
             && in_array($leido->tipo, [DocumentoTipoEnum::PASAPORTE, DocumentoTipoEnum::DNI], true)) {
             $notas[] = match (true) {
                 $leido->tipo !== DocumentoTipoEnum::DNI => 'no se pudo leer la banda MRZ del escaneo',

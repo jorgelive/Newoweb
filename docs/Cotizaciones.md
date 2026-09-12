@@ -2035,6 +2035,58 @@ que `Cotejo::de()` recibe `faltaLaOtraCara` para poder separarlos:
 ⚠️ Sin ese booleano el aviso tenía que decir las dos cosas a la vez —«comprueba que esté subido y
 legible»— y no servía para ninguna: mandaba a buscar algo que a lo mejor ya estaba ahí delante.
 
+##### 🔥 «Hace falta que alguien la confirme» — y no había dónde (12/09/2026)
+
+Una ficha creada a partir del propio escaneo nace `copiadaDelEscaneo`, y eso la deja fuera del
+cotejo con razón: su número salió de esa foto, así que compararlo con esa foto sería compararlo
+consigo mismo. La regla es correcta. **Le faltaba la otra mitad.**
+
+La marca sólo se apagaba desde `invalidarVeredicto()`, o sea **cambiando** el tipo, el número o el
+vencimiento. Pero si el OCR acertó —lo normal— no hay nada que cambiar: la marca no se iba nunca,
+y el documento se quedaba `observado` para siempre repitiendo «hace falta que alguien la confirme»
+sin que existiera ningún sitio donde confirmar. Buscado en el backend y en las dos apps: no había
+botón, ni endpoint, ni campo.
+
+⚠️ **Y la salida que sí funcionaba era peor que el problema:** cambiar el número a otro, guardar,
+volver a poner el bueno y guardar. Dos escrituras falsas de peaje — tras las cuales el sistema
+validaba exactamente lo que se negaba a aceptar un minuto antes. El criterio real no era «este dato
+no está respaldado» sino «este dato no ha pasado por las manos de alguien», y la única prueba que
+aceptaba era que lo estropearas y lo arreglaras.
+
+**El sello `CONFIRMADO`** (teal, icono de persona) cierra el hueco:
+
+| Sello | Qué lo respalda |
+|---|---|
+| `VALIDADO_MRZ` | dígitos de control — aritmética |
+| `VALIDADO_OCR` | dos lecturas independientes que coinciden |
+| **`CONFIRMADO`** | **una persona que miró el documento** |
+
+⚠️ **No se reusó `VALIDADO_OCR`, y es deliberado.** Ahí hay dos lecturas; aquí hay una lectura y
+alguien que la mira. Con sello propio se puede además contar cuántos documentos se apoyan hoy en el
+ojo de una persona — pregunta que nadie podría responder si se mezclaran.
+
+Cómo se comporta:
+
+- **Confirma una IDENTIFICACIÓN, no una persona.** Alguien puede tener el pasaporte mirado y el DNI
+  no; confirmar «a la persona» sellaría de paso documentos que nadie ha abierto.
+- **No apaga `copiadaDelEscaneo`**, que es un hecho histórico y seguirá siendo cierto. Apagarlo
+  haría la ficha cotejable y se validaría contra sí misma — justo lo que la marca impide.
+- **La confirmación caduca** con `invalidarVeredicto()`: se firmó *este* número contra *aquel*
+  escaneo, así que si cambia cualquiera de los dos, lo que esa persona miró ya no es lo que hay.
+- **El sello de máquina manda.** Si el documento tiene MRZ verificada, el sello es `VALIDADO_MRZ`
+  aunque esté confirmado: cuál fue el camino importa.
+- **El botón sale sólo donde tiene sentido** —copiada del escaneo, observada y **sin
+  discrepancias**—. Con una discrepancia delante el trabajo no es firmar sino decidir cuál de los
+  dos valores vale, y ofrecer «lo he mirado, está bien» encima de un número que no cuadra sería
+  invitar a sellar el error de un clic.
+- `estaResuelto()` lo incluye, o la siguiente tanda lo devolvería a `OBSERVADO` y la firma duraría
+  hasta la próxima pasada.
+
+⚠️ **La migración se escribió A MANO.** `doctrine:migrations:diff` para estas dos columnas generó
+además `DROP TABLE energia_dispositivo`, `energia_lectura`, `energia_suscripcion` y cambios en
+`pms_establecimiento` y `pms_unidad`: el desfase entero entre la base local y la de producción,
+listo para desplegarse. Se descartó. **En este proyecto el diff no se despliega sin leerlo entero.**
+
 #### El filtro «Observado», junto a los de vencimiento (09/09/2026)
 
 Un chip más en la fila de **Documentos**, con su recuento: es lo que convierte los 30 observados en

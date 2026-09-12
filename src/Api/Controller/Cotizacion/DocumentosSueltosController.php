@@ -12,6 +12,7 @@ use App\Cotizacion\Documento\ValidadorDeDocumento;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
+use App\Cotizacion\Entity\CotizacionPasajeroIdentificacion;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -116,6 +117,49 @@ final class DocumentosSueltosController extends AbstractController
         if ($pasajero === null) {
             return new JsonResponse(['error' => 'No encontré a esa persona.'], Response::HTTP_NOT_FOUND);
         }
+
+        return new JsonResponse(['conteo' => $validador->validarPasajero($pasajero)]);
+    }
+
+    /**
+     * «Lo he mirado y está bien»: el respaldo humano de una ficha que salió del propio escaneo.
+     *
+     * 🔥 **Es la mitad que faltaba de una regla que sí era correcta.** Un número copiado del
+     * escaneo no puede cotejarse contra ese escaneo, así que quedaba `observado` pidiendo «que
+     * alguien la confirme» — y no había dónde. El único modo de apagarlo era cambiar el número a
+     * otro, guardar, volver a poner el bueno y guardar: dos escrituras falsas de peaje, tras las
+     * cuales el sistema validaba exactamente lo que se negaba a aceptar antes.
+     *
+     * ⚠️ **Confirma UNA identificación, no la persona.** Alguien puede tener el pasaporte mirado y
+     * el DNI no; confirmar «a la persona» sellaría de paso documentos que nadie ha abierto.
+     *
+     * ⚠️ Y **revalida después**, para que el sello lo escriba el mismo camino que todos los demás.
+     * Escribirlo aquí a mano sería un segundo sitio donde se decide un veredicto.
+     */
+    #[Route(
+        '/cotizacion/user/manifiesto/identificacion/{id}/confirmar',
+        name: 'cotizacion_identificacion_confirmar',
+        requirements: ['id' => '[0-9a-fA-F-]{36}'],
+        methods: ['POST'],
+    )]
+    #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para validar documentos.')]
+    public function confirmar(
+        string $id,
+        EntityManagerInterface $em,
+        ValidadorDeManifiesto $validador,
+    ): Response {
+        $identificacion = $em->getRepository(CotizacionPasajeroIdentificacion::class)->find(Uuid::fromString($id));
+        if ($identificacion === null) {
+            return new JsonResponse(['error' => 'No encontré ese documento.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $pasajero = $identificacion->getPasajero();
+        if ($pasajero === null) {
+            return new JsonResponse(['error' => 'Ese documento no cuelga de nadie.'], Response::HTTP_CONFLICT);
+        }
+
+        $identificacion->confirmarAMano($this->getUser()?->getUserIdentifier() ?? 'desconocido');
+        $em->flush();
 
         return new JsonResponse(['conteo' => $validador->validarPasajero($pasajero)]);
     }

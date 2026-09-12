@@ -461,6 +461,73 @@ final class CotejoTest extends TestCase
     }
 
     /**
+     * 🔥 La salida que no existía. Una ficha copiada del escaneo no se puede cotejar contra el
+     * escaneo del que salió, así que sin confirmación humana se quedaba observada para siempre:
+     * el aviso pedía «que alguien la confirme» y no había dónde.
+     */
+    #[Test]
+    public function unaFichaCopiadaDelEscaneoYConfirmadaAManoQuedaConfirmada(): void
+    {
+        $cotejo = Cotejo::de($this->dni('41501189'), new FichaGuardada(
+            numero: '41501189',
+            tipo: 'DNI',
+            nombres: 'Anna Maria', apellidos: 'Eriksson',
+            copiadaDelEscaneo: true,
+            confirmada: true,
+        ));
+
+        self::assertSame(ValidacionIdentificacionEnum::CONFIRMADO, $cotejo->estado);
+        self::assertSame([], $cotejo->notas);
+    }
+
+    /** Y sin confirmar sigue observada, que es el comportamiento que había que conservar. */
+    #[Test]
+    public function laMismaFichaSinConfirmarSigueObservada(): void
+    {
+        $cotejo = Cotejo::de($this->dni('41501189'), new FichaGuardada(
+            numero: '41501189',
+            tipo: 'DNI',
+            nombres: 'Anna Maria', apellidos: 'Eriksson',
+            copiadaDelEscaneo: true,
+        ));
+
+        self::assertSame(ValidacionIdentificacionEnum::OBSERVADO, $cotejo->estado);
+        self::assertStringContainsString('que alguien la confirme', implode(' ', $cotejo->notas));
+    }
+
+    /**
+     * ⚠️ Confirmar no es un cheque en blanco: si el escaneo pasa a decir otra cosa, la
+     * discrepancia manda y vuelve a la cola. La firma era sobre **aquel** número.
+     */
+    #[Test]
+    public function confirmadaPeroConElEscaneoDiciendoOtroNumeroVuelveAObservado(): void
+    {
+        $cotejo = Cotejo::de($this->dni('73716768'), new FichaGuardada(
+            numero: '41501189',
+            tipo: 'DNI',
+            nombres: 'Anna Maria', apellidos: 'Eriksson',
+            copiadaDelEscaneo: true,
+            confirmada: true,
+        ));
+
+        self::assertSame(ValidacionIdentificacionEnum::OBSERVADO, $cotejo->estado);
+        self::assertSame('número', $cotejo->discrepancias[0]->campo);
+    }
+
+    /** El sello de máquina manda sobre el de persona: si hay MRZ, el camino que cuenta es ése. */
+    #[Test]
+    public function conBandaVerificadaElSelloEsMrzAunqueEsteConfirmada(): void
+    {
+        $cotejo = Cotejo::de(
+            $this->dni('41501189'),
+            new FichaGuardada(numero: '41501189', tipo: 'DNI', copiadaDelEscaneo: true, confirmada: true),
+            $this->bandaDelReverso(),
+        );
+
+        self::assertSame(ValidacionIdentificacionEnum::VALIDADO_MRZ, $cotejo->estado);
+    }
+
+    /**
      * Una MRZ TD1 como la del reverso de un DNIe peruano: tres líneas de 30.
      *
      * ⚠️ Los dígitos de control están **calculados**, no copiados de una foto: el par (check del

@@ -2063,14 +2063,20 @@ const duenoDelArchivo = (doc: ApiCotizacionFilearchivo): string => {
  * control; `validado_ocr` son dos lecturas que coinciden, y ésas pueden equivocarse las dos si el
  * error venía del padrón original. Pintarlos igual borraría la única diferencia que importa.
  *
- * ⚠️ Y desde que se vio que el DNI peruano nuevo lleva banda TD1 en el anverso, **`validado_mrz`
- * ya no es sólo del pasaporte**.
+ * ⚠️ Y desde que se encontró la banda TD1 del DNIe —en el **REVERSO**, no en el anverso, que es
+ * donde se buscó durante meses—, **`validado_mrz` ya no es sólo del pasaporte**.
+ *
+ * ⚠️ `confirmado` es de otra clase que los otros dos verdes: ahí no hay máquina que respalde nada,
+ * hay una persona que miró el documento. Es el único sello posible para una ficha que salió del
+ * propio escaneo, porque cotejarla sería compararla consigo misma. Por eso lleva el icono de
+ * alguien y no el de una comprobación.
  */
 const SELLO: Record<string, { texto: string; clase: string; icono: string }> = {
     no_validado: { texto: 'sin validar', clase: 'bg-white text-slate-400 border-slate-200', icono: 'fa-circle-question' },
     observado: { texto: 'observado', clase: 'bg-amber-50 text-amber-700 border-amber-300', icono: 'fa-triangle-exclamation' },
     validado_ocr: { texto: 'validado OCR', clase: 'bg-sky-50 text-sky-700 border-sky-300', icono: 'fa-check' },
     validado_mrz: { texto: 'validado MRZ', clase: 'bg-emerald-50 text-emerald-700 border-emerald-300', icono: 'fa-shield-halved' },
+    confirmado: { texto: 'confirmado', clase: 'bg-teal-50 text-teal-700 border-teal-300', icono: 'fa-user-check' },
 };
 
 /**
@@ -2083,6 +2089,37 @@ const SELLO: Record<string, { texto: string; clase: string; icono: string }> = {
 const identificacionesConVeredicto = (pax: ApiCotizacionFilepasajero) =>
     (pax.identificaciones ?? []).filter(i =>
         i.estadoValidacion && (i.estadoValidacion !== 'no_validado' || (i.notasValidacion ?? []).length > 0));
+
+/**
+ * ¿A este documento le falta una confirmación humana, y sólo eso?
+ *
+ * 🔥 Una ficha copiada del escaneo **no tiene otra salida**: su número salió de esa foto, así que
+ * cotejarlo contra esa foto sería compararlo consigo mismo. Sin este botón se quedaba observada
+ * para siempre, con una nota pidiendo una confirmación que no se podía dar en ninguna parte.
+ *
+ * ⚠️ **Con discrepancias NO sale.** Ahí el trabajo no es firmar: es decidir cuál de los dos
+ * valores vale, y ofrecer «lo he mirado, está bien» encima de un número que no cuadra sería
+ * invitar a sellar el error de un clic.
+ */
+const sePuedeConfirmar = (ident: { copiadaDelEscaneo?: boolean; estadoValidacion?: string | null;
+    discrepancias?: unknown[] | null }) =>
+    ident.copiadaDelEscaneo === true
+    && ident.estadoValidacion === 'observado'
+    && (ident.discrepancias ?? []).length === 0;
+
+const confirmando = ref<string | null>(null);
+
+/** Firma ese documento y recarga: el sello lo escribe la revalidación, no esta pantalla. */
+const confirmarDocumento = async (ident: { id?: string | number | null }) => {
+    const id = String(extractIdStr(ident.id));
+    confirmando.value = String(ident.id);
+    const ok = await fileStore.confirmarIdentificacion(id);
+    confirmando.value = null;
+
+    if (!ok) { alert(fileStore.error || 'No se pudo confirmar ese documento.'); return; }
+
+    await cargarFile();
+};
 
 /** Cuántas piden que alguien decida. Es el número que va en el botón. */
 const observadas = computed(() =>
@@ -3848,6 +3885,22 @@ const eliminarDocumento = async (iri?: string) => {
 
                         <span v-for="(n, j) in (ident.notasValidacion ?? [])" :key="`n-${j}`"
                               class="ml-1 text-slate-400 normal-case">{{ n }}</span>
+
+                        <!-- ⚠️ **El botón que faltaba.** La nota decía «hace falta que alguien la
+                             confirme» y no había dónde: la única salida era cambiar el número a
+                             otro, guardar, volver a poner el bueno y guardar. Dos escrituras
+                             falsas de peaje para apagar un aviso.
+
+                             Sale SÓLO donde tiene sentido —una ficha copiada del escaneo que
+                             sigue observada—, porque confirmar lo que ya validó una máquina no es
+                             confirmar: es un clic de más que enseña a dar clics de más. -->
+                        <button v-if="sePuedeConfirmar(ident)" type="button"
+                                :disabled="confirmando === String(ident.id)"
+                                @click="confirmarDocumento(ident)"
+                                class="ml-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-teal-300 bg-teal-50 text-teal-700 font-black uppercase tracking-wider hover:bg-teal-100 disabled:opacity-50">
+                          <i class="fas fa-user-check text-[8px]"></i>
+                          {{ confirmando === String(ident.id) ? 'Confirmando…' : 'Lo he mirado, está bien' }}
+                        </button>
                       </div>
 
                       <!-- ⚠️ Un aviso por CADA escaneo torcido, con cuál es. Antes salía uno solo,

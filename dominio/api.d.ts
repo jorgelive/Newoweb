@@ -15395,7 +15395,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -15415,6 +15415,12 @@ export interface components {
              * @default false
              */
             readonly copiadaDelEscaneo: boolean;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -15445,7 +15451,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -15454,6 +15460,12 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /**
              * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
@@ -15480,7 +15492,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -15489,6 +15501,12 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -15519,7 +15537,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -15528,6 +15546,12 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -15619,7 +15643,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -15639,6 +15663,12 @@ export interface components {
              * @default false
              */
             readonly copiadaDelEscaneo: boolean;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -15669,7 +15699,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -15678,6 +15708,12 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /**
              * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
@@ -15704,7 +15740,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -15713,6 +15749,12 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -15743,7 +15785,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -15752,6 +15794,12 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -15822,7 +15870,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -15842,6 +15890,12 @@ export interface components {
              * @default false
              */
             readonly copiadaDelEscaneo: boolean;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -15872,7 +15926,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -15881,6 +15935,12 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /**
              * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
@@ -15907,7 +15967,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -15916,6 +15976,12 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -15946,7 +16012,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -15955,6 +16021,12 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -16025,7 +16097,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -16045,6 +16117,12 @@ export interface components {
              * @default false
              */
             readonly copiadaDelEscaneo: boolean;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -16075,7 +16153,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -16084,6 +16162,12 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /**
              * @description Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
@@ -16110,7 +16194,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -16119,6 +16203,12 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -16149,7 +16239,7 @@ export interface components {
              * @default no_validado
              * @enum {string}
              */
-            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz";
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
             /** @description En qué campos no coincide, **estructurado**: `[{campo, documento, manifiesto}]`. */
             readonly discrepancias?: {
                 [key: string]: string;
@@ -16158,6 +16248,12 @@ export interface components {
             readonly notasValidacion?: string[];
             /** Format: date-time */
             readonly validadoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo y quién miró el documento y dijo que la ficha es correcta.
+             */
+            readonly confirmadaEn?: string | null;
+            readonly confirmadaPor?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -27259,6 +27355,7 @@ export interface components {
              * @example https://example.com/
              */
             pais: string | null;
+            /** @description El WhatsApp por el que se atiende al público, y el único que se publica. */
             telefonoPrincipal?: string | null;
             /** Format: email */
             emailContacto: string | null;
@@ -27267,18 +27364,11 @@ export interface components {
             /** Format: date-time */
             horaCheckOut: string | null;
             timezone?: string | null;
-            codigoCajaPrincipal?: string | null;
+            codigoCajaLlaves?: string | null;
             /** @description El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca. */
             telefonoAtencion?: string | null;
-            /** @description El móvil asociado a Yape, para cobrar. */
-            telefonoYape?: string | null;
-            codigoCajaSecundaria?: string | null;
-            /**
-             * Format: uri
-             * @description Vídeo de cómo se abre la caja de las llaves. **Lo único de los medios de acceso que sí es
-             *     general**: la caja es una para todas las casitas.
-             */
-            videoCajaFuerteUrl?: string | null;
+            codigoCajaDinero?: string | null;
+            readonly medios?: components["schemas"]["PmsEstablecimientoMedia"][];
             unidades?: components["schemas"]["PmsUnidad"][];
             reservas?: components["schemas"]["PmsReserva"][];
             virtualEstablecimientos?: components["schemas"]["PmsEstablecimientoVirtual"][];
@@ -27294,6 +27384,7 @@ export interface components {
             /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
             slug?: string | null;
             ciudad: string | null;
+            /** @description El WhatsApp por el que se atiende al público, y el único que se publica. */
             telefonoPrincipal?: string | null;
         };
         "PmsEstablecimiento.html": {
@@ -27309,6 +27400,7 @@ export interface components {
              * @example https://example.com/
              */
             pais: string | null;
+            /** @description El WhatsApp por el que se atiende al público, y el único que se publica. */
             telefonoPrincipal?: string | null;
             /** Format: email */
             emailContacto: string | null;
@@ -27317,18 +27409,11 @@ export interface components {
             /** Format: date-time */
             horaCheckOut: string | null;
             timezone?: string | null;
-            codigoCajaPrincipal?: string | null;
+            codigoCajaLlaves?: string | null;
             /** @description El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca. */
             telefonoAtencion?: string | null;
-            /** @description El móvil asociado a Yape, para cobrar. */
-            telefonoYape?: string | null;
-            codigoCajaSecundaria?: string | null;
-            /**
-             * Format: uri
-             * @description Vídeo de cómo se abre la caja de las llaves. **Lo único de los medios de acceso que sí es
-             *     general**: la caja es una para todas las casitas.
-             */
-            videoCajaFuerteUrl?: string | null;
+            codigoCajaDinero?: string | null;
+            readonly medios?: components["schemas"]["PmsEstablecimientoMedia.html"][];
             unidades?: components["schemas"]["PmsUnidad.html"][];
             reservas?: components["schemas"]["PmsReserva.html"][];
             virtualEstablecimientos?: components["schemas"]["PmsEstablecimientoVirtual.html"][];
@@ -27344,6 +27429,7 @@ export interface components {
             /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
             slug?: string | null;
             ciudad: string | null;
+            /** @description El WhatsApp por el que se atiende al público, y el único que se publica. */
             telefonoPrincipal?: string | null;
         };
         "PmsEstablecimiento.jsonld": {
@@ -27359,6 +27445,7 @@ export interface components {
              * @example https://example.com/
              */
             pais: string | null;
+            /** @description El WhatsApp por el que se atiende al público, y el único que se publica. */
             telefonoPrincipal?: string | null;
             /** Format: email */
             emailContacto: string | null;
@@ -27367,18 +27454,11 @@ export interface components {
             /** Format: date-time */
             horaCheckOut: string | null;
             timezone?: string | null;
-            codigoCajaPrincipal?: string | null;
+            codigoCajaLlaves?: string | null;
             /** @description El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca. */
             telefonoAtencion?: string | null;
-            /** @description El móvil asociado a Yape, para cobrar. */
-            telefonoYape?: string | null;
-            codigoCajaSecundaria?: string | null;
-            /**
-             * Format: uri
-             * @description Vídeo de cómo se abre la caja de las llaves. **Lo único de los medios de acceso que sí es
-             *     general**: la caja es una para todas las casitas.
-             */
-            videoCajaFuerteUrl?: string | null;
+            codigoCajaDinero?: string | null;
+            readonly medios?: components["schemas"]["PmsEstablecimientoMedia.jsonld"][];
             unidades?: components["schemas"]["PmsUnidad.jsonld"][];
             reservas?: components["schemas"]["PmsReserva.jsonld"][];
             virtualEstablecimientos?: components["schemas"]["PmsEstablecimientoVirtual.jsonld"][];
@@ -27394,6 +27474,7 @@ export interface components {
             /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
             slug?: string | null;
             ciudad: string | null;
+            /** @description El WhatsApp por el que se atiende al público, y el único que se publica. */
             telefonoPrincipal?: string | null;
         };
         "PmsEstablecimiento.multipart": {
@@ -27409,6 +27490,7 @@ export interface components {
              * @example https://example.com/
              */
             pais: string | null;
+            /** @description El WhatsApp por el que se atiende al público, y el único que se publica. */
             telefonoPrincipal?: string | null;
             /** Format: email */
             emailContacto: string | null;
@@ -27417,18 +27499,11 @@ export interface components {
             /** Format: date-time */
             horaCheckOut: string | null;
             timezone?: string | null;
-            codigoCajaPrincipal?: string | null;
+            codigoCajaLlaves?: string | null;
             /** @description El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca. */
             telefonoAtencion?: string | null;
-            /** @description El móvil asociado a Yape, para cobrar. */
-            telefonoYape?: string | null;
-            codigoCajaSecundaria?: string | null;
-            /**
-             * Format: uri
-             * @description Vídeo de cómo se abre la caja de las llaves. **Lo único de los medios de acceso que sí es
-             *     general**: la caja es una para todas las casitas.
-             */
-            videoCajaFuerteUrl?: string | null;
+            codigoCajaDinero?: string | null;
+            readonly medios?: components["schemas"]["PmsEstablecimientoMedia.multipart"][];
             unidades?: components["schemas"]["PmsUnidad.multipart"][];
             reservas?: components["schemas"]["PmsReserva.multipart"][];
             virtualEstablecimientos?: components["schemas"]["PmsEstablecimientoVirtual.multipart"][];
@@ -27444,7 +27519,152 @@ export interface components {
             /** @description Primer segmento de la URL pública del catálogo: `/casita/casita-1`. */
             slug?: string | null;
             ciudad: string | null;
+            /** @description El WhatsApp por el que se atiende al público, y el único que se publica. */
             telefonoPrincipal?: string | null;
+        };
+        PmsEstablecimientoMedia: {
+            establecimiento?: components["schemas"]["PmsEstablecimiento"];
+            /**
+             * @default foto_caja_llaves
+             * @enum {string}
+             */
+            tipo: "video_caja_llaves" | "foto_caja_llaves" | "video_caja_dinero" | "foto_caja_dinero";
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            /** Format: date-time */
+            imageUpdatedAt?: string | null;
+            /**
+             * Format: uri
+             * @description La URL, para los tipos que no son archivo.
+             */
+            url?: string | null;
+            /**
+             * @description Para el día que un tipo admita varios. Hoy la restricción única lo deja en uno.
+             * @default 0
+             */
+            orden: number;
+            /** @description PROPIEDAD VIRTUAL: la rellena el listener de assets para la vista previa del panel. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Lo que hay que servir, venga de un archivo o de una URL. */
+            readonly valor?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "PmsEstablecimientoMedia.html": {
+            establecimiento?: components["schemas"]["PmsEstablecimiento.html"];
+            /**
+             * @default foto_caja_llaves
+             * @enum {string}
+             */
+            tipo: "video_caja_llaves" | "foto_caja_llaves" | "video_caja_dinero" | "foto_caja_dinero";
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            /** Format: date-time */
+            imageUpdatedAt?: string | null;
+            /**
+             * Format: uri
+             * @description La URL, para los tipos que no son archivo.
+             */
+            url?: string | null;
+            /**
+             * @description Para el día que un tipo admita varios. Hoy la restricción única lo deja en uno.
+             * @default 0
+             */
+            orden: number;
+            /** @description PROPIEDAD VIRTUAL: la rellena el listener de assets para la vista previa del panel. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Lo que hay que servir, venga de un archivo o de una URL. */
+            readonly valor?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "PmsEstablecimientoMedia.jsonld": {
+            establecimiento?: components["schemas"]["PmsEstablecimiento.jsonld"];
+            /**
+             * @default foto_caja_llaves
+             * @enum {string}
+             */
+            tipo: "video_caja_llaves" | "foto_caja_llaves" | "video_caja_dinero" | "foto_caja_dinero";
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            /** Format: date-time */
+            imageUpdatedAt?: string | null;
+            /**
+             * Format: uri
+             * @description La URL, para los tipos que no son archivo.
+             */
+            url?: string | null;
+            /**
+             * @description Para el día que un tipo admita varios. Hoy la restricción única lo deja en uno.
+             * @default 0
+             */
+            orden: number;
+            /** @description PROPIEDAD VIRTUAL: la rellena el listener de assets para la vista previa del panel. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Lo que hay que servir, venga de un archivo o de una URL. */
+            readonly valor?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "PmsEstablecimientoMedia.multipart": {
+            establecimiento?: components["schemas"]["PmsEstablecimiento.multipart"];
+            /**
+             * @default foto_caja_llaves
+             * @enum {string}
+             */
+            tipo: "video_caja_llaves" | "foto_caja_llaves" | "video_caja_dinero" | "foto_caja_dinero";
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            /** Format: date-time */
+            imageUpdatedAt?: string | null;
+            /**
+             * Format: uri
+             * @description La URL, para los tipos que no son archivo.
+             */
+            url?: string | null;
+            /**
+             * @description Para el día que un tipo admita varios. Hoy la restricción única lo deja en uno.
+             * @default 0
+             */
+            orden: number;
+            /** @description PROPIEDAD VIRTUAL: la rellena el listener de assets para la vista previa del panel. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Lo que hay que servir, venga de un archivo o de una URL. */
+            readonly valor?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
         };
         PmsEstablecimientoVirtual: {
             /**
@@ -32030,11 +32250,6 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** Format: binary */
-            imageFile?: string | null;
-            imageName?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
             codigoInterno?: string | null;
             capacidad?: number | null;
             /** @default true */
@@ -32047,7 +32262,7 @@ export interface components {
             /** @description El número de la casita. **Uno solo, con tres usos.** */
             numero?: number | null;
             readonly medios?: components["schemas"]["PmsUnidadMedia"][];
-            codigoCaja?: string | null;
+            codigoCajaCasita?: string | null;
             /** @description Almacena múltiples redes WiFi. */
             wifiNetworks?: {
                 [key: string]: {
@@ -32134,7 +32349,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            readonly token?: string | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
             /** @description Helper: Obtiene el SSID de la primera red (Principal). */
             readonly mainWifiSsid?: string;
             /** @description Helper: Obtiene el Password de la primera red (Principal). */
@@ -32145,6 +32361,11 @@ export interface components {
              */
             readonly virtualPaxExtra?: string;
             /**
+             * @description Stub para la columna «Limpieza / servicio» del listado, por el mismo motivo que
+             *     {@see self::getVirtualPaxExtra()}.
+             */
+            readonly virtualLimpiezaServicio?: string;
+            /**
              * Format: iri-reference
              * @example https://example.com/
              */
@@ -32153,8 +32374,6 @@ export interface components {
             readonly tarifaBaseMonedaId?: string | null;
             readonly tarifaBaseMonedaSimbolo?: string | null;
             readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map"] | null;
-            /** @description Determina si el archivo es compatible con LiipImagine. */
-            readonly image?: boolean;
         };
         "PmsUnidad-pax_catalogo.read": {
             establecimiento?: components["schemas"]["PmsEstablecimiento-pax_catalogo.read"];
@@ -32164,9 +32383,9 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
             capacidad?: number | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
         };
         "PmsUnidad-pax_guia.read": {
             nombre?: string | null;
@@ -32175,8 +32394,8 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
         };
         "PmsUnidad-pax_reserva.read": {
             nombre?: string | null;
@@ -32185,10 +32404,10 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
         };
         "PmsUnidad-pms_evento.read_timestamp.read": {
             nombre?: string | null;
@@ -32330,11 +32549,6 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** Format: binary */
-            imageFile?: string | null;
-            imageName?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
             codigoInterno?: string | null;
             capacidad?: number | null;
             /** @default true */
@@ -32347,7 +32561,7 @@ export interface components {
             /** @description El número de la casita. **Uno solo, con tres usos.** */
             numero?: number | null;
             readonly medios?: components["schemas"]["PmsUnidadMedia.html"][];
-            codigoCaja?: string | null;
+            codigoCajaCasita?: string | null;
             /** @description Almacena múltiples redes WiFi. */
             wifiNetworks?: {
                 [key: string]: {
@@ -32434,7 +32648,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            readonly token?: string | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
             /** @description Helper: Obtiene el SSID de la primera red (Principal). */
             readonly mainWifiSsid?: string;
             /** @description Helper: Obtiene el Password de la primera red (Principal). */
@@ -32445,6 +32660,11 @@ export interface components {
              */
             readonly virtualPaxExtra?: string;
             /**
+             * @description Stub para la columna «Limpieza / servicio» del listado, por el mismo motivo que
+             *     {@see self::getVirtualPaxExtra()}.
+             */
+            readonly virtualLimpiezaServicio?: string;
+            /**
              * Format: iri-reference
              * @example https://example.com/
              */
@@ -32453,8 +32673,6 @@ export interface components {
             readonly tarifaBaseMonedaId?: string | null;
             readonly tarifaBaseMonedaSimbolo?: string | null;
             readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map.html"] | null;
-            /** @description Determina si el archivo es compatible con LiipImagine. */
-            readonly image?: boolean;
         };
         "PmsUnidad.html-pax_catalogo.read": {
             establecimiento?: components["schemas"]["PmsEstablecimiento.html-pax_catalogo.read"];
@@ -32464,9 +32682,9 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
             capacidad?: number | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
         };
         "PmsUnidad.html-pax_guia.read": {
             nombre?: string | null;
@@ -32475,8 +32693,8 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
         };
         "PmsUnidad.html-pax_reserva.read": {
             nombre?: string | null;
@@ -32485,10 +32703,10 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
         };
         "PmsUnidad.html-pms_evento.read_timestamp.read": {
             nombre?: string | null;
@@ -32634,11 +32852,6 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** Format: binary */
-            imageFile?: string | null;
-            imageName?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
             codigoInterno?: string | null;
             capacidad?: number | null;
             /** @default true */
@@ -32651,7 +32864,7 @@ export interface components {
             /** @description El número de la casita. **Uno solo, con tres usos.** */
             numero?: number | null;
             readonly medios?: components["schemas"]["PmsUnidadMedia.jsonld"][];
-            codigoCaja?: string | null;
+            codigoCajaCasita?: string | null;
             /** @description Almacena múltiples redes WiFi. */
             wifiNetworks?: {
                 [key: string]: {
@@ -32738,7 +32951,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            readonly token?: string | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
             /** @description Helper: Obtiene el SSID de la primera red (Principal). */
             readonly mainWifiSsid?: string;
             /** @description Helper: Obtiene el Password de la primera red (Principal). */
@@ -32749,6 +32963,11 @@ export interface components {
              */
             readonly virtualPaxExtra?: string;
             /**
+             * @description Stub para la columna «Limpieza / servicio» del listado, por el mismo motivo que
+             *     {@see self::getVirtualPaxExtra()}.
+             */
+            readonly virtualLimpiezaServicio?: string;
+            /**
              * Format: iri-reference
              * @example https://example.com/
              */
@@ -32757,8 +32976,6 @@ export interface components {
             readonly tarifaBaseMonedaId?: string | null;
             readonly tarifaBaseMonedaSimbolo?: string | null;
             readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map.jsonld"] | null;
-            /** @description Determina si el archivo es compatible con LiipImagine. */
-            readonly image?: boolean;
         };
         /**
          * @description Entidad PmsUnidad.
@@ -32772,9 +32989,9 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
             capacidad?: number | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
         };
         /**
          * @description Entidad PmsUnidad.
@@ -32787,8 +33004,8 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
         };
         /**
          * @description Entidad PmsUnidad.
@@ -32801,10 +33018,10 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
         };
         /**
          * @description Entidad PmsUnidad.
@@ -32954,11 +33171,6 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** Format: binary */
-            imageFile?: string | null;
-            imageName?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
             codigoInterno?: string | null;
             capacidad?: number | null;
             /** @default true */
@@ -32971,7 +33183,7 @@ export interface components {
             /** @description El número de la casita. **Uno solo, con tres usos.** */
             numero?: number | null;
             readonly medios?: components["schemas"]["PmsUnidadMedia.multipart"][];
-            codigoCaja?: string | null;
+            codigoCajaCasita?: string | null;
             /** @description Almacena múltiples redes WiFi. */
             wifiNetworks?: {
                 [key: string]: {
@@ -33058,7 +33270,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            readonly token?: string | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
             /** @description Helper: Obtiene el SSID de la primera red (Principal). */
             readonly mainWifiSsid?: string;
             /** @description Helper: Obtiene el Password de la primera red (Principal). */
@@ -33069,6 +33282,11 @@ export interface components {
              */
             readonly virtualPaxExtra?: string;
             /**
+             * @description Stub para la columna «Limpieza / servicio» del listado, por el mismo motivo que
+             *     {@see self::getVirtualPaxExtra()}.
+             */
+            readonly virtualLimpiezaServicio?: string;
+            /**
              * Format: iri-reference
              * @example https://example.com/
              */
@@ -33077,8 +33295,6 @@ export interface components {
             readonly tarifaBaseMonedaId?: string | null;
             readonly tarifaBaseMonedaSimbolo?: string | null;
             readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map.multipart"] | null;
-            /** @description Determina si el archivo es compatible con LiipImagine. */
-            readonly image?: boolean;
         };
         "PmsUnidad.multipart-pax_catalogo.read": {
             establecimiento?: components["schemas"]["PmsEstablecimiento.multipart-pax_catalogo.read"];
@@ -33088,9 +33304,9 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
             capacidad?: number | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
         };
         "PmsUnidad.multipart-pax_guia.read": {
             nombre?: string | null;
@@ -33099,8 +33315,8 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
         };
         "PmsUnidad.multipart-pax_reserva.read": {
             nombre?: string | null;
@@ -33109,10 +33325,10 @@ export interface components {
              *     donde el primer segmento es el slug del establecimiento.
              */
             slug?: string | null;
-            /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
-            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description La portada de la casita, para el catálogo, `pax` y la web. */
+            readonly imageUrl?: string | null;
         };
         "PmsUnidad.multipart-pms_evento.read_timestamp.read": {
             nombre?: string | null;
@@ -33344,7 +33560,7 @@ export interface components {
              * @default croquis
              * @enum {string}
              */
-            tipo: "croquis" | "foto_puerta" | "video_ingreso";
+            tipo: "croquis" | "foto_puerta" | "portada" | "video_ingreso";
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -33384,7 +33600,7 @@ export interface components {
              * @default croquis
              * @enum {string}
              */
-            tipo: "croquis" | "foto_puerta" | "video_ingreso";
+            tipo: "croquis" | "foto_puerta" | "portada" | "video_ingreso";
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -33424,7 +33640,7 @@ export interface components {
              * @default croquis
              * @enum {string}
              */
-            tipo: "croquis" | "foto_puerta" | "video_ingreso";
+            tipo: "croquis" | "foto_puerta" | "portada" | "video_ingreso";
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -33464,7 +33680,7 @@ export interface components {
              * @default croquis
              * @enum {string}
              */
-            tipo: "croquis" | "foto_puerta" | "video_ingreso";
+            tipo: "croquis" | "foto_puerta" | "portada" | "video_ingreso";
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;

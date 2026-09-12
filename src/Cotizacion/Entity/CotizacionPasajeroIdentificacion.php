@@ -170,11 +170,54 @@ class CotizacionPasajeroIdentificacion
     #[ORM\Column(name: 'copiada_del_escaneo', type: 'boolean', options: ['default' => false])]
     private bool $copiadaDelEscaneo = false;
 
+    /**
+     * ⚠️ Se expone porque la pantalla decide con esto **si ofrecer el botón de confirmar**, y la
+     * alternativa era deducirlo del texto de una nota: un `if` contra una frase en castellano que
+     * se rompe el día que alguien la reescriba, sin que falle nada.
+     */
+    #[Groups(['file:item:read'])]
     public function isCopiadaDelEscaneo(): bool { return $this->copiadaDelEscaneo; }
 
     public function marcarCopiadaDelEscaneo(): self
     {
         $this->copiadaDelEscaneo = true;
+
+        return $this;
+    }
+
+    /**
+     * Cuándo y quién miró el documento y dijo que la ficha es correcta.
+     *
+     * 🔥 **Sin esto, una ficha copiada del escaneo no tenía salida.** Su número no se puede cotejar
+     * contra el escaneo del que salió, así que se quedaba «observado» pidiendo «que alguien la
+     * confirme» **sin que existiera ningún sitio donde confirmar**. El único modo de apagar el
+     * aviso era cambiar el número a otro, guardar, volver a poner el bueno y guardar: dos
+     * escrituras falsas de peaje, y el sistema acababa dando por bueno justo lo que se negaba a
+     * aceptar un minuto antes.
+     *
+     * ⚠️ **Se guarda el QUIÉN, no sólo el cuándo.** Es lo único que respalda el documento: sin
+     * autor, una confirmación es un campo a `true` que no responde a quién preguntarle.
+     *
+     * ⚠️ **No apaga `copiadaDelEscaneo`.** Eso es un hecho histórico —de dónde salió el número— y
+     * seguirá siendo cierto siempre; borrarlo haría que el documento pareciera cotejable y se
+     * validaría contra sí mismo, que es lo que esta marca existe para impedir.
+     */
+    #[ORM\Column(name: 'confirmada_en', type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $confirmadaEn = null;
+
+    #[ORM\Column(name: 'confirmada_por', length: 180, nullable: true)]
+    private ?string $confirmadaPor = null;
+
+    #[Groups(['file:item:read'])]
+    public function getConfirmadaEn(): ?DateTimeImmutable { return $this->confirmadaEn; }
+
+    #[Groups(['file:item:read'])]
+    public function getConfirmadaPor(): ?string { return $this->confirmadaPor; }
+
+    public function confirmarAMano(string $quien): self
+    {
+        $this->confirmadaEn = new DateTimeImmutable();
+        $this->confirmadaPor = $quien;
 
         return $this;
     }
@@ -255,6 +298,11 @@ class CotizacionPasajeroIdentificacion
         $this->estadoValidacion = ValidacionIdentificacionEnum::NO_VALIDADO;
         // Alguien tocó el dato: ya no es una copia del escaneo, es lo que esa persona afirma.
         $this->copiadaDelEscaneo = false;
+        // ⚠️ Y la confirmación caduca con él. Se confirmó **este** número contra **aquel** escaneo;
+        // si cambia cualquiera de los dos, lo que esa persona miró ya no es lo que hay. Dejarla
+        // puesta convertiría una firma en un cheque en blanco para el siguiente valor.
+        $this->confirmadaEn = null;
+        $this->confirmadaPor = null;
         $this->discrepancias = [];
         $this->notasValidacion = ['el dato cambió después de validarse: hay que volver a cotejarlo'];
         $this->validadoEn = null;

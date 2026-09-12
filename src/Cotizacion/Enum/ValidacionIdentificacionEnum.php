@@ -40,6 +40,23 @@ enum ValidacionIdentificacionEnum: string
     /** Concuerda **y** la lectura la respaldan los dígitos de control de la MRZ. */
     case VALIDADO_MRZ = 'validado_mrz';
 
+    /**
+     * Una **persona** miró el documento y dijo que la ficha es correcta.
+     *
+     * 🔥 **Existe porque sin él la ficha copiada del escaneo no tenía salida.** Un número que salió
+     * del escaneo no puede cotejarse contra el escaneo —sería compararse consigo mismo— así que
+     * quedaba `OBSERVADO` pidiendo «que alguien la confirme»… sin que existiera ningún sitio donde
+     * confirmar. La única forma de apagar el aviso era cambiar el número a otro, guardar, volver a
+     * poner el bueno y guardar otra vez: dos escrituras falsas como peaje.
+     *
+     * ⚠️ **No es `VALIDADO_OCR` y no debe serlo.** Ahí hay dos lecturas independientes que
+     * coinciden; aquí hay una lectura y alguien que la mira. Es respaldo suficiente para cerrar el
+     * trabajo, pero es de otra clase, y este código ya tiene escrita la regla de que **cuál fue el
+     * camino importa**. Con un sello propio se puede además contar cuántos documentos se apoyan
+     * hoy en el ojo de una persona, que es justo lo que nadie podría responder si se mezclaran.
+     */
+    case CONFIRMADO = 'confirmado';
+
     public function getLabel(): string
     {
         return match ($this) {
@@ -47,6 +64,7 @@ enum ValidacionIdentificacionEnum: string
             self::OBSERVADO => 'Observado',
             self::VALIDADO_OCR => 'Validado (OCR)',
             self::VALIDADO_MRZ => 'Validado (MRZ)',
+            self::CONFIRMADO => 'Confirmado a mano',
         };
     }
 
@@ -57,6 +75,9 @@ enum ValidacionIdentificacionEnum: string
             self::OBSERVADO => 'amber',
             self::VALIDADO_OCR => 'sky',
             self::VALIDADO_MRZ => 'emerald',
+            // Verde como los otros dos sellos —el trabajo está cerrado— pero no el mismo: de un
+            // vistazo se distingue lo que respalda una máquina de lo que respalda una persona.
+            self::CONFIRMADO => 'teal',
         };
     }
 
@@ -66,15 +87,19 @@ enum ValidacionIdentificacionEnum: string
      */
     public function estaResuelto(): bool
     {
-        return $this === self::VALIDADO_OCR || $this === self::VALIDADO_MRZ;
+        // ⚠️ `CONFIRMADO` cuenta como resuelto, y es la mitad del arreglo: si la tanda volviera a
+        // cotejarlo, lo devolvería a `OBSERVADO` —sigue sin haber con qué cotejar— y la
+        // confirmación de la persona duraría hasta la siguiente pasada.
+        return in_array($this, [self::VALIDADO_OCR, self::VALIDADO_MRZ, self::CONFIRMADO], true);
     }
 
     /**
      * ¿Este estado tiene sentido para ese tipo de documento?
      *
      * ⚠️ **Aquí se excluía el DNI de `VALIDADO_MRZ`, y era falso.** Se daba por hecho que el DNI
-     * peruano no lleva banda; el nuevo la lleva en el ANVERSO, en formato TD1. Así que un DNI
-     * también puede quedar respaldado por aritmética, y son 86 anversos del padrón.
+     * peruano no lleva banda; el DNIe la lleva en el **REVERSO**, en formato TD1 — aquí llegó a
+     * decir «anverso», que es donde se buscó durante meses sin encontrarla. Así que un DNI también
+     * puede quedar respaldado por aritmética, con la cara correcta delante.
      *
      * Los que siguen sin poder son los que no tienen banda de ninguna clase — carné de
      * extranjería, RUC—, y ésos se quedan en `VALIDADO_OCR`, que no es peor lectura: es que no hay
