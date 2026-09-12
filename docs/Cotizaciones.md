@@ -1952,6 +1952,33 @@ contra el anverso y otro cree que lo respalda otra cosa. Ahora la única definic
 `ArchivoTipoEnum::respaldaA()` —con su inverso `paraValidar()`— y la identificación expone
 `tipoDeEscaneo` calculado, así que el front **lee un valor** en vez de reimplementar la regla.
 
+##### ⚠️ Y el recorrido sólo iba en UN sentido: el escaneo huérfano era invisible (12/09/2026)
+
+La unidad de trabajo de todo lo anterior es **la identificación**, no el archivo: se recorre lo que
+el manifiesto declara y se busca su foto. **Al revés no se miraba nunca.**
+
+Consecuencia, con un caso real: una ficha creada desde un pasaporte suelto nace con una sola
+identificación —la del pasaporte—. Se le sube después el DNI, se le asigna, y el DNI aparece en
+«ver sus documentos» y **no en su ficha**. Pulsar «Reprocesar» no cambia nada, y no porque falle:
+reprocesar recorre identificaciones, y de DNI no había ninguna que recorrer. El botón parecía roto
+y lo que faltaba era la fila.
+
+Más abajo todavía: **el escaneo ni siquiera se leía**. La lectura se dispara al cotejar, así que un
+documento que no respalda ningún número declarado se quedaba con `datosLeidos` a `NULL` para
+siempre — ni OCR, ni número, ni vencimiento, ni entrada en `documentos.xlsx`.
+
+`ValidadorDeManifiesto::adoptarEscaneosSinFicha()` cierra el sentido que faltaba: por cada archivo
+cuyo `respaldaA()` no esté ya declarado, lo lee y **le crea la identificación**. Corre al empezar,
+tanto en la tanda como en el «reprocesar» de una persona.
+
+Tres cosas que NO hace, y son el motivo de que se pueda dejar automático:
+
+| | Por qué |
+|---|---|
+| No adopta el reverso del DNI ni la autorización | `respaldaA()` devuelve `null`: no llevan número. No es una carencia del escaneo, es lo que son |
+| No se fía del tipo que dice el OCR | El tipo lo manda la **etiqueta** del archivo, que la puso una persona. Si no coinciden, no adopta: eso es un archivo mal etiquetado, y crear la ficha equivocada es peor que no crearla |
+| No da el número por bueno | Nace con `marcarCopiadaDelEscaneo()`, igual que la ficha entera de `ResolutorDeDocumentoSuelto::crear()`. No es una segunda fuente: es la misma foto, así que queda **observado** pidiendo confirmación |
+
 #### El filtro «Observado», junto a los de vencimiento (09/09/2026)
 
 Un chip más en la fila de **Documentos**, con su recuento: es lo que convierte los 30 observados en
