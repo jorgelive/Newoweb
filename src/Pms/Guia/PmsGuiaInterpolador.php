@@ -82,6 +82,28 @@ final class PmsGuiaInterpolador
         return $resultado;
     }
 
+    /**
+     * Un texto suelto, no la tabla de idiomas.
+     *
+     * Existe para `agente_contenido`, que es UN texto y no un contenido multiidioma: el editor lo
+     * escribe en el idioma en que quiere que el modelo lo lea. Sin esta puerta, ese campo no podía
+     * referirse a NINGÚN dato —ni al número de la llave, ni al croquis— y la única salida era
+     * teclearlos a mano, que es poner el dato en dos sitios: exactamente lo que dejó al agente
+     * anunciando «el código de la puerta es #5».
+     *
+     * ⚠️ **`$revelar` se calcula aquí dentro, igual que en {@see self::interpolar()}.** Es la
+     * regla que decide si un código sale o sale tapado, y recibirla por parámetro sería dejar que
+     * cada llamador se equivoque una vez.
+     */
+    public function interpolarUno(
+        string $texto,
+        PmsGuiaContexto $contexto,
+        PmsGuiaAcceso $acceso,
+        string $idioma = PmsGuiaMensajes::IDIOMA_FALLBACK,
+    ): string {
+        return $this->interpolarTexto($texto, $contexto, $acceso, $idioma, $acceso->estaAbierto());
+    }
+
     private function interpolarTexto(
         string $texto,
         PmsGuiaContexto $contexto,

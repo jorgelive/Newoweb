@@ -23,6 +23,7 @@ use App\Pms\Guia\PmsGuiaArbolFiltro;
 use App\Pms\Guia\PmsGuiaContexto;
 use App\Agent\Service\EscaleraDeTemas;
 use App\Pms\Guia\PmsGuiaEstanciaResolver;
+use App\Pms\Guia\PmsGuiaInterpolador;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -108,6 +109,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         private PmsGuiaArbolFiltro $filtro,
         private PmsGuiaEstanciaResolver $estancias,
         private EscaleraDeTemas $escalera,
+        private PmsGuiaInterpolador $interpolador,
         // El croquis y la foto de la puerta salen del interpolador como RUTA (`/carga/…`): la
         // ruta pública es configuración y la guía web la resuelve contra su propio origen. Aquí
         // no hay origen que valga —esto acaba en un WhatsApp—, así que se antepone el host que
@@ -918,7 +920,28 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         $override = $item->agenteTextoParaPeldano($peldano);
 
         if ($override !== null) {
-            return $override;
+            // 🔑 EL OVERRIDE TAMBIÉN RESUELVE SUS MARCADORES (12/09/2026).
+            //
+            // Antes se devolvía crudo, y eso significaba que `agente_contenido` no podía
+            // referirse a NINGÚN dato: ni al número de la llave, ni al croquis de su puerta. La
+            // única forma de nombrarlos era teclearlos, y un dato tecleado en los siete overrides
+            // es un dato en ocho sitios que un día se cambia en uno solo — el mismo patrón que
+            // acabó con el agente diciendo «el código de la puerta es #5».
+            //
+            // Pasa por el MISMO interpolador que el cuerpo, así que hereda su política de acceso
+            // entera: un código sigue saliendo tapado fuera de la ventana y un medio sigue
+            // preguntando a `PmsUnidadMediaTipo::visibilidad()`. Aquí no se decide nada nuevo.
+            //
+            // No pasa por `aTextoPlano()`, y es a propósito: el override se escribe en texto
+            // plano, sin HTML. Lo que sí hace falta es `resolverBloquesDelFront()`, porque el
+            // interpolador deja `{{ croquis }}` convertido en `{{ img: … }}` y aquí no hay
+            // navegador que lo pinte.
+            return $this->resolverBloquesDelFront(
+                $this->interpolador->interpolarUno($override, $contexto, $acceso, $idioma),
+                $contexto,
+                $acceso,
+                $idioma
+            );
         }
 
         return $this->aTextoPlano($this->resolverBloquesDelFront(
