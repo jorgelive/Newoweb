@@ -68,13 +68,37 @@ final class PmsCopiarFotosPuertaCommand extends Command
 
     protected function configure(): void
     {
-        $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'Dice qué copiaría, sin copiar.');
+        $this
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Dice qué copiaría, sin copiar.')
+            ->addOption(
+                'elegir',
+                null,
+                InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
+                'Desempata una casita con varias fotos: --elegir="Casita 4=archivo.webp". Repetible.'
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $seco = (bool) $input->getOption('dry-run');
+
+        // El desempate lo da una persona, casita por casita. No hay criterio automático que sirva:
+        // en la Casita 4 las dos fotos eran de su puerta y la vieja lo era por la fecha de la obra,
+        // no por nada que esté en el archivo.
+        $elegidas = [];
+
+        foreach ((array) $input->getOption('elegir') as $par) {
+            [$casita, $archivo] = array_pad(explode('=', (string) $par, 2), 2, '');
+
+            if (trim($casita) === '' || trim($archivo) === '') {
+                $io->error(sprintf('No entiendo «%s». Se escribe --elegir="Casita 4=archivo.webp".', (string) $par));
+
+                return Command::FAILURE;
+            }
+
+            $elegidas[trim($casita)] = trim($archivo);
+        }
 
         $candidatas = $this->candidatas();
 
@@ -134,8 +158,19 @@ final class PmsCopiarFotosPuertaCommand extends Command
             }
 
             if (count($archivos) > 1) {
-                $filas[] = [$nombre, implode(' · ', $archivos), 'TIENE ' . count($archivos) . ': elige una a mano'];
-                continue;
+                $elegida = $elegidas[$nombre] ?? null;
+
+                if ($elegida === null) {
+                    $filas[] = [$nombre, implode(' · ', $archivos), 'TIENE ' . count($archivos) . ': elige una con --elegir'];
+                    continue;
+                }
+
+                if (!in_array($elegida, $archivos, true)) {
+                    $filas[] = [$nombre, $elegida, 'la elegida NO es una de sus fotos'];
+                    continue;
+                }
+
+                $archivos = [$elegida];
             }
 
             $archivo = $archivos[0];
