@@ -8217,3 +8217,83 @@ declaran la forma entera.
 
 Estaba escrito a mano, verde y fijo: un expediente perdido se veía idéntico a uno vivo. Ahora
 sale de `ESTADO_FILE_CONFIG` — verde lo vivo, azul lo ganado, gris lo perdido.
+
+---
+
+## Subir un documento de identidad: dos fricciones quitadas (11/09/2026)
+
+Las dos salieron del mismo gesto —subir el pasaporte de un grupo, persona por persona— y ninguna
+era un fallo: eran dos convenciones que no se aplicaban donde tocaba.
+
+### 1. El nombre del documento ya no se pide para un escaneo de identidad
+
+El campo `nombre` era obligatorio y su marcador de posición decía *«Ej. Entrada Machupicchu»*:
+está pensado para lo que sube el operador a mano y hay que distinguir de un vistazo. En un
+pasaporte no distingue nada —el tipo ya lo dice, y tras el OCR el sistema sabe de quién es—, así
+que era un campo obligatorio en el paso **más repetitivo** del expediente.
+
+Ahora, si el tipo es un escaneo de identidad, el nombre es opcional y el servidor lo rellena con
+la etiqueta del propio enum (`Pasaporte (escaneo)`, `DNI — anverso`).
+
+⚠️ **Quién decide que «es de identidad» ya existía: `ArchivoTipoEnum::esEscaneoDeIdentidad()`**,
+la misma pregunta que responde para la compresión de alta fidelidad. No se abrió una segunda
+lista que mañana diga otra cosa. Ojo con no confundirla con `respaldaA()`, que es **más
+estrecha**: deja fuera el reverso del DNI y la autorización, que no llevan número que cotejar
+pero sí son documentos de identidad.
+
+⚠️ **Se rellena en el SERVIDOR, no sólo en el formulario.** El front deja de exigirlo, pero un
+POST directo a la API lo dejaría vacío y un archivo sin nombre se ve como una fila en blanco en la
+bóveda. Lo hace `CotizacionFilearchivoMultipartProcessor::nombrarSiEsDeIdentidad()`, y **sólo si
+viene vacío**: quien escriba «Pasaporte de la madre» manda.
+
+El front tiene su espejo en `ARCHIVO_TIPOS_DEL_PASAJERO` (`util/src/types/fileDetalleModel.ts`),
+que ya listaba los mismos cuatro. **Si entra un tipo nuevo en el enum, entra también ahí.**
+
+> 🚧 Pendiente que esto destapa: `nombre` lleva `#[AutoTranslate]`, así que cada escaneo de
+> identidad **gasta una traducción a siete idiomas** de un texto que nadie lee — es un adjunto
+> interno que ni siquiera se le devuelve al pasajero (`esDevolvibleAlPasajero()` es `false`).
+
+### 2. Los nombres del escaneo se capitalizan, con cotejo
+
+Un pasaporte imprime `RAY DANTE DIAZ ARREDONDO`. La app muestra nombres capitalizados. El lector
+los guardaba en mayúscula porque su instrucción dice, a propósito, **«Transcribe lo que VES. No
+corrijas»** — y eso no se toca: la transcripción era correcta.
+
+La caja es una **convención de presentación, no una lectura**, así que se pide aparte. La misma
+llamada a Gemini que ya lee el documento devuelve ahora `nombresCapitalizados` y
+`apellidosCapitalizados`; los campos crudos siguen diciendo lo que dice el papel.
+
+Sale gratis —es el mismo viaje— y es el mismo argumento con el que se resolvió la capitalización
+de los nombres del PMS. Por eso **comparten guardián**: `OrdenDelNombre::conLaCajaBuena()` pasó de
+`private` a público.
+
+⚠️ **El cotejo es lo que hace esto aceptable.** Comprueba con `Transliterator` que sean las MISMAS
+letras y descarta la propuesta entera si difiere en algo más que caja y tildes. Sobre un escaneo
+importa **más** que en el PMS, no menos:
+
+| el documento dice | el modelo propone | qué pasa |
+|---|---|---|
+| `DIAZ ARREDONDO` | `Diaz Arredondo` | se aplica |
+| `JOSE PEREZ NUNEZ` | `José Pérez Núñez` | se aplica — la tilde es caja |
+| `B0UZA` (cero por O) | `Bouza` | **se descarta** |
+| `MART1NEZ` (uno por I) | `Martínez` | **se descarta** |
+| `JOHN` | `Juan` | **se descarta** |
+
+Los dos rechazos del medio son el fallo típico del OCR. Sin el cotejo, una propuesta «bonita»
+taparía el error de lectura justo donde nadie va a volver a mirar.
+
+Y hay un efecto de borde que sale bien solo: si la MRZ ganó la partida —`preferir()` devolvió su
+versión— la propuesta se descarta sola, porque la MRZ va en ASCII sin tildes y casi nunca casará.
+Es el lado correcto: la MRZ está ahí precisamente porque lo impreso no se leyó.
+
+Cubierto por `tests/Cotizacion/Documento/CapitalizacionDelEscaneoTest.php`, que prueba el
+guardián y no el lector — el lector no decide nada y no se puede ejercitar sin llamar al modelo.
+
+### Dónde tocar
+
+| Necesidad | Archivo | Método |
+|---|---|---|
+| Que un tipo nuevo cuente como escaneo de identidad | `src/Cotizacion/Enum/ArchivoTipoEnum.php` | `esEscaneoDeIdentidad()` **y** el espejo `ARCHIVO_TIPOS_DEL_PASAJERO` |
+| Cambiar el nombre por convención | `CotizacionFilearchivoMultipartProcessor` | `nombrarSiEsDeIdentidad()` |
+| Cómo se le pide la caja al modelo | `LectorDeDocumentoIdentidad` | `INSTRUCCION` + el esquema |
+| Qué propuestas se aceptan | `src/Pms/Nombre/OrdenDelNombre.php` | `conLaCajaBuena()` |

@@ -6,6 +6,7 @@ namespace App\Cotizacion\Documento;
 
 use App\Agent\Vision\LectorDeImagenInterface;
 use App\Enum\DocumentoTipoEnum;
+use App\Pms\Nombre\OrdenDelNombre;
 use Symfony\Component\Intl\Countries;
 use DateTimeImmutable;
 
@@ -51,6 +52,15 @@ final readonly class LectorDeDocumentoIdentidad
 
         Fechas en formato AAAA-MM-DD. Países en ISO-3166 de tres letras. Sexo M o F.
 
+        Los documentos imprimen los nombres en MAYÚSCULA. En «nombresCapitalizados» y
+        «apellidosCapitalizados» devuelve los mismos nombres con la caja que se usaría al
+        escribirle a esa persona: «DIAZ ARREDONDO» → «Diaz Arredondo», «DE LA CRUZ» → «de la
+        Cruz». Respeta las partículas y los apellidos compuestos como se escriben en su idioma.
+
+        Cambia SÓLO la caja y, si el documento las lleva, las tildes. No traduzcas, no completes,
+        no quites ni añadas letras, y no arregles lo que te parezca un error de escritura: se
+        comprueba que sean las mismas letras y si no coinciden se descarta tu propuesta entera.
+
         En «bordeSuperior», di en qué lado de la IMAGEN cae la parte de ARRIBA del documento — la
         cabecera, donde pone el país o el título. Responde sólo: arriba, derecha, abajo o
         izquierda. Si el documento se ve derecho, es «arriba». Fíjate en el texto, no en la forma
@@ -65,6 +75,8 @@ final readonly class LectorDeDocumentoIdentidad
             'numero' => ['type' => 'string'],
             'nombres' => ['type' => 'string'],
             'apellidos' => ['type' => 'string'],
+            'nombresCapitalizados' => ['type' => 'string'],
+            'apellidosCapitalizados' => ['type' => 'string'],
             'paisEmisor' => ['type' => 'string'],
             'nacionalidad' => ['type' => 'string'],
             // ⚠️ Sin `enum`, aunque los valores sean M y F. Un `enum` NO admite la cadena vacía
@@ -88,7 +100,7 @@ final readonly class LectorDeDocumentoIdentidad
         ],
         // Todos requeridos y vacíos cuando no se lean: un campo AUSENTE y un campo VACÍO se
         // distinguen mal al leer el JSON, y la diferencia no aporta nada aquí.
-        'required' => ['tipo', 'numero', 'nombres', 'apellidos', 'paisEmisor', 'nacionalidad', 'sexo', 'nacimiento', 'vencimiento', 'mrzLinea1', 'mrzLinea2', 'mrzLinea3', 'bordeSuperior'],
+        'required' => ['tipo', 'numero', 'nombres', 'apellidos', 'nombresCapitalizados', 'apellidosCapitalizados', 'paisEmisor', 'nacionalidad', 'sexo', 'nacimiento', 'vencimiento', 'mrzLinea1', 'mrzLinea2', 'mrzLinea3', 'bordeSuperior'],
     ];
 
     public function __construct(private LectorDeImagenInterface $lector) {}
@@ -163,8 +175,14 @@ final readonly class LectorDeDocumentoIdentidad
         return new DatosDeDocumento(
             tipo: $this->tipo($crudo, $mrz),
             numero: $fiable ? $mrz->numero : ($numeroImpreso !== '' ? $numeroImpreso : null),
-            nombres: $this->preferir($this->texto($crudo, 'nombres'), $fiable ? $mrz->nombres : null),
-            apellidos: $this->preferir($this->texto($crudo, 'apellidos'), $fiable ? $mrz->apellidos : null),
+            nombres: $this->capitalizado(
+                $this->preferir($this->texto($crudo, 'nombres'), $fiable ? $mrz->nombres : null),
+                $this->texto($crudo, 'nombresCapitalizados')
+            ),
+            apellidos: $this->capitalizado(
+                $this->preferir($this->texto($crudo, 'apellidos'), $fiable ? $mrz->apellidos : null),
+                $this->texto($crudo, 'apellidosCapitalizados')
+            ),
             paisEmisor: $this->pais($this->texto($crudo, 'paisEmisor'), $fiable ? $mrz->paisEmisor : null),
             nacionalidad: $nacionalidad = $this->pais($this->texto($crudo, 'nacionalidad'), $fiable ? $mrz->nacionalidad : null),
             sexo: $fiable && $mrz->sexo !== null ? $mrz->sexo : $this->sexo($crudo),
@@ -201,6 +219,39 @@ final readonly class LectorDeDocumentoIdentidad
         $limpiar = static fn (string $v): string => strtoupper(preg_replace('/[^A-Z0-9]/i', '', $v) ?? '');
 
         return $limpiar($a) !== $limpiar($b);
+    }
+
+    /**
+     * El nombre con la caja de la app, si el modelo propuso una que resiste el cotejo.
+     *
+     * ── Por qué se capitaliza aquí y no antes ──────────────────────────────
+     * La instrucción de extracción dice «transcribe lo que VES, no corrijas», y eso NO se toca:
+     * un pasaporte imprime «DIAZ ARREDONDO» y ésa es la transcripción correcta. La caja es una
+     * convención de presentación de la app, no una lectura, así que se pide aparte —en los campos
+     * `*Capitalizados`— y se aplica al final. Los campos crudos siguen diciendo lo que dice el
+     * papel.
+     *
+     * Sale gratis: es la MISMA llamada al modelo que ya está leyendo el documento. Es el mismo
+     * argumento con el que se resolvió la capitalización de los nombres del PMS, y por eso
+     * comparte guardián.
+     *
+     * ⚠️ **El cotejo no es opcional.** {@see OrdenDelNombre::conLaCajaBuena()} comprueba con
+     * `Transliterator` que sean las MISMAS letras y descarta la propuesta entera si difiere en
+     * algo más que caja y tildes. Sobre un escaneo importa más que en el PMS: el OCR confunde
+     * `0` con `O` y `1` con `I`, y sin el cotejo una «corrección» de caja colaría la letra
+     * cambiada como si fuera un nombre bien escrito.
+     *
+     * Y si la MRZ ganó la partida —`preferir()` devuelve su versión— la propuesta se descarta
+     * sola: la MRZ va sin tildes y en ASCII, así que casi nunca casará con lo capitalizado. Es el
+     * lado correcto: la MRZ está ahí porque lo impreso no se leyó.
+     */
+    private function capitalizado(?string $nombre, string $propuesto): ?string
+    {
+        if ($nombre === null || trim($propuesto) === '') {
+            return $nombre;
+        }
+
+        return OrdenDelNombre::conLaCajaBuena($nombre, $propuesto);
     }
 
     /** Lo impreso lee mejor los nombres (la MRZ recorta a 39 y quita tildes); la MRZ es la red. */

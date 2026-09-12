@@ -103,8 +103,17 @@ final readonly class OrdenDelNombre
      * De rebote, eso protege un caso real: `B0UZA` lleva un CERO donde va una O. El modelo
      * devolvería «Bouza», que se rechaza — es un dedazo del canal, no un problema de caja, y
      * arreglarlo sería que el sistema decidiera por su cuenta que una letra estaba mal.
+     *
+     * ⚠️ **Es público desde el 11/09/2026, y no por comodidad.** Lo necesita también el lector de
+     * documentos de identidad ({@see \App\Cotizacion\Documento\LectorDeDocumentoIdentidad}): un
+     * pasaporte imprime «DIAZ ARREDONDO» en mayúscula, la app muestra nombres capitalizados, y la
+     * caja la propone el mismo modelo que ya está leyendo el documento.
+     *
+     * Ahí el guardián vale MÁS que en el PMS, no menos: sobre un escaneo el modelo tiene que
+     * inventarse menos, pero el OCR se equivoca más —un `0` por una `O`, un `1` por una `I`— y
+     * esto es justo lo que impide que una «corrección» de caja arrastre una letra cambiada.
      */
-    private static function conLaCajaBuena(string $original, string $propuesto): string
+    public static function conLaCajaBuena(string $original, string $propuesto): string
     {
         if (trim($propuesto) === '' || !self::mereceCapitalizacion($original)) {
             return $original;

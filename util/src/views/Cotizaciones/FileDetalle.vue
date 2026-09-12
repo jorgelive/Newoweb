@@ -25,7 +25,8 @@ import type { ApiPais } from '@/types/maestroModel';
 import { paraBuscar } from '@/utils/texto';
 
 import {
-  getArchivoLabel, ARCHIVO_TIPO_LABELS, ARCHIVO_TIPOS_DEL_PASAJERO, type PlanCargaZip, type DocumentoSuelto,
+  getArchivoLabel, ARCHIVO_TIPO_LABELS, ARCHIVO_TIPOS_DEL_PASAJERO, type ArchivoTipoValue,
+  type PlanCargaZip, type DocumentoSuelto,
   getSexoLabel, SEXO_LABELS,
   getDocIdLabel, DOCUMENTO_IDENTIDAD_LABELS, GRUPO_TIPO_LABELS, PASAJERO_TIPO_CONFIG, FILE_MODO_CONFIG,
   type ApiFileGrupo,
@@ -2601,6 +2602,21 @@ const saltarA = (delta: number) => {
     if (destino) abrirEdicionPax(destino);
 };
 
+/**
+ * ¿Lo que se está subiendo es un escaneo de identidad?
+ *
+ * ⚠️ **Espejo de `ArchivoTipoEnum::esEscaneoDeIdentidad()`**, vía la lista que ya existía aquí.
+ * Si allí entra un tipo nuevo, entra también en `ARCHIVO_TIPOS_DEL_PASAJERO`.
+ *
+ * Sirve para dejar de exigir el nombre del documento: en un pasaporte no distingue nada —el tipo
+ * ya lo dice— y era un campo obligatorio en el paso más repetitivo del expediente. Lo rellena el
+ * servidor con la etiqueta del enum ({@see CotizacionFilearchivoMultipartProcessor}); aquí sólo
+ * se deja de pedir y se enseña cómo va a quedar.
+ */
+const esDocDeIdentidad = computed(
+  () => ARCHIVO_TIPOS_DEL_PASAJERO.includes(docForm.value.tipoArchivo as ArchivoTipoValue),
+);
+
 const guardarPasajero = async () => {
   // SearchableSelect no dispara la validación nativa del form: validamos a mano.
   // validate() pinta el error dentro del componente y devuelve si es válido.
@@ -4878,7 +4894,9 @@ const eliminarDocumento = async (iri?: string) => {
 
           <div>
             <div class="flex items-center justify-between mb-1">
-              <label class="block text-[10px] font-bold text-slate-500 uppercase">Nombre del documento *</label>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase">
+                Nombre del documento<span v-if="!esDocDeIdentidad"> *</span>
+              </label>
               <button type="button"
                       @click="docForm.sobreescribirTraduccion = !docForm.sobreescribirTraduccion"
                       :title="docForm.sobreescribirTraduccion ? 'Se regenerarán las traducciones al guardar' : 'Se conservan las traducciones existentes'"
@@ -4887,12 +4905,18 @@ const eliminarDocumento = async (iri?: string) => {
                 <i class="fas fa-language text-base"></i>
               </button>
             </div>
-            <input v-model="docForm.nombre" required type="text" placeholder="Ej. Entrada Machupicchu"
+            <input v-model="docForm.nombre" :required="!esDocDeIdentidad" type="text"
+                   :placeholder="esDocDeIdentidad ? ARCHIVO_TIPO_LABELS[docForm.tipoArchivo as ArchivoTipoValue] : 'Ej. Entrada Machupicchu'"
                    class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-sky-500">
             <p class="text-[9px] text-slate-400 mt-1">
-              {{ docForm.sobreescribirTraduccion
-                ? 'Al guardar se regenerarán las traducciones automáticas.'
-                : 'Se traduce automáticamente; las traducciones existentes se conservan.' }}
+              <template v-if="esDocDeIdentidad">
+                Si lo dejas vacío se llamará «{{ ARCHIVO_TIPO_LABELS[docForm.tipoArchivo as ArchivoTipoValue] }}».
+              </template>
+              <template v-else>
+                {{ docForm.sobreescribirTraduccion
+                  ? 'Al guardar se regenerarán las traducciones automáticas.'
+                  : 'Se traduce automáticamente; las traducciones existentes se conservan.' }}
+              </template>
             </p>
           </div>
 
