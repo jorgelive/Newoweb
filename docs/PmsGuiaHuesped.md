@@ -506,10 +506,15 @@ el tapado, no.**
 ### Lo que queda (pasos 5 a 7)
 
 - **Los siete croquis**, uno por casita y con sólo su número. Es contenido.
-- **Las 15 imágenes** que hoy están en las galerías de los ítems «Puerta del Departamento» no se
-  movieron a `pms_unidad_media`: el croquis actual es el de las siete puertas y copiarlo sería dar
-  por bueno lo que se va a cambiar. Entran a mano cuando existan los nuevos, y entonces el ítem
-  deja su copia y escribe `{{ croquis }}`.
+- **Las fotos de las puertas SÍ se copiaron** con `app:pms:copiar-fotos-puerta`, que distingue la
+  foto del croquis sin una lista escrita a mano: **el croquis es el mismo archivo subido siete
+  veces** —mismo hash y mismos 73.686 bytes en las siete casitas—, así que la regla es «un archivo
+  que aparece en más de una casita es el croquis; lo demás son fotos de esa puerta». El hash no se
+  escribe en el código, se calcula al vuelo: el día que el croquis cambie, el comando sigue
+  acertando. Copia, no mueve: la galería se queda intacta hasta que el ítem escriba
+  `{{ foto_puerta }}`.
+- **El croquis no se copió**, y es lo que falta: el actual numera las siete puertas, y copiarlo
+  sería dar por bueno justo lo que se va a cambiar.
 - **`ConsultarGuiaSkill` sigue borrando la media** para el agente. Se cambia en el paso 6, después
   de tener los croquis nuevos.
 - **`agente_contenido` de los siete ítems** no menciona el número ni el croquis: ahí está el hueco
