@@ -17,6 +17,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField; // Usar IdField para UUID es mejor que TextField
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TimeField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -115,6 +116,20 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
             ->setColumns(6)
             ->hideOnIndex()
             ->setHelp('Variable para guías: <b>{caja_secundaria}</b>');
+
+        // 🎥 El único medio de acceso que es GENERAL: la caja de llaves es una para las siete
+        // casitas. El croquis, la foto de la puerta y el vídeo del ingreso son de cada una y se
+        // suben en «Medios de las casitas».
+        //
+        // ⚠️ El campo existía en la entidad desde el 11/09/2026 y **no tenía dónde escribirse**:
+        // la guía podía pedir `{{ video_caja_fuerte }}` y siempre salía vacío, así que el vídeo
+        // seguía copiado a mano dentro del ítem —y en los siete idiomas.
+        yield UrlField::new('videoCajaFuerteUrl', 'Vídeo de la caja de llaves')
+            ->setColumns(12)
+            ->hideOnIndex()
+            ->setHelp('En la guía se pide con <code>{{ video_caja_fuerte }}</code>. Tiene que ser '
+                . 'de YouTube: es lo que el front sabe incrustar. Se muestra sólo dentro de la '
+                . 'ventana de 30 h, como el resto de lo que abre puertas.');
 
         // ============================================================
         // 📞 CONTACTO

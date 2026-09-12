@@ -540,6 +540,26 @@ referirse a NINGÚN dato.** Ni al número de la llave, ni al croquis, ni a nada.
 los siete overrides es poner un dato en dos sitios —el mismo patrón que causó el «el código de la
 puerta es #5»— y §3.b dice justo lo contrario. Decisión pendiente antes del paso 7.
 
+#### El vídeo de la caja: el campo existía y no tenía dónde escribirse (12/09/2026)
+
+`pms_establecimiento.video_caja_fuerte_url` se creó el 11/09/2026 y siguió **vacío**, porque
+`PmsEstablecimientoCrudController` nunca llegó a mostrarlo: la guía podía pedir
+`{{ video_caja_fuerte }}` y siempre resolvía a nada. Un campo sin pantalla es un campo que no
+existe.
+
+Mientras tanto el vídeo seguía escrito a mano dentro del ítem «Llaves (general)»:
+`{{ video:https://youtu.be/… }}`, **en los siete idiomas**. Siete copias de una URL: el día que el
+vídeo se rehaga hay que acordarse de las siete, y la que se olvide seguirá enseñando el viejo sin
+que nada avise.
+
+`Version20260912190000` rellena el campo con la URL que ya se publicaba y sustituye las siete
+copias por el marcador. El huésped no nota nada: el ítem ya era «sólo en ventana» y
+`video_caja_fuerte` se declara `SoloVentana`, así que es el mismo vídeo en el mismo momento — antes
+lo protegía el candado del ítem, ahora también el del propio medio.
+
+⚠️ La migración **busca** el bloque en vez de darlo por supuesto: si alguien ya lo cambió a mano,
+no encuentra nada que sustituir y no pisa ese trabajo.
+
 ### Qué pasa con lo que ya hay
 
 | hoy | después |
