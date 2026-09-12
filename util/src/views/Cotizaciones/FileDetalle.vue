@@ -4029,12 +4029,6 @@ const eliminarDocumento = async (iri?: string) => {
                          class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 placeholder:text-slate-300">
                   <p class="text-[9px] text-slate-400 mt-1 leading-tight">{{ ayudaNombre }}</p>
                 </div>
-                <button @click="agregarGrupo" :disabled="creandoGrupo || !nuevoGrupo.clave.trim()"
-                        class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
-                  <i class="fas fa-spinner fa-spin" v-if="creandoGrupo"></i>
-                  <span v-else>+ Añadir</span>
-                </button>
-
                 <!-- A lo ancho y en varias líneas: el itinerario no es un rótulo, es lo que se
                      consulta para comprobar un horario. Metido en «Nombre» convertiría la píldora
                      del pasajero en un párrafo. -->
@@ -4045,6 +4039,21 @@ const eliminarDocumento = async (iri?: string) => {
                   <textarea v-model="nuevoGrupo.detalle" rows="2"
                             :placeholder="ejemploDetalle"
                             class="w-full border rounded-lg px-3 py-2 text-xs outline-none focus:border-teal-500 placeholder:text-slate-300"></textarea>
+                </div>
+
+                <!-- ⚠️ **A lo ancho y al final, no metido entre los campos.**
+                     Estaba en la misma fila flexible que Eje/Sufijo/Clave/Nombre, y en escritorio
+                     se leía como el último elemento de la fila. En una columna —el móvil— la fila
+                     envuelve y el botón acababa **pegado al campo Nombre**, así que parecía que
+                     añadía el nombre y no el subgrupo. Con `w-full` al final del bloque, lo que
+                     tiene encima son TODOS los campos, que es lo que de verdad guarda.
+                     El texto lo dice además: «Añadir subgrupo». -->
+                <div class="w-full">
+                  <button @click="agregarGrupo" :disabled="creandoGrupo || !nuevoGrupo.clave.trim()"
+                          class="w-full bg-teal-600 text-white px-4 py-2.5 rounded-lg text-xs font-bold hover:bg-teal-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="fas fa-spinner fa-spin mr-1" v-if="creandoGrupo"></i>
+                    <span v-else><i class="fas fa-plus mr-1.5"></i>Añadir subgrupo</span>
+                  </button>
                 </div>
               </div>
 
