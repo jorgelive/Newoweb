@@ -552,24 +552,37 @@ una imagen rota.
 ⚠️ **La URL de vídeo se valida como YouTube**, no como «una URL». El front la incrusta, así que un
 enlace a otra cosa no daría error: pintaría un reproductor vacío delante del huésped.
 
-⚠️ **Una clave sin medio cargado sale BLOQUEADA, no vacía.** Una casita a la que le falta su croquis
-enseña el marco con el mensaje, no un hueco. Un hueco silencioso se queda para siempre porque nadie
-lo echa de menos.
+⚠️ **Una clave sin medio cargado se QUITA; no sale «bloqueada».** No son lo mismo: bloqueado dice
+«esto existe y lo verás más adelante», y decírselo a un huésped sobre un croquis que nadie ha subido
+es prometer algo que no va a llegar. El marcador desaparece y el hueco se ve donde se arregla, en la
+pantalla de medios.
 
-**Dónde se sube: dentro de la propia casita** (Unidades → Modificar → «Croquis, foto de la puerta
-y vídeo del ingreso»), y además en su pantalla propia, **Panel → Medios de las casitas**, para ver
-de un vistazo a qué casitas les falta algo.
+**Dónde se sube: sólo en su pantalla**, Panel → **Medios de las casitas**. De un vistazo se ve a qué
+casitas les falta algo, que es la pregunta que uno se hace cuando gestiona siete.
 
-⚠️ Primero sólo existía la pantalla aparte, y no se encontraba: quien va a subir el croquis de la
-Casita 1 lo busca **en la Casita 1**. «Cada casa debería tener su croquis» no se lee como una
-entrada de menú. Mismo patrón que la galería dentro de su ítem de guía.
+⚠️ **Estuvo también incrustado dentro de la casita y se retiró (12/09/2026).** Dos puertas a lo
+mismo es el patrón que este plan deshace: se edita en un sitio.
 
 ### El hueco, visible a propósito
 
 Mientras falten croquis, **no** hay sustituto automático: si a una casita le falta el suyo y el
 agente manda el general sin decirlo, nadie se entera nunca de que falta y el apaño se queda de por
-vida. Por eso una clave sin medio sale como bloqueada y no como hueco. **El hueco visible se llena;
-el tapado, no.**
+vida. **El hueco visible se llena; el tapado, no** — y el sitio donde tiene que verse es la pantalla
+de medios, no la guía del huésped.
+
+### 🔥 El desplegable guardaba cadenas y tumbaba la edición (12/09/2026)
+
+Abrir cualquier medio para editarlo daba un 500 seco: `Object of class PmsUnidadMediaTipo could not
+be converted to string`. `PmsUnidadMediaTipo::opciones()` devolvía `etiqueta => $caso->value`, pero
+la columna está mapeada con `enumType`, así que la propiedad **es el objeto**: el formulario
+intentaba convertirlo a texto para casarlo con una de las opciones y reventaba. Los otros dos enums
+del panel con este patrón (`FinMedioCobroTipo`, `FinAudienciaCobro`) ya devolvían el caso.
+
+⚠️ **Fallaba al ABRIR, no al guardar**, así que no había forma de arreglarlo desde el propio panel.
+
+Ni PHPStan ni los tests lo veían: `ChoiceField::setChoices()` acepta un array suelto y nada tocaba
+el formulario. Lo cubre ahora `tests/Pms/Enum/PmsUnidadMediaTipoTest.php`, que comprueba que cada
+opción sea un caso del enum.
 
 ### Lo que queda (pasos 5 a 7)
 

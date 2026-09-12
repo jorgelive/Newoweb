@@ -101,13 +101,22 @@ enum PmsUnidadMediaTipo: string
         };
     }
 
-    /** @return array<string, string> Etiqueta → valor, para el desplegable del panel. */
+    /**
+     * Etiqueta → caso, para el desplegable del panel.
+     *
+     * ⚠️ **El caso, no su `->value`.** La columna está mapeada con `enumType`, así que la propiedad
+     * de la entidad es este objeto; si las opciones fueran cadenas, el formulario intentaría
+     * convertirlo a texto para casarlo con una de ellas y reventaría con «could not be converted to
+     * string» — al ABRIR la edición, no al guardar. Pasó el 12/09/2026.
+     *
+     * @return array<string, self>
+     */
     public static function opciones(): array
     {
         $opciones = [];
 
         foreach (self::cases() as $caso) {
-            $opciones[$caso->etiqueta()] = $caso->value;
+            $opciones[$caso->etiqueta()] = $caso;
         }
 
         return $opciones;
