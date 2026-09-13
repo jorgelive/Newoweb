@@ -7774,22 +7774,30 @@ Al apuntar el local `bienvenida` a `bienvenida_v2`, la plantilla `bienvenida_v1`
 en Meta y la siguiente sincronización creó un local `BIENVENIDA_V1_META` para adoptarla. Es el caso
 que `WhatsappMetaTemplateSyncService` ya avisaba y que había pasado con `welcome_booking`.
 
-**Y sí estorba**, aunque ninguna regla llegue ahí: el sincronizador es create-or-update puro, así
-que **borrar el gemelo en el panel no sirve de nada — vuelve esa misma noche a las 03:15**.
+**Y sí estorbaba**, aunque ninguna regla llegara ahí: el sincronizador era create-or-update puro,
+así que borrar el gemelo en el panel no servía — volvía esa misma noche a las 03:15.
 
-La red es `WhatsappMetaTemplateSyncService::NOMBRES_IGNORADOS`, que ya existía con `hello_world` y
-`welcome_booking` dentro. Se añadió `bienvenida_v1` el 13/09/2026 y se borró el gemelo, que ya no
-puede resucitar.
+#### La solución fue quitar la adopción automática, no listar excepciones
 
-🔁 **Esa lista va a crecer cada vez que se lance una `_vN`**, porque lanzar una versión nueva es el
-método: la anterior se queda viva en Meta y sin dueño local. Quien suba una `_v3` tiene que añadir
-la `_v2` **en el mismo paso**, o al día siguiente hay un gemelo.
+Hubo una lista de nombres a ignorar (`NOMBRES_IGNORADOS`) y duró unas horas. **Obligaba a editar
+código en cada despliegue de plantilla nueva**, porque lanzar una `_vN` es el método: la anterior
+se queda viva en Meta y sin dueño, y el sincronizador le fabricaba un gemelo. Eso no es una
+defensa, es una cuota.
 
-Lo definitivo sigue siendo borrarla en la consola de Meta; la lista es la red.
+Lo que se quitó fue la creación. Medido antes de tocarla, **en toda su vida produjo dos filas**:
 
-⚠️ Ya había pasado antes, y con consecuencias: `WELCOME_BOOKING_META` nació el 05/04/2026, activa y
-seleccionable en el chat, con un nombre casi idéntico al bueno y **tres botones rotos** — uno de
-ellos lanzaba una excepción que tumbaba el envío entero.
+| fila | cuándo | qué era |
+|---|---|---|
+| `WELCOME_BOOKING_META` | 05/04/2026 | activa y seleccionable en el chat, nombre casi idéntico al bueno, **tres botones rotos** — uno lanzaba una excepción que tumbaba el envío entero. Cero envíos legítimos |
+| `BIENVENIDA_V1_META` | 13/09/2026 | el mismo caso, dos generaciones después |
+
+Las dos nacieron del mismo gesto normal. Desde el 13/09/2026 el sincronizador **avisa y sigue**:
+una plantilla huérfana en Meta ya no puede fabricar nada aquí.
+
+⚠️ **Lo que se pierde**: adoptar sola una plantilla creada a mano en la consola de Meta. Es un caso
+raro y sigue resuelto sin magia — sale en «Ver plantillas en Meta» como «sin dueño aquí» y se
+reclama poniéndole ese «Nombre en Meta» a la plantilla local que corresponda. Un acto deliberado en
+vez de una fila que aparece sola.
 
 ### Dónde se ve: «Ver plantillas en Meta»
 
@@ -7799,11 +7807,10 @@ El botón del listado de plantillas abre el inventario en vivo contra la Graph A
 | marca | significa |
 |---|---|
 | `código local` | reclamada: alguien apunta a ese nombre |
-| **«ignorada a propósito»** | huérfana **ya decidida**: está en `NOMBRES_IGNORADOS` y el sincronizador la salta |
-| «sin dueño aquí» | huérfana de verdad: esta noche tendrá gemelo |
+| «sin dueño aquí» | nadie la reclama — normal tras lanzar una versión nueva |
 
-⚠️ **La lista se toca en el código, no desde la pantalla, y es deliberado:** añadir un nombre ahí
-apaga una sincronización, y eso no debería poder hacerse por descuido desde un formulario.
+«Sin dueño aquí» ya **no es un problema que corra**: el sincronizador no adopta nada. Es sólo la
+lista de lo que quedó atrás en Meta y conviene borrar allí cuando uno pase.
 
 ### La hora de las llaves, dicha como hora
 

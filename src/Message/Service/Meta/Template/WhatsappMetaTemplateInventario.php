@@ -46,7 +46,7 @@ final readonly class WhatsappMetaTemplateInventario
 
     /**
      * @return array{
-     *     enMeta: list<array{nombre: string, idiomas: list<array{codigo: string, estado: string}>, local: ?string, reclamada: bool, ignorada: bool}>,
+     *     enMeta: list<array{nombre: string, idiomas: list<array{codigo: string, estado: string}>, local: ?string, reclamada: bool}>,
      *     soloLocales: list<array{code: string, nombre: string, nombreMeta: ?string}>,
      *     total: int
      * }
@@ -109,10 +109,6 @@ final readonly class WhatsappMetaTemplateInventario
                 'idiomas' => $idiomas,
                 'local' => $dueños[$nombre] ?? null,
                 'reclamada' => isset($dueños[$nombre]),
-                // Sin dueño local NO significa lo mismo en los dos casos, y confundirlos cuesta:
-                // una huérfana de verdad hay que adoptarla o borrarla en Meta; una ignorada ya
-                // está decidida. La lista se lee de su único sitio, el sincronizador.
-                'ignorada' => in_array($nombre, WhatsappMetaTemplateSyncService::NOMBRES_IGNORADOS, true),
             ];
         }
 

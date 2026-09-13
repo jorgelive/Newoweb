@@ -32,36 +32,6 @@ final readonly class WhatsappMetaTemplateSyncService
         private LoggerInterface $logger
     ) {}
 
-    /**
-     * Nombres de Meta que este sincronizador NO trae, pase lo que pase.
-     *
-     * Existe porque el servicio es create-or-update puro: mientras Meta devuelva un nombre que
-     * ninguna plantilla local reclama, **cada pasada le fabrica una fila** `<NOMBRE>_META`.
-     * Borrarla en el panel no sirve de nada: vuelve esa misma noche a las 03:15.
-     *
-     * - `hello_world` es la plantilla de ejemplo de Meta. Nunca fue nuestra.
-     * - `welcome_booking` es la generación ANTERIOR de la bienvenida de Booking, con botones
-     *   `url`. Se sustituyó por `welcome_booking_command` —botones de comando, que dejan rastro
-     *   en la conversación de quién pulsó— y la vieja se quedó viva en Meta. De ahí salió
-     *   `WELCOME_BOOKING_META` el 2026-04-05: 0 envíos en toda su vida y tres botones rotos
-     *   (dos `url` y un `quick_reply`, los tres sin `resolver_key`), de los cuales el
-     *   `quick_reply` hace saltar una excepción que tumba el envío entero. Estaba activa y era
-     *   seleccionable en el chat, con un nombre casi idéntico al de la buena.
-     *
-     * - `bienvenida_v1` es la generación anterior de la bienvenida única. Quedó huérfana el
-     *   13/09/2026 al apuntar la plantilla local a `bienvenida_v2` —nunca se edita una aprobada,
-     *   se lanza otra— y esa misma noche el sincronizador fabricó `BIENVENIDA_V1_META`. Mismo
-     *   patrón que `welcome_booking`, dos generaciones después.
-     *
-     * ⚠️ Esta lista es la red, no la solución: lo definitivo es borrar la plantilla en la
-     * consola de Meta. Cuando eso pase, el nombre puede salir de aquí — y si no sale, tampoco
-     * estorba: sólo impide adoptar un nombre que ya nadie usa.
-     *
-     * 🔁 **Y va a crecer cada vez que se lance una versión nueva**, porque lanzar una `_vN` es el
-     * método: la anterior se queda viva en Meta y sin dueño local. Quien suba una `_v3` tiene que
-     * añadir aquí la `_v2` en el mismo paso, o al día siguiente hay un gemelo.
-     */
-    public const array NOMBRES_IGNORADOS = ['hello_world', 'welcome_booking', 'bienvenida_v1'];
 
     /**
      * Ejecuta la sincronización de plantillas utilizando el cliente de Exchange.
@@ -107,8 +77,10 @@ final readonly class WhatsappMetaTemplateSyncService
             foreach ($templates as $templateData) {
                 $status = strtoupper((string)($templateData['status'] ?? ''));
 
-                if (in_array($status, ['APPROVED', 'PENDING', 'REJECTED'], true)
-                    && !in_array((string) ($templateData['name'] ?? ''), self::NOMBRES_IGNORADOS, true)) {
+                // Ya no hay lista de nombres a ignorar: el sincronizador no adopta nada, así que
+                // una plantilla huérfana en Meta no puede fabricar una fila aquí. Ver
+                // `processTemplateRecord()`.
+                if (in_array($status, ['APPROVED', 'PENDING', 'REJECTED'], true)) {
                     $isNew = $this->processTemplateRecord($templateData, $templateCache, $allowedLanguages);
 
                     if ($isNew === true) {
@@ -173,33 +145,37 @@ final readonly class WhatsappMetaTemplateSyncService
             }
 
             if (!$targetTemplate) {
-                $targetTemplate = new MessageTemplate();
-                $targetTemplate->setName(ucwords(str_replace('_', ' ', $metaName)));
-
-                $generatedCode = sprintf('%s_META', strtoupper($metaName));
-                if (strlen($generatedCode) > 50) {
-                    $generatedCode = substr($generatedCode, 0, 50);
-                }
-                $targetTemplate->setCode($generatedCode);
-
-                $this->em->persist($targetTemplate);
-                $isNew = true;
-
-                // 🔥 Crear una plantilla local NO es rutina: significa que Meta tiene una que aquí
-                // no reconocemos. A veces es legítimo —alguien la creó en la consola de Amazon—,
-                // pero también es como nacen los gemelos: si la plantilla que usan las reglas
-                // tiene otro «Nombre en Meta», el emparejamiento falla y esto crea una copia
-                // `<NOMBRE>_META` a la que van a parar todas las aprobaciones, mientras las
-                // reglas siguen apuntando a la original. Ya pasó con `welcome_booking`.
+                // 🔒 NO SE CREA NADA. Meta trae un nombre que ninguna plantilla local reclama:
+                // se avisa y se pasa de largo.
                 //
-                // No se puede decidir aquí cuál es el caso, así que se avisa y se sigue.
+                // ── Por qué se quitó la adopción automática (13/09/2026) ────────────────
+                // Creaba una fila `<NOMBRE>_META`, y en toda su vida produjo DOS:
+                //
+                // - `WELCOME_BOOKING_META` (05/04/2026): activa y seleccionable en el chat, con un
+                //   nombre casi idéntico al bueno y tres botones rotos — uno lanzaba una excepción
+                //   que tumbaba el envío entero. Cero envíos legítimos.
+                // - `BIENVENIDA_V1_META` (13/09/2026): el mismo caso, dos generaciones después.
+                //
+                // Las dos nacieron del MISMO gesto normal: lanzar una versión nueva. Como no se
+                // edita una plantilla aprobada —se sube una `_vN` y se apunta a ella—, la anterior
+                // se queda viva en Meta y sin dueño, y esto le fabricaba un gemelo esa noche.
+                //
+                // La defensa era una lista de nombres a ignorar, y obligaba a **editar código en
+                // cada despliegue de plantilla nueva**. Eso no es una defensa, es una cuota.
+                //
+                // ⚠️ Lo que se pierde: adoptar sola una plantilla creada a mano en la consola de
+                // Meta. Ese caso es raro, y sigue resuelto sin magia — se ve en «Ver plantillas en
+                // Meta» como «sin dueño aquí» y se reclama poniéndole su «Nombre en Meta» a la
+                // plantilla local que le corresponda. Un acto deliberado en vez de una fila que
+                // aparece sola.
                 $this->logger->warning(sprintf(
-                    'Meta trae la plantilla «%s» y ninguna local la reconoce: se crea «%s». Si ya '
-                    . 'existía una para esto, revisa su campo «Nombre en Meta» — las aprobaciones '
-                    . 'se irán a la copia y las reglas seguirán usando la vieja.',
-                    $metaName,
-                    $generatedCode
+                    'Meta trae la plantilla «%s» y ninguna local la reconoce: NO se crea nada. Si '
+                    . 'debería usarse, ponle ese «Nombre en Meta» a la plantilla local que toque; '
+                    . 'si es una generación vieja, bórrala en la consola de Meta.',
+                    $metaName
                 ));
+
+                return null;
             }
 
             $templateCache[$metaName] = $targetTemplate;

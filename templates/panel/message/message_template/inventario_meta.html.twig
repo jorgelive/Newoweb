@@ -69,9 +69,6 @@
                                     <td>
                                         {% if fila.reclamada %}
                                             <code>{{ fila.local }}</code>
-                                        {% elseif fila.ignorada %}
-                                            {# Sin dueño, pero DECIDIDO: el sincronizador la salta y no fabrica gemelo. #}
-                                            <span class="badge badge-secondary">ignorada a propósito</span>
                                         {% else %}
                                             <span class="badge badge-warning">sin dueño aquí</span>
                                         {% endif %}
@@ -94,19 +91,13 @@
 
             <p class="text-muted small mt-3 mb-0">
                 «Sin dueño aquí» significa que Meta la tiene y ninguna plantilla local reclama ese
-                nombre. El sincronizador de las 03:15 le fabricará una fila <code>*_META</code>
-                cada noche mientras siga existiendo en Meta: se resuelve archivándola allí, o
-                apuntándole el «Nombre en Meta» de la plantilla buena.
+                nombre. Es lo normal tras lanzar una versión nueva: la anterior se queda viva allí.
+                <strong>No hace nada malo</strong> — desde el 13/09/2026 el sincronizador ya no
+                adopta nada, así que no fabrica filas <code>*_META</code>. Se resuelve borrándola en
+                la consola de Meta, o apuntándole su «Nombre en Meta» a la plantilla local que deba
+                usarla.
             </p>
 
-            <p class="text-muted small mt-2 mb-0">
-                «Ignorada a propósito» es una huérfana <strong>ya decidida</strong>: está en
-                <code>WhatsappMetaTemplateSyncService::NOMBRES_IGNORADOS</code>, así que el
-                sincronizador la salta y no le fabrica gemelo. Son las generaciones anteriores de
-                una plantilla —lanzar una <code>_vN</code> deja viva la anterior en Meta—. La lista
-                se toca en el código a propósito: añadir un nombre ahí apaga una sincronización, y
-                eso no debería poder hacerse por descuido desde una pantalla.
-            </p>
 
         {% endif %}
 
