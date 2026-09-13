@@ -1591,6 +1591,41 @@ real: un simulador que no simula da confianza sin dar información.
 tiene cuatro, incluidos los dos etiquetados al revés y el de `B0UZA` (cero por O), que comprueba
 que el guardián de las letras sigue en pie ahora que se prueban dos propuestas en vez de una.
 
+##### 🔥 El ejemplo del prompt cruzaba nombres que ya estaban bien (12/09/2026)
+
+Perseguiendo por qué la reserva `56X78F` había vuelto a quedar cruzada, el par **ya correcto**
+—`campo_nombre: Alisson Angelica`, `campo_apellido: Rodriguez Barrera`— daba `invertido: SÍ,
+confianza alta`. El corrector **rompía** un nombre bien puesto, con la confianza que autoriza a
+escribir, y sobre la misma reserva que motivó todo el mecanismo.
+
+La causa estaba en el prompt, en una sola frase:
+
+> «Rodriguez Barrera» son dos apellidos hispanos; «Alisson Angelica» son dos nombres de pila.
+> **Ahí están cruzados.**
+
+El ejemplo **no dice en qué campo estaba cada mitad**, así que el modelo no podía deducir la
+condición y se quedaba con lo único que la frase afirma: que *ese par* está cruzado. Y lo
+contestaba en las dos direcciones.
+
+Ahora el ejemplo lleva las dos ramas con el campo delante:
+
+```
+campo_nombre: «Rodriguez Barrera»  campo_apellido: «Alisson Angelica»   → invertido: true
+campo_nombre: «Alisson Angelica»  campo_apellido: «Rodriguez Barrera»   → invertido: false
+```
+
+Verificado en producción: el par correcto da `no` y el cruzado da `sí`, y los dos acaban en
+«Alisson Angelica / Rodriguez Barrera».
+
+⚠️ Es la regla de `CLAUDE.md` cobrada en efectivo — **las condiciones se escriben en positivo en
+todas las ramas**. Un ejemplo de una sola rama no enseña a decidir: enseña una respuesta, y el
+modelo la da siempre que reconoce el ejemplo.
+
+⚠️ **Y el candado no tenía nada que ver, aunque lo pareciera.** La primera hipótesis fue que un
+pull de Booking la había vuelto a cruzar. Es falsa: `datos_locked` estaba **cerrado** en esa
+reserva, y lo está en **328 de 331** con apellido. El pull no puede pisar esos campos. Los cuatro
+cruces que el handler ha hecho en toda su vida —los únicos que registra `info.log`— son correctos.
+
 ##### Y la corrección no llegaba al título cacheado del calendario
 
 `titulo_cache` se escribía **sólo en `prePersist`**, al crear el evento. Ninguna corrección
