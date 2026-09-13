@@ -19,11 +19,29 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * La bienvenida única de Booking y Airbnb, y el cambio de reglas que la pone a circular.
  *
- * ── Por qué una sola plantilla para dos OTA ─────────────────────────────────
+ * ── Dos plantillas, y la diferencia es UNA LÍNEA ────────────────────────────
  * `welcome_booking` pesaba 1419 caracteres frente a los 463 de `welcome_airbnb`, y la diferencia
  * entera era el cobro: plazos, prepago y cuentas tecleadas. Eso se mudó a `politicas_booking`,
- * que va por el chat de Booking porque su valor es dejar constancia allí. Sin el cobro, las dos
- * bienvenidas dicen lo mismo — así que son una, con un texto que editar y una aprobación en Meta.
+ * que va por el chat de Booking porque su valor es dejar constancia allí.
+ *
+ * Quitado el cobro, se intentó dejar **una sola** bienvenida para las dos OTA. No se pudo, y el
+ * motivo no es de estilo: **en Booking hay que cobrar por adelantado y en Airbnb no.** Una
+ * bienvenida que no menciona el prepago deja al huésped de Booking sin saber que hay algo que
+ * pagar si `politicas_booking` se pierde o se lee por encima. Unificar habría borrado una
+ * distinción del negocio para ahorrar un texto.
+ *
+ * Así que son dos, **idénticas salvo un renglón** de la lista:
+ *
+ *   💳 El prepago para asegurar tu reserva: cuánto es y cómo pagarlo
+ *
+ * ⚠️ Va DENTRO de la lista de «lo que tienes en la guía», no como párrafo aparte: es una cosa más
+ * que está allí, y así no añade tono comercial ni urgencia —que es lo que empuja una plantilla
+ * hacia `MARKETING`.
+ *
+ * | plantilla | OTA | en Meta |
+ * |---|---|---|
+ * | `bienvenida` | Airbnb | `bienvenida_v2` |
+ * | `bienvenida_booking` | Booking | `bienvenida_booking_v2` |
  *
  * ── Por qué DOS pasos, y el segundo se niega a correr antes de tiempo ───────
  *
@@ -147,8 +165,8 @@ final class MessageCrearBienvenidaCommand extends Command
      * seguridad contra la latencia: es sólo lo que hace falta para que se lean en orden.
      */
     private const array REPUNTES = [
-        'welcome_booking' => 2,
-        'welcome_airbnb' => 1,
+        'welcome_booking' => ['bienvenida_booking', 2],
+        'welcome_airbnb' => ['bienvenida', 1],
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
@@ -200,60 +218,79 @@ final class MessageCrearBienvenidaCommand extends Command
     private function activar(SymfonyStyle $io, bool $simular): int
     {
         $plantillas = $this->em->getRepository(MessageTemplate::class);
-        $bienvenida = $plantillas->findOneBy(['code' => self::CODIGO]);
 
-        if (!$bienvenida instanceof MessageTemplate) {
-            $io->error('No existe «bienvenida». Créala primero sin --activar.');
-
-            return Command::FAILURE;
-        }
-
-        // ── La puerta: los siete idiomas aprobados, o nada ──────────────────────
+        // ── La puerta: LAS DOS aprobadas enteras, o nada ────────────────────────
         //
         // Mismo criterio que el encolador (`WhatsappMetaSendEnqueuer`), que es quien de verdad
         // decide si sale fuera de la ventana: el estado POR IDIOMA, no `is_official_meta`.
-        $cuerpos = $bienvenida->getWhatsappMetaTmpl()['body'] ?? [];
-        $sinAprobar = [];
+        //
+        // ⚠️ Se comprueban las DOS: si sólo estuviera aprobada una, repuntar dejaría a la otra OTA
+        // sin bienvenida por WhatsApp, y un envío automático que falla no avisa a nadie.
+        /** @var array<string, MessageTemplate> $destinos */
+        $destinos = [];
 
-        foreach ($cuerpos as $cuerpo) {
-            $idioma = (string) ($cuerpo['language'] ?? '');
-
-            if ($idioma !== '' && !$bienvenida->hasWhatsappMetaOfficialData($idioma)) {
-                $sinAprobar[] = sprintf('%s (%s)', strtoupper($idioma), $cuerpo['status'] ?? 'SIN ENVIAR');
+        foreach (self::REPUNTES as [$codigoNuevo, $minuto]) {
+            if (isset($destinos[$codigoNuevo])) {
+                continue;
             }
+
+            $plantilla = $plantillas->findOneBy(['code' => $codigoNuevo]);
+
+            if (!$plantilla instanceof MessageTemplate) {
+                $io->error(sprintf('No existe «%s». Créala primero sin --activar.', $codigoNuevo));
+
+                return Command::FAILURE;
+            }
+
+            $destinos[$codigoNuevo] = $plantilla;
         }
 
-        if ($cuerpos === [] || $sinAprobar !== []) {
-            $io->error(sprintf(
-                'Meta todavía no la ha aprobado entera: %s. Repuntar ahora dejaría la bienvenida de '
-                . 'WhatsApp sin salir. Trae el estado con app:whatsapp:sync-templates y vuelve a probar.',
-                $sinAprobar === [] ? 'no tiene cuerpos de Meta' : implode(', ', $sinAprobar)
-            ));
+        foreach ($destinos as $codigo => $plantilla) {
+            $cuerpos = $plantilla->getWhatsappMetaTmpl()['body'] ?? [];
+            $sinAprobar = [];
 
-            return Command::FAILURE;
+            foreach ($cuerpos as $cuerpo) {
+                $idioma = (string) ($cuerpo['language'] ?? '');
+
+                if ($idioma !== '' && !$plantilla->hasWhatsappMetaOfficialData($idioma)) {
+                    $sinAprobar[] = sprintf('%s (%s)', strtoupper($idioma), $cuerpo['status'] ?? 'SIN ENVIAR');
+                }
+            }
+
+            if ($cuerpos === [] || $sinAprobar !== []) {
+                $io->error(sprintf(
+                    'Meta todavía no ha aprobado «%s» entera: %s. Repuntar ahora dejaría esa '
+                    . 'bienvenida sin salir por WhatsApp. Trae el estado con '
+                    . 'app:whatsapp:sync-templates y vuelve a probar.',
+                    $codigo,
+                    $sinAprobar === [] ? 'no tiene cuerpos de Meta' : implode(', ', $sinAprobar)
+                ));
+
+                return Command::FAILURE;
+            }
         }
 
         $reglas = $this->em->getRepository(MessageRule::class)->findAll();
         $filas = [];
 
         // ── Repuntar las bienvenidas ────────────────────────────────────────────
-        foreach (self::REPUNTES as $codigoViejo => $minuto) {
-            $regla = $this->reglaDe($reglas, $codigoViejo) ?? $this->reglaDe($reglas, self::CODIGO, $codigoViejo);
+        foreach (self::REPUNTES as $codigoViejo => [$codigoNuevo, $minuto]) {
+            $regla = $this->reglaDe($reglas, $codigoViejo) ?? $this->reglaDe($reglas, $codigoNuevo, $codigoViejo);
 
             if ($regla === null) {
                 $filas[] = [$codigoViejo, '<error>no hay regla que repuntar</error>'];
                 continue;
             }
 
-            if ($regla->getTemplate()?->getCode() === self::CODIGO && $regla->getOffsetMinutes() === $minuto) {
-                $filas[] = [(string) $regla->getName(), '<comment>ya apuntaba a bienvenida</comment>'];
+            if ($regla->getTemplate()?->getCode() === $codigoNuevo && $regla->getOffsetMinutes() === $minuto) {
+                $filas[] = [(string) $regla->getName(), sprintf('<comment>ya apuntaba a %s</comment>', $codigoNuevo)];
                 continue;
             }
 
-            $filas[] = [(string) $regla->getName(), sprintf('%s → bienvenida, +%d min', $codigoViejo, $minuto)];
+            $filas[] = [(string) $regla->getName(), sprintf('%s → %s, +%d min', $codigoViejo, $codigoNuevo, $minuto)];
 
             if (!$simular) {
-                $regla->setTemplate($bienvenida)->setOffsetMinutes($minuto);
+                $regla->setTemplate($destinos[$codigoNuevo])->setOffsetMinutes($minuto);
             }
         }
 
