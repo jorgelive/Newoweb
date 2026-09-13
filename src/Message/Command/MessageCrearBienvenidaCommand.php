@@ -134,11 +134,22 @@ final class MessageCrearBienvenidaCommand extends Command
      * frecuencia de Meta. Las dos bienvenidas viejas, que promocionan, están en `MARKETING`; las
      * que sólo hablan de la guía (`enviar_guia`, `recordatorio_llegada`), en `UTILITY`.
      *
-     * ⚠️ **Pero la categoría la decide META, no el texto.** El corte se ha cumplido en las doce
-     * plantillas oficiales —lo que promociona o pide reseña cayó en `MARKETING`, lo transaccional
-     * en `UTILITY`—, y aun así **no se puede planificar contando con el resultado**: `check_out`
-     * está en `MARKETING` y es un aviso de salida. Quitar la promoción mejora las probabilidades;
-     * no las garantiza. Si una versión nueva cae en `MARKETING`, no es un fallo que arreglar aquí.
+     * ⚠️ **Pero la categoría la decide META, no el texto.** Quitar la promoción mejora las
+     * probabilidades; no las garantiza. `check_out` está en `MARKETING` siendo un aviso de salida,
+     * así que la línea no está donde uno la dibujaría. Si una versión nueva cae en `MARKETING`, no
+     * es un fallo que arreglar aquí.
+     *
+     * ✅ **Medido el 13/09/2026, y salió mejor de lo temido.** Las dos versiones nuevas se
+     * subieron a la vez para usarlas de experimento: idénticas salvo el renglón del prepago de
+     * `bienvenida_booking`. **Las dos salieron `UTILITY`** — así que una línea que nombra un cobro
+     * NO basta para caer en `MARKETING` si el mensaje sigue siendo transaccional. Lo que las
+     * viejas tenían no era mencionar dinero: era un catálogo de promociones y un pie invitando a
+     * planificar el viaje.
+     *
+     * ⚠️ **Y lo que se juega en `MARKETING` no es sólo el precio: es que salga.** Meta limita esos
+     * envíos por «salud del ecosistema», así que una bienvenida ahí puede quedarse sin entregar a
+     * quien ya recibió promociones ese mes. Por eso los tours viajan aparte (`menu_tours`) y no
+     * dentro: lo opcional no puede arrastrar a lo que lleva el enlace a la guía.
      */
     private const string CUERPO_META = <<<'TXT'
         Soy Susan, de Centro Cusco Inti 😊

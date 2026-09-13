@@ -7759,8 +7759,24 @@ resultado**: `check_out` está en `MARKETING` siendo un aviso de salida.
 
 > «El evaluador de Meta es impredecible, y para que califiquen como utility hay que rezar.»
 
-Las dos nuevas se subieron el 13/09/2026 y sirven de experimento: si `bienvenida_v2` sale
-`UTILITY` y `bienvenida_booking_v2` no, el culpable es el renglón del prepago.
+Las dos nuevas se subieron el 13/09/2026 como experimento —idénticas salvo el renglón del
+prepago— y **las dos salieron `UTILITY`**. Conclusión: una línea que nombra un cobro NO basta para
+caer en `MARKETING` si el mensaje sigue siendo transaccional. Lo que ponía ahí a las viejas no era
+mencionar dinero, era el catálogo de promociones y el pie invitando a planificar el viaje.
+
+⚠️ **Y lo que se juega en `MARKETING` no es el precio, es que salga.** Meta limita esos envíos por
+«salud del ecosistema»: una bienvenida ahí puede quedarse sin entregar a quien ya recibió
+promociones ese mes. Ése es el motivo real de sacar los tours a su propio mensaje.
+
+### ⚠️ Renombrar el «Nombre en Meta» deja un GEMELO
+
+Al apuntar el local `bienvenida` a `bienvenida_v2`, la plantilla `bienvenida_v1` se quedó sin dueño
+en Meta y la siguiente sincronización creó un local `BIENVENIDA_V1_META` para adoptarla. Es el caso
+que `WhatsappMetaTemplateSyncService` ya avisaba y que había pasado con `welcome_booking`.
+
+No rompe nada —ninguna regla llega ahí— pero es un nombre más en la consola de Meta que invita a
+editar la muerta. Se limpia borrando la plantilla vieja **en Meta** y su gemelo local. Es el precio
+conocido de no editar plantillas aprobadas, y sale barato comparado con la alternativa.
 
 ### La hora de las llaves, dicha como hora
 
