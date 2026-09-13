@@ -69,6 +69,9 @@
                                     <td>
                                         {% if fila.reclamada %}
                                             <code>{{ fila.local }}</code>
+                                        {% elseif fila.ignorada %}
+                                            {# Sin dueño, pero DECIDIDO: el sincronizador la salta y no fabrica gemelo. #}
+                                            <span class="badge badge-secondary">ignorada a propósito</span>
                                         {% else %}
                                             <span class="badge badge-warning">sin dueño aquí</span>
                                         {% endif %}
@@ -94,6 +97,15 @@
                 nombre. El sincronizador de las 03:15 le fabricará una fila <code>*_META</code>
                 cada noche mientras siga existiendo en Meta: se resuelve archivándola allí, o
                 apuntándole el «Nombre en Meta» de la plantilla buena.
+            </p>
+
+            <p class="text-muted small mt-2 mb-0">
+                «Ignorada a propósito» es una huérfana <strong>ya decidida</strong>: está en
+                <code>WhatsappMetaTemplateSyncService::NOMBRES_IGNORADOS</code>, así que el
+                sincronizador la salta y no le fabrica gemelo. Son las generaciones anteriores de
+                una plantilla —lanzar una <code>_vN</code> deja viva la anterior en Meta—. La lista
+                se toca en el código a propósito: añadir un nombre ahí apaga una sincronización, y
+                eso no debería poder hacerse por descuido desde una pantalla.
             </p>
 
         {% endif %}

@@ -7774,9 +7774,36 @@ Al apuntar el local `bienvenida` a `bienvenida_v2`, la plantilla `bienvenida_v1`
 en Meta y la siguiente sincronización creó un local `BIENVENIDA_V1_META` para adoptarla. Es el caso
 que `WhatsappMetaTemplateSyncService` ya avisaba y que había pasado con `welcome_booking`.
 
-No rompe nada —ninguna regla llega ahí— pero es un nombre más en la consola de Meta que invita a
-editar la muerta. Se limpia borrando la plantilla vieja **en Meta** y su gemelo local. Es el precio
-conocido de no editar plantillas aprobadas, y sale barato comparado con la alternativa.
+**Y sí estorba**, aunque ninguna regla llegue ahí: el sincronizador es create-or-update puro, así
+que **borrar el gemelo en el panel no sirve de nada — vuelve esa misma noche a las 03:15**.
+
+La red es `WhatsappMetaTemplateSyncService::NOMBRES_IGNORADOS`, que ya existía con `hello_world` y
+`welcome_booking` dentro. Se añadió `bienvenida_v1` el 13/09/2026 y se borró el gemelo, que ya no
+puede resucitar.
+
+🔁 **Esa lista va a crecer cada vez que se lance una `_vN`**, porque lanzar una versión nueva es el
+método: la anterior se queda viva en Meta y sin dueño local. Quien suba una `_v3` tiene que añadir
+la `_v2` **en el mismo paso**, o al día siguiente hay un gemelo.
+
+Lo definitivo sigue siendo borrarla en la consola de Meta; la lista es la red.
+
+⚠️ Ya había pasado antes, y con consecuencias: `WELCOME_BOOKING_META` nació el 05/04/2026, activa y
+seleccionable en el chat, con un nombre casi idéntico al bueno y **tres botones rotos** — uno de
+ellos lanzaba una excepción que tumbaba el envío entero.
+
+### Dónde se ve: «Ver plantillas en Meta»
+
+El botón del listado de plantillas abre el inventario en vivo contra la Graph API. Desde el
+13/09/2026 distingue tres casos en la columna de dueño, que antes eran dos:
+
+| marca | significa |
+|---|---|
+| `código local` | reclamada: alguien apunta a ese nombre |
+| **«ignorada a propósito»** | huérfana **ya decidida**: está en `NOMBRES_IGNORADOS` y el sincronizador la salta |
+| «sin dueño aquí» | huérfana de verdad: esta noche tendrá gemelo |
+
+⚠️ **La lista se toca en el código, no desde la pantalla, y es deliberado:** añadir un nombre ahí
+apaga una sincronización, y eso no debería poder hacerse por descuido desde un formulario.
 
 ### La hora de las llaves, dicha como hora
 

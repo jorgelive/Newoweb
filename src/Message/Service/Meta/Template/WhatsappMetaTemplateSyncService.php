@@ -48,11 +48,20 @@ final readonly class WhatsappMetaTemplateSyncService
      *   `quick_reply` hace saltar una excepción que tumba el envío entero. Estaba activa y era
      *   seleccionable en el chat, con un nombre casi idéntico al de la buena.
      *
+     * - `bienvenida_v1` es la generación anterior de la bienvenida única. Quedó huérfana el
+     *   13/09/2026 al apuntar la plantilla local a `bienvenida_v2` —nunca se edita una aprobada,
+     *   se lanza otra— y esa misma noche el sincronizador fabricó `BIENVENIDA_V1_META`. Mismo
+     *   patrón que `welcome_booking`, dos generaciones después.
+     *
      * ⚠️ Esta lista es la red, no la solución: lo definitivo es borrar la plantilla en la
-     * consola de Meta. Cuando eso pase, `welcome_booking` puede salir de aquí — y si no sale,
-     * tampoco estorba: sólo impide adoptar un nombre que ya nadie usa.
+     * consola de Meta. Cuando eso pase, el nombre puede salir de aquí — y si no sale, tampoco
+     * estorba: sólo impide adoptar un nombre que ya nadie usa.
+     *
+     * 🔁 **Y va a crecer cada vez que se lance una versión nueva**, porque lanzar una `_vN` es el
+     * método: la anterior se queda viva en Meta y sin dueño local. Quien suba una `_v3` tiene que
+     * añadir aquí la `_v2` en el mismo paso, o al día siguiente hay un gemelo.
      */
-    private const array NOMBRES_IGNORADOS = ['hello_world', 'welcome_booking'];
+    public const array NOMBRES_IGNORADOS = ['hello_world', 'welcome_booking', 'bienvenida_v1'];
 
     /**
      * Ejecuta la sincronización de plantillas utilizando el cliente de Exchange.
