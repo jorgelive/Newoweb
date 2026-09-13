@@ -269,6 +269,21 @@ final class MessageCrearBienvenidaCommand extends Command
             }
         }
 
+        // ── Y el catálogo de tours, en su propio mensaje ────────────────────────
+        $tours = $plantillas->findOneBy(['code' => 'menu_tours']);
+
+        if (!$tours instanceof MessageTemplate) {
+            $io->warning('No existe «menu_tours»: la bienvenida se repunta igual, pero por WhatsApp no saldrá el catálogo.');
+        } elseif ($this->reglaDe($reglas, 'menu_tours') !== null) {
+            $filas[] = ['Tours por WhatsApp', '<comment>ya existe</comment>'];
+        } else {
+            $filas[] = ['Tours por WhatsApp', 'nueva: menu_tours, +20 min, sólo WhatsApp'];
+
+            if (!$simular) {
+                $this->em->persist($this->reglaDeTours($tours));
+            }
+        }
+
         if (!$simular) {
             $this->em->flush();
         }
@@ -307,6 +322,50 @@ final class MessageCrearBienvenidaCommand extends Command
         }
 
         return null;
+    }
+
+    /**
+     * El catálogo de tours, 20 minutos después y **sólo por WhatsApp**.
+     *
+     * ── Por qué va aparte y no dentro de la bienvenida ──────────────────────
+     * Porque la promoción inclina la plantilla hacia `MARKETING`, y MARKETING no sólo cuesta más:
+     * entra en el **tope de frecuencia** de Meta. Un huésped que ya recibió promociones ese mes
+     * podría quedarse sin la bienvenida — que es el mensaje que lleva el enlace a su guía y no
+     * puede faltar. Metiéndolos en el mismo mensaje se arriesga lo importante por lo opcional.
+     *
+     * Separados, cada uno queda en su categoría: la bienvenida transaccional y siempre entregada,
+     * el catálogo en `menu_tours`, que ya es `MARKETING` y ya está aprobada en los siete idiomas.
+     *
+     * ── Sólo WhatsApp, y es deliberado ──────────────────────────────────────
+     * Por el chat de la OTA y por el cuerpo de enlace, el catálogo **ya viaja dentro de la
+     * bienvenida**: ahí es texto libre, no pasa por Meta y no cuesta nada. Mandarlo otra vez sería
+     * repetírselo al mismo huésped.
+     *
+     * ⚠️ **Queda un solape estrecho**: si el huésped escribe dentro de esos 20 minutos, la ventana
+     * de 24 h se abre y `menu_tours` sale por su cuerpo de enlace — con el catálogo que ya recibió
+     * en la bienvenida. Es raro (hay que escribir en los primeros 20 min) y el daño es una
+     * repetición, no un fallo. Si molesta, se vacía el cuerpo de enlace de `menu_tours`.
+     *
+     * Las directas no entran: no reciben bienvenida, así que un catálogo suelto llegaría detrás de
+     * una negociación personalizada y sin nada que lo anteceda.
+     */
+    private function reglaDeTours(MessageTemplate $tours): MessageRule
+    {
+        $regla = (new MessageRule())
+            ->setName('Tours por WhatsApp')
+            ->setContextType('pms_reserva')
+            ->setTemplate($tours)
+            ->setMilestone(ConversationMilestoneInterface::CREATED)
+            ->setOffsetMinutes(20)
+            ->setAllowedSources(['booking', 'airbnb']);
+
+        $whatsapp = $this->em->getRepository(MessageChannel::class)->find('whatsapp_meta');
+
+        if ($whatsapp instanceof MessageChannel) {
+            $regla->addTargetCommunicationChannel($whatsapp);
+        }
+
+        return $regla;
     }
 
     private function reglaDePoliticas(MessageTemplate $politicas): MessageRule
