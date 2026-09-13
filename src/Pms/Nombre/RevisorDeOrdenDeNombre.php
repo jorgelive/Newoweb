@@ -113,6 +113,23 @@ final readonly class RevisorDeOrdenDeNombre
      * inventes»— es supresión, y aquí la supresión no hace falta: el modelo no devuelve texto
      * que se guarde.
      */
+    /**
+     * 🔥 **El ejemplo enseñaba la CONCLUSIÓN sin la CONDICIÓN, y eso cruzaba nombres correctos.**
+     *
+     * Decía: «"Rodriguez Barrera" son dos apellidos hispanos; "Alisson Angelica" son dos nombres
+     * de pila. **Ahí están cruzados**» — sin decir en qué campo estaba cada mitad. El modelo no
+     * podía deducirlo, así que se quedaba con lo único que el ejemplo afirmaba: que **ese par**
+     * está cruzado. Y lo contestaba en las dos direcciones.
+     *
+     * Medido el 12/09/2026 sobre el par YA CORRECTO —`campo_nombre: Alisson Angelica`,
+     * `campo_apellido: Rodriguez Barrera`—: `invertido: SÍ, confianza alta`. Es decir, el
+     * corrector **rompía** un nombre bien puesto, y con la confianza que autoriza a escribir.
+     * Le pasó a la reserva 56X78F, la misma que motivó todo este mecanismo.
+     *
+     * ⚠️ Es la regla de `CLAUDE.md` cobrada en efectivo: **las condiciones se escriben en positivo
+     * en todas las ramas**. Un ejemplo con una sola rama no enseña a decidir, enseña una
+     * respuesta — y el modelo la da siempre que reconoce el ejemplo.
+     */
     private function reglas(): string
     {
         return <<<PROMPT
@@ -123,8 +140,17 @@ final readonly class RevisorDeOrdenDeNombre
         Tienes dos trabajos: decir si están cruzados, y devolverlos bien escritos.
 
         Cómo se decide:
-        - Piensa en qué cultura encaja cada token. «Rodriguez Barrera» son dos apellidos
-          hispanos; «Alisson Angelica» son dos nombres de pila. Ahí están cruzados.
+        - Piensa en qué cultura encaja cada token: «Rodriguez Barrera» son dos apellidos
+          hispanos, «Alisson Angelica» son dos nombres de pila.
+        - Y después mira EN QUÉ CAMPO está cada uno, que es lo único que decides:
+
+            campo_nombre: «Rodriguez Barrera»  campo_apellido: «Alisson Angelica»
+            → invertido: true. Los apellidos están en el campo del nombre.
+
+            campo_nombre: «Alisson Angelica»  campo_apellido: «Rodriguez Barrera»
+            → invertido: false. Cada mitad ya está en su campo: no se toca.
+
+          Es el MISMO par en los dos casos. Lo que cambia es dónde está cada mitad.
         - En muchos países el apellido va primero y es lo correcto. Sólo estás juzgando si los
           DOS CAMPOS están al revés entre sí, no el orden en que los escribiría alguien.
         - Si el par funciona igual de bien en los dos sentidos, o no reconoces la procedencia,
