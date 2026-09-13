@@ -136,7 +136,7 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
             ->setIcon('fa fa-phone')
             ->renderCollapsed();
 
-        yield TextField::new('telefonoPrincipal', 'WhatsApp de atención al público')
+        yield TextField::new('telefonoPrincipal', 'WhatsApp público (lo atiende el sistema)')
             ->hideOnIndex()
             ->setColumns(6)
             ->setHelp('El número por el que escribe la gente, y el <b>único que se publica</b>: '
@@ -145,11 +145,13 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
                 . 'así que lo contesta el sistema. <b>Nunca un móvil personal</b>: lo que se ponga '
                 . 'aquí lo ve cualquiera que abra el catálogo.');
 
-        yield TextField::new('telefonoAtencion', 'Teléfono de atención')
+        yield TextField::new('telefonoEmergencia', 'Teléfono de EMERGENCIAS (contesta una persona)')
             ->hideOnIndex()
             ->setColumns(6)
-            ->setHelp('Al que se manda a un huésped que no puede entrar. Se lo da el agente '
-                . '<b>automáticamente</b> cuando no hay código que entregar.');
+            ->setHelp('Al que se manda a alguien que está en la puerta y no puede entrar. Se lo da '
+                . 'el agente <b>automáticamente</b> cuando no hay código que entregar. '
+                . '⚠️ <b>No pongas aquí el de arriba</b>: ése lo contesta el sistema, y una urgencia '
+                . 'de madrugada acabaría en una cola que responde un bot.');
 
         yield TextField::new('emailContacto', 'Email')
             ->hideOnIndex()

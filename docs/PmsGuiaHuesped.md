@@ -383,9 +383,15 @@ La regla que sale de ahí:
 > La guía es para lo que se consulta *cuando se pregunta*; lo que se necesita *cuando pasa algo*
 > lo devuelve la skill de ese algo.
 
-Por eso `telefono_atencion` y `telefono_yape` son ahora campos de `PmsEstablecimiento` y los
-devuelve `ConsultarCodigosSkill` en `contacto`, junto al `motivo` y sin segundo paso — igual que
-ya hacía con el código de la caja.
+Por eso el teléfono de urgencias es un campo de `PmsEstablecimiento` y lo devuelve
+`ConsultarCodigosSkill` en `contacto`, junto al `motivo` y sin segundo paso — igual que ya hacía
+con el código de la caja.
+
+⚠️ **Ese campo se llama hoy `telefono_emergencia`** (era `telefono_atencion`,
+`Version20260913120000`), y ya no va acompañado del de Yape: `telefono_yape` se eliminó el
+11/09/2026 porque era la misma cifra que ya lleva `fin_medio_cobro` —con titular y moneda— y la
+skill la ofrecía como segundo contacto siendo un móvil personal. Para pagar por Yape está
+`consultar_medios_pago`; para una urgencia, este número y sólo éste.
 
 ⚠️ **Y no se duplican.** El ítem de guía deja de llevarlos escritos: un teléfono en dos sitios es
 un teléfono que un día se cambia en uno solo. El ítem sigue contestando *«¿a qué hora atienden?»*,

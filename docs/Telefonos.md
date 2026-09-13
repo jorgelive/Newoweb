@@ -183,10 +183,17 @@ que la agencia sea una fila, el parámetro se muda y sólo cambia de dónde lee
 | Campo | Papel | Quién lo lee |
 |---|---|---|
 | `telefonoPrincipal` | **el que se publica**: por él escribe la gente | catálogo público (`CatalogoUnidadView`), tarjeta del anfitrión de la guía (`PmsGuiaContexto::$host_whatsapp`), plantillas (`{{ whatsapp_numero }}`, `{{ whatsapp_url }}`) |
-| `telefonoAtencion` | **urgencias**: contesta una persona | `ConsultarCodigosSkill` cuando no hay código que entregar, botón «Necesito ayuda» de la ficha «Llaves» |
+| `telefonoEmergencia` | **urgencias**: contesta una PERSONA | `ConsultarCodigosSkill` cuando no hay código que entregar, botón «Necesito ayuda» de la ficha «Llaves» |
 
 Hoy `telefonoPrincipal` es el número de la **API de Meta**, así que lo que se publica lo contesta
 el sistema. Es la dirección acordada: todo por ese número, y el de atención sólo para urgencias.
+
+
+⚠️ **Los dos campos NO pueden llevar el mismo número, y el nombre es lo único que lo impide.**
+Hasta el 13/09/2026 se llamaban «WhatsApp de atención al público» y «Teléfono de atención»: dos
+casillas que decían atención, invitando a rellenar la segunda con el número de la primera «porque
+también atiende». Una urgencia de las dos de la mañana habría acabado en una cola que contesta un
+bot. El segundo se llama ahora `telefonoEmergencia`, en el código y en la columna.
 
 ⚠️ **`telefonoYape` se eliminó** (`Version20260911230000`). Era la misma cifra que ya lleva
 `fin_medio_cobro` en sus filas de Yape y Plin —con titular y moneda, que la columna no tenía— y
@@ -218,5 +225,5 @@ por Yape está el catálogo de cobro; para una urgencia, el de atención.
 | Cambiar cómo se buscan reservas por teléfono | `src/Pms/Repository/PmsReservaRepository.php` | `findVivasByTelefono()` |
 | Normalizar teléfonos de un canal nuevo | el persister del canal | inyectar `PhoneSanitizer` |
 | **Cambiar el número por el que nos escribe la gente** | CRUD de establecimientos | `telefonoPrincipal` — sale en catálogo, guía y plantillas, §5 bis |
-| **Cambiar el de urgencias del alojamiento** | CRUD de establecimientos | `telefonoAtencion` |
+| **Cambiar el de urgencias del alojamiento** | CRUD de establecimientos | `telefonoEmergencia` |
 | **Cambiar el de urgencias de la AGENCIA** (órdenes de servicio) | `.env` / `.env.local` | `AGENCIA_TELEFONO_EMERGENCIA` |

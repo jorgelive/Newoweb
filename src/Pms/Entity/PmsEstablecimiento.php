@@ -96,7 +96,7 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
      * estuviera decidido en ningún sitio. Hoy lleva el número de la API de Meta: lo contesta el
      * sistema, que es a donde se quiere llevar todo.
      *
-     * ⚠️ Y no es el de urgencias: ése es `telefonoAtencion`, que contesta una persona.
+     * ⚠️ Y no es el de urgencias: ése es `telefonoEmergencia`, que contesta una persona.
      */
     #[ORM\Column(type: 'string', length: 30, nullable: true)]
     #[Assert\Length(max: 30)]
@@ -128,20 +128,22 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     private ?string $codigoCajaLlaves = null;
 
     /**
-     * El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca.
+     * El móvil de URGENCIAS: al que se manda a alguien que está en la puerta sin poder entrar.
      *
-     * ⚠️ NO es `telefonoPrincipal`. Ése es el **comercial** —el que está en la web y en las
-     * OTA, y que se sirve al catálogo público—; éste es el de **atención**, el que contesta un
-     * humano cuando alguien está en la puerta sin poder entrar. Confundirlos manda al huésped
-     * al número equivocado justo en el peor momento.
+     * ⚠️ **Contesta una PERSONA, y por eso no puede ser `telefonoPrincipal`.** Ése es el que se
+     * publica y hoy lo atiende el sistema por la API de Meta. Poner el mismo número en los dos
+     * —«total, también atiende»— manda una urgencia de las dos de la mañana a una cola que
+     * contesta un bot. Se llamaba `telefonoAtencion` y se renombró el 13/09/2026
+     * (`Version20260913120000`) porque los dos campos decían «atención» y el nombre era lo único
+     * que impedía confundirlos.
      *
      * Vive aquí y no en un ítem de guía porque tiene que salir por el camino DETERMINISTA: lo
      * devuelve `ConsultarCodigosSkill` junto al motivo, sin depender de que el índice de temas
      * acierte a seleccionar el ítem del horario de atención — que es exactamente lo que falló
      * el 27/08/2026, con una huésped una hora en la puerta.
      */
-    #[ORM\Column(name: 'telefono_atencion', type: 'string', length: 30, nullable: true)]
-    private ?string $telefonoAtencion = null;
+    #[ORM\Column(name: 'telefono_emergencia', type: 'string', length: 30, nullable: true)]
+    private ?string $telefonoEmergencia = null;
 
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $codigoCajaDinero = null;
@@ -300,8 +302,8 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     // GETTERS Y SETTERS DE SEGURIDAD
     // ============================================================
 
-    public function getTelefonoAtencion(): ?string { return $this->telefonoAtencion; }
-    public function setTelefonoAtencion(?string $telefono): self { $this->telefonoAtencion = $telefono; return $this; }
+    public function getTelefonoEmergencia(): ?string { return $this->telefonoEmergencia; }
+    public function setTelefonoEmergencia(?string $telefono): self { $this->telefonoEmergencia = $telefono; return $this; }
 
 
     public function getCodigoCajaLlaves(): ?string

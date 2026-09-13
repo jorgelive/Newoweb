@@ -492,7 +492,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
     {
         $establecimiento = $unidad->getEstablecimiento();
 
-        $telefono = trim((string) $establecimiento?->getTelefonoAtencion());
+        $telefono = trim((string) $establecimiento?->getTelefonoEmergencia());
 
         if ($telefono === '') {
             return null;
