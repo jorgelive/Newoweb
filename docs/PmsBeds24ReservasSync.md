@@ -1661,6 +1661,54 @@ PmsCambioDeNombreListener          ← detecta el cambio, no sabe quién escucha
 nadie puede preguntar «¿cuántas hay mal ahora?» — que es justo lo que hubo que averiguar a mano, a
 base de SQL, para descubrir los 23 títulos podridos. Ahora: `pms:nombre:auditar-copias`.
 
+##### ⚠️ La primera versión del contrato estaba MUERTA, y decía que todo iba bien
+
+Una revisión adversarial encontró dos fallos que se anulaban entre sí de la peor manera: el
+mecanismo no corregía nada y el informe que debía delatarlo salía en verde.
+
+| Qué | Por qué no se veía |
+|---|---|
+| `corregir()` ligaba el UUID **como texto** contra un `binary(16)` | No falla: devuelve **cero filas**. Y cero es la respuesta normal de esta interfaz, así que el propagador no registraba nada y ningún log decía una palabra. Medido: 0 filas como texto, 1 con `UuidType::NAME` |
+| `desincronizadas()` comparaba con `<>` sobre columnas `utf8mb4_unicode_ci` | Bajo esa collation `'robin uylenbroeck' <> 'Robin Uylenbroeck'` es **falso**. El `<>` descartaba justo los desajustes de sólo caja — el caso más común — así que el comando imprimía «todas las copias al día» con títulos podridos dentro. Hace falta `BINARY` en el `<>`; los `LOWER()` de al lado sobraban |
+
+Las dos son la misma familia: **fallan hacia el lado que no se ve**, y la segunda tapaba a la
+primera. Es lo que `CLAUDE.md` avisa de los UUID («devuelve vacío, y por eso se lee como dato en
+vez de como fallo») más una vuelta de tuerca con la collation.
+
+🔑 **Y `corregir()` pasó a ser un `UPDATE` en vez de leer-modificar-guardar.** No es estilo:
+
+- El `flush()` de la copia corría dentro del `postFlush` de la reserva y **despertaba a todos los
+  listeners**. El de push metía el evento en `eventosTouched` y encolaba un `POST` a Beds24 por
+  cada corrección — justo cuando `IGNORED_FIELDS_ON_LOCKED_OTA` excluye el nombre del push a
+  propósito. El nombre habría llegado a Beds24 por un camino que nadie diseñó.
+- Un fallo SQL dentro de ese flush cierra el `EntityManager`, y las copias siguientes revientan con
+  errores que no señalan al culpable.
+- Entre leer el título y escribirlo había una carrera. Con el guarda en el `WHERE` no la hay.
+
+Otros dos arreglos del emisor:
+
+- **`array_key_exists` en vez de `??`** para el valor anterior. Con `??`, un `null` previo caía al
+  valor nuevo y «antes» salía igual que «ahora»: no se propagaba nada. Airbnb manda sólo el nombre
+  de pila en estado *Request* y el apellido llega en un pull posterior, así que `null → 'Smith'`
+  es un cambio real que se descartaba en silencio.
+- **`onClear` vacía lo recogido.** Si el commit revienta no hay `postFlush` y lo recogido se queda
+  dentro de un servicio que en un worker vive entre mensajes: el siguiente flush repartía una
+  corrección cuyo «ahora» nunca se escribió.
+
+##### El enlace de pago PENDIENTE sí entra en el contrato
+
+«El enlace congela el nombre porque es lo que se mandó a la pasarela» vale **después** de pagar.
+Antes no se ha mandado nada: `CulqiClient` e `IzipayClient` leen esos campos **en el momento del
+cobro**. Un enlace pendiente con el par cruzado se lo mandará a la pasarela el día que el huésped
+pague, y hasta entonces se lo enseña en la pantalla.
+
+Y la ventana es la normal, no un caso raro: el enlace de adelanto se emite en cuanto llegan los
+cargos del webhook, dentro de los dos segundos en que el corrector aún no ha corrido. Es el enlace
+que recibe el huésped. Pagado, fallido, expirado, anulado y reembolsado siguen congelados.
+
+⚠️ Esa copia compara **campo a campo**, no el nombre junto: con dos columnas separadas,
+«Ana María / Pérez» → «Ana / María Pérez» cambia las dos aunque el concatenado sea idéntico.
+
 ##### Y la corrección no llegaba al título cacheado del calendario
 
 `titulo_cache` se escribía **sólo en `prePersist`**, al crear el evento. Ninguna corrección

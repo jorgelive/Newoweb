@@ -33,6 +33,7 @@ use Doctrine\ORM\Events;
  */
 #[AsDoctrineListener(event: Events::onFlush)]
 #[AsDoctrineListener(event: Events::postFlush)]
+#[AsDoctrineListener(event: Events::onClear)]
 final class PmsCambioDeNombreListener
 {
     /** @var list<CorreccionDeNombre> */
@@ -61,8 +62,17 @@ final class PmsCambioDeNombreListener
                 continue;
             }
 
-            $antesNombre = $cambios['nombreCliente'][0] ?? $entidad->getNombreCliente();
-            $antesApellido = $cambios['apellidoCliente'][0] ?? $entidad->getApellidoCliente();
+            // ⚠️ `array_key_exists` y no `??`: el valor anterior puede ser **NULL** de verdad, y
+            // con `??` eso caía al valor NUEVO — o sea, «antes» y «ahora» salían iguales y no se
+            // propagaba nada. No es teórico: Airbnb manda sólo `firstName` en estado Request y el
+            // apellido llega en un pull posterior, así que `null → 'Smith'` es un cambio real que
+            // se estaba descartando en silencio.
+            $antesNombre = array_key_exists('nombreCliente', $cambios)
+                ? $cambios['nombreCliente'][0]
+                : $entidad->getNombreCliente();
+            $antesApellido = array_key_exists('apellidoCliente', $cambios)
+                ? $cambios['apellidoCliente'][0]
+                : $entidad->getApellidoCliente();
 
             $this->pendientes[] = new CorreccionDeNombre(
                 origenTipo: 'pms_reserva',
@@ -73,6 +83,22 @@ final class PmsCambioDeNombreListener
                 apellidoAhora: (string) $entidad->getApellidoCliente(),
             );
         }
+    }
+
+    /**
+     * 🔥 **Si el commit revienta no hay `postFlush`, y lo recogido se queda dentro.**
+     *
+     * Este servicio es un singleton y en un worker de messenger vive entre mensajes. Secuencia:
+     * `onFlush` recoge la corrección → el commit falla (un interbloqueo con el cron del pull, una
+     * FK) → Doctrine cierra el EM y **se salta `postFlush`** → el worker hace `clear()` y sigue con
+     * el mensaje siguiente → el primer flush de ESE mensaje reparte una corrección cuyo «ahora»
+     * nunca llegó a escribirse. El título pasaría a decir un nombre que no existe en ninguna fila.
+     *
+     * `clear()` dispara `onClear`, así que es el sitio exacto donde tirar lo recogido.
+     */
+    public function onClear(): void
+    {
+        $this->pendientes = [];
     }
 
     public function postFlush(PostFlushEventArgs $args): void

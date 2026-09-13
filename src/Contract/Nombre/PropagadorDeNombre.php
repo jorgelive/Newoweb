@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Contract\Nombre;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Throwable;
@@ -21,6 +22,7 @@ final readonly class PropagadorDeNombre
         #[AutowireIterator('app.copia_del_nombre')]
         private iterable $copias,
         private LoggerInterface $logger,
+        private EntityManagerInterface $em,
     ) {}
 
     /**
@@ -49,6 +51,21 @@ final readonly class PropagadorDeNombre
                     $correccion->origenId,
                     $e->getMessage(),
                 ));
+
+                // ⚠️ **Si el EM se cerró, no se sigue.** Un fallo SQL dentro de una copia hace que
+                // Doctrine cierre el `EntityManager`: a partir de ahí cada copia siguiente lanza
+                // `EntityManagerClosed`, que llena el log de errores que no señalan al culpable —
+                // y peor, el primero que lo toque FUERA de este bucle hace que estalle el
+                // `postFlush` entero y el guardado parezca haber fallado con la reserva ya
+                // escrita. Se para aquí y se dice qué copia lo rompió.
+                if (!$this->em->isOpen()) {
+                    $this->logger->error(sprintf(
+                        '[Nombre] «%s» cerró el EntityManager: no se propaga a las demás copias.',
+                        $copia->queCopia(),
+                    ));
+
+                    break;
+                }
 
                 continue;
             }

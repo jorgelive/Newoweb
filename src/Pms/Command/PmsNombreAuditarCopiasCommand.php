@@ -20,8 +20,14 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * mismo y esto sólo suma.
  *
  * Sólo LEE. Corregir es trabajo de {@see PropagadorDeNombre}, que se dispara solo cuando el nombre
- * cambia — si aquí sale un número distinto de cero, es que algo se escapó antes de que existiera
- * el mecanismo, no que la propagación esté fallando hoy.
+ * cambia.
+ *
+ * ⚠️ **Un número distinto de cero NO baja solo.** Este recuento y la propagación usan definiciones
+ * distintas a propósito: aquí se cuenta lo que *parece* nuestro —el par en cualquier orden y
+ * cualquier caja—, mientras que corregir sólo pisa lo que coincide **exactamente** con el nombre
+ * anterior, para no borrar un título escrito a mano. Así que una copia heredada de antes de este
+ * mecanismo se cuenta aquí y la propagación nunca la tocará: eso se salda con
+ * `pms:titulo-cache:resincronizar`, no esperando al siguiente cambio de nombre.
  */
 #[AsCommand(
     name: 'pms:nombre:auditar-copias',
