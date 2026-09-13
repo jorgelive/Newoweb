@@ -105,9 +105,15 @@ final class MessageCrearBienvenidaCommand extends Command
      *
      * ⚠️ **El enlace va en el botón, no en el texto**: la de Airbnb lo llevaba en los dos sitios.
      *
-     * ⚠️ **Sin tours**: las dos bienvenidas viejas están en `MARKETING` y lo que las pone ahí es
-     * la promoción. Las que sólo hablan de la guía (`enviar_guia`, `recordatorio_llegada`) están
-     * en `UTILITY`, más barata y sin el tope de frecuencia de Meta.
+     * ⚠️ **Sin tours**, para inclinar la balanza hacia `UTILITY` — más barata y sin el tope de
+     * frecuencia de Meta. Las dos bienvenidas viejas, que promocionan, están en `MARKETING`; las
+     * que sólo hablan de la guía (`enviar_guia`, `recordatorio_llegada`), en `UTILITY`.
+     *
+     * ⚠️ **Pero la categoría la decide META, no el texto.** El corte se ha cumplido en las doce
+     * plantillas oficiales —lo que promociona o pide reseña cayó en `MARKETING`, lo transaccional
+     * en `UTILITY`—, y aun así **no se puede planificar contando con el resultado**: `check_out`
+     * está en `MARKETING` y es un aviso de salida. Quitar la promoción mejora las probabilidades;
+     * no las garantiza. Si una versión nueva cae en `MARKETING`, no es un fallo que arreglar aquí.
      */
     private const string CUERPO_META = <<<'TXT'
         Hola {{guest_name}}, soy Susan, de Centro Cusco Inti. Te damos la bienvenida 😊
