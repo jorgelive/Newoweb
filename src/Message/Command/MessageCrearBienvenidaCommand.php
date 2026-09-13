@@ -72,8 +72,8 @@ final class MessageCrearBienvenidaCommand extends Command
     /**
      * Para el chat de la OTA y para dentro de la ventana de WhatsApp.
      *
-     * - **No dice «gracias por reservar»**: en Booking eso ya lo dice `politicas_booking` siete
-     *   minutos antes. «Te damos la bienvenida» vale para las dos OTA y no tiene género.
+     * - **No dice «gracias por reservar»**: en Booking eso ya lo dice `politicas_booking` un minuto
+     *   antes. «Te damos la bienvenida» vale para las dos OTA y no tiene género.
      * - **Las llaves dicen cuándo se abren.** Su ficha es `solo-ventana`: `PmsGuiaAcceso` la
      *   entrega con pago confiable y a menos de 24 h de la entrada. Prometerla sin el paréntesis
      *   es mandar al huésped a un candado.
@@ -124,11 +124,17 @@ final class MessageCrearBienvenidaCommand extends Command
     /**
      * Las reglas de bienvenida que se repuntan, con el minuto que les toca.
      *
-     * Booking pasa a +8 porque a +1 sale ahora `politicas_booking`: primero lo que obliga, luego
-     * lo cálido. Airbnb no tiene políticas que mandar y se queda en +1.
+     * Booking va DESPUÉS de `politicas_booking`, que sale a +1: primero lo que obliga, luego lo
+     * cálido. Airbnb no tiene políticas que mandar y se queda en +1.
+     *
+     * ⚠️ **El hueco es de un minuto, no de siete.** Estuvo en +8 por prudencia, y sobra: el envío
+     * a Booking y Airbnb pasa por Beds24 y llega en segundos. Y el orden no depende de que a
+     * alguien le dé tiempo — `MessageRuleEngine` calcula un `run_at` exacto para cada uno y la
+     * cola los toma por esa fecha, así que un minuto separa de verdad. No es un margen de
+     * seguridad contra la latencia: es sólo lo que hace falta para que se lean en orden.
      */
     private const array REPUNTES = [
-        'welcome_booking' => 8,
+        'welcome_booking' => 2,
         'welcome_airbnb' => 1,
     ];
 
