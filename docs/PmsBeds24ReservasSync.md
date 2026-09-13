@@ -1591,6 +1591,27 @@ real: un simulador que no simula da confianza sin dar información.
 tiene cuatro, incluidos los dos etiquetados al revés y el de `B0UZA` (cero por O), que comprueba
 que el guardián de las letras sigue en pie ahora que se prueban dos propuestas en vez de una.
 
+##### Y la corrección no llegaba al título cacheado del calendario
+
+`titulo_cache` se escribía **sólo en `prePersist`**, al crear el evento. Ninguna corrección
+posterior del nombre llegaba ahí, así que el caché se quedaba con la versión previa — cruzada o en
+minúsculas — para siempre. **23 de 423** eventos desincronizados en producción, y los 23 eran
+exactamente las reservas que el corrector había tocado.
+
+⚠️ No es cosmético: `PmsDisponibilidadService` lee `titulo_cache` **como el nombre del huésped**
+(`e.titulo_cache AS huesped`). Un caché que nadie invalida no envejece mal: envejece **en silencio**.
+
+`PmsEventoCalendarioCacheNormalizerListener` escucha ahora también `onFlush` y arrastra el cambio.
+
+🔑 **La guarda que evita pisar títulos manuales es una comparación, no un campo nuevo:** sólo se
+reescribe el título si coincidía con el derivado del nombre **anterior**. Si coincide es nuestro;
+si no, lo escribió una persona y se deja. Sin eso había que elegir entre un caché podrido y borrar
+trabajo de alguien.
+
+Para lo que ya se quedó atrás: `pms:titulo-cache:resincronizar` (lleva `--aplicar`; sin él sólo
+enseña). Sólo toca los títulos que son el nombre actual cruzado o con otra caja — las dos formas
+que este sistema pudo escribir ahí. Cualquier otra cadena es de una persona y no se toca.
+
 #### ⏱️ Por qué asíncrono llega a tiempo (y hasta cuándo)
 
 La bienvenida es una regla `created_at` con `offset_minutes = 0`, y `MessageRuleEngine` la crea
