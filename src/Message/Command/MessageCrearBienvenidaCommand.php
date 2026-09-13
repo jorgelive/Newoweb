@@ -336,15 +336,21 @@ final class MessageCrearBienvenidaCommand extends Command
      * Separados, cada uno queda en su categoría: la bienvenida transaccional y siempre entregada,
      * el catálogo en `menu_tours`, que ya es `MARKETING` y ya está aprobada en los siete idiomas.
      *
-     * ── Sólo WhatsApp, y es deliberado ──────────────────────────────────────
-     * Por el chat de la OTA y por el cuerpo de enlace, el catálogo **ya viaja dentro de la
-     * bienvenida**: ahí es texto libre, no pasa por Meta y no cuesta nada. Mandarlo otra vez sería
-     * repetírselo al mismo huésped.
+     * ── Sólo WhatsApp, y el reparto es limpio ───────────────────────────────
+     * | canal | cómo llega el catálogo |
+     * |---|---|
+     * | chat de la OTA (Beds24) | **dentro** de la bienvenida: ahí es texto libre y no cuesta nada |
+     * | WhatsApp | en **este** mensaje, aparte |
      *
-     * ⚠️ **Queda un solape estrecho**: si el huésped escribe dentro de esos 20 minutos, la ventana
-     * de 24 h se abre y `menu_tours` sale por su cuerpo de enlace — con el catálogo que ya recibió
-     * en la bienvenida. Es raro (hay que escribir en los primeros 20 min) y el daño es una
-     * repetición, no un fallo. Si molesta, se vacía el cuerpo de enlace de `menu_tours`.
+     * Por eso el cuerpo de enlace de la bienvenida ya NO lleva tours: si los llevara, el huésped
+     * que hubiera escrito antes de los 20 minutos los recibiría dos veces.
+     *
+     * ⚠️ **Y `menu_tours` se quedó sin cuerpo de enlace a propósito.** Dentro de la ventana la
+     * estrategia prueba ese cuerpo y, al no haberlo, cae al de Meta: así WhatsApp manda siempre el
+     * MISMO texto, esté la ventana abierta o cerrada. Una sola manera.
+     *
+     * ⚠️ El comando `msg:plantilla:ver … --canal=link` dirá que `menu_tours` no tiene cuerpo de
+     * enlace. Es una limitación de esa herramienta, que no simula el respaldo; el envío sí lo hace.
      *
      * Las directas no entran: no reciben bienvenida, así que un catálogo suelto llegaría detrás de
      * una negociación personalizada y sin nada que lo anteceda.
