@@ -1908,6 +1908,23 @@ cuenta, a cualquier hora, y nadie se entera hasta que alguien abre la reserva.
 escalado del agente (ver `docs/Mensajeria.md`, *El mecanismo de avisar vive fuera*). Aquí sólo se
 decide **qué se dice**; a quién y por dónde ya estaba resuelto.
 
+⚠️ **El aviso decía medio nombre, y a veces la mitad equivocada (13/09/2026).** Llegó
+«💰 *uylenbroeck* ha pagado USD 30.75»: `cliente()` usaba sólo `clienteNombre` teniendo
+`clienteApellido` en la columna de al lado. Los dos campos van separados **al guardar** porque la
+pasarela los quiere aparte y «Ramos Garcia Mª Isabel» no la parte ninguna heurística — pero eso
+es la forma de almacenarlos, no la de enseñarlos. Ahora se leen juntos.
+
+Y la mitad que salía era la equivocada por un segundo problema, que **no es de Finanzas**: ese
+enlace se emitió a las `18:05:59`, el mismo segundo en que entró la reserva, con el par todavía
+cruzado por el canal. `RevisarOrdenDelNombreDispatchHandler` lo enderezó a las `18:06:01` — **dos
+segundos tarde**. El enlace ya se había llevado su foto del nombre.
+
+🔑 **El enlace congela los datos del cliente a propósito** (un cobro emitido no puede cambiar de
+importe ni de titular), pero la corrección del nombre es asíncrona y no llega a los enlaces ya
+creados. Ver `docs/PmsBeds24ReservasSync.md`, el margen del corrector: el mismo desfase que ahí se
+mide contra la bienvenida, aquí muerde contra el enlace de pago. El enlace del **saldo** de esa
+misma reserva, creado después, salió correcto (`Robin` / `Uylenbroeck`).
+
 **Se engancha en `FinEnlacePagoService::confirmarPago()`**, y ese sitio no es casual: por ese
 embudo pasan los TRES caminos de cobro —el navegador del cliente y los webhooks de las dos
 pasarelas—, así que enganchar ahí cubre todos sin repetir código. Y como la guarda de

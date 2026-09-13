@@ -164,11 +164,23 @@ final readonly class FinAvisoDeCobro
         ];
     }
 
+    /**
+     * 🔥 **Usaba SÓLO `clienteNombre`, teniendo el apellido en la columna de al lado.** El aviso
+     * decía «💰 *uylenbroeck* ha pagado USD 30.75» — que además de ser medio nombre, era la mitad
+     * equivocada: ese enlace se emitió con el par cruzado, así que el campo del nombre llevaba el
+     * apellido. Quien lee el aviso no puede saber cuál de las dos cosas está viendo.
+     *
+     * Los dos campos van separados a propósito —la pasarela los quiere aparte y «Ramos Garcia Mª
+     * Isabel» no la parte ninguna heurística—, pero eso es la forma de guardarlos, no la de
+     * enseñarlos. Para leerlo, van juntos.
+     */
     private function cliente(FinEnlacePago $enlace): string
     {
-        $nombre = trim((string) $enlace->getClienteNombre());
+        $completo = trim(
+            trim((string) $enlace->getClienteNombre()) . ' ' . trim((string) $enlace->getClienteApellido())
+        );
 
-        return $nombre !== '' ? $nombre : 'Un cliente';
+        return $completo !== '' ? $completo : 'Un cliente';
     }
 
     private function importe(FinEnlacePago $enlace): string
