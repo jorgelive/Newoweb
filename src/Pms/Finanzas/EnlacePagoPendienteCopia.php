@@ -10,6 +10,8 @@ use App\Finanzas\Entity\FinEnlacePago;
 use App\Finanzas\Enum\FinEnlacePagoEstado;
 use App\Finanzas\Enum\FinOrigenCobro;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * El nombre del cliente copiado en un enlace de pago **que todavía no se ha cobrado**.
@@ -65,7 +67,12 @@ final readonly class EnlacePagoPendienteCopia implements CopiaDelNombre
                AND l.clienteNombre = :nombreAntes AND l.clienteApellido = :apellidoAntes'
         )
             ->setParameter('tipo', $correccion->origenTipo)
-            ->setParameter('id', $correccion->origenId)
+            // ⚠️ **Tipado, o son cero filas.** `origen_id` es `binary(16)`: un texto de 36
+            // caracteres no casa con 16 bytes, y eso no da error — da vacío. Es el mismo fallo que
+            // ya había matado a `TituloDeCalendarioCopia`, repetido en el archivo escrito justo
+            // después de arreglarlo. `FinEnlacePagoRepository::porOrigen()` lleva el tipo desde
+            // siempre; se copia de ahí y no de la memoria.
+            ->setParameter('id', Uuid::fromString($correccion->origenId), UuidType::NAME)
             ->setParameter('pendiente', FinEnlacePagoEstado::PENDIENTE->value)
             ->setParameter('nombreAntes', $correccion->nombreAntes)
             ->setParameter('apellidoAntes', $correccion->apellidoAntes)
@@ -80,7 +87,10 @@ final readonly class EnlacePagoPendienteCopia implements CopiaDelNombre
         $sql = <<<'SQL'
             SELECT COUNT(*)
             FROM fin_enlace_pago l
-            JOIN pms_reserva r ON r.id = UNHEX(REPLACE(l.origen_id, '-', ''))
+            -- `origen_id` YA es binary(16), igual que `pms_reserva.id`: se comparan tal cual.
+            -- Un `UNHEX(REPLACE(...))` aquí trataría 16 bytes como si fueran texto con guiones y
+            -- devolvería cero filas sin quejarse.
+            JOIN pms_reserva r ON r.id = l.origen_id
             WHERE l.origen_tipo = 'pms_reserva'
               AND l.estado = 'pendiente'
               AND l.pagado_en IS NULL
