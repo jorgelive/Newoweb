@@ -636,8 +636,25 @@ final class BookingPullPersister implements ResetInterface
             $evento->setMonto($this->normalizeDecimal($booking->price));
             $evento->setComision($this->normalizeDecimal($booking->commission));
 
-            $titulo = trim(($booking->firstName ?? '') . ' ' . ($booking->lastName ?? ''));
-            $evento->setTituloCache($titulo ?: null);
+            // 🔥 **Aquí se escribía el nombre CRUDO del canal, en cada pull, y deshacía la
+            // corrección.** `$booking->firstName` es lo que mandó Beds24 tal cual —«uylenbroeck»,
+            // el par cruzado y en minúsculas—, mientras que la reserva ya lo tiene enderezado por
+            // `RevisarOrdenDelNombreDispatchHandler`. El ciclo era: entra la reserva, el corrector
+            // la arregla, y el siguiente cron devolvía el título al nombre malo.
+            //
+            // ⚠️ **Y al devolverlo desactivaba su propio arreglo.** Quien mantiene el título al día
+            // ({@see \App\Pms\Nombre\Copia\TituloDeCalendarioCopia}) sólo pisa lo que coincide
+            // con el nombre anterior — su guarda contra borrar títulos escritos a mano—. Un título
+            // devuelto al crudo ya no coincidía con nada, así que pasaba a leerse como manual y no
+            // se volvía a tocar **nunca**. No es que la corrección se perdiera una vez: es que
+            // dejaba de aplicarse para siempre.
+            //
+            // La reserva es la fuente de verdad de su propio nombre. El payload sólo lo es la
+            // primera vez, y de eso ya se encarga `PmsEventoCalendarioCacheNormalizerListener`.
+            $titulo = $reserva instanceof PmsReserva
+                ? trim((string) $reserva->getNombreCliente() . ' ' . (string) $reserva->getApellidoCliente())
+                : trim(($booking->firstName ?? '') . ' ' . ($booking->lastName ?? ''));
+            $evento->setTituloCache($titulo !== '' ? mb_substr($titulo, 0, 180) : null);
         }
 
         // Actualizar LastSeen (Obs #9: Iteración inevitable si no hay repo method, pero controlada)

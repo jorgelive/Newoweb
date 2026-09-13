@@ -1626,6 +1626,41 @@ pull de Booking la había vuelto a cruzar. Es falsa: `datos_locked` estaba **cer
 reserva, y lo está en **328 de 331** con apellido. El pull no puede pisar esos campos. Los cuatro
 cruces que el handler ha hecho en toda su vida —los únicos que registra `info.log`— son correctos.
 
+##### 🔑 El contrato: quien copia el nombre se suscribe, y el PMS no sabe quién (13/09/2026)
+
+Arreglar el título del calendario y luego el enlace de pago y luego el maestro de contactos es
+perseguir síntomas: la pregunta de verdad —**«¿en cuántos sitios más se copia esto?»**— no tenía
+respuesta, y contestarla costó auditar `src/` entero.
+
+Ocho sitios copian el nombre del huésped. Seis están bien: `msg_conversation.guest_name` y el push
+a Beds24 **se recalculan solos**; el enlace de pago, los avisos ya redactados y la auditoría de
+webhooks **deben congelarse** —son constancias de lo que pasó, y reescribirlas sería falsificar el
+pasado—. Sólo dos se quedaban colgadas: el título del calendario y `maestro_contacto`.
+
+**La forma es la de este proyecto**: contrato + autolocalización, para que el PMS no llame a
+Finanzas ni al maestro. Incorporar una copia nueva es **crear una clase**.
+
+```
+PmsCambioDeNombreListener          ← detecta el cambio, no sabe quién escucha
+   onFlush   recoge el par de ANTES (sólo existe ahí)
+   postFlush reparte
+        └─ PropagadorDeNombre      #[AutowireIterator('app.copia_del_nombre')]
+             └─ CopiaDelNombre     ← cada módulo implementa la suya
+                  corregir()       propaga y dice cuántas filas tocó
+                  desincronizadas() cuántas hay mal HOY, sin arreglar nada
+```
+
+| Decisión | Por qué |
+|---|---|
+| Recoger en `onFlush`, repartir en `postFlush` | el changeset —lo que decía **antes**— sólo existe en `onFlush`, y es el dato que cada copia necesita para reconocer las suyas. Pero repartir ahí obligaría a cada implementación a conocer `recomputeSingleEntityChangeSet()`, una trampa de Doctrine que no tiene por qué saberse quien sólo guarda un nombre |
+| El `flush()` de las copias **no** hace bucle | lo que cambian son sus propias tablas, no `PmsReserva`: no hay `nombreCliente` en el changeset y no se recolecta nada. El corte es estructural, no un contador de vueltas |
+| Una copia que revienta no tumba a las demás | esto cuelga de un flush de la reserva; propagar la excepción convertiría «no se pudo actualizar un título» en «no se pudo guardar la reserva» |
+| `origenTipo` es opaco | `pms_reserva` se transporta, no se interpreta |
+
+🔥 **`desincronizadas()` es la mitad que hace esto comprobable.** Propagar bien no vale de nada si
+nadie puede preguntar «¿cuántas hay mal ahora?» — que es justo lo que hubo que averiguar a mano, a
+base de SQL, para descubrir los 23 títulos podridos. Ahora: `pms:nombre:auditar-copias`.
+
 ##### Y la corrección no llegaba al título cacheado del calendario
 
 `titulo_cache` se escribía **sólo en `prePersist`**, al crear el evento. Ninguna corrección
@@ -1636,7 +1671,17 @@ exactamente las reservas que el corrector había tocado.
 ⚠️ No es cosmético: `PmsDisponibilidadService` lee `titulo_cache` **como el nombre del huésped**
 (`e.titulo_cache AS huesped`). Un caché que nadie invalida no envejece mal: envejece **en silencio**.
 
-`PmsEventoCalendarioCacheNormalizerListener` escucha ahora también `onFlush` y arrastra el cambio.
+⚠️ **Y la fuga real no era la falta de arrastre: era `BookingPullPersister`.** Reescribía
+`titulo_cache` con el nombre **crudo del canal** (`$booking->firstName . ' ' . $booking->lastName`)
+en cada pull donde la reserva fuera el link principal — casi siempre. El ciclo: entra la reserva,
+el corrector la endereza, el cron devuelve el título al nombre malo.
+
+🔥 **Y al devolverlo, desactivaba el arreglo para siempre.** La guarda que protege los títulos
+escritos a mano sólo pisa lo que coincide con el nombre anterior; un título devuelto al crudo ya no
+coincide con nada, así que pasa a leerse como manual y **no se vuelve a tocar nunca**. No se perdía
+la corrección una vez: dejaba de aplicarse. Ahora esa línea toma el nombre de la reserva, que es la
+fuente de verdad de su propio nombre; el payload sólo lo es la primera vez, y de eso ya se encarga
+el `prePersist`.
 
 🔑 **La guarda que evita pisar títulos manuales es una comparación, no un campo nuevo:** sólo se
 reescribe el título si coincidía con el derivado del nombre **anterior**. Si coincide es nuestro;
