@@ -74,9 +74,16 @@ final class MessageCrearBienvenidaCommand extends Command
      *
      * - **No dice «gracias por reservar»**: en Booking eso ya lo dice `politicas_booking` un minuto
      *   antes. «Te damos la bienvenida» vale para las dos OTA y no tiene género.
-     * - **Las llaves dicen cuándo se abren.** Su ficha es `solo-ventana`: `PmsGuiaAcceso` la
-     *   entrega con pago confiable y a menos de 24 h de la entrada. Prometerla sin el paréntesis
-     *   es mandar al huésped a un candado.
+     * - **Las llaves dicen cuándo se abren, y con una HORA.** Su ficha es `solo-ventana`:
+     *   `PmsGuiaAcceso` la entrega con pago confiable y dentro de `HORAS_ANTICIPACION` (30 h).
+     *   Prometerla sin el paréntesis es mandar al huésped a un candado.
+     *
+     *   ⚠️ Dice «a las 8:00 del día anterior» y no «30 h antes» porque **es lo mismo y se
+     *   entiende sin restar**: con el check-in a las 14:00, 30 h antes son exactamente las 8:00
+     *   del día anterior. Nadie sabe cuándo son 30 horas antes de su llegada.
+     *
+     *   ⚠️ **Y son lo mismo MIENTRAS el check-in sea a las 14:00.** Si cambia, las 30 h se mueven
+     *   solas y esta frase no: habría que reescribirla —y en Meta eso es una plantilla nueva—.
      * - **La calefacción sin precio**: el precio y las condiciones viven en su ficha de la guía,
      *   y dos sitios con el mismo precio son dos sitios que actualizar.
      * - **«Por aquí» es cierto**: este cuerpo sale por canales en los que se puede contestar.
@@ -88,7 +95,7 @@ final class MessageCrearBienvenidaCommand extends Command
 
         En la guía de tu reserva tienes todo lo que necesitas:
         🚪 Cómo encontrar tu puerta, con croquis, foto y video
-        🔑 Cómo recoger tus llaves de la caja fuerte digital (se habilita 24 h antes de tu llegada)
+        🔑 Cómo recoger tus llaves de la caja fuerte digital (se habilita a las 8:00 del día anterior a tu llegada)
         🔥 Calefacción para las noches frías, si la quieres: precio y cómo pedirla
         🏡 Fotos de tu casita, normas de la casa y el detalle de tu cuenta
 
@@ -120,7 +127,7 @@ final class MessageCrearBienvenidaCommand extends Command
 
         En la guía de tu reserva tienes todo lo que necesitas:
         🚪 Cómo encontrar tu puerta, con croquis, foto y video
-        🔑 Cómo recoger tus llaves (se habilita 24 h antes de tu llegada)
+        🔑 Cómo recoger tus llaves (se habilita a las 8:00 del día anterior a tu llegada)
         🔥 Calefacción para las noches frías, si la quieres: precio y cómo pedirla
         🏡 Fotos de tu casita, normas de la casa y el detalle de tu cuenta
 
