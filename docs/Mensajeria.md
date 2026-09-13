@@ -7694,6 +7694,92 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 
 ---
 
+## 18.c Cómo quedaron las bienvenidas (12-13/09/2026)
+
+El plan de §18.b se ejecutó, con **una corrección sobre lo previsto**: no salió una bienvenida
+única, salieron **dos**.
+
+### Por qué DOS y no una
+
+Se intentó unificar —mismo texto para Booking y Airbnb, una edición y una aprobación de Meta— y
+no se pudo. El motivo no es de estilo: **en Booking hay que cobrar por adelantado y en Airbnb
+no.** Una bienvenida que no menciona el prepago deja al huésped de Booking sin saber que hay algo
+que pagar si `politicas_booking` se pierde o se lee por encima.
+
+> «Por unificar a la loca no puedo quitar una distinción importante, necesito que me prepaguen.»
+
+Son **idénticas salvo un renglón** de la lista de «lo que tienes en la guía»:
+
+```
+💳 El prepago para asegurar tu reserva: cuánto es y cómo pagarlo
+```
+
+⚠️ Va **dentro de la lista**, no como párrafo aparte: es una cosa más que está en la guía, y así
+no añade tono comercial ni urgencia —que es lo que empuja una plantilla hacia `MARKETING`.
+
+| plantilla local | OTA | en Meta |
+|---|---|---|
+| `bienvenida` | Airbnb | `bienvenida_v2` |
+| `bienvenida_booking` | Booking | `bienvenida_booking_v2` |
+
+### El reparto por canal, que no es simétrico
+
+| | bienvenida | políticas | tours |
+|---|---|---|---|
+| **Booking** | +2 min | +1 min, sólo Beds24 | dentro de la bienvenida (OTA) · +20 min (WhatsApp) |
+| **Airbnb** | +1 min | — | ídem |
+| **Directo** | — | — | — |
+
+**Las directas no reciben nada, y es una decisión**: llegan por una negociación personalizada, así
+que un automático al minuto de reservar llegaría detrás de una conversación que ya existe. Ver el
+docblock de `MessageCrearBienvenidaCommand`, donde está escrito junto con el hecho de que
+técnicamente sí se podría — que es lo que lo hace tentador de proponer.
+
+### El catálogo de tours va aparte por WhatsApp, y dentro por la OTA
+
+Meter los tours en la bienvenida la inclina hacia `MARKETING`, y eso no sólo cuesta más: entra en
+el **tope de frecuencia** de Meta. Un huésped que ya recibió promociones ese mes podría quedarse
+sin la bienvenida — el mensaje que lleva el enlace a su guía. Sería arriesgar lo importante por lo
+opcional.
+
+Así que por el chat de la OTA el catálogo viaja **dentro** (ahí es texto libre y no cuesta nada) y
+por WhatsApp viaja en `menu_tours`, **20 minutos después**, que ya es `MARKETING` y ya estaba
+aprobada.
+
+⚠️ Y `menu_tours` se quedó **sin cuerpo de enlace** a propósito: dentro de la ventana la estrategia
+prueba ese cuerpo y, al no haberlo, cae al de Meta. Así WhatsApp manda siempre el MISMO texto, esté
+la ventana abierta o cerrada. El comando `msg:plantilla:ver … --canal=link` dirá que no lo tiene:
+es la herramienta, que no simula el respaldo; el envío sí lo hace.
+
+### La categoría la decide Meta, no el texto
+
+El corte se ha cumplido en las doce plantillas oficiales —lo que promociona o pide reseña cayó en
+`MARKETING`, lo transaccional en `UTILITY`— y aun así **no se puede planificar contando con el
+resultado**: `check_out` está en `MARKETING` siendo un aviso de salida.
+
+> «El evaluador de Meta es impredecible, y para que califiquen como utility hay que rezar.»
+
+Las dos nuevas se subieron el 13/09/2026 y sirven de experimento: si `bienvenida_v2` sale
+`UTILITY` y `bienvenida_booking_v2` no, el culpable es el renglón del prepago.
+
+### La hora de las llaves, dicha como hora
+
+Decía «se habilita 24 h antes de tu llegada», que además de arbitrario ya era falso —la ventana
+es de 30 h desde el 11/09—. Pasa a **«a las 8:00 del día anterior a tu llegada»**, que con el
+check-in a las 14:00 es exactamente lo mismo y se entiende sin restar.
+
+⚠️ Son equivalentes **mientras el check-in sea a las 14:00**. Si cambia, las 30 h se mueven solas
+y la frase no — y reescribirla en Meta es una plantilla nueva.
+
+### Nunca se EDITA una plantilla aprobada
+
+Se lanza otra con nombre nuevo (`_v2`), se espera su aprobación, se apunta a ella y la vieja se
+archiva. Editar reabre la revisión: los idiomas ya aprobados vuelven a `PENDING` y **no se pueden
+usar fuera de la ventana de 24 h** hasta que Meta los mire otra vez. Para una bienvenida que sale
+al minuto de reservar —con la ventana siempre cerrada— eso es dejarla sin salir.
+
+---
+
 ## 18.b Plan de reformulación de las plantillas al huésped (30/08/2026)
 
 ### El inventario, con datos y no de memoria

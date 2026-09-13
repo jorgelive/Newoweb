@@ -141,7 +141,7 @@ final class MessageCrearBienvenidaCommand extends Command
      * no las garantiza. Si una versión nueva cae en `MARKETING`, no es un fallo que arreglar aquí.
      */
     private const string CUERPO_META = <<<'TXT'
-        Hola {{guest_name}}, soy Susan, de Centro Cusco Inti. Te damos la bienvenida 😊
+        Soy Susan, de Centro Cusco Inti 😊
 
         En la guía de tu reserva tienes todo lo que necesitas:
         🚪 Cómo encontrar tu puerta, con croquis, foto y video
@@ -151,6 +151,19 @@ final class MessageCrearBienvenidaCommand extends Command
 
         Ábrela con el botón de abajo. Cualquier duda, escríbenos por aquí.
         TXT;
+
+    /**
+     * La cabecera de la de Meta: se pinta en NEGRITA encima del cuerpo.
+     *
+     * Da forma al mensaje —deja de ser un bloque y pasa a tener título—, que en un móvil es
+     * bastante. Por eso el cuerpo suelta el saludo: con cabecera, repetirlo dice el nombre dos
+     * veces seguidas.
+     *
+     * ⚠️ **Sin pie, a propósito.** El de las viejas decía «¿Te gustaría que te ayudemos a
+     * planificar tu viaje?», que es promoción — de lo que empuja a `MARKETING`. Un pie neutro no
+     * molestaría, pero la identidad ya está en la primera línea del cuerpo.
+     */
+    private const string CABECERA_META = '¡Bienvenido a Cusco, {{guest_name}}!';
 
     /**
      * Las reglas de bienvenida que se repuntan, con el minuto que les toca.
@@ -463,11 +476,11 @@ final class MessageCrearBienvenidaCommand extends Command
                 'is_active' => true,
                 'category' => 'UTILITY',
                 // Con sufijo desde el primer día: ver §18 de docs/Mensajeria.md.
-                'meta_template_name' => 'bienvenida_v1',
+                'meta_template_name' => 'bienvenida_v2',
                 // Lo pone el sincronizador cuando Meta responde; a mano diría «aprobada» de algo
                 // que nunca se subió.
                 'is_official_meta' => false,
-                'header' => [],
+                'header' => [['format' => 'TEXT', 'language' => 'es', 'content' => self::CABECERA_META]],
                 'footer' => [],
                 'body' => [['language' => 'es', 'content' => self::CUERPO_META]],
                 'buttons_map' => [[
