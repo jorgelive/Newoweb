@@ -80,17 +80,57 @@ final readonly class OrdenDelNombre
         $cruzar = $veredicto['invertido']
             && mb_strtolower(trim($veredicto['confianza'])) === self::CONFIANZA_EXIGIDA;
 
-        // Lo capitalizado viene etiquetado por el campo del que SALIÓ, así que al cruzar hay que
-        // cruzarlo también: el «nombre bien escrito» acaba en el campo del apellido.
         [$finalNombre, $finalApellido] = $cruzar ? [$apellido, $nombre] : [$nombre, $apellido];
-        [$propNombre, $propApellido] = $cruzar
-            ? [$veredicto['apellidoCapitalizado'], $veredicto['nombreCapitalizado']]
-            : [$veredicto['nombreCapitalizado'], $veredicto['apellidoCapitalizado']];
+
+        // 🔥 **Aquí se cruzaban TAMBIÉN las propuestas de caja, y era una suposición falsa.**
+        //
+        // El código daba por hecho que lo capitalizado viene etiquetado por el campo del que SALIÓ
+        // —que `nombreCapitalizado` es «el campo_nombre bien escrito»—, así que al cruzar el orden
+        // cruzaba las propuestas con él. El modelo no hace eso: cuando decide que están invertidos
+        // devuelve los capitalizados **ya en su rol corregido**, o sea `nombreCapitalizado` = el
+        // nombre de pila. Cruzarlos otra vez los desempareja.
+        //
+        // Caso real (12/09/2026), reserva de Booking con `campo_nombre: uylenbroeck`,
+        // `campo_apellido: robin`. El modelo acertó de pleno —invertido, confianza alta, «Robin» /
+        // «Uylenbroeck»— y en el calendario se leía **«robin uylenbroeck»**, en minúsculas: el
+        // cruce intentó escribir «Uylenbroeck» sobre «robin», el guardián de las mismas letras lo
+        // rechazó, y al rechazarse las dos propuestas quedaron los dos originales tal cual.
+        //
+        // ⚠️ Que fallara **hacia el lado seguro** es lo único que salió bien: el guardián impidió
+        // ponerle el apellido en el campo del nombre. Pero el orden sí se aplicó y la caja no, así
+        // que el resultado era un nombre a medio arreglar y ningún error en ningún sitio.
+        //
+        // 🔑 **La solución es no fiarse de la etiqueta: emparejar por las LETRAS.** Quién es quién
+        // lo dice el texto, no el nombre del campo en un JSON. Así da igual cuál de las dos
+        // interpretaciones use el modelo hoy o mañana.
+        $propuestas = [$veredicto['nombreCapitalizado'], $veredicto['apellidoCapitalizado']];
 
         return [
-            self::conLaCajaBuena($finalNombre, $propNombre),
-            self::conLaCajaBuena($finalApellido, $propApellido),
+            self::mejorCaja($finalNombre, $propuestas),
+            self::mejorCaja($finalApellido, $propuestas),
         ];
+    }
+
+    /**
+     * La propuesta que de verdad es de este texto, elegida por sus letras.
+     *
+     * `conLaCajaBuena()` ya devuelve el original cuando las letras no coinciden, así que probar
+     * las dos y quedarse con la que cambie algo equivale a preguntar «¿cuál de éstas es la misma
+     * palabra?» — sin depender de cómo venga etiquetada.
+     *
+     * @param list<string> $propuestas
+     */
+    private static function mejorCaja(string $original, array $propuestas): string
+    {
+        foreach ($propuestas as $propuesta) {
+            $conCaja = self::conLaCajaBuena($original, $propuesta);
+
+            if ($conCaja !== $original) {
+                return $conCaja;
+            }
+        }
+
+        return $original;
     }
 
     /**

@@ -180,9 +180,14 @@ final class PmsNombreRevisarCommand extends Command
             ['Se le enseñó' => sprintf('«%s» / «%s»', $nombre, $apellido)],
             ['¿Invertido?' => $veredicto['invertido'] ? 'SÍ' : 'no'],
             ['Confianza' => $veredicto['confianza']],
-            ['Quedaría' => $veredicto['invertido'] && $veredicto['confianza'] === OrdenDelNombre::CONFIANZA_EXIGIDA
-                ? sprintf('«%s» / «%s»', $apellido, $nombre)
-                : 'igual que vino'],
+            // 🔥 **Esta fila mentía, y por eso el fallo de la caja pudo pasar por delante de
+            // alguien sin que saltara.** Calculaba el orden POR SU CUENTA —cruzando las dos
+            // cadenas— en vez de preguntar qué se va a escribir de verdad, así que enseñaba
+            // «robin / uylenbroeck» junto a un «Cómo se escribe: Robin / Uylenbroeck» y las dos
+            // filas parecían decir lo mismo con distinto formato. Un simulador que no simula el
+            // camino real es peor que no tenerlo: da confianza sin dar información.
+            ['Quedaría' => sprintf('«%s» / «%s»',
+                ...OrdenDelNombre::comoQuedaria($veredicto, $nombre, $apellido))],
             // El orden y la CAJA son dos decisiones con distinta vara —cruzar campos exige
             // confianza alta, recapitalizar no— así que se enseñan por separado. Verlas juntas en
             // una sola línea haría creer que una depende de la otra.

@@ -1560,6 +1560,37 @@ y sólo si al volver la respuesta los dos campos siguen siendo los que se juzgar
 El corta-bucles mira que sean *las mismas dos cadenas cambiadas de sitio*, no que «el nombre
 cambió»: un operador corrigiendo una tilde también lo cambia, y ése sí hay que revisarlo.
 
+##### 🔥 La caja se perdía justo cuando el orden SÍ se cruzaba (12/09/2026)
+
+Reserva real: llegó con `campo_nombre: uylenbroeck`, `campo_apellido: robin`. El modelo acertó de
+pleno —invertido, confianza alta, «Robin» / «Uylenbroeck»— y en el calendario se leía **«robin
+uylenbroeck»**, en minúsculas. El orden se había aplicado; la caja no.
+
+La causa era una suposición escrita en `comoQuedaria()`: que `nombreCapitalizado` significa «el
+**campo_nombre** bien escrito», y por tanto al cruzar el orden había que cruzar también las
+propuestas. **El modelo no hace eso**: cuando decide que están invertidos devuelve los
+capitalizados *ya en su rol corregido* —`nombreCapitalizado` es el nombre de pila—. Cruzarlos otra
+vez los desemparejaba: se intentaba escribir «Uylenbroeck» sobre «robin», el guardián de las
+mismas letras lo rechazaba, y al caerse las dos propuestas quedaban los dos originales tal cual.
+
+⚠️ **Falló hacia el lado seguro, y eso es lo que lo escondió.** El guardián impidió meter el
+apellido en el campo del nombre —hizo su trabajo— así que no hubo error, ni excepción, ni línea en
+ningún log: sólo un nombre a medio arreglar que hay que ver en pantalla para notarlo.
+
+**La regla que sale de aquí: quién es quién lo dicen las LETRAS, no la etiqueta del campo en un
+JSON.** `mejorCaja()` prueba las dos propuestas y se queda con la que coincide en letras con el
+original, así que da igual qué interpretación use el modelo hoy o dentro de seis meses.
+
+⚠️ **Y el simulador mentía, por eso pudo pasar por delante de alguien.** `pms:nombre:revisar`
+calculaba la fila «Quedaría» **por su cuenta** —cruzando las dos cadenas— en vez de preguntarle a
+`comoQuedaria()` qué se va a escribir. Enseñaba «robin / uylenbroeck» junto a «Cómo se escribe:
+Robin / Uylenbroeck» y las dos filas parecían lo mismo con distinto formato. Ahora llama al camino
+real: un simulador que no simula da confianza sin dar información.
+
+⚠️ `comoQuedaria()` **no tenía ni un test**, siendo la función que decide el resultado final. Ahora
+tiene cuatro, incluidos los dos etiquetados al revés y el de `B0UZA` (cero por O), que comprueba
+que el guardián de las letras sigue en pie ahora que se prueban dos propuestas en vez de una.
+
 #### ⏱️ Por qué asíncrono llega a tiempo (y hasta cuándo)
 
 La bienvenida es una regla `created_at` con `offset_minutes = 0`, y `MessageRuleEngine` la crea

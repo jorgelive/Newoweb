@@ -96,4 +96,85 @@ final class OrdenDelNombreTest extends TestCase
             nombreActual: 'Alisson Angelica', apellidoActual: 'Rodriguez Barrera',
         ));
     }
+
+    /**
+     * @param array<string, string|bool> $extra
+     * @return array{invertido: bool, confianza: string, motivo: string, nombreCapitalizado: string, apellidoCapitalizado: string}
+     */
+    private function veredicto(string $nombreCap, string $apellidoCap, array $extra = []): array
+    {
+        return array_merge([
+            'invertido' => true,
+            'confianza' => 'alta',
+            'motivo' => '',
+            'nombreCapitalizado' => $nombreCap,
+            'apellidoCapitalizado' => $apellidoCap,
+        ], $extra);
+    }
+
+    /**
+     * 🔥 **El caso que estuvo roto.** Reserva real del 12/09/2026: llegó con
+     * `campo_nombre: uylenbroeck`, `campo_apellido: robin`. El modelo acertó de pleno —invertido,
+     * confianza alta, «Robin» / «Uylenbroeck»— y en el calendario se leía **«robin uylenbroeck»**.
+     *
+     * El código cruzaba las propuestas de caja junto con el orden, dando por hecho que venían
+     * etiquetadas por el campo del que salieron. El modelo las devuelve **ya en su rol corregido**,
+     * así que el cruce las desemparejaba: se intentaba escribir «Uylenbroeck» sobre «robin», el
+     * guardián de las mismas letras lo rechazaba —bien— y quedaban los dos originales en
+     * minúscula. El orden sí se aplicaba y la caja no, sin un solo error en ningún log.
+     */
+    #[Test]
+    public function al_cruzar_el_orden_la_caja_llega_a_su_campo(): void
+    {
+        self::assertSame(
+            ['Robin', 'Uylenbroeck'],
+            OrdenDelNombre::comoQuedaria($this->veredicto('Robin', 'Uylenbroeck'), 'uylenbroeck', 'robin'),
+        );
+    }
+
+    /**
+     * 🔑 Y con la etiqueta al revés, lo mismo: quién es quién lo dicen **las letras**, no el nombre
+     * del campo en un JSON. Es lo que hace que esto no dependa de cómo interprete el esquema el
+     * modelo de hoy — ni el de dentro de seis meses.
+     */
+    #[Test]
+    public function da_igual_como_venga_etiquetada_la_propuesta(): void
+    {
+        self::assertSame(
+            ['Robin', 'Uylenbroeck'],
+            OrdenDelNombre::comoQuedaria($this->veredicto('Uylenbroeck', 'Robin'), 'uylenbroeck', 'robin'),
+        );
+    }
+
+    /** Sin cruce, la caja también llega: es el 90 % de los casos. */
+    #[Test]
+    public function sin_cruzar_tambien_se_arregla_la_caja(): void
+    {
+        self::assertSame(
+            ['José Antonio', 'Álvarez'],
+            OrdenDelNombre::comoQuedaria(
+                $this->veredicto('José Antonio', 'Álvarez', ['invertido' => false]),
+                'JOSE ANTONIO',
+                'ALVAREZ',
+            ),
+        );
+    }
+
+    /**
+     * ⚠️ Y el guardián sigue en pie: `B0UZA` lleva un CERO donde va una O. La propuesta «Bouza»
+     * cambia una letra, no la caja, así que se rechaza — y ahora que se prueban las dos propuestas
+     * hay que comprobar que la otra tampoco cuela por detrás.
+     */
+    #[Test]
+    public function una_propuesta_que_cambia_letras_se_rechaza_venga_de_donde_venga(): void
+    {
+        self::assertSame(
+            ['B0UZA', 'Marta'],
+            OrdenDelNombre::comoQuedaria(
+                $this->veredicto('Bouza', 'Marta', ['invertido' => false]),
+                'B0UZA',
+                'MARTA',
+            ),
+        );
+    }
 }
