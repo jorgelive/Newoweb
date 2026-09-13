@@ -72,8 +72,17 @@ final class PmsTituloCacheResincronizarCommand extends Command
                 continue;
             }
 
-            // Las dos formas que este sistema pudo escribir. Si no es ninguna, es de una persona.
-            if ($cache !== $cruzado && mb_strtolower($cache) !== mb_strtolower($bueno)) {
+            // Las formas que este sistema pudo escribir ahí: el par en cualquiera de los dos
+            // órdenes y con cualquier caja. Si no es ninguna, la cadena la puso una persona.
+            //
+            // ⚠️ **Comparar el orden con la caja exacta dejaba fuera el caso más común.** El
+            // primero que se probó —«uylenbroeck robin» contra «Robin Uylenbroeck»— venía cruzado
+            // **y** en minúsculas, o sea las dos cosas a la vez, y el comando lo daba por ajeno:
+            // decía «0 pendientes» con el caso que lo motivó todavía sin arreglar. Las dos
+            // comparaciones van en minúsculas o sólo se cubre media rejilla.
+            $plano = static fn (string $s): string => mb_strtolower($s);
+
+            if ($plano($cache) !== $plano($cruzado) && $plano($cache) !== $plano($bueno)) {
                 continue;
             }
 
