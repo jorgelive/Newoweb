@@ -7749,6 +7749,50 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 
 ---
 
+## 17.z «Sin canal» no es un fallo (14/09/2026)
+
+`failed` mezclaba dos cosas que no piden lo mismo: **«se intentó y se rompió»** y **«ningún canal
+aplicaba a esta reserva»**. Medido sobre los 395 mensajes que había en `failed`:
+
+| | cuántos |
+|---|---|
+| ningún canal viable — todos los encoladores declinaron | 249 |
+| reserva **directa**, que Beds24 rechaza por diseño | 106 |
+| ventana de 24 h cerrada | 13 |
+| ya salió por Beds24 y falló el otro canal | 5 |
+| **errores de verdad** | **22** |
+
+🔥 **El daño no era la etiqueta, era el ruido.** Con 395 filas en rojo un fallo real no se
+distingue, y `AvisoEnvioFallidoListener` sólo avisa de los mensajes del equipo: nadie iba a leerlas
+nunca. Es la familia de fallo que persigue este proyecto — el que no se ve.
+
+### La distinción ya existía en el código; sólo faltaba que el estado la dijera
+
+`ChannelEnqueuerInterface::createQueueEntity()` tiene dos salidas, y significan cosas distintas:
+
+| devuelve | significa |
+|---|---|
+| `null` | **este canal no aplica** — yo no soy |
+| lanza excepción | lo intenté y se rompió |
+
+Así que `$errors` vacío con `$queues` vacío ya identificaba el caso. Ahora
+`Message::STATUS_SIN_CANAL` lo nombra, y el panel lo pinta en gris en vez de rojo.
+
+⚠️ **No es terminal.** El mensaje sigue vivo y `preUpdate` vuelve a pedir colas: si el canal
+aparece después —se añade el teléfono, se vincula la reserva a Beds24— sale sin más.
+
+### Y una regla de negocio que lanzaba excepción
+
+`Beds24SendEnqueuer` **lanzaba** al ver una reserva directa. Eso convertía una restricción que se
+cumple como estaba previsto en 106 mensajes rojos. Ahora **devuelve `null`** y lo anota como
+`info`, que es lo que es: Beds24 no aplica a una reserva sin chat de OTA.
+
+`Version20260914180000` reetiqueta lo que ya estaba decidido. No borra ni reintenta nada, y usa
+los mismos criterios que el despachador dejó escritos en `metadata`, así que un `failed` de verdad
+no casa con ninguno y se queda como está.
+
+---
+
 ## 18.c Cómo quedaron las bienvenidas (12-13/09/2026)
 
 El plan de §18.b se ejecutó, con **una corrección sobre lo previsto**: no salió una bienvenida

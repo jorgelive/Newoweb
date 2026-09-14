@@ -123,7 +123,8 @@ readonly class MessageDispatcher
             //
             // Se vuelve alcanzable de verdad con el corte por asunto —un expediente de viaje
             // con sólo Beds24 marcado se queda sin nada—, así que el final tiene que decirlo.
-            $this->anotarDesenlace($message, Message::STATUS_FAILED, 'dispatch_errors', [
+            // `sin_canal`, no `failed`: nadie se rompió, es que no había a dónde mandarlo.
+            $this->anotarDesenlace($message, Message::STATUS_SIN_CANAL, 'dispatch_errors', [
                 'Ningún canal disponible para este mensaje: o no se marcó ninguno, o los marcados no existen para este asunto.',
             ]);
 
@@ -171,11 +172,22 @@ readonly class MessageDispatcher
         if (empty($queues)) {
             // FRACASO TOTAL: Había canales previstos, pero NINGUNO generó una cola.
             // (Ya sea porque todos lanzaron excepción, o todos retornaron null por reglas de negocio)
-            $motivo = empty($errors)
-                ? ['No se pudo generar ninguna cola para los canales solicitados (posible restricción de negocio por canal).']
+            // ⚠️ **Sin errores significa que TODOS los encoladores dijeron «yo no».**
+            // `createQueueEntity()` devuelve `null` cuando el canal no aplica y lanza cuando algo
+            // se rompe, así que la lista vacía ya distingue los dos casos — sólo faltaba que el
+            // estado lo dijera. Ver `Message::STATUS_SIN_CANAL`.
+            $sinCanalAplicable = empty($errors);
+
+            $motivo = $sinCanalAplicable
+                ? ['Ningún canal aplicaba a este asunto: todos los encoladores declinaron.']
                 : $errors;
 
-            $this->anotarDesenlace($message, Message::STATUS_FAILED, 'dispatch_errors', $motivo);
+            $this->anotarDesenlace(
+                $message,
+                $sinCanalAplicable ? Message::STATUS_SIN_CANAL : Message::STATUS_FAILED,
+                'dispatch_errors',
+                $motivo
+            );
 
         } else {
             // ÉXITO (Total o Parcial): Al menos una cola se generó correctamente.

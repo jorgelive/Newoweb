@@ -95,6 +95,20 @@ class Message
     use TimestampTrait;
 
     public const string STATUS_FAILED    = 'failed';
+
+    /**
+     * No había por dónde mandarlo, y **no es un fallo**.
+     *
+     * 🔥 Existe porque `failed` mezclaba dos cosas que no piden lo mismo: «se intentó y se rompió»
+     * y «ningún canal aplicaba a esta reserva». Medido el 14/09/2026: de **395** mensajes en
+     * `failed`, **355** eran del segundo tipo —249 sin canal viable y 106 de reservas directas,
+     * que Beds24 rechaza por diseño—. Con 395 filas en rojo un fallo de verdad no se distingue, y
+     * `AvisoEnvioFallidoListener` sólo mira los del equipo: nadie iba a leerlas nunca.
+     *
+     * ⚠️ **No es terminal.** El mensaje sigue vivo y `preUpdate` vuelve a pedir colas: si el canal
+     * aparece después —se añade el teléfono, se vincula la reserva a Beds24— sale sin más.
+     */
+    public const string STATUS_SIN_CANAL = 'sin_canal';
     public const string STATUS_PENDING   = 'pending';
     public const string STATUS_QUEUED    = 'queued';
     public const string STATUS_SENT      = 'sent';
@@ -410,7 +424,7 @@ class Message
             return false;
         }
 
-        if (!in_array($this->status, [self::STATUS_PENDING, self::STATUS_QUEUED, self::STATUS_FAILED], true)) {
+        if (!in_array($this->status, [self::STATUS_PENDING, self::STATUS_QUEUED, self::STATUS_FAILED, self::STATUS_SIN_CANAL], true)) {
             return false;
         }
 

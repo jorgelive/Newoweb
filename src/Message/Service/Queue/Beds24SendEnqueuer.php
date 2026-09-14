@@ -15,6 +15,7 @@ use App\Message\Entity\MessageConversation;
 use App\Message\Service\MessageDataResolverRegistry;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 
@@ -22,7 +23,8 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
 {
     public function __construct(
         private EntityManagerInterface      $em,
-        private MessageDataResolverRegistry $resolverRegistry
+        private MessageDataResolverRegistry $resolverRegistry,
+        private LoggerInterface             $logger
     ) {}
 
     public function supports(MessageChannel $channel): bool
@@ -79,8 +81,21 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
         // una plataforma que quizá no exista.
         $source = (string) ($metadata['source'] ?? '');
 
+        // ⚠️ **Devuelve `null`, NO lanza.** Una reserva directa sin chat de OTA no es un fallo:
+        // es que este canal no aplica, y el despachador ya distingue las dos cosas —un `null`
+        // dice «yo no», una excepción dice «lo intenté y se rompió».
+        //
+        // 🔥 Estuvo lanzando, y salía caro en la lectura: **106 mensajes en `failed`** por una
+        // restricción que se cumplía como estaba previsto. Con 395 filas en rojo, un fallo de
+        // verdad no se ve; y el aviso de envío fallido sólo mira los del equipo, así que nadie
+        // iba a mirarlas nunca. Medido el 14/09/2026.
         if (($metadata['es_plataforma'] ?? false) !== true) {
-            throw new RuntimeException(sprintf('Operación denegada: No se permite enviar mensajes por la API de Beds24 a reservas directas (Canal: %s).', $source ?: 'Desconocido'));
+            $this->logger->info(sprintf(
+                'Beds24 no aplica a esta reserva (canal: %s): es directa y no tiene chat de OTA.',
+                $source ?: 'Desconocido'
+            ));
+
+            return null;
         }
 
         $config = $metadata['beds24_config'] ?? null;
