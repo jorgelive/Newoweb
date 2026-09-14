@@ -1251,16 +1251,39 @@ veía sus documentos y sus boletos **sin su nombre en ninguna parte de la pantal
 decir que no era él**. Al ser la cabecera el contenedor, la condición pasa a ser `miIdentidad` y el
 hueco desaparece solo.
 
-**Los documentos se mueven con `order`, no con dos `v-if`.** Cuando falta algo van los primeros
-—es lo único que le PIDE algo—; cuando ya no piden nada caen al final. Con `order` hay **una**
-instancia del componente y no dos, que es lo que evita que al subir la última foto se remonte y se
-pierda el estado.
+**Las tres secciones son acordeones iguales** (`PanelPlegable.vue`): cabecera pulsable con icono,
+título, contador o nota de estado, y galón. Antes cada una se pintaba a su manera —un botón de
+borde discontinuo para los grupos, un bloque siempre abierto para los boletos, y un plegado propio
+dentro del componente de documentos— y además iban pegadas: **parecían paneles sin serlo**, y sólo
+una se podía cerrar.
+
+⚠️ **El plegado estaba DUPLICADO.** `MisDocumentos` traía el suyo —una línea compacta que se
+abría— y el contenedor tenía otro. Dos mecanismos para el mismo gesto acaban discrepando. Ahora
+pliega el panel y sólo el panel; el componente se limita a su contenido, y por eso se le quitó
+también el marco que llevaba cosido a sus dos raíces.
+
+🔥 **Los documentos van SIEMPRE los primeros, estén completos o no.** Llegó a bajar al final
+cuando ya no pedía nada —«quien ya entregó viene a mirar su viaje»— y era razonable *mientras la
+lista fuera fija*. Deja de serlo en cuanto puede CRECER: un documento nuevo pedido a alguien que ya
+entregó los anteriores aparecería al fondo de una tarjeta plegada, y ahí no lo ve nadie. Lo que el
+viaje le pide va arriba. Lo que sí depende del estado es si el panel **nace abierto**.
+
+| Panel | Nace | Por qué |
+|---|---|---|
+| Documentos | abierto si falta algo | es lo único que le pide algo |
+| Tarjetas de embarque | abierto | es lo que abre en la cola; ahí no se busca, se enseña |
+| Grupos y vuelos | cerrado | es referencia, y son cuatro tarjetas que empujarían el resto |
+
+⚠️ El estado inicial se calcula **una vez**, en un `ref`, no en un `computed`: si se recalculara,
+subir el último documento cerraría el panel en las manos de quien lo está usando.
 
 ⚠️ La lista de qué documentos se piden la **exporta** `MisDocumentos.vue` (`DOCUMENTOS_PEDIDOS`,
-en un `<script>` normal junto al `setup`). La vista necesita saber si queda algo pendiente para
-colocar la tarjeta, y copiar la lista serían dos verdades sobre lo mismo: el día que se añada un
-documento se olvidaría la copia. Por eso el componente acepta también `anidado`, que le quita su
-propio marco — iba cosido a sus **dos** raíces, así que no se podía quitar desde fuera.
+en un `<script>` normal junto al `setup`). La vista necesita saber si queda algo pendiente para la
+nota de la cabecera y para el estado inicial, y copiar la lista serían dos verdades sobre lo mismo:
+el día que se añada un documento se olvidaría la copia.
+
+⚠️ El cuerpo del panel se oculta con `v-show`, **no con `v-if`**: dentro hay estado —una foto a
+medio elegir, un desplegable de compañeros abierto— y desmontarlo al cerrar lo perdería.
 
 #### Las cuatro tarjetas de «Lo tuyo» no tenían ningún orden (14/09/2026)
 
@@ -1310,7 +1333,8 @@ el orden con sentido lo pone quien pinta, que ya tiene el índice de nombres mon
 | Necesidad | Archivo | Método |
 |---|---|---|
 | Cambiar el orden de las tarjetas de «Lo tuyo» | `CotizacionFilePublicProvider` | `ordenarSubgrupos()` |
-| Añadir o quitar una sección de «Lo tuyo» | `pax/.../PaxCotizacionGuiaView.vue` | la columna flex, con su `order-N` |
+| Añadir o quitar una sección de «Lo tuyo» | `pax/.../PaxCotizacionGuiaView.vue` | un `<PanelPlegable>` más en la columna |
+| Cambiar el aspecto de los tres acordeones | `pax/.../PanelPlegable.vue` | la cabecera |
 | Cambiar qué documentos se le piden al pasajero | `pax/.../MisDocumentos.vue` | `DOCUMENTOS_PEDIDOS` (lo lee también la vista) |
 | Cambiar el orden de la bóveda | `util/.../FileDetalle.vue` | `ordenarBoveda()` |
 | Que un adjunto salga estable en cualquier consumidor | `CotizacionFile` | `#[ORM\OrderBy]` de `$filearchivos` |

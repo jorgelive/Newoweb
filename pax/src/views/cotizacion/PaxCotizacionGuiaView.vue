@@ -27,6 +27,7 @@ import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnid
 import type { BloqueVista as BloqueVistaBase } from '@dominio/cotizacion/index.ts';
 import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
 import MisDocumentos, { faltanDocumentos } from '@/components/cotizacion/MisDocumentos.vue';
+import PanelPlegable from '@/components/cotizacion/PanelPlegable.vue';
 
 /** El bloque con los tipos de `pax` dentro: el módulo es genérico y los devuelve intactos. */
 type BloqueVista = BloqueVistaBase<PaxCotServicio>;
@@ -229,6 +230,20 @@ const misBoletos = computed(() => store.miIdentidad?.documentos ?? []);
  * día que se añada un documento. Ver `DOCUMENTOS_PEDIDOS`.
  */
 const documentosPendientes = computed(() => faltanDocumentos(store.miIdentidad?.documentosEnviados));
+
+/**
+ * Qué acordeón nace abierto.
+ *
+ * ⚠️ **Se calcula UNA vez, no con un `computed`.** Son `ref` que el usuario controla desde que
+ * pinta la pantalla: si el estado inicial se recalculara, subir el último documento cerraría el
+ * panel en las manos de quien lo está usando.
+ *
+ * - Documentos: abierto mientras le falte algo. Es lo único que le PIDE algo.
+ * - Boletos: abierto. Es lo que abre en la cola del aeropuerto, y ahí no se busca, se enseña.
+ * - Grupos y vuelos: cerrado. Es referencia, y son cuatro tarjetas que empujarían el resto.
+ */
+const documentosAbiertos = ref(faltanDocumentos(store.miIdentidad?.documentosEnviados));
+const boletosAbiertos = ref(true);
 
 /** «CUZ → LIM». Si no hay vuelo —un adjunto suyo que no es de vuelo— se cae al nombre. */
 const rutaDe = (d: { origen?: string | null; destino?: string | null }) =>
@@ -1390,22 +1405,30 @@ const adelantoVista = computed(() => {
         </div>
 
 
-        <!-- ⚠️ Columna flex para poder mover los documentos con `order` sin tocar el orden del
-             marcado: en el HTML siguen donde se leen mejor, y sólo la PANTALLA los baja. -->
-        <div class="flex flex-col">
+        <!-- Tres acordeones iguales y SEPARADOS. Antes cada sección se pintaba a su manera
+             —un botón de borde discontinuo, un bloque siempre abierto, y un plegado propio dentro
+             del componente de documentos— e iban pegadas unas a otras: parecían paneles sin
+             serlo. Ahora todas se abren, se cierran y se ven como lo que son. -->
+        <div class="space-y-3">
           <!-- ── SUS DOCUMENTOS ─────────────────────────────────────────
-               Sigue siendo lo único de esta pantalla que le PIDE algo, así que cuando falta algo
-               va lo primero. En cuanto no pide nada cae al final con `order`: quien ya entregó
-               viene a mirar su viaje, y cobrarle el primer sitio todos los días por haber hecho
-               los deberes es al revés de lo que toca. El componente ya se encoge a una línea.
+               🔥 **Siempre el primero, esté completo o no.** Llegó a bajar al final cuando ya no
+               pedía nada, y era razonable mientras fueran tres fotos y para siempre; deja de
+               serlo en cuanto la lista puede CRECER. Un documento nuevo pedido a alguien que ya
+               entregó los anteriores aparecería al fondo de una tarjeta plegada, y ahí no lo ve
+               nadie. Lo que el viaje le pide va arriba.
 
-               ⚠️ Con `order` y no con dos `v-if`: así hay UNA instancia del componente y no dos,
-               que es lo que evita que al subir la última foto se remonte y se pierda el estado. -->
-          <div class="no-imprimir" :class="documentosPendientes ? 'order-1' : 'order-4'">
-            <MisDocumentos anidado
-                           :localizador="props.localizador"
+               Lo que sí cambia con el estado es si se abre solo: con algo pendiente, abierto; con
+               todo entregado, cerrado y con su «Recibidos» en la cabecera. -->
+          <PanelPlegable v-model="documentosAbiertos" class="no-imprimir"
+                         icono="id-card"
+                         :titulo="maestroStore.t('cot_mis_documentos') || 'Tus documentos'"
+                         :nota="documentosPendientes
+                           ? (maestroStore.t('cot_mis_documentos_faltan') || 'Te falta alguno por mandar.')
+                           : (maestroStore.t('cot_mis_documentos_completos') || 'Recibidos. No tienes que hacer nada más.')"
+                         :tono="documentosPendientes ? 'pendiente' : 'listo'">
+            <MisDocumentos :localizador="props.localizador"
                            :ya-enviados="store.miIdentidad.documentosEnviados" />
-          </div>
+          </PanelPlegable>
 
           <!-- ── SUS TARJETAS DE EMBARQUE ───────────────────────────────
                🔥 El boarding pass lo tiene que enseñar el cliente en el gate, así que esto no es
@@ -1414,14 +1437,10 @@ const adelantoVista = computed(() => {
                «boleto».
                ⚠️ Sólo los suyos. `imageUrl` es `/archivo/{id}`, que comprueba de quién es y
                devuelve 404 al que no. -->
-          <div v-if="misBoletos.length" class="order-2 no-imprimir border-t border-slate-100 pt-4">
-            <div class="flex items-center gap-2 mb-3">
-              <i class="fas fa-plane-departure text-[#376875] text-sm"></i>
-              <p class="text-[11px] font-black uppercase tracking-[0.15em] text-[#376875]/70">
-                {{ maestroStore.t('cot_mis_tarjetas') || 'Tus tarjetas de embarque' }}
-              </p>
-            </div>
-
+          <PanelPlegable v-if="misBoletos.length" v-model="boletosAbiertos" class="no-imprimir"
+                         icono="plane-departure"
+                         :titulo="maestroStore.t('cot_mis_tarjetas') || 'Tus tarjetas de embarque'"
+                         :contador="misBoletos.length">
             <p class="text-slate-500 text-[11px] leading-relaxed mb-3">
               {{ maestroStore.t('cot_mis_tarjetas_aviso')
                 || 'Ábrelas y enséñalas en el control y en la puerta de embarque. Guárdalas en tu móvil antes de salir, por si no hay señal.' }}
@@ -1448,101 +1467,94 @@ const adelantoVista = computed(() => {
 
                 <i class="fas fa-arrow-up-right-from-square text-slate-300 text-xs shrink-0"></i>
               </a>
-          </div>
             </div>
+          </PanelPlegable>
 
-          <div v-if="store.miIdentidad.subgrupos?.length" class="order-3 border-t border-slate-100 pt-4">
-            <!-- El disparador dice CUÁNTOS hay, no sólo que hay algo: «Ver mis grupos (4)» invita a
-                 abrirlo; «Ver mis grupos» a secas podría no llevar a nada. -->
-            <button type="button" @click="misGruposAbiertos = !misGruposAbiertos"
-                    :aria-expanded="misGruposAbiertos"
-                    class="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-[#376875]/25 bg-[#376875]/4 px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-[#376875]/80 hover:bg-[#376875]/8 transition-colors">
-            <i class="fas text-[10px]" :class="misGruposAbiertos ? 'fa-chevron-up' : 'fa-layer-group'"></i>
-            <!-- ⚠️ El rótulo nombra los VUELOS cuando los hay: desde que el subgrupo aéreo trae sus
-                 tramos, detrás del botón está el horario del vuelo — y «Ver mis grupos» no invita a
-                 abrirlo a quien busca eso. Un disparador que no nombra lo mejor que esconde se pulsa
-                 menos. Cuando no hay vuelos no se promete lo que no está. -->
-            {{ misGruposAbiertos
-              ? (tengoVuelos
-                ? (maestroStore.t('cot_ocultar_mis_grupos_vuelos') || 'Ocultar mis grupos y vuelos')
-                : (maestroStore.t('cot_ocultar_mis_grupos') || 'Ocultar mis grupos'))
-              : (tengoVuelos
-                ? (maestroStore.t('cot_ver_mis_grupos_vuelos') || 'Ver mis grupos y vuelos')
-                : (maestroStore.t('cot_ver_mis_grupos') || 'Ver mis grupos')) }}
-            <span class="text-[#E07845]">({{ store.miIdentidad.subgrupos.length }})</span>
-          </button>
+          <!-- ── SUS GRUPOS Y VUELOS ────────────────────────────────────
+               ⚠️ El título nombra los VUELOS cuando los hay: desde que el subgrupo aéreo trae sus
+               tramos, detrás de esta cabecera está el horario del vuelo — y «Mis grupos» no invita
+               a abrirla a quien busca eso. Una cabecera que no nombra lo mejor que esconde se
+               pulsa menos. Cuando no hay vuelos no se promete lo que no está.
 
-          <div v-if="misGruposAbiertos" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-            <div v-for="(sg, i) in store.miIdentidad.subgrupos" :key="i"
-                 class="bg-slate-50/60 border border-slate-100 rounded-2xl p-3.5">
-              <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                {{ sg.ejeLabel }}<span v-if="sg.subeje" class="text-slate-300"> · {{ sg.subeje }}</span>
-              </p>
-              <p class="font-black text-gray-800 text-sm leading-tight mt-1">
-                {{ sg.nombre || sg.clave }}
-              </p>
-
-              <!-- ── Con quién ──────────────────────────────────────────────
-                   Sólo si hay alguien más: una habitación individual no necesita un desplegable
-                   para enseñar un solo nombre, el tuyo. -->
-              <template v-if="(sg.miembros?.length ?? 0) > 1">
-                <button type="button" @click="alternarGente(i)"
-                        class="mt-2 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#E07845] hover:text-[#D06535] transition-colors">
-                  <i class="fas text-[9px]" :class="gentAbierta.has(i) ? 'fa-chevron-up' : 'fa-users'"></i>
-                  {{ sg.miembros.length }} {{ maestroStore.t('cot_personas') || 'personas' }}
-                </button>
-
-                <ul v-if="gentAbierta.has(i)" class="mt-2 space-y-0.5 border-t border-slate-200/70 pt-2">
-                  <li v-for="(quien, k) in sg.miembros" :key="k"
-                      class="text-[11px] leading-snug flex items-baseline gap-1.5"
-                      :class="soyYo(k, sg.miembros) ? 'font-black text-[#376875]' : 'font-bold text-slate-500'">
-                    <i class="fas fa-circle text-[3px] shrink-0 opacity-40"></i>
-                    <span class="min-w-0 break-words">{{ quien.nombre }}</span>
-                    <!-- Quien responde del grupo, dicho y no sólo insinuado por el orden. En gris y
-                         en minúsculas: es un dato de servicio, no un galón — el «tú» sigue siendo
-                         lo único naranja, porque es lo que se busca al abrir la lista. -->
-                    <span v-if="rolDeMiembro(quien.rol)"
-                          class="shrink-0 text-[9px] font-bold uppercase tracking-widest text-slate-400">
-                      {{ rolDeMiembro(quien.rol) }}
-                    </span>
-                    <span v-if="soyYo(k, sg.miembros)" class="shrink-0 text-[9px] font-black uppercase tracking-widest text-[#E07845]">
-                      {{ maestroStore.t('cot_tu') || 'tú' }}
-                    </span>
-                  </li>
-                </ul>
-              </template>
-              <!-- El código es lo único que de verdad es de esta persona: su localizador, su
-                   asiento. Se pinta en monoespaciado porque se copia y se dicta. -->
-              <p v-if="sg.codigo" class="text-xs font-mono font-black text-[#376875] tracking-wider mt-1.5">
-                {{ sg.codigo }}
-              </p>
-              <p v-else-if="sg.nombre && sg.clave && sg.nombre !== sg.clave"
-                 class="text-[11px] font-bold text-slate-400 font-mono mt-1.5">{{ sg.clave }}</p>
-
-              <!-- ═══ LOS TRAMOS ═══
-                   🔥 El operador ve esto en su manifiesto y el pasajero no lo veía: «Copa Airlines ·
-                   BNZXNE · 8 personas» dice con quién vuela y con qué localizador, pero **no cuándo
-                   ni desde dónde** — que es lo que se busca la noche antes.
-                   Y el itinerario del viaje no vale aquí: el vuelo es de SU subgrupo, no del grupo
-                   entero. Por eso va en «Lo tuyo». -->
-              <div v-if="sg.vuelos?.length" class="mt-2 pt-2 border-t border-slate-200/70 space-y-1">
-                <p v-for="(v, k) in sg.vuelos" :key="k"
-                   class="flex items-baseline gap-1.5 text-[11px] leading-snug flex-wrap">
-                  <span class="font-mono font-black text-slate-600">{{ v.numero }}</span>
-                  <span class="text-slate-400">{{ fechaDeVuelo(v.salida) }}</span>
-                  <span class="font-black text-slate-700">{{ horaDeVuelo(v.salida) }}</span>
-                  <span class="font-bold text-slate-500">{{ v.origen }} → {{ v.destino }}</span>
-                  <span class="font-black text-slate-700">{{ horaDeVuelo(v.llegada) }}</span>
-                  <!-- ⚠️ El «+1 día» no es un adorno: un vuelo que sale a las 20:22 y llega a las
-                       00:30 aterriza al día SIGUIENTE, y quien lea sólo las horas hará las cuentas
-                       mal — para el traslado, para el hotel, para avisar a quien le recoge. -->
-                  <span v-if="cruzaMedianoche(v.salida, v.llegada)"
-                        class="font-black text-[#E07845]">+1 {{ maestroStore.t('cot_dia') || 'día' }}</span>
+               Era el único de los tres que ya se plegaba, pero con un botón de borde discontinuo
+               que no se parecía a nada: ahora es el mismo panel que los otros dos. -->
+          <PanelPlegable v-if="store.miIdentidad.subgrupos?.length" v-model="misGruposAbiertos"
+                         icono="layer-group"
+                         :titulo="tengoVuelos
+                           ? (maestroStore.t('cot_mis_grupos_vuelos') || 'Mis grupos y vuelos')
+                           : (maestroStore.t('cot_mis_grupos') || 'Mis grupos')"
+                         :contador="store.miIdentidad.subgrupos.length">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+              <div v-for="(sg, i) in store.miIdentidad.subgrupos" :key="i"
+                   class="bg-slate-50/60 border border-slate-100 rounded-2xl p-3.5">
+                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  {{ sg.ejeLabel }}<span v-if="sg.subeje" class="text-slate-300"> · {{ sg.subeje }}</span>
                 </p>
+                <p class="font-black text-gray-800 text-sm leading-tight mt-1">
+                  {{ sg.nombre || sg.clave }}
+                </p>
+
+                <!-- ── Con quién ──────────────────────────────────────────────
+                     Sólo si hay alguien más: una habitación individual no necesita un desplegable
+                     para enseñar un solo nombre, el tuyo. -->
+                <template v-if="(sg.miembros?.length ?? 0) > 1">
+                  <button type="button" @click="alternarGente(i)"
+                          class="mt-2 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#E07845] hover:text-[#D06535] transition-colors">
+                    <i class="fas text-[9px]" :class="gentAbierta.has(i) ? 'fa-chevron-up' : 'fa-users'"></i>
+                    {{ sg.miembros.length }} {{ maestroStore.t('cot_personas') || 'personas' }}
+                  </button>
+
+                  <ul v-if="gentAbierta.has(i)" class="mt-2 space-y-0.5 border-t border-slate-200/70 pt-2">
+                    <li v-for="(quien, k) in sg.miembros" :key="k"
+                        class="text-[11px] leading-snug flex items-baseline gap-1.5"
+                        :class="soyYo(k, sg.miembros) ? 'font-black text-[#376875]' : 'font-bold text-slate-500'">
+                      <i class="fas fa-circle text-[3px] shrink-0 opacity-40"></i>
+                      <span class="min-w-0 break-words">{{ quien.nombre }}</span>
+                      <!-- Quien responde del grupo, dicho y no sólo insinuado por el orden. En gris y
+                           en minúsculas: es un dato de servicio, no un galón — el «tú» sigue siendo
+                           lo único naranja, porque es lo que se busca al abrir la lista. -->
+                      <span v-if="rolDeMiembro(quien.rol)"
+                            class="shrink-0 text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                        {{ rolDeMiembro(quien.rol) }}
+                      </span>
+                      <span v-if="soyYo(k, sg.miembros)" class="shrink-0 text-[9px] font-black uppercase tracking-widest text-[#E07845]">
+                        {{ maestroStore.t('cot_tu') || 'tú' }}
+                      </span>
+                    </li>
+                  </ul>
+                </template>
+                <!-- El código es lo único que de verdad es de esta persona: su localizador, su
+                     asiento. Se pinta en monoespaciado porque se copia y se dicta. -->
+                <p v-if="sg.codigo" class="text-xs font-mono font-black text-[#376875] tracking-wider mt-1.5">
+                  {{ sg.codigo }}
+                </p>
+                <p v-else-if="sg.nombre && sg.clave && sg.nombre !== sg.clave"
+                   class="text-[11px] font-bold text-slate-400 font-mono mt-1.5">{{ sg.clave }}</p>
+
+                <!-- ═══ LOS TRAMOS ═══
+                     🔥 El operador ve esto en su manifiesto y el pasajero no lo veía: «Copa Airlines ·
+                     BNZXNE · 8 personas» dice con quién vuela y con qué localizador, pero **no cuándo
+                     ni desde dónde** — que es lo que se busca la noche antes.
+                     Y el itinerario del viaje no vale aquí: el vuelo es de SU subgrupo, no del grupo
+                     entero. Por eso va en «Lo tuyo». -->
+                <div v-if="sg.vuelos?.length" class="mt-2 pt-2 border-t border-slate-200/70 space-y-1">
+                  <p v-for="(v, k) in sg.vuelos" :key="k"
+                     class="flex items-baseline gap-1.5 text-[11px] leading-snug flex-wrap">
+                    <span class="font-mono font-black text-slate-600">{{ v.numero }}</span>
+                    <span class="text-slate-400">{{ fechaDeVuelo(v.salida) }}</span>
+                    <span class="font-black text-slate-700">{{ horaDeVuelo(v.salida) }}</span>
+                    <span class="font-bold text-slate-500">{{ v.origen }} → {{ v.destino }}</span>
+                    <span class="font-black text-slate-700">{{ horaDeVuelo(v.llegada) }}</span>
+                    <!-- ⚠️ El «+1 día» no es un adorno: un vuelo que sale a las 20:22 y llega a las
+                         00:30 aterriza al día SIGUIENTE, y quien lea sólo las horas hará las cuentas
+                         mal — para el traslado, para el hotel, para avisar a quien le recoge. -->
+                    <span v-if="cruzaMedianoche(v.salida, v.llegada)"
+                          class="font-black text-[#E07845]">+1 {{ maestroStore.t('cot_dia') || 'día' }}</span>
+                  </p>
+                </div>
               </div>
-          </div>
-        </div>
-          </div>
+            </div>
+          </PanelPlegable>
         </div>
       </div>
       <!-- Header compacto -->

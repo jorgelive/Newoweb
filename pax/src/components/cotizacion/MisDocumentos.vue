@@ -64,14 +64,6 @@ const props = defineProps<{
    * ⚠️ Llega sólo el TIPO, sin enlace: un escaneo de identidad no se le devuelve ni a su dueño.
    */
   yaEnviados?: string[];
-  /**
-   * Dentro de otra tarjeta: sin fondo, sin sombra y sin margen propios.
-   *
-   * ⚠️ El marco iba cosido a las dos raíces de la plantilla, así que anidarlo daba una tarjeta
-   * dentro de otra. Se quita con una prop y no con un `:class` desde fuera porque son DOS raíces
-   * —la línea de «ya está» y el panel abierto— y desde fuera sólo se puede pintar una.
-   */
-  anidado?: boolean;
 }>();
 
 const maestroStore = useMaestroStore();
@@ -155,59 +147,18 @@ const confirmar = async () => {
 const quedanPorSubir = computed(() => DOCUMENTOS_PEDIDOS.filter(d => !subidos.value.has(d.tipo)).length);
 
 /**
- * Con todo entregado, el panel se encoge a una línea.
+ * Cuántos le faltan. Lo lee el panel de fuera para su cabecera y para abrirse o no.
  *
- * 🔥 Esta tarjeta va ARRIBA del itinerario porque es lo único de la pantalla que le pide algo al
- * pasajero. En cuanto ya no le pide nada, ese sitio deja de ser suyo: quien ya entregó viene a
- * mirar su viaje, y encontrarse tres filas resueltas empujando el itinerario hacia abajo es
- * cobrarle todos los días por haber hecho los deberes.
- *
- * Se puede volver a abrir —una foto se puede querer cambiar—, pero cerrado es el estado normal.
+ * ⚠️ **Aquí vivía un plegado propio** —una línea compacta que se abría al pulsarla— y el
+ * contenedor tenía otro. Dos mecanismos para el mismo gesto: uno se creía abierto y el otro
+ * seguía cerrado. Ahora pliega `PanelPlegable` y esto se limita a su contenido; la decisión que
+ * había detrás —cerrado cuando ya no pide nada— se conserva, pero la toma quien pinta el panel.
  */
-const desplegado = ref(false);
-const compacto = computed(() => quedanPorSubir.value === 0 && !desplegado.value);
-
-/** El marco de tarjeta, que desaparece entero al anidar. */
-const marcoCompacto = computed(() => props.anidado
-  ? 'text-left'
-  : 'bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-100 px-5 py-3.5 mb-6 text-left hover:border-emerald-200');
-
-const marcoPanel = computed(() => props.anidado
-  ? ''
-  : 'bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-100 p-6 mb-6');
+defineExpose({ quedanPorSubir });
 </script>
 
 <template>
-  <!-- ═══ TODO ENTREGADO: una línea ═══
-       Sigue siendo pulsable porque una foto se puede querer cambiar, pero deja de ocupar la
-       pantalla de quien ya cumplió. -->
-  <button v-if="compacto" type="button" @click="desplegado = true"
-          class="w-full flex items-center gap-3 transition-colors" :class="marcoCompacto">
-    <span class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-      <i class="fas fa-check text-sm"></i>
-    </span>
-    <span class="min-w-0 flex-1">
-      <span class="block text-sm font-black text-gray-800 truncate">
-        {{ maestroStore.t('cot_mis_documentos') || 'Tus documentos' }}
-      </span>
-      <span class="block text-[11px] text-emerald-700 font-bold">
-        {{ maestroStore.t('cot_mis_documentos_completos') || 'Recibidos. No tienes que hacer nada más.' }}
-      </span>
-    </span>
-    <i class="fas fa-chevron-down text-slate-300 text-xs shrink-0"></i>
-  </button>
-
-  <section v-else :class="marcoPanel">
-    <div class="flex items-start gap-2 mb-1">
-      <h3 class="text-gray-900 font-black text-base flex-1">
-        {{ maestroStore.t('cot_mis_documentos') || 'Tus documentos' }}
-      </h3>
-      <!-- Sólo cuando está todo: si falta algo, cerrar el panel es esconder lo que se le pide. -->
-      <button v-if="quedanPorSubir === 0" type="button" @click="desplegado = false"
-              class="shrink-0 w-7 h-7 rounded-lg text-slate-300 hover:text-slate-500 hover:bg-slate-50 transition-colors">
-        <i class="fas fa-chevron-up text-xs"></i>
-      </button>
-    </div>
+  <div>
     <p class="text-slate-500 text-xs leading-relaxed mb-5">
       {{ maestroStore.t('cot_mis_documentos_motivo')
         || 'Los necesitamos para emitir tus boletos y para el control migratorio. Sólo los ve el equipo que arma tu viaje, y se borran un mes después de tu regreso.' }}
@@ -241,8 +192,7 @@ const marcoPanel = computed(() => props.anidado
         </label>
       </div>
     </div>
-
-  </section>
+  </div>
 
   <!-- ═══ LA PREVISUALIZACIÓN ═══
        A pantalla completa y en grande, porque es la ÚNICA vez que se puede comprobar que la foto
