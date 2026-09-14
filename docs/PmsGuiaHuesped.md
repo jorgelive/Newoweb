@@ -795,6 +795,18 @@ El contenido lo reescribe `app:pms:guia:renombrar-marcadores`, que sustituye **e
 idiomas** —no sólo en el español— para que el texto quede bien aunque una fila esté marcada como
 traducción curada a mano y el listener no la rehaga.
 
+### Y «Horario solicitudes» deja de llevar dos números escritos
+
+La ficha decía *«No dudes en llamarnos o escribirnos por WhatsApp»* con `+51 961 281 953` y
+`+51 958 191 965` en una lista. Eran copias —el primero es `telefonoEmergencia`, el segundo el
+móvil personal que además es la cuenta de Yape del catálogo de cobro— y, sobre todo, **los números
+equivocados para esa ficha**: ahí se pide papel higiénico y jabón, y eso va al canal que atiende el
+sistema. Queda una línea con `{{ whatsapp_numero }}`.
+
+El de urgencias sigue donde tiene sentido: el botón «Necesito ayuda» de las llaves y lo que
+devuelve `ConsultarCodigosSkill` cuando no hay código que entregar. Lo cambió
+`app:pms:guia:contacto-solicitudes`, que nace `hidden` por ser de una vez.
+
 ### Y los BOTONES interpolan (14/09/2026)
 
 Hasta ahora sólo se interpolaban el título y la descripción. El botón «Necesito ayuda» de la ficha
