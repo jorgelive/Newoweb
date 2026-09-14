@@ -1167,9 +1167,16 @@ reconoce como suyo y —si la regla ya no aplica— le cancela las colas en casc
 exactamente lo que no pasaba.
 
 La basura ya puesta la barrió `app:msg:colas-duplicadas` (archivado), que conserva el mensaje más
-reciente de cada envío —mismo asunto, misma regla, mismo minuto— y cancela las copias por el
-mismo camino que el motor, nunca con un `UPDATE` paralelo que dejaría la cola viva y el mensaje
-muerto.
+reciente de cada envío —mismo asunto, misma regla, mismo minuto— y cancela las copias **con sus
+colas, una a una**.
+
+⚠️ Su primera versión sólo cambiaba el estado del mensaje y confiaba en la cascada del `preUpdate`
+de `MessageEnqueuerEntityListener`, que es lo que hace el motor. No sirvió: 70 de las 71 copias de
+Vanessa quedaron `cancelled` con la cola en `pending`, que es el peor de los dos estados porque el
+worker mira la cola. La diferencia con el motor es de dónde salen las entidades —él tiene las
+colas ya en memoria; un comando las trae de una consulta y sus colecciones están sin inicializar
+cuando el `preUpdate` corre en mitad del flush—. **Al cancelar mensajes fuera del motor, cancela
+también sus colas explícitamente.**
 
 ⚠️ Queda un ruido conocido y **inofensivo**: el motor sigue creando y cancelando un mensaje por
 pasada para las reservas cuyo hilo alterna entre abierto y cerrado —`ruleAppliesToAgenda()` no

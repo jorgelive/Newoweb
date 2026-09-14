@@ -38,9 +38,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * ── Cómo decide ─────────────────────────────────────────────────────────────
  * Agrupa por lo que define UN envío —asunto, regla y minuto de salida— y dentro de cada grupo
  * conserva el mensaje **más reciente** que todavía tenga colas vivas; los demás pasan a
- * `cancelled`, y sus colas las cancela en cascada el `preUpdate` de
- * {@see \App\Message\EventListener\Queue\MessageEnqueuerEntityListener} — el mismo camino que usa
- * el motor, no un `UPDATE` paralelo que dejaría la cola viva y el mensaje muerto.
+ * `cancelled` **y sus colas se cancelan aquí, una a una**.
+ *
+ * ⚠️ La primera versión sólo cambiaba el estado del mensaje y confiaba en la cascada del
+ * `preUpdate` de {@see \App\Message\EventListener\Queue\MessageEnqueuerEntityListener}, que es
+ * lo que hace el motor. No sirvió: de las 71 copias de Vanessa, 70 quedaron `cancelled` con su
+ * cola en `pending`. La diferencia con el motor es de dónde salen las entidades — el motor tiene
+ * las colas ya en memoria, y aquí los mensajes vienen de una consulta y sus colecciones están
+ * sin inicializar cuando el `preUpdate` corre en mitad del flush. Cancelarlas explícitamente no
+ * es saltarse el camino del motor: es no depender de que una colección perezosa se despierte
+ * dentro de un flush.
  *
  * El que se conserva se deja en `queued` si venía en `failed`: es lo que de verdad es, y así el
  * motor vuelve a reconocerlo como suyo en lugar de fabricar el siguiente.
@@ -97,6 +104,7 @@ final class MessageColasDuplicadasCommand extends Command
             $grupos[$this->llave($mensaje)][] = $mensaje;
         }
 
+        $huerfanas = $this->cancelarColasDeMensajesMuertos($simular);
         $filas = [];
         $cancelados = 0;
 
@@ -111,6 +119,12 @@ final class MessageColasDuplicadasCommand extends Command
             foreach ($grupo as $copia) {
                 if (!$simular) {
                     $copia->setStatus(Message::STATUS_CANCELLED);
+
+                    foreach ($copia->getAllQueues() as $cola) {
+                        if (in_array($cola->getStatus(), self::VIVAS, true)) {
+                            $cola->setStatus('cancelled');
+                        }
+                    }
                 }
 
                 ++$cancelados;
@@ -129,7 +143,18 @@ final class MessageColasDuplicadasCommand extends Command
             ];
         }
 
+        if ($huerfanas > 0) {
+            $io->writeln(sprintf(' %d colas vivas colgadas de un mensaje cancelado.', $huerfanas));
+        }
+
         if ($filas === []) {
+            if ($huerfanas > 0 && !$simular) {
+                $this->em->flush();
+                $io->success(sprintf('%d colas huérfanas canceladas.', $huerfanas));
+
+                return Command::SUCCESS;
+            }
+
             $io->success('No hay envíos duplicados en cola.');
 
             return Command::SUCCESS;
@@ -144,9 +169,50 @@ final class MessageColasDuplicadasCommand extends Command
         }
 
         $this->em->flush();
-        $io->success(sprintf('%d mensajes cancelados; sus colas caen en cascada.', $cancelados));
+        $io->success(sprintf('%d mensajes cancelados, con sus colas.', $cancelados));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Una cola viva colgada de un mensaje `cancelled` sale igual: el worker mira la cola.
+     *
+     * Es el resto que dejó la primera pasada de este mismo comando, que confiaba en la cascada
+     * del listener —70 mensajes cancelados con su cola en `pending`—, y es además la única forma
+     * de que el estado del mensaje y el de su cola digan lo mismo. Sólo mira el futuro.
+     *
+     * @return int Cuántas colas se cancelaron.
+     */
+    private function cancelarColasDeMensajesMuertos(bool $simular): int
+    {
+        /** @var list<Message> $muertos */
+        $muertos = $this->em->createQueryBuilder()
+            ->select('m')
+            ->from(Message::class, 'm')
+            ->where('m.scheduledAt > :ahora')
+            ->andWhere('m.status = :cancelado')
+            ->setParameter('ahora', new DateTimeImmutable())
+            ->setParameter('cancelado', Message::STATUS_CANCELLED)
+            ->getQuery()
+            ->getResult();
+
+        $canceladas = 0;
+
+        foreach ($muertos as $mensaje) {
+            foreach ($mensaje->getAllQueues() as $cola) {
+                if (!in_array($cola->getStatus(), self::VIVAS, true)) {
+                    continue;
+                }
+
+                if (!$simular) {
+                    $cola->setStatus('cancelled');
+                }
+
+                ++$canceladas;
+            }
+        }
+
+        return $canceladas;
     }
 
     /**
