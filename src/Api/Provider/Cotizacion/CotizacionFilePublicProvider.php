@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\Operation;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
+use App\Cotizacion\Enum\GrupoTipoEnum;
 use App\Cotizacion\Entity\CotizacionFileGrupo;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use Doctrine\DBAL\ArrayParameterType;
@@ -32,6 +33,9 @@ use Symfony\Bundle\SecurityBundle\Security;
  * hidrata, así el expediente puede tener 100+ versiones sin colapsar.
  *
  * @implements ProviderInterface<CotizacionFile>
+  *
+ * @phpstan-type Tramo array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}
+ * @phpstan-type Subgrupo array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<Tramo>, miembros: list<array{nombre: string, rol: string|null}>}
  */
 final class CotizacionFilePublicProvider implements ProviderInterface
 {
@@ -371,12 +375,65 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             unset($subgrupos[$i]['idGrupo']);
         }
 
+        $subgrupos = $this->ordenarSubgrupos($subgrupos);
+
         $file->setMiIdentidad([
             'nombre' => trim($pasajero->getNombre() . ' ' . $pasajero->getApellido()),
             'subgrupos' => $subgrupos,
             'documentos' => $this->documentosDe($file, $pasajero),
             'documentosEnviados' => $this->tiposYaEnviados($file, $pasajero),
         ]);
+    }
+
+    /**
+     * El orden de las tarjetas de «Lo tuyo».
+     *
+     * ⚠️ **No había ninguno.** Ni aquí, ni en el store, ni en la vista, y
+     * `CotizacionFilepasajero::$pertenencias` tampoco lleva `#[ORM\OrderBy]` —su vecina
+     * `CotizacionFile::$grupos` sí—. Así que el orden era el que devolvía MySQL al hidratar sin
+     * `ORDER BY`: en la práctica el de creación de los grupos, o sea **el orden de las columnas
+     * del Excel del padrón**. Nada lo garantizaba, y se notaba: el vuelo del 17 salía DESPUÉS del
+     * vuelo del 18.
+     *
+     * El criterio es **cuándo se necesita cada cosa**:
+     *
+     * 1. **Los vuelos, por hora de salida.** Son lo único con reloj y es lo que se busca la noche
+     *    antes. Ordenarlos por su primer tramo resuelve además el empate que no resolvería el eje:
+     *    «Nacional» e «Internacional» son el MISMO eje (`reserva_aerea`) y sólo se distinguen por
+     *    un `subeje` de texto libre, así que por eje quedarían empatados y volveríamos al orden
+     *    del padrón.
+     * 2. **La habitación**, que se necesita al llegar.
+     * 3. **El grupo**, que es la referencia más estable y la que menos se consulta.
+     *
+     * Se ordena aquí y no en el front porque aquí ya se ordenan los documentos y los miembros: un
+     * segundo sitio que decidiera orden acabaría discrepando con éste.
+     *
+     * ⚠️ Devuelve en vez de ordenar por referencia: así es una función pura y se puede probar
+     * sola, que es lo que hace `CargaMasivaSubgruposTest`. Una `&$ref` no sobrevive a
+     * `ReflectionMethod::invokeArgs()`, así que la referencia habría dejado esta regla sin test.
+     *
+     * @param list<Subgrupo> $subgrupos
+     *
+     * @return list<Subgrupo>
+     */
+    private function ordenarSubgrupos(array $subgrupos): array
+    {
+        $peso = static fn (string $eje): int => match ($eje) {
+            GrupoTipoEnum::RESERVA_AEREA->value => 0,
+            GrupoTipoEnum::HABITACION->value => 1,
+            default => 2,
+        };
+
+        // La salida del primer tramo, en ISO-8601: se compara como texto porque así viene y así
+        // ordena bien. Lo que no vuela va al final de su propio peso, no al principio.
+        $cuando = static fn (array $sg): string => (string) ($sg['vuelos'][0]['salida'] ?? '9999');
+
+        usort($subgrupos, static function (array $a, array $b) use ($peso, $cuando): int {
+            return [$peso($a['eje']), $cuando($a), $a['clave']]
+                <=> [$peso($b['eje']), $cuando($b), $b['clave']];
+        });
+
+        return $subgrupos;
     }
 
     /**

@@ -1229,6 +1229,92 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### «Lo tuyo»: una tarjeta, encabezada por la persona (14/09/2026)
+
+La app del huésped apilaba **tres tarjetas hermanas** —«Tus documentos», «Tus tarjetas de
+embarque» y «Lo tuyo»—, cada una con su marco, y el nombre del pasajero salía **dentro de la
+tercera**. Dos bloques decían «**tus**» sin decir de quién, y el dueño se nombraba al final.
+
+⚠️ **Y en un móvil compartido eso no es cosmética.** «No soy yo» existe porque este enlace se abre
+en el móvil de la familia y en el ordenador del colegio: quien lo abre casi nunca es quien se
+identificó. Con el orden viejo esa persona veía arriba «Recibidos, no tienes que hacer nada más» y
+una tarjeta de embarque **sin un nombre al lado** — podía darlo por suyo y dejar de leer. El
+desmentido estaba dos tarjetas más abajo.
+
+**Ahora es una sola tarjeta** con el nombre y «No soy yo» en la cabecera, y dentro tres secciones
+separadas por filetes. El `no-imprimir` se quedó en las secciones que lo tenían, **no en la
+tarjeta**: los grupos y vuelos sí se imprimen y ponerlo fuera se los habría llevado por delante.
+
+🔥 **Y de paso se cerró un hueco.** La cabecera vivía bajo `v-if="miIdentidad?.subgrupos?.length"`
+mientras que los documentos sólo pedían `v-if="miIdentidad"`. Alguien identificado y sin subgrupos
+veía sus documentos y sus boletos **sin su nombre en ninguna parte de la pantalla y sin forma de
+decir que no era él**. Al ser la cabecera el contenedor, la condición pasa a ser `miIdentidad` y el
+hueco desaparece solo.
+
+**Los documentos se mueven con `order`, no con dos `v-if`.** Cuando falta algo van los primeros
+—es lo único que le PIDE algo—; cuando ya no piden nada caen al final. Con `order` hay **una**
+instancia del componente y no dos, que es lo que evita que al subir la última foto se remonte y se
+pierda el estado.
+
+⚠️ La lista de qué documentos se piden la **exporta** `MisDocumentos.vue` (`DOCUMENTOS_PEDIDOS`,
+en un `<script>` normal junto al `setup`). La vista necesita saber si queda algo pendiente para
+colocar la tarjeta, y copiar la lista serían dos verdades sobre lo mismo: el día que se añada un
+documento se olvidaría la copia. Por eso el componente acepta también `anidado`, que le quita su
+propio marco — iba cosido a sus **dos** raíces, así que no se podía quitar desde fuera.
+
+#### Las cuatro tarjetas de «Lo tuyo» no tenían ningún orden (14/09/2026)
+
+Ni en la vista, ni en el store, ni en el provider, y `CotizacionFilepasajero::$pertenencias`
+tampoco lleva `#[ORM\OrderBy]`. El orden era el que devolvía MySQL al hidratar sin `ORDER BY`: en
+la práctica el de creación de los grupos, o sea **el orden de las columnas del Excel del padrón**.
+
+Se veía: el vuelo del **17** salía DESPUÉS del vuelo del **18**, con el grupo y la habitación
+metidos entre los dos.
+
+Lo ordena ahora `CotizacionFilePublicProvider::ordenarSubgrupos()`, por **cuándo se necesita cada
+cosa**:
+
+1. **Los vuelos, por hora de salida.** Son lo único con reloj y lo que se busca la noche antes.
+2. **La habitación**, que se necesita al llegar.
+3. **El grupo**, la referencia más estable.
+
+⚠️ **No basta con ordenar por eje.** «Nacional» e «Internacional» son el MISMO eje
+(`reserva_aerea`) y sólo los distingue un `subeje` de texto libre: por eje quedarían empatados y el
+desempate volvería a ser el del padrón, que es el fallo de partida. Por eso el criterio de los
+vuelos es la salida, y quien no vuela se va al final de su propio peso — si lo que no tiene tramos
+valiera cadena vacía, ordenaría **antes** que cualquier fecha.
+
+Se ordena en el provider y no en el front porque ahí ya se ordenan los documentos y los miembros:
+un segundo sitio que decidiera orden acabaría discrepando. Cubierto por
+`tests/Api/Provider/Cotizacion/SubgruposDeLoTuyoTest.php`.
+
+#### La bóveda de documentos tampoco tenía orden (14/09/2026)
+
+`CotizacionFile::$filearchivos` **no llevaba `#[ORM\OrderBy]` y sus dos vecinas sí** —`$vuelos`
+por `salida`, `$grupos` por `tipo` y `clave`—, así que era una omisión y no una política. Treinta y
+dos boarding passes que ponen todos «JA7018 CUZ → LIM» y sólo se distinguen por el nombre,
+repartidos en orden de inserción, no son una lista: son un montón.
+
+Se arregla en dos sitios porque son dos cosas distintas:
+
+| Dónde | Qué aporta |
+|---|---|
+| `#[ORM\OrderBy(['createdAt' => 'ASC'])]` en la entidad | **estabilidad**: que el orden no cambie entre peticiones |
+| `ordenarBoveda()` en `FileDetalle.vue` | **sentido**: tipo (el del enum, no el alfabético) y luego dueño |
+
+⚠️ El dueño no puede ser la clave del `OrderBy`: en la base es un **join**, no una columna. Por eso
+el orden con sentido lo pone quien pinta, que ya tiene el índice de nombres montado.
+
+**Dónde tocar**
+
+| Necesidad | Archivo | Método |
+|---|---|---|
+| Cambiar el orden de las tarjetas de «Lo tuyo» | `CotizacionFilePublicProvider` | `ordenarSubgrupos()` |
+| Añadir o quitar una sección de «Lo tuyo» | `pax/.../PaxCotizacionGuiaView.vue` | la columna flex, con su `order-N` |
+| Cambiar qué documentos se le piden al pasajero | `pax/.../MisDocumentos.vue` | `DOCUMENTOS_PEDIDOS` (lo lee también la vista) |
+| Cambiar el orden de la bóveda | `util/.../FileDetalle.vue` | `ordenarBoveda()` |
+| Que un adjunto salga estable en cualquier consumidor | `CotizacionFile` | `#[ORM\OrderBy]` de `$filearchivos` |
+
 #### 🔥 La carga por ZIP guardaba filas SIN fichero (14/09/2026)
 
 **El síntoma:** 32 boarding passes cargados en producción. Las 32 filas se crearon con su persona

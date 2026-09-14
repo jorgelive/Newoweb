@@ -211,11 +211,24 @@ class CotizacionFile
     private Collection $filepasajeros;
 
     /**
+     * Los adjuntos del expediente.
+     *
+     * ⚠️ **No llevaba `OrderBy` y sus dos vecinas sí** —`$vuelos` por `salida`, `$grupos` por
+     * `tipo` y `clave`—, así que era una omisión, no una política. Sin él la colección se hidrata
+     * sin `ORDER BY` y el orden lo decide el plan del motor: en la práctica el de inserción, que
+     * con una carga masiva de mil boarding passes es el orden en que venían dentro del ZIP.
+     *
+     * `createdAt` y no el tipo ni el dueño: esto sólo tiene que ser **estable** entre peticiones.
+     * El orden con el que se LEEN es una decisión de pantalla y la toma quien pinta —ver
+     * `bovedaDocs()` en `util/src/views/Cotizaciones/FileDetalle.vue`—, porque necesita el nombre
+     * del pasajero, que aquí es un join y no una columna.
+     *
      * @var Collection<int, CotizacionFilearchivo>
      */
     #[ApiProperty(fetchEager: false)]
     #[Groups(['file:item:read'])]
     #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFilearchivo::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $filearchivos;
 
     /**

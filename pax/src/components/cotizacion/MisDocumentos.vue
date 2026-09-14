@@ -1,3 +1,29 @@
+<script lang="ts">
+/**
+ * Los tres que se piden, y el porqué de cada uno en su propia línea.
+ *
+ * ⚠️ El DNI son **dos**: en un control migratorio no vale sólo el anverso. Pedirlos por separado
+ * —en vez de «sube tu DNI»— es lo que hace que se note cuál falta.
+ *
+ * ⚠️ **Se EXPORTA, y por eso vive en un `<script>` normal y no en el `setup`.** Quien pinta esta
+ * tarjeta necesita saber si queda algo pendiente para decidir dónde ponerla —arriba si le pide
+ * algo, al final si ya cumplió— y la única forma de saberlo es comparar lo enviado contra esta
+ * lista. Copiarla en la vista serían dos verdades sobre qué documentos se piden, y el día que se
+ * añada uno se olvidaría la copia.
+ */
+export const DOCUMENTOS_PEDIDOS = [
+  { tipo: 'pasaporte', titulo: 'Pasaporte', ayuda: 'La página de la foto, entera y sin reflejos.' },
+  { tipo: 'dni_anverso', titulo: 'DNI — anverso', ayuda: 'La cara con tu foto.' },
+  { tipo: 'dni_reverso', titulo: 'DNI — reverso', ayuda: 'La cara de atrás.' },
+] as const;
+
+export type TipoDoc = (typeof DOCUMENTOS_PEDIDOS)[number]['tipo'];
+
+/** ¿Le queda algo por mandar? Lo pregunta la vista para colocar la tarjeta. */
+export const faltanDocumentos = (yaEnviados?: readonly string[] | null): boolean =>
+  DOCUMENTOS_PEDIDOS.some(d => !(yaEnviados ?? []).includes(d.tipo));
+</script>
+
 <script setup lang="ts">
 /**
  * El pasajero fotografía sus documentos desde su propio móvil.
@@ -38,23 +64,18 @@ const props = defineProps<{
    * ⚠️ Llega sólo el TIPO, sin enlace: un escaneo de identidad no se le devuelve ni a su dueño.
    */
   yaEnviados?: string[];
+  /**
+   * Dentro de otra tarjeta: sin fondo, sin sombra y sin margen propios.
+   *
+   * ⚠️ El marco iba cosido a las dos raíces de la plantilla, así que anidarlo daba una tarjeta
+   * dentro de otra. Se quita con una prop y no con un `:class` desde fuera porque son DOS raíces
+   * —la línea de «ya está» y el panel abierto— y desde fuera sólo se puede pintar una.
+   */
+  anidado?: boolean;
 }>();
 
 const maestroStore = useMaestroStore();
 
-/**
- * Los tres que se piden, y el porqué de cada uno en su propia línea.
- *
- * ⚠️ El DNI son **dos**: en un control migratorio no vale sólo el anverso. Pedirlos por separado
- * —en vez de «sube tu DNI»— es lo que hace que se note cuál falta.
- */
-const DOCUMENTOS = [
-  { tipo: 'pasaporte', titulo: 'Pasaporte', ayuda: 'La página de la foto, entera y sin reflejos.' },
-  { tipo: 'dni_anverso', titulo: 'DNI — anverso', ayuda: 'La cara con tu foto.' },
-  { tipo: 'dni_reverso', titulo: 'DNI — reverso', ayuda: 'La cara de atrás.' },
-] as const;
-
-type TipoDoc = (typeof DOCUMENTOS)[number]['tipo'];
 
 const eligiendo = ref<TipoDoc | null>(null);
 const vistaPrevia = ref<string | null>(null);
@@ -71,7 +92,7 @@ const recienSubidos = ref<Set<string>>(new Set());
 
 const subidos = computed(() => new Set<string>([...(props.yaEnviados ?? []), ...recienSubidos.value]));
 
-const tituloDe = (tipo: TipoDoc) => DOCUMENTOS.find(d => d.tipo === tipo)?.titulo ?? '';
+const tituloDe = (tipo: TipoDoc) => DOCUMENTOS_PEDIDOS.find(d => d.tipo === tipo)?.titulo ?? '';
 
 const alElegir = (tipo: TipoDoc, evento: Event) => {
   const archivo = (evento.target as HTMLInputElement).files?.[0];
@@ -131,7 +152,7 @@ const confirmar = async () => {
   enviando.value = false;
 };
 
-const quedanPorSubir = computed(() => DOCUMENTOS.filter(d => !subidos.value.has(d.tipo)).length);
+const quedanPorSubir = computed(() => DOCUMENTOS_PEDIDOS.filter(d => !subidos.value.has(d.tipo)).length);
 
 /**
  * Con todo entregado, el panel se encoge a una línea.
@@ -145,6 +166,15 @@ const quedanPorSubir = computed(() => DOCUMENTOS.filter(d => !subidos.value.has(
  */
 const desplegado = ref(false);
 const compacto = computed(() => quedanPorSubir.value === 0 && !desplegado.value);
+
+/** El marco de tarjeta, que desaparece entero al anidar. */
+const marcoCompacto = computed(() => props.anidado
+  ? 'text-left'
+  : 'bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-100 px-5 py-3.5 mb-6 text-left hover:border-emerald-200');
+
+const marcoPanel = computed(() => props.anidado
+  ? ''
+  : 'bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-100 p-6 mb-6');
 </script>
 
 <template>
@@ -152,7 +182,7 @@ const compacto = computed(() => quedanPorSubir.value === 0 && !desplegado.value)
        Sigue siendo pulsable porque una foto se puede querer cambiar, pero deja de ocupar la
        pantalla de quien ya cumplió. -->
   <button v-if="compacto" type="button" @click="desplegado = true"
-          class="w-full flex items-center gap-3 bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-100 px-5 py-3.5 mb-6 text-left hover:border-emerald-200 transition-colors">
+          class="w-full flex items-center gap-3 transition-colors" :class="marcoCompacto">
     <span class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
       <i class="fas fa-check text-sm"></i>
     </span>
@@ -167,7 +197,7 @@ const compacto = computed(() => quedanPorSubir.value === 0 && !desplegado.value)
     <i class="fas fa-chevron-down text-slate-300 text-xs shrink-0"></i>
   </button>
 
-  <section v-else class="bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-100 p-6 mb-6">
+  <section v-else :class="marcoPanel">
     <div class="flex items-start gap-2 mb-1">
       <h3 class="text-gray-900 font-black text-base flex-1">
         {{ maestroStore.t('cot_mis_documentos') || 'Tus documentos' }}
@@ -184,7 +214,7 @@ const compacto = computed(() => quedanPorSubir.value === 0 && !desplegado.value)
     </p>
 
     <div class="space-y-2">
-      <div v-for="doc in DOCUMENTOS" :key="doc.tipo"
+      <div v-for="doc in DOCUMENTOS_PEDIDOS" :key="doc.tipo"
            class="flex items-center gap-3 p-3 rounded-2xl border transition-colors"
            :class="subidos.has(doc.tipo) ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'">
         <span class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"

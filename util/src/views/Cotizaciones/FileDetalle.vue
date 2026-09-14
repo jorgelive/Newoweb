@@ -2437,15 +2437,49 @@ const bovedaIndexada = computed(() =>
     })),
 );
 
+/**
+ * El orden de la bóveda: por TIPO y, dentro de cada tipo, por dueño.
+ *
+ * ⚠️ **No había ninguno.** Se pintaba `file.filearchivos` tal cual, y esa colección se hidrataba
+ * sin `ORDER BY` —ya lo lleva, `createdAt ASC`, ver `CotizacionFile::$filearchivos`—, así que el
+ * orden era el de inserción: con una carga masiva, el orden en que venían dentro del ZIP. Treinta
+ * y dos filas que ponen todas «JA7018 CUZ → LIM» y sólo se distinguen por el nombre, repartidas
+ * al azar, no son una lista: son un montón.
+ *
+ * El `createdAt` de la entidad da ESTABILIDAD; esto da SENTIDO, y hace falta aquí porque la clave
+ * de orden que importa —el nombre del pasajero— en la base es un join y no una columna.
+ *
+ * El tipo manda porque es lo que separa «documentos del viaje» de «escaneos de identidad», y va
+ * en el orden de `ARCHIVO_TIPO_LABELS`, que es el del enum de PHP y no el alfabético: boleto
+ * primero, «otros» al final. `localeCompare` con `numeric` para que «Asiento 2» no caiga detrás
+ * de «Asiento 10».
+ */
+const ORDEN_DE_TIPO = Object.keys(ARCHIVO_TIPO_LABELS);
+
+const ordenarBoveda = (docs: ApiCotizacionFilearchivo[]): ApiCotizacionFilearchivo[] => {
+    const peso = (doc: ApiCotizacionFilearchivo) => {
+        const i = ORDEN_DE_TIPO.indexOf(String(doc.tipoArchivo ?? ''));
+        // Un tipo que no esté en la tabla va al final, no al principio: lo desconocido no encabeza.
+        return i === -1 ? ORDEN_DE_TIPO.length : i;
+    };
+
+    // ⚠️ Copia antes de ordenar: `sort()` muta, y el array es el de la respuesta de la API que
+    // comparten las demás vistas de esta pantalla.
+    return [...docs].sort((a, b) =>
+        peso(a) - peso(b)
+        || duenoDelArchivo(a).localeCompare(duenoDelArchivo(b), 'es', { numeric: true })
+        || getDocNombre(a).localeCompare(getDocNombre(b), 'es', { numeric: true }));
+};
+
 const bovedaDocs = computed(() => {
     // ⚠️ Sin tildes en los DOS lados: con un padrón peruano —Núñez, José, Rodríguez— «perez» sin
     // acento es como se teclea siempre, y una lista vacía se lee como «no está subido».
     const palabras = paraBuscar(bovedaBusqueda.value.trim()).split(/\s+/).filter(Boolean);
-    if (!palabras.length) return file.value?.filearchivos ?? [];
+    if (!palabras.length) return ordenarBoveda(file.value?.filearchivos ?? []);
 
-    return bovedaIndexada.value
+    return ordenarBoveda(bovedaIndexada.value
         .filter(({ paja }) => palabras.every(palabra => paja.includes(palabra)))
-        .map(({ doc }) => doc);
+        .map(({ doc }) => doc));
 });
 
 /** El desplegable se vacía en cuanto elige: es un «añadir», no una selección que se queda. */
