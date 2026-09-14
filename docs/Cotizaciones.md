@@ -1205,6 +1205,11 @@ dos —mismo PNR—, así que la validación cruzada decía que sí y el plan lo
 pasajero abría en la puerta el boarding pass del otro día. Ahora el ambiguo **se saca del mapa** y
 la fila explica «el JA7027 vuela el 25/09 y el 27/09: añade la fecha al nombre».
 
+> ⚠️ **Ese arreglo quedó a medias y se rehízo el 14/09/2026.** Sacar el ambiguo del mapa evitaba
+> archivar contra el tramo equivocado —lo importante—, pero a cambio bloqueaba el ZIP entero, y el
+> mensaje pedía algo que el código no sabía hacer: la fecha **no participaba en ninguna búsqueda**.
+> Ver «El pasajero desempata el vuelo» más abajo.
+
 **3. Dos ficheros del mismo pasajero y vuelo en el MISMO ZIP creaban dos tarjetas.** `setFile()` es
 un setter plano: el adjunto nuevo no entra en `getFilearchivos()`, así que `boletoPrevio()` sólo
 veía la base. `12345678-DM6771.pdf` y `12345678_DM6771.jpg` —o el mismo nombre en `ida/` y
@@ -1223,6 +1228,106 @@ compartido de la familia —por eso existe «No soy yo»—, y con `max-age` el 
 tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprueba de quién es.
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
+
+#### 🔥 La carga por ZIP guardaba filas SIN fichero (14/09/2026)
+
+**El síntoma:** 32 boarding passes cargados en producción. Las 32 filas se crearon con su persona
+y su vuelo, salían en el listado del expediente — y **no había ni un fichero en disco**.
+`image_name` e `image_size` a NULL en las 32. Ni un error, ni una línea en `error.log`, y el
+`flush()` devolvió con normalidad.
+
+Era el **primer uso real** de la carga por ZIP: los 3 boletos anteriores del sistema habían
+entrado por el formulario de uno en uno, que sí funciona. La comparación es la que destapó todo.
+
+**La causa** es una puerta del propio Vich, y es muda:
+
+```php
+// Vich\UploaderBundle\Handler\UploadHandler::hasUploadedFile()
+return $file instanceof UploadedFile || $file instanceof ReplacingFile;
+```
+
+`upload()` llama a eso primero y, si da `false`, hace `return;`. `aplicar()` pasaba un
+`new File($ruta)` —ni una cosa ni la otra—, así que Vich **no subía nada y no lo decía**. Y como
+después del `flush()` `limpiar()` borra el extracto, el contenido se perdía para siempre.
+
+**El arreglo:** `new ReplacingFile($ruta)`. Existe exactamente para esto — «para señalar que este
+fichero debe subirse cuando no es posible construir un `UploadedFile`».
+
+⚠️ **Lo que lo hizo invisible fue verificar la CAPA EQUIVOCADA.** El comentario de `limpiar()`
+decía, correctamente, que `FileSystemStorage` hace `copy()` en vez de `move()` para lo que no es
+un `UploadedFile` — se había leído el vendor. Pero se leyó el **storage**, que está una capa por
+debajo de la puerta que decide, y a esa capa la ejecución nunca llegaba. El `copy()` es verdad y
+por eso `limpiar()` sigue siendo necesario; lo que no era verdad es que se ejecutara.
+
+> **La regla:** leer el vendor no basta si se lee el archivo que confirma lo que uno espera. Hay
+> que seguir la llamada desde el punto de entrada — aquí, `UploadHandler` antes que `Storage`.
+
+**Por qué la pantalla no ayudó:** la fila aparece en el listado en cuanto existe la entidad. El
+enlace lo da `getImageUrl()`, que devuelve `null` con `image_name` vacío — así que no hay enlace
+roto que mirar, hay una tarjeta sin enlace. Se parece mucho a «todavía no ha cargado».
+
+**Reparar lo ya cargado no exige borrar nada a mano:** al volver a subir el mismo ZIP,
+`boletoPrevio()` encuentra la fila previa de esa persona para ese vuelo y la sustituye. Y
+`UploadHandler::remove()` sale antes de tiempo con un `image_name` vacío, así que quitar las filas
+rotas es inocuo.
+
+Cubierto por `tests/Cotizacion/Service/CargaMasivaAdjuntoTest.php`, que comprueba **la condición
+exacta que Vich evalúa** en vez de que el fichero acabe en disco: es la línea que decide y es la
+que se rompió.
+
+#### El pasajero desempata el vuelo (14/09/2026)
+
+**El síntoma:** un lote de 32 boarding passes correctamente renombrados se marcaba entero con «el
+JA7018 vuela el 17/09 y el 20/09: añade la fecha al nombre». Y la instrucción **no se podía
+cumplir**: `casar()` sólo buscaba por número, así que la fecha en el nombre no casaba con nada.
+Sin salida tampoco por el lado del operador, porque `aplicarDesdeCarpeta()` recalcula el reparto y
+no acepta asignaciones del navegador.
+
+**La confusión de fondo eran dos ambigüedades distintas tratadas como una:**
+
+| | Quién la sufre | Frecuencia |
+|---|---|---|
+| **Global** — el JA7018 existe dos veces *en el expediente* | dos tandas del grupo, gente distinta cada día | lo normal |
+| **Por persona** — *esa* persona vuela el JA7018 dos veces | exige ir, volver y volver a ir | rarísima |
+
+`vuelosPorNumero()` calculaba la **global**, una vez para todo el ZIP y *antes* de saber de quién
+era cada fichero. Por eso cobraba a las mil filas una duda que casi ninguna tenía.
+
+**El arreglo:** el nombre del fichero ya trae el **documento**, que nunca es ambiguo. Con el
+pasajero resuelto, los candidatos se filtran a los vuelos que **esa persona vuela de verdad**, y en
+la práctica queda uno. Ver `CargaMasivaDeArchivos::casar()`.
+
+🔥 **El camino ya estaba escrito.** `vuelaEseVuelo()` recorre `pasajero → pertenencia → grupo →
+vuelos` en cada fila desde el principio, pero sólo para **rechazar** una pareja torcida. Ahora
+también **resuelve** una dudosa. El defecto estructural estaba en que `casar()` resolvía pasajero y
+vuelo en el mismo bucle, cada uno por su lado, tirando la restricción que ya tenía en la mano.
+
+**Consecuencias:**
+
+- `vuelosPorNumero()` devuelve `array<string, list<CotizacionVuelo>>` y **ya no descarta nada**:
+  agrupa y punto. Quien decide es `casar()`, que para entonces sabe de quién es el fichero.
+- **El formato del nombre no crece.** `DOCUMENTO-VUELO` sigue igual; nadie renombra nada.
+- Para el caso ida/vuelta/ida, la fila avisa y manda al **formulario de uno en uno**, que ya tiene
+  selector de vuelo (`alcanceDelDoc()` en `FileDetalle.vue`). No se construyó un camino de parseo
+  de fechas para eso: un camino que corre una vez cada varios años es un camino que está roto el
+  día que hace falta — que es exactamente lo que le pasó al mensaje que se acaba de quitar.
+
+⚠️ **La regla que sale de aquí: cada rama de error tiene que pedir algo CUMPLIBLE.** Un mensaje
+imposible es peor que uno genérico, porque manda a alguien a renombrar mil ficheros para nada.
+
+Cubierto por `tests/Cotizacion/Service/CargaMasivaDesempateTest.php` — cinco casos, sin base de
+datos: las dos tandas, el número único, el renombrado torcido, el caso límite y el número
+desconocido.
+
+**Dónde tocar**
+
+| Necesidad | Archivo | Método |
+|---|---|---|
+| Cambiar cómo se elige el vuelo de un fichero | `CargaMasivaDeArchivos` | `casar()` |
+| Cambiar el texto de un fallo del plan | `CargaMasivaDeArchivos` | `queFalta()` |
+| Añadir un separador o un formato de nombre | `CargaMasivaDeArchivos` | `casar()` (el `preg_split`) + `normalizar()` |
+| Cambiar qué cuenta como «esa persona vuela ese vuelo» | `CargaMasivaDeArchivos` | `vuelaEseVuelo()` |
+| Asignar a mano un boarding pass a un vuelo | `util/src/views/Cotizaciones/FileDetalle.vue` | `alcanceDelDoc()` |
 
 #### La columna del código individual no salía en la plantilla en blanco (08/09/2026)
 

@@ -12,7 +12,7 @@ use App\Cotizacion\Enum\ArchivoTipoEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\HttpFoundation\File\File;
+use Vich\UploaderBundle\FileAbstraction\ReplacingFile;
 use ZipArchive;
 
 /**
@@ -39,6 +39,10 @@ use ZipArchive;
  * que el documento y el vuelo existan por separado: se comprueba que **esa persona vuele ese
  * vuelo**. Un renombrado mal hecho —el DNI de uno con el vuelo de otro— se marca en vez de
  * guardarse torcido, que es el fallo que nadie descubriría hasta el gate.
+ *
+ * Y ese mismo camino **resuelve**, no sólo rechaza: cuando el expediente trae el mismo número en
+ * dos fechas —un grupo que sale en tandas—, el vuelo bueno es el que esa persona vuela. Por eso
+ * el nombre del fichero no necesita fecha. Ver {@see self::casar()}.
  *
  * ── Nada se guarda sin verse ────────────────────────────────────────────────
  * `planificar()` no escribe: devuelve fila por fila qué haría. Lo que casa se aplica; lo que no,
@@ -85,7 +89,7 @@ final readonly class CargaMasivaDeArchivos
         }
 
         $porDocumento = $this->pasajerosPorDocumento($file);
-        [$porVuelo, $ambiguos] = $this->vuelosPorNumero($file);
+        $porVuelo = $this->vuelosPorNumero($file);
         $destino = $this->prepararTemporal();
 
         $plan = [];
@@ -120,9 +124,9 @@ final readonly class CargaMasivaDeArchivos
                 continue;
             }
 
-            [$pasajero, $vuelo] = $this->casar($nombre, $porDocumento, $porVuelo);
+            [$pasajero, $vuelo, $candidatos] = $this->casar($nombre, $porDocumento, $porVuelo);
 
-            $problema = $this->queFalta($nombre, $pasajero, $vuelo, $ambiguos);
+            $problema = $this->queFalta($pasajero, $vuelo, $candidatos);
 
             // ⚠️ Se extrae por índice y con un nombre NUESTRO: `extractTo` con el nombre del ZIP
             // permite `../../` —el «zip slip»— y escribe donde no debe. Aquí el nombre de destino
@@ -158,33 +162,52 @@ final readonly class CargaMasivaDeArchivos
      *
      * El orden de las comprobaciones es el orden en que se entiende el error: primero si se
      * reconoce a la persona, después el vuelo, y sólo entonces si encajan entre sí.
+     *
+     * ⚠️ **Cada rama tiene que decir algo que se pueda CUMPLIR.** Aquí hubo un «añade la fecha al
+     * nombre» que era un callejón sin salida: {@see self::casar()} sólo busca por número, así que
+     * la fecha en el nombre no casaba con nada y el fichero se quedaba fuera para siempre. Un
+     * mensaje que pide lo imposible es peor que uno genérico, porque manda a alguien a renombrar
+     * mil ficheros para nada.
+     *
+     * @param list<CotizacionVuelo> $candidatos los vuelos del expediente con ese número
      */
-    /** @param array<string, list<string>> $ambiguos */
     private function queFalta(
-        string $fichero,
         ?CotizacionFilepasajero $pasajero,
         ?CotizacionVuelo $vuelo,
-        array $ambiguos = [],
+        array $candidatos,
     ): ?string {
         if ($pasajero === null) {
             return 'no se reconoce el documento';
         }
 
         if ($vuelo === null) {
-            // ⚠️ Antes de decir «no se reconoce», mirar si es que se reconoce DEMASIADO: ese
-            // número vuela dos veces y el nombre no dice cuál. Es un error distinto y se arregla
-            // distinto —añadiendo la fecha—, así que decirlo importa.
-            foreach ($ambiguos as $numero => $fechas) {
-                if (in_array($numero, array_map($this->normalizar(...), preg_split('/[-_\s.]+/', pathinfo($fichero, PATHINFO_FILENAME)) ?: []), true)) {
-                    return sprintf(
-                        'el %s vuela el %s: añade la fecha al nombre',
-                        $numero,
-                        implode(' y el ', $fechas),
-                    );
-                }
+            if ($candidatos === []) {
+                return 'no se reconoce el número de vuelo';
             }
 
-            return 'no se reconoce el número de vuelo';
+            $numero = (string) $candidatos[0]->getNumero();
+            $suyos = array_values(array_filter(
+                $candidatos,
+                fn (CotizacionVuelo $v): bool => $this->vuelaEseVuelo($pasajero, $v),
+            ));
+
+            if ($suyos === []) {
+                return sprintf('esa persona NO vuela el %s — revisa el renombrado', $numero);
+            }
+
+            // 🔥 Lo que queda es el único caso que el nombre del fichero NO puede resolver: esa
+            // persona vuela ese mismo número dos veces. Como un número es una DIRECCIÓN —el
+            // JA7018 es CUZ→LIM—, eso exige ir, volver y volver a ir. Se avisa y se manda al
+            // formulario de uno en uno, que ya tiene selector de vuelo; no se le hace crecer el
+            // formato del nombre a los otros mil ficheros por un caso que casi no existe.
+            return sprintf(
+                'esa persona vuela el %s el %s: súbelo desde el formulario de documento eligiendo el vuelo',
+                $numero,
+                implode(' y el ', array_map(
+                    static fn (CotizacionVuelo $v): string => ($v->getSalida() ?? $v->getFecha())?->format('d/m') ?? '?',
+                    $suyos,
+                )),
+            );
         }
 
         if (!$this->vuelaEseVuelo($pasajero, $vuelo)) {
@@ -228,10 +251,25 @@ final readonly class CargaMasivaDeArchivos
     /**
      * Parte el nombre y prueba cada trozo contra documentos y vuelos.
      *
-     * @param array<string, CotizacionFilepasajero> $porDocumento
-     * @param array<string, CotizacionVuelo> $porVuelo
+     * 🔥 **El pasajero ACOTA el vuelo, y ésa es la mitad del trabajo.** Un número de vuelo puede
+     * estar dos veces en el expediente —`CotizacionVuelo` es único por `(file, numero, fecha)`, y
+     * un grupo grande sale en tandas: el JA7018 del 17 y el del 20—. Resolverlo mirando sólo el
+     * número es imposible, pero no hace falta: el nombre del fichero trae el DOCUMENTO, que nunca
+     * es ambiguo, y de ahí se llega a los vuelos que esa persona vuela de verdad.
      *
-     * @return array{0: ?CotizacionFilepasajero, 1: ?CotizacionVuelo}
+     * ⚠️ **Antes se resolvían los dos por separado en el mismo bucle**, así que la restricción que
+     * ya estaba en la mano se tiraba: con dos tandas, `vuelosPorNumero()` sacaba el número del
+     * mapa y el ZIP entero se bloqueaba —las 32 filas— aunque cada una de esas 32 personas volara
+     * el JA7018 **una sola vez** y no hubiera ninguna duda real.
+     *
+     * Y el camino ya existía: {@see self::vuelaEseVuelo()} lo recorre en cada fila desde siempre,
+     * pero sólo para RECHAZAR una pareja torcida. Aquí se usa además para RESOLVER una dudosa.
+     *
+     * @param array<string, CotizacionFilepasajero> $porDocumento
+     * @param array<string, list<CotizacionVuelo>> $porVuelo
+     *
+     * @return array{0: ?CotizacionFilepasajero, 1: ?CotizacionVuelo, 2: list<CotizacionVuelo>}
+     *         el pasajero, el vuelo si quedó uno solo, y los candidatos por número para explicarlo
      */
     private function casar(string $nombre, array $porDocumento, array $porVuelo): array
     {
@@ -239,7 +277,8 @@ final readonly class CargaMasivaDeArchivos
         $trozos = preg_split('/[-_\s.]+/', $sinExtension) ?: [];
 
         $pasajero = null;
-        $vuelo = null;
+        /** @var list<CotizacionVuelo> $candidatos */
+        $candidatos = [];
 
         foreach ($trozos as $trozo) {
             $clave = $this->normalizar($trozo);
@@ -249,10 +288,32 @@ final readonly class CargaMasivaDeArchivos
             }
 
             $pasajero ??= $porDocumento[$clave] ?? null;
-            $vuelo ??= $porVuelo[$clave] ?? null;
+
+            if ($candidatos === []) {
+                $candidatos = $porVuelo[$clave] ?? [];
+            }
         }
 
-        return [$pasajero, $vuelo];
+        if (count($candidatos) === 1) {
+            return [$pasajero, $candidatos[0], $candidatos];
+        }
+
+        // Varios vuelos con ese número: se queda el que ESA persona vuela. Si eso deja uno, no hay
+        // ambigüedad que resolver y nadie tiene que renombrar nada.
+        if ($candidatos !== [] && $pasajero !== null) {
+            $suyos = array_values(array_filter(
+                $candidatos,
+                fn (CotizacionVuelo $v): bool => $this->vuelaEseVuelo($pasajero, $v),
+            ));
+
+            if (count($suyos) === 1) {
+                return [$pasajero, $suyos[0], $candidatos];
+            }
+        }
+
+        // Sin número reconocido, sin pasajero con quien acotar, o vuela ese número dos veces:
+        // no se elige a ciegas. {@see self::queFalta()} distingue los tres y lo cuenta.
+        return [$pasajero, null, $candidatos];
     }
 
     /**
@@ -285,19 +346,20 @@ final readonly class CargaMasivaDeArchivos
     }
 
     /**
-     * Los vuelos del expediente por número — y 🔥 **los repetidos se quedan FUERA**.
+     * Los vuelos del expediente agrupados por número.
      *
-     * `CotizacionVuelo` es único por `(numero, fecha)`, no por número: el JA7027 vuela el 25 y el
-     * 27. Con un mapa `numero → vuelo`, el último gana y `12345678-JA7027.pdf` se archiva contra
-     * el tramo equivocado. Y no salta ninguna alarma: la persona vuela los dos —mismo PNR—, así
-     * que `vuelaEseVuelo()` dice que sí y el plan lo pinta en verde. El pasajero abre en la puerta
-     * el boarding pass del otro día.
+     * `CotizacionVuelo` es único por `(file, numero, fecha)`, no por número: el JA7027 vuela el 25
+     * y el 27, y un grupo grande sale en tandas. Por eso el valor es una LISTA.
      *
-     * Por eso el ambiguo no se adivina: se saca del mapa y {@see self::queFalta()} lo cuenta,
-     * para que el operador ponga la fecha en el nombre.
+     * ⚠️ **Aquí los repetidos se tiraban a la basura**, y con ellos el ZIP entero: el número salía
+     * del mapa, ninguna fila encontraba vuelo y las mil se marcaban con un error que además pedía
+     * algo imposible. La ambigüedad era GLOBAL —dos tandas en el expediente— pero se cobraba
+     * PERSONA A PERSONA, incluso en las que sólo vuelan ese número una vez.
      *
-     * @return array{0: array<string, CotizacionVuelo>, 1: array<string, list<string>>}
-     *         el mapa utilizable, y los números ambiguos con sus fechas para explicarlo
+     * Quien desempata es {@see self::casar()}, que para entonces ya sabe de quién es el fichero.
+     * Este método sólo agrupa: no decide nada, y sobre todo no descarta nada.
+     *
+     * @return array<string, list<CotizacionVuelo>>
      */
     private function vuelosPorNumero(CotizacionFile $file): array
     {
@@ -312,23 +374,7 @@ final readonly class CargaMasivaDeArchivos
             }
         }
 
-        $mapa = [];
-        $ambiguos = [];
-
-        foreach ($porNumero as $clave => $vuelos) {
-            if (count($vuelos) === 1) {
-                $mapa[$clave] = $vuelos[0];
-
-                continue;
-            }
-
-            $ambiguos[$clave] = array_map(
-                static fn (CotizacionVuelo $v): string => ($v->getSalida() ?? $v->getFecha())?->format('d/m') ?? '?',
-                $vuelos,
-            );
-        }
-
-        return [$mapa, $ambiguos];
+        return $porNumero;
     }
 
     /**
@@ -417,7 +463,7 @@ final readonly class CargaMasivaDeArchivos
         $nombres = json_decode((string) file_get_contents($indice), true) ?: [];
 
         $porDocumento = $this->pasajerosPorDocumento($file);
-        [$porVuelo, $ambiguos] = $this->vuelosPorNumero($file);
+        $porVuelo = $this->vuelosPorNumero($file);
 
         $plan = [];
 
@@ -428,8 +474,8 @@ final readonly class CargaMasivaDeArchivos
                 continue;
             }
 
-            [$pasajero, $vuelo] = $this->casar((string) $original, $porDocumento, $porVuelo);
-            $plan[] = $this->fila($file, (string) $original, $pasajero, $vuelo, $this->queFalta((string) $original, $pasajero, $vuelo, $ambiguos), $fichero);
+            [$pasajero, $vuelo, $candidatos] = $this->casar((string) $original, $porDocumento, $porVuelo);
+            $plan[] = $this->fila($file, (string) $original, $pasajero, $vuelo, $this->queFalta($pasajero, $vuelo, $candidatos), $fichero);
         }
 
         return $this->aplicar($file, $plan);
@@ -489,8 +535,18 @@ final readonly class CargaMasivaDeArchivos
                 ),
             ]]);
 
-            // Vich se encarga del nombre en disco y de moverlo al destino privado.
-            $archivo->setImageFile(new File($fila['ruta']));
+            // 🔥 `ReplacingFile` y NO `File`. Vich se planta antes de mirar el disco:
+            // `UploadHandler::hasUploadedFile()` es `$file instanceof UploadedFile || $file
+            // instanceof ReplacingFile`, y con cualquier otra cosa hace `return;` **sin decir
+            // nada**. Con un `File` pelado el adjunto se guardaba con `image_name` a NULL, sin
+            // fichero, y encima {@see self::limpiar()} borraba después el extracto: el contenido
+            // se perdía. La fila salía en el listado, así que parecía que había funcionado.
+            //
+            // ⚠️ Lo que despistó fue verificar la CAPA EQUIVOCADA: se leyó `FileSystemStorage`
+            // —que en efecto hace `copy()` para lo que no es `UploadedFile`— sin ver que la
+            // ejecución no llega ahí. El `copy()` es cierto y por eso `limpiar()` sigue siendo
+            // necesario; lo que no era cierto es que se llegara a ejecutar.
+            $archivo->setImageFile(new ReplacingFile($fila['ruta']));
 
             $creados[] = $archivo;
         }
