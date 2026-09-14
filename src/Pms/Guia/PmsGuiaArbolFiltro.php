@@ -191,6 +191,6 @@ final class PmsGuiaArbolFiltro
 
         return $cruda === null || $cruda === ''
             ? null
-            : $this->interpolador->interpolarUno($cruda, $contexto, $acceso);
+            : $this->interpolador->interpolarUrl($cruda, $contexto, $acceso);
     }
 }

@@ -809,7 +809,15 @@ reserva concreta quedaría grabado en la ficha para todos. `getUrlBoton()` prefi
 así que el JSON sigue llamándose `urlBoton` y `pax` no se entera; `getUrlBotonCruda()` devuelve lo
 que se edita en el panel.
 
-Pasa por el mismo juez que el texto (`interpolarUno`), así que un botón que apuntara a un dato
+La URL tiene su propio método, `interpolarUrl()`, y no el del texto: **`interpolarUno()` envuelve
+cada valor en `<span class="guia-dato">…</span>`**, que es lo correcto dentro de un cuerpo HTML y
+una basura dentro de un `href` — el botón salió apuntando a
+`<span class="guia-dato">https://wa.me/51961281953</span>`, medido contra producción antes de que
+lo viera nadie. Y si el marcador no se resuelve —clave sensible fuera de ventana, o una errata—
+devuelve `null`: sin URL el front no pinta el botón, y un enlace a ninguna parte es peor que
+ninguno justo cuando el huésped está atascado.
+
+Pasa por el mismo juez que el texto, así que un botón que apuntara a un dato
 sensible se comporta como ese dato dentro del cuerpo: no hay una puerta nueva.
 
 ⚠️ **También en los ítems BLOQUEADOS**, aunque a ésos el cuerpo se les sustituya entero por el

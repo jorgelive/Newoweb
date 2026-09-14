@@ -115,7 +115,7 @@ final class PmsUnidadCatalogoProvider implements ProviderInterface
                     ->setUrlBotonParaCliente(
                         ($cruda = $item->getUrlBotonCruda()) === null || $cruda === ''
                             ? null
-                            : $this->interpolador->interpolarUno($cruda, $contexto, $acceso)
+                            : $this->interpolador->interpolarUrl($cruda, $contexto, $acceso)
                     ),
             ];
         }

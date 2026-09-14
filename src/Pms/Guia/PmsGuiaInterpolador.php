@@ -104,6 +104,52 @@ final class PmsGuiaInterpolador
         return $this->interpolarTexto($texto, $contexto, $acceso, $idioma, $acceso->estaAbierto());
     }
 
+    /**
+     * La URL de un botón, con sus marcadores resueltos **y sin envolver**.
+     *
+     * ── Por qué no vale `interpolarUno()` ───────────────────────────────────────
+     * Porque ése envuelve cada valor en `<span class="guia-dato">…</span>`, que es lo correcto
+     * dentro de un cuerpo HTML y una basura dentro de un `href`: el botón acabó apuntando a
+     * `<span class="guia-dato">https://wa.me/51961281953</span>`. Medido contra producción antes
+     * de que lo viera nadie.
+     *
+     * ── Y devuelve `null` en vez de un enlace a medias ──────────────────────────
+     * Si el marcador no se resuelve —clave sensible fuera de ventana, o una errata del editor—,
+     * la URL quedaría con las llaves dentro. Un botón que no lleva a ninguna parte es peor que no
+     * tener botón: el huésped lo pulsa justo cuando está atascado. Sin URL, el front no lo pinta.
+     */
+    public function interpolarUrl(
+        string $url,
+        PmsGuiaContexto $contexto,
+        PmsGuiaAcceso $acceso,
+    ): ?string {
+        if ('' === $url || !str_contains($url, '{{')) {
+            return $url === '' ? null : $url;
+        }
+
+        $revelar = $acceso->estaAbierto();
+
+        $resuelta = preg_replace_callback(
+            self::REGEX_CLAVE,
+            static function (array $m) use ($contexto, $revelar): string {
+                $clave = strtolower($m[1]);
+
+                if (isset($contexto->valores[$clave])) {
+                    return (string) $contexto->valores[$clave];
+                }
+
+                if ($revelar && array_key_exists($clave, $contexto->sensibles)) {
+                    return (string) $contexto->sensibles[$clave];
+                }
+
+                return $m[0];
+            },
+            $url,
+        ) ?? $url;
+
+        return str_contains($resuelta, '{{') ? null : $resuelta;
+    }
+
     private function interpolarTexto(
         string $texto,
         PmsGuiaContexto $contexto,
