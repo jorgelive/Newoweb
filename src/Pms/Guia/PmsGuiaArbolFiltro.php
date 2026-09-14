@@ -168,6 +168,24 @@ final class PmsGuiaArbolFiltro
     {
         return $item
             ->setTituloParaCliente($this->interpolador->interpolar($item->getTitulo(), $contexto, $acceso))
-            ->setContenidoParaCliente($this->interpolador->interpolar($item->getDescripcion(), $contexto, $acceso));
+            ->setContenidoParaCliente($this->interpolador->interpolar($item->getDescripcion(), $contexto, $acceso))
+            // El botón también: sin esto, el enlace «Necesito ayuda» llevaba el teléfono escrito
+            // dentro de la URL, que es la copia que nadie sincroniza el día que ese número cambie.
+            ->setUrlBotonParaCliente($this->urlBoton($item, $contexto, $acceso));
+    }
+
+    /**
+     * La URL del botón con sus marcadores resueltos, o `null` si no tiene botón.
+     *
+     * Pasa por el mismo juez que el texto (`interpolarUno`), así que un botón que apuntara a un
+     * dato sensible se comportaría igual que ese dato dentro del cuerpo: no hay una puerta nueva.
+     */
+    private function urlBoton(PmsGuiaItem $item, PmsGuiaContexto $contexto, PmsGuiaAcceso $acceso): ?string
+    {
+        $cruda = $item->getUrlBotonCruda();
+
+        return $cruda === null || $cruda === ''
+            ? null
+            : $this->interpolador->interpolarUno($cruda, $contexto, $acceso);
     }
 }

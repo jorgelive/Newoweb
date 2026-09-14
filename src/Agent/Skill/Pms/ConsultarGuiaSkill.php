@@ -326,8 +326,8 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         $base = array_filter([
             'casita' => $unidad->getNombre(),
             'huesped' => $reserva->getNombreApellido(),
-            'hora_check_in' => $contexto->valores['check_in'] ?? null,
-            'hora_check_out' => $contexto->valores['check_out'] ?? null,
+            'hora_check_in' => $contexto->valores['hora_checkin'] ?? null,
+            'hora_check_out' => $contexto->valores['hora_checkout'] ?? null,
         ], static fn ($v) => $v !== null && $v !== '');
 
         return $this->responder(

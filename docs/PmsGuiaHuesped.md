@@ -765,6 +765,53 @@ opción sea un caso del enum.
   por el que el agente no supo remitir a ninguna parte.
 
 
+## 3 ter. El vocabulario de los marcadores es el MISMO que el de las plantillas (14/09/2026)
+
+La guía y los mensajes al huésped son dos sistemas de hidratación distintos —`PmsGuiaContexto` +
+`PmsGuiaInterpolador` aquí, `PmsMessageDataResolver` + `HidratadorDeMarcadores` allí— y hasta el
+14/09/2026 llamaban distinto a lo mismo. El editor es la misma persona y escribe en los dos el
+mismo día.
+
+| Concepto | Se llamaba (guía) | Se llama ahora |
+|---|---|---|
+| Unidad | `unit_name` | `room_name` |
+| Establecimiento | `hotel_name` | `property_name` |
+| Localizador | `booking_ref` | `locator` |
+| WhatsApp público | `host_whatsapp` | `whatsapp_numero` (+ `whatsapp_url`) |
+| **Hora** de entrada/salida | `check_in` / `check_out` | `hora_checkin` / `hora_checkout` |
+| **Fecha** de llegada/salida | `start_date` / `end_date` | `checkin_date` / `checkout_date` |
+| Urgencias | — | `emergencia_numero` (+ `emergencia_url`) |
+
+⚠️ **Lo peligroso era la pareja de en medio**: `check_in` era la HORA y `checkin_date` la FECHA.
+Dos nombres casi iguales para cosas distintas, cada uno en un sistema.
+
+**Manda el vocabulario de las plantillas aunque la guía sea anterior**, y no es una preferencia:
+el nombre de un marcador de una plantilla **aprobada en Meta no se puede cambiar** —hacerlo es
+crear otra y esperar el bloqueo de 30 días, §18 de `docs/Mensajeria.md`—, y `guest_name`,
+`checkin_date` y `checkout_date` ya viven dentro de cuerpos aprobados. El lado que se mueve es el
+que se puede mover.
+
+El contenido lo reescribe `app:pms:guia:renombrar-marcadores`, que sustituye **en los siete
+idiomas** —no sólo en el español— para que el texto quede bien aunque una fila esté marcada como
+traducción curada a mano y el listener no la rehaga.
+
+### Y los BOTONES interpolan (14/09/2026)
+
+Hasta ahora sólo se interpolaban el título y la descripción. El botón «Necesito ayuda» de la ficha
+de las llaves llevaba `https://wa.me/51961281953` **escrito dentro del enlace**: la copia que nadie
+sincroniza el día que ese número cambie. Ahora es `{{ emergencia_url }}` y sale del
+establecimiento.
+
+⚠️ **El valor interpolado NO se escribe en `metadata`.** Va en `PmsGuiaItem::$urlBotonParaCliente`,
+transitorio, igual que el título y el contenido: la entidad está gestionada por Doctrine y dejar
+ahí el valor resuelto lo persistiría en el primer `flush` de la petición — el teléfono de una
+reserva concreta quedaría grabado en la ficha para todos. `getUrlBoton()` prefiere el transitorio,
+así que el JSON sigue llamándose `urlBoton` y `pax` no se entera; `getUrlBotonCruda()` devuelve lo
+que se edita en el panel.
+
+Pasa por el mismo juez que el texto (`interpolarUno`), así que un botón que apuntara a un dato
+sensible se comporta como ese dato dentro del cuerpo: no hay una puerta nueva.
+
 ## 4. Flujo de una petición
 
 ```
@@ -1739,7 +1786,7 @@ El override **no pasa por el interpolador**: sale tal cual. Un `{{ door_code }}`
 llegaría literal al modelo, y resolverlo sería peor —congelaría una credencial que hoy sólo se
 revela dentro de su ventana de acceso—.
 
-El caso que mejor lo explica no es de seguridad sino de corrección: `{{ check_in }}` **cambia
+El caso que mejor lo explica no es de seguridad sino de corrección: `{{ hora_checkin }}` **cambia
 por reserva**. Horneado en el override, todos los huéspedes recibirían la misma hora.
 
 Por eso `Version20260810140000`, que sembró el campo con el cuerpo de los 28 ítems que no usan
@@ -1798,7 +1845,7 @@ arriba.
 de lo que diga el ítem que toque.
 
 No es comodidad: es lo que **desbloquea el override de «Horarios de estancia»**. Ese ítem tenía
-las horas sólo como `{{ check_in }}` / `{{ check_out }}` en su cuerpo, y como el override no
+las horas sólo como `{{ hora_checkin }}` / `{{ hora_checkout }}` en su cuerpo, y como el override no
 pasa por el interpolador, darle `agente_contenido` habría borrado unas horas que salen del
 evento y **cambian por estancia**. Sacándolas fuera, el ítem puede tener su versión para el
 agente sin perder nada — y de paso el agente sabe las horas aunque el tema no salga en la
@@ -2171,7 +2218,7 @@ leer la oración —`abrela`, `todavia`, `decirselo`, `fria`— **no lo toca**: 
 `UPDATE` en SQL se saltaría el listener, y forzar la retraducción reescribiría seis idiomas que
 ya están bien. Sin `sobreescribirTraduccion`, el listener sólo rellena los vacíos.
 
-⚠️ **No entra en el marcado.** `descripcion` es HTML y lleva marcadores `{{ check_in }}`. El
+⚠️ **No entra en el marcado.** `descripcion` es HTML y lleva marcadores `{{ hora_checkin }}`. El
 texto se parte por etiquetas y llaves y sólo se corrigen los trozos que el huésped ve.
 
 La que más urgía no era una tilde: **«se devuelve al entregar las llaves y no hay danos»**. Sin

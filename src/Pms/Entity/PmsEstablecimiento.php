@@ -89,7 +89,7 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
      * El WhatsApp por el que se atiende al público, y el único que se publica.
      *
      * Lo enseñan el botón «Consulta por WhatsApp» del catálogo, la tarjeta del anfitrión de la
-     * guía (`PmsGuiaContexto::$host_whatsapp`) y las plantillas por `{{ whatsapp_numero }}`.
+     * guía y las plantillas por `{{ whatsapp_numero }}` — la misma clave en los dos sitios.
      *
      * ⚠️ **Nunca un móvil personal.** Hasta el 11/09/2026 llevaba el de Jorge, así que los
      * interesados del catálogo y los huéspedes de la guía le escribían a su móvil sin que eso

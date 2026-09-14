@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Guia;
 
+use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Enum\PmsGuiaVisibilidad;
@@ -46,6 +47,33 @@ final readonly class PmsGuiaContexto
     }
 
     /**
+     * Los dos teléfonos del alojamiento, con el nombre y la forma que usa cada sitio.
+     *
+     * Son dos papeles distintos y el nombre lo dice: `whatsapp_numero` lo atiende el sistema y es
+     * el que se publica; `emergencia_numero` lo contesta una persona y es para quien está en la
+     * puerta sin poder entrar. Ver `PmsEstablecimiento` y `docs/Telefonos.md` §5 bis.
+     *
+     * La variante `_url` existe porque un botón de la guía necesita el enlace entero: `wa.me` no
+     * admite espacios ni el `+`, así que el número tal cual no vale, y hacer la limpieza en el
+     * texto del botón era lo que tenía el número escrito a mano dentro del enlace.
+     *
+     * @return array<string, string|null>
+     */
+    private static function telefonos(?PmsEstablecimiento $establecimiento): array
+    {
+        $wa = static fn (?string $numero): ?string => $numero === null || trim($numero) === ''
+            ? null
+            : 'https://wa.me/' . preg_replace('/\D/', '', $numero);
+
+        return [
+            'whatsapp_numero'   => $establecimiento?->getTelefonoPrincipal(),
+            'whatsapp_url'      => $wa($establecimiento?->getTelefonoPrincipal()),
+            'emergencia_numero' => $establecimiento?->getTelefonoEmergencia(),
+            'emergencia_url'    => $wa($establecimiento?->getTelefonoEmergencia()),
+        ];
+    }
+
+    /**
      * Construye el contexto de una estancia. Con $evento a null sale el
      * contexto del catálogo público: sin nombre de huésped, sin fechas y —lo
      * importante— sin ninguna clave sensible cargada, ni siquiera enmascarada.
@@ -55,22 +83,30 @@ final readonly class PmsGuiaContexto
         $establecimiento = $unidad->getEstablecimiento();
         $reserva = $evento?->getReserva();
 
+        // ⚠️ **Los nombres son los MISMOS que en las plantillas** (`PmsMessageDataResolver`), y
+        // manda aquel vocabulario aunque este sistema sea anterior. El motivo no es de gusto: el
+        // nombre de un marcador de plantilla aprobada en Meta **no se puede cambiar** —hacerlo es
+        // crear otra y esperar el bloqueo de 30 días, §18 de `docs/Mensajeria.md`—, así que el
+        // lado que se mueve es éste. Hasta el 14/09/2026 el mismo dato se llamaba distinto en cada
+        // sitio (`host_whatsapp` / `whatsapp_numero`, `booking_ref` / `locator`) y, peor,
+        // `check_in` era la HORA mientras `checkin_date` era la FECHA: dos nombres casi iguales
+        // para cosas distintas, en dos sistemas que el mismo editor usa el mismo día.
         $valores = array_filter([
-            'unit_name'   => $unidad->getNombre(),
-            'hotel_name'  => $establecimiento?->getNombreComercial(),
+            'room_name'     => $unidad->getNombre(),
+            'property_name' => $establecimiento?->getNombreComercial(),
             // El nombre del anfitrión y su WhatsApp ya los pintaba
             // GuiaUnidadView.vue (tarjeta de contacto), pero buildResponse()
             // nunca los llegó a poner en text_fixed: la tarjeta jamás se
             // renderizaba. Se cablean aquí a los datos del establecimiento.
             'host_name'     => $establecimiento?->getNombreComercial(),
-            'host_whatsapp' => $establecimiento?->getTelefonoPrincipal(),
-            'guest_name'  => $reserva?->getNombreCliente(),
-            'booking_ref' => $reserva?->getLocalizador(),
-            'check_in'    => ($evento?->getInicio() ?? $establecimiento?->getHoraCheckIn())?->format('H:i'),
-            'check_out'   => ($evento?->getFin() ?? $establecimiento?->getHoraCheckOut())?->format('H:i'),
-            'start_date'  => $evento?->getInicio()?->format('d/m/Y'),
-            'end_date'    => $evento?->getFin()?->format('d/m/Y'),
-        ], static fn (?string $v): bool => null !== $v && '' !== $v);
+            'guest_name'    => $reserva?->getNombreCliente(),
+            'locator'       => $reserva?->getLocalizador(),
+            // La HORA lo dice el nombre, porque al lado viven las fechas.
+            'hora_checkin'  => ($evento?->getInicio() ?? $establecimiento?->getHoraCheckIn())?->format('H:i'),
+            'hora_checkout' => ($evento?->getFin() ?? $establecimiento?->getHoraCheckOut())?->format('H:i'),
+            'checkin_date'  => $evento?->getInicio()?->format('d/m/Y'),
+            'checkout_date' => $evento?->getFin()?->format('d/m/Y'),
+        ] + self::telefonos($establecimiento), static fn (?string $v): bool => null !== $v && '' !== $v);
 
         // ⚠️ **Los medios van en su propio cajón, con su NIVEL**, no repartidos entre `valores` y
         // `sensibles`: la guía clasifica por cuatro niveles y esos dos cubos sólo distinguen dos.

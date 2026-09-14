@@ -53,15 +53,24 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
      * la guía—, así que con dos alojamientos cada uno tiene el suyo. El de la AGENCIA es otra
      * cosa y vive en `agencia_telefono_emergencia`.
      *
-     * @return array{whatsapp_numero: string, whatsapp_url: string}
+     * @return array{whatsapp_numero: string, whatsapp_url: string, emergencia_numero: string, emergencia_url: string}
      */
     private function whatsappDelAlojamiento(?PmsEstablecimiento $establecimiento): array
     {
-        $numero = trim((string) $establecimiento?->getTelefonoPrincipal());
+        $wa = static fn (string $numero): string => $numero === ''
+            ? ''
+            : 'https://wa.me/' . preg_replace('/\D/', '', $numero);
+
+        $publico = trim((string) $establecimiento?->getTelefonoPrincipal());
+        // El de urgencias sale con el MISMO nombre que en la guía (`PmsGuiaContexto`): es el
+        // mismo dato y el mismo editor escribe en los dos sitios.
+        $emergencia = trim((string) $establecimiento?->getTelefonoEmergencia());
 
         return [
-            'whatsapp_numero' => $numero,
-            'whatsapp_url' => $numero === '' ? '' : 'https://wa.me/' . preg_replace('/\D/', '', $numero),
+            'whatsapp_numero' => $publico,
+            'whatsapp_url' => $wa($publico),
+            'emergencia_numero' => $emergencia,
+            'emergencia_url' => $wa($emergencia),
         ];
     }
 

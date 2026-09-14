@@ -71,16 +71,19 @@ export interface GuiaRedWifi {
  * cuerpo de cada ítem, o directamente no están.
  */
 export interface GuiaContexto {
-    unit_name?: string;
-    hotel_name?: string;
+    room_name?: string;
+    property_name?: string;
     host_name?: string;
-    host_whatsapp?: string;
+    whatsapp_numero?: string;
+    whatsapp_url?: string;
+    emergencia_numero?: string;
+    emergencia_url?: string;
     guest_name?: string;
-    booking_ref?: string;
-    check_in?: string;
-    check_out?: string;
-    start_date?: string;
-    end_date?: string;
+    locator?: string;
+    hora_checkin?: string;
+    hora_checkout?: string;
+    checkin_date?: string;
+    checkout_date?: string;
 }
 
 export interface GuiaUnidadResumen {

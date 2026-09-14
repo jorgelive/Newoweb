@@ -200,10 +200,23 @@ bot. El segundo se llama ahora `telefonoEmergencia`, en el código y en la colum
 `ConsultarCodigosSkill` lo ofrecía como segundo contacto, siendo un móvil personal. Para pagar
 por Yape está el catálogo de cobro; para una urgencia, el de atención.
 
+### Cómo se escriben en un texto
+
+Los dos salen por marcador, **con el mismo nombre en la guía y en las plantillas**:
+
+| Marcador | Qué trae |
+|---|---|
+| `{{ whatsapp_numero }}` / `{{ whatsapp_url }}` | el público, el que atiende el sistema |
+| `{{ emergencia_numero }}` / `{{ emergencia_url }}` | el de urgencias, contesta una persona |
+
+Las variantes `_url` son para los **botones** de la guía: `wa.me` no admite espacios ni el `+`, así
+que el número a secas no vale ahí. Desde el 14/09/2026 los botones también interpolan — ver
+`docs/PmsGuiaHuesped.md` §3 ter.
+
 ### Lo que queda escrito a mano, y por qué
 
-- El botón «Necesito ayuda» de la ficha «Llaves» lleva `https://wa.me/51961281953` en su
-  `metadata`: los botones de la guía **no interpolan variables**, sólo los cuerpos.
+- ~~El botón «Necesito ayuda» llevaba el número dentro del enlace~~: resuelto el 14/09/2026, ahora
+  es `{{ emergencia_url }}`.
 - La descripción de «Horario solicitudes» lista dos números. La copia del **agente** ya se limpió
   en `Version20260827234500`; la que lee el huésped en la app, no. Puede usar
   `{{ host_whatsapp }}`, que sí se interpola.

@@ -110,7 +110,13 @@ final class PmsUnidadCatalogoProvider implements ProviderInterface
                     ->setBloqueado(false)
                     ->setBloqueadoHasta(null)
                     ->setTituloParaCliente($this->interpolador->interpolar($item->getTitulo(), $contexto, $acceso))
-                    ->setContenidoParaCliente($this->interpolador->interpolar($item->getDescripcion(), $contexto, $acceso)),
+                    ->setContenidoParaCliente($this->interpolador->interpolar($item->getDescripcion(), $contexto, $acceso))
+                    // El botón, igual que en la guía: su URL puede llevar marcadores.
+                    ->setUrlBotonParaCliente(
+                        ($cruda = $item->getUrlBotonCruda()) === null || $cruda === ''
+                            ? null
+                            : $this->interpolador->interpolarUno($cruda, $contexto, $acceso)
+                    ),
             ];
         }
 

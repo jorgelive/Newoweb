@@ -78,7 +78,7 @@ const contexto = computed(() => guia.value?.contexto ?? {});
 const secciones = computed<GuiaSeccion[]>(() => guia.value?.secciones ?? []);
 
 const nombrePila = computed(() => (contexto.value.guest_name || '').split(' ')[0]);
-const nombreUnidad = computed(() => contexto.value.unit_name || guia.value?.unidad?.nombre || '');
+const nombreUnidad = computed(() => contexto.value.room_name || guia.value?.unidad?.nombre || '');
 const heroImage = computed(() => thumbUrl(guia.value?.unidad?.imageUrl, 'travel_cliente'));
 
 /* ─────────────────────────────────────────────────────────────
@@ -339,7 +339,7 @@ const avisoAcceso = computed<{ icono: string; titulo: string; texto: string; cla
  * ANFITRIÓN
  * ───────────────────────────────────────────────────────────── */
 const hostName = computed(() => contexto.value.host_name || '');
-const hostPhone = computed(() => contexto.value.host_whatsapp || '');
+const hostPhone = computed(() => contexto.value.whatsapp_numero || '');
 
 const hostInitials = computed(() => {
   const partes = hostName.value.trim().split(/\s+/).filter(Boolean);
@@ -461,7 +461,7 @@ const mensajeError = computed(() => {
             </p>
             <h2 class="text-3xl font-black tracking-tight leading-none drop-shadow-md">{{ nombreUnidad }}</h2>
             <p class="text-white/70 text-[13px] font-medium mt-2 drop-shadow-sm">
-              {{ maestroStore.t('gui_bienvenido_a') || 'Bienvenido a' }} {{ contexto.hotel_name || nombreUnidad }}
+              {{ maestroStore.t('gui_bienvenido_a') || 'Bienvenido a' }} {{ contexto.property_name || nombreUnidad }}
             </p>
           </div>
         </div>
@@ -478,21 +478,21 @@ const mensajeError = computed(() => {
         </div>
 
         <!-- Fechas de la estancia -->
-        <div v-if="contexto.check_in || contexto.check_out"
+        <div v-if="contexto.hora_checkin || contexto.hora_checkout"
              class="mb-5 bg-white border border-slate-200/60 rounded-3xl shadow-sm shadow-slate-900/3 grid grid-cols-2 divide-x divide-slate-100">
-          <div class="px-5 py-4.5" :class="{ 'opacity-40': !contexto.check_in }">
+          <div class="px-5 py-4.5" :class="{ 'opacity-40': !contexto.hora_checkin }">
             <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
               <i class="fas fa-plane-arrival mr-1.5 text-[#E07845]"></i>{{ maestroStore.t('res_checkin') || 'Check-in' }}
             </p>
-            <p class="text-[22px] font-bold text-[#376875] tabular-nums leading-none">{{ contexto.check_in || '—' }}</p>
-            <p v-if="contexto.start_date" class="text-[13px] font-semibold text-slate-500 mt-2">{{ contexto.start_date }}</p>
+            <p class="text-[22px] font-bold text-[#376875] tabular-nums leading-none">{{ contexto.hora_checkin || '—' }}</p>
+            <p v-if="contexto.checkin_date" class="text-[13px] font-semibold text-slate-500 mt-2">{{ contexto.checkin_date }}</p>
           </div>
-          <div class="px-5 py-4.5 text-right" :class="{ 'opacity-40': !contexto.check_out }">
+          <div class="px-5 py-4.5 text-right" :class="{ 'opacity-40': !contexto.hora_checkout }">
             <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
               {{ maestroStore.t('res_checkout') || 'Check-out' }}<i class="fas fa-plane-departure ml-1.5 text-[#E07845]"></i>
             </p>
-            <p class="text-[22px] font-bold text-[#376875] tabular-nums leading-none">{{ contexto.check_out || '—' }}</p>
-            <p v-if="contexto.end_date" class="text-[13px] font-semibold text-slate-500 mt-2">{{ contexto.end_date }}</p>
+            <p class="text-[22px] font-bold text-[#376875] tabular-nums leading-none">{{ contexto.hora_checkout || '—' }}</p>
+            <p v-if="contexto.checkout_date" class="text-[13px] font-semibold text-slate-500 mt-2">{{ contexto.checkout_date }}</p>
           </div>
         </div>
 

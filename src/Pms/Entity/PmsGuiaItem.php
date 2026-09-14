@@ -268,6 +268,19 @@ class PmsGuiaItem
     private array $contenidoParaCliente = [];
 
     /**
+     * La URL del botón ya interpolada, para servirla sin tocar `metadata`.
+     *
+     * ⚠️ **No se escribe en `metadata`**, y ése es el punto: la entidad está gestionada por
+     * Doctrine, así que dejar ahí el valor resuelto lo persistiría en el primer `flush` de la
+     * petición — y el número de una reserva concreta quedaría grabado en la ficha para todos.
+     * Es la misma razón por la que el título y el contenido tienen su copia «para cliente».
+     *
+     * `getUrlBoton()` la prefiere cuando está puesta, así que el JSON sigue llamándose
+     * `urlBoton` y `pax` no se entera. En el panel nunca se rellena: allí se edita lo crudo.
+     */
+    private ?string $urlBotonParaCliente = null;
+
+    /**
      * Momento en que este ítem deja de estar bloqueado, o null si no hay fecha
      * que prometer. Solo se rellena en estado `Pendiente`: es lo que permite
      * pintar "[Disponible el 12/08 a las 15:00]".
@@ -303,7 +316,13 @@ class PmsGuiaItem
     }
 
     #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
-    public function getUrlBoton(): ?string { return $this->metadata['urlBoton'] ?? null; }
+    public function getUrlBoton(): ?string { return $this->urlBotonParaCliente ?? $this->metadata['urlBoton'] ?? null; }
+
+    /** Lo pone el filtro de la guía tras interpolar; ver `$urlBotonParaCliente`. */
+    public function setUrlBotonParaCliente(?string $val): self { $this->urlBotonParaCliente = $val; return $this; }
+
+    /** El valor CRUDO, con sus marcadores sin resolver: lo que se edita en el panel. */
+    public function getUrlBotonCruda(): ?string { return $this->metadata['urlBoton'] ?? null; }
     public function setUrlBoton(?string $val): self {
         if ($this->metadata === null) $this->metadata = [];
         if (empty($val)) unset($this->metadata['urlBoton']);

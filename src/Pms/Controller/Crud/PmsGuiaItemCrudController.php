@@ -488,14 +488,26 @@ class PmsGuiaItemCrudController extends AbstractCrudController
 
                 <strong>Datos — se sustituyen siempre</strong>
                 <div style="columns:2; margin:6px 0 12px;">
-                    <code>{{ unit_name }}</code> nombre de la unidad<br>
-                    <code>{{ hotel_name }}</code> nombre del establecimiento<br>
+                    <code>{{ room_name }}</code> nombre de la unidad<br>
+                    <code>{{ property_name }}</code> nombre del establecimiento<br>
                     <code>{{ host_name }}</code> anfitrión<br>
-                    <code>{{ host_whatsapp }}</code> WhatsApp del anfitrión<br>
                     <code>{{ guest_name }}</code> nombre del huésped<br>
-                    <code>{{ booking_ref }}</code> localizador<br>
-                    <code>{{ check_in }}</code> / <code>{{ check_out }}</code> horas<br>
-                    <code>{{ start_date }}</code> / <code>{{ end_date }}</code> fechas
+                    <code>{{ locator }}</code> localizador<br>
+                    <code>{{ hora_checkin }}</code> / <code>{{ hora_checkout }}</code> horas<br>
+                    <code>{{ checkin_date }}</code> / <code>{{ checkout_date }}</code> fechas
+                </div>
+
+                <strong>Teléfonos — el mismo nombre que en las plantillas</strong>
+                <div style="columns:2; margin:6px 0 12px;">
+                    <code>{{ whatsapp_numero }}</code> el público, lo atiende el sistema<br>
+                    <code>{{ whatsapp_url }}</code> el mismo, como enlace<br>
+                    <code>{{ emergencia_numero }}</code> urgencias, contesta una persona<br>
+                    <code>{{ emergencia_url }}</code> el mismo, como enlace
+                </div>
+                <div class="text-muted" style="margin:-6px 0 12px;">
+                    ⚠️ Los <code>_url</code> son para el campo «URL o Acción» del botón: <code>wa.me</code>
+                    no admite espacios ni el <code>+</code>, así que el número a secas no vale ahí.
+                    Salen del establecimiento, así que si cambia un número cambian todos los textos.
                 </div>
 
                 <strong>Datos protegidos — solo dentro de la ventana</strong>
