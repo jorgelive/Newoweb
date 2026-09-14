@@ -73,6 +73,7 @@ readonly class MessageDispatcher
 
         $queues = [];
         $errors = [];
+        $yaEncolados = 0;
         $channels = $this->resolveChannels($message);
         $runAt = $message->getScheduledAt() ?? new DateTimeImmutable();
 
@@ -82,6 +83,10 @@ readonly class MessageDispatcher
 
                     // 🛡️ BARRERA DE IDEMPOTENCIA
                     if ($enqueuer->isAlreadyEnqueued($message)) {
+                        // Se CUENTA, no sólo se ignora: más abajo distingue «ya estaba encolado»
+                        // de «no se pudo encolar», que acabaron siendo el mismo final y no lo son.
+                        ++$yaEncolados;
+
                         $this->logger->info(sprintf(
                             'Idempotencia: La cola %s para el mensaje %s ya existe en BD/UoW. Ignorando.',
                             $channel->getId(),
@@ -126,6 +131,39 @@ readonly class MessageDispatcher
                 'Mensaje %s sin ningún canal que despachar.',
                 $message->getId()?->toRfc4122() ?? 'N/A'
             ));
+
+            return [];
+        }
+
+        if (empty($queues) && $yaEncolados > 0) {
+            // 🔁 NO ES UN FALLO: ES EL SEGUNDO PASE.
+            //
+            // `dispatch()` se llama DOS veces sobre el mismo mensaje —`prePersist` lo encola y
+            // `preUpdate` vuelve a pedir colas por si apareció un canal nuevo
+            // ({@see \App\Message\EventListener\Queue\MessageEnqueuerEntityListener::fabricarColas})—.
+            // En el segundo, la barrera de idempotencia hace `break` sin crear nada, `$queues`
+            // sale vacío y el mensaje terminaba en `failed`… con sus colas vivas y a punto de
+            // salir. El panel decía una cosa y la cola hacía la otra.
+            //
+            // Y no se quedaba en la etiqueta. Un mensaje `failed` deja de ser el intento vigente
+            // de su regla, así que el motor fabricaba OTRO en la pasada siguiente, con su propia
+            // cola, y otro, y otro. Medido el 14/09/2026 antes de tocar nada:
+            //
+            // | Huésped | Plantilla | Sale el | Colas vivas idénticas |
+            // |---|---|---|---|
+            // | Vanessa (2KRERH) | `recordatorio_llegada` | 04/10 08:00 | **71** por WhatsApp y 71 por Booking |
+            // | Vanessa (2KRERH) | `check_out` | 10/10 12:00 | 71 y 71 |
+            // | Vanessa (2KRERH) | `despedida_booking` | 11/10 11:00 | 71 y 71 |
+            // | Karina (P9Y2XK) | `recordatorio_llegada` | 29/09 08:00 | 37 por WhatsApp |
+            //
+            // Crecían tres por pasada del motor. La prueba de que las colas estaban vivas y el
+            // mensaje mentía: `01A0A0B7F38F71…`, creado a las 11:20 de ese día, `failed`, con sus
+            // dos colas en `pending` para el 4 de octubre.
+            //
+            // ⚠️ Lo que cierra el bucle no es sólo la etiqueta: con el mensaje en `queued`, la
+            // pasada siguiente del motor lo reconoce como suyo y, si la regla ya no aplica, le
+            // cancela las colas en cascada. Marcado `failed` nadie las tocaba nunca.
+            $this->anotarDesenlace($message, Message::STATUS_QUEUED, 'dispatch_partial_errors', $errors);
 
             return [];
         }

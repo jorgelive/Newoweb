@@ -1135,6 +1135,48 @@ webhook y el cron— pueden crear el mismo mensaje del sistema por duplicado. La
 los enqueuers (`isAlreadyEnqueued()`) protege la cola **por mensaje**, no el mensaje en sí.
 Pendiente si alguna vez se ven duplicados en producción.
 
+### 🔥 «Ya estaba encolado» no es «no se pudo encolar» (14/09/2026)
+
+Los duplicados llegaron, y no por concurrencia: por la etiqueta del desenlace.
+
+`MessageDispatcher::dispatch()` corre **dos veces** sobre el mismo mensaje —`prePersist` lo encola
+y `preUpdate` vuelve a pedir colas por si apareció un canal nuevo
+(`MessageEnqueuerEntityListener::fabricarColas()`)—. En el segundo pase la barrera de idempotencia
+hace `break` sin crear nada, así que la lista de colas nuevas sale vacía… y eso caía en la rama de
+fracaso total: el mensaje terminaba en `failed` **con sus dos colas en `pending`** y a punto de
+salir. El panel decía una cosa y la cola hacía la otra.
+
+Y no se quedaba en la etiqueta. Un mensaje `failed` deja de ser el intento vigente de su regla
+—`MessageRuleEngine::cancelPendingQueues()` sólo cancela lo que está en `queued` o `pending`—, así
+que nadie le tocaba las colas nunca y el motor fabricaba otro mensaje en la pasada siguiente, con
+su propia cola. Tres por pasada. Lo que había el día que se midió:
+
+| Huésped | Plantilla | Sale el | Colas vivas idénticas |
+|---|---|---|---|
+| Vanessa (2KRERH) | `recordatorio_llegada` | 04/10 08:00 | **71** por WhatsApp y 71 por Booking |
+| Vanessa (2KRERH) | `check_out` | 10/10 12:00 | 71 y 71 |
+| Vanessa (2KRERH) | `despedida_booking` | 11/10 11:00 | 71 y 71 |
+| Karina (P9Y2XK) | `recordatorio_llegada` | **29/09 08:00** | 37 por WhatsApp |
+
+Sin arreglarlo, el 29 de septiembre a las 8:00 Karina recibía la guía de llegada 37 veces seguidas.
+
+**El arreglo son dos cosas, y la segunda es la que cierra el bucle:** `dispatch()` cuenta los
+canales que la barrera de idempotencia frenó y, si no creó ninguna cola pero alguna ya existía,
+anota `queued` en lugar de `failed`. Con el mensaje en `queued`, la pasada siguiente del motor lo
+reconoce como suyo y —si la regla ya no aplica— le cancela las colas en cascada, que es
+exactamente lo que no pasaba.
+
+La basura ya puesta la barrió `app:msg:colas-duplicadas` (archivado), que conserva el mensaje más
+reciente de cada envío —mismo asunto, misma regla, mismo minuto— y cancela las copias por el
+mismo camino que el motor, nunca con un `UPDATE` paralelo que dejaría la cola viva y el mensaje
+muerto.
+
+⚠️ Queda un ruido conocido y **inofensivo**: el motor sigue creando y cancelando un mensaje por
+pasada para las reservas cuyo hilo alterna entre abierto y cerrado —`ruleAppliesToAgenda()` no
+aplica ninguna regla con la conversación en `closed`, y un mensaje `cancelled` hace que
+`findExistingSystemMessage()` devuelva `null`, que es lo que autoriza el siguiente—. Eso llena la
+tabla de filas `cancelled`, no de envíos: sus colas sí se cancelan.
+
 ### 🔥 Los bloqueos puros no generan chat, los inquiries sí
 
 `PmsReservaMessageContext::isSoloBloqueo()` corta la creación de conversación para bloqueos de
