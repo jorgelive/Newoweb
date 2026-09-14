@@ -132,9 +132,14 @@ final class PmsGuiaArbolFiltro
                 // Hoy no se filtra nada —lo sensible de los ítems bloqueados vive en
                 // placeholders— pero el primer ítem que guarde un secreto en su TEXTO lo
                 // regalaría. El título sí se interpola: hace falta para nombrarlo.
+                // ⚠️ **El botón SÍ se interpola, aunque el cuerpo no.** Su URL viaja igual en el
+                // JSON —el front la pinta si hay etiqueta—, así que dejarla cruda enseñaría un
+                // `{{ emergencia_url }}` literal en el `href`. Y pasa por el mismo juez que el
+                // texto: si algún día apuntara a un dato sensible, se enmascara igual.
                 $items[] = $item
                     ->setTituloParaCliente($this->interpolador->interpolar($item->getTitulo(), $contexto, $acceso))
-                    ->setContenidoParaCliente($this->mensajeDeBloqueo($acceso));
+                    ->setContenidoParaCliente($this->mensajeDeBloqueo($acceso))
+                    ->setUrlBotonParaCliente($this->urlBoton($item, $contexto, $acceso));
             }
         }
 

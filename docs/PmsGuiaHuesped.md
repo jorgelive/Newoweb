@@ -812,6 +812,11 @@ que se edita en el panel.
 Pasa por el mismo juez que el texto (`interpolarUno`), así que un botón que apuntara a un dato
 sensible se comporta como ese dato dentro del cuerpo: no hay una puerta nueva.
 
+⚠️ **También en los ítems BLOQUEADOS**, aunque a ésos el cuerpo se les sustituya entero por el
+mensaje del candado. Su URL viaja igual en el JSON y el front la pinta si hay etiqueta: sin
+interpolarla, el huésped vería un `{{ emergencia_url }}` literal en el enlace — y justo en la
+ficha de las llaves, que es la que está bloqueada hasta 30 h antes de llegar.
+
 ## 4. Flujo de una petición
 
 ```
