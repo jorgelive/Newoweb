@@ -105,11 +105,30 @@ final class MessageColasDuplicadasCommand extends Command
         }
 
         $huerfanas = $this->cancelarColasDeMensajesMuertos($simular);
+        $reetiquetados = 0;
         $filas = [];
         $cancelados = 0;
 
         foreach ($grupos as $grupo) {
             if (count($grupo) < 2) {
+                // 🏷️ SIN COPIAS, PERO CON LA ETIQUETA MENTIROSA.
+                //
+                // El mismo fallo cuando el bucle no llegó a repetirse: un solo mensaje, `failed`,
+                // con su cola viva y a punto de salir. 12 en producción el 14/09/2026, de reservas
+                // de agosto. Se dicen la verdad: la cola está `pending`, luego está `queued`.
+                //
+                // Y no es cosmético — mientras diga `failed` no es el intento vigente de su regla,
+                // así que es el candidato exacto a que el motor fabrique el duplicado siguiente.
+                $unico = $grupo[0];
+
+                if ($unico->getStatus() === Message::STATUS_FAILED) {
+                    if (!$simular) {
+                        $unico->setStatus(Message::STATUS_QUEUED);
+                    }
+
+                    ++$reetiquetados;
+                }
+
                 continue;
             }
 
@@ -147,10 +166,14 @@ final class MessageColasDuplicadasCommand extends Command
             $io->writeln(sprintf(' %d colas vivas colgadas de un mensaje cancelado.', $huerfanas));
         }
 
+        if ($reetiquetados > 0) {
+            $io->writeln(sprintf(' %d mensajes «fallidos» con la cola viva, que en realidad están encolados.', $reetiquetados));
+        }
+
         if ($filas === []) {
-            if ($huerfanas > 0 && !$simular) {
+            if (($huerfanas > 0 || $reetiquetados > 0) && !$simular) {
                 $this->em->flush();
-                $io->success(sprintf('%d colas huérfanas canceladas.', $huerfanas));
+                $io->success(sprintf('%d colas huérfanas canceladas y %d mensajes reetiquetados.', $huerfanas, $reetiquetados));
 
                 return Command::SUCCESS;
             }
@@ -169,7 +192,7 @@ final class MessageColasDuplicadasCommand extends Command
         }
 
         $this->em->flush();
-        $io->success(sprintf('%d mensajes cancelados, con sus colas.', $cancelados));
+        $io->success(sprintf('%d mensajes cancelados, con sus colas; %d reetiquetados.', $cancelados, $reetiquetados));
 
         return Command::SUCCESS;
     }

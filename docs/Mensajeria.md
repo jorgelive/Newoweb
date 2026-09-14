@@ -1178,6 +1178,11 @@ colas ya en memoria; un comando las trae de una consulta y sus colecciones está
 cuando el `preUpdate` corre en mitad del flush—. **Al cancelar mensajes fuera del motor, cancela
 también sus colas explícitamente.**
 
+El mismo comando arregla el caso sin copias: un mensaje futuro en `failed` con la cola viva pasa a
+`queued`, que es lo que de verdad es —12 en producción, de reservas de agosto, cuyo bucle no llegó
+a repetirse—. No es cosmético: mientras diga `failed` no es el intento vigente de su regla, así que
+es el candidato exacto a que el motor fabrique el duplicado siguiente.
+
 ⚠️ Queda un ruido conocido y **inofensivo**: el motor sigue creando y cancelando un mensaje por
 pasada para las reservas cuyo hilo alterna entre abierto y cerrado —`ruleAppliesToAgenda()` no
 aplica ninguna regla con la conversación en `closed`, y un mensaje `cancelled` hace que
