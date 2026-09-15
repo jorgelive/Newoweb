@@ -1386,19 +1386,49 @@ const adelantoVista = computed(() => {
            vuelos sí se imprimen, y ponerlo fuera se los habría llevado por delante. -->
       <div v-if="store.miIdentidad"
            class="max-w-3xl mx-auto mb-8 bg-white rounded-[2rem] shadow-md shadow-slate-200/40 border border-slate-100 p-5">
-        <div class="flex items-center gap-2 mb-3">
-          <i class="fas fa-id-card text-[#376875] text-sm"></i>
-          <p class="text-[11px] font-black uppercase tracking-[0.15em] text-[#376875]/70">
-            {{ maestroStore.t('cot_lo_tuyo') || 'Lo tuyo' }}
-          </p>
-          <span class="text-xs font-bold text-slate-400 truncate">· {{ store.miIdentidad.nombre }}</span>
+        <!-- ⚠️ El nombre MANDA la cabecera, y antes era un rastro gris detrás del rótulo.
+             Esta tarjeta existe para decir de quién es todo lo que hay debajo, y en un móvil
+             compartido —que es donde se abre— eso tiene que verse de un vistazo, no leerse.
+             «Lo tuyo» pasa a ser un antetítulo pequeño: dice la sección, no la persona. -->
+        <!-- ⚠️ `flex-wrap` + un ancho mínimo para la columna del nombre: en un móvil, «No soy yo»
+             le robaba el sitio y el nombre salía cortado —«Santi…»—, que es exactamente lo
+             contrario de lo que esta cabecera viene a hacer. Cuando no caben los dos, el botón se
+             va a la línea de abajo y el nombre se queda entero. -->
+        <div class="flex flex-wrap items-start gap-3 mb-3">
+          <span class="w-10 h-10 rounded-xl bg-[#376875]/10 text-[#376875] flex items-center justify-center shrink-0">
+            <i class="fas fa-id-card"></i>
+          </span>
+
+          <div class="flex-1 min-w-[11rem]">
+            <p class="text-[10px] font-black uppercase tracking-[0.15em] text-[#376875]/60">
+              {{ maestroStore.t('cot_lo_tuyo') || 'Lo tuyo' }}
+            </p>
+            <p class="text-base font-black text-gray-900 leading-tight break-words">
+              {{ store.miIdentidad.nombre }}
+            </p>
+
+            <!-- 🔥 **Sus números, para que COMPRUEBE que son los suyos.** Un dígito mal tecleado en
+                 el padrón no da ningún error: da un embarque denegado en el mostrador, y para
+                 entonces ya no hay nada que hacer. La única persona que puede cazarlo es la que
+                 tiene el documento en la mano.
+                 ⚠️ En monoespaciado y con `tracking`: son números que se comparan carácter a
+                 carácter contra un papel, no texto que se lee de corrido. -->
+            <p v-if="store.miIdentidad.identificaciones?.length"
+               class="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+              <span v-for="doc in store.miIdentidad.identificaciones" :key="doc.tipo"
+                    class="text-[11px] leading-snug">
+                <span class="font-bold text-slate-400">{{ doc.etiqueta }}</span>
+                <span class="ml-1 font-mono font-black text-slate-600 tracking-wide">{{ doc.numero }}</span>
+              </span>
+            </p>
+          </div>
 
           <!-- ⚠️ **«No soy yo», no «Cerrar sesión».** Este enlace se abre en el móvil de la
                familia y en el ordenador del colegio: quien pulsa aquí casi nunca es quien se
                identificó, sino el siguiente, que ve un nombre ajeno y necesita quitarlo. Dicho
                como una acción de sesión, ni se le ocurre que sea eso. -->
           <button type="button" @click="salirDeIdentidad" :disabled="saliendo"
-                  class="ml-auto shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-[#376875] hover:border-[#376875]/30 transition-colors disabled:opacity-50">
+                  class="shrink-0 ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-[#376875] hover:border-[#376875]/30 transition-colors disabled:opacity-50">
             <i class="fas" :class="saliendo ? 'fa-spinner fa-spin' : 'fa-right-from-bracket'"></i>
             {{ maestroStore.t('cot_no_soy_yo') || 'No soy yo' }}
           </button>

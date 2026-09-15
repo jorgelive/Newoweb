@@ -1284,6 +1284,36 @@ interruptor por expediente), no quitar el tipo.
 `DOCUMENTOS_PEDIDOS` en `pax/.../MisDocumentos.vue`. Y **regenerar `dominio/api.d.ts`**, porque el
 enum viaja en el esquema.
 
+#### La cabecera nombra a la persona y enseña sus números (14/09/2026)
+
+El nombre iba de rastro gris detrás del rótulo —«LO TUYO · Santiago Ariel Gomez Acuña»— cuando es
+lo que da sentido a toda la tarjeta. Ahora «Lo tuyo» es un antetítulo pequeño y el **nombre manda**,
+con los números de sus documentos debajo.
+
+🔥 **Los números están para que los COMPRUEBE.** Un dígito mal tecleado en el padrón no da ningún
+error en ninguna parte: da un embarque denegado en el mostrador, y para entonces no hay nada que
+hacer. La única persona capaz de cazarlo es la que tiene el documento en la mano, y hasta ahora no
+veía contra qué cotejar.
+
+Los trae `miIdentidad.identificaciones` (`CotizacionFilePublicProvider::identificacionesDe()`):
+
+- **Sólo los de viaje** — `DocumentoTipoEnum::esDocumentoDeViaje()`, método nuevo. El RUC vive en la
+  misma tabla porque lo pide una factura, pero es dato fiscal de empresa y aquí sería ruido.
+- **Pasaporte primero**, no por orden de tabla: en un viaje internacional es el documento con el que
+  se cruza la frontera, así que es el que se viene a comprobar.
+- **En monoespaciado**: son números que se comparan carácter a carácter contra un papel, no texto
+  que se lee de corrido.
+
+⚠️ **Sigue sin ser el padrón.** Salen los números de quien ya probó ser esa persona con su documento
+y su fecha de nacimiento; los compañeros de subgrupo siguen viajando sólo con nombre y rol. Pero
+conviene tenerlo presente: esta pantalla se abre en móviles compartidos —por eso existe «No soy
+yo»—, así que ahora una sesión que se queda abierta enseña también los números, no sólo el nombre.
+
+⚠️ **El nombre se PARTE, no se corta.** Con `truncate` y a lo ancho de un móvil, «No soy yo» le
+robaba el sitio y salía «Santi…» — lo contrario de lo que esta cabecera viene a hacer. La cabecera
+lleva `flex-wrap` y la columna un ancho mínimo: cuando no caben los dos, el botón baja de línea y el
+nombre se queda entero. Comprobado a 375 px.
+
 #### «Lo tuyo»: una tarjeta, encabezada por la persona (14/09/2026)
 
 La app del huésped apilaba **tres tarjetas hermanas** —«Tus documentos», «Tus tarjetas de
@@ -1390,6 +1420,7 @@ el orden con sentido lo pone quien pinta, que ya tiene el índice de nombres mon
 | Cambiar el orden de las tarjetas de «Lo tuyo» | `CotizacionFilePublicProvider` | `ordenarSubgrupos()` |
 | Añadir o quitar una sección de «Lo tuyo» | `pax/.../PaxCotizacionGuiaView.vue` | un `<PanelPlegable>` más en la columna |
 | Cambiar el aspecto de los tres acordeones | `pax/.../PanelPlegable.vue` | la cabecera |
+| Cambiar qué documentos de identidad se le enseñan | `CotizacionFilePublicProvider` | `identificacionesDe()` + `DocumentoTipoEnum::esDocumentoDeViaje()` |
 | Cambiar qué documentos se le piden al pasajero | `pax/.../MisDocumentos.vue` | `DOCUMENTOS_PEDIDOS` (lo lee también la vista) |
 | Añadir un tipo de adjunto | `ArchivoTipoEnum` + los dos espejos TS + `npm run gen:api` | todos los `match` del enum |
 | Cambiar el orden de la bóveda | `util/.../FileDetalle.vue` | `ordenarBoveda()` |

@@ -650,18 +650,44 @@ class CotizacionFile
      * Un expediente individual, un tour de catálogo, o alguien que no se ha identificado: `null`.
      * Sólo se rellena cuando hay identidad **y** el expediente la exige.
      *
+     * ── Sus números de documento (14/09/2026) ───────────────────────────────
+     * `identificaciones` trae el tipo y el número de SUS documentos de viaje, para que compruebe
+     * que con los que va a volar son los suyos. Un dígito mal tecleado no falla en ningún sitio:
+     * falla en el mostrador. Sigue sin ser el padrón — los compañeros de subgrupo sólo traen
+     * nombre y rol, ni documento ni fecha.
+     *
      * ── Con quién comparte cada subgrupo (04/09/2026) ───────────────────────
      * Cada subgrupo trae además `miembros`: los nombres de quienes están en **ese** subgrupo suyo
      * —su compañero de habitación, los de su PNR—. Sigue sin ser el padrón: son SUS grupos, y sólo
      * el nombre. Ni documento, ni fecha, ni el `codigo` del vecino, que es el localizador ajeno.
      *
-     * @var array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null
+     * @var array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null
      */
     #[ApiProperty(openapiContext: [
         'type' => 'object',
         'nullable' => true,
         'properties' => [
             'nombre' => ['type' => 'string'],
+            // 🔥 **Sus números de documento, para que COMPRUEBE que son los suyos.** Un dígito
+            // mal tecleado en el padrón no da ningún error: da un embarque denegado en el
+            // mostrador. La única persona que puede detectarlo es la que tiene el documento en la
+            // mano, y no veía contra qué cotejar.
+            //
+            // ⚠️ Sólo los de VIAJE: el RUC vive en la misma tabla por las facturas, pero es dato
+            // fiscal y aquí no pinta nada. Y sólo los SUYOS: los compañeros de subgrupo siguen
+            // viajando sólo con el nombre.
+            'identificaciones' => [
+                'type' => 'array',
+                'items' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'tipo' => ['type' => 'string'],
+                        'etiqueta' => ['type' => 'string'],
+                        'numero' => ['type' => 'string'],
+                    ],
+                    'required' => ['tipo', 'etiqueta', 'numero'],
+                ],
+            ],
             'subgrupos' => [
                 'type' => 'array',
                 'items' => [
@@ -742,7 +768,7 @@ class CotizacionFile
             // vuelve ni a su dueño. Lo llena `CotizacionFilePublicProvider::tiposYaEnviados()`.
             'documentosEnviados' => ['type' => 'array', 'items' => ['type' => 'string']],
         ],
-        'required' => ['nombre', 'subgrupos', 'documentos', 'documentosEnviados'],
+        'required' => ['nombre', 'identificaciones', 'subgrupos', 'documentos', 'documentosEnviados'],
     ])]
     #[Groups(['pax_file:read'])]
     private ?array $miIdentidad = null;
@@ -756,7 +782,7 @@ class CotizacionFile
     }
 
     /**
-     * @param array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null $miIdentidad
+     * @param array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null $miIdentidad
      */
     public function setMiIdentidad(?array $miIdentidad): self
     {

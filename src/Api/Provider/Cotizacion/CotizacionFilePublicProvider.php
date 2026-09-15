@@ -10,6 +10,7 @@ use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Cotizacion\Enum\GrupoTipoEnum;
+use App\Enum\DocumentoTipoEnum;
 use App\Cotizacion\Entity\CotizacionFileGrupo;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use Doctrine\DBAL\ArrayParameterType;
@@ -379,6 +380,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
 
         $file->setMiIdentidad([
             'nombre' => trim($pasajero->getNombre() . ' ' . $pasajero->getApellido()),
+            'identificaciones' => $this->identificacionesDe($pasajero),
             'subgrupos' => $subgrupos,
             'documentos' => $this->documentosDe($file, $pasajero),
             'documentosEnviados' => $this->tiposYaEnviados($file, $pasajero),
@@ -529,6 +531,56 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         usort($suyos, static fn (array $a, array $b): int => ($a['fecha'] ?? '') <=> ($b['fecha'] ?? ''));
 
         return $suyos;
+    }
+
+    /**
+     * Sus documentos de identidad: qué son y con qué número.
+     *
+     * 🔥 **Para que compruebe que el número con el que va a volar es el suyo.** Un dígito mal
+     * tecleado en el padrón no da ningún error: da un embarque denegado en el mostrador, y para
+     * entonces ya no hay nada que hacer. La única persona que puede detectarlo es la que tiene el
+     * documento en la mano, y hasta ahora no veía el número contra el que cotejarlo.
+     *
+     * ⚠️ **Sólo los de VIAJE** ({@see DocumentoTipoEnum::esDocumentoDeViaje()}): el RUC vive en la
+     * misma tabla porque lo pide una factura, pero es dato fiscal de empresa y aquí no pinta nada.
+     *
+     * ⚠️ **El pasaporte primero**, y no por orden de tabla: en un viaje internacional es el
+     * documento con el que se cruza la frontera, así que es el que se viene a comprobar. El DNI va
+     * después porque es el de respaldo.
+     *
+     * ⚠️ Sale sólo de {@see IdentidadDelPasajero::pasajeroIdentificado()}, o sea de quien ya probó
+     * ser esta persona con su documento y su fecha de nacimiento. Aun así son SUS números y de
+     * nadie más: los compañeros de subgrupo siguen viajando sólo con el nombre.
+     *
+     * @return list<array{tipo: string, etiqueta: string, numero: string}>
+     */
+    private function identificacionesDe(CotizacionFilepasajero $pasajero): array
+    {
+        $peso = static fn (DocumentoTipoEnum $t): int => match ($t) {
+            DocumentoTipoEnum::PASAPORTE => 0,
+            DocumentoTipoEnum::DNI => 1,
+            default => 2,
+        };
+
+        $suyas = [];
+
+        foreach ($pasajero->getIdentificaciones() as $identificacion) {
+            $tipo = $identificacion->getTipo();
+            $numero = trim((string) $identificacion->getNumero());
+
+            if ($tipo === null || !$tipo->esDocumentoDeViaje() || $numero === '') {
+                continue;
+            }
+
+            $suyas[] = ['tipo' => $tipo->value, 'etiqueta' => $tipo->getLabel(), 'numero' => $numero, 'peso' => $peso($tipo)];
+        }
+
+        usort($suyas, static fn (array $a, array $b): int => [$a['peso'], $a['etiqueta']] <=> [$b['peso'], $b['etiqueta']]);
+
+        return array_map(
+            static fn (array $x): array => ['tipo' => $x['tipo'], 'etiqueta' => $x['etiqueta'], 'numero' => $x['numero']],
+            $suyas,
+        );
     }
 
     /**
