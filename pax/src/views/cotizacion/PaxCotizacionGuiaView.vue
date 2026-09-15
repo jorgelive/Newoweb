@@ -1577,30 +1577,30 @@ const adelantoVista = computed(() => {
                      ni desde dónde** — que es lo que se busca la noche antes.
                      Y el itinerario del viaje no vale aquí: el vuelo es de SU subgrupo, no del grupo
                      entero. Por eso va en «Lo tuyo». -->
-                <div v-if="sg.vuelos?.length" class="mt-2 pt-2 border-t border-slate-200/70">
-                  <!-- ⚠️ La etiqueta va UNA vez encima de la lista, no en cada fila. Repetir
-                       «Número de vuelo:» en los cuatro tramos de un Copa se come el ancho del
-                       móvil y empuja la ruta y las horas a una segunda línea cada una — y lo que
-                       se viene a leer aquí es el horario, no el rótulo. Encima funciona como
-                       cabecera de columna, porque el número es lo primero de cada fila. -->
-                  <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                    {{ sg.vuelos.length > 1
-                      ? (maestroStore.t('cot_numeros_vuelo') || 'Números de vuelo')
-                      : (maestroStore.t('cot_numero_vuelo') || 'Número de vuelo') }}
-                  </p>
-                  <p v-for="(v, k) in sg.vuelos" :key="k"
-                     class="flex items-baseline gap-1.5 text-[11px] leading-snug flex-wrap mt-1 first:mt-0">
-                    <span class="font-mono font-black text-slate-600">{{ v.numero }}</span>
-                    <span class="text-slate-400">{{ fechaDeVuelo(v.salida) }}</span>
-                    <span class="font-black text-slate-700">{{ horaDeVuelo(v.salida) }}</span>
-                    <span class="font-bold text-slate-500">{{ v.origen }} → {{ v.destino }}</span>
-                    <span class="font-black text-slate-700">{{ horaDeVuelo(v.llegada) }}</span>
-                    <!-- ⚠️ El «+1 día» no es un adorno: un vuelo que sale a las 20:22 y llega a las
-                         00:30 aterriza al día SIGUIENTE, y quien lea sólo las horas hará las cuentas
-                         mal — para el traslado, para el hotel, para avisar a quien le recoge. -->
-                    <span v-if="cruzaMedianoche(v.salida, v.llegada)"
-                          class="font-black text-[#E07845]">+1 {{ maestroStore.t('cot_dia') || 'día' }}</span>
-                  </p>
+                <div v-if="sg.vuelos?.length" class="mt-2 pt-2 border-t border-slate-200/70 space-y-2">
+                  <!-- ⚠️ **La etiqueta va pegada AL NÚMERO, no encima de la fila.** Estuvo de
+                       cabecera sobre la lista y etiquetaba de más: debajo no hay sólo números, hay
+                       fecha, horas y ruta, así que «Números de vuelo» acababa nombrando la línea
+                       entera. El número de vuelo es sólo el `JA7018`.
+                       El horario baja a su propia línea y va indentado: así se lee como lo que es
+                       —el detalle de ESE vuelo— y no como otro dato de la misma altura. -->
+                  <div v-for="(v, k) in sg.vuelos" :key="k">
+                    <p class="text-[11px] leading-snug">
+                      <span class="font-bold text-slate-400">{{ maestroStore.t('cot_numero_vuelo') || 'Número de vuelo' }}:</span>
+                      <span class="ml-1 font-mono font-black text-slate-700 tracking-wide">{{ v.numero }}</span>
+                    </p>
+                    <p class="pl-3 mt-0.5 flex items-baseline gap-1.5 text-[11px] leading-snug flex-wrap">
+                      <span class="text-slate-400">{{ fechaDeVuelo(v.salida) }}</span>
+                      <span class="font-black text-slate-700">{{ horaDeVuelo(v.salida) }}</span>
+                      <span class="font-bold text-slate-500">{{ v.origen }} → {{ v.destino }}</span>
+                      <span class="font-black text-slate-700">{{ horaDeVuelo(v.llegada) }}</span>
+                      <!-- ⚠️ El «+1 día» no es un adorno: un vuelo que sale a las 20:22 y llega a
+                           las 00:30 aterriza al día SIGUIENTE, y quien lea sólo las horas hará las
+                           cuentas mal — para el traslado, para el hotel, para quien le recoge. -->
+                      <span v-if="cruzaMedianoche(v.salida, v.llegada)"
+                            class="font-black text-[#E07845]">+1 {{ maestroStore.t('cot_dia') || 'día' }}</span>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

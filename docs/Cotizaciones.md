@@ -1291,13 +1291,21 @@ seis letras sin etiqueta no significa nada para quien viaja: se lee como un iden
 nuestro, cuando es **justo lo que la aerolínea le pide por teléfono** y lo que necesita para entrar
 a su reserva en la web. Ahora llevan «Código de reserva (PNR)» y «Número(s) de vuelo».
 
-⚠️ **La etiqueta de los vuelos va UNA vez encima de la lista, no en cada fila.** Repetir «Número de
-vuelo:» en los cuatro tramos de un Copa se come el ancho del móvil y empuja la ruta y las horas a
-una segunda línea cada una — y lo que se viene a leer aquí es el horario, no el rótulo. Encima
-funciona como cabecera de columna, porque el número es lo primero de cada fila.
+⚠️ 🔥 **La etiqueta del vuelo va pegada AL NÚMERO, no encima de la fila.** Estuvo un rato de
+cabecera sobre la lista y **etiquetaba de más**: debajo no hay sólo números, hay fecha, horas y
+ruta, así que «Números de vuelo» acababa nombrando la línea entera. El número de vuelo es sólo el
+`JA7018`. Queda así:
 
-⚠️ Singular y plural son **dos claves**, no una con un contador: hay idiomas de los siete en los que
-cambia la frase entera, no sólo la `s`.
+```
+Número de vuelo: JA7018
+    17 sept  07:15  CUZ → LIM  08:55
+```
+
+El horario baja a su propia línea y va **indentado**: se lee como el detalle de ESE vuelo y no como
+otro dato de la misma altura. Con los cuatro tramos de un Copa sigue cabiendo en un móvil.
+
+⚠️ Por eso `cot_numeros_vuelo` (el plural) quedó **sembrado y sin usar**: venía de la versión con
+cabecera. Se deja en la tabla —está traducido y no estorba— por si vuelve a hacer falta.
 
 🔥 **Y al ir a sembrarlas apareció una deuda propia.** Comparando las claves que usa la vista contra
 `pax_ui_i18n` salieron **tres que se escribieron el mismo día de los acordeones y nunca se
