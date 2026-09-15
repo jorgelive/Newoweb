@@ -88,8 +88,21 @@ use Symfony\Component\Validator\Constraints as Assert;
             security: "is_granted('PUBLIC_ACCESS')",
             provider: CotizacionFilePublicProvider::class,
         ),
+        // 🔥 **`normalizationContext` EXPLÍCITO, y no es cosmética.** Sin él, API Platform
+        // serializa la respuesta **sin grupos**: el objeto entero con sus relaciones, y en un
+        // expediente con vuelos eso es `File → vuelos → grupos → vuelos → …`, que muere con
+        // `CircularReferenceException` y devuelve **500 al guardar**. La escritura sí funcionaba —
+        // el dato quedaba grabado— y aun así el operador veía «Internal Server Error» y daba por
+        // hecho que no se había guardado.
+        //
+        // ⚠️ Estuvo así desde siempre y sólo mordía en expedientes con vuelos, que son los
+        // grandes: los de prueba no tienen y por eso pasó desapercibido.
+        //
+        // Se devuelve la forma del LISTADO porque es donde acaba la respuesta: `createFile()` la
+        // mete en `files` y `updateFile()` la fusiona ahí. Quien necesita el detalle recarga.
         new Post(
             denormalizationContext: ['groups' => ['file:write']],
+            normalizationContext: ['groups' => ['file:read', 'timestamp:read']],
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear expedientes.'
         ),
@@ -112,8 +125,11 @@ use Symfony\Component\Validator\Constraints as Assert;
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar expedientes.'
         ),
+        // Mismo motivo que el `Post` de arriba: sin `normalizationContext` la respuesta sale sin
+        // grupos y revienta por referencia circular en cuanto el expediente tiene vuelos.
         new Patch(
             denormalizationContext: ['groups' => ['file:write']],
+            normalizationContext: ['groups' => ['file:read', 'timestamp:read']],
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para actualizar parcialmente expedientes.'
         ),

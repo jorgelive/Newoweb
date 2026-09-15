@@ -1229,6 +1229,37 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### 🔥 Guardar un expediente con vuelos daba 500 — y el dato SÍ se guardaba (15/09/2026)
+
+Salió al estrenar el selector de «Qué se pide», pero **no era del selector**: lo arrastraba
+`CotizacionFile` desde siempre.
+
+```php
+new Patch(
+    denormalizationContext: ['groups' => ['file:write']],   // ← sólo la ENTRADA
+    security: …,
+),
+```
+
+Sin `normalizationContext` —y sin uno por defecto en el recurso— API Platform serializa la
+respuesta **sin grupos**: el objeto entero con todas sus relaciones. En un expediente con vuelos eso
+es `File → vuelos → grupos → vuelos → …`, y muere con `CircularReferenceException`.
+
+⚠️ **Lo peor no es el 500: es que la escritura ya había ocurrido.** El PATCH graba y *después*
+serializa la respuesta, así que el dato quedaba guardado y el operador veía «Internal Server Error»
+y daba por hecho que no. Un fallo que miente sobre lo que hizo es peor que uno que falla entero.
+
+⚠️ **Y por qué no salió antes:** sólo muerde en expedientes **con vuelos**, que son los grandes. Los
+de prueba no tienen, y `cambiarModo()` —que usa el mismo `updateFile()`— se probaba en ellos.
+
+**El arreglo** es declarar la salida en `Post` y `Patch`, con la forma del **listado**
+(`file:read`), que es donde acaba la respuesta: `createFile()` la mete en `files` y `updateFile()`
+la fusiona ahí. Quien necesita el detalle recarga con el `Get`.
+
+**La regla:** una operación de escritura que devuelve el recurso necesita `normalizationContext`
+propio. Sin él no es que devuelva «todo»: es que devuelve **el grafo**, y basta un ciclo en
+cualquier relación para tumbarla.
+
 #### Qué documentos se piden es CONFIGURABLE por expediente (15/09/2026)
 
 La lista vivía escrita en el front: los mismos tres para todos. Aguantó mientras fueron pasaporte y
@@ -1269,6 +1300,41 @@ fuera solo, porque se filtra el catálogo en vez de recorrer lo que manda el ser
 Cubierto por `tests/Cotizacion/Entity/DocumentosPedidosTest.php`, incluido el test que **ata el
 catálogo a `loSubeElPasajero()`**: si alguien añade un tipo subible y se olvida de la otra lista, el
 selector no lo ofrecería y nadie se enteraría.
+
+##### 🔥 `?? []` sobre un campo NUEVO le borró el panel a quien ya tenía la app abierta
+
+Salió a las horas de desplegar: el pasajero pulsaba «Cambiar», cancelaba el selector de archivos, y
+**el panel de documentos desaparecía** y decía que no tenía que hacer nada más.
+
+La vista leía así lo que el expediente pide:
+
+```ts
+const documentosQuePide = computed(() => store.miIdentidad?.documentosPedidos ?? []);
+```
+
+Ese `?? []` junta **dos cosas que no son la misma**:
+
+| Valor | Significa |
+|---|---|
+| `undefined` | esta respuesta **no me lo dijo** |
+| `[]` | el servidor dice **«no se le pide nada»** |
+
+Y como el panel lleva `v-if="documentosQuePide.length"`, los dos lo borran.
+
+⚠️ **La clave es que el store de `pax` persiste `detalle` en `localStorage`.** Al desplegar un campo
+nuevo, hay gente navegando con una respuesta guardada de ANTES que no lo trae: para ellos el campo
+llega `undefined`, y con el `?? []` se convertía en «no se le pide nada».
+
+🔥 **Y esto no se ve desplegando**, que es lo que lo hace peligroso: quien despliega recarga y trae
+datos frescos. Lo sufre justo quien tenía la app abierta de antes — o sea, todos menos tú.
+
+**La regla:** al añadir un campo a una respuesta que se persiste, `undefined` y el vacío tienen que
+resolverse por separado si el vacío significa algo. Aquí lo hace `pedidosEfectivos()`, que cae en
+`PEDIDOS_POR_DEFECTO` —espejo del relleno de la migración— sólo cuando el campo **falta**, y respeta
+el `[]` cuando viene de verdad. Por eso en esa vista ya no hay ningún `?? []` sobre ese campo.
+
+Los demás campos de `miIdentidad` sí pueden llevar `?? []`: existían antes, así que ninguna
+respuesta guardada se queda sin ellos.
 
 #### El E-Ticket dominicano, cuarto documento que pide la app (14/09/2026)
 

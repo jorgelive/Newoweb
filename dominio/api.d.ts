@@ -12725,12 +12725,9 @@ export interface components {
             readonly filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-pax_file.read_pax_cotizacion.read"][];
             readonly exigeIdentificacion?: boolean;
         };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         CotizacionFileGrupo: {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            file?: string;
+            file?: components["schemas"]["CotizacionFile"];
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /**
@@ -12742,29 +12739,19 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            readonly vuelos?: components["schemas"]["CotizacionVuelo"][];
             /**
              * @description ¿La reserva está emitida, o pagada y esperando billete?
              * @default true
              */
             emitido: boolean;
             detalle?: string | null;
-            miembros?: components["schemas"]["CotizacionPasajeroGrupo"][];
             /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
             notas?: string[];
-            /** @description Los vuelos de este subgrupo, en corto. Lo rellena `CotizacionFileGrupoCollectionProvider`. */
-            vuelosResumen?: {
-                numero?: string | null;
-                salida?: string | null;
-                llegada?: string | null;
-                origen?: string | null;
-                destino?: string | null;
-            }[];
             id?: string;
             /** Format: date-time */
-            createdAt?: string;
+            readonly createdAt?: string;
             /** Format: date-time */
-            updatedAt?: string | null;
+            readonly updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
@@ -40864,10 +40851,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld"];
-                    "application/json": components["schemas"]["CotizacionFile"];
-                    "text/html": components["schemas"]["CotizacionFile.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld-file.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionFile-file.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionFile.html-file.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart-file.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */
@@ -41086,10 +41073,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld"];
-                    "application/json": components["schemas"]["CotizacionFile"];
-                    "text/html": components["schemas"]["CotizacionFile.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld-file.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionFile-file.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionFile.html-file.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart-file.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */
