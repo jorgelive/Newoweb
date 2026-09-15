@@ -5140,21 +5140,52 @@ const eliminarDocumento = async (iri?: string) => {
             <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Vuelos</p>
 
             <div v-for="v in vuelosDe(paxEnFoco)" :key="v.id" class="mb-2 last:mb-0">
-              <button type="button" @click="alternarPnr(String(v.clave))"
-                      class="w-full text-left flex items-center gap-2 py-1 rounded-lg hover:bg-slate-50 active:bg-slate-100">
-                <i class="fas text-[10px] text-slate-400 w-3"
-                   :class="pnrsAbiertos.has(String(v.clave)) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                <span class="text-sm min-w-0 flex flex-wrap items-baseline gap-x-1.5">
-                  <span class="font-bold text-sky-600">{{ v.tramo }}</span>
-                  <span class="text-slate-700 font-bold">{{ v.nombre }}</span>
-                  <span class="text-slate-400 font-mono">· {{ v.clave }}</span>
-                </span>
+              <!-- ⚠️ **El PNR va FUERA del botón que despliega.** Estaba dentro, y ahí no se puede
+                   ni seleccionar: el navegador se queda con el clic para el botón, así que
+                   arrastrar sobre el código lo único que hacía era plegar y desplegar. Un
+                   localizador se dicta por teléfono y se teclea en la web de la aerolínea — es de
+                   los datos que MÁS se copian de esta ficha, y era el único sin forma de sacarlo.
+
+                   Y los botones no se anidan: el de copiar no podía vivir dentro del de plegar
+                   aunque quisiéramos. Por eso la fila es ahora un contenedor con dos controles. -->
+              <div class="flex items-center gap-2 py-1 rounded-lg hover:bg-slate-50">
+                <button type="button" @click="alternarPnr(String(v.clave))"
+                        class="min-w-0 text-left flex items-center gap-2">
+                  <i class="fas text-[10px] text-slate-400 w-3"
+                     :class="pnrsAbiertos.has(String(v.clave)) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                  <span class="text-sm min-w-0 flex flex-wrap items-baseline gap-x-1.5">
+                    <span class="font-bold text-sky-600">{{ v.tramo }}</span>
+                    <span class="text-slate-700 font-bold">{{ v.nombre }}</span>
+                  </span>
+                </button>
+
+                <!-- El localizador, FUERA del botón y con `select-all`: un solo clic lo selecciona
+                     entero, que es como se copia cuando el portapapeles no está disponible —sin
+                     HTTPS el `navigator.clipboard` no existe—. Dentro del botón no se podía ni
+                     seleccionar: el clic se lo quedaba el plegado. -->
+                <span class="text-slate-400 font-mono text-sm select-all cursor-text">{{ v.clave }}</span>
+
                 <!-- Pagado no es emitido, y eso se ve sin abrir: es lo que hay que perseguir. -->
                 <span v-if="!v.emitido"
                       class="ml-auto shrink-0 text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5">
                   sin emitir
                 </span>
-              </button>
+
+                <!-- ⚠️ Un solo `:class`. Con dos en el mismo elemento el segundo gana en silencio y
+                     el primero desaparece — no es un error de compilación, es un atributo que deja
+                     de existir. -->
+                <button type="button" @click="copiar(v.clave, `pnr-${v.clave}`)"
+                        :title="copiado === `pnr-${v.clave}` ? 'Copiado' : 'Copiar el localizador'"
+                        class="shrink-0 w-7 h-7 rounded-lg border text-xs transition-colors"
+                        :class="[
+                          v.emitido ? 'ml-auto' : '',
+                          copiado === `pnr-${v.clave}`
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                            : 'border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200',
+                        ]">
+                  <i class="fas" :class="copiado === `pnr-${v.clave}` ? 'fa-check' : 'fa-copy'"></i>
+                </button>
+              </div>
 
               <div v-if="pnrsAbiertos.has(String(v.clave))"
                    class="ml-5 mt-1 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 space-y-1">

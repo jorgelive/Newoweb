@@ -899,6 +899,35 @@ Es el mismo arreglo que necesitó la cabecera de «Lo tuyo» en `pax`, donde «N
 sitio al nombre. Cuando un título y unas acciones comparten fila, en móvil **no caben**: es la regla,
 no la excepción.
 
+## 3.h.ter Un dato que se copia NO puede vivir dentro de un botón (15/09/2026)
+
+El localizador de vuelo (PNR) se pintaba dentro del `<button>` que pliega los tramos. Resultado: no
+se podía **ni seleccionar**. Arrastrar sobre el código no lo selecciona — el navegador se queda con
+el gesto para el botón—, así que lo único que pasaba era plegar y desplegar.
+
+🔥 **Y es de los datos que más se copian**: un PNR se dicta por teléfono y se teclea en la web de la
+aerolínea. Era el único de la ficha sin forma de sacarlo; el DNI y el pasaporte, justo encima, sí
+tenían su botón de copiar.
+
+**El patrón, que son tres cosas juntas:**
+
+1. El dato **fuera** del botón, como hermano. Los `<button>` no se anidan, así que el de copiar
+   tampoco podía ir dentro del de plegar aunque se quisiera: la fila pasa a ser un contenedor con
+   dos controles.
+2. `select-all` en el dato: **un solo clic lo selecciona entero**. Es la salida cuando el
+   portapapeles no está disponible — sin HTTPS, `navigator.clipboard` sencillamente no existe.
+3. Un botón de copiar con acuse por campo, reusando el `copiar(valor, marca)` que ya existe en la
+   vista. La marca es por campo y no global: hay varios códigos parecidos seguidos y lo que hace
+   falta saber es **cuál** se copió.
+
+⚠️ **Y un solo `:class` por elemento.** Al añadir el botón quedaron dos en el mismo `<button>` y el
+segundo gana **en silencio**: no es un error de compilación, es un atributo que deja de existir. Se
+fusionan en un array.
+
+**Cómo se comprobó**, porque «se puede seleccionar» no se ve en una captura: un
+`getComputedStyle(el).userSelect` y un `el.closest('button')` sobre el marcado real con el CSS
+compilado — `all` y `null` respectivamente.
+
 ## 3.i Un modal en el móvil: `dvh`, no `vh` (2026-08-24)
 
 Reportado desde un móvil: al tocar un campo del modal «Aperturar Expediente», el teclado tapaba
