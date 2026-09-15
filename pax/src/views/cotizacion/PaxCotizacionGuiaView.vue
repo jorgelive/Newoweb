@@ -229,7 +229,12 @@ const misBoletos = computed(() => store.miIdentidad?.documentos ?? []);
  * tres tipos con los que el componente decide si encogerse, y dos listas acabarían discrepando el
  * día que se añada un documento. Ver `DOCUMENTOS_PEDIDOS`.
  */
-const documentosPendientes = computed(() => faltanDocumentos(store.miIdentidad?.documentosEnviados));
+/** Lo que ESTE expediente le pide. Vacío = no se le pide nada y el panel no existe. */
+const documentosQuePide = computed(() => store.miIdentidad?.documentosPedidos ?? []);
+
+const documentosPendientes = computed(
+  () => faltanDocumentos(store.miIdentidad?.documentosEnviados, documentosQuePide.value),
+);
 
 /**
  * Qué acordeón nace abierto.
@@ -242,7 +247,9 @@ const documentosPendientes = computed(() => faltanDocumentos(store.miIdentidad?.
  * - Boletos: abierto. Es lo que abre en la cola del aeropuerto, y ahí no se busca, se enseña.
  * - Grupos y vuelos: cerrado. Es referencia, y son cuatro tarjetas que empujarían el resto.
  */
-const documentosAbiertos = ref(faltanDocumentos(store.miIdentidad?.documentosEnviados));
+const documentosAbiertos = ref(
+  faltanDocumentos(store.miIdentidad?.documentosEnviados, store.miIdentidad?.documentosPedidos),
+);
 const boletosAbiertos = ref(true);
 
 /** «CUZ → LIM». Si no hay vuelo —un adjunto suyo que no es de vuelo— se cae al nombre. */
@@ -1458,7 +1465,11 @@ const adelantoVista = computed(() => {
 
                Lo que sí cambia con el estado es si se abre solo: con algo pendiente, abierto; con
                todo entregado, cerrado y con su «Recibidos» en la cabecera. -->
-          <PanelPlegable v-model="documentosAbiertos" class="no-imprimir"
+          <!-- ⚠️ **Sin nada que pedir, el panel no existe.** Un expediente que no recoge
+               documentos —un catálogo, un tour suelto— enseñaría si no una tarjeta vacía que
+               promete un trámite inexistente. La lista vacía es un valor legítimo, no un
+               «todavía no configurado». -->
+          <PanelPlegable v-if="documentosQuePide.length" v-model="documentosAbiertos" class="no-imprimir"
                          icono="id-card"
                          :titulo="maestroStore.t('cot_mis_documentos') || 'Tus documentos'"
                          :nota="documentosPendientes
@@ -1466,7 +1477,8 @@ const adelantoVista = computed(() => {
                            : (maestroStore.t('cot_mis_documentos_completos') || 'Recibidos. No tienes que hacer nada más.')"
                          :tono="documentosPendientes ? 'pendiente' : 'listo'">
             <MisDocumentos :localizador="props.localizador"
-                           :ya-enviados="store.miIdentidad.documentosEnviados" />
+                           :ya-enviados="store.miIdentidad.documentosEnviados"
+                           :pedidos="documentosQuePide" />
           </PanelPlegable>
 
           <!-- ── SUS TARJETAS DE EMBARQUE ───────────────────────────────

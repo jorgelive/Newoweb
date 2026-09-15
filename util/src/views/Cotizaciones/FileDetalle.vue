@@ -889,6 +889,51 @@ const alternarPertenencia = (g: ApiFileGrupo): void => {
 };
 
 
+/**
+ * Qué documentos le pide ESTE expediente al pasajero.
+ *
+ * 🔥 **Era una lista fija en el front y por eso hubo que hacerlo configurable.** Aguantó mientras
+ * fueron pasaporte y las dos caras del DNI —que los pide cualquier viaje—, y se rompió con el
+ * E-Ticket migratorio dominicano, atado a UN destino: un expediente a Cusco pedía a sus pasajeros
+ * un formulario de Migración de República Dominicana, y cada uno veía «te falta un documento» sin
+ * poder hacer nada.
+ *
+ * ⚠️ Y ese fallo no se queja: el pasajero no escribe para decir que le piden algo raro, deja de
+ * intentarlo. Se descubre mirando su pantalla, que es lo que casi nunca se hace.
+ */
+const pedidosAbierto = ref(false);
+const pedidosBorrador = ref<string[]>([]);
+const guardandoPedidos = ref(false);
+
+/** Los que el pasajero PUEDE subir. Espejo de `ArchivoTipoEnum::pedibles()`. */
+const tiposPedibles = ARCHIVO_TIPOS_DEL_PASAJERO;
+
+const abrirPedidos = () => {
+  // ⚠️ Un borrador aparte y no el objeto del expediente: marcar casillas no debe guardar hasta que
+  // se pulse, y editarlo en vivo dejaría la pantalla del pasajero cambiando a media configuración.
+  pedidosBorrador.value = [...(file.value?.documentosPedidos ?? [])];
+  pedidosAbierto.value = true;
+};
+
+const alternarPedido = (tipo: string) => {
+  const i = pedidosBorrador.value.indexOf(tipo);
+  if (i >= 0) { pedidosBorrador.value.splice(i, 1); } else { pedidosBorrador.value.push(tipo); }
+};
+
+const guardarPedidos = async () => {
+  if (!file.value) return;
+  const iri = file.value['@id'] || `/platform/sales/cotizacion_files/${extractIdStr(file.value.id)}`;
+
+  guardandoPedidos.value = true;
+  const ok = await fileStore.updateFile(iri, { documentosPedidos: pedidosBorrador.value });
+  guardandoPedidos.value = false;
+
+  if (!ok) { alert(fileStore.error || 'No se pudo guardar qué se pide.'); return; }
+
+  await cargarFile();
+  pedidosAbierto.value = false;
+};
+
 const cambiarModo = async (modo: 'estandar' | 'grupo' | string) => {
   if (!file.value) return;
   const iri = file.value['@id'] || `/platform/sales/cotizacion_files/${extractIdStr(file.value.id)}`;
@@ -3454,7 +3499,50 @@ const eliminarDocumento = async (iri?: string) => {
                 <button @click="abrirPanelSueltos" class="bg-amber-100 text-amber-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-200">
                   <i class="fas fa-user-slash mr-0.5"></i> Sin dueño
                 </button>
+                <!-- Va aquí porque es la misma pregunta que la bóveda: qué documentos hay en
+                     este expediente. La diferencia es que esto decide los que FALTAN. -->
+                <button @click="abrirPedidos" class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold hover:bg-slate-200">
+                  <i class="fas fa-sliders mr-0.5"></i> Qué se pide
+                </button>
                 <button @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200">+ Subir Doc</button>
+              </div>
+            </div>
+
+            <!-- ═══ QUÉ SE LE PIDE AL PASAJERO ═══
+                 Sólo los tipos que él PUEDE subir: pedirle un boleto que emitimos nosotros sería
+                 pedirle lo imposible, y el servidor lo rechaza igual
+                 (`ArchivoTipoEnum::pedibles()`). -->
+            <div v-if="pedidosAbierto && bovedaAbierta" class="mb-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+              <p class="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-1">Qué se le pide al pasajero</p>
+              <p class="text-[11px] text-slate-500 leading-snug mb-2">
+                Lo marcado es lo que verá en su app y lo que se le contará como pendiente.
+                <!-- ⚠️ Se dice explícitamente que se puede dejar vacío: sin esto, nadie desmarca
+                     los tres de siempre aunque el expediente no recoja documentos. -->
+                Puedes dejarlo sin marcar: entonces no se le pide nada y el panel desaparece de su
+                pantalla.
+              </p>
+
+              <div class="space-y-1">
+                <label v-for="tipo in tiposPedibles" :key="tipo"
+                       class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-sky-300">
+                  <input type="checkbox" :checked="pedidosBorrador.includes(tipo)" @change="alternarPedido(tipo)" />
+                  <span class="text-[11px] font-bold text-slate-700">{{ getArchivoLabel(tipo) }}</span>
+                </label>
+              </div>
+
+              <div class="flex items-center gap-2 mt-3">
+                <button type="button" @click="guardarPedidos" :disabled="guardandoPedidos"
+                        class="px-3 py-1.5 rounded-lg bg-[#376875] hover:bg-[#2d5660] text-white text-[11px] font-black disabled:opacity-50">
+                  <i v-if="guardandoPedidos" class="fas fa-spinner fa-spin mr-1"></i>
+                  Guardar
+                </button>
+                <button type="button" @click="pedidosAbierto = false"
+                        class="px-3 py-1.5 rounded-lg text-[11px] font-bold text-slate-500 hover:text-slate-800">
+                  Cancelar
+                </button>
+                <span class="ml-auto text-[10px] font-bold text-slate-400">
+                  {{ pedidosBorrador.length }} de {{ tiposPedibles.length }}
+                </span>
               </div>
             </div>
 

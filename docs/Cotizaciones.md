@@ -1229,6 +1229,47 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### Qué documentos se piden es CONFIGURABLE por expediente (15/09/2026)
+
+La lista vivía escrita en el front: los mismos tres para todos. Aguantó mientras fueron pasaporte y
+las dos caras del DNI —que los pide cualquier viaje— y se rompió al entrar el E-Ticket migratorio
+dominicano, atado a **un destino**: un expediente a Cusco empezó a pedir a sus pasajeros un
+formulario de Migración de República Dominicana, y cada uno veía «te falta un documento» sin poder
+hacer nada.
+
+⚠️ **Y ese fallo no se queja.** El pasajero no escribe para decir que le piden algo raro: deja de
+intentarlo, o manda cualquier cosa. Se descubre mirando su pantalla, que es lo que casi nunca se
+hace.
+
+Ahora lo decide `CotizacionFile::$documentosPedidos` (`json`), y el operador lo marca en **util**,
+en la cabecera de la Bóveda → «Qué se pide».
+
+**Las tres decisiones que lo sostienen:**
+
+| | |
+|---|---|
+| **Sólo lo que él puede subir** | `ArchivoTipoEnum::pedibles()` se **deriva** de `loSubeElPasajero()`, no se escribe a mano: pedir un boleto que emitimos nosotros sería pedirle lo imposible, y le dejaría un «te falta» que no puede resolver nunca. Lo valida la entidad y lo rechaza también el endpoint de subida |
+| **La lista vacía es legítima** | Un catálogo o un tour suelto no recoge documentos: el panel entero desaparece de su pantalla. Por eso la columna es `NOT NULL` con `[]` posible y **no** nulable — `null` y `[]` habrían querido decir «el default» y «ninguno», y esa distinción se confunde sola |
+| **Se normaliza al ENTRAR** | El selector manda lo que tenga marcado y un `json` guarda tal cual: un repetido saldría como dos filas iguales en la pantalla del pasajero |
+
+⚠️ **La migración rellena en TRES pasos y no es ceremonia.** Una columna `JSON NOT NULL` añadida a
+una tabla con filas se rellena con el literal JSON `null`, que **no** es SQL NULL: satisface el
+`NOT NULL`, no lo caza un `WHERE … IS NULL`, y al leerlo revienta con un `TypeError` días después.
+Se añade nulable, se rellena —con la condición en sus dos mitades, `IS NULL OR JSON_TYPE(…) =
+'NULL'`— y sólo entonces se pone `NOT NULL`.
+
+El relleno son **los tres de siempre**, que es lo que esos expedientes ya pedían: la migración no
+cambia lo que ve nadie. El E-Ticket queda fuera y se enciende a mano donde toca.
+
+⚠️ En `pax`, `DOCUMENTOS_PEDIDOS` pasó a llamarse **`CATALOGO_DOCUMENTOS`**: ya no es «lo que se
+pide» sino «lo que se puede pedir». El orden de las filas lo sigue decidiendo el catálogo y no el
+orden en que el operador marcó las casillas — y un valor desconocido que llegara de la API se queda
+fuera solo, porque se filtra el catálogo en vez de recorrer lo que manda el servidor.
+
+Cubierto por `tests/Cotizacion/Entity/DocumentosPedidosTest.php`, incluido el test que **ata el
+catálogo a `loSubeElPasajero()`**: si alguien añade un tipo subible y se olvida de la otra lista, el
+selector no lo ofrecería y nadie se enteraría.
+
 #### El E-Ticket dominicano, cuarto documento que pide la app (14/09/2026)
 
 `ArchivoTipoEnum::ETICKET`. Es el **formulario electrónico de entrada y salida de la Dirección
@@ -1478,7 +1519,8 @@ el orden con sentido lo pone quien pinta, que ya tiene el índice de nombres mon
 | Cambiar el aspecto de los tres acordeones | `pax/.../PanelPlegable.vue` | la cabecera |
 | Añadir una cadena de UI a `pax` | `src/Pax/Command/PaxCrearTextos*Command.php` | un comando nuevo, **nunca SQL** (`#[AutoTranslate]`) |
 | Cambiar qué documentos de identidad se le enseñan | `CotizacionFilePublicProvider` | `identificacionesDe()` + `DocumentoTipoEnum::esDocumentoDeViaje()` |
-| Cambiar qué documentos se le piden al pasajero | `pax/.../MisDocumentos.vue` | `DOCUMENTOS_PEDIDOS` (lo lee también la vista) |
+| Cambiar qué documentos se le piden en UN expediente | **util** → Bóveda → «Qué se pide» | `CotizacionFile::$documentosPedidos` |
+| Añadir un documento al catálogo de lo pedible | `ArchivoTipoEnum` | `loSubeElPasajero()` + su fila en `CATALOGO_DOCUMENTOS` |
 | Añadir un tipo de adjunto | `ArchivoTipoEnum` + los dos espejos TS + `npm run gen:api` | todos los `match` del enum |
 | Cambiar el orden de la bóveda | `util/.../FileDetalle.vue` | `ordenarBoveda()` |
 | Que un adjunto salga estable en cualquier consumidor | `CotizacionFile` | `#[ORM\OrderBy]` de `$filearchivos` |

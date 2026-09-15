@@ -1,6 +1,11 @@
 <script lang="ts">
 /**
- * Los tres que se piden, y el porqué de cada uno en su propia línea.
+ * El CATÁLOGO de lo que se puede pedir, y el porqué de cada uno en su propia línea.
+ *
+ * ⚠️ **Esto ya no es «lo que se pide»: es lo que se PUEDE pedir.** Qué se exige de verdad lo dice
+ * cada expediente (`CotizacionFile::$documentosPedidos`) y llega por la API. Era una lista fija
+ * para todos y se rompió con el E-Ticket dominicano, que está atado a un destino: un viaje a Cusco
+ * acabó pidiendo un formulario de Migración de República Dominicana.
  *
  * ⚠️ El DNI son **dos**: en un control migratorio no vale sólo el anverso. Pedirlos por separado
  * —en vez de «sube tu DNI»— es lo que hace que se note cuál falta.
@@ -11,7 +16,7 @@
  * lista. Copiarla en la vista serían dos verdades sobre qué documentos se piden, y el día que se
  * añada uno se olvidaría la copia.
  */
-export const DOCUMENTOS_PEDIDOS = [
+export const CATALOGO_DOCUMENTOS = [
   { tipo: 'pasaporte', titulo: 'Pasaporte', ayuda: 'La página de la foto, entera y sin reflejos.', icono: 'camera' },
   { tipo: 'dni_anverso', titulo: 'DNI — anverso', ayuda: 'La cara con tu foto.', icono: 'camera' },
   { tipo: 'dni_reverso', titulo: 'DNI — reverso', ayuda: 'La cara de atrás.', icono: 'camera' },
@@ -29,11 +34,23 @@ export const DOCUMENTOS_PEDIDOS = [
   },
 ] as const;
 
-export type TipoDoc = (typeof DOCUMENTOS_PEDIDOS)[number]['tipo'];
+export type TipoDoc = (typeof CATALOGO_DOCUMENTOS)[number]['tipo'];
 
-/** ¿Le queda algo por mandar? Lo pregunta la vista para colocar la tarjeta. */
-export const faltanDocumentos = (yaEnviados?: readonly string[] | null): boolean =>
-  DOCUMENTOS_PEDIDOS.some(d => !(yaEnviados ?? []).includes(d.tipo));
+/**
+ * Los que este expediente pide, en el orden del catálogo.
+ *
+ * ⚠️ Se filtra el catálogo en vez de recorrer lo que manda la API: así el ORDEN lo decide esta
+ * lista —pasaporte, DNI, y lo de destino al final— y no el orden en que el operador marcó las
+ * casillas. Y un valor desconocido que llegara de la API se queda fuera solo.
+ */
+export const documentosPedidos = (pedidos?: readonly string[] | null) =>
+  CATALOGO_DOCUMENTOS.filter(d => (pedidos ?? []).includes(d.tipo));
+
+/** ¿Le queda algo por mandar, de lo que ESTE expediente le pide? */
+export const faltanDocumentos = (
+  yaEnviados?: readonly string[] | null,
+  pedidos?: readonly string[] | null,
+): boolean => documentosPedidos(pedidos).some(d => !(yaEnviados ?? []).includes(d.tipo));
 </script>
 
 <script setup lang="ts">
@@ -76,6 +93,8 @@ const props = defineProps<{
    * ⚠️ Llega sólo el TIPO, sin enlace: un escaneo de identidad no se le devuelve ni a su dueño.
    */
   yaEnviados?: string[];
+  /** Los tipos que ESTE expediente exige. Vacío = no se le pide nada y no se pinta. */
+  pedidos?: string[];
 }>();
 
 const maestroStore = useMaestroStore();
@@ -96,7 +115,10 @@ const recienSubidos = ref<Set<string>>(new Set());
 
 const subidos = computed(() => new Set<string>([...(props.yaEnviados ?? []), ...recienSubidos.value]));
 
-const tituloDe = (tipo: TipoDoc) => DOCUMENTOS_PEDIDOS.find(d => d.tipo === tipo)?.titulo ?? '';
+/** Lo que hay que enseñarle a ESTA persona en ESTE expediente. */
+const pedidos = computed(() => documentosPedidos(props.pedidos));
+
+const tituloDe = (tipo: TipoDoc) => CATALOGO_DOCUMENTOS.find(d => d.tipo === tipo)?.titulo ?? '';
 
 const alElegir = (tipo: TipoDoc, evento: Event) => {
   const archivo = (evento.target as HTMLInputElement).files?.[0];
@@ -156,7 +178,7 @@ const confirmar = async () => {
   enviando.value = false;
 };
 
-const quedanPorSubir = computed(() => DOCUMENTOS_PEDIDOS.filter(d => !subidos.value.has(d.tipo)).length);
+const quedanPorSubir = computed(() => pedidos.value.filter(d => !subidos.value.has(d.tipo)).length);
 
 /**
  * Cuántos le faltan. Lo lee el panel de fuera para su cabecera y para abrirse o no.
@@ -177,7 +199,7 @@ defineExpose({ quedanPorSubir });
     </p>
 
     <div class="space-y-2">
-      <div v-for="doc in DOCUMENTOS_PEDIDOS" :key="doc.tipo"
+      <div v-for="doc in pedidos" :key="doc.tipo"
            class="flex items-center gap-3 p-3 rounded-2xl border transition-colors"
            :class="subidos.has(doc.tipo) ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'">
         <span class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"

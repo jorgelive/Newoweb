@@ -20,6 +20,7 @@ use App\Cotizacion\ApiPlatform\State\ValidarManifiestoProcessor;
 use App\Cotizacion\ApiPlatform\State\CotizacionFileItemProvider;
 use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
 use App\Cotizacion\ApiPlatform\Filter\CotizacionFileNombreFilter;
+use App\Cotizacion\Enum\ArchivoTipoEnum;
 use App\Cotizacion\Enum\FileEstadoEnum;
 use App\Cotizacion\Enum\FileModoEnum;
 use App\Entity\Maestro\MaestroContacto;
@@ -39,6 +40,7 @@ use libphonenumber\PhoneNumberFormat;
 use libphonenumber\PhoneNumberUtil;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo.
@@ -635,6 +637,65 @@ class CotizacionFile
     public function isUsaPadron(): bool { return $this->modo->usaPadron(); }
 
     /**
+     * Qué documentos se le EXIGEN al pasajero en este expediente.
+     *
+     * 🔥 **Por qué por expediente y no una lista fija.** Lo era: los mismos tres para todos. Aguantó
+     * mientras fueron pasaporte y las dos caras del DNI —que los pide cualquier viaje—, y se rompió
+     * el día que entró el E-Ticket migratorio dominicano: un trámite atado a UN destino. Con la
+     * lista fija, un viaje a Cusco pedía a sus pasajeros un formulario de Migración de República
+     * Dominicana, y cada uno de ellos veía «te falta un documento» para siempre.
+     *
+     * ⚠️ **Y ese fallo no se queja.** El pasajero no escribe para decir que le piden algo raro:
+     * deja de intentarlo, o manda cualquier cosa. Se descubre cuando alguien mira la pantalla del
+     * cliente, que es justo lo que casi nunca se hace.
+     *
+     * ── La lista VACÍA es un valor legítimo ─────────────────────────────────
+     * Un catálogo o un expediente que no recoge documentos: no se le pide nada y el panel entero
+     * desaparece de su pantalla. Por eso la columna es `NOT NULL` con lista vacía posible y no
+     * nulable: `null` y `[]` habrían querido decir cosas distintas —«el default» y «ninguno»— y esa
+     * distinción se confunde sola al leerla.
+     *
+     * ⚠️ El default de los expedientes que ya existían lo pone la migración, no esta propiedad: los
+     * tres de siempre, que es lo que estaban pidiendo. El E-Ticket queda fuera y se enciende a mano
+     * donde toca.
+     *
+     * @var list<string> valores de {@see ArchivoTipoEnum}, y sólo los de {@see ArchivoTipoEnum::pedibles()}
+     */
+    #[Groups(['file:read', 'file:item:read', 'file:write'])]
+    #[Assert\All([
+        new Assert\Choice(
+            callback: [ArchivoTipoEnum::class, 'pedibles'],
+            message: 'Ese documento no lo puede subir el pasajero, así que no se le puede exigir.',
+        ),
+    ])]
+    #[ORM\Column(type: 'json')]
+    private array $documentosPedidos = [];
+
+    /**
+     * @return list<string>
+     */
+    public function getDocumentosPedidos(): array
+    {
+        // Sin `array_values()`: la lista se normaliza al ENTRAR, en el setter, que es donde llega
+        // lo que manda el navegador. Repetirlo aquí sería normalizar dos veces lo mismo.
+        return $this->documentosPedidos;
+    }
+
+    /**
+     * ⚠️ Se normaliza al entrar —sin repetidos y reindexada—, porque el selector de `util` manda lo
+     * que tenga marcado y un `json` guarda tal cual lo que reciba: un duplicado saldría como dos
+     * filas iguales en la pantalla del pasajero.
+     *
+     * @param list<string>|null $documentosPedidos
+     */
+    public function setDocumentosPedidos(?array $documentosPedidos): self
+    {
+        $this->documentosPedidos = array_values(array_unique($documentosPedidos ?? []));
+
+        return $this;
+    }
+
+    /**
      * Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
      * `CotizacionFilePublicProvider` cuando te identificas.
      *
@@ -661,7 +722,7 @@ class CotizacionFile
      * —su compañero de habitación, los de su PNR—. Sigue sin ser el padrón: son SUS grupos, y sólo
      * el nombre. Ni documento, ni fecha, ni el `codigo` del vecino, que es el localizador ajeno.
      *
-     * @var array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null
+     * @var array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>}|null
      */
     #[ApiProperty(openapiContext: [
         'type' => 'object',
@@ -766,15 +827,18 @@ class CotizacionFile
             // ⚠️ **Sólo el tipo, nunca el enlace.** Es lo que hace que la pantalla del pasajero
             // recuerde que ya mandó su pasaporte, sin devolvérselo — un escaneo de identidad no
             // vuelve ni a su dueño. Lo llena `CotizacionFilePublicProvider::tiposYaEnviados()`.
+            // Qué se le EXIGE en ESTE expediente. Antes era una lista fija en el front y por eso
+            // un viaje a Cusco pedía el E-Ticket migratorio dominicano. Ver `$documentosPedidos`.
+            'documentosPedidos' => ['type' => 'array', 'items' => ['type' => 'string']],
             'documentosEnviados' => ['type' => 'array', 'items' => ['type' => 'string']],
         ],
-        'required' => ['nombre', 'identificaciones', 'subgrupos', 'documentos', 'documentosEnviados'],
+        'required' => ['nombre', 'identificaciones', 'subgrupos', 'documentos', 'documentosPedidos', 'documentosEnviados'],
     ])]
     #[Groups(['pax_file:read'])]
     private ?array $miIdentidad = null;
 
     /**
-     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null
+     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>}|null
      */
     public function getMiIdentidad(): ?array
     {
@@ -782,7 +846,7 @@ class CotizacionFile
     }
 
     /**
-     * @param array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosEnviados: list<string>}|null $miIdentidad
+     * @param array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>}|null $miIdentidad
      */
     public function setMiIdentidad(?array $miIdentidad): self
     {

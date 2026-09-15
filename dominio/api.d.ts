@@ -10877,6 +10877,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -10920,6 +10922,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosPedidos: string[];
                 documentosEnviados: string[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
@@ -10973,6 +10976,8 @@ export interface components {
              * @enum {string}
              */
             modo: "estandar" | "grupo";
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11021,6 +11026,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11070,6 +11077,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -11106,6 +11115,8 @@ export interface components {
              * @enum {string}
              */
             modo: "estandar" | "grupo";
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile-file.write.jsonMergePatch": {
@@ -11132,6 +11143,8 @@ export interface components {
              * @enum {string}
              */
             modo: "estandar" | "grupo";
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
         };
         "CotizacionFile-operacion.item.read_timestamp.read": {
             nombreGrupo?: string;
@@ -11227,6 +11240,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosPedidos: string[];
                 documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
@@ -11303,6 +11317,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosPedidos: string[];
                 documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
@@ -11382,6 +11397,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -11425,6 +11442,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosPedidos: string[];
                 documentosEnviados: string[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
@@ -11478,6 +11496,8 @@ export interface components {
              * @enum {string}
              */
             modo: "estandar" | "grupo";
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11526,6 +11546,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11575,6 +11597,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -11680,6 +11704,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosPedidos: string[];
                 documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
@@ -11756,6 +11781,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosPedidos: string[];
                 documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
@@ -11835,6 +11861,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -11878,6 +11906,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosPedidos: string[];
                 documentosEnviados: string[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
@@ -11917,6 +11946,8 @@ export interface components {
              * @enum {string}
              */
             modo: "estandar" | "grupo";
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11966,6 +11997,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -12031,6 +12064,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -12139,6 +12174,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosPedidos: string[];
                 documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
@@ -12215,6 +12251,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosPedidos: string[];
                 documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
@@ -12294,6 +12331,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -12337,6 +12376,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosPedidos: string[];
                 documentosEnviados: string[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
@@ -12390,6 +12430,8 @@ export interface components {
              * @enum {string}
              */
             modo: "estandar" | "grupo";
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -12438,6 +12480,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -12487,6 +12531,8 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
+            documentosPedidos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -12592,6 +12638,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosPedidos: string[];
                 documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;
@@ -12668,6 +12715,7 @@ export interface components {
                     destino?: string | null;
                     fecha?: string | null;
                 }[];
+                documentosPedidos: string[];
                 documentosEnviados: string[];
             } | null;
             readonly localizador?: string | null;

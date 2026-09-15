@@ -383,6 +383,10 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             'identificaciones' => $this->identificacionesDe($pasajero),
             'subgrupos' => $subgrupos,
             'documentos' => $this->documentosDe($file, $pasajero),
+            // ⚠️ Viaja por `miIdentidad` y no como campo del expediente: este panel sólo existe
+            // para quien se identificó, así que la lista de lo que se le pide no tiene por qué
+            // salir en la portada pública.
+            'documentosPedidos' => $file->getDocumentosPedidos(),
             'documentosEnviados' => $this->tiposYaEnviados($file, $pasajero),
         ]);
     }

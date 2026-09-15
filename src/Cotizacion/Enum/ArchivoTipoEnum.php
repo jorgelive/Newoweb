@@ -249,6 +249,25 @@ enum ArchivoTipoEnum: string
         };
     }
 
+    /**
+     * Los tipos que un expediente puede EXIGIR a sus pasajeros.
+     *
+     * ⚠️ Es exactamente el conjunto de {@see self::loSubeElPasajero()}, derivado y no escrito a
+     * mano: pedir algo que el pasajero no puede subir sería pedirle lo imposible, y una segunda
+     * lista acabaría discrepando con la primera el día que se añada un tipo.
+     *
+     * Lo consume la validación de `CotizacionFile::$documentosPedidos` y el selector de `util`.
+     *
+     * @return list<string>
+     */
+    public static function pedibles(): array
+    {
+        return array_values(array_map(
+            static fn (self $c): string => $c->value,
+            array_filter(self::cases(), static fn (self $c): bool => $c->loSubeElPasajero()),
+        ));
+    }
+
     /** ¿Lo sube el propio pasajero desde su app, o sólo el operador? */
     public function loSubeElPasajero(): bool
     {
