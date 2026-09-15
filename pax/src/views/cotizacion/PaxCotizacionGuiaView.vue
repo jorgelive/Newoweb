@@ -26,7 +26,7 @@ import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotSer
 import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnidades, resumenDeDuracion, mandaElSegmento } from '@dominio/cotizacion/index.ts';
 import type { BloqueVista as BloqueVistaBase } from '@dominio/cotizacion/index.ts';
 import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
-import MisDocumentos, { faltanDocumentos } from '@/components/cotizacion/MisDocumentos.vue';
+import MisDocumentos, { faltanDocumentos, pedidosEfectivos } from '@/components/cotizacion/MisDocumentos.vue';
 import PanelPlegable from '@/components/cotizacion/PanelPlegable.vue';
 
 /** El bloque con los tipos de `pax` dentro: el módulo es genérico y los devuelve intactos. */
@@ -229,8 +229,15 @@ const misBoletos = computed(() => store.miIdentidad?.documentos ?? []);
  * tres tipos con los que el componente decide si encogerse, y dos listas acabarían discrepando el
  * día que se añada un documento. Ver `DOCUMENTOS_PEDIDOS`.
  */
-/** Lo que ESTE expediente le pide. Vacío = no se le pide nada y el panel no existe. */
-const documentosQuePide = computed(() => store.miIdentidad?.documentosPedidos ?? []);
+/**
+ * Lo que ESTE expediente le pide.
+ *
+ * ⚠️ **Vacío y ausente no son lo mismo.** `[]` es «no se le pide nada» y el panel no existe;
+ * **ausente** es una respuesta guardada en `localStorage` de antes de que el campo existiera, y ahí
+ * hay que caer en el default o se le borra el panel a quien tenía la app abierta. Lo resuelve
+ * `pedidosEfectivos()` — y por eso aquí NO hay un `?? []`.
+ */
+const documentosQuePide = computed(() => pedidosEfectivos(store.miIdentidad?.documentosPedidos));
 
 const documentosPendientes = computed(
   () => faltanDocumentos(store.miIdentidad?.documentosEnviados, documentosQuePide.value),

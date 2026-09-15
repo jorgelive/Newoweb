@@ -37,6 +37,28 @@ export const CATALOGO_DOCUMENTOS = [
 export type TipoDoc = (typeof CATALOGO_DOCUMENTOS)[number]['tipo'];
 
 /**
+ * Lo que se pide cuando la respuesta NO trae la lista.
+ *
+ * 🔥 **`undefined` y `[]` NO son lo mismo, y confundirlos borra el panel entero.**
+ * `undefined` es «esta respuesta no me lo dijo»; `[]` es «no se le pide nada». El store de `pax`
+ * guarda `detalle` en `localStorage`, así que tras desplegar un campo nuevo hay gente navegando con
+ * una respuesta VIEJA que no lo trae — y con un `?? []` esa gente veía desaparecer sus documentos y
+ * un «no tienes que hacer nada más» que era mentira.
+ *
+ * ⚠️ Eso no se ve desplegando: el que despliega recarga con datos frescos. Lo sufre quien tenía la
+ * app abierta de antes, que es todo el mundo menos tú.
+ *
+ * Espejo del relleno de `Version20260915090000`: lo que pedían todos los expedientes antes de que
+ * esto fuera configurable. Es un respaldo para respuestas viejas, **no** la fuente de verdad — la
+ * fuente es `CotizacionFile::$documentosPedidos`.
+ */
+export const PEDIDOS_POR_DEFECTO: readonly string[] = ['pasaporte', 'dni_anverso', 'dni_reverso'];
+
+/** Resuelve el «no me lo dijo» sin pisar el «no se pide nada». */
+export const pedidosEfectivos = (pedidos?: readonly string[] | null): readonly string[] =>
+  pedidos ?? PEDIDOS_POR_DEFECTO;
+
+/**
  * Los que este expediente pide, en el orden del catálogo.
  *
  * ⚠️ Se filtra el catálogo en vez de recorrer lo que manda la API: así el ORDEN lo decide esta
@@ -44,7 +66,7 @@ export type TipoDoc = (typeof CATALOGO_DOCUMENTOS)[number]['tipo'];
  * casillas. Y un valor desconocido que llegara de la API se queda fuera solo.
  */
 export const documentosPedidos = (pedidos?: readonly string[] | null) =>
-  CATALOGO_DOCUMENTOS.filter(d => (pedidos ?? []).includes(d.tipo));
+  CATALOGO_DOCUMENTOS.filter(d => pedidosEfectivos(pedidos).includes(d.tipo));
 
 /** ¿Le queda algo por mandar, de lo que ESTE expediente le pide? */
 export const faltanDocumentos = (
@@ -93,8 +115,13 @@ const props = defineProps<{
    * ⚠️ Llega sólo el TIPO, sin enlace: un escaneo de identidad no se le devuelve ni a su dueño.
    */
   yaEnviados?: string[];
-  /** Los tipos que ESTE expediente exige. Vacío = no se le pide nada y no se pinta. */
-  pedidos?: string[];
+  /**
+   * Los tipos que ESTE expediente exige.
+   *
+   * ⚠️ `[]` es «no se le pide nada»; **ausente** es «la respuesta no lo dijo» y cae en
+   * {@link PEDIDOS_POR_DEFECTO}. No son lo mismo: ver el aviso de ahí.
+   */
+  pedidos?: readonly string[];
 }>();
 
 const maestroStore = useMaestroStore();
