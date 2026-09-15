@@ -53,6 +53,9 @@ export type TipoDoc = (typeof CATALOGO_DOCUMENTOS)[number]['tipo'];
  * fuente es `CotizacionFile::$documentosPedidos`.
  */
 export const PEDIDOS_POR_DEFECTO: readonly string[] = ['pasaporte', 'dni_anverso', 'dni_reverso'];
+// ⚠️ Espejo de `CotizacionFile::DOCUMENTOS_PEDIDOS_POR_DEFECTO`. Allí es lo que pide un expediente
+// nuevo; aquí, lo que se asume cuando la respuesta guardada no trae el campo. **Hay que tocar los
+// dos.**
 
 /** Resuelve el «no me lo dijo» sin pisar el «no se pide nada». */
 export const pedidosEfectivos = (pedidos?: readonly string[] | null): readonly string[] =>
@@ -126,6 +129,17 @@ const props = defineProps<{
 
 const maestroStore = useMaestroStore();
 
+/**
+ * 🔥 **Lo que se acaba de subir tiene que SALIR de aquí.**
+ *
+ * `recienSubidos` es estado local, y la cabecera del panel que envuelve a esto la pinta el padre con
+ * lo que dice el SERVIDOR. Sin este aviso, el pasajero subía su último documento, veía las filas
+ * ponerse verdes… y justo encima seguía un «Te falta alguno por mandar» en ámbar, hasta recargar —
+ * y ni eso, porque el store cachea la respuesta. Dos mitades de la misma tarjeta diciéndose que no
+ * justo en el momento en que se pregunta «¿ha funcionado?».
+ */
+const emit = defineEmits<{ subido: [tipo: string] }>();
+
 
 const eligiendo = ref<TipoDoc | null>(null);
 const vistaPrevia = ref<string | null>(null);
@@ -196,6 +210,7 @@ const confirmar = async () => {
     }
 
     recienSubidos.value = new Set([...recienSubidos.value, eligiendo.value]);
+    emit('subido', eligiendo.value);
     descartar();
   } catch {
     // Sin conexión: el mensaje dice qué hacer, no qué falló.
@@ -205,17 +220,17 @@ const confirmar = async () => {
   enviando.value = false;
 };
 
-const quedanPorSubir = computed(() => pedidos.value.filter(d => !subidos.value.has(d.tipo)).length);
-
 /**
- * Cuántos le faltan. Lo lee el panel de fuera para su cabecera y para abrirse o no.
- *
  * ⚠️ **Aquí vivía un plegado propio** —una línea compacta que se abría al pulsarla— y el
  * contenedor tenía otro. Dos mecanismos para el mismo gesto: uno se creía abierto y el otro
  * seguía cerrado. Ahora pliega `PanelPlegable` y esto se limita a su contenido; la decisión que
  * había detrás —cerrado cuando ya no pide nada— se conserva, pero la toma quien pinta el panel.
+ *
+ * ⚠️ Y hubo aquí un `quedanPorSubir` expuesto con `defineExpose` que **no leía nadie**: el padre no
+ * tiene un `ref` de plantilla sobre este componente. Parecía que la cuenta viajaba hacia fuera y no
+ * viajaba — un cálculo correcto que no alimentaba nada. Ahora lo que sale es el evento `subido`,
+ * que sí se escucha, y la cuenta la hace quien la necesita.
  */
-defineExpose({ quedanPorSubir });
 </script>
 
 <template>

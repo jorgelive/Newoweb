@@ -34,7 +34,7 @@ final class DocumentosPedidosTest extends TestCase
         $this->validador = Validation::createValidatorBuilder()->enableAttributeMapping()->getValidator();
     }
 
-    /** @param list<string> $pedidos */
+    /** @param list<string|null> $pedidos */
     private function motivos(array $pedidos): array
     {
         $file = (new CotizacionFile())->setDocumentosPedidos($pedidos);
@@ -43,6 +43,39 @@ final class DocumentosPedidosTest extends TestCase
             static fn ($e): string => (string) $e->getMessage(),
             iterator_to_array($this->validador->validateProperty($file, 'documentosPedidos')),
         );
+    }
+
+    /**
+     * 🔥 **Un expediente NUEVO nace pidiendo los tres, no pidiendo nada.**
+     *
+     * La propiedad nacía en `[]` y eso era una regresión muda: hasta que esto fue configurable,
+     * TODOS los expedientes pedían estos tres, así que cualquiera creado después dejaba de pedir
+     * nada **y nadie se enteraba** — ni el operador, que no sabe que existe una casilla que no ha
+     * visto, ni el pasajero, al que sencillamente no se le pide.
+     *
+     * ⚠️ El valor tiene que ser el mismo con el que la migración rellenó las filas viejas: un
+     * expediente nuevo y uno de antes tienen que comportarse igual.
+     */
+    public function testUnExpedienteNuevoPideLosTresDeSiempre(): void
+    {
+        self::assertSame(
+            ['pasaporte', 'dni_anverso', 'dni_reverso'],
+            (new CotizacionFile())->getDocumentosPedidos(),
+        );
+        self::assertSame(
+            CotizacionFile::DOCUMENTOS_PEDIDOS_POR_DEFECTO,
+            (new CotizacionFile())->getDocumentosPedidos(),
+        );
+    }
+
+    /**
+     * ⚠️ **`Assert\Choice` se rinde ante un `null`**: su validador sale antes de comparar, así que
+     * un `[null]` pasaba entero. Luego el getter incumplía su propio `list<string>` y `pax` pintaba
+     * el panel con una fila fantasma. Lo cierran `NotNull` y `Type`, no el `Choice`.
+     */
+    public function testUnNuloSeRechaza(): void
+    {
+        self::assertNotSame([], $this->motivos([null]));
     }
 
     /**

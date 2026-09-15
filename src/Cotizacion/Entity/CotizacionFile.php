@@ -120,8 +120,13 @@ use Symfony\Component\Validator\Constraints as Assert;
             validate: false,
             processor: ValidarManifiestoProcessor::class
         ),
+        // Mismo motivo que `Post` y `Patch`: sin `normalizationContext` la respuesta sale sin
+        // grupos y revienta por referencia circular en cuanto el expediente tiene vuelos. Hoy
+        // `util` no usa PUT, pero un defecto que sólo espera a que alguien lo llame no es menor:
+        // es uno dormido, y se despierta el día que alguien añade un formulario.
         new Put(
             denormalizationContext: ['groups' => ['file:write']],
+            normalizationContext: ['groups' => ['file:read', 'timestamp:read']],
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar expedientes.'
         ),
@@ -653,6 +658,23 @@ class CotizacionFile
     public function isUsaPadron(): bool { return $this->modo->usaPadron(); }
 
     /**
+     * Lo que pide un expediente **recién creado**.
+     *
+     * 🔥 **La propiedad nacía en `[]` y eso era una regresión muda.** Hasta que esto fue
+     * configurable, TODOS los expedientes pedían estos tres; con el default vacío, cualquiera
+     * creado después dejaba de pedir nada y nadie se enteraba —ni el operador, que no sabe que
+     * existe una casilla que no ha visto, ni el pasajero, al que sencillamente no se le pide—.
+     *
+     * Es el mismo valor con el que {@see \DoctrineMigrations\Version20260915090000} rellenó las
+     * filas viejas: un expediente nuevo y uno de antes tienen que comportarse igual.
+     *
+     * ⚠️ Espejo de `PEDIDOS_POR_DEFECTO` en `pax/src/components/cotizacion/MisDocumentos.vue`, que
+     * lo usa para otra cosa —cuando la respuesta guardada no trae el campo—. **Hay que tocar los
+     * dos.**
+     */
+    public const array DOCUMENTOS_PEDIDOS_POR_DEFECTO = ['pasaporte', 'dni_anverso', 'dni_reverso'];
+
+    /**
      * Qué documentos se le EXIGEN al pasajero en este expediente.
      *
      * 🔥 **Por qué por expediente y no una lista fija.** Lo era: los mismos tres para todos. Aguantó
@@ -679,13 +701,19 @@ class CotizacionFile
      */
     #[Groups(['file:read', 'file:item:read', 'file:write'])]
     #[Assert\All([
+        // ⚠️ `Assert\Choice` **se rinde ante un `null`**: su validador sale antes de comparar, así
+        // que un `[null]` pasaba entero y se guardaba. Luego `getDocumentosPedidos()` incumplía su
+        // propio `list<string>` y `pax` pintaba el panel con una fila fantasma. Lo cierra el par
+        // de constraints de aquí arriba, no el `Choice`.
+        new Assert\NotNull(message: 'Un documento pedido no puede ser nulo.'),
+        new Assert\Type(type: 'string', message: 'Un documento pedido se identifica con su clave.'),
         new Assert\Choice(
             callback: [ArchivoTipoEnum::class, 'pedibles'],
             message: 'Ese documento no lo puede subir el pasajero, así que no se le puede exigir.',
         ),
     ])]
     #[ORM\Column(type: 'json')]
-    private array $documentosPedidos = [];
+    private array $documentosPedidos = self::DOCUMENTOS_PEDIDOS_POR_DEFECTO;
 
     /**
      * @return list<string>

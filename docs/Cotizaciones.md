@@ -1301,6 +1301,44 @@ Cubierto por `tests/Cotizacion/Entity/DocumentosPedidosTest.php`, incluido el te
 catálogo a `loSubeElPasajero()`**: si alguien añade un tipo subible y se olvida de la otra lista, el
 selector no lo ofrecería y nadie se enteraría.
 
+##### 🔥 El default vacío dejaba a los expedientes NUEVOS sin pedir nada
+
+Lo encontró una revisión, no la pantalla — que es lo esperable, porque no se ve.
+
+`CotizacionFile::$documentosPedidos` nacía en `[]`. La migración rellenó **las filas que ya
+existían**, así que todo parecía correcto… pero cualquier expediente creado a partir de ese momento
+nacía pidiendo **nada**, y `DashboardView` no manda el campo al crear.
+
+⚠️ **Nadie se habría enterado por ninguna de las dos puntas.** El operador no echa de menos una
+casilla que no ha visto nunca; el pasajero simplemente no ve el panel, y no escribe para decir que
+no le piden documentos. Es la misma familia de fallo que motivó hacerlo configurable, sólo que del
+revés: antes se pedía de más, ahora no se pedía nada.
+
+El default vive en `CotizacionFile::DOCUMENTOS_PEDIDOS_POR_DEFECTO` y es **el mismo valor con el que
+rellenó la migración**: un expediente nuevo y uno de antes tienen que comportarse igual. Lo fija un
+test.
+
+##### La cabecera no se enteraba de lo que el pasajero acababa de subir
+
+`MisDocumentos` guardaba lo recién subido en `recienSubidos`, estado **suyo**, y la cabecera del
+panel la pinta el padre con lo que dice el **servidor**. Resultado: el pasajero subía su último
+documento, veía las tres filas ponerse verdes, y justo encima seguía un «Te falta alguno por
+mandar» en ámbar. Y recargar no lo arreglaba, porque la respuesta se cachea.
+
+Ahora el componente **emite `subido`** y el padre une eso a lo que dice el servidor. Antes del
+acordeón no pasaba: el estado compacto lo calculaba el propio componente con `subidos`, que ya
+incluía lo reciente. Se rompió al repartir la responsabilidad entre dos, y no lo vio nadie porque
+cada mitad, por separado, era correcta.
+
+⚠️ De paso se quitó un `defineExpose({ quedanPorSubir })` que **no leía nadie** —el padre no tiene
+un `ref` de plantilla sobre el componente—. Parecía que la cuenta viajaba hacia fuera y no viajaba.
+
+##### El panel nacía abierto aunque estuviera todo entregado
+
+El estado inicial se calculaba en el `setup`, donde `miIdentidad` todavía es `null` —se carga en
+`onMounted`—, así que siempre daba «le falta todo». Ahora se decide cuando **llega** la identidad, y
+una sola vez: con un `computed`, subir el último documento le cerraría el panel en las manos.
+
 ##### 🔥 `?? []` sobre un campo NUEVO le borró el panel a quien ya tenía la app abierta
 
 Salió a las horas de desplegar: el pasajero pulsaba «Cambiar», cancelaba el selector de archivos, y

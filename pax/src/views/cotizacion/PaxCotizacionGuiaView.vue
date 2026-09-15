@@ -239,9 +239,19 @@ const misBoletos = computed(() => store.miIdentidad?.documentos ?? []);
  */
 const documentosQuePide = computed(() => pedidosEfectivos(store.miIdentidad?.documentosPedidos));
 
-const documentosPendientes = computed(
-  () => faltanDocumentos(store.miIdentidad?.documentosEnviados, documentosQuePide.value),
-);
+/**
+ * Lo que ha mandado en ESTA sesión, que el servidor todavía no cuenta.
+ *
+ * ⚠️ La respuesta se cachea, así que sin esto la cabecera seguía en ámbar diciendo «te falta
+ * alguno» **con las tres filas ya en verde justo debajo**. Se une a lo que dice el servidor en vez
+ * de sustituirlo: lo de antes sigue siendo cierto.
+ */
+const subidosAhora = ref<string[]>([]);
+
+const documentosPendientes = computed(() => faltanDocumentos(
+  [...(store.miIdentidad?.documentosEnviados ?? []), ...subidosAhora.value],
+  documentosQuePide.value,
+));
 
 /**
  * Qué acordeón nace abierto.
@@ -254,9 +264,22 @@ const documentosPendientes = computed(
  * - Boletos: abierto. Es lo que abre en la cola del aeropuerto, y ahí no se busca, se enseña.
  * - Grupos y vuelos: cerrado. Es referencia, y son cuatro tarjetas que empujarían el resto.
  */
-const documentosAbiertos = ref(
-  faltanDocumentos(store.miIdentidad?.documentosEnviados, store.miIdentidad?.documentosPedidos),
-);
+/**
+ * ⚠️ **Se decide cuando LLEGA la identidad, no en el `setup`.** Aquí `miIdentidad` todavía es
+ * `null` —se carga en `onMounted`—, así que evaluarlo ya daba «le falta todo» y el panel nacía
+ * abierto incluso con los tres documentos entregados. Justo lo contrario de lo que promete.
+ *
+ * Y se decide UNA sola vez (`decidido`): a partir de ahí manda el usuario. Con un `computed`,
+ * subir el último documento le cerraría el panel en las manos.
+ */
+const documentosAbiertos = ref(false);
+let decidido = false;
+
+watch(() => store.miIdentidad, (identidad) => {
+  if (decidido || !identidad) return;
+  decidido = true;
+  documentosAbiertos.value = faltanDocumentos(identidad.documentosEnviados, identidad.documentosPedidos);
+}, { immediate: true });
 const boletosAbiertos = ref(true);
 
 /** «CUZ → LIM». Si no hay vuelo —un adjunto suyo que no es de vuelo— se cae al nombre. */
@@ -1485,7 +1508,8 @@ const adelantoVista = computed(() => {
                          :tono="documentosPendientes ? 'pendiente' : 'listo'">
             <MisDocumentos :localizador="props.localizador"
                            :ya-enviados="store.miIdentidad.documentosEnviados"
-                           :pedidos="documentosQuePide" />
+                           :pedidos="documentosQuePide"
+                           @subido="subidosAhora.push($event)" />
           </PanelPlegable>
 
           <!-- ── SUS TARJETAS DE EMBARQUE ───────────────────────────────
