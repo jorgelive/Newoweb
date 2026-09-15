@@ -1554,12 +1554,22 @@ const adelantoVista = computed(() => {
                   </ul>
                 </template>
                 <!-- El código es lo único que de verdad es de esta persona: su localizador, su
-                     asiento. Se pinta en monoespaciado porque se copia y se dicta. -->
-                <p v-if="sg.codigo" class="text-xs font-mono font-black text-[#376875] tracking-wider mt-1.5">
-                  {{ sg.codigo }}
-                </p>
-                <p v-else-if="sg.nombre && sg.clave && sg.nombre !== sg.clave"
-                   class="text-[11px] font-bold text-slate-400 font-mono mt-1.5">{{ sg.clave }}</p>
+                     asiento. Se pinta en monoespaciado porque se copia y se dicta.
+
+                     🔥 **Y ahora dice QUÉ ES.** Salía a pelo —«QYLS7T»— y un código de seis letras
+                     sin etiqueta no significa nada para quien viaja: se leía como un identificador
+                     interno nuestro. Es justo el dato que la aerolínea le va a pedir por teléfono
+                     y el que necesita para entrar a su reserva en la web. La etiqueta va encima y
+                     no delante para que el código siga siendo lo grande de la línea. -->
+                <template v-if="sg.codigo || (sg.nombre && sg.clave && sg.nombre !== sg.clave)">
+                  <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-2">
+                    {{ maestroStore.t('cot_codigo_reserva') || 'Código de reserva (PNR)' }}
+                  </p>
+                  <p v-if="sg.codigo" class="text-xs font-mono font-black text-[#376875] tracking-wider">
+                    {{ sg.codigo }}
+                  </p>
+                  <p v-else class="text-[11px] font-bold text-slate-400 font-mono">{{ sg.clave }}</p>
+                </template>
 
                 <!-- ═══ LOS TRAMOS ═══
                      🔥 El operador ve esto en su manifiesto y el pasajero no lo veía: «Copa Airlines ·
@@ -1567,9 +1577,19 @@ const adelantoVista = computed(() => {
                      ni desde dónde** — que es lo que se busca la noche antes.
                      Y el itinerario del viaje no vale aquí: el vuelo es de SU subgrupo, no del grupo
                      entero. Por eso va en «Lo tuyo». -->
-                <div v-if="sg.vuelos?.length" class="mt-2 pt-2 border-t border-slate-200/70 space-y-1">
+                <div v-if="sg.vuelos?.length" class="mt-2 pt-2 border-t border-slate-200/70">
+                  <!-- ⚠️ La etiqueta va UNA vez encima de la lista, no en cada fila. Repetir
+                       «Número de vuelo:» en los cuatro tramos de un Copa se come el ancho del
+                       móvil y empuja la ruta y las horas a una segunda línea cada una — y lo que
+                       se viene a leer aquí es el horario, no el rótulo. Encima funciona como
+                       cabecera de columna, porque el número es lo primero de cada fila. -->
+                  <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                    {{ sg.vuelos.length > 1
+                      ? (maestroStore.t('cot_numeros_vuelo') || 'Números de vuelo')
+                      : (maestroStore.t('cot_numero_vuelo') || 'Número de vuelo') }}
+                  </p>
                   <p v-for="(v, k) in sg.vuelos" :key="k"
-                     class="flex items-baseline gap-1.5 text-[11px] leading-snug flex-wrap">
+                     class="flex items-baseline gap-1.5 text-[11px] leading-snug flex-wrap mt-1 first:mt-0">
                     <span class="font-mono font-black text-slate-600">{{ v.numero }}</span>
                     <span class="text-slate-400">{{ fechaDeVuelo(v.salida) }}</span>
                     <span class="font-black text-slate-700">{{ horaDeVuelo(v.salida) }}</span>

@@ -1284,6 +1284,38 @@ interruptor por expediente), no quitar el tipo.
 `DOCUMENTOS_PEDIDOS` en `pax/.../MisDocumentos.vue`. Y **regenerar `dominio/api.d.ts`**, porque el
 enum viaja en el esquema.
 
+#### El PNR y los vuelos dicen QUÉ son (14/09/2026)
+
+El localizador salía a pelo —«QYLS7T»— y los tramos empezaban con un «CM264» sin más. Un código de
+seis letras sin etiqueta no significa nada para quien viaja: se lee como un identificador interno
+nuestro, cuando es **justo lo que la aerolínea le pide por teléfono** y lo que necesita para entrar
+a su reserva en la web. Ahora llevan «Código de reserva (PNR)» y «Número(s) de vuelo».
+
+⚠️ **La etiqueta de los vuelos va UNA vez encima de la lista, no en cada fila.** Repetir «Número de
+vuelo:» en los cuatro tramos de un Copa se come el ancho del móvil y empuja la ruta y las horas a
+una segunda línea cada una — y lo que se viene a leer aquí es el horario, no el rótulo. Encima
+funciona como cabecera de columna, porque el número es lo primero de cada fila.
+
+⚠️ Singular y plural son **dos claves**, no una con un contador: hay idiomas de los siete en los que
+cambia la frase entera, no sólo la `s`.
+
+🔥 **Y al ir a sembrarlas apareció una deuda propia.** Comparando las claves que usa la vista contra
+`pax_ui_i18n` salieron **tres que se escribieron el mismo día de los acordeones y nunca se
+sembraron** (`cot_mis_grupos`, `cot_mis_grupos_vuelos`, `cot_mis_documentos_faltan`): llevaban desde
+entonces enseñando el español a los siete idiomas.
+
+**Ese hueco no se ve.** El front las pide con `t('clave') || 'respaldo en español'`, así que una
+clave que no existe **no rompe nada** — se descubre mirando la pantalla en otro idioma, o
+comparando las claves usadas contra la tabla. Conviene hacer esa comparación al añadir cadenas:
+
+```bash
+grep -o "maestroStore\.t('[a-z_]*')" pax/src/views/... | sed "s/.*t('//;s/')//" | sort -u
+```
+
+Las siembra `pax:textos:lo-tuyo` (idempotente, con `--dry-run`). Por comando y no por SQL porque
+`UiI18n::$contenido` lleva `#[AutoTranslate]` y ese listener cuelga de `prePersist`: un `INSERT`
+directo se lo salta y la cadena nace sólo en español.
+
 #### La cabecera nombra a la persona y enseña sus números (14/09/2026)
 
 El nombre iba de rastro gris detrás del rótulo —«LO TUYO · Santiago Ariel Gomez Acuña»— cuando es
@@ -1420,6 +1452,7 @@ el orden con sentido lo pone quien pinta, que ya tiene el índice de nombres mon
 | Cambiar el orden de las tarjetas de «Lo tuyo» | `CotizacionFilePublicProvider` | `ordenarSubgrupos()` |
 | Añadir o quitar una sección de «Lo tuyo» | `pax/.../PaxCotizacionGuiaView.vue` | un `<PanelPlegable>` más en la columna |
 | Cambiar el aspecto de los tres acordeones | `pax/.../PanelPlegable.vue` | la cabecera |
+| Añadir una cadena de UI a `pax` | `src/Pax/Command/PaxCrearTextos*Command.php` | un comando nuevo, **nunca SQL** (`#[AutoTranslate]`) |
 | Cambiar qué documentos de identidad se le enseñan | `CotizacionFilePublicProvider` | `identificacionesDe()` + `DocumentoTipoEnum::esDocumentoDeViaje()` |
 | Cambiar qué documentos se le piden al pasajero | `pax/.../MisDocumentos.vue` | `DOCUMENTOS_PEDIDOS` (lo lee también la vista) |
 | Añadir un tipo de adjunto | `ArchivoTipoEnum` + los dos espejos TS + `npm run gen:api` | todos los `match` del enum |
