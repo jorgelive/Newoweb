@@ -3483,17 +3483,22 @@ const eliminarDocumento = async (iri?: string) => {
                  a diario. El contador va en la cabecera para que plegada no se lea como vacía. -->
             <!-- `border-slate-200` explícito: `border-b` a secas usa el gris por defecto de Tailwind,
                  que aquí sale casi negro y compite con el título en vez de separarlo. -->
-            <div class="flex items-center justify-between border-b border-slate-200 pb-3"
+            <!-- ⚠️ `flex-wrap` y un ancho mínimo para el título: en un móvil los tres botones de
+                 acción le comían el sitio y se montaban ENCIMA de «Bóveda Digital». El `h2` no
+                 lleva `truncate` —un título recortado tampoco serviría—, así que desbordaba por
+                 debajo de ellos. Cuando no caben en la misma línea, los botones bajan y el título
+                 se queda entero. -->
+            <div class="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3"
                  :class="bovedaAbierta ? 'mb-4' : ''">
               <button type="button" @click="bovedaAbierta = !bovedaAbierta"
-                      class="flex items-center gap-2 min-w-0 flex-1 text-left group">
+                      class="flex items-center gap-2 min-w-0 flex-1 basis-40 text-left group">
                 <i class="fas fa-folder-open text-sky-500"></i>
                 <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest">Bóveda Digital</h2>
                 <span class="text-[10px] font-bold text-slate-400">{{ (file?.filearchivos ?? []).length }}</span>
                 <i class="fas text-[10px] text-slate-300 group-hover:text-slate-500 transition-colors"
                    :class="bovedaAbierta ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
               </button>
-              <div v-if="bovedaAbierta" class="flex items-center gap-1 shrink-0">
+              <div v-if="bovedaAbierta" class="flex items-center gap-1 shrink-0 ml-auto">
                 <!-- Los documentos que no son de nadie. Va aquí y no en el manifiesto porque el
                      problema es del archivo —«¿de quién es esto?»— y no de la persona. -->
                 <button @click="abrirPanelSueltos" class="bg-amber-100 text-amber-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-200">

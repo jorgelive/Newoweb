@@ -875,6 +875,30 @@ la identidad, y sin ellos no hay a quién escribir. Lo parte el prop `organizaci
 compararlo en el navegador daría «semilla» cuando sí hay identidad —lo normal es que ambos
 valores coincidan—.
 
+## 3.h.bis Botones de acción que tapan su propio título (15/09/2026)
+
+La cabecera de la Bóveda es `flex items-center justify-between`: el título a la izquierda, tres
+botones de acción a la derecha. En un móvil estrecho los botones —que son `shrink-0`— se quedan con
+el ancho y el `<h2>` **queda debajo de ellos**, ilegible.
+
+⚠️ **Y `truncate` no lo arregla**, que es la reacción automática: un título recortado a «BÓVE…»
+tampoco sirve. Lo que hay que hacer es dejar de pelear por la misma línea.
+
+**El patrón:** `flex-wrap` en el contenedor, una `basis` mínima en el título, y `ml-auto` en el
+grupo de botones. Mientras caben van a la derecha como siempre; cuando no, bajan enteros a la línea
+siguiente y el título se queda completo.
+
+```html
+<div class="flex flex-wrap items-center gap-2 …">
+  <button class="flex items-center gap-2 min-w-0 flex-1 basis-40 …">…título…</button>
+  <div class="flex items-center gap-1 shrink-0 ml-auto">…acciones…</div>
+</div>
+```
+
+Es el mismo arreglo que necesitó la cabecera de «Lo tuyo» en `pax`, donde «No soy yo» le comía el
+sitio al nombre. Cuando un título y unas acciones comparten fila, en móvil **no caben**: es la regla,
+no la excepción.
+
 ## 3.i Un modal en el móvil: `dvh`, no `vh` (2026-08-24)
 
 Reportado desde un móvil: al tocar un campo del modal «Aperturar Expediente», el teclado tapaba
