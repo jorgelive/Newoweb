@@ -191,6 +191,15 @@ class CotizacionFileGrupo
      * Lado inverso del puente que posee {@see CotizacionVuelo}: no añade tabla ni columna, sólo
      * permite preguntar desde el PNR —que es como se pregunta— en vez de recorrer los vuelos.
      *
+     * ⚠️ **No se serializa, ni de entrada ni de salida.** De SALIDA arrastraría
+     * `grupo → vuelo → file → vuelos → grupo` y el serializador cortaría con una
+     * `CircularReferenceException` —el mismo motivo por el que el vuelo publica
+     * {@see CotizacionVuelo::getPnrs()} en vez de sus grupos—. Y de ENTRADA no serviría:
+     * `CotizacionVuelo` no es un `ApiResource`, así que no tiene IRI que denormalizar.
+     *
+     * El enlace se edita por {@see \App\Api\Controller\Cotizacion\GrupoVuelosController}, que
+     * habla en UUID. Para LEERLO, la pantalla cruza la clave del PNR contra `pnrs`.
+     *
      * @var Collection<int, CotizacionVuelo>
      */
     #[ORM\ManyToMany(targetEntity: CotizacionVuelo::class, mappedBy: 'grupos')]
@@ -307,6 +316,38 @@ class CotizacionFileGrupo
 
     /** @return Collection<int, CotizacionVuelo> */
     public function getVuelos(): Collection { return $this->vuelos; }
+
+    /**
+     * 🔥 **Sincroniza el lado DUEÑO, y por eso existe.**
+     *
+     * `$vuelos` es `mappedBy`: el puente lo posee {@see CotizacionVuelo::$grupos}. Añadir aquí sin
+     * tocar el otro lado **no escribe nada en la base** — el `flush()` corre, no da error, y el
+     * enlace sencillamente no aparece. Es el fallo mudo que abre el CLAUDE.md de este proyecto, y
+     * aquí es más fácil de cometer porque la colección se llena en memoria y todo parece correcto
+     * hasta que se recarga la página.
+     *
+     * API Platform llama a este método al deserializar la colección, así que basta con que la
+     * pareja esté bien puesta aquí.
+     */
+    public function addVuelo(CotizacionVuelo $vuelo): self
+    {
+        if (!$this->vuelos->contains($vuelo)) {
+            $this->vuelos->add($vuelo);
+        }
+
+        // El lado dueño: sin esto, lo de arriba es decorativo.
+        $vuelo->addGrupo($this);
+
+        return $this;
+    }
+
+    public function removeVuelo(CotizacionVuelo $vuelo): self
+    {
+        $this->vuelos->removeElement($vuelo);
+        $vuelo->removeGrupo($this);
+
+        return $this;
+    }
 
     public function isEmitido(): bool { return $this->emitido; }
     /** @return list<string> */

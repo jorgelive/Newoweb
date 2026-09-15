@@ -560,6 +560,25 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * Qué tramos vuela una reserva aérea. Espejo de `GrupoVuelosController`.
+     *
+     * ⚠️ Manda la lista COMPLETA y el servidor la deja así: lo marcado ES el estado. Un «añadir» y
+     * un «quitar» por separado obligarían a la pantalla a llevar la cuenta de lo que cambió.
+     *
+     * ⚠️ Y habla en UUID, no en IRI: `CotizacionVuelo` no es un `ApiResource`.
+     */
+    const asignarVuelosAGrupo = async (grupoId: string, vuelos: string[]): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.patch(`/cotizacion/user/grupos/${grupoId}/vuelos`, { vuelos });
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudieron asignar los vuelos.');
+            return false;
+        }
+    };
+
     const updateFile = async (iri: string, payload: Partial<ApiCotizacionFileWrite>): Promise<ApiCotizacionFile | null> => {
         loadingFiles.value = true;
         error.value = null;
@@ -952,6 +971,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         setEstadoFiltro,
         fetchIdiomas,
         createFile,
+        asignarVuelosAGrupo,
         updateFile,
         uploadDocument,
         planificarZip,

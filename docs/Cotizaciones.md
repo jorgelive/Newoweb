@@ -1229,6 +1229,41 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### Asignar tramos a UNA reserva, sin reescribir el JSON (15/09/2026)
+
+**El caso que lo pedía:** a un pasajero lo sacan de su PNR y se le abre uno propio. Se crea el
+subgrupo, se le asigna la persona… y el vínculo con los vuelos sólo se podía declarar **reescribiendo
+el JSON de carga entero** — la herramienta que existe para cuando la aerolínea manda 24
+localizadores de golpe.
+
+⚠️ **Y lo que pasa cuando algo cuesta eso es que no se hace.** Entonces el pasajero abre su app y no
+ve ningún vuelo: ni error, ni aviso, una tarjeta vacía.
+
+Ahora se marca con casillas en el formulario del subgrupo (el lápiz de «Subgrupos»).
+
+**Dónde vive y por qué ahí:** en la **reserva**, no en el formulario del vuelo.
+`VueloEditarController` ya decía que ese formulario corrige el HECHO —a qué hora sale— y no a quién
+le pasa; declarar el vínculo en los dos sitios daría dos maneras de cambiar lo mismo.
+
+⚠️ 🔥 **`CotizacionFileGrupo::$vuelos` es el lado `mappedBy`: escribirlo solo NO persiste nada.** El
+puente lo posee `CotizacionVuelo::$grupos`. Por eso `addVuelo()`/`removeVuelo()` sincronizan el lado
+dueño — sin eso el `flush()` corre, no da error, y el enlace sencillamente no aparece al recargar.
+Es el fallo mudo que abre el CLAUDE.md, y aquí engaña más porque la colección sí se llena en memoria.
+
+⚠️ **Y no se serializa en ninguna dirección.** De salida arrastraría `grupo → vuelo → file → vuelos
+→ grupo` (la misma `CircularReferenceException` de siempre); de entrada no serviría porque
+`CotizacionVuelo` **no es un `ApiResource`** y no tiene IRI que denormalizar. Por eso el enlace va
+por `GrupoVuelosController`, que habla en **UUID**, y la pantalla lo LEE cruzando la clave del PNR
+contra `pnrs`.
+
+**El endpoint reemplaza, no acumula:** se manda la lista completa y queda así. Lo marcado ES el
+estado; un «añadir» y un «quitar» por separado obligarían a la pantalla a llevar la cuenta de lo que
+cambió.
+
+🔥 **Y comprueba que el vuelo sea de ESE expediente.** Sin eso, un id de otro expediente enlazaría
+un tramo ajeno: el pasajero vería en su app un vuelo con hora y puerta que no es suyo, y nada lo
+delataría después.
+
 #### 🔥 Guardar un expediente con vuelos daba 500 — y el dato SÍ se guardaba (15/09/2026)
 
 Salió al estrenar el selector de «Qué se pide», pero **no era del selector**: lo arrastraba

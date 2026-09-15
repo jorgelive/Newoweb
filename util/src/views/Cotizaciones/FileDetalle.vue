@@ -2693,11 +2693,41 @@ const modoGestionGrupos = ref(false);
  */
 const grupoEditando = ref<string | null>(null);
 const grupoForm = ref({ tipo: '', subeje: '', clave: '', nombre: '', detalle: '', emitido: true });
+
+/**
+ * Qué tramos vuela esta reserva.
+ *
+ * 🔥 **Existe porque sacar a UNA persona de su PNR era carísimo.** Se le abre un subgrupo nuevo,
+ * se le asigna, y hasta ahora el vínculo con los vuelos sólo se podía declarar reescribiendo el
+ * JSON de carga entero — la herramienta que existe para cuando la aerolínea manda 24 localizadores
+ * de golpe. Para un código es desproporcionado, y quien tiene que hacerlo a las once de la noche
+ * acaba no haciéndolo: entonces el pasajero abre su app y no ve ningún vuelo.
+ *
+ * ⚠️ Lo que se lee viene de `pnrs`, que el vuelo publica; lo que se escribe va por UUID al
+ * `GrupoVuelosController`. La colección del subgrupo no se serializa en ninguna dirección — ver el
+ * aviso de `CotizacionFileGrupo::$vuelos`.
+ */
+const grupoVuelos = ref<string[]>([]);
+
+/** Los vuelos del expediente, que son las opciones. Ya vienen ordenados por salida. */
+const vuelosDelExpediente = computed(() => file.value?.vuelos ?? []);
+
+const alternarVueloDelGrupo = (id: string) => {
+    const i = grupoVuelos.value.indexOf(id);
+    if (i >= 0) { grupoVuelos.value.splice(i, 1); } else { grupoVuelos.value.push(id); }
+};
 const guardandoGrupo = ref(false);
 
 const editarGrupo = (g: ApiFileGrupo) => {
     grupoEditando.value = iriDeGrupoPlano(g);
     capas.abrir('grupo-edicion', () => { grupoEditando.value = null; });
+    // ⚠️ Se deduce de `pnrs` —lo que el vuelo publica— y no de la colección del subgrupo, que no
+    // se serializa. Es el mismo cruce que ya hace `vuelosDe()`.
+    grupoVuelos.value = (file.value?.vuelos ?? [])
+        .filter(v => (v.pnrs ?? []).includes(String(g.clave ?? '')))
+        .map(v => extractIdStr(v.id))
+        .filter(Boolean);
+
     grupoForm.value = {
         tipo: String(g.tipo ?? 'grupo'),
         subeje: g.subeje ?? '',
@@ -2725,6 +2755,16 @@ const guardarGrupo = async () => {
     guardandoGrupo.value = false;
 
     if (!ok) { alert(fileStore.error || 'No se pudo guardar el subgrupo.'); return; }
+
+    // ⚠️ Va DESPUÉS y en su propia llamada: el vínculo no viaja con el resto del subgrupo porque
+    // `CotizacionVuelo` no es un `ApiResource` y no tiene IRI. Sólo para reservas aéreas — el
+    // servidor rechaza lo demás, pero mandarlo sería pedir un error que ya sabemos.
+    if (String(grupoForm.value.tipo) === EJE_AEREO) {
+        const idGrupo = extractIdStr(grupoEditando.value);
+        if (idGrupo && !await fileStore.asignarVuelosAGrupo(idGrupo, grupoVuelos.value)) {
+            alert(fileStore.error || 'El subgrupo se guardó, pero no sus vuelos.');
+        }
+    }
 
     // Por la capa, como todos los cierres: así el «atrás» siguiente no consume una entrada
     // fantasma. Ver `useCapasEnHistorial`.
@@ -5428,6 +5468,48 @@ const eliminarDocumento = async (iri?: string) => {
 
                ⚠️ Vive en el SUBGRUPO y no en el vuelo: lo que se emite son los billetes de una
                reserva, y una reserva cubre ida y vuelta. Por eso el interruptor está aquí. -->
+          <!-- ── QUÉ TRAMOS VUELA ESTA RESERVA ───────────────────────────
+               🔥 Antes esto sólo se podía declarar reescribiendo el JSON de carga entero, que es
+               la herramienta para cuando la aerolínea manda 24 localizadores de golpe. Para el
+               caso corriente —a alguien lo sacan de su PNR y se le abre uno propio— era
+               desproporcionado, y lo que pasa entonces es que no se hace: el pasajero abre su app
+               y no ve ningún vuelo.
+
+               ⚠️ Va aquí, en la RESERVA, y no en el formulario del vuelo: ahí se corrige el hecho
+               —a qué hora sale—, no a quién le pasa. Declararlo en los dos sitios daría dos
+               maneras de cambiar lo mismo. -->
+          <div v-if="String(grupoForm.tipo) === EJE_AEREO && vuelosDelExpediente.length"
+               class="rounded-xl border border-slate-200 p-3">
+            <p class="text-[11px] font-black text-slate-700 uppercase tracking-wide mb-1">Tramos de esta reserva</p>
+            <p class="text-[10px] text-slate-400 leading-snug mb-2">
+              Lo marcado es lo que verán en su app quienes estén en este PNR. Los vuelos ya existen
+              en el expediente: esto sólo dice cuáles son de esta reserva.
+            </p>
+
+            <div class="space-y-1 max-h-56 overflow-y-auto">
+              <label v-for="v in vuelosDelExpediente" :key="extractIdStr(v.id)"
+                     class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-indigo-300">
+                <input type="checkbox"
+                       :checked="grupoVuelos.includes(extractIdStr(v.id))"
+                       @change="alternarVueloDelGrupo(extractIdStr(v.id))">
+                <span class="min-w-0 flex flex-wrap items-baseline gap-x-1.5 text-[11px] leading-snug">
+                  <span class="font-mono font-black text-slate-700">{{ v.numero }}</span>
+                  <span class="text-slate-400">{{ (v.salida || '').slice(0, 10) }}</span>
+                  <span class="font-bold text-slate-500">{{ v.origen }} → {{ v.destino }}</span>
+                  <!-- Los PNR que YA lo vuelan: dice con quién se comparte el tramo, que es lo
+                       que se quiere saber al reubicar a alguien. -->
+                  <span v-if="(v.pnrs || []).length" class="text-[10px] text-slate-300 font-mono">
+                    · {{ (v.pnrs || []).join(' ') }}
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            <p class="text-[10px] font-bold text-slate-400 mt-2">
+              {{ grupoVuelos.length }} de {{ vuelosDelExpediente.length }} marcados
+            </p>
+          </div>
+
           <div v-if="String(grupoForm.tipo) === EJE_AEREO" class="rounded-xl border border-slate-200 p-3">
             <label class="flex items-start gap-3 cursor-pointer">
               <input v-model="grupoForm.emitido" type="checkbox" class="mt-0.5 w-4 h-4 accent-teal-600">
