@@ -1304,6 +1304,22 @@ Número de vuelo: JA7018
 El horario baja a su propia línea y va **indentado**: se lee como el detalle de ESE vuelo y no como
 otro dato de la misma altura. Con los cuatro tramos de un Copa sigue cabiendo en un móvil.
 
+⚠️ **El rótulo del código depende del EJE.** «PNR» es jerga aérea: un código de habitación o de
+grupo no es ninguna reserva aérea, y llamarlo así manda al pasajero a buscar algo que no existe. En
+`reserva_aerea` dice «Código de reserva (PNR)»; en los demás, «Código de grupo». Lo decide
+`esSubgrupoAereo()`, que mira el **eje** y no `vuelos.length`: un subgrupo aéreo sin tramos
+cargados todavía sigue teniendo PNR, y con la otra comprobación se le llamaría «código de grupo»
+justo mientras se monta el expediente.
+
+**Y lo que destaca cambió de sitio, dos veces:**
+
+- **El subeje, no el eje.** «VUELO» iba en gris medio e «INTERNACIONAL» aún más claro — al revés de
+  lo que hace falta. Con dos tarjetas de vuelo pegadas, lo único que las distingue es
+  nacional/internacional, así que era justo lo que menos se veía.
+- **El código, no su rótulo.** Salía como un renglón más entre grises. Ahora va en una **pastilla**
+  enmarcada: es el dato que se dicta por teléfono y se teclea en la web de la aerolínea, y
+  enmarcado se lee como lo que es —algo que se copia—.
+
 ⚠️ Por eso `cot_numeros_vuelo` (el plural) quedó **sembrado y sin usar**: venía de la versión con
 cabecera. Se deja en la tabla —está traducido y no estorba— por si vuelve a hacer falta.
 

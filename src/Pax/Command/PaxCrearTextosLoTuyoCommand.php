@@ -59,7 +59,10 @@ final class PaxCrearTextosLoTuyoCommand extends Command
         'cot_mis_documentos_faltan' => 'Te falta alguno por mandar.',
 
         // Las etiquetas de los datos del subgrupo.
+        // ⚠️ «PNR» **sólo en los vuelos**: es jerga aérea, y un código de habitación o de grupo
+        // no es ninguna reserva aérea. Llamarlo PNR manda a buscar algo que no existe.
         'cot_codigo_reserva' => 'Código de reserva (PNR)',
+        'cot_codigo_grupo' => 'Código de grupo',
         'cot_numero_vuelo' => 'Número de vuelo',
         'cot_numeros_vuelo' => 'Números de vuelo',
     ];

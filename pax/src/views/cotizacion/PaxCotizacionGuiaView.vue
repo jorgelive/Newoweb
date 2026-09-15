@@ -249,6 +249,15 @@ const boletosAbiertos = ref(true);
 const rutaDe = (d: { origen?: string | null; destino?: string | null }) =>
   d.origen && d.destino ? `${d.origen} → ${d.destino}` : '';
 
+/**
+ * ¿Este subgrupo es una reserva aérea?
+ *
+ * ⚠️ Espejo de `GrupoTipoEnum::RESERVA_AEREA`. Se mira el EJE y no `vuelos.length`: un subgrupo
+ * aéreo al que todavía no se le han cargado los tramos sigue teniendo PNR, y con la otra
+ * comprobación se le llamaría «código de grupo» justo mientras se está montando el expediente.
+ */
+const esSubgrupoAereo = (sg: { eje?: string | null }): boolean => sg.eje === 'reserva_aerea';
+
 /** ¿Alguno de sus subgrupos trae tramos? Decide cómo se llama el botón que los esconde. */
 const tengoVuelos = computed(() =>
   (store.miIdentidad?.subgrupos ?? []).some(sg => (sg.vuelos?.length ?? 0) > 0));
@@ -1517,8 +1526,14 @@ const adelantoVista = computed(() => {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
               <div v-for="(sg, i) in store.miIdentidad.subgrupos" :key="i"
                    class="bg-slate-50/60 border border-slate-100 rounded-2xl p-3.5">
-                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  {{ sg.ejeLabel }}<span v-if="sg.subeje" class="text-slate-300"> · {{ sg.subeje }}</span>
+                <!-- ⚠️ **El SUBEJE es lo que destaca, no el eje.** Iba al revés: «VUELO» en gris
+                     medio y «INTERNACIONAL» aún más claro, cuando la palabra que distingue una
+                     tarjeta de la de al lado —y la que se busca— es justo la segunda. Con dos
+                     tarjetas de vuelo pegadas, lo único que las diferencia es nacional/
+                     internacional, así que era lo que menos se veía. -->
+                <p class="text-[10px] font-black uppercase tracking-widest">
+                  <span class="text-slate-400">{{ sg.ejeLabel }}</span><span
+                    v-if="sg.subeje" class="text-[#376875]"> · {{ sg.subeje }}</span>
                 </p>
                 <p class="font-black text-gray-800 text-sm leading-tight mt-1">
                   {{ sg.nombre || sg.clave }}
@@ -1561,14 +1576,28 @@ const adelantoVista = computed(() => {
                      interno nuestro. Es justo el dato que la aerolínea le va a pedir por teléfono
                      y el que necesita para entrar a su reserva en la web. La etiqueta va encima y
                      no delante para que el código siga siendo lo grande de la línea. -->
+                <!-- ⚠️ **«PNR» sólo en los vuelos.** Es jerga aérea: un código de habitación o de
+                     grupo no es ninguna reserva aérea, y llamarlo PNR manda al pasajero a buscar
+                     algo que no existe. En los demás ejes es «Código de grupo». -->
                 <template v-if="sg.codigo || (sg.nombre && sg.clave && sg.nombre !== sg.clave)">
                   <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-2">
-                    {{ maestroStore.t('cot_codigo_reserva') || 'Código de reserva (PNR)' }}
+                    {{ esSubgrupoAereo(sg)
+                      ? (maestroStore.t('cot_codigo_reserva') || 'Código de reserva (PNR)')
+                      : (maestroStore.t('cot_codigo_grupo') || 'Código de grupo') }}
                   </p>
-                  <p v-if="sg.codigo" class="text-xs font-mono font-black text-[#376875] tracking-wider">
-                    {{ sg.codigo }}
+                  <!-- 🔥 El código en una PASTILLA. Es el dato que se dicta por teléfono y se
+                       teclea en la web de la aerolínea, y salía como un renglón más entre rótulos
+                       grises. Enmarcado se lee como lo que es: algo que se copia. -->
+                  <p class="mt-0.5">
+                    <span v-if="sg.codigo"
+                          class="inline-block bg-white border border-[#376875]/25 rounded-lg px-2 py-0.5 text-sm font-mono font-black text-[#376875] tracking-wider">
+                      {{ sg.codigo }}
+                    </span>
+                    <span v-else
+                          class="inline-block bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs font-mono font-black text-slate-500 tracking-wider">
+                      {{ sg.clave }}
+                    </span>
                   </p>
-                  <p v-else class="text-[11px] font-bold text-slate-400 font-mono">{{ sg.clave }}</p>
                 </template>
 
                 <!-- ═══ LOS TRAMOS ═══
