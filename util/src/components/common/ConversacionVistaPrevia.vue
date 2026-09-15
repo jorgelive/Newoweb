@@ -341,12 +341,27 @@ const ventanaAbierta = computed(() => conversacionActual.value?.whatsappSessionA
       <div v-if="abierta && modo === 'fijado'" class="fixed inset-0 z-[1000]" @click="emit('cerrar')"></div>
     </Teleport>
 
+    <!-- 🔥 **El panel va al `body` TAMBIÉN, y por encima del velo.**
+         Se teletransportó el velo y el panel se quedó atrás: el velo acababa en `<body>` con
+         `z-1000` y el panel anidado con `z-500`, así que el velo —que es invisible— tapaba el
+         panel entero. Se veía perfecto y no se podía pulsar nada: cada toque lo recogía el velo,
+         que sólo sabe cerrar. Desde fuera, «Ir al chat» no hacía nada.
+
+         ⚠️ Es el fallo más traicionero de un `z-index`: **no se nota mirando la pantalla**. Sólo
+         aparece al intentar pulsar, y el síntoma —se cierra— es indistinguible de «funciona
+         regular». Con los dos en `<body>` comparten contexto de apilamiento y el número decide de
+         verdad; anidado, el número no se comparaba con nada.
+
+         ⚠️ Y hay que teletransportarlo por el mismo motivo que el velo: este componente se monta
+         dentro del calendario, del chat y del portal, y cualquier ancestro con `transform`,
+         `filter` o `sticky` encierra un `fixed`. -->
+    <Teleport to="body">
     <Transition name="fade-scale">
         <div v-if="abierta" ref="panel"
             :style="{ top: pos.y + 'px', left: pos.x + 'px' }"
             @mouseenter="alEntrar"
             @mouseleave="cerrarConMargen"
-            class="fixed z-500 w-72 md:w-80 max-h-[26rem] flex flex-col bg-white border border-slate-200
+            class="fixed z-[1001] w-72 md:w-80 max-h-[26rem] flex flex-col bg-white border border-slate-200
                    shadow-2xl rounded-2xl origin-top-left overflow-hidden">
 
             <!-- CABECERA: de quién es esto. Antes decía sólo «Vista Previa», que es
@@ -443,4 +458,5 @@ const ventanaAbierta = computed(() => conversacionActual.value?.whatsappSessionA
             </div>
         </div>
     </Transition>
+    </Teleport>
 </template>

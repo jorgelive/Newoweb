@@ -33,9 +33,43 @@ ancestros tendrá. Los modales que viven en la raíz de su vista no lo necesitan
 | Qué | Veredicto |
 |---|---|
 | Modales de vistas con `z-1000` en su raíz | Correctos. No los toques |
-| `EditConversationModal`, `MisDocumentos`, `ConversacionVistaPrevia` | **Arreglados**: `Teleport` + banda 1000 |
+| `EditConversationModal`, `MisDocumentos`, `ConversacionVistaPrevia` | **Arreglados**: `Teleport` + banda 1000 — ⚠️ pero en `ConversacionVistaPrevia` se teletransportó **sólo el velo**, y eso dejó el panel debajo. Ver más abajo |
 | `WysiwygEditor`, `AppSwitcher`, `InfoTooltip` (`z-[60]`) | Ya se teletransportan; el 60 es su propia banda de flotantes sobre modal y funciona |
 | `TarifaEditDrawer`, `TarifaMasivaDrawer`, `ReservaEditDrawer` (`z-40`) | Fuera de banda, pero **montados en la raíz de su vista**: funcionan. Si algún día se mueven dentro de otro componente, hay que teleportarlos primero |
+
+### 🔥 Teletransportar el velo y dejar atrás el panel (14/09/2026)
+
+La auditoría de arriba arregló el velo de `ConversacionVistaPrevia` y **dio el componente por
+corregido**. Pero el velo y el panel son dos elementos, y sólo se movió uno:
+
+```
+velo   →  <Teleport to="body">  … fixed inset-0 z-[1000]
+panel  →  (anidado en la vista) … fixed z-500
+```
+
+Con el velo en `<body>` y el panel dentro del calendario, el velo —que es **invisible**— quedaba
+**encima del panel entero**. El panel se veía perfecto y no se podía pulsar nada: cada toque lo
+recogía el velo, que sólo sabe cerrar. Desde fuera, «Ir al chat» no hacía nada.
+
+⚠️ **Es el fallo más traicionero de un `z-index`: no se nota mirando la pantalla.** Sólo aparece al
+intentar pulsar, y el síntoma —se cierra— es indistinguible de «funciona regular». Nadie reporta
+«el botón cierra en vez de navegar»; se reporta «no funciona», meses después.
+
+⚠️ **Y el número engañaba al leerlo.** `z-500` y `z-[1000]` invitan a comparar 500 con 1000, pero
+mientras estén en contextos de apilamiento distintos **no se comparan con nada**. Teletransportar
+la mitad de un overlay no es medio arreglo: es un arreglo que crea el problema contrario.
+
+**La regla que faltaba:** *si teletransportas el velo, teletransporta el panel — van juntos o no
+van.* Y dales números contiguos en la misma banda (`1000` el velo, `1001` el panel) para que se
+lean como lo que son: una pareja.
+
+**Cómo se comprobó**, porque a ojo no se ve: un `document.elementFromPoint()` en el centro del
+botón, con las dos disposiciones y el CSS compilado de verdad.
+
+| Disposición | Quién recibe el toque |
+|---|---|
+| Antes — panel anidado, `z-500` | **el velo** ❌ sólo cierra |
+| Ahora — panel en `<body>`, `z-[1001]` | **el botón** ✅ navega |
 
 ⚠️ **`z-1000`, `z-400` y `z-200` SIN corchetes son clases válidas**, no una errata: Tailwind 4
 genera utilidades numéricas arbitrarias. Comprobado en el CSS desplegado —`.z-1000`, `.z-400`,
