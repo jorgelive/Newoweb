@@ -39,6 +39,43 @@ y no lo es**, porque con el recargo son 3 059,50.
 calculando —con el número de ayer, que es mejor que ninguno— en vez de enseñar un cero. Cuando
 llega la respuesta, gana ella.
 
+## Los campos sin fondo parecían deshabilitados (14/09/2026)
+
+El formulario de emisión vive sobre un panel tintado (`bg-[#376875]/5`) y sus campos se veían del
+color del panel: el operador no sabía que podía escribir ahí.
+
+**No era de este componente.** El Preflight de Tailwind v4 pone `background-color: transparent` a
+`button`, `input`, `select`, `optgroup` y `textarea` —«Remove background color in all browsers»—,
+así que **ningún campo de `util/` tiene fondo salvo que alguien se lo ponga a mano**. Sobre tarjeta
+blanca no se nota, y por eso llevaba tiempo así.
+
+🔥 **La prueba de que era un olvido y no un estilo:** los `<select>` de esos mismos formularios
+**sí** llevaban `bg-white` escrito a mano. Alguien lo notó en el select —donde el navegador lo hace
+más evidente— y no en el input de al lado.
+
+Se arregla en la capa `base` de `util/src/assets/main.css`, no campo por campo: son ~276 controles.
+
+⚠️ **`button` queda fuera a propósito** —ahí la transparencia se quiere, cada botón se pinta con
+sus utilidades— y también las casillas, radios, `range`, `color` y `file`: los dibuja el navegador
+y darles `background-color` les rompe el aspecto nativo (una casilla marcada deja de pintarse
+azul).
+
+⚠️ Lo que quiera ser transparente **sigue pudiendo**: `bg-transparent` es una utilidad y la capa
+`utilities` va DESPUÉS de `base`, así que gana sin depender de la especificidad. Los campos que ya
+lo hacen —el del asistente, el del chat, los de edición en línea del editor— siguen igual.
+
+⚠️ **`pax/` tiene el mismo Preflight y NO se ha tocado**: allí los campos viven sobre tarjetas
+blancas, así que hoy no se nota. El día que aparezca un formulario sobre un panel tintado, el
+arreglo es el mismo y va en su `main.css`.
+
+## «Crear enlace», no «Cobrar con tarjeta» (14/09/2026)
+
+El botón que abre el formulario **no cobra**: emite un enlace que el cliente pagará cuando quiera
+—o nunca—. El rótulo viejo prometía un cobro inmediato, y quien lo pulsaba esperando dejar la
+reserva pagada se encontraba con un formulario. La acción es la que nombra el botón; el medio ya lo
+dice el icono.
+
+
 ## 🔥 El tope antifraude de la pasarela, comprobado al EMITIR (08/09/2026)
 
 Culqi rechaza por encima de **3 000 USD** y **10 000 PEN** por operación. No es una política

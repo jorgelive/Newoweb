@@ -337,7 +337,12 @@ function fechaCorta(iso: string | null): string {
                  derecha se lee como un adorno del título. -->
             <button v-if="!formAbierto" type="button" @click="abrirForm()"
                 class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#376875] hover:bg-[#2d5660] text-white rounded-lg text-[11px] font-black">
-                <i class="fas fa-credit-card"></i> Cobrar con tarjeta
+                <!-- ⚠️ «Crear enlace» y no «Cobrar con tarjeta»: este botón NO cobra, emite un
+                     enlace que el cliente pagará cuando quiera —o nunca—. El rótulo viejo
+                     prometía un cobro inmediato, y el operador que lo pulsaba esperando dejar la
+                     reserva pagada se encontraba con un formulario. La acción es la que dice el
+                     botón; el medio ya lo dice el icono. -->
+                <i class="fas fa-link"></i> Crear enlace
             </button>
 
             <!-- ===== ATAJOS DE IMPORTE =====

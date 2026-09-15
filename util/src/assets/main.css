@@ -9,6 +9,42 @@
         /* Evita el scroll global para que el chat controle su propio scroll */
         overflow: hidden;
     }
+
+    /*
+     * 🔥 Los campos de formulario vuelven a tener FONDO.
+     *
+     * El Preflight de Tailwind v4 pone `background-color: transparent` a `button`, `input`,
+     * `select`, `optgroup` y `textarea` —«Remove background color in all browsers»—, así que en
+     * esta app **ningún campo tiene fondo salvo que alguien se lo ponga a mano**. Sobre una
+     * tarjeta blanca no se nota y por eso llevaba tiempo así; sobre un panel tintado —el
+     * `bg-[#376875]/5` del formulario de enlaces de pago— el campo se ve del color del panel y
+     * **se lee como deshabilitado**. El operador no sabe que puede escribir ahí.
+     *
+     * Se arregla aquí y no campo por campo: son ~276 controles en `util/`, y la prueba de que es
+     * un olvido y no un estilo es que los `<select>` de esos mismos formularios SÍ llevaban
+     * `bg-white` puesto a mano — alguien lo notó en el select, donde el navegador lo hace más
+     * evidente, y no en el input de al lado.
+     *
+     * ⚠️ `button` se queda fuera a propósito: ahí la transparencia sí se quiere, porque cada
+     * botón se pinta con sus propias utilidades.
+     *
+     * ⚠️ Y las casillas, radios, `range`, `color` y `file` también: son controles que el navegador
+     * dibuja él, y darles `background-color` les rompe el aspecto nativo —una casilla marcada
+     * deja de pintarse azul—.
+     *
+     * Lo que quiera ser transparente sigue pudiendo: `bg-transparent` es una utilidad, y la capa
+     * `utilities` va DESPUÉS de `base`, así que gana siempre sin depender de la especificidad. Los
+     * campos que ya lo hacen —el del asistente, el del chat, los de edición en línea del editor de
+     * cotizaciones— lo declaran explícitamente y siguen igual.
+     */
+    input:not(:is(
+        [type='checkbox'], [type='radio'], [type='range'], [type='color'],
+        [type='file'], [type='image'], [type='submit'], [type='button'], [type='reset']
+    )),
+    textarea,
+    select {
+        background-color: #fff;
+    }
 }
 
 /* Utilidad para ocultar barras de scroll pero permitir el desplazamiento (útil en el sidebar del chat) */
