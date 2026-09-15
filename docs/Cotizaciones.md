@@ -1229,15 +1229,28 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
-#### El e-ticket, cuarto documento que pide la app (14/09/2026)
+#### El E-Ticket dominicano, cuarto documento que pide la app (14/09/2026)
 
-`ArchivoTipoEnum::ETICKET`. Lo sube el **pasajero**, y es el único documento de vuelo que viaja de
-él hacia nosotros: el resto se los damos.
+`ArchivoTipoEnum::ETICKET`. Es el **formulario electrónico de entrada y salida de la Dirección
+General de Migración de República Dominicana**, con su código QR. Lo rellena el pasajero en la web
+oficial y lo descarga en PDF.
 
-⚠️ **No es el boarding pass, y por eso no entra en `BOLETO`.** El e-ticket es el comprobante de
-compra —sale al reservar y trae el localizador—; el boarding pass se emite en el check-in. Un mismo
-vuelo genera los dos, en momentos distintos. Con un solo tipo, «¿ya compró?» no se podría contestar
-sin abrir los ficheros uno a uno.
+🔥 **No es un billete de avión, y ése es el riesgo de todo esto.** «E-ticket» significa «billete
+electrónico» para cualquiera que lo lea, así que un rótulo a secas hace que medio grupo suba el
+billete del vuelo —tan campante, creyendo que cumplió— y el trámite migratorio se quede sin hacer
+**hasta que alguien lo descubre en el aeropuerto**. Por eso:
+
+- El rótulo lleva siempre el apellido: **«E-Ticket migratorio (Rep. Dominicana)»**. Se conserva
+  «E-Ticket» porque es como lo llama el gobierno dominicano y como lo va a buscar él; se le añade
+  «migratorio» porque sin eso significa otra cosa.
+- La ayuda lo niega explícitamente: «El PDF con el código QR que sale al llenar el formulario de
+  Migración dominicana. **No es el billete de avión.**»
+- Su icono es un **QR**, no una cámara ni un PDF genérico: es lo único que el pasajero reconoce del
+  documento cuando lo tiene delante.
+
+⚠️ **Vive junto a `AUTORIZACION`, no junto a `BOLETO`.** Los dos son permisos de frontera que hay
+que reunir antes de viajar; `BOLETO` es un documento de vuelo que damos nosotros. Eso ordena también
+la bóveda, porque el orden de `ARCHIVO_TIPO_LABELS` es el del enum.
 
 **Lo que NO hizo falta tocar**, y conviene saberlo antes de buscarlo:
 
@@ -1246,29 +1259,25 @@ sin abrir los ficheros uno a uno.
 | Migración | La columna es `varchar(20)` sin `CHECK`, y `eticket` son 7 caracteres |
 | El endpoint de subida | `SubirDocumentoPasajeroController` valida con `loSubeElPasajero()` y ya aceptaba `application/pdf` |
 | El conversor a webp | Sale antes de tiempo con lo que no es `image/*`, así que **un PDF no se toca** |
-| El selector de vuelo del operador | `ofreceVuelo` sólo lo ofrece para `boleto`, y está bien: un e-ticket cubre el itinerario entero, no un tramo |
+| El selector de vuelo del operador | `ofreceVuelo` sólo lo ofrece para `boleto`. Correcto: esto no cuelga de un tramo |
 
 **Las decisiones del enum, con su porqué:**
 
-- `loSubeElPasajero()` → **sí**. Es el punto.
-- `esDevolvibleAlPasajero()` → **no**, por lo mismo que el pasaporte: se lo mandó la aerolínea a su
-  correo, así que devolvérselo no le da nada que no tenga ya. Y hay una razón de pantalla: lo
-  devolvible sale bajo «Tus tarjetas de embarque», donde un comprobante de compra se leería como la
-  tarjeta que hay que enseñar en la puerta.
-- `esEscaneoDeIdentidad()` → **no**. No lleva identidad que cotejar, y casi siempre es un PDF
-  nativo: el filtro de alta fidelidad sería gasto por nada.
-- `mesesDeRetencion()` → **1 tras el retorno**, igual que el boarding pass y por lo mismo: nombre
-  completo, vuelo y **localizador**, que es con lo que se entra a la reserva en la web de la
-  aerolínea.
+- `loSubeElPasajero()` → **sí**. Sólo él puede hacer el trámite; nosotros no podemos emitirlo en su
+  nombre.
+- `esDevolvibleAlPasajero()` → **no**, por lo mismo que el pasaporte: lo descargó él y lo tiene en
+  el móvil. Y de paso lo mantiene fuera de «Tus tarjetas de embarque», donde un formulario
+  migratorio se leería como la tarjeta del gate.
+- `esEscaneoDeIdentidad()` → **no**: es un permiso, no una identidad; no hay número que cotejar
+  contra el manifiesto.
+- `mesesDeRetencion()` → **1 tras el retorno**: lleva nombre, número de pasaporte e itinerario, y
+  pasado el viaje ya cumplió su función.
 
-⚠️ **Se pide a TODO el mundo.** `DOCUMENTOS_PEDIDOS` es una lista única para todos los expedientes,
-así que en un viaje donde los vuelos los emite la agencia —el del colegio— los pasajeros verán que
-les falta un documento que no tienen. Fue una decisión consciente; el día que moleste, lo que hay
-que añadir es un interruptor por expediente, no quitar el tipo.
-
-⚠️ **La ayuda dice DÓNDE está, no qué es**: «El PDF que te mandó la aerolínea al comprar». «Sube tu
-e-ticket» suena a trámite; esto manda directo al correo, que es el único sitio donde está. Y el
-icono de su fila es un PDF y no una cámara — un e-ticket no se fotografía.
+⚠️ 🔥 **Es el único documento de la lista atado a UN DESTINO, y se pide a TODO el mundo.**
+`DOCUMENTOS_PEDIDOS` es una lista única para todos los expedientes, así que hoy un viaje a Cusco
+también lo pide. Fue una decisión consciente —el volumen actual va a Punta Cana—, pero es la que
+antes se va a quedar corta: el arreglo natural es atar el documento al DESTINO del expediente (o un
+interruptor por expediente), no quitar el tipo.
 
 **Los tres espejos que hay que tocar juntos** si se añade otro tipo: el enum en PHP,
 `ARCHIVO_TIPO_LABELS` + `ARCHIVO_TIPOS_DEL_PASAJERO` en `util/src/types/fileDetalleModel.ts`, y

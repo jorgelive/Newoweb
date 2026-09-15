@@ -17,12 +17,15 @@ export const DOCUMENTOS_PEDIDOS = [
   { tipo: 'dni_reverso', titulo: 'DNI — reverso', ayuda: 'La cara de atrás.', icono: 'camera' },
   {
     tipo: 'eticket',
-    titulo: 'E-ticket del vuelo',
-    // ⚠️ Se dice DÓNDE está, no qué es. «Sube tu e-ticket» hace pensar en un trámite; «el PDF que
-    // te mandó la aerolínea» lo manda directo a buscar el correo, que es el único sitio donde
-    // está. El nombre técnico ya lo lleva el título.
-    ayuda: 'El PDF que te mandó la aerolínea al comprar.',
-    icono: 'file-pdf',
+    // ⚠️ Se le llama **E-Ticket** porque es como lo llama Migración de República Dominicana y como
+    // lo va a encontrar. Pero se dice «migratorio» al lado: sin eso, medio grupo sube su billete
+    // de avión —que es lo que «e-ticket» significa para cualquiera— y el trámite se queda sin
+    // hacer sin que nadie se entere hasta el aeropuerto.
+    titulo: 'E-Ticket migratorio (Rep. Dominicana)',
+    // Y la ayuda dice QUÉ es y DÓNDE se saca, no dónde se guarda: éste no llega solo a ningún
+    // correo, hay que ir a rellenarlo.
+    ayuda: 'El PDF con el código QR que sale al llenar el formulario de Migración dominicana. No es el billete de avión.',
+    icono: 'qrcode',
   },
 ] as const;
 

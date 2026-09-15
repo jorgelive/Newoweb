@@ -17,21 +17,6 @@ use App\Enum\DocumentoTipoEnum;
 enum ArchivoTipoEnum: string
 {
     case BOLETO = 'boleto';
-
-    /**
-     * El billete aéreo que el pasajero compró por su cuenta, tal como se lo mandó la aerolínea.
-     *
-     * ⚠️ **No es el boarding pass.** El e-ticket es el comprobante de compra —sale al reservar y
-     * trae el localizador—; el boarding pass se emite en el check-in y es el que se enseña en la
-     * puerta. Un mismo vuelo genera los dos y en momentos distintos, así que meterlos en `BOLETO`
-     * haría imposible contestar «¿ya compró?» sin abrir los ficheros uno a uno.
-     *
-     * Lo sube ÉL ({@see self::loSubeElPasajero()}): es el único caso en que el documento de vuelo
-     * viaja del pasajero hacia nosotros y no al revés. Llega casi siempre en PDF, y por eso el
-     * conversor a webp lo deja pasar — sólo toca `image/*`.
-     */
-    case ETICKET = 'eticket';
-
     case FACTURA = 'factura';
     case RESERVA = 'reserva';
 
@@ -51,19 +36,34 @@ enum ArchivoTipoEnum: string
     /** Lo que un menor necesita para salir del país. Con 100 menores en un grupo, no es un extra. */
     case AUTORIZACION = 'autorizacion';
 
+    /**
+     * El **E-Ticket de República Dominicana**: el formulario electrónico de entrada y salida que
+     * exige su Dirección General de Migración, con su código QR.
+     *
+     * ⚠️ **No es un billete de avión**, aunque el nombre lo sugiera —así lo llama el gobierno
+     * dominicano, y así lo va a buscar el pasajero—. Es un trámite migratorio que rellena **él** en
+     * la web oficial y que descarga en PDF; nosotros no lo podemos emitir en su nombre. Por eso
+     * vive junto a {@see self::AUTORIZACION} y no junto a {@see self::BOLETO}: los dos son permisos
+     * de frontera que hay que reunir antes de viajar, no documentos de vuelo que damos nosotros.
+     *
+     * Es el único documento de esta lista **atado a un destino concreto**. Ver el aviso de alcance
+     * en `docs/Cotizaciones.md`.
+     */
+    case ETICKET = 'eticket';
+
     case OTROS = 'otros';
 
     public function getLabel(): string
     {
         return match ($this) {
             self::BOLETO => 'Boleto / Ticket',
-            self::ETICKET => 'E-ticket (billete aéreo)',
             self::FACTURA => 'Factura / Recibo',
             self::RESERVA => 'Confirmación de Reserva',
             self::PASAPORTE => 'Pasaporte (escaneo)',
             self::DNI_ANVERSO => 'DNI — anverso',
             self::DNI_REVERSO => 'DNI — reverso',
             self::AUTORIZACION => 'Autorización notarial',
+            self::ETICKET => 'E-Ticket migratorio (Rep. Dominicana)',
             self::OTROS => 'Otros Documentos',
         };
     }
@@ -99,10 +99,10 @@ enum ArchivoTipoEnum: string
     {
         return match ($this) {
             self::BOLETO, self::RESERVA => true,
-            // ⚠️ El e-ticket NO, y por el mismo motivo que el pasaporte: se lo mandó la aerolínea
-            // a su correo, así que devolvérselo no le da nada que no tenga ya. Y hay una razón
-            // de pantalla: lo devolvible sale en «Tus tarjetas de embarque», donde un
-            // comprobante de compra se leería como la tarjeta que hay que enseñar en la puerta.
+            // ⚠️ El E-Ticket migratorio NO, por lo mismo que el pasaporte: lo descargó él de la
+            // web de Migración y lo tiene en su móvil. Y hay una razón de pantalla: lo devolvible
+            // sale en «Tus tarjetas de embarque», donde un formulario migratorio se leería como
+            // la tarjeta que hay que enseñar en la puerta.
             self::ETICKET, self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::FACTURA, self::OTROS => false,
         };
     }
@@ -118,8 +118,8 @@ enum ArchivoTipoEnum: string
     {
         return match ($this) {
             self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION => true,
-            // No lleva identidad que cotejar y casi siempre es un PDF nativo: comprimirlo con el
-            // filtro de alta fidelidad sería gastar por nada.
+            // Es un permiso, no una identidad: no hay número que cotejar contra el manifiesto.
+            // Y llega como PDF nativo, así que el filtro de alta fidelidad sería gasto por nada.
             self::ETICKET, self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => false,
         };
     }
@@ -242,9 +242,8 @@ enum ArchivoTipoEnum: string
     public function mesesDeRetencion(): ?int
     {
         return match ($this) {
-            // El e-ticket caduca como el boarding pass y por lo mismo: lleva nombre completo,
-            // vuelo y LOCALIZADOR, que es con lo que se entra a la reserva en la web de la
-            // aerolínea. Pasado el viaje no compensa tenerlo.
+            // El E-Ticket migratorio caduca con los demás: lleva nombre, número de pasaporte y
+            // el itinerario. Pasado el viaje ya cumplió su función y no compensa guardarlo.
             self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO, self::ETICKET => 1,
             self::FACTURA, self::RESERVA, self::OTROS => null,
         };

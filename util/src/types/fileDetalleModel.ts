@@ -166,18 +166,18 @@ export type ArchivoTipoValue = NonNullable<components['schemas']['CotizacionFile
 
 /**
  * ⚠️ El ORDEN de estas claves es el de la bóveda (ver `ordenarBoveda()` en `FileDetalle.vue`), así
- * que es el del enum de PHP y no el alfabético. `eticket` va pegado a `boleto` porque son los dos
- * documentos del mismo vuelo y se leen juntos.
+ * que es el del enum de PHP y no el alfabético. `eticket` va pegado a `autorizacion` porque los dos
+ * son permisos de frontera —el E-Ticket dominicano NO es un billete de avión, aunque lo parezca—.
  */
 export const ARCHIVO_TIPO_LABELS: Record<ArchivoTipoValue, string> = {
     boleto: 'Boleto / Ticket',
-    eticket: 'E-ticket (billete aéreo)',
     factura: 'Factura / Recibo',
     reserva: 'Confirmación de Reserva',
     pasaporte: 'Pasaporte (escaneo)',
     dni_anverso: 'DNI — anverso',
     dni_reverso: 'DNI — reverso',
     autorizacion: 'Autorización notarial',
+    eticket: 'E-Ticket migratorio (Rep. Dominicana)',
     otros: 'Otros Documentos',
 };
 
