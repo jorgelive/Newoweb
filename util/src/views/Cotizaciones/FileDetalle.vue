@@ -4458,6 +4458,26 @@ const eliminarDocumento = async (iri?: string) => {
                       <!-- El conteo se calcula aquí y no se toma de `totalMiembros`: el del servidor
                            incluye a los «no participa», que conservan grupo y reservas aéreas. -->
                       <span class="text-[10px] font-bold text-slate-400">{{ contarEnGrupo(g) }} pax</span>
+                      <!-- ── CUÁNTOS TRAMOS ─────────────────────────────────────
+                           🔥 **Sin esto, guardar los tramos no cambiaba NADA en pantalla.** La
+                           píldora decía clave, nombre y pax, así que la única forma de saber si
+                           la asignación había entrado era volver a abrir el lápiz. «Parecía que no
+                           guardaba» — y una pantalla que no confirma lo que acaba de hacer enseña
+                           a desconfiar de ella.
+
+                           ⚠️ Y el CERO va en ámbar a propósito: una reserva aérea sin tramos es
+                           justo el estado en que el pasajero abre su app y no ve ningún vuelo. No
+                           da error en ninguna parte; sólo se nota mirándolo, así que aquí se
+                           mira. -->
+                      <span v-if="String(g.tipo) === EJE_AEREO" class="text-[10px] font-bold"
+                            :class="(g.vueloIds ?? []).length ? 'text-slate-400' : 'text-amber-600'">
+                        <template v-if="(g.vueloIds ?? []).length">
+                          {{ (g.vueloIds ?? []).length }} {{ (g.vueloIds ?? []).length === 1 ? 'tramo' : 'tramos' }}
+                        </template>
+                        <template v-else>
+                          <i class="fas fa-triangle-exclamation mr-0.5"></i> sin tramos
+                        </template>
+                      </span>
                       <!-- ⚠️ El lápiz va SIEMPRE, la papelera sólo en modo gestión. Corregir una
                            errata es lo corriente —un vuelo cargado en el tramo que no era— y
                            antes obligaba a BORRAR el grupo, llevándose las pertenencias de todos

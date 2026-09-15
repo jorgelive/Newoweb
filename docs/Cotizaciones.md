@@ -1267,6 +1267,18 @@ Lo arregla `CotizacionFileGrupo::getVueloIds()`, que publica los **ids** —esca
 abren el círculo de serialización— y la pantalla marca por id. **Una lectura ambigua más una
 escritura que reemplaza es una pérdida de datos**, aunque cada mitad por separado parezca razonable.
 
+**La píldora del subgrupo dice cuántos tramos tiene** (`2 tramos`, `1 tramo`), y **«sin tramos» en
+ámbar** cuando no tiene ninguno.
+
+🔥 Sin eso, guardar la asignación **no cambiaba nada en pantalla**: la píldora decía clave, nombre y
+pax, así que la única forma de saber si había entrado era volver a abrir el lápiz. El primer
+reporte real fue literalmente «parecía que no guardaba» — y una pantalla que no confirma lo que
+acaba de hacer enseña a desconfiar de ella.
+
+⚠️ Y el cero va en ámbar a propósito: **una reserva aérea sin tramos es el estado en que el pasajero
+abre su app y no ve ningún vuelo**. No da error en ninguna parte, así que sólo se nota mirándolo —
+por eso se mira aquí, en la lista, y no hay que entrar a cada subgrupo para descubrirlo.
+
 **El endpoint reemplaza, no acumula:** se manda la lista completa y queda así.
 
 ⚠️ **Un apunte de tipos:** `documentosPedidos` se declara opcional en `ApiCotizacionFileWrite`
