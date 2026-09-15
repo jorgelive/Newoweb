@@ -1229,6 +1229,52 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### El e-ticket, cuarto documento que pide la app (14/09/2026)
+
+`ArchivoTipoEnum::ETICKET`. Lo sube el **pasajero**, y es el único documento de vuelo que viaja de
+él hacia nosotros: el resto se los damos.
+
+⚠️ **No es el boarding pass, y por eso no entra en `BOLETO`.** El e-ticket es el comprobante de
+compra —sale al reservar y trae el localizador—; el boarding pass se emite en el check-in. Un mismo
+vuelo genera los dos, en momentos distintos. Con un solo tipo, «¿ya compró?» no se podría contestar
+sin abrir los ficheros uno a uno.
+
+**Lo que NO hizo falta tocar**, y conviene saberlo antes de buscarlo:
+
+| | Por qué ya estaba |
+|---|---|
+| Migración | La columna es `varchar(20)` sin `CHECK`, y `eticket` son 7 caracteres |
+| El endpoint de subida | `SubirDocumentoPasajeroController` valida con `loSubeElPasajero()` y ya aceptaba `application/pdf` |
+| El conversor a webp | Sale antes de tiempo con lo que no es `image/*`, así que **un PDF no se toca** |
+| El selector de vuelo del operador | `ofreceVuelo` sólo lo ofrece para `boleto`, y está bien: un e-ticket cubre el itinerario entero, no un tramo |
+
+**Las decisiones del enum, con su porqué:**
+
+- `loSubeElPasajero()` → **sí**. Es el punto.
+- `esDevolvibleAlPasajero()` → **no**, por lo mismo que el pasaporte: se lo mandó la aerolínea a su
+  correo, así que devolvérselo no le da nada que no tenga ya. Y hay una razón de pantalla: lo
+  devolvible sale bajo «Tus tarjetas de embarque», donde un comprobante de compra se leería como la
+  tarjeta que hay que enseñar en la puerta.
+- `esEscaneoDeIdentidad()` → **no**. No lleva identidad que cotejar, y casi siempre es un PDF
+  nativo: el filtro de alta fidelidad sería gasto por nada.
+- `mesesDeRetencion()` → **1 tras el retorno**, igual que el boarding pass y por lo mismo: nombre
+  completo, vuelo y **localizador**, que es con lo que se entra a la reserva en la web de la
+  aerolínea.
+
+⚠️ **Se pide a TODO el mundo.** `DOCUMENTOS_PEDIDOS` es una lista única para todos los expedientes,
+así que en un viaje donde los vuelos los emite la agencia —el del colegio— los pasajeros verán que
+les falta un documento que no tienen. Fue una decisión consciente; el día que moleste, lo que hay
+que añadir es un interruptor por expediente, no quitar el tipo.
+
+⚠️ **La ayuda dice DÓNDE está, no qué es**: «El PDF que te mandó la aerolínea al comprar». «Sube tu
+e-ticket» suena a trámite; esto manda directo al correo, que es el único sitio donde está. Y el
+icono de su fila es un PDF y no una cámara — un e-ticket no se fotografía.
+
+**Los tres espejos que hay que tocar juntos** si se añade otro tipo: el enum en PHP,
+`ARCHIVO_TIPO_LABELS` + `ARCHIVO_TIPOS_DEL_PASAJERO` en `util/src/types/fileDetalleModel.ts`, y
+`DOCUMENTOS_PEDIDOS` en `pax/.../MisDocumentos.vue`. Y **regenerar `dominio/api.d.ts`**, porque el
+enum viaja en el esquema.
+
 #### «Lo tuyo»: una tarjeta, encabezada por la persona (14/09/2026)
 
 La app del huésped apilaba **tres tarjetas hermanas** —«Tus documentos», «Tus tarjetas de
@@ -1336,6 +1382,7 @@ el orden con sentido lo pone quien pinta, que ya tiene el índice de nombres mon
 | Añadir o quitar una sección de «Lo tuyo» | `pax/.../PaxCotizacionGuiaView.vue` | un `<PanelPlegable>` más en la columna |
 | Cambiar el aspecto de los tres acordeones | `pax/.../PanelPlegable.vue` | la cabecera |
 | Cambiar qué documentos se le piden al pasajero | `pax/.../MisDocumentos.vue` | `DOCUMENTOS_PEDIDOS` (lo lee también la vista) |
+| Añadir un tipo de adjunto | `ArchivoTipoEnum` + los dos espejos TS + `npm run gen:api` | todos los `match` del enum |
 | Cambiar el orden de la bóveda | `util/.../FileDetalle.vue` | `ordenarBoveda()` |
 | Que un adjunto salga estable en cualquier consumidor | `CotizacionFile` | `#[ORM\OrderBy]` de `$filearchivos` |
 

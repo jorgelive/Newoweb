@@ -10838,6 +10838,7 @@ export interface components {
             cotizaciones?: string[];
             /** @description El padrón que ve el cliente en la portada pública. **Vacío en un expediente de grupo.** */
             readonly filepasajeros?: string[];
+            /** @description Los adjuntos del expediente. */
             filearchivos?: string[];
             readonly vuelos?: components["schemas"]["CotizacionVuelo"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
@@ -11327,6 +11328,7 @@ export interface components {
             cotizaciones?: string[];
             /** @description El padrón que ve el cliente en la portada pública. **Vacío en un expediente de grupo.** */
             readonly filepasajeros?: string[];
+            /** @description Los adjuntos del expediente. */
             filearchivos?: string[];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.html"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
@@ -11764,6 +11766,7 @@ export interface components {
             cotizaciones?: string[];
             /** @description El padrón que ve el cliente en la portada pública. **Vacío en un expediente de grupo.** */
             readonly filepasajeros?: string[];
+            /** @description Los adjuntos del expediente. */
             filearchivos?: string[];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.jsonld"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
@@ -12207,6 +12210,7 @@ export interface components {
             cotizaciones?: string[];
             /** @description El padrón que ve el cliente en la portada pública. **Vacío en un expediente de grupo.** */
             readonly filepasajeros?: string[];
+            /** @description Los adjuntos del expediente. */
             filearchivos?: string[];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.multipart"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
@@ -13425,7 +13429,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -13498,7 +13502,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile-file.item.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.item.read"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo-file.item.read"] | null;
@@ -13532,7 +13536,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.read_file.item.read_timestamp.read"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo-file.read_file.item.read_timestamp.read"] | null;
@@ -13570,7 +13574,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile-file.write"];
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.write"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo-file.write"] | null;
@@ -13594,7 +13598,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile-file.write"];
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.write"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo-file.write"] | null;
@@ -13618,7 +13622,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -13632,7 +13636,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -13646,7 +13650,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -13719,7 +13723,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile.html-file.item.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero.html-file.item.read"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo.html-file.item.read"] | null;
@@ -13753,7 +13757,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo.html-file.read_file.item.read_timestamp.read"] | null;
@@ -13791,7 +13795,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -13805,7 +13809,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -13819,7 +13823,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -13892,7 +13896,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile.jsonld-file.item.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero.jsonld-file.item.read"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo.jsonld-file.item.read"] | null;
@@ -13926,7 +13930,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo.jsonld-file.read_file.item.read_timestamp.read"] | null;
@@ -13964,7 +13968,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -13978,7 +13982,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -13992,7 +13996,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -14065,7 +14069,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile.multipart-file.item.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero.multipart-file.item.read"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo.multipart-file.item.read"] | null;
@@ -14099,7 +14103,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
             pasajero?: components["schemas"]["CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo.multipart-file.read_file.item.read_timestamp.read"] | null;
@@ -14137,7 +14141,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -14151,7 +14155,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
+            tipoArchivo?: "boleto" | "eticket" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -27425,8 +27429,8 @@ export interface components {
             horaCheckOut: string | null;
             timezone?: string | null;
             codigoCajaLlaves?: string | null;
-            /** @description El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca. */
-            telefonoAtencion?: string | null;
+            /** @description El móvil de URGENCIAS: al que se manda a alguien que está en la puerta sin poder entrar. */
+            telefonoEmergencia?: string | null;
             codigoCajaDinero?: string | null;
             readonly medios?: components["schemas"]["PmsEstablecimientoMedia"][];
             unidades?: components["schemas"]["PmsUnidad"][];
@@ -27470,8 +27474,8 @@ export interface components {
             horaCheckOut: string | null;
             timezone?: string | null;
             codigoCajaLlaves?: string | null;
-            /** @description El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca. */
-            telefonoAtencion?: string | null;
+            /** @description El móvil de URGENCIAS: al que se manda a alguien que está en la puerta sin poder entrar. */
+            telefonoEmergencia?: string | null;
             codigoCajaDinero?: string | null;
             readonly medios?: components["schemas"]["PmsEstablecimientoMedia.html"][];
             unidades?: components["schemas"]["PmsUnidad.html"][];
@@ -27515,8 +27519,8 @@ export interface components {
             horaCheckOut: string | null;
             timezone?: string | null;
             codigoCajaLlaves?: string | null;
-            /** @description El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca. */
-            telefonoAtencion?: string | null;
+            /** @description El móvil de URGENCIAS: al que se manda a alguien que está en la puerta sin poder entrar. */
+            telefonoEmergencia?: string | null;
             codigoCajaDinero?: string | null;
             readonly medios?: components["schemas"]["PmsEstablecimientoMedia.jsonld"][];
             unidades?: components["schemas"]["PmsUnidad.jsonld"][];
@@ -27560,8 +27564,8 @@ export interface components {
             horaCheckOut: string | null;
             timezone?: string | null;
             codigoCajaLlaves?: string | null;
-            /** @description El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca. */
-            telefonoAtencion?: string | null;
+            /** @description El móvil de URGENCIAS: al que se manda a alguien que está en la puerta sin poder entrar. */
+            telefonoEmergencia?: string | null;
             codigoCajaDinero?: string | null;
             readonly medios?: components["schemas"]["PmsEstablecimientoMedia.multipart"][];
             unidades?: components["schemas"]["PmsUnidad.multipart"][];

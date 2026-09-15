@@ -12,9 +12,18 @@
  * añada uno se olvidaría la copia.
  */
 export const DOCUMENTOS_PEDIDOS = [
-  { tipo: 'pasaporte', titulo: 'Pasaporte', ayuda: 'La página de la foto, entera y sin reflejos.' },
-  { tipo: 'dni_anverso', titulo: 'DNI — anverso', ayuda: 'La cara con tu foto.' },
-  { tipo: 'dni_reverso', titulo: 'DNI — reverso', ayuda: 'La cara de atrás.' },
+  { tipo: 'pasaporte', titulo: 'Pasaporte', ayuda: 'La página de la foto, entera y sin reflejos.', icono: 'camera' },
+  { tipo: 'dni_anverso', titulo: 'DNI — anverso', ayuda: 'La cara con tu foto.', icono: 'camera' },
+  { tipo: 'dni_reverso', titulo: 'DNI — reverso', ayuda: 'La cara de atrás.', icono: 'camera' },
+  {
+    tipo: 'eticket',
+    titulo: 'E-ticket del vuelo',
+    // ⚠️ Se dice DÓNDE está, no qué es. «Sube tu e-ticket» hace pensar en un trámite; «el PDF que
+    // te mandó la aerolínea» lo manda directo a buscar el correo, que es el único sitio donde
+    // está. El nombre técnico ya lo lleva el título.
+    ayuda: 'El PDF que te mandó la aerolínea al comprar.',
+    icono: 'file-pdf',
+  },
 ] as const;
 
 export type TipoDoc = (typeof DOCUMENTOS_PEDIDOS)[number]['tipo'];
@@ -170,7 +179,9 @@ defineExpose({ quedanPorSubir });
            :class="subidos.has(doc.tipo) ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'">
         <span class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
               :class="subidos.has(doc.tipo) ? 'bg-emerald-100 text-emerald-600' : 'bg-white text-slate-400 border border-slate-200'">
-          <i class="fas" :class="subidos.has(doc.tipo) ? 'fa-check' : 'fa-camera'"></i>
+          <!-- El icono lo dice el documento: una cámara invita a hacer una foto, y el e-ticket
+               no se fotografía — se busca en el correo. -->
+          <i class="fas" :class="subidos.has(doc.tipo) ? 'fa-check' : `fa-${doc.icono}`"></i>
         </span>
 
         <div class="min-w-0 flex-1">

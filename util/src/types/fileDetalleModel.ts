@@ -164,8 +164,14 @@ export type ApiCotizacionFileWrite = Omit<
 // Espejo de App\Cotizacion\Enum\ArchivoTipoEnum
 export type ArchivoTipoValue = NonNullable<components['schemas']['CotizacionFilearchivo']['tipoArchivo']>;
 
+/**
+ * ⚠️ El ORDEN de estas claves es el de la bóveda (ver `ordenarBoveda()` en `FileDetalle.vue`), así
+ * que es el del enum de PHP y no el alfabético. `eticket` va pegado a `boleto` porque son los dos
+ * documentos del mismo vuelo y se leen juntos.
+ */
 export const ARCHIVO_TIPO_LABELS: Record<ArchivoTipoValue, string> = {
     boleto: 'Boleto / Ticket',
+    eticket: 'E-ticket (billete aéreo)',
     factura: 'Factura / Recibo',
     reserva: 'Confirmación de Reserva',
     pasaporte: 'Pasaporte (escaneo)',
@@ -182,9 +188,13 @@ export const ARCHIVO_TIPO_LABELS: Record<ArchivoTipoValue, string> = {
  * llegan por correo— pero el formulario los separa: mezclar «el boleto que le mando» con «la foto
  * de su pasaporte» en la misma lista invita a colgar del expediente algo que es de una persona.
  */
-export const ARCHIVO_TIPOS_DEL_PASAJERO: ArchivoTipoValue[] = ['pasaporte', 'dni_anverso', 'dni_reverso', 'autorizacion'];
+export const ARCHIVO_TIPOS_DEL_PASAJERO: ArchivoTipoValue[] = ['pasaporte', 'dni_anverso', 'dni_reverso', 'autorizacion', 'eticket'];
 
-/** ¿Este tipo pide decir DE QUIÉN es? Todo lo que sube el pasajero, y los boletos. */
+/**
+ * ¿Este tipo pide decir DE QUIÉN es? Todo lo que sube el pasajero, y los boletos.
+ *
+ * El e-ticket entra por la primera vía: lo sube él, así que siempre tiene dueño.
+ */
 export const archivoNecesitaPasajero = (tipo?: string | null): boolean =>
     tipo === 'boleto' || ARCHIVO_TIPOS_DEL_PASAJERO.includes(tipo as ArchivoTipoValue);
 

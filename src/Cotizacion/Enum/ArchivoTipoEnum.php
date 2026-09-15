@@ -17,6 +17,21 @@ use App\Enum\DocumentoTipoEnum;
 enum ArchivoTipoEnum: string
 {
     case BOLETO = 'boleto';
+
+    /**
+     * El billete aéreo que el pasajero compró por su cuenta, tal como se lo mandó la aerolínea.
+     *
+     * ⚠️ **No es el boarding pass.** El e-ticket es el comprobante de compra —sale al reservar y
+     * trae el localizador—; el boarding pass se emite en el check-in y es el que se enseña en la
+     * puerta. Un mismo vuelo genera los dos y en momentos distintos, así que meterlos en `BOLETO`
+     * haría imposible contestar «¿ya compró?» sin abrir los ficheros uno a uno.
+     *
+     * Lo sube ÉL ({@see self::loSubeElPasajero()}): es el único caso en que el documento de vuelo
+     * viaja del pasajero hacia nosotros y no al revés. Llega casi siempre en PDF, y por eso el
+     * conversor a webp lo deja pasar — sólo toca `image/*`.
+     */
+    case ETICKET = 'eticket';
+
     case FACTURA = 'factura';
     case RESERVA = 'reserva';
 
@@ -42,6 +57,7 @@ enum ArchivoTipoEnum: string
     {
         return match ($this) {
             self::BOLETO => 'Boleto / Ticket',
+            self::ETICKET => 'E-ticket (billete aéreo)',
             self::FACTURA => 'Factura / Recibo',
             self::RESERVA => 'Confirmación de Reserva',
             self::PASAPORTE => 'Pasaporte (escaneo)',
@@ -62,7 +78,9 @@ enum ArchivoTipoEnum: string
     {
         return match ($this) {
             self::BOLETO, self::RESERVA => true,
-            self::FACTURA, self::OTROS, self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION => false,
+            // El e-ticket SIEMPRE tiene dueño, así que quien manda es `esDevolvibleAlPasajero()`:
+            // esta rama sólo decide sobre los adjuntos sin dueño de la portada.
+            self::ETICKET, self::FACTURA, self::OTROS, self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION => false,
         };
     }
 
@@ -81,7 +99,11 @@ enum ArchivoTipoEnum: string
     {
         return match ($this) {
             self::BOLETO, self::RESERVA => true,
-            self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::FACTURA, self::OTROS => false,
+            // ⚠️ El e-ticket NO, y por el mismo motivo que el pasaporte: se lo mandó la aerolínea
+            // a su correo, así que devolvérselo no le da nada que no tenga ya. Y hay una razón
+            // de pantalla: lo devolvible sale en «Tus tarjetas de embarque», donde un
+            // comprobante de compra se leería como la tarjeta que hay que enseñar en la puerta.
+            self::ETICKET, self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::FACTURA, self::OTROS => false,
         };
     }
 
@@ -96,7 +118,9 @@ enum ArchivoTipoEnum: string
     {
         return match ($this) {
             self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION => true,
-            self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => false,
+            // No lleva identidad que cotejar y casi siempre es un PDF nativo: comprimirlo con el
+            // filtro de alta fidelidad sería gastar por nada.
+            self::ETICKET, self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => false,
         };
     }
 
@@ -133,7 +157,7 @@ enum ArchivoTipoEnum: string
         return match ($this) {
             self::DNI_ANVERSO => DocumentoTipoEnum::DNI,
             self::PASAPORTE => DocumentoTipoEnum::PASAPORTE,
-            self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => null,
+            self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO, self::ETICKET, self::RESERVA, self::FACTURA, self::OTROS => null,
         };
     }
 
@@ -159,7 +183,7 @@ enum ArchivoTipoEnum: string
             // El pasaporte se verifica solo: número impreso y banda van en la misma página.
             self::PASAPORTE => DocumentoTipoEnum::PASAPORTE,
             self::DNI_REVERSO => DocumentoTipoEnum::DNI,
-            self::DNI_ANVERSO, self::AUTORIZACION, self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => null,
+            self::DNI_ANVERSO, self::AUTORIZACION, self::BOLETO, self::ETICKET, self::RESERVA, self::FACTURA, self::OTROS => null,
         };
     }
 
@@ -191,7 +215,7 @@ enum ArchivoTipoEnum: string
     {
         return match ($this) {
             self::PASAPORTE, self::DNI_ANVERSO => true,
-            self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => false,
+            self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO, self::ETICKET, self::RESERVA, self::FACTURA, self::OTROS => false,
         };
     }
 
@@ -218,7 +242,10 @@ enum ArchivoTipoEnum: string
     public function mesesDeRetencion(): ?int
     {
         return match ($this) {
-            self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO => 1,
+            // El e-ticket caduca como el boarding pass y por lo mismo: lleva nombre completo,
+            // vuelo y LOCALIZADOR, que es con lo que se entra a la reserva en la web de la
+            // aerolínea. Pasado el viaje no compensa tenerlo.
+            self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO, self::ETICKET => 1,
             self::FACTURA, self::RESERVA, self::OTROS => null,
         };
     }
@@ -227,7 +254,7 @@ enum ArchivoTipoEnum: string
     public function loSubeElPasajero(): bool
     {
         return match ($this) {
-            self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION => true,
+            self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::ETICKET => true,
             self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => false,
         };
     }
