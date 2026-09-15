@@ -10877,8 +10877,15 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -10976,8 +10983,15 @@ export interface components {
              * @enum {string}
              */
             modo: "estandar" | "grupo";
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11026,8 +11040,15 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11077,8 +11098,15 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -11115,8 +11143,15 @@ export interface components {
              * @enum {string}
              */
             modo: "estandar" | "grupo";
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile-file.write.jsonMergePatch": {
@@ -11143,8 +11178,15 @@ export interface components {
              * @enum {string}
              */
             modo: "estandar" | "grupo";
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
         };
         "CotizacionFile-operacion.item.read_timestamp.read": {
             nombreGrupo?: string;
@@ -11397,8 +11439,15 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -11496,8 +11545,15 @@ export interface components {
              * @enum {string}
              */
             modo: "estandar" | "grupo";
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11546,8 +11602,15 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11597,8 +11660,15 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -11861,8 +11931,15 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -11946,8 +12023,15 @@ export interface components {
              * @enum {string}
              */
             modo: "estandar" | "grupo";
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11997,8 +12081,15 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -12064,8 +12155,15 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -12331,8 +12429,15 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -12430,8 +12535,15 @@ export interface components {
              * @enum {string}
              */
             modo: "estandar" | "grupo";
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -12480,8 +12592,15 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -12531,8 +12650,15 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
-            /** @description Qué documentos se le EXIGEN al pasajero en este expediente. */
-            documentosPedidos?: string[];
+            /**
+             * @description Qué documentos se le EXIGEN al pasajero en este expediente.
+             * @default [
+             *       "pasaporte",
+             *       "dni_anverso",
+             *       "dni_reverso"
+             *     ]
+             */
+            documentosPedidos: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -12754,6 +12880,8 @@ export interface components {
             readonly updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -12787,6 +12915,8 @@ export interface components {
             id?: string;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -12825,6 +12955,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -12862,6 +12994,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -12966,7 +13100,7 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            readonly vuelos?: components["schemas"]["CotizacionVuelo.html"][];
+            vuelos?: components["schemas"]["CotizacionVuelo.html"][];
             /**
              * @description ¿La reserva está emitida, o pagada y esperando billete?
              * @default true
@@ -12991,6 +13125,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -13024,6 +13160,8 @@ export interface components {
             id?: string;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -13062,6 +13200,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -13099,6 +13239,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -13156,7 +13298,7 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            readonly vuelos?: components["schemas"]["CotizacionVuelo.jsonld"][];
+            vuelos?: components["schemas"]["CotizacionVuelo.jsonld"][];
             /**
              * @description ¿La reserva está emitida, o pagada y esperando billete?
              * @default true
@@ -13181,6 +13323,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -13215,6 +13359,8 @@ export interface components {
             id?: string;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -13253,6 +13399,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -13291,6 +13439,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -13347,7 +13497,7 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            readonly vuelos?: components["schemas"]["CotizacionVuelo.multipart"][];
+            vuelos?: components["schemas"]["CotizacionVuelo.multipart"][];
             /**
              * @description ¿La reserva está emitida, o pagada y esperando billete?
              * @default true
@@ -13372,6 +13522,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -13405,6 +13557,8 @@ export interface components {
             id?: string;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -13443,6 +13597,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -13480,6 +13636,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
+            /** @description Los ids de SUS tramos. Es lo único de esta relación que sale serializado. */
+            readonly vueloIds?: string[];
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             /**
@@ -40955,10 +41113,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld"];
-                    "application/json": components["schemas"]["CotizacionFile"];
-                    "text/html": components["schemas"]["CotizacionFile.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld-file.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionFile-file.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionFile.html-file.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart-file.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */

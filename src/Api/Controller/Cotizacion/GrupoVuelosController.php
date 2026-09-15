@@ -103,7 +103,13 @@ final class GrupoVuelosController extends AbstractController
                 );
             }
 
-            $nuevos[$uuid] = $vuelo;
+            // ⚠️ **La clave, NORMALIZADA.** Se indexaba con la cadena cruda del cliente y se
+            // consultaba abajo con `(string) $vuelo->getId()`, que es RFC-4122 en minúsculas. Un
+            // cliente que mandara el UUID en MAYÚSCULAS —perfectamente válido, `Uuid::isValid()`
+            // lo acepta— no habría casado: el tramo se daba por quitado y se volvía a añadir en el
+            // mismo `flush()`. Es la familia del UUID que se compara como texto, que en este
+            // proyecto ya ha mordido: no falla, hace otra cosa.
+            $nuevos[(string) $vuelo->getId()] = $vuelo;
         }
 
         // Se quitan los que ya no están y se añaden los que faltan: el resultado es exactamente la

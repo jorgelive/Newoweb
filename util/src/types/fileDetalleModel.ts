@@ -147,8 +147,19 @@ export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 
  */
 export type ApiCotizacionFileWrite = Omit<
     components['schemas']['CotizacionFile-file.write'],
-    'idiomaCliente'
+    'idiomaCliente' | 'documentosPedidos'
 > & {
+    /**
+     * ⚠️ Opcional aquí aunque el esquema generado lo marque obligatorio, y **no es un tipo escrito
+     * a mano**: el OpenAPI dice `required: None` para este recurso —`#[ApiProperty(required: false)]`—
+     * y quien lo vuelve obligatorio es `openapi-typescript`, que trata como requerido todo campo
+     * con `default`. Y tiene su lógica: en una RESPUESTA siempre viene. En una PETICIÓN no, porque
+     * omitirlo es pedir `CotizacionFile::DOCUMENTOS_PEDIDOS_POR_DEFECTO`.
+     *
+     * Obligar a mandarlo al crear metería una tercera copia del default —PHP, `pax` y aquí— y la
+     * tercera es la que se olvida.
+     */
+    documentosPedidos?: string[];
     idiomaCliente?: string;
     pais?: string | null;
     idioma?: string | null;

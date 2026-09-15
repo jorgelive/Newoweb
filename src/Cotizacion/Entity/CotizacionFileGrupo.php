@@ -318,6 +318,41 @@ class CotizacionFileGrupo
     public function getVuelos(): Collection { return $this->vuelos; }
 
     /**
+     * Los ids de SUS tramos. Es lo único de esta relación que sale serializado.
+     *
+     * 🔥 **Existe porque cruzar por la CLAVE no distingue dos reservas.** La unicidad del subgrupo
+     * es `(file, tipo, subeje, clave)`: «Ida» y «Retorno» con el mismo localizador —la aerolínea
+     * reutiliza códigos entre tramos— son dos grupos distintos con la MISMA clave. Y
+     * {@see CotizacionVuelo::getPnrs()} publica sólo claves, así que preguntarle a un vuelo «¿eres
+     * de este PNR?» devuelve que sí para los dos.
+     *
+     * ⚠️ Con un selector que REEMPLAZA, esa ambigüedad deja de ser cosmética: al abrir la reserva
+     * de ida salían marcados también los tramos de la vuelta, y guardar **sin tocar nada** se los
+     * llevaba a la ida. El pasajero veía sus vuelos de vuelta duplicados bajo la reserva
+     * equivocada, sin un solo error por ningún lado.
+     *
+     * Se publican los **ids** y no la colección porque un id es un escalar: no arrastra
+     * `grupo → vuelo → file → vuelos → grupo` ni, por tanto, la `CircularReferenceException`.
+     *
+     * @return list<string>
+     */
+    #[Groups(['file:item:read'])]
+    public function getVueloIds(): array
+    {
+        $ids = [];
+
+        foreach ($this->vuelos as $vuelo) {
+            $id = $vuelo->getId();
+
+            if ($id !== null) {
+                $ids[] = $id->toRfc4122();
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
      * 🔥 **Sincroniza el lado DUEÑO, y por eso existe.**
      *
      * `$vuelos` es `mappedBy`: el puente lo posee {@see CotizacionVuelo::$grupos}. Añadir aquí sin
@@ -326,8 +361,9 @@ class CotizacionFileGrupo
      * aquí es más fácil de cometer porque la colección se llena en memoria y todo parece correcto
      * hasta que se recarga la página.
      *
-     * API Platform llama a este método al deserializar la colección, así que basta con que la
-     * pareja esté bien puesta aquí.
+     * ⚠️ Y **no lo llama API Platform**: la propiedad no tiene `#[Groups]`, así que nunca se
+     * deserializa por ahí. Lo llama {@see \App\Api\Controller\Cotizacion\GrupoVuelosController},
+     * que es el único sitio desde el que se edita este vínculo.
      */
     public function addVuelo(CotizacionVuelo $vuelo): self
     {

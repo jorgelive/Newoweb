@@ -700,6 +700,11 @@ class CotizacionFile
      * @var list<string> valores de {@see ArchivoTipoEnum}, y sólo los de {@see ArchivoTipoEnum::pedibles()}
      */
     #[Groups(['file:read', 'file:item:read', 'file:write'])]
+    // ⚠️ **Opcional al escribir**, porque tiene default en el servidor: omitirlo es pedir
+    // `DOCUMENTOS_PEDIDOS_POR_DEFECTO`, no dejarlo vacío. Sin esto el esquema lo marcaba requerido
+    // y el alta de un expediente desde el dashboard dejaba de compilar por un campo que no tiene
+    // por qué conocer.
+    #[ApiProperty(required: false)]
     #[Assert\All([
         // ⚠️ `Assert\Choice` **se rinde ante un `null`**: su validador sale antes de comparar, así
         // que un `[null]` pasaba entero y se guardaba. Luego `getDocumentosPedidos()` incumplía su

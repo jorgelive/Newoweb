@@ -1256,7 +1256,25 @@ Es el fallo mudo que abre el CLAUDE.md, y aquí engaña más porque la colecció
 por `GrupoVuelosController`, que habla en **UUID**, y la pantalla lo LEE cruzando la clave del PNR
 contra `pnrs`.
 
-**El endpoint reemplaza, no acumula:** se manda la lista completa y queda así. Lo marcado ES el
+🔥 **Y la preselección de casillas va por ID, nunca cruzando por la CLAVE.** Estuvo un rato
+dedu­ciéndose de `pnrs`, y `pnrs` son sólo claves: «Ida» y «Retorno» con el mismo localizador son
+**dos subgrupos** —la unicidad es `(file, tipo, subeje, clave)` y la propia entidad documenta ese
+caso—. Al abrir la reserva de ida salían marcados también los tramos de la vuelta, y como el
+endpoint **reemplaza**, guardar *sin tocar nada* se los llevaba a la ida: el pasajero veía sus
+vuelos de vuelta duplicados bajo la reserva equivocada, sin un solo error.
+
+Lo arregla `CotizacionFileGrupo::getVueloIds()`, que publica los **ids** —escalares, así que no
+abren el círculo de serialización— y la pantalla marca por id. **Una lectura ambigua más una
+escritura que reemplaza es una pérdida de datos**, aunque cada mitad por separado parezca razonable.
+
+**El endpoint reemplaza, no acumula:** se manda la lista completa y queda así.
+
+⚠️ **Un apunte de tipos:** `documentosPedidos` se declara opcional en `ApiCotizacionFileWrite`
+aunque el esquema generado lo marque obligatorio. No es un tipo escrito a mano — el OpenAPI dice
+`required: None`; quien lo vuelve obligatorio es `openapi-typescript`, que trata así **todo campo
+con `default`**. Y tiene su lógica: en una RESPUESTA siempre viene; en una PETICIÓN no, porque
+omitirlo es pedir el default. Obligar a mandarlo al crear metería una tercera copia del default
+—PHP, `pax` y `util`— y la tercera es la que se olvida. Lo marcado ES el
 estado; un «añadir» y un «quitar» por separado obligarían a la pantalla a llevar la cuenta de lo que
 cambió.
 

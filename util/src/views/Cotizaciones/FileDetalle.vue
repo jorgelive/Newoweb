@@ -2721,12 +2721,13 @@ const guardandoGrupo = ref(false);
 const editarGrupo = (g: ApiFileGrupo) => {
     grupoEditando.value = iriDeGrupoPlano(g);
     capas.abrir('grupo-edicion', () => { grupoEditando.value = null; });
-    // ⚠️ Se deduce de `pnrs` —lo que el vuelo publica— y no de la colección del subgrupo, que no
-    // se serializa. Es el mismo cruce que ya hace `vuelosDe()`.
-    grupoVuelos.value = (file.value?.vuelos ?? [])
-        .filter(v => (v.pnrs ?? []).includes(String(g.clave ?? '')))
-        .map(v => extractIdStr(v.id))
-        .filter(Boolean);
+    // 🔥 **Por ID, nunca cruzando por la CLAVE.** Se dedujo un rato de `pnrs`, y `pnrs` son sólo
+    // claves: «Ida» y «Retorno» con el mismo localizador son DOS subgrupos, así que al abrir la
+    // reserva de ida salían marcados también los tramos de la vuelta. Y como el selector
+    // REEMPLAZA, guardar sin tocar nada se los llevaba a la ida — el pasajero veía sus vuelos de
+    // vuelta duplicados bajo la reserva equivocada, sin un solo error. Ahora el servidor dice
+    // exactamente cuáles son suyos (`getVueloIds()`).
+    grupoVuelos.value = [...(g.vueloIds ?? [])];
 
     grupoForm.value = {
         tipo: String(g.tipo ?? 'grupo'),
