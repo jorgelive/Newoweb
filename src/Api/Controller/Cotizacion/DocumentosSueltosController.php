@@ -202,7 +202,21 @@ final class DocumentosSueltosController extends AbstractController
             $identificacion->setVencimiento($leido->vencimiento);
         }
 
-        $identificacion->marcarCopiadaDelEscaneo();
+        // 🔥 **Sólo el NÚMERO marca la ficha como copiada del escaneo.**
+        //
+        // La bandera significa una cosa muy concreta —«el número y el nombre salieron de esta
+        // foto»— y tiene una consecuencia: `Cotejo` deja de poder cotejarla, porque compararla
+        // contra el escaneo sería compararla consigo misma, y cae a «hace falta que alguien la
+        // confirme».
+        //
+        // Marcarla al copiar el **vencimiento** era falso y se veía: tras corregir una fecha, la
+        // ficha decía «se creó copiando el escaneo» —que no es lo que pasó— y pedía una
+        // confirmación que no hacía falta. El número y el nombre seguían siendo los del manifiesto,
+        // tecleados a mano, así que el cotejo seguía siendo una comprobación independiente. El
+        // vencimiento no entra en el cotejo.
+        if ($campo === 'número') {
+            $identificacion->marcarCopiadaDelEscaneo();
+        }
 
         $pasajero = $identificacion->getPasajero();
 

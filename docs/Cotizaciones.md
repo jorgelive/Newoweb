@@ -10193,6 +10193,22 @@ manifiesto» con un nombre tranquilizador.
 se llama «dice el documento», así que «usar el del documento» se leía como «usar el que ya está
 puesto» — justo lo contrario de lo que hace. Lo que se copia es lo que se leyó de la imagen.
 
+🔥 **Y sólo el NÚMERO marca la ficha como «copiada del escaneo».** La primera versión la marcaba
+también al copiar el vencimiento, y era falso **y se veía**: tras corregir una fecha, la ficha decía
+*«esta ficha se creó copiando el escaneo: hace falta que alguien la confirme»* — que no es lo que
+pasó — y pedía una confirmación innecesaria.
+
+La bandera significa una cosa concreta: **el número y el nombre salieron de esa foto**, y por eso
+`Cotejo` deja de poder cotejarla —sería compararla consigo misma— y cae a «hace falta confirmarla».
+Copiar el vencimiento no toca ninguno de los dos: el número y el nombre siguen siendo los del
+manifiesto, tecleados a mano, así que el cotejo sigue siendo una comprobación independiente. **El
+vencimiento no entra en el cotejo.**
+
+⚠️ En producción quedaron **14 fichas mal marcadas**, y se pudo reparar con seguridad porque los
+datos lo dejaban claro: las 14 existían desde el 24/08 y todas se tocaron en los once minutos en que
+alguien estuvo pulsando el botón. Una ficha *nacida* de un escaneo tiene el `created_at` pegado al
+momento en que se procesó, no tres semanas antes.
+
 ⚠️ **Sólo `número` y `vencimiento`**, que son de la identificación. El nombre y el nacimiento son del
 pasajero, y escribirlos desde aquí metería a este endpoint a decidir sobre otra entidad.
 
