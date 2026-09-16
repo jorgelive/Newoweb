@@ -6789,6 +6789,28 @@ exportación, la importación lo tiene que saber leer.** Está cerrada con un te
 sobre **todos** los ejes del enum (`PadronFormatoEjeTest`), así que un eje nuevo entra solo y se le
 exige lo mismo sin que nadie tenga que acordarse.
 
+##### Y comprobado con el expediente de verdad
+
+`tools/pruebas/probar-ciclo-padron.php <localizador> [entorno]` exporta el padrón y lo vuelve a
+importar. **Lo que se mide es `pertenenciasQuitadas`, y tiene que ser cero**: reimportar el archivo
+que acaba de salir no puede cambiar nada, porque dice exactamente lo que el sistema ya sabe.
+
+⚠️ **El test unitario no basta y la sonda tampoco sola.** `PadronFormatoEjeTest` prueba las dos
+mitades contra su contrato; el fallo no estaba en ninguna de las dos, estaba en que **no encajaban**
+sobre datos reales —66 habitaciones con hotel, 100 rótulos en la hoja «Grupos»—. Al revés, una sonda
+no impide que mañana alguien añada un eje sin alias.
+
+Se puede pasar en producción, que es donde están los datos que importan: `importar(seco: true)` ya
+corre en una transacción con `rollback` y no deja ni una fila. Sobre 5SRAJV, tras poner el hotel a
+las 66 habitaciones:
+
+```
+Expediente 5SRAJV: 110 subgrupos, 1718 pertenencias.
+pertenenciasQuitadas ... 0        ← lo que se mide
+pertenenciasCreadas .... 0
+Avisos: la hoja «Pasajeros» y 100 rótulos de grupo   ← ninguna columna sin reconocer
+```
+
 ⚠️ Y `admiteSubeje()` **sigue existiendo**, pero ya no decide nada de esto: hoy sólo dice qué ejes
 traen columnas de ejemplo por tramo en la plantilla **en blanco** (`#Vuelo Nacional` y
 `#Vuelo Internacional` salen escritas; de un hotel no hay nombre que adivinar).
