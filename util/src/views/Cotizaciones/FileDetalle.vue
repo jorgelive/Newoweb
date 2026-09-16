@@ -3601,12 +3601,42 @@ const guardarDocumento = async () => {
   isSubmittingDoc.value = false;
 };
 
+/**
+ * Borra un documento de la bóveda.
+ *
+ * 🔥 **Sin recargar el expediente, que es lo que costaba ~10 segundos.** Hacía `cargarFile()`: con
+ * 134 pasajeros y ~600 archivos eso son ~2,1 MB y varios segundos de serialización en el servidor
+ * —el 90 % son las `pertenencias`, que embeben el objeto `grupo` 1 712 veces— para quitar una fila
+ * de una lista que ya está en pantalla. Se nota como que la aplicación se cuelga al borrar.
+ *
+ * ⚠️ **Pero borrar un escaneo SÍ cambia el veredicto de su dueño**, y por eso no basta con quitar la
+ * fila: la identificación que se validó con él se queda sin respaldo —`validado_con_id` es
+ * `SET NULL`— y su chip pasa a decir algo que ya no es cierto. Se revalida a esa persona, que es
+ * gratis —la lectura de los demás documentos está cacheada— y devuelve sus veredictos para
+ * parchearlos en sitio. Una llamada pequeña en vez de traerse el expediente.
+ */
 const eliminarDocumento = async (iri?: string) => {
   if (!iri) return;
-  if(!confirm('¿Eliminar este documento de la bóveda?')) return;
-  const success = await fileStore.deleteDocument(iri);
-  if (success) await cargarFile();
-  else alert("Error al eliminar documento");
+  if (!confirm('¿Eliminar este documento de la bóveda?')) return;
+
+  const lista = file.value?.filearchivos ?? [];
+  const borrado = lista.find(a => String(a['@id'] ?? a.id) === iri);
+  const duenio = borrado?.pasajero;
+
+  if (!await fileStore.deleteDocument(iri)) { alert('Error al eliminar documento'); return; }
+
+  const i = lista.findIndex(a => String(a['@id'] ?? a.id) === iri);
+  if (i >= 0) lista.splice(i, 1);
+
+  if (!duenio) return;
+
+  const pax = (file.value?.filepasajeros ?? [])
+    .find(p => String(extractIdStr(p.id ?? p['@id'])).toLowerCase() === claveDeRelacion(duenio));
+
+  if (!pax) return;
+
+  const veredictos = await fileStore.revalidarPasajero(String(extractIdStr(pax.id ?? pax['@id'])));
+  if (veredictos) await aplicarVeredictos(pax, veredictos);
 };
 </script>
 

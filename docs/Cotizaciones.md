@@ -10036,6 +10036,22 @@ que el proceso llegue vivo al final. Arreglado **antes** de que existiera el bot
 
 `POST /cotizacion/user/manifiesto/{id}/etickets/validar` → `EticketsController`.
 
+#### 🔥 Borrar un documento tardaba ~10 segundos, y no era el borrado
+
+`eliminarDocumento()` hacía `cargarFile()` después del DELETE: **se traía el expediente entero** para
+quitar una fila de una lista que ya estaba en pantalla. El propio `fileStore.ts` ya tenía medido ese
+GET —«717 KB de media, hasta 4,3 MB»— y descrito el síntoma: *«pulsabas y el cambio aparecía cuando
+terminaba de recargarse»*.
+
+Ahora se quita la fila del array y ya. El DELETE en sí es rápido: lo único que corre es
+`AbstractCacheListener::preRemove`, que purga siete filtros de Liip.
+
+⚠️ **Pero borrar un escaneo SÍ cambia el veredicto de su dueño**, así que no basta con quitar la
+fila: la identificación que se validó con él se queda sin respaldo —`validado_con_id` es `SET NULL`—
+y su chip diría algo que ya no es cierto. Se revalida **a esa persona**, que es gratis —las lecturas
+de sus otros documentos están cacheadas— y devuelve sus veredictos para parchearlos en sitio. Una
+llamada pequeña en lugar de traerse el expediente.
+
 #### 🔥 No devuelve el expediente, y ése era el requisito
 
 El botón de identidad devuelve el expediente **entero** «para que el front repinte sin una segunda
