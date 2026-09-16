@@ -16,10 +16,28 @@ namespace App\Cotizacion\Documento;
  * destrozaba la palabra sin dar error: `«José Pérez Núñez»` salía como `JOSO` y `REZ`.
  * `Transliterator` cubre cualquier alfabeto, no sólo la lista de acentos que uno recuerde.
  *
- * ⚠️ **Y la transliteración no es cosmética aquí: `ACUÑA` y `ACUNA` son la misma persona.** El
- * formulario dominicano no admite la eñe, así que el pasajero escribe `ACUNA` y su pasaporte dice
- * `ACUÑA`. Sin normalizar, ese caso sale como nombre que no coincide — y en un grupo peruano eso es
- * mucha gente.
+ * ── ⚠️ La transliteración NO es una comodidad: es obligatoria dos veces ────
+ * Se planteó que la eñe y las tildes deberían compararse **exactas** cuando se trata de un DNI o un
+ * pasaporte, y suena razonable —el nombre oficial lleva su eñe—. Medido, no se puede:
+ *
+ * 1. **La MRZ de un pasaporte es ASCII por especificación** (ICAO 9303): `Ñ→N`, tildes fuera,
+ *    siempre. No es nuestro lector el que las pierde, es el documento. Comprobado en producción:
+ *    ```
+ *    manifiesto : Jairo Jesús Medrano Huaicho
+ *    MRZ        : P<PERMEDRANO<HUAICHO<<JAIRO<JESUS<<<
+ *    ```
+ *    Exigir exactitud ahí **acusa al manifiesto, que es el que está bien**. De 127 pasaportes
+ *    leídos, ése es el ÚNICO que difiere sólo en diacríticos.
+ *
+ * 2. **El E-Ticket y los sistemas de las aerolíneas tampoco los admiten.** El pasajero escribe
+ *    `ACUNA` porque el formulario no le deja escribir otra cosa.
+ *
+ * Así que los dos lados que se comparan pierden los diacríticos por diseño ajeno, y una comparación
+ * exacta no mediría el nombre: mediría de qué zona del documento salió la lectura.
+ *
+ * 🔑 **Dónde SÍ debe ser exacto es al ESCRIBIR el manifiesto**, que es de donde salen los papeles
+ * oficiales. Pero eso no lo puede arbitrar un escaneo cuya única fuente verificada es ASCII: es
+ * calidad del dato al cargarlo, no un veredicto de control.
  */
 final readonly class PalabrasDelNombre
 {

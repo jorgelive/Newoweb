@@ -9930,11 +9930,35 @@ longitud entre tres y emparejaba `ANA` con `ANO`: sobre tres letras un cambio es
 palabra; sobre siete, un dedo que resbaló. Queda: menos de 4 letras exige igualdad, hasta 6 admite un
 cambio, de 7 en adelante dos.
 
-⚠️ **La eñe y las tildes no llegan a la comparación**: `PalabrasDelNombre` translitera. El formulario
-dominicano no admite la eñe, así que `ACUNA` frente a `ACUÑA` es lo normal y no un error — sin eso,
-medio grupo peruano saldría acusado. Esa normalización **se extrajo de `Cotejo`, no se reescribió**:
-dos normalizaciones de nombre que tienen que decir lo mismo acaban discrepando, y en este módulo ya
-pasó con la pareja escaneo↔número.
+⚠️ **La eñe y las tildes no llegan a la comparación**: `PalabrasDelNombre` translitera. Esa
+normalización **se extrajo de `Cotejo`, no se reescribió**: dos normalizaciones de nombre que tienen
+que decir lo mismo acaban discrepando, y en este módulo ya pasó con la pareja escaneo↔número.
+
+##### ⚠️ Y no, en el pasaporte tampoco se puede exigir exactitud
+
+Se planteó —con buen criterio— que transliterar está bien para el E-Ticket, donde el formulario no
+admite la eñe, pero que **en el DNI y el pasaporte el nombre sí debería compararse exacto**. Se
+midió antes de implementarlo, y no se puede:
+
+🔑 **La MRZ de un pasaporte es ASCII por especificación** (ICAO 9303): `Ñ→N`, tildes fuera, siempre.
+No es nuestro lector el que las pierde, es el documento. En producción:
+
+```
+manifiesto : Jairo Jesús Medrano Huaicho
+MRZ        : P<PERMEDRANO<HUAICHO<<JAIRO<JESUS<<<
+```
+
+Exigir exactitud ahí **acusa al manifiesto, que es el que está bien**. Y el volumen lo remata: de
+**127 pasaportes leídos, ése es el único** que difiere sólo en diacríticos —114 idénticos, 12 que
+difieren de verdad—. La regla habría producido un falso positivo y ni un acierto.
+
+Los dos lados que se comparan pierden los diacríticos **por diseño ajeno** —la MRZ por norma
+internacional, el E-Ticket y los sistemas de las aerolíneas porque no los admiten—, así que una
+comparación exacta no mediría el nombre: mediría de qué zona del documento salió la lectura.
+
+**Dónde sí importa la exactitud es al ESCRIBIR el manifiesto**, que es de donde salen los papeles
+oficiales. Pero eso es calidad del dato al cargarlo, no algo que pueda arbitrar un escaneo cuya única
+fuente verificada es ASCII.
 
 ### Dónde vive el veredicto (y por qué no donde el de identidad)
 
