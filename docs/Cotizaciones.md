@@ -10124,6 +10124,48 @@ de más borraría lo que se acaba de pagar, en el acto y sin rastro. Sólo `pasa
 invalidan; `updatedAt` no, porque se mueve por cualquier cosa —incluida la propia escritura de la
 lectura— y usarlo sería morderse la cola.
 
+### 🔥 «38 por revisar» no decía qué contaba (16/09/2026)
+
+Lo dijo quien opera, y tenía razón: *«faltan 38 ¿qué cosas? ¿DNIs? ¿pasaportes? Ni sé si falta
+procesar o falta que suban.»*
+
+Los dos contadores del manifiesto decían «N por revisar» y eso tapaba **dos trabajos que hacen
+personas distintas**: escribirle al pasajero que no ha mandado nada, y abrir el escaneo de quien sí
+lo mandó. Y había un número que **no salía por ningún lado y es el más urgente**:
+
+| | falta que lo suban | subido, hay que mirarlo |
+|---|---|---|
+| Pasaporte | 7 | 12 |
+| DNI anverso / reverso | 7 / 7 | 27 (la ficha DNI) |
+| **E-Ticket** | **37** | 32 |
+
+**37 personas sin E-Ticket a dos días de volar**, y en pantalla sólo se veía el 32. A nadie se le
+puede revisar un documento que no ha mandado.
+
+Ahora los contadores dicen qué cuentan —«38 escaneos con observaciones»— y hay un desplegable
+«Faltan N documentos por subir» con el desglose por tipo. Plegado, porque son cuatro líneas que no
+hacen falta hasta que se pregunta *qué* falta.
+
+⚠️ **El panel cuenta sólo quién SUBIÓ qué, a propósito.** Repartir también las observaciones por
+tipo obligaría a reescribir en TypeScript `ArchivoTipoEnum::respaldaA()`, y ese mapeo ya estuvo en
+tres sitios una vez y el sistema se contradijo consigo mismo. Lo que hay que mirar se cuenta aparte
+y entero.
+
+⚠️ Y dice «faltan 7», no «7»: un número a secas se lee igual de bien como «hay 7» que como «faltan
+7», y son lo contrario.
+
+#### La bóveda se filtra por tipo
+
+El buscador ya encontraba por tipo —y el placeholder lo prometía— pero sólo si sabes cómo se llama
+el tipo y lo escribes bien. Con 601 ficheros la pregunta normal no es «busco pasaportes» sino **«¿qué
+hay aquí dentro?»**, y eso un buscador no lo contesta: sólo una lista. Las pastillas salen **de lo
+que hay**, no del catálogo —una «Autorización (0)» sería prometer que existen— y llevan el número al
+lado.
+
+⚠️ Se acumula con la búsqueda, no la sustituye: filtrar por tipo y luego buscar un apellido es el
+camino de «¿mandó Pérez su pasaporte?». Que una pastilla activa dejara de contar al escribir sería
+la sorpresa clásica.
+
 ### Dónde vive el veredicto (y por qué no donde el de identidad)
 
 El de un DNI o un pasaporte vive en `CotizacionPasajeroIdentificacion`, **al lado del número que

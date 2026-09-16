@@ -2290,6 +2290,60 @@ const eticketsObservados = computed(() =>
     (file.value?.filearchivos ?? [])
         .filter(a => a.tipoArchivo === 'eticket' && a.estadoValidacion === 'observado').length);
 
+/* ══ QUÉ FALTA, Y DE QUÉ ══════════════════════════════════════════════════
+   🔥 **«38 por revisar» no dice qué cuenta.** Ni qué documento es, ni —lo que más confunde— si
+   falta que alguien lo SUBA o si está subido y hay que mirarlo. Son dos trabajos de dos personas
+   distintas: uno se resuelve escribiéndole al pasajero, el otro abriendo el escaneo.
+
+   Y había un número que no salía por ningún lado y es el más urgente: **cuántos no han subido
+   nada**. En este expediente, 37 personas sin E-Ticket a dos días de volar, contra 32 subidos con
+   algo que mirar. El segundo estaba en pantalla; el primero, en ninguna. */
+
+/** Cuántas personas han subido cada tipo. La cuenta es por PERSONA, no por fichero. */
+const subidoPorTipo = computed(() => {
+    const porTipo = new Map<string, Set<string>>();
+
+    for (const a of file.value?.filearchivos ?? []) {
+        const tipo = String(a.tipoArchivo ?? '');
+        const duenio = String(extractIdStr(a.pasajero ?? '') ?? '');
+        if (!tipo || !duenio) continue;
+
+        if (!porTipo.has(tipo)) porTipo.set(tipo, new Set());
+        porTipo.get(tipo)?.add(duenio);
+    }
+
+    return porTipo;
+});
+
+/**
+ * Lo que este expediente pide, y a cuánta gente le falta.
+ *
+ * ⚠️ **Sólo cuenta quién SUBIÓ qué, a propósito.** Repartir aquí las observaciones por tipo
+ * obligaría a reescribir en TypeScript la regla de qué escaneo respalda qué número
+ * (`ArchivoTipoEnum::respaldaA()`), y ese mapeo ya llegó a estar en tres sitios una vez y el
+ * sistema se contradijo consigo mismo. Lo que hay que mirar se cuenta aparte y entero.
+ */
+const faltanPorSubir = computed(() => {
+    const total = (file.value?.filepasajeros ?? []).length;
+
+    return (file.value?.documentosPedidos ?? []).map(tipo => {
+        const subido = subidoPorTipo.value.get(tipo)?.size ?? 0;
+
+        return {
+            tipo,
+            // El rótulo sale del mismo sitio que en el resto de la pantalla, no de una copia.
+            etiqueta: getArchivoLabel(tipo),
+            subido,
+            faltan: Math.max(0, total - subido),
+        };
+    });
+});
+
+/** El número que importa de un vistazo: a cuánta gente le falta ALGO de lo que se le pide. */
+const totalQueFalta = computed(() => faltanPorSubir.value.reduce((n, f) => n + f.faltan, 0));
+
+const detalleAbierto = ref(false);
+
 /**
  * ⚠️ **Puede tardar minutos y por eso informa del avance.** Son tandas de 15 lecturas; el store
  * repite mientras queden pendientes. Sin el contador, un botón que gira dos minutos se lee como
@@ -2634,15 +2688,50 @@ const ordenarBoveda = (docs: ApiCotizacionFilearchivo[]): ApiCotizacionFilearchi
         || getDocNombre(a).localeCompare(getDocNombre(b), 'es', { numeric: true }));
 };
 
+/**
+ * Los tipos que HAY en esta bóveda, con cuántos de cada uno.
+ *
+ * 🔥 **La búsqueda ya decía «por tipo» y era verdad a medias.** Escribir «pasaporte» funcionaba,
+ * pero hay que saber cómo se llama el tipo y escribirlo bien, y con 601 ficheros la pregunta normal
+ * no es «busco pasaportes» sino «¿qué hay aquí dentro?». Un buscador contesta la primera; sólo una
+ * lista contesta la segunda.
+ *
+ * ⚠️ Se calculan **de lo que hay**, no del catálogo de tipos: una pastilla «Autorización (0)» en un
+ * expediente que no pide ninguna es una promesa de que existen.
+ */
+const tiposEnLaBoveda = computed(() => {
+    const cuenta = new Map<string, number>();
+
+    for (const doc of file.value?.filearchivos ?? []) {
+        const tipo = String(doc.tipoArchivo ?? '');
+        if (tipo) cuenta.set(tipo, (cuenta.get(tipo) ?? 0) + 1);
+    }
+
+    // El mismo orden que la lista de abajo, o las pastillas y las filas cuentan historias distintas.
+    return [...cuenta.entries()]
+        .sort(([a], [b]) => ORDEN_DE_TIPO.indexOf(a) - ORDEN_DE_TIPO.indexOf(b))
+        .map(([tipo, n]) => ({ tipo, etiqueta: getArchivoLabel(tipo), n }));
+});
+
+/** `null` = todos. Se combina con la búsqueda: filtrar por tipo y luego buscar un nombre. */
+const bovedaTipo = ref<string | null>(null);
+
 const bovedaDocs = computed(() => {
     // ⚠️ Sin tildes en los DOS lados: con un padrón peruano —Núñez, José, Rodríguez— «perez» sin
     // acento es como se teclea siempre, y una lista vacía se lee como «no está subido».
     const palabras = paraBuscar(bovedaBusqueda.value.trim()).split(/\s+/).filter(Boolean);
-    if (!palabras.length) return ordenarBoveda(file.value?.filearchivos ?? []);
 
-    return ordenarBoveda(bovedaIndexada.value
+    // ⚠️ El tipo se aplica SIEMPRE, con o sin búsqueda: son dos filtros que se acumulan, no dos
+    // modos. Que una pastilla activa dejara de contar al escribir sería la sorpresa clásica.
+    const porTipo = (docs: ApiCotizacionFilearchivo[]) => bovedaTipo.value === null
+        ? docs
+        : docs.filter(d => String(d.tipoArchivo ?? '') === bovedaTipo.value);
+
+    if (!palabras.length) return ordenarBoveda(porTipo(file.value?.filearchivos ?? []));
+
+    return ordenarBoveda(porTipo(bovedaIndexada.value
         .filter(({ paja }) => palabras.every(palabra => paja.includes(palabra)))
-        .map(({ doc }) => doc));
+        .map(({ doc }) => doc)));
 });
 
 /** El desplegable se vacía en cuanto elige: es un «añadir», no una selección que se queda. */
@@ -3730,6 +3819,32 @@ const eliminarDocumento = async (iri?: string) => {
                      class="w-full border border-slate-200 rounded-xl pl-8 pr-3 py-2 text-[11px] font-bold text-slate-700 placeholder:font-medium placeholder:text-slate-300 outline-none focus:border-sky-400">
             </div>
 
+            <!-- 🔥 **Qué hay aquí dentro, sin tener que adivinar el nombre del tipo.** La búsqueda
+                 ya encontraba por tipo, pero sólo si sabes cómo se llama y lo escribes bien; con 601
+                 ficheros la pregunta normal no es «busco pasaportes» sino «¿qué hay?». Y el número
+                 al lado contesta de paso cuántos hay de cada uno.
+
+                 ⚠️ Se acumula con la búsqueda, no la sustituye: filtrar por tipo y luego buscar un
+                 apellido es justo el camino para «¿mandó Pérez su pasaporte?». -->
+            <div v-if="tiposEnLaBoveda.length > 1" class="flex flex-wrap items-center gap-1.5 mb-3">
+              <button type="button" @click="bovedaTipo = null"
+                      class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors"
+                      :class="bovedaTipo === null
+                        ? 'bg-slate-700 border-slate-700 text-white'
+                        : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'">
+                Todos
+              </button>
+              <button v-for="t in tiposEnLaBoveda" :key="t.tipo" type="button"
+                      @click="bovedaTipo = bovedaTipo === t.tipo ? null : t.tipo"
+                      class="px-2.5 py-1 rounded-full text-[10px] font-black border transition-colors"
+                      :class="bovedaTipo === t.tipo
+                        ? 'bg-sky-600 border-sky-600 text-white'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-sky-300'">
+                {{ t.etiqueta }}
+                <span class="tabular-nums opacity-70">{{ t.n }}</span>
+              </button>
+            </div>
+
             <!-- ═══ CARGA MASIVA POR ZIP ═══
                  ~1 060 boarding passes en un grupo grande. El ZIP se nombra `DNI-VUELO` y el
                  servidor reparte — y valida que esa persona vuele ese vuelo, así que un
@@ -3893,8 +4008,10 @@ const eliminarDocumento = async (iri?: string) => {
                     {{ validando ? 'Leyendo documentos…' : 'Validar contra los escaneos' }}
                   </button>
 
+                  <!-- ⚠️ Dice QUÉ cuenta. «38 por revisar» no distinguía «falta que lo suban» de
+                       «está subido y hay que mirarlo», que son dos trabajos de dos personas. -->
                   <span v-if="observadas" class="inline-flex items-center gap-1 text-[10px] font-black text-amber-700">
-                    <i class="fas fa-triangle-exclamation"></i> {{ observadas }} por revisar
+                    <i class="fas fa-triangle-exclamation"></i> {{ observadas }} escaneos con observaciones
                   </span>
                 </div>
 
@@ -3907,7 +4024,7 @@ const eliminarDocumento = async (iri?: string) => {
                   </button>
 
                   <span v-if="eticketsObservados" class="inline-flex items-center gap-1 text-[10px] font-black text-indigo-700">
-                    <i class="fas fa-triangle-exclamation"></i> {{ eticketsObservados }} por revisar
+                    <i class="fas fa-triangle-exclamation"></i> {{ eticketsObservados }} con observaciones
                   </span>
                 </div>
 
@@ -3916,6 +4033,38 @@ const eliminarDocumento = async (iri?: string) => {
                 <span class="text-[9px] text-slate-400 leading-snug">
                   escriben el veredicto, no corrigen el manifiesto
                 </span>
+
+                <!-- 🔥 **Lo que falta por SUBIR, que no salía por ningún lado.** Es el número más
+                     urgente —a nadie se le puede revisar un documento que no ha mandado— y estaba
+                     sólo implícito en la hoja que hay que descargar. Plegado porque son cuatro
+                     líneas que no hacen falta hasta que se pregunta «¿qué falta exactamente?». -->
+                <div v-if="totalQueFalta" class="rounded-xl border border-rose-200 bg-rose-50/60 overflow-hidden">
+                  <button type="button" @click="detalleAbierto = !detalleAbierto"
+                          :aria-expanded="detalleAbierto"
+                          class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-rose-100/60 transition-colors">
+                    <i class="fas fa-inbox text-rose-500 text-xs shrink-0"></i>
+                    <span class="text-[10px] font-black uppercase tracking-wider text-rose-700 flex-1 min-w-0">
+                      Faltan {{ totalQueFalta }} documentos por subir
+                    </span>
+                    <i class="fas text-rose-400 text-[9px] shrink-0"
+                       :class="detalleAbierto ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                  </button>
+
+                  <ul v-show="detalleAbierto" class="px-3 pb-2.5 space-y-1 border-t border-rose-200/70 pt-2">
+                    <li v-for="f in faltanPorSubir" :key="f.tipo"
+                        class="flex items-baseline justify-between gap-3 text-[11px]">
+                      <span class="min-w-0 break-words" :class="f.faltan ? 'font-bold text-rose-800' : 'text-slate-400'">
+                        {{ f.etiqueta }}
+                      </span>
+                      <span class="shrink-0 font-black tabular-nums"
+                            :class="f.faltan ? 'text-rose-700' : 'text-emerald-600'">
+                        <!-- Se dice «faltan N» y no sólo el número: un 7 a secas se lee igual de
+                             bien como «hay 7» que como «faltan 7», y son lo contrario. -->
+                        {{ f.faltan ? `faltan ${f.faltan}` : 'completo' }}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
               </div>
               <div v-if="manifiestoAbierto">
               <div class="flex flex-wrap items-center justify-end gap-2 mb-4">
