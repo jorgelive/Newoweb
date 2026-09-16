@@ -1839,6 +1839,11 @@ el orden con sentido lo pone quien pinta, que ya tiene el índice de nombres mon
 | Añadir un documento al catálogo de lo pedible | `ArchivoTipoEnum` | `loSubeElPasajero()` + su fila en `CATALOGO_DOCUMENTOS` (`pax`). **Los dos**, y lo exige `ArchivoTipoPedibleEspejoTest` |
 | Añadir un eje de subgrupo nuevo | `GrupoTipoEnum` | sale solo en el `.xlsx` si `label()` es legible; `PadronFormatoEjeTest` lo comprueba |
 | Cambiar qué se puede quitar al reimportar el padrón | `PadronImportador` | `ejesDeclarados()` — sólo se sincroniza el eje cuyas columnas trae el archivo |
+| Añadir un país que exija trámite migratorio | `PaisDeControlEnum` | un `case` con sus aeropuertos IATA. Nada más |
+| Cambiar contra qué vuelo se coteja un trámite | `CruceDeFrontera` | puro y con test: entrada = primer destino del país, salida = primer origen **tras** entrar |
+| Cambiar qué se le pregunta al modelo de un E-Ticket | `LectorDeEticket` | `INSTRUCCION` + `ESQUEMA`. ⚠️ **sin `additionalProperties`**: Google AI rechaza la llamada entera |
+| Cambiar cuándo un E-Ticket queda observado | `CotejoDeEticket` | puro, sin dependencias |
+| Guardar el veredicto de un documento que NO es de identidad | `CotizacionFilearchivo` | `registrarValidacion()` — **no** hay setters sueltos, y el de identidad sigue en `CotizacionPasajeroIdentificacion` |
 | Añadir un tipo de adjunto | `ArchivoTipoEnum` + los dos espejos TS + `npm run gen:api` | todos los `match` del enum |
 | Cambiar el orden de la bóveda | `util/.../FileDetalle.vue` | `ordenarBoveda()` |
 | Que un adjunto salga estable en cualquier consumidor | `CotizacionFile` | `#[ORM\OrderBy]` de `$filearchivos` |
