@@ -9703,3 +9703,137 @@ contar.
 
 Se calcula en el front sobre `filearchivos`, que ya está cargado: no hace falta preguntar al
 servidor qué vas a mandar antes de mandarlo.
+
+## Controlar el E-Ticket migratorio: lo que faltaba era el «contra qué» (16/09/2026)
+
+**El diagnóstico, en una frase del que lo pidió:** «los vuelos están, los pasaportes están, pero no
+se sabe contra cuál poner — está todo pero falta un set de instrucciones».
+
+Era exacto. El proceso de control ya existía entero para documentos de identidad:
+
+```
+CotizacionFilearchivo ──► lecturaDe()   modelo UNA vez, cacheada en `datosLeidos`
+                          ↓
+                     DatosDeDocumento
+                          ↓
+                     Cotejo::de(leído, FichaGuardada)   ← pura, sin dependencias
+                          ↓
+                     { estado, Discrepancia[], notas[] }
+```
+
+Lo único cableado era **el segundo argumento**: siempre la ficha de identidad del pasajero. Para un
+trámite migratorio la referencia no es una ficha, es el **itinerario de esa persona** — y eso no
+existía.
+
+### 🔑 La pregunta difícil, y por qué se resuelve sola
+
+Un expediente tiene **tres formas de entrar a Punta Cana y dos de salir**:
+
+```
+DM6771  LIM→PUJ  18/09          CM749  PUJ→PTY  22/09
+CM177   PTY→PUJ  18/09          DM6770 PUJ→LIM  22/09
+DM6775  LIM→PUJ  21/09
+```
+
+Pero **por pasajero no hay ninguna ambigüedad**: sus vuelos son los de *su subgrupo aéreo*, y ahí
+queda exactamente uno de cada. El vínculo subgrupo↔vuelos ya existía; nadie lo había usado para
+esto.
+
+⚠️ **Y no hace falta maestro de aeropuertos.** `PaisDeControlEnum` declara los ocho aeropuertos
+internacionales del país y el cruce se resuelve mirando origen y destino. Traer 9000 filas para usar
+ocho sería el camino largo a la misma respuesta. El día que haya maestro, este enum sigue haciendo
+falta: lo que declara es **qué países exigen trámite**, que no lo dice ningún maestro.
+
+### Las piezas
+
+| Pieza | Qué es | Depende de |
+|---|---|---|
+| `PaisDeControlEnum` | qué país exige trámite y por dónde se entra | nada |
+| `CruceDeFrontera` | **el vuelo de entrada y el de salida de esa persona** | nada (puro) |
+| `DatosDeEticket` | lo que se leyó del documento | nada |
+| `LectorDeEticket` | instrucción + esquema + interpretación | `LectorDeImagenInterface` |
+| `CotejoDeEticket` | **quien juzga** | nada (puro) |
+| `ValidadorDeEticket` | ata las tres y cachea la lectura | ORM + Vich |
+
+`CruceDeFrontera` es el **gemelo de `CadenaDeAlojamiento`**: aquélla contesta «qué hotel cubre esta
+noche», ésta «qué vuelo cruza esta frontera». Misma forma a propósito — objeto puro, construido
+desde fuera, probado solo.
+
+### 🔥 Se entra el día que se ATERRIZA y se sale el día que se DESPEGA
+
+Es la asimetría que más fácil se pasa y la que más caro sale. El `DM6770` despega de Punta Cana el
+**22** a las 20:22 y aterriza en Lima el **23** a las 00:30. Comparar la fecha de salida del trámite
+contra la llegada del vuelo haría que un trámite correcto saliera con la fecha equivocada — y en un
+vuelo de vuelta nocturno, eso es el grupo entero a la vez.
+
+### Lo que el almacén NO hubo que tocar
+
+⚠️ `CotizacionFilearchivo::$datosLeidos` es `array<string, mixed>` y `registrarLectura()` no sabe qué
+es un pasaporte: **el patrón ya era genérico**, sólo no se había usado para otra cosa. Lo mismo
+`LectorDeImagenInterface`, que acepta `application/pdf` igual que `image/jpeg` y cuyo contrato es
+literalmente «esta imagen, esta forma».
+
+Medido sobre los 87 subidos: **81 traen capa de texto y 6 son capturas de pantalla**. Los dos casos
+entran por la misma puerta. Extraer el texto del PDF a mano sería más barato para esos 81, pero el
+texto va en hexadecimal con la fuente embebida: haría falta una librería más, un segundo camino que
+probar y una forma nueva de fallar para el 7 % restante. Si el gasto lo justifica, el sitio es
+`LectorDeEticket::extraer()` y el resto no se entera.
+
+### Lo que se coteja
+
+| campo | del documento | contra |
+|---|---|---|
+| `pasaporte` | el que declaró al rellenarlo | su ficha del manifiesto |
+| `vuelo de entrada` | el que escribió | `CruceDeFrontera::$entrada` |
+| `fecha de entrada` | la que escribió | el día que **aterriza** ese vuelo |
+| `vuelo de salida` | el que escribió | `CruceDeFrontera::$salida` |
+| `fecha de salida` | la que escribió | el día que **despega** ese vuelo |
+| las dos secciones | si EXISTEN | — |
+
+⚠️ **«La sección no está» y «la sección está y no se pudo leer» son cosas distintas**, y por eso son
+dos preguntas al modelo y no una deducción. Lo que hay que hacer es distinto: rehacer el trámite, o
+mirar el escaneo. Deducirlo de «no leí la fecha» mandaría a rehacer algo que ya estaba bien.
+
+⚠️ **Medio grupo sube su billete de avión creyendo que es esto** — «e-ticket» significa eso para
+cualquiera. Un billete tiene número de vuelo y fecha, así que sin la pregunta `esEticket` cotejaría
+razonablemente bien y daría por hecho un trámite que nadie hizo.
+
+⚠️ **No se acusa a quien no se puede comprobar.** Sin subgrupo aéreo, o entrando al país dos veces,
+el veredicto es `no_validado` **con el motivo escrito** y cero discrepancias. Un control que acusa
+en falso se deja de mirar entero.
+
+⚠️ **No hay «validado» fuerte.** Lo mejor que da es `VALIDADO_OCR` = «nada que objetar en lo que se
+pudo leer». Un E-Ticket no tiene MRZ ni dígitos de control: no existe segunda fuente aritmética que
+lo respalde, así que el sello fuerte sigue siendo humano. Es la misma regla que ya aplica `Cotejo` a
+un DNI sin banda.
+
+### Cómo se pasa
+
+```bash
+php bin/console app:cotizacion:validar-etickets 5SRAJV --limite=5
+php bin/console app:cotizacion:validar-etickets 5SRAJV --solo-leidos   # gratis: re-juzga lo ya leído
+```
+
+`--solo-leidos` es la pasada barata de después de tocar una regla: no llama al modelo y dice qué
+cambia. Es el motivo de que leer e interpretar estén separados.
+
+### Lo que falta
+
+**El veredicto no tiene dónde vivir.** Hoy los estados de validación están en
+`CotizacionPasajeroIdentificacion`, al lado del número que juzgan, y un E-Ticket no es un documento
+de identidad: no tiene fila ahí. Hacen falta `estadoValidacion`, `discrepancias` y `notasValidacion`
+en `CotizacionFilearchivo` —que ya guarda la lectura— y entonces el comando pasa de informar a
+persistir, y el manifiesto puede pintar el chip.
+
+⚠️ Y cuando eso llegue: `Discrepancia` llama **`manifiesto`** al valor esperado, y aquí el esperado
+sale del itinerario. Está **persistido en JSON** en la columna `discrepancias`, así que renombrarlo a
+`esperado` toca datos guardados — se lee con respaldo o se migra.
+
+### Añadir otro país, u otro documento
+
+Un país: un `case` en `PaisDeControlEnum` con sus aeropuertos. Nada más.
+
+Otro documento que se coteje contra el itinerario (una tarjeta de embarque, un seguro con fechas):
+su `DatosDeX`, su `LectorDeX` y su `CotejoDeX`, copiando estos tres. **No se montó un motor de
+reglas ni un DSL**, a propósito: aquí los contratos son clases pequeñas y tipadas, y ésa es la razón
+de que un caso nuevo cueste tres archivos que se leen enteros en cinco minutos.
