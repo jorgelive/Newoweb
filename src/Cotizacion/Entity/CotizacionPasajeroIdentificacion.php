@@ -379,6 +379,43 @@ class CotizacionPasajeroIdentificacion
     public function getVencimiento(): ?DateTimeInterface { return $this->vencimiento; }
 
     /**
+     * ¿Hay un escaneo detrás que alguien pueda mirar?
+     *
+     * ⚠️ Distinto de {@see self::isCopiadaDelEscaneo()}, que dice de dónde salió el NÚMERO. Esto
+     * dice si el documento existe, y es lo que permite firmar un pasaporte cuya banda no cuadra.
+     */
+    #[Groups(['file:item:read'])]
+    public function getTieneEscaneo(): bool { return $this->validadoCon !== null; }
+
+    /**
+     * ¿Se le puede poner el «lo he mirado, está bien»?
+     *
+     * 🔥 **Vive aquí y no en el controlador, y eso fue un arreglo.** Se calculó primero en el JSON
+     * que devuelve `DocumentosSueltosController::veredictosDe()` —que sólo corre al revalidar o
+     * confirmar a alguien— así que **al recargar la pantalla el botón no salía nunca**: el payload
+     * del expediente serializa esta entidad, y esto no estaba en ningún grupo.
+     *
+     * Puesto aquí lo ven los dos caminos y, sobre todo, **la regla existe una sola vez**: el guarda
+     * del endpoint pregunta a los mismos métodos. Con la condición duplicada, el día que cambie una
+     * el botón ofrece lo que el servidor rechaza — que ya pasó con un DNI vencido.
+     *
+     * Las cuatro condiciones, y cada una por su motivo:
+     *
+     * - **hay escaneo**: firmar lo que nadie ha subido no es mirar, es inventar;
+     * - **no está vencido**: es la única nota que ninguna firma levanta;
+     * - **está observado**: lo ya validado no necesita firma, y ofrecerla enseña a dar clics de más;
+     * - **sin discrepancias**: ahí el trabajo no es firmar, es decidir cuál de los dos valores vale.
+     */
+    #[Groups(['file:item:read'])]
+    public function getSePuedeConfirmar(): bool
+    {
+        return $this->getTieneEscaneo()
+            && !$this->estaVencida()
+            && $this->estadoValidacion === ValidacionIdentificacionEnum::OBSERVADO
+            && $this->discrepancias === [];
+    }
+
+    /**
      * ¿Está caducado a día de hoy?
      *
      * 🔥 **Existe porque un documento vencido NO se puede dar por bueno mirándolo.** El resto de

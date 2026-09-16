@@ -10272,10 +10272,19 @@ mundos: parece que no hace nada y sí deja rastro.
 abre el escaneo y comprueba los datos; por mucho que se mire, un DNI vencido sigue vencido. Eso no se
 arregla mirando, hace falta el documento nuevo.
 
-Ahora hay guarda en el endpoint (`409`) y el botón no sale. ⚠️ **Y la regla se calcula en UN solo
-sitio**: el servidor manda `sePuedeConfirmar` en el veredicto, con la misma condición que aplica el
-guarda. Duplicada en el front, el día que cambie una de las dos el botón ofrecería algo que el
-servidor rechaza — que es exactamente lo que acababa de pasar.
+Ahora hay guarda en el endpoint (`409`) y el botón no sale.
+
+⚠️ **Y la regla vive en la ENTIDAD**, `CotizacionPasajeroIdentificacion::getSePuedeConfirmar()`.
+Primera versión: se calculaba en el JSON de `veredictosDe()`, que **sólo corre al revalidar o
+confirmar a alguien** — así que al recargar la pantalla el botón **no salía nunca**, porque el
+payload del expediente serializa la entidad y eso no estaba en ningún grupo. Puesta en la entidad la
+ven los dos caminos y, sobre todo, **existe una sola vez**: el guarda del endpoint pregunta a los
+mismos métodos.
+
+Las cuatro condiciones, cada una por su motivo: **hay escaneo** (firmar lo que nadie subió no es
+mirar), **no está vencido** (la única nota que ninguna firma levanta), **está observado** (ofrecer
+firma sobre lo ya validado enseña a dar clics de más) y **sin discrepancias** (ahí el trabajo no es
+firmar, es decidir cuál de los dos valores vale).
 
 ⚠️ `CotizacionPasajeroIdentificacion::estaVencida()` compara **por día, sin hora**: el documento que
 vence HOY sirve HOY. Con `new DateTimeImmutable()` a pelo estaría caducado desde las 00:00:01.

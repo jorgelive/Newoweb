@@ -15856,6 +15856,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion-file.item.read": {
             /**
@@ -15902,6 +15906,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion-file.item.read_timestamp.read": {
             /**
@@ -15952,6 +15960,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion-file.read_file.item.read_timestamp.read": {
             /**
@@ -16002,6 +16014,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion-file.write": {
             /**
@@ -16119,6 +16135,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion.html-file.item.read": {
             /**
@@ -16165,6 +16185,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion.html-file.item.read_timestamp.read": {
             /**
@@ -16215,6 +16239,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion.html-file.read_file.item.read_timestamp.read": {
             /**
@@ -16265,6 +16293,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion.html-pax_file.read": {
             /**
@@ -16361,6 +16393,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion.jsonld-file.item.read": {
             /**
@@ -16407,6 +16443,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion.jsonld-file.item.read_timestamp.read": {
             /**
@@ -16457,6 +16497,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion.jsonld-file.read_file.item.read_timestamp.read": {
             /**
@@ -16507,6 +16551,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion.jsonld-pax_file.read": {
             /**
@@ -16603,6 +16651,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion.multipart-file.item.read": {
             /**
@@ -16649,6 +16701,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion.multipart-file.item.read_timestamp.read": {
             /**
@@ -16699,6 +16755,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion.multipart-file.read_file.item.read_timestamp.read": {
             /**
@@ -16749,6 +16809,10 @@ export interface components {
              *     cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
              */
             readonly tipoDeEscaneo?: string | null;
+            /** @description ¿Hay un escaneo detrás que alguien pueda mirar? */
+            readonly tieneEscaneo?: boolean;
+            /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
+            readonly sePuedeConfirmar?: boolean;
         };
         "CotizacionPasajeroIdentificacion.multipart-pax_file.read": {
             /**

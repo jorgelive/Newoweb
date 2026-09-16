@@ -13,7 +13,6 @@ use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use App\Cotizacion\Entity\CotizacionPasajeroIdentificacion;
-use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -265,14 +264,12 @@ final class DocumentosSueltosController extends AbstractController
                 // cuadra —no hay discrepancia, hay una banda ilegible— y ese documento se quedaba
                 // observado para siempre. Firmar lo que NO se puede mirar sí sería malo; por eso se
                 // manda el hecho y lo decide el servidor, no una deducción del front.
-                'tieneEscaneo' => $i->getValidadoCon() !== null,
-                // ⚠️ **Lo decide el servidor, no el front.** Es la misma regla que aplica el guarda
-                // de `confirmar()`: si la calcula cada lado por su cuenta, el día que cambie una de
-                // las dos el botón ofrecerá algo que el endpoint rechaza.
-                'sePuedeConfirmar' => $i->getValidadoCon() !== null
-                    && !$i->estaVencida()
-                    && $i->getEstadoValidacion() === ValidacionIdentificacionEnum::OBSERVADO
-                    && $i->getDiscrepancias() === [],
+                // ⚠️ **De la ENTIDAD, no recalculados aquí.** Es la misma regla que aplica el
+                // guarda de `confirmar()` y la que viaja en el payload del expediente: con la
+                // condición escrita en tres sitios, el día que cambie uno el botón ofrecería algo
+                // que el endpoint rechaza.
+                'tieneEscaneo' => $i->getTieneEscaneo(),
+                'sePuedeConfirmar' => $i->getSePuedeConfirmar(),
             ];
         }
 
