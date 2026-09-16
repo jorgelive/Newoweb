@@ -2711,6 +2711,20 @@ chip del manifiesto y esta hoja—: una lista de documentos escrita a mano que e
 obligatorio pasó a ser configurable. **Antes de escribir los tipos de documento en un sitio nuevo,
 pregunta a `documentosPedidos` o a `ArchivoTipoEnum::pedibles()`.**
 
+##### ⚠️ Las columnas NO se congelan: en el móvil hacían la hoja ilegible
+
+Estaban congeladas la cabecera **y** las dos columnas de nombre —al desplazarse a la derecha para
+ver los escaneos, sin ellas se pierde de quién es la fila—. En el escritorio eso está bien. En el
+móvil es lo contrario de útil: **tres columnas congeladas se comen casi toda la pantalla**, lo que
+queda para desplazarse es una rendija y la hoja se vuelve imposible de leer. Y esta hoja se abre en
+el móvil, que es donde se está cuando hay que perseguir documentos.
+
+Queda `freezePane('A3')`: **sólo las dos filas de cabecera**, que no cuestan ancho —congelan hacia
+abajo, no hacia el lado— y sin ellas no se sabe qué columna se mira.
+
+Lo que se pierde en el escritorio tiene remedio a mano: el autofiltro ya está puesto, así que quien
+necesite seguir una fila concreta ordena o filtra por su apellido.
+
 ##### Las observaciones, una columna por documento (16/09/2026)
 
 Había **una sola celda global** con todo concatenado: «DNI número: doc X ≠ guardado Y · PASAPORTE:

@@ -435,9 +435,19 @@ final readonly class ReporteDeDocumentos
             $hoja->setAutoFilter($hoja->calculateWorksheetDimension());
         }
 
-        // Congelar cabecera Y las dos columnas de nombre: al desplazarse a la derecha para ver los
-        // escaneos, sin esto se pierde de quién es la fila.
-        $hoja->freezePane('D3');
+        // 🔥 **Sólo la CABECERA, no las columnas.** Congelaba también «Apellidos» y «Nombres» —al
+        // desplazarse a la derecha se pierde de quién es la fila— y en el escritorio eso está bien.
+        // En el móvil es lo contrario de útil: tres columnas congeladas se comen casi toda la
+        // pantalla, el área que queda para desplazarse es una rendija y **la hoja se vuelve
+        // imposible de leer**. Y esta hoja se abre en el móvil, que es donde se está cuando hay que
+        // perseguir documentos.
+        //
+        // ⚠️ La fila de cabecera sí se queda: no cuesta ancho —congela hacia abajo, no hacia el
+        // lado— y sin ella no se sabe qué columna se está mirando.
+        //
+        // Lo que se pierde en el escritorio tiene remedio a mano: el autofiltro ya está puesto, y
+        // quien necesite seguir una fila concreta ordena o filtra por su apellido.
+        $hoja->freezePane('A3');
 
         foreach (range(1, $ultima) as $c) {
             $hoja->getColumnDimensionByColumn($c)->setAutoSize(true);
