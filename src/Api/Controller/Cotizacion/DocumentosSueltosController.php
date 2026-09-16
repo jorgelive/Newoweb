@@ -144,10 +144,17 @@ final class DocumentosSueltosController extends AbstractController
      * Desde que su veredicto sale en la misma tarjeta, pulsar «Reprocesar» y ver que esa línea no se
      * mueve hace pensar que el botón está roto.
      *
-     * ⚠️ **Sólo se re-juzga lo YA LEÍDO: este botón no paga.** Es lo que promete su propio nombre y
-     * su cabecera —«no relee el documento, así que cuesta cero»—, y lo que lo hace pulsable las
-     * veces que haga falta tras corregir un dato. Lo que nunca se leyó lo lee la tanda, que avisa de
-     * lo que va a costar.
+     * ⚠️ **Y SÍ lee el trámite si nunca se leyó.** La primera versión lo saltaba —«este botón no
+     * paga»—, y era la decisión equivocada para un botón que actúa sobre UNA persona: el documento
+     * estaba subido y visible en la bóveda, se pulsaba «Reprocesar» y no pasaba nada ni aparecía
+     * nada. No es que costara: es que parecía roto.
+     *
+     * El tope es lo que lo hace aceptable: **una persona tiene un E-Ticket**, así que lo peor que
+     * puede pasar son ~10 s con el botón girando. Lo que no puede hacer este camino es leer los 87
+     * del expediente — de eso se encarga la tanda, que va de cinco en cinco y dice cuántos quedan.
+     *
+     * Los escaneos de identidad se siguen re-juzgando **sólo con lo que ya está leído**: su lectura
+     * la paga el control de identidad, no éste.
      *
      * @return list<array<string, mixed>>
      */
@@ -176,7 +183,7 @@ final class DocumentosSueltosController extends AbstractController
                 continue;
             }
 
-            if ($archivo->getDatosLeidos() === null || (string) $archivo->getPasajero()?->getId() !== $id) {
+            if ((string) $archivo->getPasajero()?->getId() !== $id) {
                 continue;
             }
 

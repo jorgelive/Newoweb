@@ -2641,6 +2641,11 @@ const revalidando = ref<string | null>(null);
  * cuesta cero, porque la lectura está cacheada. Si el documento se giró, su lectura se tiró y ahí
  * sí se vuelve a leer: ~$0,0016.
  */
+/**
+ * ⚠️ **Puede tardar ~10 s**, desde que también lee el E-Ticket de esa persona si nunca se leyó. El
+ * botón se queda girando mientras tanto: sin eso, diez segundos sin respuesta se leen como que no
+ * hace nada, que es justo el reproche que tenía cuando NO lo leía.
+ */
 const revalidarPax = async (pax: ApiCotizacionFilepasajero) => {
     revalidando.value = String(pax.id);
     const resultado = await fileStore.revalidarPasajero(String(extractIdStr(pax.id ?? pax['@id'])));

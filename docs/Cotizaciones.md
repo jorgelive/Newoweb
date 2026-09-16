@@ -10412,9 +10412,17 @@ roto.
 Ahora `revalidar` devuelve **las dos familias** —`identificaciones` y `archivos`— y el front parchea
 las dos.
 
-⚠️ **Sólo re-juzga lo YA LEÍDO: este botón no paga.** Es lo que promete su nombre y su cabecera —«no
-relee el documento, así que cuesta cero»— y lo que lo hace pulsable las veces que haga falta tras
-corregir un dato. Lo que nunca se leyó lo lee la tanda, que sí avisa de lo que va a costar.
+⚠️ **Y SÍ lee el trámite si nunca se leyó.** La primera versión lo saltaba —«este botón no paga»— y
+era la decisión equivocada para algo que actúa sobre UNA persona: el E-Ticket estaba subido y visible
+en la bóveda, se pulsaba «Reprocesar» y **no pasaba nada ni aparecía nada**. No es que costara: es que
+parecía roto.
+
+El tope es lo que lo hace aceptable: **una persona tiene un E-Ticket**, así que lo peor son ~10 s con
+el botón girando. Lo que no puede hacer este camino es leer los 87 del expediente — de eso se encarga
+la tanda, que va de cinco en cinco y dice cuántos quedan.
+
+Los escaneos de identidad se siguen re-juzgando **sólo con lo que ya está leído**: su lectura la paga
+el control de identidad, no éste.
 
 ⚠️ Y `EticketsController::veredictoDe()` pasó a **pública**: dos formas distintas para el mismo
 veredicto obligarían al front a parchear de dos maneras, y una de las dos envejecería.
