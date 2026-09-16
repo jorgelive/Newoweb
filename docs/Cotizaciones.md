@@ -1229,6 +1229,50 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### Devolver cada habitación a su bloque (16/09/2026)
+
+`app:cotizacion:renumerar-habitaciones <localizador> [--alumnos=HA] [--adultos=HP] [--dry-run]`.
+
+Un viaje de promoción numera en dos bloques —`HA…` alumnos, `HP…` padres y coordinadores— porque el
+hotel factura distinto y la operativa los trata distinto. **Nada en el sistema lo impone**: es un
+acuerdo de un rooming list, y a la décima corrección a mano deja de cumplirse. En el expediente
+real: 48 de 52 bien, **4 desviadas**.
+
+🔥 **La unidad es la HABITACIÓN, no la persona.** Es lo que hay que entender antes de tocar esto: en
+una `DOBLE` puede dormir una acompañante con su hija participante, y mandar «a cada uno a su bloque»
+las separaría. Se mueve el **cuarto entero**:
+
+```
+todos los ocupantes son participantes  →  bloque de alumnos
+hay al menos un adulto                 →  bloque de adultos
+```
+
+Los cuatro casos reales eran exactamente eso: madre e hija, padre e hijo, y un matrimonio en una
+`MATRIMONIAL`. Con la regla por persona se habrían roto los tres.
+
+⚠️ **Sólo se mueve lo que está mal.** Las correctas no se renumeran aunque queden huecos (`HA01`
+libre). Dejarlas contiguas sería cosmético y caro: el pasajero **ya ve su código en la app** —«CÓDIGO
+DE GRUPO HA23»— y cambiárselo deja desfasado a todo el que ya lo miró. Un hueco no lo encuentra
+nadie; un código que cambia, sí.
+
+⚠️ **Estos códigos son NUESTROS, no los números de puerta.** El hotel no sabe qué es «HA23», y por
+eso renumerar aquí es barato y no hay que avisar a nadie. El día que los códigos pasen a ser los del
+hotel, esta suposición deja de valer y el comando se vuelve peligroso.
+
+##### 🔥 PHPStan pidió quitar un `?->` y había 2 filas nulas en producción
+
+Al escribirlo, `nullsafe.neverNull` marcó como innecesario el `?->` sobre `getTipo()` del pasajero.
+Hacerle caso deja `$pax->getTipo()->value`… y la propiedad es **`?PasajeroTipoEnum $tipo = null`**.
+Comprobado en producción: **2 pasajeros con el rol a NULL**. Habría sido un fatal esperando a que
+uno de esos dos cayera en una habitación a mover.
+
+**La regla:** un aviso de `nullsafe.neverNull` sobre un getter de entidad se contrasta con la
+DECLARACIÓN de la propiedad y, si hay duda, con los datos. El analizador razona sobre el código que
+ve; la nulabilidad de una columna la decide la base.
+
+⚠️ Y el criterio con rol nulo es deliberado: un ocupante sin rol **no cuenta como participante**, así
+que su habitación va al bloque de adultos. Lo desconocido no se asume a favor.
+
 #### Poner el hotel a habitaciones ya cargadas (15/09/2026)
 
 `app:cotizacion:hotel-habitaciones <localizador> "<hotel>" [--prefijo=HA] [--forzar] [--dry-run]`.
