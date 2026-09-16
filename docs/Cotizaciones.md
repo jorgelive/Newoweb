@@ -1844,6 +1844,8 @@ el orden con sentido lo pone quien pinta, que ya tiene el índice de nombres mon
 | Cambiar qué se le pregunta al modelo de un E-Ticket | `LectorDeEticket` | `INSTRUCCION` + `ESQUEMA`. ⚠️ **sin `additionalProperties`**: Google AI rechaza la llamada entera |
 | Cambiar cuándo un E-Ticket queda observado | `CotejoDeEticket` | puro, sin dependencias |
 | Guardar el veredicto de un documento que NO es de identidad | `CotizacionFilearchivo` | `registrarValidacion()` — **no** hay setters sueltos, y el de identidad sigue en `CotizacionPasajeroIdentificacion` |
+| Cambiar las columnas de la hoja de control | `ReporteDeDocumentos` | `cabeceras()` + `dondeEmpiezanLasObservaciones()`. ⚠️ las posiciones **no** se cuentan desde el final: hay dos bloques de ancho variable |
+| Cambiar a qué columna va una observación | `ReporteDeDocumentos` | `observacionesPorTipo()` — manda `validadoCon`, con respaldo a `paraValidar()` |
 | Añadir un tipo de adjunto | `ArchivoTipoEnum` + los dos espejos TS + `npm run gen:api` | todos los `match` del enum |
 | Cambiar el orden de la bóveda | `util/.../FileDetalle.vue` | `ordenarBoveda()` |
 | Que un adjunto salga estable en cualquier consumidor | `CotizacionFile` | `#[ORM\OrderBy]` de `$filearchivos` |
@@ -2705,6 +2707,43 @@ puede comparar con la anterior ni pegar en la misma plantilla. Cubierto por
 chip del manifiesto y esta hoja—: una lista de documentos escrita a mano que envejeció cuando lo
 obligatorio pasó a ser configurable. **Antes de escribir los tipos de documento en un sitio nuevo,
 pregunta a `documentosPedidos` o a `ArchivoTipoEnum::pedibles()`.**
+
+##### Las observaciones, una columna por documento (16/09/2026)
+
+Había **una sola celda global** con todo concatenado: «DNI número: doc X ≠ guardado Y · PASAPORTE:
+vencido · …». Con eso no se puede filtrar «enséñame a quién le falla el E-Ticket», que es la única
+pregunta con la que se abre esta hoja, y con 134 filas leerlas una a una no es una opción. Ahora hay
+una columna de observaciones **por cada documento pedido**, simétrica con la de estado.
+
+Lo que eso destapa se ve en una fila real: «Qué falta» dice **Completo** —mandó los cuatro
+documentos— y sin embargo tiene un vencimiento que no cuadra en el DNI y el vuelo de salida
+equivocado en el E-Ticket. Son dos trabajos, de dos documentos, para dos personas distintas.
+
+🔑 **Los veredictos viven en DOS sitios y la hoja sólo leía uno:**
+
+| Documento | Dónde está su veredicto |
+|---|---|
+| DNI, pasaporte | `CotizacionPasajeroIdentificacion`, al lado del número que juzga |
+| E-Ticket y lo que venga | el propio `CotizacionFilearchivo` |
+
+**La atribución es exacta y no se adivina:** `CotizacionPasajeroIdentificacion::$validadoCon` apunta
+al archivo que produjo ese veredicto, así que la observación va a la columna de ese tipo. Repartirlas
+por `respaldaA()` habría sido una regla paralela que algún día discreparía de la de verdad.
+
+⚠️ **Y el respaldo para `validadoCon` nulo NO es opcional.** Son los veredictos que no salieron de
+ningún escaneo —«no hay con qué cotejar»—: en el expediente real son **13 de 265, y las 13 tienen
+observaciones**. Sin caer a `ArchivoTipoEnum::paraValidar()` se habrían perdido justo las trece filas
+que más falta hacen. Se midió antes de escribir la regla, no después.
+
+⚠️ **La aritmética de columnas, que es lo que se rompe en silencio.** «Archivos» y «Qué falta» se
+colocaban con `$ultima - 2` y `$ultima - 1`, y eso dejó de significar nada en cuanto hubo **dos**
+bloques que crecen con lo que pide el expediente —los estados y las observaciones—. Un desfase de una
+columna no da error: **escribe el total encima de una observación**. La posición la calcula
+`dondeEmpiezanLasObservaciones()` y hay test sobre tres anchos (1, 2 y 4 documentos pedidos).
+
+⚠️ En la hoja se lee **«esperado»** y no «guardado», porque desde el E-Ticket el otro lado puede ser
+el itinerario y no el manifiesto. La CLAVE del array sigue llamándose `manifiesto` —está persistida
+en dos tablas—; lo que cambia es el texto que se lee.
 
 ⚠️ **Y dos consecuencias de volumen que no son un fallo:** un extranjero sin DNI figurará siempre
 como que le falta si el expediente pide DNI (es lo mismo que ve él en su app), y en un expediente
