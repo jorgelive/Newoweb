@@ -1672,6 +1672,22 @@ const estadoDocumentalDe = (pax: ApiCotizacionFilepasajero): Set<string> => {
         if (vence < iso(enUnAnio)) { estados.add('pronto'); }
     }
 
+    // 🔥 **Y lo que el EXPEDIENTE le pide, tenga número detrás o no.**
+    //
+    // El bucle de arriba recorre las identificaciones —los números del manifiesto— y sólo caza lo
+    // que respalda a uno de ellos. Todo lo demás era invisible para el control: el E-Ticket
+    // migratorio no tiene número que teclear, la autorización notarial tampoco, y el REVERSO del
+    // DNI tampoco —`tipoDeEscaneo` apunta al anverso, que es el que lleva el número impreso—.
+    //
+    // O sea que la pantalla que existe para contestar «¿a quién le falta algo?» no contaba tres de
+    // los cinco documentos que se pueden pedir. Y no fallaba: decía que no faltaba nada.
+    //
+    // ⚠️ La fuente es `documentosPedidos`, que es POR EXPEDIENTE: un viaje que no pide el E-Ticket
+    // no debe verlo aquí como pendiente. Ver `CotizacionFile::$documentosPedidos`.
+    for (const pedido of file.value?.documentosPedidos ?? []) {
+        if (!susEscaneos.has(pedido)) { estados.add('sin_escaneo'); }
+    }
+
     return estados;
 };
 
@@ -1679,7 +1695,10 @@ const ETIQUETAS_DOCUMENTO: Record<string, { label: string; clase: string; punto:
     // Primero, porque es la cola de trabajo: son los que esperan a que alguien decida algo. Los
     // otros tres describen el documento; éste describe lo que hay pendiente de hacer.
     observado:   { label: 'Observado',     clase: 'bg-amber-100 text-amber-800 border-amber-300',  punto: 'bg-amber-600' },
-    sin_escaneo: { label: 'Sin foto',      clase: 'bg-violet-100 text-violet-700 border-violet-300', punto: 'bg-violet-500' },
+    // ⚠️ Era «Sin foto» y dejó de ser cierto al entrar aquí los documentos pedidos: un E-Ticket es
+    // un PDF que llega por correo, no una foto que alguien saca. El estado es el mismo —le falta
+    // algo y hay que escribirle—; lo que cambia es que ya no son sólo escaneos.
+    sin_escaneo: { label: 'Falta documento', clase: 'bg-violet-100 text-violet-700 border-violet-300', punto: 'bg-violet-500' },
     vencido:    { label: 'Vencido',       clase: 'bg-red-100 text-red-700 border-red-200',       punto: 'bg-red-500' },
     pronto:     { label: 'Vence < 1 año', clase: 'bg-orange-100 text-orange-700 border-orange-200', punto: 'bg-orange-500' },
     sin_fecha:  { label: 'Sin comprobar', clase: 'bg-amber-100 text-amber-800 border-amber-200',  punto: 'bg-amber-500' },

@@ -21,6 +21,24 @@ export const CATALOGO_DOCUMENTOS = [
   { tipo: 'dni_anverso', titulo: 'DNI — anverso', ayuda: 'La cara con tu foto.', icono: 'camera' },
   { tipo: 'dni_reverso', titulo: 'DNI — reverso', ayuda: 'La cara de atrás.', icono: 'camera' },
   {
+    // 🔥 **Faltaba aquí, y era pedible en el panel desde el primer día.** El operador marcaba
+    // «Autorización notarial» en «Qué se pide», el pasajero **nunca veía la casilla**, y en el
+    // manifiesto salían las 133 personas con «Falta documento» sin que ninguna pudiera resolverlo
+    // desde su app. Cero errores en los dos lados: `documentosPedidos()` filtra este catálogo, así
+    // que un tipo que no esté aquí no se pide — se ignora en silencio.
+    //
+    // ⚠️ **Esta lista es espejo de `ArchivoTipoEnum::pedibles()`.** Si allí `loSubeElPasajero()`
+    // dice `true`, aquí tiene que haber una entrada, o el operador podrá pedir algo que nadie
+    // puede mandar. Hay que tocar los dos.
+    tipo: 'autorizacion',
+    titulo: 'Autorización notarial',
+    // No se dice «para menores»: el expediente ya decidió a quién se la pide, y quien esté viendo
+    // esta casilla es porque se la piden a él. Lo que sí hace falta es que sepa QUÉ subir, porque
+    // es el único de la lista que no está ya en su bolsillo.
+    ayuda: 'El permiso notarial de salida del país, firmado. Vale la foto de todas las hojas o el PDF del notario.',
+    icono: 'file-signature',
+  },
+  {
     tipo: 'eticket',
     // ⚠️ Se le llama **E-Ticket** porque es como lo llama Migración de República Dominicana y como
     // lo va a encontrar. Pero se dice «migratorio» al lado: sin eso, medio grupo sube su billete
