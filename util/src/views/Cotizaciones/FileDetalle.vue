@@ -6237,13 +6237,37 @@ const eliminarDocumento = async (iri?: string) => {
             <p class="text-[10px] font-black uppercase tracking-wider text-amber-800">
               {{ getDocIdLabel(ident.tipo) }} · {{ SELLO[ident.estadoValidacion!].texto }}
             </p>
-            <p v-for="(d, j) in (ident.discrepancias ?? [])" :key="j" class="text-[11px] mt-1 flex items-center gap-2">
-              <span class="font-bold text-amber-900">{{ d.campo }}</span>
-              <span class="font-mono bg-emerald-100 border border-emerald-300 rounded px-1.5">{{ d.documento }}</span>
-              <span class="text-[9px] font-bold uppercase text-slate-400">dice el documento</span>
-              <span class="font-mono bg-white border border-amber-300 rounded px-1.5">{{ d.manifiesto }}</span>
-              <span class="text-[9px] font-bold uppercase text-slate-400">está guardado</span>
-            </p>
+            <!-- ⚠️ **`flex-wrap`, y cada valor con su etiqueta PEGADA.** Era un `flex` a secas: a
+                 375 px se salía y «está guardado» se cortaba por la mitad. Y envolver sin agrupar es
+                 peor que no envolver — la etiqueta caía en otra línea que su valor y dejaba de
+                 decir de cuál hablaba. Por eso cada pareja es un `inline-flex` propio: parten
+                 juntas o no parten. -->
+            <div v-for="(d, j) in (ident.discrepancias ?? [])" :key="j"
+                 class="text-[11px] mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span class="font-bold text-amber-900 w-full sm:w-auto">{{ d.campo }}</span>
+
+              <span class="inline-flex items-center gap-1.5">
+                <span class="font-mono bg-emerald-100 border border-emerald-300 rounded px-1.5">{{ d.documento }}</span>
+                <span class="text-[9px] font-bold uppercase text-slate-400">dice el documento</span>
+              </span>
+
+              <span class="inline-flex items-center gap-1.5">
+                <span class="font-mono bg-white border border-amber-300 rounded px-1.5">{{ d.manifiesto }}</span>
+                <span class="text-[9px] font-bold uppercase text-slate-400">está guardado</span>
+              </span>
+
+              <!-- 🔥 **Resolver aquí, con el documento delante.** Es el único sitio donde se ve la
+                   foto y el desacuerdo a la vez: mandar a cerrar el visor, buscar a la persona en
+                   el manifiesto y pulsar allí es perder de vista justo lo que hay que mirar para
+                   decidir. -->
+              <button v-if="sePuedeAceptarDelDoc(d)" type="button"
+                      :disabled="aceptando === `${ident.id}:${d.campo}`"
+                      @click="aceptarDelDocumento(paxDelVisor, ident, d.campo)"
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-emerald-400 bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wider hover:bg-emerald-600 disabled:opacity-50">
+                <i class="fas fa-arrow-left text-[8px]"></i>
+                {{ aceptando === `${ident.id}:${d.campo}` ? 'Guardando…' : 'Actualizar manifiesto' }}
+              </button>
+            </div>
             <p v-for="(n, j) in (ident.notasValidacion ?? [])" :key="`mn-${j}`" class="text-[10px] text-amber-700 mt-1">{{ n }}</p>
           </div>
 

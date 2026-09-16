@@ -103,6 +103,29 @@ final readonly class Cotejo
         // coincidía — lo más importante que hay que decir. Primero se reúne todo lo que está mal,
         // y sólo después se juzga.
         $discrepancias = $guardado !== null ? self::diferencias($leido, $guardado) : [];
+
+        // 🔥 **Lo que le pasa a la FOTO no es lo que le pasa al DOCUMENTO, y meterlo todo en
+        // `$notas` bloqueaba las dos salidas que no dependen de la banda.**
+        //
+        // Los avisos de la lectura —«la banda no cuadra entera»— describen el escaneo, no la
+        // identidad. Como entraban en `$notas`, y el veredicto verde exige `$notas === []`, pasaba
+        // esto, medido:
+        //
+        // ```
+        //   sin MRZ ninguna                  -> validado_ocr   (cae al cotejo, como está escrito)
+        //   MRZ CORTADA                      -> observado      ← un escaneo MEJOR valida peor
+        //   MRZ cortada + confirmada a mano  -> observado      ← y confirmar no servía de nada
+        // ```
+        //
+        // Y la causa real casi nunca es el documento: **la banda sale cortada porque la foto se
+        // tomó demasiado cerca**. Quien miró el pasaporte físico y dice que está bien tiene más
+        // información que el dígito de control de una foto a medias.
+        //
+        // Así que van a `$informativas`: se siguen viendo —hay que pedir otra foto— pero no impiden
+        // que el cotejo contra el manifiesto ni la confirmación humana hagan su trabajo. Lo que sí
+        // sigue bloqueando es una DISCREPANCIA: ahí hay dos valores que no cuadran y eso no lo
+        // arregla mirar.
+        $informativas = $leido->avisosDeLectura;
         $notas = $leido->avisos;
 
         // 🔥 **La banda de la otra cara vale igual que la propia, pero SÓLO si es del mismo
@@ -139,7 +162,6 @@ final readonly class Cotejo
         // recarga del expediente por cada clic, 20 s— y sólo cubría **el escaneo que respalda ese
         // número**, así que girar el anverso hacía desaparecer el aviso con el reverso todavía
         // torcido. Ahora lo lee la pantalla de `datos_leidos`, escaneo por escaneo.
-        $informativas = [];
 
         // Una ficha copiada del escaneo no se puede cotejar, pero sí la puede respaldar alguien que
         // haya mirado el documento. Va DESPUÉS de los otros dos: si hay respaldo de máquina, ése

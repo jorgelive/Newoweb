@@ -10196,6 +10196,40 @@ pasajero, y escribirlos desde aquí metería a este endpoint a decidir sobre otr
 Marcar la ficha como copiada del escaneo es lo que impide que luego se coteje consigo misma y salga
 «validada» por haberse creído a sí misma.
 
+**El botón está en los dos sitios**, y el del visor es el que importa: ahí se ve la foto y el
+desacuerdo **a la vez**. Mandar a cerrar el visor, buscar a la persona en el manifiesto y pulsar allí
+es perder de vista justo lo que hay que mirar para decidir.
+
+⚠️ Y esa línea **se cortaba**: era un `flex` sin `flex-wrap`, y a 375 px «está guardado» se partía por
+la mitad. Envolver sin agrupar habría sido peor —la etiqueta caía en otra línea que su valor y
+dejaba de decir de cuál hablaba—, así que cada pareja valor+etiqueta es un `inline-flex` propio:
+parten juntas o no parten.
+
+#### 🔥 Lo que le pasa a la FOTO no es lo que le pasa al DOCUMENTO
+
+`DatosDeDocumento` tenía **un solo saco de avisos** y ahí caían dos cosas que no se parecen en nada:
+«está VENCIDO desde el 15/04/2012» —un defecto del documento, que TIENE que impedir el sello verde—
+y «la banda salió cortada» —un defecto de la foto—. Como el veredicto verde exige `$notas === []`,
+el resultado, medido:
+
+```
+sin MRZ ninguna                  -> validado_ocr   (cae al cotejo, como está escrito)
+MRZ CORTADA                      -> observado      ← un escaneo MEJOR valida peor
+MRZ cortada + confirmada a mano  -> observado      ← y confirmar no servía de NADA
+```
+
+Un pasaporte sin banda legible validaba y uno con la banda a medias se atascaba; y el botón «lo he
+mirado, está bien» no lo sacaba de ahí, porque el aviso seguía en `$notas`.
+
+Ahora hay `$avisosDeLectura` aparte: **se siguen viendo** —hay que pedir otra foto— pero no bloquean
+ni el cotejo contra el manifiesto ni la confirmación humana. Lo que sí sigue bloqueando es una
+**discrepancia**: ahí hay dos valores que no cuadran y eso no lo arregla mirar.
+
+⚠️ **Se separan donde se escriben, no con un `str_contains` en `Cotejo`.** Quien sabe de qué tipo es
+cada aviso es quien lo redacta, y adivinarlo por el texto se rompe la primera vez que alguien
+reescribe una frase. Lo defiende `CotejoTest::unAvisoDelLectorArrastraAObservado`, que se puso en
+rojo al hacerlo mal y tenía razón.
+
 #### 🔥 La MRZ no cuadra porque la foto está cortada, no porque el dato esté mal
 
 Lo dijo quien opera: *«la MRZ normalmente no cuadra porque está incompleto, tomaron la foto de muy

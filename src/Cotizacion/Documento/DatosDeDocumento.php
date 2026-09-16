@@ -56,6 +56,27 @@ final readonly class DatosDeDocumento
         public int $rotacion = 0,
         public ?Mrz $mrz = null,
         public array $avisos = [],
+        /**
+         * Lo que le pasa a la FOTO, que no es lo que le pasa al DOCUMENTO.
+         *
+         * 🔥 **Estaban mezclados en `$avisos` y eso bloqueaba las dos salidas buenas.** «Está
+         * VENCIDO» es un defecto del documento y tiene que impedir el sello verde; «la banda salió
+         * cortada» describe el escaneo —casi siempre porque la foto se tomó muy de cerca— y no dice
+         * nada malo de la identidad. Con los dos en el mismo saco, y el veredicto verde exigiendo
+         * `$notas === []`, pasaba esto:
+         *
+         * ```
+         *   sin MRZ ninguna                  -> validado_ocr   (cae al cotejo, como está escrito)
+         *   MRZ CORTADA                      -> observado      ← un escaneo MEJOR valida peor
+         *   MRZ cortada + confirmada a mano  -> observado      ← y confirmar no servía de nada
+         * ```
+         *
+         * ⚠️ Separarlos aquí y no con un `str_contains` en {@see Cotejo}: quien SABE de qué tipo es
+         * cada aviso es quien lo escribe, y adivinarlo por el texto se rompe al reescribir una frase.
+         *
+         * @var list<string>
+         */
+        public array $avisosDeLectura = [],
     ) {}
 
     /**

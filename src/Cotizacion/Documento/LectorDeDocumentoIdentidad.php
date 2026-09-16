@@ -140,7 +140,12 @@ final readonly class LectorDeDocumentoIdentidad
             $this->texto($crudo, 'mrzLinea2'),
             $this->texto($crudo, 'mrzLinea3'),
         );
+        // Lo que le pasa al DOCUMENTO: vencido, dos caras de documentos distintos. Bloquea el
+        // sello verde, porque es la identidad la que falla.
         $avisos = [];
+
+        // Lo que le pasa a la FOTO. NO bloquea: ver `DatosDeDocumento::$avisosDeLectura`.
+        $deLectura = [];
 
         // 🔥 **El aviso dice qué HACER, y antes mandaba al sitio equivocado.** Decía «revísalo a
         // mano», que sugiere que hay un dato que discutir — y quien opera lo desmintió: la MRZ
@@ -153,7 +158,7 @@ final readonly class LectorDeDocumentoIdentidad
         // carácter perdido en un borde lo tumba mientras los campos sueltos siguen cuadrando. Por
         // eso se dice aparte.
         foreach ($mrz !== null ? $mrz->problemas : [] as $problema) {
-            $avisos[] = $problema === 'dígito compuesto'
+            $deLectura[] = $problema === 'dígito compuesto'
                 ? 'la banda de abajo del pasaporte no cuadra entera: casi siempre es que la foto se '
                     .'tomó muy de cerca y le falta un borde. Pide otra con la página completa'
                 : sprintf(
@@ -209,6 +214,7 @@ final readonly class LectorDeDocumentoIdentidad
             rotacion: $this->rotacion($crudo),
             mrz: $mrz,
             avisos: $avisos,
+            avisosDeLectura: $deLectura,
         );
     }
 
