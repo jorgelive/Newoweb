@@ -120,9 +120,10 @@ final readonly class LectorDeEticket
         // tiene número de vuelo y fecha: sin esta pregunta, cotejaría razonablemente bien y daría
         // por hecho un trámite que nadie hizo.
         if (($crudo['esEticket'] ?? null) === false) {
-            return new DatosDeEticket(avisos: [
-                'esto no parece un E-Ticket migratorio: puede ser un billete de avión o una tarjeta de embarque',
-            ]);
+            return new DatosDeEticket(
+                avisos: ['esto no parece un E-Ticket migratorio: puede ser un billete de avión o una tarjeta de embarque'],
+                noEsElTramite: true,
+            );
         }
 
         $traeEntrada = ($crudo['traeEntrada'] ?? null) === true;

@@ -57,12 +57,32 @@ final readonly class CotejoDeEticket
     ) {}
 
     /**
+     * No se pudo leer el documento: es un veredicto, no un silencio.
+     *
+     * ⚠️ Antes esto devolvía `null` y el archivo se quedaba en `no_validado` con las notas vacías —
+     * el motivo sólo en `lecturaError`, que la hoja no lee—, así que la persona salía en verde con
+     * su PDF ilegible. Espejo de {@see Cotejo::ilegible()}.
+     */
+    public static function ilegible(string $porque): self
+    {
+        return new self(ValidacionIdentificacionEnum::NO_VALIDADO, [], [$porque]);
+    }
+
+    /**
      * @param DatosDeEticket        $leido      lo que se sacó del documento
      * @param CruceDeFrontera       $cruce      los vuelos de ESA persona
      * @param ReferenciaDeIdentidad $identidad  contra qué identidad, y de dónde salió
      */
     public static function de(DatosDeEticket $leido, CruceDeFrontera $cruce, ReferenciaDeIdentidad $identidad): self
     {
+        // ⚠️ **«Es otro documento» es OBSERVADO, no NO_VALIDADO.** Es el error más común —medio
+        // grupo sube su billete de avión creyendo que es el trámite— y es accionable: hay que
+        // escribirle a esa persona. En `no_validado` se confunde con «nunca se ha mirado», que es
+        // lo contrario, y se queda fuera del filtro y del contador de la cola de trabajo.
+        if ($leido->esOtroDocumento()) {
+            return new self(ValidacionIdentificacionEnum::OBSERVADO, [], $leido->avisos);
+        }
+
         if (!$leido->esUtilizable()) {
             return new self(
                 ValidacionIdentificacionEnum::NO_VALIDADO,
@@ -146,7 +166,17 @@ final readonly class CotejoDeEticket
 
         // 🔥 Un trámite a medias NO es un trámite con una discrepancia: es un trámite que hay que
         // rehacer. Se separa del resto porque lo que hay que pedirle a esa persona es distinto.
+        //
+        // ⚠️ Y **tiene que decir por qué**. Con las dos secciones en `false` —que el modelo puede
+        // devolver aun habiendo leído vuelos y fechas— esto daba «Observado» con cero discrepancias
+        // y ninguna nota: en la hoja, una celda ámbar vacía; en pantalla, un chip sin explicación.
+        // Un aviso que no dice qué hacer no se puede atender.
         if (!$leido->traeEntrada || !$leido->traeSalida) {
+            if (!$leido->traeEntrada && !$leido->traeSalida) {
+                $notas[] = 'no se reconoció ninguna de las dos secciones: comprueba que el archivo '
+                    .'sea el E-Ticket y que se vea entero';
+            }
+
             return new self(ValidacionIdentificacionEnum::OBSERVADO, $diferencias, $notas);
         }
 
@@ -190,9 +220,18 @@ final readonly class CotejoDeEticket
         return self::mismoTexto(str_replace([' ', '-'], '', $a), str_replace([' ', '-'], '', $b));
     }
 
+    /**
+     * ⚠️ **Se quita la puntuación, no sólo los espacios de los extremos.** `P 1234567` y `P1234567`
+     * son el mismo pasaporte y quien rellena el formulario lo escribe como le sale. `Cotejo` ya lo
+     * hacía para los números de identidad (`mismoNumero()`) y aquí no se había traído: era una
+     * discrepancia falsa por cada pasajero que teclease un espacio o un guion.
+     */
     private static function mismoTexto(string $a, string $b): bool
     {
-        return mb_strtoupper(trim($a)) === mb_strtoupper(trim($b));
+        $limpiar = static fn (string $v): string
+            => mb_strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $v));
+
+        return $limpiar($a) === $limpiar($b);
     }
 
     /** Todo lo que hay que decir, ya compuesto, para un log o una tabla de consola. */

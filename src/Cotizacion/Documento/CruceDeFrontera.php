@@ -23,15 +23,21 @@ use App\Cotizacion\Enum\PaisDeControlEnum;
  *
  * ── La regla, y por qué es ésta ─────────────────────────────────────────────
  * ```
- *   entrada = el PRIMER vuelo cuyo DESTINO es del país       (por hora de llegada)
- *   salida  = el primer vuelo cuyo ORIGEN es del país
- *             y que despega DESPUÉS de haber entrado
+ *   entrada = el PRIMER vuelo que va de FUERA a DENTRO del país
+ *   salida  = el primero que va de DENTRO a FUERA, despegando después de entrar
  * ```
  *
- * 🔑 **La escala no cuenta como entrada, y sale gratis.** Un `LIM→PTY` + `PTY→PUJ` tiene un solo
- * tramo con destino dominicano, así que preguntar por el destino ya descarta Panamá sin ninguna
- * regla sobre escalas. Lo mismo a la vuelta: de `PUJ→PTY` + `PTY→LIM`, sólo el primero sale del
- * país.
+ * 🔑 **Un cruce de frontera necesita los DOS lados, y ahí estaba el fallo.** La primera versión
+ * preguntaba sólo por el destino para entrar y sólo por el origen para salir, y con eso un tramo
+ * **doméstico** —`PUJ→SDQ`, dos aeropuertos dominicanos— cumplía la condición de salida.
+ *
+ * Escenario real que lo destapa: `LIM→SDQ` (18), `SDQ→PUJ` (19), `PUJ→LIM` (22). La salida elegida
+ * era `SDQ→PUJ`, o sea un vuelo interno, y el trámite correcto salía **OBSERVADO con dos
+ * discrepancias falsas** —vuelo y fecha de salida—. En un grupo que llega por Santo Domingo y sigue
+ * a Punta Cana, eso es el grupo entero acusado a la vez.
+ *
+ * ⚠️ La cabecera decía «la escala sale gratis», y era verdad **sólo para escalas fuera del país**:
+ * de `LIM→PTY` + `PTY→PUJ`, Panamá se cae solo. La escala DENTRO era justo el caso que no cubría.
  *
  * ⚠️ **La salida se busca DESPUÉS de la entrada, y no es cosmético.** Sin esa condición, un viaje
  * que empezara dentro del país —o unos vuelos cargados en desorden— emparejarían la salida con la
@@ -77,7 +83,7 @@ final readonly class CruceDeFrontera
         $entrada = null;
 
         foreach ($ordenados as $vuelo) {
-            if ($pais->esSuyo($vuelo->getDestino())) {
+            if (self::entraAlPais($vuelo, $pais)) {
                 $entrada = $vuelo;
                 break;
             }
@@ -90,24 +96,39 @@ final readonly class CruceDeFrontera
         $salida = null;
 
         foreach ($ordenados as $vuelo) {
-            if ($pais->esSuyo($vuelo->getOrigen()) && $vuelo->getSalida() >= $entrada->getLlegada()) {
+            if (self::saleDelPais($vuelo, $pais) && $vuelo->getSalida() >= $entrada->getLlegada()) {
                 $salida = $vuelo;
                 break;
             }
         }
 
-        // Una segunda entrada después de haber salido es otra estancia, y otro trámite.
+        // ⚠️ **Se cuentan TODAS las demás entradas, no sólo las posteriores a la salida.** Contar
+        // sólo las de después dejaba ciego el caso que de verdad ocurre: dos vuelos de entrada
+        // **antes** de salir. Pasa con un pasajero que quedó en dos subgrupos aéreos por un error
+        // de carga, o con un vuelo reemplazado que sigue colgando del subgrupo — y entonces se
+        // elegía el primero en silencio y se acusaba a la persona de haber puesto «mal» el vuelo
+        // que sí voló. Dos entradas posibles es un dato roto: se denuncia, no se resuelve a ojo.
         $extra = 0;
 
-        if ($salida !== null) {
-            foreach ($ordenados as $vuelo) {
-                if ($pais->esSuyo($vuelo->getDestino()) && $vuelo->getSalida() >= $salida->getLlegada()) {
-                    ++$extra;
-                }
+        foreach ($ordenados as $vuelo) {
+            if ($vuelo !== $entrada && self::entraAlPais($vuelo, $pais)) {
+                ++$extra;
             }
         }
 
         return new self($pais, $entrada, $salida, $extra);
+    }
+
+    /** De fuera a dentro. Las dos mitades: un tramo doméstico no cruza ninguna frontera. */
+    private static function entraAlPais(CotizacionVuelo $vuelo, PaisDeControlEnum $pais): bool
+    {
+        return $pais->esSuyo($vuelo->getDestino()) && !$pais->esSuyo($vuelo->getOrigen());
+    }
+
+    /** De dentro a fuera. */
+    private static function saleDelPais(CotizacionVuelo $vuelo, PaisDeControlEnum $pais): bool
+    {
+        return $pais->esSuyo($vuelo->getOrigen()) && !$pais->esSuyo($vuelo->getDestino());
     }
 
     /** ¿Se sabe lo suficiente para juzgar un trámite de entrada y salida? */
@@ -117,8 +138,9 @@ final readonly class CruceDeFrontera
     }
 
     /**
-     * ⚠️ Con más de una estancia, este objeto describe sólo la primera. Quien juzgue tiene que
-     * tratarlo como «no se puede comprobar»: acusar con la estancia equivocada es peor que callar.
+     * ⚠️ Con más de un vuelo de entrada, este objeto describe sólo el primero. Quien juzgue tiene
+     * que tratarlo como «no se puede comprobar»: acusar con el vuelo equivocado es peor que callar,
+     * y si son dos subgrupos mal asignados el acusado sería quien no tiene culpa.
      */
     public function hayMasEntradas(): bool
     {
@@ -138,9 +160,11 @@ final readonly class CruceDeFrontera
 
         if ($this->hayMasEntradas()) {
             return sprintf(
-                'entra a %s más de una vez: hacen falta %d trámites y esto sólo describe el primero',
-                $this->pais->label(),
+                'tiene %d vuelos que entran a %s: o son dos estancias —y entonces hacen falta dos '
+                .'trámites— o hay un vuelo de más colgando de su subgrupo. Hay que mirarlo antes de '
+                .'juzgar el trámite',
                 $this->entradasExtra + 1,
+                $this->pais->label(),
             );
         }
 

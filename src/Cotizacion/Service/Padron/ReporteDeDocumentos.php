@@ -189,7 +189,11 @@ final readonly class ReporteDeDocumentos
             $destino = $identificacion->getValidadoCon()?->getTipoArchivo()
                 ?? ($tipo !== null ? ArchivoTipoEnum::paraValidar($tipo) : null);
 
-            if ($destino === null) {
+            // ⚠️ **Y tiene que tener columna, o se cuenta lo que no se pinta.** La rama de archivos
+            // ya filtraba por lo pedido y ésta no: un expediente que sólo pide el E-Ticket sumaba al
+            // pie «N con observaciones» por discrepancias de DNI que no tienen dónde salir. El
+            // recuento decía una cosa y la hoja otra.
+            if ($destino === null || !in_array($destino, $escaneos, true)) {
                 continue;
             }
 
@@ -199,6 +203,14 @@ final readonly class ReporteDeDocumentos
         }
 
         // Y los veredictos que son del propio archivo: el E-Ticket, y lo que venga después.
+        //
+        // ⚠️ **Sólo el MÁS RECIENTE de cada tipo.** La vía del operador no reemplaza el archivo
+        // anterior al subir otro, así que puede haber dos E-Ticket de la misma persona: el viejo
+        // observado y el nuevo bueno. Concatenar los dos deja a alguien que ya lo corrigió leyéndose
+        // como observado, que es la forma más rápida de que se deje de mirar la columna. La celda de
+        // estado sí avisa de que hay dos («2 · fecha», en ámbar), que es donde toca decirlo.
+        $vigentes = [];
+
         foreach ($file->getFilearchivos() as $archivo) {
             $tipo = $archivo->getTipoArchivo();
 
@@ -210,8 +222,16 @@ final readonly class ReporteDeDocumentos
                 continue;
             }
 
+            $previo = $vigentes[$tipo->value] ?? null;
+
+            if ($previo === null || $archivo->getCreatedAt() > $previo->getCreatedAt()) {
+                $vigentes[$tipo->value] = $archivo;
+            }
+        }
+
+        foreach ($vigentes as $valor => $archivo) {
             foreach ($this->frasesDe($archivo->getDiscrepancias(), $archivo->getNotasValidacion()) as $frase) {
-                $porTipo[$tipo->value][] = $frase;
+                $porTipo[$valor][] = $frase;
             }
         }
 

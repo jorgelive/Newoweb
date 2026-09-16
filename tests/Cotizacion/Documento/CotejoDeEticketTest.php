@@ -205,4 +205,58 @@ final class CotejoDeEticketTest extends TestCase
 
         self::assertStringContainsString('el manifiesto (tecleado a mano)', implode(' ', $c->notas));
     }
+
+    /** ⚠️ `P 1234567` y `P1234567` son el mismo pasaporte: lo escribe quien rellena el formulario. */
+    public function testElEspacioEnElPasaporteNoEsUnaDiscrepancia(): void
+    {
+        $leido = new DatosDeEticket(
+            pasaporte: 'P 123-4567',
+            fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'CM177',
+            fechaSalida: new \DateTimeImmutable('2026-09-22'), vueloSalida: 'CM749',
+            traeEntrada: true, traeSalida: true,
+        );
+
+        self::assertSame([], CotejoDeEticket::de($leido, $this->cruce(), $this->identidad('P1234567'))->discrepancias);
+    }
+
+    /**
+     * 🔥 Sin ninguna sección reconocida, esto daba «Observado» con cero discrepancias y NINGUNA
+     * nota: una celda ámbar vacía en la hoja y un chip sin explicación en pantalla.
+     */
+    public function testSinNingunaSeccionSeDiceElPorQue(): void
+    {
+        $leido = new DatosDeEticket(
+            fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'CM177',
+            traeEntrada: false, traeSalida: false,
+        );
+
+        $c = CotejoDeEticket::de($leido, $this->cruce(), ReferenciaDeIdentidad::vacia());
+
+        self::assertSame(ValidacionIdentificacionEnum::OBSERVADO, $c->estado);
+        self::assertNotSame([], $c->notas);
+        self::assertStringContainsString('ninguna de las dos secciones', implode(' ', $c->notas));
+    }
+
+    /**
+     * 🔥 Un billete de avión es el error MÁS común y es accionable: hay que escribirle a esa
+     * persona. En `no_validado` se confundía con «nunca se ha mirado», que es lo contrario.
+     */
+    public function testUnBilleteDeAvionQuedaObservadoYNoSinValidar(): void
+    {
+        $leido = new DatosDeEticket(avisos: ['esto no parece un E-Ticket migratorio'], noEsElTramite: true);
+
+        $c = CotejoDeEticket::de($leido, $this->cruce(), $this->identidad());
+
+        self::assertSame(ValidacionIdentificacionEnum::OBSERVADO, $c->estado);
+        self::assertNotSame([], $c->notas);
+    }
+
+    /** Un fallo de lectura es un veredicto con motivo, no un silencio. */
+    public function testUnDocumentoIlegibleDejaElMotivoEscrito(): void
+    {
+        $c = CotejoDeEticket::ilegible('el fichero no está en disco');
+
+        self::assertSame(ValidacionIdentificacionEnum::NO_VALIDADO, $c->estado);
+        self::assertSame(['el fichero no está en disco'], $c->notas);
+    }
 }

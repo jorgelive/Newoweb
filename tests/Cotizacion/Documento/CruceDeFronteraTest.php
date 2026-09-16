@@ -122,7 +122,7 @@ final class CruceDeFronteraTest extends TestCase
         ], PaisDeControlEnum::REPUBLICA_DOMINICANA);
 
         self::assertTrue($cruce->hayMasEntradas());
-        self::assertStringContainsString('más de una vez', $cruce->porQueNoSePuede());
+        self::assertStringContainsString('vuelos que entran', $cruce->porQueNoSePuede());
     }
 
     /** ⚠️ Un vuelo sin horas no puede decidir nada: se descarta en vez de colarse el primero. */
@@ -137,5 +137,54 @@ final class CruceDeFronteraTest extends TestCase
         ], PaisDeControlEnum::REPUBLICA_DOMINICANA);
 
         self::assertSame('CM177', $cruce->entrada?->getNumero());
+    }
+
+    /**
+     * 🔥 **Una escala DENTRO del país no es una salida.** Con `LIM→SDQ`, `SDQ→PUJ`, `PUJ→LIM`, la
+     * salida elegida era el tramo doméstico `SDQ→PUJ` y el trámite correcto salía con DOS
+     * discrepancias falsas —vuelo y fecha—. En un grupo que entra por Santo Domingo y sigue a
+     * Punta Cana, eso es el grupo entero acusado a la vez.
+     */
+    public function testUnTramoDomesticoNoEsNiEntradaNiSalida(): void
+    {
+        $cruce = CruceDeFrontera::de([
+            $this->vuelo('A1', 'LIM', 'SDQ', '2026-09-18 10:00', '2026-09-18 18:00'),
+            $this->vuelo('A2', 'SDQ', 'PUJ', '2026-09-19 09:00', '2026-09-19 10:00'),
+            $this->vuelo('A3', 'PUJ', 'LIM', '2026-09-22 20:00', '2026-09-23 01:00'),
+        ], PaisDeControlEnum::REPUBLICA_DOMINICANA);
+
+        self::assertSame('A1', $cruce->entrada?->getNumero());
+        self::assertSame('A3', $cruce->salida?->getNumero());
+        self::assertSame('', $cruce->porQueNoSePuede(), 'El tramo interno no puede contar como entrada extra.');
+    }
+
+    /** Y al revés: salir por otro aeropuerto del país tras un tramo interno. */
+    public function testElTramoDomesticoDeVueltaTampoco(): void
+    {
+        $cruce = CruceDeFrontera::de([
+            $this->vuelo('B1', 'LIM', 'PUJ', '2026-09-18 00:30', '2026-09-18 06:49'),
+            $this->vuelo('B2', 'PUJ', 'SDQ', '2026-09-21 09:00', '2026-09-21 10:00'),
+            $this->vuelo('B3', 'SDQ', 'LIM', '2026-09-22 20:00', '2026-09-23 01:00'),
+        ], PaisDeControlEnum::REPUBLICA_DOMINICANA);
+
+        self::assertSame('B1', $cruce->entrada?->getNumero());
+        self::assertSame('B3', $cruce->salida?->getNumero());
+    }
+
+    /**
+     * 🔥 **Dos vuelos de entrada ANTES de salir.** Pasa con un pasajero que quedó en dos subgrupos
+     * aéreos, o con un vuelo reemplazado que sigue colgando del suyo. Antes se elegía el primero en
+     * silencio y se acusaba a la persona de haber puesto «mal» el vuelo que sí voló.
+     */
+    public function testDosVuelosDeEntradaAntesDeSalirSeDenuncian(): void
+    {
+        $cruce = CruceDeFrontera::de([
+            $this->vuelo('DM6771', 'LIM', 'PUJ', '2026-09-18 00:30', '2026-09-18 06:49'),
+            $this->vuelo('DM6775', 'LIM', 'PUJ', '2026-09-21 03:00', '2026-09-21 09:19'),
+            $this->vuelo('DM6770', 'PUJ', 'LIM', '2026-09-22 20:22', '2026-09-23 00:30'),
+        ], PaisDeControlEnum::REPUBLICA_DOMINICANA);
+
+        self::assertTrue($cruce->hayMasEntradas());
+        self::assertStringContainsString('vuelos que entran', $cruce->porQueNoSePuede());
     }
 }

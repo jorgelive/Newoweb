@@ -9960,6 +9960,64 @@ comparación exacta no mediría el nombre: mediría de qué zona del documento s
 oficiales. Pero eso es calidad del dato al cargarlo, no algo que pueda arbitrar un escaneo cuya única
 fuente verificada es ASCII.
 
+### Lo que sacó la revisión adversarial (16/09/2026)
+
+Siete fallos de **regla** —ni PHPStan ni los tests los veían, porque eran decisiones mías mal
+tomadas—. Los dos primeros acusaban a **subgrupos enteros a la vez**:
+
+#### 🔥 Un cruce de frontera necesita los DOS lados
+
+La primera versión preguntaba sólo por el destino para entrar y sólo por el origen para salir. Con
+eso, un tramo **doméstico** cumplía la condición de salida:
+
+```
+LIM→SDQ (18)   SDQ→PUJ (19)   PUJ→LIM (22)
+                    ↑ elegido como «salida»: origen dominicano
+```
+
+Resultado: el trámite correcto salía **OBSERVADO con dos discrepancias falsas** —vuelo y fecha de
+salida—. En un grupo que entra por Santo Domingo y sigue a Punta Cana, eso es el grupo entero.
+
+La cabecera decía «la escala sale gratis», y era verdad **sólo para escalas fuera del país**: de
+`LIM→PTY` + `PTY→PUJ`, Panamá se cae solo. La escala dentro era justo el caso que no cubría.
+
+#### 🔥 Dos vuelos de entrada ANTES de salir eran invisibles
+
+`entradasExtra` contaba sólo las entradas **posteriores a la salida**. Dos antes de salir no se
+detectaban y se elegía la primera en silencio. Pasa de verdad en dos formas: un pasajero que quedó en
+**dos subgrupos aéreos** por un error de carga, y un **vuelo reemplazado** que sigue colgando del
+suyo —y `CotizacionVuelo` no tiene ningún flag de cancelado—. En los dos casos se acusaba a la
+persona de haber puesto «mal» el vuelo que sí voló. Ahora se cuentan todas y se denuncia.
+
+#### Los demás
+
+| | Qué pasaba |
+|---|---|
+| **Pasaporte con puntuación** | `P 1234567` ≠ `P1234567` → discrepancia falsa por cada uno que teclee un espacio. `Cotejo::mismoNumero()` ya lo resolvía para identidad y no se había traído |
+| **Sin ninguna sección** | el modelo puede devolver `traeEntrada` y `traeSalida` en `false` con datos: daba «Observado» con cero discrepancias y **ninguna nota** — celda ámbar vacía |
+| **Billete de avión** | el error más común caía en `no_validado`, indistinguible de «nunca se ha mirado». Es accionable: ahora `OBSERVADO` |
+| **Fallo de lectura** | `validar()` devolvía `null` y no se escribía nada: la persona salía **en verde** con su PDF ilegible, y el motivo sólo en `lecturaError`, que la hoja no lee. Ahora `CotejoDeEticket::ilegible()`, espejo del de identidad |
+| **`--solo-leidos` pagaba** | `identidadDe()` llamaba a `ValidadorDeDocumento::lecturaDe()`, que lee y cobra si el pasaporte nunca se leyó — y `--limite` no contaba esas lecturas. Ahora sólo aprovecha lo ya leído: **este control no paga por leer un pasaporte** |
+
+#### 🔥 Y la regresión latente: el `flush()` por lectura
+
+`ValidadorDeEticket::lecturaDe()` dejaba el `flush()` a quien llamaba —«el que sabe si está en una
+tanda de cien»—, y con el comando funciona: uno al final. Pero **el mismo código detrás de un botón
+HTTP muere en el corte de php-fpm a los 90 s y se pierden todas las lecturas ya pagadas**. Es
+exactamente el fallo que el control de identidad ya sufrió y arregló.
+
+Una lectura es dinero gastado y un hecho inmutable —el documento no cambia—: no puede depender de
+que el proceso llegue vivo al final. Arreglado **antes** de que existiera el botón.
+
+#### En la hoja
+
+- **El pie contaba lo que la hoja no pinta.** La rama de archivos de `observacionesPorTipo()`
+  filtraba por lo pedido y la de identificaciones no: un expediente que sólo pide el E-Ticket sumaba
+  «N con observaciones» por discrepancias de DNI que no tienen columna donde salir.
+- **Dos archivos del mismo tipo concatenaban sus observaciones.** El E-Ticket viejo observado junto
+  al nuevo bueno dejaba a quien ya lo corrigió leyéndose como observado. Ahora sólo aporta el más
+  reciente; que hay dos lo dice la celda de estado («2 · fecha», en ámbar), que es donde toca.
+
 ### Dónde vive el veredicto (y por qué no donde el de identidad)
 
 El de un DNI o un pasaporte vive en `CotizacionPasajeroIdentificacion`, **al lado del número que

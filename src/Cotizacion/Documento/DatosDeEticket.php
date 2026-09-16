@@ -46,12 +46,26 @@ final readonly class DatosDeEticket
         public bool $traeEntrada = false,
         public bool $traeSalida = false,
         public array $avisos = [],
+        /** El modelo dijo que esto NO es un E-Ticket. Ver {@see self::esOtroDocumento()}. */
+        public bool $noEsElTramite = false,
     ) {}
 
     /**
      * Sin ningún dato de vuelo ni fecha no hay nada que cotejar: lo que hubiera se leyó tan mal que
      * cualquier veredicto sería sobre la lectura, no sobre el trámite.
      */
+    /**
+     * ¿Lo que se subió es otra cosa —un billete, una tarjeta de embarque— y no el trámite?
+     *
+     * ⚠️ Es distinto de «no se pudo leer»: aquí se leyó perfectamente y **es otro documento**. Lo
+     * que hay que hacer también es distinto —escribirle a esa persona, no mirar el escaneo— y por
+     * eso {@see CotejoDeEticket} lo manda a OBSERVADO y no a «no validado».
+     */
+    public function esOtroDocumento(): bool
+    {
+        return $this->noEsElTramite;
+    }
+
     public function esUtilizable(): bool
     {
         return $this->fechaEntrada !== null
