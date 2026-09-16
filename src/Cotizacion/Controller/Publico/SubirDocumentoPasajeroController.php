@@ -6,7 +6,9 @@ namespace App\Cotizacion\Controller\Publico;
 
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
+use App\Cotizacion\Entity\CotizacionFilepasajero;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
+use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
 use App\Cotizacion\Service\Publico\IdentidadDelPasajero;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -115,6 +117,31 @@ final class SubirDocumentoPasajeroController
             return new JsonResponse(['error' => 'Sube una foto o un PDF.'], Response::HTTP_BAD_REQUEST);
         }
 
+        // 🔥 **Lo ya VERIFICADO no se reemplaza desde aquí.**
+        //
+        // Subir por esta vía **borra el anterior** —«la segunda foto es la buena»—, y ahí estaba el
+        // agujero: quien tuviera el enlace podía sustituir un pasaporte ya validado por otra cosa y
+        // **el original desaparecía**. El control lo acabaría marcando —el documento nuevo se lee y
+        // se coteja igual— pero la prueba que se había verificado ya no está, y eso no se deshace.
+        //
+        // ⚠️ **Y no se bloquea por el archivo, se bloquea por el VEREDICTO**, que es lo que dice si
+        // alguien ya lo dio por bueno: para un DNI o un pasaporte vive en la identificación que
+        // respalda ({@see ArchivoTipoEnum::respaldaA()}/{@see ArchivoTipoEnum::verificaA()}); para
+        // el E-Ticket, en el propio archivo. Mirar sólo el archivo dejaría fuera justo los
+        // documentos de identidad, que son los que importan.
+        //
+        // ⚠️ Esto acota **al pasajero**. Por `util` se sigue pudiendo reemplazar cualquier cosa: si
+        // un documento verificado hay que cambiarlo de verdad, lo hace alguien que sabe qué está
+        // pisando, y queda su rastro.
+        if ($this->yaVerificado($pasajero, $tipo)) {
+            return new JsonResponse([
+                'error' => sprintf(
+                    'Tu %s ya está revisado y no se puede cambiar desde aquí. Si hay que corregirlo, escríbenos.',
+                    $tipo->getLabel(),
+                ),
+            ], Response::HTTP_CONFLICT);
+        }
+
         // La segunda foto es la buena: se reemplaza en vez de acumular.
         foreach ($file->getFilearchivos() as $previo) {
             if ($previo->getTipoArchivo() === $tipo && $previo->getPasajero()?->getId()?->equals($pasajero->getId() ?? $previo->getId()) === true) {
@@ -133,5 +160,41 @@ final class SubirDocumentoPasajeroController
         $this->em->flush();
 
         return new JsonResponse(['ok' => true, 'tipo' => $tipo->value]);
+    }
+
+    /**
+     * ¿Alguien ya dio por bueno el documento de este tipo?
+     *
+     * Para un DNI o un pasaporte, el veredicto vive en la **identificación** que ese escaneo
+     * respalda; para el E-Ticket, en el propio archivo. Se miran los dos porque un solo sitio
+     * dejaría fuera la mitad.
+     *
+     * ⚠️ Se usa {@see ValidacionIdentificacionEnum::estaResuelto()} —validado por MRZ, validado por
+     * cotejo o confirmado a mano— y no «distinto de no_validado»: un `observado` **sí** se puede
+     * reemplazar, y de hecho es lo que se le está pidiendo a esa persona.
+     */
+    private function yaVerificado(CotizacionFilepasajero $pasajero, ArchivoTipoEnum $tipo): bool
+    {
+        $tipoNumero = $tipo->respaldaA() ?? $tipo->verificaA();
+
+        if ($tipoNumero !== null) {
+            return $pasajero->identificacionDe($tipoNumero)?->getEstadoValidacion()->estaResuelto() === true;
+        }
+
+        foreach ($pasajero->getFile()?->getFilearchivos() ?? [] as $archivo) {
+            if ($archivo->getTipoArchivo() !== $tipo) {
+                continue;
+            }
+
+            if ((string) $archivo->getPasajero()?->getId() !== (string) $pasajero->getId()) {
+                continue;
+            }
+
+            if ($archivo->getEstadoValidacion()->estaResuelto()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

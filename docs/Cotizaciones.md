@@ -1513,6 +1513,29 @@ acuerde de tocar los dos archivos es lo que ya falló.
 ⚠️ **La regla general, que no es de este espejo:** un test que compara dos cosas **del mismo lado**
 no prueba que el otro lado esté sincronizado, por muy convincente que suene el nombre del test.
 
+##### 🔥 Lo ya VERIFICADO no se puede reemplazar desde la app (16/09/2026)
+
+Subir por la vía del pasajero **borra el anterior** —«la segunda foto es la buena», que es lo
+correcto para quien repite una foto movida—. Ahí estaba el agujero: **quien tuviera el enlace podía
+sustituir un pasaporte ya validado por otra cosa y el original desaparecía**. El control lo acabaría
+marcando —el documento nuevo se lee y se coteja igual— pero la prueba que se había verificado ya no
+está, y eso no se deshace.
+
+⚠️ **Se bloquea por el VEREDICTO, no por el archivo.** Para un DNI o un pasaporte el veredicto vive
+en la identificación que ese escaneo respalda (`respaldaA()`/`verificaA()`); para el E-Ticket, en el
+propio archivo. Mirar sólo el archivo dejaría fuera justo los documentos de identidad, que son los
+que importan.
+
+⚠️ **Y con `estaResuelto()`, no «distinto de no_validado»**: un `observado` **sí** se puede
+reemplazar — de hecho es lo que se le está pidiendo a esa persona. Lo que se cierra es lo que alguien
+ya dio por bueno: validado por MRZ, validado por cotejo o confirmado a mano.
+
+Medido en el expediente real: quedan cerrados **125 pasaportes y 119 DNI**, y abiertos los 7 y 14 que
+siguen en la cola.
+
+⚠️ Acota **al pasajero**. Por `util` se puede reemplazar cualquier cosa: si un documento verificado
+hay que cambiarlo de verdad, lo hace alguien que sabe qué está pisando.
+
 ##### 🔥 «Qué se pide» BLOQUEA, no sólo esconde (16/09/2026)
 
 `SubirDocumentoPasajeroController` comprobaba sólo que el tipo lo suba el pasajero
