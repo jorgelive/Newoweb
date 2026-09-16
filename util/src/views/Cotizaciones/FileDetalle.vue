@@ -2187,6 +2187,40 @@ const SELLO: Record<string, { texto: string; clase: string; icono: string }> = {
  * «sin validar» en las 263 antes de la primera pasada llenaría el manifiesto de gris sin decir
  * nada. Las que sí traen nota —«no hay escaneo en la bóveda»— se quedan: eso sí es información.
  */
+/**
+ * Los documentos de esta persona cuyo veredicto vive en el ARCHIVO: hoy el E-Ticket.
+ *
+ * 🔥 **No se veía por ninguna parte.** Las pastillas de la tarjeta recorren `identificaciones`, que
+ * es donde vive el veredicto de un DNI o un pasaporte; el del trámite migratorio vive en el propio
+ * archivo —no tiene número que identifique a nadie, así que no tiene fila ahí—. Se podía **filtrar**
+ * por «E-Ticket observado» y aun así no había forma de leer QUÉ observación era: la lista te daba
+ * los nombres y luego no tenías nada que contarle a esa persona.
+ *
+ * ⚠️ **Se reconoce por `validadoEn`, no por una lista de tipos.** Sólo el camino que juzga archivos
+ * escribe esa fecha, así que el dato mismo dice cuáles tienen veredicto propio — y no hay que
+ * reescribir aquí `ArchivoTipoEnum::respaldaA()`, que es el mapeo que ya se duplicó tres veces en
+ * este módulo.
+ *
+ * ⚠️ Y **sólo el vigente de cada tipo**: por `util` se acumulan —crea otro sin borrar el anterior, a
+ * propósito— y enseñar el viejo observado junto al nuevo bueno diría que sigue mal algo ya
+ * corregido. Mismo criterio que el contador y que la hoja de control.
+ */
+const archivosConVeredicto = (pax: ApiCotizacionFilepasajero) => {
+    const suyo = String(extractIdStr(pax.id ?? pax['@id'])).toLowerCase();
+    const vigente = new Map<string, ApiCotizacionFilearchivo>();
+
+    for (const a of file.value?.filearchivos ?? []) {
+        if (!a.validadoEn || claveDeRelacion(a.pasajero) !== suyo) continue;
+
+        const tipo = String(a.tipoArchivo ?? '');
+        const previo = vigente.get(tipo);
+
+        if (!previo || String(a.createdAt ?? '') > String(previo.createdAt ?? '')) vigente.set(tipo, a);
+    }
+
+    return [...vigente.values()];
+};
+
 const identificacionesConVeredicto = (pax: ApiCotizacionFilepasajero) =>
     (pax.identificaciones ?? []).filter(i =>
         i.estadoValidacion && (i.estadoValidacion !== 'no_validado' || (i.notasValidacion ?? []).length > 0));
@@ -4522,6 +4556,41 @@ const eliminarDocumento = async (iri?: string) => {
                            que se valida es lo que alguien tecleó en el manifiesto, así que el
                            veredicto tiene que verse donde se mira el dato. En una pantalla aparte
                            habría que acordarse de ir a mirarla. -->
+                      <!-- 🔥 **El veredicto del E-Ticket, que no se veía.** Se podía filtrar por
+                           «E-Ticket observado» y luego no había dónde leer la observación: la lista
+                           daba los nombres y no lo que había que decirle a cada uno. Va aquí, con el
+                           mismo formato que las de identidad, porque es la misma pregunta. -->
+                      <div v-for="arch in archivosConVeredicto(pax)" :key="`a-${arch.id}`"
+                           class="mt-1.5 text-[9px] flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full font-black uppercase tracking-wider border"
+                              :class="SELLO[arch.estadoValidacion!].clase">
+                          <i class="fas text-[8px]" :class="SELLO[arch.estadoValidacion!].icono"></i>
+                          {{ getArchivoLabel(arch.tipoArchivo) }} · {{ SELLO[arch.estadoValidacion!].texto }}
+                        </span>
+
+                        <span v-for="(d, j) in (arch.discrepancias ?? [])" :key="j"
+                              class="inline-flex flex-wrap items-center gap-1 text-amber-700">
+                          <span class="font-bold">{{ d.campo }}:</span>
+                          <span class="inline-flex items-center gap-1">
+                            <span class="text-[8px] font-black uppercase tracking-wider text-emerald-600">dice</span>
+                            <span class="font-mono bg-emerald-50 border border-emerald-200 rounded px-1">{{ d.documento }}</span>
+                          </span>
+                          <span class="inline-flex items-center gap-1">
+                            <span class="text-[8px] font-black uppercase tracking-wider text-amber-600">debería</span>
+                            <span class="font-mono bg-amber-50 border border-amber-200 rounded px-1">{{ d.manifiesto }}</span>
+                          </span>
+                        </span>
+
+                        <span v-for="(n, j) in (arch.notasValidacion ?? [])" :key="`an-${j}`"
+                              class="text-slate-400 normal-case">{{ n }}</span>
+
+                        <!-- Y si lo que falla es la lectura, el motivo: sin esto la persona sale con
+                             su documento subido y sin ninguna explicación de por qué no cuenta. -->
+                        <span v-if="arch.lecturaError" class="text-rose-500 normal-case">
+                          no se pudo leer: {{ arch.lecturaError }}
+                        </span>
+                      </div>
+
                       <div v-for="ident in identificacionesConVeredicto(pax)" :key="`v-${ident.id}`"
                            class="mt-1.5 text-[9px]">
                         <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full font-black uppercase tracking-wider border"

@@ -10402,6 +10402,25 @@ para siempre.
 servidor con `tieneEscaneo` (`validadoCon !== null`), no una deducción del front. Firmar un documento
 que nadie ha subido sí sería malo, y es justo lo que esa condición sigue impidiendo.
 
+#### 🔥 Se podía FILTRAR el E-Ticket observado y no LEER la observación
+
+Las pastillas de la tarjeta recorren `identificaciones`, que es donde vive el veredicto de un DNI o
+un pasaporte. El del trámite migratorio vive en el propio archivo —no tiene número que identifique a
+nadie, así que no tiene fila ahí—, así que se podía filtrar por «E-Ticket observado» y **la lista te
+daba los nombres y nada que contarle a esa persona**: había que abrir la hoja de control o mirar la
+base.
+
+Ahora la tarjeta trae también los documentos cuyo veredicto es del archivo, con el mismo formato:
+estado, discrepancias con los dos valores, notas y —si fue el caso— el motivo de que no se pudiera
+leer.
+
+⚠️ **Se reconocen por `validadoEn`, no por una lista de tipos.** Sólo el camino que juzga archivos
+escribe esa fecha, así que el dato mismo dice cuáles tienen veredicto propio. Reescribir aquí
+`ArchivoTipoEnum::respaldaA()` habría sido la cuarta copia de ese mapeo en el módulo.
+
+⚠️ Y **sólo el vigente de cada tipo**: por `util` se acumulan, y enseñar el viejo observado junto al
+nuevo bueno diría que sigue mal algo ya corregido.
+
 #### 🔥 El filtro «Observado» del manifiesto contaba SÓLO escaneos de identidad
 
 Lo preguntó quien opera —*«ese filtro de observados, ¿qué observados recoge? ¿todos, o sólo DNI y
