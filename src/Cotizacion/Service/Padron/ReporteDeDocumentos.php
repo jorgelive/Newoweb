@@ -122,40 +122,122 @@ final readonly class ReporteDeDocumentos
             ...array_keys($escaneos),
             self::COL_ARCHIVOS,
             self::COL_FALTA,
-            self::COL_OBSERVA,
+            ...array_map(static fn (string $e): string => self::COL_OBSERVA.' '.$e, array_keys($escaneos)),
         ];
     }
 
     /**
-     * Lo que el control encontró en los documentos de esa persona, en una frase por documento.
+     * Cuántas columnas van DESPUÉS de las de observaciones. Hoy ninguna.
      *
-     * ⚠️ **Se compone con el CAMPO y los dos valores** —«DNI vencimiento: doc 2036-07-31 ≠ guardado
-     * 2026-07-19»— y no con un «tiene observaciones». Esta hoja se manda por correo a quien tiene
-     * que corregir, y ahí no hay botón que pulsar para ver el detalle: o va escrito, o hay que
-     * volver a la aplicación, que es justo lo que la hoja evita.
-     *
-     * ⚠️ Las notas informativas —el giro— **no entran**: son para la pantalla, donde hay un botón
-     * al lado. En una hoja de correcciones sólo serían ruido.
-     *
-     * @return list<string>
+     * ⚠️ Existe para que las posiciones no se calculen con números a mano. Las de estado y las de
+     * observaciones crecen las dos con lo que pide el expediente, así que `$ultima - 2` —que era
+     * como se colocaba «Archivos»— dejó de significar nada en cuanto hubo dos bloques variables.
      */
-    private function observacionesDe(CotizacionFilepasajero $pasajero): array
+    private function dondeEmpiezanLasObservaciones(int $cuantosEscaneos): int
     {
-        $frases = [];
+        return count(self::CABECERAS_FIJAS) + $cuantosEscaneos + 3;
+    }
+
+    /**
+     * Lo que el control encontró, **repartido por el documento al que pertenece**.
+     *
+     * 🔥 **Era UNA columna global y por eso no servía para trabajar.** Todas las observaciones de
+     * una persona iban concatenadas en la misma celda: «DNI número: doc X ≠ guardado Y · PASAPORTE:
+     * vencido · …». Con eso no se puede filtrar «enséñame a quién le falla el E-Ticket», que es la
+     * única pregunta con la que se abre esta hoja, y con 134 filas leerlas una a una no es una
+     * opción. Ahora hay **una columna de observaciones por cada documento que el expediente pide**,
+     * simétrica con la columna de estado que ya tenía cada uno.
+     *
+     * ── De dónde sale cada observación, que era lo que faltaba ──────────────
+     * Los veredictos viven en dos sitios y hasta ahora sólo se leía uno:
+     *
+     * | Documento | Dónde está su veredicto |
+     * |---|---|
+     * | DNI, pasaporte | `CotizacionPasajeroIdentificacion`, al lado del número que juzga |
+     * | E-Ticket y demás | el propio `CotizacionFilearchivo` |
+     *
+     * 🔑 **La atribución es EXACTA y no se adivina**: `CotizacionPasajeroIdentificacion::$validadoCon`
+     * apunta al archivo que produjo ese veredicto, así que la observación va a la columna de ese
+     * tipo. Repartirlas por `respaldaA()` habría sido una regla paralela que algún día discreparía.
+     *
+     * ⚠️ **Y hace falta el respaldo para cuando `validadoCon` es nulo**, que no es raro: son los
+     * veredictos que no salieron de ningún escaneo —«no hay escaneo con qué cotejar»—. En el
+     * expediente real son 13 de 265, y **todos tienen observaciones**: dejarlos fuera habría
+     * borrado justo las trece filas que más falta hacen. Ahí se cae a
+     * {@see ArchivoTipoEnum::paraValidar()}.
+     *
+     * ⚠️ Se compone con el CAMPO y los dos valores —«número: doc X ≠ esperado Y»— y no con un
+     * «tiene observaciones»: esta hoja se manda por correo a quien tiene que corregir, y ahí no hay
+     * botón que pulsar para ver el detalle.
+     *
+     * ⚠️ Las notas del giro **no entran**: se resuelven con un botón en la pantalla y en una hoja de
+     * correcciones sólo serían ruido.
+     *
+     * @param array<string, ArchivoTipoEnum> $escaneos
+     *
+     * @return array<string, list<string>> valor de `ArchivoTipoEnum` → sus frases
+     */
+    private function observacionesPorTipo(CotizacionFile $file, CotizacionFilepasajero $pasajero, array $escaneos): array
+    {
+        $porTipo = [];
+        $id = (string) $pasajero->getId();
 
         foreach ($pasajero->getIdentificaciones() as $identificacion) {
             $tipo = $identificacion->getTipo();
-            $etiqueta = $tipo !== null ? $tipo->value : 'DOC';
 
-            foreach ($identificacion->getDiscrepancias() as $d) {
-                $frases[] = sprintf('%s %s: doc %s ≠ guardado %s', $etiqueta, $d['campo'], $d['documento'], $d['manifiesto']);
+            // El archivo que produjo el veredicto manda; si no lo hubo, el que habría hecho falta.
+            $destino = $identificacion->getValidadoCon()?->getTipoArchivo()
+                ?? ($tipo !== null ? ArchivoTipoEnum::paraValidar($tipo) : null);
+
+            if ($destino === null) {
+                continue;
             }
 
-            foreach ($identificacion->getNotasValidacion() as $nota) {
-                // El giro se resuelve con un botón en la pantalla; aquí no aporta nada.
-                if (!str_contains($nota, 'girado')) {
-                    $frases[] = sprintf('%s: %s', $etiqueta, $nota);
-                }
+            foreach ($this->frasesDe($identificacion->getDiscrepancias(), $identificacion->getNotasValidacion()) as $frase) {
+                $porTipo[$destino->value][] = $frase;
+            }
+        }
+
+        // Y los veredictos que son del propio archivo: el E-Ticket, y lo que venga después.
+        foreach ($file->getFilearchivos() as $archivo) {
+            $tipo = $archivo->getTipoArchivo();
+
+            if ($tipo === null || !in_array($tipo, $escaneos, true)) {
+                continue;
+            }
+
+            if ((string) $archivo->getPasajero()?->getId() !== $id) {
+                continue;
+            }
+
+            foreach ($this->frasesDe($archivo->getDiscrepancias(), $archivo->getNotasValidacion()) as $frase) {
+                $porTipo[$tipo->value][] = $frase;
+            }
+        }
+
+        return $porTipo;
+    }
+
+    /**
+     * @param list<array{campo: string, documento: string, manifiesto: string}> $discrepancias
+     * @param list<string>                                                      $notas
+     *
+     * @return list<string>
+     */
+    private function frasesDe(array $discrepancias, array $notas): array
+    {
+        $frases = [];
+
+        foreach ($discrepancias as $d) {
+            // ⚠️ «esperado» y no «guardado»: desde el E-Ticket el otro lado puede ser el itinerario
+            // y no el manifiesto. La CLAVE del array sigue llamándose `manifiesto` porque está
+            // persistida en dos tablas; lo que se lee en la hoja ya dice la verdad.
+            $frases[] = sprintf('%s: doc %s ≠ esperado %s', $d['campo'], $d['documento'], $d['manifiesto']);
+        }
+
+        foreach ($notas as $nota) {
+            if (!str_contains($nota, 'girado')) {
+                $frases[] = $nota;
             }
         }
 
@@ -176,6 +258,7 @@ final readonly class ReporteDeDocumentos
         $escaneos = $this->escaneosPedidos($file);
         $cabeceras = $this->cabeceras($escaneos);
         $ultima = count($cabeceras);
+        $inicioObserva = $this->dondeEmpiezanLasObservaciones(count($escaneos));
 
         // Título: el expediente y CUÁNDO se sacó. Una hoja de faltantes sin fecha se reenvía
         // semanas después como si siguiera vigente.
@@ -259,28 +342,42 @@ final readonly class ReporteDeDocumentos
                 ++$columna;
             }
 
-            // El total al lado de las tres celdas: con 3 se sabe que está completo sin sumarlas,
-            // y con 4 se sabe que sobra algo sin buscar cuál.
-            $hoja->setCellValueExplicit([$ultima - 2, $fila], (string) $total, DataType::TYPE_NUMERIC);
-            $hoja->getStyle([$ultima - 2, $fila])->getAlignment()
+            // El total al lado de las celdas de estado: con tantos como pedidos se sabe que está
+            // completo sin sumarlas, y con uno más se sabe que sobra algo sin buscar cuál.
+            $colTotal = $inicioObserva - 2;
+            $hoja->setCellValueExplicit([$colTotal, $fila], (string) $total, DataType::TYPE_NUMERIC);
+            $hoja->getStyle([$colTotal, $fila])->getAlignment()
                 ->setHorizontal(Alignment::HORIZONTAL_CENTER);
             if ($total > count($escaneos)) {
-                $hoja->getStyle([$ultima - 2, $fila])->getFont()->setBold(true);
-                $hoja->getStyle([$ultima - 2, $fila])->getFill()
+                $hoja->getStyle([$colTotal, $fila])->getFont()->setBold(true);
+                $hoja->getStyle([$colTotal, $fila])->getFill()
                     ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::AMBAR);
             }
 
-            $this->texto($hoja, $ultima - 1, $fila, $faltan === [] ? 'Completo' : implode(', ', $faltan));
+            $this->texto($hoja, $inicioObserva - 1, $fila, $faltan === [] ? 'Completo' : implode(', ', $faltan));
             if ($faltan !== []) {
-                $hoja->getStyle([$ultima - 1, $fila])->getFont()->setBold(true);
+                $hoja->getStyle([$inicioObserva - 1, $fila])->getFont()->setBold(true);
             }
 
-            $observaciones = $this->observacionesDe($pasajero);
-            $this->texto($hoja, $ultima, $fila, implode(' · ', $observaciones));
+            // Cada observación, en la columna de SU documento. Así se puede filtrar «enséñame a
+            // quién le falla el E-Ticket», que con una celda global no se podía.
+            $observaciones = $this->observacionesPorTipo($file, $pasajero, $escaneos);
+            $columna = $inicioObserva;
+
+            foreach ($escaneos as $tipo) {
+                $suyas = $observaciones[$tipo->value] ?? [];
+
+                if ($suyas !== []) {
+                    $this->texto($hoja, $columna, $fila, implode(' · ', $suyas));
+                    $hoja->getStyle([$columna, $fila])->getFill()
+                        ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::AMBAR);
+                }
+
+                ++$columna;
+            }
+
             if ($observaciones !== []) {
                 ++$observados;
-                $hoja->getStyle([$ultima, $fila])->getFill()
-                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::AMBAR);
             }
 
             $archivos += $total;
