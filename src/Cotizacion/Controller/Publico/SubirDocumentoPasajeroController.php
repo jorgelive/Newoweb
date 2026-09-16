@@ -79,6 +79,26 @@ final class SubirDocumentoPasajeroController
             return new JsonResponse(['error' => 'Ese tipo de documento no se sube desde aquí.'], Response::HTTP_BAD_REQUEST);
         }
 
+        // 🔥 **«Qué se pide» BLOQUEA, no sólo esconde.** Hasta ahora esta guarda miraba únicamente
+        // si el tipo lo sube el pasajero, así que quitar el pasaporte de la lista hacía desaparecer
+        // la casilla en la app —`documentosPedidos()` filtra el catálogo— pero **el endpoint lo
+        // seguía aceptando**: una petición repetida, un botón de atrás, una pestaña vieja con la
+        // lista de antes, y entraba igual.
+        //
+        // Y hay un momento concreto en que esa diferencia importa: a dos días de volar se cierran
+        // los documentos de identidad —ya están revisados y el manifiesto cuadra— y se deja abierto
+        // sólo el trámite migratorio. Un pasaporte que entre entonces vuelve a poner en duda un
+        // veredicto que costó revisar, y nadie se entera hasta que el chip cambia solo.
+        //
+        // ⚠️ Esto acota **al pasajero**, no al operador: por `util` se sigue pudiendo subir
+        // cualquier cosa, que es lo que permite arreglar un caso raro sin reabrir la lista para los
+        // 134.
+        if (!in_array($tipo->value, $file->getDocumentosPedidos(), true)) {
+            return new JsonResponse([
+                'error' => sprintf('Ahora mismo no se pide %s. Si te hace falta, escríbenos.', $tipo->getLabel()),
+            ], Response::HTTP_CONFLICT);
+        }
+
         $subido = $request->files->get('documento');
 
         if (!$subido instanceof UploadedFile || !$subido->isValid()) {

@@ -1513,6 +1513,21 @@ acuerde de tocar los dos archivos es lo que ya falló.
 ⚠️ **La regla general, que no es de este espejo:** un test que compara dos cosas **del mismo lado**
 no prueba que el otro lado esté sincronizado, por muy convincente que suene el nombre del test.
 
+##### 🔥 «Qué se pide» BLOQUEA, no sólo esconde (16/09/2026)
+
+`SubirDocumentoPasajeroController` comprobaba sólo que el tipo lo suba el pasajero
+(`loSubeElPasajero()`). Así que quitar el pasaporte de la lista hacía desaparecer la casilla en la app
+—`documentosPedidos()` filtra el catálogo— **pero el endpoint lo seguía aceptando**: una petición
+repetida, un botón de atrás, una pestaña vieja con la lista de antes, y entraba igual.
+
+**El caso que lo pide:** a dos días de volar se cierran los documentos de identidad —ya están
+revisados y el manifiesto cuadra— y se deja abierto sólo el trámite migratorio. Un pasaporte que
+entre entonces vuelve a poner en duda un veredicto que costó revisar, y nadie se entera hasta que el
+chip cambia solo.
+
+⚠️ **Acota al PASAJERO, no al operador.** Por `util` se sigue pudiendo subir cualquier cosa, que es lo
+que permite arreglar un caso raro sin reabrir la lista para los 134.
+
 ##### 🔥 El default vacío dejaba a los expedientes NUEVOS sin pedir nada
 
 Lo encontró una revisión, no la pantalla — que es lo esperable, porque no se ve.
