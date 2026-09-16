@@ -1688,13 +1688,50 @@ const estadoDocumentalDe = (pax: ApiCotizacionFilepasajero): Set<string> => {
         if (!susEscaneos.has(pedido)) { estados.add('sin_escaneo'); }
     }
 
+    // 🔥 **Y el veredicto del E-TICKET, que no llegaba aquí.**
+    //
+    // El bucle de arriba recorre `identificaciones`, donde vive el veredicto de un DNI o un
+    // pasaporte. El de un trámite migratorio vive en el ARCHIVO —no tiene número que identifique a
+    // nadie, así que no tiene fila ahí— y por eso el filtro «Observado» contaba **sólo escaneos de
+    // identidad**: 36 personas, con 32 E-Ticket observados que no salían por ningún lado. No había
+    // forma de pedir «enséñame a quién le falla el trámite».
+    //
+    // ⚠️ **Estado propio y no sumarlo a «Observado»**, porque es otro trabajo: un E-Ticket con el
+    // vuelo mal lo arregla el pasajero rehaciéndolo; una MRZ que no cuadra la mira el operador.
+    // Juntarlos daría un número más grande y menos útil, que es lo que ya pasaba con «N por
+    // revisar».
+    if (eticketObservadoDe(pax)) { estados.add('eticket_observado'); }
+
     return estados;
+};
+
+/**
+ * ¿El E-Ticket VIGENTE de esta persona está observado?
+ *
+ * ⚠️ El vigente, no cualquiera: por la vía del operador se acumulan —`util` crea otro sin borrar el
+ * anterior, a propósito—, y quien acaba de corregirlo seguiría saliendo en el filtro por culpa del
+ * archivo viejo. Mismo criterio que el contador del botón y que `ReporteDeDocumentos`.
+ */
+const eticketObservadoDe = (pax: ApiCotizacionFilepasajero): boolean => {
+    const suyo = String(extractIdStr(pax.id ?? pax['@id'])).toLowerCase();
+    let vigente: ApiCotizacionFilearchivo | null = null;
+
+    for (const a of file.value?.filearchivos ?? []) {
+        if (a.tipoArchivo !== 'eticket' || claveDeRelacion(a.pasajero) !== suyo) continue;
+
+        if (!vigente || String(a.createdAt ?? '') > String(vigente.createdAt ?? '')) { vigente = a; }
+    }
+
+    return vigente?.estadoValidacion === 'observado';
 };
 
 const ETIQUETAS_DOCUMENTO: Record<string, { label: string; clase: string; punto: string }> = {
     // Primero, porque es la cola de trabajo: son los que esperan a que alguien decida algo. Los
     // otros tres describen el documento; éste describe lo que hay pendiente de hacer.
-    observado:   { label: 'Observado',     clase: 'bg-amber-100 text-amber-800 border-amber-300',  punto: 'bg-amber-600' },
+    // ⚠️ Dice «Escaneo» porque cuenta SÓLO los de identidad —DNI y pasaporte—. A secas se leía como
+    // «todo lo observado», y el E-Ticket, que es lo que más observaciones tiene, no entraba.
+    observado:   { label: 'Escaneo observado', clase: 'bg-amber-100 text-amber-800 border-amber-300',  punto: 'bg-amber-600' },
+    eticket_observado: { label: 'E-Ticket observado', clase: 'bg-indigo-100 text-indigo-700 border-indigo-300', punto: 'bg-indigo-500' },
     // ⚠️ Era «Sin foto» y dejó de ser cierto al entrar aquí los documentos pedidos: un E-Ticket es
     // un PDF que llega por correo, no una foto que alguien saca. El estado es el mismo —le falta
     // algo y hay que escribirle—; lo que cambia es que ya no son sólo escaneos.

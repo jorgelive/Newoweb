@@ -10173,6 +10173,29 @@ que ya hacen los demás sitios que cuentan archivos por persona. El `extractIdSt
 para lo que ya es una cadena —un `@id`, un `id`—, y ése es justo el caso en el que no se nota que
 está mal.
 
+#### 🔥 El filtro «Observado» del manifiesto contaba SÓLO escaneos de identidad
+
+Lo preguntó quien opera —*«ese filtro de observados, ¿qué observados recoge? ¿todos, o sólo DNI y
+pasaporte?»*— y la respuesta era la mala: sólo DNI y pasaporte.
+
+`estadoDocumentalDe()` recorre `pax.identificaciones`, que es donde vive el veredicto de un documento
+de identidad. **El del E-Ticket vive en el ARCHIVO** —no tiene número que identifique a nadie, así
+que no tiene fila ahí—, de modo que el chip decía «Observado 36» con **32 E-Ticket observados que no
+salían por ningún lado**. No había forma de pedir «enséñame a quién le falla el trámite», que es la
+lista que se usa para escribir.
+
+Ahora hay dos chips y el viejo dice qué cuenta:
+
+| | Qué recoge | Quién lo arregla |
+|---|---|---|
+| **Escaneo observado** | DNI y pasaporte (`identificaciones`) | el operador, mirando el escaneo |
+| **E-Ticket observado** | el trámite vigente de esa persona | el pasajero, rehaciéndolo |
+
+⚠️ **Estado propio y no sumado a «Observado»**, porque son dos trabajos de dos personas. Juntarlos
+daría un número más grande y menos útil — exactamente lo que ya pasaba con «N por revisar».
+
+⚠️ Y **el vigente**, no cualquiera: ver el punto siguiente.
+
 #### ¿Y si suben uno nuevo? Depende de por dónde
 
 Los dos caminos de subida se comportan distinto, y el control tiene que contarlo sabiéndolo:
