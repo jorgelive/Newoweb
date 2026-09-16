@@ -13709,6 +13709,20 @@ export interface components {
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
             /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            /**
              * @description Cuánto se ha girado este escaneo respecto de su copia original, en grados horarios.
              * @default 0
              */
@@ -13768,6 +13782,20 @@ export interface components {
             readonly leidoEn?: string | null;
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
+            /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
             nombre?: {
@@ -13802,6 +13830,20 @@ export interface components {
             readonly leidoEn?: string | null;
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
+            /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
             nombre?: {
@@ -13930,6 +13972,20 @@ export interface components {
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
             /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            /**
              * @description Cuánto se ha girado este escaneo respecto de su copia original, en grados horarios.
              * @default 0
              */
@@ -13989,6 +14045,20 @@ export interface components {
             readonly leidoEn?: string | null;
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
+            /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
             nombre?: {
@@ -14023,6 +14093,20 @@ export interface components {
             readonly leidoEn?: string | null;
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
+            /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
             nombre?: {
@@ -14103,6 +14187,20 @@ export interface components {
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
             /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            /**
              * @description Cuánto se ha girado este escaneo respecto de su copia original, en grados horarios.
              * @default 0
              */
@@ -14162,6 +14260,20 @@ export interface components {
             readonly leidoEn?: string | null;
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
+            /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
             nombre?: {
@@ -14196,6 +14308,20 @@ export interface components {
             readonly leidoEn?: string | null;
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
+            /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
             nombre?: {
@@ -14276,6 +14402,20 @@ export interface components {
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
             /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            /**
              * @description Cuánto se ha girado este escaneo respecto de su copia original, en grados horarios.
              * @default 0
              */
@@ -14335,6 +14475,20 @@ export interface components {
             readonly leidoEn?: string | null;
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
+            /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
             nombre?: {
@@ -14369,6 +14523,20 @@ export interface components {
             readonly leidoEn?: string | null;
             /** @description Por qué no se pudo leer. */
             readonly lecturaError?: string | null;
+            /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
             imageName?: string | null;
             imageSize?: number | null;
             nombre?: {

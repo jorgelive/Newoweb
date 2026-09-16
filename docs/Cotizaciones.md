@@ -9817,17 +9817,39 @@ php bin/console app:cotizacion:validar-etickets 5SRAJV --solo-leidos   # gratis:
 `--solo-leidos` es la pasada barata de después de tocar una regla: no llama al modelo y dice qué
 cambia. Es el motivo de que leer e interpretar estén separados.
 
+### Dónde vive el veredicto (y por qué no donde el de identidad)
+
+El de un DNI o un pasaporte vive en `CotizacionPasajeroIdentificacion`, **al lado del número que
+juzga**, y eso sigue siendo correcto: lo que se comprueba ahí es si el número guardado dice lo mismo
+que el documento.
+
+🔥 **Un E-Ticket no tiene número que identifique a nadie.** No hay fila donde ponerlo —la clave única
+de esa tabla es `(pasajero, tipo)` sobre los tipos de `DocumentoTipoEnum`: DNI, carné, pasaporte— y
+añadirle un caso sería **declarar documento de identidad algo que no lo es**, con la fuga inmediata
+de que entraría en todo lo que recorre identificaciones (el visor del pasajero, la hoja de control,
+`identificacionesDe()`).
+
+Lo que se juzga de un E-Ticket es **el archivo**. Así que el veredicto es del archivo:
+`Version20260916120000` añade a `cotizacion_file_archivo` los **mismos tres campos y los mismos
+nombres** que tiene la identificación —`estadoValidacion`, `discrepancias`, `notasValidacion`, más
+`validadoEn`— para que quien entendió uno entienda el otro y la pantalla pueda pintar los dos con el
+mismo componente. Se escriben juntos con `registrarValidacion()`, sin setters sueltos: con setters
+sueltos alguien pone el estado, olvida las discrepancias y queda un «observado» que no dice de qué.
+
+⚠️ **Lectura y veredicto son dos cosas y van en columnas distintas.** `datosLeidos` es lo que costó
+dinero y no caduca nunca —el documento no cambia—; el veredicto sí caduca en cuanto alguien corrige
+un vuelo. Por eso el comando guarda siempre la lectura y el veredicto sólo con `--aplicar`.
+
+⚠️ **`Discrepancia` llama `manifiesto` al valor esperado, y aquí el esperado sale del ITINERARIO.**
+Se conserva el nombre porque ya está persistido en las dos tablas y la pantalla ya lo lee:
+renombrarlo a `esperado` —que es lo que de verdad es— hay que hacerlo de una vez en los dos sitios,
+no a medias.
+
 ### Lo que falta
 
-**El veredicto no tiene dónde vivir.** Hoy los estados de validación están en
-`CotizacionPasajeroIdentificacion`, al lado del número que juzgan, y un E-Ticket no es un documento
-de identidad: no tiene fila ahí. Hacen falta `estadoValidacion`, `discrepancias` y `notasValidacion`
-en `CotizacionFilearchivo` —que ya guarda la lectura— y entonces el comando pasa de informar a
-persistir, y el manifiesto puede pintar el chip.
-
-⚠️ Y cuando eso llegue: `Discrepancia` llama **`manifiesto`** al valor esperado, y aquí el esperado
-sale del itinerario. Está **persistido en JSON** en la columna `discrepancias`, así que renombrarlo a
-`esperado` toca datos guardados — se lee con respaldo o se migra.
+Pintarlo. El veredicto ya sale en la API (`file:item:read`), así que el manifiesto puede enseñar un
+chip de «E-Ticket observado» al lado del de «Falta documento» — que contestan cosas distintas: uno
+es «no lo mandó», el otro «lo mandó y no sirve».
 
 ### Añadir otro país, u otro documento
 

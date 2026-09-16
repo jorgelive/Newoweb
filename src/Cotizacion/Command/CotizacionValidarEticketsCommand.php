@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Command;
 
+use App\Cotizacion\Documento\Discrepancia;
 use App\Cotizacion\Documento\ValidadorDeEticket;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
@@ -31,10 +32,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * leído en `CotizacionFilearchivo::$datosLeidos`; las siguientes son gratis y aplican el criterio
  * de hoy. Afinar una regla no cuesta una llamada más.
  *
- * ⚠️ **No escribe ningún veredicto todavía**: informa. Cuando el veredicto tenga dónde vivir en
- * `CotizacionFilearchivo`, este comando es el sitio donde se persiste.
+ * ⚠️ **Por defecto informa y no escribe el veredicto.** Es el mismo reparto que la carga por ZIP y
+ * que {@see \App\Cotizacion\Documento\ValidadorDeDocumento}: plan primero, aplicar después. Con
+ * `--aplicar` se guarda en `CotizacionFilearchivo`, que es donde vive el veredicto de los
+ * documentos que no son de identidad.
+ *
+ * ⚠️ Lo que SÍ se guarda siempre es la **lectura**, que es lo que costó dinero. Son dos cosas
+ * distintas y por eso están en columnas distintas.
  *
  *   php bin/console app:cotizacion:validar-etickets 5SRAJV --limite=5
+ *   php bin/console app:cotizacion:validar-etickets 5SRAJV --solo-leidos --aplicar
  */
 #[AsCommand(
     name: 'app:cotizacion:validar-etickets',
@@ -56,7 +63,8 @@ final class CotizacionValidarEticketsCommand extends Command
             ->addOption('pais', null, InputOption::VALUE_REQUIRED, 'País del trámite (ISO-2)', 'DO')
             ->addOption('limite', null, InputOption::VALUE_REQUIRED, 'Cuántos leer como mucho en esta pasada')
             ->addOption('solo-leidos', null, InputOption::VALUE_NONE, 'No llama al modelo: sólo re-juzga lo ya leído')
-            ->addOption('reintentar', null, InputOption::VALUE_NONE, 'Vuelve a leer los que fallaron al leerse');
+            ->addOption('reintentar', null, InputOption::VALUE_NONE, 'Vuelve a leer los que fallaron al leerse')
+            ->addOption('aplicar', null, InputOption::VALUE_NONE, 'Guarda el veredicto, no sólo lo enseña');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -88,6 +96,7 @@ final class CotizacionValidarEticketsCommand extends Command
         $limite = is_string($limite) ? max(1, (int) $limite) : null;
         $soloLeidos = (bool) $input->getOption('solo-leidos');
         $reintentar = (bool) $input->getOption('reintentar');
+        $aplicar = (bool) $input->getOption('aplicar');
 
         $filas = [];
         $cuenta = [];
@@ -131,6 +140,14 @@ final class CotizacionValidarEticketsCommand extends Command
 
             $cuenta[$cotejo->estado->value] = ($cuenta[$cotejo->estado->value] ?? 0) + 1;
 
+            if ($aplicar) {
+                $archivo->registrarValidacion(
+                    $cotejo->estado,
+                    array_map(static fn (Discrepancia $d): array => $d->aJson(), $cotejo->discrepancias),
+                    $cotejo->notas,
+                );
+            }
+
             // Lo que está bien no se lista: la salida de este comando es una lista de trabajo.
             if ($cotejo->estado === ValidacionIdentificacionEnum::VALIDADO_OCR) {
                 continue;
@@ -143,7 +160,8 @@ final class CotizacionValidarEticketsCommand extends Command
             ];
         }
 
-        // El flush guarda las LECTURAS —que es lo que costó dinero—, no veredictos.
+        // Siempre guarda las LECTURAS —que es lo que costó dinero—; los veredictos sólo con
+        // `--aplicar`.
         $this->em->flush();
 
         if ($filas !== []) {
@@ -154,7 +172,12 @@ final class CotizacionValidarEticketsCommand extends Command
             $io->writeln(sprintf('  %-22s %d', $estado, $n));
         }
 
-        $io->success(sprintf('%d con algo que mirar. Lecturas nuevas pagadas: %d.', count($filas), $leidos));
+        $io->success(sprintf(
+            '%d con algo que mirar. Lecturas nuevas pagadas: %d.%s',
+            count($filas),
+            $leidos,
+            $aplicar ? ' Veredictos guardados.' : ' Sin --aplicar no se guardó ningún veredicto.',
+        ));
 
         return Command::SUCCESS;
     }

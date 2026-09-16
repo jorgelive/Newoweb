@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Post;
 use App\Attribute\AutoTranslate;
 use App\Cotizacion\Documento\Orientacion;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
+use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
 use App\Cotizacion\State\CotizacionFilearchivoMultipartProcessor;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
@@ -177,6 +178,93 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
     #[Groups(['file:item:read'])]
     #[ORM\Column(name: 'lectura_error', type: 'string', length: 255, nullable: true)]
     private ?string $lecturaError = null;
+
+    /* ======================================================
+     * EL VEREDICTO, para los documentos que NO son de identidad
+     * ====================================================== */
+
+    /**
+     * En qué estado quedó el control de ESTE archivo.
+     *
+     * ── Por qué aquí y no donde vive el de identidad ────────────────────────
+     * El veredicto de un DNI o un pasaporte vive en {@see CotizacionPasajeroIdentificacion}, **al
+     * lado del número que juzga**, y eso sigue siendo lo correcto: lo que se comprueba ahí es si el
+     * número guardado dice lo mismo que el documento.
+     *
+     * 🔥 **Pero un E-Ticket migratorio no tiene número que identifique a nadie.** No hay fila en
+     * `cotizacion_pasajero_identificacion` donde ponerlo —su clave única es `(pasajero, tipo)` con
+     * `tipo` de {@see \App\Enum\DocumentoTipoEnum}, que enumera DNI, carné y pasaporte— y meterle
+     * un caso para esto sería declarar documento de identidad algo que no lo es, con la fuga
+     * inmediata de que entraría en todo lo que recorre identificaciones.
+     *
+     * Lo que se juzga de un E-Ticket es **el archivo**: si el trámite que contiene cuadra con los
+     * vuelos de esa persona. Así que el veredicto es del archivo. Ver
+     * {@see \App\Cotizacion\Documento\CotejoDeEticket}.
+     *
+     * ⚠️ **Mismos tres campos y mismos nombres que en la identificación**, a propósito: quien
+     * entendió uno entiende el otro sin volver a leer nada, y la pantalla puede pintar los dos con
+     * el mismo componente.
+     */
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(name: 'estado_validacion', type: 'string', length: 20, enumType: ValidacionIdentificacionEnum::class, options: ['default' => 'no_validado'])]
+    private ValidacionIdentificacionEnum $estadoValidacion = ValidacionIdentificacionEnum::NO_VALIDADO;
+
+    /**
+     * Los campos en los que el documento no dice lo esperado.
+     *
+     * ⚠️ **La clave se llama `manifiesto` y aquí el valor esperado sale del ITINERARIO**, no del
+     * manifiesto. Se conserva el nombre porque {@see \App\Cotizacion\Documento\Discrepancia} ya lo
+     * usa, ya está persistido en la otra tabla y la pantalla ya lo lee: renombrarlo a `esperado`
+     * —que es lo que de verdad es— toca datos guardados en dos sitios y hay que hacerlo de una vez,
+     * no a medias.
+     *
+     * @var list<array{campo: string, documento: string, manifiesto: string}>
+     */
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(name: 'discrepancias', type: 'json')]
+    private array $discrepancias = [];
+
+    /**
+     * Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos».
+     *
+     * @var list<string>
+     */
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(name: 'notas_validacion', type: 'json')]
+    private array $notasValidacion = [];
+
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(name: 'validado_en', type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $validadoEn = null;
+
+    public function getEstadoValidacion(): ValidacionIdentificacionEnum { return $this->estadoValidacion; }
+
+    /** @return list<array{campo: string, documento: string, manifiesto: string}> */
+    public function getDiscrepancias(): array { return $this->discrepancias; }
+
+    /** @return list<string> */
+    public function getNotasValidacion(): array { return $this->notasValidacion; }
+
+    public function getValidadoEn(): ?DateTimeImmutable { return $this->validadoEn; }
+
+    /**
+     * El resultado entero, siempre junto.
+     *
+     * ⚠️ Sin setters sueltos, y es la misma razón que en `CotizacionPasajeroIdentificacion`: un día
+     * alguien pone el estado y olvida las discrepancias, y queda un «observado» que no dice de qué.
+     *
+     * @param list<array{campo: string, documento: string, manifiesto: string}> $discrepancias
+     * @param list<string> $notas
+     */
+    public function registrarValidacion(ValidacionIdentificacionEnum $estado, array $discrepancias, array $notas): self
+    {
+        $this->estadoValidacion = $estado;
+        $this->discrepancias = $discrepancias;
+        $this->notasValidacion = $notas;
+        $this->validadoEn = new DateTimeImmutable();
+
+        return $this;
+    }
 
     /** @return array<string, mixed>|null */
     public function getDatosLeidos(): ?array { return $this->datosLeidos; }
