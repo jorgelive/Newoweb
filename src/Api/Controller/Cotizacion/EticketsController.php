@@ -11,6 +11,7 @@ use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
 use App\Cotizacion\Enum\PaisDeControlEnum;
+use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -130,11 +131,24 @@ final class EticketsController extends AbstractController
                 continue;
             }
 
-            $archivo->registrarValidacion(
-                $cotejo->estado,
-                array_map(static fn (Discrepancia $d): array => $d->aJson(), $cotejo->discrepancias),
-                $cotejo->notas,
-            );
+            $nuevas = array_map(static fn (Discrepancia $d): array => $d->aJson(), $cotejo->discrepancias);
+
+            // 🔑 **Un sello humano sobrevive al re-juicio, pero sólo mientras el desajuste sea EL
+            // MISMO.** Re-juzgar en cada pasada es lo que mantiene vivos los veredictos, y aplicado
+            // a ciegas borraría el «lo he mirado y está bien» en el clic siguiente: el botón de
+            // aceptar no serviría de nada. Pero conservarlo pase lo que pase es peor —taparía un
+            // problema nuevo con la revisión de uno viejo—.
+            //
+            // Lo que alguien aceptó fue **este** desacuerdo. Si cambia, se reabre solo.
+            if ($archivo->getEstadoValidacion() === ValidacionIdentificacionEnum::CONFIRMADO
+                && $nuevas == $archivo->getDiscrepancias()) {
+                $conteo[ValidacionIdentificacionEnum::CONFIRMADO->value]
+                    = ($conteo[ValidacionIdentificacionEnum::CONFIRMADO->value] ?? 0) + 1;
+                $archivos[] = self::veredictoDe($archivo);
+                continue;
+            }
+
+            $archivo->registrarValidacion($cotejo->estado, $nuevas, $cotejo->notas);
 
             $conteo[$cotejo->estado->value] = ($conteo[$cotejo->estado->value] ?? 0) + 1;
             $archivos[] = self::veredictoDe($archivo);
@@ -150,6 +164,53 @@ final class EticketsController extends AbstractController
             'conteo' => $conteo,
             'archivos' => $archivos,
         ]);
+    }
+
+    /**
+     * «Lo he mirado y está bien»: cierra a mano un trámite observado.
+     *
+     * 🔥 **Sin esto, un observado se queda en ámbar para siempre.** El control puede tener razón en
+     * lo que señala y aun así no haber nada que corregir: el trámite trae un segundo nombre que al
+     * manifiesto le falta, o la referencia era el manifiesto y el equivocado era él. La única salida
+     * era volver a subir el mismo PDF para que se releyera, que no arregla nada y cuesta una lectura.
+     *
+     * Es el espejo de `DocumentosSueltosController::confirmar()`, que existe por lo mismo.
+     *
+     * ⚠️ **Se anota quién y cuándo en las notas, no se borra el motivo.** Un observado cerrado sin
+     * rastro es indistinguible de uno que nunca saltó, y la siguiente persona que lo mire no sabría
+     * si se revisó o si el control nunca llegó. La discrepancia se queda escrita: lo que cambia es
+     * que alguien se hizo responsable.
+     *
+     * ⚠️ Y lo cierra **hasta que cambie algo**: el control re-juzga en cada pasada, así que si el
+     * trámite se vuelve a leer o cambian los vuelos, el veredicto se recalcula y el sello se pierde.
+     * Es lo correcto — lo que se aceptó fue este desajuste, no todos los futuros.
+     */
+    #[Route(
+        '/cotizacion/user/etickets/{id}/aceptar',
+        name: 'cotizacion_eticket_aceptar',
+        requirements: ['id' => '[0-9a-fA-F-]{36}'],
+        methods: ['POST'],
+    )]
+    #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para validar documentos.')]
+    public function aceptar(string $id, EntityManagerInterface $em): Response
+    {
+        $archivo = $em->getRepository(CotizacionFilearchivo::class)->find(Uuid::fromString($id));
+
+        if ($archivo === null || $archivo->getTipoArchivo() !== ArchivoTipoEnum::ETICKET) {
+            return new JsonResponse(['error' => 'No encontré ese E-Ticket.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $quien = $this->getUser()?->getUserIdentifier() ?? 'alguien';
+
+        $archivo->registrarValidacion(
+            ValidacionIdentificacionEnum::CONFIRMADO,
+            $archivo->getDiscrepancias(),
+            [...$archivo->getNotasValidacion(), sprintf('revisado y aceptado por %s', $quien)],
+        );
+
+        $em->flush();
+
+        return new JsonResponse(['archivos' => [self::veredictoDe($archivo)]]);
     }
 
     /**

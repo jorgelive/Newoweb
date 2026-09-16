@@ -22,6 +22,19 @@ use Doctrine\ORM\Events;
  * ⚠️ Y cubre un segundo caso que no se ve: un escaneo **mejor** de un documento ya `validado_mrz`
  * no se miraba nunca, porque la tanda salta lo resuelto. Ahora vuelve a mirarse.
  *
+ * ── 🔥 Y desde el 16/09/2026, también el veredicto DEL PROPIO ARCHIVO ───────
+ * Los documentos que no son de identidad —el E-Ticket— guardan su veredicto en el archivo, y había
+ * dos formas de que dijera algo falso sin que nada lo tocara:
+ *
+ * | Qué pasa | Qué se leía |
+ * |---|---|
+ * | El archivo se **reasigna** a otra persona | el veredicto viaja con él: la fila de Pedro enseña «pasaporte: doc X ≠ esperado Y» calculado contra Juan |
+ * | Se **reemplaza el fichero** por PATCH | la lectura cacheada sigue siendo la del documento viejo, así que un billete cambiado por el PDF bueno se re-juzga eternamente como billete |
+ *
+ * ⚠️ **Sólo se resetea si cambió el DUEÑO o el FICHERO**, nunca en cualquier actualización. El
+ * propio control escribe `datosLeidos` y hace `flush()`: resetear ante cualquier cambio borraría la
+ * lectura que se acaba de pagar, en el mismo `flush` que la guarda.
+ *
  * ⚠️ **`onFlush` y no `postPersist`.** Hay que modificar OTRA entidad dentro de la misma
  * transacción, y en `postPersist` el `UnitOfWork` ya cerró los cambios: haría falta un `flush()`
  * anidado. `recomputeSingleEntityChangeSet()` es el mecanismo previsto para esto y ya se usa así en
@@ -47,7 +60,35 @@ final readonly class EscaneoNuevoInvalidaVeredictoListener
                 $identificacion->hayEscaneoNuevo();
                 $uow->recomputeSingleEntityChangeSet($metadatos, $identificacion);
             }
+
+            if (self::invalidaLoGuardado($uow->getEntityChangeSet($entidad))) {
+                // La lectura también: es del documento viejo, y sin tirarla el control seguiría
+                // juzgando eternamente un fichero que ya no está ahí.
+                $entidad->olvidarLectura();
+                $entidad->olvidarVeredicto();
+                $uow->recomputeSingleEntityChangeSet($em->getClassMetadata(CotizacionFilearchivo::class), $entidad);
+            }
         }
+    }
+
+    /**
+     * ¿Cambió algo que invalide lo que este archivo tenía guardado sobre sí mismo?
+     *
+     * 🔥 **Es la guarda más delicada de este listener y por eso es pública y estática.** El propio
+     * control escribe `datosLeidos` y hace `flush()` inmediatamente —una lectura es dinero gastado y
+     * no puede esperar al final—, así que **este método corre en el mismo `flush` que guarda la
+     * lectura**. Si devolviera `true` de más, borraría lo que se acaba de pagar, en el acto y sin
+     * que nadie se entere. Se prueba sola: {@see \App\Tests\Cotizacion\EventListener\InvalidaLoGuardadoTest}.
+     *
+     * ⚠️ **`imageName` y no `updatedAt`.** Vich reescribe el nombre del fichero al subir uno nuevo,
+     * así que es la señal de que el contenido cambió; `updatedAt` se mueve por cualquier cosa
+     * —incluida la propia escritura de la lectura— y usarlo sería morderse la cola.
+     *
+     * @param array<string, mixed> $cambios el changeset de Doctrine
+     */
+    public static function invalidaLoGuardado(array $cambios): bool
+    {
+        return isset($cambios['pasajero']) || isset($cambios['imageName']);
     }
 
     /**

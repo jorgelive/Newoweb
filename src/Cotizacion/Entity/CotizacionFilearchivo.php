@@ -266,6 +266,24 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
         return $this;
     }
 
+    /**
+     * Devuelve el archivo a «nunca se ha controlado».
+     *
+     * ⚠️ **No se borra el veredicto poniendo el estado a mano.** `registrarValidacion()` escribe los
+     * tres campos juntos justamente para que no queden a medias, y esto es su contrario: los deja
+     * los tres limpios y quita la fecha. Un «no validado» con discrepancias viejas colgando sería
+     * peor que cualquiera de los dos estados.
+     */
+    public function olvidarVeredicto(): self
+    {
+        $this->estadoValidacion = ValidacionIdentificacionEnum::NO_VALIDADO;
+        $this->discrepancias = [];
+        $this->notasValidacion = [];
+        $this->validadoEn = null;
+
+        return $this;
+    }
+
     /** @return array<string, mixed>|null */
     public function getDatosLeidos(): ?array { return $this->datosLeidos; }
 

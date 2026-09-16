@@ -10068,6 +10068,46 @@ dejar elegir contra qué país se coteja, que es una decisión del expediente.
 —un documento que falla de una forma que no se registra— giraría para siempre **gastando dinero en
 cada vuelta**. Se para cuando una pasada no lee nada, y a las 20 vueltas.
 
+#### «Lo he mirado y está bien», y por qué no es sólo un estado más
+
+`POST /cotizacion/user/etickets/{id}/aceptar`.
+
+Sin esto un observado se queda **en ámbar para siempre**: el control puede tener razón en lo que
+señala y aun así no haber nada que corregir —el trámite trae un segundo nombre que al manifiesto le
+falta, o la referencia era el manifiesto y el equivocado era él—. La única salida era volver a subir
+el mismo PDF para forzar una relectura, que no arregla nada y cuesta dinero. Es el espejo de
+`DocumentosSueltosController::confirmar()`, que existe por lo mismo.
+
+🔥 **Y aquí choca con «re-juzgar siempre», que es lo que mantiene vivos los veredictos.** Aplicado a
+ciegas, el re-juicio borraría el sello en el clic siguiente y el botón no serviría de nada;
+conservarlo pase lo que pase es peor, porque taparía un problema nuevo con la revisión de uno viejo.
+
+La regla que resuelve las dos: **el sello sobrevive mientras el desajuste sea exactamente el mismo.**
+Lo que alguien aceptó fue *ese* desacuerdo; si las discrepancias cambian, se reabre solo. Y si cambia
+el dueño del archivo o el fichero, el listener lo resetea entero.
+
+⚠️ **No se borra el motivo al aceptar.** Las discrepancias se quedan escritas y se añade «revisado y
+aceptado por X»: un observado cerrado sin rastro es indistinguible de uno que nunca saltó, y quien lo
+mire después no sabría si se revisó o si el control nunca llegó.
+
+#### 🔥 Reasignar un archivo arrastraba el veredicto de otra persona
+
+`EscaneoNuevoInvalidaVeredictoListener` sólo tocaba `CotizacionPasajeroIdentificacion`. Con el
+veredicto viviendo también en el archivo aparecieron dos formas de que dijera algo falso sin que nada
+lo tocara:
+
+| Qué pasa | Qué se leía |
+|---|---|
+| El archivo se **reasigna** a otra persona | el veredicto viaja con él: la fila de Pedro enseña «pasaporte: doc X ≠ esperado Y» calculado contra Juan |
+| Se **reemplaza el fichero** por PATCH | la lectura cacheada sigue siendo la del documento viejo: un billete cambiado por el PDF bueno se re-juzga eternamente como billete |
+
+⚠️ **La guarda es lo delicado, y por eso es pública y tiene test propio.** El control escribe
+`datosLeidos` y hace `flush()` en el acto —una lectura es dinero gastado y no puede esperar al
+final—, así que `invalidaLoGuardado()` **corre en el mismo `flush` que guarda la lectura**. Un `true`
+de más borraría lo que se acaba de pagar, en el acto y sin rastro. Sólo `pasajero` e `imageName`
+invalidan; `updatedAt` no, porque se mueve por cualquier cosa —incluida la propia escritura de la
+lectura— y usarlo sería morderse la cola.
+
 ### Dónde vive el veredicto (y por qué no donde el de identidad)
 
 El de un DNI o un pasaporte vive en `CotizacionPasajeroIdentificacion`, **al lado del número que
