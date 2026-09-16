@@ -1007,12 +1007,23 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
-    const revalidarPasajero = async (pasajeroId: string): Promise<VeredictoDeDocumento[] | null> => {
+    /**
+     * ⚠️ Devuelve **las dos familias**: las identificaciones (DNI, pasaporte) y los archivos con
+     * veredicto propio (el E-Ticket). «Reprocesar» no tocaba el trámite y, desde que su estado sale
+     * en la misma tarjeta, eso se leía como que el botón no hacía nada.
+     */
+    const revalidarPasajero = async (
+        pasajeroId: string,
+    ): Promise<{ identificaciones: VeredictoDeDocumento[]; archivos: VeredictoDeArchivo[] } | null> => {
         error.value = null;
         try {
             const { data } = await apiClient.post(
                 `/cotizacion/user/manifiesto/pasajero/${pasajeroId}/revalidar`, {});
-            return (data?.identificaciones ?? []) as VeredictoDeDocumento[];
+
+            return {
+                identificaciones: (data?.identificaciones ?? []) as VeredictoDeDocumento[],
+                archivos: (data?.archivos ?? []) as VeredictoDeArchivo[],
+            };
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'No se pudo reprocesar a esa persona.');
             return null;

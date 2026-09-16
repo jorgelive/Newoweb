@@ -8,7 +8,9 @@ use App\Cotizacion\Documento\Candidato;
 use App\Cotizacion\Documento\GiradorDeEscaneo;
 use App\Cotizacion\Documento\ResolutorDeDocumentoSuelto;
 use App\Cotizacion\Documento\ValidadorDeManifiesto;
+use App\Cotizacion\Documento\Discrepancia;
 use App\Cotizacion\Documento\ValidadorDeDocumento;
+use App\Cotizacion\Documento\ValidadorDeEticket;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
@@ -112,16 +114,82 @@ final class DocumentosSueltosController extends AbstractController
         methods: ['POST'],
     )]
     #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para validar documentos.')]
-    public function revalidar(string $id, EntityManagerInterface $em, ValidadorDeManifiesto $validador): Response
-    {
+    public function revalidar(
+        string $id,
+        EntityManagerInterface $em,
+        ValidadorDeManifiesto $validador,
+        ValidadorDeEticket $eticket,
+    ): Response {
         $pasajero = $em->getRepository(CotizacionFilepasajero::class)->find(Uuid::fromString($id));
         if ($pasajero === null) {
             return new JsonResponse(['error' => 'No encontré a esa persona.'], Response::HTTP_NOT_FOUND);
         }
 
         $conteo = $validador->validarPasajero($pasajero);
+        $archivos = $this->rejuzgarSusArchivos($pasajero, $eticket, $em);
 
-        return new JsonResponse(['conteo' => $conteo, 'identificaciones' => self::veredictosDe($pasajero)]);
+        return new JsonResponse([
+            'conteo' => $conteo,
+            'identificaciones' => self::veredictosDe($pasajero),
+            'archivos' => $archivos,
+        ]);
+    }
+
+    /**
+     * Vuelve a juzgar los documentos de esta persona cuyo veredicto vive en el ARCHIVO.
+     *
+     * 🔥 **«Reprocesar» no tocaba el E-Ticket, y eso engañaba.** `ValidadorDeManifiesto::validarPasajero()`
+     * recorre `getIdentificaciones()` —DNI y pasaporte— y el trámite migratorio no tiene fila ahí.
+     * Desde que su veredicto sale en la misma tarjeta, pulsar «Reprocesar» y ver que esa línea no se
+     * mueve hace pensar que el botón está roto.
+     *
+     * ⚠️ **Sólo se re-juzga lo YA LEÍDO: este botón no paga.** Es lo que promete su propio nombre y
+     * su cabecera —«no relee el documento, así que cuesta cero»—, y lo que lo hace pulsable las
+     * veces que haga falta tras corregir un dato. Lo que nunca se leyó lo lee la tanda, que avisa de
+     * lo que va a costar.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function rejuzgarSusArchivos(
+        CotizacionFilepasajero $pasajero,
+        ValidadorDeEticket $eticket,
+        EntityManagerInterface $em,
+    ): array {
+        $file = $pasajero->getFile();
+        $pais = $file?->getPaisDeControl();
+
+        // Sin expediente no hay trámite que comprobar, y sin trámite tampoco. El guarda estrecha las
+        // dos cosas de una vez, así que abajo ya no hace falta `?->`.
+        if ($file === null || $pais === null) {
+            return [];
+        }
+
+        $filas = [];
+        $id = (string) $pasajero->getId();
+
+        foreach ($file->getFilearchivos() as $archivo) {
+            if ($archivo->getDatosLeidos() === null || (string) $archivo->getPasajero()?->getId() !== $id) {
+                continue;
+            }
+
+            $cotejo = $eticket->validar($archivo, $pais);
+
+            if ($cotejo === null) {
+                continue;
+            }
+
+            $archivo->registrarValidacion(
+                $cotejo->estado,
+                array_map(static fn (Discrepancia $d): array => $d->aJson(), $cotejo->discrepancias),
+                $cotejo->notas,
+            );
+
+            $filas[] = EticketsController::veredictoDe($archivo);
+        }
+
+        $em->flush();
+
+        return $filas;
     }
 
     /**

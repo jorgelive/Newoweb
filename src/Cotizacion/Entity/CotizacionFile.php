@@ -21,6 +21,7 @@ use App\Cotizacion\ApiPlatform\State\CotizacionFileItemProvider;
 use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
 use App\Cotizacion\ApiPlatform\Filter\CotizacionFileNombreFilter;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
+use App\Cotizacion\Enum\PaisDeControlEnum;
 use App\Cotizacion\Enum\FileEstadoEnum;
 use App\Cotizacion\Enum\FileModoEnum;
 use App\Entity\Maestro\MaestroContacto;
@@ -719,6 +720,23 @@ class CotizacionFile
     ])]
     #[ORM\Column(type: 'json')]
     private array $documentosPedidos = self::DOCUMENTOS_PEDIDOS_POR_DEFECTO;
+
+    /**
+     * Qué trámite migratorio exige este expediente, si alguno.
+     *
+     * ⚠️ **Vive aquí porque lo preguntan dos controladores** —el que valida en tanda y el que
+     * reprocesa a una persona— y es una decisión del expediente, no del cliente: dejar que llegue
+     * en la petición sería dejar elegir contra qué país se coteja.
+     *
+     * Hoy la relación es una y directa: si se pide el E-Ticket, el país es República Dominicana. El
+     * día que haya dos trámites, crece aquí y nadie más se entera.
+     */
+    public function getPaisDeControl(): ?PaisDeControlEnum
+    {
+        return in_array(ArchivoTipoEnum::ETICKET->value, $this->documentosPedidos, true)
+            ? PaisDeControlEnum::REPUBLICA_DOMINICANA
+            : null;
+    }
 
     /**
      * @return list<string>

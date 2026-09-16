@@ -2643,13 +2643,16 @@ const revalidando = ref<string | null>(null);
  */
 const revalidarPax = async (pax: ApiCotizacionFilepasajero) => {
     revalidando.value = String(pax.id);
-    const veredictos = await fileStore.revalidarPasajero(String(extractIdStr(pax.id ?? pax['@id'])));
+    const resultado = await fileStore.revalidarPasajero(String(extractIdStr(pax.id ?? pax['@id'])));
     revalidando.value = null;
 
-    if (!veredictos) { alert(fileStore.error || 'No se pudo reprocesar.'); return; }
+    if (!resultado) { alert(fileStore.error || 'No se pudo reprocesar.'); return; }
 
     // ⚠️ Tenía el mismo problema que confirmar: reprocesar a UNA persona se traía las 132.
-    await aplicarVeredictos(pax, veredictos);
+    await aplicarVeredictos(pax, resultado.identificaciones);
+    // Y el E-Ticket, cuyo veredicto vive en el archivo: sin esto el botón parecía no hacer nada
+    // sobre la línea que ahora sale en la misma tarjeta.
+    aplicarVeredictosDeArchivo(resultado.archivos);
 };
 
 /**
@@ -3669,8 +3672,12 @@ const eliminarDocumento = async (iri?: string) => {
 
   if (!pax) return;
 
-  const veredictos = await fileStore.revalidarPasajero(String(extractIdStr(pax.id ?? pax['@id'])));
-  if (veredictos) await aplicarVeredictos(pax, veredictos);
+  const resultado = await fileStore.revalidarPasajero(String(extractIdStr(pax.id ?? pax['@id'])));
+
+  if (!resultado) return;
+
+  await aplicarVeredictos(pax, resultado.identificaciones);
+  aplicarVeredictosDeArchivo(resultado.archivos);
 };
 </script>
 

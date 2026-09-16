@@ -102,7 +102,7 @@ final class EticketsController extends AbstractController
             return new JsonResponse(['error' => 'No encontré ese expediente.'], Response::HTTP_NOT_FOUND);
         }
 
-        $pais = $this->paisDe($file);
+        $pais = $file->getPaisDeControl();
 
         if ($pais === null) {
             return new JsonResponse(
@@ -225,28 +225,17 @@ final class EticketsController extends AbstractController
     }
 
     /**
-     * Qué trámite pide este expediente. **No viene del cliente.**
-     *
-     * ⚠️ Dejar que lo mande el front sería dejarle elegir contra qué país se coteja, que es una
-     * decisión del expediente: lo dice `documentosPedidos`. Hoy la relación es una y directa; el día
-     * que haya dos trámites, esto crece aquí y el front no se entera.
-     */
-    private function paisDe(CotizacionFile $file): ?PaisDeControlEnum
-    {
-        return in_array(ArchivoTipoEnum::ETICKET->value, $file->getDocumentosPedidos(), true)
-            ? PaisDeControlEnum::REPUBLICA_DOMINICANA
-            : null;
-    }
-
-    /**
      * Lo justo para repintar una tarjeta: ~300 bytes contra los 10,8 KB que pesa un pasajero entero.
      *
      * ⚠️ Va `lecturaError` aunque no sea un veredicto: es la diferencia entre «no ha mandado nada» y
      * «mandó algo que no se puede abrir», y sin él la segunda se lee como la primera.
      *
+     * ⚠️ **Pública porque «Reprocesar» devuelve lo mismo.** Dos formas distintas para el mismo
+     * veredicto obligarían al front a parchear de dos maneras, y una de las dos envejecería.
+     *
      * @return array<string, mixed>
      */
-    private static function veredictoDe(CotizacionFilearchivo $archivo): array
+    public static function veredictoDe(CotizacionFilearchivo $archivo): array
     {
         return [
             'id' => (string) $archivo->getId(),

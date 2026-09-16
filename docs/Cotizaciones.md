@@ -10402,6 +10402,33 @@ para siempre.
 servidor con `tieneEscaneo` (`validadoCon !== null`), no una deducción del front. Firmar un documento
 que nadie ha subido sí sería malo, y es justo lo que esa condición sigue impidiendo.
 
+#### 🔥 «Reprocesar» no tocaba el E-Ticket
+
+`ValidadorDeManifiesto::validarPasajero()` recorre `getIdentificaciones()` —DNI y pasaporte— y el
+trámite migratorio no tiene fila ahí. Mientras su veredicto no se veía, daba igual; desde que sale en
+la misma tarjeta, pulsar «Reprocesar» y ver que esa línea no se mueve se lee como que el botón está
+roto.
+
+Ahora `revalidar` devuelve **las dos familias** —`identificaciones` y `archivos`— y el front parchea
+las dos.
+
+⚠️ **Sólo re-juzga lo YA LEÍDO: este botón no paga.** Es lo que promete su nombre y su cabecera —«no
+relee el documento, así que cuesta cero»— y lo que lo hace pulsable las veces que haga falta tras
+corregir un dato. Lo que nunca se leyó lo lee la tanda, que sí avisa de lo que va a costar.
+
+⚠️ Y `EticketsController::veredictoDe()` pasó a **pública**: dos formas distintas para el mismo
+veredicto obligarían al front a parchear de dos maneras, y una de las dos envejecería.
+
+⚠️ **El país se movió a `CotizacionFile::getPaisDeControl()`**, que es donde lo preguntan los dos
+controladores. Era una copia privada en cada uno.
+
+##### ⚠️ Y me comí el aviso de `CLAUDE.md` al hacerlo
+
+Inserté `getPaisDeControl()` **entre el docblock y `getDocumentosPedidos()`** y le robé su
+`@return list<string>`. Es literalmente el caso que documenta `CLAUDE.md` —«insertar un método justo
+antes de otro es la forma más fácil de robarle sus atributos al de abajo»—. Lo cazó PHPStan al
+instante; a ojo no se ve.
+
 #### 🔥 Se podía FILTRAR el E-Ticket observado y no LEER la observación
 
 Las pastillas de la tarjeta recorren `identificaciones`, que es donde vive el veredicto de un DNI o
