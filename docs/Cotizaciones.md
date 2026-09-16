@@ -1843,6 +1843,9 @@ el orden con sentido lo pone quien pinta, que ya tiene el índice de nombres mon
 | Cambiar contra qué vuelo se coteja un trámite | `CruceDeFrontera` | puro y con test: entrada = primer destino del país, salida = primer origen **tras** entrar |
 | Cambiar qué se le pregunta al modelo de un E-Ticket | `LectorDeEticket` | `INSTRUCCION` + `ESQUEMA`. ⚠️ **sin `additionalProperties`**: Google AI rechaza la llamada entera |
 | Cambiar cuándo un E-Ticket queda observado | `CotejoDeEticket` | puro, sin dependencias |
+| Cambiar contra qué identidad se coteja | `ReferenciaDeIdentidad` | el **escaneo** manda; el manifiesto es el último recurso y se marca como no fiable |
+| Afinar la detección de dedazos en el nombre | `CotejoDeNombre` | `toleranciaPara()`. ⚠️ subirla acusa a los nombres cortos |
+| Cambiar cómo se normaliza un nombre | `PalabrasDelNombre` | **una sola definición**, la usan `Cotejo` y `CotejoDeNombre` |
 | Guardar el veredicto de un documento que NO es de identidad | `CotizacionFilearchivo` | `registrarValidacion()` — **no** hay setters sueltos, y el de identidad sigue en `CotizacionPasajeroIdentificacion` |
 | Cambiar las columnas de la hoja de control | `ReporteDeDocumentos` | `cabeceras()` + `dondeEmpiezanLasObservaciones()`. ⚠️ las posiciones **no** se cuentan desde el final: hay dos bloques de ancho variable |
 | Cambiar a qué columna va una observación | `ReporteDeDocumentos` | `observacionesPorTipo()` — manda `validadoCon`, con respaldo a `paraValidar()` |
@@ -9860,6 +9863,78 @@ php bin/console app:cotizacion:validar-etickets 5SRAJV --solo-leidos   # gratis:
 
 `--solo-leidos` es la pasada barata de después de tocar una regla: no llama al modelo y dice qué
 cambia. Es el motivo de que leer e interpretar estén separados.
+
+### 🔥 El manifiesto NO es la verdad: se coteja contra el ESCANEO (16/09/2026)
+
+**La corrección de fondo, y vino de quien opera:** «damos mucho valor a los datos del manifiesto
+cuando ésa es la fuente de errores, porque se hicieron a mano en la mayoría de casos; el dato del
+OCR resulta más fiable».
+
+Hay **tres** fuentes del nombre y del pasaporte, y **dos están tecleadas a mano**:
+
+| Fuente | Cómo se produjo | Fiable |
+|---|---|---|
+| El escaneo del pasaporte con MRZ | el documento real, con dígitos de control | **sí** |
+| El escaneo sin MRZ | lo leyó un modelo | a medias |
+| El manifiesto | tecleado a mano al cargar el padrón | no |
+| El E-Ticket | tecleado a mano por el pasajero | no |
+
+Cotejar el E-Ticket contra el manifiesto es **comparar dos transcripciones entre sí**: se sabe que
+discrepan, no quién tiene razón. Y falla hacia el lado peor. Medido sobre los ocho primeros
+documentos reales, **dos de ocho** habrían salido acusados injustamente:
+
+```
+manifiesto : Matheo Gamarra Zanabria            ← al MANIFIESTO le falta un nombre
+pasaporte  : MATHEO ANTONIO GAMARRA ZANABRIA    [MRZ sí]
+e-ticket   : MATHEO ANTONIO GAMARRA ZANABRIA    ← el correcto, y sería el acusado
+
+manifiesto : Santiago Ariel Gomez Acuña
+e-ticket   : SANTIAGO ARIEL GOMEZ ACUNA         ← sin eñe, y no es un error
+```
+
+Por eso `ReferenciaDeIdentidad` toma **el escaneo del pasaporte** cuando lo hay y el manifiesto sólo
+como último recurso. No cuesta ni una llamada más: esa lectura ya está guardada en `datosLeidos`.
+
+⚠️ **Y guarda de DÓNDE viene, que es la mitad del valor.** «`Ascarsa` ≠ `Ascarza` según el escaneo de
+su pasaporte» manda a corregir el trámite; la misma frase «según el manifiesto» no manda nada,
+porque el manifiesto puede ser el equivocado. Un aviso que no dice a quién creer se ignora. Cuando la
+referencia no es fiable, el cotejo lo escribe en las notas.
+
+#### El nombre: cazar el dedazo sin acusar al inocente
+
+**Lo que de verdad se teclea mal es el nombre**, y hasta ahora había que avisar a mano: un `Ascarsa`
+por `Ascarza`, un `juaquin` por `joaquin`. En el mostrador de Migración, un nombre que no es el del
+pasaporte es un problema.
+
+⚠️ **`Cotejo::mismaPersona()` no sirve aquí** y es importante ver por qué: pregunta «¿comparten
+alguna palabra?», que es lo correcto para decidir si dos fichas son de la misma persona. `JOAQUIN
+ASCARSA` y `JOAQUIN ASCARZA` comparten `JOAQUIN` y pasan. La pregunta aquí es otra —ya se sabe de
+quién es el trámite— y es si lo escribieron mal.
+
+`CotejoDeNombre` compara conjuntos de palabras normalizadas y reparte en tres:
+
+```
+palabra del trámite que NO está en la referencia
+  ├── se parece a una de la referencia   →  DEDAZO, se acusa
+  └── no se parece a ninguna             →  nota, no se acusa
+palabra de la referencia que falta       →  nota, no se acusa
+```
+
+🔑 **Sólo se acusa del parecido.** Un nombre de más o de menos tiene mil explicaciones inocentes
+—el formulario corta, el segundo nombre no se usa, el apellido de casada— y acusar de eso llenaría la
+hoja de ruido hasta que nadie la mirase. Una palabra que se parece **y no es igual** es casi siempre
+un dedazo: `ASCARSA` está a un cambio de `ASCARZA` y a doce de cualquier otra cosa.
+
+⚠️ **La tolerancia crece con la longitud, y lo cazó su propio test.** La primera versión dividía la
+longitud entre tres y emparejaba `ANA` con `ANO`: sobre tres letras un cambio es un tercio de la
+palabra; sobre siete, un dedo que resbaló. Queda: menos de 4 letras exige igualdad, hasta 6 admite un
+cambio, de 7 en adelante dos.
+
+⚠️ **La eñe y las tildes no llegan a la comparación**: `PalabrasDelNombre` translitera. El formulario
+dominicano no admite la eñe, así que `ACUNA` frente a `ACUÑA` es lo normal y no un error — sin eso,
+medio grupo peruano saldría acusado. Esa normalización **se extrajo de `Cotejo`, no se reescribió**:
+dos normalizaciones de nombre que tienen que decir lo mismo acaban discrepando, y en este módulo ya
+pasó con la pareja escaneo↔número.
 
 ### Dónde vive el veredicto (y por qué no donde el de identidad)
 

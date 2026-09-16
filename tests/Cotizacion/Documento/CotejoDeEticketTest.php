@@ -7,6 +7,7 @@ namespace App\Tests\Cotizacion\Documento;
 use App\Cotizacion\Documento\CotejoDeEticket;
 use App\Cotizacion\Documento\CruceDeFrontera;
 use App\Cotizacion\Documento\DatosDeEticket;
+use App\Cotizacion\Documento\ReferenciaDeIdentidad;
 use App\Cotizacion\Entity\CotizacionVuelo;
 use App\Cotizacion\Enum\PaisDeControlEnum;
 use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
@@ -32,6 +33,12 @@ final class CotejoDeEticketTest extends TestCase
         ], PaisDeControlEnum::REPUBLICA_DOMINICANA);
     }
 
+    /** Lo normal: hay escaneo del pasaporte y es lo que manda. */
+    private function identidad(string $pasaporte = 'P1234567', string $nombre = 'DAMARIS LUCIANA PAZ RAMOS'): ReferenciaDeIdentidad
+    {
+        return ReferenciaDeIdentidad::delManifiesto($pasaporte, $nombre);
+    }
+
     private function bueno(): DatosDeEticket
     {
         return new DatosDeEticket(
@@ -44,7 +51,7 @@ final class CotejoDeEticketTest extends TestCase
 
     public function testUnTramiteCorrectoNoTieneNadaQueObjetar(): void
     {
-        $c = CotejoDeEticket::de($this->bueno(), $this->cruce(), 'P1234567');
+        $c = CotejoDeEticket::de($this->bueno(), $this->cruce(), $this->identidad());
 
         self::assertSame(ValidacionIdentificacionEnum::VALIDADO_OCR, $c->estado);
         self::assertSame([], $c->discrepancias);
@@ -59,7 +66,7 @@ final class CotejoDeEticketTest extends TestCase
             traeEntrada: true, traeSalida: true,
         );
 
-        $c = CotejoDeEticket::de($leido, $this->cruce(), 'P1234567');
+        $c = CotejoDeEticket::de($leido, $this->cruce(), $this->identidad());
 
         self::assertSame(ValidacionIdentificacionEnum::OBSERVADO, $c->estado);
         self::assertSame('vuelo de entrada', $c->discrepancias[0]->campo);
@@ -85,7 +92,7 @@ final class CotejoDeEticketTest extends TestCase
             traeEntrada: true, traeSalida: true,
         );
 
-        $c = CotejoDeEticket::de($leido, $cruce, null);
+        $c = CotejoDeEticket::de($leido, $cruce, ReferenciaDeIdentidad::vacia());
 
         self::assertSame([], $c->discrepancias, $c->resumen());
     }
@@ -99,7 +106,7 @@ final class CotejoDeEticketTest extends TestCase
             avisos: ['sólo trae la ENTRADA: falta rellenar la salida'],
         );
 
-        $c = CotejoDeEticket::de($leido, $this->cruce(), null);
+        $c = CotejoDeEticket::de($leido, $this->cruce(), ReferenciaDeIdentidad::vacia());
 
         self::assertSame(ValidacionIdentificacionEnum::OBSERVADO, $c->estado);
         self::assertContains('sólo trae la ENTRADA: falta rellenar la salida', $c->notas);
@@ -107,7 +114,7 @@ final class CotejoDeEticketTest extends TestCase
 
     public function testElPasaporteDeOtroSale(): void
     {
-        $c = CotejoDeEticket::de($this->bueno(), $this->cruce(), 'P9999999');
+        $c = CotejoDeEticket::de($this->bueno(), $this->cruce(), $this->identidad('P9999999'));
 
         self::assertSame('pasaporte', $c->discrepancias[0]->campo);
     }
@@ -126,7 +133,7 @@ final class CotejoDeEticketTest extends TestCase
             traeEntrada: true, traeSalida: true,
         );
 
-        self::assertSame([], CotejoDeEticket::de($leido, $cruce, null)->discrepancias);
+        self::assertSame([], CotejoDeEticket::de($leido, $cruce, ReferenciaDeIdentidad::vacia())->discrepancias);
     }
 
     /** ⚠️ Sin subgrupo aéreo NO se acusa: se dice que no se puede comprobar, y por qué. */
@@ -134,7 +141,7 @@ final class CotejoDeEticketTest extends TestCase
     {
         $sinCruce = CruceDeFrontera::de([], PaisDeControlEnum::REPUBLICA_DOMINICANA);
 
-        $c = CotejoDeEticket::de($this->bueno(), $sinCruce, 'P1234567');
+        $c = CotejoDeEticket::de($this->bueno(), $sinCruce, $this->identidad());
 
         self::assertSame(ValidacionIdentificacionEnum::NO_VALIDADO, $c->estado);
         self::assertSame([], $c->discrepancias);
@@ -149,6 +156,53 @@ final class CotejoDeEticketTest extends TestCase
             traeEntrada: true, traeSalida: true,
         );
 
-        self::assertSame([], CotejoDeEticket::de($leido, $this->cruce(), 'P1234567')->discrepancias);
+        self::assertSame([], CotejoDeEticket::de($leido, $this->cruce(), $this->identidad())->discrepancias);
+    }
+
+    /**
+     * 🔥 El nombre mal tecleado, que es lo que de verdad pasa y no lo cazaba nada.
+     *
+     * Caso real: hubo que avisar a mano de un `Ascarsa` por `Ascarza`.
+     */
+    public function testUnDedazoEnElNombreSeAcusa(): void
+    {
+        $leido = new DatosDeEticket(
+            pasaporte: 'P1234567', nombres: 'JOAQUIN ASCARSA VIVANCO',
+            fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'CM177',
+            fechaSalida: new \DateTimeImmutable('2026-09-22'), vueloSalida: 'CM749',
+            traeEntrada: true, traeSalida: true,
+        );
+
+        $c = CotejoDeEticket::de($leido, $this->cruce(), $this->identidad('P1234567', 'JOAQUIN ASCARZA VIVANCO'));
+
+        self::assertSame('nombre', $c->discrepancias[0]->campo);
+        self::assertSame('ASCARSA (debería ser ASCARZA)', $c->discrepancias[0]->documento);
+    }
+
+    /**
+     * ⚠️ Y el caso REAL que obligó a cambiar contra qué se coteja: al manifiesto le faltaba un
+     * nombre y el trámite lo traía bien. Contra el manifiesto, el bueno salía acusado.
+     */
+    public function testUnNombreQueElManifiestoNoTraeNoSeAcusa(): void
+    {
+        $leido = new DatosDeEticket(
+            pasaporte: 'P1234567', nombres: 'MATHEO ANTONIO GAMARRA ZANABRIA',
+            fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'CM177',
+            fechaSalida: new \DateTimeImmutable('2026-09-22'), vueloSalida: 'CM749',
+            traeEntrada: true, traeSalida: true,
+        );
+
+        $c = CotejoDeEticket::de($leido, $this->cruce(), $this->identidad('P1234567', 'MATHEO GAMARRA ZANABRIA'));
+
+        self::assertSame([], $c->discrepancias);
+        self::assertNotSame([], $c->notas, 'Que conste en las notas, sin acusar.');
+    }
+
+    /** ⚠️ Cuando la referencia también es de fiar a medias, se dice contra qué se comparó. */
+    public function testSeDiceCuandoLaReferenciaEsElManifiesto(): void
+    {
+        $c = CotejoDeEticket::de($this->bueno(), $this->cruce(), $this->identidad('P9999999'));
+
+        self::assertStringContainsString('el manifiesto (tecleado a mano)', implode(' ', $c->notas));
     }
 }

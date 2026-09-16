@@ -9,6 +9,7 @@ use App\Cotizacion\Entity\CotizacionFilepasajero;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
 use App\Cotizacion\Enum\GrupoTipoEnum;
 use App\Cotizacion\Enum\PaisDeControlEnum;
+use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionVuelo;
 use App\Enum\DocumentoTipoEnum;
 use Throwable;
@@ -39,6 +40,7 @@ final readonly class ValidadorDeEticket
 {
     public function __construct(
         private LectorDeEticket $lector,
+        private ValidadorDeDocumento $identidad,
         private StorageInterface $almacen,
     ) {}
 
@@ -114,8 +116,68 @@ final readonly class ValidadorDeEticket
         return CotejoDeEticket::de(
             $leido,
             CruceDeFrontera::de($this->vuelosDe($pasajero), $pais),
-            $this->pasaporteDe($pasajero),
+            $this->identidadDe($archivo->getFile(), $pasajero),
         );
+    }
+
+    /**
+     * Contra qué identidad se coteja: **el escaneo de su pasaporte antes que el manifiesto**.
+     *
+     * 🔑 El manifiesto está tecleado a mano y el E-Ticket también. El escaneo con MRZ es la única
+     * fuente que no tecleó nadie, y ya está leída y guardada: no cuesta ni una llamada más. El
+     * porqué completo, con los dos casos reales que lo destaparon, en {@see ReferenciaDeIdentidad}.
+     */
+    private function identidadDe(?CotizacionFile $file, CotizacionFilepasajero $pasajero): ReferenciaDeIdentidad
+    {
+        $escaneo = $this->escaneoDelPasaporte($file, $pasajero);
+
+        if ($escaneo !== null) {
+            $leido = $this->identidad->lecturaDe($escaneo);
+
+            if ($leido !== null && $leido->esUtilizable()) {
+                return ReferenciaDeIdentidad::delEscaneo($leido);
+            }
+        }
+
+        $numero = trim((string) $pasajero->identificacionDe(DocumentoTipoEnum::PASAPORTE)?->getNumero());
+        $nombre = trim($pasajero->getNombre().' '.$pasajero->getApellido());
+
+        if ($numero === '' && $nombre === '') {
+            return ReferenciaDeIdentidad::vacia();
+        }
+
+        return ReferenciaDeIdentidad::delManifiesto($numero === '' ? null : $numero, $nombre === '' ? null : $nombre);
+    }
+
+    /**
+     * ⚠️ Se coge el **más reciente**, no el primero: la vía del operador no reemplaza el escaneo
+     * anterior al subir otro, así que puede haber dos pasaportes de la misma persona y el bueno es
+     * el que se subió después.
+     */
+    private function escaneoDelPasaporte(?CotizacionFile $file, CotizacionFilepasajero $pasajero): ?CotizacionFilearchivo
+    {
+        if ($file === null) {
+            return null;
+        }
+
+        $id = (string) $pasajero->getId();
+        $mejor = null;
+
+        foreach ($file->getFilearchivos() as $archivo) {
+            if ($archivo->getTipoArchivo() !== ArchivoTipoEnum::PASAPORTE) {
+                continue;
+            }
+
+            if ((string) $archivo->getPasajero()?->getId() !== $id) {
+                continue;
+            }
+
+            if ($mejor === null || $archivo->getCreatedAt() > $mejor->getCreatedAt()) {
+                $mejor = $archivo;
+            }
+        }
+
+        return $mejor;
     }
 
     /**
@@ -148,10 +210,4 @@ final readonly class ValidadorDeEticket
         return array_values($vuelos);
     }
 
-    private function pasaporteDe(CotizacionFilepasajero $pasajero): ?string
-    {
-        $numero = trim((string) $pasajero->identificacionDe(DocumentoTipoEnum::PASAPORTE)?->getNumero());
-
-        return $numero === '' ? null : $numero;
-    }
 }

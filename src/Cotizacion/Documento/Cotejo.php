@@ -324,27 +324,13 @@ final readonly class Cotejo
     /**
      * Las palabras que distinguen, ya normalizadas.
      *
-     * 🔥 **Esto usaba `strtr()` con dos cadenas, que opera BYTE A BYTE.** Con nombres acentuados
-     * destrozaba la palabra sin dar error: `«José Pérez Núñez»` salía como `JOSO` y `REZ`. En este
-     * expediente estaba latente —los doce nombres con tilde compartían otras palabras— pero
-     * «José Pérez» a secas habría sacado un «el nombre no coincide» falso.
-     *
-     * `Transliterator` cubre cualquier alfabeto, no sólo la lista de acentos que uno recuerde.
+     * ⚠️ El cuerpo se mudó a {@see PalabrasDelNombre} al necesitarlo también el control del
+     * E-Ticket. Dos normalizaciones de nombre que tienen que decir lo mismo acaban discrepando.
      *
      * @return list<string>
      */
     private static function palabras(string $texto): array
     {
-        static $translit = null;
-        $translit ??= \Transliterator::create('Any-Latin; Latin-ASCII; Upper');
-
-        $limpio = $translit?->transliterate($texto) ?: mb_strtoupper($texto);
-        $soloLetras = (string) preg_replace('/[^A-Z ]/', ' ', $limpio);
-
-        // Las partículas no distinguen a nadie: «DE», «DEL» y «LA» aparecen en media lista.
-        return array_values(array_unique(array_diff(
-            array_filter(explode(' ', $soloLetras), static fn (string $p): bool => strlen($p) > 2),
-            ['DEL', 'LOS', 'LAS', 'VAN', 'VON'],
-        )));
+        return PalabrasDelNombre::de($texto);
     }
 }
