@@ -1229,6 +1229,30 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### Poner el hotel a habitaciones ya cargadas (15/09/2026)
+
+`app:cotizacion:hotel-habitaciones <localizador> "<hotel>" [--prefijo=HA] [--forzar] [--dry-run]`.
+
+Los expedientes anteriores tienen el `subeje` de habitación vacío, y en uno solo son **66
+habitaciones**: a mano es una tarde de teclear el mismo texto, que es una tarde de erratas.
+
+🔥 **Y no es cosmético: el hotel entra en la clave única** `(file, tipo, subeje, clave)`. Con el
+sufijo vacío, la `HA13` del hotel A y la `HA13` del hotel B **son la misma fila**.
+
+⚠️ **Por qué un comando y no una migración.** Esto es contenido de UN expediente, no evolución del
+esquema. Una migración corre a ciegas en cada entorno y una sola vez: en una base recién creada ese
+expediente no existe, y si el nombre del hotel estaba mal no hay forma de volver a pasarla.
+
+⚠️ **Por qué se filtra por PREFIJO de la clave.** No hay manera de deducir qué habitación es de qué
+hotel: el itinerario sabe qué hoteles tiene el viaje, pero no qué número de cuarto cae en cuál —eso
+lo sabe quien recibió el rooming list—. Los hoteles numeran por bloques (`HA01…HA66` en uno,
+`HP01…HP14` en otro), así que el prefijo es el corte natural. Sin `--prefijo` va a todas, que es lo
+correcto con un solo hotel.
+
+⚠️ **No pisa lo ya escrito.** Una habitación que ya tenga hotel se deja y se avisa; para cambiarla,
+`--forzar`. Sin ese guarda, lanzar el comando con el nombre del otro hotel se lleva por delante lo
+que alguien reparó a mano y no queda rastro de cuáles eran.
+
 #### El sufijo del subgrupo, también al EDITARLO (15/09/2026)
 
 El campo «tramo» —el `subeje`— ya estaba abierto a cualquier eje **en el alta**, con su argumento
