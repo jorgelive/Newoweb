@@ -10173,6 +10173,31 @@ que ya hacen los demás sitios que cuentan archivos por persona. El `extractIdSt
 para lo que ya es una cadena —un `@id`, un `id`—, y ése es justo el caso en el que no se nota que
 está mal.
 
+#### ¿Y si suben uno nuevo? Depende de por dónde
+
+Los dos caminos de subida se comportan distinto, y el control tiene que contarlo sabiéndolo:
+
+| | Al subir otro del mismo tipo | El nuevo se re-valida |
+|---|---|---|
+| **pax** | **borra el anterior** (`SubirDocumentoPasajeroController`: «la segunda foto es la buena») | sí: nace sin `datosLeidos` ni veredicto |
+| **util** (POST) | crea otro y **deja el viejo**, a propósito | sí, pero el viejo conserva su veredicto |
+| **util** (PATCH del fichero) | reemplaza el fichero del mismo archivo | sí: el listener tira lectura y veredicto |
+
+Que por la vía del operador se acumulen dos **es deliberado** —la hoja de control existe, entre
+otras cosas, para que eso se vea—. Lo que no puede pasar es que el contador los sume los dos:
+
+🔥 **Quien acaba de corregir su E-Ticket seguiría sumando al «32 con observaciones»**, porque su
+archivo viejo sigue ahí marcado. El número no bajaría nunca y el botón acabaría ignorándose. Por eso
+el contador cuenta **sólo el vigente de cada persona**, igual que ya hace `ReporteDeDocumentos` con
+las observaciones.
+
+⚠️ **El veredicto viejo no se borra**: la fila sigue en la bóveda diciendo lo que decía. Lo que se
+decide es a quién se CUENTA, no qué se guarda.
+
+⚠️ Medido al escribir esto: 99 archivos de E-Ticket y 99 personas distintas, o sea **hoy no hay
+ninguno duplicado**. El arreglo es preventivo — que el caso no exista todavía es justamente cuando
+sale barato cerrarlo.
+
 #### La bóveda se filtra por tipo
 
 El buscador ya encontraba por tipo —y el placeholder lo prometía— pero sólo si sabes cómo se llama

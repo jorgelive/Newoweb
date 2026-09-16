@@ -2285,10 +2285,44 @@ const avanceEtickets = computed(() => {
     return total > 0 ? `Leyendo… ${e.hechos} de ${total}` : 'Leyendo…';
 });
 
-/** Cuántos trámites piden que alguien mire. Es el número que va al lado del botón. */
-const eticketsObservados = computed(() =>
-    (file.value?.filearchivos ?? [])
-        .filter(a => a.tipoArchivo === 'eticket' && a.estadoValidacion === 'observado').length);
+/**
+ * Cuántos trámites piden que alguien mire. Es el número que va al lado del botón.
+ *
+ * 🔥 **Sólo el VIGENTE de cada persona, y esto no es cosmético.** Los dos caminos de subida se
+ * comportan distinto y hay que contar sabiéndolo:
+ *
+ * | | Al subir otro del mismo tipo |
+ * |---|---|
+ * | **pax** | borra el anterior (`SubirDocumentoPasajeroController`): «la segunda foto es la buena» |
+ * | **util** | crea otro y **deja el viejo**, a propósito: que se acumulen dos es un dato que la hoja de control enseña |
+ *
+ * Así que por la vía del operador una persona puede tener el E-Ticket viejo —`observado`— y el
+ * nuevo ya corregido. Contando los dos, **quien acaba de arreglarlo sigue sumando al contador**: el
+ * número no bajaría nunca y el botón acabaría ignorándose.
+ *
+ * ⚠️ El veredicto viejo **no se borra**: la fila sigue en la bóveda con lo que decía. Lo que se
+ * decide aquí es sólo a quién se cuenta, que es lo mismo que ya hace `ReporteDeDocumentos`.
+ */
+const eticketsObservados = computed(() => {
+    const vigente = new Map<string, ApiCotizacionFilearchivo>();
+
+    for (const a of file.value?.filearchivos ?? []) {
+        if (a.tipoArchivo !== 'eticket') continue;
+
+        const duenio = claveDeRelacion(a.pasajero);
+        if (!duenio) continue;
+
+        const previo = vigente.get(duenio);
+
+        // Sin `createdAt` no se puede decidir cuál es el nuevo: se queda el que ya estaba, que al
+        // menos es estable entre repintados.
+        if (!previo || String(a.createdAt ?? '') > String(previo.createdAt ?? '')) {
+            vigente.set(duenio, a);
+        }
+    }
+
+    return [...vigente.values()].filter(a => a.estadoValidacion === 'observado').length;
+});
 
 /* ══ QUÉ FALTA, Y DE QUÉ ══════════════════════════════════════════════════
    🔥 **«38 por revisar» no dice qué cuenta.** Ni qué documento es, ni —lo que más confunde— si
