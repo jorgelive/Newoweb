@@ -87,6 +87,20 @@ final class CotizacionRenumerarHabitacionesCommand extends Command
             return Command::FAILURE;
         }
 
+        // ⚠️ «Ya está en su bloque» se decide con `str_starts_with`, así que con `--alumnos=H` y
+        // `--adultos=HP` **todas** las HP contarían como colocadas en el bloque de alumnos y el
+        // comando diría «nada que mover». Es error de uso, pero es un error que se lee como éxito.
+        if (str_starts_with($alumnos, $adultos) || str_starts_with($adultos, $alumnos)) {
+            $io->error(sprintf(
+                'Un prefijo no puede ser el principio del otro («%s» y «%s»): no habría forma de '
+                .'saber a qué bloque pertenece una clave.',
+                $alumnos,
+                $adultos,
+            ));
+
+            return Command::FAILURE;
+        }
+
         $file = $this->em->getRepository(CotizacionFile::class)
             ->findOneBy(['localizador' => (string) $input->getArgument('localizador')]);
 
@@ -118,9 +132,9 @@ final class CotizacionRenumerarHabitacionesCommand extends Command
 
         foreach ($habitaciones as $grupo) {
             $clave = mb_strtoupper((string) $grupo->getClave());
-            $destino = $this->soloParticipantes($grupo) ? $alumnos : $adultos;
+            $destino = $this->bloqueDe($grupo, $alumnos, $adultos);
 
-            if (str_starts_with($clave, $destino)) {
+            if ($destino === null || str_starts_with($clave, $destino)) {
                 continue;
             }
 
@@ -155,22 +169,43 @@ final class CotizacionRenumerarHabitacionesCommand extends Command
     }
 
     /**
-     * ⚠️ Una habitación **sin ocupantes** no es «sólo participantes»: es un cuarto vacío, y
-     * mandarlo al bloque de alumnos sería inventarse a quién pertenece. Se queda donde está.
+     * A qué bloque pertenece este cuarto, o `null` si el cuarto no lo dice.
+     *
+     * ⚠️ **Hay tres respuestas, no dos**, y la tercera es la que faltaba. Antes se preguntaba «¿son
+     * todos participantes?» y cualquier otra cosa contestaba «adultos» — incluido lo que en
+     * realidad no contesta nada:
+     *
+     * - un cuarto **sin ocupantes**, que no pertenece a nadie;
+     * - alguien con el rol **en blanco**, y en producción hay dos personas así;
+     * - un **`no_participa`**, que es alguien que se cayó del viaje y conserva su sitio.
+     *
+     * Una HA12 con dos alumnas y una tercera que se dio de baja se iba entera al bloque de padres
+     * sin que nadie lo pidiera, y en el `--dry-run` eso se lee como un movimiento legítimo: hay que
+     * fijarse en el «(no_participa)» del final de la línea para verlo. Ahora **decide quien puede
+     * decidir**: si hay un adulto, adultos; si no, si hay un participante, alumnos; y si no hay
+     * ninguno de los dos, el cuarto se queda donde está.
      */
-    private function soloParticipantes(CotizacionFileGrupo $grupo): bool
+    private function bloqueDe(CotizacionFileGrupo $grupo, string $alumnos, string $adultos): ?string
     {
-        $hay = false;
+        $hayParticipante = false;
 
         foreach ($grupo->getMiembros() as $miembro) {
-            $hay = true;
+            $tipo = $miembro->getPasajero()?->getTipo();
 
-            if ($miembro->getPasajero()?->getTipo() !== PasajeroTipoEnum::PARTICIPANTE) {
-                return false;
+            if ($tipo === PasajeroTipoEnum::PARTICIPANTE) {
+                $hayParticipante = true;
+                continue;
             }
+
+            // El rol en blanco y el `no_participa` no votan: no dicen «adulto», dicen «no consta».
+            if ($tipo === null || $tipo === PasajeroTipoEnum::NO_PARTICIPA) {
+                continue;
+            }
+
+            return $adultos;
         }
 
-        return $hay;
+        return $hayParticipante ? $alumnos : null;
     }
 
     /** @param array<string, true> $ocupadas */

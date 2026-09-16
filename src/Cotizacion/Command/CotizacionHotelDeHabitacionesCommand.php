@@ -99,27 +99,47 @@ final class CotizacionHotelDeHabitacionesCommand extends Command
         $tocadas = [];
         $yaTenian = [];
 
+        // ⚠️ El hotel entra en la clave única `(file, tipo, subeje, clave)`, así que ponérselo a una
+        // habitación puede EMPUJARLA encima de otra: si alguien reparó a mano la `HA13` de
+        // «Occidental Caribe» y hay otra `HA13` sin hotel, al rellenar la segunda las dos pasan a
+        // ser la misma fila. El `flush` lo caza —es ruidoso y atómico, no se pierde nada—, pero el
+        // `--dry-run` decía «serían 66» y no mencionaba el choque: el aviso llegaba DESPUÉS de
+        // decidir. Se calcula aquí, con lo que ya está en memoria, para que se vea antes.
+        /** @var array<string, string> $destinoOcupado */
+        $destinoOcupado = [];
+        $choques = [];
+
         foreach ($file->getGrupos() as $grupo) {
             if ($grupo->getTipo() !== GrupoTipoEnum::HABITACION) {
                 continue;
             }
 
             $clave = (string) $grupo->getClave();
-
-            if ($prefijo !== null && !str_starts_with(mb_strtoupper($clave), $prefijo)) {
-                continue;
-            }
-
             $actual = trim($grupo->getSubeje());
-
-            if ($actual === $hotel) {
-                continue;
-            }
+            $fuera = $prefijo !== null && !str_starts_with(mb_strtoupper($clave), $prefijo);
 
             // ⚠️ Lo que ya tiene hotel no se pisa por defecto. Si alguien reparó tres a mano y
             // luego se lanza esto con el nombre de otro hotel, sin este guarda se las lleva por
             // delante y no queda rastro de cuáles eran.
-            if ($actual !== '' && !$forzar) {
+            $intocable = $actual !== '' && !$forzar;
+            $cambia = !$fuera && !$intocable && $actual !== $hotel;
+            $final = $cambia ? $hotel : $actual;
+
+            // Cómo queda la clave única después de esta pasada. La colación no distingue mayúsculas,
+            // así que aquí tampoco: una «OCCIDENTAL CARIBE» escrita a mano choca igual.
+            $huella = mb_strtolower($clave).'|'.mb_strtolower($final);
+
+            if (isset($destinoOcupado[$huella])) {
+                $choques[] = [$clave, $destinoOcupado[$huella], $final === '' ? '—' : $final];
+            }
+
+            $destinoOcupado[$huella] = $clave;
+
+            if ($fuera || $actual === $hotel) {
+                continue;
+            }
+
+            if ($intocable) {
                 $yaTenian[] = [$clave, $actual];
                 continue;
             }
@@ -129,6 +149,17 @@ final class CotizacionHotelDeHabitacionesCommand extends Command
             if (!$simular) {
                 $grupo->setSubeje($hotel);
             }
+        }
+
+        // 🔥 Antes de escribir nada: dos habitaciones no pueden acabar con la misma clave en el
+        // mismo hotel. Se para en seco en vez de dejar que reviente el `flush`, porque el mensaje
+        // de la base de datos no dice cuál de las 66 era.
+        if ($choques !== []) {
+            $io->error(sprintf('%d habitación(es) acabarían pisando a otra. No se escribe nada:', count($choques)));
+            $io->table(['habitación', 'choca con', 'hotel'], $choques);
+            $io->note('Renombra una de las dos, o usa --prefijo para tocar sólo un bloque.');
+
+            return Command::FAILURE;
         }
 
         if ($yaTenian !== []) {

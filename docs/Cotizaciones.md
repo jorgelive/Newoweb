@@ -1243,8 +1243,9 @@ una `DOBLE` puede dormir una acompañante con su hija participante, y mandar «a
 las separaría. Se mueve el **cuarto entero**:
 
 ```
-todos los ocupantes son participantes  →  bloque de alumnos
-hay al menos un adulto                 →  bloque de adultos
+hay al menos un adulto                          →  bloque de adultos
+si no, hay al menos un participante             →  bloque de alumnos
+si no (vacía, o sólo rol en blanco/no_participa)→  NO SE TOCA
 ```
 
 Los cuatro casos reales eran exactamente eso: madre e hija, padre e hijo, y un matrimonio en una
@@ -1270,8 +1271,30 @@ uno de esos dos cayera en una habitación a mover.
 DECLARACIÓN de la propiedad y, si hay duda, con los datos. El analizador razona sobre el código que
 ve; la nulabilidad de una columna la decide la base.
 
-⚠️ Y el criterio con rol nulo es deliberado: un ocupante sin rol **no cuenta como participante**, así
-que su habitación va al bloque de adultos. Lo desconocido no se asume a favor.
+##### ⚠️ Aquí decía que el rol nulo manda la habitación a adultos. Estaba mal (16/09/2026)
+
+«Lo desconocido no se asume a favor» sonaba prudente y no lo era: la pregunta era binaria —«¿son
+todos participantes?»— y **cualquier otra cosa contestaba "adultos"**, incluido lo que en realidad
+no contesta nada. Son tres casos, y ninguno es un adulto:
+
+| | Qué es | Qué hacía | Qué hace |
+|---|---|---|---|
+| Cuarto **vacío** | no pertenece a nadie | se quedaba (bien, por otro camino) | se queda |
+| Rol **en blanco** | no consta — hay 2 en producción | lo mandaba a adultos | no vota |
+| **`no_participa`** | alguien que se cayó del viaje y conserva su sitio | lo mandaba a adultos | no vota |
+
+El caso que lo enseña: una `HA12` con dos alumnas y una tercera que se dio de baja se iba **entera**
+al bloque de padres. Y en el `--dry-run` eso se lee como un movimiento legítimo: hay que fijarse en
+el «(no_participa)» al final de la línea para verlo, que es justo lo que no se hace al revisar 52
+filas.
+
+Ahora **decide quien puede decidir**: un adulto manda la habitación a adultos, un participante sin
+adultos la manda a alumnos, y si no hay ninguno de los dos el cuarto se queda donde está. Lo
+desconocido no se asume a favor **ni en contra**: se deja quieto, que es lo único que no inventa.
+
+⚠️ **Y un guarda de uso:** «ya está en su bloque» se decide con `str_starts_with`, así que
+`--alumnos=H --adultos=HP` daría por colocadas todas las HP y el comando diría «nada que mover» —un
+error que se lee como éxito—. Si un prefijo es el principio del otro, ahora falla en seco.
 
 #### Poner el hotel a habitaciones ya cargadas (15/09/2026)
 
@@ -1296,6 +1319,15 @@ correcto con un solo hotel.
 ⚠️ **No pisa lo ya escrito.** Una habitación que ya tenga hotel se deja y se avisa; para cambiarla,
 `--forzar`. Sin ese guarda, lanzar el comando con el nombre del otro hotel se lleva por delante lo
 que alguien reparó a mano y no queda rastro de cuáles eran.
+
+⚠️ **El choque contra la clave única se calcula ANTES, no se descubre en el `flush` (16/09/2026).**
+Poner el hotel puede **empujar una habitación encima de otra**: si alguien reparó a mano la `HA13`
+de «Occidental Caribe» y hay otra `HA13` sin hotel, al rellenar la segunda las dos pasan a ser la
+misma fila de `uniq_file_grupo_tipo_clave`. La base lo cazaba —es ruidoso y atómico, no se perdía
+nada— pero **el `--dry-run` decía «serían 66» y no mencionaba el choque**: el aviso llegaba después
+de decidir, y el mensaje de la base no dice cuál de las 66 era. Ahora se simula la clave resultante
+en memoria y se para en seco nombrando el par. Se compara **sin distinguir mayúsculas**, como la
+colación: una «OCCIDENTAL CARIBE» escrita a mano choca igual.
 
 #### El sufijo del subgrupo, también al EDITARLO (15/09/2026)
 
@@ -1322,11 +1354,11 @@ Con eso, el eje habitación se estructura igual que el aéreo:
 
 Y el pasajero lo ve sin tocar nada más: la tarjeta de «Lo tuyo» ya pinta `ejeLabel · subeje`.
 
-⚠️ **Lo que NO se abre es `GrupoTipoEnum::admiteSubeje()`**, que gobierna el `.xlsx`. Allí el eje y
-el sufijo viajan en **una sola cadena** —`#Vuelo Nacional`— y abrirlo haría que un `#Habitacion
-doble` entrara como sufijo «doble» en vez de denunciarse. En el formulario son dos campos y no hay
-nada que adivinar; en la hoja sí. Cargar hoteles desde el padrón es una decisión aparte, con ese
-coste encima de la mesa.
+🔥 **Aquí decía que `GrupoTipoEnum::admiteSubeje()` NO se abría, y era el fallo (corregido el
+16/09/2026).** El razonamiento era que en el `.xlsx` el eje y el sufijo viajan en una sola cadena
+—`#Vuelo Nacional`— y que abrirlo haría que un `#Habitacion doble` tecleado a mano entrara como
+sufijo «doble» en vez de denunciarse. Lo que no se miró es **quién escribe esa cabecera**: la
+escribe el sistema. Ver «El ciclo del padrón se había partido» más abajo.
 
 #### Asignar tramos a UNA reserva, sin reescribir el JSON (15/09/2026)
 
@@ -1461,9 +1493,25 @@ pide» sino «lo que se puede pedir». El orden de las filas lo sigue decidiendo
 orden en que el operador marcó las casillas — y un valor desconocido que llegara de la API se queda
 fuera solo, porque se filtra el catálogo en vez de recorrer lo que manda el servidor.
 
-Cubierto por `tests/Cotizacion/Entity/DocumentosPedidosTest.php`, incluido el test que **ata el
-catálogo a `loSubeElPasajero()`**: si alguien añade un tipo subible y se olvida de la otra lista, el
-selector no lo ofrecería y nadie se enteraría.
+Cubierto por `tests/Cotizacion/Entity/DocumentosPedidosTest.php`.
+
+🔥 **Aquí decía que ese test «ata el catálogo a `loSubeElPasajero()`». No lo hacía, y el espejo
+estaba roto (16/09/2026).** Lo que ata es `ArchivoTipoEnum::pedibles()` a `loSubeElPasajero()`:
+**los dos lados son PHP**. El catálogo de `pax` —que es una constante de un `.vue`— no lo miraba
+nadie, y llevaba desde el primer día **sin `autorizacion`**.
+
+La consecuencia, con cero errores en ninguna parte: el operador marca «Autorización notarial» en
+«Qué se pide», `documentosPedidos()` filtra el catálogo, la casilla **no existe** — y el pasajero
+no tiene forma de mandarla. Desde que el manifiesto cruza lo pedido contra lo subido, además, las
+133 personas salen con «Falta documento» por algo que ninguna puede resolver.
+
+Ahora lo cierra `tests/Cotizacion/Enum/ArchivoTipoPedibleEspejoTest.php`, que **lee el `.vue` como
+texto** y lo comprueba en los dos sentidos: nada pedible sin casilla, ninguna casilla que no se
+pueda pedir. Leer un archivo de otro lenguaje desde PHPUnit es feo; confiar en que alguien se
+acuerde de tocar los dos archivos es lo que ya falló.
+
+⚠️ **La regla general, que no es de este espejo:** un test que compara dos cosas **del mismo lado**
+no prueba que el otro lado esté sincronizado, por muy convincente que suene el nombre del test.
 
 ##### 🔥 El default vacío dejaba a los expedientes NUEVOS sin pedir nada
 
@@ -1788,7 +1836,9 @@ el orden con sentido lo pone quien pinta, que ya tiene el índice de nombres mon
 | Añadir una cadena de UI a `pax` | `src/Pax/Command/PaxCrearTextos*Command.php` | un comando nuevo, **nunca SQL** (`#[AutoTranslate]`) |
 | Cambiar qué documentos de identidad se le enseñan | `CotizacionFilePublicProvider` | `identificacionesDe()` + `DocumentoTipoEnum::esDocumentoDeViaje()` |
 | Cambiar qué documentos se le piden en UN expediente | **util** → Bóveda → «Qué se pide» | `CotizacionFile::$documentosPedidos` |
-| Añadir un documento al catálogo de lo pedible | `ArchivoTipoEnum` | `loSubeElPasajero()` + su fila en `CATALOGO_DOCUMENTOS` |
+| Añadir un documento al catálogo de lo pedible | `ArchivoTipoEnum` | `loSubeElPasajero()` + su fila en `CATALOGO_DOCUMENTOS` (`pax`). **Los dos**, y lo exige `ArchivoTipoPedibleEspejoTest` |
+| Añadir un eje de subgrupo nuevo | `GrupoTipoEnum` | sale solo en el `.xlsx` si `label()` es legible; `PadronFormatoEjeTest` lo comprueba |
+| Cambiar qué se puede quitar al reimportar el padrón | `PadronImportador` | `ejesDeclarados()` — sólo se sincroniza el eje cuyas columnas trae el archivo |
 | Añadir un tipo de adjunto | `ArchivoTipoEnum` + los dos espejos TS + `npm run gen:api` | todos los `match` del enum |
 | Cambiar el orden de la bóveda | `util/.../FileDetalle.vue` | `ordenarBoveda()` |
 | Que un adjunto salga estable en cualquier consumidor | `CotizacionFile` | `#[ORM\OrderBy]` de `$filearchivos` |
@@ -2596,19 +2646,41 @@ permitiría estados imposibles —la ida emitida y la vuelta no, con el mismo bi
 Por eso el interruptor sólo sale cuando el subgrupo es del eje aéreo: en una habitación no
 significa nada.
 
-#### «Sin foto» y «Observado» son dos trabajos distintos (10/09/2026)
+#### «Falta documento» y «Observado» son dos trabajos distintos (10/09/2026)
 
 Dos chips en la fila de Documentos, y **la distinción importa más que los chips**:
 
 | | Qué significa | Quién lo resuelve |
 |---|---|---|
 | **Observado** | el escaneo no dice lo mismo que el manifiesto | quien corrige el manifiesto, mirando |
-| **Sin foto** | el número está tecleado y **nadie subió el escaneo** | quien **escribe** al pasajero |
+| **Falta documento** | falta algo que este expediente **pide** | quien **escribe** al pasajero |
 
 🔥 **Juntarlos habría mezclado dos trabajos que hacen personas distintas en momentos
-distintos.** «Sin foto» no es una validación pendiente: no hay nada que comprobar todavía. Son 44
-personas a las que hay que pedirles el documento, y ésa es una lista que se usa entera de una
-sentada.
+distintos.** «Falta documento» no es una validación pendiente: no hay nada que comprobar todavía.
+Son decenas de personas a las que hay que pedirles el documento, y ésa es una lista que se usa
+entera de una sentada.
+
+⚠️ **Se llamaba «Sin foto» y significaba otra cosa (16/09/2026).** Hasta esa fecha sólo miraba las
+**identificaciones tecleadas**: «el número está escrito y nadie subió el escaneo». Con eso, un
+E-Ticket, un DNI-reverso o una autorización que el expediente pidiera y nadie hubiera mandado
+**no aparecían por ningún lado** — no hay número que teclear para ellos, así que no había fila que
+señalar. El manifiesto decía que estaba todo en orden y el control de puerta lo desmentía.
+
+Ahora `estadoDocumentalDe()` cruza los archivos que ha subido esa persona contra
+`CotizacionFile::$documentosPedidos` —lo que se decidió pedir en ESTE expediente— y marca lo que
+falte. Por eso el chip cambió de nombre: ya no habla de fotos de un número, habla de **lo que se le
+pidió y no ha llegado**.
+
+| | Antes | Ahora |
+|---|---|---|
+| Qué recorre | `pax.identificaciones` | `file.documentosPedidos` |
+| Qué ve | pasaporte y DNI **con número tecleado** | todo lo pedible, haya número o no |
+| Qué se le escapaba | E-Ticket, autorización, DNI-reverso | — |
+
+⚠️ **Y dos consecuencias de volumen que no son un fallo:** un extranjero sin DNI figurará siempre
+como que le falta si el expediente pide DNI (es lo mismo que ve él en su app), y en un expediente
+viejo los escaneos ya caducaron (`mesesDeRetencion()`), así que el chip dirá que le falta todo a
+todo el mundo. Las dos ya pasaban; ahora se notan más porque hay más tipos.
 
 ##### El mapeo escaneo↔número llegó a estar en tres sitios
 
@@ -6607,12 +6679,14 @@ Ahora hay **un solo eje de vuelo** y el tramo vive en `CotizacionFileGrupo::$sub
 #Vuelo Nacional        → reserva_aerea, «Nacional»
 #Vuelo Cusco-Puno      → reserva_aerea, «Cusco-Puno»   ← sin tocar código
 #Reserva aérea Ida     → reserva_aerea, «Ida»          (alias, para hojas viejas)
-#Habitación doble      → null: se avisa y se ignora    ← sólo el vuelo admite etiqueta
+#Habitación Occidental Caribe → habitacion, «Occidental Caribe»
+#Bus                   → null: se avisa y se ignora    ← el eje no existe
 ```
 
-⚠️ **Sólo los ejes con `admiteSubeje()` se parten.** Sin eso, `#Habitacion doble` entraría como
-eje habitación con tramo «doble» en vez de denunciarse — y el tipo de habitación tiene su sitio,
-que es la columna «Nombre» de la hoja «Grupos».
+⚠️ **Se parte CUALQUIER eje, no sólo el vuelo** (desde el 16/09/2026; antes sólo el vuelo, ver «El
+ciclo del padrón se había partido»). Lo que se sigue denunciando es un **eje** que no existe
+—`#Bus`—; lo que ya no se denuncia es un sufijo inesperado, porque el sufijo es texto libre por
+diseño y no hay nada contra lo que validarlo.
 
 #### 🔥 `grupos` volvía incrustado y el editor no podía guardar (04/09/2026)
 
@@ -6668,11 +6742,56 @@ Cana, la `HA13` del Sonesta y la `HA13` del Terra son dos habitaciones distintas
 **La columna siempre fue genérica** y ya entraba en la clave única, así que no hubo nada que
 cambiar en PHP: sólo dejar de esconder el campo.
 
-⚠️ **Y `GrupoTipoEnum::admiteSubeje()` NO se tocó**, a propósito. Gobierna el parseo de la
-cabecera del padrón, donde eje y sufijo viajan en **una sola cadena** (`#Vuelo Nacional`):
-abrirlo allí haría que `#Habitacion doble` entrara como tramo «doble» en vez de denunciarse. En el
-formulario son **dos campos separados** y no hay nada que adivinar — la ambigüedad sólo existe al
-partir un texto.
+⚠️ **Y `GrupoTipoEnum::admiteSubeje()` NO se tocó**, a propósito… y esa decisión resultó ser el
+fallo. Ver «El ciclo del padrón se había partido» justo debajo.
+
+#### 🔥 El ciclo del padrón se había partido, y vaciaba las habitaciones (16/09/2026)
+
+**El fallo, en una línea: el sistema exportaba una cabecera que él mismo no sabía leer.**
+
+Al abrir el `subeje` a todos los ejes se dejó cerrado `admiteSubeje()`, que gobernaba el parseo del
+`.xlsx`, con el argumento de que un `#Habitacion doble` tecleado a mano debía denunciarse. El
+argumento tenía un agujero: **esa cabecera no la teclea nadie, la escribe la exportación.**
+`PadronPlantillaGenerador` monta las columnas con
+`CotizacionFileGrupo::getEtiquetaDeEje()`, que **no** consulta `admiteSubeje()`.
+
+```
+exportar  → #Habitación Occidental Caribe        (getEtiquetaDeEje)
+importar  → PadronFormato::ejeDe() → null        (admiteSubeje() cerrado)
+          → «no corresponde a ningún eje conocido: se ignora»
+          → PadronImportador::aplicarGrupos() SINCRONIZA
+          → todas las habitaciones se quedan VACÍAS
+```
+
+El escenario completo: se le pone el hotel a las 66 habitaciones, alguien descarga la plantilla,
+**corrige un teléfono**, la vuelve a subir — y las 133 pertenencias desaparecen, con un aviso
+genérico entre los demás avisos. Ni un error. Se descubriría en el mostrador del hotel.
+
+**Se arregló por los dos lados, y el segundo es el que importa:**
+
+| | Qué se hizo | Qué protege |
+|---|---|---|
+| **1. Simetría** | `ejeDe()` parte el sufijo de **cualquier** eje, y los prefijos salen de las mismas tres fuentes que ya reconocía (etiqueta, valor del enum, alias) | este caso |
+| **2. Sincronizar sólo lo declarado** | `aplicarGrupos()` únicamente quita a alguien de un eje **cuyas columnas trae el archivo** (`ejesDeclarados()`) | **cualquier** cabecera ilegible, presente o futura |
+
+🔥 **El segundo es la lección de verdad.** El primero arregla una asimetría concreta; el segundo
+quita la propiedad que convertía cualquier malentendido de cabecera en un borrado masivo. La
+distinción que faltaba: **una columna en blanco dice «no va»; una columna que no está dice «no lo
+sé»**, y son cosas distintas. De regalo, un padrón del colegio —que no trae ni una columna `#` ni
+`+`— ya no vacía el expediente entero: se le leen los datos personales y no se le toca ni un grupo.
+
+⚠️ **Lo que se pierde con el primer arreglo es pequeño y ruidoso**, y por eso se acepta: un
+`#Habitacion doble` mal escrito crea un subgrupo «Habitación · doble» que **se ve** en la pantalla
+y se corrige en diez segundos. Lo que se evita es perder 133 pertenencias en silencio.
+
+✅ **La regla que queda, y vale para cualquier formato de ida y vuelta: lo que escribe la
+exportación, la importación lo tiene que saber leer.** Está cerrada con un test de ida y vuelta
+sobre **todos** los ejes del enum (`PadronFormatoEjeTest`), así que un eje nuevo entra solo y se le
+exige lo mismo sin que nadie tenga que acordarse.
+
+⚠️ Y `admiteSubeje()` **sigue existiendo**, pero ya no decide nada de esto: hoy sólo dice qué ejes
+traen columnas de ejemplo por tramo en la plantilla **en blanco** (`#Vuelo Nacional` y
+`#Vuelo Internacional` salen escritas; de un hotel no hay nombre que adivinar).
 
 ⚠️ **El rótulo del campo cambia con el eje**, y no es cosmético: de un vuelo se dice el «Tramo»,
 de una habitación el «Hotel», de un grupo o un servicio el «Matiz». Con una sola palabra para los
