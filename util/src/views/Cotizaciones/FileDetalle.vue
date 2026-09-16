@@ -2266,6 +2266,25 @@ const etickets = ref<{ hechos: number; pendientes: number } | null>(null);
  */
 const pideEticket = computed(() => (file.value?.documentosPedidos ?? []).includes('eticket'));
 
+/**
+ * El rótulo del botón mientras corre.
+ *
+ * ⚠️ **Decía «Leyendo… 0» al arrancar**, que es lo peor que puede decir un botón que va a tardar
+ * minutos: parece que no ha hecho nada y que no va a hacerlo. Hasta que vuelve la primera tanda no
+ * se sabe cuántos hay, así que no se finge un número — se dice «Leyendo…» y ya.
+ *
+ * Y cuando se sabe, se dice **cuántos de cuántos**: «3 de 79» avanza a la vista; «3 hechos, 76 por
+ * leer» obliga a sumar para saber si queda mucho.
+ */
+const avanceEtickets = computed(() => {
+    const e = etickets.value;
+    if (!e) return '';
+
+    const total = e.hechos + e.pendientes;
+
+    return total > 0 ? `Leyendo… ${e.hechos} de ${total}` : 'Leyendo…';
+});
+
 /** Cuántos trámites piden que alguien mire. Es el número que va al lado del botón. */
 const eticketsObservados = computed(() =>
     (file.value?.filearchivos ?? [])
@@ -3851,36 +3870,51 @@ const eliminarDocumento = async (iri?: string) => {
               </button>
 
               <!-- ⚠️ Fuera del botón que pliega: dentro, pulsarlo plegaría la sección justo
-                   cuando llegan los resultados que se quieren ver. -->
-              <div v-if="manifiestoAbierto" class="flex items-center gap-2 -mt-2 mb-4">
-                <button type="button" @click="validarManifiesto" :disabled="validando"
-                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-wider transition-colors">
-                  <i class="fas" :class="validando ? 'fa-spinner fa-spin' : 'fa-shield-halved'"></i>
-                  {{ validando ? 'Leyendo documentos…' : 'Validar contra los escaneos' }}
-                </button>
+                   cuando llegan los resultados que se quieren ver.
 
-                <span v-if="observadas" class="inline-flex items-center gap-1 text-[10px] font-black text-amber-700">
-                  <i class="fas fa-triangle-exclamation"></i> {{ observadas }} por revisar
-                </span>
+                   🔥 **Una FILA POR CONTROL, y cada una con su contador al lado.** Estaban los dos
+                   botones, los dos contadores y la aclaración en una sola fila sin `flex-wrap`: en
+                   el móvil el segundo botón **se salía de la pantalla** —no se podía ni pulsar— y
+                   la aclaración, metida entre medias, partía el par por sitios distintos según el
+                   ancho. Un contador que no está pegado a su botón no se sabe de cuál habla.
 
-                <!-- Se dice lo que NO hace, porque un botón llamado «validar» invita a pensar que
-                     arregla. Aquí lo que se corrige lo corrige una persona. -->
-                <span class="text-[9px] text-slate-400">
-                  escribe el veredicto, no corrige el manifiesto
-                </span>
+                   ⚠️ Y la aclaración baja al final porque vale para LOS DOS: ninguno corrige nada,
+                   los dos escriben un veredicto. Donde estaba parecía ser sólo del primero.
+
+                   ⚠️ **`gap-3` fuera y `gap-2` dentro, y no es un capricho.** A 375 px el primer
+                   botón ocupa casi todo el ancho y su contador baja de línea: con la misma
+                   separación entre filas que dentro de una fila, «38 por revisar» quedaba a la
+                   misma distancia de su botón que del siguiente y no se sabía de cuál hablaba. -->
+              <div v-if="manifiestoAbierto" class="flex flex-col gap-3 -mt-2 mb-4">
+                <div class="flex flex-wrap items-center gap-2">
+                  <button type="button" @click="validarManifiesto" :disabled="validando"
+                          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-wider transition-colors">
+                    <i class="fas shrink-0" :class="validando ? 'fa-spinner fa-spin' : 'fa-shield-halved'"></i>
+                    {{ validando ? 'Leyendo documentos…' : 'Validar contra los escaneos' }}
+                  </button>
+
+                  <span v-if="observadas" class="inline-flex items-center gap-1 text-[10px] font-black text-amber-700">
+                    <i class="fas fa-triangle-exclamation"></i> {{ observadas }} por revisar
+                  </span>
+                </div>
 
                 <!-- Control aparte porque coteja contra otra cosa: los VUELOS de cada persona. -->
-                <button v-if="pideEticket" type="button" @click="validarEtickets" :disabled="etickets !== null"
-                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-wider transition-colors">
-                  <i class="fas" :class="etickets ? 'fa-spinner fa-spin' : 'fa-passport'"></i>
-                  <template v-if="etickets">
-                    {{ etickets.pendientes ? `Leyendo… ${etickets.hechos} hechos, ${etickets.pendientes} por leer` : `Leyendo… ${etickets.hechos}` }}
-                  </template>
-                  <template v-else>Controlar E-Ticket</template>
-                </button>
+                <div v-if="pideEticket" class="flex flex-wrap items-center gap-2">
+                  <button type="button" @click="validarEtickets" :disabled="etickets !== null"
+                          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-wider transition-colors">
+                    <i class="fas shrink-0" :class="etickets ? 'fa-spinner fa-spin' : 'fa-passport'"></i>
+                    {{ etickets ? avanceEtickets : 'Controlar E-Ticket' }}
+                  </button>
 
-                <span v-if="eticketsObservados" class="inline-flex items-center gap-1 text-[10px] font-black text-indigo-700">
-                  <i class="fas fa-triangle-exclamation"></i> {{ eticketsObservados }} E-Ticket por revisar
+                  <span v-if="eticketsObservados" class="inline-flex items-center gap-1 text-[10px] font-black text-indigo-700">
+                    <i class="fas fa-triangle-exclamation"></i> {{ eticketsObservados }} por revisar
+                  </span>
+                </div>
+
+                <!-- Se dice lo que NO hacen, porque un botón llamado «validar» invita a pensar que
+                     arregla. Aquí lo que se corrige lo corrige una persona. -->
+                <span class="text-[9px] text-slate-400 leading-snug">
+                  escriben el veredicto, no corrigen el manifiesto
                 </span>
               </div>
               <div v-if="manifiestoAbierto">
