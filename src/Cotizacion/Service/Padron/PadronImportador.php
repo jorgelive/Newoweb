@@ -393,8 +393,13 @@ final readonly class PadronImportador
                 $eje = PadronFormato::ejeDe($cabecera);
                 if ($eje === null) {
                     // Se avisa con nombre y apellido en vez de tragárselo: un eje inventado sería
-                    // un grupo fantasma que nadie sabría de dónde salió.
-                    $resultado->aviso(sprintf('La columna «%s» no corresponde a ningún eje conocido: se ignora.', $cabecera));
+                    // un grupo fantasma que nadie sabría de dónde salió. Y se dice qué NO pasa:
+                    // ignorar la columna ya no quita a nadie de nada — ver `ejesDeclarados()`.
+                    $resultado->aviso(sprintf(
+                        'La columna «%s» no corresponde a ningún eje conocido: se ignora. '
+                        .'No se quita a nadie de sus grupos por esto, pero lo que traiga esa columna no entra.',
+                        $cabecera,
+                    ));
                     continue;
                 }
                 $mapa['ejes'][$i] = $eje;
@@ -670,10 +675,25 @@ final readonly class PadronImportador
             }
         }
 
-        // ── Sincronizar, no sólo añadir ─────────────────────────────────────
+        // ── Sincronizar, no sólo añadir… pero SÓLO lo que el archivo trae ───
         // Si el archivo corregido dice que ya NO va a Coco Bongo, tiene que dejar de ir: eso es
         // justo lo que se está corrigiendo al resubir. Distinto de borrar personas, que no se hace.
+        //
+        // 🔥 **Y sólo se sincronizan los ejes que el archivo DECLARA.** Una columna en blanco dice
+        // «no va»; una columna que no está dice «no lo sé», y son cosas distintas. Sin esta
+        // distinción, cualquier cabecera que el lector no supiera interpretar —una que él mismo
+        // había exportado, en el caso que destapó esto— se convertía en el borrado silencioso de
+        // ese eje entero para todo el mundo: 133 pertenencias, con un aviso genérico entre los
+        // demás. Ahora una columna ignorada no puede borrar nada; sólo no añade.
+        $declarados = $this->ejesDeclarados($columnas);
+
         foreach ($pasajero->getPertenencias() as $pertenencia) {
+            $tipo = $pertenencia->getGrupo()?->getTipo();
+
+            if ($tipo === null || !isset($declarados[$tipo->value])) {
+                continue;
+            }
+
             if (!in_array($pertenencia->getGrupo(), $deseados, true)) {
                 $pasajero->removePertenencia($pertenencia);
                 $this->em->remove($pertenencia);
@@ -704,6 +724,32 @@ final readonly class PadronImportador
             $this->em->persist($pertenencia);
             ++$resultado->pertenenciasCreadas;
         }
+    }
+
+    /**
+     * Qué ejes declara el archivo: los únicos sobre los que se puede quitar a nadie.
+     *
+     * ⚠️ Un padrón que venga del colegio no trae ninguna columna `#` ni `+`, y entonces esto sale
+     * vacío: se le leen los datos personales y **no se le toca ni un grupo**. Es lo correcto —ese
+     * archivo no sabe nada de grupos— y antes vaciaba el expediente entero.
+     *
+     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<int, int>, nombreCompleto: bool} $columnas
+     *
+     * @return array<string, true>
+     */
+    private function ejesDeclarados(array $columnas): array
+    {
+        $declarados = [];
+
+        foreach ($columnas['ejes'] as $eje) {
+            $declarados[$eje['tipo']->value] = true;
+        }
+
+        if ($columnas['servicios'] !== []) {
+            $declarados[GrupoTipoEnum::SERVICIO->value] = true;
+        }
+
+        return $declarados;
     }
 
     /** La pertenencia que ya une a estos dos, o `null`. */

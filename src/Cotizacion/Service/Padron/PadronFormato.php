@@ -417,9 +417,21 @@ final class PadronFormato
      * Lima→Cusco→Puno→Lima son cuatro columnas que nadie puede haber previsto. Lo que sí se
      * valida es el EJE, porque de él cuelga cómo se pinta y se filtra.
      *
-     * ⚠️ Sólo se parte lo que admite tramo ({@see GrupoTipoEnum::admiteSubeje()}). Sin eso, una
-     * cabecera mal escrita como `#Habitacion doble` entraría como eje habitación con tramo
-     * «doble» en vez de denunciarse.
+     * ⚠️ **Se parte CUALQUIER eje, no sólo los que `admiteSubeje()`** —y esto es un arreglo del
+     * 16/09/2026, no el diseño original—. Aquí se leía el sufijo sólo para la reserva aérea, con
+     * el argumento de que una cabecera mal escrita como `#Habitacion doble` debía denunciarse en
+     * vez de entrar como tramo «doble». El argumento se cayó solo en cuanto el subeje se abrió a
+     * todos los ejes: **la exportación escribe `#Habitación Occidental Caribe`** —sale de
+     * {@see \App\Cotizacion\Entity\CotizacionFileGrupo::getEtiquetaDeEje()}, que no consulta
+     * `admiteSubeje()`— y esta función devolvía `null` para su propia cabecera. Exportar el
+     * expediente y volver a subirlo **borraba las 66 habitaciones enteras** con un aviso genérico
+     * entre los demás: la columna se ignoraba, y {@see PadronImportador::aplicarGrupos()}
+     * sincroniza, así que todo lo que no estuviera en el archivo dejaba de estar.
+     *
+     * Lo que se pierde a cambio es pequeño y ruidoso: un `#Habitacion doble` tecleado a mano crea
+     * un subgrupo «Habitación · doble» que se VE en la pantalla y se corrige. Lo que se gana es no
+     * perder 133 pertenencias en silencio. **La regla que queda: lo que escribe la exportación,
+     * la importación lo tiene que saber leer.**
      *
      * @return array{tipo: GrupoTipoEnum, subeje: ?string}|null
      */
@@ -438,13 +450,8 @@ final class PadronFormato
             return ['tipo' => GrupoTipoEnum::from(self::ALIAS_EJE[$buscada]), 'subeje' => null];
         }
 
-        // 2. Empieza por un eje que admite tramo: lo que sigue ES el tramo.
-        foreach (self::ALIAS_EJE as $prefijo => $valor) {
-            $tipo = GrupoTipoEnum::from($valor);
-            if (!$tipo->admiteSubeje()) {
-                continue;
-            }
-
+        // 2. Empieza por un eje: lo que sigue ES el tramo.
+        foreach (self::prefijosDeEje() as $prefijo => $tipo) {
             if (str_starts_with($buscada, $prefijo.' ')) {
                 $subeje = trim(mb_substr($texto, mb_strlen($prefijo) + 1));
 
@@ -453,6 +460,37 @@ final class PadronFormato
         }
 
         return null;
+    }
+
+    /**
+     * Por qué puede empezar la cabecera de un eje, de más largo a más corto.
+     *
+     * Sale de las mismas tres fuentes que reconoce el paso 1 —etiqueta, valor del enum y alias—
+     * para que un eje nuevo no tenga que acordarse de nada: si se sabe leer `#Habitación`, se sabe
+     * leer `#Habitación Occidental Caribe`.
+     *
+     * ⚠️ **De más largo a más corto** porque un prefijo que sea principio de otro se lo comería:
+     * hoy no pasa, pero `#Vuelo` frente a un futuro `#Vuelo chárter` sí, y el fallo sería un tramo
+     * mal partido, no un error.
+     *
+     * @return array<string, GrupoTipoEnum>
+     */
+    private static function prefijosDeEje(): array
+    {
+        $prefijos = [];
+
+        foreach (GrupoTipoEnum::cases() as $tipo) {
+            $prefijos[mb_strtolower($tipo->label())] = $tipo;
+            $prefijos[$tipo->value] = $tipo;
+        }
+
+        foreach (self::ALIAS_EJE as $prefijo => $valor) {
+            $prefijos[$prefijo] = GrupoTipoEnum::from($valor);
+        }
+
+        uksort($prefijos, static fn (string $a, string $b): int => mb_strlen($b) <=> mb_strlen($a));
+
+        return $prefijos;
     }
 
     /** La cabecera que se escribe para un eje y su tramo: `#Vuelo Nacional`. */

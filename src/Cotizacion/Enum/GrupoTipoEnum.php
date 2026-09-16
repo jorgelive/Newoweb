@@ -108,12 +108,18 @@ enum GrupoTipoEnum: string
     }
 
     /**
-     * ¿Este eje admite una etiqueta libre que lo subdivida?
+     * ¿La plantilla EN BLANCO saca columnas de ejemplo por tramo para este eje?
      *
-     * Hoy sólo el vuelo, y es lo que permite el multitramo sin tocar código: `#Vuelo Nacional`,
-     * `#Vuelo Cusco-Puno`, `#Vuelo Retorno` son todos `reserva_aerea` con `subeje` distinto.
-     * Una habitación no se subdivide —el hotel es uno— hasta que haya dos hoteles, y entonces
-     * bastará devolver `true` aquí.
+     * `#Vuelo Nacional` y `#Vuelo Internacional` salen ya escritas porque son las dos de un viaje
+     * corriente y se entienden sin leer nada; de una habitación no hay nombre de hotel que
+     * adivinar, así que sale `#Habitación` a secas y el hotel lo escribe quien lo sepa.
+     *
+     * ⚠️ **Esto ya NO gobierna qué se puede leer ni qué se puede guardar**, y creerlo costó caro.
+     * Cualquier eje admite `subeje` —en la entidad, en el formulario y desde el 16/09/2026 también
+     * al leer el `.xlsx` ({@see \App\Cotizacion\Service\Padron\PadronFormato::ejeDe()})—. Mientras
+     * esto sí gobernaba el parseo, la exportación escribía `#Habitación Occidental Caribe` y la
+     * importación no sabía leerlo: la columna se ignoraba y el expediente perdía las habitaciones
+     * enteras. Lo único que decide este método es cuántas columnas trae la hoja vacía.
      */
     public function admiteSubeje(): bool
     {
