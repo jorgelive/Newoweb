@@ -47,6 +47,14 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_pasajero_identificacion')]
 #[ORM\UniqueConstraint(name: 'uniq_pasajero_identificacion_tipo', columns: ['pasajero_id', 'tipo'])]
+// La cola de validación se consulta por estado y siempre por persona.
+//
+// ⚠️ **Existía en la base y NO estaba declarado aquí.** Lo creó `Version20260909200000` y nadie lo
+// escribió en la entidad, así que `doctrine:schema:validate` llevaba días diciendo «no está en
+// sync» sin decir por qué. El riesgo no era el índice —está bien y sirve— era el aviso: un
+// desajuste permanente entrena a no mirar la herramienta, y es la única que compara las dos
+// mitades de una relación (ver `CLAUDE.md`).
+#[ORM\Index(name: 'idx_identificacion_validacion', columns: ['pasajero_id', 'estado_validacion'])]
 #[ORM\HasLifecycleCallbacks]
 class CotizacionPasajeroIdentificacion
 {

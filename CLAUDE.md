@@ -13,6 +13,23 @@
   trata como unidireccional, la escritura funciona y **la lectura posterior en el mismo request
   se queda corta**. No hay error, hay una lista incompleta. Ni PHPStan ni los tests lo ven.
 
+  ⚠️ **Y por eso hay que dejarlo en verde, no sólo correrlo.** Estuvo en rojo días por dos ÍNDICES
+  creados por migración y nunca declarados en la entidad (`idx_identificacion_validacion`,
+  `IDX_EST_MEDIA_ESTABLECIMIENTO`). Los índices estaban bien y servían; lo que estaba mal era el
+  aviso. Un desajuste permanente entrena a no mirar la única herramienta que compara las dos
+  mitades de una relación: cuando de verdad falte un `inversedBy`, el rojo ya no dirá nada porque
+  llevaba semanas rojo.
+
+  Un índice creado en SQL se declara también en la entidad, con **su** nombre
+  (`#[ORM\Index(name: …)]`). Si no, el diff pide renombrarlo al `IDX_<hash>` que genera Doctrine,
+  y hacerle caso cambia un nombre legible por uno que no dice nada.
+
+  ⚠️ **Ojo con `--complete`: saca `DROP TABLE` de todo lo que el mapeo no conozca.** Hoy son tres
+  tablas de un módulo que no existe (`energia_*`, vacías) y un respaldo con 19 filas
+  (`pms_evento_calendario_backup_20260808`). Eso **no** es el desajuste que hay que arreglar, y
+  ejecutarlo a ciegas borra el respaldo que alguien guardó a propósito. Sin `--complete`, el diff
+  es aditivo y es el que se lee.
+
   **Análisis estático:** PHPStan **nivel 7** sobre `src/` (menos `src/Oweb/`, que se retira
   entero), con `phpstan-baseline.neon` congelando la deuda que ya existía. Correrlo antes de
   cerrar un cambio no es opcional; es más barato que cualquier test que se pueda escribir para

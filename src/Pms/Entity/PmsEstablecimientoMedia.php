@@ -47,6 +47,13 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
     message: 'Este establecimiento ya tiene ese medio. Hay UNO de cada tipo: edita el que existe o bórralo antes de subir otro.'
 )]
 #[ORM\UniqueConstraint(name: 'uniq_establecimiento_tipo', columns: ['establecimiento_id', 'tipo'])]
+// El índice de la clave ajena, con SU nombre.
+//
+// ⚠️ Doctrine crea uno solo para el `JoinColumn` y lo llama `IDX_<hash>`; en la base se llama
+// `IDX_EST_MEDIA_ESTABLECIMIENTO`, así que el diff pedía **renombrarlo al hash**. Declararlo aquí
+// resuelve el desajuste en la dirección correcta: el nombre legible se queda y la entidad dice la
+// verdad. Renombrar la base para contentar al generador es cambiar un dato por un nombre peor.
+#[ORM\Index(name: 'IDX_EST_MEDIA_ESTABLECIMIENTO', columns: ['establecimiento_id'])]
 #[ORM\HasLifecycleCallbacks]
 #[Vich\Uploadable]
 class PmsEstablecimientoMedia
