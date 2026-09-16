@@ -2299,13 +2299,28 @@ const eticketsObservados = computed(() =>
    nada**. En este expediente, 37 personas sin E-Ticket a dos días de volar, contra 32 subidos con
    algo que mirar. El segundo estaba en pantalla; el primero, en ninguna. */
 
-/** Cuántas personas han subido cada tipo. La cuenta es por PERSONA, no por fichero. */
+/**
+ * Cuántas personas han subido cada tipo. La cuenta es por PERSONA, no por fichero.
+ *
+ * 🔥 **El dueño se saca con `claveDeRelacion()`, no con el `extractIdStr` de esta vista.** La
+ * primera versión usaba el segundo y contaba **un solo dueño por tipo**: la pantalla decía «faltan
+ * 133» de todo, con 127 pasaportes subidos delante.
+ *
+ * El motivo es de los que no dan error: hay **dos** `extractIdStr` —el de `utils/recurso.ts`, que
+ * entiende objetos, y uno local en esta vista que hace `String(val).split('/').pop()`—, y el local
+ * gana. Con la relación llegando **embebida** en vez de como IRI, `String(objeto)` es
+ * `"[object Object]"` **para todos los archivos**, así que el `Set` colapsaba a un elemento. Ni
+ * TypeScript ni ESLint pueden ver eso: el tipo es `string` y el valor es un `string`.
+ *
+ * ⚠️ `claveDeRelacion()` es el que ya usa el resto de la pantalla para lo mismo, y acepta las dos
+ * formas. La regla: **para sacar el id de una relación en esta vista, ése.**
+ */
 const subidoPorTipo = computed(() => {
     const porTipo = new Map<string, Set<string>>();
 
     for (const a of file.value?.filearchivos ?? []) {
         const tipo = String(a.tipoArchivo ?? '');
-        const duenio = String(extractIdStr(a.pasajero ?? '') ?? '');
+        const duenio = claveDeRelacion(a.pasajero);
         if (!tipo || !duenio) continue;
 
         if (!porTipo.has(tipo)) porTipo.set(tipo, new Set());

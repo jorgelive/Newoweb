@@ -10154,6 +10154,25 @@ y entero.
 ⚠️ Y dice «faltan 7», no «7»: un número a secas se lee igual de bien como «hay 7» que como «faltan
 7», y son lo contrario.
 
+##### 🔥 Hay DOS `extractIdStr` y el de la vista destroza los objetos
+
+La primera versión del panel decía **«faltan 133» de todo** —con 127 pasaportes subidos delante—
+porque contaba **un solo dueño por tipo**.
+
+El motivo no da error y no lo ve ninguna herramienta: en `FileDetalle.vue` hay un `extractIdStr`
+**local** que hace `String(val).split('/').pop()`, y **gana al importado** de `utils/recurso.ts`, que
+sí entiende objetos. La relación `pasajero` llega **embebida** —`api.d.ts` la tipa como
+`CotizacionFilepasajero-file.item.read`, no como `string`—, así que `String(objeto)` es
+`"[object Object]"` **para todos los archivos** y el `Set` colapsaba a un elemento.
+
+Ni `vue-tsc` ni ESLint pueden cazarlo: el tipo declarado es `string` y el valor devuelto *es* un
+`string`. Reproducido con las dos funciones sobre 127 archivos: la local da 1 dueño, la buena da 127.
+
+✅ **La regla: para sacar el id de una relación en esta vista se usa `claveDeRelacion()`**, que es lo
+que ya hacen los demás sitios que cuentan archivos por persona. El `extractIdStr` local sólo vale
+para lo que ya es una cadena —un `@id`, un `id`—, y ése es justo el caso en el que no se nota que
+está mal.
+
 #### La bóveda se filtra por tipo
 
 El buscador ya encontraba por tipo —y el placeholder lo prometía— pero sólo si sabes cómo se llama
