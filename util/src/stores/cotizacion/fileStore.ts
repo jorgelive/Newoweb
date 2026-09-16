@@ -5,6 +5,33 @@ import { extractApiErrorMessage, esErrorSilencioso } from '@/services/apiError';
 import {ApiCotizacionFile, ApiCotizacionFilepasajero, ApiCotizacionFileWrite, I18nContent, PlanCargaZip} from '@/types/fileDetalleModel.ts';
 import type { PlanReconciliacion, AplicarPlanPayload, ResultadoAplicacion, InformeCoherencia } from '@/types/operacionModel';
 import type { EstadoFile } from '@/types/cotizacionEditorModel';
+
+/**
+ * Un veredicto de archivo, tal como lo devuelve `EticketsController`.
+ *
+ * ⚠️ Espejo de `EticketsController::veredictoDe()`. **No sale de `api.d.ts`** porque el endpoint no
+ * es un `ApiResource` y la introspección no lo ve — misma excepción que `VeredictoDeDocumento`.
+ */
+export interface VeredictoDeArchivo {
+    id: string;
+    pasajeroId: string;
+    tipoArchivo: string | null;
+    estadoValidacion: string;
+    discrepancias: { campo: string; documento: string; manifiesto: string }[];
+    notasValidacion: string[];
+    validadoEn: string | null;
+    leidoEn: string | null;
+    lecturaError: string | null;
+}
+
+/** Lo que devuelve UNA tanda. `pendientesDeLeer > 0` significa «vuelve a llamar». */
+export interface TandaDeEtickets {
+    pendientesDeLeer: number;
+    leidosAhora: number;
+    conteo: Record<string, number>;
+    archivos: VeredictoDeArchivo[];
+}
+
 import type { DocumentoSuelto } from '@/types/fileDetalleModel';
 
 // ============================================================================
@@ -870,6 +897,63 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * Reprocesa a una sola persona. **No relee el documento** —la lectura está cacheada—, así que
      * cuesta cero: coteja lo que ya se leyó contra lo que hay guardado AHORA.
      */
+    /**
+     * Controla los E-Ticket del expediente **en tandas**, sin recargarlo.
+     *
+     * ── Por qué un bucle y no una llamada ───────────────────────────────────
+     * Leer un documento con el modelo tarda ~3,5 s y el servidor corta a los 90 s, así que caben
+     * unas 15 lecturas por petición y un expediente tiene 87. El servidor devuelve
+     * `pendientesDeLeer` y aquí se vuelve a llamar hasta que sea 0, informando del avance por
+     * `alAvanzar`. Cada petición **persiste lo suyo**: si se corta la conexión, lo pagado se queda
+     * pagado y la siguiente pasada sigue donde estaba.
+     *
+     * 🔑 **Y la respuesta NO es el expediente.** Son ~40 KB de veredictos contra los ~2,1 MB que
+     * pesa este expediente: el que llama parchea `filearchivos` en sitio, igual que
+     * `aplicarVeredictos()` hace con las identificaciones. Ver la cabecera de `EticketsController`.
+     *
+     * ⚠️ **Tope de vueltas.** Si el servidor devolviera siempre el mismo `pendientesDeLeer` —un
+     * documento que falla de una forma que no se registra— esto giraría para siempre gastando
+     * dinero en cada vuelta. Se para y se dice, que es lo que permite ir a mirar.
+     */
+    const validarEtickets = async (
+        fileId: string,
+        alAvanzar?: (tanda: TandaDeEtickets) => void,
+    ): Promise<VeredictoDeArchivo[] | null> => {
+        error.value = null;
+
+        const todos = new Map<string, VeredictoDeArchivo>();
+        let vueltas = 0;
+
+        try {
+            for (;;) {
+                const { data } = await apiClient.post(
+                    `/cotizacion/user/manifiesto/${fileId}/etickets/validar`, {});
+                const tanda = data as TandaDeEtickets;
+
+                for (const v of tanda.archivos ?? []) { todos.set(v.id, v); }
+                alAvanzar?.(tanda);
+
+                if ((tanda.pendientesDeLeer ?? 0) <= 0) { break; }
+
+                // Sin lecturas nuevas y con pendientes, la siguiente vuelta haría lo mismo.
+                if ((tanda.leidosAhora ?? 0) === 0) {
+                    error.value = `Quedan ${tanda.pendientesDeLeer} sin leer y la última pasada no avanzó. Revísalos a mano.`;
+                    break;
+                }
+
+                if (++vueltas >= 20) {
+                    error.value = 'Demasiadas pasadas seguidas: se paró por seguridad.';
+                    break;
+                }
+            }
+
+            return [...todos.values()];
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo controlar los E-Ticket.');
+            return todos.size > 0 ? [...todos.values()] : null;
+        }
+    };
+
     const revalidarPasajero = async (pasajeroId: string): Promise<VeredictoDeDocumento[] | null> => {
         error.value = null;
         try {
@@ -993,6 +1077,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         resolverDocumento,
         girarDocumento,
         revalidarPasajero,
+        validarEtickets,
         confirmarIdentificacion,
         cloneCotizacion,
         guardarHistorico,

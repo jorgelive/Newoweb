@@ -17,7 +17,7 @@ import { formatearTelefono } from '@/utils/telefono';
 import { formatoAHtml } from '@/utils/formatoDeTexto';
 import PlanOperacionModal from '@/components/operacion/PlanOperacionModal.vue';
 import { apiClient } from '@/services/apiClient';
-import { useCotizacionFileStore, type VeredictoDeDocumento } from '@/stores/cotizacion/fileStore';
+import { useCotizacionFileStore, type VeredictoDeArchivo, type VeredictoDeDocumento } from '@/stores/cotizacion/fileStore';
 import { getUrls } from '@/services/apiClient';
 import { ESTADO_FILE_LABELS } from '@/types/cotizacionEditorModel';
 
@@ -2249,6 +2249,86 @@ const validarManifiesto = async () => {
     else alert(fileStore.error || 'No se pudo validar el manifiesto.');
 };
 
+/* ══ CONTROL DEL E-TICKET MIGRATORIO ══════════════════════════════════════
+   Otro botón y no una casilla del de arriba, porque son dos controles distintos: aquél coteja los
+   escaneos contra el manifiesto, éste coteja el trámite contra los VUELOS de cada persona.
+
+   🔑 **Y sobre todo: éste no recarga el expediente.** El de identidad devuelve el expediente entero
+   ya actualizado —~2,1 MB por pulsación aquí— y se aprovecha porque ya viene; éste devuelve sólo los
+   veredictos (~40 KB) y se parchean en sitio, que es lo que ya hace `aplicarVeredictos()` con las
+   identificaciones. Ver la cabecera de `EticketsController`. */
+
+const etickets = ref<{ hechos: number; pendientes: number } | null>(null);
+
+/**
+ * ⚠️ El botón sólo existe si ESTE expediente pide el trámite. Un viaje a Cusco no tiene nada que
+ * controlar aquí, y un botón que no hace nada enseña a no pulsar los que sí hacen algo.
+ */
+const pideEticket = computed(() => (file.value?.documentosPedidos ?? []).includes('eticket'));
+
+/** Cuántos trámites piden que alguien mire. Es el número que va al lado del botón. */
+const eticketsObservados = computed(() =>
+    (file.value?.filearchivos ?? [])
+        .filter(a => a.tipoArchivo === 'eticket' && a.estadoValidacion === 'observado').length);
+
+/**
+ * ⚠️ **Puede tardar minutos y por eso informa del avance.** Son tandas de 15 lecturas; el store
+ * repite mientras queden pendientes. Sin el contador, un botón que gira dos minutos se lee como
+ * colgado y alguien recarga la página a mitad — perdiendo la vista, no el trabajo: cada tanda
+ * persiste lo suyo.
+ */
+const validarEtickets = async () => {
+    const id = String(extractIdStr(file.value?.id ?? file.value?.['@id']));
+    etickets.value = { hechos: 0, pendientes: 0 };
+
+    const veredictos = await fileStore.validarEtickets(id, tanda => {
+        etickets.value = {
+            hechos: (etickets.value?.hechos ?? 0) + (tanda.leidosAhora ?? 0),
+            pendientes: tanda.pendientesDeLeer ?? 0,
+        };
+    });
+
+    etickets.value = null;
+
+    if (!veredictos) { alert(fileStore.error || 'No se pudo controlar los E-Ticket.'); return; }
+
+    aplicarVeredictosDeArchivo(veredictos);
+
+    if (fileStore.error) alert(fileStore.error);
+};
+
+/**
+ * Copia los veredictos encima de los archivos que ya están en pantalla.
+ *
+ * ⚠️ **Por `id` y no por posición.** La lista puede haber cambiado de orden —o de contenido— entre
+ * que se pulsó y que volvió la respuesta, y con tandas de minutos eso deja de ser teórico.
+ *
+ * ⚠️ Un archivo que no esté en pantalla se ignora **en silencio**: significa que alguien subió algo
+ * mientras corría el control, y la próxima carga lo traerá con su veredicto ya puesto. Recargar el
+ * expediente entero por eso sería justo lo que este camino existe para evitar.
+ */
+const aplicarVeredictosDeArchivo = (veredictos: VeredictoDeArchivo[]) => {
+    const porId = new Map(veredictos.map(v => [v.id, v]));
+
+    for (const archivo of file.value?.filearchivos ?? []) {
+        const v = porId.get(String(extractIdStr(archivo.id ?? archivo['@id'])));
+        if (!v) continue;
+
+        // Mismo cast y mismo motivo que en `aplicarVeredictos()`: los `readonly` del esquema dicen
+        // que estos campos no se MANDAN a la API, no que el objeto sea inmutable — y lo que se
+        // copia encima lo acaba de devolver el único que puede escribirlos.
+        const escribible = archivo as unknown as Pick<VeredictoDeArchivo,
+            'estadoValidacion' | 'discrepancias' | 'notasValidacion' | 'validadoEn' | 'leidoEn' | 'lecturaError'>;
+
+        escribible.estadoValidacion = v.estadoValidacion;
+        escribible.discrepancias = v.discrepancias;
+        escribible.notasValidacion = v.notasValidacion;
+        escribible.validadoEn = v.validadoEn;
+        escribible.leidoEn = v.leidoEn;
+        escribible.lecturaError = v.lecturaError;
+    }
+};
+
 /* ══ VISOR DE DOCUMENTOS DE UNA PERSONA ═══════════════════════════════════
    El puente que faltaba entre «este dato no coincide» y «pues mira el papel».
 
@@ -3787,6 +3867,20 @@ const eliminarDocumento = async (iri?: string) => {
                      arregla. Aquí lo que se corrige lo corrige una persona. -->
                 <span class="text-[9px] text-slate-400">
                   escribe el veredicto, no corrige el manifiesto
+                </span>
+
+                <!-- Control aparte porque coteja contra otra cosa: los VUELOS de cada persona. -->
+                <button v-if="pideEticket" type="button" @click="validarEtickets" :disabled="etickets !== null"
+                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-wider transition-colors">
+                  <i class="fas" :class="etickets ? 'fa-spinner fa-spin' : 'fa-passport'"></i>
+                  <template v-if="etickets">
+                    {{ etickets.pendientes ? `Leyendo… ${etickets.hechos} hechos, ${etickets.pendientes} por leer` : `Leyendo… ${etickets.hechos}` }}
+                  </template>
+                  <template v-else>Controlar E-Ticket</template>
+                </button>
+
+                <span v-if="eticketsObservados" class="inline-flex items-center gap-1 text-[10px] font-black text-indigo-700">
+                  <i class="fas fa-triangle-exclamation"></i> {{ eticketsObservados }} E-Ticket por revisar
                 </span>
               </div>
               <div v-if="manifiestoAbierto">

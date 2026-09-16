@@ -10018,6 +10018,56 @@ que el proceso llegue vivo al final. Arreglado **antes** de que existiera el bot
   al nuevo bueno dejaba a quien ya lo corrigió leyéndose como observado. Ahora sólo aporta el más
   reciente; que hay dos lo dice la celda de estado («2 · fecha», en ámbar), que es donde toca.
 
+### El botón en `util`: tandas cortas y respuesta ligera (16/09/2026)
+
+`POST /cotizacion/user/manifiesto/{id}/etickets/validar` → `EticketsController`.
+
+#### 🔥 No devuelve el expediente, y ése era el requisito
+
+El botón de identidad devuelve el expediente **entero** «para que el front repinte sin una segunda
+vuelta». Medido en este expediente, eso son **~2,1 MB por pulsación**: 10,8 KB por pasajero, de los
+que 9,9 KB son las `pertenencias` —que embeben el objeto `grupo` completo **1 712 veces**—. El
+comentario que lo justifica era razonable cuando se escribió, pero el expediente creció.
+
+Aquí se devuelven sólo los veredictos: **~40 KB**, y el front parchea `filearchivos` en sitio.
+
+No es una idea nueva: `DocumentosSueltosController::revalidar()` se construyó exactamente por esto, y
+su cabecera cuenta el síntoma — «pulsabas, no pasaba nada, y la validación aparecía cuando terminaba
+de recargarse toda la página».
+
+#### 🔥 Y por qué en tandas
+
+Leer un documento tarda ~3,5 s y php-fpm corta a los 90 s: **caben unas 15 lecturas por petición** y
+un expediente tiene 87. Una llamada que las intente todas muere a medias. Cada llamada hace dos cosas
+de coste muy distinto:
+
+```
+re-juzgar TODO lo ya leído   → gratis, PHP puro, milisegundos
+leer como mucho `limite`     → ~3,5 s cada una, y se para
+```
+
+y devuelve `pendientesDeLeer` para que el cliente vuelva a llamar. **Cada petición persiste lo suyo**,
+así que es reanudable: si se corta, lo pagado se queda pagado.
+
+🔑 **Re-juzgar todo en cada pasada no es rendimiento: es lo que mantiene vivos los veredictos.** Un
+E-Ticket se cotejó contra unos vuelos y un pasaporte, y **nada invalida su veredicto** cuando alguien
+cambia un vuelo o sube un escaneo nuevo. Un listener por cada fuente sería otro sitio del que nadie
+se acuerda —el mismo argumento que ya justifica cachear la lectura y no el veredicto—; re-juzgar
+cuesta milisegundos y no se olvida.
+
+⚠️ **Por qué no Messenger + Mercure.** Es la arquitectura correcta para trabajos de minutos y las
+piezas están. Pero añade una entidad de tarea con estado, un canal de entrega y **una dependencia del
+worker** —que hay que reiniciar en cada despliegue; un worker parado es un botón que no hace nada y
+no dice por qué— para un control que se corre un puñado de veces por expediente. Si algún día son
+mil documentos, el bucle se muda a un handler y **este contrato no cambia**.
+
+⚠️ **El país no viene del cliente.** Se deriva de `documentosPedidos`: dejarlo en la petición sería
+dejar elegir contra qué país se coteja, que es una decisión del expediente.
+
+⚠️ **El bucle del store tiene tope.** Si el servidor devolviera siempre el mismo `pendientesDeLeer`
+—un documento que falla de una forma que no se registra— giraría para siempre **gastando dinero en
+cada vuelta**. Se para cuando una pasada no lee nada, y a las 20 vueltas.
+
 ### Dónde vive el veredicto (y por qué no donde el de identidad)
 
 El de un DNI o un pasaporte vive en `CotizacionPasajeroIdentificacion`, **al lado del número que
