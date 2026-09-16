@@ -1229,6 +1229,37 @@ tarjeta de A a B durante una hora **sin pasar por PHP**, que es donde se comprue
 `no-cache` no prohíbe guardar, obliga a revalidar: el service worker sigue conservándola para el
 aeropuerto sin señal.
 
+#### El sufijo del subgrupo, también al EDITARLO (15/09/2026)
+
+El campo «tramo» —el `subeje`— ya estaba abierto a cualquier eje **en el alta**, con su argumento
+escrito: la `HA13` del Sonesta y la `HA13` del Terra son dos habitaciones distintas y **chocan**,
+porque la unicidad es `(file, tipo, subeje, clave)`.
+
+⚠️ **Pero el lápiz seguía escondiéndolo salvo en vuelos.** O sea: se podía crear
+«Habitación · Occidental Caribe» y después no verlo ni corregirlo. El valor viajaba de ida y vuelta
+en el formulario sin que nadie pudiera tocarlo — un campo que existe, decide la unicidad, y es
+invisible justo donde se va a buscar.
+
+Ahora se muestra siempre, con la etiqueta y la ayuda **del eje que se está editando**
+(`ejemploEdicion`, que cuelga de `grupoForm` y no de `nuevoGrupo`: reusar el del alta habría
+enseñado la ayuda del eje que estuviera medio escrito en el otro formulario).
+
+Con eso, el eje habitación se estructura igual que el aéreo:
+
+| | Vuelo | Habitación |
+|---|---|---|
+| `subeje` | Nacional / Internacional | **Occidental Caribe / Marriott Punta Cana** |
+| `clave` | el PNR | el número de habitación |
+| `nombre` | la aerolínea (agrupa el filtro) | el tipo de habitación |
+
+Y el pasajero lo ve sin tocar nada más: la tarjeta de «Lo tuyo» ya pinta `ejeLabel · subeje`.
+
+⚠️ **Lo que NO se abre es `GrupoTipoEnum::admiteSubeje()`**, que gobierna el `.xlsx`. Allí el eje y
+el sufijo viajan en **una sola cadena** —`#Vuelo Nacional`— y abrirlo haría que un `#Habitacion
+doble` entrara como sufijo «doble» en vez de denunciarse. En el formulario son dos campos y no hay
+nada que adivinar; en la hoja sí. Cargar hoteles desde el padrón es una decisión aparte, con ese
+coste encima de la mesa.
+
 #### Asignar tramos a UNA reserva, sin reescribir el JSON (15/09/2026)
 
 **El caso que lo pedía:** a un pasajero lo sacan de su PNR y se le abre uno propio. Se crea el

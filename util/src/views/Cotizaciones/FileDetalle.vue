@@ -2879,6 +2879,15 @@ const EJEMPLOS_EJE: Record<string, {
 };
 
 const ejemploDe = computed(() => EJEMPLOS_EJE[nuevoGrupo.value.tipo] ?? EJEMPLOS_EJE.grupo);
+
+/**
+ * Lo mismo, para el formulario de EDICIÓN.
+ *
+ * ⚠️ El de arriba cuelga de `nuevoGrupo`, que es el estado del ALTA: reusarlo en el lápiz habría
+ * enseñado la ayuda del eje que estuviera medio escrito en el otro formulario, no la del subgrupo
+ * que se está editando.
+ */
+const ejemploEdicion = computed(() => EJEMPLOS_EJE[String(grupoForm.value.tipo)] ?? EJEMPLOS_EJE.grupo);
 const etiquetaSubeje = computed(() => ejemploDe.value.subeje);
 const ejemploSubeje = computed(() => ejemploDe.value.ejemploSubeje);
 const ejemploClave = computed(() => ejemploDe.value.clave);
@@ -5480,9 +5489,25 @@ const eliminarDocumento = async (iri?: string) => {
                 <option v-for="(cfg, valor) in GRUPO_TIPO_LABELS" :key="valor" :value="valor">{{ cfg.label }}</option>
               </select>
             </div>
-            <div v-if="grupoForm.tipo === 'reserva_aerea'">
-              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tramo</label>
-              <input v-model="grupoForm.subeje" type="text" maxlength="60" placeholder="Nacional · Cusco-Puno"
+            <!-- 🔥 **El sufijo, para CUALQUIER eje — igual que en el alta.** Aquí seguía escondido
+                 salvo en vuelos, así que se podía CREAR «Habitación · Occidental Caribe» y luego no
+                 verlo ni corregirlo: el campo desaparecía al abrir el lápiz. El valor viajaba de
+                 ida y vuelta sin que nadie pudiera tocarlo.
+
+                 Y es el mismo caso que ya justificó abrirlo en el alta: la `HA13` del Occidental y
+                 la `HA13` del Marriott son dos habitaciones distintas, y sin sufijo **chocan** —
+                 la unicidad es `(file, tipo, subeje, clave)`.
+
+                 ⚠️ Lo que sigue SIN tocarse es `GrupoTipoEnum::admiteSubeje()`, que gobierna el
+                 .xlsx: allí eje y sufijo viajan en una sola cadena —`#Vuelo Nacional`— y abrirlo
+                 haría que un `#Habitacion doble` entrara como sufijo «doble» en vez de
+                 denunciarse. Aquí son dos campos y no hay nada que adivinar. -->
+            <div>
+              <label class="flex items-center gap-1 text-[10px] font-bold text-slate-500 uppercase mb-1">
+                {{ ejemploEdicion.subeje }}
+                <i class="fas fa-circle-info text-teal-500 cursor-help" :title="ejemploEdicion.ayudaSubeje"></i>
+              </label>
+              <input v-model="grupoForm.subeje" type="text" maxlength="60" :placeholder="ejemploEdicion.ejemploSubeje"
                      class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 placeholder:text-slate-300">
             </div>
           </div>
