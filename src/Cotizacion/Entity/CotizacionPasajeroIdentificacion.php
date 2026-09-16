@@ -377,6 +377,28 @@ class CotizacionPasajeroIdentificacion
     }
 
     public function getVencimiento(): ?DateTimeInterface { return $this->vencimiento; }
+
+    /**
+     * ¿Está caducado a día de hoy?
+     *
+     * 🔥 **Existe porque un documento vencido NO se puede dar por bueno mirándolo.** El resto de
+     * avisos —la banda cortada, la ficha copiada del escaneo— los resuelve alguien que abre el
+     * documento y comprueba que los datos están bien; el vencimiento no: por mucho que se mire, en
+     * el mostrador no vale. Es la única nota que ninguna firma humana puede levantar.
+     *
+     * ⚠️ Sin hora: un documento que vence HOY sirve hoy. Comparar con `new DateTimeImmutable()` a
+     * pelo lo daría por caducado desde las 00:00:01.
+     */
+    public function estaVencida(?DateTimeImmutable $hoy = null): bool
+    {
+        if ($this->vencimiento === null) {
+            return false;
+        }
+
+        $limite = ($hoy ?? new DateTimeImmutable())->setTime(0, 0);
+
+        return $this->vencimiento->format('Y-m-d') < $limite->format('Y-m-d');
+    }
     public function setVencimiento(?DateTimeInterface $v): self
     {
         if ($this->vencimiento?->format('Y-m-d') !== $v?->format('Y-m-d')) { $this->invalidarVeredicto(); }

@@ -91,6 +91,14 @@ export interface VeredictoDeDocumento {
      * cuadra. Firmar lo que nadie ha subido sí sería malo.
      */
     tieneEscaneo?: boolean;
+    /**
+     * ¿Se le puede poner el «lo he mirado, está bien»?
+     *
+     * ⚠️ **Lo decide el servidor**, con la misma regla que aplica el guarda del endpoint: hay
+     * escaneo, no hay discrepancias y **no está vencido**. Con la regla duplicada en el front, el
+     * botón acabaría ofreciendo algo que el servidor rechaza — y ya pasó con un DNI caducado.
+     */
+    sePuedeConfirmar?: boolean;
 }
 
 export interface ApiIdioma {

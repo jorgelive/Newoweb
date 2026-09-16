@@ -10189,6 +10189,10 @@ ya gobierna el control del E-Ticket (ver `ReferenciaDeIdentidad`).
 se acepta, no qué valor. Si viniera el valor, este endpoint sería «escribe lo que quieras en el
 manifiesto» con un nombre tranquilizador.
 
+⚠️ **El botón dice «usar el del ESCANEO», no «del documento».** Era ambiguo: la columna de al lado ya
+se llama «dice el documento», así que «usar el del documento» se leía como «usar el que ya está
+puesto» — justo lo contrario de lo que hace. Lo que se copia es lo que se leyó de la imagen.
+
 ⚠️ **Sólo `número` y `vencimiento`**, que son de la identificación. El nombre y el nacimiento son del
 pasajero, y escribirlos desde aquí metería a este endpoint a decidir sobre otra entidad.
 
@@ -10240,6 +10244,25 @@ pierde el tiempo revisando y encima no se arregla.
 ⚠️ **El dígito compuesto es el que más lo delata**: cubre casi toda la banda, así que un carácter
 perdido en un borde lo tumba mientras los campos sueltos siguen cuadrando. Ahora ese caso se dice
 aparte y en términos de lo que hay que hacer — pedir otra foto con la página completa.
+
+##### 🔥 Pero un documento VENCIDO no se firma nunca
+
+El botón salía encima de un DNI caducado. Al pulsarlo, `Cotejo` lo dejaba igual —la nota de vencido
+bloquea el sello— pero **el «confirmada por X» sí se escribía**: una firma humana guardada sobre un
+documento que en el mostrador no vale, y una pastilla que no cambiaba de color. Lo peor de los dos
+mundos: parece que no hace nada y sí deja rastro.
+
+🔑 **El vencimiento es la única nota que ninguna firma levanta.** Las demás las resuelve alguien que
+abre el escaneo y comprueba los datos; por mucho que se mire, un DNI vencido sigue vencido. Eso no se
+arregla mirando, hace falta el documento nuevo.
+
+Ahora hay guarda en el endpoint (`409`) y el botón no sale. ⚠️ **Y la regla se calcula en UN solo
+sitio**: el servidor manda `sePuedeConfirmar` en el veredicto, con la misma condición que aplica el
+guarda. Duplicada en el front, el día que cambie una de las dos el botón ofrecería algo que el
+servidor rechaza — que es exactamente lo que acababa de pasar.
+
+⚠️ `CotizacionPasajeroIdentificacion::estaVencida()` compara **por día, sin hora**: el documento que
+vence HOY sirve HOY. Con `new DateTimeImmutable()` a pelo estaría caducado desde las 00:00:01.
 
 ##### Y «lo he mirado, está bien» tampoco salía ahí
 

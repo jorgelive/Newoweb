@@ -13,6 +13,7 @@ use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use App\Cotizacion\Entity\CotizacionPasajeroIdentificacion;
+use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -251,6 +252,13 @@ final class DocumentosSueltosController extends AbstractController
                 // observado para siempre. Firmar lo que NO se puede mirar sí sería malo; por eso se
                 // manda el hecho y lo decide el servidor, no una deducción del front.
                 'tieneEscaneo' => $i->getValidadoCon() !== null,
+                // ⚠️ **Lo decide el servidor, no el front.** Es la misma regla que aplica el guarda
+                // de `confirmar()`: si la calcula cada lado por su cuenta, el día que cambie una de
+                // las dos el botón ofrecerá algo que el endpoint rechaza.
+                'sePuedeConfirmar' => $i->getValidadoCon() !== null
+                    && !$i->estaVencida()
+                    && $i->getEstadoValidacion() === ValidacionIdentificacionEnum::OBSERVADO
+                    && $i->getDiscrepancias() === [],
             ];
         }
 
@@ -292,6 +300,20 @@ final class DocumentosSueltosController extends AbstractController
         $pasajero = $identificacion->getPasajero();
         if ($pasajero === null) {
             return new JsonResponse(['error' => 'Ese documento no cuelga de nadie.'], Response::HTTP_CONFLICT);
+        }
+
+        // 🔥 **Un documento vencido no se puede dar por bueno mirándolo, y esto faltaba.** El botón
+        // salía encima de un DNI caducado y, al pulsarlo, `Cotejo` lo dejaba igual —la nota de
+        // vencido bloquea el sello— pero **el «confirmada por X» sí se escribía**: una firma humana
+        // guardada sobre un documento que en el mostrador no vale, y una pastilla que no cambiaba.
+        //
+        // El resto de avisos los levanta alguien que abre el escaneo y comprueba los datos. El
+        // vencimiento, no: por mucho que se mire, sigue vencido.
+        if ($identificacion->estaVencida()) {
+            return new JsonResponse(
+                ['error' => 'Está vencido: eso no se arregla mirándolo. Hace falta el documento nuevo.'],
+                Response::HTTP_CONFLICT,
+            );
         }
 
         $identificacion->confirmarAMano($this->getUser()?->getUserIdentifier() ?? 'desconocido');

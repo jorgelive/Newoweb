@@ -2248,13 +2248,14 @@ const aplicarVeredictos = async (pax: ApiCotizacionFilepasajero, veredictos: Ver
         // es la única fuente que puede escribirlos.
         const escribible = fila as unknown as Pick<VeredictoDeDocumento,
             'estadoValidacion' | 'discrepancias' | 'notasValidacion' | 'copiadaDelEscaneo'
-            | 'tieneEscaneo' | 'numero' | 'vencimiento'>;
+            | 'tieneEscaneo' | 'sePuedeConfirmar' | 'numero' | 'vencimiento'>;
 
         escribible.estadoValidacion = v.estadoValidacion;
         escribible.discrepancias = v.discrepancias;
         escribible.notasValidacion = v.notasValidacion;
         escribible.copiadaDelEscaneo = v.copiadaDelEscaneo;
         escribible.tieneEscaneo = v.tieneEscaneo;
+        escribible.sePuedeConfirmar = v.sePuedeConfirmar;
         // ⚠️ **El número y el vencimiento también**, desde que «usar el del documento» los cambia:
         // sin copiarlos, la pantalla seguiría enseñando el valor viejo con el aviso ya apagado —el
         // peor de los dos mundos, porque parece resuelto y muestra lo que no es.
@@ -4525,14 +4526,16 @@ const eliminarDocumento = async (iri?: string) => {
                                una máquina de un documento real, así que el dedazo casi siempre está
                                en el lado guardado.
 
-                               ⚠️ Sólo en los campos que son de la identificación: el nombre y el
-                               nacimiento son del pasajero, no de su documento. -->
+                               ⚠️ Dice «del ESCANEO» y no «del documento», que era ambiguo: la
+                               columna de al lado ya se llama «dice el documento», así que «usar el
+                               del documento» se leía como «usar el que ya está puesto». Lo que se
+                               copia es lo que se leyó de la imagen. -->
                           <button v-if="sePuedeAceptarDelDoc(d)" type="button"
                                   :disabled="aceptando === `${ident.id}:${d.campo}`"
                                   @click="aceptarDelDocumento(pax, ident, d.campo)"
                                   class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-emerald-300 bg-emerald-50 text-emerald-700 font-black uppercase tracking-wider hover:bg-emerald-100 disabled:opacity-50">
                             <i class="fas fa-arrow-left text-[8px]"></i>
-                            {{ aceptando === `${ident.id}:${d.campo}` ? 'Guardando…' : 'Usar el del documento' }}
+                            {{ aceptando === `${ident.id}:${d.campo}` ? 'Guardando…' : 'Usar el del escaneo' }}
                           </button>
                         </span>
 
