@@ -112,6 +112,19 @@ final readonly class ValidadorDeEticket
      */
     public function validar(CotizacionFilearchivo $archivo, PaisDeControlEnum $pais): ?CotejoDeEticket
     {
+        // 🔥 **«No es de mi incumbencia» NO es «no se pudo leer», y confundirlos pisó veredictos
+        // buenos.** `lecturaDe()` devuelve `null` por dos motivos muy distintos: porque el archivo
+        // no es un E-Ticket, o porque siéndolo no se pudo leer. Abajo los dos acababan en
+        // `ilegible()`, así que pasarle un pasaporte escribía sobre él «no se pudo leer el
+        // documento» — y de paso el UPDATE de ese archivo disparaba el listener, que invalidaba el
+        // veredicto de la identificación que ese escaneo respaldaba. Un documento perfectamente
+        // validado se quedaba sin validar por preguntarle a quien no era.
+        //
+        // El guarda va **antes** de leer, que es donde se distinguen las dos cosas.
+        if ($archivo->getTipoArchivo() !== ArchivoTipoEnum::ETICKET) {
+            return null;
+        }
+
         $pasajero = $archivo->getPasajero();
 
         if ($pasajero === null) {

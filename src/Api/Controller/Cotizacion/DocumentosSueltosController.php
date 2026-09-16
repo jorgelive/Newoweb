@@ -15,6 +15,7 @@ use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use App\Cotizacion\Entity\CotizacionPasajeroIdentificacion;
+use App\Cotizacion\Enum\ArchivoTipoEnum;
 use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -168,6 +169,13 @@ final class DocumentosSueltosController extends AbstractController
         $id = (string) $pasajero->getId();
 
         foreach ($file->getFilearchivos() as $archivo) {
+            // ⚠️ **Sólo los E-Ticket.** La primera versión recorría todo lo que tuviera lectura
+            // —«el veredicto vive en el archivo, así que el dato dirá cuáles»— y le preguntaba al
+            // validador del trámite por pasaportes y DNI. Ver el guarda de `ValidadorDeEticket`.
+            if ($archivo->getTipoArchivo() !== ArchivoTipoEnum::ETICKET) {
+                continue;
+            }
+
             if ($archivo->getDatosLeidos() === null || (string) $archivo->getPasajero()?->getId() !== $id) {
                 continue;
             }
