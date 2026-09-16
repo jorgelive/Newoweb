@@ -55,7 +55,8 @@ final class CotizacionValidarEticketsCommand extends Command
             ->addArgument('localizador', InputArgument::REQUIRED, 'El localizador del expediente')
             ->addOption('pais', null, InputOption::VALUE_REQUIRED, 'País del trámite (ISO-2)', 'DO')
             ->addOption('limite', null, InputOption::VALUE_REQUIRED, 'Cuántos leer como mucho en esta pasada')
-            ->addOption('solo-leidos', null, InputOption::VALUE_NONE, 'No llama al modelo: sólo re-juzga lo ya leído');
+            ->addOption('solo-leidos', null, InputOption::VALUE_NONE, 'No llama al modelo: sólo re-juzga lo ya leído')
+            ->addOption('reintentar', null, InputOption::VALUE_NONE, 'Vuelve a leer los que fallaron al leerse');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -86,6 +87,7 @@ final class CotizacionValidarEticketsCommand extends Command
         $limite = $input->getOption('limite');
         $limite = is_string($limite) ? max(1, (int) $limite) : null;
         $soloLeidos = (bool) $input->getOption('solo-leidos');
+        $reintentar = (bool) $input->getOption('reintentar');
 
         $filas = [];
         $cuenta = [];
@@ -94,6 +96,15 @@ final class CotizacionValidarEticketsCommand extends Command
         foreach ($file->getFilearchivos() as $archivo) {
             if ($archivo->getTipoArchivo() !== ArchivoTipoEnum::ETICKET) {
                 continue;
+            }
+
+            // ⚠️ Un fallo de lectura se guarda —si no, la tanda lo reintentaría eternamente— y eso
+            // deja el documento en «se intentó y falló» PARA SIEMPRE. Cuando lo que falló fue el
+            // llamador y no el documento —un esquema que el proveedor rechaza, una credencial
+            // caducada—, hay que poder devolverlos a «nunca se ha leído». Para eso existe
+            // `olvidarLectura()`, que no es `registrarLectura(null)`.
+            if ($reintentar && $archivo->getDatosLeidos() === null && $archivo->seIntentoLeer()) {
+                $archivo->olvidarLectura();
             }
 
             // Con `--solo-leidos` no se llama al modelo: es la pasada barata, la que se usa después

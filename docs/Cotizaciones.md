@@ -9837,3 +9837,19 @@ Otro documento que se coteje contra el itinerario (una tarjeta de embarque, un s
 su `DatosDeX`, su `LectorDeX` y su `CotejoDeX`, copiando estos tres. **No se montó un motor de
 reglas ni un DSL**, a propósito: aquí los contratos son clases pequeñas y tipadas, y ésa es la razón
 de que un caso nuevo cueste tres archivos que se leen enteros en cinco minutos.
+
+### ⚠️ `additionalProperties` tumba la llamada entera en Google AI
+
+Primera pasada real: **los tres documentos con `400 Unknown name "additionalProperties"`**. El
+dialecto de esquema del proveedor no conoce esa clave y rechaza la petición completa — no ignora el
+campo, falla la llamada. `LectorDeDocumentoIdentidad` no la lleva, y ahora se sabe que no era un
+olvido.
+
+🔑 **Lo que sí funcionó fue el registro del error**, que es el diseño haciendo su trabajo: los tres
+quedaron con el motivo escrito en `lecturaError` en vez de reintentarse en bucle. Pero eso los deja
+en «se intentó y falló» **para siempre**, y cuando el que falló fue el llamador —un esquema que el
+proveedor rechaza, una credencial caducada— hay que poder devolverlos a «nunca se ha leído».
+
+Para eso está `--reintentar`, que llama a `CotizacionFilearchivo::olvidarLectura()`. ⚠️ **No es
+`registrarLectura(null)`**: ése deja `leidoEn` puesto, que significa justo «se intentó y falló». Es
+la misma trampa que ya se documentó al girar un escaneo.

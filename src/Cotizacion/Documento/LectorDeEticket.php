@@ -83,7 +83,9 @@ final readonly class LectorDeEticket
             'traeEntrada', 'fechaEntrada', 'vueloEntrada',
             'traeSalida', 'fechaSalida', 'vueloSalida',
         ],
-        'additionalProperties' => false,
+        // ⚠️ **Sin `additionalProperties`**: el dialecto de esquema de Google AI no lo conoce y
+        // devuelve `400 Unknown name "additionalProperties"` — la llamada entera, no el campo.
+        // El lector de identidad tampoco lo lleva, y no por olvido.
     ];
 
     public function __construct(private LectorDeImagenInterface $lector) {}
