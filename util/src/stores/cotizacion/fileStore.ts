@@ -901,11 +901,14 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * Controla los E-Ticket del expediente **en tandas**, sin recargarlo.
      *
      * ── Por qué un bucle y no una llamada ───────────────────────────────────
-     * Leer un documento con el modelo tarda ~3,5 s y el servidor corta a los 90 s, así que caben
-     * unas 15 lecturas por petición y un expediente tiene 87. El servidor devuelve
-     * `pendientesDeLeer` y aquí se vuelve a llamar hasta que sea 0, informando del avance por
-     * `alAvanzar`. Cada petición **persiste lo suyo**: si se corta la conexión, lo pagado se queda
-     * pagado y la siguiente pasada sigue donde estaba.
+     * Leer un documento con el modelo tarda **~10 s** —medido— y un expediente tiene ~100: todo
+     * junto es un cuarto de hora. El servidor lee de cinco en cinco, devuelve `pendientesDeLeer` y
+     * aquí se vuelve a llamar hasta que sea 0, informando del avance por `alAvanzar`.
+     *
+     * 🔥 **Un corte NO tira el trabajo, y por eso se reintenta en vez de rendirse.** Cada petición
+     * persiste lo suyo en el servidor, así que volver a llamar no repite ninguna lectura: sigue
+     * donde estaba. La primera versión abortaba el bucle entero al primer fallo de red y enseñaba
+     * «No se pudo controlar los E-Ticket» — con el trabajo a medias hecho y pagado, y sin decirlo.
      *
      * 🔑 **Y la respuesta NO es el expediente.** Son ~40 KB de veredictos contra los ~2,1 MB que
      * pesa este expediente: el que llama parchea `filearchivos` en sitio, igual que
@@ -923,35 +926,49 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
 
         const todos = new Map<string, VeredictoDeArchivo>();
         let vueltas = 0;
+        let fallosSeguidos = 0;
 
-        try {
-            for (;;) {
+        for (;;) {
+            let tanda: TandaDeEtickets;
+
+            try {
                 const { data } = await apiClient.post(
                     `/cotizacion/user/manifiesto/${fileId}/etickets/validar`, {});
-                const tanda = data as TandaDeEtickets;
+                tanda = data as TandaDeEtickets;
+                fallosSeguidos = 0;
+            } catch (err: unknown) {
+                // ⚠️ **Tres seguidos**, no uno. Una tanda tarda ~50 s y se hace desde el móvil: un
+                // salto de cobertura o un cambio de red tumba una petición y no significa nada.
+                // Reintentar no cuesta lecturas —el servidor ya guardó las suyas— y es la
+                // diferencia entre «sigue» y «se perdió todo», que es como se leía antes.
+                if (++fallosSeguidos < 3) { continue; }
 
-                for (const v of tanda.archivos ?? []) { todos.set(v.id, v); }
-                alAvanzar?.(tanda);
+                error.value = extractApiErrorMessage(err, 'Se cortó la conexión tres veces seguidas. Lo leído está guardado: vuelve a pulsar para seguir.');
 
-                if ((tanda.pendientesDeLeer ?? 0) <= 0) { break; }
-
-                // Sin lecturas nuevas y con pendientes, la siguiente vuelta haría lo mismo.
-                if ((tanda.leidosAhora ?? 0) === 0) {
-                    error.value = `Quedan ${tanda.pendientesDeLeer} sin leer y la última pasada no avanzó. Revísalos a mano.`;
-                    break;
-                }
-
-                if (++vueltas >= 20) {
-                    error.value = 'Demasiadas pasadas seguidas: se paró por seguridad.';
-                    break;
-                }
+                return todos.size > 0 ? [...todos.values()] : null;
             }
 
-            return [...todos.values()];
-        } catch (err: unknown) {
-            error.value = extractApiErrorMessage(err, 'No se pudo controlar los E-Ticket.');
-            return todos.size > 0 ? [...todos.values()] : null;
+            for (const v of tanda.archivos ?? []) { todos.set(v.id, v); }
+            alAvanzar?.(tanda);
+
+            if ((tanda.pendientesDeLeer ?? 0) <= 0) { break; }
+
+            // Sin lecturas nuevas y con pendientes, la siguiente vuelta haría lo mismo.
+            if ((tanda.leidosAhora ?? 0) === 0) {
+                error.value = `Quedan ${tanda.pendientesDeLeer} sin leer y la última pasada no avanzó. Revísalos a mano.`;
+                break;
+            }
+
+            // ⚠️ Con tandas de 5 y expedientes de ~100 son 20 vueltas normales: el tope tiene que
+            // dejar sitio de sobra o cortaría un trabajo que iba bien. Lo que de verdad para el
+            // bucle es la comprobación de arriba —que no haya avanzado—, no esto.
+            if (++vueltas >= 100) {
+                error.value = 'Demasiadas pasadas seguidas: se paró por seguridad.';
+                break;
+            }
         }
+
+        return [...todos.values()];
     };
 
     const revalidarPasajero = async (pasajeroId: string): Promise<VeredictoDeDocumento[] | null> => {

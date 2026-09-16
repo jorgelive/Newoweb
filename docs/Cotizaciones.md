@@ -10064,6 +10064,22 @@ mil documentos, el bucle se muda a un handler y **este contrato no cambia**.
 ⚠️ **El país no viene del cliente.** Se deriva de `documentosPedidos`: dejarlo en la petición sería
 dejar elegir contra qué país se coteja, que es una decisión del expediente.
 
+##### 🔥 La estimación de 3,5 s por lectura era falsa, y el botón moría por eso
+
+Medido sobre las 97 lecturas reales de producción: **entre 5 y 10 por minuto**, o sea ~10 s cada una
+—no 3,5—. Con tandas de 15, cada petición tardaba **entre dos y cuatro minutos** (comprobado en los
+tiempos del `info.log`), y al operador le saltaba «No se pudo controlar los E-Ticket» antes de que
+volviera la primera.
+
+⚠️ **Lo que se elige en `LIMITE_POR_TANDA` no es el total, es cada cuánto se ve avanzar.** El trabajo
+tarda lo que tarda; el tamaño del trozo decide cuándo se mueve la pantalla y cuánto cuesta un corte
+de red. Cinco son ~50 s. Y no se puede subir «porque el servidor aguanta» —nginx corta a 300 s y el
+`max_execution_time` de PHP **no cuenta las esperas de red**—: quien aguanta menos es quien mira.
+
+⚠️ **Y un fallo de red ya no tira el bucle.** Abortaba a la primera y enseñaba «no se pudo», con el
+trabajo a medias hecho **y pagado**, sin decirlo. Ahora reintenta tres veces: cada petición persiste
+lo suyo, así que volver a llamar no repite ninguna lectura.
+
 ⚠️ **El bucle del store tiene tope.** Si el servidor devolviera siempre el mismo `pendientesDeLeer`
 —un documento que falla de una forma que no se registra— giraría para siempre **gastando dinero en
 cada vuelta**. Se para cuando una pasada no lee nada, y a las 20 vueltas.

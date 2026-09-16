@@ -37,8 +37,9 @@ use Symfony\Component\Uid\Uuid;
  * cuando terminaba de recargarse toda la página»—.
  *
  * ── 🔥 Y por qué en TANDAS ──────────────────────────────────────────────────
- * Leer un documento con el modelo tarda ~3,5 s y php-fpm corta a los 90 s: **caben unas 25 lecturas
- * por petición**, y un expediente tiene 87. Una sola llamada que las intente todas muere a medias.
+ * Leer un documento con el modelo tarda **~10 s** —medido sobre las 97 lecturas reales: entre 5 y 10
+ * por minuto— y un expediente tiene ~100. Una sola llamada que las intente todas tarda un cuarto de
+ * hora y nadie espera eso delante de un botón.
  *
  * Así que cada llamada hace dos cosas muy distintas:
  *
@@ -65,12 +66,22 @@ use Symfony\Component\Uid\Uuid;
 final class EticketsController extends AbstractController
 {
     /**
-     * Cuántas lecturas caben en una petición sin acercarse al corte de php-fpm.
+     * Cuántas lecturas caben en una petición que alguien esté mirando.
      *
-     * ⚠️ 15 × 3,5 s ≈ 52 s, con margen para el re-juicio y la red. Subirlo es apostar a que el
-     * modelo no tenga un mal día; el precio de quedarse corto es una llamada más, que es gratis.
+     * 🔥 **Eran 15, calculadas sobre una estimación mía de 3,5 s por lectura que resultó falsa.**
+     * Medido sobre las 97 lecturas reales: entre **5 y 10 por minuto**, o sea ~10 s cada una. Las
+     * tandas tardaban **entre dos y cuatro minutos** —comprobado en los tiempos del log— y al
+     * usuario le saltaba el error del cliente antes de que volviera la primera.
+     *
+     * ⚠️ **Lo que importa no es el total, es cada cuánto se ve avanzar.** El trabajo tarda lo que
+     * tarda; lo que se elige aquí es el tamaño del trozo tras el cual la pantalla se mueve y el
+     * cliente puede reintentar sin perder nada. Cinco son ~50 s: suficientemente corto para que se
+     * note y para que un corte de red cueste poco.
+     *
+     * ⚠️ Y no se puede subir «porque el servidor aguanta»: aguanta —nginx corta a 300 s y el
+     * `max_execution_time` de PHP no cuenta las esperas de red—, pero quien está delante, no.
      */
-    private const LIMITE_POR_TANDA = 15;
+    private const LIMITE_POR_TANDA = 5;
 
     #[Route(
         '/cotizacion/user/manifiesto/{id}/etickets/validar',
