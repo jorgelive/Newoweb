@@ -13,6 +13,7 @@ use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use App\Cotizacion\Entity\CotizacionPasajeroIdentificacion;
+use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -313,24 +314,35 @@ final class DocumentosSueltosController extends AbstractController
             return new JsonResponse(['error' => 'Ese documento no cuelga de nadie.'], Response::HTTP_CONFLICT);
         }
 
-        // 🔥 **Un documento vencido no se puede dar por bueno mirándolo, y esto faltaba.** El botón
-        // salía encima de un DNI caducado y, al pulsarlo, `Cotejo` lo dejaba igual —la nota de
-        // vencido bloquea el sello— pero **el «confirmada por X» sí se escribía**: una firma humana
-        // guardada sobre un documento que en el mostrador no vale, y una pastilla que no cambiaba.
+        // 🔥 **Se firma, se revalida, y si NO surtió efecto se retira la firma.**
         //
-        // El resto de avisos los levanta alguien que abre el escaneo y comprueba los datos. El
-        // vencimiento, no: por mucho que se mire, sigue vencido.
-        if ($identificacion->estaVencida()) {
-            return new JsonResponse(
-                ['error' => 'Está vencido: eso no se arregla mirándolo. Hace falta el documento nuevo.'],
-                Response::HTTP_CONFLICT,
-            );
+        // La primera versión ponía un guarda de vencimiento aquí, y no bastaba: `estaVencida()` lee
+        // el vencimiento del MANIFIESTO y la nota que bloquea el sello sale del vencimiento leído
+        // del ESCANEO. Con la fecha vacía en el manifiesto —en el padrón real había 22 así— y un
+        // escaneo caducado, el guarda pasaba y quedaba «confirmada por X» sobre un documento
+        // inválido, con la pastilla sin cambiar.
+        //
+        // 🔑 En vez de reproducir aquí qué notas bloquean —que es la lógica de `Cotejo` y cambiaría
+        // por detrás—, se **pregunta por el resultado**: si tras revalidar el sello no es
+        // `CONFIRMADO`, es que la firma no resolvía nada y no tiene por qué quedarse escrita. Vale
+        // para el vencimiento y para cualquier motivo que venga después, sin tocar esto.
+        $identificacion->confirmarAMano($this->getUser()?->getUserIdentifier() ?? 'desconocido');
+        $conteo = $validador->validarPasajero($pasajero);
+
+        if ($identificacion->getEstadoValidacion() !== ValidacionIdentificacionEnum::CONFIRMADO) {
+            $identificacion->deshacerConfirmacion();
+            $em->flush();
+
+            return new JsonResponse([
+                'error' => sprintf(
+                    'Mirarlo no lo resuelve: %s',
+                    implode('. ', $identificacion->getNotasValidacion()) ?: 'sigue observado',
+                ),
+                'identificaciones' => self::veredictosDe($pasajero),
+            ], Response::HTTP_CONFLICT);
         }
 
-        $identificacion->confirmarAMano($this->getUser()?->getUserIdentifier() ?? 'desconocido');
         $em->flush();
-
-        $conteo = $validador->validarPasajero($pasajero);
 
         return new JsonResponse(['conteo' => $conteo, 'identificaciones' => self::veredictosDe($pasajero)]);
     }

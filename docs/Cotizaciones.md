@@ -10117,6 +10117,41 @@ lo tocara:
 | El archivo se **reasigna** a otra persona | el veredicto viaja con él: la fila de Pedro enseña «pasaporte: doc X ≠ esperado Y» calculado contra Juan |
 | Se **reemplaza el fichero** por PATCH | la lectura cacheada sigue siendo la del documento viejo: un billete cambiado por el PDF bueno se re-juzga eternamente como billete |
 
+#### 🔥 Lo que sacó la segunda revisión: tres fallos en el guardado (16/09/2026)
+
+**1. La rama del fichero reemplazado no podía dispararse nunca.** La guarda miraba
+`isset($cambios['imageName'])`, pero **Vich escribe `imageName` en `preUpdate`** y el ORM despacha
+`onFlush` **antes** de `executeUpdates()`. Cuando este listener mira, el changeset de un PATCH con
+fichero nuevo trae sólo `updatedAt`. Resultado: reemplazar un billete por el PDF bueno dejaba la
+lectura del billete **para siempre**, y cada tanda repetía «esto no parece un E-Ticket» sobre un
+trámite correcto. Ahora se pregunta por `getImageFile()`, que en `onFlush` sí está puesto.
+
+⚠️ **Y el test que la defendía estaba en verde.** Probaba una función pura con un changeset
+construido a mano que en producción no existe en ese instante. La lección: **un test sobre una
+función pura sólo vale lo que valga su entrada**; si la entrada se inventa, se prueba la aritmética
+y no el hecho.
+
+**2. Reasignar un archivo tiraba la lectura pagada.** Eran dos preguntas fundidas en una:
+
+| Qué cambió | ¿caduca el veredicto? | ¿caduca la LECTURA? |
+|---|---|---|
+| el fichero | sí | **sí** — es del documento viejo |
+| el dueño | sí — se calculó contra otra persona | **no** — los bytes son los mismos |
+
+Y salía carísimo en silencio: `ResolutorDeDocumentoSuelto` **paga la lectura**, crea la ficha a
+partir de ella y entonces hace `setPasajero()`. El flush de esa misma transacción borraba la lectura
+de la que acababa de salir la ficha.
+
+**3. El guarda de vencimiento miraba el manifiesto; la nota que bloquea sale del escaneo.** Con la
+fecha vacía en el manifiesto —en el padrón real había 22 así— y un escaneo caducado, el guarda pasaba
+y quedaba «confirmada por X» sobre un documento inválido, con la pastilla sin cambiar: exactamente el
+fallo que se decía cerrado.
+
+🔑 **Se arregló preguntando por el RESULTADO, no reproduciendo la regla.** Se firma, se revalida, y
+si el sello no acaba siendo `CONFIRMADO` **se retira la firma** y se devuelve 409 con el motivo. Vale
+para el vencimiento y para cualquier razón que venga después, sin tocar nada. Reproducir aquí qué
+notas bloquean habría sido la cuarta copia de una regla que vive en `Cotejo`.
+
 ⚠️ **La guarda es lo delicado, y por eso es pública y tiene test propio.** El control escribe
 `datosLeidos` y hace `flush()` en el acto —una lectura es dinero gastado y no puede esperar al
 final—, así que `invalidaLoGuardado()` **corre en el mismo `flush` que guarda la lectura**. Un `true`

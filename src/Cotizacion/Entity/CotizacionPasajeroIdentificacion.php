@@ -231,6 +231,25 @@ class CotizacionPasajeroIdentificacion
     }
 
     /**
+     * Retira una firma que no surtió efecto.
+     *
+     * 🔥 **Existe porque la firma se escribía aunque el veredicto no cambiara.** Una nota que
+     * bloquea el sello —vencido, y cualquier otra futura— dejaba «confirmada por X» guardado con la
+     * pastilla igual de ámbar: una firma humana sobre un documento que el sistema sigue sin aceptar.
+     *
+     * ⚠️ **No usa `invalidarVeredicto()`**, que además apaga `copiadaDelEscaneo`. Eso significa «de
+     * dónde salió el número» y es un hecho histórico: seguiría siendo cierto. Aquí sólo se deshace
+     * lo que se acaba de escribir.
+     */
+    public function deshacerConfirmacion(): self
+    {
+        $this->confirmadaEn = null;
+        $this->confirmadaPor = null;
+
+        return $this;
+    }
+
+    /**
      * Qué escaneo hace falta para poder validar este número: `dni_anverso`, `pasaporte`… `null`
      * cuando no hay ninguno que sirva (un carné de extranjería, un RUC).
      *

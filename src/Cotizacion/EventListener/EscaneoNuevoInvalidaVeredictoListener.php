@@ -61,10 +61,25 @@ final readonly class EscaneoNuevoInvalidaVeredictoListener
                 $uow->recomputeSingleEntityChangeSet($metadatos, $identificacion);
             }
 
-            if (self::invalidaLoGuardado($uow->getEntityChangeSet($entidad))) {
-                // La lectura también: es del documento viejo, y sin tirarla el control seguiría
-                // juzgando eternamente un fichero que ya no está ahí.
-                $entidad->olvidarLectura();
+            // 🔥 **Son DOS preguntas, y las había fundido en una.**
+            //
+            // | Qué cambió | ¿caduca el veredicto? | ¿caduca la LECTURA? |
+            // |---|---|---|
+            // | el fichero | sí | **sí** — la lectura es del documento viejo |
+            // | el dueño | sí — se calculó contra otra persona | **no** — los bytes son los mismos |
+            //
+            // Tirar la lectura al reasignar salía carísimo y en silencio: `ResolutorDeDocumentoSuelto`
+            // **paga la lectura**, crea la ficha a partir de ella y entonces hace `setPasajero()`.
+            // El flush de esa misma transacción borraba la lectura de la que acababa de salir la
+            // ficha — y volver a tenerla cuesta otra llamada, si el fichero sigue en disco.
+            $huboFicheroNuevo = self::hayFicheroNuevo($entidad);
+            $cambios = $uow->getEntityChangeSet($entidad);
+
+            if ($huboFicheroNuevo || isset($cambios['pasajero'])) {
+                if ($huboFicheroNuevo) {
+                    $entidad->olvidarLectura();
+                }
+
                 $entidad->olvidarVeredicto();
                 $uow->recomputeSingleEntityChangeSet($em->getClassMetadata(CotizacionFilearchivo::class), $entidad);
             }
@@ -72,23 +87,28 @@ final readonly class EscaneoNuevoInvalidaVeredictoListener
     }
 
     /**
-     * ¿Cambió algo que invalide lo que este archivo tenía guardado sobre sí mismo?
+     * ¿Viene un fichero nuevo en esta escritura?
      *
-     * 🔥 **Es la guarda más delicada de este listener y por eso es pública y estática.** El propio
-     * control escribe `datosLeidos` y hace `flush()` inmediatamente —una lectura es dinero gastado y
-     * no puede esperar al final—, así que **este método corre en el mismo `flush` que guarda la
-     * lectura**. Si devolviera `true` de más, borraría lo que se acaba de pagar, en el acto y sin
-     * que nadie se entere. Se prueba sola: {@see \App\Tests\Cotizacion\EventListener\InvalidaLoGuardadoTest}.
+     * 🔥 **Se pregunta por el `imageFile` PENDIENTE, no por `imageName` en el changeset**, y la
+     * diferencia es que la primera versión no podía funcionar nunca. Vich escribe `imageName` en
+     * **`preUpdate`**, y el ORM despacha `onFlush` **antes** de `executeUpdates()`, que es donde
+     * corre `preUpdate`: cuando este listener mira, `imageName` todavía no ha cambiado. El
+     * changeset de un PATCH con fichero nuevo trae sólo `updatedAt` —lo toca `setImageFile()` a
+     * propósito, para forzar el UPDATE—.
      *
-     * ⚠️ **`imageName` y no `updatedAt`.** Vich reescribe el nombre del fichero al subir uno nuevo,
-     * así que es la señal de que el contenido cambió; `updatedAt` se mueve por cualquier cosa
-     * —incluida la propia escritura de la lectura— y usarlo sería morderse la cola.
+     * Resultado: reemplazar el PDF por el bueno dejaba la lectura del viejo para siempre, y cada
+     * tanda repetía «es otro documento» sobre un trámite correcto. El test que la defendía probaba
+     * una función pura con un changeset que en producción no existe en ese instante.
      *
-     * @param array<string, mixed> $cambios el changeset de Doctrine
+     * `getImageFile()` sí está puesto en `onFlush`: Vich aún no lo ha consumido.
+     *
+     * ⚠️ Y **no vale `updatedAt`**: se mueve por cualquier cosa, incluida la propia escritura de la
+     * lectura, así que usarlo sería morderse la cola —el control guardaría `datosLeidos`, el
+     * listener vería `updatedAt` y borraría lo que se acaba de pagar—.
      */
-    public static function invalidaLoGuardado(array $cambios): bool
+    public static function hayFicheroNuevo(CotizacionFilearchivo $archivo): bool
     {
-        return isset($cambios['pasajero']) || isset($cambios['imageName']);
+        return $archivo->getImageFile() !== null;
     }
 
     /**

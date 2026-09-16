@@ -4,70 +4,52 @@ declare(strict_types=1);
 
 namespace App\Tests\Cotizacion\EventListener;
 
+use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\EventListener\EscaneoNuevoInvalidaVeredictoListener;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\File\File;
 
 /**
- * La guarda que decide si se tira la lectura de un archivo.
+ * La señal de «viene un fichero nuevo», que decide si se tira la lectura de un archivo.
  *
- * 🔥 **Corre en el MISMO `flush` que guarda la lectura recién pagada.** El control escribe
- * `datosLeidos` y flushea en el acto —una lectura es dinero gastado y no puede esperar al final—,
- * así que un `true` de más aquí borra lo que se acaba de comprar, sin error y sin rastro. De ahí
- * que la decisión esté separada del listener: para poder exigírsela sin montar un `UnitOfWork`.
+ * 🔥 **Este test probaba antes una función que no podía funcionar, y pasaba en verde.** Miraba
+ * `isset($cambios['imageName'])` sobre un changeset construido a mano — y en producción, en el
+ * instante en que corre este listener, **`imageName` nunca está en el changeset**: lo escribe Vich
+ * en `preUpdate`, y el ORM despacha `onFlush` antes de `executeUpdates()`. El test verde defendía
+ * una rama muerta: reemplazar el PDF por el bueno dejaba la lectura del viejo para siempre.
+ *
+ * ⚠️ La lección: **un test sobre una función pura sólo vale lo que valga su entrada.** Si la entrada
+ * se inventa, se prueba la aritmética y no el hecho. Por eso ahora se le pasa la entidad, que es lo
+ * que el listener recibe de verdad.
  */
 final class InvalidaLoGuardadoTest extends TestCase
 {
-    /** 🔥 El caso que no puede fallar: guardar la lectura NO puede tirar la lectura. */
-    public function testGuardarLaLecturaNoLaInvalida(): void
+    /** Lo que Vich deja puesto al subir: `imageFile`, que en `onFlush` todavía no ha consumido. */
+    public function testUnFicheroPendienteEsFicheroNuevo(): void
     {
-        self::assertFalse(EscaneoNuevoInvalidaVeredictoListener::invalidaLoGuardado([
-            'datosLeidos' => [null, ['esEticket' => true]],
-            'leidoEn' => [null, new \DateTimeImmutable()],
-        ]));
+        // `setImageFile()` no devuelve `$this` —toca `updatedAt` para forzar el UPDATE— así que no
+        // encadena. Es lo que Vich deja puesto al subir y lo que este listener puede ver.
+        $archivo = new CotizacionFilearchivo();
+        $archivo->setImageFile(new File(__FILE__));
+
+        self::assertTrue(EscaneoNuevoInvalidaVeredictoListener::hayFicheroNuevo($archivo));
     }
 
-    /** Ni escribir el veredicto. */
-    public function testGuardarElVeredictoTampoco(): void
+    /**
+     * 🔥 **Guardar la lectura NO es un fichero nuevo**, y es el caso que no puede fallar: el control
+     * escribe `datosLeidos` y flushea en el acto, así que este método corre en el mismo `flush` que
+     * guarda la lectura recién pagada. Un `true` de más la borraría sin error y sin rastro.
+     */
+    public function testGuardarLaLecturaNoEsFicheroNuevo(): void
     {
-        self::assertFalse(EscaneoNuevoInvalidaVeredictoListener::invalidaLoGuardado([
-            'estadoValidacion' => ['no_validado', 'observado'],
-            'discrepancias' => [[], [['campo' => 'nombre']]],
-            'notasValidacion' => [[], ['ojo']],
-            'validadoEn' => [null, new \DateTimeImmutable()],
-        ]));
+        $archivo = (new CotizacionFilearchivo())->registrarLectura(['esEticket' => true]);
+
+        self::assertFalse(EscaneoNuevoInvalidaVeredictoListener::hayFicheroNuevo($archivo));
     }
 
-    /** Reasignar el archivo a otra persona: el veredicto se calculó contra alguien que ya no es. */
-    public function testCambiarDeDuenyoSiInvalida(): void
+    /** Ni escribir el veredicto, ni renombrar, ni nada que no traiga bytes. */
+    public function testUnArchivoSinSubidaPendienteNoLoEs(): void
     {
-        self::assertTrue(EscaneoNuevoInvalidaVeredictoListener::invalidaLoGuardado([
-            'pasajero' => [null, 'otro'],
-        ]));
-    }
-
-    /** Reemplazar el fichero: la lectura cacheada es la del documento viejo. */
-    public function testCambiarElFicheroSiInvalida(): void
-    {
-        self::assertTrue(EscaneoNuevoInvalidaVeredictoListener::invalidaLoGuardado([
-            'imageName' => ['viejo.pdf', 'nuevo.pdf'],
-        ]));
-    }
-
-    /** ⚠️ `updatedAt` se mueve por cualquier cosa, incluida la propia escritura de la lectura. */
-    public function testUpdatedAtNoBastaParaInvalidar(): void
-    {
-        self::assertFalse(EscaneoNuevoInvalidaVeredictoListener::invalidaLoGuardado([
-            'updatedAt' => [new \DateTimeImmutable('-1 day'), new \DateTimeImmutable()],
-        ]));
-    }
-
-    /** Renombrar el documento o girarlo no cambia lo que dice. */
-    public function testOtrosCamposNoInvalidan(): void
-    {
-        self::assertFalse(EscaneoNuevoInvalidaVeredictoListener::invalidaLoGuardado([
-            'nombre' => [null, [['language' => 'es', 'content' => 'Pasaporte']]],
-            'rotacionAplicada' => [0, 90],
-            'tipoArchivo' => ['otros', 'eticket'],
-        ]));
+        self::assertFalse(EscaneoNuevoInvalidaVeredictoListener::hayFicheroNuevo(new CotizacionFilearchivo()));
     }
 }
