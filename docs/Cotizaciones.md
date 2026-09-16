@@ -10173,6 +10173,50 @@ que ya hacen los demás sitios que cuentan archivos por persona. El `extractIdSt
 para lo que ya es una cadena —un `@id`, un `id`—, y ése es justo el caso en el que no se nota que
 está mal.
 
+#### «Usar el del documento», porque el dedazo casi siempre está en el manifiesto
+
+Ante `vencimiento: doc 2036-08-11 · guardado 2026-07-10`, la única salida era **seleccionar la fecha
+con el dedo, reescribirla en el formato del formulario y guardar**. Tres pasos para aceptar lo que el
+sistema ya sabía — y con la fecha en pantalla con guiones y el formulario pidiéndola de otra forma.
+
+🔑 Y el lado correcto se sabe casi siempre: **el manifiesto se tecleó a mano y el escaneo lo leyó una
+máquina de un documento real**, con MRZ verificada por dígitos de control. Es la misma jerarquía que
+ya gobierna el control del E-Ticket (ver `ReferenciaDeIdentidad`).
+
+`POST /cotizacion/user/identificaciones/{id}/usar-del-documento` con `{campo}`.
+
+⚠️ **El valor NO viene del cliente: el servidor relee su propia lectura.** El cuerpo dice qué campo
+se acepta, no qué valor. Si viniera el valor, este endpoint sería «escribe lo que quieras en el
+manifiesto» con un nombre tranquilizador.
+
+⚠️ **Sólo `número` y `vencimiento`**, que son de la identificación. El nombre y el nacimiento son del
+pasajero, y escribirlos desde aquí metería a este endpoint a decidir sobre otra entidad.
+
+⚠️ Y **revalida después**, para que el veredicto lo escriba el mismo camino que todos los demás.
+Marcar la ficha como copiada del escaneo es lo que impide que luego se coteje consigo misma y salga
+«validada» por haberse creído a sí misma.
+
+#### 🔥 La MRZ no cuadra porque la foto está cortada, no porque el dato esté mal
+
+Lo dijo quien opera: *«la MRZ normalmente no cuadra porque está incompleto, tomaron la foto de muy
+cerca»*. El aviso decía **«la MRZ no cuadra en dígito compuesto: revísalo a mano»**, que manda a
+mirar un dato que no tiene nada malo. Un aviso que nombra la causa equivocada cuesta el doble: se
+pierde el tiempo revisando y encima no se arregla.
+
+⚠️ **El dígito compuesto es el que más lo delata**: cubre casi toda la banda, así que un carácter
+perdido en un borde lo tumba mientras los campos sueltos siguen cuadrando. Ahora ese caso se dice
+aparte y en términos de lo que hay que hacer — pedir otra foto con la página completa.
+
+##### Y «lo he mirado, está bien» tampoco salía ahí
+
+`sePuedeConfirmar()` exigía `copiadaDelEscaneo`, y un pasaporte con la banda cortada no lo es: queda
+**observado sin ninguna discrepancia** —no hay dos valores que comparar— y **sin salida**, en ámbar
+para siempre.
+
+🔑 Lo que de verdad hace falta para poder firmar es **que haya algo que mirar**, y eso lo dice el
+servidor con `tieneEscaneo` (`validadoCon !== null`), no una deducción del front. Firmar un documento
+que nadie ha subido sí sería malo, y es justo lo que esa condición sigue impidiendo.
+
 #### 🔥 El filtro «Observado» del manifiesto contaba SÓLO escaneos de identidad
 
 Lo preguntó quien opera —*«ese filtro de observados, ¿qué observados recoge? ¿todos, o sólo DNI y

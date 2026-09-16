@@ -83,6 +83,14 @@ export interface VeredictoDeDocumento {
     copiadaDelEscaneo: boolean;
     confirmadaEn: string | null;
     confirmadaPor: string | null;
+    /**
+     * ¿Hay un escaneo detrás que alguien pueda mirar?
+     *
+     * ⚠️ Distinto de `copiadaDelEscaneo`, que dice de dónde salió el NÚMERO. Esto dice si existe el
+     * documento, y es lo que permite ofrecer «lo he mirado, está bien» a un pasaporte cuya banda no
+     * cuadra. Firmar lo que nadie ha subido sí sería malo.
+     */
+    tieneEscaneo?: boolean;
 }
 
 export interface ApiIdioma {
@@ -971,6 +979,26 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         return [...todos.values()];
     };
 
+    /**
+     * «El documento tiene razón»: copia al manifiesto lo que dice el escaneo.
+     *
+     * ⚠️ Se manda el CAMPO, no el valor. El servidor relee su propia lectura del documento; si
+     * mandáramos el valor, esto sería «escribe lo que quieras en el manifiesto» con otro nombre.
+     */
+    const usarDelDocumento = async (identificacionId: string, campo: string): Promise<VeredictoDeDocumento[] | null> => {
+        error.value = null;
+        try {
+            const { data } = await apiClient.post(
+                `/cotizacion/user/identificaciones/${identificacionId}/usar-del-documento`, { campo });
+
+            return (data?.identificaciones ?? []) as VeredictoDeDocumento[];
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo copiar el dato del documento.');
+
+            return null;
+        }
+    };
+
     const revalidarPasajero = async (pasajeroId: string): Promise<VeredictoDeDocumento[] | null> => {
         error.value = null;
         try {
@@ -1094,6 +1122,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         resolverDocumento,
         girarDocumento,
         revalidarPasajero,
+        usarDelDocumento,
         validarEtickets,
         confirmarIdentificacion,
         cloneCotizacion,

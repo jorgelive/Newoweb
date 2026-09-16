@@ -2200,11 +2200,20 @@ const identificacionesConVeredicto = (pax: ApiCotizacionFilepasajero) =>
  *
  * ⚠️ **Con discrepancias NO sale.** Ahí el trabajo no es firmar: es decidir cuál de los dos
  * valores vale, y ofrecer «lo he mirado, está bien» encima de un número que no cuadra sería
- * invitar a sellar el error de un clic.
+ * invitar a sellar el error de un clic. Para eso está «usar el del documento».
+ *
+ * 🔥 **Y tampoco salía cuando la MRZ no cuadraba, que es el otro callejón sin salida.** Un
+ * pasaporte cuya banda falla el dígito de control queda observado **sin ninguna discrepancia** —no
+ * hay dos valores que comparar, hay una banda ilegible— y la condición exigía `copiadaDelEscaneo`,
+ * que ahí es falso. Ese documento se quedaba en ámbar para siempre.
+ *
+ * Lo que de verdad hace falta para poder firmar es **que haya algo que mirar**, y eso lo dice el
+ * servidor con `tieneEscaneo` (`validadoCon !== null`). Firmar un documento que nadie ha subido sí
+ * sería malo, y es justo lo que esa condición impide.
  */
-const sePuedeConfirmar = (ident: { copiadaDelEscaneo?: boolean; estadoValidacion?: string | null;
-    discrepancias?: unknown[] | null }) =>
-    ident.copiadaDelEscaneo === true
+const sePuedeConfirmar = (ident: { copiadaDelEscaneo?: boolean; tieneEscaneo?: boolean;
+    estadoValidacion?: string | null; discrepancias?: unknown[] | null }) =>
+    (ident.copiadaDelEscaneo === true || ident.tieneEscaneo === true)
     && ident.estadoValidacion === 'observado'
     && (ident.discrepancias ?? []).length === 0;
 
@@ -2238,13 +2247,44 @@ const aplicarVeredictos = async (pax: ApiCotizacionFilepasajero, veredictos: Ver
         // inmutable. Aquí se está copiando encima lo que ese mismo servidor acaba de devolver, que
         // es la única fuente que puede escribirlos.
         const escribible = fila as unknown as Pick<VeredictoDeDocumento,
-            'estadoValidacion' | 'discrepancias' | 'notasValidacion' | 'copiadaDelEscaneo'>;
+            'estadoValidacion' | 'discrepancias' | 'notasValidacion' | 'copiadaDelEscaneo'
+            | 'tieneEscaneo' | 'numero' | 'vencimiento'>;
 
         escribible.estadoValidacion = v.estadoValidacion;
         escribible.discrepancias = v.discrepancias;
         escribible.notasValidacion = v.notasValidacion;
         escribible.copiadaDelEscaneo = v.copiadaDelEscaneo;
+        escribible.tieneEscaneo = v.tieneEscaneo;
+        // ⚠️ **El número y el vencimiento también**, desde que «usar el del documento» los cambia:
+        // sin copiarlos, la pantalla seguiría enseñando el valor viejo con el aviso ya apagado —el
+        // peor de los dos mundos, porque parece resuelto y muestra lo que no es.
+        escribible.numero = v.numero;
+        escribible.vencimiento = v.vencimiento;
     }
+};
+
+/**
+ * Qué campos se pueden aceptar del documento.
+ *
+ * ⚠️ Espejo de la lista blanca de `DocumentosSueltosController::usarDelDocumento()`. Son los que
+ * pertenecen a la identificación; el nombre y el nacimiento son del pasajero.
+ */
+const CAMPOS_ACEPTABLES = ['número', 'vencimiento'];
+
+const sePuedeAceptarDelDoc = (d: { campo?: string | null }) =>
+    CAMPOS_ACEPTABLES.includes(String(d.campo ?? ''));
+
+const aceptando = ref<string | null>(null);
+
+/** Acepta el valor del escaneo para ese campo. El servidor relee el documento; aquí sólo se pide. */
+const aceptarDelDocumento = async (pax: ApiCotizacionFilepasajero, ident: { id?: string | number | null }, campo?: string | null) => {
+    aceptando.value = `${ident.id}:${campo}`;
+    const veredictos = await fileStore.usarDelDocumento(String(extractIdStr(ident.id)), String(campo ?? ''));
+    aceptando.value = null;
+
+    if (!veredictos) { alert(fileStore.error || 'No se pudo copiar el dato del documento.'); return; }
+
+    await aplicarVeredictos(pax, veredictos);
 };
 
 /** Firma ese documento. El sello lo escribe la revalidación del servidor, no esta pantalla. */
@@ -4477,6 +4517,23 @@ const eliminarDocumento = async (iri?: string) => {
                             <span class="text-[8px] font-black uppercase tracking-wider text-amber-600">guardado</span>
                             <span class="font-mono bg-amber-50 border border-amber-200 rounded px-1">{{ d.manifiesto }}</span>
                           </span>
+
+                          <!-- 🔥 **Aceptar en vez de copiar a mano.** El valor estaba ahí escrito y
+                               la única salida era seleccionarlo, reescribirlo en el formato del
+                               formulario y guardar: tres pasos para aceptar lo que el sistema ya
+                               sabía. Y el manifiesto se tecleó a mano mientras el escaneo lo leyó
+                               una máquina de un documento real, así que el dedazo casi siempre está
+                               en el lado guardado.
+
+                               ⚠️ Sólo en los campos que son de la identificación: el nombre y el
+                               nacimiento son del pasajero, no de su documento. -->
+                          <button v-if="sePuedeAceptarDelDoc(d)" type="button"
+                                  :disabled="aceptando === `${ident.id}:${d.campo}`"
+                                  @click="aceptarDelDocumento(pax, ident, d.campo)"
+                                  class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-emerald-300 bg-emerald-50 text-emerald-700 font-black uppercase tracking-wider hover:bg-emerald-100 disabled:opacity-50">
+                            <i class="fas fa-arrow-left text-[8px]"></i>
+                            {{ aceptando === `${ident.id}:${d.campo}` ? 'Guardando…' : 'Usar el del documento' }}
+                          </button>
                         </span>
 
                         <span v-for="(n, j) in (ident.notasValidacion ?? [])" :key="`n-${j}`"

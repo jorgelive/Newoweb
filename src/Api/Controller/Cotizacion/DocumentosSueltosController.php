@@ -124,6 +124,99 @@ final class DocumentosSueltosController extends AbstractController
     }
 
     /**
+     * «El documento tiene razón»: copia al manifiesto el valor que dice el escaneo.
+     *
+     * 🔥 **Porque casi siempre la tiene.** El manifiesto se tecleó a mano y el escaneo lo leyó una
+     * máquina de un documento real —con MRZ, además, verificada con dígitos de control—. Ante
+     * «vencimiento: doc 2036-08-11 · guardado 2026-07-10», el dedazo está casi siempre en el lado
+     * guardado, y hasta ahora la única salida era **copiar la fecha a mano** desde una pastilla,
+     * reescribirla en el formato del formulario y guardar. Tres pasos para aceptar lo que el sistema
+     * ya sabía.
+     *
+     * ⚠️ **El valor NO viene del cliente, se relee del documento.** El cuerpo dice qué CAMPO se
+     * acepta, no qué valor: si viniera el valor, este endpoint sería «escribe lo que quieras en el
+     * manifiesto» con un nombre tranquilizador.
+     *
+     * ⚠️ **Sólo los campos que son de la identificación.** El nombre y el nacimiento son del
+     * pasajero, no de su documento, y escribirlos desde aquí metería a este endpoint a decidir sobre
+     * una entidad que no es la suya.
+     *
+     * ⚠️ Y **revalida después**, para que el veredicto lo escriba el mismo camino que todos los
+     * demás. Marcar la ficha como copiada del escaneo es lo que impide que luego se coteje consigo
+     * misma y salga «validada» por haberse creído a sí misma.
+     */
+    #[Route(
+        '/cotizacion/user/identificaciones/{id}/usar-del-documento',
+        name: 'cotizacion_identificacion_usar_del_documento',
+        requirements: ['id' => '[0-9a-fA-F-]{36}'],
+        methods: ['POST'],
+    )]
+    #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para editar documentos.')]
+    public function usarDelDocumento(
+        string $id,
+        Request $request,
+        EntityManagerInterface $em,
+        ValidadorDeDocumento $lector,
+        ValidadorDeManifiesto $validador,
+    ): Response {
+        $identificacion = $em->getRepository(CotizacionPasajeroIdentificacion::class)->find(Uuid::fromString($id));
+
+        if ($identificacion === null) {
+            return new JsonResponse(['error' => 'No encontré ese documento.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $cuerpo = json_decode((string) $request->getContent(), true);
+        $campo = is_array($cuerpo) && is_string($cuerpo['campo'] ?? null) ? $cuerpo['campo'] : '';
+
+        if (!in_array($campo, ['número', 'vencimiento'], true)) {
+            return new JsonResponse(
+                ['error' => 'Sólo se puede aceptar del documento el número y el vencimiento.'],
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
+        }
+
+        $escaneo = $identificacion->getValidadoCon();
+        $leido = $escaneo !== null ? $lector->lecturaDe($escaneo) : null;
+
+        if ($leido === null) {
+            return new JsonResponse(
+                ['error' => 'No hay una lectura del escaneo con la que rellenar esto.'],
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
+        }
+
+        if ($campo === 'número') {
+            if ($leido->numero === null || trim($leido->numero) === '') {
+                return new JsonResponse(['error' => 'El escaneo no trae número.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $identificacion->setNumero(trim($leido->numero));
+        }
+
+        if ($campo === 'vencimiento') {
+            if ($leido->vencimiento === null) {
+                return new JsonResponse(['error' => 'El escaneo no trae vencimiento.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $identificacion->setVencimiento($leido->vencimiento);
+        }
+
+        $identificacion->marcarCopiadaDelEscaneo();
+
+        $pasajero = $identificacion->getPasajero();
+
+        if ($pasajero !== null) {
+            $validador->validarPasajero($pasajero);
+        }
+
+        $em->flush();
+
+        return new JsonResponse([
+            'identificaciones' => $pasajero !== null ? self::veredictosDe($pasajero) : [],
+        ]);
+    }
+
+    /**
      * Los veredictos de esa persona, para que la pantalla los pinte **sin recargar el expediente**.
      *
      * 🔥 **Reprocesar a una persona costaba traerse las 132.** El endpoint sólo devolvía un conteo,
@@ -152,6 +245,12 @@ final class DocumentosSueltosController extends AbstractController
                 'copiadaDelEscaneo' => $i->isCopiadaDelEscaneo(),
                 'confirmadaEn' => $i->getConfirmadaEn()?->format(DATE_ATOM),
                 'confirmadaPor' => $i->getConfirmadaPor(),
+                // ⚠️ **Hay algo que mirar**, que es distinto de que la ficha venga del escaneo. Sin
+                // esto, la pantalla no podía ofrecer «lo he mirado» a un pasaporte cuya MRZ no
+                // cuadra —no hay discrepancia, hay una banda ilegible— y ese documento se quedaba
+                // observado para siempre. Firmar lo que NO se puede mirar sí sería malo; por eso se
+                // manda el hecho y lo decide el servidor, no una deducción del front.
+                'tieneEscaneo' => $i->getValidadoCon() !== null,
             ];
         }
 

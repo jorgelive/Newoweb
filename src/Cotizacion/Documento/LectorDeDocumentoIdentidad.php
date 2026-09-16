@@ -142,8 +142,25 @@ final readonly class LectorDeDocumentoIdentidad
         );
         $avisos = [];
 
+        // 🔥 **El aviso dice qué HACER, y antes mandaba al sitio equivocado.** Decía «revísalo a
+        // mano», que sugiere que hay un dato que discutir — y quien opera lo desmintió: la MRZ
+        // **casi siempre falla porque la foto está tomada demasiado cerca** y la banda sale cortada
+        // o borrosa. No hay nada que revisar en el manifiesto; lo que hay que hacer es pedir otra
+        // foto. Un aviso que nombra la causa equivocada cuesta el doble: se pierde el tiempo
+        // mirando y encima no se arregla.
+        //
+        // ⚠️ El **dígito compuesto** es el que más lo delata: cubre casi toda la banda, así que un
+        // carácter perdido en un borde lo tumba mientras los campos sueltos siguen cuadrando. Por
+        // eso se dice aparte.
         foreach ($mrz !== null ? $mrz->problemas : [] as $problema) {
-            $avisos[] = sprintf('la MRZ no cuadra en %s: revísalo a mano', $problema);
+            $avisos[] = $problema === 'dígito compuesto'
+                ? 'la banda de abajo del pasaporte no cuadra entera: casi siempre es que la foto se '
+                    .'tomó muy de cerca y le falta un borde. Pide otra con la página completa'
+                : sprintf(
+                    'la banda de abajo no cuadra en «%s»: comprueba que la foto coja las dos líneas '
+                    .'enteras, de margen a margen',
+                    $problema,
+                );
         }
 
         // Lo impreso, que es la segunda lectura independiente.
