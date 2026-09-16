@@ -57,11 +57,11 @@ use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
             // {@see CotizacionFilepasajeroProcessor} no puede ver, porque ahí no hay foto contra
             // la que comparar—. Nadie usa este PUT (el front escribe con POST y PATCH), pero
             // dejarlo armado es dejar una trampa cargada.
-            extraProperties: ['standard_put' => false],
             denormalizationContext: ['groups' => ['file:write'], DenormalizerInterface::COLLECT_DENORMALIZATION_ERRORS => true],
-            processor: CotizacionFilepasajeroProcessor::class,
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
-            securityMessage: 'No tienes permiso para editar pasajeros.'
+            securityMessage: 'No tienes permiso para editar pasajeros.',
+            processor: CotizacionFilepasajeroProcessor::class,
+            extraProperties: ['standard_put' => false]
         ),
         new Patch(
             // Grupos de normalización por lo mismo que arriba: el círculo de las pertenencias.

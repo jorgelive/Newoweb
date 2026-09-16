@@ -55,26 +55,26 @@ use Symfony\Component\Validator\Constraints as Assert;
         // ====================================================================
         new Get(
             uriTemplate: '/pms/pms_reservas/{id}',
-            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
             normalizationContext: ['groups' => ['pms_reserva:read', 'timestamp:read']],
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
         ),
         new Patch(
             uriTemplate: '/pms/pms_reservas/{id}',
-            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
-            securityMessage: 'No tienes permiso para editar reservas.',
             normalizationContext: ['groups' => ['pms_reserva:read', 'timestamp:read']],
             denormalizationContext: ['groups' => ['pms_reserva:write']],
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar reservas.',
         ),
         // "Reserva completa" (titular + estancia inicial) creada desde el calendario
         // SPA en un único paso atómico. Ver PmsReservaCrearProcessor: solo puede
         // crear reservas de canal DIRECTO, nunca OTA.
         new Post(
             uriTemplate: '/pms/pms_reservas',
+            normalizationContext: ['groups' => ['pms_reserva:read', 'timestamp:read']],
+            denormalizationContext: ['groups' => ['pms_reserva_crear:write']],
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear reservas.',
             input: PmsReservaCrearInput::class,
-            normalizationContext: ['groups' => ['pms_reserva:read', 'timestamp:read']],
-            denormalizationContext: ['groups' => ['pms_reserva_crear:write']],
             processor: PmsReservaCrearProcessor::class,
         ),
         // Borra la reserva y, en cascada, todas sus estancias. El permiso solo abre
