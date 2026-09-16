@@ -2677,6 +2677,30 @@ pidió y no ha llegado**.
 | Qué ve | pasaporte y DNI **con número tecleado** | todo lo pedible, haya número o no |
 | Qué se le escapaba | E-Ticket, autorización, DNI-reverso | — |
 
+##### 🔥 Y la HOJA de control tenía el mismo agujero, en peor sitio
+
+`ReporteDeDocumentos` —el `.xlsx` que se descarga para saber a quién escribirle— tenía **tres
+columnas fijas**: DNI anverso, DNI reverso y pasaporte. La columna que de verdad se lee es la
+última, «Qué falta», y se compone de esas tres: así que en un expediente que exige el E-Ticket, quien
+no lo hubiera mandado salía con **«Completo»**.
+
+No era un caso de borde. En 5SRAJV lo piden 134 personas y lo habían mandado **95**: la hoja daba
+por completas a 39 a las que había que escribirles.
+
+Ahora las columnas de estado salen de `documentosPedidos` (`escaneosPedidos()`), así que **dos
+expedientes dan hojas de distinto ancho** y la de un viaje a Cusco no trae una columna de un trámite
+dominicano.
+
+⚠️ **El orden lo decide el ENUM, no `documentosPedidos`.** La lista guardada viene en el orden en
+que el operador marcó las casillas; una hoja cuyas columnas se mueven entre dos descargas no se
+puede comparar con la anterior ni pegar en la misma plantilla. Cubierto por
+`ReporteDeDocumentosColumnasTest`.
+
+⚠️ **Es el mismo fallo, por tercera vez y en tres archivos distintos** —el catálogo de `pax`, el
+chip del manifiesto y esta hoja—: una lista de documentos escrita a mano que envejeció cuando lo
+obligatorio pasó a ser configurable. **Antes de escribir los tipos de documento en un sitio nuevo,
+pregunta a `documentosPedidos` o a `ArchivoTipoEnum::pedibles()`.**
+
 ⚠️ **Y dos consecuencias de volumen que no son un fallo:** un extranjero sin DNI figurará siempre
 como que le falta si el expediente pide DNI (es lo mismo que ve él en su app), y en un expediente
 viejo los escaneos ya caducaron (`mesesDeRetencion()`), así que el chip dirá que le falta todo a

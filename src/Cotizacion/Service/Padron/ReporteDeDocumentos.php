@@ -26,11 +26,14 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  * es una hoja de cálculo, no un panel—. La columna que importa es la última, {@see self::COL_FALTA}:
  * dice qué pedir, ya redactado.
  *
- * ## Los tres documentos, y por qué el DNI son dos columnas
+ * ## Las columnas de estado las decide el EXPEDIENTE
  *
- * Se piden pasaporte, DNI anverso y DNI reverso ({@see \App\Cotizacion\Enum\ArchivoTipoEnum}). El
- * DNI va por caras porque en un control migratorio no vale sólo el anverso: con una columna sola,
- * «le falta el reverso» sería indistinguible de «no ha subido nada».
+ * Una por cada documento que ese expediente exige ({@see CotizacionFile::$documentosPedidos}), así
+ * que dos expedientes distintos dan hojas de distinto ancho. Antes eran tres fijas y por eso la
+ * hoja podía decir «Completo» a quien le faltaba el E-Ticket — ver {@see self::escaneosPedidos()}.
+ *
+ * ⚠️ El DNI va por caras —dos columnas— porque en un control migratorio no vale sólo el anverso:
+ * con una columna sola, «le falta el reverso» sería indistinguible de «no ha subido nada».
  *
  * ## ⚠️ Cuenta ARCHIVOS, no marca sí/no
  *
@@ -62,8 +65,8 @@ final readonly class ReporteDeDocumentos
      */
     private const COL_OBSERVA = 'Observaciones';
 
-    /** Las columnas, en el orden en que se leen. */
-    private const CABECERAS = [
+    /** Las columnas fijas de la izquierda: quién es la persona. */
+    private const CABECERAS_FIJAS = [
         'Grupo',
         'Apellidos',
         'Nombres',
@@ -71,20 +74,57 @@ final readonly class ReporteDeDocumentos
         'DNI',
         'Pasaporte',
         'Otro documento',
-        'DNI anverso',
-        'DNI reverso',
-        'Pasaporte (escaneo)',
-        self::COL_ARCHIVOS,
-        self::COL_FALTA,
-        self::COL_OBSERVA,
     ];
 
-    /** Qué escaneo mira cada una de las tres columnas de estado, en su orden. */
-    private const ESCANEOS = [
-        'DNI anverso' => ArchivoTipoEnum::DNI_ANVERSO,
-        'DNI reverso' => ArchivoTipoEnum::DNI_REVERSO,
-        'Pasaporte (escaneo)' => ArchivoTipoEnum::PASAPORTE,
-    ];
+    /**
+     * Qué escaneo mira cada columna de estado: **lo que ESTE expediente pide**.
+     *
+     * 🔥 **Eran tres columnas fijas —DNI anverso, DNI reverso, pasaporte— y por eso la hoja
+     * mentía.** Desde que lo obligatorio es configurable por expediente
+     * ({@see CotizacionFile::$documentosPedidos}), un viaje que exige el E-Ticket migratorio no
+     * tenía columna para él: la persona que no lo había mandado salía con «Completo» en la única
+     * columna que se lee, que es justo la que contesta «¿a quién le escribo hoy?».
+     *
+     * Y no era un caso raro: en el expediente real lo pedían 134 personas y lo habían mandado 95.
+     * La hoja decía que no faltaba nada por 39 veces.
+     *
+     * ⚠️ **El orden lo decide el ENUM, no `documentosPedidos`.** La lista guardada sale en el orden
+     * en que el operador marcó las casillas, y una hoja que cambia el orden de sus columnas entre
+     * dos descargas no se puede comparar con la anterior ni pegar en la misma plantilla.
+     *
+     * @return array<string, ArchivoTipoEnum> etiqueta de columna → tipo de archivo
+     */
+    private function escaneosPedidos(CotizacionFile $file): array
+    {
+        $pedidos = $file->getDocumentosPedidos();
+        $columnas = [];
+
+        foreach (ArchivoTipoEnum::cases() as $tipo) {
+            if ($tipo->loSubeElPasajero() && in_array($tipo->value, $pedidos, true)) {
+                $columnas[$tipo->getLabel()] = $tipo;
+            }
+        }
+
+        return $columnas;
+    }
+
+    /**
+     * Las columnas, en el orden en que se leen.
+     *
+     * @param array<string, ArchivoTipoEnum> $escaneos
+     *
+     * @return list<string>
+     */
+    private function cabeceras(array $escaneos): array
+    {
+        return [
+            ...self::CABECERAS_FIJAS,
+            ...array_keys($escaneos),
+            self::COL_ARCHIVOS,
+            self::COL_FALTA,
+            self::COL_OBSERVA,
+        ];
+    }
 
     /**
      * Lo que el control encontró en los documentos de esa persona, en una frase por documento.
@@ -131,7 +171,11 @@ final readonly class ReporteDeDocumentos
         $hoja = $libro->getActiveSheet();
         $hoja->setTitle('Documentos');
 
-        $ultima = count(self::CABECERAS);
+        // Las columnas de estado salen de lo que el expediente pide, así que la hoja cambia de
+        // ancho entre expedientes. Todo lo que se posicionaba con `$ultima - N` sigue valiendo.
+        $escaneos = $this->escaneosPedidos($file);
+        $cabeceras = $this->cabeceras($escaneos);
+        $ultima = count($cabeceras);
 
         // Título: el expediente y CUÁNDO se sacó. Una hoja de faltantes sin fecha se reenvía
         // semanas después como si siguiera vigente.
@@ -153,7 +197,7 @@ final readonly class ReporteDeDocumentos
         $hoja->getStyle([1, 1])->getFont()->setBold(true)->setSize(12);
         $hoja->getRowDimension(1)->setRowHeight(22);
 
-        foreach (self::CABECERAS as $i => $cabecera) {
+        foreach ($cabeceras as $i => $cabecera) {
             $hoja->setCellValue([$i + 1, 2], $cabecera);
         }
         $hoja->getStyle([1, 2, $ultima, 2])->applyFromArray([
@@ -173,7 +217,7 @@ final readonly class ReporteDeDocumentos
 
         foreach ($this->ordenados($file, $permitidos) as $pasajero) {
 
-            $subidos = $this->escaneosDe($file, $pasajero);
+            $subidos = $this->escaneosDe($file, $pasajero, $escaneos);
             $faltan = [];
 
             $this->texto($hoja, 1, $fila, $this->gruposDe($pasajero));
@@ -186,7 +230,7 @@ final readonly class ReporteDeDocumentos
 
             $columna = 8;
             $total = 0;
-            foreach (self::ESCANEOS as $etiqueta => $tipo) {
+            foreach ($escaneos as $etiqueta => $tipo) {
                 /** @var list<\DateTimeImmutable|null> $cuando */
                 $cuando = $subidos[$tipo->value] ?? [];
                 $cuantos = count($cuando);
@@ -220,7 +264,7 @@ final readonly class ReporteDeDocumentos
             $hoja->setCellValueExplicit([$ultima - 2, $fila], (string) $total, DataType::TYPE_NUMERIC);
             $hoja->getStyle([$ultima - 2, $fila])->getAlignment()
                 ->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            if ($total > count(self::ESCANEOS)) {
+            if ($total > count($escaneos)) {
                 $hoja->getStyle([$ultima - 2, $fila])->getFont()->setBold(true);
                 $hoja->getStyle([$ultima - 2, $fila])->getFill()
                     ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::AMBAR);
@@ -243,7 +287,7 @@ final readonly class ReporteDeDocumentos
 
             match (count($faltan)) {
                 0 => $completos++,
-                count(self::ESCANEOS) => $vacios++,
+                count($escaneos) => $vacios++,
                 default => $parciales++,
             };
 
@@ -309,16 +353,22 @@ final readonly class ReporteDeDocumentos
     /**
      * Los escaneos de esa persona, agrupados por tipo y **del más nuevo al más viejo**.
      *
+     * ⚠️ Sólo los tipos que este expediente PIDE: son los que tienen columna. Uno que ya no se
+     * exige pero que alguien mandó en su día no cuenta como archivo aquí, porque no hay dónde
+     * enseñarlo y sumarlo al total haría que el recuento no cuadrase con las celdas de al lado.
+     *
+     * @param array<string, ArchivoTipoEnum> $escaneos
+     *
      * @return array<string, list<\DateTimeImmutable|null>>
      */
-    private function escaneosDe(CotizacionFile $file, CotizacionFilepasajero $pasajero): array
+    private function escaneosDe(CotizacionFile $file, CotizacionFilepasajero $pasajero, array $escaneos): array
     {
         $id = (string) $pasajero->getId();
         $porTipo = [];
 
         foreach ($file->getFilearchivos() as $archivo) {
             $tipo = $archivo->getTipoArchivo();
-            if ($tipo === null || !in_array($tipo, self::ESCANEOS, true)) {
+            if ($tipo === null || !in_array($tipo, $escaneos, true)) {
                 continue;
             }
             if ((string) $archivo->getPasajero()?->getId() !== $id) {
