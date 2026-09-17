@@ -2,10 +2,11 @@
 parameters:
 
     locale: es
-    # ⚠️ Viene del panel Sonata (Oweb), archivado el 17/09/2026, y se QUEDA a propósito: decide el
-    # dominio de los enlaces que se generan desde consola (correos, comandos) para las rutas sin
-    # `host`. Cambiarlo alteraría enlaces que hoy funcionan; oweb.openperu.pe sigue sirviendo la app.
-    router.request_context.host: oweb.openperu.pe
+    # Dominio de los enlaces generados SIN petición (consola, workers) para rutas sin `host`. En
+    # producción toda ruta viva lleva su host fijo, así que hoy sólo lo usarían Liip y el login
+    # desde consola, y nadie lo hace. Era oweb.openperu.pe (herencia de Sonata) hasta el
+    # 17/09/2026, cuando ese dominio pasó a responder 410: ver docs/OwebArchivado.md §2 y §4.1.
+    router.request_context.host: panel.openperu.pe
     router.request_context.scheme: https
 
     #applicationnew

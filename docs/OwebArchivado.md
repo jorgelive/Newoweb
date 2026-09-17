@@ -12,7 +12,7 @@ dependían de él no estaban en el repositorio.
 1. Cómo consultar el código archivado
 2. Qué se quitó
 3. Qué se quedó, a propósito
-4. 🔥 Lo que dependía de Oweb desde FUERA del repositorio
+4. 🔥 Lo que dependía de Oweb desde FUERA del repositorio (y el subdominio)
 5. Cómo se verificó
 6. Desplegarlo
 7. Dónde tocar para cambiar X
@@ -43,9 +43,12 @@ git checkout oweb-final -- src/Oweb
 | En la base | Sólo `user.dependencia_id` y `user.area_id`, con sus índices y claves foráneas (`Version20260917120000`) |
 | PHPStan | La exclusión de `src/Oweb` y 4 entradas de la baseline de archivos borrados |
 
-⚠️ **`router.request_context.host: oweb.openperu.pe` se QUEDA.** Viene de Sonata, pero decide el
-dominio de los enlaces generados desde consola (correos, comandos) para las rutas sin `host`.
-Cambiarlo alteraría enlaces que hoy funcionan, y `oweb.openperu.pe` sigue sirviendo la app.
+⚠️ **`router.request_context.host` pasó de `oweb.openperu.pe` a `panel.openperu.pe`.** Venía de
+Sonata. En el primer despliegue se dejó creyendo que decidía los enlaces de correos y comandos, y
+**era falso**: en producción todas las rutas vivas llevan su `host` fijo (panel, api, pax, util),
+y ese parámetro sólo lo usa una ruta **sin** host generada **sin petición**. Las únicas sin host
+son las miniaturas de Liip y el login, y no se generan desde consola ni desde workers. Comprobado
+con `debug:router` y buscando `ABSOLUTE_URL`/`getBrowserPath` en `src/`.
 
 ## 3. Qué se quedó, a propósito
 
@@ -61,7 +64,7 @@ Hay volcado completo de producción del mismo día, antes del cambio.
 tablas de destino (`use_area`, `use_dependencia`), y MySQL no deja borrar un índice que sostiene una
 clave foránea viva: ese SQL habría fallado a mitad.
 
-## 4. 🔥 Lo que dependía de Oweb desde FUERA del repositorio
+## 4. 🔥 Lo que dependía de Oweb desde FUERA del repositorio (y el subdominio)
 
 Medido en el `access.log` de producción (04–17/09/2026): Oweb seguía recibiendo **~160 peticiones al
 día**, y casi todas eran **feeds iCal**:
@@ -73,7 +76,7 @@ día**, y casi todas eran **feeds iCal**:
 | `/app/reservareserva/ical` | un calendario de **Outlook / Exchange** | 1 |
 | `/app/cotizacioncotservicio/ical` | el mismo Outlook | 1 |
 
-Al archivar, **esas URLs dan 404**. Lo que había que saber antes:
+Al archivar, **esas URLs dieron 404**, y desde la sección 4.1 **410**. Lo que había que saber antes:
 
 - **Los feeds de Booking y Vrbo ya estaban congelados.** Leían `res_reserva`, la tabla del sistema
   viejo, que no recibe escrituras desde el 08/08/2026 (el cron `app:obtener-reservas` que la
@@ -87,6 +90,24 @@ Al archivar, **esas URLs dan 404**. Lo que había que saber antes:
 ⚠️ **El código nuevo no tiene ningún feed iCal**: el generador (`IcalGenerator`) sólo existía dentro
 de Oweb. Si un canal volviera a necesitar un iCal, hay que escribirlo sobre el PMS
 (`PmsEventoCalendario`), no rescatar el de Oweb, que leía la tabla congelada.
+
+### 4.1 El subdominio `oweb.openperu.pe`
+
+Desde el 17/09/2026 **responde 410 Gone a todo**, desde un `server` propio de nginx. Antes estaba en
+el mismo `server_name` que panel, api, pax y util, así que después de archivar seguía sirviendo la
+app entera, login incluido. Sólo le llegaban los iCal muertos y bots probando `/admin/login` y
+`/.env`. Se eligió 410 en vez de 404 porque le dice a Booking y a Vrbo que el calendario **ya no
+existe**, no que falla un rato.
+
+⚠️ **El bloque del puerto 80 conserva `/.well-known/acme-challenge/`.** El certificado
+`openperu.pe` de Let's Encrypt incluye `oweb.openperu.pe`, y la renovación (vence el 19/11/2026)
+lo valida por HTTP. Si ese camino también diera 410, **fallaría la renovación del certificado de
+todos los dominios**, no sólo de oweb.
+
+**Lo que queda, en la migración a Ubuntu 26.04:** no poner oweb en nginx ni en el certificado nuevo,
+y después borrar el registro DNS. Quedan URLs con ese dominio en la base, pero sólo en tablas sin
+mapear (`pt_tours`, `cot_cotpolitica`: imágenes de `/carga/`) y en mensajes antiguos. Ninguna la lee
+el código.
 
 ## 5. Cómo se verificó
 
@@ -116,4 +137,5 @@ Antes: **volcado de la base** y quitar la importación iCal en la extranet de Bo
 | Consultar cómo hacía algo el panel viejo | `git show oweb-final:src/Oweb/...` |
 | Recuperar datos de una tabla de Oweb | siguen en la base, sin mapear: SQL directo |
 | Volver a poner las columnas de `user` | `Version20260917120000::down()` — recupera la estructura; los datos, del volcado |
+| El subdominio `oweb.openperu.pe` (410) | nginx del servidor, `/etc/nginx/sites-enabled/openperu`: su propio `server` (sección 4.1) |
 | Un feed iCal para un canal | escribirlo sobre `PmsEventoCalendario` en `src/Pms/` (ver sección 4) |
