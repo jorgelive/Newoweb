@@ -1,6 +1,15 @@
 /**
- * ⚠️⚠️ **Tiene un ESPEJO en `pax/src/utils/imagenParaSubir.ts`. Se tocan LOS DOS, siempre.**
- * Ver el aviso de allí: no se comparte porque `dominio/` está declarado sin DOM.
+ * ⚠️⚠️ **ESPEJO de `util/src/utils/imagenParaSubir.ts`. Se tocan LOS DOS, siempre.**
+ *
+ * Está copiado a propósito y no compartido: `dominio/` —el único sitio que importan las dos apps—
+ * está declarado **sin DOM**, porque PHP lo ejecuta por Node, y esto es `canvas`. Se decidió
+ * (17/09/2026) duplicar este archivo antes que abrir una excepción a esa regla. El precio es éste:
+ * si se cambia `LADO_MAXIMO`, el umbral o la calidad en uno y no en el otro, el pasajero y el
+ * equipo subirán fotos distintas y nadie lo notará. Ver `docs/Cotizaciones.md`.
+ *
+ * 🔑 **En `pax` importa más que en `util`**: la mayoría de los escaneos los sube el pasajero desde su
+ * móvil, y desde el 17/09/2026 la subida **espera a que el documento se lea** para decirle si hay
+ * que repetirlo. Cada megabyte que no viaja es espera que no pasa con la pantalla girando.
  */
 /**
  * Acota una foto ANTES de subirla, para que no viaje lo que el servidor va a tirar.

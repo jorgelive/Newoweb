@@ -10221,6 +10221,23 @@ Tres cambios, en orden de lo que rinden:
 cortaba el `circular_reference_handler`. Marcarlo no cambia el payload, sólo deja de mentir el
 esquema.
 
+##### Y la red: nginx no comprimía el JSON (17/09/2026)
+
+⚠️ **Esto NO está en el repositorio: es `/etc/nginx/nginx.conf` del servidor.** Tenía `gzip on` pero
+la línea `gzip_types` **comentada**, que es como viene Ubuntu, así que sólo se comprimía `text/html`:
+el JSON-LD de la API y los bundles de JavaScript viajaban enteros. Se activó con `gzip_vary`,
+`gzip_proxied any`, `gzip_comp_level 5`, `gzip_min_length 1024` y los tipos
+`application/ld+json`, `application/json`, `application/problem+json`, JS, CSS, XML y SVG.
+
+| Medido en el servidor | antes | después |
+|---|---|---|
+| `/platform/maestro/paises` | 21 166 B | 3 317 B |
+| `/platform/docs.jsonld` | 365 819 B | 44 966 B |
+
+Con esa proporción el expediente de 1,89 MB viaja en ~200 KB. Copia del archivo anterior en
+`/etc/nginx/nginx.conf.antes-gzip-20260917`. **Si se reinstala el servidor, esto se pierde**: no
+lo recrea ningún despliegue.
+
 #### Tres puertas pintadas que no llevaban a ningún sitio (17/09/2026)
 
 **1. El E-Ticket observado no se podía aceptar desde la pantalla.** `EticketsController::aceptar()`
@@ -10439,10 +10456,15 @@ No se toca nada por debajo de 900 KB —recomprimir una foto ya pequeña sólo p
 leen MRZ—, ni los PDF, ni si el resultado sale más pesado. Y **cualquier fallo sube el original**:
 subir 4 MB de más es una molestia, no subir el documento es perder el viaje de esa persona.
 
-⚠️ **`pax` tiene el mismo problema y NO lo lleva** (`MisDocumentos.vue`), que es de donde viene la
-mayoría de los escaneos. No se compartió el módulo porque `dominio/` está declarado **sin DOM**
-—PHP lo ejecuta por Node— y esto es `canvas`: hacerlo bien pide un sitio nuevo para código de
-navegador compartido, y eso es una decisión de estructura, no un arreglo de rendimiento.
+⚠️⚠️ **`pax` lo lleva como ESPEJO: `pax/src/utils/imagenParaSubir.ts`. Se tocan los dos, siempre.**
+Se decidió el 17/09/2026 copiar antes que compartir: `dominio/` —lo único que importan las dos
+apps— está declarado **sin DOM** porque PHP lo ejecuta por Node, y esto es `canvas`. Abrir una
+excepción a esa regla costaba más que vigilar dos archivos. El precio está escrito en la cabecera de
+los dos: si se cambia `LADO_MAXIMO`, el umbral o la calidad en uno solo, el pasajero y el equipo
+subirán fotos distintas sin que nadie lo note.
+
+🔑 En `pax` importa más: la mayoría de los escaneos los sube el pasajero desde el móvil, y la subida
+**espera a que el documento se lea** para decirle si hay que repetirlo.
 
 #### 🔥 Borrar un documento tardaba ~10 segundos, y no era el borrado
 

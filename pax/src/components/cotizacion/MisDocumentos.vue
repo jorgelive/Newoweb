@@ -97,6 +97,7 @@ export const faltanDocumentos = (
 </script>
 
 <script setup lang="ts">
+import { acotarSiEsFotoGrande } from '@/utils/imagenParaSubir';
 /**
  * El pasajero fotografía sus documentos desde su propio móvil.
  *
@@ -231,7 +232,10 @@ const confirmar = async () => {
   error.value = null;
 
   const cuerpo = new FormData();
-  cuerpo.append('documento', ficheroElegido.value);
+  // ⚠️ Acotada ANTES de salir: la subida espera a que el documento se lea, y una foto de móvil de
+  // 4 MB por datos es la mayor parte de esa espera. Ver `utils/imagenParaSubir.ts` —y por qué es
+  // un espejo del de `util`—.
+  cuerpo.append('documento', await acotarSiEsFotoGrande(ficheroElegido.value));
   cuerpo.append('tipo', eligiendo.value);
 
   try {
