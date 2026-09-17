@@ -398,6 +398,33 @@ class MessageTemplate
     }
 
     /**
+     * Los cuatro textos de la ficha «Ver», en español.
+     *
+     * Stubs como {@see getVirtualCanales()}: `TextField` valida el valor CRUDO antes de
+     * formatearlo, así que anclarlo al array del canal lo hace reventar. Lo que se pinta lo compone
+     * `VistaEnEspanolDePlantilla` desde el formateador del CRUD.
+     */
+    public function getVirtualTextoMeta(): string
+    {
+        return '';
+    }
+
+    public function getVirtualTextoBeds24(): string
+    {
+        return '';
+    }
+
+    public function getVirtualTextoWhatsappDentro(): string
+    {
+        return '';
+    }
+
+    public function getVirtualTextoCorreo(): string
+    {
+        return '';
+    }
+
+    /**
      * En qué canales está redactada esta plantilla y en cuáles está encendida.
      *
      * Son **dos cosas distintas** y por eso se devuelven por separado:

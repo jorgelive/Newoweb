@@ -8128,6 +8128,11 @@ envío por Beds24»…): el botón es el atajo, porque eran cuatro casillas muy 
 decía que el resultado se llamara «archivada». Hoy lo dice una etiqueta **ARCHIVADA** delante de los
 canales, y la ayuda plegable del listado explica los tachones.
 
+La ficha «Ver» de cada plantilla enseña **su texto en español** —cabecera, cuerpo, pie y botones con
+su destino— en vez del JSON de los siete idiomas: lo compone `VistaEnEspanolDePlantilla`. El español
+es el original y los otros seis salen de él, así que leerlo es leer la plantilla; el JSON sigue al
+editar.
+
 Por línea de comandos es `msg:plantilla:archivar <códigos>`. Los dos caminos comparten
 `ArchivadorDePlantillas`, y lo que de verdad comparten no es el `is_active` sino la **guarda**: no se
 archiva una plantilla que use una **regla activa**, porque esa regla seguiría programando mensajes

@@ -11,6 +11,7 @@ use App\Message\Form\Type\WhatsappLinkTemplateType;
 use App\Message\Form\Type\WhatsappMetaTemplateType;
 use App\Message\Service\MessageSegmentationAggregator;
 use App\Message\Service\Plantilla\ArchivadorDePlantillas;
+use App\Message\Service\Plantilla\VistaEnEspanolDePlantilla;
 use App\Message\Service\Meta\Template\WhatsappMetaTemplateInventario;
 use App\Message\Service\Meta\Template\WhatsappMetaTemplatePushService;
 use App\Message\Service\Meta\Template\WhatsappMetaTemplateSyncService;
@@ -27,7 +28,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
@@ -47,7 +47,8 @@ class MessageTemplateCrudController extends BaseCrudController
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,
         protected RequestStack $requestStack,
-        private readonly MessageSegmentationAggregator $segmentationAggregator
+        private readonly MessageSegmentationAggregator $segmentationAggregator,
+        private readonly VistaEnEspanolDePlantilla $vistaEnEspanol,
     ) {
         parent::__construct($adminUrlGenerator, $requestStack);
     }
@@ -389,9 +390,12 @@ class MessageTemplateCrudController extends BaseCrudController
             ->onlyOnForms()
             ->setColumns(12);
 
-        yield CodeEditorField::new('whatsappMetaTmpl', 'JSON Generado WhatsApp')
-            ->setLanguage('js')->onlyOnDetail()
-            ->formatValue(fn($val) => empty($val) ? '' : (is_array($val) ? json_encode($val, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE) : $val));
+        yield TextField::new('virtualTextoMeta', 'Texto en español')
+            ->onlyOnDetail()
+            ->formatValue(fn ($value, ?MessageTemplate $entity): string => $this->bloqueEnEspanol(
+                $entity === null ? '' : $this->vistaEnEspanol->whatsappMeta($entity)
+            ))
+            ->renderAsHtml();
 
         // --- PANEL 4: BEDS24 ---
         yield FormField::addPanel('Configuración Beds24 / OTAs')
@@ -417,9 +421,12 @@ class MessageTemplateCrudController extends BaseCrudController
             ->onlyOnForms()
             ->setColumns(12);
 
-        yield CodeEditorField::new('beds24Tmpl', 'JSON Generado Beds24')
-            ->setLanguage('js')->onlyOnDetail()
-            ->formatValue(fn($val) => empty($val) ? '' : (is_array($val) ? json_encode($val, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE) : $val));
+        yield TextField::new('virtualTextoBeds24', 'Texto en español')
+            ->onlyOnDetail()
+            ->formatValue(fn ($value, ?MessageTemplate $entity): string => $this->bloqueEnEspanol(
+                $entity === null ? '' : $this->vistaEnEspanol->beds24($entity)
+            ))
+            ->renderAsHtml();
 
         // --- PANEL 5: WHATSAPP LINK MANUAL ---
         yield FormField::addPanel('Configuración Enlace WhatsApp (dentro de la ventana + manual)')
@@ -449,9 +456,12 @@ class MessageTemplateCrudController extends BaseCrudController
             ->onlyOnForms()
             ->setColumns(12);
 
-        yield CodeEditorField::new('whatsappLinkTmpl', 'JSON Generado Link Manual')
-            ->setLanguage('js')->onlyOnDetail()
-            ->formatValue(fn($val) => empty($val) ? '' : (is_array($val) ? json_encode($val, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE) : $val));
+        yield TextField::new('virtualTextoWhatsappDentro', 'Texto en español')
+            ->onlyOnDetail()
+            ->formatValue(fn ($value, ?MessageTemplate $entity): string => $this->bloqueEnEspanol(
+                $entity === null ? '' : $this->vistaEnEspanol->whatsappDentro($entity)
+            ))
+            ->renderAsHtml();
 
         // --- PANEL 6: EMAIL ---
         yield FormField::addPanel('Configuración Correo Electrónico')
@@ -464,9 +474,12 @@ class MessageTemplateCrudController extends BaseCrudController
             ->onlyOnForms()
             ->setColumns(12);
 
-        yield CodeEditorField::new('emailTmpl', 'JSON Generado Email')
-            ->setLanguage('js')->onlyOnDetail()
-            ->formatValue(fn($val) => empty($val) ? '' : (is_array($val) ? json_encode($val, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE) : $val));
+        yield TextField::new('virtualTextoCorreo', 'Texto en español')
+            ->onlyOnDetail()
+            ->formatValue(fn ($value, ?MessageTemplate $entity): string => $this->bloqueEnEspanol(
+                $entity === null ? '' : $this->vistaEnEspanol->correo($entity)
+            ))
+            ->renderAsHtml();
 
         // --- PANEL 7: AUDITORÍA ---
         yield FormField::addPanel('Auditoría')
@@ -521,6 +534,29 @@ class MessageTemplateCrudController extends BaseCrudController
             'total' => $datos['total'],
             'urlVolver' => $urlVolver,
         ]);
+    }
+
+    /**
+     * El texto de un canal, en español y legible, para la ficha «Ver».
+     *
+     * Sustituye al JSON crudo que había: siete idiomas, `origenHash` y `buttons_map` dentro de un
+     * bloque de código con barra horizontal. El español es el original —los otros seis los escribe
+     * `AutoTranslate` a partir de él—, así que leerlo es leer la plantilla. El JSON entero sigue
+     * disponible al editar, que es donde se toca.
+     *
+     * `<pre>` y no `nl2br`: estos textos llevan listas, sangrías y emojis alineados, y el
+     * navegador se come los espacios de un `<div>` normal.
+     */
+    private function bloqueEnEspanol(string $texto): string
+    {
+        if (trim($texto) === '') {
+            return '<span class="text-muted small">Sin texto escrito para este canal.</span>';
+        }
+
+        return sprintf(
+            '<pre class="mb-0" style="white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:.95em;">%s</pre>',
+            htmlspecialchars($texto, ENT_QUOTES)
+        );
     }
 
     /**

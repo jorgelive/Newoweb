@@ -80,6 +80,26 @@ Y el **por qué** vive donde se ve: `Crud::setHelp(PAGE_INDEX, …)` con un bloq
 qué significan los canales tachados, qué hace archivar y qué no toca. La lista enseña además una
 etiqueta **ARCHIVADA**: cuatro etiquetas tachadas no se leen como un estado.
 
+### La ficha «Ver» enseña el español, no el JSON
+
+Los cuatro canales se mostraban con `CodeEditorField` sobre el array crudo: los siete idiomas, los
+`origenHash` y el `buttons_map` dentro de un bloque con barra horizontal. En el móvil, para saber
+qué dice una plantilla había que arrastrar el bloque de lado buscando el español entre el alemán y
+el neerlandés.
+
+Hoy son **campos virtuales** que pintan sólo el español, compuesto por
+`VistaEnEspanolDePlantilla`: cabecera, cuerpo, pie y botones —cada botón con su destino, que es lo
+que más se equivoca—. El español es el original: los otros seis los escribe `AutoTranslate` a partir
+de él, así que leerlo es leer la plantilla. El JSON entero sigue al editar, que es donde se toca.
+
+Dos detalles que cuestan una tarde si se descubren en caliente:
+
+- **Los campos virtuales necesitan su stub en la entidad** (`getVirtualTextoMeta()` y compañía,
+  devolviendo `''`), por lo mismo que `virtualEstadoMeta`: `TextField` valida el valor CRUDO antes
+  de pasarlo al formateador, y anclarlo al array del canal revienta.
+- **`<pre>` y no `nl2br()`**: estos textos llevan listas, sangrías y emojis alineados, y un `<div>`
+  normal se come los espacios.
+
 ## Dónde tocar para cambiar X
 
 | Necesito… | Archivo | Método |
