@@ -43,6 +43,7 @@ import {
 } from '@/types/operacionModel';
 import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
 import { useCapasEnHistorial } from '@/composables/useCapasEnHistorial';
+import { getArchivoLabel } from '@/types/fileDetalleModel';
 
 const operacionStore = useOperacionStore();
 const router = useRouter();
@@ -2118,6 +2119,14 @@ const copiarLocalizador = async (): Promise<void> => {
     } catch { /* clipboard no disponible: sin feedback, no rompe nada */ }
 };
 const expedienteDetalle = ref<ExpedienteDetalle | null>(null);
+
+/** El nombre que le pusieron («Voucher Hotel Riu»), o el tipo si no tiene. */
+const nombreDeDocumento = (doc: Record<string, unknown>): string => {
+    const nombres = Array.isArray(doc.nombre) ? (doc.nombre as Array<{ language?: string; content?: string | null }>) : [];
+    const propio = (nombres.find(n => n.language === 'es') ?? nombres[0])?.content?.trim();
+
+    return propio || getArchivoLabel(doc.tipoArchivo as string) || 'Documento';
+};
 const cargandoExpediente = ref(false);
 const panelDocumentos = ref(true);
 const panelNamelist = ref(true);
@@ -4116,8 +4125,13 @@ onMounted(async () => {
                                        class="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 rounded-lg px-3 py-2 transition-colors">
                                         <i class="fas fa-file-lines text-[#376875]"></i>
                                         <div class="min-w-0 flex-1">
-                                            <p class="text-sm font-bold text-slate-700 truncate">{{ (doc.tipodocumento as string) || 'Documento' }}</p>
-                                            <p v-if="doc.vencimiento" class="text-[10px] text-slate-400">vence {{ String(doc.vencimiento).slice(0, 10) }}</p>
+                                            <!-- 🔥 **Leía `tipodocumento` y `vencimiento`, dos campos que ya no existen**: el
+                                                 primero se renombró a `tipoArchivo`, y el vencimiento es de la IDENTIFICACIÓN,
+                                                 no del archivo. Cada fila decía «Documento» y ninguna fecha salía nunca. No
+                                                 fallaba porque la lista va tipada como `Record<string, unknown>`. -->
+                                            <p class="text-sm font-bold text-slate-700 truncate">{{ nombreDeDocumento(doc) }}</p>
+                                            <p v-if="nombreDeDocumento(doc) !== getArchivoLabel(doc.tipoArchivo as string)"
+                                               class="text-[10px] text-slate-400">{{ getArchivoLabel(doc.tipoArchivo as string) }}</p>
                                         </div>
                                         <i class="fas fa-arrow-up-right-from-square text-[10px] text-slate-300"></i>
                                     </a>

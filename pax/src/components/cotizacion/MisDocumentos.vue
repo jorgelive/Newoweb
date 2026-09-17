@@ -137,6 +137,15 @@ const props = defineProps<{
    */
   yaEnviados?: string[];
   /**
+   * Los que ya revisó alguien del equipo: **no se ofrece cambiarlos**.
+   *
+   * 🔥 Antes la tarjeta decía «Cambiar» igual, el pasajero elegía la foto, esperaba la subida y
+   * **entonces** le llegaba un 409. El servidor ya bloqueaba; la pantalla no lo sabía. Sale de la
+   * misma regla que bloquea —`CotizacionFilepasajero::tieneVerificado()`—, así que no pueden decir
+   * cosas distintas.
+   */
+  yaVerificados?: string[];
+  /**
    * Los tipos que ESTE expediente exige.
    *
    * ⚠️ `[]` es «no se le pide nada»; **ausente** es «la respuesta no lo dijo» y cae en
@@ -186,6 +195,8 @@ const subidos = computed(() => new Set<string>([...(props.yaEnviados ?? []), ...
  * saldría en verde justo cuando se le está pidiendo repetir.
  */
 const pideOtroDe = ref<Record<string, string[]>>({});
+
+const verificados = computed(() => new Set<string>(props.yaVerificados ?? []));
 
 /** Lo que hay que enseñarle a ESTA persona en ESTE expediente. */
 const pedidos = computed(() => documentosPedidos(props.pedidos));
@@ -301,13 +312,20 @@ const confirmar = async () => {
           <p class="text-sm font-black text-gray-800">{{ doc.titulo }}</p>
           <p class="text-[11px] leading-snug" :class="pideOtroDe[doc.tipo] ? 'text-amber-700 font-bold' : 'text-slate-500'">
             {{ pideOtroDe[doc.tipo] ? 'Lo recibimos, pero necesitamos otro:'
+              : verificados.has(doc.tipo) ? 'Revisado y correcto. Si hay que cambiarlo, escríbenos.'
               : subidos.has(doc.tipo) ? 'Recibido, gracias.' : doc.ayuda }}
           </p>
         </div>
 
         <!-- El `label` es el botón: un `input file` estilizado se rompe en cuanto el navegador
              decide pintarlo a su manera. -->
-        <label class="shrink-0 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider cursor-pointer transition-colors"
+        <!-- ⚠️ Verificado = sin botón, no un botón deshabilitado: uno gris invita a pulsarlo para ver
+             por qué, y la respuesta ya está escrita al lado. -->
+        <span v-if="verificados.has(doc.tipo) && !pideOtroDe[doc.tipo]"
+              class="shrink-0 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-emerald-700">
+          <i class="fas fa-shield-halved mr-1"></i>Revisado
+        </span>
+        <label v-else class="shrink-0 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider cursor-pointer transition-colors"
                :class="pideOtroDe[doc.tipo] ? 'bg-amber-500 hover:bg-amber-600 text-white'
                  : subidos.has(doc.tipo)
                  ? 'text-emerald-700 hover:bg-emerald-100'

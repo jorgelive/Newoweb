@@ -2347,6 +2347,32 @@ const sePuedeConfirmar = (ident: { copiadaDelEscaneo?: boolean; tieneEscaneo?: b
 
 const confirmando = ref<string | null>(null);
 
+/** El E-Ticket que se está aceptando, para deshabilitar SU botón y no los de todos. */
+const aceptandoEticket = ref<string | null>(null);
+
+/**
+ * Cierra un E-Ticket observado con firma humana, **sin recargar el expediente**: el servidor
+ * devuelve el veredicto nuevo (~300 B) y se parchea en sitio con `aplicarVeredictosDeArchivo()`.
+ *
+ * ⚠️ Pregunta antes, y dice qué se está firmando: el desacuerdo concreto. Una firma que se da con
+ * un clic sin leer es la que acaba tapando un trámite mal hecho en el mostrador de Migración.
+ */
+const aceptarEticketDe = async (arch: ApiCotizacionFilearchivo): Promise<void> => {
+  const id = extractIdStr(arch.id ?? arch['@id']);
+  const que = (arch.discrepancias ?? []).map(d => `· ${d.campo}: dice ${d.documento}, debería ${d.manifiesto}`);
+  const pregunta = ['¿Das por bueno este E-Ticket?', ...que,
+    '', 'Si el desacuerdo cambia más adelante, se volverá a abrir solo.'].join('\n');
+
+  if (!confirm(pregunta)) return;
+
+  aceptandoEticket.value = id;
+  const veredictos = await fileStore.aceptarEticket(id);
+  aceptandoEticket.value = null;
+
+  if (veredictos) { aplicarVeredictosDeArchivo(veredictos); }
+  else { alert(fileStore.error || 'No se pudo aceptar el E-Ticket.'); }
+};
+
 /**
  * Escribe los veredictos que acaba de devolver el servidor sobre los que hay pintados.
  *
@@ -4748,6 +4774,20 @@ const eliminarDocumento = async (iri?: string) => {
                         <span v-else-if="!arch.validadoEn" class="text-slate-400 normal-case">
                           subido, pendiente de procesar &mdash; pulsa «Reprocesar»
                         </span>
+
+                        <!-- 🔥 **El endpoint existía desde el 16/09 y no lo llamaba nadie**: un E-Ticket
+                             observado por algo que se ve bien mirando el PDF no se podía cerrar.
+
+                             ⚠️ Sólo sobre `observado`, igual que decide el servidor. Sobre
+                             `no_validado` no sale: ahí no se comparó nada, y lo que toca es arreglar
+                             la causa —asignarle su vuelo, pedir otra foto— y reprocesar. -->
+                        <button v-if="arch.tipoArchivo === 'eticket' && arch.estadoValidacion === 'observado'" type="button"
+                                :disabled="aceptandoEticket === extractIdStr(arch.id ?? arch['@id'])"
+                                @click="aceptarEticketDe(arch)"
+                                class="ml-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-teal-300 bg-teal-50 text-teal-700 font-black uppercase tracking-wider hover:bg-teal-100 disabled:opacity-50">
+                          <i class="fas fa-user-check text-[8px]"></i>
+                          {{ aceptandoEticket === extractIdStr(arch.id ?? arch['@id']) ? 'Aceptando…' : 'Lo he mirado, está bien' }}
+                        </button>
                       </div>
 
                       <div v-for="ident in identificacionesConVeredicto(pax)" :key="`v-${ident.id}`"

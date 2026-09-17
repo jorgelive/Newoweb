@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Api\Provider\Cotizacion;
 
+use App\Cotizacion\Enum\ArchivoTipoEnum;
+
 use ApiPlatform\State\ProviderInterface;
 use ApiPlatform\Metadata\Operation;
 use App\Cotizacion\Entity\Cotizacion;
@@ -388,6 +390,13 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             // salir en la portada pública.
             'documentosPedidos' => $file->getDocumentosPedidos(),
             'documentosEnviados' => $this->tiposYaEnviados($file, $pasajero),
+            // ⚠️ Sale de la MISMA regla que bloquea la subida (`tieneVerificado()`), para que la
+            // pantalla no ofrezca «Cambiar» sobre algo que el servidor va a rechazar con un 409.
+            'documentosVerificados' => array_values(array_map(
+                static fn (ArchivoTipoEnum $t): string => $t->value,
+                array_filter(ArchivoTipoEnum::cases(), static fn (ArchivoTipoEnum $t): bool
+                    => $t->loSubeElPasajero() && $pasajero->tieneVerificado($t)),
+            )),
         ]);
     }
 

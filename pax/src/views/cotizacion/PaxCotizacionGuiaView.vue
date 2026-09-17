@@ -1508,6 +1508,7 @@ const adelantoVista = computed(() => {
                          :tono="documentosPendientes ? 'pendiente' : 'listo'">
             <MisDocumentos :localizador="props.localizador"
                            :ya-enviados="store.miIdentidad.documentosEnviados"
+                           :ya-verificados="store.miIdentidad.documentosVerificados"
                            :pedidos="documentosQuePide"
                            @subido="subidosAhora.push($event)" />
           </PanelPlegable>

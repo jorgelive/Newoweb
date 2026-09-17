@@ -1048,6 +1048,31 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * veredicto propio (el E-Ticket). «Reprocesar» no tocaba el trámite y, desde que su estado sale
      * en la misma tarjeta, eso se leía como que el botón no hacía nada.
      */
+    /**
+     * «Lo he mirado y este E-Ticket está bien»: cierra un trámite OBSERVADO con firma humana.
+     *
+     * 🔥 **El endpoint existía desde el 16/09 y no lo llamaba nadie.** Un E-Ticket observado por algo
+     * que se ve correcto mirando el PDF no tenía forma de cerrarse desde la pantalla.
+     *
+     * ⚠️ **Sólo vale sobre `observado`, y lo decide el servidor**: sobre `no_validado` responde 409
+     * con qué arreglar —ahí no se comparó nada, y firmarlo sería poner «revisado» sobre un cotejo
+     * que no existió—. El mensaje llega en `error` tal cual.
+     *
+     * ⚠️ La firma **sobrevive** a «Reprocesar» y a la tanda mientras el desacuerdo sea el mismo; si
+     * cambia, se reabre sola. Ver `CotizacionFilearchivo::rejuzgar()`.
+     */
+    const aceptarEticket = async (archivoId: string): Promise<VeredictoDeArchivo[] | null> => {
+        error.value = null;
+        try {
+            const { data } = await apiClient.post(`/cotizacion/user/etickets/${archivoId}/aceptar`, {});
+
+            return (data?.archivos ?? []) as VeredictoDeArchivo[];
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo aceptar el E-Ticket.');
+            return null;
+        }
+    };
+
     const revalidarPasajero = async (
         pasajeroId: string,
     ): Promise<{ identificaciones: VeredictoDeDocumento[]; archivos: VeredictoDeArchivo[] } | null> => {
@@ -1159,6 +1184,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         updateFile,
         uploadDocument,
         recargarPasajero,
+        aceptarEticket,
         planificarZip,
         aplicarZip,
         descartarZip,

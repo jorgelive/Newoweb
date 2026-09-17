@@ -10221,6 +10221,32 @@ Tres cambios, en orden de lo que rinden:
 cortaba el `circular_reference_handler`. Marcarlo no cambia el payload, sólo deja de mentir el
 esquema.
 
+#### Tres puertas pintadas que no llevaban a ningún sitio (17/09/2026)
+
+**1. El E-Ticket observado no se podía aceptar desde la pantalla.** `EticketsController::aceptar()`
+existía desde el 16/09 y no lo llamaba nadie. Ahora hay botón «Lo he mirado, está bien» en la fila
+del E-Ticket, **sólo** si está `observado` —la misma condición que el servidor—, pregunta enseñando
+el desacuerdo concreto que se va a firmar, y parchea el veredicto en sitio (`aceptarEticket()` en
+`fileStore.ts`) sin recargar el expediente.
+
+**2. `pax` ofrecía «Cambiar» sobre un documento ya verificado.** El servidor lo rechazaba con 409,
+pero la tarjeta no lo sabía: el pasajero elegía la foto, esperaba la subida y entonces le llegaba el
+error. La regla del candado vivía **privada** en `SubirDocumentoPasajeroController::yaVerificado()`,
+así que quien pinta la pantalla no podía preguntarla. Pasa a
+`CotizacionFilepasajero::tieneVerificado()`, la usan quien bloquea y `CotizacionFilePublicProvider`
+—que manda `miIdentidad.documentosVerificados`—, y la tarjeta enseña «Revisado» sin botón.
+
+⚠️ **Y la regla se corrigió al moverla.** Usaba `estaResuelto()` del **enum**, que no exige que el
+veredicto siga apoyado en un escaneo. Si el archivo se borraba (`validado_con_id` es `SET NULL`), el
+número seguía «verificado» sobre nada y **el pasajero no podía volver a subir el documento que
+faltaba**. Ahora usa `estaResuelta()` de la identificación, que sí lo exige.
+
+**3. La lista de documentos de Operación leía dos campos que ya no existen.** `OperacionView.vue`
+pintaba `doc.tipodocumento` —renombrado a `tipoArchivo`— y `doc.vencimiento` —que es de la
+identificación, no del archivo—. Cada fila decía «Documento» y nunca salía una fecha. No fallaba
+porque la lista va tipada como `Record<string, unknown>`, que es exactamente para lo que existe la
+regla de no escribir tipos a mano.
+
 #### 🔥 El documento se controla AL SUBIRLO desde pax, con el pasajero delante (17/09/2026)
 
 Antes el control corría días después, desde `util`: el pasajero subía una foto cortada, la app le

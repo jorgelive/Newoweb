@@ -143,7 +143,7 @@ final class SubirDocumentoPasajeroController
         // ⚠️ Esto acota **al pasajero**. Por `util` se sigue pudiendo reemplazar cualquier cosa: si
         // un documento verificado hay que cambiarlo de verdad, lo hace alguien que sabe qué está
         // pisando, y queda su rastro.
-        if ($this->yaVerificado($pasajero, $tipo)) {
+        if ($pasajero->tieneVerificado($tipo)) {
             return new JsonResponse([
                 'error' => sprintf(
                     'Tu %s ya está revisado y no se puede cambiar desde aquí. Si hay que corregirlo, escríbenos.',
@@ -277,39 +277,4 @@ final class SubirDocumentoPasajeroController
         return $sinRevisar;
     }
 
-    /**
-     * ¿Alguien ya dio por bueno el documento de este tipo?
-     *
-     * Para un DNI o un pasaporte, el veredicto vive en la **identificación** que ese escaneo
-     * respalda; para el E-Ticket, en el propio archivo. Se miran los dos porque un solo sitio
-     * dejaría fuera la mitad.
-     *
-     * ⚠️ Se usa {@see ValidacionIdentificacionEnum::estaResuelto()} —validado por MRZ, validado por
-     * cotejo o confirmado a mano— y no «distinto de no_validado»: un `observado` **sí** se puede
-     * reemplazar, y de hecho es lo que se le está pidiendo a esa persona.
-     */
-    private function yaVerificado(CotizacionFilepasajero $pasajero, ArchivoTipoEnum $tipo): bool
-    {
-        $tipoNumero = $tipo->respaldaA() ?? $tipo->verificaA();
-
-        if ($tipoNumero !== null) {
-            return $pasajero->identificacionDe($tipoNumero)?->getEstadoValidacion()->estaResuelto() === true;
-        }
-
-        foreach ($pasajero->getFile()?->getFilearchivos() ?? [] as $archivo) {
-            if ($archivo->getTipoArchivo() !== $tipo) {
-                continue;
-            }
-
-            if ((string) $archivo->getPasajero()?->getId() !== (string) $pasajero->getId()) {
-                continue;
-            }
-
-            if ($archivo->getEstadoValidacion()->estaResuelto()) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }

@@ -348,6 +348,45 @@ class CotizacionFilepasajero
     }
 
     /** El documento de un tipo concreto, o `null`. */
+    /**
+     * ¿Alguien ya dio por bueno su documento de este tipo? Si sí, el pasajero no lo puede cambiar.
+     *
+     * 🔥 **Vivía privado en `SubirDocumentoPasajeroController`**, y por eso la pantalla de `pax` no lo
+     * sabía: ofrecía «Cambiar» sobre un pasaporte ya verificado, el pasajero elegía la foto, esperaba
+     * la subida y **entonces** recibía un 409. El candado funcionaba; la puerta seguía pintada. Ahora
+     * lo usan los dos —quien bloquea y quien pinta— y no pueden discrepar.
+     *
+     * Para un DNI o un pasaporte, el veredicto vive en la **identificación** que ese escaneo respalda;
+     * para el E-Ticket, en el propio archivo.
+     *
+     * ⚠️ **`estaResuelta()` de la identificación, no `estaResuelto()` del enum.** La del controlador
+     * usaba el del enum, que no exige que el veredicto siga apoyado en un escaneo: si el archivo se
+     * borró —`validado_con_id` es `SET NULL`— el número seguía «verificado» sobre nada y el pasajero
+     * **no podía volver a subir el documento que faltaba**. Justo al revés de lo que se quiere.
+     *
+     * ⚠️ Un `observado` **sí** se puede reemplazar: es exactamente lo que se le está pidiendo.
+     */
+    public function tieneVerificado(\App\Cotizacion\Enum\ArchivoTipoEnum $tipo): bool
+    {
+        $tipoNumero = $tipo->respaldaA() ?? $tipo->verificaA();
+
+        if ($tipoNumero !== null) {
+            return $this->identificacionDe($tipoNumero)?->estaResuelta() === true;
+        }
+
+        foreach ($this->getFile()?->getFilearchivos() ?? [] as $archivo) {
+            if ($archivo->getTipoArchivo() !== $tipo || (string) $archivo->getPasajero()?->getId() !== (string) $this->getId()) {
+                continue;
+            }
+
+            if ($archivo->getEstadoValidacion()->estaResuelto()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function identificacionDe(DocumentoTipoEnum $tipo): ?CotizacionPasajeroIdentificacion
     {
         foreach ($this->identificaciones as $identificacion) {
