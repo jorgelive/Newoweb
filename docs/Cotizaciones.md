@@ -10149,10 +10149,16 @@ sección de arriba llegó a citar el aviso de `vue-tsc` como *prueba de que el c
 PAYLOAD, no el esquema.** Un `curl`, el `access.log` o una sonda con el serializer lo habrían dicho
 en un minuto — el GET del expediente ni adelgazó (8 404 KB antes, 8 474 KB después).
 
-**Cómo se arregla de verdad**, cuando se decida: sacar `$grupo` de `file:item:read` (dejando
-`file:write`, que es la vía de escritura y siempre fue por IRI) y exponer un getter `grupoId`.
-`claveDeRelacion()` ya funciona con un UUID pelado. Es un cambio de contrato del front, así que no
-entra de rebote en un arreglo de rendimiento.
+**Cómo se arregló de verdad** (mismo día, ya aplicado): sacar `$grupo` de `file:item:read` —dejando
+`file:write`, que es la vía de escritura y siempre fue por IRI— y exponer un getter `grupoId` con el
+id pelado. `claveDeRelacion()` ya funcionaba con un UUID sin barras, así que los tres sitios que lo
+leen sólo cambian de nombre de campo. Comprobado **en el payload**, no en el esquema:
+
+```
+claves de pertenencias[0]: @type, @id, codigo, id, createdAt, updatedAt, grupoId
+  grupo   → ausente
+  grupoId → 01a03480-aa5a-7348-ae3f-285a1609cbc5
+```
 
 ⚠️ **Y la contrapartida hay que pagarla bien el día que se haga.** Resolver la referencia de cada
 pertenencia contra `file.grupos` con un `find` lineal son 1 718 × 110 comparaciones **por
@@ -10177,6 +10183,44 @@ transacción con `rollback`: 14 pertenencias leídas → 14 IRIs → pasa.
 ⚠️ **Y al sondearlo, dale contexto al router.** Sin
 `$router->setContext(new RequestContext()...)`, en CLI **ningún** IRI denormaliza: el sondeo mide el
 contexto de la consola, no el dato, y parece que el arreglo no sirve. Costó una ronda entera.
+
+#### 🔥 El expediente pesaba 9,84 MB, y dos tercios eran el pasajero repetido (16/09/2026)
+
+Medido en producción con el serializer real, expediente de 134 pasajeros y 628 archivos:
+
+| | |
+|---|---|
+| Serializado | **9,84 MB** |
+| Consultas SQL **durante** la serialización, con todo ya hidratado | **10 314** |
+| `filearchivos` (628 filas) | 8,15 MB = **83 %** |
+| … de las cuales `filearchivos[].pasajero` incrustado | **6,99 MB = 71 % del total** |
+| … dentro de eso: 8 464 pertenencias | 5,81 MB |
+| `filepasajeros` (134) | 1,43 MB, 1,08 MB de ellos pertenencias |
+
+Las 10 314 consultas son `CotizacionFileGrupo::getTotalMiembros()` → `$this->miembros->count()` sobre
+una colección `EXTRA_LAZY`, que **no cachea el conteo**: un `COUNT(*)` por cada copia incrustada del
+grupo. Ése es el motivo de los 11 s, no el tamaño.
+
+Tres cambios, en orden de lo que rinden:
+
+1. **`readableLink: false` en las cuatro relaciones de `CotizacionFilearchivo`** (`$file`,
+   `$pasajero`, `$vuelo`, `$grupo`). Aquí **sí actúa**, porque el archivo es `ApiResource` — es el
+   contraste exacto con el caso de `CotizacionPasajeroGrupo` de más arriba, y la diferencia entre
+   los dos es toda la regla.
+2. **`$grupo` fuera de `file:item:read`, sustituido por `grupoId`** en las pertenencias.
+3. **`normalizationContext` en el POST y el PATCH del archivo.** Sin él, la respuesta al subir
+   **devolvía el fichero subido dentro del JSON**: el serializador recorre todos los getters
+   públicos y `getImageFile()` devuelve un `File`, al que le pide `getContent()`. En el
+   `access.log`: POST de 784 KB → respuesta de **1 059 397 B**. No fallaba nada; se pagaba el doble
+   del fichero en cada subida, y nadie lo vio porque el front descarta la respuesta.
+
+🔑 **El 3 no es sólo ahorro: es lo que habilita dejar de recargar.** Con la respuesta en ~2 KB,
+`guardarDocumento()` puede parchear la fila en sitio en vez de llamar a `cargarFile()` —8,47 MB y
+11 s— después de cada subida.
+
+⚠️ **`$file` ya salía como IRI** aunque el esquema dijera objeto: es el ancestro de la cadena y lo
+cortaba el `circular_reference_handler`. Marcarlo no cambia el payload, sólo deja de mentir el
+esquema.
 
 #### 🔥 Borrar un documento tardaba ~10 segundos, y no era el borrado
 

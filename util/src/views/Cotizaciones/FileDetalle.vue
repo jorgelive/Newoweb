@@ -883,7 +883,7 @@ const abrirEdicionPax = (pax: ApiCotizacionFilepasajero, editar = false) => {
     // ⚠️ El resultado fue `String({...})` → `"[object Object]"` en cada pertenencia, y el PATCH
     // devolvía `Invalid IRI "[object Object]"`: **guardar un pasajero con subgrupos daba 400**.
     // Se acepta cualquiera de las dos formas a propósito, que es lo que había antes.
-    pertenencias: (pax.pertenencias ?? []).map(p => ({ grupo: iriDeGrupoParaEscribir(p.grupo) })).filter(p => p.grupo)
+    pertenencias: (pax.pertenencias ?? []).map(p => ({ grupo: iriDeGrupoParaEscribir(p.grupoId) })).filter(p => p.grupo)
   };
   showPaxModal.value = true;
 };
@@ -1522,7 +1522,7 @@ const gruposDePax = (pax: ApiCotizacionFilepasajero): ApiFileGrupo[] =>
     (pax.pertenencias ?? []).flatMap((p) => {
         // ⚠️ Aquí había una rama para el `grupo` incrustado. Ya no llega incrustado —sale como IRI—
         // y los 110 grupos vienen una sola vez en `file.grupos`, que es contra lo que se resuelve.
-        const g = indiceDeGrupos.value.get(claveDeRelacion(p.grupo));
+        const g = indiceDeGrupos.value.get(claveDeRelacion(p.grupoId));
 
         return g ? [g] : [];
     });

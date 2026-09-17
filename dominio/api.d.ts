@@ -12028,7 +12028,22 @@ export interface components {
             updatedAt?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
-        "CotizacionFile.jsonld-file.item.read": {
+        "CotizacionFile.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            email?: string | null;
+            telefono?: string | null;
+            pais?: components["schemas"]["Pais.jsonld-file.item.read"] | null;
+            contacto?: components["schemas"]["MaestroContacto.jsonld-file.item.read"] | null;
+            /** @default es */
+            idiomaCliente: string;
+            /**
+             * @default abierto
+             * @enum {string}
+             */
+            estado: "abierto" | "cerrado" | "archivado";
+            cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.item.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-file.item.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.jsonld-file.item.read"][];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.jsonld-file.item.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read"][];
@@ -12057,13 +12072,15 @@ export interface components {
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
-        } & (components["schemas"]["HydraItemBaseSchema"] & {
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
             email?: string | null;
             telefono?: string | null;
-            pais?: components["schemas"]["Pais.jsonld-file.item.read"] | null;
-            contacto?: components["schemas"]["MaestroContacto.jsonld-file.item.read"] | null;
+            pais?: components["schemas"]["Pais.jsonld-file.read_file.item.read_timestamp.read"] | null;
+            contacto?: components["schemas"]["MaestroContacto.jsonld-file.read_file.item.read_timestamp.read"] | null;
             /** @default es */
             idiomaCliente: string;
             /**
@@ -12071,11 +12088,8 @@ export interface components {
              * @enum {string}
              */
             estado: "abierto" | "cerrado" | "archivado";
-            cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.item.read"][];
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-file.item.read"][];
-        });
-        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
-        "CotizacionFile.jsonld-file.read_file.item.read_timestamp.read": {
+            cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.read_file.item.read_timestamp.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.jsonld-file.read_file.item.read_timestamp.read"][];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.jsonld-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"][];
@@ -12121,23 +12135,7 @@ export interface components {
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
-        } & (components["schemas"]["HydraItemBaseSchema"] & {
-            nombreGrupo?: string;
-            pasajeroPrincipal?: string | null;
-            email?: string | null;
-            telefono?: string | null;
-            pais?: components["schemas"]["Pais.jsonld-file.read_file.item.read_timestamp.read"] | null;
-            contacto?: components["schemas"]["MaestroContacto.jsonld-file.read_file.item.read_timestamp.read"] | null;
-            /** @default es */
-            idiomaCliente: string;
-            /**
-             * @default abierto
-             * @enum {string}
-             */
-            estado: "abierto" | "cerrado" | "archivado";
-            cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.read_file.item.read_timestamp.read"][];
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"][];
-        });
+        };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-file.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreGrupo?: string;
@@ -13705,6 +13703,11 @@ export interface components {
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
              * @example https://example.com/
              */
             file?: string;
@@ -13792,10 +13795,28 @@ export interface components {
              * @enum {string}
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
-            file?: components["schemas"]["CotizacionFile-file.item.read"];
-            pasajero?: components["schemas"]["CotizacionFilepasajero-file.item.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
             vuelo?: components["schemas"]["CotizacionVuelo-file.item.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo-file.item.read"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
             readonly datosLeidos?: {
                 [key: string]: string | null;
@@ -13836,16 +13857,106 @@ export interface components {
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
         };
+        "CotizacionFilearchivo-file.item.read_timestamp.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            /**
+             * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
+            vuelo?: components["schemas"]["CotizacionVuelo-file.item.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
+            /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            imageName?: string | null;
+            imageSize?: number | null;
+            nombre?: {
+                [key: string]: string | null;
+            }[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
+        };
         "CotizacionFilearchivo-file.read_file.item.read_timestamp.read": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
-            file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
-            pasajero?: components["schemas"]["CotizacionFilepasajero-file.read_file.item.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
             vuelo?: components["schemas"]["CotizacionVuelo-file.read_file.item.read_timestamp.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
             readonly datosLeidos?: {
                 [key: string]: string | null;
@@ -13974,6 +14085,11 @@ export interface components {
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
              * @example https://example.com/
              */
             file?: string;
@@ -14061,10 +14177,28 @@ export interface components {
              * @enum {string}
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
-            file?: components["schemas"]["CotizacionFile.html-file.item.read"];
-            pasajero?: components["schemas"]["CotizacionFilepasajero.html-file.item.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
             vuelo?: components["schemas"]["CotizacionVuelo.html-file.item.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo.html-file.item.read"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
             readonly datosLeidos?: {
                 [key: string]: string | null;
@@ -14105,16 +14239,106 @@ export interface components {
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
         };
+        "CotizacionFilearchivo.html-file.item.read_timestamp.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            /**
+             * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
+            vuelo?: components["schemas"]["CotizacionVuelo.html-file.item.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
+            /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            imageName?: string | null;
+            imageSize?: number | null;
+            nombre?: {
+                [key: string]: string | null;
+            }[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
+        };
         "CotizacionFilearchivo.html-file.read_file.item.read_timestamp.read": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
-            file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
-            pasajero?: components["schemas"]["CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
             vuelo?: components["schemas"]["CotizacionVuelo.html-file.read_file.item.read_timestamp.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
             readonly datosLeidos?: {
                 [key: string]: string | null;
@@ -14195,6 +14419,11 @@ export interface components {
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
              * @example https://example.com/
              */
             file?: string;
@@ -14282,10 +14511,28 @@ export interface components {
              * @enum {string}
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
-            file?: components["schemas"]["CotizacionFile.jsonld-file.item.read"];
-            pasajero?: components["schemas"]["CotizacionFilepasajero.jsonld-file.item.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
             vuelo?: components["schemas"]["CotizacionVuelo.jsonld-file.item.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
             readonly datosLeidos?: {
                 [key: string]: string | null;
@@ -14326,16 +14573,106 @@ export interface components {
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
         };
+        "CotizacionFilearchivo.jsonld-file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            /**
+             * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
+            vuelo?: components["schemas"]["CotizacionVuelo.jsonld-file.item.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
+            /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            imageName?: string | null;
+            imageSize?: number | null;
+            nombre?: {
+                [key: string]: string | null;
+            }[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
+        };
         "CotizacionFilearchivo.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
-            file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
-            pasajero?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
             vuelo?: components["schemas"]["CotizacionVuelo.jsonld-file.read_file.item.read_timestamp.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
             readonly datosLeidos?: {
                 [key: string]: string | null;
@@ -14416,6 +14753,11 @@ export interface components {
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
              * @example https://example.com/
              */
             file?: string;
@@ -14503,10 +14845,28 @@ export interface components {
              * @enum {string}
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
-            file?: components["schemas"]["CotizacionFile.multipart-file.item.read"];
-            pasajero?: components["schemas"]["CotizacionFilepasajero.multipart-file.item.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
             vuelo?: components["schemas"]["CotizacionVuelo.multipart-file.item.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo.multipart-file.item.read"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
             readonly datosLeidos?: {
                 [key: string]: string | null;
@@ -14547,16 +14907,106 @@ export interface components {
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
         };
+        "CotizacionFilearchivo.multipart-file.item.read_timestamp.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            /**
+             * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
+            vuelo?: components["schemas"]["CotizacionVuelo.multipart-file.item.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
+            /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
+            readonly datosLeidos?: {
+                [key: string]: string | null;
+            } | null;
+            /** Format: date-time */
+            readonly leidoEn?: string | null;
+            /** @description Por qué no se pudo leer. */
+            readonly lecturaError?: string | null;
+            /**
+             * @description En qué estado quedó el control de ESTE archivo.
+             * @default no_validado
+             * @enum {string}
+             */
+            readonly estadoValidacion: "no_validado" | "observado" | "validado_ocr" | "validado_mrz" | "confirmado";
+            /** @description Los campos en los que el documento no dice lo esperado. */
+            readonly discrepancias?: {
+                [key: string]: string;
+            }[];
+            /** @description Lo que no es de ningún campo: «sólo trae la entrada», «no se puede cotejar: no tiene vuelos». */
+            readonly notasValidacion?: string[];
+            /** Format: date-time */
+            readonly validadoEn?: string | null;
+            imageName?: string | null;
+            imageSize?: number | null;
+            nombre?: {
+                [key: string]: string | null;
+            }[] | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
+            /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
+            readonly rotacionPendiente?: number;
+            /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
+            readonly imageUrl?: string | null;
+            /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
+            readonly tipoMedio?: string;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
+        };
         "CotizacionFilearchivo.multipart-file.read_file.item.read_timestamp.read": {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
-            file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
-            pasajero?: components["schemas"]["CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+             *     `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+             *     `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+             *     `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+             *     gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+             * @example https://example.com/
+             */
+            file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las CUATRO combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
             vuelo?: components["schemas"]["CotizacionVuelo.multipart-file.read_file.item.read_timestamp.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** @description Lo que dijo este documento la última vez que se leyó, tal cual. */
             readonly datosLeidos?: {
                 [key: string]: string | null;
@@ -15625,18 +16075,26 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo-file.item.read": {
-            grupo: components["schemas"]["CotizacionFileGrupo-file.item.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
              */
             codigo?: string | null;
             id?: string;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo-file.item.read_timestamp.read": {
-            grupo: components["schemas"]["CotizacionFileGrupo-file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15647,9 +16105,13 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo-file.read_file.item.read_timestamp.read": {
-            grupo: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15660,6 +16122,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo-file.write": {
             grupo: components["schemas"]["CotizacionFileGrupo-file.write"];
@@ -15687,18 +16154,26 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo.html-file.item.read": {
-            grupo: components["schemas"]["CotizacionFileGrupo.html-file.item.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
              */
             codigo?: string | null;
             id?: string;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo.html-file.item.read_timestamp.read": {
-            grupo: components["schemas"]["CotizacionFileGrupo.html-file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15709,9 +16184,13 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo.html-file.read_file.item.read_timestamp.read": {
-            grupo: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15722,6 +16201,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo.jsonld": {
             /**
@@ -15745,18 +16229,26 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo.jsonld-file.item.read": {
-            grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
              */
             codigo?: string | null;
             id?: string;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo.jsonld-file.item.read_timestamp.read": {
-            grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15767,9 +16259,13 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo.jsonld-file.read_file.item.read_timestamp.read": {
-            grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15780,6 +16276,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo.multipart": {
             /**
@@ -15803,18 +16304,26 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo.multipart-file.item.read": {
-            grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.item.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
              */
             codigo?: string | null;
             id?: string;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo.multipart-file.item.read_timestamp.read": {
-            grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15825,9 +16334,13 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         "CotizacionPasajeroGrupo.multipart-file.read_file.item.read_timestamp.read": {
-            grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15838,6 +16351,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+             */
+            readonly grupoId?: string | null;
         };
         CotizacionPasajeroIdentificacion: {
             /**
@@ -17576,6 +18094,36 @@ export interface components {
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
         };
+        "CotizacionVuelo-file.item.read_timestamp.read": {
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
         "CotizacionVuelo-file.read_file.item.read_timestamp.read": {
             /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
             numero: string;
@@ -17666,6 +18214,36 @@ export interface components {
             notas?: string[];
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
+        "CotizacionVuelo.html-file.item.read_timestamp.read": {
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
         };
@@ -17761,6 +18339,36 @@ export interface components {
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
         };
+        "CotizacionVuelo.jsonld-file.item.read_timestamp.read": {
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
         "CotizacionVuelo.jsonld-file.read_file.item.read_timestamp.read": {
             /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
             numero: string;
@@ -17850,6 +18458,36 @@ export interface components {
             notas?: string[];
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
+        "CotizacionVuelo.multipart-file.item.read_timestamp.read": {
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
         };
@@ -41798,10 +42436,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFilearchivo.jsonld"];
-                    "application/json": components["schemas"]["CotizacionFilearchivo"];
-                    "text/html": components["schemas"]["CotizacionFilearchivo.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionFilearchivo.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionFilearchivo.jsonld-file.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionFilearchivo-file.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionFilearchivo.html-file.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFilearchivo.multipart-file.item.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */
@@ -41894,10 +42532,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFilearchivo.jsonld"];
-                    "application/json": components["schemas"]["CotizacionFilearchivo"];
-                    "text/html": components["schemas"]["CotizacionFilearchivo.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionFilearchivo.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionFilearchivo.jsonld-file.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionFilearchivo-file.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionFilearchivo.html-file.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFilearchivo.multipart-file.item.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */

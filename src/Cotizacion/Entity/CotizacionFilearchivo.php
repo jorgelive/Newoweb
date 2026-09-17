@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Patch;
@@ -37,12 +38,23 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
                 'groups' => ['file:write'],
                 'disable_type_enforcement' => true,   // 🔑 multipart manda todo como string
             ],
+            // 🔥 **Sin esto, la respuesta al subir DEVOLVÍA EL FICHERO SUBIDO.** Sin
+            // `normalizationContext` el serializador recorre todos los getters públicos, y
+            // `getImageFile()` devuelve un `File`: al normalizarlo le pide `getContent()`, o sea
+            // los bytes. Medido en el `access.log`: POST de 784 KB → **respuesta de 1 059 397 B**.
+            // No fallaba nada; se pagaba el doble del fichero en cada subida y nadie lo miraba,
+            // porque el front descarta la respuesta.
+            //
+            // 🔑 Y ahora que la respuesta es de ~2 KB, sirve para **parchear la fila en sitio** en
+            // vez de recargar el expediente entero, que es lo que hace `guardarDocumento()`.
+            normalizationContext: ['groups' => ['file:item:read', 'timestamp:read']],
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para subir documentos.',
             processor: CotizacionFilearchivoMultipartProcessor::class
         ),
         new Patch(
             denormalizationContext: ['groups' => ['file:write']],
+            normalizationContext: ['groups' => ['file:item:read', 'timestamp:read']],
             // El MISMO procesador que el POST, y no por copiar: es quien pone el nombre por
             // convención a un escaneo de identidad. Sin él, crear un pasaporte lo dejaba llamado
             // «Pasaporte (escaneo)» y **editarlo borrando el nombre lo dejaba sin ninguno** — la
@@ -89,7 +101,31 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
     #[ORM\Column(name: 'tipo_archivo', type: 'string', length: 20, enumType: ArchivoTipoEnum::class)]
     private ?ArchivoTipoEnum $tipoArchivo = null;
 
+    /**
+     * ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
+     * `readableLink: false` en las cuatro, y aquí **sí funciona**: lo aplica
+     * `AbstractItemNormalizer::normalizeRelation()`, que sólo atiende clases-recurso, y
+     * `CotizacionFilearchivo` es `ApiResource`. Ver `CotizacionPasajeroGrupo::$grupo` para el caso
+     * gemelo donde **no** funciona, y por qué distinguirlos costó un despliegue roto.
+     *
+     * Medido en producción sobre el expediente de 628 archivos: `$pasajero` incrustado son **6,99
+     * MB de los 9,84 MB** de la respuesta, porque cada copia arrastra sus identificaciones y sus
+     * pertenencias —y cada pertenencia, su grupo, con un `COUNT(*)` detrás—. `$vuelo` son 56 KB y
+     * `$grupo` hoy `null` en todos, pero lo evita el día que se use.
+     *
+     * ⚠️ `$file` **ya salía como IRI** aunque el esquema dijera lo contrario: es el ancestro de la
+     * cadena y lo cortaba el `circular_reference_handler`. Se marca igual para que el esquema deje
+     * de mentir; el payload no cambia.
+     *
+     * ⚠️ El front no se entera: los 14 sitios que las leen pasan por `claveDeRelacion()`/
+     * `idDeRelacion()` en `FileDetalle.vue`, que aceptan las dos formas. Y `pax` usa
+     * `pax_file:read`, donde ninguna de las cuatro está.
+     *
+     * ⚠️ `file:write` se queda: escribir siempre fue por IRI y `readableLink` sólo gobierna la
+     * lectura.
+     */
     #[Groups(['file:item:read', 'file:write'])]
+    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: CotizacionFile::class, inversedBy: 'filearchivos')]
     #[ORM\JoinColumn(name: 'file_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFile $file = null;
@@ -111,6 +147,7 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
      * Un solo mecanismo para los cuatro alcances. Sin esto harían falta cuatro modelos.
      */
     #[Groups(['file:item:read', 'file:write'])]
+    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: CotizacionFilepasajero::class)]
     #[ORM\JoinColumn(name: 'pasajero_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
     private ?CotizacionFilepasajero $pasajero = null;
@@ -134,11 +171,13 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
      * del expediente.
      */
     #[Groups(['file:item:read', 'file:write'])]
+    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: CotizacionVuelo::class)]
     #[ORM\JoinColumn(name: 'vuelo_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
     private ?CotizacionVuelo $vuelo = null;
 
     #[Groups(['file:item:read', 'file:write'])]
+    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: CotizacionFileGrupo::class)]
     #[ORM\JoinColumn(name: 'grupo_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
     private ?CotizacionFileGrupo $grupo = null;

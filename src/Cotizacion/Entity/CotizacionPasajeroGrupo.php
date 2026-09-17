@@ -84,7 +84,7 @@ class CotizacionPasajeroGrupo
      * Y `pax` no se entera: usa `pax_file:read`, donde esta propiedad no está.
      */
     #[Assert\NotNull]
-    #[Groups(['file:item:read', 'file:write'])]
+    #[Groups(['file:write'])]
     #[ORM\ManyToOne(targetEntity: CotizacionFileGrupo::class, inversedBy: 'miembros')]
     #[ORM\JoinColumn(name: 'grupo_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFileGrupo $grupo = null;
@@ -154,6 +154,25 @@ class CotizacionPasajeroGrupo
 
     public function getPasajero(): ?CotizacionFilepasajero { return $this->pasajero; }
     public function setPasajero(?CotizacionFilepasajero $v): self { $this->pasajero = $v; return $this; }
+
+    /**
+     * El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
+     *
+     * 🔑 Sustituye a `$grupo` en `file:item:read`, y ése es el arreglo de verdad: los 110 grupos ya
+     * viajan enteros en `CotizacionFile::$grupos`, así que incrustarlos otra vez en cada una de las
+     * 1 718 pertenencias —y de las 8 464 que van por `filearchivos[].pasajero`— era el mismo dato
+     * repetido, con un `COUNT(*)` de `getTotalMiembros()` por copia.
+     *
+     * ⚠️ **No se pudo hacer con `readableLink: false`**: esta entidad no es `ApiResource`, así que
+     * el atributo no toca el payload y sólo cambia el esquema. Ver el aviso de `$grupo`.
+     *
+     * ⚠️ Se devuelve el **id pelado**, no un IRI, y a propósito: el front lo resuelve contra
+     * `indiceDeGrupos`, que es un `Map` por id. Para ESCRIBIR sigue haciendo falta el IRI, y por eso
+     * `$grupo` se queda en `file:write` y `FileDetalle.vue` lo reconstruye con
+     * `iriDeGrupoParaEscribir()`.
+     */
+    #[Groups(['file:item:read'])]
+    public function getGrupoId(): ?Uuid { return $this->grupo?->getId(); }
 
     public function getGrupo(): ?CotizacionFileGrupo { return $this->grupo; }
     public function setGrupo(?CotizacionFileGrupo $v): self { $this->grupo = $v; return $this; }
