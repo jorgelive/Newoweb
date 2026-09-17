@@ -764,6 +764,26 @@ final readonly class MessageRuleEngine
             if ($message->getScheduledAt() != $newRunAt) {
                 $message->setScheduledAt($newRunAt);
             }
+
+            // 🔁 LO QUE TODAVÍA NO SALIÓ SIGUE A SU REGLA, también en la PLANTILLA.
+            //
+            // Se sincronizaba la fecha y no el texto. Cada mensaje guarda su plantilla al nacer y
+            // el envío la lee de ahí, así que repuntar una regla sólo cambiaba lo que se creara
+            // DESPUÉS: los 22 recordatorios ya programados de «Guia de llegada» (17/09/2026)
+            // habrían salido con el texto de abril aunque la regla apuntara al nuevo.
+            //
+            // Las bienvenidas no lo destaparon porque salen al minuto de reservar y nunca tienen
+            // nada en cola esperando; un recordatorio 30 h antes de la llegada vive semanas ahí.
+            //
+            // ⚠️ Repuntar una regla a una plantilla de Meta SIN APROBAR arrastra con ella todo lo
+            // programado, y fuera de la ventana de 24 h no saldría. Por eso los comandos que
+            // repuntan (`msg:plantillas:bienvenida`, `msg:plantillas:guia-llegada`) se niegan a
+            // hacerlo hasta que Meta aprueba todos los idiomas.
+            $plantillaDeLaRegla = $rule->getTemplate();
+
+            if ($plantillaDeLaRegla !== null && $message->getTemplate() !== $plantillaDeLaRegla) {
+                $message->setTemplate($plantillaDeLaRegla);
+            }
         }
 
         $this->resolveMessageStatus($message);

@@ -490,6 +490,13 @@ guardarse en UTC, hay que cambiar las dos puntas a la vez.**
 
 `syncPendingMessage()` no toca un mensaje `SENT`/`DELIVERED`/`READ`: lo enviado es historia.
 
+Lo que **todavía no salió** (`queued`/`pending`) sigue a su regla en la fecha **y en la plantilla**
+(desde el 17/09/2026). Cada mensaje guarda la plantilla con la que nació y el envío la lee de ahí,
+así que antes repuntar una regla sólo cambiaba lo que se creara después: los recordatorios de
+llegada, que esperan semanas en cola, habrían salido con el texto viejo aunque la regla apuntara
+al nuevo. ⚠️ Por lo mismo, repuntar a una plantilla de Meta sin aprobar arrastra todo lo
+programado: por eso los comandos que repuntan se niegan hasta que Meta aprueba todos los idiomas.
+
 `FAILED` es distinto y tiene trampa. Un mensaje fallido puede estar en pleno ciclo de reintentos
 del worker, así que regenerarlo arriesga un envío doble al huésped. Pero si sus colas ya agotaron
 `maxAttempts`, no lo va a reintentar nadie y su mera existencia bloqueaba la creación de uno
@@ -7956,6 +7963,47 @@ Se lanza otra con nombre nuevo (`_v2`), se espera su aprobación, se apunta a el
 archiva. Editar reabre la revisión: los idiomas ya aprobados vuelven a `PENDING` y **no se pueden
 usar fuera de la ventana de 24 h** hasta que Meta los mire otra vez. Para una bienvenida que sale
 al minuto de reservar —con la ventana siempre cerrada— eso es dejarla sin salir.
+
+---
+
+## 18.d La guía de llegada, con y sin prepago (17/09/2026)
+
+`recordatorio_llegada` (abril) sale 30 h antes del check-in, que es exactamente cuando se abren en la
+guía el código de las llaves y el WiFi. No lo decía: repetía la lista de la bienvenida con tono de
+formulario, llevaba asteriscos literales en el chat de Booking y no preguntaba la hora de llegada.
+La sustituyen dos, creadas por `msg:plantillas:guia-llegada`:
+
+| plantilla | origen | en Meta | diferencia |
+|---|---|---|---|
+| `guia_llegada` | airbnb, directo | `guia_llegada_v1` | — |
+| `guia_llegada_booking` | booking | `guia_llegada_booking_v1` | «Se muestran en cuanto recibimos el prepago de tu reserva.» |
+
+**Por qué dos.** Las llaves y el WiFi son `solo-ventana`: exigen la ventana abierta **y pago
+confiable**. En Booking eso es el prepago —y basta el adelanto: `pago-parcial` está en
+`ESTADOS_PAGO_CONFIABLES`—, así que prometérselas sin condición a quien no lo hizo es mandarlo a un
+candado. En Airbnb no hay prepago. Las directas van con la de Airbnb por decisión de Jorge: su
+pago se negocia en la conversación.
+
+La pregunta final la redactó Jorge: «El check-in es desde las 14:00. Por favor, dinos a qué hora
+tienes planificado llegar.» ⚠️ La respuesta no se guarda en ningún campo: el agente la lee en el
+chat, igual que la hora de salida de `check_out`.
+
+**`--activar`, cuando Meta apruebe LAS DOS:**
+
+1. **Repunta** «Guia de llegada» a `guia_llegada` y la limita a airbnb y directo. Se repunta y no se
+   crea otra porque el motor reconoce lo programado por `rule_id`: los recordatorios ya en cola
+   siguen siendo los mismos mensajes y cambian de plantilla (§4.5).
+2. **Crea** «Guia de llegada Booking», misma cita (`start`, −1800 min) y mismos canales.
+3. **Apaga** `recordatorio_llegada` en sus tres canales, sin tocar los cuerpos.
+4. **Pasa el motor** por los hilos con un recordatorio en cola, para no esperar al siguiente
+   recálculo: los de Booking se cancelan en la regla vieja y nacen en la nueva en la misma pasada.
+
+Probado en local, dentro de una transacción deshecha, con la copia de la base: 5 recordatorios de
+Booking pasaron a `guia_llegada_booking` sin duplicados; un hilo forzado a Airbnb conservó **el
+mismo mensaje y su cola**, ya con `guia_llegada`; una segunda pasada de `--activar` no cambió nada;
+y seis recálculos de Vanessa en los dos órdenes dejaron un solo recordatorio vivo.
+
+⚠️ «14:00» va escrito, como «8:00» en la bienvenida: si cambia el check-in, hay plantilla nueva.
 
 ---
 
