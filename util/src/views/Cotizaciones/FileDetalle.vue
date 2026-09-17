@@ -23,6 +23,7 @@ import { ESTADO_FILE_LABELS } from '@/types/cotizacionEditorModel';
 
 import type { ApiPais } from '@/types/maestroModel';
 import { paraBuscar } from '@/utils/texto';
+import { acotarSiEsFotoGrande } from '@/utils/imagenParaSubir';
 
 import {
   getArchivoLabel, ARCHIVO_TIPO_LABELS, ARCHIVO_TIPOS_DEL_PASAJERO, type ArchivoTipoValue,
@@ -3744,7 +3745,11 @@ const guardarDocumento = async () => {
     }
     isSubmittingDoc.value = true;
     const formData = new FormData();
-    formData.append('documento', docForm.value.fileObject);
+    // ⚠️ **Se acota ANTES de subir, no después.** El servidor ya recomprime todo lo que entra, pero
+    // eso pasa cuando el fichero YA viajó: desde un móvil con datos, mandar 4 MB para que se
+    // conviertan en 430 KB al llegar es la parte más lenta de subir un documento. Ver
+    // `imagenParaSubir.ts`, y en especial por qué lleva `imageOrientation: 'from-image'`.
+    formData.append('documento', await acotarSiEsFotoGrande(docForm.value.fileObject));
     // ⚠️ nombre es json/array (I18nContent[]): se envía con notación de índice,
     //     nunca como string plano (rompe AbstractItemNormalizer).
     if (docForm.value.nombre) {

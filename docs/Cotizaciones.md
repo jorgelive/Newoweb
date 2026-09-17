@@ -10251,6 +10251,46 @@ ellos las pertenencias vuelven sobre sí mismas y sale una `CircularReferenceExc
 ⚠️ **Si el refresco del dueño falla, se calla.** El documento **ya se guardó**: tratar un fallo de
 red posterior como «error al subir» haría dudar de lo que sí se hizo, y lleva a subirlo otra vez.
 
+##### Y la foto se acota ANTES de salir (`util/src/utils/imagenParaSubir.ts`)
+
+Quitada la recarga, lo que quedaba era el fichero subiendo. El servidor **ya** recomprime todo lo
+que entra —`VichWebpConversionListener` + los filtros de `liip_imagine.yaml`: 2400 px y webp de
+calidad 88 para un escaneo de identidad, ~430 KB—, pero eso pasa **cuando el fichero ya viajó**. Una
+foto de móvil de 4 MB cruza la red entera para convertirse en 430 KB al llegar.
+
+🔑 **Es una COTA, no una regla.** Aquí no se decide a qué tamaño va cada documento: eso lo decide el
+servidor por `tipoArchivo` (1600 px o 2400 px). El navegador sólo garantiza **«nunca más de
+2400 px»**, que es el mayor de los dos destinos. Si el filtro del servidor bajara, esto sigue siendo
+correcto y sólo ahorra un poco menos; duplicar la decisión sí habría sido la misma regla dos veces.
+
+⚠️⚠️ **El EXIF es la trampa, y es la que este repositorio ya pagó.** Un móvil en vertical guarda los
+píxeles **apaisados** y añade una etiqueta «gírala 90°». Dibujar en un `canvas` borra esa etiqueta,
+así que dibujar sin girar antes deja la foto **tumbada para siempre y sin dar error** — el mismo
+fallo que documenta a gritos el final de `liip_imagine.yaml`, donde el pasajero veía su pasaporte
+derecho y al operador le llegaba girado. Se decodifica con `imageOrientation: 'from-image'`, que
+aplica el EXIF a los píxeles; el `auto_rotate` del servidor se encuentra entonces una imagen que ya
+no hay que girar.
+
+Probado en un navegador real con una foto de 3000×2000 y EXIF «Rotate 90 CW»:
+
+```
+original : 2,74 MB          →  salida: 643 KB  (−77 %)
+dimensiones de salida: 1600×2400  → VERTICAL: el EXIF se aplicó
+banda roja (arriba en los píxeles guardados) → acaba a la DERECHA
+```
+
+Lo segundo es lo que importa: no basta con comprobar que gira, hay que comprobar que gira **al lado
+correcto**. Una prueba que sólo mire «¿es vertical?» da por bueno un giro de 180°.
+
+No se toca nada por debajo de 900 KB —recomprimir una foto ya pequeña sólo pierde calidad, y aquí se
+leen MRZ—, ni los PDF, ni si el resultado sale más pesado. Y **cualquier fallo sube el original**:
+subir 4 MB de más es una molestia, no subir el documento es perder el viaje de esa persona.
+
+⚠️ **`pax` tiene el mismo problema y NO lo lleva** (`MisDocumentos.vue`), que es de donde viene la
+mayoría de los escaneos. No se compartió el módulo porque `dominio/` está declarado **sin DOM**
+—PHP lo ejecuta por Node— y esto es `canvas`: hacerlo bien pide un sitio nuevo para código de
+navegador compartido, y eso es una decisión de estructura, no un arreglo de rendimiento.
+
 #### 🔥 Borrar un documento tardaba ~10 segundos, y no era el borrado
 
 `eliminarDocumento()` hacía `cargarFile()` después del DELETE: **se traía el expediente entero** para
