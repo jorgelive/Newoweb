@@ -10074,6 +10074,35 @@ que el proceso llegue vivo al final. Arreglado **antes** de que existiera el bot
 
 `POST /cotizacion/user/manifiesto/{id}/etickets/validar` → `EticketsController`.
 
+#### 🔥 El expediente pesaba 90 % de lo mismo repetido (16/09/2026)
+
+`CotizacionPasajeroGrupo::$grupo` salía **incrustado**: cada pertenencia arrastraba el
+`CotizacionFileGrupo` entero —clave, nombre, subeje, detalle, tipo, sus vuelos—. Con 134 pasajeros y
+una media de 13 subgrupos por persona, son **1 712 copias del mismo puñado de objetos** en cada
+respuesta. Y los 110 grupos ya venían aparte en `CotizacionFile::$grupos`: el mismo dato dos veces,
+una de ellas multiplicada.
+
+Resultado: el GET del expediente pesaba **717 KB de media y hasta 4,3 MB**, con picos de 8 s de
+serialización. Un `#[ApiProperty(readableLink: false)]` lo convierte en un IRI.
+
+🔑 **No es sólo el tamaño: es el multiplicador de todo lo demás.** Cada recarga del panel —tras subir
+un documento, resolver un suelto, validar el manifiesto— pagaba eso. Con el IRI, incluso las
+recargas que queden salen baratas, así que este cambio vale más que cualquiera de los parches en
+sitio que lo rodean.
+
+⚠️ **El front ya lo soportaba, y `vue-tsc` lo demostró.** Los dos sitios que leen `p.grupo`
+—`gruposDePax()` y `abrirEdicionPax()`— tenían una rama para el IRI, puesta por la vía de ESCRITURA
+(el formulario siempre mandó IRIs). Al regenerar `api.d.ts`, el typecheck marcó la rama del objeto
+incrustado como **inalcanzable** (`Property 'id' does not exist on type 'never'`): la comprobación
+diciendo que el cambio cuadra. Se borró el código muerto que eso destapó.
+
+⚠️ **Y la contrapartida hay que pagarla bien.** Resolver el IRI de cada pertenencia contra
+`file.grupos` con un `find` lineal son 1 712 × 110 comparaciones **por recomputación**: se cambiaría
+peso de red por trabajo de CPU en cada repintado. Va por `Map` (`indiceDeGrupos`).
+
+⚠️ `file:write` se queda intacto: escribir siempre fue por IRI, y `readableLink` sólo gobierna la
+lectura. `pax` no se entera — usa `pax_file:read`, donde esta propiedad no está.
+
 #### 🔥 Borrar un documento tardaba ~10 segundos, y no era el borrado
 
 `eliminarDocumento()` hacía `cargarFile()` después del DELETE: **se traía el expediente entero** para

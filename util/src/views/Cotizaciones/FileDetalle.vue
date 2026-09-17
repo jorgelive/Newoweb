@@ -848,11 +848,10 @@ const abrirEdicionPax = (pax: ApiCotizacionFilepasajero, editar = false) => {
       numero: i.numero ?? '',
       vencimiento: i.vencimiento ? i.vencimiento.split('T')[0] : '',
     })),
-    pertenencias: (pax.pertenencias ?? []).map(p => ({
-      grupo: typeof p.grupo === 'string'
-        ? p.grupo
-        : (p.grupo ? `/platform/sales/cotizacion_file_grupos/${extractIdStr(p.grupo.id)}` : ''),
-    })).filter(p => p.grupo)
+    // ⚠️ `grupo` llega como IRI desde que la relación tiene `readableLink: false`, y el formulario
+    // ya mandaba IRIs: aquí había una rama para el objeto incrustado que `vue-tsc` marcó como
+    // INALCANZABLE al regenerar el esquema. Es la comprobación diciendo que el cambio cuadra.
+    pertenencias: (pax.pertenencias ?? []).map(p => ({ grupo: String(p.grupo ?? '') })).filter(p => p.grupo)
   };
   showPaxModal.value = true;
 };
@@ -1478,9 +1477,9 @@ const iriDeGrupoPlano = (g: ApiFileGrupo): string =>
  */
 const gruposDePax = (pax: ApiCotizacionFilepasajero): ApiFileGrupo[] =>
     (pax.pertenencias ?? []).flatMap((p) => {
-        if (p.grupo && typeof p.grupo === 'object') return [p.grupo as ApiFileGrupo];
-
-        const g = (file.value?.grupos ?? []).find(x => extractIdStr(iriDeGrupoPlano(x)) === extractIdStr(p.grupo));
+        // ⚠️ Aquí había una rama para el `grupo` incrustado. Ya no llega incrustado —sale como IRI—
+        // y los 110 grupos vienen una sola vez en `file.grupos`, que es contra lo que se resuelve.
+        const g = indiceDeGrupos.value.get(claveDeRelacion(p.grupo));
 
         return g ? [g] : [];
     });
@@ -2220,6 +2219,24 @@ const archivosConVeredicto = (pax: ApiCotizacionFilepasajero) => {
 
     return [...vigente.values()];
 };
+
+/**
+ * Los subgrupos por IRI, en un `Map`.
+ *
+ * ⚠️ **Un `find` lineal aquí se recorre 1 712 × 110 veces por recomputación.** Resolver el IRI de
+ * cada pertenencia contra `file.grupos` es la contrapartida de dejar de incrustar el grupo, y si se
+ * hace con un `find` se cambia peso de red por trabajo de CPU en cada repintado. Con el índice, cada
+ * resolución es una búsqueda.
+ */
+const indiceDeGrupos = computed(() => {
+    const mapa = new Map<string, ApiFileGrupo>();
+
+    for (const g of file.value?.grupos ?? []) {
+        mapa.set(claveDeRelacion(iriDeGrupoPlano(g)), g);
+    }
+
+    return mapa;
+});
 
 const identificacionesConVeredicto = (pax: ApiCotizacionFilepasajero) =>
     (pax.identificaciones ?? []).filter(i =>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
@@ -49,8 +50,31 @@ class CotizacionPasajeroGrupo
     #[ORM\JoinColumn(name: 'pasajero_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFilepasajero $pasajero = null;
 
+    /**
+     * 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
+     *
+     * Sin `readableLink: false` aquí, cada pertenencia arrastraba el `CotizacionFileGrupo` **entero**
+     * —clave, nombre, subeje, detalle, tipo, sus vuelos—. Con 134 pasajeros y una media de 13
+     * subgrupos por persona son **1 712 copias del mismo puñado de objetos** en cada respuesta: el
+     * GET del expediente pesaba 717 KB de media y hasta 4,3 MB, con picos de 8 s de serialización.
+     * Y los 110 grupos ya venían aparte en `CotizacionFile::$grupos`, así que era el mismo dato dos
+     * veces, una de ellas multiplicada.
+     *
+     * ⚠️ **No es sólo el tamaño: es el multiplicador de todo lo demás.** Cada recarga del panel tras
+     * subir un documento, resolver un suelto o validar el manifiesto pagaba eso. Con el IRI, incluso
+     * las recargas que queden salen baratas.
+     *
+     * ⚠️ El front ya lo soportaba **antes** de este cambio, en los dos sitios que lo leen:
+     * `gruposDePax()` y `abrirEdicionPax()` en `FileDetalle.vue` comprueban
+     * `typeof p.grupo === 'object'` y, si no, resuelven el IRI contra `file.grupos`. Esa rama existía
+     * por la vía de escritura —el formulario manda IRIs— y es la que ahora se usa al leer.
+     *
+     * ⚠️ `file:write` se queda: escribir siempre fue por IRI. `readableLink` sólo gobierna la
+     * LECTURA. Y `pax` no se entera: usa `pax_file:read`, donde esta propiedad no está.
+     */
     #[Assert\NotNull]
     #[Groups(['file:item:read', 'file:write'])]
+    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: CotizacionFileGrupo::class, inversedBy: 'miembros')]
     #[ORM\JoinColumn(name: 'grupo_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFileGrupo $grupo = null;
