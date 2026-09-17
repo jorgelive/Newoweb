@@ -239,6 +239,29 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
 
     public function getEstadoValidacion(): ValidacionIdentificacionEnum { return $this->estadoValidacion; }
 
+    /**
+     * ¿El veredicto de este documento es SUYO, o vive en una identificación?
+     *
+     * 🔥 **Existe para que la pantalla pueda enseñar «subido, pendiente de procesar».** Antes la
+     * tarjeta pintaba una fila por archivo sólo si ya tenía `validadoEn`, así que **un E-Ticket
+     * recién subido era invisible**: el documento estaba en la bóveda, el manifiesto no decía nada,
+     * y parecía que no se había enterado. Para saber a qué archivos les toca fila hace falta saber
+     * cuáles llevan su propio veredicto.
+     *
+     * ⚠️ **Se calcula aquí y no en el front** porque la regla es la pareja escaneo↔número
+     * ({@see ArchivoTipoEnum::respaldaA()} y {@see ArchivoTipoEnum::verificaA()}), y ese mapeo ya
+     * estuvo en tres sitios una vez y el sistema se contradijo consigo mismo. Deducirlo allí sería
+     * el cuarto — y con el `dni_reverso` se equivocaría: no respalda ningún número, pero lo VERIFICA
+     * por MRZ, así que su veredicto es el del DNI y no el suyo.
+     */
+    #[Groups(['file:item:read'])]
+    public function getVeredictoEsPropio(): bool
+    {
+        $tipo = $this->tipoArchivo;
+
+        return $tipo !== null && $tipo->respaldaA() === null && $tipo->verificaA() === null;
+    }
+
     /** @return list<array{campo: string, documento: string, manifiesto: string}> */
     public function getDiscrepancias(): array { return $this->discrepancias; }
 

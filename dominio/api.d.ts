@@ -13773,6 +13773,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
             /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
@@ -13823,6 +13825,8 @@ export interface components {
             }[] | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
             /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
@@ -13875,6 +13879,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
             /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
@@ -14036,6 +14042,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
             /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
@@ -14086,6 +14094,8 @@ export interface components {
             }[] | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
             /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
@@ -14138,6 +14148,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
             /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
@@ -14251,6 +14263,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
             /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
@@ -14301,6 +14315,8 @@ export interface components {
             }[] | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
             /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
@@ -14353,6 +14369,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
             /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
@@ -14466,6 +14484,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
             /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
@@ -14516,6 +14536,8 @@ export interface components {
             }[] | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
             /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
@@ -14568,6 +14590,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description ¿El veredicto de este documento es SUYO, o vive en una identificación? */
+            readonly veredictoEsPropio?: boolean;
             /** @description Cuántos grados en sentido horario le faltan a este escaneo para verse derecho. 0 = ya lo está. */
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */

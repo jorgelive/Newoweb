@@ -2221,10 +2221,20 @@ const SELLO: Record<string, { texto: string; clase: string; icono: string }> = {
  * por «E-Ticket observado» y aun así no había forma de leer QUÉ observación era: la lista te daba
  * los nombres y luego no tenías nada que contarle a esa persona.
  *
- * ⚠️ **Se reconoce por `validadoEn`, no por una lista de tipos.** Sólo el camino que juzga archivos
- * escribe esa fecha, así que el dato mismo dice cuáles tienen veredicto propio — y no hay que
- * reescribir aquí `ArchivoTipoEnum::respaldaA()`, que es el mapeo que ya se duplicó tres veces en
- * este módulo.
+ * 🔥 **Se reconocen por `veredictoEsPropio`, no por `validadoEn`.** La primera versión pedía que ya
+ * tuvieran veredicto, y eso dejaba **invisible justo el caso que importa**: un E-Ticket recién
+ * subido —o uno reemplazado, que nace sin lectura— no tenía fila, así que el documento estaba en la
+ * bóveda y el manifiesto no decía nada. Parecía que no se había enterado.
+ *
+ * Ahora la fila sale en cuanto el documento existe, y dice en qué punto está: «sin validar ·
+ * pendiente de procesar» hasta que alguien lo juzgue.
+ *
+ * ⚠️ **La regla la calcula el SERVIDOR** (`CotizacionFilearchivo::getVeredictoEsPropio()`): es la
+ * pareja escaneo↔número, que ya estuvo en tres sitios y se contradijo consigo misma. Deducirla aquí
+ * sería el cuarto, y se equivocaría con el `dni_reverso` —no respalda ningún número pero lo verifica
+ * por MRZ, así que su veredicto es el del DNI—.
+ *
+ * ⚠️ Y se acota a lo que el expediente PIDE: sin eso saldría una fila por cada boleto, y hay 381.
  *
  * ⚠️ Y **sólo el vigente de cada tipo**: por `util` se acumulan —crea otro sin borrar el anterior, a
  * propósito— y enseñar el viejo observado junto al nuevo bueno diría que sigue mal algo ya
@@ -2234,10 +2244,14 @@ const archivosConVeredicto = (pax: ApiCotizacionFilepasajero) => {
     const suyo = String(extractIdStr(pax.id ?? pax['@id'])).toLowerCase();
     const vigente = new Map<string, ApiCotizacionFilearchivo>();
 
+    const pedidos = file.value?.documentosPedidos ?? [];
+
     for (const a of file.value?.filearchivos ?? []) {
-        if (!a.validadoEn || claveDeRelacion(a.pasajero) !== suyo) continue;
+        if (a.veredictoEsPropio !== true || claveDeRelacion(a.pasajero) !== suyo) continue;
 
         const tipo = String(a.tipoArchivo ?? '');
+
+        if (!pedidos.includes(tipo)) continue;
         const previo = vigente.get(tipo);
 
         if (!previo || String(a.createdAt ?? '') > String(previo.createdAt ?? '')) vigente.set(tipo, a);
@@ -4643,6 +4657,13 @@ const eliminarDocumento = async (iri?: string) => {
                              su documento subido y sin ninguna explicación de por qué no cuenta. -->
                         <span v-if="arch.lecturaError" class="text-rose-500 normal-case">
                           no se pudo leer: {{ arch.lecturaError }}
+                        </span>
+
+                        <!-- ⚠️ Subido y sin juzgar: sin esta frase la pastilla decía «sin validar» y
+                             no se distinguía de «no lo ha mandado». Son dos cosas distintas y la
+                             segunda ya la cuenta el panel de «faltan por subir». -->
+                        <span v-else-if="!arch.validadoEn" class="text-slate-400 normal-case">
+                          subido, pendiente de procesar &mdash; pulsa «Reprocesar»
                         </span>
                       </div>
 

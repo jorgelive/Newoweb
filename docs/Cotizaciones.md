@@ -10496,9 +10496,22 @@ Ahora la tarjeta trae también los documentos cuyo veredicto es del archivo, con
 estado, discrepancias con los dos valores, notas y —si fue el caso— el motivo de que no se pudiera
 leer.
 
-⚠️ **Se reconocen por `validadoEn`, no por una lista de tipos.** Sólo el camino que juzga archivos
-escribe esa fecha, así que el dato mismo dice cuáles tienen veredicto propio. Reescribir aquí
-`ArchivoTipoEnum::respaldaA()` habría sido la cuarta copia de ese mapeo en el módulo.
+🔥 **Y la fila sale en cuanto el documento EXISTE, no cuando ya tiene veredicto.** La primera versión
+filtraba por `validadoEn`, y eso dejaba invisible justo el caso que importa: un E-Ticket recién
+subido —o uno reemplazado, que nace sin lectura— no tenía fila. El documento estaba en la bóveda, el
+manifiesto no decía nada, y parecía que no se había enterado. Ahora dice «subido, pendiente de
+procesar».
+
+⚠️ Distinguirlo de «no lo ha mandado» importa: son dos trabajos, y el segundo ya lo cuenta el panel
+de «faltan por subir». Una pastilla «sin validar» a secas no los separaba.
+
+⚠️ **La regla la calcula el servidor**, `CotizacionFilearchivo::getVeredictoEsPropio()` —
+`respaldaA() === null && verificaA() === null`—. Deducirla en el front sería la cuarta copia de la
+pareja escaneo↔número **y se equivocaría con el `dni_reverso`**: no respalda ningún número pero lo
+verifica por MRZ, así que su veredicto es el del DNI y no el suyo. Comprobado sobre los nueve tipos
+del enum.
+
+⚠️ Y se acota a lo que el expediente **pide**: sin eso saldría una fila por cada boleto, y hay 381.
 
 ⚠️ Y **sólo el vigente de cada tipo**: por `util` se acumulan, y enseñar el viejo observado junto al
 nuevo bueno diría que sigue mal algo ya corregido.
