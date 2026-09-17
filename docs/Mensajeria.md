@@ -563,7 +563,7 @@ nuevos. Por eso importa que el canal N+1 sea barato.
 |---|---|
 | `ChannelEnqueuerInterface` | Clase nueva. El tag `app.message.enqueuer` la registra sola |
 | `MappingStrategyInterface` | Cómo se arma el payload del proveedor |
-| Entidad de cola | Implementa `MessageQueueItemInterface`, incluido `getChannelId()` |
+| Entidad de cola | Implementa `MessageQueueItemInterface`, incluido `getChannelId()`, **y `VetoableQueueItemInterface` con `use VetoPorMensajeCanceladoTrait`** — sin eso, un mensaje cancelado saldría por ese canal |
 | Fila en `msg_channel` | Con su `templateColumn` |
 | `MessageTemplate` | Columna JSON del canal + su caso en `getActiveChannels()` ⚠️ migración |
 | `Message` | La colección nueva en **`getAllQueues()` y `addQueue()`**, y en ningún sitio más |
@@ -577,6 +577,51 @@ por un canal ya descartado — el mismo fallo silencioso de §7.
 Lo que sigue creciendo a mano, y es la deuda pendiente: la **columna por canal** de
 `MessageTemplate` (exige migración cada vez) y el hecho de que `buttons_map` viva dentro de
 `whatsappMetaTmpl` aunque defina el menú de todos los canales (§8).
+
+### 🚫 La última puerta: un mensaje cancelado no sale, aunque su cola siga viva (17/09/2026)
+
+El worker elige qué ejecutar mirando **sólo la cola** (`AbstractExchangeRepository::claimRunnable()`)
+y las estrategias no miraban el mensaje antes de enviar: sólo después, para decidir si pasaba a
+`sent` o `failed`. Cancelar un mensaje dependía de que la cascada cancelara sus colas, y la cascada
+falla en silencio (§7). Al activar la guía de llegada quedaron **25 colas vivas de 13 recordatorios
+cancelados**, la primera para el día siguiente a las 8:00.
+
+**La puerta.** Justo después de reclamar un lote, `ExchangeOrchestrator` pasa por `FiltroDeVetos`,
+que pregunta a cada ítem que implemente `VetoableQueueItemInterface` si hay motivo para no
+ejecutarlo. Si lo hay, la cola queda `cancelled`, **sin candado** —si no, el vigilante de
+`claimRunnable()` la devolvería a `failed`— y con el motivo en `failed_reason`, y no se envía.
+
+Las tres colas de envío (Beds24, WhatsApp, correo) se apuntan con `VetoPorMensajeCanceladoTrait`, y
+la regla vive en **un solo sitio**, `Message::motivoParaNoEnviar()`:
+
+| El mensaje… | ¿Se veta? | Por qué |
+|---|---|---|
+| saliente y `cancelled` | **sí** | la decisión de no comunicar manda sobre la cola |
+| `sent` | no | lo pone la PRIMERA cola que sale: vetar cortaría el WhatsApp de lo que ya salió por Booking |
+| `sin_canal`, `failed`, `pending`, `queued` | no | siguen vivos |
+| entrante | no | son acuses de lectura que viajan por las mismas colas |
+
+**Por qué no es una regla general del motor.** Las ocho colas no significan lo mismo:
+
+| Tipo | Colas | ¿Veto? |
+|---|---|---|
+| traer datos | `bookings_pull`, `beds24_message_receive`, `invoice_receive` | no: no cuelgan de nada cancelable |
+| sincronizar estado | `bookings_push`, `rates_push` | **no, sería dañino**: mandan el estado ACTUAL, y una reserva cancelada TIENE que salir — es como la cancelación llega a la OTA |
+| entregar contenido | las tres de mensajes | sí |
+
+Por eso es una interfaz a la que cada cola se apunta, y las del PMS no cambian ni una línea.
+
+⚠️ **No en las estrategias de envío**, que fue la primera idea: un ítem que la estrategia se salta
+queda sin resultado y el orquestador lo trata como fallo — reintentos hasta agotarse y el mensaje en
+`failed`. Tampoco dentro del SQL de `claimRunnable()`, que es común y no sabe qué es un mensaje.
+
+**Y la curación ya no resucita cancelados.** `healZombieMessages()` deducía el estado de las colas y,
+ante una `pending`, devolvía el cancelado a `queued`: cuando la cascada fallaba, deshacía la
+cancelación. Ahora a un cancelado se le cancelan las colas vivas; sólo si una ya salió pasa a `sent`,
+porque eso es historia.
+
+Tests: `tests/Exchange/Engine/FiltroDeVetosTest.php` y
+`tests/Message/Service/Queue/CuracionNoResucitaCanceladosTest.php`.
 
 ### Recibos de lectura: proactivos, no reactivos
 

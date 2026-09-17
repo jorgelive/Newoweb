@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Entity;
 
+use App\Exchange\Service\Contract\VetoableQueueItemInterface;
+use App\Message\Entity\Trait\VetoPorMensajeCanceladoTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Entity\Beds24Config;
@@ -26,8 +28,10 @@ use Symfony\Component\Uid\UuidV7;
 #[ORM\Table(name: 'msg_beds24_send_queue')]
 #[ORM\Index(columns: ['status', 'run_at'], name: 'idx_msg_b24_worker')]
 #[ORM\HasLifecycleCallbacks]
-class Beds24SendQueue implements MessageQueueItemInterface, TargetBookAwareInterface, MemoryCleanableInterface
+class Beds24SendQueue implements MessageQueueItemInterface, TargetBookAwareInterface, MemoryCleanableInterface, VetoableQueueItemInterface
 {
+    use VetoPorMensajeCanceladoTrait;
+
     use IdTrait;
     use TimestampTrait;
 

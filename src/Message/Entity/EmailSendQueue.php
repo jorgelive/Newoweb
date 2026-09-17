@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Entity;
 
+use App\Exchange\Service\Contract\VetoableQueueItemInterface;
+use App\Message\Entity\Trait\VetoPorMensajeCanceladoTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Entity\EmailConfig;
@@ -36,8 +38,10 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'msg_email_send_queue')]
 #[ORM\Index(columns: ['status', 'run_at'], name: 'idx_msg_email_worker')]
 #[ORM\HasLifecycleCallbacks]
-class EmailSendQueue implements MessageQueueItemInterface, MemoryCleanableInterface
+class EmailSendQueue implements MessageQueueItemInterface, MemoryCleanableInterface, VetoableQueueItemInterface
 {
+    use VetoPorMensajeCanceladoTrait;
+
     use IdTrait;
     use TimestampTrait;
 

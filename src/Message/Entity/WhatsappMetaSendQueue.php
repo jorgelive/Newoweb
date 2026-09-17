@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Entity;
 
+use App\Exchange\Service\Contract\VetoableQueueItemInterface;
+use App\Message\Entity\Trait\VetoPorMensajeCanceladoTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Entity\ExchangeEndpoint;
@@ -25,8 +27,10 @@ use Symfony\Component\Uid\UuidV7;
 #[ORM\Table(name: 'msg_whatsapp_meta_send_queue')]
 #[ORM\Index(columns: ['status', 'run_at'], name: 'idx_msg_whatsapp_meta_worker')]
 #[ORM\HasLifecycleCallbacks]
-class WhatsappMetaSendQueue implements MessageQueueItemInterface, MemoryCleanableInterface
+class WhatsappMetaSendQueue implements MessageQueueItemInterface, MemoryCleanableInterface, VetoableQueueItemInterface
 {
+    use VetoPorMensajeCanceladoTrait;
+
     use IdTrait;
     use TimestampTrait;
 

@@ -129,6 +129,12 @@ PmsEventoBeds24Link  (Puente técnico Evento ↔ Beds24)
 | `PmsBookingsPushQueue` | `pms_bookings_push_queue` | Jobs de subida a Beds24 (Push) |
 | `PmsRatesPushQueue` | `pms_rates_push_queue` | Jobs de subida de **tarifas** a Beds24 (ver §8.1) |
 
+> 🚫 **Estas colas NO implementan `VetoableQueueItemInterface`, y es a propósito.** Construyen el
+> envío con el estado ACTUAL de la reserva o la tarifa, así que un trabajo viejo manda la verdad de
+> ahora; y una reserva cancelada tiene que salir, porque es como la cancelación llega a la OTA. El
+> veto «lo cancelado no sale» es de las colas de mensajes: ver «La última puerta» en
+> `docs/Mensajeria.md` §5.
+
 > ⚠️ **Las colas guardan lo procesado; no se auto-purgan.** Una fila `success` se queda para
 > siempre. Con el refresco defensivo de tarifas (§8.1) eso son ~1.000 filas/día que se acumulan:
 > `pms_rates_push_queue` llegó a 152.000 filas / 505 MB antes de que se purgara a mano el 17/08/2026.

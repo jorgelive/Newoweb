@@ -704,6 +704,31 @@ class Message
     // =========================================================================
 
     public function getDirection(): string { return $this->direction; }
+
+    /**
+     * Por qué este mensaje ya no debe salir por ninguna de sus colas, o `null` si puede.
+     *
+     * Lo pregunta el motor de intercambio justo antes de enviar (`FiltroDeVetos`), a través de las
+     * tres colas de envío. Es la última puerta: un mensaje cancelado con una cola viva no sale,
+     * venga de donde venga el desajuste.
+     *
+     * ⚠️ **Sólo `cancelled`, y sólo salientes.** Las otras dos cosas que parecen terminales no lo
+     * son para una cola concreta:
+     *
+     * - **`sent`** lo pone la PRIMERA cola que sale. Con Beds24 y WhatsApp a la vez, vetar por
+     *   `sent` cortaría el WhatsApp de un mensaje que ya salió por Booking.
+     * - **`sin_canal`** y **`failed`** siguen vivos: otro canal puede aparecer o reintentarse.
+     * - **Los entrantes** viajan por estas mismas colas como acuses de lectura, ya en `read`:
+     *   vetarlos dejaría de marcar como leído en Beds24 y WhatsApp.
+     */
+    public function motivoParaNoEnviar(): ?string
+    {
+        if ($this->direction !== self::DIRECTION_OUTGOING || $this->status !== self::STATUS_CANCELLED) {
+            return null;
+        }
+
+        return 'El mensaje se canceló después de encolarse: no se envía.';
+    }
     public function setDirection(string $direction): self {
         if (!in_array($direction, [self::DIRECTION_INCOMING, self::DIRECTION_OUTGOING])) {
             throw new InvalidArgumentException("Dirección inválida");

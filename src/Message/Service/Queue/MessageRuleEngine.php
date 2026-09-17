@@ -533,6 +533,24 @@ final readonly class MessageRuleEngine
             }
 
             $oldStatus = $msg->getStatus();
+
+            // 🚫 UN CANCELADO CON COLA VIVA NO SE RESUCITA: se le cancela la cola.
+            //
+            // `resolveMessageStatus()` deduce el estado de las colas, y ante una `pending` devolvía
+            // el mensaje a `queued`. Así, cuando la cascada de cancelación fallaba, esta curación no
+            // le daba la razón a la cancelación: la DESHACÍA, y el mensaje salía. La decisión de
+            // cancelar manda sobre la cola que faltó cancelar.
+            //
+            // Lo que sí se corrige es lo contrario: un cancelado cuya cola YA salió pasa a `sent`,
+            // porque eso es historia y el huésped lo recibió.
+            if ($oldStatus === Message::STATUS_CANCELLED) {
+                foreach ($msg->getAllQueues() as $queue) {
+                    if (in_array($queue->getStatus(), ['pending', 'queued'], true)) {
+                        $queue->setStatus('cancelled');
+                    }
+                }
+            }
+
             $this->resolveMessageStatus($msg);
 
             // Un pendiente sin ninguna cola es inejecutable por definición: nadie lo va a enviar.

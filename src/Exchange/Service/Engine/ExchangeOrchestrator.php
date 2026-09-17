@@ -25,7 +25,8 @@ final class ExchangeOrchestrator
         private readonly ExchangeBatchProcessor $batchProcessor,
         private readonly ExchangeTaskLocator    $taskLocator,
         private readonly SyncContext            $syncContext,
-        private readonly LoggerInterface        $logger
+        private readonly LoggerInterface        $logger,
+        private readonly FiltroDeVetos          $vetos,
     ) {}
 
     /**
@@ -67,6 +68,14 @@ final class ExchangeOrchestrator
             // Protección: Si el EntityManager se cerró en un proceso anterior, no podemos continuar.
             if (!$this->em->isOpen()) {
                 $this->logger->emergency("EntityManager cerrado detectado en Orchestrator para: $taskName");
+                return;
+            }
+
+            // 🚫 La última puerta antes de la red: lo que ya no debe salir, no sale.
+            // Sólo actúa sobre las colas que se apuntan (`VetoableQueueItemInterface`).
+            $batch = $this->vetos->apartar($batch, $taskName);
+
+            if ($batch === null) {
                 return;
             }
 
