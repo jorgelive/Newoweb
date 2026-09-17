@@ -946,8 +946,11 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
     };
 
     /**
-     * Reprocesa a una sola persona. **No relee el documento** —la lectura está cacheada—, así que
-     * cuesta cero: coteja lo que ya se leyó contra lo que hay guardado AHORA.
+     * Reprocesa a una sola persona: coteja lo que ya se leyó contra lo que hay guardado AHORA.
+     *
+     * ⚠️ **Lo ya leído no se relee** —cuesta cero—, pero **lo que nunca se leyó sí se lee aquí**: un
+     * documento recién subido se paga en esta llamada, ~10 s por documento. Decía «cuesta cero» a
+     * secas, y eso hace pensar que un botón que tarda está colgado.
      */
     /**
      * Controla los E-Ticket del expediente **en tandas**, sin recargarlo.

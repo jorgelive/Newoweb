@@ -2756,10 +2756,13 @@ const revalidando = ref<string | null>(null);
 /**
  * Vuelve a cotejar los documentos de UNA persona.
  *
- * ⚠️ **No relee el documento**: coteja la lectura que ya está contra lo que hay guardado AHORA. Es
+ * ⚠️ **No relee lo ya leído**: coteja la lectura que ya está contra lo que hay guardado AHORA. Es
  * justo lo que hace falta tras corregir un dato del manifiesto —comprobar si el aviso se fue— y
- * cuesta cero, porque la lectura está cacheada. Si el documento se giró, su lectura se tiró y ahí
- * sí se vuelve a leer: ~$0,0016.
+ * ahí cuesta cero. **Lo que nunca se leyó sí se lee**: un documento recién subido se paga aquí.
+ *
+ * ⚠️ Aquí decía que girar un documento tiraba su lectura. **Ya no**: `GiradorDeEscaneo` corrige la
+ * orientación sobre la lectura guardada, y desde el 17/09/2026 el listener tampoco la caduca al
+ * girar. Un giro no cuesta nada.
  */
 /**
  * ⚠️ **Puede tardar ~10 s**, desde que también lee el E-Ticket de esa persona si nunca se leyó. El

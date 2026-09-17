@@ -10324,6 +10324,17 @@ imposible de contar, y `Mrz::desde()` exigía 44 exactos. Dos arreglos:
 ⚠️ La línea 1 no tiene dígitos de control. Por eso, tras ajustarla, se exige que el país siga en su
 sitio (`^P[A-Z<][A-Z]{3}`): es lo que se rompería si el sobrante hubiera estado al principio.
 
+**Nombres recortados por la MRZ: medido, y no hay ninguno.** La MRZ corta el nombre a 39
+caracteres, y un apellido compuesto largo podría llegar recortado y salir como «dedazo» al cotejar.
+Estaba en la lista de pendientes una guarda para eso. Antes de escribirla se midió: **0 de 127**
+pasaportes traen la línea del nombre llena hasta el final (sin relleno `<`), que es la única forma de
+que haya recorte. No se escribió. Si aparece, `LectorDeDocumentoIdentidad::preferir()` ya se queda
+con lo impreso cuando la MRZ trae menos, así que el nombre de referencia no saldría cortado.
+
+⚠️ Y tres comentarios decían que «Reprocesar» **no relee y cuesta cero**. Lo ya leído no se relee;
+**lo que nunca se leyó sí**, en esa misma llamada. Un botón que tarda diez segundos cuando el
+comentario promete cero se toma por colgado.
+
 #### 🔥 Tres formas de borrar la firma de una persona (17/09/2026)
 
 Las tres tienen la misma forma: **una aceptación humana que la máquina deshacía sin preguntar.**

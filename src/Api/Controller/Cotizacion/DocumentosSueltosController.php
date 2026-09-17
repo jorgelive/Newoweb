@@ -104,9 +104,14 @@ final class DocumentosSueltosController extends AbstractController
     /**
      * Reprocesa a UNA persona: vuelve a cotejar sus documentos con lo que hay guardado ahora.
      *
-     * ⚠️ **No relee el documento** —la lectura está cacheada—, así que cuesta cero. Es justo lo que
-     * hace falta tras corregir un dato del manifiesto: comprobar si el aviso se fue. Sin esto había
-     * que relanzar la tanda del expediente entero, 135 personas para verificar una.
+     * ⚠️ **No relee lo ya leído** —la lectura está cacheada—, así que tras corregir un dato del
+     * manifiesto cuesta cero: es justo lo que hace falta para comprobar si el aviso se fue. Sin esto
+     * había que relanzar la tanda del expediente entero, 135 personas para verificar una.
+     *
+     * 🔥 **Pero SÍ lee lo que nunca se leyó**, y aquí decía «cuesta cero» sin matiz. Un escaneo recién
+     * subido, o uno cuya lectura se olvidó al reemplazar el fichero, se paga en esta llamada —unos
+     * 10 s y una lectura de la IA por documento—. Girar ya NO tira la lectura: `GiradorDeEscaneo` la
+     * corrige, así que un giro no cuesta nada.
      */
     #[Route(
         '/cotizacion/user/manifiesto/pasajero/{id}/revalidar',
