@@ -163,12 +163,6 @@ panel_controllers:
     type: attribute
     host: '%app.host.panel%'
 
-# Admin (Oweb / legacy controlado)
-oweb_controllers:
-    resource: ../src/Oweb/Controller/
-    type: attribute
-    host: '%app.host.oweb%'
-
 kernel:
     resource: ../src/Kernel.php
     type: attribute

@@ -147,8 +147,6 @@ security:
 
         - { host: '%app.host.util%',  path: '^/', roles: ROLE_USER }
 
-        # OWEB legacy (si quieres, también por host)
-        - { host: '%app.host.oweb%',  path: '^/', roles: ROLE_USER }
 
         # Resto público
         - { path: '^/.*', roles: PUBLIC_ACCESS }

@@ -32,12 +32,6 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Entity'
                 prefix: 'App\Entity'
                 alias: App
-            Oweb:
-                is_bundle: false
-                type: attribute
-                dir: '%kernel.project_dir%/src/Oweb/Entity'
-                prefix: 'App\Oweb\Entity'
-                alias: oweb
             Agent:
                 is_bundle: false
                 type: attribute
@@ -98,32 +92,6 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Domotica/Entity'
                 prefix: 'App\Domotica\Entity'
                 alias: domotica
-            gedmo_translatable:
-                type: attribute
-                prefix: Gedmo\Translatable\Entity
-                dir: "%kernel.project_dir%/vendor/gedmo/doctrine-extensions/src/Translatable/Entity"
-                alias: GedmoTranslatable # (optional) it will default to the name set for the mapping
-                is_bundle: false
-            gedmo_translator:
-                type: attribute
-                prefix: Gedmo\Translator\Entity
-                dir: "%kernel.project_dir%/vendor/gedmo/doctrine-extensions/src/Translator/Entity"
-                alias: GedmoTranslator # (optional) it will default to the name set for the mapping
-                is_bundle: false
-            gedmo_loggable:
-                type: attribute
-                prefix: Gedmo\Loggable\Entity
-                dir: "%kernel.project_dir%/vendor/gedmo/doctrine-extensions/src/Loggable/Entity"
-                alias: GedmoLoggable # (optional) it will default to the name set for the mapping
-                is_bundle: false
-            gedmo_tree:
-                type: attribute
-                prefix: Gedmo\Tree\Entity
-                dir: "%kernel.project_dir%/vendor/gedmo/doctrine-extensions/src/Tree/Entity"
-                alias: GedmoTree # (optional) it will default to the name set for the mapping
-                is_bundle: false
-        schema_ignore_classes:
-            - App\Oweb\Entity\ViewCotizacionCotcomponenteAlerta
 
 when@test:
     doctrine:

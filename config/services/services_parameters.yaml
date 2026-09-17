@@ -1,8 +1,10 @@
 # config/services/services_paramneters.yaml
 parameters:
 
-    #sonata legacy
     locale: es
+    # ⚠️ Viene del panel Sonata (Oweb), archivado el 17/09/2026, y se QUEDA a propósito: decide el
+    # dominio de los enlaces que se generan desde consola (correos, comandos) para las rutas sin
+    # `host`. Cambiarlo alteraría enlaces que hoy funcionan; oweb.openperu.pe sigue sirviendo la app.
     router.request_context.host: oweb.openperu.pe
     router.request_context.scheme: https
 
@@ -21,7 +23,6 @@ parameters:
 
     app.public_dir: '%kernel.project_dir%/public'
 
-    app.host.oweb: '%env(OWEB_HOST)%'
     app.host.panel: '%env(PANEL_HOST)%'
     app.host.api: '%env(API_HOST)%'
     app.host.front: '%env(FRONT_HOST)%'

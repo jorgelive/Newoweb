@@ -8,7 +8,6 @@ services:
             # Ahora cualquier constructor que pida $owebHost recibirá este valor automáticamente
             $publicDir: '%app.public_dir%'
             $apiHost: '%app.host.api%'
-            $owebHost: '%app.host.oweb%'
             $panelHost: '%app.host.panel%'
             $googleTranslateCredentials: '%google_translate_auth%'
             $sunatApiToken: '%env(SUNAT_API_TOKEN)%'

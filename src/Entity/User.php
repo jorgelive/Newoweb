@@ -3,15 +3,8 @@
 namespace App\Entity;
 
 use App\Entity\Trait\IdTrait;
-use App\Oweb\Entity\CuentaMovimiento;
-use App\Oweb\Entity\TransporteConductor;
-use App\Oweb\Entity\UserArea;
-use App\Oweb\Entity\UserCuenta;
-use App\Oweb\Entity\UserDependencia;
 use App\Repository\UserRepository;
 use App\Entity\Trait\TimestampTrait;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use App\EventListener\UserIntegrityListener;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -21,10 +14,9 @@ use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad User.
- * * Gestiona la identidad central del sistema, combinando la seguridad de Symfony
- * con las relaciones de negocio de los módulos Oweb y PMS.
- * * Se utiliza una estrategia de Identificadores UUID (BINARY 16) para permitir
- * la coexistencia de sesiones y datos entre el panel moderno y el sistema legacy.
+ * * Gestiona la identidad central del sistema con la seguridad de Symfony.
+ * * Identificadores UUID (BINARY 16). Hasta el 17/09/2026 también enlazaba con el módulo Oweb (panel
+ * Sonata heredado); ver el aviso junto a `$lastname`.
  */
 #[ORM\Table(name: 'user')]
 #[ORM\Entity(repositoryClass: UserRepository::class)]
@@ -156,51 +148,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'string', length: 64, nullable: true)]
     private ?string $lastname = null;
 
-    /**
-     * Relación con la Dependencia (Oweb).
-     * @var UserDependencia|null
+    /*
+     * ⚠️ Aquí estaban cinco relaciones con el módulo Oweb —dependencia, área, cuentas, movimientos de
+     * cuenta y conductor—, retirado el 17/09/2026. Ningún código fuera de Oweb las usaba. Las columnas
+     * `dependencia_id` y `area_id` de la tabla `user` se eliminan por migración; las tablas de Oweb con
+     * sus datos siguen en la base. El código, en la etiqueta git `oweb-final`.
      */
-    #[ORM\ManyToOne(targetEntity: UserDependencia::class, inversedBy: 'users')]
-    #[ORM\JoinColumn(name: 'dependencia_id', referencedColumnName: 'id', nullable: true)]
-    protected ?UserDependencia $dependencia = null;
 
     /**
-     * Relación con el Área (Oweb).
-     * @var UserArea|null
-     */
-    #[ORM\ManyToOne(targetEntity: UserArea::class, inversedBy: 'users')]
-    #[ORM\JoinColumn(name: 'area_id', referencedColumnName: 'id', nullable: true)]
-    protected ?UserArea $area = null;
-
-    /**
-     * Relación OneToMany con Cuentas de Usuario.
-     * @var Collection<int, UserCuenta>
-     */
-    #[ORM\OneToMany(mappedBy: 'user', targetEntity: UserCuenta::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private Collection $cuentas;
-
-    /**
-     * Relación OneToMany con Movimientos de Cuenta.
-     * @var Collection<int, CuentaMovimiento>
-     */
-    #[ORM\OneToMany(mappedBy: 'user', targetEntity: CuentaMovimiento::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private Collection $movimientos;
-
-    /**
-     * Relación OneToOne con Conductor (Transporte).
-     * @var TransporteConductor|null
-     */
-    #[ORM\OneToOne(mappedBy: 'user', targetEntity: TransporteConductor::class)]
-    private ?TransporteConductor $conductor = null;
-
-    /**
-     * Constructor de la entidad.
-     * Inicializa las colecciones Doctrine y valores por defecto.
+     * Constructor de la entidad: valores por defecto.
      */
     public function __construct()
     {
-        $this->cuentas = new ArrayCollection();
-        $this->movimientos = new ArrayCollection();
         $this->enabled = true;
         $this->roles = [];
 
@@ -375,107 +334,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * GESTIÓN DE RELACIONES (GETTERS / SETTERS / ADDERS)
      * -------------------------------------------------------------------------
      */
-
-    public function setDependencia(?UserDependencia $dependencia): self
-    {
-        $this->dependencia = $dependencia;
-        return $this;
-    }
-
-    public function getDependencia(): ?UserDependencia
-    {
-        return $this->dependencia;
-    }
-
-    public function setArea(?UserArea $area): self
-    {
-        $this->area = $area;
-        return $this;
-    }
-
-    public function getArea(): ?UserArea
-    {
-        return $this->area;
-    }
-
-    public function addCuenta(UserCuenta $cuenta): self
-    {
-        if (!$this->cuentas->contains($cuenta)) {
-            $this->cuentas[] = $cuenta;
-            $cuenta->setUser($this);
-        }
-        return $this;
-    }
-
-    public function removeCuenta(UserCuenta $cuenta): self
-    {
-        if ($this->cuentas->removeElement($cuenta)) {
-            if ($cuenta->getUser() === $this) {
-                $cuenta->setUser(null);
-            }
-        }
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, UserCuenta>
-     */
-    public function getCuentas(): Collection
-    {
-        return $this->cuentas;
-    }
-
-    public function setConductor(?TransporteConductor $conductor): self
-    {
-        $this->conductor = $conductor;
-        if ($conductor && $conductor->getUser() !== $this) {
-            $conductor->setUser($this);
-        }
-        return $this;
-    }
-
-    public function getConductor(): ?TransporteConductor
-    {
-        return $this->conductor;
-    }
-
-    public function addMovimiento(CuentaMovimiento $movimiento): self
-    {
-        if (!$this->movimientos->contains($movimiento)) {
-            $this->movimientos[] = $movimiento;
-            $movimiento->setUser($this);
-        }
-        return $this;
-    }
-
-    /**
-     * ⚠️ **No desasigna el usuario del movimiento, y es a propósito.**
-     *
-     * Lo que había aquí era el `setUser(null)` que genera el maker de Symfony para el lado
-     * inverso de un `OneToMany`. Aquí no vale por dos motivos, y el segundo es el que manda:
-     *
-     *  1. `CuentaMovimiento::setUser()` declara `User $user`, sin `?`. La llamada era un
-     *     **TypeError latente** — no un aviso: si esta rama se ejecutaba, reventaba.
-     *  2. La columna es `nullable: false`. Aunque PHP lo aceptara, un movimiento contable **sin
-     *     usuario no existe**: no es un estado intermedio válido, es una fila rota.
-     *
-     * Quitarlo de la colección basta: la relación tiene `orphanRemoval: true`, así que el
-     * `flush` borra la fila. El `setUser(null)` no sólo estaba roto — era además redundante.
-     */
-    public function removeMovimiento(CuentaMovimiento $movimiento): self
-    {
-        $this->movimientos->removeElement($movimiento);
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, CuentaMovimiento>
-     */
-    public function getMovimientos(): Collection
-    {
-        return $this->movimientos;
-    }
 
     /**
      * Representación de cadena de la entidad.

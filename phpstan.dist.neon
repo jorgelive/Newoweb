@@ -57,8 +57,7 @@
 includes:
     # La deuda que ya existía, congelada. NO es una lista de perdonados para siempre: es lo que
     # había el día que se instaló la herramienta, para que a partir de aquí salte SÓLO lo nuevo.
-    # Las 13 variables indefinidas que hay dentro están todas en `src/Oweb/`, el módulo legado
-    # que ya está marcado para retirar, y por eso no se arreglan: se van con él.
+    # `src/Oweb/`, el módulo legado, se archivó el 17/09/2026 y sus entradas se fueron con él.
     - phpstan-baseline.neon
 
 parameters:
@@ -148,8 +147,3 @@ parameters:
     # Cachés y código generado: no es nuestro y no se corrige aquí.
     excludePaths:
         - src/Kernel.php
-        # 375 de los 604 avisos del nivel 5 estaban aquí. No se arreglan porque el módulo se
-        # retira entero (ver el plan de baja de `oweb`/phptravels): tiparlo sería trabajo que se
-        # tira en septiembre. Al excluirlo, lo que queda en la lista es código vivo.
-        # ⚠️ Al borrar `src/Oweb/`, borrar también esta línea y las entradas suyas del baseline.
-        - src/Oweb

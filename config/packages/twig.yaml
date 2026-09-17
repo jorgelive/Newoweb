@@ -8,7 +8,6 @@ twig:
 
 
         numero_default: "%numero_default%"
-        facturacion_igv_porcentaje: "%facturacion_igv_porcentaje%"
         colores:
             lila: "#954e8d"
             azul_acero: "#016c8d"
@@ -17,8 +16,6 @@ twig:
             azul_oscuro: "#003d72"
             naranja: "#F68A39"
             rojo_oscuro: "#710000"
-    form_themes:
-        - '@SonataForm/Form/datepicker.html.twig'
 
 when@test:
     twig:

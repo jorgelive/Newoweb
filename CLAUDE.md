@@ -30,8 +30,9 @@
   ejecutarlo a ciegas borra el respaldo que alguien guardó a propósito. Sin `--complete`, el diff
   es aditivo y es el que se lee.
 
-  **Análisis estático:** PHPStan **nivel 7** sobre `src/` (menos `src/Oweb/`, que se retira
-  entero), con `phpstan-baseline.neon` congelando la deuda que ya existía. Correrlo antes de
+  **Análisis estático:** PHPStan **nivel 7** sobre `src/` entero —`src/Oweb/`, el panel Sonata
+  heredado que se excluía, se archivó el 17/09/2026 (ver `docs/OwebArchivado.md` y la etiqueta git
+  `oweb-final`)—, con `phpstan-baseline.neon` congelando la deuda que ya existía. Correrlo antes de
   cerrar un cambio no es opcional; es más barato que cualquier test que se pueda escribir para
   cubrir lo mismo.
 
@@ -228,6 +229,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Api/Filter/` (filtros de API compartidos entre módulos) | `docs/Operacion.md` §8 — ahí está el porqué de `UuidRelacionFilter` y la regla relación vs. texto |
 | `config/packages/security.yaml`, `src/Controller/SecurityController.php`, login y «Recordarme» en `util/` | `docs/Autenticacion.md` — y la regla de cuándo vale `IS_AUTHENTICATED_FULLY` |
 | `src/Panel/Controller/DashboardController.php` (menú lateral), acciones personalizadas de cualquier `*CrudController` (`linkToCrudAction()`) | `docs/PanelEasyAdmin.md` — por qué una acción sin `#[AdminRoute]` no resalta su entrada del menú |
+| Algo del panel Sonata viejo (`Oweb`, archivado), sus tablas `res_*`/`use_*`, o un feed iCal para un canal | `docs/OwebArchivado.md` — qué se quitó, qué se quedó y quién leía sus iCal |
 
 Si el módulo que tocas no tiene doc (`src/Pax/`…), **créalo**
 siguiendo el formato de los existentes y agrégalo a esta tabla.

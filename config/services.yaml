@@ -24,15 +24,4 @@ imports:
 
     - { resource: 'services/services_exchange.yaml' }
 
-    - { resource: 'services/services_oweb.yaml' }
-    - { resource: 'services/services_oweb_comprobante.yaml' }
-    - { resource: 'services/services_oweb_cotizacion.yaml' }
-    - { resource: 'services/services_oweb_cuenta.yaml' }
-    - { resource: 'services/services_oweb_fit.yaml' }
-    - { resource: 'services/services_oweb_maestros.yaml' }
-    - { resource: 'services/services_oweb_organizacion.yaml' }
-    - { resource: 'services/services_oweb_reserva.yaml' }
-    - { resource: 'services/services_oweb_servicio.yaml' }
-    - { resource: 'services/services_oweb_transporte.yaml' }
-
     - { resource: 'services/services_panel.yaml' }

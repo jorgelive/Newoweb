@@ -1,9 +1,0 @@
-{% if object is defined and admin.hasRoute('operaciones') and object.id is not null %}
-    <li>
-        <a class="sonata-action-element" href="{{ admin.generateObjectUrl('operaciones', object, {'tokenoperaciones': object.tokenoperaciones}) }}">
-            <i class="fa fa-bars" aria-hidden="true"></i>
-            Operaciones
-        </a>
-    </li>
-{% endif %}
-

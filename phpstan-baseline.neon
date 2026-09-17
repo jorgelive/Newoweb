@@ -294,18 +294,6 @@ parameters:
 
 	
 	
-		-
-			message: '#^Ternary operator condition is always true\.$#'
-			identifier: ternary.alwaysTrue
-			count: 2
-			path: src/Api/Controller/Oweb/FitAlimentoController.php
-
-		-
-			message: '#^Ternary operator condition is always true\.$#'
-			identifier: ternary.alwaysTrue
-			count: 1
-			path: src/Api/Controller/Oweb/ServicioItinerarioController.php
-
 	
 	
 	
@@ -363,18 +351,6 @@ parameters:
 	
 	
 	
-		-
-			message: '#^Property App\\Command\\ObtenerReservasCommand\:\:\$params is never read, only written\.$#'
-			identifier: property.onlyWritten
-			count: 1
-			path: src/Command/ObtenerReservasCommand.php
-
-		-
-			message: '#^Variable \$summaryRaw on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.variable
-			count: 1
-			path: src/Command/ObtenerReservasCommand.php
-
 	
 		-
 			message: '#^Comparison operation "\<\=" between int\<13, 17\> and 17 is always true\.$#'

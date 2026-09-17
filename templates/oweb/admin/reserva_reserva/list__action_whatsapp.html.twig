@@ -1,8 +1,0 @@
-{% if admin.isGranted('show', object) and admin.hasRoute('resumen') and object.telefono is not empty %}
-    <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}"
-       target="_blank"  class="btn btn-sm btn-success"
-       title="Whatsapp">
-        <i class="fab fa-whatsapp" aria-hidden="true"></i>
-        Whatsapp
-    </a>
-{% endif %}
