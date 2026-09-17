@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
-use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Travel\Enum\ItemModoEnum;
@@ -41,10 +40,15 @@ class TravelComponenteItem
     private ItemModoEnum $modo = ItemModoEnum::INCLUIDO;
 
     /**
-     * API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
+     * El componente que se ofrece como upsell de este ítem.
+     *
+     * ⛔ **Al LEER llega incrustado**, aunque aquí hubo un `readableLink: false` «para que devuelva IRI
+     * y corte recursividad». No hacía ninguna de las dos cosas: el padre no es `ApiResource`, y
+     * API Platform sólo aplica el atributo cuando lo es. La recursión la cortan los grupos de
+     * lectura. El editor lleva meses usando la rama del objeto (`cotizacionEditorStore`, al inyectar
+     * el upsell). Se quitó para que el esquema generado deje de declarar un `string`.
      */
     #[Groups(['componente:item:read', 'componente:write'])]
-    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: TravelComponente::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?TravelComponente $componenteAdicionalVinculado = null;

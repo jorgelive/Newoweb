@@ -954,6 +954,15 @@ apuntando a una propiedad que se llama `nombreParaPrestador` — una cadena que 
 - **`readableLink: false` está por todas partes** a propósito, para que la API devuelva IRIs
   y corte la recursividad en Vue. Si al serializar aparece un objeto anidado donde esperabas
   un IRI, revisa ese atributo antes que el grupo de serialización.
+
+  ⛔ **Pero sólo actúa si el PADRE de la relación es `ApiResource`.** Colgando de una entidad
+  intermedia que no lo es, no toca el payload y **sí** cambia el esquema generado, que pasa a
+  declarar `string` donde llega un objeto. Había cinco así, y se quitaron el 17/09/2026:
+  `TravelSegmentoComponente::$componente`, `::$tarifaPredeterminada`, `::$itinerarioContexto`,
+  `TravelItinerarioSegmentoRel::$segmento` y `TravelComponenteItem::$componenteAdicionalVinculado`.
+  El payload no cambió; el esquema dejó de mentir. La misma mentira rompió el guardado de pasajeros
+  en cotizaciones: `vue-tsc` marcó como inalcanzable la rama del objeto, se borró, y el formulario
+  pasó a mandar `"[object Object]"`. **Compruébalo en el payload, nunca en el esquema.**
 - **Los grupos de lectura cortan ciclos deliberadamente** (marcados `🚫 CORTE CIRCULAR` en el
   código). Añadir un grupo a esas relaciones puede colgar la serialización.
 - El endpoint `GET /travel/componentes/batch` existe para precargar varios componentes con

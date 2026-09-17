@@ -566,7 +566,13 @@ export interface SnapshotItem {
     modoOriginal: string;
     incluido: boolean;
     tieneUpsell: boolean;
-    componenteAdicionalVinculado: string | Componente | null;
+    /**
+     * ⚠️ **Llega INCRUSTADO**, con la forma `Componente-componente.item.read`, aunque durante meses el
+     * esquema dijera `string`: el `readableLink: false` de `TravelComponenteItem` era inerte, porque
+     * el padre no es `ApiResource` y API Platform sólo lo aplica cuando lo es. Ver
+     * `docs/Cotizaciones.md` §«readableLink sólo actúa si el padre es ApiResource».
+     */
+    componenteAdicionalVinculado: string | Componente | components['schemas']['Componente-componente.item.read'] | null;
     idComponenteInyectado: string | null;
     isInjecting: boolean;
     sobreescribirTraduccion: boolean;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
-use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -25,11 +24,15 @@ class TravelItinerarioSegmentoRel
     private ?TravelItinerario $itinerario = null;
 
     /**
-     * 🔥 TRUCO API PLATFORM: readableLink false.
-     * Recibimos el IRI del segmento de catálogo que queremos inyectar en este día.
+     * El segmento de catálogo que se inyecta en este día. Se ESCRIBE por IRI.
+     *
+     * ⛔ **Al LEER llega incrustado**, y aquí hubo un `readableLink: false` que decía lo contrario.
+     * No hacía nada: API Platform sólo lo aplica cuando el padre de la relación es `ApiResource`, y
+     * esta entidad no lo es. Sí cambiaba el esquema generado, que declaraba un `string` donde llegaba
+     * un objeto — la misma mentira que el 16/09/2026 rompió el guardado de pasajeros en cotizaciones.
+     * Se quitó para que el esquema diga la verdad. Ver `docs/Cotizaciones.md`.
      */
     #[Groups(['itinerario:item:read', 'itinerario:write'])]
-    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: TravelSegmento::class, inversedBy: 'itinerarioSegmentosInyectados')]
     #[ORM\JoinColumn(nullable: false)]
     private ?TravelSegmento $segmento = null;

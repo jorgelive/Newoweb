@@ -3422,7 +3422,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         const res = await apiClient.get(vinculado);
                         compMaestro = res.data as Componente;
                     } else if (vinculado) {
-                        compMaestro = vinculado;
+                        // ⚠️ Es la rama que corre SIEMPRE: el vinculado llega incrustado (ver el tipo en
+                        // `SnapshotItem`). Su forma es la del item de componente, la misma base que
+                        // `Componente`; lo que no garantiza son los añadidos del front, y por eso abajo se
+                        // lee `tarifas` y `componenteItems` comprobando que existan.
+                        compMaestro = vinculado as Componente;
                     }
 
                     if (!compMaestro) return;

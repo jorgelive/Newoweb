@@ -3307,6 +3307,82 @@ export interface components {
             lugares?: string[];
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente-segmento.item.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombreInterno: string;
+            titulo: {
+                [key: string]: string | null;
+            }[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente-segmento.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombreInterno: string;
+            titulo: {
+                [key: string]: string | null;
+            }[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-servicio.item.read": {
             /** @description Obtiene el nombre interno del componente. */
             nombreInterno: string;
@@ -3493,6 +3569,82 @@ export interface components {
             readonly unidadResuelta?: "noches" | "dias" | "unidades";
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.html-segmento.item.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombreInterno: string;
+            titulo: {
+                [key: string]: string | null;
+            }[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.html-segmento.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombreInterno: string;
+            titulo: {
+                [key: string]: string | null;
+            }[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html-servicio.item.read": {
             /** @description Obtiene el nombre interno del componente. */
             nombreInterno: string;
@@ -3597,7 +3749,20 @@ export interface components {
             readonly virtualLugares?: string;
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
-        "Componente.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "Componente.jsonld-componente.item.read": {
+            componenteItems?: components["schemas"]["TravelComponenteItem.jsonld-componente.item.read"][];
+            tarifas?: components["schemas"]["Tarifa.jsonld-componente.item.read"][];
+            /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
+        } & (components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre interno del componente. */
             nombreInterno: string;
             titulo: {
@@ -3625,19 +3790,7 @@ export interface components {
              * @enum {string|null}
              */
             momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
-            componenteItems?: components["schemas"]["TravelComponenteItem.jsonld-componente.item.read"][];
-            tarifas?: components["schemas"]["Tarifa.jsonld-componente.item.read"][];
-            /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /**
-             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
-             *     componente.
-             * @enum {string}
-             */
-            readonly unidadResuelta?: "noches" | "dias" | "unidades";
-        };
+        });
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld-componente.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre interno del componente. */
@@ -3669,6 +3822,82 @@ export interface components {
             momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.jsonld-segmento.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre interno del componente. */
+            nombreInterno: string;
+            titulo: {
+                [key: string]: string | null;
+            }[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.jsonld-segmento.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre interno del componente. */
+            nombreInterno: string;
+            titulo: {
+                [key: string]: string | null;
+            }[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -3855,6 +4084,82 @@ export interface components {
             momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.multipart-segmento.item.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombreInterno: string;
+            titulo: {
+                [key: string]: string | null;
+            }[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /**
+             * @description La unidad resuelta, **para el editor**: es lo que se congela en el expediente al añadir el
+             *     componente.
+             * @enum {string}
+             */
+            readonly unidadResuelta?: "noches" | "dias" | "unidades";
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.multipart-segmento.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombreInterno: string;
+            titulo: {
+                [key: string]: string | null;
+            }[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /**
+             * @description En qué se cuenta este producto cuando dura: noches, días o unidades sueltas.
+             * @enum {string|null}
+             */
+            unidadDeConteo?: "noches" | "dias" | "unidades" | null;
+            /** @description Cómo se LLAMA la unidad, en singular: «desayuno», «almuerzo», «masaje». */
+            sustantivoUnidad?: string | null;
+            /**
+             * @description Dónde se lee este producto dentro del día cuando **no tiene reloj**.
+             * @enum {string|null}
+             */
+            momentoDelDia?: "abre" | "manana" | "media_manana" | "mediodia" | "tarde" | "noche" | "cierra" | null;
             /** Format: uuid */
             readonly id?: string | null;
             /**
@@ -19487,6 +19792,16 @@ export interface components {
             duracionDias: number;
             itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel-itinerario.write"][];
         };
+        "Itinerario-segmento.item.read": {
+            nombreInterno?: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario-segmento.read": {
+            nombreInterno?: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
         "Itinerario-servicio.item.read": {
             /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
             slug?: string | null;
@@ -19565,6 +19880,16 @@ export interface components {
             }[];
             /** @default 1 */
             duracionDias: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.html-segmento.item.read": {
+            nombreInterno?: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.html-segmento.read": {
+            nombreInterno?: string;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -19649,6 +19974,16 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
         };
+        "Itinerario.jsonld-segmento.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.jsonld-segmento.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
         "Itinerario.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
             slug?: string | null;
@@ -19727,6 +20062,16 @@ export interface components {
             }[];
             /** @default 1 */
             duracionDias: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.multipart-segmento.item.read": {
+            nombreInterno?: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.multipart-segmento.read": {
+            nombreInterno?: string;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -36814,7 +37159,7 @@ export interface components {
             modo: "incluido" | "opcional" | "no_incluido";
             /**
              * Format: iri-reference
-             * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
+             * @description El componente que se ofrece como upsell de este ítem.
              * @example https://example.com/
              */
             componenteAdicionalVinculado?: string | null;
@@ -36858,12 +37203,7 @@ export interface components {
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido";
-            /**
-             * Format: iri-reference
-             * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
-             * @example https://example.com/
-             */
-            componenteAdicionalVinculado?: string | null;
+            componenteAdicionalVinculado?: components["schemas"]["Componente-componente.item.read"] | null;
             /**
              * @description Obtiene el orden de aparición.
              * @default 1
@@ -36941,7 +37281,7 @@ export interface components {
             modo: "incluido" | "opcional" | "no_incluido";
             /**
              * Format: iri-reference
-             * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
+             * @description El componente que se ofrece como upsell de este ítem.
              * @example https://example.com/
              */
             componenteAdicionalVinculado?: string | null;
@@ -36985,12 +37325,7 @@ export interface components {
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido";
-            /**
-             * Format: iri-reference
-             * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
-             * @example https://example.com/
-             */
-            componenteAdicionalVinculado?: string | null;
+            componenteAdicionalVinculado?: components["schemas"]["Componente.html-componente.item.read"] | null;
             /**
              * @description Obtiene el orden de aparición.
              * @default 1
@@ -37033,7 +37368,7 @@ export interface components {
             modo: "incluido" | "opcional" | "no_incluido";
             /**
              * Format: iri-reference
-             * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
+             * @description El componente que se ofrece como upsell de este ítem.
              * @example https://example.com/
              */
             componenteAdicionalVinculado?: string | null;
@@ -37077,12 +37412,7 @@ export interface components {
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido";
-            /**
-             * Format: iri-reference
-             * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
-             * @example https://example.com/
-             */
-            componenteAdicionalVinculado?: string | null;
+            componenteAdicionalVinculado?: components["schemas"]["Componente.jsonld-componente.item.read"] | null;
             /**
              * @description Obtiene el orden de aparición.
              * @default 1
@@ -37125,7 +37455,7 @@ export interface components {
             modo: "incluido" | "opcional" | "no_incluido";
             /**
              * Format: iri-reference
-             * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
+             * @description El componente que se ofrece como upsell de este ítem.
              * @example https://example.com/
              */
             componenteAdicionalVinculado?: string | null;
@@ -37169,12 +37499,7 @@ export interface components {
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido";
-            /**
-             * Format: iri-reference
-             * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
-             * @example https://example.com/
-             */
-            componenteAdicionalVinculado?: string | null;
+            componenteAdicionalVinculado?: components["schemas"]["Componente.multipart-componente.item.read"] | null;
             /**
              * @description Obtiene el orden de aparición.
              * @default 1
@@ -37204,7 +37529,7 @@ export interface components {
             itinerario?: string;
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El segmento de catálogo que se inyecta en este día. Se ESCRIBE por IRI.
              * @example https://example.com/
              */
             segmento?: string;
@@ -37218,7 +37543,7 @@ export interface components {
         "TravelItinerarioSegmentoRel-itinerario.item.read": {
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El segmento de catálogo que se inyecta en este día. Se ESCRIBE por IRI.
              * @example https://example.com/
              */
             segmento?: string;
@@ -37230,7 +37555,7 @@ export interface components {
         "TravelItinerarioSegmentoRel-itinerario.write": {
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El segmento de catálogo que se inyecta en este día. Se ESCRIBE por IRI.
              * @example https://example.com/
              */
             segmento?: string;
@@ -37247,7 +37572,7 @@ export interface components {
             itinerario?: string;
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El segmento de catálogo que se inyecta en este día. Se ESCRIBE por IRI.
              * @example https://example.com/
              */
             segmento?: string;
@@ -37261,7 +37586,7 @@ export interface components {
         "TravelItinerarioSegmentoRel.html-itinerario.item.read": {
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El segmento de catálogo que se inyecta en este día. Se ESCRIBE por IRI.
              * @example https://example.com/
              */
             segmento?: string;
@@ -37278,7 +37603,7 @@ export interface components {
             itinerario?: string;
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El segmento de catálogo que se inyecta en este día. Se ESCRIBE por IRI.
              * @example https://example.com/
              */
             segmento?: string;
@@ -37292,7 +37617,7 @@ export interface components {
         "TravelItinerarioSegmentoRel.jsonld-itinerario.item.read": {
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El segmento de catálogo que se inyecta en este día. Se ESCRIBE por IRI.
              * @example https://example.com/
              */
             segmento?: string;
@@ -37309,7 +37634,7 @@ export interface components {
             itinerario?: string;
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El segmento de catálogo que se inyecta en este día. Se ESCRIBE por IRI.
              * @example https://example.com/
              */
             segmento?: string;
@@ -37323,7 +37648,7 @@ export interface components {
         "TravelItinerarioSegmentoRel.multipart-itinerario.item.read": {
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El segmento de catálogo que se inyecta en este día. Se ESCRIBE por IRI.
              * @example https://example.com/
              */
             segmento?: string;
@@ -37583,25 +37908,14 @@ export interface components {
             readonly id?: string | null;
         };
         "TravelSegmentoComponente-segmento.item.read": {
-            /**
-             * Format: iri-reference
-             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
-             * @example https://example.com/
-             */
-            componente?: string;
+            componente?: components["schemas"]["Componente-segmento.item.read"];
             /**
              * Format: iri-reference
              * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
-             * @example https://example.com/
-             */
-            itinerarioContexto?: string | null;
+            itinerarioContexto?: components["schemas"]["Itinerario-segmento.item.read"] | null;
             /**
              * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
              *     en el que se aplicará este componente logístico.
@@ -37643,25 +37957,14 @@ export interface components {
             readonly id?: string | null;
         };
         "TravelSegmentoComponente-segmento.read": {
-            /**
-             * Format: iri-reference
-             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
-             * @example https://example.com/
-             */
-            componente?: string;
+            componente?: components["schemas"]["Componente-segmento.read"];
             /**
              * Format: iri-reference
              * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
-             * @example https://example.com/
-             */
-            itinerarioContexto?: string | null;
+            itinerarioContexto?: components["schemas"]["Itinerario-segmento.read"] | null;
             /**
              * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
              *     en el que se aplicará este componente logístico.
@@ -37828,25 +38131,14 @@ export interface components {
             readonly id?: string | null;
         };
         "TravelSegmentoComponente.html-segmento.item.read": {
-            /**
-             * Format: iri-reference
-             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
-             * @example https://example.com/
-             */
-            componente?: string;
+            componente?: components["schemas"]["Componente.html-segmento.item.read"];
             /**
              * Format: iri-reference
              * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
-             * @example https://example.com/
-             */
-            itinerarioContexto?: string | null;
+            itinerarioContexto?: components["schemas"]["Itinerario.html-segmento.item.read"] | null;
             /**
              * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
              *     en el que se aplicará este componente logístico.
@@ -37888,25 +38180,14 @@ export interface components {
             readonly id?: string | null;
         };
         "TravelSegmentoComponente.html-segmento.read": {
-            /**
-             * Format: iri-reference
-             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
-             * @example https://example.com/
-             */
-            componente?: string;
+            componente?: components["schemas"]["Componente.html-segmento.read"];
             /**
              * Format: iri-reference
              * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
-             * @example https://example.com/
-             */
-            itinerarioContexto?: string | null;
+            itinerarioContexto?: components["schemas"]["Itinerario.html-segmento.read"] | null;
             /**
              * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
              *     en el que se aplicará este componente logístico.
@@ -38015,25 +38296,14 @@ export interface components {
             readonly id?: string | null;
         };
         "TravelSegmentoComponente.jsonld-segmento.item.read": {
-            /**
-             * Format: iri-reference
-             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
-             * @example https://example.com/
-             */
-            componente?: string;
+            componente?: components["schemas"]["Componente.jsonld-segmento.item.read"];
             /**
              * Format: iri-reference
              * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
-             * @example https://example.com/
-             */
-            itinerarioContexto?: string | null;
+            itinerarioContexto?: components["schemas"]["Itinerario.jsonld-segmento.item.read"] | null;
             /**
              * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
              *     en el que se aplicará este componente logístico.
@@ -38075,25 +38345,14 @@ export interface components {
             readonly id?: string | null;
         };
         "TravelSegmentoComponente.jsonld-segmento.read": {
-            /**
-             * Format: iri-reference
-             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
-             * @example https://example.com/
-             */
-            componente?: string;
+            componente?: components["schemas"]["Componente.jsonld-segmento.read"];
             /**
              * Format: iri-reference
              * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
-             * @example https://example.com/
-             */
-            itinerarioContexto?: string | null;
+            itinerarioContexto?: components["schemas"]["Itinerario.jsonld-segmento.read"] | null;
             /**
              * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
              *     en el que se aplicará este componente logístico.
@@ -38202,25 +38461,14 @@ export interface components {
             readonly id?: string | null;
         };
         "TravelSegmentoComponente.multipart-segmento.item.read": {
-            /**
-             * Format: iri-reference
-             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
-             * @example https://example.com/
-             */
-            componente?: string;
+            componente?: components["schemas"]["Componente.multipart-segmento.item.read"];
             /**
              * Format: iri-reference
              * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
-             * @example https://example.com/
-             */
-            itinerarioContexto?: string | null;
+            itinerarioContexto?: components["schemas"]["Itinerario.multipart-segmento.item.read"] | null;
             /**
              * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
              *     en el que se aplicará este componente logístico.
@@ -38262,25 +38510,14 @@ export interface components {
             readonly id?: string | null;
         };
         "TravelSegmentoComponente.multipart-segmento.read": {
-            /**
-             * Format: iri-reference
-             * @description El componente logístico del catálogo maestro que será inyectado en el timeline.
-             * @example https://example.com/
-             */
-            componente?: string;
+            componente?: components["schemas"]["Componente.multipart-segmento.read"];
             /**
              * Format: iri-reference
              * @description Tarifa específica del catálogo que se predefinirá al instanciar este componente.
              * @example https://example.com/
              */
             tarifaPredeterminada?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
-             *     debe inyectarse este componente. Si es null, se considera global y se inyecta siempre.
-             * @example https://example.com/
-             */
-            itinerarioContexto?: string | null;
+            itinerarioContexto?: components["schemas"]["Itinerario.multipart-segmento.read"] | null;
             /**
              * @description Filtro opcional de refinamiento: Determina el día relativo exacto de la plantilla
              *     en el que se aplicará este componente logístico.

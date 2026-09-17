@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
-use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
 use App\Travel\Enum\ComponenteModoEnum;
 use App\Travel\Enum\ComponenteTipoEnum;
@@ -41,7 +40,6 @@ class TravelSegmentoComponente
      * @var TravelComponente|null El componente logístico del catálogo maestro que será inyectado en el timeline.
      */
     #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
-    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: TravelComponente::class, inversedBy: 'segmentoComponentesInyectados')]
     #[ORM\JoinColumn(nullable: false)]
     private ?TravelComponente $componente = null;
@@ -50,7 +48,6 @@ class TravelSegmentoComponente
      * @var TravelTarifa|null Tarifa específica del catálogo que se predefinirá al instanciar este componente.
      */
     #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
-    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: TravelTarifa::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?TravelTarifa $tarifaPredeterminada = null;
@@ -62,7 +59,6 @@ class TravelSegmentoComponente
      * @var TravelItinerario|null
      */
     #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
-    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: TravelItinerario::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?TravelItinerario $itinerarioContexto = null;
