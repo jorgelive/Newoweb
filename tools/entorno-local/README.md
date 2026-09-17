@@ -1,4 +1,4 @@
-# Entorno local: nginx + php-fpm 8.4 + MySQL 8.0 con Homebrew
+# Entorno local: nginx + php-fpm 8.4 + MySQL 8.4 con Homebrew
 
 Sustituye a **MAMP PRO**, que dejó de arrancar al actualizarlo el 17/09/2026. MAMP servía el
 proyecto con **Apache**; producción usa **nginx**, así que el cambio además acerca el local a lo
@@ -10,12 +10,41 @@ que hay en el servidor.
 |---|---|---|
 | Web | nginx (Homebrew) | nginx 1.24 |
 | PHP | `php@8.4` (8.4.25) + php-fpm por socket | 8.4.24, php-fpm por socket |
-| MySQL | `mysql@8.0` (**8.0.46**) | **8.0.46** — la misma |
+| MySQL | `mysql@8.4` (8.4.11) | 8.0.46 → **8.4** (ver abajo) |
 | Certificados | mkcert (CA local de confianza) | Let's Encrypt |
 
-⚠️ **`mysql@8.0` está marcada obsoleta en Homebrew** (MySQL 8.0 ya no tiene soporte) y se
-desactivará el **30/04/2027**. Se eligió igualmente porque es **exactamente** la versión de
-producción. Cuando producción pase a 8.4, aquí se pasa a `mysql@8.4`.
+**Se instaló con `mysql@8.0` —la versión exacta de producción— y el mismo día se actualizó a
+8.4**, como ensayo de la actualización de producción: MySQL 8.0 ya no tiene soporte y Homebrew
+desactiva `mysql@8.0` el 30/04/2027.
+
+### El paso de 8.0 a 8.4, medido en local (17/09/2026)
+
+Actualización **en caliente** sobre la misma carpeta de datos: parar 8.0, arrancar 8.4. Tardó ~5 s:
+
+```
+Data dictionary upgrading from version '80023' to '80300' ... completed.
+Server upgrade from '80046' to '80411' ... completed.
+```
+
+Luego `serverVersion=8.4` en `DATABASE_URL` (Doctrine DBAL 3.10 trae `MySQL84Platform`), y verde:
+245 tablas, esquema en sincronía, 821 tests, la API contestando por nginx.
+
+⚠️ **No se puede volver atrás en caliente**: una carpeta de datos que ya pasó por 8.4 no la abre
+8.0. La vuelta atrás es instalar 8.0 en limpio y cargar el volcado previo
+(`~/Backups/local-mysql80-todo-20260917.sql.gz`).
+
+Lo que se comprobó antes, porque es lo que rompe esta actualización:
+
+| Riesgo | Cómo se mira | Resultado |
+|---|---|---|
+| Usuarios con `mysql_native_password`: 8.4 lo trae **desactivado** y no podrían entrar | `SELECT user, plugin FROM mysql.user` | la app usa `caching_sha2_password` |
+| Opciones de `my.cnf` eliminadas en 8.4 (`default_authentication_plugin`…): el servidor **no arranca** | leer la config | ninguna |
+| Palabras que pasan a ser **reservadas** | `information_schema.KEYWORDS WHERE RESERVED=1`, comparando 8.0 con 8.4 | sólo `QUALIFY` y `TABLESAMPLE`; no las usa nadie |
+
+⚠️ **Pregúntaselo al servidor, no a la memoria.** Durante la preparación se dio por hecho que
+`MANUAL` pasaba a ser reservada y se «arregló» la columna `res_reserva.manual`. El propio 8.4 lo
+desmintió —en `KEYWORDS` sale con `RESERVED = 0`, y un `UPDATE` sin comillas funcionó— y el cambio
+se deshizo. La consulta a `KEYWORDS` en las dos versiones es la fuente; las listas de memoria, no.
 
 **Mismos dominios y mismo puerto que con MAMP**, así que no se tocó ningún `.env` ni la config de
 Vite: `https://{newapi,newoweb,panel,util,pax}.openperu.test:8890` (y `:8888` redirige a HTTPS).
@@ -23,7 +52,7 @@ Vite: `https://{newapi,newoweb,panel,util,pax}.openperu.test:8890` (y `:8888` re
 ## Instalar desde cero
 
 ```bash
-brew install nginx php@8.4 mysql@8.0 mkcert nss imagemagick pkg-config
+brew install nginx php@8.4 mysql@8.4 mkcert nss imagemagick pkg-config
 ```
 
 **imagick** no viene con `php@8.4` y el proyecto lo exige (girar escaneos, convertir a webp):
@@ -63,7 +92,7 @@ echo "127.0.0.1 newapi.openperu.test newoweb.openperu.test panel.openperu.test p
 ## La base de datos
 
 ```bash
-brew services start mysql@8.0
+brew services start mysql@8.4
 ```
 
 Se crea la base y el usuario **con las credenciales de `DATABASE_URL` de `.env.local`**, y se
@@ -114,4 +143,4 @@ quedan sin memoria y lo reporta como «4 errors» que no son del código. El ali
 | Cambiar una regla de nginx | `nginx-newoweb.conf` y luego `instalar.sh` — **nunca** la copia instalada en `/opt/homebrew/etc/nginx/servers/` |
 | Límites de PHP | `/opt/homebrew/etc/php/8.4/conf.d/99-newoweb.ini` (fuera del repo) |
 | Logs de nginx | `/opt/homebrew/var/log/nginx/newoweb_error.log` |
-| Reiniciar todo | `brew services restart php@8.4 nginx mysql@8.0` |
+| Reiniciar todo | `brew services restart php@8.4 nginx mysql@8.4` |

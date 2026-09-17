@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Instala o reinstala el entorno local de Newoweb con Homebrew: nginx + php-fpm 8.4 + MySQL 8.0.
+# Instala o reinstala el entorno local de Newoweb con Homebrew: nginx + php-fpm 8.4 + MySQL 8.4.
 # Idempotente: se puede correr las veces que haga falta. Ver tools/entorno-local/README.md.
 set -euo pipefail
 
