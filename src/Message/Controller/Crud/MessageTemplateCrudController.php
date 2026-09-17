@@ -566,10 +566,24 @@ class MessageTemplateCrudController extends BaseCrudController
         $html = '';
 
         foreach ($partes as $i => $parte) {
-            $texto = sprintf(
-                '<div style="white-space:pre-wrap;word-break:break-word;line-height:1.5;">%s</div>',
-                htmlspecialchars($parte['texto'], ENT_QUOTES)
-            );
+            // 🔧 LAS LÍNEAS EN BLANCO DEL TEXTO SE PINTAN COMO PÁRRAFOS, no como renglones vacíos.
+            //
+            // Con `pre-wrap` a secas, el `\n\n` que separa dos frases en el mensaje ocupa un
+            // renglón entero — y en el móvil, con la letra grande, eso son huecos enormes que
+            // parten el texto. Aquí la separación la decide el margen, no el contenido.
+            //
+            // Los saltos SIMPLES sí se respetan dentro de cada párrafo: son las listas y las
+            // sangrías de las plantillas largas.
+            $parrafos = preg_split('/\n{2,}/', $parte['texto']) ?: [$parte['texto']];
+            $texto = '';
+
+            foreach ($parrafos as $j => $parrafo) {
+                $texto .= sprintf(
+                    '<div style="white-space:pre-wrap;word-break:break-word;line-height:1.45;margin-top:%s">%s</div>',
+                    $j === 0 ? '0' : '.45rem',
+                    htmlspecialchars(trim($parrafo, "\n"), ENT_QUOTES)
+                );
+            }
 
             $rotulo = $parte['etiqueta'] === null
                 ? ''

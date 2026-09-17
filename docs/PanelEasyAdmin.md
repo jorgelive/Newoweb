@@ -113,6 +113,10 @@ Tres detalles que cuestan una tarde si se descubren en caliente:
 - **Nada de `<pre>`.** La primera versión lo usaba —parecía lo natural para respetar sangrías— y el
   panel lo pinta con el estilo de código: **rojo y con otra tipografía**, así que el mensaje parecía
   un error. Se consigue lo mismo con `white-space: pre-wrap` sobre texto normal.
+- **Las líneas en blanco del texto se pintan como párrafos.** Con `pre-wrap` a secas, el `\n\n`
+  que separa dos frases ocupa un renglón entero, y en el móvil —letra grande— eso parte el texto en
+  bloques sueltos. La separación la decide un margen; los saltos simples sí se respetan, que son las
+  listas y las sangrías.
 - **El servicio devuelve PIEZAS, no una cadena con `[Cabecera]` dentro.** Con el rótulo metido en el
   texto, el nombre de la pieza y el mensaje comparten peso y tipografía, y separarlos obligaba a
   líneas en blanco: en el móvil salían huecos enormes. Con partes etiquetadas, quien pinta le da a
