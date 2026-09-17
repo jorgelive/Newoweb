@@ -2289,6 +2289,28 @@ retraduce en `preUpdate` y se llevaría por delante la puntuación de cada lengu
 documentada en `docs/Mensajeria.md`.
 
 
+## La dirección dice «877-A y B», y el mapa va por coordenadas (17/09/2026)
+
+Una huésped lo dijo en el chat, ya dentro del departamento: «dice 877-A y debería haber sido -B».
+Es verdad a medias, y eso es lo que lo hacía difícil: **el pasaje está en el 877-B, pero el límite
+entre A y B es difuso** y los carteles no coinciden. Con un solo número, quien compara con la calle
+cree que se equivocó de portal.
+
+La ficha «Ubicación (general)» dice ahora `Calle Saphi 877-A y B, Cusco`. El enlace del mapa deja de
+ser una **búsqueda por texto** (`/maps/search/C.+Saphy+877-A+…`) y pasa a un punto por
+**coordenadas**: una búsqueda la resuelve Google como quiere, y con un número que ni en la puerta
+está claro puede caer en otro portal. `MapBlock` enseña la URL como texto —se ven las coordenadas—
+a cambio de que lleve exactamente a la puerta.
+
+Lo hizo `app:pms:guia:direccion-a-y-b` (archivado), que toca sólo el español y deja que
+`AutoTranslate` rehaga los otros seis. De paso alinea `PmsEstablecimiento::$direccionLinea1`, que
+sólo se ve en el panel pero no puede contradecir a la guía.
+
+⚠️ **La dirección que ven en Booking y Airbnb vive en Beds24**, no aquí: eso se cambia allí a mano.
+
+⚠️ Lo que NO se tocó es lo que de verdad la orientó —«la primera puerta verde del pasaje, a pocos
+metros de la caja fuerte»—. El número sitúa la manzana; la puerta la encuentra esa frase.
+
 ## 💬 «Este chat» en una pantalla que no es un chat (31/08/2026)
 
 El aviso de «ya pagué» decía: *«Avísanos por **este chat** cuando lo hayas hecho… hazlo por
