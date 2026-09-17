@@ -821,8 +821,32 @@ final readonly class MessageRuleEngine
      */
     private function cancelPendingQueues(Message $message): void
     {
-        if (in_array($message->getStatus(), [Message::STATUS_QUEUED, Message::STATUS_PENDING], true)) {
-            $message->setStatus(Message::STATUS_CANCELLED);
+        if (!in_array($message->getStatus(), [Message::STATUS_QUEUED, Message::STATUS_PENDING], true)) {
+            return;
+        }
+
+        $message->setStatus(Message::STATUS_CANCELLED);
+
+        // ⚠️ LAS COLAS SE CANCELAN AQUÍ, no en la cascada del listener.
+        //
+        // Antes sólo se cambiaba el estado del mensaje y el `preUpdate` de
+        // `MessageEnqueuerEntityListener` cancelaba sus colas. Eso funciona cuando las colas ya
+        // están en memoria, y falla en silencio cuando el mensaje vino de una consulta: sus
+        // colecciones siguen sin inicializar cuando el `preUpdate` corre en mitad del flush, y el
+        // mensaje queda `cancelled` con la cola en `pending`. El worker mira la cola, así que sale.
+        //
+        // Medido el 17/09/2026 al activar la guía de llegada: los 13 recordatorios de Booking que
+        // se cancelaron en la regla vieja dejaron **25 colas vivas**, la primera para el día
+        // siguiente a las 8:00 — el texto viejo detrás del nuevo. Se cortaron a mano con
+        // `app:msg:colas-duplicadas`. El 14/09 ese mismo comando había caído en la misma trampa y
+        // se arregló sólo allí.
+        //
+        // Aquí se hace antes del flush, fuera de cualquier evento, donde inicializar la colección
+        // es seguro. La cascada del listener sigue: sobre una cola ya cancelada no hace nada.
+        foreach ($message->getAllQueues() as $queue) {
+            if (in_array($queue->getStatus(), ['pending', 'queued'], true)) {
+                $queue->setStatus('cancelled');
+            }
         }
     }
 

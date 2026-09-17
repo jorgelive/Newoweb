@@ -8005,6 +8005,26 @@ y seis recálculos de Vanessa en los dos órdenes dejaron un solo recordatorio v
 
 ⚠️ «14:00» va escrito, como «8:00» en la bienvenida: si cambia el check-in, hay plantilla nueva.
 
+**Activada el 17/09/2026**, con las dos `UTILITY` y aprobadas en los siete idiomas: los 22
+recordatorios en cola pasaron a 9 `guia_llegada` (5 airbnb, 4 directas) y 13
+`guia_llegada_booking`, sin duplicados.
+
+🔥 **Y dejó 25 colas vivas colgadas de mensajes cancelados.** Eran los 13 recordatorios de Booking
+que la regla vieja canceló: el mensaje `cancelled`, la cola `pending`, la primera para el día
+siguiente a las 8:00. Esos huéspedes habrían recibido el texto viejo detrás del nuevo. Se cortaron
+en el acto con `app:msg:colas-duplicadas`.
+
+La causa es la trampa de §7 («Cancelar el mensaje no cancelaba su cola»), esta vez dentro del
+motor: `MessageRuleEngine::cancelPendingQueues()` sólo cambiaba el estado y confiaba en la cascada
+del listener, que falla cuando el mensaje vino de una consulta. El 14/09 se arregló sólo en el
+comando de limpieza. Ahora el motor cancela las colas él mismo, antes del flush — reproducido en
+local (9 colas huérfanas sin el cambio, 0 con él) y fijado en
+`tests/Message/Service/Queue/CancelarMensajeCancelaSusColasTest.php`.
+
+⚠️ La prueba local de antes de activar **contaba mensajes, no colas**, y por eso no lo vio. Al
+verificar una transición de reglas, el invariante que importa es «ninguna cola viva en un mensaje
+muerto»: es la que sale.
+
 ---
 
 ## 18.b Plan de reformulación de las plantillas al huésped (30/08/2026)
