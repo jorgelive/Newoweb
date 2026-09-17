@@ -44,7 +44,7 @@ final readonly class FiltroDeVetos
                 continue;
             }
 
-            $item->marcarVetado($motivo, $ahora);
+            $item->marcarVetado(VetoableQueueItemInterface::PREFIJO_MOTIVO . $motivo, $ahora);
             ++$vetados;
 
             $this->logger->warning('Ítem de cola vetado antes de ejecutarse.', [

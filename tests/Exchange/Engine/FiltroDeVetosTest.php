@@ -7,6 +7,7 @@ namespace App\Tests\Exchange\Engine;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
+use App\Exchange\Service\Contract\VetoableQueueItemInterface;
 use App\Exchange\Service\Engine\FiltroDeVetos;
 use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\EmailSendQueue;
@@ -41,7 +42,8 @@ final class FiltroDeVetosTest extends TestCase
 
         foreach ($colas as $cola) {
             self::assertSame('cancelled', $cola->getStatus());
-            self::assertNotNull($cola->getFailedReason());
+            // Con el prefijo: es lo que `VigilanteDeColas` cuenta para avisar.
+            self::assertStringStartsWith(VetoableQueueItemInterface::PREFIJO_MOTIVO, (string) $cola->getFailedReason());
             // Sin soltar el candado, el vigilante de `claimRunnable()` la devolvería a `failed`.
             self::assertNull($cola->getLockedAt());
             self::assertNull($cola->getLockedBy());

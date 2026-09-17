@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Exchange\Service;
 
 use App\Entity\User;
+use App\Exchange\Service\Contract\VetoableQueueItemInterface;
 use App\Repository\UserRepository;
 use App\Security\Roles;
 use App\Service\WebPushNotificationService;
@@ -39,7 +40,7 @@ final readonly class VigilanteDeColas
     /**
      * Las colas y su columna de estado.
      *
-     * Se consulta por SQL directo a propósito: son siete tablas de módulos distintos, sin
+     * Se consulta por SQL directo a propósito: son ocho tablas de módulos distintos, sin
      * ancestro común, y lo que se quiere es un recuento — no hidratar entidades que no se van a
      * usar. Añadir una cola nueva es una línea aquí.
      *
@@ -53,6 +54,9 @@ final readonly class VigilanteDeColas
         'msg_beds24_send_queue' => 'mensajes Beds24 (envío)',
         'msg_beds24_receive_queue' => 'mensajes Beds24 (recepción)',
         'msg_whatsapp_meta_send_queue' => 'WhatsApp (envío)',
+        // Faltaba: entró después que las demás y nadie la añadió aquí. Un correo que no salía no
+        // avisaba a nadie (17/09/2026).
+        'msg_email_send_queue' => 'correo (envío)',
     ];
 
     /** Auditorías de webhook y el estado que significa «entró y no se pudo procesar». */
@@ -115,6 +119,24 @@ final readonly class VigilanteDeColas
             }
         }
 
+        // 🚫 LOS VETOS. Una cola que el motor apartó porque su decisión ya se había revocado
+        // (`VetoableQueueItemInterface`). Al huésped no le llegó nada que no debía, pero el veto
+        // existe porque una cascada de cancelación falló antes: el 17/09/2026 dejó 25 colas vivas
+        // de 13 recordatorios cancelados. Sin este aviso, la barrera protegería y el origen
+        // seguiría escondido. Se mira en todas las colas: las que no se apuntan dan cero.
+        foreach (self::COLAS as $tabla => $etiqueta) {
+            $n = $this->contar(
+                "SELECT COUNT(*) FROM {$tabla} WHERE status = 'cancelled' AND failed_reason LIKE :prefijo AND updated_at >= :corte",
+                ['prefijo' => VetoableQueueItemInterface::PREFIJO_MOTIVO . '%', 'corte' => $corte],
+            );
+
+            if (null === $n) {
+                ++$fallidas;
+            } elseif ($n > 0) {
+                $lineas[] = sprintf('%d vetada(s) en la cola de %s: una cancelación no llegó a su cola', $n, $etiqueta);
+            }
+        }
+
         $enFallo = $this->contar('SELECT COUNT(*) FROM messenger_messages WHERE queue_name = :cola', ['cola' => 'failed']);
 
         if (null === $enFallo) {
@@ -126,7 +148,7 @@ final readonly class VigilanteDeColas
         // ⚠️ Si NINGUNA consulta pudo correr, esto no es un «todo bien»: es que no se pudo mirar.
         // Callarse aquí sería reproducir el fallo que este vigilante existe para evitar — un
         // sistema que parece sano porque nadie está comprobando nada.
-        if ($fallidas === count(self::AUDITORIAS) + count(self::COLAS) + 1) {
+        if ($fallidas === count(self::AUDITORIAS) + 2 * count(self::COLAS) + 1) {
             return ['no se pudo consultar NINGUNA cola: revisa la conexión a la base'];
         }
 

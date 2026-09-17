@@ -591,6 +591,13 @@ que pregunta a cada ítem que implemente `VetoableQueueItemInterface` si hay mot
 ejecutarlo. Si lo hay, la cola queda `cancelled`, **sin candado** —si no, el vigilante de
 `claimRunnable()` la devolvería a `failed`— y con el motivo en `failed_reason`, y no se envía.
 
+**Y avisa.** `FiltroDeVetos` antepone `[veto] ` (`VetoableQueueItemInterface::PREFIJO_MOTIVO`) al
+motivo, y `VigilanteDeColas` —cron `app:exchange:vigilar-colas`, minuto 25— cuenta las vetadas de su
+ventana en todas las colas y manda el aviso a operaciones: «N vetada(s) en la cola de …: una
+cancelación no llegó a su cola». Un veto protege al huésped, pero significa que una cascada falló
+antes; sin el aviso, el origen seguiría escondido. Al añadirlo apareció que el vigilante **no miraba
+la cola de correo**: entró después que las demás y nadie la añadió a la lista.
+
 Las tres colas de envío (Beds24, WhatsApp, correo) se apuntan con `VetoPorMensajeCanceladoTrait`, y
 la regla vive en **un solo sitio**, `Message::motivoParaNoEnviar()`:
 
@@ -620,7 +627,8 @@ ante una `pending`, devolvía el cancelado a `queued`: cuando la cascada fallaba
 cancelación. Ahora a un cancelado se le cancelan las colas vivas; sólo si una ya salió pasa a `sent`,
 porque eso es historia.
 
-Tests: `tests/Exchange/Engine/FiltroDeVetosTest.php` y
+Tests: `tests/Exchange/Engine/FiltroDeVetosTest.php`,
+`tests/Exchange/Service/VigilanteDeColasVetosTest.php` y
 `tests/Message/Service/Queue/CuracionNoResucitaCanceladosTest.php`.
 
 ### Recibos de lectura: proactivos, no reactivos

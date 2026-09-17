@@ -32,6 +32,15 @@ use DateTimeImmutable;
  */
 interface VetoableQueueItemInterface extends ExchangeQueueItemInterface
 {
+    /**
+     * Con lo que empieza `failed_reason` de toda cola vetada, la ponga el dominio que la ponga.
+     *
+     * Lo antepone `FiltroDeVetos`, no cada dominio: así `VigilanteDeColas` cuenta los vetos de
+     * cualquier cola sin saber qué es un mensaje. Un veto no es una cancelación normal —significa
+     * que una cascada de cancelación falló antes— y por eso tiene que poder distinguirse.
+     */
+    public const string PREFIJO_MOTIVO = '[veto] ';
+
     /** `null` para ejecutar; si no, por qué no debe ejecutarse. */
     public function motivoParaNoEjecutar(): ?string;
 
