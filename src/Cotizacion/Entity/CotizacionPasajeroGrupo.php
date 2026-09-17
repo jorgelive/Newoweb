@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
-use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
@@ -51,30 +50,41 @@ class CotizacionPasajeroGrupo
     private ?CotizacionFilepasajero $pasajero = null;
 
     /**
-     * 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
+     * ⛔ **Sale INCRUSTADO, y aquí estuvo un `readableLink: false` que no hacía nada.**
      *
-     * Sin `readableLink: false` aquí, cada pertenencia arrastraba el `CotizacionFileGrupo` **entero**
-     * —clave, nombre, subeje, detalle, tipo, sus vuelos—. Con 134 pasajeros y una media de 13
-     * subgrupos por persona son **1 712 copias del mismo puñado de objetos** en cada respuesta: el
-     * GET del expediente pesaba 717 KB de media y hasta 4,3 MB, con picos de 8 s de serialización.
-     * Y los 110 grupos ya venían aparte en `CotizacionFile::$grupos`, así que era el mismo dato dos
-     * veces, una de ellas multiplicada.
+     * Cada pertenencia arrastra el `CotizacionFileGrupo` entero —clave, nombre, subeje, detalle,
+     * tipo, sus vuelos—. Con 134 pasajeros y una media de 13 subgrupos por persona son **1 718
+     * copias del mismo puñado de objetos**, y otras 8 464 por la vía de `filearchivos[].pasajero`:
+     * 6,9 MB de los 9,8 MB que pesa el expediente, más un `COUNT(*)` por copia desde
+     * `CotizacionFileGrupo::getTotalMiembros()`. El problema es real; la solución no era ésta.
      *
-     * ⚠️ **No es sólo el tamaño: es el multiplicador de todo lo demás.** Cada recarga del panel tras
-     * subir un documento, resolver un suelto o validar el manifiesto pagaba eso. Con el IRI, incluso
-     * las recargas que queden salen baratas.
+     * ── 🔥 La regla que costó un despliegue roto (16/09/2026) ──────────────────
+     * **`readableLink` sólo actúa si el PADRE de la relación es un `ApiResource`.** Lo aplica
+     * `AbstractItemNormalizer::normalizeRelation()`, y ese normalizer sólo atiende clases-recurso.
+     * `CotizacionPasajeroGrupo` **no lo es** —su `@id` es un `genid`—, así que al objeto lo
+     * serializa el `ObjectNormalizer` de Symfony, que no sabe qué es `readableLink`; al llegar a
+     * `grupo`, que sí es recurso, lo incrusta entero. API Platform lo dice con sus palabras en el
+     * mismo archivo: *«traversing from a non-resource towards an attribute which is a resource, as
+     * we do not have the benefit of ApiProperty::isReadableLink»*.
      *
-     * ⚠️ El front ya lo soportaba **antes** de este cambio, en los dos sitios que lo leen:
-     * `gruposDePax()` y `abrirEdicionPax()` en `FileDetalle.vue` comprueban
-     * `typeof p.grupo === 'object'` y, si no, resuelven el IRI contra `file.grupos`. Esa rama existía
-     * por la vía de escritura —el formulario manda IRIs— y es la que ahora se usa al leer.
+     * ⚠️ **Lo único que sí cambió fue el ESQUEMA, y por eso el fallo fue peor que no hacer nada.**
+     * El generador de OpenAPI sí lee el atributo, así que `api.d.ts` empezó a declarar un `string`
+     * donde seguía llegando un objeto. `vue-tsc` marcó como inalcanzable la rama que trataba el
+     * objeto en `abrirEdicionPax()`, se quitó, y el formulario pasó a mandar `"[object Object]"`:
+     * **guardar un pasajero con subgrupos devolvía 400**. Un tipo generado que miente no avisa de
+     * nada — dirige hacia el error y encima lo bendice.
      *
-     * ⚠️ `file:write` se queda: escribir siempre fue por IRI. `readableLink` sólo gobierna la
-     * LECTURA. Y `pax` no se entera: usa `pax_file:read`, donde esta propiedad no está.
+     * 🔑 **La comprobación que faltaba: mirar el PAYLOAD, no el esquema.** Un `curl` o el
+     * `access.log` lo habrían dicho en un minuto — el GET del expediente ni adelgazó.
+     *
+     * Para que esto salga de verdad como referencia hace falta **sacarlo de `file:item:read` y
+     * exponer un `grupoId`**, que es un cambio de contrato del front y se decide aparte.
+     *
+     * ⚠️ `file:write` se queda: escribir siempre fue por IRI, y eso no lo gobierna `readableLink`.
+     * Y `pax` no se entera: usa `pax_file:read`, donde esta propiedad no está.
      */
     #[Assert\NotNull]
     #[Groups(['file:item:read', 'file:write'])]
-    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: CotizacionFileGrupo::class, inversedBy: 'miembros')]
     #[ORM\JoinColumn(name: 'grupo_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFileGrupo $grupo = null;

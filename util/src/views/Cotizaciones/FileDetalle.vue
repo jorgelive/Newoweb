@@ -874,10 +874,16 @@ const abrirEdicionPax = (pax: ApiCotizacionFilepasajero, editar = false) => {
       numero: i.numero ?? '',
       vencimiento: i.vencimiento ? i.vencimiento.split('T')[0] : '',
     })),
-    // ⚠️ `grupo` llega como IRI desde que la relación tiene `readableLink: false`, y el formulario
-    // ya mandaba IRIs: aquí había una rama para el objeto incrustado que `vue-tsc` marcó como
-    // INALCANZABLE al regenerar el esquema. Es la comprobación diciendo que el cambio cuadra.
-    pertenencias: (pax.pertenencias ?? []).map(p => ({ grupo: String(p.grupo ?? '') })).filter(p => p.grupo)
+    // 🔥 **`grupo` llega INCRUSTADO, y aquí se creyó lo contrario durante un despliegue.** Al poner
+    // `readableLink: false` en `CotizacionPasajeroGrupo::$grupo`, `vue-tsc` marcó la rama del objeto
+    // como inalcanzable y se quitó — pero lo que había cambiado era **el esquema, no la respuesta**:
+    // `readableLink` sólo lo aplica API Platform cuando el padre de la relación es un `ApiResource`,
+    // y `CotizacionPasajeroGrupo` no lo es (su `@id` es un `genid`). Comprobado en producción.
+    //
+    // ⚠️ El resultado fue `String({...})` → `"[object Object]"` en cada pertenencia, y el PATCH
+    // devolvía `Invalid IRI "[object Object]"`: **guardar un pasajero con subgrupos daba 400**.
+    // Se acepta cualquiera de las dos formas a propósito, que es lo que había antes.
+    pertenencias: (pax.pertenencias ?? []).map(p => ({ grupo: iriDeRelacion(p.grupo) })).filter(p => p.grupo)
   };
   showPaxModal.value = true;
 };
@@ -903,14 +909,20 @@ const agregarIdentificacion = () => {
 const iriDeGrupo = (g: ApiFileGrupo): string =>
   g['@id'] || `/platform/sales/cotizacion_file_grupos/${extractIdStr(g.id)}`;
 
+/**
+ * ⚠️ **Se compara por ID, no por IRI.** El formulario guarda el IRI porque es lo que el PATCH
+ * necesita, pero los IRIs de dos sitios pueden traer prefijo distinto y entonces la casilla sale
+ * desmarcada **sin error**: el pasajero parece no pertenecer a nada y al guardar se le vacía.
+ * El id es el mismo venga de donde venga.
+ */
 const perteneceA = (g: ApiFileGrupo): boolean =>
-  paxForm.value.pertenencias.some(p => p.grupo === iriDeGrupo(g));
+  paxForm.value.pertenencias.some(p => idDeRelacion(p.grupo) === extractIdStr(iriDeGrupo(g)));
 
 const alternarPertenencia = (g: ApiFileGrupo): void => {
-  const iri = iriDeGrupo(g);
-  const i = paxForm.value.pertenencias.findIndex(p => p.grupo === iri);
+  const id = extractIdStr(iriDeGrupo(g));
+  const i = paxForm.value.pertenencias.findIndex(p => idDeRelacion(p.grupo) === id);
   if (i >= 0) { paxForm.value.pertenencias.splice(i, 1); }
-  else { paxForm.value.pertenencias.push({ grupo: iri }); }
+  else { paxForm.value.pertenencias.push({ grupo: iriDeGrupo(g) }); }
 };
 
 
@@ -2151,6 +2163,16 @@ const indiceDeDuenos = computed(() => {
             g => g.clave || g.nombre || ''),
     };
 });
+
+/**
+ * El IRI de una relación, venga ya como IRI o como objeto incrustado.
+ *
+ * 🔑 **Hace falta aparte de `idDeRelacion()` porque lo que se ESCRIBE es el IRI**: API Platform
+ * denormaliza `grupo` a partir de él, y un id pelado no le vale. Leer y escribir piden formas
+ * distintas del mismo dato, y confundirlas es lo que rompió el guardado de pasajeros.
+ */
+const iriDeRelacion = (rel: unknown): string =>
+    typeof rel === 'string' ? rel : ((rel as { '@id'?: string } | null)?.['@id'] ?? '');
 
 /** El id que hay detrás de una relación, venga como IRI o como objeto embebido. */
 const idDeRelacion = (rel: unknown): string => {

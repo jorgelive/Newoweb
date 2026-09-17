@@ -15611,7 +15611,7 @@ export interface components {
             pasajero: string;
             /**
              * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
+             * @description ⛔ **Sale INCRUSTADO, y aquí estuvo un `readableLink: false` que no hacía nada.**
              * @example https://example.com/
              */
             grupo: string;
@@ -15627,12 +15627,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionPasajeroGrupo-file.item.read": {
-            /**
-             * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
-             * @example https://example.com/
-             */
-            grupo: string;
+            grupo: components["schemas"]["CotizacionFileGrupo-file.item.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15641,12 +15636,7 @@ export interface components {
             id?: string;
         };
         "CotizacionPasajeroGrupo-file.item.read_timestamp.read": {
-            /**
-             * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
-             * @example https://example.com/
-             */
-            grupo: string;
+            grupo: components["schemas"]["CotizacionFileGrupo-file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15659,12 +15649,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionPasajeroGrupo-file.read_file.item.read_timestamp.read": {
-            /**
-             * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
-             * @example https://example.com/
-             */
-            grupo: string;
+            grupo: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15688,7 +15673,7 @@ export interface components {
             pasajero: string;
             /**
              * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
+             * @description ⛔ **Sale INCRUSTADO, y aquí estuvo un `readableLink: false` que no hacía nada.**
              * @example https://example.com/
              */
             grupo: string;
@@ -15704,12 +15689,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionPasajeroGrupo.html-file.item.read": {
-            /**
-             * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
-             * @example https://example.com/
-             */
-            grupo: string;
+            grupo: components["schemas"]["CotizacionFileGrupo.html-file.item.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15718,12 +15698,7 @@ export interface components {
             id?: string;
         };
         "CotizacionPasajeroGrupo.html-file.item.read_timestamp.read": {
-            /**
-             * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
-             * @example https://example.com/
-             */
-            grupo: string;
+            grupo: components["schemas"]["CotizacionFileGrupo.html-file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15736,12 +15711,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionPasajeroGrupo.html-file.read_file.item.read_timestamp.read": {
-            /**
-             * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
-             * @example https://example.com/
-             */
-            grupo: string;
+            grupo: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15761,7 +15731,7 @@ export interface components {
             pasajero: string;
             /**
              * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
+             * @description ⛔ **Sale INCRUSTADO, y aquí estuvo un `readableLink: false` que no hacía nada.**
              * @example https://example.com/
              */
             grupo: string;
@@ -15777,12 +15747,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionPasajeroGrupo.jsonld-file.item.read": {
-            /**
-             * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
-             * @example https://example.com/
-             */
-            grupo: string;
+            grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15791,12 +15756,7 @@ export interface components {
             id?: string;
         };
         "CotizacionPasajeroGrupo.jsonld-file.item.read_timestamp.read": {
-            /**
-             * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
-             * @example https://example.com/
-             */
-            grupo: string;
+            grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15809,12 +15769,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionPasajeroGrupo.jsonld-file.read_file.item.read_timestamp.read": {
-            /**
-             * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
-             * @example https://example.com/
-             */
-            grupo: string;
+            grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15834,7 +15789,7 @@ export interface components {
             pasajero: string;
             /**
              * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
+             * @description ⛔ **Sale INCRUSTADO, y aquí estuvo un `readableLink: false` que no hacía nada.**
              * @example https://example.com/
              */
             grupo: string;
@@ -15850,12 +15805,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionPasajeroGrupo.multipart-file.item.read": {
-            /**
-             * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
-             * @example https://example.com/
-             */
-            grupo: string;
+            grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.item.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15864,12 +15814,7 @@ export interface components {
             id?: string;
         };
         "CotizacionPasajeroGrupo.multipart-file.item.read_timestamp.read": {
-            /**
-             * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
-             * @example https://example.com/
-             */
-            grupo: string;
+            grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.
@@ -15882,12 +15827,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionPasajeroGrupo.multipart-file.read_file.item.read_timestamp.read": {
-            /**
-             * Format: iri-reference
-             * @description 🔥 **Sale como IRI, no incrustado, y eso es el 90 % del peso del expediente.**
-             * @example https://example.com/
-             */
-            grupo: string;
+            grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"];
             /**
              * @description El código de ESTA persona dentro de ESTE subgrupo. Su localizador de vuelo, su número de
              *     habitación, su asiento.

@@ -6845,7 +6845,16 @@ el día que el dato cambia de forma.**
 
 **La regla:** cualquier relación servida en `cotizacion:read` cuyo destino sea otro `ApiResource`
 —y casi todos llevan marcas de tiempo— necesita `readableLink: false` salvo que se quiera de
-verdad incrustada. Para comprobarlo, serializar y buscar `@type` ajenos al árbol:
+verdad incrustada.
+
+⚠️ **Con un matiz que costó caro el 16/09/2026: el atributo sólo actúa si el PADRE de la relación
+es también un `ApiResource`.** Colgando de un objeto anidado que no lo es, `readableLink` no hace
+nada al payload y **sí** cambia el esquema generado, que es lo peor de los dos mundos. El caso
+entero, con el fallo en producción que provocó, en la sección «El expediente pesaba 90 % de lo mismo
+repetido».
+
+Para comprobarlo, serializar y buscar `@type` ajenos al árbol — **y comprobar siempre el payload,
+nunca el esquema**:
 
 ```php
 // (la sonda `probar-iris.php` que recorría el JSON denunciando lo que no es del árbol
@@ -10092,34 +10101,72 @@ Ahora vigila exactamente esos siete campos, por valor y sin `deep`. Si mañana s
 formulario hay que añadirlo aquí — y si se olvida, «Cancelar» no tendrá nada que descartar: un fallo
 visible, no una falsa alarma.
 
-#### 🔥 El expediente pesaba 90 % de lo mismo repetido (16/09/2026)
+#### ⛔ «El expediente pesaba 90 % de lo mismo repetido» — el diagnóstico era bueno y el arreglo no hacía nada (16/09/2026)
 
-`CotizacionPasajeroGrupo::$grupo` salía **incrustado**: cada pertenencia arrastraba el
+**Esta sección decía que `CotizacionPasajeroGrupo::$grupo` ya sale como IRI. Es falso**, y creerlo
+rompió producción el mismo día. Se deja escrita entera porque el error es más útil que la conclusión.
+
+**El diagnóstico, que sigue en pie.** `$grupo` sale **incrustado**: cada pertenencia arrastra el
 `CotizacionFileGrupo` entero —clave, nombre, subeje, detalle, tipo, sus vuelos—. Con 134 pasajeros y
-una media de 13 subgrupos por persona, son **1 712 copias del mismo puñado de objetos** en cada
-respuesta. Y los 110 grupos ya venían aparte en `CotizacionFile::$grupos`: el mismo dato dos veces,
-una de ellas multiplicada.
+una media de 13 subgrupos por persona son **1 718 copias** del mismo puñado de objetos, y otras
+**8 464** por la vía de `filearchivos[].pasajero`: medido en producción, **6,9 MB de los 9,8 MB** que
+pesa el expediente, más un `COUNT(*)` por copia desde `CotizacionFileGrupo::getTotalMiembros()`
+(10 314 consultas en una sola serialización). Y los 110 grupos ya vienen aparte en
+`CotizacionFile::$grupos`: el mismo dato dos veces, una de ellas multiplicada.
 
-Resultado: el GET del expediente pesaba **717 KB de media y hasta 4,3 MB**, con picos de 8 s de
-serialización. Un `#[ApiProperty(readableLink: false)]` lo convierte en un IRI.
+---
 
-🔑 **No es sólo el tamaño: es el multiplicador de todo lo demás.** Cada recarga del panel —tras subir
-un documento, resolver un suelto, validar el manifiesto— pagaba eso. Con el IRI, incluso las
-recargas que queden salen baratas, así que este cambio vale más que cualquiera de los parches en
-sitio que lo rodean.
+⚠️⚠️ **LA REGLA: `readableLink` sólo actúa si el PADRE de la relación es un `ApiResource`.**
 
-⚠️ **El front ya lo soportaba, y `vue-tsc` lo demostró.** Los dos sitios que leen `p.grupo`
-—`gruposDePax()` y `abrirEdicionPax()`— tenían una rama para el IRI, puesta por la vía de ESCRITURA
-(el formulario siempre mandó IRIs). Al regenerar `api.d.ts`, el typecheck marcó la rama del objeto
-incrustado como **inalcanzable** (`Property 'id' does not exist on type 'never'`): la comprobación
-diciendo que el cambio cuadra. Se borró el código muerto que eso destapó.
+Lo aplica `AbstractItemNormalizer::normalizeRelation()`, y ese normalizer sólo atiende
+clases-recurso (`supportsNormalization()`). `CotizacionPasajeroGrupo` **no lo es** —su `@id` es un
+`genid`—, así que al objeto lo serializa el `ObjectNormalizer` de Symfony, que no sabe qué es
+`readableLink`; al llegar a `grupo`, que sí es recurso, lo incrusta entero. API Platform lo dice con
+sus palabras en el mismo archivo:
 
-⚠️ **Y la contrapartida hay que pagarla bien.** Resolver el IRI de cada pertenencia contra
-`file.grupos` con un `find` lineal son 1 712 × 110 comparaciones **por recomputación**: se cambiaría
-peso de red por trabajo de CPU en cada repintado. Va por `Map` (`indiceDeGrupos`).
+> *traversing from a non-resource towards an attribute which is a resource, as we do not have the
+> benefit of `ApiProperty::isReadableLink`*
+
+---
+
+🔥 **Lo único que cambió fue el ESQUEMA, y por eso salió peor que no tocar nada.** El generador de
+OpenAPI **sí** lee el atributo. Así que `api.d.ts` pasó a declarar un `string` donde seguía llegando
+un objeto, y de ahí en cadena:
+
+```
+readableLink: false  →  el esquema dice string  →  vue-tsc marca la rama del objeto
+                        (la respuesta no cambia)    como INALCANZABLE en abrirEdicionPax()
+                                                 →  se borra por «código muerto»
+                                                 →  String({...}) = "[object Object]"
+                                                 →  PATCH: Invalid IRI "[object Object]"
+                                                 →  guardar un pasajero con subgrupos: 400
+```
+
+**Un tipo generado que miente no se queda callado: dirige hacia el error y encima lo bendice.** La
+sección de arriba llegó a citar el aviso de `vue-tsc` como *prueba de que el cambio cuadraba*.
+
+🔑 **La comprobación que faltaba, y que vale para cualquier cambio de serialización: mirar el
+PAYLOAD, no el esquema.** Un `curl`, el `access.log` o una sonda con el serializer lo habrían dicho
+en un minuto — el GET del expediente ni adelgazó (8 404 KB antes, 8 474 KB después).
+
+**Cómo se arregla de verdad**, cuando se decida: sacar `$grupo` de `file:item:read` (dejando
+`file:write`, que es la vía de escritura y siempre fue por IRI) y exponer un getter `grupoId`.
+`claveDeRelacion()` ya funciona con un UUID pelado. Es un cambio de contrato del front, así que no
+entra de rebote en un arreglo de rendimiento.
+
+⚠️ **Y la contrapartida hay que pagarla bien el día que se haga.** Resolver la referencia de cada
+pertenencia contra `file.grupos` con un `find` lineal son 1 718 × 110 comparaciones **por
+recomputación**: sería cambiar peso de red por trabajo de CPU en cada repintado. Va por `Map`
+(`indiceDeGrupos`), que ya está puesto.
 
 ⚠️ `file:write` se queda intacto: escribir siempre fue por IRI, y `readableLink` sólo gobierna la
 lectura. `pax` no se entera — usa `pax_file:read`, donde esta propiedad no está.
+
+**Leer y escribir piden formas distintas del mismo dato**, y confundirlas fue la mitad del fallo: el
+formulario necesita el **IRI** (API Platform denormaliza a partir de él), y las casillas se comparan
+por **id** (dos IRIs del mismo grupo pueden traer prefijo distinto y entonces la casilla sale
+desmarcada sin error, que es «este pasajero no pertenece a nada» y al guardar se cumple). De ahí
+salen `iriDeRelacion()` y `idDeRelacion()` en `FileDetalle.vue`, que son dos a propósito.
 
 #### 🔥 Borrar un documento tardaba ~10 segundos, y no era el borrado
 
