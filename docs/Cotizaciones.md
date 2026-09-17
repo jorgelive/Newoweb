@@ -10285,7 +10285,8 @@ pax: tarjeta ámbar «Lo recibimos, pero necesitamos otro:» + los motivos + «S
 
 | Se le pide otro | NO (lo mira el equipo) |
 |---|---|
-| no se lee | número o nombre distinto del manifiesto |
+| un DNI donde va el pasaporte, o al revés | número o nombre distinto del manifiesto |
+| no se lee | |
 | la banda de abajo no vino | vuelo o fecha distintos de su subgrupo |
 | la banda no cuadra (foto muy cerca) | |
 | documento vencido | |
@@ -10314,6 +10315,30 @@ reutiliza gratis.
 pantalla»; sin eso se cree colgado y lo manda otra vez.
 
 ⚠️ **Los textos no enseñan datos del manifiesto.** Esa respuesta la ve quien tenga el enlace.
+
+##### 🔥 Un DNI entraba por el hueco del pasaporte (17/09/2026)
+
+Lo encontró quien opera probándolo. La regla nunca preguntaba **qué documento es**, y el reverso
+del DNI trae una banda TD1 que cuadra perfectamente: ninguna otra comprobación lo veía. Reproducido
+con las lecturas reales, sin subir nada:
+
+| Foto subida como pasaporte | Aceptada sin pedir nada | Con un mensaje equivocado |
+|---|---|---|
+| DNI, cara delantera | 35 de 123 | 87 («no se ve la banda del pasaporte») |
+| DNI, reverso | 65 de 69 | — |
+
+Ahora es lo **primero** que se mira, y se contesta sólo eso: no tiene sentido hablarle de la banda o
+del vencimiento de un documento que no es el que toca.
+
+🔑 **Se usa el tipo que devuelve el lector, y se midió antes de fiarse**: 323 de 323 escaneos bien
+etiquetados lo traían correcto. Cero falsos positivos.
+
+⚠️ **Sólo en el eje pasaporte ↔ carné.** En el hueco del DNI no se exige `DNI` a secas: un carné de
+extranjería o una cédula extranjera (`CE`/`CI`) no es un error del pasajero, y pedirle «tu DNI» a
+quien no lo tiene no tiene salida.
+
+En `util` ya estaba cubierto: `Cotejo` compara el tipo leído con el de la identificación y lo marca
+como discrepancia.
 
 ##### 🔥 Medirlo antes de desplegar evitó acusar a 26 personas
 

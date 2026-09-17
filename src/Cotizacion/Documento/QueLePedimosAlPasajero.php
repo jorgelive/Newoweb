@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Cotizacion\Documento;
 
 use App\Cotizacion\Enum\ArchivoTipoEnum;
+use App\Enum\DocumentoTipoEnum;
 use DateTimeImmutable;
 
 /**
@@ -22,7 +23,8 @@ use DateTimeImmutable;
  *
  * | Se le pide otro | NO se le pide otro (lo mira el equipo en `util`) |
  * |---|---|
- * | no se lee | su número no coincide con el manifiesto |
+ * | subió un DNI donde va el pasaporte, o al revés | su número no coincide con el manifiesto |
+ * | no se lee | |
  * | la banda de abajo sale cortada o no sale | su nombre no coincide con el manifiesto |
  * | el documento está vencido | el vuelo del E-Ticket no es el de su subgrupo |
  * | subió un billete en vez del E-Ticket | la fecha del E-Ticket no es la del vuelo |
@@ -62,6 +64,34 @@ final readonly class QueLePedimosAlPasajero
                 .'mesa y que se vea entero.',
                 $nombre,
             )];
+        }
+
+        // 🔥 **Primero: ¿es el documento que toca?** Esta pregunta no existía, y un DNI subido por el
+        // hueco del pasaporte pasaba. Reproducido con las lecturas reales del 17/09/2026: de 69
+        // reversos de DNI, **65 se habrían aceptado como pasaporte sin pedir nada** —su banda TD1
+        // cuadra perfectamente, sólo que es la de un DNI—; y a 87 anversos se les habría dicho «no se
+        // ve la banda de abajo del pasaporte», que manda a repetir la foto del documento equivocado.
+        //
+        // 🔑 **Se pregunta al tipo LEÍDO, y se midió antes de fiarse de él**: 323 de 323 escaneos bien
+        // etiquetados traían el tipo correcto. Cero falsos positivos, así que no molesta a nadie que
+        // lo haya hecho bien.
+        //
+        // ⚠️ Y **sólo en el eje pasaporte ↔ carné**. En el hueco del DNI no se exige `DNI` a secas: un
+        // carné de extranjería o una cédula de otro país leídos como `CE`/`CI` no son un error de
+        // este pasajero, y pedirle «tu DNI» a quien no tiene DNI no tiene salida. Lo que sí es un error
+        // seguro es un pasaporte donde va un carné, o al revés.
+        if ($tipo === ArchivoTipoEnum::PASAPORTE && $leido->tipo !== null && $leido->tipo !== DocumentoTipoEnum::PASAPORTE) {
+            return [sprintf(
+                'Esto parece %s, no un pasaporte. Sube la página de tu pasaporte que tiene la foto y la '
+                .'banda de letras abajo.',
+                $leido->tipo === DocumentoTipoEnum::DNI ? 'un DNI' : 'un carné de identidad',
+            )];
+        }
+
+        if ($tipo !== ArchivoTipoEnum::PASAPORTE && $leido->tipo === DocumentoTipoEnum::PASAPORTE) {
+            return [$tipo === ArchivoTipoEnum::DNI_REVERSO
+                ? 'Esto parece un pasaporte, no tu DNI. Sube la parte de atrás de tu DNI.'
+                : 'Esto parece un pasaporte, no tu DNI. Sube la cara de delante de tu DNI, la de la foto.'];
         }
 
         $pedir = [];

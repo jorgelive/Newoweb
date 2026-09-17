@@ -130,4 +130,44 @@ final class QueLePedimosAlPasajeroTest extends TestCase
 
         self::assertSame([], Pedir::delEticket($completo));
     }
+
+    /**
+     * 🔥 **El agujero que encontró quien opera: un DNI por el hueco del pasaporte.** El reverso del DNI
+     * trae una banda TD1 que cuadra perfectamente, así que ninguna otra regla lo veía. 65 de 69
+     * reversos reales habrían pasado.
+     */
+    public function testUnDniSubidoComoPasaporteSePide(): void
+    {
+        $reversoDeDni = new DatosDeDocumento(
+            tipo: \App\Enum\DocumentoTipoEnum::DNI,
+            numero: '23985272',
+            vencimiento: new DateTimeImmutable('2031-04-17'),
+        );
+
+        $pedido = Pedir::delDocumento(T::PASAPORTE, $reversoDeDni, $this->hoy());
+
+        self::assertCount(1, $pedido, 'sólo esto: nada sobre la banda ni el vencimiento de un documento que no es');
+        self::assertStringContainsString('parece un DNI, no un pasaporte', $pedido[0]);
+    }
+
+    public function testUnPasaporteSubidoComoDniSePide(): void
+    {
+        $pasaporte = $this->pasaporte(['tipo' => \App\Enum\DocumentoTipoEnum::PASAPORTE]);
+
+        self::assertStringContainsString('parece un pasaporte, no tu DNI', Pedir::delDocumento(T::DNI_ANVERSO, $pasaporte, $this->hoy())[0]);
+        self::assertStringContainsString('parte de atrás', Pedir::delDocumento(T::DNI_REVERSO, $pasaporte, $this->hoy())[0]);
+    }
+
+    /** ⚠️ Un carné de extranjería por el hueco del DNI NO se pide: quien no tiene DNI no tiene otra cosa. */
+    public function testUnCarneDeExtranjeriaEnElHuecoDelDniNoSePide(): void
+    {
+        $carne = new DatosDeDocumento(tipo: \App\Enum\DocumentoTipoEnum::CE, numero: '001234567', vencimiento: new DateTimeImmutable('2030-01-01'));
+
+        self::assertSame([], Pedir::delDocumento(T::DNI_ANVERSO, $carne, $this->hoy()));
+    }
+
+    public function testElPasaporteBienEtiquetadoSigueSinPedirNada(): void
+    {
+        self::assertSame([], Pedir::delDocumento(T::PASAPORTE, $this->pasaporte(['tipo' => \App\Enum\DocumentoTipoEnum::PASAPORTE]), $this->hoy()));
+    }
 }
