@@ -116,7 +116,7 @@ certificar.
 fuerza a `{}` con un `stdClass`. Sólo ocurre en los turnos de bienvenida y de cierre, así que
 pasa las pruebas manuales y falla en producción.
 
-## 5. Quién habla: el mapa de identidades
+## 5. Quién habla: el mapa de identidades — y qué queda registrado (§5.1, §5.2)
 
 **Un altavoz identifica un sitio, no una persona.** Y es un escalón por debajo del WhatsApp: allí el
 número lo verifica Meta en cada mensaje y hace falta tener el móvil desbloqueado, mientras que
@@ -214,7 +214,8 @@ Amazon, no aquí. Todo lo que sobrevive a un turno son líneas de log:
 
 | Qué | Quién lo escribe | Nivel |
 |---|---|---|
-| Quién preguntó y cómo se le reconoció | `AlexaUsuarios::resolver()` | INFO |
+| Quién preguntó, cómo se le reconoció y desde qué Echo | `AlexaUsuarios::resolver()` | INFO |
+| **Toda la petición: sesión, idioma, voz con su nombre, Echo y cuenta** | `DiagnosticoAlexa::registrar()` (§5.2) | INFO |
 | Qué skill se ejecutó | el adaptador del motor | INFO |
 | **Qué se preguntó y qué se contestó** | `AlexaController::registrar()` | INFO |
 | Alexa oyó algo que su modelo no encajó | `AlexaController::resolver()` | WARNING |
@@ -237,6 +238,54 @@ regla es que un importe de cuatro cifras también sale tachado.
 
 ⚠️ Es un registro de **uso**, no un archivo: vive en el log `info-…` y rota a diario. Si algún
 día hace falta conservarlo, eso ya es una tabla, no una línea.
+
+### 5.2 El diagnóstico de una petición: `DiagnosticoAlexa`
+
+Con las líneas de §5.1 no se podía contestar a la primera pregunta que hizo falta en producción:
+**«¿cuántos perfiles de voz hay hablándole?»**. Aparecieron dos `personId` distintos en dos
+semanas, las dos resueltas «por cuenta», y con eso no se sabe si son dos personas o una a la que
+Alexa confundió con otro perfil de la misma cuenta de Amazon. Faltaban tres cosas:
+
+| Faltaba | Por qué dolía |
+|---|---|
+| Un hilo entre la identidad y la pregunta | Iban en líneas distintas sin nada en común: se emparejaban **por orden**, y con dos Echos hablando a la vez eso miente |
+| El Echo desde el que se habló | La línea de «no autorizada» lo traía; la de las consultas atendidas, no |
+| Un nombre para el `personId` | Es un hash opaco. Dos distintos no dicen si son dos personas |
+
+`DiagnosticoAlexa::registrar()` escribe **una línea INFO por petición legítima** —después de la
+firma y del skill id, nunca antes— con el sobre entero en el contexto del log:
+
+```
+INFO  Alexa: petición IntentRequest (ConsultarIntent) sesión=…essionABCDEF nueva=sí idioma=es-US
+      persona=amzn1.ask.person.AB… voz_nombre=Jorge voz_nombre_http=200
+      dispositivo=amzn1.ask.device.DV… cuenta=amzn1.ask.account.CU…
+```
+
+Y la línea de la pregunta (§5.1) lleva ahora `sesión=` y `persona=`, así que **cada pregunta va
+atada a la voz que la hizo** sin depender del orden.
+
+**El nombre del perfil de voz** sale de la *Customer Profile API* de Amazon
+(`GET {apiEndpoint}/v2/persons/~current/profile/givenName`, con el `apiAccessToken` del sobre) y
+exige dos pasos en la consola y en la app:
+
+1. Consola de Amazon → *Build → Permissions*: activar **Given Name (person-level)**.
+2. App de Alexa → la skill → *Configuración*: conceder el permiso. Es por cuenta.
+
+Sin eso la API contesta **403** y la línea lo dice con `voz_nombre_http=403`. Es una pista de
+configuración, no un fallo — el resto de la línea sale igual.
+
+⚠️ **El diagnóstico nunca puede costar una respuesta.** Alexa corta a los ~8 s (§6) y el agente ya
+se come casi todos: la consulta del nombre tiene **1,5 s** de tope y cualquier excepción se traga
+con un WARNING. Si falla, se pierde una línea de log.
+
+⚠️ **Los tokens no se escriben.** `DiagnosticoAlexa::sanear()` sustituye `apiAccessToken`,
+`accessToken` y `consentToken` por `(omitido)` —dan acceso a las APIs de Amazon en nombre del
+cliente— y tacha las tiradas de 4 dígitos de los valores dictados, igual que
+`AlexaController::sinSecretos()`.
+
+```bash
+ssh <servidor> 'grep "Alexa: petición" /var/www/<proyecto>/var/log/info.log | tail -5'
+```
 
 ## 6. Los 8 segundos
 
@@ -455,6 +504,7 @@ de la consola de desarrollo.
 | Necesidad | Archivo | Símbolo |
 |---|---|---|
 | Dar de alta una persona, un Echo o la casa entera | `.env.local` del servidor | `ALEXA_USUARIOS` (los tres ids salen del log, §5) |
+| Saber de quién es una voz (`personId` → nombre) | `DiagnosticoAlexa` | el permiso *Given Name* y la línea `Alexa: petición …`, §5.2 |
 | Saber quién preguntó, o pescar un `personId` con la red ya puesta | `AlexaUsuarios::resolver()` | la línea `INFO Alexa: consulta de …`, §5 |
 | Saber qué se preguntó y qué se contestó (§5.1) | `AlexaController` | `registrar()` |
 | Cambiar qué se tacha del log (§5.1) | `AlexaController` | `sinSecretos()` |

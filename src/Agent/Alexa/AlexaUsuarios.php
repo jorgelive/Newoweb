@@ -134,10 +134,11 @@ final readonly class AlexaUsuarios
         // Es además la traza de QUIÉN preguntó, que es media razón de ser del mapa: sin esto,
         // con la red puesta, todo el log dice lo mismo pregunte quien pregunte.
         $this->logger->info(sprintf(
-            'Alexa: consulta de «%s» (por %s). persona=%s',
+            'Alexa: consulta de «%s» (por %s). persona=%s dispositivo=%s',
             $username,
             $this->tipoDeIdentidad($porDonde),
-            $peticion->persona ?? 'voz no reconocida'
+            $peticion->persona ?? 'voz no reconocida',
+            $peticion->dispositivo ?? '(sin id)'
         ));
 
         return $usuario;

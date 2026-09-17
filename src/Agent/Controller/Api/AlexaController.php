@@ -7,6 +7,7 @@ namespace App\Agent\Controller\Api;
 use App\Agent\Access\AgentActorFactory;
 use App\Agent\Alexa\AlexaFirma;
 use App\Agent\Alexa\AlexaUsuarios;
+use App\Agent\Alexa\DiagnosticoAlexa;
 use App\Agent\Alexa\PeticionAlexa;
 use App\Agent\Alexa\RespuestaAlexa;
 use App\Agent\Service\VoiceAssistant;
@@ -60,6 +61,7 @@ final class AlexaController extends AbstractController
         private readonly VoiceAssistant $asistente,
         private readonly AgentActorFactory $actores,
         private readonly LoggerInterface $logger,
+        private readonly DiagnosticoAlexa $diagnostico,
         #[Autowire('%env(default::ALEXA_SKILL_ID)%')]
         private readonly ?string $skillId = null,
     ) {}
@@ -99,6 +101,10 @@ final class AlexaController extends AbstractController
 
             return new Response('', Response::HTTP_BAD_REQUEST);
         }
+
+        // Después de la firma y del skill id, nunca antes: lo que no es nuestro no merece una
+        // línea con el sobre entero, y así no se consulta la API de Amazon para nadie de fuera.
+        $this->diagnostico->registrar($sobre, $alexa);
 
         // A partir de aquí la petición es legítima: todo se responde 200 con voz, incluso los
         // errores. Un 500 hace que el dispositivo diga «hubo un problema con la skill» y el
@@ -183,7 +189,7 @@ final class AlexaController extends AbstractController
             );
         }
 
-        $this->registrar($usuario->getUserIdentifier(), $consulta, $texto);
+        $this->registrar($usuario->getUserIdentifier(), $alexa, $consulta, $texto);
 
         $historial[] = ['rol' => 'usuario', 'texto' => $consulta];
         $historial[] = ['rol' => 'asistente', 'texto' => $texto];
@@ -207,13 +213,17 @@ final class AlexaController extends AbstractController
      * Va en `info`, junto al resto del rastro de Alexa, y por tanto rota a diario: es un
      * registro de uso, no un archivo.
      */
-    private function registrar(string $usuario, string $consulta, string $respuesta): void
+    private function registrar(string $usuario, PeticionAlexa $alexa, string $consulta, string $respuesta): void
     {
+        // La sesión y la voz van en la MISMA línea que la pregunta: antes había que emparejarlas
+        // con la línea de identidad por orden, y con dos Echos hablando a la vez eso miente.
         $this->logger->info(sprintf(
-            'Alexa: «%s» preguntó «%s» → «%s»',
+            'Alexa: «%s» preguntó «%s» → «%s» sesión=%s persona=%s',
             $usuario,
             self::sinSecretos($consulta),
-            self::sinSecretos($respuesta)
+            self::sinSecretos($respuesta),
+            DiagnosticoAlexa::corto($alexa->sesion),
+            $alexa->persona ?? '(voz no reconocida)'
         ));
     }
 

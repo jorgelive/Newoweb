@@ -31,6 +31,9 @@ final readonly class PeticionAlexa
         public ?string $persona,
         public ?string $timestamp,
         public array $atributos,
+        public ?string $sesion = null,
+        public bool $sesionNueva = false,
+        public ?string $idioma = null,
     ) {}
 
     /**
@@ -63,6 +66,10 @@ final readonly class PeticionAlexa
             persona: self::id(self::sub($sistema, 'person'), 'personId'),
             timestamp: isset($peticion['timestamp']) ? (string) $peticion['timestamp'] : null,
             atributos: self::sub($sesion, 'attributes'),
+            // Para cruzar en el log la identidad con la pregunta: ver DiagnosticoAlexa.
+            sesion: self::id($sesion, 'sessionId'),
+            sesionNueva: ($sesion['new'] ?? false) === true,
+            idioma: isset($peticion['locale']) ? (string) $peticion['locale'] : null,
         );
     }
 
