@@ -12,6 +12,7 @@ no lo pesca ningún test unitario: se pesca ejecutando el flujo real contra fila
 |---|---|---|
 | `pruebas/` (35) | **Afirman**: terminan en ✅ o ❌ y devuelven código de salida | verde/rojo |
 | `inspeccion/` (36) | **Vuelcan**: imprimen el estado de algo para mirarlo | se lee, no se aprueba |
+| `entorno-local/` | El **entorno de desarrollo**: vhost de nginx, script de instalación y receta con Homebrew (sustituye a MAMP PRO desde el 17/09/2026) | ver su `README.md` |
 
 Mezclarlas era la mitad del problema: con las dos juntas, «prueba» no significaba nada.
 
