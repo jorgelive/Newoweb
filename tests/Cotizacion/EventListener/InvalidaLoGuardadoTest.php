@@ -28,11 +28,33 @@ final class InvalidaLoGuardadoTest extends TestCase
     public function testUnFicheroPendienteEsFicheroNuevo(): void
     {
         // `setImageFile()` no devuelve `$this` —toca `updatedAt` para forzar el UPDATE— así que no
-        // encadena. Es lo que Vich deja puesto al subir y lo que este listener puede ver.
+        // encadena. Un `UploadedFile` es lo que llega por HTTP: lo que de verdad es nuevo.
+        $archivo = new CotizacionFilearchivo();
+        $archivo->setImageFile(new \Symfony\Component\HttpFoundation\File\UploadedFile(__FILE__, 'pasaporte.jpg', null, null, true));
+
+        self::assertTrue(EscaneoNuevoInvalidaVeredictoListener::hayFicheroNuevo($archivo));
+    }
+
+    /** La carga masiva pone un `ReplacingFile`: también es un fichero nuevo. */
+    public function testElFicheroDeLaCargaMasivaEsFicheroNuevo(): void
+    {
+        $archivo = new CotizacionFilearchivo();
+        $archivo->setImageFile(new \Vich\UploaderBundle\FileAbstraction\ReplacingFile(__FILE__));
+
+        self::assertTrue(EscaneoNuevoInvalidaVeredictoListener::hayFicheroNuevo($archivo));
+    }
+
+    /**
+     * 🔥 **El `File` que Vich reinyecta tras subir NO es un fichero nuevo.** Con la regla anterior sí
+     * lo era, y cada `flush()` de la misma petición tiraba la lectura que se acababa de pagar: 2–3
+     * lecturas por subida desde `pax`. Este test es la entrada que el anterior se inventó al revés.
+     */
+    public function testElFileQueVichReinyectaNoEsFicheroNuevo(): void
+    {
         $archivo = new CotizacionFilearchivo();
         $archivo->setImageFile(new File(__FILE__));
 
-        self::assertTrue(EscaneoNuevoInvalidaVeredictoListener::hayFicheroNuevo($archivo));
+        self::assertFalse(EscaneoNuevoInvalidaVeredictoListener::hayFicheroNuevo($archivo));
     }
 
     /**

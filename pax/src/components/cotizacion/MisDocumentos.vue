@@ -121,7 +121,7 @@ import { acotarSiEsFotoGrande } from '@/utils/imagenParaSubir';
  *
  * Y sin `capture` fijo en cámara: mucha gente ya tiene la foto del pasaporte en la galería.
  */
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useMaestroStore } from '@/stores/maestroStore';
 
 const props = defineProps<{
@@ -147,6 +147,14 @@ const props = defineProps<{
    */
   yaVerificados?: string[];
   /**
+   * Lo que hay que pedirle que repita, **según lo guardado**.
+   *
+   * 🔥 Sin esto, «necesitamos otro» vivía sólo en memoria: si cerraba la app y volvía, la tarjeta
+   * decía «Recibido, gracias» en verde y el pasajero creía que estaba resuelto. Lo calcula el
+   * servidor con la misma regla que al subir (`CotizacionFilePublicProvider::documentosAPedir()`).
+   */
+  yaPedidos?: Array<{ tipo: string; motivos: string[] }>;
+  /**
    * Los tipos que ESTE expediente exige.
    *
    * ⚠️ `[]` es «no se le pide nada»; **ausente** es «la respuesta no lo dijo» y cae en
@@ -166,7 +174,9 @@ const maestroStore = useMaestroStore();
  * y ni eso, porque el store cachea la respuesta. Dos mitades de la misma tarjeta diciéndose que no
  * justo en el momento en que se pregunta «¿ha funcionado?».
  */
-const emit = defineEmits<{ subido: [tipo: string] }>();
+// `pideOtro` además de `subido`: la cabecera del panel cuenta lo pendiente, y un documento que se
+// subió pero hay que repetir tiene que seguir contando como pendiente allí también.
+const emit = defineEmits<{ subido: [tipo: string]; pideOtro: [tipo: string] }>();
 
 
 const eligiendo = ref<TipoDoc | null>(null);
@@ -196,6 +206,12 @@ const subidos = computed(() => new Set<string>([...(props.yaEnviados ?? []), ...
  * saldría en verde justo cuando se le está pidiendo repetir.
  */
 const pideOtroDe = ref<Record<string, string[]>>({});
+
+// Lo que dice el servidor al abrir. Una subida posterior lo sobrescribe en memoria, y la siguiente
+// vez que se cargue la identidad el servidor ya dirá lo mismo.
+watch(() => props.yaPedidos, (pedidos) => {
+  pideOtroDe.value = Object.fromEntries((pedidos ?? []).map(p => [p.tipo, p.motivos]));
+}, { immediate: true });
 
 const verificados = computed(() => new Set<string>(props.yaVerificados ?? []));
 
@@ -262,6 +278,7 @@ const confirmar = async () => {
       // Se guardó, pero no sirve tal cual: la tarjeta se queda pidiendo otro y NO se avisa al padre
       // de que está hecho, para que el contador no diga «completo» mientras aquí se pide repetir.
       pideOtroDe.value = { ...pideOtroDe.value, [tipo]: pedido };
+      emit('pideOtro', tipo);
     } else {
       const { [tipo]: _resuelto, ...resto } = pideOtroDe.value;
       pideOtroDe.value = resto;

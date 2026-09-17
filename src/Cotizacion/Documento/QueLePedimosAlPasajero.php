@@ -58,6 +58,14 @@ final readonly class QueLePedimosAlPasajero
     {
         $nombre = $tipo === ArchivoTipoEnum::PASAPORTE ? 'tu pasaporte' : 'tu DNI';
 
+        // ⚠️ **El reverso del DNI no lleva el número impreso: sólo sale de la banda.** Si la banda se
+        // VIO pero se transcribió mal, el número queda vacío y esto decía «no conseguimos leer tu
+        // DNI» — culparle de nuestra lectura, que es justo lo que esta clase existe para no hacer.
+        // Otra foto no lo arregla; lo mira el equipo.
+        if ($leido !== null && !$leido->esUtilizable() && $tipo === ArchivoTipoEnum::DNI_REVERSO && !$leido->bandaVacia) {
+            return [];
+        }
+
         if ($leido === null || !$leido->esUtilizable()) {
             return [sprintf(
                 'No conseguimos leer %s. Sácale otra foto con buena luz, sin reflejos, apoyado en una '

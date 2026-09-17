@@ -212,7 +212,12 @@ final class SubirDocumentoPasajeroController
                 }
 
                 // El veredicto del equipo, puesto ya: quien abra `util` lo ve sin pulsar nada.
-                $this->manifiesto->validarPasajero($pasajero);
+                // ⚠️ Sólo el de ESTE documento: `validarPasajero()` leía los demás escaneos de la
+                // persona y convertía una subida en tres lecturas. Ver `validarDocumentoDe()`.
+                $numero = $tipo->respaldaA() ?? $tipo->verificaA();
+                if ($numero !== null) {
+                    $this->manifiesto->validarDocumentoDe($pasajero, $numero);
+                }
 
                 return ['revisado' => true, 'pideOtro' => QueLePedimosAlPasajero::delDocumento($tipo, $leido)];
             }

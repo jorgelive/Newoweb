@@ -108,13 +108,31 @@ final readonly class EscaneoNuevoInvalidaVeredictoListener
      *
      * `getImageFile()` sí está puesto en `onFlush`: Vich aún no lo ha consumido.
      *
+     * ── 🔥 Y no vale «`imageFile` no es null» (17/09/2026) ──────────────────────
+     * Vich, al terminar de subir, **vuelve a inyectar un `File`** en `imageFile`
+     * (`UploadHandler::upload()` → `FileInjector::injectFile()`). Así que en la MISMA petición, cada
+     * `flush()` posterior al de la subida se leía como «viene un fichero nuevo» y tiraba la lectura
+     * y el veredicto recién escritos. Medido en producción: cada subida desde `pax` pagaba **2 o 3
+     * lecturas** seguidas, y el E-Ticket se quedaba sin veredicto porque `rejuzgar()` se borraba en
+     * su propio flush.
+     *
+     * 🔑 La pregunta correcta es **la misma que usa Vich** (`UploadHandler::hasUploadedFile()`): un
+     * `UploadedFile` —lo que llega por HTTP— o un `ReplacingFile` —lo que pone la carga masiva—. Un
+     * `File` a secas es el que Vich reinyecta, y ése no es nada nuevo.
+     *
+     * ⚠️ Y el test que defendía la versión anterior usaba `new File(__FILE__)`: **otra entrada
+     * inventada**, en el mismo método cuya cabecera ya contaba la primera vez que pasó.
+     *
      * ⚠️ Y **no vale `updatedAt`**: se mueve por cualquier cosa, incluida la propia escritura de la
      * lectura, así que usarlo sería morderse la cola —el control guardaría `datosLeidos`, el
      * listener vería `updatedAt` y borraría lo que se acaba de pagar—.
      */
     public static function hayFicheroNuevo(CotizacionFilearchivo $archivo): bool
     {
-        return $archivo->getImageFile() !== null;
+        $fichero = $archivo->getImageFile();
+
+        return $fichero instanceof \Symfony\Component\HttpFoundation\File\UploadedFile
+            || $fichero instanceof \Vich\UploaderBundle\FileAbstraction\ReplacingFile;
     }
 
     /**

@@ -789,7 +789,7 @@ class CotizacionFile
      * —su compañero de habitación, los de su PNR—. Sigue sin ser el padrón: son SUS grupos, y sólo
      * el nombre. Ni documento, ni fecha, ni el `codigo` del vecino, que es el localizador ajeno.
      *
-     * @var array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>, documentosVerificados: list<string>}|null
+     * @var array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>, documentosVerificados: list<string>, documentosAPedir: list<array{tipo: string, motivos: list<string>}>}|null
      */
     #[ApiProperty(openapiContext: [
         'type' => 'object',
@@ -900,14 +900,23 @@ class CotizacionFile
             'documentosEnviados' => ['type' => 'array', 'items' => ['type' => 'string']],
             // Los que ya revisó alguien: `pax` no ofrece cambiarlos. Ver `CotizacionFilepasajero::tieneVerificado()`.
             'documentosVerificados' => ['type' => 'array', 'items' => ['type' => 'string']],
+            // Lo que hay que pedirle que repita, calculado de lo guardado. Ver `CotizacionFilePublicProvider::documentosAPedir()`.
+            'documentosAPedir' => ['type' => 'array', 'items' => [
+                'type' => 'object',
+                'properties' => [
+                    'tipo' => ['type' => 'string'],
+                    'motivos' => ['type' => 'array', 'items' => ['type' => 'string']],
+                ],
+                'required' => ['tipo', 'motivos'],
+            ]],
         ],
-        'required' => ['nombre', 'identificaciones', 'subgrupos', 'documentos', 'documentosPedidos', 'documentosEnviados', 'documentosVerificados'],
+        'required' => ['nombre', 'identificaciones', 'subgrupos', 'documentos', 'documentosPedidos', 'documentosEnviados', 'documentosVerificados', 'documentosAPedir'],
     ])]
     #[Groups(['pax_file:read'])]
     private ?array $miIdentidad = null;
 
     /**
-     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>, documentosVerificados: list<string>}|null
+     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>, documentosVerificados: list<string>, documentosAPedir: list<array{tipo: string, motivos: list<string>}>}|null
      */
     public function getMiIdentidad(): ?array
     {
@@ -915,7 +924,7 @@ class CotizacionFile
     }
 
     /**
-     * @param array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>, documentosVerificados: list<string>}|null $miIdentidad
+     * @param array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>, documentosVerificados: list<string>, documentosAPedir: list<array{tipo: string, motivos: list<string>}>}|null $miIdentidad
      */
     public function setMiIdentidad(?array $miIdentidad): self
     {

@@ -10316,6 +10316,49 @@ pantalla»; sin eso se cree colgado y lo manda otra vez.
 
 ⚠️ **Los textos no enseñan datos del manifiesto.** Esa respuesta la ve quien tenga el enlace.
 
+##### 🔥 Lo que encontró la revisión del 17/09/2026 sobre la revisión al subir
+
+**1. Cada subida desde `pax` pagaba 2–3 lecturas, y el E-Ticket se quedaba sin veredicto.** Vich,
+al terminar de subir, **vuelve a inyectar un `File`** en `imageFile` (`UploadHandler::upload()` →
+`FileInjector::injectFile()`). `EscaneoNuevoInvalidaVeredictoListener::hayFicheroNuevo()`
+preguntaba `imageFile !== null`, así que en la misma petición cada `flush()` posterior se leía
+como «fichero nuevo» y tiraba la lectura y el veredicto recién escritos. Visto en `info.log`: tres
+subidas de prueba, 2, 2 y 3 llamadas a Gemini consecutivas. Ahora pregunta lo mismo que Vich
+(`hasUploadedFile()`): `UploadedFile` o `ReplacingFile`.
+
+⚠️ **Y el test que lo defendía usaba `new File(__FILE__)`**: otra entrada inventada, en el mismo
+método cuya cabecera ya contaba la primera vez. Ahora hay un test con cada una de las tres clases, y
+el del `File` a secas afirma lo contrario de lo que afirmaba.
+
+**2. El reverso del DNI salía «Revisado» sin haberse subido.** Anverso y reverso apuntan a la misma
+identificación; si el anverso cuadraba, `tieneVerificado(DNI_REVERSO)` era cierto y `pax` pintaba
+«Revisado» y bloqueaba la subida. Ahora exige que exista un archivo de **ese** tipo.
+
+**3. Al reasignar un documento, el dueño ANTERIOR seguía en verde** en `util`. El listener caduca
+los dos; `ponerArchivoEnLaBoveda()` releía sólo al nuevo. Ahora lee el dueño viejo de la fila antes
+de pisarla y relee a los dos.
+
+**4. «Necesitamos otro» se perdía al cerrar la app.** Vivía sólo en memoria, y al volver
+`documentosEnviados` lo pintaba «Recibido, gracias». Ahora `CotizacionFilePublicProvider::
+documentosAPedir()` lo calcula de la lectura guardada, con la **misma** `QueLePedimosAlPasajero` y
+sin pagar nada (`interpretar()`). Lo verificado manda: si el equipo dio algo por bueno, no se
+vuelve a pedir. Y la cabecera del panel deja de decir «No tienes que hacer nada más» encima de una
+tarjeta que pide repetir.
+
+**5. La subida leía los OTROS documentos de la persona.** `revisarAlSubir()` llamaba a
+`validarPasajero()`, que lee cualquier escaneo sin leer: subir un pasaporte podía pagar pasaporte,
+anverso y reverso, con el pasajero esperando y php-fpm cortando a 90 s. Ahora llama a
+`ValidadorDeManifiesto::validarDocumentoDe()`, que valida sólo el tipo subido (y como mucho lee la
+otra cara del DNI, que es la que lo verifica).
+
+⚠️ **Al añadir `validarDocumentoDe()` se repitió la trampa de CLAUDE.md**: insertado entre el
+docblock de `validarPasajero()` y su firma, le robó el `@return array<string, int>`. PHPStan lo
+cazó.
+
+**Menores:** un reverso con la banda visible pero mal transcrita ya no recibe «no conseguimos leer
+tu DNI» (su número sólo sale de la banda, así que era culparle de nuestra lectura); y
+`imagenParaSubir.ts` pinta fondo blanco antes de dibujar, porque un PNG transparente salía negro.
+
 ##### 🔥 Un DNI entraba por el hueco del pasaporte (17/09/2026)
 
 Lo encontró quien opera probándolo. La regla nunca preguntaba **qué documento es**, y el reverso

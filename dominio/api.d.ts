@@ -11241,6 +11241,10 @@ export interface components {
                 documentosPedidos: string[];
                 documentosEnviados: string[];
                 documentosVerificados: string[];
+                documentosAPedir: {
+                    tipo: string;
+                    motivos: string[];
+                }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
@@ -11600,6 +11604,10 @@ export interface components {
                 documentosPedidos: string[];
                 documentosEnviados: string[];
                 documentosVerificados: string[];
+                documentosAPedir: {
+                    tipo: string;
+                    motivos: string[];
+                }[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read"][];
@@ -11678,6 +11686,10 @@ export interface components {
                 documentosPedidos: string[];
                 documentosEnviados: string[];
                 documentosVerificados: string[];
+                documentosAPedir: {
+                    tipo: string;
+                    motivos: string[];
+                }[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read_pax_cotizacion.read"][];
@@ -11811,6 +11823,10 @@ export interface components {
                 documentosPedidos: string[];
                 documentosEnviados: string[];
                 documentosVerificados: string[];
+                documentosAPedir: {
+                    tipo: string;
+                    motivos: string[];
+                }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
@@ -12100,6 +12116,10 @@ export interface components {
                 documentosPedidos: string[];
                 documentosEnviados: string[];
                 documentosVerificados: string[];
+                documentosAPedir: {
+                    tipo: string;
+                    motivos: string[];
+                }[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read"][];
@@ -12178,6 +12198,10 @@ export interface components {
                 documentosPedidos: string[];
                 documentosEnviados: string[];
                 documentosVerificados: string[];
+                documentosAPedir: {
+                    tipo: string;
+                    motivos: string[];
+                }[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read_pax_cotizacion.read"][];
@@ -12311,6 +12335,10 @@ export interface components {
                 documentosPedidos: string[];
                 documentosEnviados: string[];
                 documentosVerificados: string[];
+                documentosAPedir: {
+                    tipo: string;
+                    motivos: string[];
+                }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
@@ -12604,6 +12632,10 @@ export interface components {
                 documentosPedidos: string[];
                 documentosEnviados: string[];
                 documentosVerificados: string[];
+                documentosAPedir: {
+                    tipo: string;
+                    motivos: string[];
+                }[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read"][];
@@ -12682,6 +12714,10 @@ export interface components {
                 documentosPedidos: string[];
                 documentosEnviados: string[];
                 documentosVerificados: string[];
+                documentosAPedir: {
+                    tipo: string;
+                    motivos: string[];
+                }[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read_pax_cotizacion.read"][];
@@ -12815,6 +12851,10 @@ export interface components {
                 documentosPedidos: string[];
                 documentosEnviados: string[];
                 documentosVerificados: string[];
+                documentosAPedir: {
+                    tipo: string;
+                    motivos: string[];
+                }[];
             } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
@@ -13104,6 +13144,10 @@ export interface components {
                 documentosPedidos: string[];
                 documentosEnviados: string[];
                 documentosVerificados: string[];
+                documentosAPedir: {
+                    tipo: string;
+                    motivos: string[];
+                }[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read"][];
@@ -13182,6 +13226,10 @@ export interface components {
                 documentosPedidos: string[];
                 documentosEnviados: string[];
                 documentosVerificados: string[];
+                documentosAPedir: {
+                    tipo: string;
+                    motivos: string[];
+                }[];
             } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read_pax_cotizacion.read"][];

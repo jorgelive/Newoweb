@@ -46,6 +46,8 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         private readonly EntityManagerInterface $em,
         private readonly Security $security,
         private readonly IdentidadDelPasajero $identidad,
+        private readonly \App\Cotizacion\Documento\LectorDeDocumentoIdentidad $lectorDeIdentidad,
+        private readonly \App\Cotizacion\Documento\LectorDeEticket $lectorDeEticket,
     )
     {
     }
@@ -397,7 +399,72 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 array_filter(ArchivoTipoEnum::cases(), static fn (ArchivoTipoEnum $t): bool
                     => $t->loSubeElPasajero() && $pasajero->tieneVerificado($t)),
             )),
+            'documentosAPedir' => $this->documentosAPedir($file, $pasajero),
         ]);
+    }
+
+    /**
+     * Lo que hay que pedirle que repita, **calculado de lo guardado** cada vez que abre la app.
+     *
+     * 🔥 **El «necesitamos otro» vivía sólo en la memoria de la pantalla.** Se le decía al subir, y si
+     * cerraba la app y volvía, `documentosEnviados` le pintaba «Recibido, gracias» en verde: el
+     * pasajero se quedaba creyendo que estaba resuelto. Lo encontró la revisión del 17/09/2026.
+     *
+     * 🔑 **La MISMA regla que al subir** —`QueLePedimosAlPasajero`— sobre la lectura guardada, así
+     * que lo que ve al volver es lo que se le dijo en el momento. Y **gratis**: `interpretar()` no
+     * llama a la IA; lo que nunca se leyó simplemente no pide nada.
+     *
+     * ⚠️ **Lo verificado manda.** Si el equipo dio por bueno un pasaporte con la banda cortada —cosa
+     * que se decidió que se puede hacer viendo la foto—, no se le vuelve a pedir.
+     *
+     * ⚠️ Sólo el **último** archivo de cada tipo: los anteriores ya no cuentan, y pedirle que repita
+     * algo que ya repitió sería el mensaje más absurdo posible.
+     *
+     * @return list<array{tipo: string, motivos: list<string>}>
+     */
+    private function documentosAPedir(CotizacionFile $file, CotizacionFilepasajero $pasajero): array
+    {
+        $ultimos = [];
+
+        foreach ($file->getFilearchivos() as $archivo) {
+            $tipo = $archivo->getTipoArchivo();
+
+            if ($tipo === null || !$tipo->loSubeElPasajero()
+                || $archivo->getPasajero()?->getId()?->equals($pasajero->getId() ?? $archivo->getId()) !== true) {
+                continue;
+            }
+
+            $previo = $ultimos[$tipo->value] ?? null;
+            if ($previo === null || ($archivo->getCreatedAt()?->getTimestamp() ?? 0) > ($previo->getCreatedAt()?->getTimestamp() ?? 0)) {
+                $ultimos[$tipo->value] = $archivo;
+            }
+        }
+
+        $pedir = [];
+
+        foreach ($ultimos as $archivo) {
+            $tipo = $archivo->getTipoArchivo();
+            $crudo = $archivo->getDatosLeidos();
+
+            // Sin lectura no hay nada que decirle: o no se ha leído todavía, o falló nuestra lectura.
+            if ($tipo === null || $crudo === null || $pasajero->tieneVerificado($tipo)) {
+                continue;
+            }
+
+            $motivos = match ($tipo) {
+                ArchivoTipoEnum::PASAPORTE, ArchivoTipoEnum::DNI_ANVERSO, ArchivoTipoEnum::DNI_REVERSO
+                    => \App\Cotizacion\Documento\QueLePedimosAlPasajero::delDocumento($tipo, $this->lectorDeIdentidad->interpretar($crudo)),
+                ArchivoTipoEnum::ETICKET
+                    => \App\Cotizacion\Documento\QueLePedimosAlPasajero::delEticket($this->lectorDeEticket->interpretar($crudo)),
+                default => [],
+            };
+
+            if ($motivos !== []) {
+                $pedir[] = ['tipo' => $tipo->value, 'motivos' => $motivos];
+            }
+        }
+
+        return $pedir;
     }
 
     /**

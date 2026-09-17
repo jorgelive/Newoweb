@@ -93,6 +93,11 @@ export const acotarSiEsFotoGrande = async (original: File): Promise<File> => {
             return original;
         }
 
+        // ⚠️ **Blanco debajo antes de dibujar.** JPEG no tiene transparencia, y un canvas vacío es
+        // negro transparente: un PNG con fondo transparente —una captura recortada, un escaneo de
+        // app— salía con el fondo NEGRO, y la letra oscura de un documento encima no se lee.
+        pincel.fillStyle = '#ffffff';
+        pincel.fillRect(0, 0, lienzo.width, lienzo.height);
         pincel.imageSmoothingQuality = 'high';
         pincel.drawImage(bitmap, 0, 0, lienzo.width, lienzo.height);
         bitmap.close();

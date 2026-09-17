@@ -248,8 +248,25 @@ const documentosQuePide = computed(() => pedidosEfectivos(store.miIdentidad?.doc
  */
 const subidosAhora = ref<string[]>([]);
 
+/** Los que se subieron en esta visita pero hay que repetir. Ver `MisDocumentos::pideOtroDe`. */
+const pidenOtroAhora = ref<string[]>([]);
+
+/**
+ * Lo que hay que repetir: lo que dijo el servidor al abrir, corregido por lo que pasó en esta visita.
+ *
+ * 🔥 **Sin esto la cabecera decía «Recibidos. No tienes que hacer nada más» encima de una tarjeta
+ * ámbar que pedía otro**: para contar, un documento subido era un documento hecho. Una subida buena
+ * lo resuelve; una mala lo vuelve a pedir, y la última es la que manda.
+ */
+const hayQueRepetir = computed(() => {
+  const tipos = new Set((store.miIdentidad?.documentosAPedir ?? []).map(p => p.tipo));
+  for (const t of subidosAhora.value) tipos.delete(t);
+  for (const t of pidenOtroAhora.value) tipos.add(t);
+  return tipos;
+});
+
 const documentosPendientes = computed(() => faltanDocumentos(
-  [...(store.miIdentidad?.documentosEnviados ?? []), ...subidosAhora.value],
+  [...(store.miIdentidad?.documentosEnviados ?? []), ...subidosAhora.value].filter(t => !hayQueRepetir.value.has(t)),
   documentosQuePide.value,
 ));
 
@@ -278,7 +295,8 @@ let decidido = false;
 watch(() => store.miIdentidad, (identidad) => {
   if (decidido || !identidad) return;
   decidido = true;
-  documentosAbiertos.value = faltanDocumentos(identidad.documentosEnviados, identidad.documentosPedidos);
+  const repetir = new Set((identidad.documentosAPedir ?? []).map(p => p.tipo));
+  documentosAbiertos.value = faltanDocumentos(identidad.documentosEnviados.filter(t => !repetir.has(t)), identidad.documentosPedidos);
 }, { immediate: true });
 const boletosAbiertos = ref(true);
 
@@ -1509,8 +1527,10 @@ const adelantoVista = computed(() => {
             <MisDocumentos :localizador="props.localizador"
                            :ya-enviados="store.miIdentidad.documentosEnviados"
                            :ya-verificados="store.miIdentidad.documentosVerificados"
+                           :ya-pedidos="store.miIdentidad.documentosAPedir"
                            :pedidos="documentosQuePide"
-                           @subido="subidosAhora.push($event)" />
+                           @subido="t => { subidosAhora.push(t); pidenOtroAhora = pidenOtroAhora.filter(x => x !== t); }"
+                           @pide-otro="t => { pidenOtroAhora.push(t); subidosAhora = subidosAhora.filter(x => x !== t); }" />
           </PanelPlegable>
 
           <!-- ── SUS TARJETAS DE EMBARQUE ───────────────────────────────

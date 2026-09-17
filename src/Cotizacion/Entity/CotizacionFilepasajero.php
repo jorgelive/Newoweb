@@ -368,17 +368,28 @@ class CotizacionFilepasajero
      */
     public function tieneVerificado(\App\Cotizacion\Enum\ArchivoTipoEnum $tipo): bool
     {
+        $suyos = array_filter(
+            $this->getFile()?->getFilearchivos()->toArray() ?? [],
+            fn (CotizacionFilearchivo $a): bool
+                => $a->getTipoArchivo() === $tipo && (string) $a->getPasajero()?->getId() === (string) $this->getId(),
+        );
+
+        // 🔥 **Sin archivo de ESTE tipo no hay nada verificado que proteger.** El anverso y el reverso
+        // del DNI apuntan a la MISMA identificación, así que mirar sólo el veredicto hacía que subir
+        // el anverso —y que cuadrase con el manifiesto— dejara el REVERSO pintado «Revisado» en `pax`
+        // sin haberse subido nunca, y bloqueado: el pasajero ya no podía mandarlo. Lo encontró la
+        // revisión del 17/09/2026; no le había pasado a nadie todavía.
+        if ($suyos === []) {
+            return false;
+        }
+
         $tipoNumero = $tipo->respaldaA() ?? $tipo->verificaA();
 
         if ($tipoNumero !== null) {
             return $this->identificacionDe($tipoNumero)?->estaResuelta() === true;
         }
 
-        foreach ($this->getFile()?->getFilearchivos() ?? [] as $archivo) {
-            if ($archivo->getTipoArchivo() !== $tipo || (string) $archivo->getPasajero()?->getId() !== (string) $this->getId()) {
-                continue;
-            }
-
+        foreach ($suyos as $archivo) {
             if ($archivo->getEstadoValidacion()->estaResuelto()) {
                 return true;
             }

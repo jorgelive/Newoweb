@@ -3741,22 +3741,29 @@ const ponerArchivoEnLaBoveda = async (fila: ApiCotizacionFilearchivo): Promise<v
   const clave = claveDeRelacion(fila.id ?? fila['@id']);
   const i = filas.findIndex(f => claveDeRelacion(f.id ?? f['@id']) === clave);
 
+  // ⚠️ **El dueño de ANTES, leído antes de pisar la fila.** Reasignar un escaneo caduca los
+  // veredictos de los DOS en el servidor —el listener mira el changeset—, y releer sólo al nuevo
+  // dejaba al anterior en verde en pantalla, con un sello apoyado en un documento que ya no es suyo.
+  const duenoAnterior = i >= 0 ? filas[i].pasajero : null;
+
   if (i >= 0) { filas.splice(i, 1, fila); } else { filas.push(fila); }
 
-  // El dueño, si lo tiene. `pasajero` llega como IRI desde que las cuatro relaciones del archivo
-  // salen enlazadas, así que sirve tal cual para pedirlo.
-  const duenoIri = typeof fila.pasajero === 'string' ? fila.pasajero : null;
+  // `pasajero` llega como IRI desde que las cuatro relaciones del archivo salen enlazadas, así que
+  // sirve tal cual para pedirlo.
+  const duenos = [fila.pasajero, duenoAnterior]
+    .filter((d): d is string => typeof d === 'string' && d !== '');
 
-  if (!duenoIri) return;
+  for (const iri of new Set(duenos.map(d => claveDeRelacion(d)))) {
+    const original = duenos.find(d => claveDeRelacion(d) === iri)!;
+    const fresco = await fileStore.recargarPasajero(original);
 
-  const fresco = await fileStore.recargarPasajero(duenoIri);
+    if (!fresco) continue;
 
-  if (!fresco) return;
+    const gente = file.value.filepasajeros ?? [];
+    const j = gente.findIndex(p => claveDeRelacion(p.id ?? p['@id']) === iri);
 
-  const gente = file.value.filepasajeros ?? [];
-  const j = gente.findIndex(p => claveDeRelacion(p.id ?? p['@id']) === claveDeRelacion(duenoIri));
-
-  if (j >= 0) { gente.splice(j, 1, fresco); }
+    if (j >= 0) { gente.splice(j, 1, fresco); }
+  }
 };
 
 const guardarDocumento = async () => {

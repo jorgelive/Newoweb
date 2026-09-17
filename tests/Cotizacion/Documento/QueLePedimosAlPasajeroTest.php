@@ -170,4 +170,19 @@ final class QueLePedimosAlPasajeroTest extends TestCase
     {
         self::assertSame([], Pedir::delDocumento(T::PASAPORTE, $this->pasaporte(['tipo' => \App\Enum\DocumentoTipoEnum::PASAPORTE]), $this->hoy()));
     }
+
+    /** El reverso sólo tiene número en la banda: si la banda se vio pero se leyó mal, no es culpa suya. */
+    public function testUnReversoConLaBandaMalTranscritaNoPideNada(): void
+    {
+        $malLeido = new DatosDeDocumento(tipo: \App\Enum\DocumentoTipoEnum::DNI, bandaVacia: false);
+
+        self::assertSame([], Pedir::delDocumento(T::DNI_REVERSO, $malLeido, $this->hoy()));
+    }
+
+    public function testUnReversoSinBandaNiNumeroSiPideOtraFoto(): void
+    {
+        $vacio = new DatosDeDocumento(tipo: \App\Enum\DocumentoTipoEnum::DNI, bandaVacia: true);
+
+        self::assertStringContainsString('No conseguimos leer', Pedir::delDocumento(T::DNI_REVERSO, $vacio, $this->hoy())[0]);
+    }
 }

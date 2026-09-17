@@ -71,6 +71,36 @@ final readonly class ValidadorDeManifiesto
     }
 
     /**
+     * Valida SÓLO el documento de un tipo de esta persona: el que acaba de subir.
+     *
+     * 🔥 **La subida desde `pax` llamaba a `validarPasajero()`**, que valida a la persona ENTERA y
+     * por tanto lee cualquier escaneo suyo que nunca se leyó. Medido: 132 de 134 pasajeros tienen DNI
+     * y pasaporte, y había 58 escaneos sin leer. Subir un pasaporte podía pagar el pasaporte, el
+     * anverso y el reverso —tres lecturas de ~10 s— con el pasajero mirando «Revisando…» y el corte
+     * de php-fpm a 90 s. Si cortaba, `pax` decía «No hay conexión», el pasajero lo volvía a subir y
+     * se pagaba todo otra vez.
+     *
+     * ⚠️ Puede leer **una** cara más: el DNI se verifica con la banda del reverso, así que validar el
+     * anverso lee el reverso si nunca se leyó. Eso es parte de validar ESTE documento; lo que ya no
+     * hace es leer el pasaporte cuando se sube el DNI.
+     */
+    public function validarDocumentoDe(CotizacionFilepasajero $pasajero, DocumentoTipoEnum $tipo): void
+    {
+        $conteo = array_fill_keys(array_column(ValidacionIdentificacionEnum::cases(), 'value'), 0);
+        $conteo['sin_documento'] = 0;
+
+        $this->adoptarEscaneosSinFicha($pasajero, $tipo);
+
+        foreach ($pasajero->getIdentificaciones() as $identificacion) {
+            if ($identificacion->getTipo() === $tipo) {
+                $this->validarUna($pasajero, $identificacion, $conteo);
+            }
+        }
+
+        $this->em->flush();
+    }
+
+    /**
      * Vuelve a cotejar los documentos de UNA persona, siempre a fondo.
      *
      * ⚠️ **Siempre a fondo, y por eso es un método aparte.** Quien pulsa «reprocesar» sobre una
@@ -78,8 +108,8 @@ final readonly class ValidadorDeManifiesto
      * resultado: saltarse lo ya resuelto, que es lo correcto en la tanda, aquí sería no hacer nada
      * y parecer que sí.
      *
-     * No cuesta nada: la lectura está cacheada. Sólo paga si el escaneo se giró, porque girar la
-     * tira a propósito.
+     * Lo ya leído no se relee. **Lo que nunca se leyó sí**, de cualquier documento de la persona: por
+     * eso la subida desde `pax` usa `validarDocumentoDe()`. Girar ya no tira la lectura.
      *
      * @return array<string, int>
      */
@@ -122,7 +152,7 @@ final readonly class ValidadorDeManifiesto
      * una persona; el tipo leído es una conjetura del modelo. Si no coinciden no se adopta nada:
      * eso es un archivo mal etiquetado, y crear la ficha equivocada es peor que no crearla.
      */
-    private function adoptarEscaneosSinFicha(CotizacionFilepasajero $pasajero): void
+    private function adoptarEscaneosSinFicha(CotizacionFilepasajero $pasajero, ?DocumentoTipoEnum $soloTipo = null): void
     {
         $yaDeclarados = [];
         foreach ($pasajero->getIdentificaciones() as $identificacion) {
@@ -141,6 +171,12 @@ final readonly class ValidadorDeManifiesto
             // y la autorización devuelven null porque no llevan número, y ésos no adoptan nada.
             $respalda = $archivo->getTipoArchivo()?->respaldaA();
             if ($respalda === null || isset($yaDeclarados[$respalda->value])) {
+                continue;
+            }
+
+            // Acotado a un tipo cuando lo pide `validarDocumentoDe()`: adoptar lee el escaneo, y
+            // leer los de OTRO documento es pagar por algo que nadie ha pedido en esta llamada.
+            if ($soloTipo !== null && $respalda !== $soloTipo) {
                 continue;
             }
 
