@@ -112,9 +112,6 @@
     "egulias/email-validator": {
         "version": "3.1.2"
     },
-    "ezyang/htmlpurifier": {
-        "version": "v4.14.0"
-    },
     "gedmo/doctrine-extensions": {
         "version": "v3.6.0"
     },

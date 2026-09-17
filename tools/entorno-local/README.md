@@ -135,6 +135,34 @@ completa: compara el mapeo con las tablas que hay de verdad.
 quedan sin memoria y lo reporta como «4 errors» que no son del código. El alias `php` de
 `~/.zshrc` ya lo lleva.
 
+## PHP 8.5: la app, lista para Ubuntu 26.04 (17/09/2026)
+
+Ubuntu 26.04 para ARM **sólo trae PHP 8.5** (no 8.4), así que se probó la app entera con 8.5 antes
+de migrar. PHP 8.5 está instalado **al lado** del 8.4 (`brew install php`); el `php` por defecto
+sigue siendo 8.4. Para usarlo: `/opt/homebrew/opt/php/bin/php`. Lleva su propio imagick
+(`pecl install imagick` con ese binario) y su `conf.d/99-newoweb.ini` —**la carpeta `conf.d` de
+8.5 no la crea Homebrew**: hay que crearla—.
+
+| Comprobación | Resultado |
+|---|---|
+| `composer why-not php 8.5.10` | **bloqueaba `phpoffice/phpspreadsheet` 1.30** (`php <8.5`) → subida a **5.10** |
+| `php -l` de todo `src/` y `tests/` | 37 avisos de «nullable implícito», **todos en `src/Oweb`** (el módulo que se retira); 0 fuera |
+| PHPUnit | 821 en verde, 0 avisos tras quitar dos `setAccessible()` (no hacen nada desde 8.1; obsoletos en 8.5) |
+| PHPStan, `lint:container`, `schema:validate`, `cache:warmup` | en verde con 8.5 |
+| Los tres Excel (padrón, hoja de control, lista del paquete) generados y **releídos** | correctos; ida y vuelta del padrón sin perder una pertenencia |
+| Peticiones reales por nginx + php-fpm 8.5 contra 8.4 | **idénticas byte a byte**, incluida una propuesta de 887 KB |
+
+🔥 **La subida de PhpSpreadsheet rompía la exportación del padrón, con todo en verde.** 821 tests
+y PHPStan limpio, y `PadronPlantillaGenerador` daba un 500. Lo cazó
+`tools/pruebas/probar-ciclo-padron.php`. Detalle en `docs/Cotizaciones.md`.
+
+⚠️ **Desplegarlo exige `composer install` a mano.** El hook `post-merge` del servidor **no** lo
+ejecuta, así que subir el `composer.lock` nuevo dejaría producción con la librería vieja y el lock
+diciendo otra. Va junto con la migración a 26.04, donde se instala todo de cero.
+
+⚠️ `DATABASE_URL` debería llevar la versión **completa** (`serverVersion=8.4.11`, no `8.4`):
+Doctrine avisa de que en DBAL 4 cambia cómo la interpreta. Ya pasaba con `8.0`.
+
 ## Dónde tocar para cambiar X
 
 | Necesidad | Archivo |

@@ -6996,6 +6996,29 @@ descarga como —cuando exista— el lector que lo importa. Con dos definiciones
 añada una columna la plantilla saldría con ella y el importador la ignoraría: sin error, sin aviso,
 con el dato perdido.
 
+### 🔥 PhpSpreadsheet 5: los desplegables se CREAN, no se piden (17/09/2026)
+
+Para preparar PHP 8.5 (Ubuntu 26.04) se subió `phpoffice/phpspreadsheet` de **1.30 a 5.10**: la 1.x
+declara `php <8.5`. Con **821 tests en verde y PHPStan limpio, exportar el padrón daba un 500**:
+
+```
+Cell coordinate string can not be a range of cells
+  … Worksheet->getDataValidation('S2:S500')   ← PadronPlantillaGenerador::desplegables()
+```
+
+En la 1.x, `getDataValidation('E2:E500')` aceptaba un rango y devolvía una validación nueva. En la
+5.x recorre las que ya existen para ver si la celda cae dentro de alguna, y con un rango revienta
+**en la segunda columna** (la primera pasa porque la colección aún está vacía). Ahora se crea la
+validación y se asigna al rango: `$hoja->setDataValidation('E2:E500', new DataValidation())`.
+
+⚠️ **Lo cazó la prueba de ida y vuelta, no los tests**: `tools/pruebas/probar-ciclo-padron.php`
+exporta el padrón real y lo vuelve a importar. Al subir una librería de hojas de cálculo, esa prueba
+y releer los tres Excel generados (padrón, hoja de control, lista del paquete) son la comprobación
+que vale.
+
+⚠️ **Desplegar la subida exige `composer install` a mano en el servidor**: el hook `post-merge` no
+lo ejecuta. Va con la migración a 26.04. Ver `tools/entorno-local/README.md` §PHP 8.5.
+
 ### Tres familias de columna
 
 ```

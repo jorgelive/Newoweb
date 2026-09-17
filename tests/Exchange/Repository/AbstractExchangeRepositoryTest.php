@@ -69,7 +69,6 @@ final class AbstractExchangeRepositoryTest extends TestCase
         $repo = $this->repositorio();
 
         $metodo = new ReflectionMethod(AbstractExchangeRepository::class, 'normalizeToBinary');
-        $metodo->setAccessible(true);
 
         /** @var list<string> $salida */
         $salida = $metodo->invoke($repo, $ids);

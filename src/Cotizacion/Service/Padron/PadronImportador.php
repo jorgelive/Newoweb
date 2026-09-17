@@ -792,7 +792,9 @@ final readonly class PadronImportador
             return [];
         }
 
-        $cabeceras = array_map(static fn ($c): string => trim((string) $c), array_shift($filas) ?? []);
+        // Sin `?? []`: el `=== []` de arriba ya garantiza al menos una fila, y desde PhpSpreadsheet 5
+        // `toArray()` declara que devuelve filas, así que PHPStan lo sabe también.
+        $cabeceras = array_map(static fn ($c): string => trim((string) $c), array_shift($filas));
 
         // ⚠️ La PRIMERA que aparezca, no la última. `array_flip` se queda con la última, y una
         // cabecera repetida —copiar la hoja y olvidar borrar la columna vieja— hacía que se leyera

@@ -281,7 +281,14 @@ final readonly class PadronPlantillaGenerador
             }
 
             $letra = $hoja->getCell([$porNombre[$columna] + 1, 1])->getColumn();
-            $validacion = $hoja->getDataValidation(sprintf('%s2:%s500', $letra, $letra));
+            // 🔥 **Se CREA y se asigna al rango; no se «pide» con `getDataValidation()`.** En
+            // PhpSpreadsheet 1.x aquello aceptaba un rango; en 5.x recorre las validaciones que ya
+            // hay para ver si la celda cae dentro, y con un rango revienta en la SEGUNDA columna
+            // («Cell coordinate string can not be a range of cells»): exportar el padrón daba un
+            // 500. Con 821 tests en verde y PHPStan limpio — lo cazó la prueba de ida y vuelta
+            // `tools/pruebas/probar-ciclo-padron.php`, al subir de versión para PHP 8.5.
+            $validacion = new DataValidation();
+            $hoja->setDataValidation(sprintf('%s2:%s500', $letra, $letra), $validacion);
             $validacion->setType(DataValidation::TYPE_LIST)
                 ->setAllowBlank(true)
                 ->setShowDropDown(true)
@@ -294,7 +301,14 @@ final readonly class PadronPlantillaGenerador
         // La nacionalidad contra la tabla de países: 198 valores no caben en una fórmula literal.
         if (isset($porNombre[PadronFormato::COL_NACIONALIDAD])) {
             $letra = $hoja->getCell([$porNombre[PadronFormato::COL_NACIONALIDAD] + 1, 1])->getColumn();
-            $validacion = $hoja->getDataValidation(sprintf('%s2:%s500', $letra, $letra));
+            // 🔥 **Se CREA y se asigna al rango; no se «pide» con `getDataValidation()`.** En
+            // PhpSpreadsheet 1.x aquello aceptaba un rango; en 5.x recorre las validaciones que ya
+            // hay para ver si la celda cae dentro, y con un rango revienta en la SEGUNDA columna
+            // («Cell coordinate string can not be a range of cells»): exportar el padrón daba un
+            // 500. Con 821 tests en verde y PHPStan limpio — lo cazó la prueba de ida y vuelta
+            // `tools/pruebas/probar-ciclo-padron.php`, al subir de versión para PHP 8.5.
+            $validacion = new DataValidation();
+            $hoja->setDataValidation(sprintf('%s2:%s500', $letra, $letra), $validacion);
             $validacion->setType(DataValidation::TYPE_LIST)
                 ->setAllowBlank(true)
                 ->setShowDropDown(true)

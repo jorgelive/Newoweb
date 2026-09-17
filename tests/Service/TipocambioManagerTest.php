@@ -61,7 +61,6 @@ final class TipocambioManagerTest extends TestCase
     private function llamar(TipocambioManager $manager, string $metodo, mixed ...$args): mixed
     {
         $ref = new ReflectionMethod($manager, $metodo);
-        $ref->setAccessible(true);
 
         return $ref->invoke($manager, ...$args);
     }
