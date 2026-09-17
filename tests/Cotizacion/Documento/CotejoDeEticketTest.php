@@ -7,6 +7,7 @@ namespace App\Tests\Cotizacion\Documento;
 use App\Cotizacion\Documento\CotejoDeEticket;
 use App\Cotizacion\Documento\CruceDeFrontera;
 use App\Cotizacion\Documento\DatosDeEticket;
+use App\Cotizacion\Documento\PasajeroDelTramite;
 use App\Cotizacion\Documento\ReferenciaDeIdentidad;
 use App\Cotizacion\Entity\CotizacionVuelo;
 use App\Cotizacion\Enum\PaisDeControlEnum;
@@ -42,7 +43,7 @@ final class CotejoDeEticketTest extends TestCase
     private function bueno(): DatosDeEticket
     {
         return new DatosDeEticket(
-            codigo: 'ABC123', pasaporte: 'P1234567',
+            codigo: 'ABC123', pasajeros: [new PasajeroDelTramite(pasaporte: 'P1234567')],
             fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'CM177',
             fechaSalida: new \DateTimeImmutable('2026-09-22'), vueloSalida: 'CM749',
             traeEntrada: true, traeSalida: true,
@@ -60,7 +61,7 @@ final class CotejoDeEticketTest extends TestCase
     public function testElVueloEquivocadoSale(): void
     {
         $leido = new DatosDeEticket(
-            pasaporte: 'P1234567',
+            pasajeros: [new PasajeroDelTramite(pasaporte: 'P1234567')],
             fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'DM6771',
             fechaSalida: new \DateTimeImmutable('2026-09-22'), vueloSalida: 'CM749',
             traeEntrada: true, traeSalida: true,
@@ -152,7 +153,7 @@ final class CotejoDeEticketTest extends TestCase
     public function testUnaFechaIlegibleNoEsUnaDiscrepancia(): void
     {
         $leido = new DatosDeEticket(
-            pasaporte: 'P1234567', vueloEntrada: 'CM177', vueloSalida: 'CM749',
+            pasajeros: [new PasajeroDelTramite(pasaporte: 'P1234567')], vueloEntrada: 'CM177', vueloSalida: 'CM749',
             traeEntrada: true, traeSalida: true,
         );
 
@@ -167,7 +168,7 @@ final class CotejoDeEticketTest extends TestCase
     public function testUnDedazoEnElNombreSeAcusa(): void
     {
         $leido = new DatosDeEticket(
-            pasaporte: 'P1234567', nombres: 'JOAQUIN ASCARSA VIVANCO',
+            pasajeros: [new PasajeroDelTramite('JOAQUIN ASCARSA VIVANCO', 'P1234567')],
             fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'CM177',
             fechaSalida: new \DateTimeImmutable('2026-09-22'), vueloSalida: 'CM749',
             traeEntrada: true, traeSalida: true,
@@ -186,7 +187,7 @@ final class CotejoDeEticketTest extends TestCase
     public function testUnNombreQueElManifiestoNoTraeNoSeAcusa(): void
     {
         $leido = new DatosDeEticket(
-            pasaporte: 'P1234567', nombres: 'MATHEO ANTONIO GAMARRA ZANABRIA',
+            pasajeros: [new PasajeroDelTramite('MATHEO ANTONIO GAMARRA ZANABRIA', 'P1234567')],
             fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'CM177',
             fechaSalida: new \DateTimeImmutable('2026-09-22'), vueloSalida: 'CM749',
             traeEntrada: true, traeSalida: true,
@@ -206,11 +207,118 @@ final class CotejoDeEticketTest extends TestCase
         self::assertStringContainsString('el manifiesto (tecleado a mano)', implode(' ', $c->notas));
     }
 
+    /**
+     * 🔥 **El formulario compartido, medido en producción el 16/09/2026.**
+     *
+     * Herbert y Yusi rellenaron un solo E-Ticket —el propio documento dice que un QR vale para
+     * todos los que figuren en él— y cada uno lo subió a su ficha. Cotejando siempre contra la
+     * primera fila, el trámite de Herbert, que estaba **perfecto**, salía con el pasaporte de Yusi
+     * y ocho notas de palabras que sobran y faltan.
+     */
+    public function testUnTramiteCompartidoSeCotejaContraLaFilaDeCadaUno(): void
+    {
+        $compartido = new DatosDeEticket(
+            codigo: 'IFZYNE',
+            pasajeros: [
+                new PasajeroDelTramite('YUSI BETSI CRUZ ALVAREZ', '125995393', 'PER'),
+                new PasajeroDelTramite('HERBERT JESUS ZEVALLOS GUZMAN', '125995436', 'PER'),
+            ],
+            fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'CM177',
+            fechaSalida: new \DateTimeImmutable('2026-09-22'), vueloSalida: 'CM749',
+            traeEntrada: true, traeSalida: true,
+        );
+
+        $herbert = CotejoDeEticket::de(
+            $compartido,
+            $this->cruce(),
+            $this->identidad('125995436', 'HERBERT JESUS ZEVALLOS GUZMAN'),
+        );
+
+        self::assertSame(ValidacionIdentificacionEnum::VALIDADO_OCR, $herbert->estado);
+        self::assertSame([], $herbert->discrepancias);
+
+        $yusi = CotejoDeEticket::de(
+            $compartido,
+            $this->cruce(),
+            $this->identidad('125995393', 'YUSI BETSI CRUZ ALVAREZ'),
+        );
+
+        self::assertSame(ValidacionIdentificacionEnum::VALIDADO_OCR, $yusi->estado);
+        self::assertSame([], $yusi->discrepancias);
+    }
+
+    /** Y que conste que es compartido: si no, el acierto se lee como que el control no se enteró. */
+    public function testSeAvisaDeQueElTramiteEsDeVarios(): void
+    {
+        $c = CotejoDeEticket::de(
+            new DatosDeEticket(
+                pasajeros: [
+                    new PasajeroDelTramite('YUSI BETSI CRUZ ALVAREZ', '125995393'),
+                    new PasajeroDelTramite('HERBERT JESUS ZEVALLOS GUZMAN', '125995436'),
+                ],
+                fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'CM177',
+                fechaSalida: new \DateTimeImmutable('2026-09-22'), vueloSalida: 'CM749',
+                traeEntrada: true, traeSalida: true,
+            ),
+            $this->cruce(),
+            $this->identidad('125995436', 'HERBERT JESUS ZEVALLOS GUZMAN'),
+        );
+
+        self::assertStringContainsString('compartido: figuran 2 personas', implode(' ', $c->notas));
+        self::assertStringContainsString('HERBERT', implode(' ', $c->notas));
+    }
+
+    /**
+     * ⚠️ Un trámite que lista a gente y a ésta no: es «es de otro», no un dedazo, y se enseña la
+     * lista entera para que quien lo mire vea a nombre de quién está.
+     */
+    public function testUnTramiteDeOtrasPersonasLoDiceConLosNombres(): void
+    {
+        $c = CotejoDeEticket::de(
+            new DatosDeEticket(
+                pasajeros: [
+                    new PasajeroDelTramite('YUSI BETSI CRUZ ALVAREZ', '125995393'),
+                    new PasajeroDelTramite('MARIA LOPEZ TORRES', '125995111'),
+                ],
+                fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'CM177',
+                fechaSalida: new \DateTimeImmutable('2026-09-22'), vueloSalida: 'CM749',
+                traeEntrada: true, traeSalida: true,
+            ),
+            $this->cruce(),
+            $this->identidad('125995436', 'HERBERT JESUS ZEVALLOS GUZMAN'),
+        );
+
+        self::assertSame(ValidacionIdentificacionEnum::OBSERVADO, $c->estado);
+        self::assertSame('a nombre de', $c->discrepancias[0]->campo);
+        self::assertStringContainsString('MARIA LOPEZ TORRES', $c->discrepancias[0]->documento);
+    }
+
+    /**
+     * ⚠️ Con UNA sola persona el pasaporte distinto sigue siendo una discrepancia de pasaporte, no
+     * un «el trámite es de otro»: lo que hay que hacer es corregir el número, y decirlo del otro
+     * modo mandaría a rehacer el trámite entero.
+     */
+    public function testConUnSoloPasajeroElPasaporteDistintoSigueSiendoDiscrepanciaDePasaporte(): void
+    {
+        $c = CotejoDeEticket::de(
+            new DatosDeEticket(
+                pasajeros: [new PasajeroDelTramite('DAMARIS LUCIANA PAZ RAMOS', 'P7654321')],
+                fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'CM177',
+                fechaSalida: new \DateTimeImmutable('2026-09-22'), vueloSalida: 'CM749',
+                traeEntrada: true, traeSalida: true,
+            ),
+            $this->cruce(),
+            $this->identidad(),
+        );
+
+        self::assertSame('pasaporte', $c->discrepancias[0]->campo);
+    }
+
     /** ⚠️ `P 1234567` y `P1234567` son el mismo pasaporte: lo escribe quien rellena el formulario. */
     public function testElEspacioEnElPasaporteNoEsUnaDiscrepancia(): void
     {
         $leido = new DatosDeEticket(
-            pasaporte: 'P 123-4567',
+            pasajeros: [new PasajeroDelTramite(pasaporte: 'P 123-4567')],
             fechaEntrada: new \DateTimeImmutable('2026-09-18'), vueloEntrada: 'CM177',
             fechaSalida: new \DateTimeImmutable('2026-09-22'), vueloSalida: 'CM749',
             traeEntrada: true, traeSalida: true,

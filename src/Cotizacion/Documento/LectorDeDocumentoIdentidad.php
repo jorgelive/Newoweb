@@ -282,10 +282,100 @@ final readonly class LectorDeDocumentoIdentidad
         return OrdenDelNombre::conLaCajaBuena($nombre, $propuesto);
     }
 
-    /** Lo impreso lee mejor los nombres (la MRZ recorta a 39 y quita tildes); la MRZ es la red. */
+    /**
+     * Qué nombre se queda: el impreso o el de la MRZ.
+     *
+     * ── 🔥 «Lo impreso manda salvo que venga VACÍO» perdía nombres ──────────────
+     * Ésa era la regla, y su punto ciego es que un reflejo **no deja lo impreso vacío: lo deja a
+     * medias**, que es el caso que no contemplaba. Medido en producción el 16/09/2026:
+     *
+     * ```
+     * impreso (con brillo encima) : CARLOS
+     * MRZ (coherente, comprobada) : P<PERSAMANEZ<CUBA<<CARLOS<ENRIQUE<<<<<<
+     * guardado                    : «CARLOS»            ← se tiró ENRIQUE
+     * y el control decía          : «el trámite trae ENRIQUE y el escaneo de su pasaporte no»
+     * ```
+     *
+     * ⚠️ Y eso no es sólo un aviso falso: **empuja a borrar del manifiesto un nombre que está
+     * bien**, que es el daño que este módulo entero existe para evitar. Encima el aviso se rotulaba
+     * «(MRZ)» —porque el NÚMERO sí venía de la MRZ—, prestándole a una lectura impresa la autoridad
+     * de una banda que decía lo contrario.
+     *
+     * ── Por qué no basta con «que mande siempre la MRZ» ────────────────────────
+     * Los dos motivos del comentario viejo eran ciertos: la MRZ **recorta el nombre a 39
+     * caracteres** y **no lleva tildes ni eñes** (ICAO 9303, ver {@see PalabrasDelNombre}). Así que
+     * ninguna de las dos fuentes gana siempre, y la pregunta correcta no es cuál es mejor sino
+     * **cuál está más completa**:
+     *
+     * | impreso | MRZ | se queda |
+     * |---|---|---|
+     * | `CARLOS` | `CARLOS ENRIQUE` | la MRZ — al impreso le falta una palabra entera |
+     * | `JOSÉ MARÍA` | `JOSE MARIA` | lo impreso — mismas palabras, y con sus tildes |
+     * | `JUAN CARLOS ALBERTO` | `JUAN CARLOS ALBERT` | lo impreso — la MRZ va recortada |
+     *
+     * Por eso se compara por PALABRAS y con prefijos: un trozo recortado (`ALBERT`) no es una
+     * palabra nueva, y una palabra entera que no está (`ENRIQUE`) sí lo es. Se usa
+     * {@see PalabrasDelNombre} y no una comparación propia **a posta**: es la misma normalización
+     * con la que después se cotejará contra el E-Ticket, así que las dos mitades no pueden discrepar.
+     */
     private function preferir(string $impreso, ?string $deLaMrz): ?string
     {
-        return trim($impreso) !== '' ? trim($impreso) : ($deLaMrz !== null && $deLaMrz !== '' ? $deLaMrz : null);
+        $impreso = trim($impreso);
+        $deLaMrz = $deLaMrz !== null ? trim($deLaMrz) : '';
+
+        if ($impreso === '') {
+            return $deLaMrz === '' ? null : $deLaMrz;
+        }
+
+        if ($deLaMrz === '') {
+            return $impreso;
+        }
+
+        return self::laMrzEstaMasCompleta($impreso, $deLaMrz) ? $deLaMrz : $impreso;
+    }
+
+    /**
+     * ¿La MRZ trae alguna palabra ENTERA que a lo impreso le falta, sin contradecirlo?
+     *
+     * ⚠️ Se exige lo segundo —que todo lo impreso siga estando en la MRZ— para no cambiar de nombre
+     * cuando las dos lecturas dicen cosas distintas: ahí no hay una «más completa», hay un problema,
+     * y el sitio de denunciarlo es un aviso, no una elección callada.
+     */
+    private static function laMrzEstaMasCompleta(string $impreso, string $deLaMrz): bool
+    {
+        $delImpreso = PalabrasDelNombre::de($impreso);
+        $deLaBanda = PalabrasDelNombre::de($deLaMrz);
+
+        foreach ($delImpreso as $palabra) {
+            if (!self::estaEnLaLista($palabra, $deLaBanda)) {
+                return false;   // se contradicen: que se quede lo impreso y que lo diga el cotejo
+            }
+        }
+
+        foreach ($deLaBanda as $palabra) {
+            if (!self::estaEnLaLista($palabra, $delImpreso)) {
+                return true;    // una palabra entera que al impreso le falta
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * ⚠️ Vale que una sea PREFIJO de la otra, no sólo que sean iguales: la MRZ corta el nombre a 39
+     * caracteres, y `ALBERT` frente a `ALBERTO` es la misma palabra recortada, no una distinta.
+     *
+     * @param list<string> $lista
+     */
+    private static function estaEnLaLista(string $palabra, array $lista): bool
+    {
+        foreach ($lista as $otra) {
+            if (str_starts_with($palabra, $otra) || str_starts_with($otra, $palabra)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

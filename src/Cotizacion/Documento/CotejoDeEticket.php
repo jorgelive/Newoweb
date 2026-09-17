@@ -106,20 +106,37 @@ final readonly class CotejoDeEticket
 
         $diferencias = [];
 
+        // 🔥 **Primero, CUÁL de las filas es la suya.** El trámite puede ser de varias personas y
+        // hasta el 16/09/2026 se cotejaba siempre contra la primera. Ver `PasajeroDelTramite`.
+        $quien = self::aQuienCorresponde($leido, $identidad);
+
+        if ($quien === null && $leido->pasajeros !== []) {
+            // Figura gente, y ninguna es ésta. Es lo contrario de un dedazo —el trámite es de otro—
+            // y por eso se enseña la lista entera: quien lo mire tiene que ver a nombre de quién
+            // está, no un «no coincide» a secas.
+            $diferencias[] = new Discrepancia(
+                'a nombre de',
+                implode(' · ', array_map(
+                    static fn (PasajeroDelTramite $p): string => $p->nombre ?? $p->pasaporte ?? '¿?',
+                    $leido->pasajeros,
+                )),
+                (string) ($identidad->nombre ?? $identidad->pasaporte),
+            );
+        }
+
+        $quien ??= new PasajeroDelTramite();
+
         // El pasaporte: es lo que une el trámite con la persona. Un E-Ticket correcto a nombre de
         // otro pasaporte no sirve en el mostrador.
-        if ($identidad->pasaporte !== null && $leido->pasaporte !== null
-            && !self::mismoTexto($leido->pasaporte, $identidad->pasaporte)) {
-            $diferencias[] = new Discrepancia('pasaporte', $leido->pasaporte, $identidad->pasaporte);
+        if ($identidad->pasaporte !== null && $quien->pasaporte !== null
+            && !self::mismoTexto($quien->pasaporte, $identidad->pasaporte)) {
+            $diferencias[] = new Discrepancia('pasaporte', $quien->pasaporte, $identidad->pasaporte);
         }
 
         // 🔥 **El nombre, que es lo que de verdad se teclea mal.** Hubo que avisar a mano de un
         // `Ascarsa` por `Ascarza` y un `juaquin` por `joaquin`: en el mostrador de Migración, un
         // nombre que no es el del pasaporte es un problema, y no lo caza ningún otro control.
-        $nombre = CotejoDeNombre::de(
-            trim(($leido->nombres ?? '').' '.($leido->apellidos ?? '')),
-            $identidad->nombre,
-        );
+        $nombre = CotejoDeNombre::de($quien->nombre ?? '', $identidad->nombre);
 
         if ($nombre->hayDedazo()) {
             $diferencias[] = new Discrepancia('nombre', $nombre->comoSeLee(), (string) $identidad->nombre);
@@ -144,6 +161,17 @@ final readonly class CotejoDeEticket
         ];
 
         $notas = $leido->avisos;
+
+        // ⚠️ Se dice SIEMPRE que el formulario es de varios, aunque todo cuadre. Quien revisa ve un
+        // trámite con dos nombres y tiene que saber que eso es normal y que se miró el suyo; sin la
+        // nota, el acierto se lee como que el control no se enteró.
+        if (count($leido->pasajeros) > 1) {
+            $notas[] = sprintf(
+                'el trámite es compartido: figuran %d personas%s',
+                count($leido->pasajeros),
+                $quien->nombre !== null ? sprintf(', y se comprobó la de «%s»', $quien->nombre) : '',
+            );
+        }
 
         if ($identidad->pasaporte === null && $identidad->nombre === null) {
             $notas[] = 'no hay pasaporte ni nombre con qué comprobar a nombre de quién está el trámite';
@@ -185,6 +213,64 @@ final readonly class CotejoDeEticket
             $diferencias,
             $notas,
         );
+    }
+
+    /**
+     * Cuál de las personas del trámite es la dueña de este archivo.
+     *
+     * 🔑 **El pasaporte manda, y por eso se mira primero.** Es el único campo de los dos lados que
+     * no admite interpretación: o es el número o no lo es.
+     *
+     * ⚠️ **Con un solo pasajero se devuelve ése aunque el pasaporte no cuadre**, y es deliberado:
+     * un trámite de una sola persona con otro número es exactamente la discrepancia que hay que
+     * denunciar. Devolver `null` ahí la convertiría en «el trámite es de otro», que dice algo
+     * distinto y manda a otro sitio.
+     *
+     * Con varios y ninguno por pasaporte se decide por nombre, y **sólo si gana en solitario**: en
+     * un formulario familiar los apellidos se repiten, así que un empate no distingue a nadie y
+     * elegir al azar sería peor que decir que no se sabe.
+     */
+    private static function aQuienCorresponde(DatosDeEticket $leido, ReferenciaDeIdentidad $identidad): ?PasajeroDelTramite
+    {
+        if ($leido->pasajeros === []) {
+            return null;
+        }
+
+        if ($identidad->pasaporte !== null) {
+            foreach ($leido->pasajeros as $candidato) {
+                if ($candidato->pasaporte !== null && self::mismoTexto($candidato->pasaporte, $identidad->pasaporte)) {
+                    return $candidato;
+                }
+            }
+        }
+
+        if (count($leido->pasajeros) === 1) {
+            return $leido->pasajeros[0];
+        }
+
+        $suyas = PalabrasDelNombre::de((string) $identidad->nombre);
+
+        if ($suyas === []) {
+            return null;
+        }
+
+        $mejor = null;
+        $mejorPuntuacion = 0;
+        $empatado = false;
+
+        foreach ($leido->pasajeros as $candidato) {
+            $comunes = count(array_intersect(PalabrasDelNombre::de($candidato->nombre ?? ''), $suyas));
+
+            if ($comunes > $mejorPuntuacion) {
+                $mejor = $candidato;
+                $mejorPuntuacion = $comunes;
+                $empatado = false;
+            } elseif ($comunes === $mejorPuntuacion && $comunes > 0) {
+                $empatado = true;
+            }
+        }
+
+        return $empatado ? null : $mejor;
     }
 
     /**

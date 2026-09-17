@@ -34,8 +34,8 @@ final class LectorDeEticketTest extends TestCase
     private function crudo(array $encima = []): array
     {
         return [...[
-            'esEticket' => true, 'codigo' => 'ABC123', 'nombres' => 'SANTIAGO', 'apellidos' => 'GOMEZ',
-            'pasaporte' => 'P1234567', 'nacionalidad' => 'PER',
+            'esEticket' => true, 'codigo' => 'ABC123',
+            'pasajeros' => [['nombre' => 'SANTIAGO GOMEZ', 'pasaporte' => 'P1234567', 'nacionalidad' => 'PER']],
             'traeEntrada' => true, 'fechaEntrada' => '2026-09-18', 'vueloEntrada' => 'CM177',
             'traeSalida' => true, 'fechaSalida' => '2026-09-22', 'vueloSalida' => 'CM749',
         ], ...$encima];
@@ -46,12 +46,45 @@ final class LectorDeEticketTest extends TestCase
         $d = $this->lector()->interpretar($this->crudo());
 
         self::assertSame('ABC123', $d->codigo);
-        self::assertSame('P1234567', $d->pasaporte);
+        self::assertSame('P1234567', $d->pasajeros[0]->pasaporte);
+        self::assertSame('SANTIAGO GOMEZ', $d->pasajeros[0]->nombre);
         self::assertSame('2026-09-18', $d->fechaEntrada?->format('Y-m-d'));
         self::assertSame('CM749', $d->vueloSalida);
         self::assertTrue($d->traeEntrada);
         self::assertTrue($d->traeSalida);
         self::assertSame([], $d->avisos);
+    }
+
+    /**
+     * 🔥 **Las 121 lecturas ya pagadas están guardadas con la forma vieja.** `interpretar()` corre
+     * sobre lo guardado cada vez que se rejuzga, así que si deja de saber leer lo viejo, afinar una
+     * regla vacía el expediente entero de nombres y pasaportes — y sin dar error: saldrían todos
+     * como «no hay con qué comprobar a nombre de quién está el trámite».
+     */
+    public function testUnaLecturaVieja_ConLosCamposSueltos_DaUnaListaDeUno(): void
+    {
+        $d = $this->lector()->interpretar([
+            'esEticket' => true, 'codigo' => 'ABC123',
+            'nombres' => 'SANTIAGO', 'apellidos' => 'GOMEZ', 'pasaporte' => 'P1234567',
+            'traeEntrada' => true, 'fechaEntrada' => '2026-09-18', 'vueloEntrada' => 'CM177',
+            'traeSalida' => true, 'fechaSalida' => '2026-09-22', 'vueloSalida' => 'CM749',
+        ]);
+
+        self::assertCount(1, $d->pasajeros);
+        self::assertSame('SANTIAGO GOMEZ', $d->pasajeros[0]->nombre);
+        self::assertSame('P1234567', $d->pasajeros[0]->pasaporte);
+    }
+
+    /** El caso del formulario familiar: una fila por persona, en su orden. */
+    public function testLeeLaTablaEnteraDePasajeros(): void
+    {
+        $d = $this->lector()->interpretar($this->crudo(['pasajeros' => [
+            ['nombre' => 'YUSI BETSI CRUZ ALVAREZ', 'pasaporte' => '125995393', 'nacionalidad' => 'PER'],
+            ['nombre' => 'HERBERT JESUS ZEVALLOS GUZMAN', 'pasaporte' => '125995436', 'nacionalidad' => 'PER'],
+        ]]));
+
+        self::assertCount(2, $d->pasajeros);
+        self::assertSame('125995436', $d->pasajeros[1]->pasaporte);
     }
 
     /**

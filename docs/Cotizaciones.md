@@ -10634,3 +10634,118 @@ proveedor rechaza, una credencial caducada— hay que poder devolverlos a «nunc
 Para eso está `--reintentar`, que llama a `CotizacionFilearchivo::olvidarLectura()`. ⚠️ **No es
 `registrarLectura(null)`**: ése deja `leidoEn` puesto, que significa justo «se intentó y falló». Es
 la misma trampa que ya se documentó al girar un escaneo.
+
+---
+
+## Dos formas de acusar a quien tenía razón (16/09/2026)
+
+Los dos salieron de mirar la pantalla, no de un test. Y los dos daban **el mismo síntoma** —«el
+trámite trae «X» y el escaneo de su pasaporte no»— desde causas que no tienen nada que ver, que es
+justo lo que hace que un aviso así se deje de leer.
+
+🔑 **La familia de fallo es una sola: una forma de datos que no puede representar la realidad.** En
+un caso, un nombre donde la realidad son dos lecturas de distinta calidad; en el otro, una persona
+donde la realidad es una tabla. Ninguno de los dos podía cazarlo un tipo, un test ni PHPStan: el
+código era coherente consigo mismo.
+
+### 1. El E-Ticket es de VARIOS, y se cotejaba siempre contra el primero
+
+El formulario de Migración dominicana lleva una **tabla de pasajeros**, y su propia letra pequeña lo
+dice: *«un solo código QR es válido para todas las personas cuya información está en el documento»*.
+Una familia rellena uno y lo sube cada uno a su ficha.
+
+`LectorDeEticket` pedía `nombres`/`apellidos`/`pasaporte` **sueltos**, así que el modelo devolvía la
+primera fila y se le atribuía al dueño del archivo, fuera quien fuera:
+
+```
+ficha de  : HERBERT JESUS ZEVALLOS GUZMAN · pasaporte 125995436
+el trámite: YUSI BETSI CRUZ ALVAREZ       · pasaporte 125995393   ← la primera fila
+veredicto : OBSERVADO · «pasaporte dice 125995393, debería 125995436» + 8 notas de nombre
+```
+
+Todo falso: el trámite de Herbert estaba perfecto, en la segunda fila. Y **falla hacia el lado
+peor**: el primero de la lista sale en verde y todos los demás salen acusados, que es al revés de lo
+que haría sospechar a alguien.
+
+| Pieza | Qué cambió |
+|---|---|
+| `PasajeroDelTramite` | **nueva**: una fila de la tabla (nombre, pasaporte, nacionalidad) |
+| `DatosDeEticket` | los cuatro campos sueltos → `list<PasajeroDelTramite> $pasajeros` |
+| `LectorDeEticket` | `pasajeros` en el esquema y en la instrucción, **más el respaldo de lo viejo** |
+| `CotejoDeEticket` | `aQuienCorresponde()` elige la fila antes de comparar nada |
+
+**Cómo elige `aQuienCorresponde()`**, y por qué en ese orden:
+
+1. **Pasaporte igual** → ése. Es el único campo de los dos lados que no admite interpretación.
+2. **Un solo pasajero** → ése, *aunque el pasaporte no cuadre*. ⚠️ Deliberado: un trámite de una
+   persona con otro número es la discrepancia de `pasaporte` que hay que denunciar; devolver «no se
+   sabe quién es» ahí diría otra cosa y mandaría a rehacer el trámite entero.
+3. **Varios y ninguno por pasaporte** → el que más palabras de nombre comparta, **sólo si gana en
+   solitario**: en un formulario familiar los apellidos se repiten, y elegir en un empate es peor
+   que decir que no se sabe.
+4. **Nadie** → discrepancia `a nombre de` con **la lista entera**, para que quien lo mire vea a
+   nombre de quién está en vez de un «no coincide» a secas.
+
+⚠️ **Y se avisa siempre de que el formulario es compartido, incluso cuando todo cuadra.** Quien
+revisa ve un PDF con dos nombres: sin la nota, el acierto se lee como que el control no se enteró.
+
+⚠️ **El respaldo de la forma vieja NO es cortesía: sin él se vacía el expediente.** Las 121 lecturas
+ya pagadas están guardadas con los campos sueltos, y `interpretar()` corre sobre lo guardado cada vez
+que se rejuzga. El almacén guarda lo **crudo** precisamente para que el criterio pueda cambiar sin
+volver a pagar, y eso sólo se sostiene si lo viejo se sigue sabiendo leer. Una lectura vieja da una
+lista de uno, que es exactamente como se comportaba antes. Lo fija
+`LectorDeEticketTest::testUnaLecturaVieja_ConLosCamposSueltos_DaUnaListaDeUno()`.
+
+🔑 **El que sí hay que volver a pagar es el compartido**, porque la segunda fila nunca se extrajo: no
+está en `datosLeidos` y ningún criterio nuevo la puede inventar. Medido en producción: **1 de 121**.
+
+### 2. Un reflejo sobre el pasaporte borraba un nombre… y acusaba al manifiesto
+
+`LectorDeDocumentoIdentidad::preferir()` decía «lo impreso manda salvo que venga **vacío**», con un
+comentario correcto al lado: la MRZ recorta a 39 caracteres y va sin tildes. El punto ciego es que un
+reflejo **no deja lo impreso vacío: lo deja a medias**.
+
+```
+impreso (con brillo encima) : CARLOS
+MRZ (coherente, comprobada) : P<PERSAMANEZ<CUBA<<CARLOS<ENRIQUE<<<<<<
+guardado                    : «CARLOS»                       ← se tiró ENRIQUE
+y el control decía          : «el trámite trae ENRIQUE y el escaneo de su pasaporte (MRZ) no»
+```
+
+Dos agravantes:
+
+- El aviso **empuja a borrar del manifiesto un nombre que está bien**, que es exactamente el daño que
+  este módulo existe para evitar (ver `ReferenciaDeIdentidad`).
+- Se rotulaba **«(MRZ)»** porque el *número* sí venía de la MRZ, prestándole a una lectura impresa la
+  autoridad de una banda que decía lo contrario. Para todos los demás campos —número, fechas, sexo,
+  país— la MRZ ya mandaba; el nombre era la única excepción, y nadie la había mirado dos veces.
+
+**La pregunta correcta no es cuál fuente es mejor, sino cuál está más completa:**
+
+| impreso | MRZ | se queda | por qué |
+|---|---|---|---|
+| `CARLOS` | `CARLOS ENRIQUE` | la MRZ | al impreso le falta una palabra entera |
+| `JOSÉ MARÍA` | `JOSE MARIA` | lo impreso | mismas palabras, y con sus tildes |
+| `JUAN CARLOS ALBERTO` | `JUAN CARLOS ALBERT` | lo impreso | la MRZ va recortada a 39 |
+| `CARLOS` | `ROBERTO ENRIQUE` | lo impreso | se **contradicen**: eso es un aviso, no una elección |
+
+Se compara por **palabras y con prefijos**: un trozo recortado (`ALBERT`) no es una palabra nueva y
+una palabra entera que falta (`ENRIQUE`) sí lo es. Y se usa `PalabrasDelNombre` **a posta**, no una
+comparación propia: es la misma normalización con la que después se coteja contra el E-Ticket, así
+que las dos mitades no pueden discrepar entre sí.
+
+⚠️ **Medido antes de desplegar: 1 de 194** lecturas con MRZ coherente cambia de nombre, y es
+justamente ésa. Un cambio de regla sobre datos vivos sin esa cuenta es una apuesta.
+
+### Lo que cuesta arreglar cada uno
+
+🔑 **El reparto `extraer()` / `interpretar()` se pagó solo aquí.** El fallo del nombre es de
+criterio, así que se arregla **gratis**: se rejuzga y ya. El del E-Ticket compartido es de
+extracción —falta un dato que nunca se pidió—, así que hay que releer, y sólo el archivo afectado.
+
+| Necesidad | Archivo | Método |
+|---|---|---|
+| Cambiar a quién del trámite se coteja | `CotejoDeEticket` | `aQuienCorresponde()` |
+| Cambiar qué filas se le piden al modelo | `LectorDeEticket` | `INSTRUCCION` + `ESQUEMA.pasajeros` |
+| Leer una lectura guardada con la forma vieja | `LectorDeEticket` | `pasajeros()` |
+| Cambiar si manda lo impreso o la MRZ | `LectorDeDocumentoIdentidad` | `preferir()` + `laMrzEstaMasCompleta()` |

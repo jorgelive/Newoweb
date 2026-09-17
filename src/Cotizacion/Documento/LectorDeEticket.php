@@ -47,6 +47,11 @@ final readonly class LectorDeEticket
         deduzcas: si un dato no se lee o no aparece, déjalo vacío. Un campo vacío es una respuesta
         útil; un campo adivinado no se distingue de uno leído y nadie lo vuelve a mirar.
 
+        El formulario lleva una TABLA DE PASAJEROS con una fila por persona, y muy a menudo hay
+        MÁS DE UNA: una familia rellena un solo trámite para todos. Devuelve en `pasajeros` una
+        entrada por cada fila de esa tabla, en el orden en que salen, aunque sólo haya una. No
+        resumas, no juntes dos filas y no te quedes con la primera.
+
         El documento puede traer una sección de ENTRADA, una de SALIDA, o las dos. Es muy frecuente
         que traiga sólo una. Contesta `traeEntrada` y `traeSalida` según qué secciones EXISTEN en el
         documento, aunque no consigas leer sus datos: «la sección no está» y «la sección está pero
@@ -64,10 +69,19 @@ final readonly class LectorDeEticket
         'properties' => [
             'esEticket' => ['type' => 'boolean'],
             'codigo' => ['type' => 'string'],
-            'nombres' => ['type' => 'string'],
-            'apellidos' => ['type' => 'string'],
-            'pasaporte' => ['type' => 'string'],
-            'nacionalidad' => ['type' => 'string'],
+            // Una fila por persona. Ver `PasajeroDelTramite`: el trámite es de VARIOS.
+            'pasajeros' => [
+                'type' => 'array',
+                'items' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'nombre' => ['type' => 'string'],
+                        'pasaporte' => ['type' => 'string'],
+                        'nacionalidad' => ['type' => 'string'],
+                    ],
+                    'required' => ['nombre', 'pasaporte', 'nacionalidad'],
+                ],
+            ],
             // Dos preguntas separadas por sección: si existe, y qué dice. Ver `DatosDeEticket`.
             'traeEntrada' => ['type' => 'boolean'],
             'fechaEntrada' => ['type' => 'string'],
@@ -79,7 +93,7 @@ final readonly class LectorDeEticket
         // Todos requeridos y vacíos cuando no se lean: un campo AUSENTE y uno VACÍO se distinguen
         // mal al leer el JSON, y la diferencia no aporta nada aquí. Misma decisión que en identidad.
         'required' => [
-            'esEticket', 'codigo', 'nombres', 'apellidos', 'pasaporte', 'nacionalidad',
+            'esEticket', 'codigo', 'pasajeros',
             'traeEntrada', 'fechaEntrada', 'vueloEntrada',
             'traeSalida', 'fechaSalida', 'vueloSalida',
         ],
@@ -158,10 +172,7 @@ final readonly class LectorDeEticket
 
         return new DatosDeEticket(
             codigo: $this->opcional($crudo, 'codigo'),
-            nombres: $this->opcional($crudo, 'nombres'),
-            apellidos: $this->opcional($crudo, 'apellidos'),
-            pasaporte: $this->opcional($crudo, 'pasaporte'),
-            nacionalidad: $this->opcional($crudo, 'nacionalidad'),
+            pasajeros: $this->pasajeros($crudo),
             fechaEntrada: $fechaEntrada,
             vueloEntrada: $this->opcional($crudo, 'vueloEntrada'),
             fechaSalida: $fechaSalida,
@@ -170,6 +181,59 @@ final readonly class LectorDeEticket
             traeSalida: $traeSalida,
             avisos: $avisos,
         );
+    }
+
+    /**
+     * La tabla de personas del trámite, **con respaldo para lo ya guardado**.
+     *
+     * ⚠️ Las 121 lecturas que ya estaban pagadas el 16/09/2026 se guardaron con la forma vieja
+     * —`nombres`/`apellidos`/`pasaporte` sueltos—, y {@see self::interpretar()} corre sobre ellas
+     * cada vez que se rejuzga. Sin este respaldo, afinar la regla habría dejado sin nombre ni
+     * pasaporte a todo el expediente: el almacén guarda lo CRUDO precisamente para que el criterio
+     * pueda cambiar sin volver a pagar, y eso sólo se sostiene si lo viejo se sigue sabiendo leer.
+     *
+     * Una lectura vieja da una lista de uno, que es exactamente como se comportaba antes.
+     *
+     * @param array<string, mixed> $crudo
+     *
+     * @return list<PasajeroDelTramite>
+     */
+    private function pasajeros(array $crudo): array
+    {
+        $filas = $crudo['pasajeros'] ?? null;
+
+        if (!is_array($filas)) {
+            $nombre = trim(($this->opcional($crudo, 'nombres') ?? '').' '.($this->opcional($crudo, 'apellidos') ?? ''));
+
+            $viejo = new PasajeroDelTramite(
+                $nombre === '' ? null : $nombre,
+                $this->opcional($crudo, 'pasaporte'),
+                $this->opcional($crudo, 'nacionalidad'),
+            );
+
+            return $viejo->estaVacio() ? [] : [$viejo];
+        }
+
+        $pasajeros = [];
+
+        foreach ($filas as $fila) {
+            if (!is_array($fila)) {
+                continue;
+            }
+
+            /** @var array<string, mixed> $fila */
+            $uno = new PasajeroDelTramite(
+                $this->opcional($fila, 'nombre'),
+                $this->opcional($fila, 'pasaporte'),
+                $this->opcional($fila, 'nacionalidad'),
+            );
+
+            if (!$uno->estaVacio()) {
+                $pasajeros[] = $uno;
+            }
+        }
+
+        return $pasajeros;
     }
 
     /** @param array<string, mixed> $crudo */

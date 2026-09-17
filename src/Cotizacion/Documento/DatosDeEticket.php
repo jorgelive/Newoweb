@@ -26,11 +26,19 @@ final readonly class DatosDeEticket
     public function __construct(
         /** El código del propio trámite, el que lleva el QR. */
         public ?string $codigo = null,
-        public ?string $nombres = null,
-        public ?string $apellidos = null,
-        /** El número de pasaporte tal como lo declaró el pasajero AL RELLENAR el trámite. */
-        public ?string $pasaporte = null,
-        public ?string $nacionalidad = null,
+        /**
+         * **Todas** las personas que figuran en el trámite, en el orden en que salen.
+         *
+         * 🔥 Esto eran cuatro campos sueltos —`nombres`, `apellidos`, `pasaporte`, `nacionalidad`—
+         * y esa forma **no puede representar el documento**: el E-Ticket admite varias personas en
+         * un mismo formulario y con un mismo QR. El porqué, con el caso real medido, en
+         * {@see PasajeroDelTramite}.
+         *
+         * ⚠️ Quién de esta lista es el dueño del archivo lo decide {@see CotejoDeEticket}, no esto.
+         *
+         * @var list<PasajeroDelTramite>
+         */
+        public array $pasajeros = [],
         public ?DateTimeImmutable $fechaEntrada = null,
         public ?string $vueloEntrada = null,
         public ?DateTimeImmutable $fechaSalida = null,
