@@ -6,6 +6,7 @@ namespace App\Message\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
+use App\Message\ApiPlatform\State\PlantillasEnCirculacionProvider;
 use App\Attribute\AutoTranslate;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
@@ -68,7 +69,11 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
     shortName: 'Template', // 🔥 Le dice a API Platform que el recurso base es "templates"
     operations: [
         // API Platform infiere automáticamente: GET /message/templates
-        new GetCollection()
+        // Sólo las que están en circulación: ver `PlantillasEnCirculacionProvider`.
+        new GetCollection(
+            paginationEnabled: false,
+            provider: PlantillasEnCirculacionProvider::class,
+        )
     ], // 🔥 Define el módulo o contexto
     routePrefix: '/message',
     normalizationContext: ['groups' => ['template:read']]
@@ -99,7 +104,12 @@ class MessageTemplate
         max: 150,
         maxMessage: 'El nombre no puede superar los {{ limit }} caracteres.'
     )]
-    #[Groups(['template:read'])]
+    // ⚠️ También `message:read`: así el mensaje trae el nombre de su plantilla EMBEBIDO y el chat
+    // no lo busca en la lista del selector. Esa lista ya no trae las archivadas
+    // (`PlantillasEnCirculacionProvider`), y sin esto los mensajes viejos de `welcome_booking` o
+    // `recordatorio_llegada` pasaban a llamarse «Plantilla Automática» (17/09/2026). El front ya
+    // aceptaba las dos formas: `ChatView::getTemplateName()` y `ConversacionVistaPrevia`.
+    #[Groups(['template:read', 'message:read'])]
     private ?string $name = null;
 
     /** @var list<string> Marcadores que la plantilla espera: «nombre_huesped», «fecha_llegada»… */
@@ -236,7 +246,28 @@ class MessageTemplate
      */
     public function disponibleParaAgente(): bool
     {
-        return trim((string) $this->agenteUso) !== '';
+        // ⚠️ También en circulación. Sólo con la frase, `recordatorio_llegada` seguía en el
+        // catálogo del agente con los tres canales apagados: la habría elegido y el envío habría
+        // fallado por no tener por dónde salir (17/09/2026).
+        return trim((string) $this->agenteUso) !== '' && $this->estaEnCirculacion();
+    }
+
+    /**
+     * ¿Puede salir por algún canal? Si no, está ARCHIVADA.
+     *
+     * No hay columna «archivada»: una plantilla sin ningún canal encendido no puede enviarse, y
+     * eso es lo que significa archivar. Así no hay dos cosas que puedan contradecirse —una bandera
+     * que diga «activa» con todo apagado—, y encender un canal desde el panel la devuelve sola.
+     *
+     * Deja de salir en el selector del chat (`PlantillasEnCirculacionProvider`) y en el catálogo
+     * del agente ({@see disponibleParaAgente()}). En el panel sigue, editable.
+     *
+     * El cuerpo de dentro de la ventana no cuenta aparte: lo gobierna el interruptor de WhatsApp
+     * (ver {@see getCanales()}).
+     */
+    public function estaEnCirculacion(): bool
+    {
+        return $this->isBeds24Active() || $this->isWhatsappMetaActive() || $this->isEmailActive();
     }
 
     /**

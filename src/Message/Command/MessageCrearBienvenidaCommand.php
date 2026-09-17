@@ -470,9 +470,10 @@ final class MessageCrearBienvenidaCommand extends Command
 
         return (new MessageTemplate())
             ->setCode(self::CODIGO)
-            ->setName('Bienvenida (Booking y Airbnb)')
+            // Sólo Airbnb desde que Booking tiene la suya con el prepago (`Version20260917190000`).
+            ->setName('Bienvenida (Airbnb)')
             ->setContextType('pms_reserva')
-            ->setAllowedSources(['booking', 'airbnb'])
+            ->setAllowedSources(['airbnb'])
             // No se la pide el huésped: si quiere su guía, para eso está `enviar_guia`.
             ->setAutoenvioHabilitada(false)
             ->setAgenteUso(

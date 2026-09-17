@@ -140,8 +140,15 @@ final readonly class EnviarPlantillaSkill implements SkillInterface, SkillDomini
             ));
         }
 
-        // Sin uso escrito la plantilla no está en el catálogo que vio el modelo: si aun así
-        // acertó el código, fue adivinando, y eso no se premia.
+        // Fuera del catálogo que vio el modelo: si aun así acertó el código, fue adivinando, y
+        // eso no se premia. Son dos motivos distintos y cada uno se arregla en un sitio.
+        if (!$plantilla->estaEnCirculacion()) {
+            return SkillResult::error(sprintf(
+                'La plantilla «%s» está archivada: no tiene ningún canal encendido. No la uses.',
+                $codigo
+            ));
+        }
+
         if (!$plantilla->disponibleParaAgente()) {
             return SkillResult::error(sprintf(
                 'La plantilla «%s» no tiene escrito su «cuándo usarla», así que no está en '

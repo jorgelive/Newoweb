@@ -8080,6 +8080,36 @@ muerto»: es la que sale.
 
 ---
 
+## 18.e Plantillas archivadas: sin canal, fuera del selector (17/09/2026)
+
+El selector «Elegir plantilla» del chat pedía `/platform/message/templates` —todas— y filtraba sólo
+por contexto y origen. En una reserva de Booking ofrecía `welcome_booking` —la vieja, con las cuentas
+tecleadas— junto a su sustituta, y «Guia de llegada», que era `recordatorio_llegada` con los tres
+canales ya apagados. El agente tenía el mismo agujero: `disponibleParaAgente()` sólo miraba que
+hubiera `agenteUso` escrito.
+
+**Archivar es no tener ningún canal encendido** (`MessageTemplate::estaEnCirculacion()`). No hay
+columna: una plantilla sin canal no puede enviarse, y una bandera aparte podría decir «activa» con
+todo apagado. Una archivada:
+
+- no sale en el selector del chat: `PlantillasEnCirculacionProvider`, sin paginar;
+- no sale en el catálogo del agente, y si aun así acierta el código, la skill le dice que está
+  archivada;
+- **sigue en el panel**, editable, y encender un canal la devuelve.
+
+`msg:plantilla:archivar <códigos>` apaga los canales y **no borra**: los mensajes enviados la
+referencian. Se niega si una regla activa la usa.
+
+⚠️ **El nombre de la plantilla va embebido en el mensaje** (`name` también en `message:read`). El
+chat lo buscaba en la lista del selector, y al sacar de ahí las archivadas sus mensajes viejos
+habrían pasado a llamarse «Plantilla Automática».
+
+Archivadas ese día: `welcome_booking`, `welcome_airbnb` y `recordatorio_llegada`. Y de paso cada
+bienvenida quedó sólo para su OTA (`Version20260917190000`): `bienvenida` se llamaba «(Booking y
+Airbnb)» y admitía Booking, y `bienvenida_booking` no tenía origen, así que en Booking salían las dos.
+
+---
+
 ## 18.b Plan de reformulación de las plantillas al huésped (30/08/2026)
 
 ### El inventario, con datos y no de memoria
