@@ -3301,6 +3301,16 @@ const resumenManifiesto = computed(() => {
     return n === 0 ? 'sin pasajeros' : `${n} persona${n === 1 ? '' : 's'}`;
 });
 
+/**
+ * Las reservas sin emitir delante, conservando el orden del resto.
+ *
+ * ⚠️ La lista plegada enseña sólo las primeras `TOPE_PILDORAS` y esconde las demás tras «+N más».
+ * Marcar «sin emitir» en la píldora no sirve de nada si la píldora es la que queda escondida — que
+ * con doce reservas nacionales es lo más probable.
+ */
+const sinEmitirPrimero = <T extends { emitido?: boolean | null }>(lista: T[]): T[] =>
+    [...lista.filter(g => g.emitido === false), ...lista.filter(g => g.emitido !== false)];
+
 const resumenVuelos = computed(() => {
     const n = vuelos.value.length;
     if (n === 0) { return 'sin vuelos'; }
@@ -3309,7 +3319,9 @@ const resumenVuelos = computed(() => {
        alguien, y esconderlo tras un clic es como no tenerlo. */
     const sinEmitir = (file.value?.grupos ?? []).filter(g => g.emitido === false).length;
 
-    return `${n} vuelo${n === 1 ? '' : 's'}${sinEmitir ? ` · ${sinEmitir} sin emitir` : ''}`;
+    // ⚠️ «reserva(s)», no a secas: la marca es del SUBGRUPO (el PNR), y pegada a «16 vuelos» se leía
+    // como dos vuelos sin emitir. Quien lo leyó así fue a buscar vuelos que no existían.
+    return `${n} vuelo${n === 1 ? '' : 's'}${sinEmitir ? ` · ${sinEmitir} reserva${sinEmitir === 1 ? '' : 's'} sin emitir` : ''}`;
 });
 
 const resumenCarga = computed(() => 'padrón en Excel · vuelos en JSON');
@@ -5202,9 +5214,14 @@ const eliminarDocumento = async (iri?: string) => {
                     </button>
                   </div>
                   <div class="flex flex-wrap gap-2">
-                    <span v-for="g in (ejeEstaAbierto(`lista-${sec.clave}`, sec.lista.length) ? sec.lista : sec.lista.slice(0, TOPE_PILDORAS))" :key="g.id"
-                          class="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-lg pl-3 py-1 shadow-sm"
-                          :class="modoGestionGrupos ? 'pr-1 border-red-200' : 'pr-1'">
+                    <!-- ⚠️ Una reserva SIN EMITIR se ve en la propia píldora, con borde ámbar. Antes sólo
+                         la contaba la cabecera de Vuelos —«2 sin emitir»—, y para saber CUÁLES había
+                         que abrir los veinticinco lápices. Es lo que hay que perseguir antes de volar. -->
+                    <span v-for="g in (ejeEstaAbierto(`lista-${sec.clave}`, sec.lista.length) ? sinEmitirPrimero(sec.lista) : sinEmitirPrimero(sec.lista).slice(0, TOPE_PILDORAS))" :key="g.id"
+                          class="inline-flex items-center gap-2 bg-white border rounded-lg pl-3 py-1 shadow-sm"
+                          :class="[modoGestionGrupos ? 'pr-1 border-red-200' : 'pr-1',
+                                   !modoGestionGrupos && String(g.tipo) === EJE_AEREO && g.emitido === false
+                                     ? 'border-amber-300 bg-amber-50' : 'border-slate-200']">
                       <span class="text-[11px] font-black text-slate-700">{{ g.clave }}</span>
                       <span v-if="g.nombre" class="text-[10px] font-medium text-slate-400">{{ g.nombre }}</span>
                       <!-- El conteo se calcula aquí y no se toma de `totalMiembros`: el del servidor
@@ -5229,6 +5246,10 @@ const eliminarDocumento = async (iri?: string) => {
                         <template v-else>
                           <i class="fas fa-triangle-exclamation mr-0.5"></i> sin tramos
                         </template>
+                      </span>
+                      <span v-if="String(g.tipo) === EJE_AEREO && g.emitido === false"
+                            class="text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5">
+                        sin emitir
                       </span>
                       <!-- ⚠️ El lápiz va SIEMPRE, la papelera sólo en modo gestión. Corregir una
                            errata es lo corriente —un vuelo cargado en el tramo que no era— y
