@@ -520,12 +520,38 @@ onUnmounted(() => {
   window.removeEventListener('beforeunload', onBeforeUnload);
 });
 
-// Vigila el formulario base. Si cambia, marcamos como sucio.
-watch(() => file.value, () => {
-  if (watchActivo) {
-    isDirty.value = true;
-  }
-}, { deep: true });
+/**
+ * Vigila el formulario de la CABECERA. Si cambia, marcamos como sucio.
+ *
+ * 🔥 **Era `deep: true` sobre `file` entero, y eso convertía cualquier parche en «cambios sin
+ * guardar».** El aviso hablaba del formulario del expediente —los siete campos que manda
+ * `guardarFile()`— pero cazaba cualquier mutación anidada, y toda la pantalla parchea `file` en
+ * sitio: los veredictos al reprocesar, la fila que se quita al borrar un documento, el giro de un
+ * escaneo, el estado del E-Ticket.
+ *
+ * Síntoma: reprocesas a una persona, te vas, y salta «¿seguro que deseas salir y perder los
+ * cambios?» sobre cambios que ya están guardados. Y peor: `cancelarEdicionFile()` **recarga el
+ * expediente entero** porque cree que hay algo que descartar.
+ *
+ * ⚠️ Y es la precondición de dejar de recargar: cuanto más se parchea en sitio —que es lo que hace
+ * la pantalla rápida— más falsas alarmas daba el guardián. Arreglar uno sin el otro cambia lentitud
+ * por sustos.
+ *
+ * Ahora vigila exactamente los campos del formulario, por valor y sin `deep`: los siete de
+ * `guardarFile()`. Si mañana se añade uno al formulario, se añade aquí — y si se olvida, el botón
+ * «Cancelar» no tendrá nada que descartar, que es un fallo visible y no una falsa alarma.
+ */
+watch(
+  () => file.value && [
+    file.value.nombreGrupo, file.value.pasajeroPrincipal, file.value.email,
+    file.value.telefono, paisFileIri.value, file.value.estado, file.value.idiomaCliente,
+  ].join('\u0000'),
+  () => {
+    if (watchActivo) {
+      isDirty.value = true;
+    }
+  },
+);
 
 onBeforeRouteLeave((to, from, next) => {
   if (isDirty.value) {

@@ -10074,6 +10074,24 @@ que el proceso llegue vivo al final. Arreglado **antes** de que existiera el bot
 
 `POST /cotizacion/user/manifiesto/{id}/etickets/validar` → `EticketsController`.
 
+#### 🔥 Cada parche en sitio encendía «tienes cambios sin guardar»
+
+El guardián era `watch(() => file.value, …, { deep: true })`. El aviso habla del **formulario de la
+cabecera** —los siete campos que manda `guardarFile()`— pero cazaba cualquier mutación anidada, y
+toda la pantalla parchea `file` en sitio: los veredictos al reprocesar, la fila que se quita al
+borrar un documento, el giro de un escaneo, el estado del E-Ticket.
+
+Síntoma: reprocesas a una persona, te vas, y salta «¿seguro que deseas salir y perder los cambios?»
+sobre cambios que ya están guardados. Y peor: **`cancelarEdicionFile()` recarga el expediente entero**
+porque cree que hay algo que descartar.
+
+⚠️ **Es la precondición de dejar de recargar.** Cuanto más se parchea en sitio —que es lo que hace la
+pantalla rápida— más falsas alarmas daba. Arreglar uno sin el otro cambia lentitud por sustos.
+
+Ahora vigila exactamente esos siete campos, por valor y sin `deep`. Si mañana se añade uno al
+formulario hay que añadirlo aquí — y si se olvida, «Cancelar» no tendrá nada que descartar: un fallo
+visible, no una falsa alarma.
+
 #### 🔥 El expediente pesaba 90 % de lo mismo repetido (16/09/2026)
 
 `CotizacionPasajeroGrupo::$grupo` salía **incrustado**: cada pertenencia arrastraba el
