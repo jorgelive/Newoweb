@@ -10214,13 +10214,42 @@ Tres cambios, en orden de lo que rinden:
    `access.log`: POST de 784 KB → respuesta de **1 059 397 B**. No fallaba nada; se pagaba el doble
    del fichero en cada subida, y nadie lo vio porque el front descarta la respuesta.
 
-🔑 **El 3 no es sólo ahorro: es lo que habilita dejar de recargar.** Con la respuesta en ~2 KB,
-`guardarDocumento()` puede parchear la fila en sitio en vez de llamar a `cargarFile()` —8,47 MB y
-11 s— después de cada subida.
+🔑 **El 3 no es sólo ahorro: es lo que habilita dejar de recargar**, y eso se hizo a continuación
+(sección siguiente).
 
 ⚠️ **`$file` ya salía como IRI** aunque el esquema dijera objeto: es el ancestro de la cadena y lo
 cortaba el `circular_reference_handler`. Marcarlo no cambia el payload, sólo deja de mentir el
 esquema.
+
+#### 🔥 Subir un documento recargaba el expediente entero (16/09/2026)
+
+`guardarDocumento()` terminaba en `await cargarFile()`. Con el expediente en 9,84 MB y 22 s de
+serialización, **cada** subida costaba eso, y subir diez documentos seguidos costaba diez veces eso.
+Desde un móvil con mala cobertura —que es donde se sube de verdad, en el viaje— era inusable.
+
+Ahora la fila la devuelve el propio POST y se mete en sitio:
+
+```
+antes:  POST (fichero) → 1 MB de respuesta con el fichero dentro → GET 9,84 MB / 22 s
+ahora:  POST (fichero) → ~2 KB de respuesta → splice en filearchivos → GET 10 KB del dueño
+```
+
+⚠️ **Y no basta con la fila: hay que releer a su DUEÑO.** Subir un escaneo de identidad hace que
+`EscaneoNuevoInvalidaVeredictoListener` tire los veredictos de las identificaciones de esa persona.
+Sin refrescarla, la pantalla seguiría enseñando **en verde un pasaporte que el servidor acaba de
+poner en duda**, que es peor que ir lento: un veredicto viejo que parece fresco.
+
+🔑 **Y por eso se PREGUNTA en vez de deducirlo.** La regla de cuándo se cae un veredicto vive en el
+listener; mirrorearla en JavaScript sería la misma regla en dos sitios. Cuesta ~10 KB.
+
+⚠️ **Para eso hubo que añadir un `Get` de item a `CotizacionFilepasajero`, que no existía.** Tenía
+`Post`, `Put`, `Patch` y `Delete` pero ninguna forma de leer a UNA persona, y ésa es la razón de que
+el código recargara el expediente: no había alternativa. Lleva los mismos grupos que el `Patch` —sin
+ellos las pertenencias vuelven sobre sí mismas y sale una `CircularReferenceException`— y
+`ROLE_RESERVAS_SHOW`.
+
+⚠️ **Si el refresco del dueño falla, se calla.** El documento **ya se guardó**: tratar un fallo de
+red posterior como «error al subir» haría dudar de lo que sí se hizo, y lleva a subirlo otra vez.
 
 #### 🔥 Borrar un documento tardaba ~10 segundos, y no era el borrado
 

@@ -895,7 +895,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Retrieves a CotizacionFilepasajero resource.
+         * @description Retrieves a CotizacionFilepasajero resource.
+         */
+        get: operations["api_salescotizacion_filepasajeros_id_get"];
         /**
          * Replaces the CotizacionFilepasajero resource.
          * @description Replaces the CotizacionFilepasajero resource.
@@ -15079,6 +15083,7 @@ export interface components {
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         CotizacionFilepasajero: {
             nombre?: string;
             apellido?: string;
@@ -15182,6 +15187,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero-file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -15272,6 +15278,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero-file.write": {
             nombre?: string;
             apellido?: string;
@@ -15301,6 +15308,7 @@ export interface components {
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero-file.write.jsonMergePatch": {
             nombre?: string;
             apellido?: string;
@@ -15366,6 +15374,7 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-pax_file.read_pax_cotizacion.read"][];
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.html": {
             nombre?: string;
             apellido?: string;
@@ -15469,6 +15478,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.html-file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -15595,6 +15605,7 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-pax_file.read_pax_cotizacion.read"][];
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15657,6 +15668,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15698,6 +15710,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15743,6 +15756,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15788,6 +15802,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-pax_file.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15806,6 +15821,7 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-pax_file.read"][];
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15824,6 +15840,7 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-pax_file.read_pax_cotizacion.read"][];
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.multipart": {
             nombre?: string;
             apellido?: string;
@@ -15927,6 +15944,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.multipart-file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -42633,6 +42651,54 @@ export interface operations {
                     "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
                     "application/problem+json": components["schemas"]["ConstraintViolation"];
                     "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_filepasajeros_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionFilepasajero identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CotizacionFilepasajero resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionFilepasajero.jsonld-file.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionFilepasajero-file.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionFilepasajero.html-file.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFilepasajero.multipart-file.item.read_timestamp.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };

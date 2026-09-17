@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { extractApiErrorMessage, esErrorSilencioso } from '@/services/apiError';
-import {ApiCotizacionFile, ApiCotizacionFilepasajero, ApiCotizacionFileWrite, I18nContent, PlanCargaZip} from '@/types/fileDetalleModel.ts';
+import {ApiCotizacionFile, ApiCotizacionFilearchivo, ApiCotizacionFilepasajero, ApiCotizacionFileWrite, I18nContent, PlanCargaZip} from '@/types/fileDetalleModel.ts';
 import type { PlanReconciliacion, AplicarPlanPayload, ResultadoAplicacion, InformeCoherencia } from '@/types/operacionModel';
 import type { EstadoFile } from '@/types/cotizacionEditorModel';
 
@@ -714,16 +714,51 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
     // ACCIONES DE PASAJEROS Y BÓVEDA DIGITAL
     // ============================================================================
 
-    const uploadDocument = async (formData: FormData): Promise<boolean> => {
+    /**
+     * Sube un documento y **devuelve la fila creada**, no un `true`.
+     *
+     * 🔥 **Devolvía `true` y el que llamaba recargaba el expediente entero.** Con el expediente en
+     * 9,84 MB y 22 s de serialización, cada subida costaba eso — y subir diez documentos seguidos,
+     * diez veces eso. Desde un móvil con mala cobertura, que es donde se sube de verdad, era
+     * inusable.
+     *
+     * ⚠️ **Y la respuesta ya sirve, que antes no.** Sin `normalizationContext` en el POST, la
+     * respuesta traía el fichero recién subido dentro del JSON (`getImageFile()` → `getContent()`):
+     * devolver eso al que llama habría sido cambiar una lentitud por otra. Ahora son ~2 KB con la
+     * forma de `file:item:read`, o sea exactamente la que tienen las filas de `filearchivos`.
+     */
+    const uploadDocument = async (formData: FormData): Promise<ApiCotizacionFilearchivo | null> => {
         error.value = null;
         try {
-            await apiClient.post('/platform/sales/cotizacion_filearchivos', formData, {
+            const res = await apiClient.post('/platform/sales/cotizacion_filearchivos', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            return true;
+
+            return res.data as ApiCotizacionFilearchivo;
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'Error al subir el documento.');
-            return false;
+            return null;
+        }
+    };
+
+    /**
+     * Relee a UNA persona, para después de tocar uno de sus documentos.
+     *
+     * 🔑 **Hace falta porque subir un escaneo CAMBIA a su dueño**:
+     * `EscaneoNuevoInvalidaVeredictoListener` tira los veredictos de sus identificaciones, y esa
+     * regla vive en el servidor. Preguntarla cuesta ~10 KB; deducirla aquí sería la misma regla
+     * escrita dos veces, que es lo que este proyecto acaba pagando siempre.
+     */
+    const recargarPasajero = async (iri: string): Promise<ApiCotizacionFilepasajero | null> => {
+        try {
+            const res = await apiClient.get(iri);
+
+            return res.data as ApiCotizacionFilepasajero;
+        } catch {
+            // Silencio a propósito: el documento YA se guardó. Que no se pueda refrescar la ficha
+            // del dueño no es un fallo del guardado, y decirlo como tal haría dudar de lo que sí
+            // se hizo. El que llama se queda con lo que tenía.
+            return null;
         }
     };
 
@@ -806,14 +841,15 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
             grupo?: string | null;
             vuelo?: string | null;
         }
-    ): Promise<boolean> => {
+    ): Promise<ApiCotizacionFilearchivo | null> => {
         error.value = null;
         try {
-            await apiClient.patch(iri, payload);
-            return true;
+            const res = await apiClient.patch(iri, payload);
+
+            return res.data as ApiCotizacionFilearchivo;
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'Error al actualizar el documento.');
-            return false;
+            return null;
         }
     };
 
@@ -1122,6 +1158,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         asignarVuelosAGrupo,
         updateFile,
         uploadDocument,
+        recargarPasajero,
         planificarZip,
         aplicarZip,
         descartarZip,

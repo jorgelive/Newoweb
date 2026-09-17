@@ -3679,13 +3679,51 @@ const alcanceDelDoc = () => {
   };
 };
 
+/**
+ * Mete o reemplaza una fila de la bóveda **sin recargar el expediente**.
+ *
+ * 🔥 **Aquí había un `cargarFile()` después de CADA subida.** Con el expediente en 9,84 MB y 22 s
+ * de serialización, subir diez documentos costaba diez veces eso; desde un móvil con mala cobertura
+ * —que es donde se sube de verdad, en el viaje— era inusable. La fila que hace falta la devuelve el
+ * propio POST, que ahora pesa ~2 KB.
+ *
+ * ⚠️ **Y no basta con la fila: hay que releer a su DUEÑO.** Subir un escaneo de identidad hace que
+ * `EscaneoNuevoInvalidaVeredictoListener` tire los veredictos de sus identificaciones. Sin eso, la
+ * pantalla seguiría enseñando en verde un pasaporte que el servidor acaba de poner en duda — que es
+ * peor que ir lento. Son ~10 KB por el `Get` de pasajero.
+ */
+const ponerArchivoEnLaBoveda = async (fila: ApiCotizacionFilearchivo): Promise<void> => {
+  if (!file.value) return;
+
+  const filas = file.value.filearchivos ?? (file.value.filearchivos = []);
+  const clave = claveDeRelacion(fila.id ?? fila['@id']);
+  const i = filas.findIndex(f => claveDeRelacion(f.id ?? f['@id']) === clave);
+
+  if (i >= 0) { filas.splice(i, 1, fila); } else { filas.push(fila); }
+
+  // El dueño, si lo tiene. `pasajero` llega como IRI desde que las cuatro relaciones del archivo
+  // salen enlazadas, así que sirve tal cual para pedirlo.
+  const duenoIri = typeof fila.pasajero === 'string' ? fila.pasajero : null;
+
+  if (!duenoIri) return;
+
+  const fresco = await fileStore.recargarPasajero(duenoIri);
+
+  if (!fresco) return;
+
+  const gente = file.value.filepasajeros ?? [];
+  const j = gente.findIndex(p => claveDeRelacion(p.id ?? p['@id']) === claveDeRelacion(duenoIri));
+
+  if (j >= 0) { gente.splice(j, 1, fresco); }
+};
+
 const guardarDocumento = async () => {
-  let success: boolean;
+  let guardado: ApiCotizacionFilearchivo | null;
 
   if (docEditandoIri.value) {
     // Modo edición: metadata y dueño, sin archivo (PATCH JSON → array i18n)
     isSubmittingDoc.value = true;
-    success = await fileStore.updateDocument(docEditandoIri.value, {
+    guardado = await fileStore.updateDocument(docEditandoIri.value, {
       // ⚠️ Lista VACÍA y no `null`. `CotizacionFilearchivo::setNombre(array)` no admite null, así
       // que un `nombre: null` lo rechaza el serializador con un 400 **antes** de llegar al
       // procesador. Era inalcanzable mientras el campo fue obligatorio; desde que un escaneo de
@@ -3723,13 +3761,17 @@ const guardarDocumento = async () => {
     for (const [campo, iri] of Object.entries(alcanceDelDoc())) {
       if (iri) formData.append(campo, iri);
     }
-    success = await fileStore.uploadDocument(formData);
+    guardado = await fileStore.uploadDocument(formData);
   }
 
-  if (success) {
+  if (guardado) {
     capas.cerrar('doc');
     docEditandoIri.value = null;
-    await cargarFile();
+
+    // ⚠️ Un archivo recién subido nace SIN leer, así que no trae veredicto: la fila aparece como
+    // «subido, pendiente de procesar», que es la verdad y es el acuse de recibo. Sin la recarga ya
+    // no hay parpadeo de pantalla, así que la fila apareciendo es lo único que dice que se guardó.
+    await ponerArchivoEnLaBoveda(guardado);
   } else {
     alert(fileStore.error || (docEditandoIri.value ? 'Error al actualizar documento' : 'Error al subir el documento'));
   }

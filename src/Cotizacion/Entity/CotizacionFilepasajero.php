@@ -6,6 +6,7 @@ namespace App\Cotizacion\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
@@ -30,6 +31,26 @@ use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 #[ApiResource(
     shortName: 'CotizacionFilepasajero',
     operations: [
+        /**
+         * ⚠️ **No existía, y por eso el panel recargaba el expediente entero.**
+         *
+         * Al subir un documento de identidad, `EscaneoNuevoInvalidaVeredictoListener` invalida los
+         * veredictos de las identificaciones de esa persona. Sin forma de leer a UNA sola, la única
+         * manera de enterarse era volver a pedir el expediente —hoy 1,89 MB, antes 9,84— después de
+         * cada subida. Con esto son ~10 KB.
+         *
+         * 🔑 **Y por eso no se calcula en el front.** La regla de cuándo se cae un veredicto vive en
+         * el listener; mirrorearla en JavaScript sería la misma regla en dos sitios, que es lo que
+         * este proyecto paga cada vez que lo hace. Se pregunta.
+         *
+         * Mismos grupos que el PATCH, y por el mismo motivo: sin ellos las pertenencias vuelven
+         * sobre sí mismas y sale una `CircularReferenceException`.
+         */
+        new Get(
+            normalizationContext: ['groups' => ['file:item:read', 'timestamp:read']],
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+            securityMessage: 'No tienes permiso para ver pasajeros.'
+        ),
         new Post(
             // ⚠️ Sin grupos de normalización, la respuesta arrastra el grafo entero y el
             // pasajero vuelve sobre sí mismo: pertenencia → grupo → miembros → la MISMA
