@@ -10,12 +10,15 @@ use App\Message\Form\Type\EmailTemplateType;
 use App\Message\Form\Type\WhatsappLinkTemplateType;
 use App\Message\Form\Type\WhatsappMetaTemplateType;
 use App\Message\Service\MessageSegmentationAggregator;
+use App\Message\Service\Plantilla\ArchivadorDePlantillas;
 use App\Message\Service\Meta\Template\WhatsappMetaTemplateInventario;
 use App\Message\Service\Meta\Template\WhatsappMetaTemplatePushService;
 use App\Message\Service\Meta\Template\WhatsappMetaTemplateSyncService;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Helper\AyudaPlegable;
 use App\Security\Roles;
+use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
@@ -32,6 +35,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -61,6 +65,27 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setEntityLabelInSingular('Plantilla')
             ->setEntityLabelInPlural('Plantillas de Mensaje')
             ->setPageTitle(Crud::PAGE_INDEX, 'Gestión de Plantillas')
+            // El porqué de los tachones y del botón «Archivar», donde se ven: en la propia lista.
+            // Antes había que deducirlo de cuatro etiquetas tachadas, y nadie adivina que eso
+            // significa «no se ofrece en ningún sitio».
+            ->setHelp(Crud::PAGE_INDEX, AyudaPlegable::html(
+                'Los <b>canales</b> dicen dónde está redactada y dónde está encendida: '
+                . '<span class="badge badge-success">verde</span> redactado y activo · '
+                . '<span class="badge badge-secondary"><s>tachado</s></span> redactado pero apagado · '
+                . 'si no aparece, no hay texto escrito.',
+                '<b>Archivar</b> es apagar TODOS sus canales. Una plantilla archivada no se puede enviar, '
+                . 'así que deja de ofrecerse en el selector del chat y en el catálogo del agente — pero '
+                . '<b>sigue aquí, editable y con su texto intacto</b>, porque los mensajes que ya se '
+                . 'enviaron con ella la referencian.<br><br>'
+                . 'Se archiva con el botón <b>Archivar</b>, y vuelve con <b>Devolver a circulación</b>, que '
+                . 'enciende sólo los canales que tienen texto escrito. El mismo interruptor está dentro de '
+                . 'cada panel de canal al editar («Activar envío por Beds24»…): el botón es el atajo.<br><br>'
+                . '⚠️ No se archiva una plantilla que use una <b>regla activa</b>: esa regla seguiría '
+                . 'programando mensajes que no podrían salir por ningún canal. Primero se repunta o se apaga '
+                . 'la regla.<br><br>'
+                . '⚠️ <b>«WA dentro» no tiene interruptor propio</b>: es el mismo canal de WhatsApp con otro '
+                . 'cuerpo —uno para dentro de la ventana de 24 h y otro para fuera— y lo manda el de Meta.'
+            ))
             ->showEntityActionsInlined();
     }
 
@@ -102,7 +127,28 @@ class MessageTemplateCrudController extends BaseCrudController
             ->createAsGlobalAction()
             ->setCssClass('btn btn-secondary');
 
+        // 4. Archivar / devolver a circulación. El atajo al interruptor de todos los canales.
+        //
+        // Existe porque apagar una plantilla obligaba a entrar a editar y desmarcar la casilla de
+        // CADA panel de canal —cuatro sitios, muy abajo en el móvil— y nada en la lista decía que
+        // el resultado se llamara «archivada». Lo que hace y lo que no, en la ayuda del listado.
+        $archivarAction = Action::new('archivarPlantilla', 'Archivar', 'fa fa-box-archive')
+            ->linkToCrudAction('executeArchivar')
+            ->setCssClass('btn btn-secondary')
+            ->setHtmlAttributes(['title' => 'Apaga todos sus canales: deja de ofrecerse en el chat y al agente. No borra nada.'])
+            ->displayIf(static fn (MessageTemplate $entity): bool => $entity->estaEnCirculacion());
+
+        $devolverAction = Action::new('devolverPlantilla', 'Devolver a circulación', 'fa fa-rotate-left')
+            ->linkToCrudAction('executeDevolverACirculacion')
+            ->setCssClass('btn btn-success')
+            ->setHtmlAttributes(['title' => 'Enciende los canales que tienen texto escrito.'])
+            ->displayIf(static fn (MessageTemplate $entity): bool => !$entity->estaEnCirculacion());
+
         $actions
+            ->add(Crud::PAGE_INDEX, $archivarAction)
+            ->add(Crud::PAGE_DETAIL, $archivarAction)
+            ->add(Crud::PAGE_INDEX, $devolverAction)
+            ->add(Crud::PAGE_DETAIL, $devolverAction)
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, $syncMetaAction)
@@ -133,6 +179,8 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setPermission(Action::EDIT, Roles::MENSAJES_WRITE)
             ->setPermission(Action::DELETE, Roles::MENSAJES_DELETE)
             ->setPermission('pushMetaTemplate', Roles::MENSAJES_WRITE) // Requiere permisos de escritura
+            ->setPermission('archivarPlantilla', Roles::MENSAJES_WRITE)
+            ->setPermission('devolverPlantilla', Roles::MENSAJES_WRITE)
             // Revisar estado solo LEE de Meta y actualiza el estado local: basta con poder
             // ver plantillas. Se declara explícitamente para que no dependa del defecto.
             ->setPermission('syncMetaTemplates', Roles::MENSAJES_SHOW)
@@ -191,9 +239,16 @@ class MessageTemplateCrudController extends BaseCrudController
                         : sprintf('<span class="badge badge-secondary" style="%s" title="Redactado pero APAGADO: no se envía por este canal"><s>%s</s></span>', self::ESTILO_BADGE, htmlspecialchars($etiqueta, ENT_QUOTES));
                 }
 
-                return $badges === []
-                    ? '<span class="text-muted small">sin redactar</span>'
-                    : implode('', $badges);
+                if ($badges === []) {
+                    return '<span class="text-muted small">sin redactar</span>';
+                }
+
+                // El rótulo, delante: cuatro etiquetas tachadas no se leen como «archivada».
+                $archivada = $entity !== null && !$entity->estaEnCirculacion()
+                    ? sprintf('<span class="badge badge-dark" style="%s" title="Sin ningún canal encendido: no se ofrece en el chat ni al agente">ARCHIVADA</span>', self::ESTILO_BADGE)
+                    : '';
+
+                return $archivada . implode('', $badges);
             })
             ->renderAsHtml();
 
@@ -466,6 +521,105 @@ class MessageTemplateCrudController extends BaseCrudController
             'total' => $datos['total'],
             'urlVolver' => $urlVolver,
         ]);
+    }
+
+    /**
+     * Archiva la plantilla: apaga todos sus canales.
+     *
+     * La regla vive en `ArchivadorDePlantillas`, compartida con `msg:plantilla:archivar`: lo que
+     * importa de las dos no es el `is_active`, sino la guarda de las reglas activas.
+     *
+     * @param AdminContext<MessageTemplate> $context
+     */
+    #[AdminRoute(path: 'archivar', name: 'archivar')]
+    public function executeArchivar(
+        AdminContext $context,
+        ArchivadorDePlantillas $archivador,
+        EntityManagerInterface $em,
+        AdminUrlGenerator $adminUrlGenerator,
+    ): Response {
+        $plantilla = $context->getEntity()->getInstance();
+
+        if (!$plantilla instanceof MessageTemplate) {
+            $this->addFlash('danger', 'No se pudo leer la plantilla.');
+
+            return $this->redirect($this->urlDeVuelta($context, $adminUrlGenerator));
+        }
+
+        try {
+            $archivador->archivar($plantilla);
+        } catch (RuntimeException $e) {
+            // La guarda no es un error del operador: es la razón por la que no se archiva, y dice
+            // qué hay que hacer antes.
+            $this->addFlash('warning', sprintf('«%s» no se archivó. %s', $plantilla->getName(), $e->getMessage()));
+
+            return $this->redirect($this->urlDeVuelta($context, $adminUrlGenerator));
+        }
+
+        $em->flush();
+
+        $this->addFlash('success', sprintf(
+            '«%s» archivada: ya no se ofrece en el chat ni al agente. Su texto sigue aquí; para '
+            . 'volver a usarla, «Devolver a circulación».',
+            $plantilla->getName()
+        ));
+
+        return $this->redirect($this->urlDeVuelta($context, $adminUrlGenerator));
+    }
+
+    /**
+     * La devuelve a circulación encendiendo los canales que tienen texto escrito.
+     *
+     * @param AdminContext<MessageTemplate> $context
+     */
+    #[AdminRoute(path: 'devolver-a-circulacion', name: 'devolver_a_circulacion')]
+    public function executeDevolverACirculacion(
+        AdminContext $context,
+        ArchivadorDePlantillas $archivador,
+        EntityManagerInterface $em,
+        AdminUrlGenerator $adminUrlGenerator,
+    ): Response {
+        $plantilla = $context->getEntity()->getInstance();
+
+        if (!$plantilla instanceof MessageTemplate) {
+            $this->addFlash('danger', 'No se pudo leer la plantilla.');
+
+            return $this->redirect($this->urlDeVuelta($context, $adminUrlGenerator));
+        }
+
+        $encendidos = $archivador->devolverACirculacion($plantilla);
+
+        if ($encendidos === []) {
+            // Sin cuerpo en ningún canal no hay nada que encender, y encenderlo igual ofrecería
+            // una plantilla que saldría en blanco.
+            $this->addFlash('warning', sprintf(
+                '«%s» no tiene texto escrito en ningún canal: escribe el cuerpo y vuelve a intentarlo.',
+                $plantilla->getName()
+            ));
+
+            return $this->redirect($this->urlDeVuelta($context, $adminUrlGenerator));
+        }
+
+        $em->flush();
+
+        $this->addFlash('success', sprintf(
+            '«%s» vuelve a circulación por %s. Los canales sin texto siguen apagados.',
+            $plantilla->getName(),
+            implode(' y ', $encendidos)
+        ));
+
+        return $this->redirect($this->urlDeVuelta($context, $adminUrlGenerator));
+    }
+
+    /**
+     * De vuelta a donde se pulsó —lista o detalle—, y al listado si no hay referente.
+     *
+     * @param AdminContext<MessageTemplate> $context
+     */
+    private function urlDeVuelta(AdminContext $context, AdminUrlGenerator $adminUrlGenerator): string
+    {
+        return $context->getReferrer()
+            ?? $adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl();
     }
 
     /**

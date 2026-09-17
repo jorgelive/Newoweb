@@ -8121,8 +8121,17 @@ todo apagado. Una archivada:
   archivada;
 - **sigue en el panel**, editable, y encender un canal la devuelve.
 
-`msg:plantilla:archivar <códigos>` apaga los canales y **no borra**: los mensajes enviados la
-referencian. Se niega si una regla activa la usa.
+Se archiva desde el panel con el botón **«Archivar»**, y vuelve con **«Devolver a circulación»**,
+que enciende sólo los canales **que tienen texto escrito** —encenderlos todos ofrecería la plantilla
+por un canal vacío—. El mismo interruptor está dentro de cada panel de canal al editar («Activar
+envío por Beds24»…): el botón es el atajo, porque eran cuatro casillas muy abajo y nada en la lista
+decía que el resultado se llamara «archivada». Hoy lo dice una etiqueta **ARCHIVADA** delante de los
+canales, y la ayuda plegable del listado explica los tachones.
+
+Por línea de comandos es `msg:plantilla:archivar <códigos>`. Los dos caminos comparten
+`ArchivadorDePlantillas`, y lo que de verdad comparten no es el `is_active` sino la **guarda**: no se
+archiva una plantilla que use una **regla activa**, porque esa regla seguiría programando mensajes
+que no podrían salir por ningún canal. Y **no borra**: los mensajes enviados la referencian.
 
 ⚠️ **El nombre de la plantilla va embebido en el mensaje** (`name` también en `message:read`). El
 chat lo buscaba en la lista del selector, y al sacar de ahí las archivadas sus mensajes viejos

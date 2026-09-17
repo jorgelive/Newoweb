@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Command;
 
-use App\Message\Entity\MessageRule;
 use App\Message\Entity\MessageTemplate;
+use App\Message\Service\Plantilla\ArchivadorDePlantillas;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -34,8 +34,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class MessageArchivarPlantillaCommand extends Command
 {
-    public function __construct(private readonly EntityManagerInterface $em)
-    {
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly ArchivadorDePlantillas $archivador,
+    ) {
         parent::__construct();
     }
 
@@ -65,7 +67,7 @@ final class MessageArchivarPlantillaCommand extends Command
                 return Command::FAILURE;
             }
 
-            $reglas = $this->reglasActivasDe($plantilla);
+            $reglas = $this->archivador->reglasActivasQueLaUsan($plantilla);
 
             if ($reglas !== []) {
                 $io->error(sprintf(
@@ -87,10 +89,7 @@ final class MessageArchivarPlantillaCommand extends Command
             ++$cambios;
 
             if (!$simular) {
-                $plantilla
-                    ->setBeds24Tmpl(['is_active' => false] + ($plantilla->getBeds24Tmpl() ?? []))
-                    ->setWhatsappMetaTmpl(['is_active' => false] + ($plantilla->getWhatsappMetaTmpl() ?? []))
-                    ->setEmailTmpl(['is_active' => false] + ($plantilla->getEmailTmpl() ?? []));
+                $this->archivador->archivar($plantilla);
             }
         }
 
@@ -108,15 +107,4 @@ final class MessageArchivarPlantillaCommand extends Command
         return Command::SUCCESS;
     }
 
-    /** @return list<string> */
-    private function reglasActivasDe(MessageTemplate $plantilla): array
-    {
-        $nombres = [];
-
-        foreach ($this->em->getRepository(MessageRule::class)->findBy(['template' => $plantilla, 'isActive' => true]) as $regla) {
-            $nombres[] = (string) $regla->getName();
-        }
-
-        return $nombres;
-    }
 }

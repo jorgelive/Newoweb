@@ -60,6 +60,26 @@ tira ningún error, ni PHPStan lo ve, es sólo una URL fea que existe igual — 
 quedan rotas y mudas: el resaltado del menú (este apartado) y, si el panel llegase a
 `configurePrettyUrls()` alguna vez de forma más estricta, la propia navegación.
 
+## Archivar una plantilla desde la lista (17/09/2026)
+
+`MessageTemplateCrudController` tiene dos acciones de fila, `archivarPlantilla` y
+`devolverPlantilla`, que apagan o encienden los canales de una plantilla en un clic. Las dos cuelgan
+de `ArchivadorDePlantillas`, el mismo servicio que usa `msg:plantilla:archivar`.
+
+Tres cosas que se decidieron ahí y valen para cualquier acción parecida:
+
+1. **`#[AdminRoute]` en los dos métodos**, por §2: sin ruta propia la acción se sirve por query
+   string y el menú lateral deja de resaltar su entrada.
+2. **`displayIf()` decide cuál de las dos se ve**, en vez de un botón que cambia de texto: cada una
+   dice lo que va a pasar y la otra no está.
+3. **La guarda no es un error**: cuando la plantilla la usa una regla activa, el flash es un
+   `warning` que nombra las reglas y dice qué hacer antes. Un `danger` haría pensar en un fallo del
+   panel.
+
+Y el **por qué** vive donde se ve: `Crud::setHelp(PAGE_INDEX, …)` con un bloque plegable que explica
+qué significan los canales tachados, qué hace archivar y qué no toca. La lista enseña además una
+etiqueta **ARCHIVADA**: cuatro etiquetas tachadas no se leen como un estado.
+
 ## Dónde tocar para cambiar X
 
 | Necesito… | Archivo | Método |
