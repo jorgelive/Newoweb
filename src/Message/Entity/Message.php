@@ -54,7 +54,20 @@ use App\Message\Contract\MessageQueueItemInterface;
                     fromClass: MessageConversation::class
                 )
             ],
-            order: ['scheduledAt' => 'DESC', 'createdAt' => 'DESC']
+            // ⚠️ POR FECHA DE CREACIÓN, y no por `scheduledAt` primero.
+            //
+            // Ordenando por `scheduledAt DESC`, los mensajes con fecha futura se ponen DELANTE y
+            // los reales —que la tienen nula— caen al final de todo. Con eso, un hilo con muchos
+            // programados o cancelados llena la primera página con fechas de 2027 y **el chat sale
+            // vacío**: el front pide 30, los reparte en sus pestañas y no le llega ni uno enviado.
+            //
+            // Medido el 17/09/2026 en el hilo de Susan —personal con reservas de prueba—: 110 filas
+            // con fecha programada, así que la página 1 eran 29 cancelados y 1 programado. El
+            // «Historial» en blanco y «Programados (1)» cuando en realidad tenía seis.
+            //
+            // La creación es lo que ordena la actividad del hilo: lo último que pasó, primero. Las
+            // pestañas las separa el front, que ya ordena cada una por su fecha efectiva.
+            order: ['createdAt' => 'DESC']
         ),
 
         // ------------------------------------------------------------------------

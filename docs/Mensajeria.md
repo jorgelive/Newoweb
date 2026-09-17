@@ -1303,6 +1303,24 @@ Un diccionario a medias no ahorra consultas: fabrica mensajes incompletos que na
 inglés también—. Por eso el controlador del envío a mano pasa el idioma que acaba de elegir para el
 cuerpo, y de paso usa `HidratadorDeMarcadores` en vez de su propio `strtr`.
 
+### 🔥 El chat salía VACÍO en los hilos con muchos programados (17/09/2026)
+
+El subrecurso `/conversations/{id}/messages` ordenaba por `scheduledAt DESC` y luego por
+`createdAt`. Los mensajes con fecha futura se ponen **delante** y los reales —que la tienen nula—
+caen al final: en un hilo con muchos programados o cancelados, la primera página (30) se llena con
+fechas de años venideros y **el historial sale en blanco**, porque el front pide una página y la
+reparte en sus tres pestañas.
+
+Se vio en el hilo de Susan, personal con reservas de prueba: **110 filas con fecha programada**, así
+que la página 1 eran 29 cancelados y 1 programado. La pantalla decía «Programados (1)» cuando tenía
+seis, y ni un mensaje en el historial pese a 152 leídos y 66 enviados.
+
+Ordena por `createdAt DESC`: la actividad del hilo es lo último que PASÓ, no lo que está más lejos
+en el calendario. Cada pestaña la ordena el front por su fecha efectiva.
+
+⚠️ Es la misma familia que el vaivén de §7: no fallaba nada, y lo que se veía era una pantalla
+vacía que se lee como «aquí no hay nada» en vez de como un fallo.
+
 ### 🔥 Los bloqueos puros no generan chat, los inquiries sí
 
 `PmsReservaMessageContext::isSoloBloqueo()` corta la creación de conversación para bloqueos de
