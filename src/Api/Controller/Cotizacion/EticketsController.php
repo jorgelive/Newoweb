@@ -144,24 +144,12 @@ final class EticketsController extends AbstractController
 
             $nuevas = array_map(static fn (Discrepancia $d): array => $d->aJson(), $cotejo->discrepancias);
 
-            // 🔑 **Un sello humano sobrevive al re-juicio, pero sólo mientras el desajuste sea EL
-            // MISMO.** Re-juzgar en cada pasada es lo que mantiene vivos los veredictos, y aplicado
-            // a ciegas borraría el «lo he mirado y está bien» en el clic siguiente: el botón de
-            // aceptar no serviría de nada. Pero conservarlo pase lo que pase es peor —taparía un
-            // problema nuevo con la revisión de uno viejo—.
-            //
-            // Lo que alguien aceptó fue **este** desacuerdo. Si cambia, se reabre solo.
-            if ($archivo->getEstadoValidacion() === ValidacionIdentificacionEnum::CONFIRMADO
-                && $nuevas == $archivo->getDiscrepancias()) {
-                $conteo[ValidacionIdentificacionEnum::CONFIRMADO->value]
-                    = ($conteo[ValidacionIdentificacionEnum::CONFIRMADO->value] ?? 0) + 1;
-                $archivos[] = self::veredictoDe($archivo);
-                continue;
-            }
+            // 🔑 Un sello humano sobrevive al re-juicio mientras el desajuste sea EL MISMO. La regla
+            // vive en la entidad —ver `CotizacionFilearchivo::rejuzgar()`— porque estuvo escrita
+            // aquí y sólo aquí, y los otros dos caminos la pisaban.
+            $archivo->rejuzgar($cotejo->estado, $nuevas, $cotejo->notas);
 
-            $archivo->registrarValidacion($cotejo->estado, $nuevas, $cotejo->notas);
-
-            $conteo[$cotejo->estado->value] = ($conteo[$cotejo->estado->value] ?? 0) + 1;
+            $conteo[$archivo->getEstadoValidacion()->value] = ($conteo[$archivo->getEstadoValidacion()->value] ?? 0) + 1;
             $archivos[] = self::veredictoDe($archivo);
         }
 
@@ -209,6 +197,24 @@ final class EticketsController extends AbstractController
 
         if ($archivo === null || $archivo->getTipoArchivo() !== ArchivoTipoEnum::ETICKET) {
             return new JsonResponse(['error' => 'No encontré ese E-Ticket.'], Response::HTTP_NOT_FOUND);
+        }
+
+        // 🔥 **Sólo se acepta lo que la máquina OBSERVÓ.** Este endpoint sellaba lo que se le
+        // pasara: un trámite en verde, uno nunca leído, uno que no se pudo comparar.
+        //
+        // ⚠️ `NO_VALIDADO` queda fuera **a propósito**, y es la decisión que más se discutió. Ahí el
+        // sistema no llegó a comparar nada —foto ilegible, o la persona sin subgrupo aéreo—, así que
+        // firmarlo sería poner «revisado» sobre un cotejo que no existió. Lo que se hace es arreglar
+        // la causa y reprocesar, y el 409 lo dice.
+        if ($archivo->getEstadoValidacion() !== ValidacionIdentificacionEnum::OBSERVADO) {
+            return new JsonResponse([
+                'error' => match ($archivo->getEstadoValidacion()) {
+                    ValidacionIdentificacionEnum::NO_VALIDADO => 'Este E-Ticket todavía no se pudo comparar con nada. '
+                        .'Arregla la causa —otra foto, o asignarle su vuelo— y pulsa «Reprocesar».',
+                    ValidacionIdentificacionEnum::CONFIRMADO => 'Este E-Ticket ya está aceptado.',
+                    default => 'Este E-Ticket no tiene nada que aceptar: el control no le encontró problemas.',
+                },
+            ], Response::HTTP_CONFLICT);
         }
 
         $quien = $this->getUser()?->getUserIdentifier() ?? 'alguien';

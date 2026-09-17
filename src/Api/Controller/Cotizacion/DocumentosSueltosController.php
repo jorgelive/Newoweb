@@ -193,7 +193,9 @@ final class DocumentosSueltosController extends AbstractController
                 continue;
             }
 
-            $archivo->registrarValidacion(
+            // `rejuzgar()` y no `registrarValidacion()`: si alguien ya aceptó este trámite, pulsar
+            // Reprocesar no puede deshacer su firma. Ver la entidad.
+            $archivo->rejuzgar(
                 $cotejo->estado,
                 array_map(static fn (Discrepancia $d): array => $d->aJson(), $cotejo->discrepancias),
                 $cotejo->notas,

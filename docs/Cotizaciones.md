@@ -10221,6 +10221,45 @@ Tres cambios, en orden de lo que rinden:
 cortaba el `circular_reference_handler`. Marcarlo no cambia el payload, sólo deja de mentir el
 esquema.
 
+#### 🔥 Tres formas de borrar la firma de una persona (17/09/2026)
+
+Las tres tienen la misma forma: **una aceptación humana que la máquina deshacía sin preguntar.**
+
+**1. Girar o renombrar un pasaporte le quitaba el sello a quien lo había mirado.**
+`EscaneoNuevoInvalidaVeredictoListener` caducaba los veredictos del dueño en **cualquier**
+actualización de un archivo de identidad, y `invalidarVeredicto()` se lleva `confirmadaEn`,
+`confirmadaPor` y `validadoCon`. El bloque de abajo del mismo listener —el del veredicto del propio
+archivo— ya preguntaba bien; **las dos mitades respondían distinto a la misma pregunta.** Ahora las
+dos usan `queCaduca()`:
+
+| Qué cambió | ¿veredicto? | ¿lectura? |
+|---|---|---|
+| archivo nuevo | sí | si trae fichero |
+| el fichero | sí | sí |
+| el dueño | sí, a los dos | no |
+| `tipoArchivo` | sí, al tipo viejo y al nuevo | sí |
+| giro, nombre, tamaño, la propia lectura | **no** | no |
+
+⚠️ **El giro es el que no se ve**: `GiradorDeEscaneo` no pasa por Vich —escribe con Imagick—, así
+que `hayFicheroNuevo()` es falso y el changeset trae `rotacionAplicada`, `datosLeidos` e
+`imageSize`. Mismo documento, derecho: no caduca nada.
+
+**2. `EticketsController::aceptar()` sellaba cualquier cosa**: un trámite en verde, uno sin leer,
+uno que no se pudo comparar. Ahora sólo acepta `OBSERVADO` y responde 409 con el porqué.
+
+⚠️ **`NO_VALIDADO` NO se puede aceptar, y es decisión explícita.** Ahí el sistema no llegó a comparar
+nada —foto ilegible, o la persona sin subgrupo aéreo—, así que firmarlo sería poner «revisado» sobre
+un cotejo que no existió. Se arregla la causa y se reprocesa.
+
+**3. «Reprocesar» y el comando pisaban un E-Ticket aceptado.** La regla «se respeta lo aceptado
+mientras el desacuerdo sea el mismo» estaba escrita **dentro de la tanda del manifiesto** y en ningún
+otro sitio. Pasa a `CotizacionFilearchivo::rejuzgar()` y los tres caminos la usan: el fallo no era
+de ningún llamador, era que la regla viviera en un llamador.
+
+⚠️ Y de paso: la tanda comparaba las discrepancias con `==` sobre la lista, que **depende del
+orden**. Si el cotejo las devolvía en otro orden, una aceptación se reabría sin que nada cambiara.
+`rejuzgar()` las compara sin orden.
+
 #### 🔥 Subir un documento recargaba el expediente entero (16/09/2026)
 
 `guardarDocumento()` terminaba en `await cargarFile()`. Con el expediente en 9,84 MB y 22 s de

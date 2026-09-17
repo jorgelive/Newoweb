@@ -56,9 +56,18 @@ final readonly class EscaneoNuevoInvalidaVeredictoListener
                 continue;
             }
 
-            foreach ($this->veredictosQueCaducan($entidad, $uow) as $identificacion) {
-                $identificacion->hayEscaneoNuevo();
-                $uow->recomputeSingleEntityChangeSet($metadatos, $identificacion);
+            $cambios = $uow->getEntityChangeSet($entidad);
+            $caduca = self::queCaduca($uow->isScheduledForInsert($entidad), self::hayFicheroNuevo($entidad), $cambios);
+
+            // 🔥 **Antes esto corría en CUALQUIER actualización de un archivo de identidad.** Girar
+            // un pasaporte —que no pasa por Vich: `GiradorDeEscaneo` escribe con Imagick y toca
+            // `rotacionAplicada`— o renombrarlo tiraba el veredicto de su dueño, y con él
+            // `confirmadaEn`/`confirmadaPor`: **la firma de quien lo había mirado**. Ver `queCaduca()`.
+            if ($caduca['veredicto']) {
+                foreach ($this->veredictosQueCaducan($entidad, $cambios) as $identificacion) {
+                    $identificacion->hayEscaneoNuevo();
+                    $uow->recomputeSingleEntityChangeSet($metadatos, $identificacion);
+                }
             }
 
             // 🔥 **Son DOS preguntas, y las había fundido en una.**
@@ -72,11 +81,8 @@ final readonly class EscaneoNuevoInvalidaVeredictoListener
             // **paga la lectura**, crea la ficha a partir de ella y entonces hace `setPasajero()`.
             // El flush de esa misma transacción borraba la lectura de la que acababa de salir la
             // ficha — y volver a tenerla cuesta otra llamada, si el fichero sigue en disco.
-            $huboFicheroNuevo = self::hayFicheroNuevo($entidad);
-            $cambios = $uow->getEntityChangeSet($entidad);
-
-            if ($huboFicheroNuevo || isset($cambios['pasajero'])) {
-                if ($huboFicheroNuevo) {
+            if ($caduca['veredicto']) {
+                if ($caduca['lectura']) {
                     $entidad->olvidarLectura();
                 }
 
@@ -112,21 +118,81 @@ final readonly class EscaneoNuevoInvalidaVeredictoListener
     }
 
     /**
+     * Qué deja de valer con esta escritura: el veredicto, y además la lectura.
+     *
+     * ── 🔥 La pregunta que faltaba: ¿cambió algo que se COTEJÓ? ────────────────
+     * El bloque de las identificaciones caducaba en **cualquier** actualización de un archivo de
+     * identidad. Girar un pasaporte o cambiarle el nombre tiraba el veredicto de su dueño, y
+     * `invalidarVeredicto()` se lleva `confirmadaEn`, `confirmadaPor` y `validadoCon`: **la firma de
+     * una persona, borrada por enderezar una foto**. El bloque del archivo ya preguntaba bien; las
+     * dos mitades del mismo listener respondían distinto a la misma pregunta.
+     *
+     * | Qué cambió | ¿veredicto? | ¿lectura? | Por qué |
+     * |---|---|---|---|
+     * | es un archivo nuevo | sí | si trae fichero | un escaneo que aparece |
+     * | el fichero | sí | **sí** | es otro documento |
+     * | el dueño | sí, a los dos | no | se cotejó contra otra persona; los bytes son los mismos |
+     * | `tipoArchivo` | sí, al tipo viejo y al nuevo | **sí** | un DNI que pasa a pasaporte respalda otro número, y la lectura se hizo con las preguntas de otro documento |
+     * | giro, nombre, tamaño, la propia lectura | **no** | no | nada de lo que se cotejó |
+     *
+     * ⚠️ **El giro es el caso que importa y el que no se ve.** `GiradorDeEscaneo` no pasa por Vich
+     * —escribe con Imagick—, así que `hayFicheroNuevo()` es `false` y el changeset sólo trae
+     * `rotacionAplicada`, `datosLeidos` e `imageSize`. Correcto: mismo documento, derecho.
+     *
+     * ⚠️ **`tipoArchivo` sólo cuenta en una ACTUALIZACIÓN.** En un alta el changeset trae todos los
+     * campos, y contarlo ahí tiraría la lectura de un archivo que nace ya leído.
+     *
+     * Pura y estática para poder probarla. ⚠️ Pero **un test verde aquí no basta**: en este mismo
+     * listener ya hubo uno sobre un changeset que en producción no existe en ese instante. Se
+     * verifica también con el flujo real.
+     *
+     * @param array<string, mixed> $cambios el changeset del archivo
+     *
+     * @return array{veredicto: bool, lectura: bool}
+     */
+    public static function queCaduca(bool $esNuevo, bool $ficheroNuevo, array $cambios): array
+    {
+        $cambioDeTipo = !$esNuevo && isset($cambios['tipoArchivo']);
+
+        return [
+            'veredicto' => $esNuevo || $ficheroNuevo || isset($cambios['pasajero']) || $cambioDeTipo,
+            'lectura' => $ficheroNuevo || $cambioDeTipo,
+        ];
+    }
+
+    /**
      * Los veredictos que este escaneo deja sin valor: el de su dueño actual y —si acaba de
      * cambiar de manos— el del anterior, que se quedó sin el documento que lo respaldaba.
      *
+     * @param array<string, mixed> $cambios
+     *
      * @return list<CotizacionPasajeroIdentificacion>
      */
-    private function veredictosQueCaducan(CotizacionFilearchivo $archivo, \Doctrine\ORM\UnitOfWork $uow): array
+    private function veredictosQueCaducan(CotizacionFilearchivo $archivo, array $cambios): array
     {
         // 🔥 **El reverso del DNI cuenta, y antes no.** No lleva el número impreso —`respaldaA()`
         // es `null`— pero lleva la MRZ que lo verifica, así que subirlo puede llevar ese DNI de
         // «observado» a «validado por MRZ». Mirando sólo `respaldaA()`, subir el reverso no
         // caducaba nada: el veredicto viejo se quedaba puesto y el escaneo nuevo no servía de nada
         // hasta que alguien pulsara reprocesar sin saber por qué.
-        $tipo = $archivo->getTipoArchivo();
-        $tipoNumero = $tipo?->respaldaA() ?? $tipo?->verificaA();
-        if ($tipoNumero === null) {
+        //
+        // Y si el TIPO cambió, también el de antes: un DNI reetiquetado como pasaporte deja al DNI
+        // sin el escaneo que lo respaldaba.
+        $tipos = [$archivo->getTipoArchivo()];
+        $tipoViejo = is_array($cambios['tipoArchivo'] ?? null) ? ($cambios['tipoArchivo'][0] ?? null) : null;
+        if ($tipoViejo instanceof \App\Cotizacion\Enum\ArchivoTipoEnum) {
+            $tipos[] = $tipoViejo;
+        }
+
+        $numeros = [];
+        foreach ($tipos as $tipo) {
+            $numero = $tipo?->respaldaA() ?? $tipo?->verificaA();
+            if ($numero !== null) {
+                $numeros[] = $numero;
+            }
+        }
+
+        if ($numeros === []) {
             return [];   // un boleto o una autorización no dicen nada de ningún número
         }
 
@@ -134,15 +200,15 @@ final readonly class EscaneoNuevoInvalidaVeredictoListener
 
         // El changeset dice de quién ERA. Sin esto, reasignar un documento dejaría al anterior con
         // un sello verde apoyado en un escaneo que ya no es suyo.
-        $cambios = $uow->getEntityChangeSet($archivo);
-        if (isset($cambios['pasajero'][0])) {
-            $duenos[] = $cambios['pasajero'][0];
+        $duenoViejo = is_array($cambios['pasajero'] ?? null) ? ($cambios['pasajero'][0] ?? null) : null;
+        if ($duenoViejo instanceof \App\Cotizacion\Entity\CotizacionFilepasajero) {
+            $duenos[] = $duenoViejo;
         }
 
         $afectados = [];
         foreach (array_filter($duenos) as $dueno) {
             foreach ($dueno->getIdentificaciones() as $identificacion) {
-                if ($identificacion->getTipo() === $tipoNumero) {
+                if (in_array($identificacion->getTipo(), $numeros, true)) {
                     $afectados[] = $identificacion;
                 }
             }

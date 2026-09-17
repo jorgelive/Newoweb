@@ -329,6 +329,66 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
     }
 
     /**
+     * Aplica un veredicto de la MÁQUINA **respetando lo que aceptó una persona**.
+     *
+     * 🔥 **Esta regla vivía dentro de la tanda del manifiesto y en ningún otro sitio.** «Reprocesar»
+     * por persona y el comando llamaban a `registrarValidacion()` directamente, así que aceptabas un
+     * trámite, pulsabas Reprocesar, y volvía a observado: la firma duraba un clic. El fallo no era
+     * de ninguno de los tres llamadores — era que la regla estuviera en un llamador.
+     *
+     * 🔑 **Lo que alguien aceptó fue ESTE desacuerdo**, y la aceptación se mantiene sólo mientras
+     * siga siendo el mismo. Conservarla pase lo que pase taparía un problema nuevo con la revisión
+     * de uno viejo; tirarla en cada re-juicio haría inútil el botón.
+     *
+     * | lo aceptado | el re-juicio dice | resultado |
+     * |---|---|---|
+     * | CONFIRMADO | OBSERVADO, mismas discrepancias | **se mantiene** |
+     * | CONFIRMADO | OBSERVADO, otras discrepancias | se reabre: es otro problema |
+     * | CONFIRMADO | VALIDADO_OCR | se aplica: el problema desapareció |
+     * | CONFIRMADO | NO_VALIDADO | se aplica: ya no se puede comparar lo que se firmó |
+     *
+     * ⚠️ **Las discrepancias se comparan sin orden.** La tanda las comparaba con `==` sobre la
+     * lista, que depende de la posición: si el cotejo las devolvía en otro orden, una aceptación se
+     * reabría sin que hubiera cambiado nada.
+     *
+     * @param list<array{campo: string, documento: string, manifiesto: string}> $discrepancias
+     * @param list<string> $notas
+     *
+     * @return bool `false` si se conservó la aceptación y no se escribió nada
+     */
+    public function rejuzgar(ValidacionIdentificacionEnum $estado, array $discrepancias, array $notas): bool
+    {
+        if ($this->estadoValidacion === ValidacionIdentificacionEnum::CONFIRMADO
+            && $estado === ValidacionIdentificacionEnum::OBSERVADO
+            && self::mismasDiscrepancias($this->discrepancias, $discrepancias)) {
+            return false;
+        }
+
+        $this->registrarValidacion($estado, $discrepancias, $notas);
+
+        return true;
+    }
+
+    /**
+     * @param list<array{campo: string, documento: string, manifiesto: string}> $a
+     * @param list<array{campo: string, documento: string, manifiesto: string}> $b
+     */
+    private static function mismasDiscrepancias(array $a, array $b): bool
+    {
+        $clave = static function (array $lista): array {
+            $claves = array_map(
+                static fn (array $d): string => implode("\u{1F}", [$d['campo'], $d['documento'], $d['manifiesto']]),
+                $lista,
+            );
+            sort($claves);
+
+            return $claves;
+        };
+
+        return $clave($a) === $clave($b);
+    }
+
+    /**
      * Devuelve el archivo a «nunca se ha controlado».
      *
      * ⚠️ **No se borra el veredicto poniendo el estado a mano.** `registrarValidacion()` escribe los

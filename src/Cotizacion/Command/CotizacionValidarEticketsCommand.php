@@ -138,15 +138,20 @@ final class CotizacionValidarEticketsCommand extends Command
                 continue;
             }
 
-            $cuenta[$cotejo->estado->value] = ($cuenta[$cotejo->estado->value] ?? 0) + 1;
-
             if ($aplicar) {
-                $archivo->registrarValidacion(
+                // `rejuzgar()`: el comando tampoco puede deshacer una aceptación humana. Ver la
+                // entidad — la regla estuvo sólo en la tanda y los otros dos caminos la pisaban.
+                $archivo->rejuzgar(
                     $cotejo->estado,
                     array_map(static fn (Discrepancia $d): array => $d->aJson(), $cotejo->discrepancias),
                     $cotejo->notas,
                 );
             }
+
+            // Se cuenta lo que QUEDA, no lo que dijo el cotejo: con una aceptación conservada, el
+            // cotejo dice «observado» y el archivo sigue «confirmado».
+            $estadoFinal = $aplicar ? $archivo->getEstadoValidacion() : $cotejo->estado;
+            $cuenta[$estadoFinal->value] = ($cuenta[$estadoFinal->value] ?? 0) + 1;
 
             // Lo que está bien no se lista: la salida de este comando es una lista de trabajo.
             if ($cotejo->estado === ValidacionIdentificacionEnum::VALIDADO_OCR) {

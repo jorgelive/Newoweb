@@ -52,4 +52,63 @@ final class InvalidaLoGuardadoTest extends TestCase
     {
         self::assertFalse(EscaneoNuevoInvalidaVeredictoListener::hayFicheroNuevo(new CotizacionFilearchivo()));
     }
+
+    /**
+     * 🔥 **Girar un pasaporte le borraba la firma a quien lo había mirado.** El changeset es el que
+     * deja `GiradorDeEscaneo`, que no pasa por Vich. Se verifica además con el flujo real: un
+     * changeset escrito a mano ya engañó a este archivo una vez.
+     */
+    public function testGirarNoCaducaNada(): void
+    {
+        $caduca = EscaneoNuevoInvalidaVeredictoListener::queCaduca(false, false, [
+            'rotacionAplicada' => [0, 90],
+            'datosLeidos' => [['numero' => 'X'], ['numero' => 'X']],
+            'imageSize' => [400000, 410000],
+            'updatedAt' => [null, null],
+        ]);
+
+        self::assertSame(['veredicto' => false, 'lectura' => false], $caduca);
+    }
+
+    public function testRenombrarNoCaducaNada(): void
+    {
+        self::assertSame(
+            ['veredicto' => false, 'lectura' => false],
+            EscaneoNuevoInvalidaVeredictoListener::queCaduca(false, false, ['nombre' => [[], []]]),
+        );
+    }
+
+    public function testUnFicheroNuevoCaducaLasDos(): void
+    {
+        self::assertSame(
+            ['veredicto' => true, 'lectura' => true],
+            EscaneoNuevoInvalidaVeredictoListener::queCaduca(false, true, ['updatedAt' => [null, null]]),
+        );
+    }
+
+    /** Los bytes son los mismos: tirar la lectura costaría otra llamada pagada para nada. */
+    public function testReasignarCaducaElVeredictoPeroNoLaLectura(): void
+    {
+        self::assertSame(
+            ['veredicto' => true, 'lectura' => false],
+            EscaneoNuevoInvalidaVeredictoListener::queCaduca(false, false, ['pasajero' => ['viejo', 'nuevo']]),
+        );
+    }
+
+    public function testCambiarElTipoCaducaLasDos(): void
+    {
+        self::assertSame(
+            ['veredicto' => true, 'lectura' => true],
+            EscaneoNuevoInvalidaVeredictoListener::queCaduca(false, false, ['tipoArchivo' => ['dni_anverso', 'pasaporte']]),
+        );
+    }
+
+    /** ⚠️ En un alta el changeset trae TODOS los campos: el tipo no puede contar como cambio. */
+    public function testUnAltaSinFicheroNoTiraSuLectura(): void
+    {
+        self::assertSame(
+            ['veredicto' => true, 'lectura' => false],
+            EscaneoNuevoInvalidaVeredictoListener::queCaduca(true, false, ['tipoArchivo' => [null, 'pasaporte'], 'pasajero' => [null, 'x']]),
+        );
+    }
 }
