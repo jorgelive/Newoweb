@@ -168,4 +168,47 @@ final class MrzTest extends TestCase
         self::assertSame('L898902C3', $mrz?->numero);
         self::assertTrue($mrz?->esCoherente());
     }
+
+    // ── Relleno mal contado (17/09/2026) ─────────────────────────────────────────
+    // La banda se transcribe entera pero con un `<` de más o de menos, y antes se tiraba entera.
+
+    private const RELLENO_L1 = 'P<PERSAMANEZ<CUBA<<CARLOS<ENRIQUE<<<<<<<<<<<';
+    private const RELLENO_L2 = '1258542904PER7601277M3606171<<<<<<<<<<<<<<<<';
+
+    public function testUnRellenoDeMasEnLaLineaUnoSeRecupera(): void
+    {
+        $m = Mrz::desde(self::RELLENO_L1.'<<', self::RELLENO_L2);
+
+        self::assertNotNull($m);
+        self::assertTrue($m->esCoherente());
+        self::assertSame('CARLOS ENRIQUE', $m->nombres);
+    }
+
+    public function testUnRellenoDeMenosEnLaLineaDosSeRecupera(): void
+    {
+        $m = Mrz::desde(self::RELLENO_L1, substr(self::RELLENO_L2, 0, 43));
+
+        self::assertNotNull($m);
+        self::assertTrue($m->esCoherente());
+        self::assertSame('125854290', $m->numero);
+    }
+
+    /**
+     * 🔑 **El caso que hace seguro el ajuste**: si lo que sobra NO es relleno —un dígito de más en
+     * el número—, se ajusta el relleno igual, el número queda corrido y **los dígitos de control no
+     * cuadran**. Sale incoherente, que es lo que tiene que salir. Nunca un «validado» falso.
+     */
+    public function testUnCaracterDeMasQueNoEsRellenoNoValida(): void
+    {
+        $conDigitoDeMas = '12585429044PER7601277M3606171<<<<<<<<<<<<<<<<';   // 45: un 4 de más
+        $m = Mrz::desde(self::RELLENO_L1, $conDigitoDeMas);
+
+        self::assertFalse($m?->esCoherente() === true);
+    }
+
+    /** Más de 3 de diferencia no es un relleno mal contado: no se toca. */
+    public function testUnaDiferenciaGrandeNoSeAjusta(): void
+    {
+        self::assertNull(Mrz::desde(self::RELLENO_L1.'<<<<<<', self::RELLENO_L2));
+    }
 }

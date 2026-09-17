@@ -74,6 +74,21 @@ final readonly class Mrz
         $l2 = self::normalizar($linea2);
         $l3 = self::normalizar($linea3);
 
+        // 🔥 **Un `<` de más o de menos en el relleno tumbaba la banda entera.** Ver
+        // `ajustarRelleno()`. Con tercera línea es un TD1 (30); sin ella, un pasaporte (44).
+        if ($l3 !== '') {
+            [$l1, $l2, $l3] = [self::ajustarRelleno($l1, 30), self::ajustarRelleno($l2, 30), self::ajustarRelleno($l3, 30)];
+        } else {
+            [$l1, $l2] = [self::ajustarRelleno($l1, 44), self::ajustarRelleno($l2, 44)];
+
+            // ⚠️ La línea 1 no tiene dígitos de control que avalen el ajuste. Se exige que el país
+            // siga en su sitio —tres letras tras `P?`—, que es lo que se rompería si el sobrante
+            // no hubiera estado en el relleno sino al principio.
+            if (strlen($l1) === 44 && preg_match('/^P[A-Z<][A-Z]{3}/', $l1) !== 1) {
+                return null;
+            }
+        }
+
         // El formato se decide por la LONGITUD, que es lo que de verdad los distingue. La `P` del
         // pasaporte no vale como única señal: un TD1 también empieza por letra.
         if (strlen($l1) === 30 && strlen($l2) === 30 && strlen($l3) === 30) {
@@ -244,5 +259,61 @@ final readonly class Mrz
     private static function normalizar(string $linea): string
     {
         return str_replace([' ', '«', '‹'], ['', '<', '<'], strtoupper(trim($linea)));
+    }
+
+    /**
+     * Devuelve la línea a su largo cuando lo que sobra o falta es RELLENO (`<`).
+     *
+     * ── 🔥 Medido en producción el 17/09/2026 ───────────────────────────────────
+     * De 127 pasaportes leídos, **29 no tenían MRZ** según este parser — y casi ninguno era una
+     * foto cortada. El modelo transcribía la banda entera pero con **45, 46 o 47 caracteres**: un
+     * `<` de más o de menos en el relleno, que a ojo es imposible de contar. Y `desde()` exige 44
+     * exactos, así que la banda entera se tiraba y el pasaporte bajaba de «validado por MRZ» a
+     * «validado por OCR».
+     *
+     * Peor aún, habría acusado al pasajero: el control al subir desde `pax` le habría dicho «no se
+     * ve la banda de abajo» a quien la tenía perfectamente visible.
+     *
+     * ── Por qué es seguro ───────────────────────────────────────────────────────
+     * 🔑 **Se atribuye el sobrante al tramo de `<` más largo, y los dígitos de control deciden si
+     * era eso.** En la línea 1 ese tramo es el relleno tras el nombre; en la 2, el número personal,
+     * que casi siempre está vacío. Si el carácter sobrante estaba en otro sitio —dentro del número,
+     * en una fecha—, el ajuste mueve el campo, **los dígitos no cuadran** y la MRZ sale incoherente,
+     * que es exactamente lo que habría salido antes. Nunca produce un «validado» que no lo sea.
+     *
+     * Resultado medido: **20 de esos 29 se recuperan y cuadran**. Gratis: la lectura está guardada.
+     *
+     * ⚠️ Sólo con una diferencia de hasta 3. Más que eso no es un relleno mal contado: es otra cosa,
+     * y ajustarla sería fabricar un formato válido sobre un dato roto.
+     */
+    private static function ajustarRelleno(string $linea, int $largo): string
+    {
+        $diferencia = strlen($linea) - $largo;
+
+        if ($diferencia === 0 || abs($diferencia) > 3) {
+            return $linea;
+        }
+
+        if (preg_match_all('/<+/', $linea, $tramos, PREG_OFFSET_CAPTURE) === 0) {
+            return $linea;
+        }
+
+        // El tramo más largo; en empate, el último, que es donde vive el relleno.
+        $mejor = null;
+        foreach ($tramos[0] as [$texto, $desde]) {
+            if ($mejor === null || strlen($texto) >= strlen($mejor[0])) {
+                $mejor = [$texto, $desde];
+            }
+        }
+
+        [$texto, $desde] = $mejor;
+        $nuevo = strlen($texto) - $diferencia;
+
+        // Quitar más de lo que hay no es ajustar relleno: es comerse un dato.
+        if ($nuevo < 1) {
+            return $linea;
+        }
+
+        return substr($linea, 0, $desde) . str_repeat('<', $nuevo) . substr($linea, $desde + strlen($texto));
     }
 }

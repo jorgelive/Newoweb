@@ -9,7 +9,13 @@ use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
 use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
+use App\Cotizacion\Documento\Discrepancia;
+use App\Cotizacion\Documento\QueLePedimosAlPasajero;
+use App\Cotizacion\Documento\ValidadorDeDocumento;
+use App\Cotizacion\Documento\ValidadorDeEticket;
+use App\Cotizacion\Documento\ValidadorDeManifiesto;
 use App\Cotizacion\Service\Publico\IdentidadDelPasajero;
+use Psr\Log\LoggerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -50,6 +56,10 @@ final class SubirDocumentoPasajeroController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly IdentidadDelPasajero $identidad,
+        private readonly ValidadorDeDocumento $documento,
+        private readonly ValidadorDeManifiesto $manifiesto,
+        private readonly ValidadorDeEticket $eticket,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -159,7 +169,112 @@ final class SubirDocumentoPasajeroController
         $this->em->persist($archivo);
         $this->em->flush();
 
-        return new JsonResponse(['ok' => true, 'tipo' => $tipo->value]);
+        return new JsonResponse(['ok' => true, 'tipo' => $tipo->value, ...$this->revisarAlSubir($file, $pasajero, $archivo, $tipo)]);
+    }
+
+    /**
+     * Lee y controla el documento **en el momento de subirlo**, con el pasajero todavía delante.
+     *
+     * 🔥 **Antes el control corría días después, desde `util`.** El pasajero subía una foto
+     * cortada, la app le decía «recibido», y alguien del equipo tenía que perseguirle por WhatsApp
+     * para pedirle otra — a veces con el vuelo encima. Con el móvil todavía en la mano, repetir la
+     * foto son diez segundos. Qué se le pide y qué no lo decide {@see QueLePedimosAlPasajero}.
+     *
+     * 🔑 **No cuesta una lectura de más: la adelanta.** La lectura se guarda en el archivo y la
+     * tanda de `util` la reutiliza gratis, así que lo que antes se pagaba al pulsar «Validar
+     * manifiesto» ahora se paga aquí. El veredicto del equipo también queda puesto en el acto.
+     *
+     * ⚠️ **Nunca tumba la subida.** El documento YA está guardado cuando esto empieza. Si la IA está
+     * caída o tarda de más, se registra y el pasajero ve «recibido» como siempre: un fallo nuestro
+     * no puede convertirse en «tu documento no sirve».
+     *
+     * ⚠️ **Y por lo mismo, `null` en la lectura NO se le cuenta.** `lecturaDe()` devuelve `null`
+     * sólo cuando falla el proveedor o el disco; un documento que el modelo leyó y no sirve vuelve
+     * CON datos. Decirle «no conseguimos leer tu pasaporte» porque Google devolvió un 503 sería
+     * culparle de nuestra caída. Se olvida la lectura fallida para que la tanda la reintente.
+     *
+     * @return array{revisado: bool, pideOtro: list<string>}
+     */
+    private function revisarAlSubir(
+        CotizacionFile $file,
+        CotizacionFilepasajero $pasajero,
+        CotizacionFilearchivo $archivo,
+        ArchivoTipoEnum $tipo,
+    ): array {
+        $sinRevisar = ['revisado' => false, 'pideOtro' => []];
+
+        try {
+            if (in_array($tipo, [ArchivoTipoEnum::PASAPORTE, ArchivoTipoEnum::DNI_ANVERSO, ArchivoTipoEnum::DNI_REVERSO], true)) {
+                $leido = $this->documento->lecturaDe($archivo);
+
+                if ($leido === null) {
+                    return $this->fallaNuestra($archivo, $sinRevisar);
+                }
+
+                // El veredicto del equipo, puesto ya: quien abra `util` lo ve sin pulsar nada.
+                $this->manifiesto->validarPasajero($pasajero);
+
+                return ['revisado' => true, 'pideOtro' => QueLePedimosAlPasajero::delDocumento($tipo, $leido)];
+            }
+
+            if ($tipo === ArchivoTipoEnum::ETICKET) {
+                $pais = $file->getPaisDeControl();
+
+                if ($pais === null) {
+                    return $sinRevisar;
+                }
+
+                $cotejo = $this->eticket->validar($archivo, $pais);
+                $leido = $this->eticket->lecturaDe($archivo);   // ya leído arriba: gratis
+
+                if ($leido === null) {
+                    return $this->fallaNuestra($archivo, $sinRevisar);
+                }
+
+                if ($cotejo !== null) {
+                    $archivo->rejuzgar(
+                        $cotejo->estado,
+                        array_map(static fn (Discrepancia $d): array => $d->aJson(), $cotejo->discrepancias),
+                        $cotejo->notas,
+                    );
+                    $this->em->flush();
+                }
+
+                return ['revisado' => true, 'pideOtro' => QueLePedimosAlPasajero::delEticket($leido)];
+            }
+        } catch (\Throwable $e) {
+            $this->logger->warning('No se pudo revisar un documento al subirlo desde pax', [
+                'archivo' => (string) $archivo->getId(),
+                'tipo' => $tipo->value,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $sinRevisar;
+    }
+
+    /**
+     * La IA o el disco fallaron: no es culpa del pasajero y no se le dice nada.
+     *
+     * ⚠️ Se **olvida** la lectura fallida en vez de dejarla registrada: `registrarLectura(null)`
+     * deja `leidoEn` puesto, que la tanda interpreta como «ya se intentó y no tiene arreglo», y ese
+     * documento no se volvería a mirar sin `--reintentar`.
+     *
+     * @param array{revisado: bool, pideOtro: list<string>} $sinRevisar
+     *
+     * @return array{revisado: bool, pideOtro: list<string>}
+     */
+    private function fallaNuestra(CotizacionFilearchivo $archivo, array $sinRevisar): array
+    {
+        $this->logger->warning('La lectura falló al subir desde pax; queda para la tanda', [
+            'archivo' => (string) $archivo->getId(),
+            'error' => $archivo->getLecturaError(),
+        ]);
+
+        $archivo->olvidarLectura();
+        $this->em->flush();
+
+        return $sinRevisar;
     }
 
     /**

@@ -174,6 +174,19 @@ const recienSubidos = ref<Set<string>>(new Set());
 
 const subidos = computed(() => new Set<string>([...(props.yaEnviados ?? []), ...recienSubidos.value]));
 
+/**
+ * Lo que el servidor le pidió repetir, por documento, **en el momento de subirlo**.
+ *
+ * 🔥 **Antes se le decía «Recibido, gracias» a una foto cortada**, y días después alguien del equipo
+ * tenía que perseguirle para pedirle otra. Ahora el servidor la lee al llegar y, si hay algo que
+ * ÉL puede arreglar con otra foto, lo dice aquí mismo. Qué se pide y qué no lo decide
+ * `QueLePedimosAlPasajero` en el servidor — aquí sólo se pinta.
+ *
+ * ⚠️ **Manda sobre «recibido».** Si ya había uno subido antes, `yaEnviados` lo trae y la tarjeta
+ * saldría en verde justo cuando se le está pidiendo repetir.
+ */
+const pideOtroDe = ref<Record<string, string[]>>({});
+
 /** Lo que hay que enseñarle a ESTA persona en ESTE expediente. */
 const pedidos = computed(() => documentosPedidos(props.pedidos));
 
@@ -227,8 +240,20 @@ const confirmar = async () => {
       return;
     }
 
-    recienSubidos.value = new Set([...recienSubidos.value, eligiendo.value]);
-    emit('subido', eligiendo.value);
+    const pedido: string[] = Array.isArray(datos.pideOtro) ? datos.pideOtro : [];
+    const tipo = eligiendo.value;
+
+    if (pedido.length > 0) {
+      // Se guardó, pero no sirve tal cual: la tarjeta se queda pidiendo otro y NO se avisa al padre
+      // de que está hecho, para que el contador no diga «completo» mientras aquí se pide repetir.
+      pideOtroDe.value = { ...pideOtroDe.value, [tipo]: pedido };
+    } else {
+      const { [tipo]: _resuelto, ...resto } = pideOtroDe.value;
+      pideOtroDe.value = resto;
+      recienSubidos.value = new Set([...recienSubidos.value, tipo]);
+      emit('subido', tipo);
+    }
+
     descartar();
   } catch {
     // Sin conexión: el mensaje dice qué hacer, no qué falló.
@@ -260,32 +285,45 @@ const confirmar = async () => {
 
     <div class="space-y-2">
       <div v-for="doc in pedidos" :key="doc.tipo"
-           class="flex items-center gap-3 p-3 rounded-2xl border transition-colors"
-           :class="subidos.has(doc.tipo) ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'">
+           class="flex flex-wrap items-center gap-3 p-3 rounded-2xl border transition-colors"
+           :class="pideOtroDe[doc.tipo] ? 'bg-amber-50 border-amber-300'
+             : subidos.has(doc.tipo) ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'">
         <span class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              :class="subidos.has(doc.tipo) ? 'bg-emerald-100 text-emerald-600' : 'bg-white text-slate-400 border border-slate-200'">
+              :class="pideOtroDe[doc.tipo] ? 'bg-amber-100 text-amber-600'
+                : subidos.has(doc.tipo) ? 'bg-emerald-100 text-emerald-600' : 'bg-white text-slate-400 border border-slate-200'">
           <!-- El icono lo dice el documento: una cámara invita a hacer una foto, y el e-ticket
                no se fotografía — se busca en el correo. -->
-          <i class="fas" :class="subidos.has(doc.tipo) ? 'fa-check' : `fa-${doc.icono}`"></i>
+          <i class="fas" :class="pideOtroDe[doc.tipo] ? 'fa-rotate-right'
+            : subidos.has(doc.tipo) ? 'fa-check' : `fa-${doc.icono}`"></i>
         </span>
 
         <div class="min-w-0 flex-1">
           <p class="text-sm font-black text-gray-800">{{ doc.titulo }}</p>
-          <p class="text-[11px] text-slate-500 leading-snug">
-            {{ subidos.has(doc.tipo) ? 'Recibido, gracias.' : doc.ayuda }}
+          <p class="text-[11px] leading-snug" :class="pideOtroDe[doc.tipo] ? 'text-amber-700 font-bold' : 'text-slate-500'">
+            {{ pideOtroDe[doc.tipo] ? 'Lo recibimos, pero necesitamos otro:'
+              : subidos.has(doc.tipo) ? 'Recibido, gracias.' : doc.ayuda }}
           </p>
         </div>
 
         <!-- El `label` es el botón: un `input file` estilizado se rompe en cuanto el navegador
              decide pintarlo a su manera. -->
         <label class="shrink-0 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider cursor-pointer transition-colors"
-               :class="subidos.has(doc.tipo)
+               :class="pideOtroDe[doc.tipo] ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                 : subidos.has(doc.tipo)
                  ? 'text-emerald-700 hover:bg-emerald-100'
                  : 'bg-[#376875] hover:bg-[#2b525d] text-white'">
-          {{ subidos.has(doc.tipo) ? 'Cambiar' : 'Subir' }}
+          {{ pideOtroDe[doc.tipo] ? 'Subir otro' : subidos.has(doc.tipo) ? 'Cambiar' : 'Subir' }}
           <input type="file" accept="image/*,application/pdf" class="hidden"
                  @change="alElegir(doc.tipo, $event)" />
         </label>
+
+        <!-- ⚠️ `basis-full` para que las razones bajen a su propia línea: al lado del botón, en un
+             móvil de 375 px, se partían en columnas de tres palabras. -->
+        <ul v-if="pideOtroDe[doc.tipo]" class="basis-full space-y-1.5 pl-12">
+          <li v-for="(motivo, i) in pideOtroDe[doc.tipo]" :key="i" class="text-[11px] text-amber-900 leading-snug">
+            {{ motivo }}
+          </li>
+        </ul>
       </div>
     </div>
   </div>
@@ -333,9 +371,15 @@ const confirmar = async () => {
       <button @click="confirmar" :disabled="enviando"
               class="flex-1 py-3.5 rounded-2xl bg-[#E07845] hover:bg-[#c96835] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-50">
         <i v-if="enviando" class="fas fa-spinner fa-spin mr-1"></i>
-        {{ enviando ? 'Enviando…' : 'Enviar' }}
+        {{ enviando ? 'Revisando…' : 'Enviar' }}
       </button>
     </div>
+
+    <!-- ⚠️ Tarda de verdad —unos diez segundos, lo que cuesta leer el documento— y sin decirlo el
+         pasajero cree que se colgó y lo manda otra vez. -->
+    <p v-if="enviando" class="text-white/60 text-[11px] text-center leading-snug mt-2 shrink-0">
+      Estamos comprobando que se lea bien. Tarda unos segundos, no cierres esta pantalla.
+    </p>
   </div>
   </Teleport>
 </template>

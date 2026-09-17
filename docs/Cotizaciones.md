@@ -10221,6 +10221,83 @@ Tres cambios, en orden de lo que rinden:
 cortaba el `circular_reference_handler`. Marcarlo no cambia el payload, sólo deja de mentir el
 esquema.
 
+#### 🔥 El documento se controla AL SUBIRLO desde pax, con el pasajero delante (17/09/2026)
+
+Antes el control corría días después, desde `util`: el pasajero subía una foto cortada, la app le
+decía «Recibido, gracias», y alguien del equipo tenía que perseguirle por WhatsApp para pedirle otra.
+Con el móvil todavía en la mano, repetir la foto son diez segundos.
+
+```
+pax: Enviar ──► SubirDocumentoPasajeroController
+                  ├─ guarda el archivo (como siempre)
+                  └─ revisarAlSubir()
+                       ├─ DNI / pasaporte → ValidadorDeDocumento::lecturaDe()   (paga 1 vez, guarda)
+                       │                    ValidadorDeManifiesto::validarPasajero()  (veredicto del equipo, ya puesto)
+                       ├─ E-Ticket        → ValidadorDeEticket::validar() + rejuzgar()
+                       └─ QueLePedimosAlPasajero → { revisado, pideOtro: [...] }
+pax: tarjeta ámbar «Lo recibimos, pero necesitamos otro:» + los motivos + «Subir otro»
+```
+
+🔑 **LA REGLA, en `QueLePedimosAlPasajero`: sólo se le pide lo que ÉL puede arreglar.**
+
+| Se le pide otro | NO (lo mira el equipo) |
+|---|---|
+| no se lee | número o nombre distinto del manifiesto |
+| la banda de abajo no vino | vuelo o fecha distintos de su subgrupo |
+| la banda no cuadra (foto muy cerca) | |
+| documento vencido | |
+| subió un billete en vez del E-Ticket | |
+| E-Ticket con sólo entrada o sólo salida | |
+
+⚠️ **La columna de la derecha es la que más tienta y la que más daño haría.** El manifiesto y los
+subgrupos los tecleamos nosotros; once de los primeros treinta y dos E-Tickets observados eran fallo
+nuestro de asignación. Pedirle ahí que «corrija» sería mandarle a estropear un trámite que tenía bien.
+Por eso `delEticket()` **ni siquiera recibe el cotejo**: no puede pedirlo aunque quiera.
+
+⚠️ **No se rechaza nada: se pide.** El documento se guarda igual —el equipo puede darlo por bueno
+viendo la foto— y la siguiente subida lo reemplaza.
+
+⚠️ **Nunca tumba la subida, y un fallo nuestro no se le cuenta.** `lecturaDe()` devuelve `null` sólo
+cuando falla el proveedor o el disco; un documento que el modelo leyó y no sirve vuelve con datos.
+Con `null` se responde `revisado: false`, se **olvida** la lectura fallida —`registrarLectura(null)`
+dejaría `leidoEn` puesto y la tanda no la reintentaría— y el pasajero ve «recibido» como siempre.
+Decirle «no conseguimos leer tu pasaporte» porque Google devolvió un 503 sería culparle de nuestra
+caída.
+
+🔑 **No cuesta una lectura de más: la adelanta.** Se guarda en el archivo y la tanda de `util` la
+reutiliza gratis.
+
+⚠️ **Tarda ~10 s**, lo que cuesta leer. El botón dice «Revisando…» y debajo «no cierres esta
+pantalla»; sin eso se cree colgado y lo manda otra vez.
+
+⚠️ **Los textos no enseñan datos del manifiesto.** Esa respuesta la ve quien tenga el enlace.
+
+##### 🔥 Medirlo antes de desplegar evitó acusar a 26 personas
+
+La primera versión pedía otra foto cuando `$mrz === null`. Contra los documentos reales: **32 de 127
+pasaportes** habrían recibido «no se ve la banda de abajo». Cruzado con los datos crudos, casi
+ninguno era una foto cortada:
+
+| largo de la línea 1 transcrita | pasaportes |
+|---|---|
+| 44 (correcto) | 98 |
+| 45, 46, 47, 43, 41 | 25 |
+| vacía | 3 |
+
+El modelo transcribe la banda entera pero con **un `<` de relleno de más o de menos**, que a ojo es
+imposible de contar, y `Mrz::desde()` exigía 44 exactos. Dos arreglos:
+
+1. **`DatosDeDocumento::$bandaVacia`**: al pasajero sólo se le pide la banda si **no vino**. Una
+   banda que se ve pero se leyó mal no es culpa suya.
+2. **`Mrz::ajustarRelleno()`**: si una línea mide 1-3 de más o de menos, el sobrante se atribuye al
+   tramo de `<` más largo —el relleno— y **los dígitos de control deciden si era eso**. Si el
+   carácter sobrante estaba en otro sitio, el campo queda corrido, los dígitos no cuadran y la MRZ
+   sale incoherente, exactamente como antes. Nunca fabrica un «validado». Medido: **20 pasaportes**
+   pasan de `validado_ocr` a poder validarse por MRZ, gratis, porque la lectura estaba guardada.
+
+⚠️ La línea 1 no tiene dígitos de control. Por eso, tras ajustarla, se exige que el país siga en su
+sitio (`^P[A-Z<][A-Z]{3}`): es lo que se rompería si el sobrante hubiera estado al principio.
+
 #### 🔥 Tres formas de borrar la firma de una persona (17/09/2026)
 
 Las tres tienen la misma forma: **una aceptación humana que la máquina deshacía sin preguntar.**

@@ -77,6 +77,17 @@ final readonly class DatosDeDocumento
          * @var list<string>
          */
         public array $avisosDeLectura = [],
+        /**
+         * ¿La banda de abajo NO se transcribió en absoluto?
+         *
+         * 🔥 **Que `$mrz` sea `null` no dice si la banda estaba en la foto.** Puede estar cortada
+         * —fuera de cuadro— o haberse transcrito con un carácter de más que ni el ajuste de relleno
+         * recupera. Lo primero se arregla con otra foto; lo segundo es problema de la lectura y no
+         * del pasajero. Medido el 17/09/2026: de 29 pasaportes «sin MRZ», **sólo 3** venían con la
+         * banda vacía. Pedirle otra foto a los otros 26 habría sido decirles «no se ve la banda» con
+         * la banda perfectamente visible.
+         */
+        public bool $bandaVacia = false,
     ) {}
 
     /**

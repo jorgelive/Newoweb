@@ -215,6 +215,7 @@ final readonly class LectorDeDocumentoIdentidad
             mrz: $mrz,
             avisos: $avisos,
             avisosDeLectura: $deLectura,
+            bandaVacia: trim($this->texto($crudo, 'mrzLinea1').$this->texto($crudo, 'mrzLinea2')) === '',
         );
     }
 
