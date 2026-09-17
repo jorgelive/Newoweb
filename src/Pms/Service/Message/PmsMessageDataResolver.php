@@ -255,9 +255,24 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
     }
 
     /**
-     * @param string|null $idioma Idioma del CUERPO. Sin él no se compone `bloque_pago`, que es
-     *                            la única variable redactada y la única que cuesta consultas.
-     *                            Ver el contrato.
+     * El idioma de la reserva, o español.
+     *
+     * `es` y no el del establecimiento porque es el idioma en el que están escritos los originales
+     * de todo —plantillas y fichas— y el único que no puede faltar. Un huésped sin idioma guardado
+     * es alguien de quien no sabemos nada: se le habla en el idioma de la casa.
+     */
+    private function idiomaDe(PmsReserva $reserva): string
+    {
+        $idioma = $reserva->getIdioma()?->getId();
+
+        return $idioma !== null && $idioma !== '' ? strtolower($idioma) : 'es';
+    }
+
+    /**
+     * @param string|null $idioma Idioma del CUERPO, que manda cuando se pasa: es distinto del
+     *                            idioma del huésped cuando el suyo no está entre los siete y la
+     *                            plantilla cae al inglés. **Sin él se usa el de la reserva, y si
+     *                            tampoco lo hay, español.**
      *
      * @return array<string, scalar|null>
      */
@@ -267,6 +282,25 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         if (!$reserva) {
             return [];
         }
+
+        // 🗣️ SIN IDIOMA NO SE DEVUELVE MEDIO DICCIONARIO: se usa el de la reserva.
+        //
+        // Las cuatro variables redactadas —`bloque_pago`, `estancias`, `importe_a_pagar`,
+        // `medios_de_pago`— salían `null` cuando quien llamaba no pasaba idioma, y `null` se
+        // sustituye por NADA. Quien no lo pasaba no era un caso raro:
+        //
+        // | Quién | Qué salía |
+        // |---|---|
+        // | `PmsReservaWhatsappLinkController` (el envío a mano desde el calendario) | «Tu reserva:» seguido de un hueco, y el bloque de pago entero vacío |
+        // | `BuscarReservaSkill` / `ConsultarMiReservaSkill` | el agente leía la reserva sin sus estancias |
+        //
+        // Se vio el 17/09/2026 en una captura de WhatsApp: «Detalle de pago» enviada a mano a una
+        // huésped, con los dos huecos. El envío automático nunca falló porque las estrategias sí
+        // pasan el idioma de la plantilla.
+        //
+        // ⚠️ Componer cuesta consultas, y por eso antes se evitaba «por si acaso». Pero un
+        // diccionario a medias no ahorra: fabrica mensajes incompletos que nadie ve venir.
+        $idioma ??= $this->idiomaDe($reserva);
 
         $canal = $reserva->getChannel();
         $pais = $reserva->getPais();
@@ -346,17 +380,17 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // imputar el read-model calla a propósito. Un cuerpo escrito como «Aquí tienes tu
             // resumen: {{ bloque_pago }}» se queda a medias; la línea de arriba tiene que
             // sostenerse sola.
-            'bloque_pago'           => $idioma !== null ? $this->redactor->bloque($reserva, $idioma) : null,
+            'bloque_pago'           => $this->redactor->bloque($reserva, $idioma),
             // ── LAS ESTANCIAS, dichas de verdad ─────────────────────────────────────
             //
             // `checkin_date` y `checkout_date` son el mínimo y el máximo de la reserva, así que
             // con más de una estancia la frase deja de ser cierta: `3DAGPB` saldría «del 28 de
             // agosto al 6 de septiembre» con cuatro noches de hueco dentro. Ver
             // `PmsRedactorDeEstancias`, que agrupa por par de fechas y respeta el idioma.
-            'estancias'             => $idioma !== null ? $this->estancias->texto($reserva, $idioma) : null,
+            'estancias'             => $this->estancias->texto($reserva, $idioma),
             // El mismo dato del bloque, en UNA línea: es lo único de todo esto que cabe en un
             // parámetro de plantilla de Meta. Ver `PmsRedactorDeCobro::importeAPagar()`.
-            'importe_a_pagar'       => $idioma !== null ? $this->redactor->importeAPagar($reserva) : null,
+            'importe_a_pagar'       => $this->redactor->importeAPagar($reserva),
             // Los datos para pagar, escritos. Es para la plantilla de políticas de Booking, donde
             // las cuentas TIENEN que ir en el texto porque su trabajo es dejar constancia en el
             // chat de la OTA. Salen del catálogo y no tecleadas: así el filtro de audiencia se
@@ -364,11 +398,11 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // número, cambia el mensaje. Ver `PmsRedactorDeCobro::mediosConDatos()`.
             // La tarjeta entra en la lista con el enlace a la ficha, que es donde vive el cobro
             // vigente — ver `mediosConDatos()`.
-            'medios_de_pago'        => $idioma !== null ? $this->redactor->mediosConDatos($reserva, $idioma, enlaceTarjeta: $accountUrl) : null,
+            'medios_de_pago'        => $this->redactor->mediosConDatos($reserva, $idioma, enlaceTarjeta: $accountUrl),
             // La versión LARGA, con todas las cuentas. No es para el mensaje de siempre —sería
             // una sábana— sino para cuando hay que demostrarle a la OTA que se dio la
             // información completa. Se manda a mano desde el panel, no por una regla.
-            'medios_de_pago_todos'  => $idioma !== null ? $this->redactor->mediosConDatos($reserva, $idioma, todas: true, enlaceTarjeta: $accountUrl) : null,
+            'medios_de_pago_todos'  => $this->redactor->mediosConDatos($reserva, $idioma, todas: true, enlaceTarjeta: $accountUrl),
         ] + $this->whatsappDelAlojamiento($reserva->getEstablecimiento())
           + $this->mediosDelAlojamiento($reserva->getEstablecimiento());
     }

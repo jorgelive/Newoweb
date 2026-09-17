@@ -97,6 +97,11 @@ interface MessageDataResolverInterface
      * Va el idioma del CUERPO, no el del huésped: son distintos cuando el suyo no está entre los
      * siete y la plantilla cae al inglés. Con el del huésped saldría el cuerpo en inglés y el
      * bloque en español.
+     *
+     * ⚠️ **Sin idioma, el resolver usa el del asunto y cae a español; nunca devuelve a medias.**
+     * Devolver `null` en las variables redactadas dejaba huecos en el mensaje de quien no lo
+     * pasara —el envío a mano desde el calendario los tuvo hasta el 17/09/2026—, y un hueco no se
+     * distingue de un dato vacío legítimo.
      */
     public function getMessageVariables(string $contextId, ?string $idioma = null): array;
 }

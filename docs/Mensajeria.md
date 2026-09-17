@@ -1279,6 +1279,30 @@ hilo abierto. Test en `tests/Message/Factory/CierreDeHiloConAsuntosVivosTest.php
 el vaivén se dio por ruido sin comprobar qué lo movía. Un mensaje que se crea y se cancela en
 bucle no es ruido: es una decisión que cambia de sentido en cada pasada.
 
+### 🔥 Sin idioma se devolvía MEDIO diccionario (17/09/2026)
+
+`getMessageVariables($contextId, ?string $idioma = null)` dejaba en `null` las cuatro variables
+redactadas —`bloque_pago`, `estancias`, `importe_a_pagar`, `medios_de_pago`— cuando quien llamaba
+no pasaba idioma, «porque componerlas cuesta consultas». Y `null` se sustituye por **nada**.
+
+Quien no lo pasaba no era un caso raro:
+
+| Quién | Qué salía |
+|---|---|
+| `PmsReservaWhatsappLinkController` (el envío a mano desde el calendario) | «Tu reserva:» y un hueco, y el bloque de pago entero vacío |
+| `BuscarReservaSkill` / `ConsultarMiReservaSkill` | el agente leía la reserva sin sus estancias |
+
+Se vio en una captura de WhatsApp: «Detalle de pago» enviada a mano a una huésped, con los dos
+huecos. El envío automático nunca falló porque las estrategias sí pasan el idioma de la plantilla.
+
+**Ahora el idioma explícito manda; sin él se usa el de la reserva y, si tampoco lo hay, español.**
+Un diccionario a medias no ahorra consultas: fabrica mensajes incompletos que nadie ve venir.
+
+⚠️ El idioma explícito sigue haciendo falta donde el CUERPO puede ir en otro idioma que el huésped
+—cuando el suyo no está entre los siete, la plantilla cae al inglés y sus bloques tienen que ir en
+inglés también—. Por eso el controlador del envío a mano pasa el idioma que acaba de elegir para el
+cuerpo, y de paso usa `HidratadorDeMarcadores` en vez de su propio `strtr`.
+
 ### 🔥 Los bloqueos puros no generan chat, los inquiries sí
 
 `PmsReservaMessageContext::isSoloBloqueo()` corta la creación de conversación para bloqueos de

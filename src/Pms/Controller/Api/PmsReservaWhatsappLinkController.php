@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Api;
 
 use App\Message\Entity\MessageTemplate;
+use App\Message\Service\Formato\HidratadorDeMarcadores;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Message\PmsMessageDataResolver;
 use App\Pms\Service\Message\TelefonoDeContacto;
@@ -33,6 +34,7 @@ final class PmsReservaWhatsappLinkController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         private readonly PmsMessageDataResolver $messageDataResolver,
         private readonly TelefonoDeContacto $telefonos,
+        private readonly HidratadorDeMarcadores $hidratador,
     ) {}
 
     #[Route('/{id}/whatsapp-link/{templateId}', name: 'app_pms_reserva_whatsapp_link', methods: ['GET'])]
@@ -67,15 +69,20 @@ final class PmsReservaWhatsappLinkController extends AbstractController
             ));
         }
 
-        $variables = $this->messageDataResolver->getMessageVariables((string) $reserva->getId());
+        // ⚠️ **Con el idioma del CUERPO que se acaba de elegir**, no sin idioma.
+        //
+        // Sin él, las variables redactadas —`estancias`, `bloque_pago`…— salían vacías y el
+        // huésped recibía «Tu reserva:» seguido de un hueco: pasó de verdad con «Detalle de pago»
+        // enviada a mano (17/09/2026). Hoy el resolver ya no devuelve medio diccionario —cae al
+        // idioma de la reserva—, pero pasarlo aquí sigue siendo lo correcto: el cuerpo puede estar
+        // en inglés porque el del huésped no está entre los siete, y entonces sus bloques tienen
+        // que ir en inglés también, no en el suyo.
+        $variables = $this->messageDataResolver->getMessageVariables((string) $reserva->getId(), $templateLang);
 
-        $replacePairs = [];
-        foreach ($variables as $key => $value) {
-            $replacePairs['{{ ' . $key . ' }}'] = (string) $value;
-            $replacePairs['{{' . $key . '}}'] = (string) $value;
-        }
-
-        $textoFinal = strtr($cuerpoPlantilla, $replacePairs);
+        // El mismo hidratador que el envío de verdad: una sola regla para los marcadores —lo que
+        // existe y vale vacío desaparece, lo que no existe se queda a la vista— en vez de una
+        // segunda copia que se desincroniza.
+        $textoFinal = $this->hidratador->hidratar($cuerpoPlantilla, $variables);
 
         $telefonoLimpio = preg_replace('/[^0-9]/', '', $this->telefonos->para($reserva) ?? '');
         if (empty($telefonoLimpio)) {
