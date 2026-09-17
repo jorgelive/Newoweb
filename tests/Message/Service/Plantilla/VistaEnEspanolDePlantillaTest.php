@@ -33,10 +33,12 @@ final class VistaEnEspanolDePlantillaTest extends TestCase
             ]],
         ]);
 
-        self::assertSame(
-            "[Cabecera] Tu llegada, {{guest_name}}\n\nDesde hoy tienes tus llaves.\n\n[Pie] Buen viaje\n\n[Botón] Ver mi guía → guide_path",
-            (new VistaEnEspanolDePlantilla())->whatsappMeta($plantilla)
-        );
+        self::assertSame([
+            ['etiqueta' => 'Cabecera', 'texto' => 'Tu llegada, {{guest_name}}'],
+            ['etiqueta' => null, 'texto' => 'Desde hoy tienes tus llaves.'],
+            ['etiqueta' => 'Pie', 'texto' => 'Buen viaje'],
+            ['etiqueta' => 'Botón', 'texto' => 'Ver mi guía → guide_path'],
+        ], (new VistaEnEspanolDePlantilla())->whatsappMeta($plantilla));
     }
 
     #[Test]
@@ -49,14 +51,32 @@ final class VistaEnEspanolDePlantillaTest extends TestCase
             ],
         ]);
 
-        self::assertSame('Hola {{guest_name}}', (new VistaEnEspanolDePlantilla())->beds24($plantilla));
+        self::assertSame(
+            [['etiqueta' => null, 'texto' => 'Hola {{guest_name}}']],
+            (new VistaEnEspanolDePlantilla())->beds24($plantilla)
+        );
     }
 
     #[Test]
     public function un_canal_sin_texto_se_ve_vacio(): void
     {
-        // Vacío y no «[]»: quien lo pinta decide cómo decir que no hay nada escrito.
-        self::assertSame('', (new VistaEnEspanolDePlantilla())->whatsappDentro((new MessageTemplate())->setWhatsappLinkTmpl(['body' => []])));
+        // Sin piezas: quien lo pinta decide cómo decir que no hay nada escrito.
+        self::assertSame([], (new VistaEnEspanolDePlantilla())->whatsappDentro((new MessageTemplate())->setWhatsappLinkTmpl(['body' => []])));
+    }
+
+    #[Test]
+    public function una_pieza_vacia_no_deja_su_rotulo_suelto(): void
+    {
+        // Sin pie ni botones: el cuerpo solo, sin rótulos huérfanos.
+        $plantilla = (new MessageTemplate())->setWhatsappMetaTmpl([
+            'body' => [['language' => 'es', 'content' => 'Sólo el cuerpo.']],
+            'footer' => [],
+        ]);
+
+        self::assertSame(
+            [['etiqueta' => null, 'texto' => 'Sólo el cuerpo.']],
+            (new VistaEnEspanolDePlantilla())->whatsappMeta($plantilla)
+        );
     }
 
     #[Test]
@@ -67,6 +87,9 @@ final class VistaEnEspanolDePlantillaTest extends TestCase
             'body' => [['language' => 'es', 'content' => 'Gracias por reservar.']],
         ]);
 
-        self::assertSame("[Asunto] Tu reserva\n\nGracias por reservar.", (new VistaEnEspanolDePlantilla())->correo($plantilla));
+        self::assertSame([
+            ['etiqueta' => 'Asunto', 'texto' => 'Tu reserva'],
+            ['etiqueta' => null, 'texto' => 'Gracias por reservar.'],
+        ], (new VistaEnEspanolDePlantilla())->correo($plantilla));
     }
 }

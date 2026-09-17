@@ -7,16 +7,22 @@ namespace App\Message\Service\Plantilla;
 use App\Message\Entity\MessageTemplate;
 
 /**
- * Lo que se lee de una plantilla en la ficha «Ver»: su texto en ESPAÑOL, y nada más.
+ * Lo que se lee de una plantilla en la ficha «Ver»: su texto en ESPAÑOL, por piezas.
  *
  * ── Por qué ─────────────────────────────────────────────────────────────────
  * La ficha enseñaba el JSON crudo de cada canal, con los siete idiomas, los `origenHash` y el
  * `buttons_map` dentro. Para saber qué dice una plantilla había que leer un bloque de código con
  * barra horizontal en el móvil, y el español estaba en medio.
  *
- * Aquí se muestra **sólo el español**, que es el original: los otros seis los escribe
- * `AutoTranslate` a partir de él, así que leer el español es leer la plantilla. Quien necesite el
- * JSON entero lo tiene al editar, que es donde se toca.
+ * Se muestra **sólo el español**, que es el original: los otros seis los escribe `AutoTranslate` a
+ * partir de él, así que leer el español es leer la plantilla. Quien necesite el JSON entero lo
+ * tiene al editar, que es donde se toca.
+ *
+ * ── Piezas, no un churro de texto ───────────────────────────────────────────
+ * Devuelve una lista de partes con su etiqueta —cabecera, pie, botón— en vez de una cadena con
+ * `[Cabecera]` escrito dentro. La primera versión lo hacía así y se leía mal: quien pinta necesita
+ * saber qué es cada trozo para darle su sitio, y meter el rótulo en el texto obliga a que el
+ * cuerpo del mensaje y el nombre de la pieza compartan tipografía y peso.
  *
  * ⚠️ Es una VISTA: no toca nada y no resuelve marcadores —`{{guest_name}}` se enseña tal cual—.
  * Para verla hidratada con una reserva real está `msg:plantilla:ver`.
@@ -25,21 +31,19 @@ final readonly class VistaEnEspanolDePlantilla
 {
     private const string IDIOMA = 'es';
 
-    /** Fuera de la ventana de 24 h: cabecera, cuerpo, pie y botones, que es lo que aprueba Meta. */
-    public function whatsappMeta(MessageTemplate $plantilla): string
+    /**
+     * Fuera de la ventana de 24 h: cabecera, cuerpo, pie y botones, que es lo que aprueba Meta.
+     *
+     * @return list<array{etiqueta: ?string, texto: string}>
+     */
+    public function whatsappMeta(MessageTemplate $plantilla): array
     {
         $partes = [];
         $cabecera = $plantilla->getWhatsappMetaHeader(self::IDIOMA);
 
-        if ($cabecera !== null && ($cabecera['content'] ?? null) !== null) {
-            $partes[] = '[Cabecera] ' . $cabecera['content'];
-        }
-
-        $partes[] = (string) $plantilla->getWhatsappMetaBody(self::IDIOMA);
-
-        if (($pie = $plantilla->getWhatsappMetaFooter(self::IDIOMA)) !== null && $pie !== '') {
-            $partes[] = '[Pie] ' . $pie;
-        }
+        $partes[] = ['etiqueta' => 'Cabecera', 'texto' => (string) ($cabecera['content'] ?? '')];
+        $partes[] = ['etiqueta' => null, 'texto' => (string) $plantilla->getWhatsappMetaBody(self::IDIOMA)];
+        $partes[] = ['etiqueta' => 'Pie', 'texto' => (string) $plantilla->getWhatsappMetaFooter(self::IDIOMA)];
 
         foreach ($plantilla->getWhatsappMetaButtons(self::IDIOMA) as $boton) {
             // El destino también: un botón sin su enlace no se puede revisar, y es justo lo que
@@ -48,43 +52,64 @@ final readonly class VistaEnEspanolDePlantilla
                 ? (string) $boton['resolver_key']
                 : (string) ($boton['content'] ?? '');
 
-            $partes[] = sprintf('[Botón] %s → %s', (string) ($boton['button_text'] ?? '¿?'), $destino);
+            $partes[] = [
+                'etiqueta' => 'Botón',
+                'texto' => sprintf('%s → %s', (string) ($boton['button_text'] ?? '¿?'), $destino),
+            ];
         }
 
         return $this->limpiar($partes);
     }
 
-    /** Dentro de la ventana de 24 h, y el que se manda a mano desde el calendario. */
-    public function whatsappDentro(MessageTemplate $plantilla): string
+    /**
+     * Dentro de la ventana de 24 h, y el que se manda a mano desde el calendario.
+     *
+     * @return list<array{etiqueta: ?string, texto: string}>
+     */
+    public function whatsappDentro(MessageTemplate $plantilla): array
     {
-        return $this->limpiar([(string) $plantilla->getWhatsappLinkBody(self::IDIOMA)]);
+        return $this->limpiar([['etiqueta' => null, 'texto' => (string) $plantilla->getWhatsappLinkBody(self::IDIOMA)]]);
     }
 
-    /** El chat de la OTA. */
-    public function beds24(MessageTemplate $plantilla): string
+    /**
+     * El chat de la OTA.
+     *
+     * @return list<array{etiqueta: ?string, texto: string}>
+     */
+    public function beds24(MessageTemplate $plantilla): array
     {
-        return $this->limpiar([(string) $plantilla->getBeds24Body(self::IDIOMA)]);
+        return $this->limpiar([['etiqueta' => null, 'texto' => (string) $plantilla->getBeds24Body(self::IDIOMA)]]);
     }
 
-    public function correo(MessageTemplate $plantilla): string
+    /** @return list<array{etiqueta: ?string, texto: string}> */
+    public function correo(MessageTemplate $plantilla): array
     {
-        $asunto = (string) $plantilla->getEmailSubject(self::IDIOMA);
-
         return $this->limpiar([
-            $asunto !== '' ? '[Asunto] ' . $asunto : '',
-            (string) $plantilla->getEmailBody(self::IDIOMA),
+            ['etiqueta' => 'Asunto', 'texto' => (string) $plantilla->getEmailSubject(self::IDIOMA)],
+            ['etiqueta' => null, 'texto' => (string) $plantilla->getEmailBody(self::IDIOMA)],
         ]);
     }
 
     /**
-     * @param list<string> $partes
+     * Fuera las piezas vacías: un canal a medias enseña lo que tiene, no huecos con rótulo.
      *
-     * @return string Vacío si no hay nada escrito: quien lo pinta decide qué poner entonces.
+     * @param list<array{etiqueta: ?string, texto: string}> $partes
+     *
+     * @return list<array{etiqueta: ?string, texto: string}> Vacío si no hay nada escrito: quien lo
+     *         pinta decide qué poner entonces.
      */
-    private function limpiar(array $partes): string
+    private function limpiar(array $partes): array
     {
-        $utiles = array_filter(array_map('trim', $partes), static fn (string $parte): bool => $parte !== '');
+        $utiles = [];
 
-        return implode("\n\n", $utiles);
+        foreach ($partes as $parte) {
+            $texto = trim($parte['texto']);
+
+            if ($texto !== '') {
+                $utiles[] = ['etiqueta' => $parte['etiqueta'], 'texto' => $texto];
+            }
+        }
+
+        return $utiles;
     }
 }

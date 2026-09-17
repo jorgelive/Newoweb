@@ -105,13 +105,18 @@ Hoy son **campos virtuales** que pintan sólo el español, compuesto por
 que más se equivoca—. El español es el original: los otros seis los escribe `AutoTranslate` a partir
 de él, así que leerlo es leer la plantilla. El JSON entero sigue al editar, que es donde se toca.
 
-Dos detalles que cuestan una tarde si se descubren en caliente:
+Tres detalles que cuestan una tarde si se descubren en caliente:
 
 - **Los campos virtuales necesitan su stub en la entidad** (`getVirtualTextoMeta()` y compañía,
   devolviendo `''`), por lo mismo que `virtualEstadoMeta`: `TextField` valida el valor CRUDO antes
   de pasarlo al formateador, y anclarlo al array del canal revienta.
-- **`<pre>` y no `nl2br()`**: estos textos llevan listas, sangrías y emojis alineados, y un `<div>`
-  normal se come los espacios.
+- **Nada de `<pre>`.** La primera versión lo usaba —parecía lo natural para respetar sangrías— y el
+  panel lo pinta con el estilo de código: **rojo y con otra tipografía**, así que el mensaje parecía
+  un error. Se consigue lo mismo con `white-space: pre-wrap` sobre texto normal.
+- **El servicio devuelve PIEZAS, no una cadena con `[Cabecera]` dentro.** Con el rótulo metido en el
+  texto, el nombre de la pieza y el mensaje comparten peso y tipografía, y separarlos obligaba a
+  líneas en blanco: en el móvil salían huecos enormes. Con partes etiquetadas, quien pinta le da a
+  cada trozo su sitio —rótulo pequeño en gris, rayita divisoria— y el cuerpo se lee de un vistazo.
 
 ## Dónde tocar para cambiar X
 

@@ -396,7 +396,7 @@ class MessageTemplateCrudController extends BaseCrudController
         yield TextField::new('virtualTextoMeta', 'Texto en español')
             ->onlyOnDetail()
             ->formatValue(fn ($value, ?MessageTemplate $entity): string => $this->bloqueEnEspanol(
-                $entity === null ? '' : $this->vistaEnEspanol->whatsappMeta($entity)
+                $entity === null ? [] : $this->vistaEnEspanol->whatsappMeta($entity)
             ))
             ->renderAsHtml();
 
@@ -427,7 +427,7 @@ class MessageTemplateCrudController extends BaseCrudController
         yield TextField::new('virtualTextoBeds24', 'Texto en español')
             ->onlyOnDetail()
             ->formatValue(fn ($value, ?MessageTemplate $entity): string => $this->bloqueEnEspanol(
-                $entity === null ? '' : $this->vistaEnEspanol->beds24($entity)
+                $entity === null ? [] : $this->vistaEnEspanol->beds24($entity)
             ))
             ->renderAsHtml();
 
@@ -462,7 +462,7 @@ class MessageTemplateCrudController extends BaseCrudController
         yield TextField::new('virtualTextoWhatsappDentro', 'Texto en español')
             ->onlyOnDetail()
             ->formatValue(fn ($value, ?MessageTemplate $entity): string => $this->bloqueEnEspanol(
-                $entity === null ? '' : $this->vistaEnEspanol->whatsappDentro($entity)
+                $entity === null ? [] : $this->vistaEnEspanol->whatsappDentro($entity)
             ))
             ->renderAsHtml();
 
@@ -480,7 +480,7 @@ class MessageTemplateCrudController extends BaseCrudController
         yield TextField::new('virtualTextoCorreo', 'Texto en español')
             ->onlyOnDetail()
             ->formatValue(fn ($value, ?MessageTemplate $entity): string => $this->bloqueEnEspanol(
-                $entity === null ? '' : $this->vistaEnEspanol->correo($entity)
+                $entity === null ? [] : $this->vistaEnEspanol->correo($entity)
             ))
             ->renderAsHtml();
 
@@ -547,19 +547,42 @@ class MessageTemplateCrudController extends BaseCrudController
      * `AutoTranslate` a partir de él—, así que leerlo es leer la plantilla. El JSON entero sigue
      * disponible al editar, que es donde se toca.
      *
-     * `<pre>` y no `nl2br`: estos textos llevan listas, sangrías y emojis alineados, y el
-     * navegador se come los espacios de un `<div>` normal.
+     * ⚠️ **Nada de `<pre>`**: la primera versión lo usaba y el panel lo pinta con el estilo de
+     * código —rojo y con su propia tipografía—, así que el mensaje parecía un error. Se pinta con
+     * `white-space: pre-wrap` sobre texto normal, que respeta los saltos de línea y las sangrías
+     * sin cambiar ni el color ni la fuente.
+     *
+     * Las piezas con rótulo —cabecera, pie, botones— llevan su etiqueta al lado en gris pequeño,
+     * separadas por una rayita. El cuerpo va sin rótulo y con algo más de aire: es lo que se lee.
+     *
+     * @param list<array{etiqueta: ?string, texto: string}> $partes
      */
-    private function bloqueEnEspanol(string $texto): string
+    private function bloqueEnEspanol(array $partes): string
     {
-        if (trim($texto) === '') {
+        if ($partes === []) {
             return '<span class="text-muted small">Sin texto escrito para este canal.</span>';
         }
 
-        return sprintf(
-            '<pre class="mb-0" style="white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:.95em;">%s</pre>',
-            htmlspecialchars($texto, ENT_QUOTES)
-        );
+        $html = '';
+
+        foreach ($partes as $i => $parte) {
+            $texto = sprintf(
+                '<div style="white-space:pre-wrap;word-break:break-word;line-height:1.5;">%s</div>',
+                htmlspecialchars($parte['texto'], ENT_QUOTES)
+            );
+
+            $rotulo = $parte['etiqueta'] === null
+                ? ''
+                : sprintf(
+                    '<div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.15rem;">%s</div>',
+                    htmlspecialchars($parte['etiqueta'], ENT_QUOTES)
+                );
+
+            $separador = $i === 0 ? '' : 'border-top:1px solid var(--border-color, #e5e7eb);padding-top:.6rem;';
+            $html .= sprintf('<div style="%smargin-top:%s">%s%s</div>', $separador, $i === 0 ? '0' : '.6rem', $rotulo, $texto);
+        }
+
+        return sprintf('<div style="max-width:46rem;">%s</div>', $html);
     }
 
     /**
