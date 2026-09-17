@@ -178,8 +178,16 @@ final readonly class EscaneoNuevoInvalidaVeredictoListener
         //
         // Y si el TIPO cambió, también el de antes: un DNI reetiquetado como pasaporte deja al DNI
         // sin el escaneo que lo respaldaba.
+        //
+        // 🔥 **El changeset trae el tipo como TEXTO, no como enum.** Medido en producción:
+        // `['pasaporte', 'eticket']`, dos `string`. La primera versión comprobaba
+        // `instanceof ArchivoTipoEnum`, lo descartaba en silencio, y reetiquetar un pasaporte como
+        // E-Ticket dejaba el pasaporte de esa persona en verde **sin escaneo que lo respaldara**.
+        // El test pasaba porque el changeset lo había escrito yo — la misma trampa que ya cuenta la
+        // cabecera de `hayFicheroNuevo()`. Lo cazó el flujo real, no el test.
         $tipos = [$archivo->getTipoArchivo()];
         $tipoViejo = is_array($cambios['tipoArchivo'] ?? null) ? ($cambios['tipoArchivo'][0] ?? null) : null;
+        $tipoViejo = is_string($tipoViejo) ? \App\Cotizacion\Enum\ArchivoTipoEnum::tryFrom($tipoViejo) : $tipoViejo;
         if ($tipoViejo instanceof \App\Cotizacion\Enum\ArchivoTipoEnum) {
             $tipos[] = $tipoViejo;
         }
