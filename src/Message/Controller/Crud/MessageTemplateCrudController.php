@@ -113,10 +113,13 @@ class MessageTemplateCrudController extends BaseCrudController
         $pushMetaAction = Action::new('pushMetaTemplate', 'Push a Meta', 'fa fa-cloud-upload-alt')
             ->linkToCrudAction('executePushToMeta')
             ->setCssClass('btn btn-warning text-dark') // Diferenciado visualmente
-            ->displayIf(static function (MessageTemplate $entity) {
-                // Solo mostrar si tiene datos de Meta
-                return !empty($entity->getWhatsappMetaTmpl());
-            });
+            // Sólo si hay algo que subir: cuerpo escrito y «Nombre en Meta».
+            //
+            // Antes bastaba con que el bloque de Meta no estuviera vacío, y nunca lo está —el
+            // constructor lo deja con sus interruptores dentro—. Así, una plantilla que es sólo
+            // para el chat de la OTA (`solicitar_numero_whatsapp`) ofrecía «Push a Meta», y
+            // pulsarlo no podía acabar más que en un error.
+            ->displayIf(static fn (MessageTemplate $entity): bool => $entity->puedeSubirseAMeta());
 
         // 3. Botón global para VER LO QUE META TIENE DE VERDAD.
         //
@@ -780,6 +783,17 @@ class MessageTemplateCrudController extends BaseCrudController
         if (!$template instanceof MessageTemplate) {
             $this->addFlash('danger', 'Error interno: No se pudo obtener la entidad de la plantilla.');
             return $this->redirect($context->getReferrer() ?? $adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());
+        }
+
+        // La misma condición que esconde el botón, también aquí: la acción tiene URL propia y se
+        // puede llegar por ella —un enlace guardado, la vuelta atrás del navegador—.
+        if (!$template->puedeSubirseAMeta()) {
+            $this->addFlash('warning', sprintf(
+                '«%s» no tiene nada que subir a Meta: le falta el cuerpo de WhatsApp, el «Nombre en Meta», o los dos.',
+                $template->getName()
+            ));
+
+            return $this->redirect($this->urlDeVuelta($context, $adminUrlGenerator));
         }
 
         // PASO 1 — elegir idiomas. Sin selección, se enseña el cuadro en vez de subir.

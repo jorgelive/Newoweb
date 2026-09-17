@@ -54,6 +54,37 @@ final class PlantillaEnCirculacionTest extends TestCase
         self::assertSame([$viva], (new PlantillasEnCirculacionProvider($decorado))->provide(new GetCollection()));
     }
 
+    #[Test]
+    public function sin_cuerpo_de_meta_no_hay_nada_que_subir(): void
+    {
+        // `solicitar_numero_whatsapp` es sólo para el chat de la OTA y ofrecía «Push a Meta»: el
+        // bloque de Meta nunca está vacío, porque lleva sus interruptores dentro.
+        $soloOta = (new MessageTemplate())
+            ->setBeds24Tmpl(['is_active' => true, 'body' => [['language' => 'es', 'content' => 'Hola']]])
+            ->setWhatsappMetaTmpl(['is_active' => false, 'is_official_meta' => false, 'body' => []]);
+
+        self::assertFalse($soloOta->puedeSubirseAMeta());
+    }
+
+    #[Test]
+    public function sin_nombre_en_meta_tampoco(): void
+    {
+        // El push lo exige para armar el payload: sin él sólo puede acabar en error.
+        $sinNombre = (new MessageTemplate())
+            ->setWhatsappMetaTmpl(['body' => [['language' => 'es', 'content' => 'Hola']], 'meta_template_name' => '  ']);
+
+        self::assertFalse($sinNombre->puedeSubirseAMeta());
+    }
+
+    #[Test]
+    public function con_cuerpo_y_nombre_si_se_puede_subir(): void
+    {
+        $lista = (new MessageTemplate())
+            ->setWhatsappMetaTmpl(['body' => [['language' => 'es', 'content' => 'Hola']], 'meta_template_name' => 'guia_llegada_v1']);
+
+        self::assertTrue($lista->puedeSubirseAMeta());
+    }
+
     private function plantilla(bool $beds24 = false, bool $meta = false, bool $correo = false): MessageTemplate
     {
         return (new MessageTemplate())

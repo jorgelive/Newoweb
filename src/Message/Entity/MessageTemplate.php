@@ -265,6 +265,28 @@ class MessageTemplate
      * El cuerpo de dentro de la ventana no cuenta aparte: lo gobierna el interruptor de WhatsApp
      * (ver {@see getCanales()}).
      */
+    /**
+     * ¿Hay algo que subir a Meta? Lo que el push necesita, ni más ni menos.
+     *
+     * Son **dos** cosas y las dos las exige `WhatsappMetaTemplatePushService`: un cuerpo escrito y
+     * el «Nombre en Meta». Sin lo primero se subiría una plantilla vacía; sin lo segundo el push
+     * falla al armar el payload.
+     *
+     * ⚠️ **No vale preguntar si el bloque de Meta existe**, que es lo que hacía el botón: el
+     * constructor lo deja con sus interruptores dentro, así que nunca está vacío. Por eso
+     * `solicitar_numero_whatsapp` —que es sólo para el chat de la OTA— ofrecía «Push a Meta»
+     * (17/09/2026).
+     */
+    public function puedeSubirseAMeta(): bool
+    {
+        $meta = $this->whatsappMetaTmpl ?? [];
+        $cuerpos = $meta['body'] ?? null;
+        $nombre = $meta['meta_template_name'] ?? null;
+
+        return is_array($cuerpos) && $cuerpos !== []
+            && is_string($nombre) && trim($nombre) !== '';
+    }
+
     public function estaEnCirculacion(): bool
     {
         return $this->isBeds24Active() || $this->isWhatsappMetaActive() || $this->isEmailActive();

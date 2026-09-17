@@ -80,6 +80,19 @@ Y el **por qué** vive donde se ve: `Crud::setHelp(PAGE_INDEX, …)` con un bloq
 qué significan los canales tachados, qué hace archivar y qué no toca. La lista enseña además una
 etiqueta **ARCHIVADA**: cuatro etiquetas tachadas no se leen como un estado.
 
+### «Push a Meta» sólo donde hay algo que subir
+
+La condición del botón era «que el bloque de Meta no esté vacío», y **nunca lo está**: el
+constructor lo deja con sus interruptores dentro. Así, `solicitar_numero_whatsapp` —que es sólo
+para el chat de la OTA— ofrecía «Push a Meta», y pulsarlo no podía acabar más que en un error.
+
+Hoy pregunta por lo que el push necesita de verdad (`MessageTemplate::puedeSubirseAMeta()`): **un
+cuerpo escrito y el «Nombre en Meta»**. La misma condición está **también dentro de la acción**,
+porque tiene URL propia y se puede llegar por ella —un enlace guardado, la vuelta atrás—.
+
+**La regla general:** un `displayIf()` que no comprueba la precondición real no esconde un botón,
+esconde un error para más tarde.
+
 ### La ficha «Ver» enseña el español, no el JSON
 
 Los cuatro canales se mostraban con `CodeEditorField` sobre el array crudo: los siete idiomas, los
