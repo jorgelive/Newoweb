@@ -1183,11 +1183,41 @@ El mismo comando arregla el caso sin copias: un mensaje futuro en `failed` con l
 a repetirse—. No es cosmético: mientras diga `failed` no es el intento vigente de su regla, así que
 es el candidato exacto a que el motor fabrique el duplicado siguiente.
 
-⚠️ Queda un ruido conocido y **inofensivo**: el motor sigue creando y cancelando un mensaje por
-pasada para las reservas cuyo hilo alterna entre abierto y cerrado —`ruleAppliesToAgenda()` no
-aplica ninguna regla con la conversación en `closed`, y un mensaje `cancelled` hace que
-`findExistingSystemMessage()` devuelva `null`, que es lo que autoriza el siguiente—. Eso llena la
-tabla de filas `cancelled`, no de envíos: sus colas sí se cancelan.
+### 🔥 El vaivén del hilo NO era inofensivo (17/09/2026)
+
+El 14/09 quedó escrito aquí que el motor seguía creando y cancelando un mensaje por pasada, y que
+eso era ruido. **Era la otra mitad del mismo fallo**: tres días después Vanessa volvía a tener 8
+recordatorios vivos idénticos y Karina 2.
+
+**La causa es de la fábrica, no del motor.** Las dos habían cancelado una reserva y vuelto a
+reservar, y las dos reservas cuelgan del mismo hilo. `MessageConversationFactory::upsertFromContext()`
+cerraba el hilo entero al ver la cancelada y lo reabría al ver la viva, así que el hilo quedaba
+como lo dejara la última recalculada en cada sincronización:
+
+| Orden del lote | Hilo | Recordatorio de la reserva viva |
+|---|---|---|
+| cancelada → viva | abierto | se crea uno **nuevo**: el anterior lo canceló la pasada con el hilo cerrado |
+| viva → cancelada | cerrado | **cancelado: no le llega nada** |
+
+Copias o silencio según el orden, y ninguno de los dos da error. Reproducido en local con la copia
+de la base, recalculando 5GEFZ9 y 2KRERH en los dos órdenes. Y no eran dos casos: **11 hilos**
+de producción tienen una reserva titular terminada junto a otra viva.
+
+El paso 5 tenía un CENTINELA que lo avisaba —«el primer sitio que hay que tocar el día de la
+fusión»—. Ese día llegó sin fusión: basta con cancelar y volver a reservar.
+
+**El arreglo:** un asunto cancelado cierra el hilo **sólo si no queda otro titular vivo**
+(`MessageConversationFactory::quedaOtroAsuntoVivo()`), con el mismo juez que el motor,
+`AgendaDeAsunto::estaMuerta()`. No se pierde nada por no cerrar: el motor evalúa la muerte por
+asunto y la agenda de la cancelada no programa nada con el hilo abierto. Un enlace ilegible
+cuenta como vivo, por la misma razón — cerrar de más silencia sin avisar.
+
+Verificado en local: tres vueltas en cada orden, **un solo recordatorio, creado una vez**, y el
+hilo abierto. Test en `tests/Message/Factory/CierreDeHiloConAsuntosVivosTest.php`.
+
+⚠️ **Lección de método.** El día 14 se arregló lo que se veía en la fila —la etiqueta `failed`— y
+el vaivén se dio por ruido sin comprobar qué lo movía. Un mensaje que se crea y se cancela en
+bucle no es ruido: es una decisión que cambia de sentido en cada pasada.
 
 ### 🔥 Los bloqueos puros no generan chat, los inquiries sí
 
@@ -8999,8 +9029,9 @@ De los 204 enlaces, 202 con hitos: **202 con el `start` del mapa igual al del pr
   decide **en qué hilo de Beds24 aterriza el mensaje**, y es del asunto: tras fusionar hilos, el
   recordatorio de la reserva B se publicaría en el hilo de la A. Mismo fallo que se acaba de
   cerrar en las estrategias, un paso antes en la tubería.
-- **El auto-archivado sigue siendo por hilo**: cancelar una reserva cierra la conversación entera
-  y silenciaría las agendas vivas de las demás cuando los hilos se fusionen.
+- ~~**El auto-archivado sigue siendo por hilo**~~ — resuelto el 17/09/2026: una cancelación sólo
+  cierra el hilo si no queda otro titular vivo. Llegó antes que la fusión, con quien cancela y
+  vuelve a reservar. Ver «El vaivén del hilo NO era inofensivo» en §7.
 - **No hay ni un test bajo `tests/Message/Service/Exchange/`**, que es justo donde vive el código
   que se envía al huésped.
 

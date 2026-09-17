@@ -11,9 +11,11 @@ use App\Message\Enum\IdentidadTipo;
 use Psr\Log\LoggerInterface;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Message\Service\Conversacion\ResolutorDeHilo;
+use App\Message\Service\Queue\AgendaDeAsunto;
 use App\Message\Entity\MessageConversation;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
+use Throwable;
 
 /**
  * MessageConversationFactory
@@ -150,18 +152,33 @@ readonly class MessageConversationFactory
 
         // 5. AUTO-ARCHIVADO y REACTIVACIÓN
         //
-        // ⚠️ CENTINELA: esto razona por HILO y el paso 6 razona por ASUNTO.
+        // ⚠️ Un asunto cancelado cierra el hilo sólo si NO QUEDA OTRO VIVO en él.
         //
-        // Cancelar una reserva cierra la conversación ENTERA. Hoy da igual —un hilo, un asunto—,
-        // pero en cuanto se fusionen los hilos duplicados por persona, cancelar la reserva A
-        // cerrará el hilo y silenciará las agendas VIVAS de B y de C: el motor descarta las
-        // reglas de una conversación cerrada.
+        // Aquí hubo un centinela que avisaba de esto: cancelar la reserva A cerraba la
+        // conversación entera y silenciaba las agendas vivas de B, porque el motor no aplica
+        // reglas a un hilo cerrado. «Es el primer sitio que hay que tocar el día de la fusión.»
+        // Ese día llegó sin fusión: basta con que una persona cancele y vuelva a reservar.
         //
-        // No se cambia ahora a propósito: alterar cuándo se cierra un hilo es un cambio de
-        // comportamiento en producción que no hace falta todavía. Pero es el primer sitio que
-        // hay que tocar el día de la fusión, y por eso queda escrito aquí y no sólo en el doc.
+        // Vanessa (17/09/2026): 5GEFZ9 cancelada y 2KRERH, su nueva reserva, en el mismo hilo.
+        // Cada sincronización recalcula las dos, y el hilo quedaba como lo dejara la ÚLTIMA:
+        //
+        // | Orden del lote | Hilo | Recordatorio de 2KRERH |
+        // |---|---|---|
+        // | 5GEFZ9 → 2KRERH | abierto | se crea uno NUEVO (el anterior ya lo cancelaron) |
+        // | 2KRERH → 5GEFZ9 | cerrado | cancelado: **no le llega nada** |
+        //
+        // Reproducido en local con la copia de la base. En producción ese vaivén dejaba copias
+        // vivas —8 del mismo recordatorio para Vanessa, 2 para Karina— o silencio, según quién
+        // corriera último. El día 14 se arregló la mitad del síntoma (`MessageDispatcher`) y se
+        // anotó el vaivén como ruido inofensivo; no lo era.
+        //
+        // La muerte del asunto no se pierde por no cerrar: el motor la mira POR ASUNTO
+        // (`AgendaDeAsunto::estaMuerta()`) y la agenda de 5GEFZ9 no programa nada con el hilo
+        // abierto. Lo que cerrar añadía era apagar también a los vivos.
         if ($context->isCancelled()) {
-            $conversation->setStatus(MessageConversation::STATUS_CLOSED); //Cambiado
+            if (!$this->quedaOtroAsuntoVivo($conversation, $context->getContextType(), $context->getContextId())) {
+                $conversation->setStatus(MessageConversation::STATUS_CLOSED);
+            }
         } else {
             if ($conversation->getStatus() === MessageConversation::STATUS_CLOSED) { //Cambiado
                 $conversation->setStatus(MessageConversation::STATUS_OPEN);
@@ -195,6 +212,48 @@ readonly class MessageConversationFactory
         }
 
         return $conversation;
+    }
+
+    /**
+     * ¿Cuelga de este hilo otro asunto TITULAR que siga vivo?
+     *
+     * Con el mismo juez que el motor —`AgendaDeAsunto::estaMuerta()`: cancelado o con el vínculo
+     * terminado—, porque si la fábrica y el motor discreparan sobre qué está vivo, el hilo se
+     * cerraría con una agenda que el motor todavía quiere programar, que es el fallo de partida.
+     *
+     * Sólo titulares, como el motor: el acompañante no programa nada, así que no puede mantener
+     * abierto un hilo para una agenda que no existe.
+     *
+     * ⚠️ Un enlace que no se deja leer (un proxy sin fila) cuenta como VIVO. Ante la duda se deja
+     * el hilo abierto: el motor evalúa la muerte de cada asunto por su cuenta y no programa nada
+     * para uno muerto, mientras que cerrar de más silencia a los vivos sin avisar.
+     */
+    private function quedaOtroAsuntoVivo(MessageConversation $conversation, string $contextType, string $contextId): bool
+    {
+        foreach ($this->enlaces->de($conversation) as $enlace) {
+            if (!$enlace->esTitular()) {
+                continue;
+            }
+
+            if ($enlace->getContextType() === $contextType && $enlace->getContextId() === $contextId) {
+                continue;
+            }
+
+            try {
+                if (!AgendaDeAsunto::deEnlace($enlace)->estaMuerta()) {
+                    return true;
+                }
+            } catch (Throwable $e) {
+                $this->logger->warning('Asunto ilegible al decidir si se cierra el hilo: se cuenta como vivo.', [
+                    'conversacion' => (string) $conversation->getId(),
+                    'error' => $e->getMessage(),
+                ]);
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
