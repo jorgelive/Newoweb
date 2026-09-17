@@ -883,7 +883,7 @@ const abrirEdicionPax = (pax: ApiCotizacionFilepasajero, editar = false) => {
     // ⚠️ El resultado fue `String({...})` → `"[object Object]"` en cada pertenencia, y el PATCH
     // devolvía `Invalid IRI "[object Object]"`: **guardar un pasajero con subgrupos daba 400**.
     // Se acepta cualquiera de las dos formas a propósito, que es lo que había antes.
-    pertenencias: (pax.pertenencias ?? []).map(p => ({ grupo: iriDeRelacion(p.grupo) })).filter(p => p.grupo)
+    pertenencias: (pax.pertenencias ?? []).map(p => ({ grupo: iriDeGrupoParaEscribir(p.grupo) })).filter(p => p.grupo)
   };
   showPaxModal.value = true;
 };
@@ -906,8 +906,13 @@ const agregarIdentificacion = () => {
   paxForm.value.identificaciones.push({ tipo: libre[0], numero: '', vencimiento: '' });
 };
 
+/**
+ * ⚠️ **Se construye desde el ID, sin mirar el `@id` que vino.** Marcar una casilla y abrir la ficha
+ * tienen que producir la MISMA cadena; si una vía usa el `@id` servido y la otra reconstruye, basta
+ * un prefijo distinto para que el formulario crea que hay dos grupos donde hay uno.
+ */
 const iriDeGrupo = (g: ApiFileGrupo): string =>
-  g['@id'] || `/platform/sales/cotizacion_file_grupos/${extractIdStr(g.id)}`;
+  `/platform/sales/cotizacion_file_grupos/${extractIdStr(g.id ?? g['@id'])}`;
 
 /**
  * ⚠️ **Se compara por ID, no por IRI.** El formulario guarda el IRI porque es lo que el PATCH
@@ -2165,14 +2170,23 @@ const indiceDeDuenos = computed(() => {
 });
 
 /**
- * El IRI de una relación, venga ya como IRI o como objeto incrustado.
+ * El IRI con el que se ESCRIBE un subgrupo, venga la relación como IRI o como objeto incrustado.
  *
- * 🔑 **Hace falta aparte de `idDeRelacion()` porque lo que se ESCRIBE es el IRI**: API Platform
- * denormaliza `grupo` a partir de él, y un id pelado no le vale. Leer y escribir piden formas
+ * 🔑 **Hace falta aparte de `idDeRelacion()` porque lo que se escribe es el IRI**: API Platform
+ * denormaliza `grupo` a partir de él y un id pelado no le vale. Leer y escribir piden formas
  * distintas del mismo dato, y confundirlas es lo que rompió el guardado de pasajeros.
+ *
+ * ⚠️ **Se RECONSTRUYE la ruta en vez de reenviar el `@id` que vino**, que es lo que hacía el código
+ * de antes y no era casualidad: ese `@id` no siempre es relativo. Serializado fuera de una petición
+ * HTTP sale como `//api.openperu.pe/platform/sales/…`, y devolverlo así da
+ * `Invalid IRI` — el mismo 400 por otra puerta. Con la ruta reconstruida, de dónde salga el dato
+ * deja de importar.
  */
-const iriDeRelacion = (rel: unknown): string =>
-    typeof rel === 'string' ? rel : ((rel as { '@id'?: string } | null)?.['@id'] ?? '');
+const iriDeGrupoParaEscribir = (rel: unknown): string => {
+    const id = idDeRelacion(rel);
+
+    return id ? `/platform/sales/cotizacion_file_grupos/${id}` : '';
+};
 
 /** El id que hay detrás de una relación, venga como IRI o como objeto embebido. */
 const idDeRelacion = (rel: unknown): string => {

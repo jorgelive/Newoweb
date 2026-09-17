@@ -10166,7 +10166,17 @@ lectura. `pax` no se entera — usa `pax_file:read`, donde esta propiedad no est
 formulario necesita el **IRI** (API Platform denormaliza a partir de él), y las casillas se comparan
 por **id** (dos IRIs del mismo grupo pueden traer prefijo distinto y entonces la casilla sale
 desmarcada sin error, que es «este pasajero no pertenece a nada» y al guardar se cumple). De ahí
-salen `iriDeRelacion()` y `idDeRelacion()` en `FileDetalle.vue`, que son dos a propósito.
+salen `iriDeGrupoParaEscribir()` y `idDeRelacion()` en `FileDetalle.vue`, que son dos a propósito.
+
+⚠️ **Y el IRI se RECONSTRUYE desde el id, no se reenvía el `@id` que vino.** El código que llevaba
+meses funcionando ya lo hacía y no era manía: ese `@id` no siempre es relativo — serializado fuera de
+una petición HTTP sale como `//api.openperu.pe/platform/sales/…`, y devolverlo así da `Invalid IRI`,
+el mismo 400 por otra puerta. Comprobado en producción con el expediente real, denormalizando en
+transacción con `rollback`: 14 pertenencias leídas → 14 IRIs → pasa.
+
+⚠️ **Y al sondearlo, dale contexto al router.** Sin
+`$router->setContext(new RequestContext()...)`, en CLI **ningún** IRI denormaliza: el sondeo mide el
+contexto de la consola, no el dato, y parece que el arreglo no sirve. Costó una ronda entera.
 
 #### 🔥 Borrar un documento tardaba ~10 segundos, y no era el borrado
 
