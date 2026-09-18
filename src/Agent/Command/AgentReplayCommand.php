@@ -143,7 +143,11 @@ final class AgentReplayCommand extends Command
                 $actor,
                 $mensaje,
                 $historial,
-                (string) $contextoDe->invoke($this->procesador, $conversacion)
+                // ⚠️ El ACTOR va siempre: `contexto()` lo pide desde que el bloque volátil dice
+                // quién escribe (`PerfilConversacion::deActor()`). Aquí se llama por reflexión, así
+                // que PHPStan no ve la firma y el día que cambió, esto siguió compilando y reventó
+                // al ejecutarse — con un `ArgumentCountError` en mitad de la primera respuesta.
+                (string) $contextoDe->invoke($this->procesador, $conversacion, $actor)
             );
 
             $io->writeln(sprintf(
@@ -175,7 +179,7 @@ final class AgentReplayCommand extends Command
                     permitirEscritura: false,
                     maxTokens: 1024,
                     modelo: $elegido->modelo,
-                    contexto: (string) $contextoDe->invoke($this->procesador, $conversacion, $decision),
+                    contexto: (string) $contextoDe->invoke($this->procesador, $conversacion, $actor, $decision),
                 ));
 
                 $respuesta = $salida->tieneTexto() ? (string) $salida->texto : sprintf('(sin texto: %s)', $salida->motivo);
