@@ -98,7 +98,19 @@ final class PmsGuiaEquipajeCommand extends Command
         TXT;
 
     private const string TERMINOS = 'equipaje, maletas, guardar maletas, dejar las maletas, almacen, bultos, '
-        . 'luggage, storage, keep my bags, early check in, ingreso temprano, late check out, salida tarde';
+        . 'luggage, storage, keep my bags, early check in, ingreso temprano, late check out, salida tarde, '
+        . 'llegar antes, salir tarde, quedarme mas';
+
+    /**
+     * Y la de horarios se queda **sólo con las horas**.
+     *
+     * Traía «equipaje, maletas, almacen, guardar maletas…» de cuando lo contaba todo, así que
+     * buscar «maletas» seguía sacándola —medido con `app:agent:skill` el 18/09/2026, devolvía las
+     * dos—. El contenido ya no está ahí: anunciarse para eso es mandar al modelo a la ficha que
+     * sólo sabe remitir.
+     */
+    private const string TERMINOS_HORARIOS = 'horario, check in, check out, a que hora entro, a que hora salgo, '
+        . 'entrada, salida, what time, arrival time, departure time, hora de entrada, hora de salida';
 
     public function __construct(private readonly EntityManagerInterface $em)
     {
@@ -187,6 +199,16 @@ final class PmsGuiaEquipajeCommand extends Command
             if (!$simular) {
                 $cuerpo[$indice]['content'] = self::HORARIOS;
                 $horarios->setDescripcion(array_values($cuerpo))->setAgenteContenido(self::HORARIOS_AGENTE);
+            }
+        }
+
+        if ($horarios->getAgenteTerminos() === self::TERMINOS_HORARIOS) {
+            $filas[] = ['Horario de ingreso y salida · términos', '<comment>ya eran sólo de horas</comment>'];
+        } else {
+            $filas[] = ['Horario de ingreso y salida · términos', 'se le quitan los del equipaje'];
+
+            if (!$simular) {
+                $horarios->setAgenteTerminos(self::TERMINOS_HORARIOS);
             }
         }
 
