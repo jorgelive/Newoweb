@@ -173,7 +173,9 @@ final class AgentReplayCommand extends Command
 
                 $salida = $elegido->motor->conversar(new ConversationRequest(
                     actor: $actor,
-                    systemPrompt: (string) $reglas->invoke($this->procesador),
+                    // También con el actor, y por lo mismo que `contexto()`: las reglas se arman
+                    // por PERFIL —quién escribe— desde que dejaron de ser un texto único.
+                    systemPrompt: (string) $reglas->invoke($this->procesador, $actor),
                     mensaje: $mensaje,
                     historial: $historial,
                     permitirEscritura: false,
