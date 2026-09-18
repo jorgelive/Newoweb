@@ -2337,6 +2337,32 @@ siete desde ya: cada vídeo aparece el día que se sube.
 Lo hizo `app:pms:guia:medios-por-marcador` (archivado), tocando sólo el español: las traducciones se
 quedan **sin imágenes dentro** para siempre, que es la mitad del valor del cambio.
 
+## El orden de «Ingreso»: los tres primeros pasos mandan (18/09/2026)
+
+La casa 2 estaba ordenada a mano así, y el resto no:
+
+```
+1. Ubicación      dónde está
+2. Llaves         cómo abrir la caja fuerte
+3. Puerta         cuál es su puerta
+…
+7. Traslados      antes del viaje
+8. Estacionamiento
+```
+
+Las otras seis tenían **Traslados y Estacionamiento en medio**, entre la dirección y las llaves: dos
+temas de antes del viaje interrumpiendo justo la secuencia de entrar. Quien abre la guía lo hace con
+la maleta en la mano, muchas veces de noche, y lo que lee primero es lo único que decide si entra o
+llama.
+
+Lo iguala `app:pms:guia:ordenar-ingreso`, que **no está archivado**: sirve igual el día que se cree
+una casita nueva. Sólo toca el campo `orden` de la relación sección↔ítem, así que no hay traducción
+de por medio.
+
+⚠️ Un ítem que no esté en la receta **no se descarta: se queda detrás**, en su orden actual. Si se
+descartara, un ítem nuevo desaparecería de la guía sin que nadie lo notara — y lo que no se ve no se
+echa de menos.
+
 ## 💬 «Este chat» en una pantalla que no es un chat (31/08/2026)
 
 El aviso de «ya pagué» decía: *«Avísanos por **este chat** cuando lo hayas hecho… hazlo por
