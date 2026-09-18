@@ -10831,6 +10831,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -10869,6 +10871,7 @@ export interface components {
                         content: string;
                     }[] | null;
                     tipo?: string | null;
+                    tipoEtiqueta?: string | null;
                     numero?: string | null;
                     origen?: string | null;
                     destino?: string | null;
@@ -10947,6 +10950,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11004,6 +11009,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11062,6 +11069,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -11107,6 +11116,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile-file.write.jsonMergePatch": {
@@ -11142,6 +11153,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
         };
         "CotizacionFile-operacion.item.read_timestamp.read": {
             nombreGrupo?: string;
@@ -11232,6 +11245,7 @@ export interface components {
                         content: string;
                     }[] | null;
                     tipo?: string | null;
+                    tipoEtiqueta?: string | null;
                     numero?: string | null;
                     origen?: string | null;
                     destino?: string | null;
@@ -11314,6 +11328,7 @@ export interface components {
                         content: string;
                     }[] | null;
                     tipo?: string | null;
+                    tipoEtiqueta?: string | null;
                     numero?: string | null;
                     origen?: string | null;
                     destino?: string | null;
@@ -11413,6 +11428,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -11451,6 +11468,7 @@ export interface components {
                         content: string;
                     }[] | null;
                     tipo?: string | null;
+                    tipoEtiqueta?: string | null;
                     numero?: string | null;
                     origen?: string | null;
                     destino?: string | null;
@@ -11529,6 +11547,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11586,6 +11606,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11644,6 +11666,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -11744,6 +11768,7 @@ export interface components {
                         content: string;
                     }[] | null;
                     tipo?: string | null;
+                    tipoEtiqueta?: string | null;
                     numero?: string | null;
                     origen?: string | null;
                     destino?: string | null;
@@ -11826,6 +11851,7 @@ export interface components {
                         content: string;
                     }[] | null;
                     tipo?: string | null;
+                    tipoEtiqueta?: string | null;
                     numero?: string | null;
                     origen?: string | null;
                     destino?: string | null;
@@ -11925,6 +11951,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -11963,6 +11991,7 @@ export interface components {
                         content: string;
                     }[] | null;
                     tipo?: string | null;
+                    tipoEtiqueta?: string | null;
                     numero?: string | null;
                     origen?: string | null;
                     destino?: string | null;
@@ -12042,6 +12071,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -12099,6 +12130,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -12157,6 +12190,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -12260,6 +12295,7 @@ export interface components {
                         content: string;
                     }[] | null;
                     tipo?: string | null;
+                    tipoEtiqueta?: string | null;
                     numero?: string | null;
                     origen?: string | null;
                     destino?: string | null;
@@ -12342,6 +12378,7 @@ export interface components {
                         content: string;
                     }[] | null;
                     tipo?: string | null;
+                    tipoEtiqueta?: string | null;
                     numero?: string | null;
                     origen?: string | null;
                     destino?: string | null;
@@ -12441,6 +12478,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /**
              * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
              *     `CotizacionFilePublicProvider` cuando te identificas.
@@ -12479,6 +12518,7 @@ export interface components {
                         content: string;
                     }[] | null;
                     tipo?: string | null;
+                    tipoEtiqueta?: string | null;
                     numero?: string | null;
                     origen?: string | null;
                     destino?: string | null;
@@ -12557,6 +12597,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -12614,6 +12656,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -12672,6 +12716,8 @@ export interface components {
              *     ]
              */
             documentosPedidos: string[];
+            /** @description Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano. */
+            documentosParaPasajero?: string[] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -12772,6 +12818,7 @@ export interface components {
                         content: string;
                     }[] | null;
                     tipo?: string | null;
+                    tipoEtiqueta?: string | null;
                     numero?: string | null;
                     origen?: string | null;
                     destino?: string | null;
@@ -12854,6 +12901,7 @@ export interface components {
                         content: string;
                     }[] | null;
                     tipo?: string | null;
+                    tipoEtiqueta?: string | null;
                     numero?: string | null;
                     origen?: string | null;
                     destino?: string | null;
@@ -13705,7 +13753,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -13799,7 +13847,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -13867,7 +13915,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -13939,7 +13987,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -14011,7 +14059,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             file?: components["schemas"]["CotizacionFile-file.write"];
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.write"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo-file.write"] | null;
@@ -14035,7 +14083,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             file?: components["schemas"]["CotizacionFile-file.write"];
             pasajero?: components["schemas"]["CotizacionFilepasajero-file.write"] | null;
             vuelo?: components["schemas"]["CotizacionVuelo-file.write"] | null;
@@ -14059,7 +14107,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -14073,7 +14121,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -14087,7 +14135,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -14181,7 +14229,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -14249,7 +14297,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -14321,7 +14369,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -14393,7 +14441,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -14407,7 +14455,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -14421,7 +14469,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -14515,7 +14563,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -14583,7 +14631,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -14655,7 +14703,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -14727,7 +14775,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -14741,7 +14789,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -14755,7 +14803,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -14849,7 +14897,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -14917,7 +14965,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -14989,7 +15037,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             /**
              * Format: iri-reference
              * @description ── 🔑 Las CUATRO relaciones de este archivo salen como IRI ────────────────
@@ -15061,7 +15109,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -15075,7 +15123,7 @@ export interface components {
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
              * @enum {string}
              */
-            tipoArchivo?: "boleto" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
+            tipoArchivo?: "ticket_aereo" | "ticket_ingreso" | "ticket_transporte" | "factura" | "reserva" | "pasaporte" | "dni_anverso" | "dni_reverso" | "autorizacion" | "eticket" | "otros";
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
@@ -15084,7 +15132,6 @@ export interface components {
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         CotizacionFilepasajero: {
             nombre?: string;
             apellido?: string;
@@ -15188,7 +15235,6 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero-file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -15279,7 +15325,6 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero-file.write": {
             nombre?: string;
             apellido?: string;
@@ -15309,7 +15354,6 @@ export interface components {
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero-file.write.jsonMergePatch": {
             nombre?: string;
             apellido?: string;
@@ -15375,7 +15419,6 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-pax_file.read_pax_cotizacion.read"][];
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.html": {
             nombre?: string;
             apellido?: string;
@@ -15479,7 +15522,6 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.html-file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -15606,7 +15648,6 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-pax_file.read_pax_cotizacion.read"][];
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15669,7 +15710,6 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15711,7 +15751,6 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15757,7 +15796,6 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15803,7 +15841,6 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-pax_file.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15822,7 +15859,6 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-pax_file.read"][];
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15841,7 +15877,6 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-pax_file.read_pax_cotizacion.read"][];
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.multipart": {
             nombre?: string;
             apellido?: string;
@@ -15945,7 +15980,6 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
-        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.multipart-file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;

@@ -9575,6 +9575,78 @@ sitios.
 | El temporal | `deleteFileAfterSend()` — sin eso queda un sobre con documentos en `/tmp` |
 | Cómo se sirve | `BinaryFileResponse`, no un string: 107 MB en memoria es pedir un `memory_limit` |
 
+### Qué ve el pasajero: configurable por expediente (18/09/2026)
+
+**Antes vivía en código** (`ArchivoTipoEnum::esDevolvibleAlPasajero()`) y cada cambio era un
+despliegue. No es una decisión del sistema: es del viaje. El E-Ticket dominicano no existe en el
+viaje a Cusco; las entradas las guarda el guía en un grupo y las reparte en otro.
+
+**Cómo funciona ahora**
+
+```
+CotizacionFile::exponeAlPasajero(ArchivoTipoEnum)      ← la ÚNICA fuente de verdad
+        │
+        ├── $documentosParaPasajero === null  →  $tipo->esDevolvibleAlPasajero()   (el default)
+        └── lista                             →  in_array($tipo->value, $lista)
+```
+
+La preguntan **los dos** sitios que tenían que coincidir y antes no compartían nada:
+`ArchivoPrivadoController::puedeVerlo()` (si el fichero baja) y
+`CotizacionFilePublicProvider::documentosDe()` (si se anuncia en la lista). Si discrepan, o se
+enseña un documento cuyo enlace da 404 —y el 404 es mudo por diseño, así que parece que el archivo
+no existe—, o se esconde uno que sí baja.
+
+⚠️ **`null` y `[]` no son lo mismo, y de ahí cuelga todo.** `null` es «lo que diga el código», así
+que ningún expediente existente cambió de comportamiento; `[]` es «no le enseñes ninguno». Si se
+colapsaran, guardar sin marcar nada devolvería las tarjetas de embarque: lo contrario de lo que se
+acaba de pedir, y sin un solo error. Por eso la columna es **nulable**, el botón «Volver al valor por
+defecto» de `util` manda `null`, y el panel sólo habilita «Guardar» cuando alguien tocó una casilla.
+
+⚠️ **Los escaneos de identidad SE PUEDEN marcar, en su propio bloque y con confirmación nombrando
+los tipos.** `ArchivoTipoEnum::exponerEsSensible()` dice cuáles son; la factura no se puede marcar
+en absoluto (`exponibles()`), porque es el documento fiscal del titular y en un grupo el titular no
+es quien se identifica.
+
+⚠️ **`pax` ya no puede tener la lista de tipos cosida a mano.** Con las casillas, un operador puede
+marcar mañana un tipo que el front no conoce; por eso el provider manda `tipoEtiqueta` y
+`PaxCotizacionGuiaView` tiene un panel genérico («Tus documentos») además de los dos con nombre
+propio —tarjetas de embarque y E-Ticket—. Sin ese panel, el documento se expondría en el servidor y
+no aparecería en ninguna pantalla, que es el peor de los dos fallos: nadie echa de menos lo que no
+sabe que existe.
+
+| Necesidad | Dónde |
+|---|---|
+| Cambiar qué ve el pasajero en un expediente | `util` → bóveda → **«Qué ve»** |
+| El valor por defecto de un tipo | `ArchivoTipoEnum::esDevolvibleAlPasajero()` |
+| Qué tipos se pueden ofrecer / cuáles avisan | `ArchivoTipoEnum::exponibles()` / `exponerEsSensible()` |
+| Dónde se decide de verdad | `CotizacionFile::exponeAlPasajero()` — los dos consumidores entran ahí |
+
+### El `boleto` se partió en tres tickets (18/09/2026)
+
+🔥 **El tipo genérico impedía justo lo que se le pedía al sistema.** En el expediente del grupo
+había 123 tarjetas de embarque y, con el MISMO `boleto`, la entrada a Huayna Picchu, el tren de
+retorno y el bus: exponer la tarjeta de embarque exponía también las entradas del grupo, y esconder
+una escondía la otra. No era nomenclatura: era la unidad con la que se configura la exposición.
+
+| Tipo | Qué es | Dueño |
+|---|---|---|
+| `ticket_aereo` | tarjeta de embarque / boleto aéreo | una persona, y su vuelo |
+| `ticket_ingreso` | entrada a una atracción (Huayna Picchu, Machu Picchu) | normalmente el expediente |
+| `ticket_transporte` | tren o bus | normalmente el expediente |
+
+El tren y el bus comparten tipo con criterio: los lleva el guía, ninguno se valida y los dos se
+exponen igual, así que un tipo por medio de transporte no daría ni una decisión distinta y sí tres
+`match` más que mantener.
+
+**La migración salió de los datos, no de la teoría** (`Version20260918030000`): con vuelo →
+`ticket_aereo` (123 filas); sin vuelo, por nombre → tren y bus a `ticket_transporte`, el resto a
+`ticket_ingreso` (3 filas). Va por SQL a propósito:
+`EscaneoNuevoInvalidaVeredictoListener` caduca el veredicto de un archivo al que le cambian el tipo,
+y un renombrado no es un documento nuevo.
+
+⚠️ **`archivoNecesitaPasajero()` en `util` sólo pide dueño para el AÉREO.** Con `boleto` a secas
+obligaba a inventarle un dueño a la entrada del grupo.
+
 Y el escaneo de identidad **no** se le devuelve al pasajero:
 `ArchivoTipoEnum::esDevolvibleAlPasajero()` explica por qué su propio pasaporte no baja a su móvil.
 Ésta es la vía del operador hacia el alojamiento, que es otra cosa y tiene otro dueño.

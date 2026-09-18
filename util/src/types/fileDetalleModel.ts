@@ -181,7 +181,9 @@ export type ArchivoTipoValue = NonNullable<components['schemas']['CotizacionFile
  * son permisos de frontera —el E-Ticket dominicano NO es un billete de avión, aunque lo parezca—.
  */
 export const ARCHIVO_TIPO_LABELS: Record<ArchivoTipoValue, string> = {
-    boleto: 'Boleto / Ticket',
+    ticket_aereo: 'Tarjeta de embarque / boleto aéreo',
+    ticket_ingreso: 'Entrada (ingreso a atracción)',
+    ticket_transporte: 'Tren o bus',
     factura: 'Factura / Recibo',
     reserva: 'Confirmación de Reserva',
     pasaporte: 'Pasaporte (escaneo)',
@@ -202,12 +204,16 @@ export const ARCHIVO_TIPO_LABELS: Record<ArchivoTipoValue, string> = {
 export const ARCHIVO_TIPOS_DEL_PASAJERO: ArchivoTipoValue[] = ['pasaporte', 'dni_anverso', 'dni_reverso', 'autorizacion', 'eticket'];
 
 /**
- * ¿Este tipo pide decir DE QUIÉN es? Todo lo que sube el pasajero, y los boletos.
+ * ¿Este tipo pide decir DE QUIÉN es? Todo lo que sube el pasajero, y la tarjeta de embarque.
  *
  * El e-ticket entra por la primera vía: lo sube él, así que siempre tiene dueño.
+ *
+ * ⚠️ **Sólo el ticket AÉREO.** Era `boleto` a secas, y con el tipo partido se ve por qué estorbaba:
+ * la entrada a Huayna Picchu y el bus son del grupo, no de una persona, así que pedirles dueño
+ * obligaba a inventarlo.
  */
 export const archivoNecesitaPasajero = (tipo?: string | null): boolean =>
-    tipo === 'boleto' || ARCHIVO_TIPOS_DEL_PASAJERO.includes(tipo as ArchivoTipoValue);
+    tipo === 'ticket_aereo' || ARCHIVO_TIPOS_DEL_PASAJERO.includes(tipo as ArchivoTipoValue);
 
 export const getArchivoLabel = (val?: string | null): string =>
     ARCHIVO_TIPO_LABELS[(val as ArchivoTipoValue)] || val || 'Documento';

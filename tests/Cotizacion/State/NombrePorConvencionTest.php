@@ -133,7 +133,7 @@ final class NombrePorConvencionTest extends TestCase
     #[Test]
     public function a_un_boleto_no_se_le_inventa_nombre(): void
     {
-        $archivo = (new CotizacionFilearchivo())->setTipoArchivo(ArchivoTipoEnum::BOLETO);
+        $archivo = (new CotizacionFilearchivo())->setTipoArchivo(ArchivoTipoEnum::TICKET_AEREO);
 
         self::assertSame(
             [],

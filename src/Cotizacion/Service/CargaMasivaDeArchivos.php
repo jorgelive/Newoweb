@@ -411,7 +411,7 @@ final readonly class CargaMasivaDeArchivos
         }
 
         foreach ($file->getFilearchivos() as $previo) {
-            if ($previo->getTipoArchivo() !== ArchivoTipoEnum::BOLETO) {
+            if ($previo->getTipoArchivo() !== ArchivoTipoEnum::TICKET_AEREO) {
                 continue;
             }
 
@@ -522,7 +522,7 @@ final readonly class CargaMasivaDeArchivos
 
             $archivo = new CotizacionFilearchivo();
             $archivo->setFile($file);
-            $archivo->setTipoArchivo(ArchivoTipoEnum::BOLETO);
+            $archivo->setTipoArchivo(ArchivoTipoEnum::TICKET_AEREO);
             $archivo->setPasajero($fila['pasajero']);
             $archivo->setVuelo($fila['vuelo']);
             $archivo->setNombre([[

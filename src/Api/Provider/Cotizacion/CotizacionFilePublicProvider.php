@@ -578,7 +578,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
      * ⚠️ **Ordenados por fecha de vuelo.** Es el orden en que los va a usar, y el que hace que el
      * de mañana esté arriba.
      *
-     * @return list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: ?string, numero: ?string, origen: ?string, destino: ?string, fecha: ?string}>
+     * @return list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: ?string, tipoEtiqueta: ?string, numero: ?string, origen: ?string, destino: ?string, fecha: ?string}>
      */
     private function documentosDe(CotizacionFile $file, CotizacionFilepasajero $pasajero): array
     {
@@ -587,10 +587,12 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         foreach ($file->getFilearchivos() as $archivo) {
             $mio = $archivo->getPasajero()?->getId()?->equals($pasajero->getId() ?? $archivo->getId()) === true;
 
-            // ⚠️ `esDevolvibleAlPasajero()` también aquí: el escaneo de su propio pasaporte es
-            // suyo y aun así no se le devuelve. Si sólo lo comprobara el controlador del fichero,
-            // esta lista lo anunciaría y el enlace daría 404 — peor que no enseñarlo.
-            if (!$mio || !$archivo->esDevolvibleAlPasajero() || ($archivo->getImageName() ?? '') === '') {
+            // ⚠️ **La misma pregunta que hace el controlador del fichero**, y al expediente, no al
+            // tipo: un escaneo de su propio pasaporte es suyo y por defecto no se le devuelve, pero
+            // el expediente puede decidir otra cosa. Si esta lista y el permiso no coincidieran, se
+            // anunciaría un documento cuyo enlace da 404 — peor que no enseñarlo.
+            $tipo = $archivo->getTipoArchivo();
+            if (!$mio || $tipo === null || !$file->exponeAlPasajero($tipo) || ($archivo->getImageName() ?? '') === '') {
                 continue;
             }
 
@@ -600,7 +602,11 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             $suyos[] = [
                 'id' => (string) $archivo->getId(),
                 'nombre' => $archivo->getNombre(),
-                'tipo' => $archivo->getTipoArchivo()?->value,
+                'tipo' => $tipo->value,
+                // ⚠️ La etiqueta la manda el servidor: con la exposición configurable, `pax` ya no
+                // puede tener una lista de tipos cosida a mano — mañana aparece uno marcado que su
+                // `match` no conoce y saldría sin nombre.
+                'tipoEtiqueta' => $tipo->getLabel(),
                 'numero' => $vuelo?->getNumero(),
                 'origen' => $vuelo?->getOrigen(),
                 'destino' => $vuelo?->getDestino(),

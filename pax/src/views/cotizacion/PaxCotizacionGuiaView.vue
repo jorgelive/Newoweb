@@ -231,7 +231,7 @@ const misDevueltos = computed(() => store.miIdentidad?.documentos ?? []);
  * era la objeción por la que el E-Ticket estuvo fuera de la lista; ver
  * `ArchivoTipoEnum::esDevolvibleAlPasajero()`.
  */
-const misBoletos = computed(() => misDevueltos.value.filter(d => d.tipo !== 'eticket'));
+const misBoletos = computed(() => misDevueltos.value.filter(d => d.tipo === 'ticket_aereo'));
 
 /**
  * Su E-Ticket migratorio, el que enseña en el mostrador dominicano.
@@ -241,6 +241,20 @@ const misBoletos = computed(() => misDevueltos.value.filter(d => d.tipo !== 'eti
  * rellenarlo otra vez en el aeropuerto.
  */
 const misEtickets = computed(() => misDevueltos.value.filter(d => d.tipo === 'eticket'));
+
+/**
+ * Todo lo demás que el expediente haya decidido enseñarle: entradas, tren, bus, confirmaciones…
+ *
+ * ⚠️ **Genérico a propósito, y es lo que hace posible que la exposición sea configurable.** Antes
+ * había dos listas cosidas a mano; con las casillas de `util` un operador puede marcar mañana un
+ * tipo que este archivo no conoce, y sin este panel ese documento se exponía en el servidor y no
+ * aparecía en ninguna pantalla — el peor de los dos fallos, porque nadie lo echa de menos.
+ *
+ * El nombre del tipo lo manda el servidor (`tipoEtiqueta`): la lista de tipos vive en PHP y no se
+ * copia aquí.
+ */
+const misOtrosDocumentos = computed(() =>
+  misDevueltos.value.filter(d => d.tipo !== 'ticket_aereo' && d.tipo !== 'eticket'));
 
 /**
  * ¿Le queda algún documento por mandar? Decide DÓNDE va esa tarjeta dentro de «Lo tuyo».
@@ -320,6 +334,7 @@ watch(() => store.miIdentidad, (identidad) => {
 }, { immediate: true });
 const boletosAbiertos = ref(true);
 const eticketsAbiertos = ref(true);
+const otrosDocsAbiertos = ref(true);
 
 /** «CUZ → LIM». Si no hay vuelo —un adjunto suyo que no es de vuelo— se cae al nombre. */
 const rutaDe = (d: { origen?: string | null; destino?: string | null }) =>
@@ -1623,6 +1638,34 @@ const adelantoVista = computed(() => {
                   <p class="text-[11px] text-slate-500 truncate">
                     {{ maestroStore.t('cot_mi_eticket_pie') || 'Entrada y salida · República Dominicana' }}
                   </p>
+                </div>
+
+                <i class="fas fa-arrow-up-right-from-square text-slate-300 text-xs shrink-0"></i>
+              </a>
+            </div>
+          </PanelPlegable>
+
+          <!-- ── OTROS DOCUMENTOS SUYOS ─────────────────────────────────
+               Lo que el expediente haya decidido enseñarle y no sea una tarjeta de embarque ni el
+               E-Ticket: entradas, tren, bus, confirmaciones. Sin tipos cosidos a mano — el nombre
+               viene del servidor, que es quien conoce la lista. -->
+          <PanelPlegable v-if="misOtrosDocumentos.length" v-model="otrosDocsAbiertos" class="no-imprimir"
+                         icono="folder-open"
+                         :titulo="maestroStore.t('cot_mis_documentos') || 'Tus documentos'"
+                         :contador="misOtrosDocumentos.length">
+            <div class="space-y-2">
+              <a v-for="doc in misOtrosDocumentos" :key="doc.id"
+                 :href="`/archivo/${doc.id}`" target="_blank" rel="noopener"
+                 class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200 hover:border-[#376875]/40 hover:bg-[#376875]/5 transition-colors">
+                <span class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-[#376875] flex items-center justify-center shrink-0">
+                  <i class="fas fa-file-lines"></i>
+                </span>
+
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-black text-gray-800 truncate">
+                    {{ store.traducir(doc.nombre) || doc.tipoEtiqueta || 'Documento' }}
+                  </p>
+                  <p class="text-[11px] text-slate-500 truncate">{{ doc.tipoEtiqueta }}</p>
                 </div>
 
                 <i class="fas fa-arrow-up-right-from-square text-slate-300 text-xs shrink-0"></i>

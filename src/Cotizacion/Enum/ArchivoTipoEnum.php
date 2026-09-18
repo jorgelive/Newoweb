@@ -16,7 +16,27 @@ use App\Enum\DocumentoTipoEnum;
  */
 enum ArchivoTipoEnum: string
 {
-    case BOLETO = 'boleto';
+    /**
+     * Los tres tickets, que **fueron un solo `boleto`** hasta el 18/09/2026.
+     *
+     * 🔥 **El tipo genérico impedía justo lo que se le pedía al sistema**: decidir qué ve el
+     * pasajero. En un expediente real había 123 tarjetas de embarque y, con el MISMO tipo, la
+     * entrada a Huayna Picchu, el tren de retorno y el bus — así que exponer la tarjeta de embarque
+     * era exponer también las entradas del grupo, y esconder una escondía la otra. No es un
+     * refinamiento de nomenclatura: era la unidad con la que se configura la exposición
+     * ({@see \App\Cotizacion\Entity\CotizacionFile::exponeAlPasajero()}).
+     *
+     * El reparto sale de los datos, no de la teoría: `Version20260918...` mandó al aéreo todo lo
+     * que tenía vuelo y clasificó a mano los tres que no.
+     *
+     * ⚠️ El tren y el bus comparten tipo con criterio: los dos los lleva el guía, ninguno se
+     * valida y los dos se exponen igual. Un tipo por medio de transporte no daría ni una decisión
+     * distinta, y sí tres `match` más que mantener.
+     */
+    case TICKET_AEREO = 'ticket_aereo';
+    case TICKET_INGRESO = 'ticket_ingreso';
+    case TICKET_TRANSPORTE = 'ticket_transporte';
+
     case FACTURA = 'factura';
     case RESERVA = 'reserva';
 
@@ -43,7 +63,7 @@ enum ArchivoTipoEnum: string
      * ⚠️ **No es un billete de avión**, aunque el nombre lo sugiera —así lo llama el gobierno
      * dominicano, y así lo va a buscar el pasajero—. Es un trámite migratorio que rellena **él** en
      * la web oficial y que descarga en PDF; nosotros no lo podemos emitir en su nombre. Por eso
-     * vive junto a {@see self::AUTORIZACION} y no junto a {@see self::BOLETO}: los dos son permisos
+     * vive junto a {@see self::AUTORIZACION} y no junto a {@see self::TICKET_AEREO}: los dos son permisos
      * de frontera que hay que reunir antes de viajar, no documentos de vuelo que damos nosotros.
      *
      * Es el único documento de esta lista **atado a un destino concreto**. Ver el aviso de alcance
@@ -56,7 +76,9 @@ enum ArchivoTipoEnum: string
     public function getLabel(): string
     {
         return match ($this) {
-            self::BOLETO => 'Boleto / Ticket',
+            self::TICKET_AEREO => 'Tarjeta de embarque / boleto aéreo',
+            self::TICKET_INGRESO => 'Entrada (ingreso a atracción)',
+            self::TICKET_TRANSPORTE => 'Tren o bus',
             self::FACTURA => 'Factura / Recibo',
             self::RESERVA => 'Confirmación de Reserva',
             self::PASAPORTE => 'Pasaporte (escaneo)',
@@ -77,7 +99,7 @@ enum ArchivoTipoEnum: string
     public function esPublico(): bool
     {
         return match ($this) {
-            self::BOLETO, self::RESERVA => true,
+            self::TICKET_AEREO, self::TICKET_INGRESO, self::TICKET_TRANSPORTE, self::RESERVA => true,
             // El e-ticket SIEMPRE tiene dueño, así que quien manda es `esDevolvibleAlPasajero()`:
             // esta rama sólo decide sobre los adjuntos sin dueño de la portada.
             self::ETICKET, self::FACTURA, self::OTROS, self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION => false,
@@ -106,7 +128,7 @@ enum ArchivoTipoEnum: string
             //
             // ⚠️ Y no se cuela en «Tus tarjetas de embarque», que era la otra objeción y sigue en
             // pie: el front lo separa por `tipo` en su propio panel. Ver `PaxCotizacionGuiaView`.
-            self::BOLETO, self::RESERVA, self::ETICKET => true,
+            self::TICKET_AEREO, self::TICKET_INGRESO, self::TICKET_TRANSPORTE, self::RESERVA, self::ETICKET => true,
             self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::FACTURA, self::OTROS => false,
         };
     }
@@ -124,7 +146,7 @@ enum ArchivoTipoEnum: string
             self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION => true,
             // Es un permiso, no una identidad: no hay número que cotejar contra el manifiesto.
             // Y llega como PDF nativo, así que el filtro de alta fidelidad sería gasto por nada.
-            self::ETICKET, self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => false,
+            self::ETICKET, self::TICKET_AEREO, self::TICKET_INGRESO, self::TICKET_TRANSPORTE, self::RESERVA, self::FACTURA, self::OTROS => false,
         };
     }
 
@@ -161,7 +183,7 @@ enum ArchivoTipoEnum: string
         return match ($this) {
             self::DNI_ANVERSO => DocumentoTipoEnum::DNI,
             self::PASAPORTE => DocumentoTipoEnum::PASAPORTE,
-            self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO, self::ETICKET, self::RESERVA, self::FACTURA, self::OTROS => null,
+            self::DNI_REVERSO, self::AUTORIZACION, self::TICKET_AEREO, self::TICKET_INGRESO, self::TICKET_TRANSPORTE, self::ETICKET, self::RESERVA, self::FACTURA, self::OTROS => null,
         };
     }
 
@@ -187,7 +209,7 @@ enum ArchivoTipoEnum: string
             // El pasaporte se verifica solo: número impreso y banda van en la misma página.
             self::PASAPORTE => DocumentoTipoEnum::PASAPORTE,
             self::DNI_REVERSO => DocumentoTipoEnum::DNI,
-            self::DNI_ANVERSO, self::AUTORIZACION, self::BOLETO, self::ETICKET, self::RESERVA, self::FACTURA, self::OTROS => null,
+            self::DNI_ANVERSO, self::AUTORIZACION, self::TICKET_AEREO, self::TICKET_INGRESO, self::TICKET_TRANSPORTE, self::ETICKET, self::RESERVA, self::FACTURA, self::OTROS => null,
         };
     }
 
@@ -219,7 +241,7 @@ enum ArchivoTipoEnum: string
     {
         return match ($this) {
             self::PASAPORTE, self::DNI_ANVERSO => true,
-            self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO, self::ETICKET, self::RESERVA, self::FACTURA, self::OTROS => false,
+            self::DNI_REVERSO, self::AUTORIZACION, self::TICKET_AEREO, self::TICKET_INGRESO, self::TICKET_TRANSPORTE, self::ETICKET, self::RESERVA, self::FACTURA, self::OTROS => false,
         };
     }
 
@@ -248,7 +270,7 @@ enum ArchivoTipoEnum: string
         return match ($this) {
             // El E-Ticket migratorio caduca con los demás: lleva nombre, número de pasaporte y
             // el itinerario. Pasado el viaje ya cumplió su función y no compensa guardarlo.
-            self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::BOLETO, self::ETICKET => 1,
+            self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::TICKET_AEREO, self::TICKET_INGRESO, self::TICKET_TRANSPORTE, self::ETICKET => 1,
             self::FACTURA, self::RESERVA, self::OTROS => null,
         };
     }
@@ -272,12 +294,45 @@ enum ArchivoTipoEnum: string
         ));
     }
 
+    /**
+     * Los tipos que un expediente PUEDE decidir exponerle al pasajero.
+     *
+     * ⚠️ **No es «todos».** La factura queda fuera: es el documento fiscal del titular, y en un
+     * grupo el titular no es quien se identifica. Lo demás se puede marcar, **incluidos los
+     * escaneos de identidad** — hay operaciones que quieren devolverle su propio pasaporte y no
+     * es asunto del código decidirlo por ellas—, pero esos van aparte en la pantalla y avisados:
+     * ver {@see self::exponerEsSensible()}.
+     *
+     * @return list<string>
+     */
+    public static function exponibles(): array
+    {
+        return array_values(array_map(
+            static fn (self $c): string => $c->value,
+            array_filter(self::cases(), static fn (self $c): bool => $c !== self::FACTURA),
+        ));
+    }
+
+    /**
+     * ¿Exponer este tipo merece un aviso antes de marcarlo?
+     *
+     * 🔥 **Sí para los escaneos de identidad**, y no es paternalismo: en un expediente hay 100
+     * menores y sus pasaportes. Marcar «Pasaporte» no puede costar el mismo clic que marcar
+     * «Tarjeta de embarque», porque el error se paga en datos de terceros que no se pueden
+     * recuperar una vez vistos. La UI los pinta en su propio bloque; el enum se limita a decir
+     * cuáles son, que es lo que sabe.
+     */
+    public function exponerEsSensible(): bool
+    {
+        return $this->esEscaneoDeIdentidad();
+    }
+
     /** ¿Lo sube el propio pasajero desde su app, o sólo el operador? */
     public function loSubeElPasajero(): bool
     {
         return match ($this) {
             self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::ETICKET => true,
-            self::BOLETO, self::RESERVA, self::FACTURA, self::OTROS => false,
+            self::TICKET_AEREO, self::TICKET_INGRESO, self::TICKET_TRANSPORTE, self::RESERVA, self::FACTURA, self::OTROS => false,
         };
     }
 }

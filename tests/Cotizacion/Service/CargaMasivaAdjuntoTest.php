@@ -88,7 +88,7 @@ final class CargaMasivaAdjuntoTest extends TestCase
             file_get_contents((string) $creado->getImageFile()?->getPathname()),
             'el adjunto apunta al contenido que venía en el ZIP',
         );
-        self::assertSame(ArchivoTipoEnum::BOLETO, $creado->getTipoArchivo());
+        self::assertSame(ArchivoTipoEnum::TICKET_AEREO, $creado->getTipoArchivo());
     }
 
     // ── Andamiaje ───────────────────────────────────────────────────────────

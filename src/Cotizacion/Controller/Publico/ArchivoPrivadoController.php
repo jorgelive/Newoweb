@@ -58,7 +58,8 @@ use Symfony\Component\Uid\Uuid;
  * ⚠️ **Y hay adjuntos que NO se devuelven al pasajero ni siendo suyos**: el escaneo de su propio
  * pasaporte. Lo sube él y ahí se acaba — que se lo pueda volver a descargar sólo añade una vía por
  * la que ese fichero puede salir, sin darle nada que no tenga ya. Ver
- * {@see CotizacionFilearchivo::esDevolvibleAlPasajero()}.
+ * {@see \App\Cotizacion\Entity\CotizacionFile::exponeAlPasajero()} — que lo decide el
+ * expediente, con el tipo como valor por defecto.
  */
 #[AsController]
 final class ArchivoPrivadoController
@@ -175,7 +176,12 @@ final class ArchivoPrivadoController
             return !$file->isExigeIdentificacion() || $this->identidad->estaIdentificado($file);
         }
 
-        if (!$archivo->esDevolvibleAlPasajero()) {
+        // ⚠️ Al EXPEDIENTE, no al tipo: desde el 18/09/2026 cada expediente puede decidir qué
+        // expone, y el tipo sólo pone el valor por defecto. La lista de
+        // `CotizacionFilePublicProvider` pregunta lo mismo aquí mismo, que es lo que impide
+        // anunciar un documento cuyo enlace daría 404.
+        $tipo = $archivo->getTipoArchivo();
+        if ($tipo === null || !$file->exponeAlPasajero($tipo)) {
             return false;
         }
 

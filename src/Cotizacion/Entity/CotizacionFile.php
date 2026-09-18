@@ -722,6 +722,79 @@ class CotizacionFile
     private array $documentosPedidos = self::DOCUMENTOS_PEDIDOS_POR_DEFECTO;
 
     /**
+     * Qué tipos de adjunto ve el PASAJERO en su panel, si se ha decidido a mano.
+     *
+     * ── Por qué es configurable ─────────────────────────────────────────────
+     * 🔥 La exposición estaba escrita en el código (`ArchivoTipoEnum::esDevolvibleAlPasajero()`) y
+     * cada cambio era un despliegue. No es una decisión del sistema: es del viaje. El E-Ticket
+     * migratorio importa en el que va a República Dominicana y no existe en el de Cusco; las
+     * entradas las guarda el guía en un grupo y las reparte en otro.
+     *
+     * ⚠️ **`null` NO es «no expongas nada»: es «lo que diga el código».** Es toda la gracia del
+     * campo: los 300 expedientes que ya existen no cambian de comportamiento, y el default sigue
+     * siendo el conservador. Vacío (`[]`) sí es una decisión: no le enseñes ninguno.
+     *
+     * ⚠️ Y por eso la columna es **nulable**. Una `json NOT NULL` añadida a una tabla con filas se
+     * rellena con el literal JSON `null`, que satisface el `NOT NULL`, no lo caza un `IS NULL` y
+     * revienta al LEER — ya pasó aquí con `observaciones_validacion`.
+     *
+     * @var list<string>|null valores de {@see ArchivoTipoEnum}, y sólo los de
+     *      {@see ArchivoTipoEnum::exponibles()}
+     */
+    #[Groups(['file:read', 'file:item:read', 'file:write'])]
+    #[ApiProperty(required: false)]
+    #[Assert\All([
+        new Assert\NotNull(message: 'Un documento expuesto no puede ser nulo.'),
+        new Assert\Type(type: 'string', message: 'Un documento expuesto se identifica con su clave.'),
+        new Assert\Choice(
+            callback: [ArchivoTipoEnum::class, 'exponibles'],
+            message: 'Ese tipo de documento no se le puede exponer al pasajero.',
+        ),
+    ])]
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $documentosParaPasajero = null;
+
+    /**
+     * 🔑 **La única fuente de verdad de «¿esto lo puede ver el pasajero?»**
+     *
+     * ⚠️ **La preguntan DOS sitios y tienen que decir lo mismo**: `ArchivoPrivadoController`, que
+     * decide si el fichero baja, y `CotizacionFilePublicProvider`, que decide si se anuncia en la
+     * lista. Si discrepan, o se enseña un documento cuyo enlace da 404, o se esconde uno que sí
+     * baja — y el 404 es mudo por diseño, así que el primer caso parece que el archivo no existe.
+     * Antes cada uno llamaba por su cuenta a `esDevolvibleAlPasajero()`; ahora los dos entran aquí.
+     */
+    public function exponeAlPasajero(ArchivoTipoEnum $tipo): bool
+    {
+        if ($this->documentosParaPasajero === null) {
+            return $tipo->esDevolvibleAlPasajero();
+        }
+
+        return in_array($tipo->value, $this->documentosParaPasajero, true);
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getDocumentosParaPasajero(): ?array
+    {
+        return $this->documentosParaPasajero;
+    }
+
+    /**
+     * ⚠️ **Una lista vacía se guarda como `[]`, no como `null`.** Son cosas distintas —ver el campo—
+     * y colapsarlas dejaría imposible decir «a este expediente, ninguno»: al guardar sin marcar
+     * nada volvería el default del código, que es justo lo contrario de lo que se acaba de pedir.
+     *
+     * @param list<string>|null $tipos
+     */
+    public function setDocumentosParaPasajero(?array $tipos): self
+    {
+        $this->documentosParaPasajero = $tipos === null ? null : array_values(array_unique($tipos));
+
+        return $this;
+    }
+
+    /**
      * Qué trámite migratorio exige este expediente, si alguno.
      *
      * ⚠️ **Vive aquí porque lo preguntan dos controladores** —el que valida en tanda y el que
@@ -789,7 +862,7 @@ class CotizacionFile
      * —su compañero de habitación, los de su PNR—. Sigue sin ser el padrón: son SUS grupos, y sólo
      * el nombre. Ni documento, ni fecha, ni el `codigo` del vecino, que es el localizador ajeno.
      *
-     * @var array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>, documentosVerificados: list<string>, documentosAPedir: list<array{tipo: string, motivos: list<string>}>}|null
+     * @var array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, tipoEtiqueta: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>, documentosVerificados: list<string>, documentosAPedir: list<array{tipo: string, motivos: list<string>}>}|null
      */
     #[ApiProperty(openapiContext: [
         'type' => 'object',
@@ -880,6 +953,9 @@ class CotizacionFile
                             'required' => ['language', 'content'],
                         ]],
                         'tipo' => ['type' => 'string', 'nullable' => true],
+                        // La etiqueta del tipo la manda el servidor: con la exposición configurable
+                        // por expediente, `pax` no puede tener la lista de tipos cosida a mano.
+                        'tipoEtiqueta' => ['type' => 'string', 'nullable' => true],
                         // El vuelo delante: el pasajero tiene ocho tarjetas y todas se llaman
                         // igual. En la puerta lo que sirve es «CUZ → LIM, 17 sep».
                         'numero' => ['type' => 'string', 'nullable' => true],
@@ -916,7 +992,7 @@ class CotizacionFile
     private ?array $miIdentidad = null;
 
     /**
-     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>, documentosVerificados: list<string>, documentosAPedir: list<array{tipo: string, motivos: list<string>}>}|null
+     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, tipoEtiqueta: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>, documentosVerificados: list<string>, documentosAPedir: list<array{tipo: string, motivos: list<string>}>}|null
      */
     public function getMiIdentidad(): ?array
     {
@@ -924,7 +1000,7 @@ class CotizacionFile
     }
 
     /**
-     * @param array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>, documentosVerificados: list<string>, documentosAPedir: list<array{tipo: string, motivos: list<string>}>}|null $miIdentidad
+     * @param array{nombre: string, identificaciones: list<array{tipo: string, etiqueta: string, numero: string}>, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null, vuelos: list<array{numero: string|null, origen: string|null, destino: string|null, aerolinea: string|null, salida: string|null, llegada: string|null}>, miembros: list<array{nombre: string, rol: string|null}>}>, documentos: list<array{id: string, nombre: array<int, array<string, string|null>>|null, tipo: string|null, tipoEtiqueta: string|null, numero: string|null, origen: string|null, destino: string|null, fecha: string|null}>, documentosPedidos: list<string>, documentosEnviados: list<string>, documentosVerificados: list<string>, documentosAPedir: list<array{tipo: string, motivos: list<string>}>}|null $miIdentidad
      */
     public function setMiIdentidad(?array $miIdentidad): self
     {

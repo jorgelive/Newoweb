@@ -977,6 +977,91 @@ const guardarPedidos = async () => {
   pedidosAbierto.value = false;
 };
 
+/**
+ * Qué tipos de documento VE el pasajero en su panel.
+ *
+ * 🔥 **Es el gemelo de «Qué se pide», por el otro lado del mostrador**: uno decide lo que entra y
+ * este lo que sale. Estaba en código (`ArchivoTipoEnum::esDevolvibleAlPasajero()`) y cada cambio era
+ * un despliegue — y no es una decisión del sistema, es del viaje: el E-Ticket dominicano no existe
+ * en el viaje a Cusco, y las entradas las guarda el guía en un grupo y las reparte en otro.
+ *
+ * ⚠️ **`null` no es lo mismo que `[]`.** Sin configurar (`null`) manda el default del código;
+ * guardar sin marcar nada guarda `[]`, que es «no le enseñes ninguno». El borrador distingue las dos
+ * cosas con `expuestosTocado`, porque si no, abrir el panel y cancelar equivaldría a configurarlo.
+ */
+const expuestosAbierto = ref(false);
+const expuestosBorrador = ref<string[]>([]);
+const expuestosTocado = ref(false);
+const guardandoExpuestos = ref(false);
+
+/**
+ * Lo que se puede exponer. Espejo de `ArchivoTipoEnum::exponibles()`: todo menos la factura, que es
+ * el documento fiscal del titular y en un grupo el titular no es quien se identifica.
+ *
+ * Los de identidad van en su propio bloque (`EXPONIBLES_SENSIBLES`): hay 100 menores en un
+ * expediente y marcar «Pasaporte» no puede costar el mismo clic que marcar «Tarjeta de embarque».
+ */
+const EXPONIBLES = ['ticket_aereo', 'ticket_ingreso', 'ticket_transporte', 'reserva', 'eticket', 'otros'];
+const EXPONIBLES_SENSIBLES = ['pasaporte', 'dni_anverso', 'dni_reverso', 'autorizacion'];
+
+/** Lo que hoy ve el pasajero, ya sea por configuración o por el default del servidor. */
+const expuestosEfectivos = computed<string[]>(() => {
+  const guardado = file.value?.documentosParaPasajero;
+  // ⚠️ El default se repite aquí porque el servidor sólo manda la configuración, no el efecto. Es
+  // espejo de `ArchivoTipoEnum::esDevolvibleAlPasajero()` y el doc lo dice en los dos lados.
+  return guardado ?? ['ticket_aereo', 'ticket_ingreso', 'ticket_transporte', 'reserva', 'eticket'];
+});
+
+const abrirExpuestos = () => {
+  expuestosBorrador.value = [...expuestosEfectivos.value];
+  expuestosTocado.value = false;
+  expuestosAbierto.value = true;
+};
+
+const alternarExpuesto = (tipo: string) => {
+  expuestosTocado.value = true;
+  const i = expuestosBorrador.value.indexOf(tipo);
+  if (i >= 0) { expuestosBorrador.value.splice(i, 1); } else { expuestosBorrador.value.push(tipo); }
+};
+
+/** Volver al default del código, que es distinto de dejarlo vacío. */
+const restablecerExpuestos = async () => {
+  if (!file.value) return;
+  const iri = file.value['@id'] || `/platform/sales/cotizacion_files/${extractIdStr(file.value.id)}`;
+
+  guardandoExpuestos.value = true;
+  const ok = await fileStore.updateFile(iri, { documentosParaPasajero: null });
+  guardandoExpuestos.value = false;
+
+  if (!ok) { alert(fileStore.error || 'No se pudo restablecer.'); return; }
+
+  await cargarFile();
+  expuestosAbierto.value = false;
+};
+
+const guardarExpuestos = async () => {
+  if (!file.value) return;
+  const iri = file.value['@id'] || `/platform/sales/cotizacion_files/${extractIdStr(file.value.id)}`;
+
+  const sensibles = expuestosBorrador.value.filter(t => EXPONIBLES_SENSIBLES.includes(t));
+  // ⚠️ Confirmación sólo para los de identidad, y nombrándolos: son documentos de terceros, muchos
+  // de menores, y una vez vistos no se recuperan. Lo demás se guarda sin preguntar.
+  if (sensibles.length && !confirm(
+    `Vas a dejar que cada pasajero descargue de su panel: ${sensibles.map(getArchivoLabel).join(', ')}.\n\n`
+    + 'Son documentos de identidad, y en este expediente hay menores. ¿Seguro?')) {
+    return;
+  }
+
+  guardandoExpuestos.value = true;
+  const ok = await fileStore.updateFile(iri, { documentosParaPasajero: expuestosBorrador.value });
+  guardandoExpuestos.value = false;
+
+  if (!ok) { alert(fileStore.error || 'No se pudo guardar qué ve el pasajero.'); return; }
+
+  await cargarFile();
+  expuestosAbierto.value = false;
+};
+
 const cambiarModo = async (modo: 'estandar' | 'grupo' | string) => {
   if (!file.value) return;
   const iri = file.value['@id'] || `/platform/sales/cotizacion_files/${extractIdStr(file.value.id)}`;
@@ -1966,11 +2051,11 @@ const pasajerosElegibles = computed(() =>
  * ¿Hay vuelo en juego? Una sola definición, que gobierna **a la vez** si el selector se ve y si el
  * vuelo se guarda — ver el aviso en `alcanceDelDoc()`.
  *
- * Un vuelo ya puesto mantiene el selector abierto aunque el tipo deje de ser `boleto`: si no, el
- * dato se queda dentro sin que nadie pueda verlo ni quitarlo.
+ * Un vuelo ya puesto mantiene el selector abierto aunque el tipo deje de ser `ticket_aereo`: si no,
+ * el dato se queda dentro sin que nadie pueda verlo ni quitarlo.
  */
 const ofreceVuelo = computed(() =>
-    Boolean(docForm.value.pasajeroId) && (docForm.value.tipoArchivo === 'boleto' || Boolean(docForm.value.vueloId)),
+    Boolean(docForm.value.pasajeroId) && (docForm.value.tipoArchivo === 'ticket_aereo' || Boolean(docForm.value.vueloId)),
 );
 
 /**
@@ -4166,6 +4251,11 @@ const eliminarDocumento = async (iri?: string) => {
                 <button @click="abrirPedidos" class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold hover:bg-slate-200">
                   <i class="fas fa-sliders mr-0.5"></i> Qué se pide
                 </button>
+                <!-- El otro lado del mostrador: lo que el pasajero SE LLEVA. Junto al de «qué se
+                     pide» porque las dos son la misma conversación con la misma persona. -->
+                <button @click="abrirExpuestos" class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold hover:bg-slate-200">
+                  <i class="fas fa-eye mr-0.5"></i> Qué ve
+                </button>
                 <button @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200">+ Subir Doc</button>
               </div>
             </div>
@@ -4204,6 +4294,63 @@ const eliminarDocumento = async (iri?: string) => {
                 </button>
                 <span class="ml-auto text-[10px] font-bold text-slate-400">
                   {{ pedidosBorrador.length }} de {{ tiposPedibles.length }}
+                </span>
+              </div>
+            </div>
+
+            <!-- ═══ QUÉ VE EL PASAJERO EN SU PANEL ═══
+                 ⚠️ Esto decide DOS cosas a la vez, y por eso no hay forma de que discrepen: lo que
+                 se le lista y si el enlace del fichero le baja. Las dos preguntan a
+                 `CotizacionFile::exponeAlPasajero()`. -->
+            <div v-if="expuestosAbierto && bovedaAbierta" class="mb-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+              <p class="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-1">Qué ve el pasajero</p>
+              <p class="text-[11px] text-slate-500 leading-snug mb-2">
+                Lo marcado es lo que cada pasajero podrá abrir y guardar desde su panel, y sólo lo
+                suyo. Sin configurar, manda el valor por defecto del sistema.
+              </p>
+
+              <div class="space-y-1">
+                <label v-for="tipo in EXPONIBLES" :key="tipo"
+                       class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-sky-300">
+                  <input type="checkbox" :checked="expuestosBorrador.includes(tipo)" @change="alternarExpuesto(tipo)" />
+                  <span class="text-[11px] font-bold text-slate-700">{{ getArchivoLabel(tipo) }}</span>
+                </label>
+              </div>
+
+              <!-- Bloque aparte, con su aviso: son documentos de identidad de terceros y aquí hay
+                   menores. Mismo clic, distinto precio. -->
+              <p class="text-[10px] font-black text-amber-700 uppercase tracking-widest mt-3 mb-1">
+                <i class="fas fa-triangle-exclamation mr-0.5"></i> Documentos de identidad
+              </p>
+              <p class="text-[11px] text-amber-700/80 leading-snug mb-2">
+                Devolverle su propio escaneo no le da nada que no tenga ya, y añade una vía por la
+                que esa imagen puede salir: un móvil prestado, una sesión abierta, un reenvío.
+              </p>
+              <div class="space-y-1">
+                <label v-for="tipo in EXPONIBLES_SENSIBLES" :key="tipo"
+                       class="flex items-center gap-2 p-2 rounded-lg bg-white border border-amber-200 cursor-pointer hover:border-amber-400">
+                  <input type="checkbox" :checked="expuestosBorrador.includes(tipo)" @change="alternarExpuesto(tipo)" />
+                  <span class="text-[11px] font-bold text-slate-700">{{ getArchivoLabel(tipo) }}</span>
+                </label>
+              </div>
+
+              <div class="flex items-center gap-2 mt-3">
+                <button type="button" @click="guardarExpuestos" :disabled="guardandoExpuestos || !expuestosTocado"
+                        class="px-3 py-1.5 rounded-lg bg-[#376875] hover:bg-[#2d5660] text-white text-[11px] font-black disabled:opacity-50">
+                  <i v-if="guardandoExpuestos" class="fas fa-spinner fa-spin mr-1"></i>
+                  Guardar
+                </button>
+                <button type="button" @click="expuestosAbierto = false"
+                        class="px-3 py-1.5 rounded-lg text-[11px] font-bold text-slate-500 hover:text-slate-800">
+                  Cancelar
+                </button>
+                <button v-if="file?.documentosParaPasajero" type="button" @click="restablecerExpuestos"
+                        :disabled="guardandoExpuestos"
+                        class="px-3 py-1.5 rounded-lg text-[11px] font-bold text-slate-500 hover:text-slate-800 disabled:opacity-50">
+                  Volver al valor por defecto
+                </button>
+                <span class="ml-auto text-[10px] font-bold text-slate-400">
+                  {{ expuestosBorrador.length }} tipos
                 </span>
               </div>
             </div>

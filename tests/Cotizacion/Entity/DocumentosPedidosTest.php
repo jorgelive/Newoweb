@@ -112,7 +112,7 @@ final class DocumentosPedidosTest extends TestCase
      */
     public function testNoSePuedeExigirLoQueSubeElOperador(): void
     {
-        self::assertNotSame([], $this->motivos([ArchivoTipoEnum::BOLETO->value]));
+        self::assertNotSame([], $this->motivos([ArchivoTipoEnum::TICKET_AEREO->value]));
     }
 
     /** Un valor que no es del enum tampoco: el selector manda cadenas y una errata no debe entrar. */
