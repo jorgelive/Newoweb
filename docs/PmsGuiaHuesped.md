@@ -2416,6 +2416,11 @@ dos sitios que deciden lo mismo acaban discrepando. Por eso `codigo` viaja en `p
 Navega con la misma query que el resto de la guía (`?section=…&item=…`), así que el «atrás» del
 móvil retrocede un nivel como siempre.
 
+**El «atrás» sigue funcionando**, y no es casualidad: navega con `router.push` sobre la misma query
+(`?section=…&item=…`) que usa el resto de la guía, así que cada salto añade su entrada al historial y
+el gesto del móvil vuelve a la ficha anterior. Con `replace` —o con una ruta nueva— el huésped que
+siguiera dos enlaces se habría quedado sin camino de vuelta.
+
 **Y el agente lo sigue.** `ConsultarGuiaSkill::resolverBloquesDelFront()` lo convierte en «esto está
 en el tema “Equipaje y horarios flexibles”, que puedes consultar»: el modelo busca temas por
 palabra, así que con el título puede abrirlo y responder con su contenido. Borrarlo —como se hacía
@@ -2425,6 +2430,25 @@ que no existe no se anuncia: mandaría al modelo a buscar humo.
 ⚠️ Y de paso, los dos cruces —ítem↔sección y sección↔guía— ya tenían índice único en la base pero
 **ninguna validación**: al componer una guía, un duplicado reventaba como error de SQL. Ahora dicen
 «ese ítem ya está en esta sección».
+
+## «Equipaje y horarios flexibles»: la primera ficha enlazada (18/09/2026)
+
+«Horario de ingreso y salida» mezclaba tres cosas: las HORAS, el ingreso temprano / salida tarde
+—que cuesta dinero— y el guardaequipaje. Lo peor no era la mezcla: era que **el guardaequipaje, lo
+más útil y lo más vendible de las tres, vivía enterrado al final de una ficha titulada «Horario de
+ingreso y salida»**. Ahí no lo busca nadie.
+
+| Ficha | Sección | Qué dice |
+|---|---|---|
+| `early-check-in-late-check-out` | Ingreso | sólo las horas, y el enlace a la otra |
+| `equipaje-horarios-flexibles` | Servicios, tras «Horario solicitudes» | ingreso temprano, salida tarde y equipaje |
+
+Estrena `{{ ficha: … }}`. ⚠️ **El puntero no es decorativo:** la regla de `CLAUDE.md` es que lo que
+se le quita a un texto, el modelo lo NIEGA — sin la remisión, alguien que preguntara por sus maletas
+al llegar podía acabar oyendo que no hay dónde dejarlas. Por eso se reparte también
+`agenteContenido`, y el de la ficha de horarios termina con un «NO le digas que no se puede».
+
+Lo hizo `app:pms:guia:equipaje` (archivado).
 
 ## 💬 «Este chat» en una pantalla que no es un chat (31/08/2026)
 
