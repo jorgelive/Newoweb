@@ -71,6 +71,10 @@ class PmsGuiaItem
         pattern: '/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
         message: 'El código va en minúsculas, sin tildes ni espacios, con guiones: «equipaje-horarios-flexibles».'
     )]
+    // Viaja al front porque el enlace `{{ ficha: … }}` se resuelve ALLÍ: el navegador ya tiene el
+    // árbol podado, así que un enlace a una ficha que este huésped no puede ver no encuentra destino
+    // y no se pinta. Resolverlo en el servidor obligaría a repetir esa poda en otro sitio.
+    #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
     private ?string $codigo = null;
 
     #[ORM\Column(type: 'string', length: 20)]

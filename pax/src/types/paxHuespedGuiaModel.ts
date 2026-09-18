@@ -33,6 +33,8 @@ import type { PmsContenidoTraducible } from './paxHuespedModel';
 export type GuiaItem = CatalogoItem & {
     bloqueado?: boolean;
     bloqueadoHasta?: string | null;
+    /** La etiqueta con la que otra ficha enlaza a ésta (`{{ ficha: calefactor }}`). */
+    codigo?: string | null;
 };
 
 export type GuiaSeccion = Omit<CatalogoSeccion, 'items'> & { items: GuiaItem[] };

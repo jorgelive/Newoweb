@@ -2401,6 +2401,27 @@ Lo rellena `app:pms:guia:codigos` (`Calefactor (general)` → `calefactor`, `Pue
 `puerta-casa-4`). **No renombra**: una ficha que ya tenga código no se toca, porque cambiarlo rompe
 los enlaces que lo escriben.
 
+### El enlace: `{{ ficha: codigo }}`
+
+Se escribe en el texto de una ficha y se pinta como un enlace **con el título de la ficha destino**
+en el idioma del huésped — nunca el código, que es la clave del editor y no significa nada para
+quien lee.
+
+**Se resuelve en el FRONT** (`FichaEnlaceBlock.vue`, registrado en `RichContentEngine`), y eso es
+una decisión, no una comodidad: el navegador ya tiene el árbol **podado**, así que un enlace a una
+ficha que este huésped no puede ver —podada por canal, bloqueada, de otra casita— no encuentra
+destino y **no se pinta**. Resolverlo en el servidor obligaría a repetir esa poda en otro sitio, y
+dos sitios que deciden lo mismo acaban discrepando. Por eso `codigo` viaja en `pax_guia:read`.
+
+Navega con la misma query que el resto de la guía (`?section=…&item=…`), así que el «atrás» del
+móvil retrocede un nivel como siempre.
+
+**Y el agente lo sigue.** `ConsultarGuiaSkill::resolverBloquesDelFront()` lo convierte en «esto está
+en el tema “Equipaje y horarios flexibles”, que puedes consultar»: el modelo busca temas por
+palabra, así que con el título puede abrirlo y responder con su contenido. Borrarlo —como se hacía
+con el resto de la maquetación— dejaba al agente leyendo «lo tienes en…» sin saber en qué. Un código
+que no existe no se anuncia: mandaría al modelo a buscar humo.
+
 ⚠️ Y de paso, los dos cruces —ítem↔sección y sección↔guía— ya tenían índice único en la base pero
 **ninguna validación**: al componer una guía, un duplicado reventaba como error de SQL. Ahora dicen
 «ese ítem ya está en esta sección».

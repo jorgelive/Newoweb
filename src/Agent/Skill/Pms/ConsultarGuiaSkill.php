@@ -13,6 +13,7 @@ use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEventoCalendario;
+use App\Entity\Maestro\MaestroIdioma;
 use App\Pms\Entity\PmsGuiaItem;
 use App\Pms\Entity\PmsGuiaSeccion;
 use App\Pms\Entity\PmsReserva;
@@ -1031,6 +1032,31 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         $texto = (string) preg_replace(
             '/\{\{\s*(?:img|video)bloqueado\s*:\s*(.*?)\s*\}\}/is',
             ' ($1) ',
+            $texto
+        );
+
+        // 🔗 EL ENLACE A OTRA FICHA SE QUEDA, con el TÍTULO del destino.
+        //
+        // `{{ ficha: equipaje-horarios-flexibles }}` es lo que en la guía se pinta como un botón.
+        // Borrarlo dejaría al agente leyendo un texto que dice «lo tienes en…» y no dice en qué,
+        // que es peor que no remitir a nada. Con el título puede contarlo, y como el modelo busca
+        // temas por palabra, además puede SEGUIRLO: pide esa ficha y responde con su contenido.
+        //
+        // Se resuelve contra la base y no contra el árbol podado a propósito: aquí el destinatario
+        // es el agente, que consulta la guía con sus propias reglas de visibilidad cuando decida
+        // abrirla. Un título no es un dato protegido.
+        $texto = (string) preg_replace_callback(
+            '/\{\{\s*ficha\s*:\s*([a-z0-9-]+)\s*\}\}/i',
+            function (array $m) use ($idioma): string {
+                $destino = $this->em->getRepository(PmsGuiaItem::class)->findOneBy(['codigo' => $m[1]]);
+                $titulo = $destino !== null ? MaestroIdioma::textoEn($destino->getTitulo(), $idioma) : null;
+
+                // Un código que no existe —una ficha borrada, un dedazo— no se anuncia: decir «ver
+                // el tema X» sobre algo que no está es mandar al modelo a buscar humo.
+                return $titulo === null || $titulo === ''
+                    ? ' '
+                    : sprintf(' (esto está en el tema «%s», que puedes consultar) ', $titulo);
+            },
             $texto
         );
 

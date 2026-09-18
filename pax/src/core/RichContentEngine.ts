@@ -33,6 +33,11 @@ const COMPONENT_REGISTRY: Record<string, Component> = {
     'img':   defineAsyncComponent(() => import('@/components/RichText/ImageBlock.vue')),
     'map':   defineAsyncComponent(() => import('@/components/RichText/MapBlock.vue')),
 
+    // El enlace de una ficha a otra, por su código: `{{ ficha: equipaje-horarios-flexibles }}`.
+    // Resuelve contra el árbol que ya tiene el navegador, así que un destino que este huésped no
+    // puede ver no se pinta. Ver FichaEnlaceBlock.
+    'ficha': defineAsyncComponent(() => import('@/components/RichText/FichaEnlaceBlock.vue')),
+
     'videobloqueado': MediaBloqueada,
     'imgbloqueado':   MediaBloqueada,
     'video_ventana':  MediaBloqueada,
