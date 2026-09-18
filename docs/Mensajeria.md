@@ -1321,6 +1321,28 @@ en el calendario. Cada pestaña la ordena el front por su fecha efectiva.
 ⚠️ Es la misma familia que el vaivén de §7: no fallaba nada, y lo que se veía era una pantalla
 vacía que se lee como «aquí no hay nada» en vez de como un fallo.
 
+### 🔥 El replay del agente llamaba a los prompts por reflexión, y se quedó atrás (18/09/2026)
+
+`app:agent:replay` reproduce una conversación de huésped contra el agente actual, y para eso lee
+los prompts REALES —`AiConversationProcessor::reglas()` y `::contexto()`— **por reflexión**: son
+privados a propósito, porque esto es una herramienta de diagnóstico y no un consumidor con derecho
+a esa API.
+
+El precio es que **PHPStan no ve esas firmas**. Las dos ganaron un parámetro `actor` cuando el
+prompt pasó a depender de quién escribe (`PerfilConversacion::deActor()`), el comando siguió
+compilando, y reventaba con un `ArgumentCountError` **a mitad de la primera respuesta** — después
+de gastar la llamada al triaje. Nadie lo notó porque la herramienta de probar el agente sólo se usa
+cuando vas a probar el agente.
+
+**El arreglo no es pasar los dos argumentos que faltaban:** es emparejar por NOMBRE
+(`AgentReplayCommand::porNombre()`). Un parámetro nuevo ya no revienta a media conversación —se
+detecta antes de llamar y el error dice cuál falta y dónde añadirlo—, y uno renombrado deja de
+emparejar, que es justo lo que hay que enterarse.
+
+⚠️ Lo que sí diverge a propósito de la llamada real es `permitirEscritura`: la real es
+`$actor->esDelEquipo()` y aquí el actor es siempre el huésped, así que el valor coincide. Queda
+escrito como `false` para que se lea como lo que es —un ensayo no escribe—.
+
 ### 🔥 Los bloqueos puros no generan chat, los inquiries sí
 
 `PmsReservaMessageContext::isSoloBloqueo()` corta la creación de conversación para bloqueos de

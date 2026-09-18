@@ -17,6 +17,8 @@ use App\Message\Entity\MessageConversation;
 use App\Pms\Entity\PmsReserva;
 use Doctrine\ORM\EntityManagerInterface;
 use ReflectionClass;
+use ReflectionMethod;
+use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -143,11 +145,10 @@ final class AgentReplayCommand extends Command
                 $actor,
                 $mensaje,
                 $historial,
-                // ⚠️ El ACTOR va siempre: `contexto()` lo pide desde que el bloque volátil dice
-                // quién escribe (`PerfilConversacion::deActor()`). Aquí se llama por reflexión, así
-                // que PHPStan no ve la firma y el día que cambió, esto siguió compilando y reventó
-                // al ejecutarse — con un `ArgumentCountError` en mitad de la primera respuesta.
-                (string) $contextoDe->invoke($this->procesador, $conversacion, $actor)
+                (string) $this->porNombre($contextoDe, [
+                    'conversacion' => $conversacion,
+                    'actor' => $actor,
+                ])
             );
 
             $io->writeln(sprintf(
@@ -173,15 +174,20 @@ final class AgentReplayCommand extends Command
 
                 $salida = $elegido->motor->conversar(new ConversationRequest(
                     actor: $actor,
-                    // También con el actor, y por lo mismo que `contexto()`: las reglas se arman
-                    // por PERFIL —quién escribe— desde que dejaron de ser un texto único.
-                    systemPrompt: (string) $reglas->invoke($this->procesador, $actor),
+                    systemPrompt: (string) $this->porNombre($reglas, ['actor' => $actor]),
                     mensaje: $mensaje,
                     historial: $historial,
+                    // La real es `$actor->esDelEquipo()`. Aquí el actor SIEMPRE es el huésped,
+                    // así que el valor coincide; se deja explícito para que se lea como lo que es
+                    // —un ensayo no escribe— y no como una copia que se quedó atrás.
                     permitirEscritura: false,
                     maxTokens: 1024,
                     modelo: $elegido->modelo,
-                    contexto: (string) $contextoDe->invoke($this->procesador, $conversacion, $actor, $decision),
+                    contexto: (string) $this->porNombre($contextoDe, [
+                        'conversacion' => $conversacion,
+                        'actor' => $actor,
+                        'decision' => $decision,
+                    ]),
                 ));
 
                 $respuesta = $salida->tieneTexto() ? (string) $salida->texto : sprintf('(sin texto: %s)', $salida->motivo);
@@ -236,6 +242,51 @@ final class AgentReplayCommand extends Command
         ));
 
         return false;
+    }
+
+    /**
+     * Llama a un método privado del procesador emparejando los argumentos POR NOMBRE.
+     *
+     * ── Por qué no `invoke($obj, $a, $b)` ───────────────────────────────────
+     * Porque esa forma es posicional y muda. `contexto()` y `reglas()` son privadas a propósito
+     * —esto es una herramienta de diagnóstico, no un consumidor con derecho a esa API— y al
+     * llamarlas por reflexión **PHPStan no ve la firma**. Las dos ganaron un parámetro `actor`
+     * cuando el prompt pasó a depender de quién escribe, este comando siguió compilando, y
+     * reventaba con un `ArgumentCountError` **a mitad de la primera respuesta**: después de
+     * gastar la llamada al triaje, y sólo para quien fuera a probar el agente.
+     *
+     * Con los nombres, un parámetro nuevo NO revienta a media conversación: se detecta antes de
+     * llamar y se dice cuál falta. Y un parámetro que se renombre deja de emparejar, que también
+     * es lo que se quiere saber.
+     *
+     * @param array<string, mixed> $argumentos Por nombre de parámetro.
+     */
+    private function porNombre(ReflectionMethod $metodo, array $argumentos): mixed
+    {
+        $valores = [];
+
+        foreach ($metodo->getParameters() as $parametro) {
+            $nombre = $parametro->getName();
+
+            if (array_key_exists($nombre, $argumentos)) {
+                $valores[] = $argumentos[$nombre];
+                continue;
+            }
+
+            if ($parametro->isDefaultValueAvailable()) {
+                $valores[] = $parametro->getDefaultValue();
+                continue;
+            }
+
+            throw new RuntimeException(sprintf(
+                'El replay no sabe qué pasarle a «%s» en `%s()`: el procesador cambió de firma y '
+                . 'esta herramienta no se enteró. Añádelo en AgentReplayCommand.',
+                $nombre,
+                $metodo->getName()
+            ));
+        }
+
+        return $metodo->invokeArgs($this->procesador, $valores);
     }
 
     /**
