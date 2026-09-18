@@ -6,6 +6,7 @@ namespace App\Agent\Command;
 
 use App\Agent\Service\PanelAssistant;
 use App\Agent\Access\AgentActor;
+use App\Agent\Access\AgentActorFactory;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -36,6 +37,8 @@ final class AgentPreguntarCommand extends Command
     public function __construct(
         private readonly PanelAssistant $asistente,
         private readonly EntityManagerInterface $em,
+        // Por la FACTORÍA y no por `AgentActor::delPanel()` a secas: ver `resolverActor()`.
+        private readonly AgentActorFactory $actores,
     ) {
         parent::__construct();
     }
@@ -127,6 +130,17 @@ final class AgentPreguntarCommand extends Command
      * Con `--como` se pregunta con los permisos reales de ese usuario, que es la forma de
      * comprobar que limpieza y administración NO ven las mismas herramientas. Sin la opción
      * se usa un SUPER_ADMIN sintético, para probar el prompt sin depender de la base de datos.
+     *
+     * ⚠️ **Por la FACTORÍA, que expande la jerarquía de roles.** `AgentActor::delPanel()` a secas
+     * se queda en los roles LITERALES, y entonces quien tiene `ROLE_RESERVAS_DELETE` no satisface
+     * una skill que pida `ROLE_RESERVAS_SHOW` — aunque en el panel sí pueda hacerlo. El
+     * controlador web ya usaba la factoría y lo tiene escrito; este comando se quedó con el atajo.
+     *
+     * Lo que producía es peor que un error: el catálogo del modelo se quedaba en **una** skill,
+     * así que contestaba de memoria («sin costo», «recepción») o negaba herramientas que el panel
+     * sí tiene. Medido el 18/09/2026 con `jorge@live.com.pe`: 1 skill por el atajo, 33 por la
+     * factoría. Y como esta herramienta existe justo para auditar al asistente, lo que auditaba
+     * no era el asistente.
      */
     private function resolverActor(mixed $email): AgentActor
     {
@@ -135,6 +149,8 @@ final class AgentPreguntarCommand extends Command
             $admin->setEmail('cli@local');
             $admin->setRoles([Roles::SUPER_ADMIN]);
 
+            // Sintético y sin fila en la base: la jerarquía no añade nada a SUPER_ADMIN, que
+            // `AgentActor::tieneRol()` trata como llave maestra.
             return AgentActor::delPanel($admin);
         }
 
@@ -143,6 +159,6 @@ final class AgentPreguntarCommand extends Command
             throw new RuntimeException(sprintf('No existe ningún usuario con el email "%s".', $email));
         }
 
-        return AgentActor::delPanel($usuario);
+        return $this->actores->delPanel($usuario);
     }
 }
