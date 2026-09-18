@@ -2363,6 +2363,18 @@ de por medio.
 descartara, un ítem nuevo desaparecería de la guía sin que nadie lo notara — y lo que no se ve no se
 echa de menos.
 
+### Y dos fichas que no eran de donde estaban
+
+| Ficha | Estaba | Está | Por qué |
+|---|---|---|---|
+| `Perdida llaves` | Ingreso, entre «Después de ingresar» y «Traslados» | Pagos y Reglamento, detrás de «Reglas» | No es un paso de entrar: es una norma con coste —el cerrajero lo paga el huésped—, y aparecía mientras alguien todavía está entrando. Es la regla de `CLAUDE.md`: lo que advierte o cuesta dinero baja un peldaño |
+| `Horario solicitudes` | Pagos y Reglamento | Servicios, **el primero** | No habla ni de pagos ni de reglas: son horarios de atención y cómo pedir jabón o papel. Va primero porque enmarca el resto —a qué hora se atiende y con cuánta antelación avisar— antes de la lista de lo que se puede pedir |
+
+Lo hizo `app:pms:guia:mover-items` (archivado). Mueve la **relación** sección↔ítem, no el contenido:
+los textos y sus siete idiomas quedan intactos y no pasa nada por `AutoTranslate`. Renumera las dos
+secciones enteras, porque los `orden` traían saltos de ediciones anteriores y un empate lo decide el
+azar del `id`.
+
 ## 💬 «Este chat» en una pantalla que no es un chat (31/08/2026)
 
 El aviso de «ya pagué» decía: *«Avísanos por **este chat** cuando lo hayas hecho… hazlo por
