@@ -2311,6 +2311,32 @@ sólo se ve en el panel pero no puede contradecir a la guía.
 ⚠️ Lo que NO se tocó es lo que de verdad la orientó —«la primera puerta verde del pasaje, a pocos
 metros de la caja fuerte»—. El número sitúa la manzana; la puerta la encuentra esa frase.
 
+## Los croquis y las fotos, por marcador (18/09/2026)
+
+Se subió un croquis nuevo por casita el 12/09 y **la guía siguió enseñando los de marzo**: las siete
+fichas «Puerta (casa N)» llevaban el croquis y la foto **incrustados como `<img>`**, así que los
+medios de la unidad no los miraba nadie — ningún ítem escribía `{{ croquis }}`.
+
+Lo caro no era el despiste: la imagen vive DENTRO del contenido traducido, o sea que cambiar un
+croquis a mano son **siete fichas por siete idiomas**. Con el marcador, la URL vive en la casita y
+subir un archivo nuevo cambia la guía sola.
+
+| Ficha | Antes | Ahora |
+|---|---|---|
+| `Puerta (casa 1..7)` | 1.ª imagen pegada | `{{ croquis }}` |
+| `Puerta (casa 1..7)` | 2.ª imagen pegada | `{{ foto_puerta }}` |
+| `Puerta (casa 1)` | enlace de YouTube dentro del texto | `{{ video_ingreso }}` |
+| `Puerta (casa 2..7)` | (sin vídeo) | `{{ video_ingreso }}`, listo para cuando se suba |
+| `Llaves (general)` | foto de la caja de febrero | `{{ foto_caja_llaves }}` (la del 12/09) |
+
+⚠️ **Escribir el marcador de un medio que aún no existe es seguro**: no pinta el marco de
+«bloqueado» ni deja la etiqueta a la vista — se quita, y el texto queda como si no estuviera
+(`PmsGuiaInterpolador::resolverMediaDeLaCasita()`). Por eso `{{ video_ingreso }}` puede ir en las
+siete desde ya: cada vídeo aparece el día que se sube.
+
+Lo hizo `app:pms:guia:medios-por-marcador` (archivado), tocando sólo el español: las traducciones se
+quedan **sin imágenes dentro** para siempre, que es la mitad del valor del cambio.
+
 ## 💬 «Este chat» en una pantalla que no es un chat (31/08/2026)
 
 El aviso de «ya pagué» decía: *«Avísanos por **este chat** cuando lo hayas hecho… hazlo por
