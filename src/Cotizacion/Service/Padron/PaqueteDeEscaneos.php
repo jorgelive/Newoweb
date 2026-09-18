@@ -73,6 +73,22 @@ final readonly class PaqueteDeEscaneos
         ArchivoTipoEnum::PASAPORTE,
         ArchivoTipoEnum::DNI_ANVERSO,
         ArchivoTipoEnum::DNI_REVERSO,
+        // El E-Ticket migratorio: no es una identidad, pero es lo que la operación tiene que
+        // reunir y llevar impreso al mostrador, y hasta ahora sólo se podía bajar de uno en uno.
+        ArchivoTipoEnum::ETICKET,
+    ];
+
+    /**
+     * Lo que entra cuando quien descarga NO elige.
+     *
+     * ⚠️ **No es `TIPOS`, y la diferencia es el E-Ticket.** El ZIP nació para reenviar documentos
+     * de identidad a un alojamiento; mandar de paso el trámite migratorio de 134 personas a quien
+     * pidió los pasaportes es mandar de más. Está disponible, y se marca a mano.
+     */
+    private const POR_DEFECTO = [
+        ArchivoTipoEnum::PASAPORTE,
+        ArchivoTipoEnum::DNI_ANVERSO,
+        ArchivoTipoEnum::DNI_REVERSO,
     ];
 
     /**
@@ -86,6 +102,7 @@ final readonly class PaqueteDeEscaneos
         'pasaporte' => 'PAS',
         'dni_anverso' => 'DNI',
         'dni_reverso' => 'DNI-rev',
+        'eticket' => 'ETK',
     ];
 
     public function __construct(
@@ -200,7 +217,7 @@ final readonly class PaqueteDeEscaneos
      * ⚠️ **Lista blanca contra `TIPOS`, no lo que venga.** El parámetro llega del cuerpo de una
      * petición: sin filtrar, pedir `["factura"]` sacaría de la casa las facturas del expediente
      * por un endpoint pensado para documentos de identidad. Lo que no esté en la lista se ignora,
-     * y si no queda nada se mandan todos —que es lo mismo que no elegir—.
+     * y si no queda nada se manda `POR_DEFECTO` —que es lo mismo que no elegir—.
      *
      * @param list<string>|null $pedidos
      *
@@ -209,7 +226,7 @@ final readonly class PaqueteDeEscaneos
     private function tiposPedidos(?array $pedidos): array
     {
         if ($pedidos === null || $pedidos === []) {
-            return self::TIPOS;
+            return self::POR_DEFECTO;
         }
 
         $validos = [];
@@ -220,7 +237,7 @@ final readonly class PaqueteDeEscaneos
             }
         }
 
-        return $validos === [] ? self::TIPOS : $validos;
+        return $validos === [] ? self::POR_DEFECTO : $validos;
     }
 
     /**

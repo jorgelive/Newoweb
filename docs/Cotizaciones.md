@@ -1660,9 +1660,16 @@ la bóveda, porque el orden de `ARCHIVO_TIPO_LABELS` es el del enum.
 
 - `loSubeElPasajero()` → **sí**. Sólo él puede hacer el trámite; nosotros no podemos emitirlo en su
   nombre.
-- `esDevolvibleAlPasajero()` → **no**, por lo mismo que el pasaporte: lo descargó él y lo tiene en
-  el móvil. Y de paso lo mantiene fuera de «Tus tarjetas de embarque», donde un formulario
-  migratorio se leería como la tarjeta del gate.
+- `esDevolvibleAlPasajero()` → **sí desde el 17/09/2026.** Estuvo en **no** con el argumento del
+  pasaporte —«lo descargó él y lo tiene en el móvil»— y con el viaje encima resultó falso: lo
+  rellenó semanas antes en la web de Migración, el PDF se pierde entre las descargas del teléfono y
+  en el mostrador dominicano hay que **enseñarlo**. A diferencia del pasaporte, el original no se
+  lleva en el bolsillo.
+  ⚠️ **La otra objeción sigue en pie y se resolvió en el front, no en el enum:** en «Tus tarjetas de
+  embarque» un formulario migratorio se leería como la tarjeta del gate, así que
+  `PaxCotizacionGuiaView` parte `miIdentidad.documentos` por `tipo` y le da su **propio panel** («Tu
+  E-Ticket migratorio», `misEtickets`). Si alguna vez se juntan las dos listas, vuelve el problema
+  que motivó dejarlo fuera.
 - `esEscaneoDeIdentidad()` → **no**: es un permiso, no una identidad; no hay número que cotejar
   contra el manifiesto.
 - `mesesDeRetencion()` → **1 tras el retorno**: lleva nombre, número de pasaporte e itinerario, y
@@ -9568,15 +9575,26 @@ sitios.
 | El temporal | `deleteFileAfterSend()` — sin eso queda un sobre con documentos en `/tmp` |
 | Cómo se sirve | `BinaryFileResponse`, no un string: 107 MB en memoria es pedir un `memory_limit` |
 
-Y **no** se le devuelve al pasajero: `ArchivoTipoEnum::esDevolvibleAlPasajero()` explica por qué su
-propio escaneo no baja a su móvil. Ésta es la vía del operador hacia el alojamiento, que es otra
-cosa y tiene otro dueño.
+Y el escaneo de identidad **no** se le devuelve al pasajero:
+`ArchivoTipoEnum::esDevolvibleAlPasajero()` explica por qué su propio pasaporte no baja a su móvil.
+Ésta es la vía del operador hacia el alojamiento, que es otra cosa y tiene otro dueño.
+
+⚠️ **El E-Ticket migratorio entró en el ZIP el 17/09/2026, y NO viene marcado.** Bajarlo de uno en
+uno con 134 personas no era viable, pero no es un documento de identidad: quien pide los pasaportes
+de un alojamiento no tiene por qué recibir además el formulario de Migración de todo el grupo. De
+ahí las **dos** listas del servicio, que el selector de `util` repite:
+
+| Constante | Qué es |
+|---|---|
+| `TIPOS` | lista blanca: lo que se PUEDE pedir — pasaporte, las dos caras del DNI y el e-ticket |
+| `POR_DEFECTO` | lo que entra si quien descarga no elige — sólo los tres de identidad |
 
 ### Dónde tocar
 
 | Necesidad | Archivo | Método |
 |---|---|---|
-| Qué tipos se PUEDEN mandar | `PaqueteDeEscaneos` | `TIPOS` — pasaporte y DNI (las dos caras); la autorización notarial no, es un permiso, no una identidad |
+| Qué tipos se PUEDEN mandar | `PaqueteDeEscaneos` | `TIPOS` — pasaporte, DNI (las dos caras) y el e-ticket; la autorización notarial no, es un permiso, no una identidad |
+| Qué tipos se mandan SIN elegir | `PaqueteDeEscaneos` | `POR_DEFECTO` — los tres de identidad, sin el e-ticket |
 | Cuáles se mandan de verdad | lo elige quien descarga | `tiposPedidos()` los valida contra `TIPOS` |
 | Cómo se llaman los ficheros | `PaqueteDeEscaneos` | `nombreEnElZip()` |
 | Lo que se cuenta en el sobre | `PaqueteDeEscaneos` | `leeme()` |

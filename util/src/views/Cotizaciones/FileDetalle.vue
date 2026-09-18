@@ -1371,9 +1371,18 @@ const TIPOS_ESCANEO = [
   { valor: 'pasaporte', etiqueta: 'Pasaporte' },
   { valor: 'dni_anverso', etiqueta: 'DNI anverso' },
   { valor: 'dni_reverso', etiqueta: 'DNI reverso' },
+  // El E-Ticket migratorio no es una identidad, pero es lo que hay que reunir y llevar al
+  // mostrador dominicano, y bajarlo de uno en uno con 134 personas no es una opción.
+  { valor: 'eticket', etiqueta: 'E-Ticket migratorio' },
 ];
 
-const tiposEscaneo = ref<string[]>(TIPOS_ESCANEO.map(t => t.valor));
+/**
+ * ⚠️ **Arranca sin el E-Ticket.** Los marcados por defecto son los tres de identidad, que es lo
+ * que hacía antes de que el trámite migratorio entrara en la lista: quien pide los pasaportes de un
+ * alojamiento no tiene por qué recibir además el formulario de Migración de 134 personas. El
+ * servidor tiene el mismo reparto (`PaqueteDeEscaneos::POR_DEFECTO` frente a `TIPOS`).
+ */
+const tiposEscaneo = ref<string[]>(['pasaporte', 'dni_anverso', 'dni_reverso']);
 
 /**
  * Cuántos ESCANEOS hay de cada tipo, sobre la gente que se va a exportar.

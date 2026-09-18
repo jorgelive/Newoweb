@@ -220,7 +220,27 @@ const fechaChip = (iso: string) => {
  * tiene dueño, porque enumerar 542 tarjetas contaría quién vuela qué aunque el fichero esté
  * protegido.
  */
-const misBoletos = computed(() => store.miIdentidad?.documentos ?? []);
+const misDevueltos = computed(() => store.miIdentidad?.documentos ?? []);
+
+/**
+ * Las tarjetas de embarque, sin el trámite migratorio.
+ *
+ * ⚠️ **Se separan por `tipo` y no por presencia**: el E-Ticket de República Dominicana también es
+ * un documento suyo que se le devuelve, pero en «Tus tarjetas de embarque» se leería como la
+ * tarjeta que hay que enseñar en la puerta, y no lo es — es el formulario de Migración. Mezclarlos
+ * era la objeción por la que el E-Ticket estuvo fuera de la lista; ver
+ * `ArchivoTipoEnum::esDevolvibleAlPasajero()`.
+ */
+const misBoletos = computed(() => misDevueltos.value.filter(d => d.tipo !== 'eticket'));
+
+/**
+ * Su E-Ticket migratorio, el que enseña en el mostrador dominicano.
+ *
+ * 🔥 Lo rellenó él en la web de Migración semanas antes y el PDF se pierde entre las descargas del
+ * móvil. Que lo tenga aquí, en el mismo sitio que su itinerario, es la diferencia entre enseñarlo y
+ * rellenarlo otra vez en el aeropuerto.
+ */
+const misEtickets = computed(() => misDevueltos.value.filter(d => d.tipo === 'eticket'));
 
 /**
  * ¿Le queda algún documento por mandar? Decide DÓNDE va esa tarjeta dentro de «Lo tuyo».
@@ -299,6 +319,7 @@ watch(() => store.miIdentidad, (identidad) => {
   documentosAbiertos.value = faltanDocumentos(identidad.documentosEnviados.filter(t => !repetir.has(t)), identidad.documentosPedidos);
 }, { immediate: true });
 const boletosAbiertos = ref(true);
+const eticketsAbiertos = ref(true);
 
 /** «CUZ → LIM». Si no hay vuelo —un adjunto suyo que no es de vuelo— se cae al nombre. */
 const rutaDe = (d: { origen?: string | null; destino?: string | null }) =>
@@ -1565,6 +1586,42 @@ const adelantoVista = computed(() => {
                     <span v-if="doc.fecha">{{ fechaDeVuelo(doc.fecha) }}</span>
                     <span v-if="doc.fecha && doc.numero" class="text-slate-300"> · </span>
                     <span v-if="doc.numero" class="font-bold">{{ doc.numero }}</span>
+                  </p>
+                </div>
+
+                <i class="fas fa-arrow-up-right-from-square text-slate-300 text-xs shrink-0"></i>
+              </a>
+            </div>
+          </PanelPlegable>
+
+          <!-- ── SU E-TICKET MIGRATORIO ─────────────────────────────────
+               🔥 Panel propio, no una fila más entre las tarjetas de embarque: es el formulario de
+               Migración de República Dominicana, y confundirlo con la tarjeta del gate manda a
+               alguien a la puerta con el papel equivocado.
+               ⚠️ Mismo enlace protegido que las tarjetas: `/archivo/{id}` comprueba de quién es. -->
+          <PanelPlegable v-if="misEtickets.length" v-model="eticketsAbiertos" class="no-imprimir"
+                         icono="passport"
+                         :titulo="maestroStore.t('cot_mi_eticket') || 'Tu E-Ticket migratorio'"
+                         :contador="misEtickets.length">
+            <p class="text-slate-500 text-[11px] leading-relaxed mb-3">
+              {{ maestroStore.t('cot_mi_eticket_aviso')
+                || 'El formulario de Migración de República Dominicana, con su código QR. Enséñalo al entrar y al salir del país; guárdalo en tu móvil antes de viajar.' }}
+            </p>
+
+            <div class="space-y-2">
+              <a v-for="doc in misEtickets" :key="doc.id"
+                 :href="`/archivo/${doc.id}`" target="_blank" rel="noopener"
+                 class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200 hover:border-[#376875]/40 hover:bg-[#376875]/5 transition-colors">
+                <span class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-[#376875] flex items-center justify-center shrink-0">
+                  <i class="fas fa-qrcode"></i>
+                </span>
+
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-black text-gray-800 truncate">
+                    {{ store.traducir(doc.nombre) || 'E-Ticket migratorio' }}
+                  </p>
+                  <p class="text-[11px] text-slate-500 truncate">
+                    {{ maestroStore.t('cot_mi_eticket_pie') || 'Entrada y salida · República Dominicana' }}
                   </p>
                 </div>
 

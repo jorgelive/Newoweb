@@ -98,12 +98,16 @@ enum ArchivoTipoEnum: string
     public function esDevolvibleAlPasajero(): bool
     {
         return match ($this) {
-            self::BOLETO, self::RESERVA => true,
-            // ⚠️ El E-Ticket migratorio NO, por lo mismo que el pasaporte: lo descargó él de la
-            // web de Migración y lo tiene en su móvil. Y hay una razón de pantalla: lo devolvible
-            // sale en «Tus tarjetas de embarque», donde un formulario migratorio se leería como
-            // la tarjeta que hay que enseñar en la puerta.
-            self::ETICKET, self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::FACTURA, self::OTROS => false,
+            // 🔥 **El E-Ticket se devolvió a la lista el 17/09/2026.** Estaba fuera «por lo mismo
+            // que el pasaporte»: lo descargó él de la web de Migración, así que ya lo tiene. Con el
+            // viaje encima resultó falso en la práctica — lo rellenó semanas antes en un móvil, el
+            // PDF se perdió entre descargas y en el mostrador dominicano hay que ENSEÑARLO. A
+            // diferencia de un pasaporte, el original no se lleva en el bolsillo.
+            //
+            // ⚠️ Y no se cuela en «Tus tarjetas de embarque», que era la otra objeción y sigue en
+            // pie: el front lo separa por `tipo` en su propio panel. Ver `PaxCotizacionGuiaView`.
+            self::BOLETO, self::RESERVA, self::ETICKET => true,
+            self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::FACTURA, self::OTROS => false,
         };
     }
 
