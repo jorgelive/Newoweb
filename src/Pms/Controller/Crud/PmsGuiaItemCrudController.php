@@ -82,7 +82,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->showEntityActionsInlined()
             ->setEntityLabelInSingular('Ítem de Contenido')
             ->setEntityLabelInPlural('Biblioteca de Ítems')
-            ->setSearchFields(['id', 'nombreInterno', 'titulo', 'tipo'])
+            ->setSearchFields(['id', 'nombreInterno', 'codigo', 'titulo', 'tipo'])
             ->setDefaultSort(['updatedAt' => 'DESC']);
     }
 
@@ -148,6 +148,16 @@ class PmsGuiaItemCrudController extends AbstractCrudController
         yield TextField::new('nombreInterno', 'Nombre Interno (Admin)')
             ->setHelp('Identificador para ti. Ej: "Wifi Lobby" o "Manual Cafetera"')
             ->setColumns(8);
+
+        // El código es la ETIQUETA con la que otras fichas enlazan a ésta. No es el nombre interno
+        // —que se edita— ni el título —que está traducido a siete idiomas—: es lo único que puede
+        // aguantar una referencia escrita dentro de un texto.
+        yield TextField::new('codigo', 'Código (para enlazar)')
+            ->setHelp('Con esto otra ficha enlaza a ésta escribiendo <code>{{ ficha: '
+                . 'calefactor }}</code> en su texto. <b>Minúsculas, sin tildes ni espacios, con '
+                . 'guiones</b>, y único en toda la guía. <b>No lo cambies una vez que otras fichas '
+                . 'lo usen</b>: sus enlaces dejarían de encontrarlo.')
+            ->setColumns(4);
 
         yield ChoiceField::new('tipo', 'Formato Visual')
             ->setChoices([

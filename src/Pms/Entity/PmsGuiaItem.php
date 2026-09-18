@@ -17,12 +17,15 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_guia_item')]
 #[ORM\HasLifecycleCallbacks]
+#[ORM\UniqueConstraint(name: 'uniq_guia_item_codigo', columns: ['codigo'])]
+#[UniqueEntity(fields: ['codigo'], message: 'Ya hay otra ficha con el código «{{ value }}». El código es único en toda la guía.')]
 class PmsGuiaItem
 {
     use IdTrait;
@@ -40,6 +43,35 @@ class PmsGuiaItem
     #[ORM\Column(type: 'string', length: 255)]
     #[Assert\NotBlank(message: 'El nombre interno es obligatorio')]
     private ?string $nombreInterno = null;
+
+    /**
+     * La ETIQUETA con la que otras fichas enlazan a ésta: `{{ ficha: calefactor }}`.
+     *
+     * ── Por qué no valía nada de lo que ya había ────────────────────────────
+     * | Candidato | Por qué no |
+     * |---|---|
+     * | `titulo` | está traducido a siete idiomas y cambia |
+     * | `nombreInterno` | se edita, y **no tenía índice único**: hoy los 61 son distintos por disciplina, no por garantía. Un renombre rompía todos los enlaces en silencio |
+     * | `id` | único y para siempre, pero `{{ ficha: 019cfe10-7a3b-… }}` no lo escribe nadie a mano ni se revisa de un vistazo |
+     *
+     * Por eso es un código corto y propio, como el de las plantillas de mensaje: se lee, se revisa
+     * y **sobrevive a los renombres**, que es justo lo que tiene que aguantar una referencia.
+     *
+     * ⚠️ **Único en toda la guía**, con índice en la base Y `#[UniqueEntity]` para que el panel lo
+     * diga con palabras en vez de reventar con un error de SQL. Que el mismo código aparezca en
+     * MUCHOS textos es lo normal: eso son varios enlaces al mismo sitio.
+     */
+    // El índice se declara arriba con SU nombre (`uniq_guia_item_codigo`): con `unique: true` aquí,
+    // Doctrine lo quiere llamar `UNIQ_<hash>` y `schema:validate` se queda en rojo para siempre —
+    // ver la regla de los índices en `CLAUDE.md`.
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    #[Assert\NotBlank(message: 'El código es obligatorio: es la etiqueta con la que otras fichas enlazan a ésta.')]
+    #[Assert\Length(max: 50)]
+    #[Assert\Regex(
+        pattern: '/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+        message: 'El código va en minúsculas, sin tildes ni espacios, con guiones: «equipaje-horarios-flexibles».'
+    )]
+    private ?string $codigo = null;
 
     #[ORM\Column(type: 'string', length: 20)]
     #[Assert\NotBlank]
@@ -329,6 +361,9 @@ class PmsGuiaItem
         else $this->metadata['urlBoton'] = $val;
         return $this;
     }
+
+    public function getCodigo(): ?string { return $this->codigo; }
+    public function setCodigo(?string $codigo): self { $this->codigo = $codigo; return $this; }
 
     public function getNombreInterno(): ?string { return $this->nombreInterno; }
     public function setNombreInterno(string $nombreInterno): self { $this->nombreInterno = $nombreInterno; return $this; }

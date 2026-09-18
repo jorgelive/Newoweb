@@ -2375,6 +2375,36 @@ los textos y sus siete idiomas quedan intactos y no pasa nada por `AutoTranslate
 secciones enteras, porque los `orden` traían saltos de ediciones anteriores y un empate lo decide el
 azar del `id`.
 
+## El `codigo` de una ficha: la etiqueta para enlazar (18/09/2026)
+
+La guía no tenía enlaces internos: cuando algo se cuenta en dos sitios, se copia el texto — y las
+copias envejecen a distinta velocidad. Para poder escribir `{{ ficha: calefactor }}` hacía falta una
+clave que aguantara, y **ninguna de las que había servía**:
+
+| Candidato | Por qué no |
+|---|---|
+| `titulo` | traducido a siete idiomas, cambia |
+| `nombreInterno` | se edita, y **no tenía índice único**: los 61 de hoy son distintos por disciplina, no por garantía |
+| `id` | único y eterno, pero `{{ ficha: 019cfe10-… }}` no se escribe ni se revisa a mano |
+
+Por eso `PmsGuiaItem::$codigo`: corto, legible, **único en toda la guía** con índice en la base
+(`uniq_guia_item_codigo`) **y** `#[UniqueEntity]`, para que el panel lo diga con palabras en vez de
+reventar con un error de SQL.
+
+**Único global y no «uno por guía», y la razón importa:** con códigos por familia —`puerta` repetido
+en las siete casitas— una ficha general podría enlazar a «su» casita, pero validarlo exige recorrer
+guía → secciones → ítems en cada guardado. El código global es **un caso particular de ése**: si
+mañana hace falta, relajarlo no rompe ningún texto ya escrito; apretarlo después sí. Lo que se pierde
+hoy: «Llaves (general)», que comparten las siete, no puede apuntar a «la puerta de esta casita».
+
+Lo rellena `app:pms:guia:codigos` (`Calefactor (general)` → `calefactor`, `Puerta (casa 4)` →
+`puerta-casa-4`). **No renombra**: una ficha que ya tenga código no se toca, porque cambiarlo rompe
+los enlaces que lo escriben.
+
+⚠️ Y de paso, los dos cruces —ítem↔sección y sección↔guía— ya tenían índice único en la base pero
+**ninguna validación**: al componer una guía, un duplicado reventaba como error de SQL. Ahora dicen
+«ese ítem ya está en esta sección».
+
 ## 💬 «Este chat» en una pantalla que no es un chat (31/08/2026)
 
 El aviso de «ya pagué» decía: *«Avísanos por **este chat** cuando lo hayas hecho… hazlo por

@@ -8,12 +8,16 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_guia_seccion_has_item')]
 #[ORM\UniqueConstraint(name: 'uniq_seccion_item', columns: ['seccion_id', 'item_id'])]
 #[ORM\HasLifecycleCallbacks]
+// La base ya lo impide; esto hace que el panel lo diga con palabras en vez de reventar con un
+// error de SQL, que es lo que se veía al componer una sección o una guía.
+#[UniqueEntity(fields: ['seccion', 'item'], message: 'Ese ítem ya está en esta sección: no se puede añadir dos veces.')]
 class PmsGuiaSeccionHasItem
 {
     use IdTrait;
