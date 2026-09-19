@@ -37,6 +37,45 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
 {
     private const string CONTEXTO_RESERVA = 'pms_reserva';
 
+    /**
+     * Cómo es el sitio POR DENTRO, para los tres perfiles que hablan con alguien de fuera.
+     *
+     * ### Por qué hizo falta escribirlo
+     *
+     * El 18/09/2026, repitiendo una conversación real, el agente ofreció pagar «en efectivo en
+     * recepción/check-in». **No hay recepción.** No estaba desobedeciendo ninguna regla, y ni
+     * siquiera inventaba del todo: la nota del medio «efectivo» decía «al hacer el check-in», y
+     * el resto lo puso él. Se buscó «recepción» en los 62 ítems de guía y no aparece ni afirmada
+     * ni negada, así que nada le contradecía. Un modelo al que nadie le ha dicho cómo es un
+     * sitio lo describe como el sitio medio de su entrenamiento, y el sitio medio tiene
+     * mostrador.
+     *
+     * Por eso esto no es otra prohibición —«no inventes infraestructura» ya está dicho y no
+     * sirvió—: es el HECHO, en positivo, donde el modelo lee.
+     *
+     * ### ⚠️ Lo que NO puede entrar aquí
+     *
+     * Ni horas, ni códigos, ni importes, ni políticas. Todo eso vive en la guía, cambia en el
+     * panel y se resuelve por casita; copiarlo aquí crearía una segunda fuente que se queda
+     * vieja el día que alguien edita la ficha y nadie toca este archivo. El borrador de esta
+     * misma cadena decía «se atiende de 9:00 a 21:00» y se cayó por eso: ese horario es la
+     * ficha `horario-solicitudes`. Aquí sólo cabe lo que no depende de la casita ni del día.
+     *
+     * Va al final del bloque de cada perfil y dentro del prefijo cacheado: es el mismo texto en
+     * todas las conversaciones.
+     */
+    private const string COMO_ES_EL_SITIO = <<<PROMPT
+
+
+        CÓMO ES EL ALOJAMIENTO, para que no te lo imagines: son apartamentos independientes, no
+        un hotel. NO hay recepción ni personal en el sitio: la entrada es autónoma, las llaves
+        salen de una caja fuerte digital que está en el pasadizo y abre el propio huésped. Todo
+        lo demás —horarios, códigos, qué tiene cada casita, qué se puede pedir— lo dice la guía
+        de esa casita: consúltala, no la supongas. Y si una pregunta da por hecho que hay
+        alguien esperando en la puerta, cuenta cómo funciona de verdad en vez de seguirle la
+        corriente.
+        PROMPT;
+
     public function __construct(
         private EntityManagerInterface $em,
         private PmsEspacioEstancia $espacio,
@@ -55,9 +94,12 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
     public function para(PerfilConversacion $perfil): string
     {
         return match ($perfil) {
-            PerfilConversacion::Prospecto => $this->prospecto(),
-            PerfilConversacion::Interesado => $this->interesado(),
-            PerfilConversacion::Huesped => $this->huesped(),
+            // Los tres de fuera llevan pegado cómo es el sitio; el equipo no, que ya lo sabe y
+            // se pagaría en cada turno. Se concatena en vez de entrar en los heredocs porque
+            // esos textos están en producción y se tocan lo menos posible.
+            PerfilConversacion::Prospecto => $this->prospecto() . self::COMO_ES_EL_SITIO,
+            PerfilConversacion::Interesado => $this->interesado() . self::COMO_ES_EL_SITIO,
+            PerfilConversacion::Huesped => $this->huesped() . self::COMO_ES_EL_SITIO,
             PerfilConversacion::Personal => $this->personal(),
             PerfilConversacion::Colaborador => $this->colaborador(),
         };

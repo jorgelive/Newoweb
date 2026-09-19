@@ -47,6 +47,15 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * ⚠️ El tipo de cambio guarda **el criterio, no la cifra**: «venta de SUNAT del día» no caduca
  * nunca; un «3.75» empieza a mentir mañana y nadie se entera.
  *
+ * ### La novena llegó después, y por otra puerta (18/09/2026)
+ *
+ * «Recepción y entrada autónoma» no salió de contar preguntas sino de una respuesta mala: el
+ * agente ofreció pagar «en efectivo en recepción», y no hay recepción. Las ocho primeras
+ * contestan lo que se pregunta mucho; ésta inaugura la otra mitad del oficio de esta tabla,
+ * **decir lo que el sitio ES** — lo que no depende de la casita y por eso no cabe en ninguna
+ * guía. Entra por aquí y no por el panel porque es contenido que conviene versionado, igual
+ * que las notas de `fin:medios:notas`.
+ *
  * Es idempotente por `nombreInterno`: relanzarlo no duplica nada.
  */
 #[AsCommand(
@@ -331,6 +340,46 @@ final class AgentSembrarConocimientoCommand extends Command
                     . 'Además nuestro personal de limpieza ofrece servicio de lavandería a 1 dólar '
                     . 'el kilo: se coordina por el chat.',
                 'perfiles' => self::PUBLICO,
+            ],
+
+            // ── La novena, y es de otra especie ──────────────────────────────────────────
+            // Las ocho de arriba salieron de CONTAR preguntas. Ésta sale de una respuesta mala:
+            // el 18/09/2026, en un replay, el agente ofreció pagar «en efectivo en recepción».
+            // No hay recepción, y la frase salió de parafrasear nuestra propia nota de cobro
+            // («al hacer el check-in»): al modelo, un check-in le suena a mostrador mientras
+            // nadie le diga cómo es este sitio.
+            //
+            // Va SIN acotar y es deliberado: no duplica ninguna ficha de guía (se buscó
+            // «recepción» en los 62 ítems y no aparece en ninguno), y el huésped confirmado es
+            // justo quien pregunta «llego a las 2 a.m., ¿quién me abre?». Es además la primera
+            // de una familia que faltaba entera: LO QUE EL SITIO ES, que no depende de la
+            // casita y por eso no cabe en ninguna guía.
+            //
+            // El hecho está también en el prompt —PmsInstruccionesDominio::COMO_ES_EL_SITIO— y no
+            // sobra: allí evita que se lo invente hablando de otra cosa —el fallo fue contestando
+            // sobre PAGOS—, y aquí está la respuesta larga, editable en el panel sin desplegar.
+            [
+                'tema' => 'la-casa',
+                'nombre' => 'Recepción y entrada autónoma',
+                // Las etiquetas no son sólo para el modelo: `candidatosPara()` las mira ANTES de
+                // escalar a una persona, y «quién me abre» a medianoche es escalado caro.
+                'etiquetas' => 'recepcion, hay recepcion, recepcion 24 horas, hay alguien, quien '
+                    . 'me recibe, me espera alguien, me abre alguien, nadie me abre, conserje, '
+                    . 'portero, entrada autonoma, self check in, check in autonomo, llego de '
+                    . 'madrugada, llego muy tarde, llego de noche, reception, front desk',
+                'contenido' => 'No tenemos recepción ni personal en el edificio: son apartamentos '
+                    . 'independientes y la entrada es autónoma, a cualquier hora del día o de la '
+                    . 'noche. Las llaves están en una caja fuerte digital del pasadizo y abre el '
+                    . 'propio huésped; el código y los pasos van en su guía.'
+                    . "\n\n"
+                    . 'Dilo como una ventaja, que lo es: no hay que coordinar con nadie ni llegar '
+                    . 'a una hora concreta para que le abran. Un vuelo de madrugada no es un '
+                    . 'problema.'
+                    . "\n\n"
+                    . 'NO des aquí el código ni las horas: el código lo da consultar_codigos '
+                    . '—que además comprueba si a este huésped ya le toca— y los horarios están '
+                    . 'en su guía. Si algo no sale como debería, se escribe por el chat.',
+                'perfiles' => self::TODOS,
             ],
         ];
     }

@@ -18,6 +18,7 @@ quien lo cuenta bien; aquí sólo se dice cómo encaja.
 3. [Las dos salidas del motor](#3-las-dos-salidas-del-motor)
 4. [Los contratos con los dominios](#4-los-contratos-con-los-dominios)
 5. [Dónde vive cada contrato, y por qué ahí](#5-dónde-vive-cada-contrato-y-por-qué-ahí)
+5.6. [Los cuatro sitios donde vive lo que el agente sabe del negocio](#56-los-cuatro-sitios-donde-vive-lo-que-el-agente-sabe-del-negocio-18092026)
 6. [Dónde tocar para cambiar X](#6-dónde-tocar-para-cambiar-x)
 
 ---
@@ -548,6 +549,52 @@ tamaño explica cuánto crecerá la entrada de la vuelta siguiente.
 - **Presupuesto de tokens por turno** (cortar al superar ~100 000 acumulados) queda propuesto y
   sin hacer: con el cierre forzado y la racha de tres, el techo real baja a unas cuatro vueltas.
 
+## 5.6 Los cuatro sitios donde vive lo que el agente sabe del negocio (18/09/2026)
+
+Repitiendo una conversación real contra el agente de hoy, ofreció pagar «en efectivo en
+**recepción**/check-in». No hay recepción. Y no había desobedecido nada: la nota del medio
+`efectivo` decía «puedes pagar en efectivo **al hacer el check-in**» —el cuándo, nunca el
+dónde—, y para un modelo el check-in de un alojamiento pasa en un mostrador. Se buscó
+«recepción» en los 62 ítems de guía y no aparece, ni afirmada ni negada, así que nada le
+contradecía. **Medio dato es peor que ninguno**: el hueco lo rellena con el hotel medio de su
+entrenamiento.
+
+La tentación es añadir otra prohibición. Ya está dicho «no inventes» y no sirvió: lo que faltaba
+era el hecho, en positivo, allí donde el modelo lee. Y «allí donde lee» son tres sitios con
+reglas distintas, que es lo que hay que tener claro para no crear dos fuentes que se separen:
+
+| | qué le toca | qué NO puede decir |
+|---|---|---|
+| **Prompt** — `PmsInstruccionesDominio::COMO_ES_EL_SITIO` | los hechos invariantes del sitio: apartamentos independientes, sin recepción, entrada autónoma | horas, códigos, importes, políticas |
+| **Guía** — `PmsGuiaItem` | todo lo que tiene casita, hora, código o política. **Manda siempre** | — |
+| **Nota del medio** — `fin_medio_cobro.nota` (`fin:medios:notas`) | cómo se ejecuta **ese** pago concreto | cuándo hay que pagar, por dónde avisas |
+| **Conocimiento** — `agent_conocimiento` | la respuesta larga a lo que se pregunta mucho | lo que la guía contesta mejor para un huésped |
+
+El borrador del bloque de prompt decía «se atiende de 9:00 a 21:00» y se cayó por esa regla: ese
+horario es la ficha `horario-solicitudes` y cambia desde el panel. El prompt que repite un dato
+editable es el que miente el día que alguien lo edita.
+
+### El conocimiento no estaba muerto, estaba vacío
+
+La sospecha razonable era que nadie llama a `consultar_conocimiento`. El `info.log` de 30 días
+dice lo contrario: **67 llamadas**, tercera skill más usada (`consultar_guia` 113,
+`escalar_al_equipo` 95), de las que 35 llegaron a la lista de etiquetas y **12 entregaron
+contenido escrito**.
+
+Lo que sí estaba flaco era la despensa: 8 fichas, y 7 excluyen el perfil `huesped` a propósito
+—para él la guía contesta mejor—, así que a un huésped confirmado el bloque de temas le enseña
+**una sola categoría**. Las llamadas de actor «huésped» que sí reciben respuesta son casi todas
+consultas de OTA sin confirmar, que son perfil `Interesado`.
+
+La conclusión no es aflojar esa acotación —se comprobó ficha por ficha que la guía cubre las
+siete: `reglas` (mascotas), `ducha-casa-N` (agua caliente), `equipaje-horarios-flexibles`,
+`estacionamiento`, `lavanderia`, `traslados`— sino **llenarla de lo que no está en ninguna
+guía**: lo que el sitio ES. De ahí la ficha «Recepción y entrada autónoma», sin acotar, que
+además hace de red antes de escalar por sus etiquetas (`candidatosPara()` las mira antes de
+molestar a una persona, y hubo 95 escalados en 30 días).
+
+---
+
 ## 6. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
@@ -569,3 +616,6 @@ tamaño explica cuánto crecerá la entrada de la vuelta siguiente.
 | Cambiar qué puede empatar o enrutarse directo | `src/Agent/Triage/CatalogoDelTriaje.php` | `veEscrituras()` / `permitidas()` / `enrutablesDirectas()` |
 | Ver qué skills tiene cada perfil | — | `php bin/console app:agent:permisos` |
 | Repetir una conversación pasada contra el agente de hoy | `src/Agent/Command/AgentReplayCommand.php` | `app:agent:replay` |
+| Cambiar los hechos del sitio que el agente da por sabidos | `src/Pms/Service/Agent/PmsInstruccionesDominio.php` | `COMO_ES_EL_SITIO` — sin horas, códigos ni importes (§5.6) |
+| Añadir una respuesta escrita para lo que se pregunta mucho | panel **Bot & IA → Conocimiento del agente**, o `AgentSembrarConocimientoCommand` | acotar con `perfiles`; el validador avisa si la guía ya lo dice |
+| Decir cómo se ejecuta un medio de cobro | `src/Finanzas/Command/FinNotasMedioCobroCommand.php` | `NOTAS` → `fin:medios:notas` (retraduce a los 7) |

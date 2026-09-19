@@ -87,6 +87,28 @@ final class FinNotasMedioCobroCommand extends Command
         // canal, una vez y en el idioma correcto.
         FinMedioCobroTipo::YAPE->value => '',
         FinMedioCobroTipo::PLIN->value => '',
+
+        // 🏠 DÓNDE se deja el dinero. Decía CUÁNDO y no DÓNDE, y de ahí salió una invención.
+        //
+        // El 18/09/2026, repitiendo una conversación real, el agente ofreció pagar «en efectivo
+        // en recepción/check-in». No hay recepción — y no se la sacó del aire: esta nota decía
+        // «puedes pagar en efectivo AL HACER EL CHECK-IN», y para un modelo el check-in de un
+        // alojamiento pasa en un mostrador. Parafraseó nuestro propio texto. Lo que faltaba no
+        // era una prohibición más, era el sitio: aquí no hay mostrador, hay una caja fuerte.
+        //
+        // Sólo el MECANISMO, como manda el aviso de arriba: CUÁNDO hay que pagar es política y
+        // ya la dicen la ficha «Pago» de la guía y `dias_maximos = 0`; el código de la caja y
+        // la foto del comprobante son la plantilla «Instrucciones caja del dinero», que va por
+        // huésped. Repetirlos aquí sería el tercer sitio que hay que acordarse de cambiar.
+        //
+        // La moneda SÍ se queda: es de este medio —qué billetes se aceptan en mano— y además es
+        // lo único de la nota vieja que el huésped ve en su guía, dentro de `{{ medios_pago }}`.
+        // El criterio de conversión no está aquí a propósito: vive en la ficha «Tipo de cambio»
+        // del conocimiento, que ya dice que se usa la venta de SUNAT del día.
+        FinMedioCobroTipo::EFECTIVO->value =>
+            'Se paga en el propio alojamiento, en soles o en dólares. El dinero se deja en la '
+            . 'caja fuerte digital de arriba del pasadizo —la de abajo es la de las llaves— y su '
+            . 'código te lo pasamos en el momento.',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
