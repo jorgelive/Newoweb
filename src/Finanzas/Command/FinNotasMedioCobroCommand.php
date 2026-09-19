@@ -105,10 +105,17 @@ final class FinNotasMedioCobroCommand extends Command
         // lo único de la nota vieja que el huésped ve en su guía, dentro de `{{ medios_pago }}`.
         // El criterio de conversión no está aquí a propósito: vive en la ficha «Tipo de cambio»
         // del conocimiento, que ya dice que se usa la venta de SUNAT del día.
+        //
+        // ⚠️ «La caja de ARRIBA» no vale, y lo cazó la propia traducción: el primer intento decía
+        // «la caja fuerte digital de arriba del pasadizo» y salió «upstairs in the hallway» y «à
+        // l'étage» — otro PISO. El huésped subiría a buscar una planta que no existe. Son dos
+        // cajas montadas una sobre otra, así que se nombran SUPERIOR e INFERIOR, que es una
+        // posición relativa entre ellas y no del edificio. Mismo fallo que el «a ese nombre» de
+        // Western Union, y la misma lección: aquí lo ambiguo no se queda en ambiguo, se traduce.
         FinMedioCobroTipo::EFECTIVO->value =>
-            'Se paga en el propio alojamiento, en soles o en dólares. El dinero se deja en la '
-            . 'caja fuerte digital de arriba del pasadizo —la de abajo es la de las llaves— y su '
-            . 'código te lo pasamos en el momento.',
+            'Se paga en el propio alojamiento, en soles o en dólares. En el pasadizo hay dos '
+            . 'cajas fuertes digitales, una sobre la otra: el dinero se deja en la caja SUPERIOR '
+            . '—la inferior es la de las llaves— y su código te lo pasamos en el momento.',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
