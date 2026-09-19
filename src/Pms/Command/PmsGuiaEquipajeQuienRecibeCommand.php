@@ -24,11 +24,26 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * casa: **lo que se le quita a un texto, el modelo lo niega**.
  *
  * ── Cómo funciona de verdad ─────────────────────────────────────────────────
- * No hay nadie esperando, pero el día de la salida el personal de limpieza llega a la hora del
- * check-out —o a la que se haya coordinado— y es quien recibe el equipaje; si entran huéspedes
- * nuevos antes de que lo recojan, o si va a quedarse varios días, lo lleva al almacén. Y no hay
- * que esperarles: a todo el mundo se le pide una **foto del equipaje por WhatsApp**, y con eso
- * queda registrado. Quien sale de madrugada lo deja dentro, manda la foto y ya está.
+ * Lo que decide todo es **la hora**, y por eso el texto gira alrededor de preguntarla:
+ *
+ * | Momento | Dónde queda | Quién abre |
+ * |---|---|---|
+ * | Recojo dentro del horario de limpieza | donde esté | el personal se lo entrega |
+ * | Recojo más tarde | departamento o almacén, según la hora | se coordina por el chat |
+ * | Llegada con la limpieza ya empezada | el propio departamento | el personal lo recibe |
+ * | Llegada demasiado temprano | el almacén | el propio huésped, con su clave |
+ *
+ * El almacén no tiene personal —lo abre el propio huésped con una clave—, así que hay casos en
+ * que saca su equipaje **solo**: por eso no se puede escribir ni «siempre te lo entregan» ni
+ * «cógelo cuando quieras». Lo único cierto siempre es que hay que decir la hora. Y en la llegada
+ * anticipada la hora se pide **con antelación**, no al plantarse en la puerta: es lo que da
+ * margen para tenerlo resuelto.
+ *
+ * ── El reparto entre los dos textos ─────────────────────────────────────────
+ * Al HUÉSPED le toca su parte —cuántas piezas, a qué hora vuelve, la foto— y saber que, según
+ * esa hora, se lo entregan o lo abre él. La tabla de arriba entera va en el texto del AGENTE,
+ * que es quien tiene que elegir la rama sin inventársela. Y el acceso al almacén NO lo da el
+ * agente: se pasa al coordinar, como el de la caja del dinero.
  *
  * ── Por qué comando y no SQL ────────────────────────────────────────────────
  * `descripcion` lleva `#[AutoTranslate]`: un `UPDATE` se salta el listener y los otros seis
@@ -47,30 +62,66 @@ final class PmsGuiaEquipajeQuienRecibeCommand extends Command
 {
     private const string FICHA = 'Equipaje y horarios flexibles (general)';
 
-    /** El párrafo que hoy cierra la ficha: se sustituye entero. */
+    /**
+     * El párrafo que hoy cierra la ficha: se sustituye entero.
+     *
+     * ⚠️ Y de paso se va «bultos», que era la palabra equivocada para un texto que se traduce a
+     * siete idiomas: en castellano de Perú se entiende, pero fuera es un fardo o un chichón, y
+     * el traductor no tiene forma de saber que hablamos de maletas. «Piezas de equipaje» viaja.
+     */
     private const string VIEJO = '<p>🧳 Cuando lo dejes, dinos <strong>cuántos bultos</strong> '
         . 'son. Puedes recogerlo antes de lo previsto sin problema.</p>';
 
-    private const string NUEVO = '<p>🧳 Cuando lo dejes, dinos <strong>cuántos bultos</strong> '
-        . 'son y mándanos una <strong>foto por WhatsApp</strong>: se la pedimos a todo el mundo y '
-        . 'es el registro de lo que dejaste. Puedes recogerlo antes de lo previsto sin problema.'
+    /**
+     * Lo que se le pide al huésped y lo que se le promete, sacado de lo que pregunta de verdad.
+     *
+     * De los 78 mensajes entrantes que hablan de equipaje, **31 traen una hora**: casi nadie
+     * pregunta si el servicio existe, preguntan cuándo y cómo. Y la primera respuesta del equipo,
+     * siempre, es «solo me indicas hasta qué hora lo guardamos». Por eso la hora se pide aquí y
+     * no se deja para una repregunta.
+     *
+     * ⚠️ Ni «te lo entregan» ni «cógelo tú»: son las dos ramas, y la elige la hora. Prometer una
+     * sola deja la mitad de los casos contradichos — el 15/06 una huésped se llevó un juego de
+     * llaves «para asegurarnos de poder sacar el equipaje a las 2:30» y tuvo que volver a
+     * subirlas. Y el borrador anterior decía «no tienes que esperar a nadie», que para el RECOJO
+     * no es verdad si cae fuera del horario de limpieza.
+     */
+    private const string NUEVO = '<p>🧳 Al dejarlo, dinos <strong>cuántas piezas de equipaje</strong> '
+        . 'son y <strong>a qué hora lo recoges</strong>, y mándanos una <strong>foto por '
+        . 'WhatsApp</strong>: así queda registrado. Si vuelves mientras el personal de limpieza '
+        . 'está trabajando, ellas te lo entregan; si es más tarde, lo coordinamos por el chat y te '
+        . 'decimos dónde está — según la hora se queda en el propio departamento o va al almacén, '
+        . 'que abres tú mismo con la clave que te damos, sin depender de nadie.'
         . "</p>\n"
-        . '<p>🧹 El día de la salida <strong>no necesitas esperar a nadie</strong>. El personal de '
-        . 'limpieza llega a la hora del check-out —o a la que hayas coordinado—, recibe el '
-        . 'equipaje y lo lleva al almacén si hace falta. Si sales de madrugada, déjalo dentro y '
-        . 'mándanos la foto: con eso basta.</p>';
+        . '<p>🕘 Y si <strong>llegas antes de la hora de entrada</strong>, dinos <strong>con '
+        . 'antelación</strong> a qué hora llegas, en cuanto lo sepas, y escríbenos también al '
+        . 'llegar: si la limpieza ya empezó, el personal te recibe el equipaje en el departamento; '
+        . 'si aún es muy temprano, lo dejas tú en el almacén y te pasamos la clave.</p>';
 
-    /** Lo que ya está en `agenteContenido` y detrás de lo cual entra el párrafo nuevo. */
+    /** Lo que ya está en `agenteContenido` y se reescribe: también decía «bultos». */
     private const string ANCLA_AGENTE = 'día de antelación para coordinarlo, y que diga cuantos bultos son.';
 
-    private const string AGENTE = "\n\n"
-        . "QUIÉN LO RECIBE, que es la siguiente pregunta: no hay nadie esperando en el sitio, "
-        . "pero el día de la salida el personal de limpieza llega a la hora del check-out —o a la "
-        . "que se haya coordinado— y es quien recibe el equipaje; si entran huéspedes nuevos "
-        . "antes de que lo recoja, o si lo deja varios días, lo lleva al almacén.\n\n"
-        . "NO le digas que espere a nadie ni que alguien le abrirá: se le pide SIEMPRE una foto "
-        . "del equipaje por WhatsApp y con eso queda registrado. Quien sale de madrugada lo deja "
-        . "dentro, manda la foto y listo.";
+    private const string AGENTE = 'día de antelación para coordinarlo.'
+        . "\n\n"
+        . "LO PRIMERO ES LA HORA. Aquí no hay una respuesta única: dónde queda el equipaje y "
+        . "quién lo abre dependen de a qué hora lo deja y a qué hora vuelve. Pregúntaselo "
+        . "SIEMPRE, junto con cuántas PIEZAS de equipaje son, y pídele una foto por WhatsApp: "
+        . "esa foto es el registro y con ella no tiene que esperar a nadie para dejarlo."
+        . "\n\n"
+        . "AL RECOGER:\n"
+        . "- Si vuelve mientras el personal de limpieza está trabajando, ellas se lo entregan.\n"
+        . "- Si vuelve más tarde, se coordina por el chat. Dile que lo coordinamos y avisa al "
+        . "equipo; no le cites tú a ninguna hora ni le prometas que habrá alguien.\n"
+        . "- Según la hora se queda en el propio departamento o va al almacén. En el almacén no "
+        . "hay personal: lo abre el propio huésped con una clave, y esa clave se la pasa el "
+        . "equipo al coordinar. NO la des tú ni la busques por otro lado."
+        . "\n\n"
+        . "AL LLEGAR ANTES DEL CHECK-IN:\n"
+        . "- Si la limpieza ya empezó, el personal le recibe el equipaje en el departamento.\n"
+        . "- Si todavía es muy temprano y no ha empezado, lo deja él mismo en el almacén.\n"
+        . "PÍDELE LA HORA CON ANTELACIÓN, en cuanto la sepa, y no sólo cuando ya esté aquí: "
+        . "saberlo antes es lo que permite tenerlo resuelto. Que escriba también al llegar, y "
+        . "no le digas que se plante en la puerta a esperar — ya pasó y fueron cuatro horas.";
 
     public function __construct(private readonly EntityManagerInterface $em)
     {
@@ -116,7 +167,10 @@ final class PmsGuiaEquipajeQuienRecibeCommand extends Command
 
         $texto = (string) ($descripcion[$indice]['content'] ?? '');
 
-        if (str_contains($texto, 'no necesitas esperar a nadie')) {
+        // La marca de «ya está hecho» es una frase de `NUEVO`, y hay que moverla cada vez que se
+        // pula la redacción: ya pasó dos veces en una tarde, y con el centinela viejo el comando
+        // habría vuelto a entrar sobre un texto ya cambiado.
+        if (str_contains($texto, 'a qué hora lo recoges')) {
             $io->text('· La guía ya lo cuenta.');
         } elseif (!str_contains($texto, self::VIEJO)) {
             // A ciegas no: si el párrafo de los bultos no está tal cual, alguien lo editó y
@@ -126,7 +180,7 @@ final class PmsGuiaEquipajeQuienRecibeCommand extends Command
             return Command::FAILURE;
         } else {
             $io->section('Guía (español)');
-            $io->writeln('<fg=green>+ foto por WhatsApp · el personal de limpieza recibe y guarda · madrugada</>');
+            $io->writeln('<fg=green>+ piezas y hora de recojo · foto por WhatsApp · las dos ramas · llegada anticipada</>');
 
             if (!$simular) {
                 $descripcion[$indice]['content'] = str_replace(self::VIEJO, self::NUEVO, $texto);
@@ -147,14 +201,10 @@ final class PmsGuiaEquipajeQuienRecibeCommand extends Command
             return Command::FAILURE;
         } else {
             $io->section('Agente');
-            $io->writeln('<fg=green>+ quién recibe · la foto sustituye a la espera</>');
+            $io->writeln('<fg=green>+ la hora manda · recojo y llegada, rama por rama · el almacén no lo abre el agente</>');
 
             if (!$simular) {
-                $item->setAgenteContenido(str_replace(
-                    self::ANCLA_AGENTE,
-                    self::ANCLA_AGENTE . self::AGENTE,
-                    $agente
-                ));
+                $item->setAgenteContenido(str_replace(self::ANCLA_AGENTE, self::AGENTE, $agente));
             }
 
             $tocado = true;

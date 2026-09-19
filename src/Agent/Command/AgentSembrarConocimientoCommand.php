@@ -405,7 +405,7 @@ final class AgentSembrarConocimientoCommand extends Command
                     . 'si llega antes de la hora de entrada, o después del check-out si sigue en '
                     . 'la ciudad. También se pueden guardar varios días —por ejemplo mientras hace '
                     . 'un trek—: en ese caso conviene avisar con un día de antelación y decir '
-                    . 'cuántos bultos son.'
+                    . 'cuántas piezas de equipaje son.'
                     . "\n\n"
                     // ⚠️ Quién lo recibe hay que decirlo desde que el agente sabe que no hay
                     // personal en el sitio: sin esto, a «¿y quién me guarda las maletas?» le toca
