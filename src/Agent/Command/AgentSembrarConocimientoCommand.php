@@ -376,14 +376,24 @@ final class AgentSembrarConocimientoCommand extends Command
                 'nombre' => 'Frazadas adicionales',
                 'etiquetas' => 'frazadas, frazada, mantas, manta, cobijas, mas abrigo, tengo frio, '
                     . 'hace frio de noche, blankets, extra blanket, abrigo',
-                'contenido' => 'Sí, hay frazadas adicionales y no cuestan nada. Lo único es que '
-                    . 'hay que pedirlas CON ANTICIPACIÓN: no se pueden llevar en el momento, así '
-                    . 'que conviene avisar por el chat con tiempo y se las dejamos preparadas.'
+                // ⚠️ Copiado del PANEL, no al revés. El 13/08 a las 15:35 se editó ahí —quitando
+                // la frase de apertura y detallando que el calefactor va por app— y el archivo se
+                // quedó con la versión vieja. Como el comando ya reconcilia, la próxima pasada
+                // habría revertido esa edición sin que nadie lo pidiera: se trae aquí para que
+                // las dos digan lo mismo. Es la regla de esta tabla desde hoy — lo que se toque
+                // en el panel hay que devolverlo al archivo.
+                'contenido' => 'Lo único es que hay que pedirlas CON ANTICIPACIÓN: no se pueden '
+                    . 'llevar en el momento, así que conviene avisar por el chat con tiempo y se '
+                    . 'las dejamos preparadas.'
                     . "\n\n"
-                    . 'Si lo que quiere es calor AHORA, eso es el calefactor: se enciende en '
-                    . 'remoto y está caliente en minutos. Las mantas son para quien lo prevé; el '
-                    . 'calefactor, para quien ya tiene frío. No son la misma respuesta.',
-                'perfiles' => self::TODOS,
+                    . 'Si lo que quiere es calor AHORA, eso es el calefactor: se enciende '
+                    . 'remotamente, se activa mediante una aplicación y está caliente en minutos. '
+                    . 'Las mantas son para quien lo prevé; el calefactor, para quien ya tiene '
+                    . 'frío. No son la misma respuesta.',
+                // También del panel: se acotó ahí el mismo día. El docblock de arriba sigue
+                // razonando que las mantas las pide el huésped ya alojado — está pendiente de
+                // decidir, y mientras tanto manda lo que hay en producción.
+                'perfiles' => self::PUBLICO,
             ],
 
             [
@@ -434,17 +444,17 @@ final class AgentSembrarConocimientoCommand extends Command
                 'nombre' => 'Estacionamiento (público)',
                 'etiquetas' => 'estacionamiento, cochera, parqueo, parking, donde dejo el auto, '
                     . 'donde dejo el carro, hay parqueo, vehiculo, garaje',
-                'contenido' => 'Justo frente a la casa hay un estacionamiento público. No es '
-                    . 'vigilado, pero mucha gente deja ahí su vehículo durante la noche: al '
-                    . 'costado hay una grifería que trabaja las 24 horas.'
-                    . "\n\n"
-                    . 'A una cuadra hay además una cochera privada. Se puede contratar el mismo '
-                    . 'día de la llegada, y si quiere coordinar la disponibilidad con el '
-                    . 'propietario, este es su número: +51 984 631 997.'
-                    . "\n\n"
-                    . 'Ofrece las dos con confianza: es de lo que más preguntan los que llegan en '
-                    . 'coche. Ninguna de las dos es nuestra, así que el precio y el sitio los '
-                    . 'confirma la cochera, no el equipo.',
+                // Copiado del PANEL (editado el 13/08 a las 14:56, después del último commit que
+                // tocó esta cadena): «gasolinera» en vez de «grifería» y el cierre reescrito.
+                'contenido' => "Justo frente a la casa hay un estacionamiento publico. No es vigilado, pero mucha gente\n"
+                    . "deja ahi su vehiculo durante la noche: al costado hay una gasolinera que trabaja las 24\n"
+                    . "horas.\n\n"
+                    . "A una cuadra hay ademas una cochera privada. Se puede contratar el mismo dia de la\n"
+                    . "llegada, y si quiere coordinar la disponibilidad con el propietario, este es su numero:\n"
+                    . "+51 984 631 997.\n\n"
+                    . "Ofrece las dos con confianza: es de lo que mas preguntan los que llegan en coche.\n"
+                    . "El precio y el espacio de la cochera privada los confirman ellos no\n"
+                    . "el equipo.",
                 'perfiles' => self::PUBLICO,
             ],
             [
