@@ -6,9 +6,11 @@ namespace App\Agent\Skill;
 
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
+use App\Agent\Contract\ResolutorDeEnlacesInterface;
 use App\Agent\Entity\AgentConocimiento;
 use App\Agent\Service\ConocimientoGenerico;
 use App\Security\Roles;
+use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 
 /**
  * Lo que hay escrito sobre lo que preguntan todo el rato.
@@ -32,8 +34,13 @@ use App\Security\Roles;
  */
 final readonly class ConsultarConocimientoSkill implements SkillInterface
 {
+    /**
+     * @param iterable<ResolutorDeEnlacesInterface> $enlaces Uno por dominio; ver el contrato.
+     */
     public function __construct(
         private ConocimientoGenerico $conocimiento,
+        #[TaggedIterator('app.agent.resolutor_enlaces')]
+        private iterable $enlaces = [],
     ) {}
 
     public function nombre(): string
@@ -110,7 +117,7 @@ final readonly class ConsultarConocimientoSkill implements SkillInterface
 
             return SkillResult::ok([
                 'encontrado' => true,
-                'contenido' => $item->getContenido(),
+                'contenido' => $this->conSusEnlaces($item->getContenido()),
                 // El modelo tiene que contestar Y avisar de que alguien lo verá: son las dos
                 // mitades de lo mismo, no una alternativa.
                 'requiere_humano' => $item->isRequiereHumano(),
@@ -175,5 +182,29 @@ final readonly class ConsultarConocimientoSkill implements SkillInterface
                 . 'Si ninguna encaja, aquí no está escrito: mira si otra de tus herramientas lo '
                 . 'contesta antes de avisar al equipo.',
         ]);
+    }
+
+    /**
+     * Los enlaces internos de la respuesta, convertidos en algo que el modelo pueda seguir.
+     *
+     * Una entrada puede remitir a la guía —«el calefactor está en tal tema»— sin copiar su texto.
+     * Eso es lo que evita el duplicado: el precio y los horarios del calefactor viven en su ficha
+     * y cambian ahí; aquí sólo se dice dónde están. Ver {@see ResolutorDeEnlacesInterface}.
+     *
+     * Van TODOS los resolutores registrados, y el orden da igual: cada dominio reconoce su propia
+     * sintaxis y devuelve intacto lo demás. Sin ninguno registrado esto es la identidad.
+     *
+     * ⚠️ En castellano a propósito. El contenido de esta tabla sólo existe en castellano —es el
+     * modelo quien lo dice en el idioma de quien pregunta—, así que pedir el título del destino
+     * traducido metería una palabra suelta en otro idioma en mitad de un texto español. El modelo
+     * traduce el conjunto al redactar.
+     */
+    private function conSusEnlaces(string $contenido): string
+    {
+        foreach ($this->enlaces as $resolutor) {
+            $contenido = $resolutor->resolver($contenido, 'es');
+        }
+
+        return $contenido;
     }
 }

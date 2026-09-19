@@ -11,6 +11,7 @@ use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Service\Agent\PmsEnlacesDeFicha;
 use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Entity\Maestro\MaestroIdioma;
@@ -111,6 +112,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         private PmsGuiaEstanciaResolver $estancias,
         private EscaleraDeTemas $escalera,
         private PmsGuiaInterpolador $interpolador,
+        private PmsEnlacesDeFicha $enlaces,
         // El croquis y la foto de la puerta salen del interpolador como RUTA (`/carga/…`): la
         // ruta pública es configuración y la guía web la resuelve contra su propio origen. Aquí
         // no hay origen que valga —esto acaba en un WhatsApp—, así que se antepone el host que
@@ -1042,23 +1044,10 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         // que es peor que no remitir a nada. Con el título puede contarlo, y como el modelo busca
         // temas por palabra, además puede SEGUIRLO: pide esa ficha y responde con su contenido.
         //
-        // Se resuelve contra la base y no contra el árbol podado a propósito: aquí el destinatario
-        // es el agente, que consulta la guía con sus propias reglas de visibilidad cuando decida
-        // abrirla. Un título no es un dato protegido.
-        $texto = (string) preg_replace_callback(
-            '/\{\{\s*ficha\s*:\s*([a-z0-9-]+)\s*\}\}/i',
-            function (array $m) use ($idioma): string {
-                $destino = $this->em->getRepository(PmsGuiaItem::class)->findOneBy(['codigo' => $m[1]]);
-                $titulo = $destino !== null ? MaestroIdioma::textoEn($destino->getTitulo(), $idioma) : null;
-
-                // Un código que no existe —una ficha borrada, un dedazo— no se anuncia: decir «ver
-                // el tema X» sobre algo que no está es mandar al modelo a buscar humo.
-                return $titulo === null || $titulo === ''
-                    ? ' '
-                    : sprintf(' (esto está en el tema «%s», que puedes consultar) ', $titulo);
-            },
-            $texto
-        );
+        // La resolución vive en `PmsEnlacesDeFicha` desde que el conocimiento genérico también
+        // remite a la guía: tenerla aquí obligaba a elegir entre copiar el texto de una ficha
+        // dentro de una entrada de conocimiento o no remitir. Ver `ResolutorDeEnlacesInterface`.
+        $texto = $this->enlaces->resolver($texto, $idioma);
 
         // Bloques con `:` (maquetación) y claves sueltas que nadie resolvió.
         $texto = (string) preg_replace('/\{\{\s*[a-z0-9_]+\s*:.*?\}\}/is', ' ', $texto);

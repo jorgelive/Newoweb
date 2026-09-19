@@ -31,6 +31,15 @@ final class ConsultarGuiaSkillMediaTest extends TestCase
         $host = new \ReflectionProperty(ConsultarGuiaSkill::class, 'hostPax');
         $host->setValue($skill, self::HOST);
 
+        // Desde el 19/09/2026 el enlace `{{ ficha: … }}` lo resuelve una colaboradora compartida
+        // con el conocimiento genérico, así que hay que dársela aunque estos textos no la usen:
+        // sin inicializar, PHP revienta al leerla. Se construye con un doble del EntityManager,
+        // que es una interfaz; aquí ninguna de estas pruebas llega a consultar nada.
+        $enlaces = new \ReflectionProperty(ConsultarGuiaSkill::class, 'enlaces');
+        $enlaces->setValue($skill, new \App\Pms\Service\Agent\PmsEnlacesDeFicha(
+            $this->createStub(\Doctrine\ORM\EntityManagerInterface::class)
+        ));
+
         $metodo = new ReflectionMethod($skill, 'resolverBloquesDelFront');
 
         return $metodo->invoke(

@@ -382,18 +382,24 @@ final class AgentSembrarConocimientoCommand extends Command
                 // habría revertido esa edición sin que nadie lo pidiera: se trae aquí para que
                 // las dos digan lo mismo. Es la regla de esta tabla desde hoy — lo que se toque
                 // en el panel hay que devolverlo al archivo.
-                'contenido' => 'Lo único es que hay que pedirlas CON ANTICIPACIÓN: no se pueden '
-                    . 'llevar en el momento, así que conviene avisar por el chat con tiempo y se '
-                    . 'las dejamos preparadas.'
+                'contenido' => 'Tenemos disponibles frazadas adicionales. Se pueden solicitar '
+                    . 'CON ANTICIPACIÓN: no se pueden llevar en el momento, así que conviene '
+                    . 'avisar por el chat con tiempo y se las dejamos preparadas.'
                     . "\n\n"
-                    . 'Si lo que quiere es calor AHORA, eso es el calefactor: se enciende '
-                    . 'remotamente, se activa mediante una aplicación y está caliente en minutos. '
-                    . 'Las mantas son para quien lo prevé; el calefactor, para quien ya tiene '
-                    . 'frío. No son la misma respuesta.',
-                // También del panel: se acotó ahí el mismo día. El docblock de arriba sigue
-                // razonando que las mantas las pide el huésped ya alojado — está pendiente de
-                // decidir, y mientras tanto manda lo que hay en producción.
-                'perfiles' => self::PUBLICO,
+                    // 🔗 El calefactor NO se explica aquí, se enlaza. Su precio (20 soles por
+                    // periodo), sus horarios y cómo se enciende viven en su ficha de guía y
+                    // cambian ahí; copiarlos sería el mismo fallo que tener la misma cifra en dos
+                    // sitios. El marcador lo resuelve `PmsEnlacesDeFicha` y el modelo recibe el
+                    // título del tema, que además puede pedir con consultar_guia.
+                    . 'También hay calefactores en las habitaciones. {{ ficha: calefactor }} '
+                    . 'Cuéntale lo que diga esa ficha; no des de memoria ni el precio ni los '
+                    . 'horarios. Las mantas son para quien lo prevé; el calefactor, para quien ya '
+                    . 'tiene frío: no son la misma respuesta.',
+                // Vuelve a verla TODO EL MUNDO. Se acotó desde el panel el 13/08 quitando al
+                // huésped, y sus propias etiquetas dicen que ése es su público: «tengo frio»,
+                // «hace frio de noche» las escribe quien ya está dentro de la casita, de noche.
+                // No hay ficha de frazadas en la guía que le conteste; esto es lo único que hay.
+                'perfiles' => self::TODOS,
             ],
 
             [
