@@ -29,8 +29,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * | Momento | Dónde queda | Quién abre |
  * |---|---|---|
  * | Recojo dentro del horario de limpieza | donde esté | el personal se lo entrega |
- * | Recojo más tarde | departamento o almacén, según la hora | se coordina por el chat |
- * | Llegada con la limpieza ya empezada | el propio departamento | el personal lo recibe |
+ * | Recojo más tarde | apartamento o almacén, según la hora | se coordina por el chat |
+ * | Llegada con la limpieza ya empezada | el propio apartamento | el personal lo recibe |
  * | Llegada demasiado temprano | el almacén | el propio huésped, con su clave |
  *
  * El almacén no tiene personal —lo abre el propio huésped con una clave—, así que hay casos en
@@ -38,6 +38,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * «cógelo cuando quieras». Lo único cierto siempre es que hay que decir la hora. Y en la llegada
  * anticipada la hora se pide **con antelación**, no al plantarse en la puerta: es lo que da
  * margen para tenerlo resuelto.
+ *
+ * ⚠️ **«Apartamento», nunca «departamento».** La primera pasada usó la palabra peruana y la
+ * traducción la entendió como el departamento de una empresa: «ils resteront au service» en
+ * francés, «it will stay in the department» en inglés. Es el tercer aviso del mismo día —«la
+ * caja de arriba» salió como el piso de arriba, y «bultos» no se entendía fuera de Perú—: lo
+ * que aquí se escribe se lee en siete idiomas, y el traductor no conoce el sitio.
  *
  * ── El reparto entre los dos textos ─────────────────────────────────────────
  * Al HUÉSPED le toca su parte —cuántas piezas, a qué hora vuelve, la foto— y saber que, según
@@ -90,12 +96,12 @@ final class PmsGuiaEquipajeQuienRecibeCommand extends Command
         . 'son y <strong>a qué hora lo recoges</strong>, y mándanos una <strong>foto por '
         . 'WhatsApp</strong>: así queda registrado. Si vuelves mientras el personal de limpieza '
         . 'está trabajando, ellas te lo entregan; si es más tarde, lo coordinamos por el chat y te '
-        . 'decimos dónde está — según la hora se queda en el propio departamento o va al almacén, '
+        . 'decimos dónde está — según la hora se queda en el propio apartamento o va al almacén, '
         . 'que abres tú mismo con la clave que te damos, sin depender de nadie.'
         . "</p>\n"
         . '<p>🕘 Y si <strong>llegas antes de la hora de entrada</strong>, dinos <strong>con '
         . 'antelación</strong> a qué hora llegas, en cuanto lo sepas, y escríbenos también al '
-        . 'llegar: si la limpieza ya empezó, el personal te recibe el equipaje en el departamento; '
+        . 'llegar: si la limpieza ya empezó, el personal te recibe el equipaje en el apartamento; '
         . 'si aún es muy temprano, lo dejas tú en el almacén y te pasamos la clave.</p>';
 
     /** Lo que ya está en `agenteContenido` y se reescribe: también decía «bultos». */
@@ -112,12 +118,12 @@ final class PmsGuiaEquipajeQuienRecibeCommand extends Command
         . "- Si vuelve mientras el personal de limpieza está trabajando, ellas se lo entregan.\n"
         . "- Si vuelve más tarde, se coordina por el chat. Dile que lo coordinamos y avisa al "
         . "equipo; no le cites tú a ninguna hora ni le prometas que habrá alguien.\n"
-        . "- Según la hora se queda en el propio departamento o va al almacén. En el almacén no "
+        . "- Según la hora se queda en el propio apartamento o va al almacén. En el almacén no "
         . "hay personal: lo abre el propio huésped con una clave, y esa clave se la pasa el "
         . "equipo al coordinar. NO la des tú ni la busques por otro lado."
         . "\n\n"
         . "AL LLEGAR ANTES DEL CHECK-IN:\n"
-        . "- Si la limpieza ya empezó, el personal le recibe el equipaje en el departamento.\n"
+        . "- Si la limpieza ya empezó, el personal le recibe el equipaje en el apartamento.\n"
         . "- Si todavía es muy temprano y no ha empezado, lo deja él mismo en el almacén.\n"
         . "PÍDELE LA HORA CON ANTELACIÓN, en cuanto la sepa, y no sólo cuando ya esté aquí: "
         . "saberlo antes es lo que permite tenerlo resuelto. Que escriba también al llegar, y "
@@ -170,8 +176,25 @@ final class PmsGuiaEquipajeQuienRecibeCommand extends Command
         // La marca de «ya está hecho» es una frase de `NUEVO`, y hay que moverla cada vez que se
         // pula la redacción: ya pasó dos veces en una tarde, y con el centinela viejo el comando
         // habría vuelto a entrar sobre un texto ya cambiado.
-        if (str_contains($texto, 'a qué hora lo recoges')) {
+        if (str_contains($texto, 'el propio apartamento o va al almacén')) {
             $io->text('· La guía ya lo cuenta.');
+        } elseif (str_contains($texto, 'el propio departamento o va al almacén')) {
+            // La pasada anterior ya escribió estos párrafos con «departamento». No se vuelve al
+            // texto original para repetir el reemplazo: se corrige en sitio la palabra, que es
+            // lo único que cambia.
+            $io->section('Guía (español)');
+            $io->writeln('<fg=green>~ departamento → apartamento (en francés salía «le service»)</>');
+
+            if (!$simular) {
+                $descripcion[$indice]['content'] = str_replace(
+                    ['el propio departamento o va al almacén', 'el equipaje en el departamento'],
+                    ['el propio apartamento o va al almacén', 'el equipaje en el apartamento'],
+                    $texto
+                );
+                $item->setDescripcion($descripcion);
+            }
+
+            $tocado = true;
         } elseif (!str_contains($texto, self::VIEJO)) {
             // A ciegas no: si el párrafo de los bultos no está tal cual, alguien lo editó y
             // pegar aquí el nuevo dejaría la ficha diciendo dos veces lo mismo de otra manera.
@@ -193,8 +216,21 @@ final class PmsGuiaEquipajeQuienRecibeCommand extends Command
         // ── Lo que lee el agente ────────────────────────────────────────────
         $agente = (string) $item->getAgenteContenido();
 
-        if (str_contains($agente, 'QUIÉN LO RECIBE')) {
+        if (str_contains($agente, 'propio apartamento o va al almacén')) {
             $io->text('· El texto del agente ya lo cuenta.');
+        } elseif (str_contains($agente, 'propio departamento o va al almacén')) {
+            $io->section('Agente');
+            $io->writeln('<fg=green>~ departamento → apartamento</>');
+
+            if (!$simular) {
+                $item->setAgenteContenido(str_replace(
+                    ['propio departamento o va al almacén', 'el equipaje en el departamento'],
+                    ['propio apartamento o va al almacén', 'el equipaje en el apartamento'],
+                    $agente
+                ));
+            }
+
+            $tocado = true;
         } elseif (!str_contains($agente, self::ANCLA_AGENTE)) {
             $io->error('El texto del agente no es el que esperaba: míralo en el panel.');
 
