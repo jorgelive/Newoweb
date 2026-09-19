@@ -67,7 +67,7 @@ final class AgentSembrarConocimientoCommand extends Command
 {
     /** id => [nombre, pista, orden] */
     private const array TEMAS = [
-        'llegada' => ['Llegada y equipaje', 'horarios de entrada y salida, dejar maletas, cómo llegar', 10],
+        'llegada' => ['Llegada y equipaje', 'horarios de entrada y salida, entrada autónoma, quién recibe, dejar maletas, cómo llegar', 10],
         'pagos' => ['Pagos y comprobantes', 'formas de pago, moneda, tipo de cambio, boletas', 20],
         'la-casa' => ['Cómo es la casa', 'agua caliente, calefacción, cocina, wifi, espacios', 30],
         'servicios' => ['Servicios y alrededores', 'lavandería, estacionamiento, limpieza extra', 40],
@@ -116,12 +116,21 @@ final class AgentSembrarConocimientoCommand extends Command
         }
 
         $creadas = 0;
+        $actualizadas = 0;
 
         foreach ($this->respuestas() as $ficha) {
             $nombre = $ficha['nombre'];
+            $existente = $this->em->getRepository(AgentConocimiento::class)
+                ->findOneBy(['nombreInterno' => $nombre]);
 
-            if ($this->em->getRepository(AgentConocimiento::class)->findOneBy(['nombreInterno' => $nombre]) !== null) {
-                $io->text(sprintf('· %s ya existe.', $nombre));
+            if ($existente !== null) {
+                $cambios = $this->ponerAlDia($existente, $ficha, $temas, $seco);
+
+                $io->text($cambios === []
+                    ? sprintf('· %s ya está igual.', $nombre)
+                    : sprintf('~ %s · %s', $nombre, implode(', ', $cambios)));
+
+                $actualizadas += $cambios === [] ? 0 : 1;
 
                 continue;
             }
@@ -172,14 +181,98 @@ final class AgentSembrarConocimientoCommand extends Command
             $this->em->flush();
         }
 
-        $io->success(sprintf('%d respuesta(s) %s.', $creadas, $seco ? 'se crearían' : 'creadas'));
+        $io->success(sprintf(
+            '%d %s y %d %s.',
+            $creadas,
+            $seco ? 'se crearía(n)' : 'creada(s)',
+            $actualizadas,
+            $seco ? 'se pondría(n) al día' : 'puesta(s) al día'
+        ));
 
         $io->note(
-            'De aquí en adelante, las fichas nuevas se cargan desde el panel: al guardar te avisa '
-            . 'si la guía ya lo contesta. Esto es sólo la primera tanda.'
+            'Las fichas de ESTE comando son suyas: si las editas en el panel, la próxima pasada '
+            . 'te las devuelve al texto de aquí. Las que no están aquí se cargan desde el panel, '
+            . 'que al guardar avisa si la guía ya lo contesta.'
         );
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Alinea una ficha que ya existe con lo que dice este archivo, campo a campo.
+     *
+     * ── Por qué dejó de bastar con «ya existe» ──────────────────────────────────
+     * La primera versión saltaba las existentes, y eso convertía el comando en un sembrador de
+     * una sola vez: el docblock presumía de «contenido versionado» cuando en realidad, desde la
+     * segunda pasada, el archivo y la base podían decir cosas distintas sin que nadie lo notara.
+     * Pasó a los dos días: «Recepción y entrada autónoma» nació en la categoría `la-casa` y hubo
+     * que moverla a `llegada` —ahí es donde el modelo busca «¿quién me abre si llego tarde?»— y
+     * no había forma de hacerlo desde aquí.
+     *
+     * Ahora es idempotente **por contenido**, como `fin:medios:notas`: se comparan los cinco
+     * campos que este archivo gobierna y sólo se tocan los que difieren.
+     *
+     * ⚠️ La otra cara: estas fichas son de aquí. Editarlas en el panel funciona hasta la próxima
+     * pasada, que las devuelve a este texto. Lo que se edite en el panel hay que traerlo al
+     * archivo — es el precio de tenerlas en git, y el aviso sale por pantalla al terminar.
+     *
+     * @param array{tema: string, nombre: string, etiquetas: string, contenido: string,
+     *              perfiles: list<string>} $ficha
+     * @param array<string, AgentConocimientoCategoria> $temas
+     *
+     * @return list<string> Qué cambió, para poder decirlo. Vacío si ya estaba igual.
+     */
+    private function ponerAlDia(
+        AgentConocimiento $item,
+        array $ficha,
+        array $temas,
+        bool $seco
+    ): array {
+        $cambios = [];
+
+        $tema = $temas[$ficha['tema']] ?? null;
+
+        if ($tema !== null && $item->getCategoria()?->getId() !== $tema->getId()) {
+            $cambios[] = sprintf('tema %s → %s', $item->getCategoria()?->getId() ?? '—', $tema->getId());
+
+            if (!$seco) {
+                $item->setCategoria($tema);
+            }
+        }
+
+        if ($item->getEtiquetas() !== $ficha['etiquetas']) {
+            $cambios[] = 'etiquetas';
+
+            if (!$seco) {
+                $item->setEtiquetas($ficha['etiquetas']);
+            }
+        }
+
+        if ($item->getContenido() !== $ficha['contenido']) {
+            $cambios[] = 'contenido';
+
+            if (!$seco) {
+                $item->setContenido($ficha['contenido']);
+            }
+        }
+
+        if ($item->getPerfiles() !== $ficha['perfiles']) {
+            $cambios[] = 'perfiles';
+
+            if (!$seco) {
+                $item->setPerfiles($ficha['perfiles']);
+            }
+        }
+
+        if ($item->getDominios() !== ['hotelero']) {
+            $cambios[] = 'dominios';
+
+            if (!$seco) {
+                $item->setDominios(['hotelero']);
+            }
+        }
+
+        return $cambios;
     }
 
     /** @return array<string, AgentConocimientoCategoria> */
@@ -192,7 +285,19 @@ final class AgentSembrarConocimientoCommand extends Command
             $existente = $this->em->getRepository(AgentConocimientoCategoria::class)->find($id);
 
             if ($existente !== null) {
-                $io->text(sprintf('· %s ya existe.', $id));
+                // ⚠️ La PISTA no es decoración: es la única línea por la que el modelo decide a
+                // qué tema entrar en la fase 1, y saltarla aquí dejaba el enrutado congelado en
+                // lo que se sembró el primer día. Se pone al día como todo lo demás.
+                $desfase = $existente->getNombre() !== $nombre || $existente->getPista() !== $pista;
+
+                $io->text($desfase
+                    ? sprintf('~ %-12s %s (%s)', $id, $nombre, $pista)
+                    : sprintf('· %s ya está igual.', $id));
+
+                if ($desfase && !$seco) {
+                    $existente->setNombre($nombre)->setPista($pista);
+                }
+
                 $temas[$id] = $existente;
 
                 continue;
@@ -290,7 +395,17 @@ final class AgentSembrarConocimientoCommand extends Command
                     . 'si llega antes de la hora de entrada, o después del check-out si sigue en '
                     . 'la ciudad. También se pueden guardar varios días —por ejemplo mientras hace '
                     . 'un trek—: en ese caso conviene avisar con un día de antelación y decir '
-                    . 'cuántos bultos son.',
+                    . 'cuántos bultos son.'
+                    . "\n\n"
+                    // ⚠️ Quién lo recibe hay que decirlo desde que el agente sabe que no hay
+                    // personal en el sitio: sin esto, a «¿y quién me guarda las maletas?» le toca
+                    // elegir entre inventarse a alguien o negar un servicio que sí existe.
+                    . 'QUIÉN LO RECIBE, que es lo que suelen preguntar después: el día de la '
+                    . 'salida el personal de limpieza llega a la hora del check-out, o a la que se '
+                    . 'haya coordinado, y él recibe el equipaje y lo mueve al almacén si hace '
+                    . 'falta. Pero NO hay que esperar a nadie: basta con dejarlo y mandarnos una '
+                    . 'foto por WhatsApp, que se pide siempre. Quien sale de madrugada hace eso '
+                    . 'mismo y ya está.',
                 'perfiles' => self::PUBLICO,
             ],
             [
@@ -359,7 +474,11 @@ final class AgentSembrarConocimientoCommand extends Command
             // sobra: allí evita que se lo invente hablando de otra cosa —el fallo fue contestando
             // sobre PAGOS—, y aquí está la respuesta larga, editable en el panel sin desplegar.
             [
-                'tema' => 'la-casa',
+                // 📍 En «llegada» y no en «la-casa», aunque hable del edificio: la fase 1 enruta
+                // por la PISTA del tema, y «llego de madrugada, ¿quién me abre?» cae en «Llegada
+                // y equipaje (horarios de entrada y salida…)», nunca en «Cómo es la casa (agua
+                // caliente, calefacción, cocina…)». El tema lo elige la pregunta, no la materia.
+                'tema' => 'llegada',
                 'nombre' => 'Recepción y entrada autónoma',
                 // Las etiquetas no son sólo para el modelo: `candidatosPara()` las mira ANTES de
                 // escalar a una persona, y «quién me abre» a medianoche es escalado caro.

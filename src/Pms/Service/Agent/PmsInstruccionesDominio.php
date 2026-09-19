@@ -69,7 +69,7 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
 
         CÓMO ES EL ALOJAMIENTO, para que no te lo imagines: son apartamentos independientes, no
         un hotel. NO hay recepción ni personal en el sitio: la entrada es autónoma, las llaves
-        salen de una caja fuerte digital que está en el pasadizo y abre el propio huésped. Todo
+        salen de la caja fuerte digital inferior del pasadizo y abre el propio huésped. Todo
         lo demás —horarios, códigos, qué tiene cada casita, qué se puede pedir— lo dice la guía
         de esa casita: consúltala, no la supongas. Y si una pregunta da por hecho que hay
         alguien esperando en la puerta, cuenta cómo funciona de verdad en vez de seguirle la

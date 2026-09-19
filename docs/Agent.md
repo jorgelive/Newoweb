@@ -586,6 +586,27 @@ Lo que sí estaba flaco era la despensa: 8 fichas, y 7 excluyen el perfil `huesp
 **una sola categoría**. Las llamadas de actor «huésped» que sí reciben respuesta son casi todas
 consultas de OTA sin confirmar, que son perfil `Interesado`.
 
+### Lo que enseñó la revisión de la ficha nueva (mismo día)
+
+Tres cosas que no se ven hasta que se da de alta una ficha y se mira alrededor:
+
+1. **La etiqueta casa entera, no palabra a palabra.** `candidatosPara()` —la red que se tiende
+   ANTES de escalar— intersectaba palabras sueltas de ≥4 letras. Las etiquetas de la ficha nueva
+   aportan «tarde», «noche», «llego», «alguien»: un escalado con motivo «quiere salir más tarde»
+   casaba, y `EscalarAlEquipoSkill` le entrega al modelo la ficha con un «díselo AHORA». Ahora
+   cada etiqueta se exige completa. Regresión cubierta en
+   `tests/Agent/Service/ConocimientoGenericoTest.php`.
+2. **El tema lo elige la pregunta, no la materia.** La fase 1 enruta por la PISTA de la
+   categoría, así que «llego de madrugada, ¿quién me abre?» cae en `llegada` («horarios de
+   entrada y salida…») y nunca en `la-casa` («agua caliente, calefacción, cocina…»), por mucho
+   que la ficha hable del edificio. Está en `llegada`.
+3. **Un hecho nuevo deja cojos los textos vecinos.** Dos aparecieron solos: `consultar_codigos`
+   decía «la caja del dinero NO EXISTE para el huésped» justo cuando la nota de `efectivo`
+   acababa de explicarle que el dinero va ahí (lo reservado es el código, no la caja), y la ficha
+   de equipaje prometía almacén sin decir quién recibe las maletas, que con «no hay personal en
+   el sitio» obliga al modelo a inventarse a alguien. Al añadir un hecho hay que releer lo que lo
+   rozaba.
+
 La conclusión no es aflojar esa acotación —se comprobó ficha por ficha que la guía cubre las
 siete: `reglas` (mascotas), `ducha-casa-N` (agua caliente), `equipaje-horarios-flexibles`,
 `estacionamiento`, `lavanderia`, `traslados`— sino **llenarla de lo que no está en ninguna

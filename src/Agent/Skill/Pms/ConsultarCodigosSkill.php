@@ -51,11 +51,17 @@ use Symfony\Component\Uid\Uuid;
  * Es el mismo criterio que la guía web ({@see \App\Pms\Guia\PmsGuiaInterpolador}), y a propósito:
  * si el chat diera el código cuando la guía lo tapa, la ventana no serviría de nada.
  *
- * ### 💰 La caja del DINERO no sale nunca por aquí
+ * ### 💰 El código de la caja del DINERO no sale nunca por aquí
  *
- * `PmsEstablecimiento::$codigoCajaDinero` es la caja de la recaudación, no la de las llaves.
- * No es contenido de huésped bajo ninguna condición: no aparece en esta skill ni con el actor
- * del equipo. Se consulta y se cambia con `cambiar_codigo_caja`, que exige rol de escritura.
+ * `PmsEstablecimiento::$codigoCajaDinero` es la caja de la recaudación, no la de las llaves. Su
+ * CÓDIGO no aparece en esta skill ni con el actor del equipo: se consulta y se cambia con
+ * `cambiar_codigo_caja`, que exige rol de escritura, y lo entrega una persona con la plantilla
+ * «Instrucciones caja del dinero» cuando el huésped va a pagar.
+ *
+ * ⚠️ Lo que NO se puede seguir diciendo es que esa caja «no existe para el huésped». Se decía
+ * aquí hasta el 18/09/2026, y desde ese día la nota del medio `efectivo` —que el huésped lee en
+ * su propia guía, dentro de `{{ medios_pago }}`— le explica que el dinero va justo ahí. Negarle
+ * la caja que le acabamos de describir es quedar en ridículo; lo reservado es el código.
  */
 final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDominioInterface
 {
@@ -138,10 +144,12 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
                 . 'Si viene «y_luego», haz también lo que diga. '
                 . '☎️ En «contacto» van los teléfonos del alojamiento: si pide uno, dáselo de '
                 . 'ahí y de ningún otro sitio. '
-                . '💰 LA CAJA DEL DINERO NO EXISTE PARA EL HUÉSPED: si pregunta por ella, o por '
-                . '«la otra caja», o por dónde se guarda la recaudación, dile que ésa es interna '
-                . 'del alojamiento y no la compartas ni la busques por otro lado. Esta skill no '
-                . 'la devuelve nunca.',
+                . '💰 EL CÓDIGO DE LA CAJA DEL DINERO NO SALE POR AQUÍ. Esta skill no lo '
+                . 'devuelve nunca y no lo busques por otro lado. Que el huésped pague en '
+                . 'efectivo en esa caja es normal y su guía se lo explica, así que no le digas '
+                . 'que no existe ni que es interna: dile que el código se lo pasa el equipo '
+                . 'cuando vaya a pagar, y avisa. Lo interno es dónde se guarda la recaudación, '
+                . 'que eso no se cuenta.',
             parametros: [
                 SkillParameter::texto('reserva_id', 'La reserva de la que se quieren los '
                     . 'códigos. Hablando con el propio huésped no hace falta: sale de su chat. '

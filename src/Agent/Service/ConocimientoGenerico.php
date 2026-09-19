@@ -144,6 +144,21 @@ final readonly class ConocimientoGenerico
      * más, sin acentos— porque aquí no se busca acertar siempre, sino **no escalar lo obvio**.
      * Lo fino lo hace el modelo por el otro camino.
      *
+     * ### ⚠️ La etiqueta casa ENTERA, no palabra por palabra (18/09/2026)
+     *
+     * Antes bastaba con que UNA palabra coincidiera, y eso convierte cada etiqueta larga en
+     * tantas trampas como palabras tenga. Se vio al dar de alta «Recepción y entrada autónoma»,
+     * cuyas etiquetas aportan «tarde», «noche», «llego», «alguien», «horas»: un escalado con
+     * motivo «quiere salir más **tarde**» —de los más frecuentes— casaba, y
+     * {@see \App\Agent\Skill\Pms\EscalarAlEquipoSkill} le entrega al modelo la ficha con un
+     * «esto ya estaba contestado: díselo AHORA». Contestarle a quien pide un late check-out que
+     * no hay recepción es peor que no contestar.
+     *
+     * Ahora cada etiqueta —lo que va entre comas— casa sólo si **todas** sus palabras largas
+     * están en el texto. «llego muy tarde» ya no salta con «quiere salir más tarde», y
+     * «mascotas» sigue saltando sola, porque una etiqueta de una palabra se comporta igual que
+     * antes. Es más estricto a propósito: un falso positivo aquí se le dice al huésped.
+     *
      * @return list<AgentConocimiento>
      */
     public function candidatosPara(string $texto, ActorInterface $actor): array
@@ -163,14 +178,42 @@ final readonly class ConocimientoGenerico
                 continue;
             }
 
-            $etiquetas = $this->palabrasDe($item->getEtiquetas());
-
-            if (array_intersect($palabras, $etiquetas) !== []) {
+            if ($this->algunaEtiquetaEntera($item->getEtiquetas(), $palabras)) {
                 $encontrados[] = $item;
             }
         }
 
         return $encontrados;
+    }
+
+    /**
+     * ¿Alguna de las etiquetas está ENTERA en el texto?
+     *
+     * Las etiquetas se separan por comas y cada una se exige completa: todas sus palabras de
+     * cuatro letras o más tienen que estar entre las del texto. No se pide que vayan seguidas
+     * —«dónde dejo el auto» casa con «dónde puedo dejar mi auto»—, sólo que estén todas.
+     *
+     * Una etiqueta sin ninguna palabra larga («dog», «taxi» sí entra, «gato» sí, «pet» no) se
+     * descarta: antes tampoco casaba nunca, porque el filtro de longitud la borraba de los dos
+     * lados. Devolverla como coincidencia vacía haría que esa ficha respondiera a todo.
+     *
+     * @param list<string> $palabrasDelTexto
+     */
+    private function algunaEtiquetaEntera(string $etiquetas, array $palabrasDelTexto): bool
+    {
+        foreach (explode(',', $etiquetas) as $etiqueta) {
+            $suyas = $this->palabrasDe($etiqueta);
+
+            if ($suyas === []) {
+                continue;
+            }
+
+            if (array_diff($suyas, $palabrasDelTexto) === []) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

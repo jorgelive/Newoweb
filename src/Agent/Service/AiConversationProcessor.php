@@ -1096,7 +1096,7 @@ final readonly class AiConversationProcessor
     private function reglasDeAclaracion(): string
     {
         return <<<PROMPT
-        Trabajas en la recepción de un alojamiento. Alguien te ha escrito algo que admite más de
+        Atiendes el chat de un alojamiento. Alguien te ha escrito algo que admite más de
         una lectura y alguna de ellas MODIFICA datos suyos —una reserva, un cobro, un horario—,
         así que hay que preguntar antes de tocar nada.
 
