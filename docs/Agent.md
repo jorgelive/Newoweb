@@ -607,6 +607,21 @@ Tres cosas que no se ven hasta que se da de alta una ficha y se mira alrededor:
    el sitio» obliga al modelo a inventarse a alguien. Al añadir un hecho hay que releer lo que lo
    rozaba.
 
+### El conocimiento puede apuntar a la guía (19/09/2026)
+
+Una entrada que dice «también hay calefactores» tiene dos salidas malas: copiar aquí el precio y
+los horarios —que viven en la ficha «Alquiler de calefacción» y cambian ahí— o no remitir a
+nada. Por eso el marcador `{{ ficha: calefactor }}` funciona ya en las dos fuentes: se convierte
+en «(esto está en el tema «Alquiler de calefacción», que puedes consultar)», que el modelo puede
+además SEGUIR con `consultar_guia`.
+
+La resolución estaba dentro de `ConsultarGuiaSkill` y sale a `PmsEnlacesDeFicha`, que entra por
+`ResolutorDeEnlacesInterface` (etiquetado `app.agent.resolutor_enlaces`).
+`ConsultarConocimientoSkill` vive en `Skill/` y **no conoce ningún negocio** —la misma tabla la
+leerá un pasajero de tours—, así que recibe la lista de resolutores: cada dominio entiende su
+sintaxis y devuelve intacto lo demás. Un código que ya no existe se borra en silencio; remitir a
+un tema que no está es peor que no remitir.
+
 La conclusión no es aflojar esa acotación —se comprobó ficha por ficha que la guía cubre las
 siete: `reglas` (mascotas), `ducha-casa-N` (agua caliente), `equipaje-horarios-flexibles`,
 `estacionamiento`, `lavanderia`, `traslados`— sino **llenarla de lo que no está en ninguna
@@ -639,4 +654,5 @@ molestar a una persona, y hubo 95 escalados en 30 días).
 | Repetir una conversación pasada contra el agente de hoy | `src/Agent/Command/AgentReplayCommand.php` | `app:agent:replay` |
 | Cambiar los hechos del sitio que el agente da por sabidos | `src/Pms/Service/Agent/PmsInstruccionesDominio.php` | `COMO_ES_EL_SITIO` — sin horas, códigos ni importes (§5.6) |
 | Añadir una respuesta escrita para lo que se pregunta mucho | panel **Bot & IA → Conocimiento del agente**, o `AgentSembrarConocimientoCommand` | acotar con `perfiles`; el validador avisa si la guía ya lo dice |
+| Remitir de un texto a otro sin copiarlo | el contenido, con `{{ ficha: codigo }}` | lo resuelve `PmsEnlacesDeFicha`; vale en guía y en conocimiento (§5.6) |
 | Decir cómo se ejecuta un medio de cobro | `src/Finanzas/Command/FinNotasMedioCobroCommand.php` | `NOTAS` → `fin:medios:notas` (retraduce a los 7) |
