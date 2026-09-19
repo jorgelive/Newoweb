@@ -69,7 +69,7 @@ final class AgentSembrarConocimientoCommand extends Command
     private const array TEMAS = [
         'llegada' => ['Llegada y equipaje', 'horarios de entrada y salida, entrada autónoma, quién recibe, dejar maletas, cómo llegar', 10],
         'pagos' => ['Pagos y comprobantes', 'formas de pago, moneda, tipo de cambio, boletas', 20],
-        'la-casa' => ['Cómo es la casa', 'agua caliente, calefacción, cocina, wifi, espacios', 30],
+        'la-casa' => ['Cómo es la casa', 'agua caliente, calefacción, frazadas y frío, cocina, wifi, espacios', 30],
         'servicios' => ['Servicios y alrededores', 'lavandería, estacionamiento, limpieza extra', 40],
         'reservar' => ['Reservar y disponibilidad', 'capacidad, mínimo de noches, mascotas, cómo reservar', 50],
     ];
