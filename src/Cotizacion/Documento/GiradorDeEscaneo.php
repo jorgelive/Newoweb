@@ -166,7 +166,21 @@ final readonly class GiradorDeEscaneo
         // de aplicarla nosotros.
         //
         // Un escaneo que se leyó BIEN estando torcido no necesita releerse por enderezarlo.
-        $archivo->registrarLectura(self::conOrientacionCorregida($archivo->getDatosLeidos(), $grados));
+        //
+        // 🔥 **Sólo si HAY lectura, y esto costó 32 reversos.** `conOrientacionCorregida(null, …)`
+        // devuelve `null`, y `registrarLectura(null)` no borra la lectura: significa «se intentó y
+        // falló» —deja `leidoEn` puesto—, así que `ValidadorDeDocumento::lecturaDe()` devolvía
+        // `null` PARA SIEMPRE. El reverso del DNI no lo lee ninguna tanda (no es validable), así
+        // que llegaba aquí sin lectura y **girarlo lo dejaba mudo**: sin `bordeSuperior` no hay
+        // `rotacionPendiente`, y el aviso de «está torcido» no volvía a salir nunca. La acción que
+        // arregla el escaneo era la que apagaba el aviso.
+        //
+        // Sin lectura no se toca nada: el archivo sigue siendo «nunca leído», y la primera lectura
+        // que llegue leerá el fichero YA enderezado, que es la respuesta correcta.
+        $leido = $archivo->getDatosLeidos();
+        if ($leido !== null) {
+            $archivo->registrarLectura(self::conOrientacionCorregida($leido, $grados));
+        }
         $archivo->setImageSize(filesize($ruta) ?: $archivo->getImageSize());
 
         // El `preUpdate` de `CotizacionFilearchivoCacheListener` limpia la caché de Liip, así que

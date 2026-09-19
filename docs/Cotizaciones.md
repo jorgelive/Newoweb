@@ -3105,6 +3105,7 @@ salían los tres síntomas a la vez:
 | 20 s por clic | enderezar obligaba a recalcular el veredicto → releer con IA + recargar todo |
 | «el DNI está girado» sin decir cuál | el veredicto sólo mira **el escaneo que respalda ese número** |
 | girar uno borraba el aviso del otro | el reverso nunca se valida, así que su giro era invisible |
+| el reverso nunca daba pista, ni con el aviso por archivo | nadie lo leía, y girarlo lo dejaba mudo — ver más abajo (19/09/2026) |
 
 **El giro es una propiedad del ARCHIVO, no del veredicto de un número.** Vive en `datos_leidos` y
 la pantalla lo lee de ahí, **escaneo por escaneo**: ahora hay un aviso por cada uno, diciendo cuál
@@ -3123,6 +3124,41 @@ girados.
 
 ⚠️ Y el endpoint devuelve **sólo lo que cambió** —la marca de tiempo y la orientación nueva— para
 que el front parchee en sitio. Recargar el expediente por un fichero era el 80 % del tiempo.
+
+##### 🔥 …y por eso el REVERSO del DNI nunca daba pista de giro (19/09/2026)
+
+**El síntoma, tal como llegó:** «nunca vi que diera pista del estado de rotación del reverso del
+DNI». Cierto, y con dos causas encadenadas, las dos silenciosas:
+
+| Causa | Medida en producción |
+|---|---|
+| **Nadie lo lee.** `CotizacionLeerDocumentoCommand` filtraba por `esValidable()`, y el reverso dejó de ser validable el 09/09/2026 —no lleva número que cotejar—. Leer **no** es validar: de la lectura sale `bordeSuperior`, que es lo único que enciende el aviso | 26 reversos nunca intentados |
+| **Girarlo lo dejaba mudo.** Sin lectura previa, `conOrientacionCorregida(null, …)` devuelve `null` y `registrarLectura(null)` significa «se intentó y falló» —deja `leidoEn` puesto—, así que `lecturaDe()` devolvía `null` para siempre | 32 reversos, **y los 32 girados** |
+
+De 127 reversos, **58 sin lectura**: 58 que no podían dar ni una pista. Los 69 leídos sí la daban, y
+8 de ellos salían torcidos — el aviso funcionaba, sólo que sobre menos de la mitad del material.
+
+⚠️ **La ironía del segundo caso:** la acción cuyo propósito es enderezar el escaneo era la que
+apagaba su propio aviso. Y no daba error: enderezar y que el aviso desaparezca es exactamente lo que
+se espera ver.
+
+⚠️ **El comentario del comando ya decía lo correcto mientras el código hacía otra cosa** («
+`esEscaneoDeIdentidad()` decide esto en un solo sitio»). Al sacar el reverso de los validables se
+cambió la llamada y no el comentario, así que quedó documentado un comportamiento que no existía.
+
+Lo arreglado:
+
+1. `GiradorDeEscaneo` sólo corrige la lectura **si hay lectura**. Sin ella no toca nada: el archivo
+   sigue «nunca leído» y la primera lectura leerá el fichero ya enderezado, que es la respuesta
+   correcta.
+2. El comando vuelve a leer **los tres escaneos de identidad**, reverso incluido.
+3. `Version20260919040000` devuelve a «nunca leído» los que ya estaban mudos — acotado a lectura
+   vacía + fecha puesta + sin motivo + girado. Un fallo **con** motivo se queda: reintentarlo a
+   ciegas es pagar por el mismo error.
+
+⚠️ **Lo que la migración NO hace es leerlos**: eso cuesta una llamada de visión por escaneo. Quedan
+en «nunca leído», o sea listos para que la próxima tanda —o `app:cotizacion:leer-documento` sobre el
+expediente— los lea cuando alguien decida pagarlo.
 
 #### El DNI peruano SÍ lleva banda, y estaba en el anverso (09/09/2026)
 

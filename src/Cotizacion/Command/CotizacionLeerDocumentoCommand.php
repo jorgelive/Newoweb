@@ -135,12 +135,15 @@ final class CotizacionLeerDocumentoCommand extends Command
             ->andWhere('a.file = :f')->setParameter('f', Uuid::fromString($fileId), UuidType::NAME)
             ->getQuery()->getResult();
 
-        // ⚠️ `esEscaneoDeIdentidad()` ya existe en el enum y decide esto en un solo sitio. Una
-        // lista de tipos escrita aquí se quedaría corta el día que se añada uno —y no daría
-        // error: simplemente dejaría de leer esos documentos, en silencio.
+        // ⚠️ **`esEscaneoDeIdentidad()`, no `esValidable()` — y el comentario ya lo decía mientras
+        // el código hacía otra cosa.** Al sacar el reverso del DNI de los validables (09/09/2026,
+        // porque no lleva número que cotejar y metía ruido en la cola) dejó también de LEERSE, y
+        // leer no es validar: de la lectura sale la orientación (`bordeSuperior`), que es lo único
+        // que enciende el aviso de «este escaneo está torcido». Resultado medido: de 127 reversos,
+        // 58 sin lectura, o sea 58 que no podían dar ni una pista de giro.
         return array_values(array_filter(
             $todos,
-            static fn (CotizacionFilearchivo $a): bool => $a->getTipoArchivo()?->esValidable() === true,
+            static fn (CotizacionFilearchivo $a): bool => $a->getTipoArchivo()?->esEscaneoDeIdentidad() === true,
         ));
     }
 }
