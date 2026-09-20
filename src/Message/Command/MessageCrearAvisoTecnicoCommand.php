@@ -37,11 +37,17 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * ⚠️ **Los parámetros van en UNA línea**, que es lo que exige Meta: `VigilanteDelMotor` ya
  * aplasta los saltos del mensaje del proveedor antes de pasarlo.
  *
+ * ── Los siete idiomas, como todas ───────────────────────────────────────────
+ * Se escribe en español y AutoTranslate rellena el resto al guardar; a Meta se sube entera, por
+ * el mismo camino que cualquier otra. Tuvo su tentación —la lee el equipo, que habla español—
+ * pero una plantilla que se mantiene distinta a las demás es una excepción que hay que recordar
+ * cada vez que alguien la toque, y se olvida justo el día que importa.
+ *
  * Nace `hidden` porque es de una vez. Idempotente por el código.
  *
  *   php bin/console msg:crear:aviso-tecnico --dry-run
  *   php bin/console msg:crear:aviso-tecnico
- *   php bin/console msg:meta:push aviso_tecnico_interno --idiomas=es
+ *   php bin/console msg:meta:push aviso_tecnico_interno --todos
  */
 #[AsCommand(
     name: 'msg:crear:aviso-tecnico',
@@ -138,8 +144,10 @@ final class MessageCrearAvisoTecnicoCommand extends Command
 
         $io->success(sprintf('«%s» creada.', self::CODIGO));
         $io->note(sprintf(
-            'Falta subirla y que Meta la apruebe: php bin/console msg:meta:push %s --idiomas=es. '
-            . 'Sólo español: la lee el equipo. Cuando esté APPROVED, poner is_official_meta a true.',
+            'Falta subirla y que Meta la apruebe: php bin/console msg:meta:push %s --todos. '
+            . 'Los siete idiomas, como cualquier otra: el cuerpo lo traduce AutoTranslate al '
+            . 'guardar y se sube por el mismo camino. Cuando esté APPROVED, is_official_meta a '
+            . 'true.',
             self::CODIGO
         ));
 
