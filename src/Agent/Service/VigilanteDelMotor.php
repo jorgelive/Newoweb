@@ -58,6 +58,9 @@ final readonly class VigilanteDelMotor
     /** Cuánto se calla tras avisar. Una hora: suficiente para no ser ruido, poco para enterarse. */
     private const int VENTANA_SEGUNDOS = 3600;
 
+    /** El respaldo de fuera de ventana. La crea `msg:crear:aviso-tecnico`. */
+    private const string PLANTILLA = 'aviso_tecnico_interno';
+
     private const string CLAVE = 'agente.motor.caido';
     private const string CLAVE_CUENTA = 'agente.motor.fallos';
 
@@ -114,9 +117,13 @@ final readonly class VigilanteDelMotor
                     $resumen,
                     $fallos
                 ),
-                // Sin plantilla: hoy no hay ninguna aprobada para avisos técnicos, así que fuera
-                // de la ventana de 24 h este aviso no sale por WhatsApp — y por eso existe el
-                // respaldo de abajo. Cuando la haya, su código entra aquí.
+                // El respaldo para fuera de la ventana de 24 h. Mientras Meta no la apruebe, el
+                // encolado de la plantilla falla y el aviso cae al push de más abajo; en cuanto
+                // esté aprobada, la misma línea empieza a funcionar sin tocar nada.
+                plantillaCodigo: self::PLANTILLA,
+                // ⚠️ UNA LÍNEA por valor: Meta no admite saltos en los parámetros. `recortar()`
+                // ya aplasta el mensaje del proveedor, que llega con URL y tres renglones.
+                variables: ['sistema' => 'El agente de IA', 'motivo' => $resumen],
                 metadata: ['aviso_motor_caido' => true, 'fallos' => $fallos],
             ));
 
