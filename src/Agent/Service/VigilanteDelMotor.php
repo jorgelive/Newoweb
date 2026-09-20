@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Agent\Service;
 
 use App\Entity\User;
-use App\Service\WebPushNotificationService;
+use App\Message\Service\Aviso\AvisoAlEquipo;
+use App\Message\Service\Aviso\AvisoAlEquipoService;
 use App\Repository\UserRepository;
 use App\Security\Roles;
+use App\Service\WebPushNotificationService;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
@@ -41,6 +43,15 @@ use Throwable;
  * llega 57 veces se silencia, que es como se pierden los avisos que importan. Por eso hay
  * ventana: **un aviso por hora**, con el motivo y el recuento de lo que falló mientras tanto.
  * La avería se cuenta cuando empieza y se recuerda mientras dura, no se repite a cada golpe.
+ *
+ * ── Por dónde sale el aviso ─────────────────────────────────────────────────
+ * Por **WhatsApp al grupo de seguridad `soporte`**, con {@see AvisoAlEquipoService}: el mismo
+ * camino que usa `escalar_al_equipo`, que reparte a todos los que tienen ese rol y un móvil
+ * puesto. Y a propósito por ahí y no sólo por el push del panel: la cola de Meta es
+ * **independiente del motor de IA**, así que sigue viva justo cuando esto hace falta. El push
+ * se queda como respaldo para cuando WhatsApp no puede entregar —fuera de la ventana de 24 h y
+ * sin plantilla aprobada, o sin nadie con móvil—, porque un aviso que no sale es el fallo que
+ * esta clase existe para no repetir.
  */
 final readonly class VigilanteDelMotor
 {
@@ -52,6 +63,7 @@ final readonly class VigilanteDelMotor
 
     public function __construct(
         private CacheItemPoolInterface $cache,
+        private AvisoAlEquipoService $avisos,
         private WebPushNotificationService $push,
         private UserRepository $usuarios,
         private RoleHierarchyInterface $jerarquia,
@@ -91,10 +103,36 @@ final readonly class VigilanteDelMotor
                 $fallos
             ));
 
+            // Se dice lo que el huésped está recibiendo, no sólo que algo falló: es lo que decide
+            // si hay que entrar a los chats ahora mismo o puede esperar.
+            $resultado = $this->avisos->notificar(new AvisoAlEquipo(
+                rol: Roles::CUSTOMER_SUPPORT,
+                texto: sprintf(
+                    "🤖 El agente NO está contestando.\n\n%s\n\nA los huéspedes les sale «un "
+                    . "compañero te responderá en breve» y no lo está contestando nadie. "
+                    . "Fallos acumulados: %d.",
+                    $resumen,
+                    $fallos
+                ),
+                // Sin plantilla: hoy no hay ninguna aprobada para avisos técnicos, así que fuera
+                // de la ventana de 24 h este aviso no sale por WhatsApp — y por eso existe el
+                // respaldo de abajo. Cuando la haya, su código entra aquí.
+                metadata: ['aviso_motor_caido' => true, 'fallos' => $fallos],
+            ));
+
+            if ($resultado->alguienFueAvisado()) {
+                return;
+            }
+
+            // 🛟 RESPALDO. Nadie de guardia con móvil, o WhatsApp no pudo entregar. El push llega
+            // sólo a quien tenga el panel instalado —hoy no todo el equipo—, pero es gratis y es
+            // mejor que quedarse sin avisar.
+            $this->logger->warning(
+                '[Agente] El aviso de motor caído no salió por WhatsApp; se intenta por push.'
+            );
+
             $payload = [
                 'title' => '🤖 El agente no está contestando',
-                // Se dice lo que el huésped está recibiendo, no sólo que algo falló: es lo que
-                // decide si hay que entrar al chat ahora mismo o puede esperar.
                 'body' => sprintf(
                     '%s · A los huéspedes les está saliendo «un compañero te responderá en '
                     . 'breve» y nadie lo está contestando.',
