@@ -72,6 +72,38 @@ final class MessageCrearAvisoTecnicoCommand extends Command
         Mientras tanto, a los huéspedes que escriben les contesta un mensaje automático de cortesía y nadie más les responde. Conviene mirarlo ya.
         TXT;
 
+    /**
+     * El pie, escrito a mano en los siete idiomas y SIN la sigla «PMS».
+     *
+     * 🔥 La primera versión decía «Aviso automático del PMS» y dejaba traducir. El traductor no
+     * sabe que PMS es nuestro sistema y expandió la sigla por su cuenta:
+     *
+     * ```
+     * fr  Notification automatique du syndrome prémenstruel
+     * it  Notifica automatica del servizio di pianificazione familiare (PMS).
+     * ```
+     *
+     * El francés llegó a subirse a Meta; el italiano lo paró nuestro propio validador, y no por
+     * el disparate sino porque 67 caracteres no caben en los 60 del pie. Es la misma trampa que
+     * «bultos» y «departamento» el día anterior, con una vuelta más: una SIGLA no tiene contexto
+     * que ayude a acertar, así que el traductor elige la acepción famosa.
+     *
+     * Por eso aquí no se traduce nada: se nombra «el sistema», que es lo que el equipo entiende
+     * y ningún idioma puede malinterpretar. Escribir los siete a mano no es la excepción que
+     * Jorge rechaza —el mecanismo sigue siendo el de siempre— sino darle la fuente correcta.
+     *
+     * @var list<array{language: string, content: string}>
+     */
+    private const array PIE = [
+        ['language' => 'es', 'content' => 'Aviso automático del sistema'],
+        ['language' => 'en', 'content' => 'Automatic system alert'],
+        ['language' => 'pt', 'content' => 'Alerta automático do sistema'],
+        ['language' => 'fr', 'content' => 'Alerte automatique du système'],
+        ['language' => 'it', 'content' => 'Avviso automatico del sistema'],
+        ['language' => 'de', 'content' => 'Automatische Systemmeldung'],
+        ['language' => 'nl', 'content' => 'Automatische systeemmelding'],
+    ];
+
     public function __construct(private readonly EntityManagerInterface $em)
     {
         parent::__construct();
@@ -90,7 +122,31 @@ final class MessageCrearAvisoTecnicoCommand extends Command
         $existente = $this->em->getRepository(MessageTemplate::class)->findOneBy(['code' => self::CODIGO]);
 
         if ($existente !== null) {
-            $io->success(sprintf('«%s» ya existe: no se toca.', self::CODIGO));
+            // Idempotente por CONTENIDO, no por existencia: la primera pasada creó la plantilla
+            // con el pie traducido a máquina —y con «PMS» convertido en síndrome premenstruel—,
+            // así que encontrarla no puede significar dejarla como está.
+            $meta = $existente->getWhatsappMetaTmpl() ?? [];
+
+            if (($meta['footer'] ?? null) === self::PIE) {
+                $io->success(sprintf('«%s» ya está como debe.', self::CODIGO));
+
+                return Command::SUCCESS;
+            }
+
+            $io->section('Se corrige el pie');
+            $io->writeln('<fg=red>- ' . json_encode($meta['footer'] ?? [], JSON_UNESCAPED_UNICODE) . '</>');
+            $io->writeln('<fg=green>+ los siete a mano, sin la sigla</>');
+
+            if ($simular) {
+                $io->note('Simulación: no se ha escrito nada.');
+
+                return Command::SUCCESS;
+            }
+
+            $existente->setWhatsappMetaTmpl(['footer' => self::PIE] + $meta);
+            $this->em->flush();
+
+            $io->success('Pie corregido. Hay que volver a subirla a Meta.');
 
             return Command::SUCCESS;
         }
@@ -126,7 +182,7 @@ final class MessageCrearAvisoTecnicoCommand extends Command
                 // para saber si puede usarla fuera de la ventana.
                 'is_official_meta' => false,
                 'header' => [['format' => 'TEXT', 'language' => 'es', 'content' => 'Aviso técnico']],
-                'footer' => [['language' => 'es', 'content' => 'Aviso automático del PMS']],
+                'footer' => self::PIE,
                 'body' => $cuerpo,
                 // Sin botones a propósito: el de escalado lleva uno al chat del huésped porque
                 // ahí hay un chat al que ir. Aquí la acción es mirar el panel o el log, que no
