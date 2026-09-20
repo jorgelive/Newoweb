@@ -110,6 +110,26 @@ final readonly class AiConversationProcessor
      */
     private const string HUMANO_AL_MANDO = '-15 minutes';
 
+    /**
+     * El acuse en los siete idiomas, como constante y no como `match` suelto.
+     *
+     * Está aquí arriba porque ahora se usa dos veces: para ESCRIBIRLO y para RECONOCERLO —ver
+     * {@see yaSeAcusoRecibo()}—. Tenerlo en un solo sitio es lo que evita que un retoque de
+     * redacción deje la comprobación mirando una frase que ya nadie manda, y con ella el acuse
+     * repitiéndose otra vez sin que nada falle.
+     *
+     * @var array<string, string>
+     */
+    private const array ACUSES = [
+        'es' => 'Gracias por tu mensaje. Un compañero te responderá en breve.',
+        'en' => 'Thanks for your message. A member of our team will get back to you shortly.',
+        'pt' => 'Obrigado pela sua mensagem. Um membro da nossa equipa responder-lhe-á em breve.',
+        'fr' => 'Merci pour votre message. Un membre de notre équipe vous répondra sous peu.',
+        'it' => 'Grazie per il suo messaggio. Un membro del nostro team le risponderà a breve.',
+        'de' => 'Vielen Dank für Ihre Nachricht. Ein Mitarbeiter meldet sich in Kürze bei Ihnen.',
+        'nl' => 'Bedankt voor uw bericht. Een collega neemt zo spoedig mogelijk contact met u op.',
+    ];
+
     public function __construct(
         private EntityManagerInterface $em,
         private LoggerInterface $logger,
@@ -123,6 +143,7 @@ final readonly class AiConversationProcessor
         private PhoneSanitizer $telefonos,
         private EscaleraDeTemas $escalera,
         private ConocimientoGenerico $conocimiento,
+        private VigilanteDelMotor $vigilante,
         private bool $habilitado,
     ) {}
 
@@ -181,7 +202,17 @@ final readonly class AiConversationProcessor
             // revisando» le daría por explicado algo que nunca recibió, y la próxima vez se le
             // serviría el paso siguiente.
             $this->escalera->limpiar();
-            $this->encolarRespuesta($conversacion, $message, $this->acuseDeRecibo($conversacion));
+
+            // Una vez, no una por mensaje: ver `yaSeAcusoRecibo()`.
+            if (!$this->yaSeAcusoRecibo($conversacion)) {
+                $this->encolarRespuesta($conversacion, $message, $this->acuseDeRecibo($conversacion));
+            }
+
+            // 🚨 Y SE AVISA A UNA PERSONA. El acuse tapa la avería tan bien que el 19/09/2026 el
+            // motor estuvo 31 horas sin responder —«credits are depleted»— sin que nadie se
+            // enterara: 57 fallos en el log y huéspedes recibiendo la misma frase hecha, incluso
+            // al dar las gracias. Degradar bien no puede significar caerse en silencio.
+            $this->vigilante->motorCaido($e->getMessage());
 
             return 'error_ia';
         }
@@ -803,7 +834,15 @@ final readonly class AiConversationProcessor
             $conversacion->getId()
         ));
 
-        return $this->acuseDeRecibo($conversacion);
+        // Mismo aviso que en el `catch`, y por el mismo motivo: para el huésped las dos ramas son
+        // idénticas —recibe la frase hecha— y para nosotros también deberían serlo. Un proveedor
+        // que declina cada turno es una avería aunque no lance excepción.
+        $this->vigilante->motorCaido('El motor no devolvió texto: ' . $respuesta->motivo);
+
+        // `null` = no se encola nada, y es lo correcto cuando el último mensaje que salió ya era
+        // el acuse: repetirlo no añade información y dice que no hay nadie leyendo. El entrante
+        // sigue sin leer en el panel, que es lo que sostiene la promesa.
+        return $this->yaSeAcusoRecibo($conversacion) ? null : $this->acuseDeRecibo($conversacion);
     }
 
     /**
@@ -1319,15 +1358,40 @@ final readonly class AiConversationProcessor
     {
         $idioma = $conversacion->getIdioma()?->getId() ?? 'es';
 
-        return match ($idioma) {
-            'en' => 'Thanks for your message. A member of our team will get back to you shortly.',
-            'pt' => 'Obrigado pela sua mensagem. Um membro da nossa equipa responder-lhe-á em breve.',
-            'fr' => 'Merci pour votre message. Un membre de notre équipe vous répondra sous peu.',
-            'it' => 'Grazie per il suo messaggio. Un membro del nostro team le risponderà a breve.',
-            'de' => 'Vielen Dank für Ihre Nachricht. Ein Mitarbeiter meldet sich in Kürze bei Ihnen.',
-            'nl' => 'Bedankt voor uw bericht. Een collega neemt zo spoedig mogelijk contact met u op.',
-            default => 'Gracias por tu mensaje. Un compañero te responderá en breve.',
-        };
+        return self::ACUSES[$idioma] ?? self::ACUSES['es'];
+    }
+
+    /**
+     * ¿Ya le dijimos «te responderá una persona» y sigue sin responderle nadie?
+     *
+     * 🔁 **El acuse se manda UNA vez, no una por mensaje.** Durante la caída del 19/09/2026 un
+     * huésped que quería reservar tres tours recibió cuatro acuses idénticos seguidos, uno de
+     * ellos contestando a un «gracias». La frase está pensada para que nadie se quede mirando el
+     * vacío; repetida, dice justo lo contrario —que al otro lado no hay nadie leyendo— y además
+     * empuja al huésped a insistir, que genera más mensajes y más acuses.
+     *
+     * La condición es deterministra y no lleva reloj: **si lo último que salió de aquí es un
+     * acuse, no se manda otro**. En cuanto una persona escribe, lo último deja de ser el acuse y
+     * el suelo vuelve a estar disponible para la siguiente vez. El mensaje entrante sigue sin
+     * leer y el panel lo sigue enseñando, que es lo que sostiene la promesa.
+     */
+    private function yaSeAcusoRecibo(MessageConversation $conversacion): bool
+    {
+        $ultimaSalida = null;
+
+        foreach ($conversacion->getMessages() as $m) {
+            if ($m->getDirection() !== Message::DIRECTION_OUTGOING) {
+                continue;
+            }
+
+            $texto = trim((string) $m->getContentLocal());
+
+            if ($texto !== '') {
+                $ultimaSalida = $texto;
+            }
+        }
+
+        return $ultimaSalida !== null && in_array($ultimaSalida, self::ACUSES, true);
     }
 
     /**
