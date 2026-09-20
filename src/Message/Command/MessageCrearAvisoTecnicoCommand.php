@@ -59,6 +59,16 @@ final class MessageCrearAvisoTecnicoCommand extends Command
     private const string CODIGO = 'aviso_tecnico_interno';
 
     /**
+     * El nombre en Meta, que va por su segunda generación antes de estrenarse.
+     *
+     * La `_v1` se subió con el pie traducido a máquina y el francés decía «syndrome
+     * prémenstruel». Meta **no deja editar una plantilla pendiente** y borrarla reserva el par
+     * nombre+idioma cuatro semanas, así que la salida limpia es la rotación de siempre: se
+     * abandona la `_v1` —que no usa nadie— y se crea la `_v2` con el texto bueno.
+     */
+    private const string NOMBRE_META = self::CODIGO . '_v2';
+
+    /**
      * El cuerpo. Dice QUÉ pasa, QUÉ está viendo el huésped mientras tanto y QUÉ hacer.
      *
      * Lo del huésped no es relleno: es lo que decide si hay que levantarse de la mesa o puede
@@ -73,35 +83,35 @@ final class MessageCrearAvisoTecnicoCommand extends Command
         TXT;
 
     /**
-     * El pie, escrito a mano en los siete idiomas y SIN la sigla «PMS».
+     * El pie, a mano en los siete idiomas, con el nombre propio del sistema.
      *
-     * 🔥 La primera versión decía «Aviso automático del PMS» y dejaba traducir. El traductor no
-     * sabe que PMS es nuestro sistema y expandió la sigla por su cuenta:
+     * 🔥 **«PMS» no se vuelve a escribir en una plantilla.** La primera versión decía «Aviso
+     * automático del PMS» y se dejó traducir. Una sigla no lleva contexto que ayude a acertar,
+     * así que el traductor eligió la acepción famosa:
      *
      * ```
      * fr  Notification automatique du syndrome prémenstruel
      * it  Notifica automatica del servizio di pianificazione familiare (PMS).
      * ```
      *
-     * El francés llegó a subirse a Meta; el italiano lo paró nuestro propio validador, y no por
-     * el disparate sino porque 67 caracteres no caben en los 60 del pie. Es la misma trampa que
-     * «bultos» y «departamento» el día anterior, con una vuelta más: una SIGLA no tiene contexto
-     * que ayude a acertar, así que el traductor elige la acepción famosa.
+     * Y hay un segundo motivo, mejor que el primero: **esto ya no es sólo un PMS**. En `src/`
+     * conviven veinte módulos —`Cotizacion`, `Travel`, `Operacion`, `Finanzas`, `Domotica`,
+     * `Agent`…— y el alojamiento es uno de ellos. Decisión de Jorge (20/09/2026): en plantillas
+     * se llama **«Sistema OpenPeru»**, que además es nombre propio y por eso no se traduce.
      *
-     * Por eso aquí no se traduce nada: se nombra «el sistema», que es lo que el equipo entiende
-     * y ningún idioma puede malinterpretar. Escribir los siete a mano no es la excepción que
-     * Jorge rechaza —el mecanismo sigue siendo el de siempre— sino darle la fuente correcta.
+     * El resto del pie sí va en cada idioma, escrito aquí y no a máquina: el mecanismo de
+     * traducción sigue siendo el de siempre, lo que cambia es que se le da la fuente correcta.
      *
      * @var list<array{language: string, content: string}>
      */
     private const array PIE = [
-        ['language' => 'es', 'content' => 'Aviso automático del sistema'],
-        ['language' => 'en', 'content' => 'Automatic system alert'],
-        ['language' => 'pt', 'content' => 'Alerta automático do sistema'],
-        ['language' => 'fr', 'content' => 'Alerte automatique du système'],
-        ['language' => 'it', 'content' => 'Avviso automatico del sistema'],
-        ['language' => 'de', 'content' => 'Automatische Systemmeldung'],
-        ['language' => 'nl', 'content' => 'Automatische systeemmelding'],
+        ['language' => 'es', 'content' => 'Aviso automático · Sistema OpenPeru'],
+        ['language' => 'en', 'content' => 'Automatic alert · Sistema OpenPeru'],
+        ['language' => 'pt', 'content' => 'Alerta automático · Sistema OpenPeru'],
+        ['language' => 'fr', 'content' => 'Alerte automatique · Sistema OpenPeru'],
+        ['language' => 'it', 'content' => 'Avviso automatico · Sistema OpenPeru'],
+        ['language' => 'de', 'content' => 'Automatische Meldung · Sistema OpenPeru'],
+        ['language' => 'nl', 'content' => 'Automatische melding · Sistema OpenPeru'],
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
@@ -126,16 +136,21 @@ final class MessageCrearAvisoTecnicoCommand extends Command
             // con el pie traducido a máquina —y con «PMS» convertido en síndrome premenstruel—,
             // así que encontrarla no puede significar dejarla como está.
             $meta = $existente->getWhatsappMetaTmpl() ?? [];
+            $nombreActual = (string) ($meta['meta_template_name'] ?? '');
 
-            if (($meta['footer'] ?? null) === self::PIE) {
+            if (($meta['footer'] ?? null) === self::PIE && $nombreActual === self::NOMBRE_META) {
                 $io->success(sprintf('«%s» ya está como debe.', self::CODIGO));
 
                 return Command::SUCCESS;
             }
 
-            $io->section('Se corrige el pie');
+            $io->section('Se pone al día');
             $io->writeln('<fg=red>- ' . json_encode($meta['footer'] ?? [], JSON_UNESCAPED_UNICODE) . '</>');
-            $io->writeln('<fg=green>+ los siete a mano, sin la sigla</>');
+            $io->writeln('<fg=green>+ los siete a mano, con «Sistema OpenPeru»</>');
+
+            if ($nombreActual !== self::NOMBRE_META) {
+                $io->writeln(sprintf('<fg=green>~ nombre en Meta: %s → %s</>', $nombreActual, self::NOMBRE_META));
+            }
 
             if ($simular) {
                 $io->note('Simulación: no se ha escrito nada.');
@@ -143,10 +158,24 @@ final class MessageCrearAvisoTecnicoCommand extends Command
                 return Command::SUCCESS;
             }
 
-            $existente->setWhatsappMetaTmpl(['footer' => self::PIE] + $meta);
+            // El estado por idioma se va con la generación vieja: los `PENDING` que hay guardados
+            // son de la `_v1`, que se abandona. Dejarlos diría que la `_v2` ya está en revisión.
+            $cuerpo = array_map(
+                static fn (array $fila): array => [
+                    'language' => (string) ($fila['language'] ?? 'es'),
+                    'content' => (string) ($fila['content'] ?? ''),
+                ],
+                $meta['body'] ?? []
+            );
+
+            $existente->setWhatsappMetaTmpl([
+                'footer' => self::PIE,
+                'meta_template_name' => self::NOMBRE_META,
+                'body' => $cuerpo,
+            ] + $meta);
             $this->em->flush();
 
-            $io->success('Pie corregido. Hay que volver a subirla a Meta.');
+            $io->success('Al día. Hay que subirla a Meta: php bin/console msg:meta:push ' . self::CODIGO . ' --todos');
 
             return Command::SUCCESS;
         }
@@ -177,7 +206,7 @@ final class MessageCrearAvisoTecnicoCommand extends Command
                 // Con sufijo desde el primer día: el nombre de una plantilla de Meta no se puede
                 // editar, así que el día que haya que reescribir el cuerpo hará falta un `_v2`.
                 // Ver docs/Mensajeria.md §18.
-                'meta_template_name' => self::CODIGO . '_v1',
+                'meta_template_name' => self::NOMBRE_META,
                 // Se pone en `true` cuando Meta la apruebe, no antes: es lo que mira el envío
                 // para saber si puede usarla fuera de la ventana.
                 'is_official_meta' => false,
