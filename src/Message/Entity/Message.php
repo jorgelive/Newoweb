@@ -439,8 +439,15 @@ class Message
      * Y para los que aún no han salido sigue mandando la programada, porque una fecha futura es
      * siempre mayor que la de creación: la pestaña de «Programados» no cambia.
      *
-     * ⚠️ No es la hora de envío REAL, que no se guarda en ninguna columna: es la mejor
-     * aproximación con lo que hay. El día que exista un `sentAt`, es él quien manda aquí.
+     * ℹ️ **No hace falta un `sentAt`**, aunque no exista columna que guarde la hora de envío: el
+     * mensaje inmediato no espera a ningún cron —se despacha por Messenger en cuanto se crea— y
+     * medido en producción la cola se crea en el MISMO segundo y sale dos segundos después. Para
+     * el programado, el envío ocurre a su hora prevista, que es justo la que se usa. Las dos
+     * ramas ya dan la hora buena.
+     *
+     * ⚠️ Y ojo al medirlo otra vez: el `updated_at` de la fila de cola NO es la hora de envío.
+     * Lo vuelve a tocar cada acuse de entrega y de lectura, así que comparar contra él da medias
+     * de media hora que no significan nada.
      */
     #[Groups(['message:read'])]
     public function getEffectiveDateTime(): ?DateTimeInterface
