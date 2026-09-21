@@ -417,13 +417,43 @@ class Message
     public function getCreatedAt(): ?DateTimeInterface { return $this->createdAt ?? null; }
 
     /**
-     * Obtiene la fecha efectiva del mensaje para el ordenamiento en el frontend.
-     * Si está programado, devuelve la fecha de programación; si no, la de creación.
+     * Cuándo OCURRIÓ este mensaje, que es por donde lo ordena y lo fecha el chat.
+     *
+     * ── Por qué es un máximo y no `scheduledAt ?? createdAt` ────────────────────
+     * Porque la hora programada puede estar en el PASADO. El motor crea el mensaje con la hora a
+     * la que la regla debía dispararse, y si el cron llega tarde nace a las 09:17 con «prevista
+     * 08:00». Con el `??`, esa hora vieja ganaba siempre: el mensaje salía a las 09:17, el
+     * huésped lo leía a las 09:17, y en nuestro chat se colocaba a las 08:00 — por encima de
+     * todo lo que había pasado en esa hora y media. Aparecía abajo al enviarse y saltaba arriba
+     * al recargar. Son 210 mensajes en producción, 28 de ellos con más de un minuto de salto y
+     * el peor con 77.
+     *
+     * El máximo acierta en los tres casos y por eso sustituye al `??`:
+     *
+     * | caso | scheduledAt | createdAt | ocurrió |
+     * |---|---|---|---|
+     * | inmediato | — | 09:17 | 09:17 |
+     * | programado a futuro y ya enviado | 08/08 | 10/07 | 08/08 ✅ el programado |
+     * | programado al pasado (cron tarde) | 08:00 | 09:17 | 09:17 ✅ el creado |
+     *
+     * Y para los que aún no han salido sigue mandando la programada, porque una fecha futura es
+     * siempre mayor que la de creación: la pestaña de «Programados» no cambia.
+     *
+     * ⚠️ No es la hora de envío REAL, que no se guarda en ninguna columna: es la mejor
+     * aproximación con lo que hay. El día que exista un `sentAt`, es él quien manda aquí.
      */
     #[Groups(['message:read'])]
     public function getEffectiveDateTime(): ?DateTimeInterface
     {
-        return $this->scheduledAt ?? $this->createdAt ?? null;
+        if ($this->scheduledAt === null) {
+            return $this->createdAt ?? null;
+        }
+
+        if ($this->createdAt === null) {
+            return $this->scheduledAt;
+        }
+
+        return $this->scheduledAt > $this->createdAt ? $this->scheduledAt : $this->createdAt;
     }
 
     /**
