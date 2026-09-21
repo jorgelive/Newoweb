@@ -11715,6 +11715,95 @@ añade un cuarto proveedor de contexto y no se añade allí, la sonda deja de cu
 
 ---
 
+## 25. `ocurrio_at`: una sola clave para ordenar un hilo (21/09/2026)
+
+El chat ordenaba los mensajes de una manera o de otra según cómo hubieran llegado: por Mercure
+se veían en un sitio y tras recargar en otro. La causa no era el tiempo real — era que **se
+paginaba por una clave y se pintaba por otra**.
+
+```
+API      ORDER BY created_at DESC          ← cuándo se creó la fila
+front    sort por scheduledAt ?? createdAt ← cuándo ocurrió de verdad
+```
+
+Para un mensaje inmediato coinciden. Para uno programado no: una guía creada el 10/07 y enviada
+el 08/08 paginaba como de julio y se pintaba en agosto, así que al llegar la página siguiente la
+lista se recolocaba delante del operador.
+
+### Antes de eso, la fecha efectiva mentía
+
+`getEffectiveDateTime()` era `scheduledAt ?? createdAt`, o sea que **la hora programada ganaba
+siempre, también cuando ya había pasado**. El motor crea el mensaje con la hora a la que la regla
+debía dispararse; si el cron llega tarde, nace a las 09:17 con «prevista 08:00». Ese mensaje sale
+a las 09:17, el huésped lo lee a las 09:17 y el chat lo colocaba a las 08:00, por encima de todo
+lo de esa hora y media. Son **210 filas**, con saltos de hasta 77 minutos.
+
+Pasa a ser el **máximo** de las dos, que acierta en los tres casos:
+
+| caso | scheduledAt | createdAt | ocurrió |
+|---|---|---|---|
+| inmediato | — | 09:17 | 09:17 |
+| programado a futuro, ya enviado | 08/08 | 10/07 | 08/08 |
+| programado a una hora vencida | 08:00 | 09:17 | 09:17 |
+
+No hace falta un `sentAt`: el mensaje inmediato no espera cola ni cron —se despacha por Messenger
+al crearse— y medido en producción la fila de envío nace en el mismo segundo y sale dos segundos
+después. ⚠️ Al medirlo, **el `updated_at` de la fila de cola NO es la hora de envío**: lo vuelve a
+tocar cada acuse de entrega y de lectura, y comparar contra él da medias de media hora que no
+significan nada.
+
+### La columna
+
+La fórmula vivía repetida en **trece sitios**: el getter, el `sort` del front y diez consultas SQL
+—rebuild de contexto, resúmenes, menú de entrada, recalentado de hilos, procesador del agente—.
+Al cambiar el getter a un máximo, las diez se quedaron con el `COALESCE` viejo: el chat ordenaba
+con un criterio y los resúmenes con otro.
+
+`msg_message.ocurrio_at` la materializa. La sellan `Message::sellarCuandoOcurrio()` al insertar y
+`setScheduledAt()` al reprogramar — **no un `PreUpdate`**, donde el conjunto de cambios ya está
+calculado y tocar una propiedad es sutil. Índice `(conversation_id, ocurrio_at)`: abrir un chat es
+la consulta más caliente del panel, y `GREATEST(...)` como expresión nunca habría podido usar
+índice. Esa es la otra mitad de por qué es una columna y no una fórmula.
+
+Las consultas la leen como `COALESCE(m.ocurrio_at, m.created_at)`, porque es nullable: una fila
+escrita fuera del ORM cae a su creación en vez de desaparecer de la consulta.
+
+### Una operación por pestaña
+
+Las tres pestañas se alimentaban de UNA lista paginada de 30 que el front repartía. Eso rompía dos
+cosas: un hilo con muchos programados llenaba la página 1 de fechas de 2027 y **el historial salía
+vacío** (17/09: 29 cancelados y 1 programado), y los contadores contaban lo descargado
+—«Programados (1)» con seis en la base—.
+
+Ahora el subrecurso son tres operaciones y la condición vive en `MessageVistaDelHiloExtension`:
+
+| operación | trae | orden |
+|---|---|---|
+| `hilo_historial` | `ocurrio_at <= ahora` y no cancelado | `ocurrioAt DESC, id DESC` |
+| `hilo_programados` | `ocurrio_at > ahora` y no cancelado | `ocurrioAt ASC, id ASC` |
+| `hilo_cancelados` | cancelados | `ocurrioAt DESC, id DESC` |
+
+Se descartó exponer `DateFilter`/`SearchFilter` y que el front armara las consultas: `SearchFilter`
+**no sabe negar** —no hay forma de pedir `status != cancelled`— y dejaría la condición en manos de
+quien llama, así que una petición que olvide un parámetro devolvería la lista mal sin que nadie se
+entere. Con la operación decidiéndolo, pedirla «a pelo» no puede dar un resultado incorrecto.
+
+⚠️ **El desempate por `id` no es decorativo**: 1.781 filas comparten segundo exacto dentro de un
+mismo hilo, y sin él `LIMIT/OFFSET` puede saltarse una en el borde de página. El id es UUID v7, así
+que además desempata por orden de creación.
+
+### Lo que queda duplicado, y por qué es inevitable
+
+`colocarEnSuPestana()` en `chatStore.ts` decide lo mismo que la extensión del backend. Tiene que
+existir porque **el servidor no puede recolocar lo que ya está pintado en la pantalla de alguien**:
+cuando Mercure trae un programado que acaba de salir, o uno que se acaba de cancelar, el front lo
+mueve de lista él solo. Si algún día cambia la frontera, hay que tocarla en los dos sitios — está
+advertido en ambos.
+
+Los contadores de pestaña salen ahora del total de Hydra (`totalHydra()`), no de `lista.length`.
+
+---
+
 ## El hilo por asunto devolvía un 500, y se leía como «no tiene conversación» (28/08/2026)
 
 `ConversacionPorAsuntoController` devolvía el `MessageConversation` confiando en que API
