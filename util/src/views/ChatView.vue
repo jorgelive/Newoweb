@@ -1423,15 +1423,15 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
             </div>
           </header>
 
-          <div v-if="store.scheduledMessages.length > 0 || store.cancelledMessages.length > 0" class="bg-slate-50 border-b border-slate-200 px-4 md:px-8 py-2 flex gap-6 text-xs font-black uppercase tracking-widest overflow-x-auto scrollbar-hide">
+          <div v-if="store.totalProgramados > 0 || store.totalCancelados > 0" class="bg-slate-50 border-b border-slate-200 px-4 md:px-8 py-2 flex gap-6 text-xs font-black uppercase tracking-widest overflow-x-auto scrollbar-hide">
             <button @click="activeTab = 'history'" class="pb-1 transition-colors whitespace-nowrap" :class="activeTab === 'history' ? 'text-[#376875] border-b-2 border-[#376875]' : 'text-slate-400 hover:text-slate-600'">
               <i class="fas fa-history mr-1"></i> Historial
             </button>
-            <button v-if="store.scheduledMessages.length > 0" @click="activeTab = 'scheduled'" class="pb-1 transition-colors whitespace-nowrap" :class="activeTab === 'scheduled' ? 'text-[#E07845] border-b-2 border-[#E07845]' : 'text-slate-400 hover:text-slate-600'">
-              <i class="far fa-calendar-alt mr-1"></i> Programados ({{ store.scheduledMessages.length }})
+            <button v-if="store.totalProgramados > 0" @click="activeTab = 'scheduled'" class="pb-1 transition-colors whitespace-nowrap" :class="activeTab === 'scheduled' ? 'text-[#E07845] border-b-2 border-[#E07845]' : 'text-slate-400 hover:text-slate-600'">
+              <i class="far fa-calendar-alt mr-1"></i> Programados ({{ store.totalProgramados }})
             </button>
-            <button v-if="store.cancelledMessages.length > 0" @click="activeTab = 'cancelled'" class="pb-1 transition-colors whitespace-nowrap" :class="activeTab === 'cancelled' ? 'text-red-500 border-b-2 border-red-500' : 'text-slate-400 hover:text-slate-600'">
-              <i class="fas fa-ban mr-1"></i> Cancelados ({{ store.cancelledMessages.length }})
+            <button v-if="store.totalCancelados > 0" @click="activeTab = 'cancelled'" class="pb-1 transition-colors whitespace-nowrap" :class="activeTab === 'cancelled' ? 'text-red-500 border-b-2 border-red-500' : 'text-slate-400 hover:text-slate-600'">
+              <i class="fas fa-ban mr-1"></i> Cancelados ({{ store.totalCancelados }})
             </button>
           </div>
         </div>

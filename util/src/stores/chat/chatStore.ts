@@ -8,7 +8,7 @@ import { useNoLeidosStore } from './noLeidosStore.ts';
 import type { components } from '@dominio/api';
 import { apiClient, getUrls, type CustomAxiosRequestConfig } from '@/services/apiClient.ts';
 import { esErrorSilencioso } from '@/services/apiError';
-import { miembrosHydra, hayPaginaSiguiente, uuidDe, mismaEntidad, type RecursoHydra } from '@/services/hydra';
+import { miembrosHydra, hayPaginaSiguiente, totalHydra, uuidDe, mismaEntidad, type RecursoHydra } from '@/services/hydra';
 import { isSessionExpired, checkSession } from '@/services/sessionAuth.ts';
 
 // ============================================================================
@@ -152,7 +152,30 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
     const conversations = ref<ApiConversation[]>([]);
     const currentConversation = ref<ApiConversation | null>(null);
+    /**
+     * El HISTORIAL del hilo abierto: lo que ya ocurrió, en orden ascendente.
+     *
+     * Antes era «todos los mensajes» y el front lo repartía en tres pestañas filtrando. Eso
+     * hacía que un hilo con muchos programados llenara la página de fechas futuras y el
+     * historial saliera vacío, y que los contadores contaran lo descargado en vez de lo que hay.
+     * Desde el 21/09/2026 cada pestaña es su propia consulta: aquí sólo entra el historial.
+     */
     const messages = ref<ApiMessage[]>([]);
+
+    /** Los que están por salir, ya ordenados por el servidor: el primero que sale, primero. */
+    const programados = ref<ApiMessage[]>([]);
+
+    /** Los abortados. */
+    const cancelados = ref<ApiMessage[]>([]);
+
+    /**
+     * Cuántos hay de verdad en cada pestaña, según el total que devuelve la API.
+     *
+     * No es `lista.length`: esa es la página descargada. La diferencia se vio en producción como
+     * «Programados (1)» en un hilo que tenía seis.
+     */
+    const totalProgramados = ref(0);
+    const totalCancelados = ref(0);
     /**
      * Qué canales puede usar el operador en el chat abierto, según el BACKEND.
      *
@@ -241,36 +264,69 @@ export const useChatStore = defineStore('chatStore', () => {
     const filteredConversations = computed(() => conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase()));
 
     /**
-     * Filtra los mensajes del historial activo.
-     * Excluye los mensajes cancelados y los programados cuyo tiempo efectivo aún no se cumple.
+     * Mete un mensaje en la pestaña que le toca, y lo saca de las otras dos.
+     *
+     * ── Por qué aquí y no un `push` ─────────────────────────────────────────────
+     * Por Mercure llega de todo: un entrante nuevo, un programado que acaba de salir, un
+     * cancelado. Antes todo iba a `messages` con un `push`, así que un programado cancelado se
+     * quedaba viviendo en el historial hasta que alguien recargara, y un mensaje viejo empujado
+     * por un cambio de estado se colaba al final de la lista.
+     *
+     * ⚠️ **Esta regla es gemela de `MessageVistaDelHiloExtension`**, en el backend. Es la única
+     * duplicación que queda, y es inevitable: el servidor no puede recolocar lo que ya está en la
+     * pantalla de alguien. Si allí cambia la frontera, aquí también.
      */
-    const activeChatMessages = computed(() => {
-        const now = new Date();
-        return messages.value.filter(m => {
-            if (getMessageDisplayStatus(m) === 'cancelled') return false;
-            const effectiveDate = new Date(m.effectiveDateTime || m.createdAt as string);
-            return m.scheduledForFuture === false || effectiveDate <= now;
-        });
-    });
+    const colocarEnSuPestana = (mensaje: ApiMessage): void => {
+        const fuera = (lista: ApiMessage[]) => lista.filter(m => !sameEntity(m, mensaje));
+
+        const estaCancelado = getMessageDisplayStatus(mensaje) === 'cancelled';
+        const efectiva = new Date(mensaje.effectiveDateTime || mensaje.createdAt as string);
+        const esFuturo = !estaCancelado && efectiva > new Date();
+
+        const estabaEnHistorial = messages.value.some(m => sameEntity(m, mensaje));
+        const estabaEnProgramados = programados.value.some(m => sameEntity(m, mensaje));
+        const estabaEnCancelados = cancelados.value.some(m => sameEntity(m, mensaje));
+
+        messages.value = fuera(messages.value);
+        programados.value = fuera(programados.value);
+        cancelados.value = fuera(cancelados.value);
+
+        if (estaCancelado) {
+            cancelados.value.push(mensaje);
+            if (!estabaEnCancelados) totalCancelados.value += 1;
+        } else if (esFuturo) {
+            // Ordenado como lo manda el servidor: el primero que sale, primero.
+            programados.value.push(mensaje);
+            programados.value.sort((a, b) =>
+                new Date(a.effectiveDateTime || a.createdAt as string).getTime()
+                - new Date(b.effectiveDateTime || b.createdAt as string).getTime());
+            if (!estabaEnProgramados) totalProgramados.value += 1;
+        } else {
+            // El orden final lo pone la vista al agrupar por día; aquí basta con que esté.
+            messages.value.push(mensaje);
+        }
+
+        // Los totales bajan cuando el mensaje se MUEVE de pestaña, no cuando se actualiza dentro.
+        if (estabaEnProgramados && (estaCancelado || !esFuturo)) totalProgramados.value -= 1;
+        if (estabaEnCancelados && !estaCancelado) totalCancelados.value -= 1;
+        void estabaEnHistorial;
+    };
 
     /**
-     * Extrae y ordena cronológicamente los mensajes que están encolados para envío futuro.
+     * El historial, tal cual lo trajo el servidor.
+     *
+     * ⚠️ Ya NO filtra. La condición —ni futuro ni cancelado— vive en
+     * `MessageVistaDelHiloExtension`, del lado del backend, porque filtrar en cliente sobre una
+     * página significaba que lo descartado había ocupado sitio en ella. Los tres computed se
+     * quedan como nombres estables para la vista, que no tiene por qué enterarse del cambio.
      */
-    const scheduledMessages = computed(() => {
-        const now = new Date();
-        return messages.value
-            .filter(m => getMessageDisplayStatus(m) !== 'cancelled' && m.scheduledForFuture === true && new Date(m.effectiveDateTime || m.createdAt as string) > now)
-            .sort((a, b) => new Date(a.effectiveDateTime || a.createdAt as string).getTime() - new Date(b.effectiveDateTime || b.createdAt as string).getTime());
-    });
+    const activeChatMessages = computed(() => messages.value);
 
-    /**
-     * Extrae los mensajes abortados para la pestaña de cancelados.
-     */
-    const cancelledMessages = computed(() => {
-        return messages.value
-            .filter(m => getMessageDisplayStatus(m) === 'cancelled')
-            .sort((a, b) => new Date(a.effectiveDateTime || a.createdAt as string).getTime() - new Date(b.effectiveDateTime || b.createdAt as string).getTime());
-    });
+    /** Los programados, ya en orden ascendente por el servidor. */
+    const scheduledMessages = computed(() => programados.value);
+
+    /** Los cancelados. */
+    const cancelledMessages = computed(() => cancelados.value);
 
     /**
      * Devuelve únicamente las plantillas autorizadas para el contexto actual.
@@ -510,12 +566,19 @@ export const useChatStore = defineStore('chatStore', () => {
                 // (ej. sent → delivered) traía otro IRI, no hacía match y se
                 // insertaba como mensaje NUEVO → mensajes duplicados en pantalla.
                 const index = messages.value.findIndex(m => sameEntity(m, incomingData));
+                const yaEstaba = index !== -1 || programados.value.some(m => sameEntity(m, incomingData))
+                    || cancelados.value.some(m => sameEntity(m, incomingData));
 
-                if (index !== -1) {
-                    messages.value.splice(index, 1, { ...messages.value[index], ...incomingData, '@id': messages.value[index]['@id'] || incomingData['@id'] }); // FIX #5
+                if (yaEstaba) {
+                    // 🔀 Puede haber CAMBIADO DE PESTAÑA: cancelar un programado, o que uno
+                    // programado salga y pase a historial. Se recoloca en vez de actualizarlo en
+                    // el sitio, que era lo que dejaba un cancelado viviendo en el historial hasta
+                    // la siguiente recarga.
+                    const anterior = index !== -1 ? messages.value[index] : null;
+                    colocarEnSuPestana({ ...(anterior ?? {}), ...incomingData, '@id': anterior?.['@id'] || incomingData['@id'] }); // FIX #5
                 } else {
                     // Es un mensaje nuevo entrante
-                    messages.value.push(incomingData);
+                    colocarEnSuPestana(incomingData);
 
                     if (incomingData.direction === 'incoming') {
                         // Si el chat está abierto en pantalla, disparamos POST para marcar como leído en BD
@@ -626,12 +689,26 @@ export const useChatStore = defineStore('chatStore', () => {
                 found.unreadCount = 0;
             }
 
-            const response = await apiClient.get(`/platform/message/conversations/${id}/messages?order[createdAt]=desc&page=1`);
+            // Tres consultas, una por pestaña. El historial es el único que se pagina: los
+            // programados y los cancelados de un hilo caben de sobra en una página, y si algún
+            // día no cupieran, el total de la pestaña seguiría siendo el real.
+            const [response, respProgramados, respCancelados] = await Promise.all([
+                apiClient.get(`/platform/message/conversations/${id}/messages?page=1`),
+                apiClient.get(`/platform/message/conversations/${id}/messages/programados`),
+                apiClient.get(`/platform/message/conversations/${id}/messages/cancelados`),
+            ]);
             // FIX #6: si el usuario cambió de chat mientras cargaba, descartar
             if (uuidOf(currentConversation.value) !== id) return;
 
+            // El servidor manda lo más reciente primero —así la página 1 es lo último que pasó—
+            // y aquí se le da la vuelta, que es como se lee un chat.
             messages.value = extractData<ApiMessage>(response).reverse();
             hasMoreMessages.value = hasNextPage(response);
+
+            programados.value = extractData<ApiMessage>(respProgramados);
+            cancelados.value = extractData<ApiMessage>(respCancelados);
+            totalProgramados.value = totalHydra(respProgramados) ?? programados.value.length;
+            totalCancelados.value = totalHydra(respCancelados) ?? cancelados.value.length;
 
             // Ahora sí: con los mensajes delante se puede proponer el asunto del último
             // entrante, igual que el canal se preselecciona por el último mensaje recibido.
@@ -917,7 +994,7 @@ export const useChatStore = defineStore('chatStore', () => {
         const nextPage = messagesPage.value + 1;
 
         try {
-            const response = await apiClient.get(`/platform/message/conversations/${currentConversation.value.id}/messages?order[createdAt]=desc&page=${nextPage}`);
+            const response = await apiClient.get(`/platform/message/conversations/${currentConversation.value.id}/messages?page=${nextPage}`);
             // FIX #4: un mensaje nuevo llegado por Mercure desplaza la paginación
             // (page 2 puede repetir el último de page 1) → dedup por UUID.
             const olderMessages = extractData<ApiMessage>(response)
@@ -997,10 +1074,14 @@ export const useChatStore = defineStore('chatStore', () => {
      */
     const fetchLatestMessagesForStalk = async (conversationId: string, limite = 5): Promise<ApiMessage[]> => {
         try {
-            const response = await apiClient.get(`/platform/message/conversations/${conversationId}/messages?order[createdAt]=desc&page=1`);
+            const response = await apiClient.get(`/platform/message/conversations/${conversationId}/messages?page=1`);
             const data = extractData<ApiMessage>(response);
 
-            const realHistoryMessages = data.filter(m => m.scheduledForFuture !== true && m.status !== 'pending' && m.status !== 'queued' && m.status !== 'cancelled');
+            // El endpoint ya devuelve sólo historial, así que aquí no se vuelve a filtrar por
+            // fecha ni por cancelado: eso lo decide `MessageVistaDelHiloExtension`. Lo que sí se
+            // quita es lo que aún no ha salido —`pending`/`queued` con fecha ya vencida—, que es
+            // historial para el servidor pero el huésped todavía no lo ha visto.
+            const realHistoryMessages = data.filter(m => m.status !== 'pending' && m.status !== 'queued');
             const latest5 = realHistoryMessages.slice(0, limite);
 
             return latest5.sort((a, b) => new Date(a.effectiveDateTime || a.createdAt as string).getTime() - new Date(b.effectiveDateTime || b.createdAt as string).getTime());
@@ -1168,6 +1249,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation, cargarCabecera
+        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, totalProgramados, totalCancelados, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation, cargarCabecera
     };
 });

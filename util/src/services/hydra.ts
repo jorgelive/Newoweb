@@ -46,6 +46,20 @@ export function miembrosHydra<T>(data: unknown): T[] {
     return respuesta?.['hydra:member'] || respuesta?.member || [];
 }
 
+/**
+ * Cuántos hay EN TOTAL, no cuántos vinieron en esta página.
+ *
+ * Los contadores de las pestañas del chat contaban lo descargado, así que un hilo con seis
+ * programados enseñaba «Programados (1)» cuando los otros cinco estaban en la página 3. El total
+ * de Hydra es el número de verdad y no cuesta una consulta extra: viene en la misma respuesta.
+ */
+export function totalHydra(data: unknown): number | null {
+    const respuesta = data as (RespuestaHydra<unknown> & { 'hydra:totalItems'?: number; totalItems?: number }) | null | undefined;
+    const total = respuesta?.['hydra:totalItems'] ?? respuesta?.totalItems;
+
+    return typeof total === 'number' ? total : null;
+}
+
 /** ¿La colección tiene página siguiente? (paginación Hydra). */
 export function hayPaginaSiguiente(data: unknown): boolean {
     const vista = (data as RespuestaHydra<unknown> | null | undefined);

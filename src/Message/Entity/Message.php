@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\Post;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Message\ApiPlatform\State\MessageMultipartProcessor;
+use App\Message\Filter\MessageVistaDelHiloExtension;
 use App\Message\Validator\ValidTemplateScope;
 use App\Security\Roles;
 use DateTimeImmutable;
@@ -37,6 +38,9 @@ use App\Message\Contract\MessageQueueItemInterface;
 #[ORM\Index(columns: ['asunto_type', 'asunto_id'], name: 'idx_msg_asunto')]
 // El enfriamiento del escalado consulta por (escalado_de, created_at) en CADA escalado.
 #[ORM\Index(columns: ['escalado_de', 'created_at'], name: 'idx_msg_escalado_de')]
+// El listado de un hilo es la consulta más caliente del panel y ahora ordena por `ocurrio_at`:
+// sin este índice, cada apertura de chat es un `filesort` sobre todo el hilo.
+#[ORM\Index(columns: ['conversation_id', 'ocurrio_at'], name: 'idx_msg_hilo_ocurrio')]
 #[ORM\HasLifecycleCallbacks]
 #[ValidTemplateScope]
 #[ApiResource(
@@ -46,6 +50,22 @@ use App\Message\Contract\MessageQueueItemInterface;
         // 1. SUBRECURSO: Obtener mensajes filtrados por una conversación específica
         // API Platform infiere combinando el prefix: GET /message/conversations/{id}/messages
         // ------------------------------------------------------------------------
+        // ⚠️ UNA OPERACIÓN POR PESTAÑA, y las tres ordenan por `ocurrioAt`.
+        //
+        // Antes era una sola lista que el front repartía en tres. Con eso, un hilo con muchos
+        // programados llenaba la página 1 de fechas de 2027 y **el historial salía vacío**
+        // —medido el 17/09/2026 en el hilo de Susan: 29 cancelados y 1 programado—, y los
+        // contadores mentían porque contaban lo descargado («Programados (1)» con seis en la
+        // base). Se intentó arreglar ordenando por creación, y eso trajo el fallo contrario:
+        // se PAGINABA por `created_at` y se PINTABA por la fecha efectiva, así que el orden
+        // cambiaba según llegara el mensaje por Mercure o por pull.
+        //
+        // La condición de cada pestaña vive en `MessageVistaDelHiloExtension`, no en la URL:
+        // pedir la operación «a pelo» no puede devolver la lista equivocada.
+        //
+        // El desempate por `id` NO es decorativo: 1.781 filas comparten segundo exacto dentro
+        // de un mismo hilo, y sin él `LIMIT/OFFSET` puede saltarse una en el borde de página.
+        // El id es UUID v7, o sea que además desempata por orden de creación.
         new GetCollection(
             uriTemplate: '/conversations/{id}/messages',
             uriVariables: [
@@ -54,20 +74,33 @@ use App\Message\Contract\MessageQueueItemInterface;
                     fromClass: MessageConversation::class
                 )
             ],
-            // ⚠️ POR FECHA DE CREACIÓN, y no por `scheduledAt` primero.
-            //
-            // Ordenando por `scheduledAt DESC`, los mensajes con fecha futura se ponen DELANTE y
-            // los reales —que la tienen nula— caen al final de todo. Con eso, un hilo con muchos
-            // programados o cancelados llena la primera página con fechas de 2027 y **el chat sale
-            // vacío**: el front pide 30, los reparte en sus pestañas y no le llega ni uno enviado.
-            //
-            // Medido el 17/09/2026 en el hilo de Susan —personal con reservas de prueba—: 110 filas
-            // con fecha programada, así que la página 1 eran 29 cancelados y 1 programado. El
-            // «Historial» en blanco y «Programados (1)» cuando en realidad tenía seis.
-            //
-            // La creación es lo que ordena la actividad del hilo: lo último que pasó, primero. Las
-            // pestañas las separa el front, que ya ordena cada una por su fecha efectiva.
-            order: ['createdAt' => 'DESC']
+            order: ['ocurrioAt' => 'DESC', 'id' => 'DESC'],
+            name: MessageVistaDelHiloExtension::HISTORIAL
+        ),
+
+        new GetCollection(
+            uriTemplate: '/conversations/{id}/messages/programados',
+            uriVariables: [
+                'id' => new Link(
+                    toProperty: 'conversation',
+                    fromClass: MessageConversation::class
+                )
+            ],
+            // Ascendente: lo primero que va a salir, primero. Es una agenda, no un historial.
+            order: ['ocurrioAt' => 'ASC', 'id' => 'ASC'],
+            name: MessageVistaDelHiloExtension::PROGRAMADOS
+        ),
+
+        new GetCollection(
+            uriTemplate: '/conversations/{id}/messages/cancelados',
+            uriVariables: [
+                'id' => new Link(
+                    toProperty: 'conversation',
+                    fromClass: MessageConversation::class
+                )
+            ],
+            order: ['ocurrioAt' => 'DESC', 'id' => 'DESC'],
+            name: MessageVistaDelHiloExtension::CANCELADOS
         ),
 
         // ------------------------------------------------------------------------
@@ -324,6 +357,28 @@ class Message
     #[Groups(['message:read', 'message:write'])]
     private ?DateTimeImmutable $scheduledAt = null;
 
+    /**
+     * CUÁNDO OCURRIÓ, materializado: la única clave por la que se ordena un hilo.
+     *
+     * ── Por qué una columna y no la expresión de siempre ────────────────────────
+     * La fórmula vivía repetida en trece sitios —el getter de la entidad, el `sort` del front y
+     * ONCE consultas SQL en resúmenes, menú de entrada y recalentado de hilos—. El 21/09/2026 el
+     * getter pasó a ser un máximo y las once copias se quedaron con el `COALESCE` viejo: desde
+     * ese momento el chat ordenaba con un criterio y los resúmenes con otro. Una fórmula
+     * duplicada no se mantiene, se olvida.
+     *
+     * Y hay un motivo de rendimiento que pesa igual: `GREATEST(created_at, scheduled_at)` **no
+     * usa índice**, y el listado de un hilo es la consulta más caliente del panel. Como columna
+     * entra en `(conversation_id, ocurrio_at)` y se ordena por índice.
+     *
+     * ⚠️ Es DERIVADA: no se pone a mano nunca. La calculan {@see sellarCuandoOcurrio()} al
+     * insertar y {@see setScheduledAt()} al reprogramar, que son las dos únicas formas de que
+     * cambie. Si algún día se escribe por SQL directo —una migración, un comando—, hay que
+     * recalcularla en la misma sentencia.
+     */
+    #[ORM\Column(name: 'ocurrio_at', type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $ocurrioAt = null;
+
     public function __construct()
     {
         $this->id = Uuid::v7();
@@ -345,6 +400,38 @@ class Message
     // =========================================================================
     // LIFECYCLE CALLBACKS
     // =========================================================================
+
+    /**
+     * Sella `ocurrio_at` antes de insertar.
+     *
+     * Va en su PROPIO callback y no dentro de {@see onPrePersist()} porque aquel se va de vacío
+     * cuando el mensaje no tiene conversación o está programado a futuro — y son justo los casos
+     * en los que la fecha hace más falta. Doctrine admite varios `PrePersist` por entidad.
+     *
+     * Se asegura `createdAt` antes de calcular: lo pone `TimestampTrait` en otro callback del
+     * mismo evento y el orden entre ambos no está garantizado. Es la misma precaución que ya
+     * tomaba `onPrePersist()` con su `?: new DateTimeImmutable()`.
+     */
+    #[ORM\PrePersist]
+    public function sellarCuandoOcurrio(): void
+    {
+        $this->createdAt ??= new DateTimeImmutable();
+        $this->ocurrioAt = $this->calcularCuandoOcurrio();
+    }
+
+    /** El máximo de las dos fechas. Ver {@see getEffectiveDateTime()} para los tres casos. */
+    private function calcularCuandoOcurrio(): ?DateTimeImmutable
+    {
+        if ($this->scheduledAt === null) {
+            return $this->createdAt;
+        }
+
+        if ($this->createdAt === null) {
+            return $this->scheduledAt;
+        }
+
+        return $this->scheduledAt > $this->createdAt ? $this->scheduledAt : $this->createdAt;
+    }
 
     /**
      * Al insertar un mensaje nuevo, actualiza los contadores y fechas de la conversación.
@@ -452,15 +539,10 @@ class Message
     #[Groups(['message:read'])]
     public function getEffectiveDateTime(): ?DateTimeInterface
     {
-        if ($this->scheduledAt === null) {
-            return $this->createdAt ?? null;
-        }
-
-        if ($this->createdAt === null) {
-            return $this->scheduledAt;
-        }
-
-        return $this->scheduledAt > $this->createdAt ? $this->scheduledAt : $this->createdAt;
+        // La columna manda cuando está sellada. El cálculo queda para el mensaje recién creado
+        // que aún no ha pasado por `PrePersist` —el front lo pinta antes de guardar— y para las
+        // filas anteriores a la migración que la estrenó.
+        return $this->ocurrioAt ?? $this->calcularCuandoOcurrio();
     }
 
     /**
@@ -542,7 +624,22 @@ class Message
     public function setTransientChannels(array $channels): self { $this->transientChannels = $channels; return $this; }
 
     public function getScheduledAt(): ?DateTimeImmutable { return $this->scheduledAt; }
-    public function setScheduledAt(?DateTimeImmutable $scheduledAt): self { $this->scheduledAt = $scheduledAt; return $this; }
+    /**
+     * ⚠️ Recalcula `ocurrio_at` en el acto, y por eso no vale asignar la propiedad a pelo.
+     *
+     * Se hace AQUÍ y no en un `PreUpdate` a propósito: en `PreUpdate` el conjunto de cambios ya
+     * está calculado, así que tocar una propiedad allí es sutil y depende de que alguien
+     * recalcule. Desde el setter, el cambio entra en el mismo `UPDATE` que la reprogramación.
+     */
+    public function setScheduledAt(?DateTimeImmutable $scheduledAt): self
+    {
+        $this->scheduledAt = $scheduledAt;
+        $this->ocurrioAt = $this->calcularCuandoOcurrio();
+
+        return $this;
+    }
+
+    public function getOcurrioAt(): ?DateTimeImmutable { return $this->ocurrioAt; }
 
     // =========================================================================
     // CAMPOS BÁSICOS
