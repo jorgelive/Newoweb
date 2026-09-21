@@ -239,7 +239,7 @@ final readonly class ResumenConversacionService
             ->setMaxResults(self::MAX_MENSAJES);
 
         if ($ultimaSalida !== null) {
-            $qb->andWhere('COALESCE(m.scheduledAt, m.createdAt) > :corte')
+            $qb->andWhere('COALESCE(m.ocurrioAt, m.createdAt) > :corte')
                 ->setParameter('corte', $ultimaSalida);
         }
 
@@ -270,7 +270,7 @@ final readonly class ResumenConversacionService
     private function corteUltimaSalida(MessageConversation $conversacion): ?string
     {
         $corte = $this->em->getRepository(Message::class)->createQueryBuilder('m')
-            ->select('MAX(COALESCE(m.scheduledAt, m.createdAt))')
+            ->select('MAX(COALESCE(m.ocurrioAt, m.createdAt))')
             ->where('m.conversation = :c')
             ->andWhere('m.direction = :saliente')
             ->andWhere('(m.scheduledAt IS NULL OR m.scheduledAt <= :ahora)')

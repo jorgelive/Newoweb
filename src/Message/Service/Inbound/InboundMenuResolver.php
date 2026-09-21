@@ -124,7 +124,7 @@ final readonly class InboundMenuResolver
     /**
      * Último mensaje que el huésped pudo ver de verdad.
      *
-     * 🔥 Se ordena por `COALESCE(scheduledAt, createdAt)` y NO por `createdAt` a secas: un
+     * 🔥 Se ordena por `ocurrio_at` —la fecha efectiva materializada— y NO por `createdAt` a secas: un
      * mensaje automático se CREA cuando el motor de reglas lo programa y se ENVÍA mucho después
      * —en producción hay desfases de meses—, así que `createdAt DESC` devolvía como «último»
      * un recordatorio programado para dentro de medio año que el huésped todavía no ha recibido.
@@ -139,11 +139,11 @@ final readonly class InboundMenuResolver
     {
         return $this->em->getRepository(Message::class)
             ->createQueryBuilder('m')
-            ->addSelect('COALESCE(m.scheduledAt, m.createdAt) AS HIDDEN efectiva')
+            ->addSelect('COALESCE(m.ocurrioAt, m.createdAt) AS HIDDEN efectiva')
             ->where('m.conversation = :conv')
             ->andWhere('m.status IN (:estados)')
             // Nada del futuro: un programado que aún no ha salido no es «lo último que vio».
-            ->andWhere('COALESCE(m.scheduledAt, m.createdAt) <= :ahora')
+            ->andWhere('COALESCE(m.ocurrioAt, m.createdAt) <= :ahora')
             // ⚠️ El id con tipo `uuid`, no la entidad: ligada a secas la consulta devuelve
             // CERO filas sin fallar, y entonces «el último mensaje» era siempre null y ningún
             // menú numérico resolvía. Misma trampa que en `Beds24SendEnqueuer`.

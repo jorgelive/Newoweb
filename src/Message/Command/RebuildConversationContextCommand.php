@@ -85,17 +85,17 @@ class RebuildConversationContextCommand extends Command
                             -- ENVIADO — `lastMessageAt` saltaba a un mensaje futuro y, si era
                             -- saliente, la conversación se marcaba leída y sus entrantes pasaban
                             -- de `received` a `read`. Ver `docs/ZonasHorarias.md` §6.
-                            WHEN COALESCE(m.scheduled_at, m.created_at) > :ahora THEN NULL
+                            WHEN COALESCE(m.ocurrio_at, m.created_at) > :ahora THEN NULL
                             
                             -- 3. ACEPTAR TODOS LOS DEMÁS (sent, received, read, y también queued/pending/failed actuales)
-                            ELSE COALESCE(m.scheduled_at, m.created_at)
+                            ELSE COALESCE(m.ocurrio_at, m.created_at)
                         END
                     ) AS lastReal,
                     MAX(
                         CASE 
                             WHEN m.status = :statusCancelled THEN NULL
-                            WHEN COALESCE(m.scheduled_at, m.created_at) > :ahora THEN NULL
-                            WHEN m.direction = :outgoing THEN COALESCE(m.scheduled_at, m.created_at)
+                            WHEN COALESCE(m.ocurrio_at, m.created_at) > :ahora THEN NULL
+                            WHEN m.direction = :outgoing THEN COALESCE(m.ocurrio_at, m.created_at)
                             ELSE NULL 
                         END
                     ) AS lastOutgoing

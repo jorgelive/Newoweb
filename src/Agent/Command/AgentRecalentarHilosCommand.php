@@ -315,7 +315,7 @@ final class AgentRecalentarHilosCommand extends Command
             ->select('COUNT(m.id)')
             ->andWhere('m.conversation = :conversacion')
             ->andWhere('m.status != :cancelado')
-            ->andWhere('COALESCE(m.scheduledAt, m.createdAt) > :cuando')
+            ->andWhere('COALESCE(m.ocurrioAt, m.createdAt) > :cuando')
             ->andWhere('NOT (m.scheduledAt > :ahora AND m.status IN (:pendientes))')
             ->setParameter('conversacion', $conversacion->getId(), 'uuid')
             ->setParameter('cancelado', Message::STATUS_CANCELLED)

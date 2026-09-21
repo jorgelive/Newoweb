@@ -401,7 +401,7 @@ final readonly class AiConversationProcessor
             ->andWhere('m.conversation = :conversacion')
             ->andWhere('m.senderType = :persona')
             ->andWhere('m.status != :cancelado')
-            ->andWhere('COALESCE(m.scheduledAt, m.createdAt) >= :desde')
+            ->andWhere('COALESCE(m.ocurrioAt, m.createdAt) >= :desde')
             ->setParameter('conversacion', $conversacion->getId(), 'uuid')
             ->setParameter('persona', Message::SENDER_HOST)
             ->setParameter('cancelado', Message::STATUS_CANCELLED)
