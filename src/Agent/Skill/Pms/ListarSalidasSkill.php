@@ -248,7 +248,14 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
                           ORDER BY lu.username SEPARATOR ', ')
                    FROM pms_evento_limpieza le
                    JOIN user lu ON lu.id = le.user_id
-                  WHERE le.evento_id = e.id)  AS limpieza
+                  WHERE le.evento_id = e.id)  AS limpieza,
+                -- 🧺 LO QUE EL HUÉSPED PIDIÓ QUE LE DEJEN PUESTO, y que hasta el 21/09/2026 no
+                -- llegaba a nadie: el agente decía «tomamos nota» y no había dónde. Va en la
+                -- misma consulta porque el destinatario es el mismo y el momento también —quien
+                -- mira esta lista es quien va a preparar la casita—.
+                (SELECT GROUP_CONCAT(p.texto ORDER BY p.created_at SEPARATOR ' · ')
+                   FROM pms_peticion p
+                  WHERE p.evento_id = e.id AND p.efectuada_at IS NULL) AS peticiones
             FROM pms_evento_calendario e
             LEFT JOIN pms_unidad u  ON u.id = e.pms_unidad_id
             LEFT JOIN pms_reserva r ON r.id = e.reserva_id
@@ -295,6 +302,10 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
                 // suya, la lista viene filtrada—, pero a la oficina le ahorra abrir la ficha
                 // para saber a quién avisar.
                 'limpieza' => $esCampo ? null : ($f['limpieza'] ?: 'sin asignar'),
+                // A diferencia del teléfono y el localizador, esto SÍ sale para quien va a la
+                // casita: es su trabajo. Sólo las pendientes — una lista que arrastra lo ya
+                // hecho se deja de leer.
+                'peticiones_pendientes' => $f['peticiones'] ?: null,
                 'evento_id' => $f['evento_id'],
                 'reserva_id' => $f['reserva_id'],
                 'url' => $esCampo ? null : $this->fichaDe($f['evento_id'], $f['reserva_id']),
