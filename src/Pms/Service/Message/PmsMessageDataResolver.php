@@ -75,6 +75,51 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
     }
 
     /**
+     * `https://wa.me/<numero>?text=Hola,%20soy%20…%20reserva%20ABC123`
+     *
+     * El huésped le da al enlace, se le abre WhatsApp con el mensaje escrito y sólo tiene que
+     * enviarlo. Ese mensaje trae su localizador, que es lo que {@see ReservaPorLocalizador} usa
+     * para saber de quién es un número que Booking ya no nos manda.
+     *
+     * ⚠️ **El texto va en SU idioma.** Lo lee antes de enviarlo: si le aparece un «Hola, soy…»
+     * en español a alguien que escribe en inglés, lo borra y escribe lo suyo — y con eso se
+     * pierde el localizador, que es justo lo único que había que conservar.
+     *
+     * Cadena vacía si el alojamiento no tiene teléfono: un `wa.me/` sin número es un enlace roto,
+     * y el hidratador ya sabe que lo vacío desaparece.
+     */
+    private function enlaceDeWhatsappConLocalizador(
+        string $numero,
+        PmsReserva $reserva,
+        ?string $localizador,
+        string $idioma
+    ): string {
+        $numero = preg_replace('/\D/', '', $numero) ?? '';
+
+        if ($numero === '' || ($localizador ?? '') === '') {
+            return '';
+        }
+
+        $nombre = trim((string) $reserva->getNombreCliente());
+
+        $plantilla = match ($idioma) {
+            'en' => 'Hi, I am %s, booking %s',
+            'pt' => 'Olá, sou %s, reserva %s',
+            'fr' => 'Bonjour, je suis %s, réservation %s',
+            'it' => 'Ciao, sono %s, prenotazione %s',
+            'de' => 'Hallo, ich bin %s, Buchung %s',
+            'nl' => 'Hallo, ik ben %s, boeking %s',
+            default => 'Hola, soy %s, reserva %s',
+        };
+
+        return sprintf(
+            'https://wa.me/%s?text=%s',
+            $numero,
+            rawurlencode(sprintf($plantilla, $nombre, $localizador))
+        );
+    }
+
+    /**
      * 🔒 Las claves que ABREN ALGO y no pueden viajar por el mero hecho de estar en el diccionario.
      *
      * ── Por qué existe esta lista ───────────────────────────────────────────
@@ -316,6 +361,10 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         // mismo enlace.
         $accountUrl = rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador . '#resumen';
 
+        // Se resuelve aquí y no sólo al final porque `whatsapp_enlace_reserva` lo necesita para
+        // componerse; el `+` de abajo lo sigue añadiendo igual y el array no se duplica.
+        $contacto = $this->whatsappDelAlojamiento($reserva->getEstablecimiento());
+
         return [
             'guest_name'            => $reserva->getNombreCliente(),
             'guest_full_name'       => trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente()),
@@ -348,6 +397,21 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'room_name'             => $reserva->getNombreHabitacion(),
             'channel_name'          => $canal ? $canal->getNombre() : 'Directo',
             'guest_country'         => $pais ? $pais->getNombre() : '',
+            // 📲 EL ENLACE CON EL MENSAJE YA ESCRITO, y su localizador dentro.
+            //
+            // Nace por el aviso de Booking del 28/09/2026: dejan de transmitir el teléfono del
+            // huésped, así que un WhatsApp suyo llegaría de un número que no sabemos de quién
+            // es. Con este enlace, el primer mensaje que nos manda TRAE su localizador y
+            // `ReservaPorLocalizador` lo casa con su reserva sin que nadie teclee nada.
+            //
+            // El texto va en el idioma del huésped: lo lee él antes de darle a enviar, y un
+            // «Hola, soy…» en español a quien escribe en inglés se borra y se pierde el código.
+            'whatsapp_enlace_reserva' => $this->enlaceDeWhatsappConLocalizador(
+                $contacto['whatsapp_numero'],
+                $reserva,
+                $localizador,
+                $idioma
+            ),
             'guide_url'             => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador,
             'guide_path'            => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $localizador,
 

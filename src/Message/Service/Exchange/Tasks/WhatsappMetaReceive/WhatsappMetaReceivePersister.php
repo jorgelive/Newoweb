@@ -10,6 +10,7 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Enum\IdentidadTipo;
 use App\Message\Service\Conversacion\ResolutorDeHilo;
+use App\Message\Service\Inbound\ReservaPorLocalizador;
 use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Service\Inbound\InboundMenuResolver;
@@ -43,6 +44,7 @@ readonly class WhatsappMetaReceivePersister
         private PhoneSanitizer               $phoneSanitizer,
         // Un solo resolutor para todos los canales: antes cada uno buscaba a su manera.
         private ResolutorDeHilo              $resolutor,
+        private ReservaPorLocalizador        $localizadores,
     ) {}
 
     /**
@@ -87,7 +89,15 @@ readonly class WhatsappMetaReceivePersister
         $guestName = $contactData['profile']['name'] ?? 'Desconocido (WhatsApp)';
 
         // 3. Resolución de Conversación
-        $conversation = $this->resolveConversation($guestPhone, $guestName);
+        //
+        // El texto viaja a la resolución porque desde el 28/09/2026 puede SER la credencial:
+        // Booking deja de mandarnos el teléfono, así que un número nuevo sólo se puede casar con
+        // su reserva por el localizador que trae el primer mensaje. Ver `ReservaPorLocalizador`.
+        $conversation = $this->resolveConversation(
+            $guestPhone,
+            $guestName,
+            trim((string) ($messageData['text']['body'] ?? ''))
+        );
 
         // Es imperativo instanciar el canal antes de agregarlo, ya que la entidad
         // MessageConversation evalúa el ID del canal para abrir la ventana de 24 horas.
@@ -550,8 +560,11 @@ readonly class WhatsappMetaReceivePersister
      * @param string $guestName El nombre extraído del perfil de WhatsApp.
      * @return MessageConversation
      */
-    private function resolveConversation(string $phone, string $guestName): MessageConversation
-    {
+    private function resolveConversation(
+        string $phone,
+        string $guestName,
+        string $texto = ''
+    ): MessageConversation {
         // A. Por IDENTIDAD exacta. Determinista: `(tipo, valor)` es único.
         $conversation = $this->resolutor->porIdentidad(IdentidadTipo::TELEFONO, $phone);
 
@@ -615,6 +628,53 @@ readonly class WhatsappMetaReceivePersister
             $conversation->setGuestName($reserva->getNombreApellido() ?: $guestName);
             $conversation->setStatus(MessageConversation::STATUS_OPEN);
             $conversation->setIdioma($reserva->getIdioma() ?? $this->idiomaPorDefecto());
+            $this->resolutor->vincular($conversation, IdentidadTipo::TELEFONO, $phone, 'whatsapp');
+
+            $this->em->persist($conversation);
+
+            return $conversation;
+        }
+
+        // C-bis. ¿LO DICE EL MENSAJE? Desde el 28/09/2026 Booking no transmite el teléfono del
+        // huésped, así que para esas reservas el paso C no puede casar nada: no hay número con
+        // el que buscar. Lo que sí traen es su localizador, porque se les manda un enlace de
+        // WhatsApp con el mensaje ya escrito.
+        //
+        // Va DESPUÉS del teléfono a propósito: si ya sabemos de quién es el número, lo que diga
+        // el texto no pinta nada. Sólo se mira cuando la alternativa era un hilo «manual» sin
+        // reserva, donde el agente contesta que no hay reserva asociada a alguien que está
+        // entrando mañana.
+        $porLocalizador = $texto !== '' ? $this->localizadores->enElTexto($texto) : null;
+
+        if ($porLocalizador !== null) {
+            // 🧵 SE REUTILIZA SU HILO si ya existe —y para un huésped de Booking existe, porque
+            // viene hablando por el chat de la OTA—. Crear otro partiría el historial en dos
+            // justo cuando el huésped cambia de canal, que es cuando más falta hace verlo junto.
+            $suyo = $this->em->getRepository(MessageConversation::class)
+                ->findOneBy(['contextType' => 'pms_reserva', 'contextId' => (string) $porLocalizador->getId()]);
+
+            if ($suyo !== null) {
+                $this->resolutor->vincular($suyo, IdentidadTipo::TELEFONO, $phone, 'whatsapp');
+
+                if ($suyo->getGuestPhone() === null || $suyo->getGuestPhone() === '') {
+                    $suyo->setGuestPhone($phone);
+                }
+
+                $this->logger->info('WhatsApp: número nuevo unido a su hilo por el localizador.', [
+                    'telefono' => $phone,
+                    'reserva' => (string) $porLocalizador->getId(),
+                    'conversacion' => (string) $suyo->getId(),
+                ]);
+
+                return $suyo;
+            }
+
+            $conversation = new MessageConversation('pms_reserva', (string) $porLocalizador->getId());
+            $conversation->setContextOrigin('whatsapp');
+            $conversation->setGuestPhone($phone);
+            $conversation->setGuestName($porLocalizador->getNombreApellido() ?: $guestName);
+            $conversation->setStatus(MessageConversation::STATUS_OPEN);
+            $conversation->setIdioma($porLocalizador->getIdioma() ?? $this->idiomaPorDefecto());
             $this->resolutor->vincular($conversation, IdentidadTipo::TELEFONO, $phone, 'whatsapp');
 
             $this->em->persist($conversation);
