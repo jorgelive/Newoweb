@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\ExistsFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Entity\User;
+use App\Pms\ApiPlatform\State\PmsPeticionProcessor;
 use App\Security\Roles;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
@@ -62,12 +66,18 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Patch(
             uriTemplate: '/peticiones/{id}',
             security: "is_granted('" . Roles::LIMPIEZA . "') or is_granted('" . Roles::CUSTOMER_SUPPORT . "')",
-            denormalizationContext: ['groups' => ['pms_peticion:write']]
+            denormalizationContext: ['groups' => ['pms_peticion:write']],
+            // Quién la comprobó lo pone el servidor, no el navegador: ver el procesador.
+            processor: PmsPeticionProcessor::class
         ),
     ],
     routePrefix: '/pms',
     normalizationContext: ['groups' => ['pms_peticion:read']],
 )]
+// Por estancia, que es como se pregunta siempre: «¿qué hay pendiente en ésta?». El de
+// `efectuadaAt` deja pedir sólo lo pendiente sin traerse el historial entero de la casita.
+#[ApiFilter(SearchFilter::class, properties: ['evento' => 'exact'])]
+#[ApiFilter(ExistsFilter::class, properties: ['efectuadaAt'])]
 class PmsPeticion
 {
     use IdTrait;

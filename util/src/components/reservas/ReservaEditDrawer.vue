@@ -4,8 +4,8 @@ import { useRouter } from 'vue-router';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { useChatStore } from '@/stores/chat/chatStore.ts';
-import { uuidDe } from '@/services/hydra';
-import { getUrls } from '@/services/apiClient';
+import { uuidDe, miembrosHydra } from '@/services/hydra';
+import { getUrls, apiClient } from '@/services/apiClient';
 import { formatearTelefono, telefonoParaWhatsapp } from '@/utils/telefono';
 import { enfocarEnScroller } from '@/utils/scrollEnfoque';
 import ReservaFinanzasPanel from '@/components/reservas/ReservaFinanzasPanel.vue';
@@ -1312,9 +1312,83 @@ async function cargarDatos(): Promise<void> {
     }
 }
 
+// ============================================================================
+// PETICIONES DEL HUÉSPED
+// ============================================================================
+/**
+ * Lo que el huésped pidió que le dejen puesto, por estancia.
+ *
+ * Vive aquí y no en el store porque es de esta ficha: se mira al preparar una casita y se marca
+ * en el momento. Se indexa por `eventoId` porque una reserva con dos casitas tiene dos listas
+ * distintas — «deja plancha» le toca a una sola.
+ */
+interface Peticion {
+    '@id': string;
+    texto: string;
+    pendiente: boolean;
+    efectuadaAt: string | null;
+    efectuadaPorNombre: string | null;
+    conversacionId: string | null;
+}
+
+const peticiones = ref<Record<string, Peticion[]>>({});
+
+async function cargarPeticiones(): Promise<void> {
+    peticiones.value = {};
+
+    const conEvento = eventos.value
+        .map((e: EventoEntry) => e.eventoId)
+        .filter((id): id is string => !!id);
+
+    if (!conEvento.length) return;
+
+    // Una llamada por estancia y no una con todas: son una o dos, y el filtro por evento es el
+    // que ya existe. Pedir «todas las de esta reserva» obligaría a un filtro nuevo en el backend
+    // para ahorrar una petición que no se nota.
+    await Promise.all(conEvento.map(async (eventoId: string) => {
+        try {
+            const { data } = await apiClient.get(`/platform/pms/peticiones?evento=${eventoId}`);
+            peticiones.value[eventoId] = miembrosHydra<Peticion>(data);
+        } catch {
+            // Que no se puedan leer las peticiones no puede impedir ver la reserva.
+            peticiones.value[eventoId] = [];
+        }
+    }));
+}
+
+/**
+ * Da por hecha —o deshace— una petición.
+ *
+ * Sólo viaja `efectuadaAt`: quién la comprobó lo pone el servidor con la sesión, porque un dato
+ * que dice quién hizo algo no puede venir de quien lo hizo.
+ */
+async function alternarPeticion(eventoId: string, peticion: Peticion): Promise<void> {
+    const hecha = peticion.pendiente;
+
+    try {
+        // El `@id` que devuelve la API ya es la ruta completa desde la raíz del servidor, y
+        // `apiClient` tiene el host por baseURL: se usa tal cual en vez de recomponerla.
+        const { data } = await apiClient.patch(
+            peticion['@id'],
+            { efectuadaAt: hecha ? new Date().toISOString() : null },
+            { headers: { 'Content-Type': 'application/merge-patch+json' } }
+        );
+
+        const lista = peticiones.value[eventoId] ?? [];
+        const i = lista.findIndex(p => p['@id'] === peticion['@id']);
+
+        if (i !== -1) lista[i] = { ...lista[i], ...data };
+    } catch (e) {
+        alert(extractApiErrorMessage(e) ?? 'No se pudo marcar la petición.');
+    }
+}
+
 watch(
     () => [props.eventoId, props.reservaId, props.createDefaults],
-    () => cargarDatos(),
+    async () => {
+        await cargarDatos();
+        await cargarPeticiones();
+    },
     { immediate: true }
 );
 
@@ -2102,6 +2176,38 @@ async function ejecutarBorrado(): Promise<void> {
                                     <div v-if="entry.form.comentariosHuesped" class="px-4 py-3">
                                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Comentarios del huésped</p>
                                         <p class="text-sm text-slate-700 mt-0.5">{{ entry.form.comentariosHuesped }}</p>
+                                    </div>
+
+                                    <!-- 🧺 LO QUE PIDIÓ PARA ESTA CASITA.
+                                         Va justo debajo de sus comentarios porque es lo mismo visto de otra
+                                         manera: lo que el huésped dijo que necesita. La diferencia es que esto
+                                         SÍ se puede tachar, y que hasta el 21/09/2026 no existía en ninguna
+                                         parte — el agente decía «tomamos nota» y no había dónde. -->
+                                    <div v-if="entry.eventoId && (peticiones[entry.eventoId] ?? []).length" class="px-4 py-3">
+                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">
+                                            Peticiones del huésped
+                                        </p>
+                                        <ul class="mt-1 space-y-1">
+                                            <li v-for="p in peticiones[entry.eventoId]" :key="p['@id']"
+                                                class="flex items-start gap-2 text-sm">
+                                                <button type="button"
+                                                        @click="alternarPeticion(entry.eventoId!, p)"
+                                                        :title="p.pendiente ? 'Marcar como puesta' : 'Volver a pendiente'"
+                                                        class="mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors"
+                                                        :class="p.pendiente
+                                                            ? 'border-slate-300 hover:border-emerald-500'
+                                                            : 'border-emerald-500 bg-emerald-500 text-white'">
+                                                    <i v-if="!p.pendiente" class="fas fa-check text-[9px]"></i>
+                                                </button>
+                                                <span :class="p.pendiente ? 'text-slate-700' : 'text-slate-400 line-through'">
+                                                    {{ p.texto }}
+                                                    <span v-if="!p.pendiente && p.efectuadaPorNombre"
+                                                          class="text-[10px] text-slate-400 no-underline">
+                                                        · {{ p.efectuadaPorNombre }}
+                                                    </span>
+                                                </span>
+                                            </li>
+                                        </ul>
                                     </div>
                                 </div>
 
