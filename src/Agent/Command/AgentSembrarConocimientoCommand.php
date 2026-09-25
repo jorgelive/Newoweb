@@ -490,6 +490,53 @@ final class AgentSembrarConocimientoCommand extends Command
             // sobra: allí evita que se lo invente hablando de otra cosa —el fallo fue contestando
             // sobre PAGOS—, y aquí está la respuesta larga, editable en el panel sin desplegar.
             [
+                // 🪜 LA COMPARATIVA, que es lo único que ninguna ficha de guía puede contestar:
+                // la de la Casita 3 no sabe que la 1 no tiene gradas. La pregunta que se escala
+                // no es «¿cómo es la 6?» sino «¿cuál nos conviene?» —Melanie viaja con una
+                // persona con discapacidad, Marilu con dos adultos mayores—.
+                //
+                // Y no contradice que el conocimiento sea agnóstico de unidad: esto NO es de una
+                // casita, es del edificio. El detalle de cada una vive en el `agente_contenido`
+                // de su ficha, que es donde sí hay vínculo.
+                'tema' => 'llegada',
+                'nombre' => 'Escalones y accesos de cada casita',
+                'etiquetas' => 'movilidad reducida, silla de ruedas, persona con discapacidad, '
+                    . 'adulto mayor, adultos mayores, cuantas gradas, cuantos escalones, hay '
+                    . 'escaleras, primer piso, planta baja, sin escaleras, accesibilidad, '
+                    . 'maletas pesadas, cual me conviene, wheelchair, accessible, stairs',
+                'contenido' => 'Ninguna casita es totalmente llana desde la calle, así que lo '
+                    . 'honesto es decir cuántos escalones tiene cada una y dejar elegir. De menos '
+                    . 'a más esfuerzo:'
+                    . "\n\n"
+                    . '• Casa 1 — la más accesible: puerta a la calle, sin gradas de pasaje. '
+                    . 'Dentro se bajan 2 escalones a la sala y 2 más a las habitaciones.'
+                    . "\n"
+                    . '• Casas 3 y 4 — en el pasaje, sin gradas para entrar. Dentro se bajan 3 y '
+                    . 'luego 2 más.'
+                    . "\n"
+                    . '• Casa 5 — se suben 10 escalones y dentro no se sube ni se baja nada: '
+                    . 'todo en la misma planta.'
+                    . "\n"
+                    . '• Casa 2 — se suben 10 escalones a la vivienda, y dentro 2 a la sala y 1 '
+                    . 'a la cocina. Su puerta está a nivel de calle, pero la casa no.'
+                    . "\n"
+                    . '• Casa 7 — 20 escalones hasta la puerta; las áreas comunes y los dos '
+                    . 'baños privados están en el primer nivel, así que quien duerma abajo no '
+                    . 'vuelve a subir. A la habitación de arriba, 10 peldaños más.'
+                    . "\n"
+                    . '• Casa 6 — 20 escalones hasta la puerta y 12 más a las habitaciones: 32 '
+                    . 'en total para dormir arriba. Tiene un baño privado en cada nivel.'
+                    . "\n\n"
+                    . 'Para movilidad reducida, la 1 y la 5 son las dos respuestas, y por motivos '
+                    . 'opuestos: la 1 no tiene gradas para entrar pero sí cuatro escalones '
+                    . 'repartidos dentro; la 5 son diez de golpe y luego nada. Si alguien va en '
+                    . 'silla de ruedas, dilo claro: ninguna es de acceso llano.'
+                    . "\n\n"
+                    . 'Di sólo lo que le sirva a quien pregunta. Enumerar las siete a quien sólo '
+                    . 'preguntó por la suya es una lista de peros.',
+                'perfiles' => self::TODOS,
+            ],
+            [
                 // 📍 En «llegada» y no en «la-casa», aunque hable del edificio: la fase 1 enruta
                 // por la PISTA del tema, y «llego de madrugada, ¿quién me abre?» cae en «Llegada
                 // y equipaje (horarios de entrada y salida…)», nunca en «Cómo es la casa (agua
