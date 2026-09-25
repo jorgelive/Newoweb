@@ -77,6 +77,28 @@ final class MessageWhatsappBookingCommand extends Command
      * copiarlo se pierde el localizador, que es lo único que hace que esto funcione solo.
      */
     private const string BLOQUE_BIENVENIDA = <<<'TXT'
+        📲 *Información sobre nuestro canal de WhatsApp*
+        Debido a las nuevas políticas de privacidad de Booking.com, ya no tenemos acceso a los números de teléfono de nuestros huéspedes para iniciar el contacto.
+
+        Si prefieres que gestionemos tu estadía de forma más directa por WhatsApp, haz clic en el siguiente enlace y envía el mensaje predeterminado:
+        👉 {{ whatsapp_enlace_reserva }}
+
+        Esto nos permitirá identificar tu reserva al instante. Si prefieres no utilizar WhatsApp, seguiremos atendiéndote con mucho gusto a través de este chat.
+
+        Cualquier consulta, seguimos a tu disposición.
+        TXT;
+
+    /**
+     * La primera redacción, que se sustituye.
+     *
+     * Se guarda entera para poder reconocerla y cambiarla: el comando ya corrió el 22/09 y dejó
+     * ese texto en producción, así que «si ya lleva el marcador, no toco nada» habría dejado la
+     * versión vieja para siempre. Idempotente por CONTENIDO, no por presencia.
+     *
+     * Arrastra el cierre de la bienvenida porque el bloque nuevo trae el suyo: dejar los dos
+     * pondría «cualquier duda» y «cualquier consulta» en renglones seguidos.
+     */
+    private const string BLOQUE_PRIMERA_VERSION = <<<'TXT'
         📲 *Una cosa más, y es nueva*
         Booking cambió su política y ya no nos comparte el teléfono de sus huéspedes, así que no podemos escribirte por WhatsApp aunque lo necesites.
 
@@ -84,6 +106,8 @@ final class MessageWhatsappBookingCommand extends Command
         👉 {{ whatsapp_enlace_reserva }}
 
         Con eso te reconocemos al instante. Si no, seguimos por aquí sin problema.
+
+        Cualquier duda, escríbenos por aquí.
         TXT;
 
     /**
@@ -100,15 +124,16 @@ final class MessageWhatsappBookingCommand extends Command
     private const string CUERPO = <<<'TXT'
         ¡Hola {{ guest_name }}!
 
-        Booking ha cambiado su política y ya no nos comparte el teléfono de sus huéspedes, así que no podemos escribirte por WhatsApp aunque lo necesites.
+        📲 Información sobre nuestro canal de WhatsApp
 
-        Si prefieres que hablemos por ahí —suele ser más cómodo mientras andas por la ciudad—, solo tienes que abrir este enlace y enviar el mensaje que aparece escrito:
+        Debido a las nuevas políticas de privacidad de Booking.com, ya no tenemos acceso a los números de teléfono de nuestros huéspedes para iniciar el contacto.
 
-        {{ whatsapp_enlace_reserva }}
+        Si prefieres que gestionemos tu estadía de forma más directa por WhatsApp, haz clic en el siguiente enlace y envía el mensaje predeterminado:
+        👉 {{ whatsapp_enlace_reserva }}
 
-        Con eso te reconocemos al instante y te llegan por WhatsApp las instrucciones de llegada, la dirección y cualquier cosa que necesites.
+        Esto nos permitirá identificar tu reserva al instante y recibirás por ahí las instrucciones de llegada, la dirección y lo que necesites.
 
-        Si prefieres seguir por este chat, no hay ningún problema: aquí seguimos igual.
+        Si prefieres no utilizar WhatsApp, seguiremos atendiéndote con mucho gusto a través de este chat.
 
         ¡Saludos desde Cusco!
         TXT;
@@ -134,28 +159,25 @@ final class MessageWhatsappBookingCommand extends Command
         $beds24 = $bienvenida->getBeds24Tmpl() ?? [];
         $cuerpo = (string) ($beds24['body'][0]['content'] ?? '');
 
-        if (str_contains($cuerpo, 'whatsapp_enlace_reserva')) {
+        if (str_contains($cuerpo, 'Información sobre nuestro canal de WhatsApp')) {
             $io->text('· La bienvenida ya lo lleva.');
 
             return;
         }
 
-        if (!str_contains($cuerpo, self::ANCLA_BIENVENIDA)) {
-            $io->warning('La bienvenida no tiene el cierre esperado: míralo en el panel.');
+        // Dos caminos: la bienvenida que aún no lo tiene, y la que quedó con la primera
+        // redacción del 22/09 —que se sustituye entera, cierre incluido—.
+        if (str_contains($cuerpo, self::BLOQUE_PRIMERA_VERSION)) {
+            $nuevo = str_replace(self::BLOQUE_PRIMERA_VERSION, self::BLOQUE_BIENVENIDA, $cuerpo);
+        } elseif (str_contains($cuerpo, self::ANCLA_BIENVENIDA)) {
+            $nuevo = str_replace(self::ANCLA_BIENVENIDA, self::BLOQUE_BIENVENIDA, $cuerpo);
+        } else {
+            $io->warning('La bienvenida no es la que esperaba: míralo en el panel.');
 
             return;
         }
 
-        $bienvenida->setBeds24Tmpl([
-            'body' => [[
-                'language' => 'es',
-                'content' => str_replace(
-                    self::ANCLA_BIENVENIDA,
-                    self::BLOQUE_BIENVENIDA . "\n\n" . self::ANCLA_BIENVENIDA,
-                    $cuerpo
-                ),
-            ]],
-        ] + $beds24);
+        $bienvenida->setBeds24Tmpl(['body' => [['language' => 'es', 'content' => $nuevo]]] + $beds24);
 
         $this->em->flush();
 
