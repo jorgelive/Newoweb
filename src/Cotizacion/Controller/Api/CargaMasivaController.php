@@ -17,6 +17,7 @@ use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * Sube un ZIP de boarding passes y los reparte entre las personas y los vuelos del expediente.
@@ -52,7 +53,10 @@ final class CargaMasivaController extends AbstractController
         $file = $this->expediente($id);
         $zip = $request->files->get('zip');
 
-        if ($file === null || $zip === null) {
+        // ⚠️ `instanceof` y no `=== null`: `files->get()` devuelve lo que mande el cliente, y un
+        // `campo[]` llega como ARRAY. Antes eso pasaba el `null` y reventaba en el primer método
+        // con un 500; ahora es un 400 que dice qué falta. Lo destapó PHPStan nivel 9.
+        if ($file === null || !$zip instanceof UploadedFile) {
             return $this->json(['error' => 'Falta el expediente o el ZIP.'], Response::HTTP_BAD_REQUEST);
         }
 

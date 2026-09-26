@@ -39,6 +39,7 @@ final class ItinerarioPlantillaFilter implements FilterInterface
         $rootAlias = $queryBuilder->getRootAliases()[0];
         $relAlias = 'segRelItinFiltro';
 
+        /** @var array<string, list<\Doctrine\ORM\Query\Expr\Join>> $existingJoins */
         $existingJoins = $queryBuilder->getDQLPart('join');
         $alreadyJoined = false;
         foreach ($existingJoins[$rootAlias] ?? [] as $join) {

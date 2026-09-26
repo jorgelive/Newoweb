@@ -51,21 +51,31 @@ class AdminFieldHelper
      * Aplica atributos de Stimulus para un selector dependiente asíncrono alimentado por AJAX.
      * Desacoplado al 100% de nombres de columnas o lógicas de negocio específicas de las entidades.
      *
-     * @param mixed $field Instancia del campo de EasyAdmin (ej: AssociationField).
+     * ⚠️ Genérico: el campo que ENTRA es el que SALE, con su tipo. Con `mixed` de ida y vuelta,
+     * lo que se encadenaba detrás —`->setColumns()`, `->hideOnIndex()`— era una llamada sobre
+     * `mixed` que el análisis no podía comprobar (nivel 9 de PHPStan).
+     *
+     * @template T of object
+     * @param T $field Instancia del campo de EasyAdmin (ej: AssociationField).
+     * @return T
      * @param string $childClass Clase CSS que identifica al elemento select hijo en el DOM.
      * @param string $endpointUrl URL absoluta del endpoint de API Platform a consultar.
      * @param string $paramName Parámetro GET obligatorio que espera la API para filtrar por la entidad padre (ej: 'componente_id', 'proveedor.id').
      * @param string|null $searchParam Parámetro GET opcional para búsquedas dinámicas tipeadas en TomSelect (ej: 'nombreInterno', 'nombre').
-     * @return mixed El mismo objeto de campo modificado con los atributos HTML correspondientes.
      */
     public static function controlsAjax(
-        $field,
+        object $field,
         string $childClass,
         string $endpointUrl,
         string $paramName,
         ?string $searchParam = null
-    ) {
+    ): object {
         $controllerName = 'panel--dependent-select-ajax';
+        // Los campos de EasyAdmin traen `setHtmlAttribute()` por `FieldTrait`, no por su interfaz:
+        // se comprueba aquí, que es además lo que le dice al análisis que la llamada existe.
+        if (!method_exists($field, 'setHtmlAttribute')) {
+            throw new \InvalidArgumentException(sprintf('%s no admite atributos HTML: no es un campo de EasyAdmin.', $field::class));
+        }
 
         $field->setHtmlAttribute('data-controller', $controllerName);
         $field->setHtmlAttribute('data-action', 'change->' . $controllerName . '#updateUrl');
@@ -82,18 +92,27 @@ class AdminFieldHelper
 
     /**
      * Vincula el comportamiento dependiente local (síncrono) sobre colecciones precargadas en el DOM.
+     *
+     * @template T of object
+     * @param T $field
+     * @return T
      */
     public static function controls(
         // ⚠️ `mixed` y no `FieldInterface`: la interfaz de EasyAdmin declara sólo `new()`,
         // `getAsDto()` y `__clone()`. `setHtmlAttribute()` la traen los campos CONCRETOS por
         // `FieldTrait`, así que tipar contra la interfaz compila pero rompe la llamada.
-        mixed $field,
+        object $field,
         string $childSelector,
         string $childAttr,
         string $operator = self::OP_STRICT,
         string $parentSource = self::SRC_VALUE,
         ?string $scope = self::SCOPE_EA
-    ): mixed {
+    ): object {
+        // Los campos de EasyAdmin traen `setHtmlAttribute()` por `FieldTrait`, no por su interfaz:
+        // se comprueba aquí, que es además lo que le dice al análisis que la llamada existe.
+        if (!method_exists($field, 'setHtmlAttribute')) {
+            throw new \InvalidArgumentException(sprintf('%s no admite atributos HTML: no es un campo de EasyAdmin.', $field::class));
+        }
         $attrs = self::getAttributes($childSelector, $childAttr, $operator, $parentSource, $scope);
         foreach ($attrs as $key => $value) {
             $field->setHtmlAttribute($key, $value);

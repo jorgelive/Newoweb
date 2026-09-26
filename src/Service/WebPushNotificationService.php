@@ -109,6 +109,7 @@ class WebPushNotificationService
             }
 
             $this->logger->info("📡 [WebPush] Ejecutando flush() hacia los servidores remotos...");
+            /** @var iterable<\Minishlink\WebPush\MessageSentReport> $reports */
             $reports = $this->webPush->flush();
             $this->logger->info("✅ [WebPush] flush() completado. Procesando reportes...");
 

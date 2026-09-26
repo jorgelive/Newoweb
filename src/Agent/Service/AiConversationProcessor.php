@@ -446,6 +446,7 @@ final readonly class AiConversationProcessor
             return false;
         }
 
+        /** @var list<Message> $candidatos */
         $candidatos = $this->em->getRepository(Message::class)->createQueryBuilder('m')
             ->andWhere('m.conversation = :conversacion')
             ->andWhere('m.senderType = :huesped')

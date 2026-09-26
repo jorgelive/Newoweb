@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * Controlador específico para la galería de PmsGuiaItem.
@@ -28,7 +29,10 @@ class PmsGuiaItemGaleriaUploadController extends AbstractController
         $itemId = $request->request->get('item_id');
 
         // 2. Validaciones básicas
-        if (!$uploadedFile) {
+        // ⚠️ `instanceof` y no `=== null`: `files->get()` devuelve lo que mande el cliente, y un
+        // `campo[]` llega como ARRAY. Antes eso pasaba el `null` y reventaba en el primer método
+        // con un 500; ahora es un 400 que dice qué falta. Lo destapó PHPStan nivel 9.
+        if (!$uploadedFile instanceof UploadedFile) {
             return $this->json(['error' => 'No se ha enviado ningún archivo'], 400);
         }
 

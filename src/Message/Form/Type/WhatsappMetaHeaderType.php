@@ -27,6 +27,7 @@ class WhatsappMetaHeaderType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         // 1. Obtener idiomas activos
+        /** @var list<MaestroIdioma> $idiomas */
         $idiomas = $this->entityManager->getRepository(MaestroIdioma::class)
             ->createQueryBuilder('i')
             ->where('i.prioridad > :min')
@@ -39,7 +40,7 @@ class WhatsappMetaHeaderType extends AbstractType
         $choices = [];
         foreach ($idiomas as $idioma) {
             $flag = $idioma->getBandera() ?? '🏳️';
-            $label = $flag . ' ' . ucfirst($idioma->getNombre());
+            $label = $flag . ' ' . ucfirst($idioma->getNombre() ?? (string) $idioma->getId());   // sin nombre, su código
             $choices[$label] = $idioma->getId();
         }
 
@@ -86,6 +87,7 @@ class WhatsappMetaHeaderType extends AbstractType
     public function buildView(FormView $view, FormInterface $form, array $options): void
     {
         // 2. Pasar el mapa de banderas a Twig
+        /** @var list<MaestroIdioma> $idiomas */
         $idiomas = $this->entityManager->getRepository(MaestroIdioma::class)
             ->createQueryBuilder('i')
             ->where('i.prioridad > 0')

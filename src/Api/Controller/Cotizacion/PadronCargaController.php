@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * Carga un padrón en un expediente.
@@ -53,7 +54,10 @@ final class PadronCargaController extends AbstractController
 
         $subido = $request->files->get('padron');
 
-        if ($subido === null) {
+        // ⚠️ `instanceof` y no `=== null`: `files->get()` devuelve lo que mande el cliente, y un
+        // `campo[]` llega como ARRAY. Antes eso pasaba el `null` y reventaba en el primer método
+        // con un 500; ahora es un 400 que dice qué falta. Lo destapó PHPStan nivel 9.
+        if (!$subido instanceof UploadedFile) {
             return $this->json(['error' => 'Falta el archivo.'], Response::HTTP_BAD_REQUEST);
         }
 

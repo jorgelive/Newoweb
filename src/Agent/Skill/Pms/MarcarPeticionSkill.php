@@ -109,6 +109,7 @@ final readonly class MarcarPeticionSkill implements SkillInterface, SkillDominio
         // no encuentra nada, y el agente contesta «no hay peticiones pendientes» sobre una
         // estancia que sí las tiene. Es de los fallos que no se ven hasta que alguien nota que
         // la plancha nunca se dejó.
+        /** @var list<PmsPeticion> $pendientes */
         $pendientes = $this->em->getRepository(PmsPeticion::class)
             ->createQueryBuilder('p')
             ->andWhere('IDENTITY(p.evento) = :evento')

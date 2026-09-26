@@ -58,6 +58,13 @@
   arreglados los 240 por módulos —Pms, Agent, Api y sueltos, Message— y el baseline con **dos
   entradas menos**, ninguna nueva.
 
+  **Camino al 9 (el de `mixed`), por familias.** Medido el 26/09/2026: 1 454 avisos en 290
+  archivos. La primera familia ya está a cero: **llamar métodos sobre `mixed`** (63), que es la del
+  `getSegmentoMaestro()` que no existía. Casi todos eran `getResult()` sin su `@var` —la regla de
+  arriba, incumplida en 13 sitios— y ficheros subidos leídos sin `instanceof UploadedFile` (un
+  `campo[]` llegaba como array y daba 500). Y al tipar las consultas, el 8 vio lo que el `mixed` le
+  ocultaba: idiomas sin nombre llegando a `ucfirst(null)`. Para medir: `phpstan analyse --level=9`.
+
   ⚠️ **Y el 8 encontró fallos que ya estaban en producción, no sólo tipos.** Los cobros sueltos por
   Culqi leían `->value` sobre un `origenTipo` nulo: un *warning*, así que se cobraba igual y nadie
   lo veía (`docs/FinanzasEnlacesPago.md`). Un warning en el log de producción no es ruido: es un

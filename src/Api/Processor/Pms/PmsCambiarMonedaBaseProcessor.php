@@ -32,7 +32,8 @@ final class PmsCambiarMonedaBaseProcessor implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): PmsInformacionFinanciera
     {
-        $payload = $context['request']?->toArray() ?? [];
+        $peticion = $context['request'] ?? null;
+        $payload = $peticion instanceof \Symfony\Component\HttpFoundation\Request ? $peticion->toArray() : [];
 
         $moneda = $payload['moneda'] ?? null;
         if (!is_string($moneda) || $moneda === '') {

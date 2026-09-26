@@ -24,6 +24,7 @@ class TranslationTextType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         // 1. Selector: Solo idiomas activos (Prioridad > 0)
+        /** @var list<MaestroIdioma> $idiomas */
         $idiomas = $this->entityManager->getRepository(MaestroIdioma::class)
             ->createQueryBuilder('i')
             ->where('i.prioridad > :min')
@@ -36,7 +37,7 @@ class TranslationTextType extends AbstractType
         $choices = [];
         foreach ($idiomas as $idioma) {
             $flag = $idioma->getBandera() ?? '🏳️';
-            $label = $flag . ' ' . ucfirst($idioma->getNombre());
+            $label = $flag . ' ' . ucfirst($idioma->getNombre() ?? (string) $idioma->getId());   // sin nombre, su código
             $choices[$label] = $idioma->getId();
         }
 
@@ -59,6 +60,7 @@ class TranslationTextType extends AbstractType
     public function buildView(FormView $view, FormInterface $form, array $options): void
     {
         // 2. Vista: Pasamos el mapa de banderas a Twig
+        /** @var list<MaestroIdioma> $idiomas */
         $idiomas = $this->entityManager->getRepository(MaestroIdioma::class)
             ->createQueryBuilder('i')
             ->where('i.prioridad > 0')

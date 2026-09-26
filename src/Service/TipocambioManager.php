@@ -241,7 +241,14 @@ class TipocambioManager
 
         $existingMap = [];
         foreach ($existingRows as $row) {
-            $fechaDb = is_string($row['fecha']) ? substr($row['fecha'], 0, 10) : $row['fecha']->format('Y-m-d');
+            $fecha = $row['fecha'] ?? null;
+            if (is_string($fecha)) {
+                $fechaDb = substr($fecha, 0, 10);
+            } elseif ($fecha instanceof \DateTimeInterface) {
+                $fechaDb = $fecha->format('Y-m-d');
+            } else {
+                continue;   // una fila sin fecha no marca ningún día como existente
+            }
             $existingMap[$fechaDb] = true;
         }
 

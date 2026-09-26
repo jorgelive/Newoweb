@@ -87,6 +87,7 @@ final class RecalcularNoLeidosCommand extends Command
                 return Command::FAILURE;
             }
 
+            /** @var list<MessageConversation> $viejas */
             $viejas = $this->em->getRepository(MessageConversation::class)
                 ->createQueryBuilder('c')
                 ->where('c.status IN (:estados)')

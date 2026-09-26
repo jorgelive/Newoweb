@@ -45,13 +45,13 @@ final class BookingPullPersister implements ResetInterface
 
     /** @var array<string, mixed> Caché de mapa de unidad por clave, para no repetir consultas en el lote. */
     private array $cacheMaps = [];
-    /** @var array<string, mixed> Caché de país por clave, para no repetir consultas en el lote. */
+    /** @var array<string, MaestroPais> Caché de país por clave, para no repetir consultas en el lote. */
     private array $cachePaises = [];
-    /** @var array<string, mixed> Caché de idioma por clave, para no repetir consultas en el lote. */
+    /** @var array<string, MaestroIdioma> Caché de idioma por clave, para no repetir consultas en el lote. */
     private array $cacheIdiomas = [];
-    /** @var array<string, mixed> Caché de canal por clave, para no repetir consultas en el lote. */
+    /** @var array<string, PmsChannel> Caché de canal por clave, para no repetir consultas en el lote. */
     private array $cacheCanales = [];
-    /** @var array<string, mixed> Caché de estado de evento por clave, para no repetir consultas en el lote. */
+    /** @var array<string, PmsEventoEstado> Caché de estado de evento por clave, para no repetir consultas en el lote. */
     private array $cacheEstados = [];
 
     public function __construct(
@@ -801,8 +801,11 @@ final class BookingPullPersister implements ResetInterface
         // Fallback de seguridad si no vino status o no existe en BD
         if (!$estadoBase) {
             // Asumimos que la key 'SYS_PENDIENTE' es para nuestras búsquedas internas manuales
-            $estadoBase = $this->em->find(PmsEventoEstado::class, PmsEventoEstado::CODIGO_PENDIENTE)
-                ?? throw new RuntimeException('CRÍTICO: Maestro corrupto (falta PENDIENTE).');
+            $pendiente = $this->em->find(PmsEventoEstado::class, PmsEventoEstado::CODIGO_PENDIENTE);
+            if (!$pendiente instanceof PmsEventoEstado) {
+                throw new RuntimeException('CRÍTICO: Maestro corrupto (falta PENDIENTE).');
+            }
+            $estadoBase = $pendiente;
         }
 
         // 1. ESTADOS QUE NO SE TOCAN, venga del canal que venga.

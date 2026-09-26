@@ -133,6 +133,7 @@ final readonly class TravelPuntosDelServicio
             return null;
         }
 
+        /** @var TravelItinerarioSegmentoRel|null $rel */
         $rel = $this->em->getRepository(TravelItinerarioSegmentoRel::class)
             ->createQueryBuilder('r')
             ->andWhere('r.itinerario = :i')->setParameter('i', $itinerario->getId(), UuidType::NAME)

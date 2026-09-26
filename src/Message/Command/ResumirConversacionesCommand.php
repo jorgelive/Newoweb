@@ -64,6 +64,7 @@ final class ResumirConversacionesCommand extends Command
             $qb->andWhere('c.resumenIa IS NULL');
         }
 
+        /** @var list<MessageConversation> $conversaciones */
         $conversaciones = $qb->getQuery()->getResult();
 
         if ($conversaciones === []) {

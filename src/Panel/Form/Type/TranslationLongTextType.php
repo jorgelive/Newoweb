@@ -23,6 +23,7 @@ class TranslationLongTextType extends AbstractType
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        /** @var list<MaestroIdioma> $idiomas */
         $idiomas = $this->entityManager->getRepository(MaestroIdioma::class)
             ->createQueryBuilder('i')
             ->where('i.prioridad > :min')
@@ -35,7 +36,7 @@ class TranslationLongTextType extends AbstractType
         $choices = [];
         foreach ($idiomas as $idioma) {
             $flag = $idioma->getBandera() ?? '🏳️';
-            $label = $flag . ' ' . ucfirst($idioma->getNombre());
+            $label = $flag . ' ' . ucfirst($idioma->getNombre() ?? (string) $idioma->getId());   // sin nombre, su código
             $choices[$label] = $idioma->getId();
         }
 
@@ -60,6 +61,7 @@ class TranslationLongTextType extends AbstractType
 
     public function buildView(FormView $view, FormInterface $form, array $options): void
     {
+        /** @var list<MaestroIdioma> $idiomas */
         $idiomas = $this->entityManager->getRepository(MaestroIdioma::class)
             ->createQueryBuilder('i')
             ->where('i.prioridad > 0')
