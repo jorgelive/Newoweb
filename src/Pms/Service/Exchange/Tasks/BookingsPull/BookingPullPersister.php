@@ -197,15 +197,12 @@ final class BookingPullPersister implements ResetInterface
         // 4. DETECCIÓN DE JERARQUÍA
         $masterIdReal = $this->resolveMasterIdReal($booking);
 
-        $isSubReserva = false;
-        if ($masterIdReal !== null) {
-            $isSubReserva = $masterIdReal !== $bookingIdStr;
-        }
-
         // 5. GESTIÓN DE LA PMS RESERVA
         $reservaAction = 'none';
 
-        if ($isSubReserva) {
+        // Hija = tiene madre y no es ella misma. El `!== null` va en la condición y no en una
+        // variable aparte porque es lo que le dice al análisis que dentro `$masterIdReal` es texto.
+        if ($masterIdReal !== null && $masterIdReal !== $bookingIdStr) {
             // CASO HIJA: Reutilizar reserva padre
             $reserva = $this->resolveReservaFromMasterLink($masterIdReal);
 
@@ -307,11 +304,7 @@ final class BookingPullPersister implements ResetInterface
     }
 
     private function resolveEstablecimiento(Beds24Config $config, PmsUnidadBeds24Map $map): PmsEstablecimiento {
-        $establecimiento = $map->getPmsUnidad()->getEstablecimiento();
-
-        if (!$establecimiento) {
-            throw new \RuntimeException('La unidad mapeada no tiene un establecimiento asignado.');
-        }
+        $establecimiento = $map->getPmsUnidadOrFail()->getEstablecimientoOrFail();
 
         $idStr = (string) $establecimiento->getId();
 
@@ -496,7 +489,7 @@ final class BookingPullPersister implements ResetInterface
             // reserva se contradice a la primera; si el huésped tiene dos, se añaden como
             // identidades suyas desde el panel — ahí sí se puede decir cuál es el bueno.
             $bruto = $mobile !== '' ? $mobile : $phone;
-            $reserva->setTelefono($bruto !== '' ? $this->phoneSanitizer->cleanPhoneNumber($bruto, $pais->getId()) : null);
+            $reserva->setTelefono($bruto !== '' ? $this->phoneSanitizer->cleanPhoneNumber($bruto, $pais->getId() ?? 'PE') : null);
 
             // SOLO bloqueamos (cerramos candado) si llegó información sólida.
             //
@@ -572,8 +565,18 @@ final class BookingPullPersister implements ResetInterface
 
         if ($existingLink) {
             $evento = $existingLink->getEvento();
-            $unidadActual = $evento->getPmsUnidad();
-            $unidadNueva  = $map->getPmsUnidad();
+
+            // ⚠️ **Un link sin evento es un dato roto, no una reserva nueva.** El mapeo lo permite
+            // porque `removeBeds24Link()` lo suelta en memoria antes de borrarlo, pero un link
+            // leído de la base siempre lo tiene (914 de 914 el 26/09/2026). Estrenar un evento
+            // aquí sería duplicar la estancia; se para esta reserva y se dice cuál, igual que un
+            // mapeo que falta.
+            if ($evento === null) {
+                throw new RuntimeException("El link de Beds24 $bookIdStr existe pero no tiene evento: dato roto, no se duplica la estancia.");
+            }
+
+            $unidadActual = $evento->getPmsUnidadOrFail();
+            $unidadNueva  = $map->getPmsUnidadOrFail();
 
             if ($unidadActual->getId() !== $unidadNueva->getId()) {
                 $evento->setPmsUnidad($unidadNueva);
@@ -586,7 +589,7 @@ final class BookingPullPersister implements ResetInterface
         } else {
             $action = 'created';
             $evento = $this->eventoFactory->createFromBeds24Import(
-                unidad: $map->getPmsUnidad(),
+                unidad: $map->getPmsUnidadOrFail(),
                 fechaInicio: $booking->arrival,
                 fechaFin: $booking->departure,
                 beds24BookId: $bookIdStr,
@@ -612,7 +615,7 @@ final class BookingPullPersister implements ResetInterface
         // evento—, pero se prefiere una fila completa a una corrupta.
         // =====================================================================
         if ($isLinkPrincipal || $action === 'created') {
-            $est = $evento->getPmsUnidad()->getEstablecimiento();
+            $est = $evento->getPmsUnidadOrFail()->getEstablecimientoOrFail();
 
             $evento->setInicio($this->eventoFactory->resolveFechaConHora(
                 fechaYmd: $booking->arrival,
@@ -966,7 +969,7 @@ final class BookingPullPersister implements ResetInterface
 
                 if ($pais && $pais->getIdiomaDefault()) {
                     // ¡Bingo! El país nos chismeó qué idioma hablan
-                    $code = $pais->getIdiomaDefault()->getId();
+                    $code = (string) $pais->getIdiomaDefault()->getId();
                 }
             }
         }

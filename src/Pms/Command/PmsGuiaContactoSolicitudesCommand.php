@@ -75,7 +75,7 @@ final class PmsGuiaContactoSolicitudesCommand extends Command
             return Command::FAILURE;
         }
 
-        $contenido = $item->getDescripcion();
+        $contenido = $item->getDescripcion() ?? [];
         $indice = null;
 
         foreach ($contenido as $i => $fila) {

@@ -47,7 +47,7 @@ class PmsGuiaSeccionHasItem
 
     public function __toString(): string
     {
-        return $this->item ? $this->item->getNombreInterno() : 'Nueva Asignación';
+        return $this->item?->getNombreInterno() ?? 'Nueva Asignación';
     }
 
     // Getters y Setters

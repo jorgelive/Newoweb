@@ -299,7 +299,7 @@ final class PmsReservaCrudController extends BaseCrudController
         $templateLang = 'es'; // Fallback por defecto absoluto
 
         if ($idiomaEntity !== null) {
-            $internalLang = strtolower($idiomaEntity->getId());
+            $internalLang = strtolower((string) $idiomaEntity->getId());
             // Si el idioma de la reserva no tiene plantillas (prioridad 0), forzamos inglés
             $templateLang = ($idiomaEntity->getPrioridad() > 0) ? $internalLang : 'en';
         }
@@ -308,7 +308,7 @@ final class PmsReservaCrudController extends BaseCrudController
 
         if (!$cuerpoPlantilla) {
             $this->addFlash('warning', sprintf('La plantilla "%s" no tiene traducción disponible para el idioma seleccionado (%s).', $template->getName(), strtoupper($templateLang)));
-            return $this->redirect($context->getReferrer());
+            return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator->setAction(Action::INDEX)->generateUrl());
         }
 
         $variables = $this->messageDataResolver->getMessageVariables((string)$reserva->getId());
@@ -326,7 +326,7 @@ final class PmsReservaCrudController extends BaseCrudController
 
         if (empty($telefonoLimpio)) {
             $this->addFlash('warning', 'Esta reserva no tiene un número de teléfono válido.');
-            return $this->redirect($context->getReferrer());
+            return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator->setAction(Action::INDEX)->generateUrl());
         }
 
         $whatsappUrl = sprintf(

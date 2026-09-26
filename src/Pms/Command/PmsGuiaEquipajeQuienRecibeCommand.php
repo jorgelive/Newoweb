@@ -175,7 +175,7 @@ final class PmsGuiaEquipajeQuienRecibeCommand extends Command
         $tocado = false;
 
         // ── El texto del huésped ────────────────────────────────────────────
-        $descripcion = $item->getDescripcion();
+        $descripcion = $item->getDescripcion() ?? [];
         $indice = null;
 
         foreach ($descripcion as $i => $fila) {

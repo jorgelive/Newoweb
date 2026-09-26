@@ -42,19 +42,27 @@ final readonly class BookingsPullQueueProvider implements ExchangeQueueProviderI
 
         // Nota: En PULL, 'config' es crítico, pero 'endpoint' también para saber la URL.
         $representative = $items[0];
+        $config = $representative->getConfig();
+
+        // La misma guarda que ya tenía el PUSH: sin config no hay a quién preguntar, y el lote
+        // reventaba después, dentro del constructor, sin decir qué ítem era.
+        if (!$config) {
+            throw new RuntimeException("Integridad violada: Ítem PULL #{$representative->getId()} sin config.");
+        }
 
         if ($strictCheck && count($items) > 1) {
             // Pull suele ser de 1 en 1, pero si mandan varios, deben ser de la misma config.
-            $refId = (string) $representative->getConfig()->getId();
+            // Un ítem SIN config da '' y cae en la violación, que es lo que es.
+            $refId = (string) $config->getId();
             foreach ($items as $item) {
-                if ((string)$item->getConfig()->getId() !== $refId) {
+                if ((string) $item->getConfig()?->getId() !== $refId) {
                     throw new RuntimeException("Violación de homogeneidad en PULL manual.");
                 }
             }
         }
 
         return new HomogeneousBatch(
-            $representative->getConfig(),
+            $config,
             $representative->getEndpoint(),
             $items
         );

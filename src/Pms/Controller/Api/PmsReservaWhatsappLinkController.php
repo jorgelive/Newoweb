@@ -56,7 +56,7 @@ final class PmsReservaWhatsappLinkController extends AbstractController
         $idiomaEntity = $reserva->getIdioma();
         $templateLang = 'es';
         if ($idiomaEntity !== null) {
-            $internalLang = strtolower($idiomaEntity->getId());
+            $internalLang = strtolower((string) $idiomaEntity->getId());
             $templateLang = ($idiomaEntity->getPrioridad() > 0) ? $internalLang : 'en';
         }
 

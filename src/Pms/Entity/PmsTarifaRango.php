@@ -224,12 +224,33 @@ class PmsTarifaRango
     public function getId(): ?Uuid { return $this->id; }
 
     public function getUnidad(): ?PmsUnidad { return $this->unidad; }
+
+    /** `unidad_id` es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}. */
+    public function getUnidadOrFail(): PmsUnidad
+    {
+        return $this->unidad
+            ?? throw new \LogicException('Rango de tarifa sin unidad (la columna es NOT NULL): #' . ($this->id ?? 'nuevo'));
+    }
     public function setUnidad(?PmsUnidad $unidad): self { $this->unidad = $unidad; return $this; }
 
     public function getFechaInicio(): ?DateTimeInterface { return $this->fechaInicio; }
+
+    /** La columna es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}. */
+    public function getFechaInicioOrFail(): DateTimeInterface
+    {
+        return $this->fechaInicio
+            ?? throw new \LogicException('Rango de tarifa sin fecha de inicio (la columna es NOT NULL): #' . ($this->id ?? 'nuevo'));
+    }
     public function setFechaInicio(?DateTimeInterface $fechaInicio): self { $this->fechaInicio = $fechaInicio; return $this; }
 
     public function getFechaFin(): ?DateTimeInterface { return $this->fechaFin; }
+
+    /** La columna es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}. */
+    public function getFechaFinOrFail(): DateTimeInterface
+    {
+        return $this->fechaFin
+            ?? throw new \LogicException('Rango de tarifa sin fecha de fin (la columna es NOT NULL): #' . ($this->id ?? 'nuevo'));
+    }
     public function setFechaFin(?DateTimeInterface $fechaFin): self { $this->fechaFin = $fechaFin; return $this; }
 
     public function getPrecio(): ?string { return $this->precio; }

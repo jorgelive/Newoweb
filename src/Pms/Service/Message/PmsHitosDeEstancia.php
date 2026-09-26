@@ -146,8 +146,9 @@ final readonly class PmsHitosDeEstancia
         $bloques = [];
 
         foreach ($tramos as $tramo) {
-            $inicio = $tramo->getInicio();
-            $fin = $tramo->getFin();
+            // Eventos guardados de una reserva: `inicio` y `fin` son NOT NULL.
+            $inicio = $tramo->getInicioOrFail();
+            $fin = $tramo->getFinOrFail();
             $unidad = $tramo->getPmsUnidad()?->getNombre() ?? '—';
             $ultimo = $bloques === [] ? null : $bloques[count($bloques) - 1];
 

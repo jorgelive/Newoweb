@@ -164,7 +164,7 @@ final class PmsGuiaMotosCommand extends Command
 
         $agente = (string) $item->getAgenteContenido();
         $cuerpo = '';
-        $i18n = $item->getDescripcion();
+        $i18n = $item->getDescripcion() ?? [];
 
         foreach ($i18n as $fila) {
             if (($fila['language'] ?? null) === 'es') {

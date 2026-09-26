@@ -325,9 +325,12 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
             return self::BEDS24_CANCELLED;
         }
 
-        // Las validaciones de integridad superiores garantizan que estos objetos existen.
-        // Se remueve el nullsafe operator (?->) para cumplir con el rigor de la estructura esperada.
-        $codigo = $queue->getLink()->getEvento()->getEstado()?->getCodigoBeds24();
+        // Las validaciones de integridad superiores garantizan que link y evento existen. Si un
+        // día no, que lo diga con la cola delante: antes era un «Call to a member function on
+        // null» sin id.
+        $evento = $queue->getLink()?->getEvento()
+            ?? throw new RuntimeException("Cola de push #{$queue->getId()} sin link o sin evento: no se puede decidir el estado.");
+        $codigo = $evento->getEstado()?->getCodigoBeds24();
 
         return $codigo ?: 'confirmed';
     }

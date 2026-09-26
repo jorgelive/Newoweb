@@ -84,6 +84,13 @@ class PmsUnidadBeds24Map
     // ... (Getters y Setters se mantienen igual) ...
 
     public function getPmsUnidad(): ?PmsUnidad { return $this->pmsUnidad; }
+
+    /** `pms_unidad_id` es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}. */
+    public function getPmsUnidadOrFail(): PmsUnidad
+    {
+        return $this->pmsUnidad
+            ?? throw new \LogicException('Mapeo de Beds24 sin unidad (la columna es NOT NULL): #' . ($this->id ?? 'nuevo'));
+    }
     public function setPmsUnidad(?PmsUnidad $pmsUnidad): self { $this->pmsUnidad = $pmsUnidad; return $this; }
 
     public function getVirtualEstablecimiento(): ?PmsEstablecimientoVirtual { return $this->virtualEstablecimiento; }

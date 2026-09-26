@@ -71,8 +71,9 @@ final readonly class RatesPushQueueProvider implements ExchangeQueueProviderInte
             $refEndpointId = (string) $endpoint->getId();
 
             foreach ($items as $item) {
-                if ((string)$item->getConfig()->getId() !== $refConfigId ||
-                    (string)$item->getEndpoint()->getId() !== $refEndpointId) {
+                // Un ítem SIN config da '' y cae en el lote mixto, que es lo que es.
+                if ((string) $item->getConfig()?->getId() !== $refConfigId ||
+                    (string) $item->getEndpoint()->getId() !== $refEndpointId) {
                     throw new RuntimeException(
                         "Error Crítico: Intento de procesar un lote mixto en modo manual. " .
                         "El Caller debe agrupar los IDs por Config y Endpoint antes de enviar."

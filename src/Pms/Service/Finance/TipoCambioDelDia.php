@@ -80,7 +80,13 @@ final class TipoCambioDelDia
                 return $this->memoria[$clave] ?: null;
             }
 
-            return $this->memoria[$clave] = ($this->manager->getTipodecambio($dia) ?? false) ?: null;
+            // ⚠️ `false` en la memoria significa «ese día no hay», y se guarda así a propósito.
+            // Antes el `?: null` se aplicaba ANTES de asignar, así que se memorizaba `null` —que
+            // funcionaba por casualidad y contradecía el tipo declarado de la memoria—.
+            $valor = $this->manager->getTipodecambio($dia) ?? false;
+            $this->memoria[$clave] = $valor;
+
+            return $valor ?: null;
         } catch (Throwable $e) {
             $this->logger->warning('No se pudo obtener el tipo de cambio del día: ' . $e->getMessage());
             return null;

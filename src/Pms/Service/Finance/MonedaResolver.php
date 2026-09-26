@@ -36,8 +36,11 @@ final class MonedaResolver
             return $this->cache[$id];
         }
 
+        // `getReference()` también puede devolver null en Doctrine 3. Sin la moneda por defecto
+        // en la base no hay a qué caer, y un null aquí saldría como importe sin moneda.
         $moneda = $this->em->find(MaestroMoneda::class, $id)
-            ?? $this->em->getReference(MaestroMoneda::class, MaestroMoneda::DB_ID_USD);
+            ?? $this->em->getReference(MaestroMoneda::class, MaestroMoneda::DB_ID_USD)
+            ?? throw new \LogicException('No existe la moneda por defecto (USD) en maestro_moneda.');
 
         return $this->cache[$id] = $moneda;
     }

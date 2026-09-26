@@ -566,6 +566,24 @@ class PmsEventoCalendario
 
     #[Groups(['pax_reserva:read'])]
     public function getPmsUnidad(): ?PmsUnidad { return $this->pmsUnidad; }
+
+    /**
+     * La unidad de un evento YA GUARDADO, que siempre la tiene: `pms_unidad_id` es `NOT NULL`.
+     *
+     * ⚠️ El getter nulable se queda para la entidad a medio construir (el formulario, la
+     * factoría antes del `set`). Esto es para el código que opera sobre eventos persistidos —la
+     * sincronización, las colas—, donde un `null` no es un caso: es un dato roto, y tiene que
+     * decir cuál en vez de reventar en la línea siguiente con «Call to a member function on
+     * null». Criterio en `docs/PmsBeds24ReservasSync.md`, «Nulos: decide el dominio».
+     *
+     * ⚠️ **La reserva NO tiene su `OrFail`, a propósito**: un evento sin reserva es un caso de
+     * negocio —los bloqueos—, no un dato roto.
+     */
+    public function getPmsUnidadOrFail(): PmsUnidad
+    {
+        return $this->pmsUnidad
+            ?? throw new \LogicException('Evento sin unidad (pms_unidad_id es NOT NULL): #' . ($this->id ?? 'nuevo'));
+    }
     public function setPmsUnidad(?PmsUnidad $pmsUnidad): self { $this->pmsUnidad = $pmsUnidad; return $this; }
 
     #[Groups(['pax_reserva:read'])]
@@ -705,10 +723,24 @@ class PmsEventoCalendario
 
     #[Groups(['pax_reserva:read'])]
     public function getInicio(): ?DateTimeInterface { return $this->inicio; }
+
+    /** Ver {@see self::getPmsUnidadOrFail()}: la columna `inicio` es NOT NULL. */
+    public function getInicioOrFail(): DateTimeInterface
+    {
+        return $this->inicio
+            ?? throw new \LogicException('Evento sin fecha de inicio (la columna es NOT NULL): #' . ($this->id ?? 'nuevo'));
+    }
     public function setInicio(?DateTimeInterface $inicio): self { $this->inicio = $inicio; return $this; }
 
     #[Groups(['pax_reserva:read'])]
     public function getFin(): ?DateTimeInterface { return $this->fin; }
+
+    /** Ver {@see self::getPmsUnidadOrFail()}: la columna `fin` es NOT NULL. */
+    public function getFinOrFail(): DateTimeInterface
+    {
+        return $this->fin
+            ?? throw new \LogicException('Evento sin fecha de fin (la columna es NOT NULL): #' . ($this->id ?? 'nuevo'));
+    }
     public function setFin(?DateTimeInterface $fin): self { $this->fin = $fin; return $this; }
 
     public function getDescripcion(): ?string { return $this->descripcion; }

@@ -175,7 +175,7 @@ final class PmsGuiaEquipajeCommand extends Command
         }
 
         // ── 2. La de horarios se queda con las horas y el enlace ────────────
-        $cuerpo = $horarios->getDescripcion();
+        $cuerpo = $horarios->getDescripcion() ?? [];
         $indice = null;
 
         foreach ($cuerpo as $i => $fila) {
@@ -198,7 +198,7 @@ final class PmsGuiaEquipajeCommand extends Command
 
             if (!$simular) {
                 $cuerpo[$indice]['content'] = self::HORARIOS;
-                $horarios->setDescripcion(array_values($cuerpo))->setAgenteContenido(self::HORARIOS_AGENTE);
+                $horarios->setDescripcion($cuerpo)->setAgenteContenido(self::HORARIOS_AGENTE);
             }
         }
 

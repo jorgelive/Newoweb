@@ -260,9 +260,23 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface, MemoryCleanableIn
     }
 
     public function getFechaInicio(): ?DateTimeInterface { return $this->fechaInicio; }
+
+    /** La columna es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}. */
+    public function getFechaInicioOrFail(): DateTimeInterface
+    {
+        return $this->fechaInicio
+            ?? throw new \LogicException('Cola de tarifas sin fecha de inicio (la columna es NOT NULL): #' . ($this->id ?? 'nuevo'));
+    }
     public function setFechaInicio(?DateTimeInterface $d): self { $this->fechaInicio = $d; return $this; }
 
     public function getFechaFin(): ?DateTimeInterface { return $this->fechaFin; }
+
+    /** La columna es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}. */
+    public function getFechaFinOrFail(): DateTimeInterface
+    {
+        return $this->fechaFin
+            ?? throw new \LogicException('Cola de tarifas sin fecha de fin (la columna es NOT NULL): #' . ($this->id ?? 'nuevo'));
+    }
     public function setFechaFin(?DateTimeInterface $d): self { $this->fechaFin = $d; return $this; }
 
     public function getPrecio(): ?string { return $this->precio; }

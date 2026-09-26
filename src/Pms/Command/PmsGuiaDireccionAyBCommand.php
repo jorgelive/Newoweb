@@ -84,7 +84,7 @@ final class PmsGuiaDireccionAyBCommand extends Command
             return Command::FAILURE;
         }
 
-        $contenido = $item->getDescripcion();
+        $contenido = $item->getDescripcion() ?? [];
         $indice = null;
 
         foreach ($contenido as $i => $fila) {
@@ -115,7 +115,7 @@ final class PmsGuiaDireccionAyBCommand extends Command
                 $contenido[$indice]['content'] = $nuevo;
                 // `array_values` para que siga siendo una lista: el setter la pide así y una clave
                 // reasignada basta para que PHPStan deje de verla como tal.
-                $item->setDescripcion(array_values($contenido));
+                $item->setDescripcion($contenido);
             }
         }
 

@@ -33,7 +33,8 @@ final class PmsReservaIntegrityListener
             return;
         }
 
-        $paisIso = $entity->getPais() ? $entity->getPais()->getId() : 'PE';
+        // Sin país, o con un país sin id (una entidad a medio crear), el mismo default: Perú.
+        $paisIso = $entity->getPais()?->getId() ?? 'PE';
 
         $tel1 = $entity->getTelefono();
         if ($tel1 !== null && $tel1 !== '') {
@@ -53,7 +54,8 @@ final class PmsReservaIntegrityListener
             return;
         }
 
-        $paisIso = $entity->getPais() ? $entity->getPais()->getId() : 'PE';
+        // Sin país, o con un país sin id (una entidad a medio crear), el mismo default: Perú.
+        $paisIso = $entity->getPais()?->getId() ?? 'PE';
 
         if ($args->hasChangedField('telefono')) {
             $newTel1 = (string) $args->getNewValue('telefono');

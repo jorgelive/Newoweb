@@ -85,7 +85,7 @@ final class PmsGuiaMediosPorMarcadorCommand extends Command
                 return Command::FAILURE;
             }
 
-            $contenido = $item->getDescripcion();
+            $contenido = $item->getDescripcion() ?? [];
             $indice = null;
 
             foreach ($contenido as $i => $fila) {
@@ -116,7 +116,7 @@ final class PmsGuiaMediosPorMarcadorCommand extends Command
                 $contenido[$indice]['content'] = $nuevo;
                 // `array_values`: el setter pide una lista y reasignar una clave basta para que
                 // deje de serlo a ojos del análisis.
-                $item->setDescripcion(array_values($contenido));
+                $item->setDescripcion($contenido);
             }
         }
 

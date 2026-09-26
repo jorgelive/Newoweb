@@ -22,7 +22,7 @@ class PmsSegmentationProvider implements MessageSegmentationProviderInterface
         foreach ($canales as $canal) {
             // Le ponemos un emoji o prefijo visual para distinguirlo en el futuro de los Tours
             $label = '🏨 ' . $canal->getNombre();
-            $choices[$label] = $canal->getId();
+            $choices[$label] = (string) $canal->getId();
         }
 
         return $choices;

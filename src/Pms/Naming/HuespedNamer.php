@@ -19,7 +19,10 @@ class HuespedNamer implements NamerInterface
             throw new \InvalidArgumentException('Entidad no soportada. Se esperaba PmsReservaHuesped.');
         }
 
-        $file = $mapping->getFile($object);
+        // Vich sólo llama al namer cuando hay fichero que nombrar; si llegara sin él, que lo diga
+        // aquí y no como «Call to a member function guessExtension() on null» tres líneas abajo.
+        $file = $mapping->getFile($object)
+            ?? throw new \InvalidArgumentException('El namer de huéspedes se llamó sin fichero.');
         $slugger = new AsciiSlugger();
 
         // 1. EXTENSIÓN: Confiamos ciegamente en el objeto UploadedFile.

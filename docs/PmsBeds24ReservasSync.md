@@ -37,6 +37,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
 12.16. [Beds24 manda UTC y no lo dice](#1216-beds24-manda-utc-y-no-lo-dice-08092026)
     · [Corrección 10/09/2026: los mensajes también vienen en UTC](#-corrección-del-10092026-los-mensajes-también-vienen-en-utc)
 12.17. [Los emojis llegan como `?`](#1217-los-emojis-llegan-como--y-no-es-culpa-nuestra-08092026)
+12.19. [Nulos: decide el dominio, no los datos](#1219-nulos-decide-el-dominio-no-los-datos-26092026)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
 > Horario extra (early check-in / late check-out → evento `extension` invisible): §7.1.b.
@@ -5977,10 +5978,69 @@ Los **49 cargos, 20 pagos y 18 fichas** sellados con la tasa del 26/08 siguen as
 falta un modo aparte, y decidir si se re-sella un hecho histórico o se deja constancia de que fue
 estimado. Anotado en `docs/Pendientes.md`.
 
+## 12.19 Nulos: decide el dominio, no los datos (26/09/2026)
+
+Al subir PHPStan hacia el **nivel 8** —el que revisa lo que puede ser `null`— el módulo Pms tenía
+96 avisos, 35 de ellos en `BookingPullPersister`. Casi todos colgaban de cinco getters nulables
+sobre columnas que en la base son `NOT NULL`.
+
+**La trampa estaba en cómo decidir.** La primera idea fue «si en producción nunca es `null`, se
+aprieta el tipo». Es falsa: una cuenta de filas es una foto. Un `PmsEventoCalendario` **puede no
+tener reserva, y eso pasa en los bloqueos**. Medido el 26/09/2026:
+
+| Estado | Eventos | Sin reserva | Sin reserva y enlazados a Beds24 |
+|---|---|---|---|
+| Bloqueo | 4 | **2** | **2** |
+| Confirmada / Cancelada / Pendiente / Abierto | 453 | 0 | 0 |
+
+Medido en otro momento, sin bloqueos vivos, habría salido «0 eventos sin reserva», y poner la
+reserva como obligatoria habría **roto la sincronización de los bloqueos**.
+
+**La regla:**
+
+| El dominio dice… | Qué se hace |
+|---|---|
+| No puede faltar (columna `NOT NULL`, y ningún caso de negocio la deja vacía) | Un accesor `getXOrFail()` que lanza `LogicException` **nombrando el dato**. El getter nulable se queda para la entidad a medio construir |
+| Puede faltar por un caso de negocio (el bloqueo sin reserva) | Se queda nulable, y el código que lo lee lo trata como caso |
+| Puede faltar por un estado transitorio en memoria (el link al que `removeBeds24Link()` suelta su evento) | Si llega así desde la base es un dato roto: se para ESA reserva con una excepción que dice cuál, no se estrena otra |
+
+Y los nulos se miden **agrupados por estado o tipo**, nunca en total.
+
+⚠️ **Nada de `?->` para callar al analizador.** Cambia un error que se ve por un `null` que pasa
+en silencio, que es la familia de fallo que más caro ha salido aquí.
+
+Los accesores que existen, todos sobre columnas `NOT NULL`:
+
+| Accesor | Qué garantiza |
+|---|---|
+| `PmsEventoCalendario::getPmsUnidadOrFail()`, `getInicioOrFail()`, `getFinOrFail()` | unidad y fechas del evento |
+| `PmsUnidad::getEstablecimientoOrFail()` | el establecimiento de la unidad |
+| `PmsEstablecimiento::getBeds24ConfigOrFail()` | la configuración de Beds24 |
+| `PmsUnidadBeds24Map::getPmsUnidadOrFail()` | la unidad del mapeo |
+| `PmsTarifaRango::getUnidadOrFail()`, `getFechaInicioOrFail()`, `getFechaFinOrFail()` | unidad y fechas del rango |
+| `PmsRatesPushQueue::getFechaInicioOrFail()`, `getFechaFinOrFail()` | fechas de la cola de tarifas |
+
+⚠️ **Y `PmsEventoCalendario::getReservaOrFail()` NO existe, a propósito.** Lo fija
+`NulosDelDominioTest`: el día que alguien lo añada para callar al analizador, el test le dice por
+qué no.
+
+⚠️ **El pull y el webhook capturan cualquier `Throwable` por reserva**, así que un `LogicException`
+de estos se comporta como el `RuntimeException` de un mapeo que falta: esa reserva sale como fallida
+con su motivo y las demás siguen.
+
+Dos arreglos que salieron por el camino y no eran sólo de tipos:
+
+- `Beds24RatesPushQueueListener::minDate()`/`maxDate()` aceptaban dos nulos y acababan en
+  `createFromInterface(null)`: un `TypeError` dentro de un `onFlush`, o sea el guardado entero.
+  Ahora el segundo —la fecha actual del rango— es obligatorio.
+- `TipoCambioDelDia` memorizaba `null` en vez de `false` para «ese día no hay»: el `?: null` se
+  aplicaba antes de asignar. Funcionaba por casualidad y contradecía el tipo de su propia memoria.
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
+| Un dato obligatorio del PMS que llega `null` (unidad, fechas, config de Beds24) | la entidad | su `getXOrFail()`, §12.19 — y NUNCA uno para la reserva del evento |
 | Cambiar cómo se normaliza un nombre que llega en mayúsculas | `NombreSanitizer` | `formatear()` — sólo actúa si NO hay ninguna minúscula; se llama desde `BookingPullPersister::upsert()` |
 | Cambiar cuándo se revisa si nombre y apellido vienen cruzados | `OrdenDelNombre` + `PmsNombreOrdenListener` | `mereceRevision()` / `esNuestroIntercambio()` — el corta-bucles |
 | Cambiar el criterio con que el modelo juzga el orden | **`RevisorDeOrdenDeNombre`** | `reglas()` y `esquema()` — el modelo NUNCA devuelve el nombre |

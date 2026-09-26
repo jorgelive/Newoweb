@@ -222,6 +222,13 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
 
 
     public function getBeds24Config(): ?Beds24Config { return $this->beds24Config; }
+
+    /** `beds24_config_id` es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}. */
+    public function getBeds24ConfigOrFail(): Beds24Config
+    {
+        return $this->beds24Config
+            ?? throw new \LogicException('Establecimiento sin configuración de Beds24 (la columna es NOT NULL): #' . ($this->id ?? 'nuevo'));
+    }
     public function setBeds24Config(?Beds24Config $beds24Config): self { $this->beds24Config = $beds24Config; return $this; }
 
 

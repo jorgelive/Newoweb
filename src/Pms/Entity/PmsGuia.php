@@ -325,7 +325,7 @@ class PmsGuia
                 $content = $item['content'] ?? null;
 
                 // 2. Validamos si es español y tiene contenido real
-                if ($lang === 'es' && !empty(trim($content))) {
+                if ($lang === 'es' && trim((string) $content) !== '') {
                     $espanolEncontrado = true;
                     break;
                 }

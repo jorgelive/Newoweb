@@ -81,7 +81,10 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
             $qb->andWhere('m.pmsUnidad IN (:unidades)')
                 ->setParameter(
                     'unidades',
-                    array_map(static fn (PmsUnidad $u) => $u->getId()->toBinary(), $unidades),
+                    // Una unidad sin id no está en la base, así que no puede tener mapeos: se
+                    // descarta en vez de reventar. Si no queda ninguna, `IN (NULL)` no casa nada,
+                    // que es la respuesta correcta a «los mapeos de estas unidades».
+                    array_values(array_filter(array_map(static fn (PmsUnidad $u) => $u->getId()?->toBinary(), $unidades))),
                     ArrayParameterType::BINARY
                 );
         }
@@ -121,7 +124,10 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
             $qb->andWhere('m.pmsUnidad IN (:unidades)')
                 ->setParameter(
                     'unidades',
-                    array_map(static fn (PmsUnidad $u) => $u->getId()->toBinary(), $unidades),
+                    // Una unidad sin id no está en la base, así que no puede tener mapeos: se
+                    // descarta en vez de reventar. Si no queda ninguna, `IN (NULL)` no casa nada,
+                    // que es la respuesta correcta a «los mapeos de estas unidades».
+                    array_values(array_filter(array_map(static fn (PmsUnidad $u) => $u->getId()?->toBinary(), $unidades))),
                     ArrayParameterType::BINARY
                 );
         }

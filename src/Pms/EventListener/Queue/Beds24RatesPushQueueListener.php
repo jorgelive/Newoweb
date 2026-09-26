@@ -62,10 +62,11 @@ final class Beds24RatesPushQueueListener
     private function processTarifaRango(UnitOfWork $uow, PmsTarifaRango $rango): void
     {
         $changeSet = $uow->getEntityChangeSet($rango);
-        $newUnidad = $rango->getUnidad();
+        // Unidad y fechas son `NOT NULL`, y el rango ya pasó la validación para llegar al flush.
+        $newUnidad = $rango->getUnidadOrFail();
 
-        $from = $this->minDate($this->getOldValue($changeSet, 'fechaInicio'), $rango->getFechaInicio());
-        $to   = $this->maxDate($this->getOldValue($changeSet, 'fechaFin'), $rango->getFechaFin());
+        $from = $this->minDate($this->getOldValue($changeSet, 'fechaInicio'), $rango->getFechaInicioOrFail());
+        $to   = $this->maxDate($this->getOldValue($changeSet, 'fechaFin'), $rango->getFechaFinOrFail());
 
         $isDelete = ($this->getOldValue($changeSet, 'activo') === true && $rango->isActivo() === false);
 
@@ -83,9 +84,9 @@ final class Beds24RatesPushQueueListener
     private function processTarifaRangoDeletion(UnitOfWork $uow, PmsTarifaRango $rango): void
     {
         $ids = $this->queueCreator->enqueueForInterval(
-            $rango->getUnidad(),
-            $rango->getFechaInicio(),
-            $rango->getFechaFin(),
+            $rango->getUnidadOrFail(),
+            $rango->getFechaInicioOrFail(),
+            $rango->getFechaFinOrFail(),
             $rango,
             true,
             $uow
@@ -117,15 +118,19 @@ final class Beds24RatesPushQueueListener
         return is_array($cambio) ? ($cambio[0] ?? null) : null;
     }
 
-    private function minDate(?DateTimeInterface $a, ?DateTimeInterface $b): DateTimeInterface {
-        if (!$a) return DateTimeImmutable::createFromInterface($b);
-        if (!$b) return DateTimeImmutable::createFromInterface($a);
-        return $a < $b ? DateTimeImmutable::createFromInterface($a) : DateTimeImmutable::createFromInterface($b);
+    /**
+     * La más temprana entre el valor ANTERIOR (puede faltar: no cambió, o el rango es nuevo) y el
+     * actual, que existe siempre. Con los dos nulables, «ninguno» acababa en
+     * `createFromInterface(null)`: un `TypeError` dentro de un `onFlush`, o sea el guardado entero.
+     */
+    private function minDate(mixed $anterior, DateTimeInterface $actual): DateTimeInterface {
+        if (!$anterior instanceof DateTimeInterface) return DateTimeImmutable::createFromInterface($actual);
+        return $anterior < $actual ? DateTimeImmutable::createFromInterface($anterior) : DateTimeImmutable::createFromInterface($actual);
     }
 
-    private function maxDate(?DateTimeInterface $a, ?DateTimeInterface $b): DateTimeInterface {
-        if (!$a) return DateTimeImmutable::createFromInterface($b);
-        if (!$b) return DateTimeImmutable::createFromInterface($a);
-        return $a > $b ? DateTimeImmutable::createFromInterface($a) : DateTimeImmutable::createFromInterface($b);
+    /** El espejo de {@see self::minDate()}. */
+    private function maxDate(mixed $anterior, DateTimeInterface $actual): DateTimeInterface {
+        if (!$anterior instanceof DateTimeInterface) return DateTimeImmutable::createFromInterface($actual);
+        return $anterior > $actual ? DateTimeImmutable::createFromInterface($anterior) : DateTimeImmutable::createFromInterface($actual);
     }
 }

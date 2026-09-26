@@ -33,7 +33,15 @@ final readonly class Beds24InvoiceReceiveQueueProvider implements ExchangeQueueP
         if (empty($items)) {
             return null;
         }
-        return new HomogeneousBatch($items[0]->getConfig(), $items[0]->getEndpoint(), $items);
+
+        // La misma guarda que los demás proveedores: sin config el lote reventaba dentro del
+        // constructor, sin decir qué ítem era.
+        $config = $items[0]->getConfig();
+        if ($config === null) {
+            throw new \RuntimeException('Integridad violada: ítem de facturas sin config.');
+        }
+
+        return new HomogeneousBatch($config, $items[0]->getEndpoint(), $items);
     }
 
     /**

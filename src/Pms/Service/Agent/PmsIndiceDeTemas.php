@@ -143,7 +143,7 @@ final readonly class PmsIndiceDeTemas implements IndiceDeTemasInterface
             }
 
             // «Ducha (casa 3)» → «Ducha»: siete fichas del mismo tema son un aviso, no siete.
-            $nombre = trim(preg_replace('/\s*\((?:casa|general)[^)]*\)\s*$/i', '', $item->getNombreInterno()) ?? '');
+            $nombre = trim(preg_replace('/\s*\((?:casa|general)[^)]*\)\s*$/i', '', (string) $item->getNombreInterno()) ?? '');
 
             // Basta con que UNA de las fichas del tema sea específica para que el tema lo sea:
             // «Ducha» tiene siete, y aunque alguna se pareciese a la genérica, el huésped tiene
@@ -183,7 +183,7 @@ final readonly class PmsIndiceDeTemas implements IndiceDeTemasInterface
         // Quien decide sigue siendo quien escribe la ficha; esto sólo le pone delante en qué
         // fijarse.
         // Una ficha por casita: el grifo de la ducha no es el mismo en todas.
-        if (preg_match('/\(casa\s/i', $item->getNombreInterno()) === 1) {
+        if (preg_match('/\(casa\s/i', (string) $item->getNombreInterno()) === 1) {
             return 'tiene una ficha distinta por casita';
         }
 
@@ -405,7 +405,9 @@ final readonly class PmsIndiceDeTemas implements IndiceDeTemasInterface
      * índice es interno del clasificador, que entiende el tema en español escriba el huésped
      * en el idioma que escriba.
      *
-     * @param list<array{language?: string, content?: string}> $i18n
+     * El `content` puede venir nulo —una traducción que falló—, y ya se trata como vacío abajo.
+     *
+     * @param list<array{language?: string, content?: string|null}> $i18n
      */
     private function enEspanol(array $i18n): string
     {

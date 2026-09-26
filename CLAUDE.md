@@ -54,6 +54,16 @@
   `[viejo, nuevo]` cuando en una colección es una `PersistentCollection`. **Ninguno daba error
   hoy.** El detalle está en la cabecera de `phpstan.dist.neon`.
 
+  **Camino al 8 (el de los `null`), por módulos.** Medido el 26/09/2026: 240 avisos en 91
+  archivos. `src/Pms` ya pasa el 8 (eran 96); faltan Message, Agent, Api y sueltos. No se sube el
+  nivel en `phpstan.dist.neon` hasta que pase el proyecto entero. Para comprobar un módulo:
+  `vendor/bin/phpstan analyse --level=8 src/Pms`.
+
+  ⚠️ **Un nulable no se aprieta porque hoy no haya nulos: lo decide el dominio.** Un evento sin
+  reserva parece un dato roto y es un **bloqueo**. La regla y los `getXOrFail()` que existen están
+  en `docs/PmsBeds24ReservasSync.md` §12.19. Y nada de `?->` para callar al analizador: cambia un
+  error que se ve por un `null` que pasa en silencio.
+
   ⚠️ **Pero el 6 no cierra `mixed`, y por ahí volvió a entrar (30/08/2026).** Nivel 6 **no
   comprueba llamadas de método sobre `mixed`** —eso es `checkExplicitMixed`, del 9—, y
   `->getQuery()->getResult()` de Doctrine devuelve exactamente eso. Un comando llamaba a

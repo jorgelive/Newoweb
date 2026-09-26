@@ -58,7 +58,8 @@ final readonly class BookingsPushQueueProvider implements ExchangeQueueProviderI
         if ($strictCheck && count($items) > 1) {
             $refId = (string) $config->getId();
             foreach ($items as $item) {
-                if ((string)$item->getConfig()->getId() !== $refId) {
+                // Un ítem SIN config da '' y cae en la violación, que es lo que es.
+                if ((string) $item->getConfig()?->getId() !== $refId) {
                     throw new RuntimeException("Violación de homogeneidad en PUSH manual.");
                 }
             }

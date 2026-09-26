@@ -90,6 +90,10 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
         $providerVal = $endpoint->getProvider()?->value ?? ConnectivityProvider::BEDS24->value;
         $dedupeKey = sprintf('link:%s:provider:%s:endpoint:%s', $linkId, $providerVal, $endpoint->getAccion());
 
+        // La configuración de Beds24 de este mapeo. Mapeo → unidad → establecimiento → config son
+        // las tres `NOT NULL` en la base: un eslabón vacío es un dato roto y lo dice el `OrFail`.
+        $config = $map->getPmsUnidadOrFail()->getEstablecimientoOrFail()->getBeds24ConfigOrFail();
+
         // 4. Snapshot de datos (Payload JSON)
         $payload = [
             'linkId'       => $linkId,
@@ -99,7 +103,7 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
             'fin'          => $evento?->getFin()?->format('c'),
             'estado'       => $evento?->getEstado()?->getId(),
             'beds24RoomId' => $map->getBeds24RoomId(),
-            'configId'     => $map->getPmsUnidad()->getEstablecimiento()->getBeds24Config()?->getId() ? (string) $map->getPmsUnidad()->getEstablecimiento()->getBeds24Config()->getId() : null,
+            'configId'     => $config->getId() !== null ? (string) $config->getId() : null,
         ];
 
         $json = json_encode(value: $payload, flags: JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -119,7 +123,7 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
 
                 // Si cambió, reciclamos la tarea existente
                 $existingQueue
-                    ->setConfig($map->getPmsUnidad()->getEstablecimiento()->getBeds24Config())
+                    ->setConfig($config)
                     ->setEndpoint($endpoint)
                     ->setPayloadHash($payloadHash)
                     ->setStatus(PmsBookingsPushQueue::STATUS_PENDING)
@@ -144,7 +148,7 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
 
         // 6. CREACIÓN NUEVA (USANDO FACTORY)
         $queue = $this->factory->create(
-            config: $map->getPmsUnidad()->getEstablecimiento()->getBeds24Config(),
+            config: $config,
             endpoint: $endpoint
         );
 

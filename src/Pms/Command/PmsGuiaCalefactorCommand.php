@@ -115,7 +115,7 @@ final class PmsGuiaCalefactorCommand extends Command
             return Command::FAILURE;
         }
 
-        $descripcion = $item->getDescripcion();
+        $descripcion = $item->getDescripcion() ?? [];
         $indice = null;
 
         foreach ($descripcion as $i => $fila) {

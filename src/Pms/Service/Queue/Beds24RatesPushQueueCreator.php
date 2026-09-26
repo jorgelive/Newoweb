@@ -131,7 +131,7 @@ class Beds24RatesPushQueueCreator
                     unidad: $unidad,
                     endpoint: $endpoint,
                     map: $map,
-                    config: $map->getPmsUnidad()->getEstablecimiento()->getBeds24Config()
+                    config: $map->getPmsUnidadOrFail()->getEstablecimientoOrFail()->getBeds24ConfigOrFail()
                 );
                 $queue->setFechaInicio($lr->getStart())
                     ->setFechaFin($lr->getEnd())
@@ -168,8 +168,8 @@ class Beds24RatesPushQueueCreator
             $iterations++;
             foreach ($pendingQueues as $q) {
                 if ($q->getStatus() !== PmsRatesPushQueue::STATUS_PENDING) continue;
-                $qStart = $this->toDay($q->getFechaInicio());
-                $qEnd   = $this->toDay($q->getFechaFin());
+                $qStart = $this->toDay($q->getFechaInicioOrFail());
+                $qEnd   = $this->toDay($q->getFechaFinOrFail());
                 if ($qStart < $to && $qEnd > $from) {
                     if ($qStart < $from) { $from = $qStart; $hasExpanded = true; }
                     if ($qEnd > $to) { $to = $qEnd; $hasExpanded = true; }
@@ -186,8 +186,8 @@ class Beds24RatesPushQueueCreator
         foreach ($queues as $q) {
             if ($q->getUnidadBeds24Map() !== $map) continue;
             if ($q->getStatus() === PmsRatesPushQueue::STATUS_PROCESSING || $q->getStatus() === PmsRatesPushQueue::STATUS_SUCCESS) continue;
-            $qStart = $this->toDay($q->getFechaInicio());
-            $qEnd   = $this->toDay($q->getFechaFin());
+            $qStart = $this->toDay($q->getFechaInicioOrFail());
+            $qEnd   = $this->toDay($q->getFechaFinOrFail());
             if ($qStart < $end && $qEnd > $start) {
                 if ($this->em->contains($q)) {
                     $q->setStatus(PmsRatesPushQueue::STATUS_CANCELED);
@@ -216,7 +216,7 @@ class Beds24RatesPushQueueCreator
     private function fetchActiveMaps(PmsUnidad $u): array { return $this->em->getRepository(PmsUnidadBeds24Map::class)->findBy(['pmsUnidad' => $u, 'activo' => true]); }
     private function createRangeAccessor(): callable {
         return fn(PmsTarifaRango $r) => [
-            'start' => $this->toDay($r->getFechaInicio()), 'end' => $this->toDay($r->getFechaFin()),
+            'start' => $this->toDay($r->getFechaInicioOrFail()), 'end' => $this->toDay($r->getFechaFinOrFail()),
             'price' => $r->getPrecio(), 'minStay' => $r->getMinStay(),
             'currency' => $r->getMoneda()?->getId(), 'important' => $r->isImportante(),
             'weight' => $r->getPrioridad(), 'id' => $this->getSourceIdForRango($r)

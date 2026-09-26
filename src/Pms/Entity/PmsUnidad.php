@@ -368,6 +368,13 @@ class PmsUnidad
 
     #[Groups(['pax_catalogo:read'])]
     public function getEstablecimiento(): ?PmsEstablecimiento { return $this->establecimiento; }
+
+    /** `establecimiento_id` es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}. */
+    public function getEstablecimientoOrFail(): PmsEstablecimiento
+    {
+        return $this->establecimiento
+            ?? throw new \LogicException('Unidad sin establecimiento (la columna es NOT NULL): #' . ($this->id ?? 'nueva'));
+    }
     public function setEstablecimiento(?PmsEstablecimiento $val): self { $this->establecimiento = $val; return $this; }
 
     #[Groups(['pax_reserva:read', 'pms_unidad:read', 'pms_evento:read', 'pax_guia:read', 'pax_catalogo:read'])]
