@@ -60,14 +60,15 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         // =====================================================================
         if ($method === 'DELETE') {
             $ids = [];
-            foreach ($batch->getItems() as $index => $item) {
+            foreach ($batch->getItems() as $item) {
                 /** @var PmsBookingsPushQueue $item */
                 // Prioridad: Snapshot Original (por si el link se borró) -> Link Actual
                 $bookId = $item->getBeds24BookIdOriginal() ?? $item->getLink()?->getBeds24BookId();
 
                 if ($bookId) {
                     $ids[] = $bookId;
-                    $correlation[$index] = (string) $item->getId();
+                    // Por la posición en la lista de ids: ver el aviso del UPSERT.
+                    $correlation[array_key_last($ids)] = (string) $item->getId();
                 }
             }
 
@@ -87,11 +88,15 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
             // =================================================================
             // ESTRATEGIA: UPSERT / POST (JSON Body)
             // =================================================================
-            foreach ($batch->getItems() as $index => $item) {
+            foreach ($batch->getItems() as $item) {
                 /** @var PmsBookingsPushQueue $item */
                 try {
                     $payload[] = $this->buildUpsertPayload($item);
-                    $correlation[$index] = (string) $item->getId();
+                    // ⚠️ Por la POSICIÓN en el payload, no por la del lote. Beds24 contesta una
+                    // lista en el orden de lo enviado y `parseResponse()` cruza la respuesta N con
+                    // la correlación N. Con la clave del lote, un ítem corrupto saltado desplazaba
+                    // los de detrás: el id de Beds24 de una reserva se le anotaba a OTRA.
+                    $correlation[array_key_last($payload)] = (string) $item->getId();
                 } catch (RuntimeException $e) {
                     // Si un ítem está corrupto, lo saltamos pero no detenemos el lote
                     continue;

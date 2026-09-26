@@ -116,7 +116,8 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     $remoteIdToRead = $msg->getWhatsappMetaExternalId();
 
                     if ($remoteIdToRead) {
-                        $payload[] = [
+                        // Con la clave del LOTE, no `[]`: ver el aviso de abajo.
+                        $payload[$index] = [
                             'messaging_product' => 'whatsapp',
                             'status'            => 'read',
                             'message_id'        => $remoteIdToRead,
@@ -487,7 +488,13 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     }
                 }
 
-                    $payload[] = $messagePayload;
+                    // ⚠️ `$payload[$index]`, con la MISMA clave que la correlación. Con `[]`, un ítem
+                    // apartado (ventana cerrada, recibo sin id) desplazaba los siguientes: el cliente
+                    // numera las respuestas por la clave del payload y `parseResponse()` las cruza con
+                    // la del lote, así que la respuesta de C se le atribuía a B. Mientras todo
+                    // rechazo contaba como enviado no se notaba; en cuanto un rechazo es fallo, un
+                    // envío ACEPTADO podía reintentarse: mensaje duplicado al huésped.
+                    $payload[$index] = $messagePayload;
                     $correlation[$index] = (string) $item->getId();
             } catch (RuntimeException $e) {
                 // Se anota y se sigue. `parseResponse()` lo convierte en un `ItemResult` fallido

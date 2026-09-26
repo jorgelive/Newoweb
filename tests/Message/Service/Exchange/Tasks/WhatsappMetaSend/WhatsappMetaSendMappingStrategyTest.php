@@ -64,6 +64,25 @@ final class WhatsappMetaSendMappingStrategyTest extends TestCase
         self::assertSame($fila, $resultados['cola-1']->extraData);
     }
 
+    /**
+     * Con un ítem apartado delante (clave 0), las respuestas de B y C van a B y a C. Antes el
+     * payload se numeraba aparte y la respuesta de C se le atribuía a B: un envío aceptado podía
+     * contarse como rechazo y reenviarse.
+     */
+    public function testCadaRespuestaVaASuColaAunqueFalteUnItemDelante(): void
+    {
+        $mapeo = new MappingResult('POST', 'https://graph.facebook.com/v22.0/1/messages', [], new MetaConfig(), [1 => 'cola-B', 2 => 'cola-C']);
+
+        $resultados = $this->estrategia()->parseResponse([
+            1 => ['status' => 'success', 'messageId' => 'wamid.B', 'raw' => []],
+            2 => ['status' => 'error', 'message' => '(#132005) Translated text too long', 'error_code' => 132005],
+        ], $mapeo);
+
+        self::assertTrue($resultados['cola-B']->success);
+        self::assertSame('wamid.B', $resultados['cola-B']->remoteId);
+        self::assertFalse($resultados['cola-C']->success);
+    }
+
     private function estrategia(): WhatsappMetaSendMappingStrategy
     {
         // `parseResponse()` no usa ninguna dependencia: las del constructor son para `map()`.

@@ -46,6 +46,46 @@ final class WhatsappMetaClientTest extends TestCase
         self::assertStringContainsString('"code":132000', $resultado->rawBody);
     }
 
+    /**
+     * Las filas llevan la clave del LOTE que trae el payload, no una numeración nueva: la
+     * estrategia las cruza con su correlación por esa clave, y un ítem apartado deja un hueco.
+     */
+    public function testLasFilasConservanLaClaveDelLote(): void
+    {
+        $http = new MockHttpClient([
+            new MockResponse('{"messages":[{"id":"wamid.B"}]}'),
+            new MockResponse('{"messages":[{"id":"wamid.C"}]}'),
+        ]);
+
+        $resultado = (new WhatsappMetaClient($http))->send(new MappingResult(
+            'POST',
+            'https://graph.facebook.com/v22.0/123/messages',
+            [1 => ['to' => 'b'], 2 => ['to' => 'c']],
+            $this->config(),
+            [],
+        ));
+
+        self::assertSame([1, 2], array_keys($resultado->decodedData));
+        self::assertSame('wamid.B', $resultado->decodedData[1]['messageId'] ?? null);
+    }
+
+    /** Una respuesta que no es el JSON de Meta no dice si salió: no es un envío, y no se reintenta. */
+    public function testUnaRespuestaIlegibleEsSinConfirmacion(): void
+    {
+        $http = new MockHttpClient([new MockResponse('<html>Bad Gateway</html>', ['http_code' => 502])]);
+
+        $resultado = (new WhatsappMetaClient($http))->send(new MappingResult(
+            'POST',
+            'https://graph.facebook.com/v22.0/123/messages',
+            [['to' => 'a']],
+            $this->config(),
+            [],
+        ));
+
+        self::assertSame('error', $resultado->decodedData[0]['status'] ?? null);
+        self::assertStringStartsWith(WhatsappMetaClient::SIN_CONFIRMACION, (string) ($resultado->decodedData[0]['message'] ?? ''));
+    }
+
     public function testElRechazoDeUnaPlantillaDiceElMotivoLegibleYLosDetalles(): void
     {
         $http = new MockHttpClient(new MockResponse(

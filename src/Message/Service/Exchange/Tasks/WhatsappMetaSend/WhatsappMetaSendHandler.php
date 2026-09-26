@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\WhatsappMetaSend;
 
+use App\Exchange\Service\Client\WhatsappMetaClient;
 use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Message\Entity\Message;
@@ -113,5 +114,12 @@ final readonly class WhatsappMetaSendHandler implements ExchangeHandlerInterface
 
         // Reintento rápido (1 min)
         $item->markFailure($msgError, $httpCode, new DateTimeImmutable('+1 minute'));
+
+        // …salvo que no se sepa si salió (timeout, respuesta ilegible): Meta no tiene clave de
+        // idempotencia y reintentar puede duplicarle el mensaje al huésped. Se agotan los intentos
+        // y queda fallido, a la vista del operador. Un rechazo de Meta SÍ se reintenta: no envió.
+        if (str_contains($e->getMessage(), WhatsappMetaClient::SIN_CONFIRMACION)) {
+            $item->setRetryCount($item->getMaxAttempts());
+        }
     }
 }

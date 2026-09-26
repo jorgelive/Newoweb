@@ -17,6 +17,15 @@ use Throwable;
 #[AutoconfigureTag('app.exchange.client')]
 final class WhatsappMetaClient implements ExchangeClientInterface
 {
+    /**
+     * Prefijo del motivo cuando NO se sabe si el mensaje salió: la petición se cortó (timeout, red)
+     * o Meta contestó algo que no es su JSON (una página de error de un proxy, un 5xx vacío).
+     * `WhatsappMetaSendHandler` lo lee para no reintentar: Meta no tiene clave de idempotencia, y
+     * reenviar algo que quizá llegó es mandarle el mensaje dos veces al huésped. Mejor fallido y a
+     * la vista del operador, que decide. Ver `docs/Mensajeria.md` §14.c.
+     */
+    public const string SIN_CONFIRMACION = 'Sin confirmación de Meta: ';
+
     public function __construct(
         private readonly HttpClientInterface $httpClient
     ) {}
@@ -94,7 +103,15 @@ final class WhatsappMetaClient implements ExchangeClientInterface
                 // ni id, y cuenta como éxito sin id, como antes.
                 $respuesta = RespuestaGraphMeta::fromArray(is_array($decoded) ? $decoded : []);
 
-                if ($respuesta->hayError) {
+                // Un cuerpo que no es el JSON de Meta —o un 5xx sin error legible— no dice si el
+                // mensaje salió. Hasta el 26/09/2026 contaba como enviado sin `wamid`: un mensaje
+                // perdido con cara de entregado, sin webhook de estado que lo corrigiera nunca.
+                if (!$respuesta->hayError && (!is_array($decoded) || ($statusCode >= 500 && $respuesta->idMensaje === null))) {
+                    $responses[$index] = [
+                        'status' => 'error',
+                        'message' => self::SIN_CONFIRMACION . sprintf('HTTP %d sin respuesta reconocible', $statusCode),
+                    ];
+                } elseif ($respuesta->hayError) {
                     $responses[$index] = [
                         'status' => 'error',
                         'message' => $respuesta->errorMensaje ?? 'Error de Meta API',
@@ -104,7 +121,7 @@ final class WhatsappMetaClient implements ExchangeClientInterface
                     $responses[$index] = [
                         'status' => 'success',
                         'messageId' => $respuesta->idMensaje,
-                        'raw' => $decoded ?? []
+                        'raw' => $decoded
                     ];
                 }
             } catch (Throwable $e) {
@@ -112,7 +129,7 @@ final class WhatsappMetaClient implements ExchangeClientInterface
                 $rawBodies[$index] = $e->getMessage();
                 $responses[$index] = [
                     'status' => 'error',
-                    'message' => 'HTTP Exception: ' . $e->getMessage()
+                    'message' => self::SIN_CONFIRMACION . 'HTTP Exception: ' . $e->getMessage()
                 ];
             }
         }

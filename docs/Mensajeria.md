@@ -6792,6 +6792,34 @@ hoy mensajes de hace meses.
 PHPStan lo vio en cuanto tuvo el tipo de la fila: *«Offset 'error' … in isset() does not exist»*.
 `WhatsappMetaSendMappingStrategyTest` fija las tres ramas (rechazo con código, fallo de red, éxito).
 
+#### Lo que obligó a arreglar el arreglo: duplicados
+
+La revisión del cambio encontró dos caminos por los que **un mensaje que SÍ salió podía contarse
+como fallo y reenviarse**:
+
+1. **Respuestas cruzadas en el lote.** `map()` escribía `$payload[] = …` (numeración nueva) pero
+   `$correlation[$index] = …` (clave del lote). El cliente numera sus filas por la clave del
+   payload y `parseResponse()` las cruza con la del lote, así que con un ítem apartado delante
+   —ventana cerrada, recibo sin id— la respuesta de C se le atribuía a B. Mientras todo contaba
+   como enviado no se notaba (y en producción no hay ni un `wamid` repetido entre mensajes, medido
+   el 26/09/2026). Ahora el payload lleva **la clave del lote**. Lo mismo, con la solución inversa
+   —correlación por **posición** en el payload, porque ahí el payload viaja como lista JSON—, en
+   `Beds24SendMappingStrategy` y en `BookingsPushMappingStrategy`, donde un ítem corrupto saltado
+   podía anotarle a una reserva el id de Beds24 de otra.
+
+2. **No saber si salió.** Un timeout, un corte de red o una respuesta que no es el JSON de Meta
+   (una página de error de un proxy, un 5xx vacío) no dicen si el mensaje llegó, y Meta no tiene
+   clave de idempotencia. `WhatsappMetaClient` marca esas filas con el prefijo
+   `WhatsappMetaClient::SIN_CONFIRMACION`, y `WhatsappMetaSendHandler::handleFailure()` **agota
+   los intentos**: fallido, con aviso, y decide el operador. Antes contaban como enviados sin
+   `wamid` —un mensaje perdido con cara de entregado—.
+
+| Qué contesta Meta | Antes | Ahora |
+|---|---|---|
+| `messages[0].id` | enviado | enviado |
+| `error` (rechazo) | **enviado** | fallido, se reintenta (no envió: no duplica) |
+| timeout / red / cuerpo ilegible / 5xx sin id | **enviado** | fallido, **sin reintento** |
+
 ### El valor de una variable dentro de un texto: `HidratadorDeMarcadores::comoTexto()`
 
 Las tres estrategias de envío escribían el valor de una variable con `(string)`, cada una en su

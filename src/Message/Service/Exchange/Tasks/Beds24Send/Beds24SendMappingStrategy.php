@@ -40,7 +40,7 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
         $payload = [];
         $correlation = [];
 
-        foreach ($batch->getItems() as $index => $item) {
+        foreach ($batch->getItems() as $item) {
             /** @var Beds24SendQueue $item */
             $msg = $item->getMessage();
             if (!$msg instanceof Message) {
@@ -61,7 +61,8 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                         'id' => (int) $extId,
                         'read' => true
                     ];
-                    $correlation[$index] = (string)$item->getId();
+                    // Por la posición en el payload, no por la del lote: ver el aviso de abajo.
+                    $correlation[array_key_last($payload)] = (string)$item->getId();
                 }
                 continue;
             }
@@ -234,7 +235,12 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             }
 
             $payload[] = $messagePayload;
-            $correlation[$index] = (string)$item->getId();
+            // ⚠️ La correlación va por la POSICIÓN en el payload, no por la del lote. El payload
+            // viaja como una lista JSON y Beds24 contesta otra en el mismo orden; `parseResponse()`
+            // cruza la respuesta N con la correlación N. Con la clave del lote, un ítem saltado
+            // (recibo sin id en Beds24) desplazaba todos los de detrás y el resultado de uno se
+            // anotaba en otro.
+            $correlation[array_key_last($payload)] = (string)$item->getId();
         }
 
         return new MappingResult(
