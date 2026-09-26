@@ -9,12 +9,10 @@ use App\Agent\Access\AgentActor;
 use App\Agent\Access\AgentActorFactory;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
 use App\Security\Roles;
 use RuntimeException;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -27,6 +25,9 @@ use Throwable;
  * Prueba el asistente del panel sin pasar por el navegador. Es la forma de validar el
  * prompt y el uso de herramientas —y de ver cuánto tarda y cuánto cuesta— antes de
  * enseñárselo a nadie.
+ *
+ * Los parámetros llegan tipados por `#[Argument]`/`#[Option]`: la consola ya sabe que una opción
+ * sin valor es `null`, y leerla con `getOption()` era recibir un `mixed` y castearlo a ciegas.
  */
 #[AsCommand(
     name: 'app:agent:preguntar',
@@ -43,34 +44,17 @@ final class AgentPreguntarCommand extends Command
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this
-            ->addArgument('pregunta', InputArgument::REQUIRED, 'La pregunta en lenguaje natural')
-            ->addOption(
-                'como',
-                null,
-                InputOption::VALUE_REQUIRED,
-                'Email del usuario cuyos permisos usar. Sin él, se pregunta como SUPER_ADMIN.'
-            )
-            ->addOption(
-                'motor',
-                null,
-                InputOption::VALUE_REQUIRED,
-                'Proveedor de IA: anthropic | google. Sin él, el de AGENT_IA_PROVEEDOR.'
-            )
-            ->addOption(
-                'modelo',
-                null,
-                InputOption::VALUE_REQUIRED,
-                'Modelo dentro del proveedor. Sin él, el de por defecto del motor.'
-            );
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $io = new SymfonyStyle($input, $output);
-
+    public function __invoke(
+        SymfonyStyle $io,
+        #[Argument('La pregunta en lenguaje natural')]
+        string $pregunta,
+        #[Option('Email del usuario cuyos permisos usar. Sin él, se pregunta como SUPER_ADMIN.')]
+        ?string $como = null,
+        #[Option('Proveedor de IA: anthropic | google. Sin él, el de AGENT_IA_PROVEEDOR.')]
+        ?string $motor = null,
+        #[Option('Modelo dentro del proveedor. Sin él, el de por defecto del motor.')]
+        ?string $modelo = null,
+    ): int {
         if (!$this->asistente->estaDisponible()) {
             $io->error(
                 'Ningún proveedor tiene credenciales (ANTHROPIC_API_KEY / GOOGLE_AI_API_KEY): '
@@ -80,7 +64,7 @@ final class AgentPreguntarCommand extends Command
         }
 
         try {
-            $actor = $this->resolverActor($input->getOption('como'));
+            $actor = $this->resolverActor($como);
         } catch (Throwable $e) {
             $io->error($e->getMessage());
             return Command::INVALID;
@@ -92,11 +76,11 @@ final class AgentPreguntarCommand extends Command
 
         try {
             $resultado = $this->asistente->preguntar(
-                (string) $input->getArgument('pregunta'),
+                $pregunta,
                 $actor,
                 [],
-                $this->comoTexto($input->getOption('motor')),
-                $this->comoTexto($input->getOption('modelo')),
+                $this->comoTexto($motor),
+                $this->comoTexto($modelo),
             );
         } catch (Throwable $e) {
             $io->error($e->getMessage());
@@ -119,9 +103,9 @@ final class AgentPreguntarCommand extends Command
     }
 
     /** Las opciones sin valor llegan como `null`; las vacías, como cadena vacía. */
-    private function comoTexto(mixed $valor): ?string
+    private function comoTexto(?string $valor): ?string
     {
-        $texto = trim((string) $valor);
+        $texto = trim($valor ?? '');
 
         return $texto === '' ? null : $texto;
     }
@@ -142,7 +126,7 @@ final class AgentPreguntarCommand extends Command
      * factoría. Y como esta herramienta existe justo para auditar al asistente, lo que auditaba
      * no era el asistente.
      */
-    private function resolverActor(mixed $email): AgentActor
+    private function resolverActor(?string $email): AgentActor
     {
         if ($email === null) {
             $admin = new User();
@@ -154,7 +138,7 @@ final class AgentPreguntarCommand extends Command
             return AgentActor::delPanel($admin);
         }
 
-        $usuario = $this->em->getRepository(User::class)->findOneBy(['email' => (string) $email]);
+        $usuario = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
         if (!$usuario instanceof User) {
             throw new RuntimeException(sprintf('No existe ningún usuario con el email "%s".', $email));
         }

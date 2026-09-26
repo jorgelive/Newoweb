@@ -9,10 +9,8 @@ use App\Message\Entity\Message;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
@@ -127,24 +125,14 @@ final class AgentRecalentarHilosCommand extends Command
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this
-            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Sólo dice a quién contestaría')
-            ->addOption(
-                'maximo-horas',
-                null,
-                InputOption::VALUE_REQUIRED,
-                'No recalentar lo más viejo que esto: contestar tardísimo es peor que callar',
-                '12',
-            );
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $io = new SymfonyStyle($input, $output);
-        $simular = (bool) $input->getOption('dry-run');
-        $maximoHoras = max(1, (int) $input->getOption('maximo-horas'));
+    public function __invoke(
+        SymfonyStyle $io,
+        #[Option('Sólo dice a quién contestaría', name: 'dry-run')]
+        bool $simular = false,
+        #[Option('No recalentar lo más viejo que esto: contestar tardísimo es peor que callar')]
+        int $maximoHoras = 12,
+    ): int {
+        $maximoHoras = max(1, $maximoHoras);
 
         $hasta = new DateTimeImmutable(sprintf('-%d minutes', self::ESPERA_MINIMA));
         $desde = new DateTimeImmutable(sprintf('-%d hours', $maximoHoras));
