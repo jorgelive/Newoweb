@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Calendar\Provider;
 
+use App\Calendar\Config\ConfiguracionCalendario;
+use App\Calendar\Config\FiltroDeIds;
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
 use App\Calendar\Service\CalendarResourceCatalog;
@@ -41,12 +43,12 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         private readonly TelefonoDeContacto $telefonos,
     ) {}
 
-    public function supports(array $config): bool
+    public function supports(ConfiguracionCalendario $config): bool
     {
-        return (($config['provider'] ?? null) === 'pms_eventos_spa');
+        return $config->provider === 'pms_eventos_spa';
     }
 
-    public function getEvents(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    public function getEvents(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
         $eventos = $this->fetchEventos($from, $to, $config);
         $finanzas = $this->fetchFinanzas($eventos);
@@ -86,7 +88,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         return $out;
     }
 
-    public function getResources(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    public function getResources(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
         $eventos = $this->fetchEventos($from, $to, $config);
         $seen = [];
@@ -107,21 +109,18 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         // Las unidades sin eventos en el rango desaparecían de la grilla: el
         // catálogo las repone (ver resources.showAll en el YAML) y se encarga
         // del orden natural + índice `orden`.
-        return $this->resourceCatalog->merge($out, $config, PmsUnidad::class);
+        return $this->resourceCatalog->merge($out, $config->recursos, PmsUnidad::class);
     }
 
     /**
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
      * @return list<\App\Pms\Entity\PmsEventoCalendario>
      */
-    private function fetchEventos(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    private function fetchEventos(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
         $em = $this->managerRegistry->getManagerForClass(PmsEventoCalendario::class);
         if (!$em instanceof EntityManagerInterface) {
             throw new HttpException(500, 'EntityManager no disponible.');
         }
-
-        $filters = (array) ($config['filters'] ?? []);
 
         $qb = $em->createQueryBuilder()
             ->select('e, u, r, es, ep')
@@ -139,8 +138,8 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             ->setParameter('from', $from)
             ->setParameter('to', $to);
 
-        $this->applyIdFilter($qb, 'es', 'estado', $filters);
-        $this->applyIdFilter($qb, 'ep', 'estadoPago', $filters);
+        $this->applyIdFilter($qb, 'es', 'estado', $config->filtros->estado);
+        $this->applyIdFilter($qb, 'ep', 'estadoPago', $config->filtros->estadoPago);
 
         /** @var list<\App\Pms\Entity\PmsEventoCalendario> $resultado */
         $resultado = $qb->getQuery()->getResult();
@@ -149,24 +148,17 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
     }
 
     /**
-     * @param array<string, mixed> $filters
+     * Las dos formas del YAML (`{in, not_in}` y la lista plana) ya llegan unificadas en
+     * {@see FiltroDeIds}: la plana es un `in`.
      */
-    private function applyIdFilter(QueryBuilder $qb, string $alias, string $key, array $filters): void
+    private function applyIdFilter(QueryBuilder $qb, string $alias, string $key, FiltroDeIds $filtro): void
     {
-        $val = $filters[$key] ?? null;
-        if (empty($val)) return;
-
-        if (is_array($val) && (isset($val['in']) || isset($val['not_in']))) {
-            if (!empty($val['in'])) {
-                $qb->andWhere("$alias.id IN (:$key" . "_in)")->setParameter($key . '_in', (array)$val['in']);
-            }
-            if (!empty($val['not_in'])) {
-                $qb->andWhere("$alias.id NOT IN (:$key" . "_nin)")->setParameter($key . '_nin', (array)$val['not_in']);
-            }
-            return;
+        if ($filtro->incluir !== []) {
+            $qb->andWhere("$alias.id IN (:$key" . "_in)")->setParameter($key . '_in', $filtro->incluir);
         }
-
-        $qb->andWhere("$alias.id IN (:$key" . "_val)")->setParameter($key . '_val', (array)$val);
+        if ($filtro->excluir !== []) {
+            $qb->andWhere("$alias.id NOT IN (:$key" . "_nin)")->setParameter($key . '_nin', $filtro->excluir);
+        }
     }
 
     private function buildTitle(PmsEventoCalendario $evento, ?PmsReserva $reserva): string
@@ -208,32 +200,6 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
     }
 
     /**
-     * Cabeceras financieras de todas las reservas del rango, en UNA consulta.
-     *
-     * La relación va de PmsInformacionFinanciera hacia la reserva (JoinColumn
-     * unique del lado de las finanzas), así que el evento no puede navegar hasta
-     * ella: hay que buscarla. Y hay que hacerlo EN LOTE — un `findOneBy` por
-     * evento serían ~200 consultas en una vista de mes, que es justo el tipo de
-     * N+1 que hace inusable un calendario.
-     *
-     * **Gotcha, y de los caros**: esto NO puede ser un `IN (:reservas)` en DQL.
-     * `reserva_id` es `BINARY(16)`, y pasar entidades u objetos `Uuid` por
-     * `setParameter()` sin tipo de parámetro los serializa mal: la consulta no
-     * falla, devuelve CERO filas, y el calendario se pinta sin cifras sin un
-     * solo error en el log. Es la misma trampa que documenta
-     * `TourTarjetaResolver::binarios()`. `findBy()` con las ENTIDADES sí acierta
-     * porque el persister de Doctrine conoce el tipo de la columna destino del
-     * mapeo: es la versión en lote del `findOneBy(['reserva' => …])` que ya usa
-     * PmsReservaPaxProvider.
-     *
-     * El precio es no poder hacer eager load de la moneda; sale a una consulta
-     * por moneda DISTINTA (el identity map deduplica), no por fila.
-     *
-     * @param array<int, mixed> $eventos
-     *
-     * @return array<string, PmsInformacionFinanciera> indexado por id de reserva
-     */
-    /**
      * La conversación de cada reserva, en UNA consulta.
      *
      * Mismo patrón que `fetchFinanzas()` y por el mismo motivo: este proveedor sirve el
@@ -267,6 +233,9 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         }
 
         try {
+            // La forma la fija el SELECT de abajo: dos alias, ambos texto (`context_id` es varchar y
+            // `BIN_TO_UUID()` devuelve texto), y ninguno nulo porque los dos casan en el WHERE.
+            /** @var list<array{reserva: string, conversacion: string}> $filas */
             $filas = $em->getConnection()->executeQuery(
                 'SELECT context_id AS reserva, BIN_TO_UUID(id) AS conversacion
                    FROM msg_conversation
@@ -282,15 +251,39 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
 
         $porReserva = [];
         foreach ($filas as $fila) {
-            $porReserva[(string) $fila['reserva']] = (string) $fila['conversacion'];
+            $porReserva[$fila['reserva']] = $fila['conversacion'];
         }
 
         return $porReserva;
     }
 
     /**
+     * Cabeceras financieras de todas las reservas del rango, en UNA consulta.
+     *
+     * La relación va de PmsInformacionFinanciera hacia la reserva (JoinColumn
+     * unique del lado de las finanzas), así que el evento no puede navegar hasta
+     * ella: hay que buscarla. Y hay que hacerlo EN LOTE — un `findOneBy` por
+     * evento serían ~200 consultas en una vista de mes, que es justo el tipo de
+     * N+1 que hace inusable un calendario.
+     *
+     * **Gotcha, y de los caros**: esto NO puede ser un `IN (:reservas)` en DQL.
+     * `reserva_id` es `BINARY(16)`, y pasar entidades u objetos `Uuid` por
+     * `setParameter()` sin tipo de parámetro los serializa mal: la consulta no
+     * falla, devuelve CERO filas, y el calendario se pinta sin cifras sin un
+     * solo error en el log. Es la misma trampa que documenta
+     * `TourTarjetaResolver::binarios()`. `findBy()` con las ENTIDADES sí acierta
+     * porque el persister de Doctrine conoce el tipo de la columna destino del
+     * mapeo: es la versión en lote del `findOneBy(['reserva' => …])` que ya usa
+     * PmsReservaPaxProvider.
+     *
+     * El precio es no poder hacer eager load de la moneda; sale a una consulta
+     * por moneda DISTINTA (el identity map deduplica), no por fila.
+     *
+     * ⚠️ Este docblock estaba pegado ENCIMA del de `fetchConversaciones()`, y el método se quedaba
+     * con un `@return array<string, mixed>` que hacía de cada ficha un `mixed` al leerla.
+     *
      * @param list<\App\Pms\Entity\PmsEventoCalendario> $eventos
-     * @return array<string, mixed>
+     * @return array<string, PmsInformacionFinanciera> indexado por id de reserva
      */
     private function fetchFinanzas(array $eventos): array
     {

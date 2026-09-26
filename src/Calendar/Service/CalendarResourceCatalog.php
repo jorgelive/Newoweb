@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Calendar\Service;
 
+use App\Calendar\Config\OpcionesDeCatalogo;
 use App\Calendar\Dto\CalendarResourceDto;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
@@ -37,6 +38,8 @@ use Doctrine\Persistence\ManagerRegistry;
  *
  * Cada recurso del catálogo expone `extendedProps.activo` para que el frontend
  * pueda atenuar/filtrar las inactivas sin volver a preguntar por REST.
+ *
+ * El bloque llega ya leído en {@see OpcionesDeCatalogo}, con estos valores por defecto.
  */
 final class CalendarResourceCatalog
 {
@@ -54,17 +57,13 @@ final class CalendarResourceCatalog
      * @param list<CalendarResourceDto> $derived recursos deducidos de las entidades del rango
      * @param string|null $defaultEntity clase a usar si el YAML no trae resources.entity
      * @return list<CalendarResourceDto>
-     *
-     * @param list<\App\Calendar\Dto\CalendarResourceDto> $derived
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
-     * @return list<\App\Calendar\Dto\CalendarResourceDto>
      */
-    public function merge(array $derived, array $config, ?string $defaultEntity = null): array
+    public function merge(array $derived, OpcionesDeCatalogo $opciones, ?string $defaultEntity = null): array
     {
         $out = [];
         $seen = [];
 
-        foreach ($this->fetchCatalog($config, $defaultEntity) as $resource) {
+        foreach ($this->fetchCatalog($opciones, $defaultEntity) as $resource) {
             $key = (string) $resource->id;
             if ($key === '' || isset($seen[$key])) {
                 continue;
@@ -151,19 +150,14 @@ final class CalendarResourceCatalog
 
     /**
      * @return list<CalendarResourceDto>
-     *
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
-     * @return list<\App\Calendar\Dto\CalendarResourceDto>
      */
-    private function fetchCatalog(array $config, ?string $defaultEntity): array
+    private function fetchCatalog(OpcionesDeCatalogo $opciones, ?string $defaultEntity): array
     {
-        $cfg = (isset($config['resources']) && is_array($config['resources'])) ? $config['resources'] : [];
-
-        if (!(bool) ($cfg['showAll'] ?? true)) {
+        if (!$opciones->mostrarTodos) {
             return [];
         }
 
-        $entityClass = (string) ($cfg['entity'] ?? $defaultEntity ?? '');
+        $entityClass = $opciones->entidad ?? $defaultEntity ?? '';
         if ($entityClass === '' || !class_exists($entityClass)) {
             return [];
         }
@@ -176,31 +170,38 @@ final class CalendarResourceCatalog
         $meta = $em->getClassMetadata($entityClass);
         $qb = $em->getRepository($entityClass)->createQueryBuilder('u');
 
-        $activeField = (string) ($cfg['activeField'] ?? 'activo');
-        if (!empty($cfg['activeOnly']) && $meta->hasField($activeField)) {
+        $activeField = $opciones->campoActivo;
+        if ($opciones->soloActivos && $meta->hasField($activeField)) {
             $qb->andWhere(sprintf('u.%s = :__activo', $activeField))
                 ->setParameter('__activo', true);
         }
 
-        $establecimientoField = (string) ($cfg['establecimientoField'] ?? 'establecimiento');
-        $establecimientoId = $cfg['establecimientoId'] ?? null;
-        if (!empty($establecimientoId) && $meta->hasAssociation($establecimientoField)) {
+        // ⚠️ Ids en TEXTO contra una asociación `binary(16)`: sin tipo de parámetro, un UUID en texto
+        // no casa con nada y el catálogo sale vacío sin error (comprobado contra la base local el
+        // 26/09/2026: cero unidades con el id real de su establecimiento; ver `CLAUDE.md`). Hoy ningún
+        // calendario lo usa (`establecimientoId: null` en todos); si alguno lo necesita, hay que
+        // tiparlo aquí antes de fiarse de él.
+        $establecimientoField = $opciones->campoEstablecimiento;
+        if ($opciones->establecimientoIds !== [] && $meta->hasAssociation($establecimientoField)) {
             $qb->andWhere(sprintf('u.%s IN (:__establecimientos)', $establecimientoField))
-                ->setParameter('__establecimientos', (array) $establecimientoId);
+                ->setParameter('__establecimientos', $opciones->establecimientoIds);
         }
 
-        $titleField = (string) ($cfg['titleField'] ?? '');
+        $titleField = $opciones->campoTitulo;
 
         // Campos sueltos que el frontend necesita del recurso y que no son ni el
         // título ni el estado: `extendedProps.<clave> => <ruta de getters>`. Se
         // declaran en el YAML porque son específicos de cada calendario (el de
         // reservas quiere los slugs para enlazar al catálogo público), y este
         // servicio es genérico: no debe saber qué es una PmsUnidad.
-        $extraFields = (isset($cfg['extraFields']) && is_array($cfg['extraFields'])) ? $cfg['extraFields'] : [];
+        $extraFields = $opciones->camposExtra;
+
+        /** @var list<object> $unidades La clase la dice el YAML: lo único seguro es que es una entidad. */
+        $unidades = $qb->getQuery()->getResult();
 
         $out = [];
-        foreach ($qb->getQuery()->getResult() as $unit) {
-            if (!is_object($unit) || !method_exists($unit, 'getId')) {
+        foreach ($unidades as $unit) {
+            if (!method_exists($unit, 'getId')) {
                 continue;
             }
 
@@ -212,7 +213,7 @@ final class CalendarResourceCatalog
             $props = ['activo' => $this->resolveActivo($unit, $activeField)];
 
             foreach ($extraFields as $clave => $ruta) {
-                $props[(string) $clave] = $this->resolveRuta($unit, (string) $ruta);
+                $props[$clave] = $this->resolveRuta($unit, $ruta);
             }
 
             $out[] = new CalendarResourceDto(

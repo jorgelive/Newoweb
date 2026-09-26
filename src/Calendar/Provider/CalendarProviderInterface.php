@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Calendar\Provider;
 
+use App\Calendar\Config\ConfiguracionCalendario;
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
 use DateTimeInterface;
@@ -13,7 +14,8 @@ use DateTimeInterface;
  * El controller NO debe saber si los datos vienen de Doctrine, API externa, etc.
  * Solo pide: eventos/recursos para (from,to) según una config.
  *
- * @phpstan-type CalendarConfig array<string,mixed>
+ * La config llega ya tipada ({@see ConfiguracionCalendario}): el array del YAML se lee una vez, en
+ * `CalendarConfigResolver`, y ningún provider vuelve a tocarlo.
  */
 interface CalendarProviderInterface
 {
@@ -24,24 +26,20 @@ interface CalendarProviderInterface
      * - Se llama desde ProviderRegistry.
      * - Si más de un provider soporta la misma config, debe considerarse error de config
      *   (ambigüedad) para evitar resultados impredecibles.
-     *
-     * @param CalendarConfig $config
      */
-    public function supports(array $config): bool;
+    public function supports(ConfiguracionCalendario $config): bool;
 
     /**
      * Devuelve eventos ya mapeados a DTOs de FullCalendar.
      *
-     * @param CalendarConfig $config
      * @return list<CalendarEventDto>
      */
-    public function getEvents(DateTimeInterface $from, DateTimeInterface $to, array $config): array;
+    public function getEvents(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array;
 
     /**
      * Devuelve recursos (scheduler/resources) ya mapeados a DTOs de FullCalendar.
      *
-     * @param CalendarConfig $config
      * @return list<CalendarResourceDto>
      */
-    public function getResources(DateTimeInterface $from, DateTimeInterface $to, array $config): array;
+    public function getResources(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array;
 }

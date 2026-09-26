@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Calendar\Provider;
 
+use App\Calendar\Config\ConfiguracionCalendario;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
@@ -22,10 +23,7 @@ final class ProviderRegistry
         private readonly iterable $providers,
     ) {}
 
-    /**
-     * @param array<string,mixed> $config
-     */
-    public function getProviderForConfig(array $config): CalendarProviderInterface
+    public function getProviderForConfig(ConfiguracionCalendario $config): CalendarProviderInterface
     {
         /** @var list<CalendarProviderInterface> $matches */
         $matches = [];
@@ -48,7 +46,7 @@ final class ProviderRegistry
                 500,
                 sprintf(
                     'No existe provider para este calendario (config inválida). Claves detectadas: %s',
-                    implode(', ', array_keys($config))
+                    implode(', ', $config->claves)
                 )
             );
         }

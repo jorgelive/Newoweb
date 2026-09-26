@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Calendar\Provider;
 
+use App\Calendar\Config\ConfiguracionCalendario;
+use App\Calendar\Config\FiltroDeIds;
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
 use App\Calendar\Service\CalendarResourceCatalog;
@@ -29,12 +31,12 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         private readonly CalendarResourceCatalog $resourceCatalog,
     ) {}
 
-    public function supports(array $config): bool
+    public function supports(ConfiguracionCalendario $config): bool
     {
-        return (($config['provider'] ?? null) === 'pms_eventos_raw');
+        return $config->provider === 'pms_eventos_raw';
     }
 
-    public function getEvents(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    public function getEvents(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
         $eventos = $this->fetchEventos($from, $to, $config);
         $out = [];
@@ -70,7 +72,7 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         return $out;
     }
 
-    public function getResources(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    public function getResources(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
         $eventos = $this->fetchEventos($from, $to, $config);
         $seen = [];
@@ -91,21 +93,18 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         // Las unidades sin eventos en el rango desaparecían de la grilla: el
         // catálogo las repone (ver resources.showAll en el YAML) y se encarga
         // del orden natural + índice `orden`.
-        return $this->resourceCatalog->merge($out, $config, PmsUnidad::class);
+        return $this->resourceCatalog->merge($out, $config->recursos, PmsUnidad::class);
     }
 
     /**
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
      * @return list<\App\Pms\Entity\PmsEventoCalendario>
      */
-    private function fetchEventos(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    private function fetchEventos(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
         $em = $this->managerRegistry->getManagerForClass(PmsEventoCalendario::class);
         if (!$em instanceof EntityManagerInterface) {
             throw new HttpException(500, 'EntityManager no disponible.');
         }
-
-        $filters = (array) ($config['filters'] ?? []);
 
         $qb = $em->createQueryBuilder()
             ->select('e, u, r, es, ep')
@@ -120,8 +119,8 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
             ->setParameter('from', $from)
             ->setParameter('to', $to);
 
-        $this->applyIdFilter($qb, 'es', 'estado', $filters);
-        $this->applyIdFilter($qb, 'ep', 'estadoPago', $filters);
+        $this->applyIdFilter($qb, 'es', 'estado', $config->filtros->estado);
+        $this->applyIdFilter($qb, 'ep', 'estadoPago', $config->filtros->estadoPago);
 
         /** @var list<\App\Pms\Entity\PmsEventoCalendario> $resultado */
         $resultado = $qb->getQuery()->getResult();
@@ -130,24 +129,17 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
     }
 
     /**
-     * @param array<string, mixed> $filters
+     * Las dos formas del YAML (`{in, not_in}` y la lista plana) ya llegan unificadas en
+     * {@see FiltroDeIds}: la plana es un `in`.
      */
-    private function applyIdFilter(QueryBuilder $qb, string $alias, string $key, array $filters): void
+    private function applyIdFilter(QueryBuilder $qb, string $alias, string $key, FiltroDeIds $filtro): void
     {
-        $val = $filters[$key] ?? null;
-        if (empty($val)) return;
-
-        if (is_array($val) && (isset($val['in']) || isset($val['not_in']))) {
-            if (!empty($val['in'])) {
-                $qb->andWhere("$alias.id IN (:$key" . "_in)")->setParameter($key . '_in', (array)$val['in']);
-            }
-            if (!empty($val['not_in'])) {
-                $qb->andWhere("$alias.id NOT IN (:$key" . "_nin)")->setParameter($key . '_nin', (array)$val['not_in']);
-            }
-            return;
+        if ($filtro->incluir !== []) {
+            $qb->andWhere("$alias.id IN (:$key" . "_in)")->setParameter($key . '_in', $filtro->incluir);
         }
-
-        $qb->andWhere("$alias.id IN (:$key" . "_val)")->setParameter($key . '_val', (array)$val);
+        if ($filtro->excluir !== []) {
+            $qb->andWhere("$alias.id NOT IN (:$key" . "_nin)")->setParameter($key . '_nin', $filtro->excluir);
+        }
     }
 
     private function buildTitle(PmsEventoCalendario $evento, ?PmsReserva $reserva): string
@@ -189,28 +181,31 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
     }
 
     /**
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
-     * @return array{0: string|null, 1: string|null} La URL de ver y la de editar.
+     * @return array{0: string|null, 1: string|null} La URL de editar y la de ver, en ese orden.
      */
-    private function buildUrls(PmsEventoCalendario $evento, ?PmsReserva $reserva, array $config): array
+    private function buildUrls(PmsEventoCalendario $evento, ?PmsReserva $reserva, ConfiguracionCalendario $config): array
     {
-        $cfg = $config['event']['url'] ?? null;
-        if (!is_array($cfg)) return [null, null];
+        $enlaces = $config->evento->enlaces;
+        if ($enlaces === null) return [null, null];
 
         $targetId = ($reserva && $reserva->getId()) ? $reserva->getId() : $evento->getId();
         if (!$targetId) return [null, null];
 
-        $build = function(string $type) use ($cfg, $targetId, $config, $reserva): ?string {
+        $retorno = $config->retorno;
+
+        $build = function(string $type) use ($enlaces, $targetId, $retorno, $reserva): ?string {
             $context = $reserva ? 'reserva' : 'eventoCalendario';
-            $block = $cfg[$context . ucfirst($type)] ?? $cfg[$type] ?? null;
+            $block = $enlaces->enlace($context . ucfirst($type)) ?? $enlaces->enlace($type);
 
-            if (!is_array($block) || !isset($block['route'])) return null;
-            if (isset($block['role']) && !$this->authorizationChecker->isGranted($block['role'])) return null;
+            if ($block === null || $block->nombreRuta === null) return null;
+            // Aquí el rol es OPCIONAL: sin `role`, el enlace sale para todos. Pero uno declarado
+            // que no se pueda leer deniega, como denegaba `isGranted()` al recibirlo crudo.
+            if ($block->rolDeclarado && ($block->rol === null || !$this->authorizationChecker->isGranted($block->rol))) return null;
 
-            $params = array_merge(['id' => $targetId, 'entityId' => $targetId, 'tl' => 'es'], $block['params'] ?? []);
-            if (!empty($config['runtime_returnTo'])) $params['returnTo'] = $config['runtime_returnTo'];
+            $params = array_merge(['id' => $targetId, 'entityId' => $targetId, 'tl' => 'es'], $block->parametros);
+            if (!empty($retorno)) $params['returnTo'] = $retorno;
 
-            return $this->router->generate($block['route'], $params);
+            return $this->router->generate($block->nombreRuta, $params);
         };
 
         return [$build('edit'), $build('show')];

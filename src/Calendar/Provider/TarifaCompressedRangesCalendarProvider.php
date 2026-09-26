@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace App\Calendar\Provider;
 
+use App\Calendar\Config\CamposDeTarifa;
+use App\Calendar\Config\ConfiguracionCalendario;
+use App\Calendar\Config\Enlace;
 use Doctrine\ORM\EntityRepository;
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
@@ -10,10 +13,8 @@ use App\Calendar\Service\CalendarResourceCatalog;
 use App\Pms\Service\Tarifa\Engine\TarifaPricingEngine;
 use DateTimeImmutable;
 use DateTimeInterface;
-use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
-use Doctrine\Persistence\ObjectRepository;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
@@ -34,6 +35,8 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  * eventTime:
  * start: '12:00:00'
  * end: '11:59:59'
+ *
+ * @phpstan-type Validada array{entidad: string, campos: CamposDeTarifa, unit: string, start: string, end: string, price: string}
  */
 final class TarifaCompressedRangesCalendarProvider implements CalendarProviderInterface
 {
@@ -45,46 +48,46 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
         private readonly CalendarResourceCatalog $resourceCatalog,
     ) {}
 
-    public function supports(array $config): bool
+    public function supports(ConfiguracionCalendario $config): bool
     {
-        return (($config['provider'] ?? null) === 'tarifa_compressed_ranges')
-            && isset($config['entity'])
-            && is_string($config['entity']);
+        return $config->provider === 'tarifa_compressed_ranges' && $config->entidad !== null;
     }
 
     /**
      * @return list<CalendarEventDto>
      */
-    public function getEvents(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    public function getEvents(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
-        $this->assertConfig($config);
+        $valida = $this->assertConfig($config);
+        $fields = $valida['campos'];
 
         // 🔥 1. CAPTURA DEL PASAPORTE (TOKEN BASE64)
-        $runtimeReturnTo = $config['runtime_returnTo'] ?? null;
+        $runtimeReturnTo = $config->retorno;
 
-        $entities = $this->fetchEntities($from, $to, $config);
+        $entities = $this->fetchEntities($from, $to, $config, $valida);
 
         // 1) Agrupar por resource (unidad)
-        $groups = $this->groupByUnit($entities, $config);
+        $groups = $this->groupByUnit($entities, $valida);
 
         // UI hours (solo visual)
-        $eventTime = (isset($config['eventTime']) && is_array($config['eventTime'])) ? $config['eventTime'] : [];
-        [$sh, $sm, $ss] = $this->parseHms((string)($eventTime['start'] ?? '12:00:00'), [12, 0, 0]);
-        [$eh, $em, $es] = $this->parseHms((string)($eventTime['end'] ?? '11:59:59'), [11, 59, 59]);
+        [$sh, $sm, $ss] = $this->parseHms($config->horas->inicio, [12, 0, 0]);
+        [$eh, $em, $es] = $this->parseHms($config->horas->fin, [11, 59, 59]);
+
+        // `event.url` y, si no hay, el `url` de la raíz.
+        $urlCfg = $config->evento->enlaces ?? $config->enlacesRaiz;
 
         // 2) Para cada unidad: engine => rangos compactados
         $events = [];
         foreach ($groups as $unitKey => $group) {
             $unitObj = $group['unit'];
             $ranges = $group['ranges'];
-            $fields = (array)($config['fields'] ?? []);
 
             $logicalRanges = $this->pricingEngine->buildLogicalRangesForInterval(
                 rangos: $ranges,
                 from: $from,
                 to: $to,
-                rangeAccessor: function (object $r) use ($config): array {
-                    return $this->rangeAccessor($r, $config);
+                rangeAccessor: function (object $r) use ($valida): array {
+                    return $this->rangeAccessor($r, $valida);
                 },
                 priorityComparator: null // default flattener (important/weight/id)
             );
@@ -108,7 +111,7 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
 
                 // Tooltip extendido con el desglose de netos
                 $tooltip = [
-                    $this->scalarToStringOrNull($this->resolvePath($unitObj, (string)($config['fields']['unitTitle'] ?? 'nombre')))
+                    $this->scalarToStringOrNull($this->resolvePath($unitObj, $fields->unitTitle ?? 'nombre'))
                     ?? (method_exists($unitObj, '__toString') ? (string)$unitObj : ('Unidad ' . (string)$unitKey)),
                     'Precio Base: ' . number_format($price, 2, '.', ''),
                     'Neto al 20%: ' . number_format($netoBooking, 2, '.', ''),
@@ -123,13 +126,6 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                 $urledit = null;
                 $urlshow = null;
 
-                $urlCfg = null;
-                if (isset($config['event']['url']) && is_array($config['event']['url'])) {
-                    $urlCfg = $config['event']['url'];
-                } elseif (isset($config['url']) && is_array($config['url'])) {
-                    $urlCfg = $config['url'];
-                }
-
                 $urlId = null;
                 if ($urlCfg !== null) {
                     // `$lr` es un TarifaLogicalRangeDto y `getSourceId()` está en su firma:
@@ -143,7 +139,7 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                     }
 
                     if ($urlId === null && !empty($ranges)) {
-                        $idPath = (string)($fields['id'] ?? 'id');
+                        $idPath = $fields->id ?? 'id';
                         $firstId = $this->resolvePath($ranges[0], $idPath);
                         if (is_scalar($firstId) && (string)$firstId !== '') {
                             $urlId = (string)$firstId;
@@ -151,29 +147,8 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                     }
 
                     if ($urlId !== null) {
-                        // --- URL SHOW ---
-                        if (isset($urlCfg['show']) && is_array($urlCfg['show'])) {
-                            $show = $urlCfg['show'];
-                            if (isset($show['role']) && $this->authorizationChecker->isGranted((string)$show['role'])) {
-                                $params = array_merge($show['params'] ?? [], ['entityId' => $urlId]);
-                                if (!empty($runtimeReturnTo)) {
-                                    $params['returnTo'] = $runtimeReturnTo;
-                                }
-                                $urlshow = $this->router->generate((string)$show['route'], $params);
-                            }
-                        }
-
-                        // --- URL EDIT ---
-                        if (isset($urlCfg['edit']) && is_array($urlCfg['edit'])) {
-                            $edit = $urlCfg['edit'];
-                            if (isset($edit['role']) && $this->authorizationChecker->isGranted((string)$edit['role'])) {
-                                $params = array_merge($edit['params'] ?? [], ['entityId' => $urlId]);
-                                if (!empty($runtimeReturnTo)) {
-                                    $params['returnTo'] = $runtimeReturnTo;
-                                }
-                                $urledit = $this->router->generate((string)$edit['route'], $params);
-                            }
-                        }
+                        $urlshow = $this->urlDe($urlCfg->enlace('show'), 'show', $urlId, $runtimeReturnTo);
+                        $urledit = $this->urlDe($urlCfg->enlace('edit'), 'edit', $urlId, $runtimeReturnTo);
                     }
                 }
 
@@ -205,20 +180,44 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
     }
 
     /**
+     * Un enlace del panel, si el rol lo permite. Aquí el rol es obligatorio y los `params` del YAML
+     * van DEBAJO del `entityId`: no pueden pisarlo.
+     */
+    private function urlDe(?Enlace $enlace, string $nombre, string $urlId, ?string $runtimeReturnTo): ?string
+    {
+        if ($enlace === null || $enlace->rol === null || !$this->authorizationChecker->isGranted($enlace->rol)) {
+            return null;
+        }
+
+        // Sin `route` esto era un `generate('')`, que revienta con «la ruta "" no existe». Sigue
+        // siendo un 500 —una configuración rota tiene que verse—, pero diciendo qué falta.
+        if ($enlace->nombreRuta === null) {
+            throw new HttpException(500, sprintf('tarifa_compressed_ranges: url.%s requiere "route".', $nombre));
+        }
+
+        $params = array_merge($enlace->parametros, ['entityId' => $urlId]);
+        if (!empty($runtimeReturnTo)) {
+            $params['returnTo'] = $runtimeReturnTo;
+        }
+
+        return $this->router->generate($enlace->nombreRuta, $params);
+    }
+
+    /**
      * @return list<CalendarResourceDto>
      */
-    public function getResources(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    public function getResources(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
-        $this->assertConfig($config);
+        $valida = $this->assertConfig($config);
 
-        $entities = $this->fetchEntities($from, $to, $config);
-        $groups = $this->groupByUnit($entities, $config);
+        $entities = $this->fetchEntities($from, $to, $config, $valida);
+        $groups = $this->groupByUnit($entities, $valida);
 
         $out = [];
         foreach ($groups as $unitKey => $group) {
             $unitObj = $group['unit'];
 
-            $titlePath = (string)($config['fields']['unitTitle'] ?? 'nombre');
+            $titlePath = $valida['campos']->unitTitle ?? 'nombre';
             $titleVal = $this->resolvePath($unitObj, $titlePath);
             $title = $this->scalarToStringOrNull($titleVal);
 
@@ -234,24 +233,24 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
         // se encarga del orden natural + índice `orden`.
         return $this->resourceCatalog->merge(
             $out,
-            $config,
-            $this->resourceCatalog->targetClassOf(
-                (string) $config['entity'],
-                (string) ($config['fields']['unit'] ?? '')
-            )
+            $config->recursos,
+            $this->resourceCatalog->targetClassOf($valida['entidad'], $valida['unit'])
         );
     }
 
     /**
-     * @return list<object>
-     *
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     * @param Validada $valida
      * @return list<object>
      */
-    private function fetchEntities(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    private function fetchEntities(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config, array $valida): array
     {
-        /** @var class-string $entityClass La clase viene de la configuración del calendario. */
-        $entityClass = (string) $config['entity'];
+        $entityClass = $valida['entidad'];
+
+        // `getManagerForClass()` pide `class-string`. Una clase que no existe reventaba DENTRO de
+        // Doctrine con un ReflectionException; ahora es el mismo 500 con el mensaje de al lado.
+        if (!class_exists($entityClass)) {
+            throw new HttpException(500, sprintf('No hay ObjectManager para %s', $entityClass));
+        }
 
         $manager = $this->managerRegistry->getManagerForClass($entityClass);
         if (!$manager instanceof ObjectManager) {
@@ -265,14 +264,10 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
             throw new HttpException(500, sprintf('No hay repository para %s', $entityClass));
         }
 
-        $fields = (array)($config['fields'] ?? []);
-        $filters = (array)($config['filters'] ?? []);
+        $unitField = $valida['unit'];
+        $startField = $valida['start'];
+        $endField = $valida['end'];
 
-        $unitField = (string)$fields['unit'];
-        $startField = (string)$fields['start'];
-        $endField = (string)$fields['end'];
-
-        /** @var QueryBuilder $qb */
         $qb = $repo->createQueryBuilder('r');
 
         // Solape: start <= to AND end >= from (sin reinterpretar inclusive/exclusive)
@@ -282,35 +277,33 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
             ->setParameter('from', $from)
             ->setParameter('to', $to);
 
-        if (!empty($filters['activeOnly']) && isset($fields['active'])) {
-            $activeField = (string)$fields['active'];
+        // Los compactados NO miran `filters.showInactive` (los sin compactar sí).
+        if ($config->filtros->soloActivos) {
+            $activeField = $valida['campos']->active
+                ?? throw new HttpException(500, 'filters.activeOnly=true requiere fields.active');
             $qb->andWhere(sprintf('r.%s = :active', $activeField))
                 ->setParameter('active', true);
-        } elseif (!empty($filters['activeOnly']) && !isset($fields['active'])) {
-            throw new HttpException(500, 'filters.activeOnly=true requiere fields.active');
         }
 
         $qb->addOrderBy(sprintf('r.%s', $unitField), 'ASC')
             ->addOrderBy(sprintf('r.%s', $startField), 'ASC');
 
-        /** @var list<object> */
-        return $qb->getQuery()->getResult();
+        /** @var list<object> $resultado */
+        $resultado = $qb->getQuery()->getResult();
+
+        return $resultado;
     }
 
     /**
      * @param list<object> $entities
+     * @param Validada $valida
      * @return array<string|int, array{unit: object, ranges: list<object>}> Por unidad: sus
      *         rangos y los datos de cabecera.
-     *
-     * @param list<object> $entities
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
      */
-    private function groupByUnit(array $entities, array $config): array
+    private function groupByUnit(array $entities, array $valida): array
     {
-        $fields = (array)$config['fields'];
-
-        $unitPath = (string)$fields['unit'];
-        $unitIdPath = (string)($fields['unitId'] ?? ($unitPath . '.id'));
+        $unitPath = $valida['unit'];
+        $unitIdPath = $valida['campos']->unitId ?? ($unitPath . '.id');
 
         $groups = [];
 
@@ -320,6 +313,9 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                 continue;
             }
 
+            // ⚠️ `PmsUnidad::getId()` es un Uuid, no un escalar: aquí cae SIEMPRE a
+            // `spl_object_id()`. La variante SPA ya lo resuelve por texto (ver su comentario); este
+            // provider legacy se deja como está para no cambiar lo que pinta el panel viejo.
             $unitId = $this->resolvePath($e, $unitIdPath);
             if (!is_scalar($unitId) || $unitId === '') {
                 $unitId = spl_object_id($unitObj);
@@ -343,26 +339,20 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
     /**
      * Range accessor para TarifaPricingEngine (sin inclusive/exclusive shifts).
      *
-     * @return array{
-     * start:DateTimeInterface,
-     * end:DateTimeInterface,
-     * price:float,
-     * minStay?:int|null,
-     * currency?:string|null,
-     * important?:bool,
-     * weight?:int,
-     * id?:int|string
-     * }
+     * El `id` va CRUDO a propósito (un Uuid): el flattener lo descarta por no ser escalar y el
+     * segmento se identifica por hash. Es lo que hace que aquí nunca salgan enlaces —ver
+     * `docs/Calendar_architecture.md` §5—; la variante SPA lo pasa a texto.
      *
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
-     * @return array<string, mixed>
+     * @param Validada $valida
+     * @return array{start: DateTimeImmutable, end: DateTimeImmutable, price: float, minStay: int|null,
+     *     currency: string|null, important: bool|null, weight: int|null, id: mixed}
      */
-    private function rangeAccessor(object $r, array $config): array
+    private function rangeAccessor(object $r, array $valida): array
     {
-        $fields = (array)$config['fields'];
+        $fields = $valida['campos'];
 
-        $start = $this->resolvePath($r, (string)$fields['start']);
-        $end = $this->resolvePath($r, (string)$fields['end']);
+        $start = $this->resolvePath($r, $valida['start']);
+        $end = $this->resolvePath($r, $valida['end']);
 
         if (!$start instanceof DateTimeInterface || !$end instanceof DateTimeInterface) {
             throw new HttpException(500, 'Rango inválido: start/end deben ser DateTimeInterface');
@@ -372,36 +362,35 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
         $startDay = $this->toDay($start);
         $endDay = $this->toDay($end);
 
-        $priceVal = $this->resolvePath($r, (string)$fields['price']);
-        $price = (float) $priceVal;
+        $price = $this->aDecimal($this->resolvePath($r, $valida['price']));
 
         $minStay = null;
-        if (isset($fields['minStay'])) {
-            $ms = $this->resolvePath($r, (string)$fields['minStay']);
-            $minStay = $ms !== null ? (int)$ms : null;
+        if ($fields->minStay !== null) {
+            $ms = $this->resolvePath($r, $fields->minStay);
+            $minStay = is_scalar($ms) ? (int)$ms : null;
         }
 
         $currency = null;
-        if (isset($fields['currency'])) {
-            $c = $this->resolvePath($r, (string)$fields['currency']);
+        if ($fields->currency !== null) {
+            $c = $this->resolvePath($r, $fields->currency);
             $currency = $this->scalarToStringOrNull($c);
         }
 
         $important = null;
-        if (isset($fields['important'])) {
-            $v = $this->resolvePath($r, (string)$fields['important']);
+        if ($fields->important !== null) {
+            $v = $this->resolvePath($r, $fields->important);
             $important = (bool)$v;
         }
 
         $weight = null;
-        if (isset($fields['weight'])) {
-            $w = $this->resolvePath($r, (string)$fields['weight']);
-            $weight = $w !== null ? (int)$w : null;
+        if ($fields->weight !== null) {
+            $w = $this->resolvePath($r, $fields->weight);
+            $weight = is_scalar($w) ? (int)$w : null;
         }
 
         $id = null;
-        if (isset($fields['id'])) {
-            $id = $this->resolvePath($r, (string)$fields['id']);
+        if ($fields->id !== null) {
+            $id = $this->resolvePath($r, $fields->id);
         }
 
         return [
@@ -417,9 +406,6 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
     }
 
     /**
-     * @param array{0:int,1:int,2:int} $default
-     * @return array{0:int,1:int,2:int}
-     *
      * @param array{0: int, 1: int, 2: int} $default
      * @return array{0: int, 1: int, 2: int}
      */
@@ -448,28 +434,33 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
     }
 
     /**
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     * Lo obligatorio de la configuración, ya comprobado. Mismos mensajes y mismo orden que antes.
+     *
+     * @return Validada
      */
-    private function assertConfig(array $config): void
+    private function assertConfig(ConfiguracionCalendario $config): array
     {
-        if (empty($config['entity']) || !is_string($config['entity'])) {
+        $entidad = $config->entidad;
+        if ($entidad === null || $entidad === '') {
             throw new HttpException(500, 'tarifa_compressed_ranges requiere "entity"');
         }
 
-        $fields = $config['fields'] ?? null;
-        if (!is_array($fields)) {
-            throw new HttpException(500, 'tarifa_compressed_ranges requiere "fields" (array).');
-        }
+        $campos = $config->campos ?? throw new HttpException(500, 'tarifa_compressed_ranges requiere "fields" (array).');
 
-        foreach (['unit', 'start', 'end', 'price'] as $k) {
-            if (empty($fields[$k]) || !is_string($fields[$k])) {
-                throw new HttpException(500, sprintf('tarifa_compressed_ranges requiere fields.%s', $k));
-            }
-        }
+        $valida = [
+            'entidad' => $entidad,
+            'campos' => $campos,
+            'unit' => $campos->unit ?? throw new HttpException(500, 'tarifa_compressed_ranges requiere fields.unit'),
+            'start' => $campos->start ?? throw new HttpException(500, 'tarifa_compressed_ranges requiere fields.start'),
+            'end' => $campos->end ?? throw new HttpException(500, 'tarifa_compressed_ranges requiere fields.end'),
+            'price' => $campos->price ?? throw new HttpException(500, 'tarifa_compressed_ranges requiere fields.price'),
+        ];
 
-        if (isset($config['filters']) && !is_array($config['filters'])) {
+        if ($config->filtros->noEsMapa) {
             throw new HttpException(500, 'filters debe ser array si existe.');
         }
+
+        return $valida;
     }
 
     private function toDay(DateTimeInterface $dt): DateTimeImmutable
@@ -521,5 +512,15 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
             return $s === '' ? null : $s;
         }
         return null;
+    }
+
+    /**
+     * El precio de la entidad (un `decimal`, que Doctrine entrega como texto). Mismo resultado que
+     * el `(float)` de antes para todo escalar, y `null` es 0; lo que no sea escalar también es 0,
+     * en vez de un warning.
+     */
+    private function aDecimal(mixed $valor): float
+    {
+        return is_scalar($valor) ? (float) $valor : 0.0;
     }
 }
