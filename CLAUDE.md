@@ -30,7 +30,7 @@
   ejecutarlo a ciegas borra el respaldo que alguien guardó a propósito. Sin `--complete`, el diff
   es aditivo y es el que se lee.
 
-  **Análisis estático:** PHPStan **nivel 8** sobre `src/` entero —`src/Oweb/`, el panel Sonata
+  **Análisis estático:** PHPStan **nivel 9** sobre `src/` entero —`src/Oweb/`, el panel Sonata
   heredado que se excluía, se archivó el 17/09/2026 (ver `docs/OwebArchivado.md` y la etiqueta git
   `oweb-final`)—, con `phpstan-baseline.neon` congelando la deuda que ya existía. Correrlo antes de
   cerrar un cambio no es opcional; es más barato que cualquier test que se pueda escribir para
@@ -58,12 +58,20 @@
   arreglados los 240 por módulos —Pms, Agent, Api y sueltos, Message— y el baseline con **dos
   entradas menos**, ninguna nueva.
 
-  **Camino al 9 (el de `mixed`), por familias.** Medido el 26/09/2026: 1 454 avisos en 290
-  archivos. La primera familia ya está a cero: **llamar métodos sobre `mixed`** (63), que es la del
-  `getSegmentoMaestro()` que no existía. Casi todos eran `getResult()` sin su `@var` —la regla de
-  arriba, incumplida en 13 sitios— y ficheros subidos leídos sin `instanceof UploadedFile` (un
-  `campo[]` llegaba como array y daba 500). Y al tipar las consultas, el 8 vio lo que el `mixed` le
-  ocultaba: idiomas sin nombre llegando a `ucfirst(null)`. Para medir: `phpstan analyse --level=9`.
+  Y al **9 el 26/09/2026**, el de `mixed`: 1 454 avisos en 290 archivos, arreglados todos y ni una
+  entrada nueva en el baseline. **La regla que deja: todo dato que entra sin tipo se convierte en
+  tipos en UN sitio** —un DTO con `fromArray()` y el lector `App\Dto\Lee` dentro—, y antes de
+  cambiar una frontera con datos guardados se compara la lectura vieja con la nueva sobre los datos
+  REALES. El mapa, el lector y el método están en `docs/TiposDeFrontera.md`.
+
+  ⚠️ **Y encontró lo que ningún nivel anterior podía ver**, porque el valor venía de un `mixed`: los
+  rechazos síncronos de Meta al enviar por WhatsApp **se daban por enviados** (193 colas,
+  `docs/Mensajeria.md` §14.c), un `conRecargo: "false"` que el `(bool)` leía como `true` en un
+  enlace de pago, y un precio nocturno no numérico que ponía ese día a la venta a 0,00.
+
+  ⚠️ **Un lector genérico (`Lee`, `(string)`, `(int)`) en la lógica de negocio es la señal de que
+  falta un DTO.** Y un `(string)` sobre `mixed` no es una conversión: es la palabra «Array» guardada
+  en la base el día que llega una lista.
 
   ⚠️ **Y el 8 encontró fallos que ya estaban en producción, no sólo tipos.** Los cobros sueltos por
   Culqi leían `->value` sobre un `origenTipo` nulo: un *warning*, así que se cobraba igual y nadie

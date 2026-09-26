@@ -107,9 +107,20 @@ El patrón que se usó con Meta y con pagos, y que se repite en cada frontera co
 | Cuerpo HTTP `{contextType, contextId}` | `App\Message\Dto\AsuntoPedido` | ✅ compartido por abrir hilo y cambiar titular |
 | JSON de `MessageConversation::contextData` y `Message::metadata` | getters con comprobación (`textoDeContexto()`, `bloqueDeMetadata()`…) | ✅ columnas que Doctrine hidrata sin setters |
 | Configuración de los calendarios (`parameters.calendars_*`) | `ConfiguracionCalendario::fromArray()` en `CalendarConfigResolver`, bloques en `src/Calendar/Config/` | ✅ interna, pero cada provider la leía a mano: 170 avisos |
+| Argumentos y opciones de consola | `App\Command\EntradaDeConsola` (falla nombrando la opción) | ✅ Pms, Cotización, Travel, Operación, Domótica. No se convirtieron a comandos invocables: los llama el cron de producción y el cambio de firma es otra decisión (los del agente sí, sin opciones en el cron) |
+| PATCH de un vuelo | `App\Cotizacion\Dto\CuerpoDeVuelo` (guarda qué campos vinieron: `trae()`) | ✅ |
+| JSON de carga de vuelos (comando y expediente) | `VuelosImportador` con `Lee` | ✅ lo que no es objeto se dice y se salta; candidato a DTO |
+| Logística específica del modal de segmento | `App\Travel\Dto\FilaDeLogistica::lista()` | ✅ valida TODO antes de purgar: antes una fila mala dejaba borradas las viejas |
+| Suscripción push del navegador | `App\Api\Dto\CuerpoDeSuscripcionPush` | ✅ |
+| Celdas del padrón (Excel sin formato) | `PadronFormato::celda()` | ✅ un `1` numérico en una columna de servicio era un `TypeError` |
+| Respuesta de la API de tipo de cambio | `TipocambioManager::parseResponse()` → `ExchangeRateDto` | ✅ una fila no numérica se descarta y vale la última buena |
+| `manifest.json` de Vite | `App\Service\Front\ManifiestoVite` | ✅ |
+| Variables de ruta en providers y processors de API Platform | `App\Api\VariableDeRuta::texto()` | ✅ |
+| Filas SQL y DQL escalares | `@var list<array{…}>` según el SELECT; `COUNT` como `int\|string` | ✅ |
+| Cuerpos de un solo campo (`json` de vuelos, `canal` de una orden, `fecha` de tipo de cambio) | `Lee::texto()` en el controlador | ✅ sin DTO propio, a propósito |
 
-El resto de fronteras se va añadiendo aquí según se cierra; el orden y las cifras de partida están
-en el historial de la subida (1 256 avisos en 14 fronteras el 26/09/2026).
+**Cerrado el 26/09/2026: nivel 9 en `phpstan.dist.neon`, cero avisos.** Una frontera nueva entra
+con su fila aquí; si no, el analizador no la deja pasar.
 
 ### Por qué la entrada de las skills no es un DTO por skill
 
@@ -136,6 +147,13 @@ un nombre que su definición no declara. Una sola fuente, y el descuido sale en 
 - **Calendario**: `resources.establecimientoId` compara un UUID en texto contra `binary(16)` y da
   cero filas (hoy vale `null` en todos los calendarios). Y las exclusiones de
   `services_calendar.yaml` y `services_exchange.yaml` apuntaban a rutas que no existen.
+- **Tarifas**: un precio nocturno que no era número se leía 0.00 y ese día salía gratis (calendario y
+  push a Beds24). Ahora se ignora ese rango y cubre la tarifa base (`docs/PmsBeds24ReservasSync.md`
+  §12.21).
+- **Vuelos y nombres**: `emitido: "false"` marcaba el billete como emitido, y en
+  `RevisorDeOrdenDeNombre` el texto `"false"` pedía invertir el nombre. El mismo `(bool)` que pagos.
+- **Un comando que comparaba ids en texto contra un mapa indexado por el binario**
+  (`detalles-a-audiencias`): contaba todo como pendiente. La familia de los UUID de `CLAUDE.md`.
 - **Un `vendor` enlazado no carga el `src/` del worktree.** Con `vendor` como symlink al repo
   principal, el classmap optimizado resuelve `App\` contra el repo principal: `phpunit` y
   `bin/console` dentro de un worktree prueban el código de `master` y salen en verde. PHPStan no se

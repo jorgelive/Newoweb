@@ -800,12 +800,6 @@ parameters:
 			path: src/Pms/Service/Reserva/PmsReservaRecalculoService.php
 
 		-
-			message: '#^Offset ''price'' on non\-empty\-array\<mixed\> on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Pms/Service/Tarifa/Engine/TarifaDailyPriceFlattener.php
-
-		-
 			message: '#^Strict comparison using \=\=\= between non\-empty\-string and '''' will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 1

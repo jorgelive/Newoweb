@@ -1,5 +1,25 @@
 # Análisis estático — la red que faltaba
 #
+# **Nivel 9 desde el 26/09/2026**, el de `mixed`: todo lo que llega sin tipo —un webhook, la
+# respuesta de una API, lo que escribe el modelo en una skill, una fila de SQL crudo, un argumento
+# de consola— se convierte en tipos en UN sitio antes de usarse. Eran 1 454 avisos en 290 archivos
+# y se arreglaron los 1 454, sin una entrada nueva en el baseline (y con varias menos). La regla y el
+# mapa de fronteras están en `docs/TiposDeFrontera.md`: un DTO con `fromArray()` en la frontera, el
+# lector `App\Dto\Lee` dentro de él, y antes de cambiar una frontera con datos guardados, la
+# prueba contra los datos REALES (`tools/pruebas/probar-dto-*.php`).
+#
+# Lo que encontró que ya estaba en producción, y que ningún nivel anterior podía ver porque el
+# valor venía de un `mixed`:
+#
+#   · Los rechazos síncronos de Meta al enviar por WhatsApp se daban por ENVIADOS: la estrategia
+#     buscaba las claves del cuerpo en la fila ya normalizada. 193 colas (Mensajeria §14.c).
+#   · `conRecargo` de un enlace de pago leído con `(bool)`: el texto "false" era `true`.
+#   · Un precio nocturno que no era número se leía 0.00: ese día salía a la venta gratis.
+#   · El pull de Beds24 y el webhook construían la misma reserva por dos caminos, y el mismo dato
+#     vivía en la base como '' y como NULL.
+#   · Un comando buscaba ids en texto en un mapa indexado por el binario: todo contaba como
+#     pendiente de convertir.
+#
 # **Nivel 8 desde el 26/09/2026**, el que revisa lo que puede ser `null`, otra vez sin una sola
 # entrada nueva en el baseline (y con dos menos). Eran 240 avisos en 91 archivos y se arreglaron
 # los 240. El criterio, que es lo que importa: un nulable NO se aprieta porque hoy no haya nulos —
@@ -69,7 +89,7 @@ includes:
     - phpstan-baseline.neon
 
 parameters:
-    level: 8
+    level: 9
     paths:
         - src
     bootstrapFiles:
