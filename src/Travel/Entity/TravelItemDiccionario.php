@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use App\Travel\Enum\ItemModoEnum;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -169,20 +170,14 @@ class TravelItemDiccionario
                 continue;
             }
 
-            $modoNombre = $item->getModo()->name;
-
-            [$icono, $colorFondo, $colorTexto] = match ($modoNombre) {
-                'INCLUIDO' => ['✅', '#e6f4ea', '#1e7e34'],
-                'NO_INCLUIDO' => ['❌', '#fde8e8', '#c0392b'],
-                // Sin `UPSELL`: `getModo()` devuelve `ItemModoEnum`, que sólo tiene INCLUIDO,
-                // OPCIONAL y NO_INCLUIDO. Ese nombre no existe en NINGÚN enum de modo, así que
-                // el brazo no podía entrar nunca.
-                'OPCIONAL' => ['➕', '#fff4e0', '#b8860b'],
-                // `CORTESIA` sólo existe en `ComponenteItemModoEnum`, el enum gemelo que hoy no
-                // usa nadie (ver `docs/Travel.md` §11). Con `ItemModoEnum` este brazo tampoco
-                // entra; se deja porque revive solo si algún día se unifican los dos enums.
-                'CORTESIA' => ['🎁', '#e8f0fe', '#2b5cad'],
-                default => ['▪️', '#eeeeee', '#555555'],
+            // Sobre el enum y sin `default`: es exhaustivo, así que el día que `ItemModoEnum` tenga
+            // un caso más (p. ej. `CORTESIA`, si se unifica con `ComponenteItemModoEnum`, ver
+            // `docs/Travel.md` §11) PHPStan exige su brazo. Antes eran nombres en texto con un
+            // `default` y dos brazos que no podían entrar nunca.
+            [$icono, $colorFondo, $colorTexto] = match ($item->getModo()) {
+                ItemModoEnum::INCLUIDO => ['✅', '#e6f4ea', '#1e7e34'],
+                ItemModoEnum::NO_INCLUIDO => ['❌', '#fde8e8', '#c0392b'],
+                ItemModoEnum::OPCIONAL => ['➕', '#fff4e0', '#b8860b'],
             };
 
             $badges[] = sprintf(

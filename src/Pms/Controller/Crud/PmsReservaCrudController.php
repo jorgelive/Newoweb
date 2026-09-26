@@ -535,7 +535,6 @@ TXT;
             )
             ->setTemplatePath('panel/pms/pms_reserva/fields/telefono_wa_vcard.html.twig')
             ->formatValue(function (mixed $val, PmsReserva $entity) {
-                if (!$entity instanceof PmsReserva) return $val;
 
                 // Los botones (WhatsApp, vCard) apuntan al número de las IDENTIDADES, que es
                 // el mismo que usan las plantillas y el chat. El campo de la reserva es la
@@ -654,7 +653,6 @@ TXT;
             ->setVirtual(true)
             ->onlyOnDetail()
             ->formatValue(function (mixed $value, PmsReserva $entity) {
-                if (!$entity instanceof PmsReserva) return '-';
 
                 $eventos = $entity->getEventosCalendario();
                 if ($eventos->isEmpty()) return 'Sin eventos vinculados';

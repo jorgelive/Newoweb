@@ -96,7 +96,7 @@ final class FusionarTarifasPorSentidoCommand extends Command
                 }
 
                 $importes = array_unique(array_map(
-                    static fn (TravelTarifa $t): string => sprintf('%s %s', $t->getMonto() ?? '', $t->getMoneda()?->getId() ?? ''),
+                    static fn (TravelTarifa $t): string => sprintf('%s %s', $t->getMonto(), $t->getMoneda()?->getId() ?? ''),
                     $tarifas,
                 ));
 

@@ -20,11 +20,15 @@ final class TarifaLogicalRangeCompressor
     /**
      * Compacta SOLO las fechas presentes en $daily.
      *
+     * Recibe exactamente lo que devuelve `TarifaDailyPriceFlattener::flatten()`, su único
+     * proveedor. Declaraba una forma más floja (claves opcionales, precio `int`) y cada lectura la
+     * compensaba con `isset()`/`??` que nunca podían actuar.
+     *
      * @param array<string, array{
-     *   price: float|int,
-     *   currency?: string|null,
-     *   minStay?: int|null,
-     *   sourceId?: string|null
+     *   price: float,
+     *   minStay: int,
+     *   currency: ?string,
+     *   sourceId: string
      * }> $daily
      *
      * @return TarifaLogicalRangeDto[]
@@ -41,17 +45,15 @@ final class TarifaLogicalRangeCompressor
 
         $first = $daily[$dates[0]];
 
-        $price = (float) ($first['price'] ?? 0);
-        $currency = isset($first['currency']) ? (string) $first['currency'] : null;
+        $price = $first['price'];
+        $currency = $first['currency'];
 
-        $minStay = isset($first['minStay']) ? (int) $first['minStay'] : 2;
+        $minStay = $first['minStay'];
         if ($minStay <= 0) {
             $minStay = 2;
         }
 
-        $sourceId = isset($first['sourceId']) && is_string($first['sourceId']) && $first['sourceId'] !== ''
-            ? $first['sourceId']
-            : null;
+        $sourceId = $first['sourceId'] !== '' ? $first['sourceId'] : null;
 
         $start = $dates[0];
         $prev = $dates[0];
@@ -63,17 +65,15 @@ final class TarifaLogicalRangeCompressor
             $curDate = $dates[$i];
             $cur = $daily[$curDate];
 
-            $curPrice = (float) ($cur['price'] ?? 0);
-            $curCurrency = isset($cur['currency']) ? (string) $cur['currency'] : null;
+            $curPrice = $cur['price'];
+            $curCurrency = $cur['currency'];
 
-            $curMinStay = isset($cur['minStay']) ? (int) $cur['minStay'] : 2;
+            $curMinStay = $cur['minStay'];
             if ($curMinStay <= 0) {
                 $curMinStay = 2;
             }
 
-            $curSourceId = isset($cur['sourceId']) && is_string($cur['sourceId']) && $cur['sourceId'] !== ''
-                ? $cur['sourceId']
-                : null;
+            $curSourceId = $cur['sourceId'] !== '' ? $cur['sourceId'] : null;
 
             $expectedNext = (new DateTimeImmutable($prev))->modify('+1 day')->format('Y-m-d');
             $isConsecutive = ($curDate === $expectedNext);

@@ -299,7 +299,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
                     . 'responderán, SIN prometerle plazo y sin repetirle lo que ya le contaste. '
                     . 'Si lo que cuenta AHORA es un problema distinto y grave que no admite '
                     . 'espera, vuelve a llamarme marcando «emergencia».',
-            ], static fn ($v) => $v !== null && $v !== false));
+            ], static fn ($v) => $v !== null));
         }
 
         // El aviso: QUÉ se dice lo decide esta skill; a quién y por dónde, el servicio.

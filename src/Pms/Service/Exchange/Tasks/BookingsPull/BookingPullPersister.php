@@ -374,7 +374,7 @@ final class BookingPullPersister implements ResetInterface
 
     private function resolveMasterIdReal(Beds24BookingDto $booking): ?string
     {
-        if (!empty($booking->bookingGroup) && is_array($booking->bookingGroup) && array_key_exists('master', $booking->bookingGroup)) {
+        if (!empty($booking->bookingGroup) && array_key_exists('master', $booking->bookingGroup)) {
             $m = $this->normalizeBeds24Id($booking->bookingGroup['master']);
             if ($m !== null) return $m;
         }

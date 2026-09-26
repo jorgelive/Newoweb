@@ -292,7 +292,7 @@ final class PmsUnidadCrudController extends BaseCrudController
             ->onlyOnIndex()
             ->setSortable(false)
             ->formatValue(static function (mixed $value, PmsUnidad $entity) {
-                if (!$entity instanceof PmsUnidad || !$entity->cobraPaxAdicional()) {
+                if (!$entity->cobraPaxAdicional()) {
                     return '—';
                 }
 
@@ -355,10 +355,6 @@ final class PmsUnidadCrudController extends BaseCrudController
             ->onlyOnIndex()
             ->setSortable(false)
             ->formatValue(static function (mixed $value, PmsUnidad $entity) {
-                if (!$entity instanceof PmsUnidad) {
-                    return '—';
-                }
-
                 $limpieza = match (true) {
                     $entity->limpiezaEsPorcentaje() => rtrim(rtrim($entity->getPrecioLimpieza(), '0'), '.') . '%',
                     (float) $entity->getPrecioLimpieza() > 0.0 => $entity->getPrecioLimpieza(),

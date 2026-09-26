@@ -167,7 +167,7 @@ final readonly class EnviarmePlantillaSkill implements SkillInterface, SkillDomi
             ));
         }
 
-        $idioma = $conversacion->getIdioma()?->getId() ?? 'es';
+        $idioma = $conversacion->getIdioma()->getId() ?? 'es';
 
         $mensaje = new Message();
         $mensaje->setConversation($conversacion);
@@ -225,7 +225,7 @@ final readonly class EnviarmePlantillaSkill implements SkillInterface, SkillDomi
 
     private function reserva(MessageConversation $conversacion): ?PmsReserva
     {
-        if ($conversacion->getContextType() !== 'pms_reserva' || $conversacion->getContextId() === null) {
+        if ($conversacion->getContextType() !== 'pms_reserva') {
             return null;
         }
 

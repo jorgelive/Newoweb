@@ -177,7 +177,7 @@ final readonly class EnviarPlantillaSkill implements SkillInterface, SkillDomini
             ));
         }
 
-        $idioma = $conversacion->getIdioma()?->getId() ?? 'es';
+        $idioma = $conversacion->getIdioma()->getId() ?? 'es';
         $cancelada = $this->reservaCancelada($conversacion);
 
         // Se comprueba contra el origen real de la reserva: `despedida_airbnb` no se le manda a
@@ -350,7 +350,7 @@ final readonly class EnviarPlantillaSkill implements SkillInterface, SkillDomini
 
     private function reserva(MessageConversation $conversacion): ?PmsReserva
     {
-        if ($conversacion->getContextType() !== 'pms_reserva' || $conversacion->getContextId() === null) {
+        if ($conversacion->getContextType() !== 'pms_reserva') {
             return null;
         }
 

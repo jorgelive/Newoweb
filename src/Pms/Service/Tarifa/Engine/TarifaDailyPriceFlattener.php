@@ -331,7 +331,7 @@ final class TarifaDailyPriceFlattener
         ];
 
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        if (!is_string($json) || $json === '') {
+        if (!is_string($json)) {
             // ultra-fallback, debería ser rarísimo
             $json = implode('|', $payload);
         }

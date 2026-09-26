@@ -394,7 +394,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             ->setVirtual(true)
             ->onlyOnDetail()
             ->formatValue(function (mixed $value, PmsEventoCalendario $entity) {
-                if (!$entity instanceof PmsEventoCalendario || !$entity->getReserva()) return 'Sin reserva padre';
+                if (!$entity->getReserva()) return 'Sin reserva padre';
 
                 $reserva = $entity->getReserva();
                 $url = $this->adminUrlGenerator
@@ -416,7 +416,6 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             ->setVirtual(true)
             ->onlyOnDetail()
             ->formatValue(function (mixed $value, PmsEventoCalendario $entity) {
-                if (!$entity instanceof PmsEventoCalendario) return '-';
 
                 $links = $entity->getBeds24Links();
                 if ($links->isEmpty()) return 'Sin vínculos técnicos';

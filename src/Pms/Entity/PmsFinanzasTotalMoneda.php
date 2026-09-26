@@ -51,15 +51,19 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'pms_finanzas_total_moneda')]
 class PmsFinanzasTotalMoneda
 {
+    // Sin `?` ni `= null`: las filas las escribe SQL (`PmsInformacionFinancieraRecalculoService`) y
+    // Doctrine sólo las lee, así que no existe una instancia «sin ficha» o «sin moneda» — las dos son
+    // la clave primaria y sus columnas son NOT NULL. El `?` que tenían lo desmentía PHPStan
+    // (`property.unusedType`), y lo tapaba una regla pensada para columnas que sí aceptan NULL.
     #[ORM\Id]
     #[ORM\ManyToOne(targetEntity: PmsInformacionFinanciera::class)]
     #[ORM\JoinColumn(name: 'informacion_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
-    private ?PmsInformacionFinanciera $informacion = null;
+    private PmsInformacionFinanciera $informacion;
 
     #[ORM\Id]
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: false)]
-    private ?MaestroMoneda $moneda = null;
+    private MaestroMoneda $moneda;
 
     /** Suma de los cargos de esta moneda. Sin convertir: es el importe tal como se pactó. */
     #[ORM\Column(name: 'total_cargos', type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
@@ -76,11 +80,11 @@ class PmsFinanzasTotalMoneda
     #[ORM\Column(name: 'total_pagos', type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
     private string $totalPagos = '0.00';
 
-    public function getInformacion(): ?PmsInformacionFinanciera { return $this->informacion; }
+    public function getInformacion(): PmsInformacionFinanciera { return $this->informacion; }
 
-    public function getMoneda(): ?MaestroMoneda { return $this->moneda; }
+    public function getMoneda(): MaestroMoneda { return $this->moneda; }
 
-    public function getMonedaId(): string { return (string) $this->moneda?->getId(); }
+    public function getMonedaId(): string { return (string) $this->moneda->getId(); }
 
     public function getTotalCargos(): string { return $this->totalCargos; }
 

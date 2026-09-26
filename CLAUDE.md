@@ -158,7 +158,11 @@
 
   ⚠️ **La baseline ya NO es deuda: es la lista de fronteras de confianza.** Se auditó entera el
   30/08/2026 —313 ocurrencias, una por una— y la deuda se saldó: 120 `missingType`, 29 genéricos,
-  18 contratos que mentían y 6 restos sueltos. Quedan **125 ocurrencias y ninguna es deuda**.
+  18 contratos que mentían y 6 restos sueltos. Y otra vez el **26/09/2026**, con el nivel 10: de
+  107 a **51**, porque la primera auditoría había dado por frontera `?->` sobre getters con retorno
+  NATIVO no nulo — un getter así lanza antes de devolver null, el guarda no puede actuar nunca.
+  **La hidratación de Doctrine justifica un guarda sobre la PROPIEDAD, no sobre un getter tipado.**
+  `PhpstanBaselineTest` fija desde entonces las familias permitidas y el total.
 
   **Por eso la regla vieja se invierte: si tocas un archivo con entradas ahí dentro, NO las
   arregles por costumbre.** Lee la cabecera del propio `phpstan-baseline.neon`, que explica

@@ -328,7 +328,7 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
         $adultos = $e->entero('adultos', 0);
 
         if ($adultos > 0 && $adultos !== $evento->getCantidadAdultos()) {
-            $cambios[] = sprintf('adultos: %d → %d', $evento->getCantidadAdultos() ?? 0, $adultos);
+            $cambios[] = sprintf('adultos: %d → %d', $evento->getCantidadAdultos(), $adultos);
             $evento->setCantidadAdultos($adultos);
         }
 
@@ -336,7 +336,7 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
             $ninos = max(0, $e->entero('ninos'));
 
             if ($ninos !== $evento->getCantidadNinos()) {
-                $cambios[] = sprintf('niños: %d → %d', $evento->getCantidadNinos() ?? 0, $ninos);
+                $cambios[] = sprintf('niños: %d → %d', $evento->getCantidadNinos(), $ninos);
                 $evento->setCantidadNinos($ninos);
             }
         }

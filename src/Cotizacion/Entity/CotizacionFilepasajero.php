@@ -290,10 +290,10 @@ class CotizacionFilepasajero
         if ($edad >= 18) {
             return 1;
         }
-        if ($edad >= 13 && $edad <= 17) {
+        if ($edad >= 13) {
             return 2;
         }
-        if ($edad >= 3 && $edad <= 12) {
+        if ($edad >= 3) {
             return 7;
         }
         return 0; // Infante u otro

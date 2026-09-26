@@ -113,7 +113,7 @@ readonly class MessageConversationFactory
         // =====================================================================
         if (!$conversation->isIdiomaFijado()) {
             // Extraemos los 2 primeros caracteres directo del contrato (ej: de 'en_US' a 'en')
-            $langCode = substr($context->getContextLanguage() ?? MaestroIdioma::DEFAULT_IDIOMA, 0, 2);
+            $langCode = substr($context->getContextLanguage(), 0, 2);
 
             // Inyectamos la referencia directamente sin ensuciar con llamadas extra
             // `getReference()` puede devolver null en Doctrine 3. Sin idioma no hay conversación

@@ -82,7 +82,7 @@ final class LimpiarTarifasRepetidasCommand extends Command
                 $clave = sprintf(
                     '%s|%s|%s',
                     mb_strtolower(trim($tarifa->getNombreInterno() ?? '')),
-                    $tarifa->getMonto() ?? '',
+                    $tarifa->getMonto(),
                     $tarifa->getMoneda()?->getId() ?? '',
                 );
                 $porClave[$clave][] = $tarifa;
@@ -107,7 +107,7 @@ final class LimpiarTarifasRepetidasCommand extends Command
                     '  %s · «%s» %s %s — %d copias, se queda 1',
                     $simula ? 'quitaría' : 'quitadas',
                     $sobrevive->getNombreInterno() ?? '',
-                    $sobrevive->getMonto() ?? '',
+                    $sobrevive->getMonto(),
                     $sobrevive->getMoneda()?->getId() ?? '',
                     count($copias),
                 ));

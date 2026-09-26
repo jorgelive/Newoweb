@@ -421,12 +421,9 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
             ], static fn ($v) => $v !== null));
         }
 
-        // Con `$faltan` vacío el medio existe por construcción —si no, estaría en la lista—,
-        // pero eso es un razonamiento que hay que rehacer cada vez que se lee. Explícito aquí:
-        // de aquí en adelante `$medio` se usa sin `?->` y así se ve por qué se puede.
-        if ($medio === null) {
-            return SkillResult::error('Falta el medio de pago. Pregunta al operador cómo pagó.');
-        }
+        // Con `$faltan` vacío el medio existe por construcción —si no, estaría en la lista y se
+        // habría devuelto arriba—. No hace falta comprobarlo otra vez: PHPStan sigue ese razonamiento
+        // y, si un cambio lo rompiera, el primer `$medio->` de abajo dejaría de pasar el análisis.
 
         $cobrado = $pct > 0.0 && $incluye !== 'no' ? $importe : $importe * (1 + $pct / 100);
         $neto = $pct > 0.0 && $incluye !== 'no' ? $importe / (1 + $pct / 100) : $importe;

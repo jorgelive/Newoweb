@@ -66,9 +66,54 @@ final class PhpstanBaselineTest extends TestCase
         // 16/08/2026: 9 → 8 al tipar `AutoTranslationService`, donde el parámetro pedía un
         // `ObjectManager` genérico y el cuerpo llamaba a `getUnitOfWork()`, que sólo tiene el
         // del ORM. Los eventos de Doctrine ya entregaban el bueno; mentía la firma.
-        'method.notFound' => 8,
-        'argument.type' => 1,
+        // 26/09/2026: a CERO las dos, en la subida al nivel 10. Queda el tope para que no vuelvan.
+        'method.notFound' => 0,
+        'argument.type' => 0,
     ];
+
+    /**
+     * Lo ÚNICO que puede haber en el baseline desde la auditoría del 26/09/2026: guardas que
+     * PHPStan da por redundantes y que protegen una frontera que no modela —una columna JSON, la
+     * hidratación de Doctrine, lo que llama un framework, un candado leído en SQL crudo—. Ninguna
+     * de estas familias dice «esto está mal»; dicen «esto sobra». Cualquier otra familia en el
+     * baseline es un error congelado, y no se congela: se arregla.
+     *
+     * @var list<string>
+     */
+    private const array FAMILIAS_DE_FRONTERA = [
+        'arrayValues.list',
+        'booleanAnd.rightAlwaysTrue',
+        'function.alreadyNarrowedType',
+        'instanceof.alwaysTrue',
+        'isset.offset',
+        'notIdentical.alwaysFalse',
+        'nullCoalesce.offset',
+        'property.onlyWritten',
+    ];
+
+    /**
+     * Ocurrencias el 26/09/2026, tras auditarlas una por una (de 107 a 51). Sólo puede bajar: si
+     * baja, se baja aquí.
+     */
+    private const int TOPE_TOTAL = 51;
+
+    public function testElBaselineSoloGuardaFronteras(): void
+    {
+        $censo = $this->censoDelBaseline();
+        $ajenas = array_diff(array_keys($censo), self::FAMILIAS_DE_FRONTERA);
+
+        self::assertSame([], array_values($ajenas), sprintf(
+            "El baseline tiene familias que no son guardas de frontera: %s.\n\n"
+            . "Eso es un aviso congelado en código propio. Se arregla; no se apunta.",
+            implode(', ', $ajenas),
+        ));
+
+        self::assertLessThanOrEqual(self::TOPE_TOTAL, array_sum($censo), sprintf(
+            "El baseline pasó de %d a %d ocurrencias. No se añaden entradas: nunca.",
+            self::TOPE_TOTAL,
+            array_sum($censo),
+        ));
+    }
 
     public function testElBaselineNoCongelaFallosDeEjecucion(): void
     {

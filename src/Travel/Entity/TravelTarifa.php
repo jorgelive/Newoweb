@@ -81,7 +81,7 @@ class TravelTarifa
     )]
     #[Assert\PositiveOrZero(message: 'El monto no puede ser negativo.')]
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
-    private ?string $monto = '0.00';
+    private string $monto = '0.00';
 
     #[Groups(['componente:item:read', 'componente:write'])]
     #[Assert\NotNull(message: 'La moneda es obligatoria.')]
@@ -227,7 +227,7 @@ class TravelTarifa
         }
 
         $monedaStr = $this->moneda ? $this->moneda->getId() : '';
-        $montoStr = $this->monto !== null ? $this->monto : '0.00';
+        $montoStr = $this->monto;
         $etiqueta = sprintf('🏷️ %s | %s %s', $this->nombreInterno, $monedaStr, $montoStr);
 
         $etiqueta .= $this->costoPorGrupo ? ' 👥' : ' 👤';
@@ -261,7 +261,7 @@ class TravelTarifa
         };
     }
 
-    public function getMonto(): ?string
+    public function getMonto(): string
     {
         return $this->monto;
     }

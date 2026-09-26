@@ -205,8 +205,8 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         if (!$isOta || $isMirror) {
             $payload['arrival']   = $evento->getInicio()?->format('Y-m-d');
             $payload['departure'] = $evento->getFin()?->format('Y-m-d');
-            $payload['numAdult']  = (int) ($evento->getCantidadAdultos() ?? 0);
-            $payload['numChild']  = (int) ($evento->getCantidadNinos() ?? 0);
+            $payload['numAdult']  = $evento->getCantidadAdultos();
+            $payload['numChild']  = $evento->getCantidadNinos();
         }
 
         // 4. ESTADO
@@ -383,6 +383,6 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
     {
         if (is_int($v)) return $v;
         $s = trim((string)$v);
-        return (is_numeric($s) && $s !== '') ? (int)$s : null;
+        return is_numeric($s) ? (int)$s : null;
     }
 }

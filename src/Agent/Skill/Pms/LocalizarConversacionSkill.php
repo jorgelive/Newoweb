@@ -117,7 +117,7 @@ final readonly class LocalizarConversacionSkill implements SkillInterface, Skill
         return SkillResult::ok(array_filter([
             'conversacion_id' => (string) $conversacion->getId(),
             'huesped' => $conversacion->getGuestName(),
-            'idioma_huesped' => $conversacion->getIdioma()?->getId(),
+            'idioma_huesped' => $conversacion->getIdioma()->getId(),
             'estado_chat' => $conversacion->getStatus(),
             // ⚠️ El chat de una reserva cancelada sigue vivo y con teléfono válido, así que
             // los canales salen «disponible: true» y nada delata que no hay estancia. El aviso

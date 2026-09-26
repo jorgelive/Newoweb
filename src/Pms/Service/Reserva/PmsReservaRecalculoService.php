@@ -174,10 +174,8 @@ SQL;
 
                     // Ejecución explícita: Al usar SQL crudo se evitan los listeners de Doctrine,
                     // por lo que debemos empujar los datos al motor de reglas manualmente.
-                    if ($conversation instanceof MessageConversation) {
-                        // Forzamos el motor pasándole true para que salte protecciones y evalúe los cambios crudos
-                        $this->ruleEngine->syncConversationRules($conversation, MessageRuleEngine::TRIGGER_UPDATE, true);
-                    }
+                    // Forzamos el motor pasándole true para que salte protecciones y evalúe los cambios crudos
+                    $this->ruleEngine->syncConversationRules($conversation, MessageRuleEngine::TRIGGER_UPDATE, true);
                 }
             }
 

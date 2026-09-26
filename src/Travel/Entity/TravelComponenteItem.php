@@ -100,12 +100,11 @@ class TravelComponenteItem
         $nombreItem = (string) $this->diccionario;
         $modoNombre = $this->modo->name;
 
-        // Asignamos un ícono visual dependiendo del modo para facilitar la lectura rápida
-        $icono = match ($modoNombre) {
-            'INCLUIDO' => '✅',
-            'NO_INCLUIDO' => '❌',
-            'OPCIONAL' => '➕',
-            default => '▪️'
+        // Sobre el enum y sin `default`: exhaustivo, y un caso nuevo lo pide PHPStan.
+        $icono = match ($this->modo) {
+            ItemModoEnum::INCLUIDO => '✅',
+            ItemModoEnum::NO_INCLUIDO => '❌',
+            ItemModoEnum::OPCIONAL => '➕',
         };
 
         $etiqueta = sprintf('%s %s [%s]', $icono, $nombreItem, $modoNombre);

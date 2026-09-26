@@ -24,7 +24,7 @@ final class PmsReservaByLocalizadorProvider implements ProviderInterface
         private readonly EntityManagerInterface $entityManager,
     ) {}
 
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?object
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): object
     {
         $localizador = $uriVariables['localizador'] ?? null;
 

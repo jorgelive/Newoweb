@@ -76,12 +76,14 @@
 # lleva dentro**. Es exactamente la regla que faltaba — el valor que reventó salía de un `array`
 # pelado, y con el 6 esa firma no habría pasado.
 #
-# ⚠️ Quedan 120 anotaciones pendientes en el baseline (recontadas el 30/08/2026), y NO es una lista de perdonados: es que
-# escribirlas a mano de golpe garantiza escribir algunas mal, y un tipo mentiroso es peor que
-# ninguno —le hace creer al analizador algo falso—. Se van quitando por módulo, al tocarlos.
-# Las 33 colecciones de Doctrine ya están hechas: su `targetEntity` estaba al lado y se pudo
-# derivar sin adivinar. Dónde están las que faltan, por si se ataca un módulo entero:
-# Exchange 31 · Agent 28 · Api 10 · Message 9 · Repository 9 · Service 6, y el resto suelto.
+# ✅ **Auditado entero el 26/09/2026, con el nivel 10 puesto: no queda relajación en código propio.**
+# La baseline pasó de 107 ocurrencias a 51 y ya no tiene deuda de tipos (cero `missingType`, cero
+# `method.notFound`, cero `argument.type`): sólo guardas que PHPStan da por redundantes y que
+# protegen una frontera —JSON, Doctrine, API Platform, EasyAdmin, Twig, Vich, SQL crudo—. Lo que
+# salió al auditarla y NO era frontera se arregló: getters con retorno nativo no nulo tratados como
+# nulables (`?->`, `?? x` que no podían actuar), un tipo `?string` sobre una columna NOT NULL,
+# dependencias inyectadas que nadie usaba, ramas muertas, una columna que nadie leía y `src/Kernel.php`
+# excluido del análisis por error. `PhpstanBaselineTest` fija las familias permitidas y el total.
 #
 # 🔒 Lo que el baseline NO puede tragarse: `tests/Calidad/PhpstanBaselineTest.php`. El baseline
 # nació de `--generate-baseline` y por ahí se coló un `cast.string` sobre un enum que reventaba
@@ -91,8 +93,8 @@
 # Lo que el nivel 6 SÍ hace desde hoy, que es el 90% del valor: **el código nuevo no puede
 # escribir un `array` sin tipo**. La deuda vieja no crece.
 includes:
-    # La deuda que ya existía, congelada. NO es una lista de perdonados para siempre: es lo que
-    # había el día que se instaló la herramienta, para que a partir de aquí salte SÓLO lo nuevo.
+    # Las guardas de frontera que PHPStan no puede modelar (ver la cabecera de ese archivo). Ya no
+    # es deuda: desde el 26/09/2026 sólo admite las familias de `PhpstanBaselineTest`.
     # `src/Oweb/`, el módulo legado, se archivó el 17/09/2026 y sus entradas se fueron con él.
     - phpstan-baseline.neon
 
@@ -149,6 +151,17 @@ parameters:
         # al de `PmsFinanzasTotalMoneda`: nadie las asigna desde PHP porque no se escriben por el
         # ORM. Acotar por el namespace del tipo era una casualidad, no un criterio.
 
+        # Y su pareja: una propiedad que PHP sólo LEE porque la escribe Doctrine al hidratar —la
+        # colección inversa de una relación (`PmsChannel::$eventosCalendario`), las claves de una
+        # entidad que se escribe por SQL (`PmsFinanzasTotalMoneda`)—. Estaba suelta en el baseline;
+        # es el mismo hecho que la de arriba y va como regla, acotada a `Entity/`.
+        -
+            identifier: property.onlyRead
+            paths:
+                - src/*/Entity/*
+                - src/Entity/*
+            reportUnmatched: false
+
         # ── La frontera de confianza: procesadores y listeners ─────────────────
         #
         # `ProcessorInterface::process(mixed $data, …)` recibe **mixed por contrato del
@@ -171,6 +184,12 @@ parameters:
         # ⚠️ Apareció al RELLENAR los genéricos (30/08/2026). Antes PHPStan no sabía el tipo y no
         # se quejaba; al declararlo, empezó a creerse la promesa del framework. Tipar mejor no
         # convierte una frontera en código propio.
+        #
+        # ⚠️ **La ruta `Controller/Crud/*` es más ancha que la frontera**, y eso se paga: la frontera
+        # es `persistEntity`/`updateEntity`, pero la regla cubre también los `formatValue()`, donde
+        # desde el nivel 10 la entidad va TIPADA y un `instanceof` es redundante de verdad. El
+        # 26/09/2026 había siete así, escondidos por esta regla, y se quitaron. Un `instanceof` sobre
+        # `$entity` dentro de un `formatValue()` no es frontera: bórralo.
         -
             identifier: instanceof.alwaysTrue
             paths:
@@ -180,6 +199,7 @@ parameters:
                 - src/*/Controller/Crud/*
             reportUnmatched: false
 
-    # Cachés y código generado: no es nuestro y no se corrige aquí.
-    excludePaths:
-        - src/Kernel.php
+    # Sin `excludePaths`, a propósito. Aquí había `src/Kernel.php` desde el 13/08/2026 bajo el
+    # comentario «cachés y código generado», y no es ninguna de las dos cosas: es código nuestro, el
+    # que fija la zona horaria de toda la operación (`docs/ZonasHorarias.md`). Se analiza como el
+    # resto; salió limpio en nivel 10 el día que se quitó (26/09/2026).

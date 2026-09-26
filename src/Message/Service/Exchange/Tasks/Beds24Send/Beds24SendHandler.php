@@ -11,14 +11,12 @@ use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
 use App\Message\Service\MessageJsonMerger;
 use DateTimeImmutable;
-use Doctrine\ORM\EntityManagerInterface;
 use Throwable;
 
 final readonly class Beds24SendHandler implements ExchangeHandlerInterface
 {
     public function __construct(
-        private EntityManagerInterface $em,
-        private MessageJsonMerger      $merger
+        private MessageJsonMerger $merger
     ) {}
 
     /**

@@ -46,9 +46,6 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface, MemoryCleanabl
     public const STATUS_SUCCESS    = 'success';
     public const STATUS_FAILED     = 'failed';
 
-    #[ORM\Column(type: 'string', length: 50)]
-    private string $type = 'beds24_bookings_arrival_range';
-
     // ✅ CORRECCIÓN: Usamos PmsBeds24Config para consistencia con el resto del módulo
     #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'bookingsPullQueues')]
     #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false)]
@@ -114,7 +111,7 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface, MemoryCleanabl
     public function getRelatedEntitiesToDetach(): array
     {
         // Limpiamos la colección de Unidades que se hayan consultado para este Pull
-        return $this->unidades ? $this->unidades->toArray() : [];
+        return $this->unidades->toArray();
     }
 
     /**

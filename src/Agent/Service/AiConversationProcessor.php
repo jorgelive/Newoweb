@@ -1218,7 +1218,7 @@ final readonly class AiConversationProcessor
         ActorInterface $actor,
         ?DecisionDeTriaje $decision = null
     ): string {
-        $idioma = $conversacion->getIdioma()?->getId() ?? 'es';
+        $idioma = $conversacion->getIdioma()->getId() ?? 'es';
         $huesped = $conversacion->getGuestName() ?? 'el huésped';
 
         // 🏷️ Lo que hay que saber de este negocio ahora mismo: en alojamiento, en qué punto
@@ -1362,7 +1362,7 @@ final readonly class AiConversationProcessor
      */
     private function acuseDeRecibo(MessageConversation $conversacion): string
     {
-        $idioma = $conversacion->getIdioma()?->getId() ?? 'es';
+        $idioma = $conversacion->getIdioma()->getId() ?? 'es';
 
         return self::ACUSES[$idioma] ?? self::ACUSES['es'];
     }
@@ -1508,7 +1508,7 @@ final readonly class AiConversationProcessor
         // operador lea el chat en su idioma. Rellenar los dos aquí hacía que el traductor se
         // saltara el mensaje y el panel mostrara la respuesta del asistente en inglés.
         $salida->setContentExternal($texto);
-        $salida->setLanguageCode($conversacion->getIdioma()?->getId() ?? 'es');
+        $salida->setLanguageCode($conversacion->getIdioma()->getId() ?? 'es');
         $salida->addMetadata('generado_por', 'ia');
 
         // El acuse se marca para poder reconocerlo sin mirar su texto. Comparar aquí con las

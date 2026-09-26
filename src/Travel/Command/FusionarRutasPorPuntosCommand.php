@@ -225,15 +225,15 @@ final class FusionarRutasPorPuntosCommand extends Command
                 continue;
             }
 
-            $aqui = (float) ($gemela->getMonto() ?? '0');
-            $alla = (float) ($tarifa->getMonto() ?? '0');
+            $aqui = (float) ($gemela->getMonto());
+            $alla = (float) ($tarifa->getMonto());
 
             if ($aqui !== $alla) {
                 $gana = max($aqui, $alla);
                 $mayores[] = sprintf('%s · %s: %s y %s → %s', $canonico->getNombreInterno() ?? '',
-                    $tarifa->getNombreInterno() ?? '', $gemela->getMonto() ?? '', $tarifa->getMonto() ?? '', number_format($gana, 2, '.', ''));
+                    $tarifa->getNombreInterno() ?? '', $gemela->getMonto(), $tarifa->getMonto(), number_format($gana, 2, '.', ''));
                 $io->text(sprintf('    <fg=yellow>mayor</> · %s: %s / %s → %s',
-                    $tarifa->getNombreInterno() ?? '', $gemela->getMonto() ?? '', $tarifa->getMonto() ?? '', number_format($gana, 2, '.', '')));
+                    $tarifa->getNombreInterno() ?? '', $gemela->getMonto(), $tarifa->getMonto(), number_format($gana, 2, '.', '')));
 
                 if (!$simula) {
                     $gemela->setMonto(number_format($gana, 2, '.', ''));

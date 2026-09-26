@@ -51,7 +51,7 @@ final class PmsEventAssignmentEmbeddedType extends AbstractType
             ->add('usuario', EntityType::class, [
                 'class' => User::class,
                 // ✅ Usamos getter explícito para el nombre
-                'choice_label' => fn (User $u) => (string) ($u->getNombre() ?? $u->getEmail()),
+                'choice_label' => fn (User $u) => $u->getNombre(),
                 'placeholder' => 'Seleccionar Personal',
                 'required' => false,
 

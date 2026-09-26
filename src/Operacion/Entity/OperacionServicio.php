@@ -704,7 +704,7 @@ class OperacionServicio
             if ($fileOs !== null && $this->file !== null && $fileOs->getId() != $this->file->getId()) {
                 throw new \DomainException(sprintf(
                     'La Orden de Servicio %s es del expediente «%s» y «%s» pertenece a otro. Una OS es una solicitud sobre un solo expediente.',
-                    $ordenServicio->getNumeroOs() ?? '(sin número)',
+                    $ordenServicio->getNumeroOs(),
                     $fileOs->getNombreGrupo() ?? '—',
                     $this->descripcionServicio ?? 'este servicio'
                 ));
@@ -751,7 +751,7 @@ class OperacionServicio
             throw new \DomainException(sprintf(
                 '«%s» pertenece a la Orden de Servicio %s y ahora %s. Sácalo de la orden antes de aplicar este cambio.',
                 $this->descripcionServicio ?? 'El servicio',
-                $this->ordenServicio->getNumeroOs() ?? '(sin número)',
+                $this->ordenServicio->getNumeroOs(),
                 $motivo
             ));
         }

@@ -96,7 +96,7 @@ final class ExchangeOrchestrator
                         $item->setExecutionResult($summary);
                     } else {
                         // El Handler procesa el fallo lógico
-                        $msg = $result?->message ?? 'Error desconocido en respuesta batch';
+                        $msg = $result->message ?? 'Error desconocido en respuesta batch';
                         $task->getHandler()->handleFailure(new \RuntimeException($msg), $item);
                     }
                 }

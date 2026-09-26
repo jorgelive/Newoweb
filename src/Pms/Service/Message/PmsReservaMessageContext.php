@@ -193,8 +193,8 @@ class PmsReservaMessageContext implements MessageContextInterface
         $horaCheckInRaw  = $this->reserva->getEstablecimiento()?->getHoraCheckIn();
         $horaCheckOutRaw = $this->reserva->getEstablecimiento()?->getHoraCheckOut();
 
-        $horaCheckInStr  = $horaCheckInRaw instanceof \DateTimeInterface ? $horaCheckInRaw->format('H:i:s') : (string) ($horaCheckInRaw ?: '14:00:00');
-        $horaCheckOutStr = $horaCheckOutRaw instanceof \DateTimeInterface ? $horaCheckOutRaw->format('H:i:s') : (string) ($horaCheckOutRaw ?: '10:00:00');
+        $horaCheckInStr  = $horaCheckInRaw?->format('H:i:s') ?? '14:00:00';
+        $horaCheckOutStr = $horaCheckOutRaw?->format('H:i:s') ?? '10:00:00';
 
         // 🔹 PARSEO
         [$hIn, $mIn, $sIn]    = array_map('intval', explode(':', $horaCheckInStr));
@@ -233,12 +233,9 @@ class PmsReservaMessageContext implements MessageContextInterface
             // sentido. Compensar en el consumidor sólo funciona mientras haya exactamente uno.
             $created = \DateTimeImmutable::createFromInterface($this->reserva->getPrimeraFechaReservaCanal());
         } else {
-            $createdAt = $this->reserva->getCreatedAt();
-            if ($createdAt instanceof \DateTime) {
-                $created = \DateTimeImmutable::createFromMutable($createdAt);
-            } else {
-                $created = $createdAt;
-            }
+            // `TimestampTrait::getCreatedAt()` ya es `?DateTimeImmutable`: la rama que convertía un
+            // `DateTime` mutable no podía ejecutarse nunca.
+            $created = $this->reserva->getCreatedAt();
         }
 
         // 🔹 RESULTADO
@@ -251,36 +248,31 @@ class PmsReservaMessageContext implements MessageContextInterface
         $expectedArrivalRaw = $this->reserva->getHoraLlegadaCanalAggregate();
 
         if ($expectedArrivalRaw) {
-            if ($expectedArrivalRaw instanceof \DateTimeInterface) {
-                $milestones[ConversationMilestoneInterface::EXPECTED_ARRIVAL] = $expectedArrivalRaw;
-            } else {
-                // 🚨 CORRECCIÓN DEL CLONE AQUÍ TAMBIÉN
-                $fechaLlegada = $this->reserva->getFechaLlegada();
-                if ($fechaLlegada instanceof \DateTimeInterface) {
-                    // `horaLlegadaCanalAggregate` es un GROUP_CONCAT de todos los eventos de la
-                    // reserva (ver PmsReservaRecalculoService, separador ' | '). Con dos unidades
-                    // que informaron ETA distinta llegaba "14:00 | 16:00", el parseo reventaba y
-                    // el hito desaparecía sin rastro. Nos quedamos con la hora MÁS TEMPRANA: es
-                    // cuando el huésped aparece por recepción, que es lo que dispara el mensaje.
-                    $horasCandidatas = array_filter(array_map('trim', explode('|', (string) $expectedArrivalRaw)));
-                    $fechaString = $fechaLlegada->format('Y-m-d');
-                    $masTemprana = null;
+            $fechaLlegada = $this->reserva->getFechaLlegada();
+            if ($fechaLlegada instanceof \DateTimeInterface) {
+                // `horaLlegadaCanalAggregate` es un GROUP_CONCAT de todos los eventos de la
+                // reserva (ver PmsReservaRecalculoService, separador ' | '). Con dos unidades
+                // que informaron ETA distinta llegaba "14:00 | 16:00", el parseo reventaba y
+                // el hito desaparecía sin rastro. Nos quedamos con la hora MÁS TEMPRANA: es
+                // cuando el huésped aparece por recepción, que es lo que dispara el mensaje.
+                $horasCandidatas = array_filter(array_map('trim', explode('|', (string) $expectedArrivalRaw)));
+                $fechaString = $fechaLlegada->format('Y-m-d');
+                $masTemprana = null;
 
-                    foreach ($horasCandidatas as $horaLimpia) {
-                        try {
-                            $candidata = new \DateTimeImmutable("$fechaString $horaLimpia");
-                        } catch (Throwable) {
-                            continue; // Texto libre del canal ("late night"): no es una hora.
-                        }
-
-                        if ($masTemprana === null || $candidata < $masTemprana) {
-                            $masTemprana = $candidata;
-                        }
+                foreach ($horasCandidatas as $horaLimpia) {
+                    try {
+                        $candidata = new \DateTimeImmutable("$fechaString $horaLimpia");
+                    } catch (Throwable) {
+                        continue; // Texto libre del canal ("late night"): no es una hora.
                     }
 
-                    if ($masTemprana !== null) {
-                        $milestones[ConversationMilestoneInterface::EXPECTED_ARRIVAL] = $masTemprana;
+                    if ($masTemprana === null || $candidata < $masTemprana) {
+                        $masTemprana = $candidata;
                     }
+                }
+
+                if ($masTemprana !== null) {
+                    $milestones[ConversationMilestoneInterface::EXPECTED_ARRIVAL] = $masTemprana;
                 }
             }
         }

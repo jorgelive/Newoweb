@@ -309,7 +309,7 @@ final class NormalizarTransporteUrbanoCommand extends Command
                 continue;
             }
 
-            $antes = sprintf('%s / cap %s', $superviviente->getMonto() ?? '?', $superviviente->getCapacidadMaxima() ?? '—');
+            $antes = sprintf('%s / cap %s', $superviviente->getMonto(), $superviviente->getCapacidadMaxima() ?? '—');
             $despues = sprintf('%s / cap %d', $valores['monto'], $valores['cap']);
 
             if ($antes !== $despues || $superviviente->getNombreInterno() !== $vehiculo) {
@@ -325,7 +325,7 @@ final class NormalizarTransporteUrbanoCommand extends Command
 
             // Los sobrantes del mismo vehículo: se van, cediendo antes lo que les cuelga.
             foreach (array_slice($existentes, 1) as $sobra) {
-                $io->text(sprintf('  <fg=yellow>quita duplicada</> · %s (%s)', $sobra->getNombreInterno() ?? '', $sobra->getMonto() ?? ''));
+                $io->text(sprintf('  <fg=yellow>quita duplicada</> · %s (%s)', $sobra->getNombreInterno() ?? '', $sobra->getMonto()));
 
                 if (!$simula) {
                     $this->ceder($sobra, $superviviente);

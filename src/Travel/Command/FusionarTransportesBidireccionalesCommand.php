@@ -417,7 +417,7 @@ final class FusionarTransportesBidireccionalesCommand extends Command
 
     private function importe(TravelTarifa $t): string
     {
-        return sprintf('%s %s', $t->getMonto() ?? '0.00', $t->getMoneda()?->getId() ?? '?');
+        return sprintf('%s %s', $t->getMonto(), $t->getMoneda()?->getId() ?? '?');
     }
 
     /** ⚠️ Un nulo no es «menor»: es «sin medir», y pierde contra un número real. */

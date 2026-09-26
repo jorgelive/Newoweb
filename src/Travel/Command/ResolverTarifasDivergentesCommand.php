@@ -108,13 +108,13 @@ final class ResolverTarifasDivergentesCommand extends Command
                 // Se ordena por CERCANÍA al importe dictado, no por tamaño: el operador nombró
                 // un número, y gana la tarifa que lo lleva, sea la alta o la baja.
                 usort($tarifas, static fn (TravelTarifa $a, TravelTarifa $b): int
-                    => abs((float) ($a->getMonto() ?? '0') - (float) $dictado)
-                    <=> abs((float) ($b->getMonto() ?? '0') - (float) $dictado));
+                    => abs((float) ($a->getMonto()) - (float) $dictado)
+                    <=> abs((float) ($b->getMonto()) - (float) $dictado));
             } else {
                 // La más alta. `usort` con comparación numérica: los importes son cadenas
                 // decimales y ordenarlas como texto pondría «9.00» por encima de «65.00».
                 usort($tarifas, static fn (TravelTarifa $a, TravelTarifa $b): int
-                    => (float) ($b->getMonto() ?? '0') <=> (float) ($a->getMonto() ?? '0'));
+                    => (float) ($b->getMonto()) <=> (float) ($a->getMonto()));
             }
 
             $gana = $tarifas[0];
@@ -122,9 +122,9 @@ final class ResolverTarifasDivergentesCommand extends Command
                 '  %s · %s → <info>%s</info>%s  (descarta %s)',
                 $componente,
                 $vehiculo,
-                $gana->getMonto() ?? '',
+                $gana->getMonto(),
                 $dictado !== null ? ' <fg=cyan>(dictado)</>' : '',
-                implode(', ', array_map(static fn (TravelTarifa $t): string => $t->getMonto() ?? '', array_slice($tarifas, 1))),
+                implode(', ', array_map(static fn (TravelTarifa $t): string => $t->getMonto(), array_slice($tarifas, 1))),
             ));
 
             ++$resueltos;

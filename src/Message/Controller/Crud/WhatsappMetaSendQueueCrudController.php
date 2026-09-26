@@ -118,7 +118,7 @@ final class WhatsappMetaSendQueueCrudController extends BaseCrudController
         }
 
         // Si hay un término de búsqueda, agregamos la condición sobre el nombre del huésped
-        if (null !== $searchDto->getQuery() && $searchDto->getQuery() !== '') {
+        if ($searchDto->getQuery() !== '') {
             $searchTerm = '%' . $searchDto->getQuery() . '%';
 
             $qb->orWhere('conv.guestName LIKE :custom_search_guest')

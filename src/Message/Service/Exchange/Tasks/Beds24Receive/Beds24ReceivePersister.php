@@ -178,7 +178,7 @@ readonly class Beds24ReceivePersister
             $message->setContentExternal($rawContent);
 
             $textoRecibido = trim(strip_tags($rawContent));
-            $currentConversationLang = $conversation->getIdioma()?->getId() ?? 'es';
+            $currentConversationLang = $conversation->getIdioma()->getId() ?? 'es';
 
             if ($source === Message::SENDER_GUEST) {
                 $message->setDirection(Message::DIRECTION_INCOMING);

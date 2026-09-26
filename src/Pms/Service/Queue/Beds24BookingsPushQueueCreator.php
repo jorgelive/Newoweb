@@ -87,7 +87,7 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
 
         // 3. Deduplicación
         $linkId = (string) $link->getId();
-        $providerVal = $endpoint->getProvider()?->value ?? ConnectivityProvider::BEDS24->value;
+        $providerVal = $endpoint->getProvider()->value ?? ConnectivityProvider::BEDS24->value;
         $dedupeKey = sprintf('link:%s:provider:%s:endpoint:%s', $linkId, $providerVal, $endpoint->getAccion());
 
         // La configuración de Beds24 de este mapeo. Mapeo → unidad → establecimiento → config son

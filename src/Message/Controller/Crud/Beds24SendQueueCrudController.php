@@ -121,7 +121,7 @@ class Beds24SendQueueCrudController extends BaseCrudController
         }
 
         // Si el usuario ingresó un texto en la barra de búsqueda superior, añadimos la condición manualmente.
-        if (null !== $searchDto->getQuery() && $searchDto->getQuery() !== '') {
+        if ($searchDto->getQuery() !== '') {
             $searchTerm = '%' . $searchDto->getQuery() . '%';
 
             // Usamos orWhere para sumar esta condición a las que ya generó EasyAdmin

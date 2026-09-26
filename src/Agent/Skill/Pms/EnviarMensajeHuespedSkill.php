@@ -178,7 +178,7 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface, SkillD
         $resumen = array_filter([
             'conversacion_id' => $conversacionId,
             'huesped' => $conversacion->getGuestName(),
-            'idioma_huesped' => $conversacion->getIdioma()?->getId(),
+            'idioma_huesped' => $conversacion->getIdioma()->getId(),
             'canales' => $pedidos,
             'texto' => $texto,
             'reserva_cancelada' => $cancelada ?: null,
@@ -219,7 +219,7 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface, SkillD
         // `MessageTranslator` en prePersist. Rellenando los dos, el traductor se lo saltaba y el
         // operador acababa releyendo en inglés el mensaje que él mismo mandó.
         $mensaje->setContentExternal($texto);
-        $mensaje->setLanguageCode($conversacion->getIdioma()?->getId() ?? 'es');
+        $mensaje->setLanguageCode($conversacion->getIdioma()->getId() ?? 'es');
         $mensaje->addMetadata('enviado_por_agente', $actor->etiqueta());
 
         $conversacion->addMessage($mensaje);
@@ -284,7 +284,7 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface, SkillD
      */
     private function reservaCancelada(MessageConversation $conversacion): bool
     {
-        if ($conversacion->getContextType() !== 'pms_reserva' || $conversacion->getContextId() === null) {
+        if ($conversacion->getContextType() !== 'pms_reserva') {
             return false;
         }
 

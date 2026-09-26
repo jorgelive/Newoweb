@@ -11,18 +11,12 @@ use App\Message\Entity\Message;
 use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\MessageJsonMerger;
 use DateTimeImmutable;
-use Doctrine\ORM\EntityManagerInterface;
 use Throwable;
 
 final readonly class WhatsappMetaSendHandler implements ExchangeHandlerInterface
 {
-    /**
-     * @param EntityManagerInterface $em Inyectado para aplicar bloqueo pesimista
-     * y evitar sobrescritura de campos JSON concurrentes.
-     */
     public function __construct(
-        private EntityManagerInterface $em,
-        private MessageJsonMerger      $merger
+        private MessageJsonMerger $merger
     ) {}
 
     /**

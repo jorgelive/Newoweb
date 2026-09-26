@@ -200,10 +200,10 @@ final readonly class AnthropicEngine implements AgentEngineInterface
         $this->logger->info(sprintf(
             'Agent (anthropic): turno directo · %s · entrada %d · caché leído %d · caché escrito %d · salida %d tokens.',
             $peticion->modelo ?? $this->anthropic->modelo(),
-            $uso?->inputTokens ?? 0,
-            $uso?->cacheReadInputTokens ?? 0,
-            $uso?->cacheCreationInputTokens ?? 0,
-            $uso?->outputTokens ?? 0
+            $uso->inputTokens ?? 0,
+            $uso->cacheReadInputTokens ?? 0,
+            $uso->cacheCreationInputTokens ?? 0,
+            $uso->outputTokens ?? 0
         ));
 
         if ($mensaje->stopReason === 'refusal') {

@@ -70,7 +70,8 @@ class MessageTranslator
         // por `translateWithDetection`, que además de traducir puede REESCRIBIR el idioma de la
         // conversación. Dejar que la respuesta del propio bot redefina el idioma del huésped es
         // un bucle esperando a ocurrir.
-        if ($hasExternal && !$hasLocal && Message::DIRECTION_OUTGOING === $message->getDirection()) {
+        // Desde aquí falta como mucho uno de los dos: el caso «ambos» salió arriba.
+        if ($hasExternal && Message::DIRECTION_OUTGOING === $message->getDirection()) {
             $message->setLanguageCode($storedGuestLang);
 
             if ($storedGuestLang === $this->baseLanguage) {
@@ -83,7 +84,7 @@ class MessageTranslator
         }
 
         // 1. FLUJO ENTRANTE (Webhooks): Viene de afuera (External), falta Local.
-        if ($hasExternal && !$hasLocal) {
+        if ($hasExternal) {
             $cleanExternal = trim(strip_tags((string) $message->getContentExternal()));
 
             // 🔥 CORTAFUEGOS NUMÉRICO ESTRICTO:
@@ -101,7 +102,7 @@ class MessageTranslator
         }
 
         // 2. FLUJO SALIENTE (EasyAdmin): Escrito aquí (Local), falta External.
-        if ($hasLocal && !$hasExternal) {
+        if ($hasLocal) {
             $message->setLanguageCode($storedGuestLang);
 
             // Si el idioma es el mismo que el base, bypass de API.

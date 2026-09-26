@@ -91,7 +91,7 @@ final class CopiarTarifasDeComponenteCommand extends Command
         $io->section(sprintf('Origen: %s (%d tarifas)', $desde, $plantilla->count()));
 
         foreach ($plantilla as $tarifa) {
-            $io->text(sprintf('  · %s — %s %s', $tarifa->getNombreInterno(), $tarifa->getMoneda()?->getId() ?? '', $tarifa->getMonto() ?? ''));
+            $io->text(sprintf('  · %s — %s %s', $tarifa->getNombreInterno(), $tarifa->getMoneda()?->getId() ?? '', $tarifa->getMonto()));
         }
 
         /** @var TravelComponente[] $destinos */

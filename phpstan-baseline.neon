@@ -1,5 +1,25 @@
              # FRONTERAS DE CONFIANZA — ya NO es deuda
 #
+# ── ⚠️ SEGUNDA AUDITORÍA, 26/09/2026, con el nivel 10 puesto: 107 → 51 ──────
+#
+# La pregunta de abajo («¿quién llama a esto?») se volvió a hacer entrada por entrada, y la primera
+# auditoría había dado por frontera cosas que no lo eran:
+#
+#   · `nullsafe.neverNull` y `nullCoalesce.expr` sobre GETTERS con retorno nativo no nulo
+#     (`getIdioma(): MaestroIdioma`, `getCantidadAdultos(): int`…). La tabla de abajo decía «el
+#     ORM hidrata sin setter»: es verdad de la PROPIEDAD, no del getter — un getter que devolviera
+#     null lanzaría `TypeError` antes de que el `?->` pudiera actuar. Eran código muerto.
+#   · `?->` a la izquierda de `??`: el `??` ya absorbe el null; mismo resultado sin el `?`.
+#   · `identical.alwaysFalse`, `smallerOrEqual`, `booleanNot`, `match.alwaysTrue`, `ternary.*`,
+#     `instanceof.alwaysFalse`: lógica propia repetida o ramas que no podían entrar.
+#   · `property.onlyWritten` de tres dependencias inyectadas que nadie usaba y de una COLUMNA que
+#     nadie leía (`pms_bookings_pull_queue.type`, borrada por migración).
+#   · `property.onlyRead` (relaciones que sólo escribe Doctrine): es frontera, pero va como regla
+#     en `phpstan.dist.neon`, no suelta aquí.
+#
+# Lo que queda —51— es de las familias que enumera `tests/Calidad/PhpstanBaselineTest.php`
+# (`FAMILIAS_DE_FRONTERA`), y el test falla si aparece otra o si el total sube.
+#
 # Nació el 15/08/2026 como foto de la deuda del día que el proyecto pasó del nivel 2 al 6. Se
 # auditó entero el 30/08/2026 y **la deuda se saldó**: lo que queda son guardas que el analizador
 # no puede modelar. El título de arriba cambió por eso.
@@ -170,30 +190,6 @@ parameters:
 			path: src/Agent/Provider/Anthropic/AnthropicEngine.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>cacheCreationInputTokens" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: src/Agent/Provider/Anthropic/AnthropicEngine.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>cacheReadInputTokens" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: src/Agent/Provider/Anthropic/AnthropicEngine.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>inputTokens" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: src/Agent/Provider/Anthropic/AnthropicEngine.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>outputTokens" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: src/Agent/Provider/Anthropic/AnthropicEngine.php
-
-		-
 			message: '#^Offset ''rol'' on array\{rol\: string, texto\: string\} on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
@@ -205,109 +201,6 @@ parameters:
 			count: 1
 			path: src/Agent/Provider/Google/GoogleAIEngine.php
 
-		-
-			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 3
-			path: src/Agent/Service/AiConversationProcessor.php
-
-
-	
-	
-	
-	
-	
-	
-	
-	
-		-
-			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: src/Agent/Skill/Pms/EnviarMensajeHuespedSkill.php
-
-		-
-			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 2
-			path: src/Agent/Skill/Pms/EnviarMensajeHuespedSkill.php
-
-	
-		-
-			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: src/Agent/Skill/Pms/EnviarPlantillaSkill.php
-
-		-
-			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: src/Agent/Skill/Pms/EnviarPlantillaSkill.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: src/Agent/Skill/Pms/EnviarmePlantillaSkill.php
-
-		-
-			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: src/Agent/Skill/Pms/EnviarmePlantillaSkill.php
-
-	
-		-
-			message: '#^Strict comparison using \!\=\= between ''Al equipo YA se le…''\|array\{hay_respuesta_escrita\: true, contenido\: string, aviso\: ''Esto ya estaba…''\}\|true and false will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: src/Agent/Skill/Pms/EscalarAlEquipoSkill.php
-
-		-
-			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: src/Agent/Skill/Pms/LocalizarConversacionSkill.php
-
-		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 2
-			path: src/Agent/Skill/Pms/ModificarReservaSkill.php
-
-	
-	
-	
-	
-	
-		-
-			message: '#^Strict comparison using \=\=\= between App\\Pms\\Enum\\PmsMedioPago and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: src/Agent/Skill/Pms/RegistrarPagoSkill.php
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-		-
-			message: '#^Method App\\Api\\Provider\\Pms\\PmsReservaByLocalizadorProvider\:\:provide\(\) never returns null so it can be removed from the return type\.$#'
-			identifier: return.unusedType
-			count: 1
-			path: src/Api/Provider/Pms/PmsReservaByLocalizadorProvider.php
-
-	
-	
-	
-	
-	
 		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsEventoCalendario and App\\Pms\\Entity\\PmsEventoCalendario will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
@@ -344,21 +237,6 @@ parameters:
 
 	
 	
-	
-	
-	
-		-
-			message: '#^Comparison operation "\<\=" between int\<13, 17\> and 17 is always true\.$#'
-			identifier: smallerOrEqual.alwaysTrue
-			count: 1
-			path: src/Cotizacion/Entity/CotizacionFilepasajero.php
-
-		-
-			message: '#^Comparison operation "\<\=" between int\<3, 12\> and 12 is always true\.$#'
-			identifier: smallerOrEqual.alwaysTrue
-			count: 1
-			path: src/Cotizacion/Entity/CotizacionFilepasajero.php
-
 	
 	
 	
@@ -408,40 +286,6 @@ parameters:
 	
 	
 		-
-			message: '#^Using nullsafe property access "\?\-\>message" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: src/Exchange/Service/Engine/ExchangeOrchestrator.php
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-		-
-			message: '#^Strict comparison using \!\=\= between null and string will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: src/Message/Controller/Crud/Beds24SendQueueCrudController.php
-
-		-
-			message: '#^Property App\\Message\\Controller\\Crud\\MessageAttachmentCrudController\:\:\$params is never read, only written\.$#'
-			identifier: property.onlyWritten
-			count: 1
-			path: src/Message/Controller/Crud/MessageAttachmentCrudController.php
-
-	
-		-
 			message: '#^Call to function is_array\(\) with list\<array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null, origenHash\?\: string\|null\}\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
@@ -455,14 +299,6 @@ parameters:
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Message/Controller/Crud/MetaWebhookAuditCrudController.php
-
-	
-	
-		-
-			message: '#^Strict comparison using \!\=\= between null and string will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: src/Message/Controller/Crud/WhatsappMetaSendQueueCrudController.php
 
 	
 	
@@ -505,31 +341,6 @@ parameters:
 
 	
 		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 1
-			path: src/Message/Factory/MessageConversationFactory.php
-
-	
-		-
-			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceivePersister.php
-
-		-
-			message: '#^Property App\\Message\\Service\\Exchange\\Tasks\\Beds24Send\\Beds24SendHandler\:\:\$em is never read, only written\.$#'
-			identifier: property.onlyWritten
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendHandler.php
-
-		-
-			message: '#^Property App\\Message\\Service\\Exchange\\Tasks\\WhatsappMetaSend\\WhatsappMetaSendHandler\:\:\$em is never read, only written\.$#'
-			identifier: property.onlyWritten
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendHandler.php
-
-		-
 			message: '#^Offset ''format'' on array\{format\: string, content\: string\|null\} on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
@@ -546,42 +357,6 @@ parameters:
 			count: 1
 			path: src/Message/Service/Queue/MessageRuleEngine.php
 
-		-
-			message: '#^Negated boolean expression is always true\.$#'
-			identifier: booleanNot.alwaysTrue
-			count: 3
-			path: src/Message/Service/Translation/MessageTranslator.php
-
-
-	
-	
-	
-	
-		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 2
-			path: src/Operacion/Entity/OperacionServicio.php
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsGuiaItem and App\\Pms\\Entity\\PmsGuiaItem will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
@@ -619,27 +394,6 @@ parameters:
 
 	
 	
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsBookingsPullQueue\:\:\$type is never read, only written\.$#'
-			identifier: property.onlyWritten
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPullQueue.php
-
-		-
-			message: '#^Ternary operator condition is always true\.$#'
-			identifier: ternary.alwaysTrue
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPullQueue.php
-
-	
-	
-	
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsChannel\:\:\$eventosCalendario is never written, only read\.$#'
-			identifier: property.onlyRead
-			count: 1
-			path: src/Pms/Entity/PmsChannel.php
-
 		-
 			message: '#^Parameter \#1 \$array \(list\<App\\Message\\Contract\\HitoDeAsunto\>\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
@@ -698,12 +452,6 @@ parameters:
 			path: src/Pms/Factory/PmsEventoCalendarioFactory.php
 
 		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 1
-			path: src/Pms/Form/Type/PmsEventAssignmentEmbeddedType.php
-
-		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsReservaHuesped and App\\Pms\\Entity\\PmsReservaHuesped will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
 			count: 1
@@ -723,27 +471,6 @@ parameters:
 			path: src/Pms/Service/Agent/PmsIndiceDeTemas.php
 
 		-
-			message: '#^Right side of && is always true\.$#'
-			identifier: booleanAnd.rightAlwaysTrue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingPullPersister.php
-
-	
-	
-		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 2
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
-
-		-
-			message: '#^Strict comparison using \!\=\= between numeric\-string and '''' will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
-
-	
-		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
@@ -758,32 +485,8 @@ parameters:
 	
 	
 		-
-			message: '#^Instanceof between DateTimeImmutable\|null and DateTime will always evaluate to false\.$#'
-			identifier: instanceof.alwaysFalse
-			count: 1
-			path: src/Pms/Service/Message/PmsReservaMessageContext.php
-
-		-
-			message: '#^Instanceof between string and DateTimeInterface will always evaluate to false\.$#'
-			identifier: instanceof.alwaysFalse
-			count: 1
-			path: src/Pms/Service/Message/PmsReservaMessageContext.php
-
-		-
-			message: '#^Ternary operator condition is always false\.$#'
-			identifier: ternary.alwaysFalse
-			count: 2
-			path: src/Pms/Service/Message/PmsReservaMessageContext.php
-
-		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsBookingsPushQueue and App\\Pms\\Entity\\PmsBookingsPushQueue will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Pms/Service/Queue/Beds24BookingsPushQueueCreator.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: src/Pms/Service/Queue/Beds24BookingsPushQueueCreator.php
 
@@ -793,61 +496,6 @@ parameters:
 			count: 1
 			path: src/Pms/Service/Reserva/PmsReservaRecalculoService.php
 
-		-
-			message: '#^Instanceof between App\\Message\\Entity\\MessageConversation and App\\Message\\Entity\\MessageConversation will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Pms/Service/Reserva/PmsReservaRecalculoService.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between non\-empty\-string and '''' will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: src/Pms/Service/Tarifa/Engine/TarifaDailyPriceFlattener.php
-
-		-
-			message: '#^Offset ''price'' on array\{price\: float\|int, currency\?\: string\|null, minStay\?\: int\|null, sourceId\?\: string\|null\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: src/Pms/Service/Tarifa/Engine/TarifaLogicalRangeCompressor.php
-
-		-
-			message: '#^Right side of && is always true\.$#'
-			identifier: booleanAnd.rightAlwaysTrue
-			count: 2
-			path: src/Pms/Service/Tarifa/Engine/TarifaLogicalRangeCompressor.php
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-		-
-			message: '#^Match arm comparison between ''OPCIONAL'' and ''OPCIONAL'' is always true\.$#'
-			identifier: match.alwaysTrue
-			count: 1
-			path: src/Travel/Entity/TravelComponenteItem.php
-
-		-
-			message: '#^Match arm comparison between ''OPCIONAL'' and ''OPCIONAL'' is always true\.$#'
-			identifier: match.alwaysTrue
-			count: 1
-			path: src/Travel/Entity/TravelItemDiccionario.php
-
-	
 		-
 			message: '#^Call to function is_array\(\) with non\-empty\-array\<mixed\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType

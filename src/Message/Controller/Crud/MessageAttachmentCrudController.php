@@ -14,7 +14,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Vich\UploaderBundle\Form\Type\VichFileType;
 
@@ -26,7 +25,6 @@ class MessageAttachmentCrudController extends BaseCrudController
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,
         protected RequestStack $requestStack,
-        private readonly ParameterBagInterface $params
     ) {
         parent::__construct($adminUrlGenerator, $requestStack);
     }
@@ -52,12 +50,10 @@ class MessageAttachmentCrudController extends BaseCrudController
             ->onlyOnIndex()
             ->setSortable(false)
             ->formatValue(function (mixed $value, MessageAttachment $entity) {
-                if ($entity instanceof MessageAttachment) {
-                    // Usamos el isImage() propio de la entidad que lee el MimeType (más seguro que la extensión)
-                    if (!$entity->isImage()) {
-                        // Si es PDF, Word, etc., delegamos al MediaTrait para obtener tu icono personalizado
-                        return $entity->getIconPathFor($entity->getFileName());
-                    }
+                // Usamos el isImage() propio de la entidad que lee el MimeType (más seguro que la extensión)
+                if (!$entity->isImage()) {
+                    // Si es PDF, Word, etc., delegamos al MediaTrait para obtener tu icono personalizado
+                    return $entity->getIconPathFor($entity->getFileName());
                 }
                 return $value;
             });
