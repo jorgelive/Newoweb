@@ -529,11 +529,21 @@ final class AgentSembrarConocimientoCommand extends Command
                     . "\n\n"
                     . 'Para movilidad reducida, la 1 y la 5 son las dos respuestas, y por motivos '
                     . 'opuestos: la 1 no tiene gradas para entrar pero sí cuatro escalones '
-                    . 'repartidos dentro; la 5 son diez de golpe y luego nada. Si alguien va en '
-                    . 'silla de ruedas, dilo claro: ninguna es de acceso llano.'
+                    . 'repartidos dentro; la 5 son diez de golpe y luego nada.'
                     . "\n\n"
-                    . 'Di sólo lo que le sirva a quien pregunta. Enumerar las siete a quien sólo '
-                    . 'preguntó por la suya es una lista de peros.',
+                    . 'SILLA DE RUEDAS: no prometas acceso llano, no lo hay en ninguna. Pero no '
+                    . 'cierres ahí, porque la Casita 1 es una opción bastante decente —dos '
+                    . 'escalones a la sala y dos más a la habitación, y el coche llega hasta la '
+                    . 'puerta por una calle plana y ancha—. Pregunta si la persona puede dar unos '
+                    . 'pasos apoyada: quien se levanta de la silla para cuatro escalones puede '
+                    . 'alojarse; quien no sale de ella en ningún momento, no. Esa pregunta cambia '
+                    . 'la respuesta entera, así que hazla antes de dar por perdido nada.'
+                    . "\n\n"
+                    . '⚠️ CUANDO PREGUNTEN POR MOVILIDAD, NOMBRA LA CASITA 1 AUNQUE TENGA OTRA '
+                    . 'RESERVADA. Es la menos exigente de las siete y quien pregunta por esto '
+                    . 'suele poder cambiarse todavía; callársela para no complicar la reserva es '
+                    . 'decidir por él. Fuera de ese caso, di sólo lo que le sirva: enumerar las '
+                    . 'siete a quien preguntó por la suya es una lista de peros.',
                 'perfiles' => self::TODOS,
             ],
             [
