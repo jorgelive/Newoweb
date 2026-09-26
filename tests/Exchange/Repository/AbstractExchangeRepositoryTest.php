@@ -30,6 +30,8 @@ final class AbstractExchangeRepositoryTest extends TestCase
     /**
      * La cola más pequeña posible. Sólo existe para poder llegar al saneador: los dos métodos
      * abstractos no se llaman en ninguna prueba de este fichero.
+     *
+     * @return AbstractExchangeRepository<ExchangeQueueItemInterface>
      */
     private function repositorio(): AbstractExchangeRepository
     {
