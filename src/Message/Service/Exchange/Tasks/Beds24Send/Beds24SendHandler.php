@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\Beds24Send;
 
+use App\Exchange\Dto\Beds24\Beds24Respuesta;
 use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Message\Entity\Beds24SendQueue;
@@ -36,7 +37,10 @@ final readonly class Beds24SendHandler implements ExchangeHandlerInterface
         // 2. Extraer el ID externo del payload de Beds24
         // Según la API v2 de Beds24, al crear un mensaje viene en ['new']['id']
         // Dejamos el fallback ['id'] por si en algún momento hacen un update o cambia la respuesta.
-        $remoteId = $data['new']['id'] ?? $data['id'] ?? null;
+        // `$data` es la pieza de Beds24 que la estrategia dejó en `extraData`: se lee con el mismo
+        // DTO que la leyó allí.
+        $pieza = Beds24Respuesta::fromArray($data);
+        $remoteId = $pieza->idNuevo ?? $pieza->id;
 
         // 3. Actualizar Estado del Mensaje Padre y Guardar ID de Idempotencia
         $msg = $item->getMessage();

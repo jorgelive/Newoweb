@@ -36,8 +36,10 @@ final readonly class WhatsappMetaSendHandler implements ExchangeHandlerInterface
 
         $item->setLastHttpCode(200);
 
-        // 1. Obtenemos el Remote Id
+        // 1. Obtenemos el Remote Id: el `wamid` que `WhatsappMetaClient::send()` ya sacó de la
+        // respuesta de Meta y dejó en su fila normalizada.
         $remoteId = $data['messageId'] ?? null;
+        $remoteId = is_string($remoteId) && $remoteId !== '' ? $remoteId : null;
 
         // 2. Actualizar Estado de Negocio de la Cola
         $item->setDeliveryStatus(WhatsappMetaSendQueue::DELIVERY_SUBMITTED);
@@ -54,7 +56,7 @@ final readonly class WhatsappMetaSendHandler implements ExchangeHandlerInterface
                 'whatsappMeta',
                 ['sent_at' => $isoDate, 'error_code' => '', 'error_reason' => ''],
                 'whatsapp_meta',
-                $remoteId ? (string)$remoteId : null
+                $remoteId
             );
 
             // 2. Transiciones de Estado PHP + Touch para Mercure

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Exchange\Tasks\RatesPush;
 
+use App\Exchange\Dto\Beds24\Beds24Respuesta;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
@@ -126,9 +127,11 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
     {
         $results = [];
 
-        // 1. Manejo de Error Global de la API
-        if (isset($apiResponse['success']) && $apiResponse['success'] === false && !isset($apiResponse[0])) {
-            $msg = $apiResponse['message'] ?? 'Error global en Batch Rates';
+        // 1. Manejo de Error Global de la API: un objeto con `success: false` en lugar de la
+        // lista de piezas. Se lee con el mismo DTO que cada pieza.
+        $global = Beds24Respuesta::fromArray($apiResponse);
+        if ($global->declaraFallo && !isset($apiResponse[0])) {
+            $msg = $global->mensaje ?? 'Error global en Batch Rates';
             // Esta estrategia guarda un id suelto por clave, así que se lee con `idDeCola()`,
             // que además avisa si alguna vez dejara de ser así.
             foreach (array_keys($mapping->correlationMap) as $clave) {
@@ -145,24 +148,21 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
             }
 
             $queueId = $mapping->idDeCola($index);
-            $success = (bool)($respItem['success'] ?? false);
+            $pieza = Beds24Respuesta::dePieza($respItem);
+            $success = $pieza->exito ?? false;
 
             $errorMsg = null;
             if (!$success) {
-                $errorMsg = $respItem['message'] ?? 'Error desconocido en habitación';
-                if (isset($respItem['errors'][0]['message'])) {
-                    $errorMsg = $respItem['errors'][0]['message'];
-                }
+                // El detallado manda sobre el general, si lo hay.
+                $errorMsg = $pieza->primerError ?? $pieza->mensaje ?? 'Error desconocido en habitación';
             }
-
-            $extra = $respItem['modified'] ?? $respItem;
 
             $results[$queueId] = new ItemResult(
                 queueItemId: $queueId,
                 success: $success,
                 message: $errorMsg,
                 remoteId: null,
-                extraData: (array)$extra
+                extraData: $pieza->modificadoOCrudo
             );
         }
 

@@ -36,9 +36,13 @@ final readonly class Beds24InvoiceReceiveHandler implements ExchangeHandlerInter
 
         try {
             // $data ya viene aplanado por el MappingStrategy (lista de invoiceItems).
+            // La estrategia sólo deja pasar objetos; se comprueba igual porque el motor la entrega
+            // como `array<mixed>`.
             $dtos = [];
             foreach ($data as $rawItem) {
-                $dtos[] = Beds24InvoiceItemDto::fromArray($rawItem);
+                if (is_array($rawItem)) {
+                    $dtos[] = Beds24InvoiceItemDto::fromArray($rawItem);
+                }
             }
 
             $stats = $this->persister->upsertCargos($item->getTargetBookId(), $dtos);

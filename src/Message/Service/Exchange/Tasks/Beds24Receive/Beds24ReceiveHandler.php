@@ -35,10 +35,14 @@ final readonly class Beds24ReceiveHandler implements ExchangeHandlerInterface
         $item->setLastHttpCode(200);
 
         try {
-            // Transformar el array crudo a nuestro DTO fuertemente tipado
+            // Transformar el array crudo a nuestro DTO fuertemente tipado. `$data` es la lista que
+            // la estrategia repartió para esta reserva, y ésa sólo deja pasar objetos; se comprueba
+            // igual porque el motor la entrega como `array<mixed>`.
             $dtos = [];
             foreach ($data as $rawMsg) {
-                $dtos[] = Beds24MessageDto::fromArray($rawMsg);
+                if (is_array($rawMsg)) {
+                    $dtos[] = Beds24MessageDto::fromArray($rawMsg);
+                }
             }
 
             // Delegamos la lógica de negocio pesada y la idempotencia al Persister

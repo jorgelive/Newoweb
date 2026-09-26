@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Entity;
 
+use App\Dto\Lee;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
@@ -163,7 +164,7 @@ class MetaConfig implements ChannelConfigInterface
      */
     public function getAppSecret(): ?string
     {
-        $secreto = trim((string) $this->getCredential('appSecret'));
+        $secreto = trim($this->getCredential('appSecret') ?? '');
 
         return $secreto !== '' ? $secreto : null;
     }
@@ -174,11 +175,20 @@ class MetaConfig implements ChannelConfigInterface
     }
 
     /**
-     * Obtiene un valor específico del array JSON de credenciales.
+     * Una credencial del JSON de configuración, como texto.
+     *
+     * Todas las que se guardan son texto —token, WABA ID, Phone ID, verify token, App Secret— y
+     * todos los que las leen las usaban como texto: concatenadas en un `Bearer`, pasadas por
+     * `(string)` o comparadas con `===` contra un parámetro de la petición. Devolver `mixed`
+     * obligaba a cada uno a convertirla a su manera.
+     *
+     * Un número se devuelve escrito (un Phone ID guardado como número JSON sigue sirviendo, como
+     * con el `(string)` de antes); lo que no es texto ni número —una lista— es «no configurada».
+     * Es el último recurso de `docs/TiposDeFrontera.md` §1: un dato sin forma fija leído en el sitio.
      */
-    public function getCredential(string $key): mixed
+    public function getCredential(string $key): ?string
     {
-        return $this->credentials[$key] ?? null;
+        return Lee::texto($this->credentials[$key] ?? null);
     }
 
     /*

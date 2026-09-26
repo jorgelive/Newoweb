@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Service\Client;
 
+use App\Exchange\Dto\Tuya\RespuestaTuya;
 use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -67,7 +68,7 @@ final class TuyaClient
     public function listarDispositivos(): array
     {
         $r = $this->pedir('/v1.0/iot-01/associated-users/devices?size=100');
-        $crudos = $r['result']['devices'] ?? [];
+        $crudos = $r->resultado('devices') ?? [];
 
         if (!is_array($crudos)) {
             return [];
@@ -102,7 +103,7 @@ final class TuyaClient
     public function codigosDeEstado(string $deviceId): array
     {
         $r = $this->pedir('/v1.0/devices/' . $deviceId . '/specifications');
-        $status = $r['result']['status'] ?? [];
+        $status = $r->resultado('status') ?? [];
 
         if (!is_array($status)) {
             return [];
@@ -139,7 +140,7 @@ final class TuyaClient
         }
 
         $r = $this->pedir('/v1.0/devices/status?device_ids=' . implode(',', $deviceIds));
-        $resultado = $r['result'] ?? [];
+        $resultado = $r->resultado() ?? [];
 
         if (!is_array($resultado)) {
             return [];
@@ -184,7 +185,7 @@ final class TuyaClient
         }
 
         $r = $this->pedir('/v1.0/devices?device_ids=' . implode(',', $deviceIds));
-        $dispositivos = $r['result']['devices'] ?? [];
+        $dispositivos = $r->resultado('devices') ?? [];
 
         if (!is_array($dispositivos)) {
             return [];
@@ -216,7 +217,7 @@ final class TuyaClient
     public function propiedadesConHora(string $deviceId): array
     {
         $r = $this->pedir('/v2.0/cloud/thing/' . $deviceId . '/shadow/properties');
-        $propiedades = $r['result']['properties'] ?? [];
+        $propiedades = $r->resultado('properties') ?? [];
 
         if (!is_array($propiedades)) {
             return [];
@@ -283,7 +284,7 @@ final class TuyaClient
         );
 
         $r = $this->pedir($ruta);
-        $cubos = $r['result'] ?? [];
+        $cubos = $r->resultado() ?? [];
 
         if (!is_array($cubos)) {
             return [];
@@ -306,15 +307,13 @@ final class TuyaClient
 
     /**
      * Una llamada firmada, con el token puesto.
-     *
-     * @return array<string, mixed>
      */
-    private function pedir(string $ruta): array
+    private function pedir(string $ruta): RespuestaTuya
     {
-        $respuesta = $this->llamar($ruta, $this->token());
+        $respuesta = RespuestaTuya::fromArray($this->llamar($ruta, $this->token()));
 
-        if (($respuesta['success'] ?? false) !== true) {
-            $mensaje = is_string($respuesta['msg'] ?? null) ? $respuesta['msg'] : 'sin detalle';
+        if (!$respuesta->exito) {
+            $mensaje = $respuesta->mensaje ?? 'sin detalle';
 
             $this->logger->warning(sprintf('[Tuya] %s → %s', $ruta, $mensaje));
 
@@ -338,11 +337,11 @@ final class TuyaClient
             );
         }
 
-        $r = $this->llamar('/v1.0/token?grant_type=1', '');
-        $token = $r['result']['access_token'] ?? null;
+        $r = RespuestaTuya::fromArray($this->llamar('/v1.0/token?grant_type=1', ''));
+        $token = $r->token();
 
-        if (($r['success'] ?? false) !== true || !is_string($token) || $token === '') {
-            $msg = is_string($r['msg'] ?? null) ? $r['msg'] : 'sin detalle';
+        if (!$r->exito || $token === null) {
+            $msg = $r->mensaje ?? 'sin detalle';
 
             throw new RuntimeException(
                 'Tuya no dio token: ' . $msg . '. Si dice «permission deny», el data center no '
@@ -357,7 +356,7 @@ final class TuyaClient
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<mixed> La respuesta decodificada; lo que no sea un objeto JSON, vacía.
      */
     private function llamar(string $ruta, string $token): array
     {

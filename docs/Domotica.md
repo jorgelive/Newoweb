@@ -257,6 +257,7 @@ cuota de Tuya agotada— y hay que enterarse antes.
 | Añadir un aparato nuevo de Tuya | — | `app:domotica:sincronizar-dispositivos`, y luego asignarle unidad y activarlo |
 | Cambiar cada cuánto se muestrea | crontab de `www-data` | `app:domotica:muestrear`, minuto 5. El coste es 2 llamadas + 1 por aparato que mida |
 | Confirmar la escala de la facturación | `src/Exchange/Service/Client/TuyaClient.php` | `consumoHorarioCrudo()` — hoy NO divide, a propósito. §14.3 |
+| Leer un campo nuevo del sobre de Tuya (fuera de `result`) | `src/Exchange/Dto/Tuya/RespuestaTuya.php` | `fromArray()` — lo de dentro de `result` lo recorre cada método de `TuyaClient` con `resultado()`. §14.1 |
 | Añadir un dato al monitor general | `src/Domotica/Entity/DomoticaDispositivo.php` | Columnas de estado (`potenciaVatios`, `encendido`, `lecturaTomadaEn`): el monitor lee la tabla. §12.4 |
 
 
@@ -720,6 +721,20 @@ cumplido de mentira estorba más que uno no cumplido**, porque el día que algui
 Expone cinco consultas: listar, especificación, estado en lote, quién está en línea y propiedades
 con hora. Las cuatro trampas de firma están resueltas dentro y comentadas — incluida la de la coma,
 que se descubrió escribiéndolo.
+
+**El sobre de cada respuesta se lee en `RespuestaTuya`** (`src/Exchange/Dto/Tuya/`, 26/09/2026):
+`success`, `msg` y el `result` al que se llega con `resultado('devices')`, `resultado('status')`…
+Antes cada consulta encadenaba `$r['result']['devices']` sobre un `mixed`; ahora lo que falte por el
+camino es `null` y cada método sigue comprobando elemento a elemento, como ya hacía. Dos reglas que
+se conservaron tal cual:
+
+- ⚠️ **El éxito es `success === true` estricto.** Tuya contesta 200 con `success: false` cuando
+  rechaza (firma, permisos, región del data center); cualquier otra cosa no es un sí.
+- **El `msg` sólo si es texto**; si no, «sin detalle». El token vacío no es un token.
+
+Tuya no se guarda en ninguna tabla —las lecturas se convierten al vuelo en consumo y estado—, así
+que esta frontera no tuvo datos guardados contra los que comparar: la cubre `RespuestaTuyaTest`.
+Ver `docs/TiposDeFrontera.md`.
 
 ### 14.2 Los dos comandos
 

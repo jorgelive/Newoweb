@@ -23,6 +23,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
     · [7.1.d El pull no inventa reservas](#71d-el-pull-no-inventa-reservas-10092026)
 8. [Motor de Exchange — ExchangeOrchestrator](#8-motor-de-exchange--exchangeorchestrator)
     · [8.1 Quién llena la cola — reactivo vs. Timeline Enqueuer](#81-quién-llena-la-cola--el-listener-reactivo-vs-el-timeline-enqueuer)
+    · [8.2 Las respuestas de los canales se leen en un DTO](#82-las-respuestas-de-los-canales-se-leen-en-un-dto-26092026)
 9. [Anti-duplicación y Seguridad](#9-anti-duplicación-y-seguridad)
 10. [Políticas de Reintento y Error](#10-políticas-de-reintento-y-error)
 11. [Camino D — Sincronización Financiera (invoiceItems)](#11-camino-d--sincronización-financiera-invoiceitems)
@@ -1796,13 +1797,22 @@ decir, tecleados a mano en el panel. Esa vía **no** pasa por el sanitizador: en
 ### 7.3 Respuesta de Beds24
 
 ```
-BookingsPushHandler::handleSuccess(data, item)
-  ├─ remoteId = data['new']['id'] ?? data['id'] ?? data['new'][0]['id']
+BookingsPushMappingStrategy::parseResponse()      ← reparte la lista POR POSICIÓN
+  └─ Beds24Respuesta::dePieza(pieza)
+       exito ?? false · primerError ?? mensaje · idNuevo ?? id ?? bookId
+
+BookingsPushHandler::handleSuccess(data, item)    ← data = la pieza de su ítem
+  ├─ remoteId = idNuevo ?? id ?? idNuevoEnLista    (new.id ?? id ?? new[0].id)
+  ├─ exito ?? true  → si es false, lanza
   ├─ link.setBeds24BookId(remoteId)         ← sella el ID en el espejo
   ├─ link.setLastSeenAt(NOW())
   ├─ queue.setBeds24BookIdOriginal(remoteId) ← snapshot para futuros DELETE
   └─ queue.markSuccess(NOW())
 ```
+
+⚠️ La estrategia y el handler leen la misma pieza con **dos criterios distintos** —el tercer id
+(`bookId` frente a `new[0].id`) y el éxito por defecto (`?? false` frente a `?? true`)—. Es así
+desde siempre y se conservó al tiparlo (§8.2): unificarlo es una decisión, no un tipado.
 
 ---
 
@@ -1895,6 +1905,84 @@ valor** en `Beds24RatesPushQueueCreator`: comparar el precio/minStay nuevo contr
 perder la garantía reactiva. Se deja anotado, no hecho: hoy el costo es asumible.
 
 ---
+
+### 8.2 Las respuestas de los canales se leen en un DTO (26/09/2026)
+
+Hasta hoy cada estrategia leía la respuesta de Beds24 a su manera —`$respData['errors'][0]['message']`,
+`(bool) ($respItem['success'] ?? false)`, `$decoded['pages']['nextPageLink']`— sobre un `mixed`. Era
+la zona del nivel 9 de PHPStan (el de `mixed`) con más avisos del motor: 174 entre `src/Exchange`,
+`src/Pms/Service/Exchange` y `src/Message/Service/Exchange`. Ahora está a cero.
+
+```
+JSON de Beds24 ──► Beds24Respuesta::fromArray()  (sobre de lectura)
+               └─► Beds24Respuesta::dePieza()    (cada pieza de una escritura)
+                     │
+    exito · declaraFallo · mensaje · primerError · idNuevo/id/bookId/idNuevoEnLista
+    datos · filas · modificadoOCrudo · siguientePagina · crudo
+                     │
+    ├─ Beds24ExchangeClient        paginación (siguientePagina) y fusión de `data`
+    ├─ BookingsPull / Beds24Receive / InvoiceReceive   sobre: declaraFallo, mensaje, datos/filas
+    ├─ BookingsPush / RatesNested / Beds24Send         pieza: exito, error, ids, extraData
+    └─ BookingsPushHandler / Beds24SendHandler         la misma pieza, desde `extraData`
+```
+
+Un solo DTO para el sobre y la pieza porque Beds24 usa **el mismo vocabulario en los dos niveles**
+(`success`, `message`, `errors`, `new`, `modified`, `data`). Los demás canales tienen el suyo:
+`RespuestaGraphMeta` (envío y plantillas de WhatsApp, `docs/Mensajeria.md` §14.c),
+`CorreoSaliente`/`ResultadoDelCorreo` (correo) y `RespuestaTuya` (`docs/Domotica.md` §14.1). Todos en
+`src/Exchange/Dto/`.
+
+**Lo que se conservó a propósito, y por qué:**
+
+- ⚠️ **Los ids NO se pasan a texto** (`int|string|null`). Acaban en `execution_result`
+  (`remote_id`, `remote_beds24_id`) y convertirlos habría cambiado `93628254` por `"93628254"` en un
+  JSON con decenas de miles de filas escritas del otro modo. Quien los necesita como texto los
+  convierte él, como antes.
+- **Cada consumidor conserva su orden de ids y su éxito por defecto** (§7.3): el DTO expone los
+  campos, no decide cuál manda.
+- **`filas` del pull reproduce las tres formas** —dentro de `data`, una reserva suelta envuelta, la
+  lista en la raíz— incluida la rara (un objeto sin `data` ni `id` recorrido clave a clave): el
+  handler cuenta como fallida cada fila que no es un objeto, y ese recuento es el aviso de que la
+  respuesta vino con otra forma.
+- **`exito` es `Lee::booleano()`, no `(bool)`.** Con el booleano JSON que manda Beds24 dan lo mismo;
+  sólo discrepan con el texto `"false"`, que `(bool)` leía como éxito.
+
+**La prueba que decidió que el cambio era seguro:** `tools/pruebas/probar-dto-canales.php` recorre
+el `last_response_raw` de todas las colas y compara, campo a campo, la expresión cruda de antes con
+la lectura del DTO. En producción, el 26/09/2026: **1 043 piezas de push, 49 962 de tarifas, 7 697
+de envío de mensajes, 14 678 respuestas de pull (48 069 reservas), 173 075 mensajes y 15 028 líneas
+de factura recibidos — idénticos**. Se vuelve a correr si se toca un DTO.
+
+⚠️ **Qué guarda cada cola en `last_response_raw` no es lo mismo en todas**, y conviene saberlo antes
+de ir a buscar algo ahí: el motor guarda la respuesta entera, pero varios handlers la sobrescriben
+después con su trozo.
+
+| Cola | Guarda |
+|---|---|
+| push de reservas | la pieza de su ítem |
+| tarifas | el `modified` de su pieza (o la pieza, si no lo trae) |
+| pull de reservas, mensajes y facturas recibidos | la lista ya repartida para ese ítem |
+| envío de mensajes por Beds24 | la lista entera de piezas del lote |
+
+Así que la paginación del GET —que llega fusionada— y los sobres de error de las lecturas no quedan
+guardados en ningún sitio: los cubren `Beds24RespuestaTest` y `Beds24ExchangeClientTest`.
+
+**De paso, tipado lo que el motor daba por `mixed`:**
+
+- `ExchangeQueueItemInterface::getId()` y `ChannelConfigInterface::getId()` decían `mixed` «para
+  soportar UUIDs»; las siete colas y las tres configuraciones devuelven `?Uuid` desde siempre. Con
+  el tipo verdadero, cada `(string) $item->getId()` —la clave con que se reparten los resultados de
+  un lote— deja de ser una conversión a ciegas.
+- `MetaConfig::getCredential()` devuelve `?string` (`Lee::texto()`): todos sus lectores la usaban
+  como texto.
+- Los tres comandos del motor (`exchange:run`, `exchange:timeline:enqueue`,
+  `app:exchange:vigilar-colas`) leen sus argumentos con `#[Argument]`/`#[Option]` en vez de
+  `getArgument()`/`getOption()` más un cast. La línea de comandos es la misma, con una diferencia:
+  `--limit` ya **exige** valor (`--limit=100`); un `--limit` pelado, que antes valía 0 = «el tope de
+  la tarea», ahora es un error de uso.
+- `config/services/services_exchange.yaml` excluía `'../src/Exchange/Dto/'`, una ruta que no existe
+  (la buena es `'../../src/…'`): los DTO se registraban como servicios. Corregido; el `Entity/` de al
+  lado tiene el mismo error y se dejó como estaba.
 
 ## 9. Anti-duplicación y Seguridad
 
@@ -6078,6 +6166,8 @@ por uno y no por el otro.
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
 | Añadir un campo de Beds24 a la reserva | `Beds24BookingDto` | `fromArray()` — el ÚNICO camino, pull y webhook (§12.20) |
+| Leer un campo nuevo de una respuesta de Beds24 (éxito, error, id, paginación) | `src/Exchange/Dto/Beds24/Beds24Respuesta.php` | `fromArray()` — y `tools/pruebas/probar-dto-canales.php` para comprobar que no cambia lo demás (§8.2) |
+| Cambiar cómo se pagina un GET de Beds24 | `Beds24ExchangeClient` + `Beds24Respuesta` | `send()` / `siguientePagina` (§8.2) |
 | Un dato obligatorio del PMS que llega `null` (unidad, fechas, config de Beds24) | la entidad | su `getXOrFail()`, §12.19 — y NUNCA uno para la reserva del evento |
 | Cambiar cómo se normaliza un nombre que llega en mayúsculas | `NombreSanitizer` | `formatear()` — sólo actúa si NO hay ninguna minúscula; se llama desde `BookingPullPersister::upsert()` |
 | Cambiar cuándo se revisa si nombre y apellido vienen cruzados | `OrdenDelNombre` + `PmsNombreOrdenListener` | `mereceRevision()` / `esNuestroIntercambio()` — el corta-bucles |

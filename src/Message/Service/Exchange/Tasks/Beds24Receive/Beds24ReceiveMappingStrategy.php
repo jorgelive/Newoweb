@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\Beds24Receive;
 
+use App\Exchange\Dto\Beds24\Beds24Respuesta;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
@@ -72,9 +73,12 @@ final readonly class Beds24ReceiveMappingStrategy implements MappingStrategyInte
         /** @var array<string, string[]> $correlacion bookingId => ids de cola */
         $correlacion = $mapping->correlationMap;
 
+        // El sobre se lee una vez, por el DTO. Ver `Beds24Respuesta`.
+        $respuesta = Beds24Respuesta::fromArray($apiResponse);
+
         // Error estructurado desde la API: falla el lote entero, no hay nada que repartir.
-        if (isset($apiResponse['success']) && $apiResponse['success'] === false) {
-            $msg = $apiResponse['message'] ?? 'Error desconocido desde Beds24';
+        if ($respuesta->declaraFallo) {
+            $msg = $respuesta->mensaje ?? 'Error desconocido desde Beds24';
             $fallos = [];
             foreach ($correlacion as $jobIds) {
                 foreach ($jobIds as $jobId) {
@@ -88,14 +92,14 @@ final readonly class Beds24ReceiveMappingStrategy implements MappingStrategyInte
         // factura), aquí 'data' ya es la lista plana de mensajes.
         $porBooking = [];
 
-        foreach ($apiResponse['data'] ?? [] as $mensaje) {
+        foreach ($respuesta->datos ?? [] as $mensaje) {
             if (!is_array($mensaje)) {
                 continue;
             }
-            // ⚠️ El cast a string es obligatorio: PHP convierte a int las claves numéricas
+            // ⚠️ El paso a texto es obligatorio: PHP convierte a int las claves numéricas
             // de un array, y `getTargetBookId()` devuelve string. Sin él, la búsqueda de
             // abajo no encuentra nada y TODAS las reservas parecen no tener mensajes.
-            $porBooking[(string) ($mensaje['bookingId'] ?? '')][] = $mensaje;
+            $porBooking[Beds24Respuesta::bookingIdDe($mensaje)][] = $mensaje;
         }
 
         // Se recorre la CORRELACIÓN, no el 'data': una reserva sin mensajes no deja ningún

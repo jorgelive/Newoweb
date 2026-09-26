@@ -38,7 +38,10 @@ final readonly class Beds24InvoiceItemDto
     ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param array<mixed> $data Una línea de factura de Beds24 tal cual —del webhook o del GET de
+     *                           facturas—; se lee aquí y en ningún otro sitio. `array<mixed>` y no
+     *                           `array<string, mixed>`: llega de un `json_decode()` y nadie garantiza
+     *                           sus claves, igual que en `Beds24MessageDto::fromArray()`.
      */
     public static function fromArray(array $data): self
     {

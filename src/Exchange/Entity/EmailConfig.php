@@ -8,6 +8,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * El buzón desde el que sale el correo.
@@ -57,7 +58,7 @@ class EmailConfig implements ChannelConfigInterface
         $this->initializeId();
     }
 
-    public function getId(): mixed
+    public function getId(): ?Uuid
     {
         return $this->id;
     }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Service\Client;
 
+use App\Exchange\Dto\Beds24\Beds24Respuesta;
 use App\Exchange\Entity\Beds24Config;
 use App\Exchange\Service\Auth\Beds24AuthService;
 use App\Exchange\Service\Common\ExchangeNetworkResult;
@@ -73,30 +74,32 @@ final class Beds24ExchangeClient implements ExchangeClientInterface
                 try {
                     $decoded = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
                 } catch (\Throwable) {
-                    // Fallo silencioso en decodificación (ej: error 504 HTML), rompe el bucle
-                    $hasNextPage = false;
+                    // Fallo silencioso en decodificación (ej: error 504 HTML): se sigue con la
+                    // página vacía, que no trae ni datos ni página siguiente.
                 }
+
+                // La página se lee UNA vez, por el DTO: `data` para fusionar y `pages` para
+                // saber si hay otra. Una página que no es un objeto (un JSON escalar) no trae
+                // ninguna de las dos cosas.
+                $pagina = Beds24Respuesta::fromArray(is_array($decoded) ? $decoded : []);
 
                 // 🏗️ FUSIÓN DE DATOS (Merge)
                 if ($allDecodedData === null) {
-                    // Es la primera página, inicializamos el objeto maestro
-                    $allDecodedData = $decoded;
-                } else {
+                    // Es la primera página, inicializamos el objeto maestro. Si no es un array
+                    // (un `null` JSON) se queda sin inicializar, como antes: la siguiente página,
+                    // si la hay, hará de maestra.
+                    $allDecodedData = is_array($decoded) ? $decoded : null;
+                } elseif ($pagina->datos !== null) {
                     // Son páginas siguientes, solo agregamos los items al array 'data'
-                    if (isset($decoded['data']) && is_array($decoded['data'])) {
-                        $allDecodedData['data'] = array_merge($allDecodedData['data'] ?? [], $decoded['data']);
-                    }
+                    $acumulados = $allDecodedData['data'] ?? [];
+                    $allDecodedData['data'] = array_merge(is_array($acumulados) ? $acumulados : [], $pagina->datos);
                 }
 
                 // 🧭 EVALUAR PAGINACIÓN (Solo aplica para peticiones GET que tengan nextPageExists)
                 $hasNextPage = false;
-                if ($mapping->method === 'GET'
-                    && isset($decoded['pages']['nextPageExists'])
-                    && $decoded['pages']['nextPageExists'] === true
-                    && !empty($decoded['pages']['nextPageLink'])
-                ) {
+                if ($mapping->method === 'GET' && $pagina->siguientePagina !== null) {
                     $hasNextPage = true;
-                    $currentUrl = $decoded['pages']['nextPageLink'];
+                    $currentUrl = $pagina->siguientePagina;
 
                     // IMPORTANTE: Al usar el nextPageLink, Beds24 ya incluye los query parameters originales
                     // (ej: ?status=confirmed&page=2). Debemos vaciar el payload para que Symfony no los duplique.

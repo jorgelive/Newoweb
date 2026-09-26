@@ -48,4 +48,21 @@ final class HidratadorDeMarcadoresTest extends TestCase
             'casitas' => ['Casita 1', 'Casita 2'],
         ]));
     }
+
+    /** Lo que tiene forma de texto se escribe como el `(string)` de siempre. */
+    #[Test]
+    public function como_texto_es_el_cast_para_lo_que_tiene_forma_de_texto(): void
+    {
+        self::assertSame('3', HidratadorDeMarcadores::comoTexto(3));
+        self::assertSame('60.5', HidratadorDeMarcadores::comoTexto(60.5));
+        self::assertSame('', HidratadorDeMarcadores::comoTexto(null));
+        self::assertSame('1', HidratadorDeMarcadores::comoTexto(true));
+    }
+
+    /** Una lista no tiene forma de texto: quien sustituye deja el marcador (ver la cabecera). */
+    #[Test]
+    public function como_texto_de_una_lista_es_null(): void
+    {
+        self::assertNull(HidratadorDeMarcadores::comoTexto(['a', 'b']));
+    }
 }

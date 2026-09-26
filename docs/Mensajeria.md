@@ -6721,11 +6721,92 @@ Dos comportamientos cambian, los dos en casos que en producción no se dan (medi
 de la baseline (`nullCoalesce.offset` sobre ese tipo, en la entidad y en las dos estrategias de
 envío) protegían justo ese hueco y quedan sin uso.
 
+## 14.c Las respuestas del ENVÍO: Beds24, Meta y correo, leídas en DTO (26/09/2026)
+
+El webhook (§14.b) es lo que los canales nos mandan; esto es lo que contestan cuando les mandamos
+algo. Las tres colas de envío leían esa respuesta a mano sobre un `mixed`; ahora cada una pasa por
+el DTO de su canal, en `src/Exchange/Dto/`:
+
+| Cola | Quién escribe la respuesta | DTO | Qué se lee |
+|---|---|---|---|
+| `msg_beds24_send_queue` | Beds24 | `Beds24Respuesta` (`docs/PmsBeds24ReservasSync.md` §8.2) | `success`, `message`, `id` / `new.id` |
+| `msg_whatsapp_meta_send_queue` | Graph API de Meta | `RespuestaGraphMeta` | `error.*`, `messages[0].id` |
+| `msg_email_send_queue` | nuestro propio `MailerExchangeClient` | `CorreoSaliente` + `ResultadoDelCorreo` | `to`/`subject`/`text` y `{enviados, fallos}` |
+
+El correo no tiene API al otro lado y aun así lleva DTO: entre la estrategia que escribe el correo y
+el cliente que lo manda está el motor genérico, que lo transporta como `array<mixed>`. Con el mismo
+objeto escribiendo (`toArray()`) y leyendo (`fromArray()`), las claves se escriben en un sitio. La
+forma guardada en la auditoría de la cola es la de antes.
+
+`RespuestaGraphMeta` sirve también a las llamadas de plantillas (`fetchTemplates()`,
+`pushTemplateDefinition()`, `editTemplateDefinition()`, `deleteTemplateDefinition()`), que componían
+el motivo de un rechazo —`error.message | error_user_msg | Detalles: error_data.details`— cada una con
+su copia; ahora es `WhatsappMetaClient::errorDetallado()`.
+
+**Comprobado contra lo guardado en producción** con `tools/pruebas/probar-dto-canales.php`: 7 697
+piezas de Beds24, 6 201 cuerpos de Meta y las 3 respuestas de correo, **idénticas** por los dos
+caminos. Y las credenciales de `MetaConfig` —que `getCredential()` devuelve ahora como `?string`—
+son todas texto.
+
+### 🔥 La respuesta del envío a Meta: los rechazos se dan por ENVIADOS
+
+**Lo destapó el tipado, y NO se ha arreglado: se conservó tal cual a propósito.**
+
+```
+WhatsappMetaClient::send()         cuerpo de Meta ──► fila normalizada
+   {"error": {...}}                   → {status: 'error', message, error_code}
+   {"messages": [{"id": …}]}          → {status: 'success', messageId, raw}
+
+WhatsappMetaSendMappingStrategy::parseResponse()   sobre la FILA
+   success = !isset(fila['error'])       ← 'error' NO existe en la fila: siempre true
+   remoteId = fila['messages'][0]['id']  ← tampoco existe: siempre null
+
+WhatsappMetaSendHandler::handleSuccess()
+   remoteId = fila['messageId']          ← éste sí: el wamid llega por aquí
+   mensaje → SENT
+```
+
+La estrategia busca las claves del cuerpo de Meta en una fila que ya no las tiene. Resultado: **un
+rechazo síncrono de Meta —el que llega en la propia respuesta, sin `wamid`— marca el mensaje como
+enviado** y la cola como `success`. No hay reintento, no hay aviso, y el operador ve «enviado».
+
+Medido en producción el 26/09/2026: **193 colas `success`** guardan una respuesta de lote con al
+menos un rechazo (375 cuerpos de error contando cada copia del lote), entre el 27/03 y el 01/09/2026:
+
+| Código | Qué es | Cuerpos | Colas |
+|---|---|---|---|
+| 132005 | texto traducido demasiado largo | 223 | 133 |
+| 100 | parámetro inválido | 146 | 54 |
+| 132000 | nº de parámetros de la plantilla no cuadra | 4 | 4 |
+| 131000 | error genérico | 2 | 2 |
+
+PHPStan lo ve en cuanto se le da el tipo de la fila: *«Offset 'error' … in isset() does not exist»*.
+
+**Por qué no se arregló aquí:** leer `status === 'error'` cambia qué se reintenta (`markFailure()`
+con reintento a los pocos minutos), qué estado ve el operador y qué avisos salen. Es una decisión de
+comportamiento, y el cambio en el que apareció sólo tipaba. `WhatsappMetaSendMappingStrategyTest`
+lo fija —«hoy un rechazo de Meta se da por enviado»— para que, cuando se cambie, se cambie a
+propósito. Antes de hacerlo, mirar qué pasa con los reintentos de un 132005 (un texto demasiado
+largo no se arregla reintentando).
+
+### El valor de una variable dentro de un texto: `HidratadorDeMarcadores::comoTexto()`
+
+Las tres estrategias de envío escribían el valor de una variable con `(string)`, cada una en su
+copia —la de correo porque además anota los marcadores que faltan, la de WhatsApp por su cuenta, y
+los botones de Beds24 para las URL—. Ahora las cuatro llaman a `comoTexto()`: el `(string)` de
+siempre para lo que tiene forma de texto (números, booleanos, `null` como vacío), y **`null` para una
+lista**, que con el cast salía como la palabra «Array» en el mensaje del huésped. Con `null`, quien
+sustituye deja el **marcador crudo** —la misma fila de la tabla del hidratador (§18)—, salvo la URL
+de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar.
+
 ## 15. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
 | Leer un campo nuevo del webhook de Meta | `src/Message/Dto/Meta/` | el `fromArray()` de su pieza — y `tools/pruebas/probar-dto-meta.php` para comprobar que no cambia lo demás (§14.b) |
+| Leer un campo nuevo de la RESPUESTA de un envío (Meta, Beds24, correo) | `src/Exchange/Dto/` | `RespuestaGraphMeta` / `Beds24Respuesta` / `ResultadoDelCorreo` — y `tools/pruebas/probar-dto-canales.php` (§14.c) |
+| Que un rechazo síncrono de Meta deje el mensaje FALLIDO (hoy se da por enviado) | `WhatsappMetaSendMappingStrategy` | `parseResponse()` — leer `status` de la fila del cliente; **y** actualizar `WhatsappMetaSendMappingStrategyTest`. Decidir antes el reintento (§14.c) |
+| Cambiar cómo se escribe el valor de una variable en un texto | `HidratadorDeMarcadores` | `comoTexto()` — lo usan los tres canales de envío (§14.c) |
 | Cambiar cómo se recorre el sobre de Meta | `WhatsappMetaWebhookMessageFastTrackService` | `procesarSobre()` — el único recorrido, lo usan el webhook y el «reprocesar» |
 | Leer un campo nuevo del listado de plantillas de Meta | `src/Message/Dto/PlantillaMeta/` | el `fromArray()` de la pieza — y `tools/pruebas/probar-dto-plantillas.php` (§18) |
 | Que el núcleo lea una clave nueva de la metadata del asunto | `MessageDataResolverInterface` | la forma `MetadatosDeAsunto` **y** su tabla — el resolver que la construye la comprueba PHPStan |

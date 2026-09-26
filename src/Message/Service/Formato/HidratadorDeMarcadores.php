@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Formato;
 
-use Stringable;
-
 /**
  * Sustituye los marcadores `{{ variable }}` de un cuerpo de plantilla por sus valores.
  *
@@ -23,7 +21,7 @@ use Stringable;
  * | existe con valor | el valor | lo esperado |
  * | existe y vale `null` o `''` | **nada** | hay variables que valen vacío a propósito: `bloque_pago` cuando no hay nada que cobrar. Sustituir por nada es lo que deja la frase legible |
  * | **no existe** | el marcador crudo | es un fallo de la plantilla y tiene que verse |
- * | existe y es un array u objeto | el marcador crudo | es un fallo del resolver; antes salía la palabra «Array» dentro del mensaje. Así lo caza `msg:plantilla:ver` como cualquier otro marcador sin resolver |
+ * | existe y es un array u objeto | el marcador crudo | es un fallo del resolver; antes salía la palabra «Array» dentro del mensaje. Así lo caza `msg:plantilla:ver` como cualquier otro marcador sin resolver. Vale también para las estrategias que sustituyen por su cuenta, vía `comoTexto()` |
  *
  * ⚠️ Es `array_key_exists`, **no `??`**. El `??` trata `null` como ausente y dejaba el marcador
  * en el mensaje: un huésped llegó a leer literalmente «Queda pendiente un pago por
@@ -50,17 +48,32 @@ final readonly class HidratadorDeMarcadores
 
         return (string) preg_replace_callback(
             self::PATRON,
-            static function (array $m) use ($variables): string {
-                if (!array_key_exists($m[1], $variables)) {
-                    return $m[0];
-                }
-
-                $valor = $variables[$m[1]];
-
-                return $valor === null || is_scalar($valor) || $valor instanceof Stringable ? (string) $valor : $m[0];
-            },
+            static fn (array $m): string => array_key_exists($m[1], $variables)
+                ? self::comoTexto($variables[$m[1]]) ?? $m[0]
+                : $m[0],
             $texto
         );
+    }
+
+    /**
+     * Cómo se escribe el VALOR de una variable dentro de un texto. La usan también las estrategias
+     * que sustituyen por su cuenta (la de correo, que además anota los marcadores que faltan; la de
+     * WhatsApp; los botones de Beds24), para que la regla sea una.
+     *
+     * Es el `(string)` de siempre para lo que tiene forma de texto —números, booleanos, `null` como
+     * vacío, un objeto que sabe escribirse—. Lo que NO la tiene (una lista, un objeto cualquiera)
+     * devuelve `null`, y quien sustituye deja el **marcador crudo**: con el cast salía la palabra
+     * «Array» en el mensaje del huésped, y un valor así es un fallo del resolver, que tiene que verse
+     * igual que una variable que falta —`msg:plantilla:ver` lo enseña en rojo—, no borrarse en
+     * silencio.
+     */
+    public static function comoTexto(mixed $valor): ?string
+    {
+        if ($valor === null) {
+            return '';
+        }
+
+        return is_scalar($valor) || $valor instanceof \Stringable ? (string) $valor : null;
     }
 
     /**

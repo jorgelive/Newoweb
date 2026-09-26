@@ -6,6 +6,7 @@ namespace App\Exchange\Service\Contract;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Interface ExchangeQueueItemInterface.
@@ -14,10 +15,15 @@ use DateTimeInterface;
  */
 interface ExchangeQueueItemInterface
 {
-    /** * Identificador único.
-     * Cambiado a 'mixed' para soportar UUIDs del IdTrait.
+    /**
+     * Identificador único: el UUID del `IdTrait`, `null` mientras no se ha persistido.
+     *
+     * Decía `mixed` «para soportar UUIDs», y las siete colas que lo implementan devuelven
+     * `?Uuid` desde siempre. Con `mixed`, cada `(string) $item->getId()` del motor —la clave con
+     * que se reparten los resultados de un lote— era una conversión a ciegas; con el tipo
+     * verdadero, el analizador sabe que un `Uuid` se escribe como texto y que `null` da `''`.
      */
-    public function getId(): mixed;
+    public function getId(): ?Uuid;
 
     /*
      * -------------------------------------------------------------------------

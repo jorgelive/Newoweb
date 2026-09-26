@@ -80,13 +80,11 @@ final class MessagerDispatcherSendQueueEventListener
             return;
         }
 
-        // `getId()` es `mixed` en el contrato de Exchange (lo comparten colas con id entero y con
-        // UUID). Aquí siempre es un `Uuid`, que se convierte a texto; lo que no se pueda
-        // convertir no tiene id que despachar.
+        // Una cola pendiente sin id aún no se ha persistido: no hay nada que despachar.
         $id = $entidad->getId();
 
-        if ($id instanceof \Stringable || is_int($id) || is_string($id)) {
-            $this->pendientes[$entidad->getSendTaskName()][] = (string) $id;
+        if ($id !== null) {
+            $this->pendientes[$entidad->getSendTaskName()][] = $id->toRfc4122();
         }
     }
 }

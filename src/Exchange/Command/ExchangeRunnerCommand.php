@@ -4,11 +4,10 @@ declare(strict_types=1);
 namespace App\Exchange\Command;
 
 use App\Exchange\Service\Engine\ExchangeOrchestrator;
+use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -43,45 +42,38 @@ class ExchangeRunnerCommand extends Command
 
     protected function configure(): void
     {
-        $this
-            ->addArgument(
-                'task',
-                InputArgument::REQUIRED,
-                'Nombre de la tarea/cola: [bookings_pull | bookings_push | rates_push]'
-            )
-            ->addOption(
-                'limit',
-                'l',
-                InputOption::VALUE_OPTIONAL,
-                'Cantidad máxima de ítems a procesar en esta ejecución',
-                50
-            )
-            ->setHelp(<<<EOT
+        $this->setHelp(<<<EOT
 Este comando dispara el motor de sincronización real (consumidor de colas).
 Busca registros con estado 'pending' o 'failed' (que tengan reintentos) y los procesa.
 
 Ejemplos:
-  <info>php bin/console pms:exchange:run bookings_pull</info>
-  <info>php bin/console pms:exchange:run bookings_push --limit=10</info>
+  <info>php bin/console exchange:run bookings_pull</info>
+  <info>php bin/console exchange:run bookings_push --limit=10</info>
 EOT
-            );
+        );
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $io = new SymfonyStyle($input, $output);
-        $taskName = $input->getArgument('task');
-        $limit = (int) $input->getOption('limit');
-
-        $io->title("Iniciando Runner de Intercambio: <comment>$taskName</comment>");
+    /**
+     * El argumento y la opción los tipa el framework (`#[Argument]`, `#[Option]`): antes se leían
+     * con `getArgument()`/`getOption()`, que devuelven `mixed`, y se convertían a mano.
+     */
+    public function __invoke(
+        SymfonyStyle $io,
+        OutputInterface $output,
+        #[Argument('Nombre de la tarea/cola: [bookings_pull | bookings_push | rates_push]')]
+        string $task,
+        #[Option('Cantidad máxima de ítems a procesar en esta ejecución', shortcut: 'l')]
+        int $limit = 50,
+    ): int {
+        $io->title("Iniciando Runner de Intercambio: <comment>$task</comment>");
         $io->note("Buscando hasta $limit ítems pendientes para procesar.");
 
         try {
             // El Orchestrator se encarga del loop, el bloqueo de filas (Locking),
             // las transacciones y el registro de resultados/errores en la BD.
-            $this->orchestrator->run($taskName, $limit);
+            $this->orchestrator->run($task, $limit);
 
-            $io->success("Procesamiento de '$taskName' finalizado.");
+            $io->success("Procesamiento de '$task' finalizado.");
             return Command::SUCCESS;
         } catch (\Throwable $e) {
             $io->error("Error fatal en el motor de intercambio: " . $e->getMessage());

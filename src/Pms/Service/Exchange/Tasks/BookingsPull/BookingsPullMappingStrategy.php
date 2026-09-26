@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Exchange\Tasks\BookingsPull;
 
+use App\Exchange\Dto\Beds24\Beds24Respuesta;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
@@ -152,27 +153,24 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
             throw new \LogicException('El mapa de correlación de BookingsPull debe traer `job` como texto.');
         }
 
+        // La respuesta se lee una vez, por el DTO. Ver `Beds24Respuesta`.
+        $respuesta = Beds24Respuesta::fromArray($apiResponse);
+
         // 1. Detección de Errores Lógicos (API responde 200 pero con success: false)
-        if (isset($apiResponse['success']) && $apiResponse['success'] === false) {
-            $msg = $apiResponse['message'] ?? 'Error lógico en API al descargar reservas';
+        if ($respuesta->declaraFallo) {
+            $msg = $respuesta->mensaje ?? 'Error lógico en API al descargar reservas';
 
             // Si hay errores detallados, tomamos el primero
-            if (isset($apiResponse['errors'][0]['message'])) {
-                $msg .= ': ' . $apiResponse['errors'][0]['message'];
+            if ($respuesta->primerError !== null) {
+                $msg .= ': ' . $respuesta->primerError;
             }
             return [$jobId => new ItemResult($jobId, false, $msg)];
         }
 
         // 2. Normalización de Datos
-        // La API puede devolver los datos directamente en la raíz (array) o dentro de 'data'
-        // Si es un array secuencial (lista de reservas), lo usamos directo.
-        $bookingsData = $apiResponse;
-
-        if (isset($apiResponse['data']) && is_array($apiResponse['data'])) {
-            $bookingsData = $apiResponse['data'];
-        } elseif (isset($apiResponse['id']) && !isset($apiResponse[0])) {
-            $bookingsData = [$apiResponse];
-        }
+        // La API puede devolver los datos directamente en la raíz (array), dentro de 'data', o
+        // una reserva suelta. Cuál es cuál lo decide `Beds24Respuesta::$filas`.
+        $bookingsData = $respuesta->filas;
 
         $count = count($bookingsData);
 
