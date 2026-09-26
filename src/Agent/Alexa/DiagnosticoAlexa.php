@@ -39,12 +39,12 @@ final readonly class DiagnosticoAlexa
     ) {}
 
     /**
-     * @param array<string, mixed> $sobre
+     * @param array<mixed> $sobre El JSON tal cual llegó: va entero —saneado— al contexto de la línea.
      */
     public function registrar(array $sobre, PeticionAlexa $alexa): void
     {
         try {
-            $nombre = $alexa->persona !== null ? $this->nombreDeLaVoz($sobre) : ['http' => null, 'nombre' => null];
+            $nombre = $alexa->persona !== null ? $this->nombreDeLaVoz($alexa) : ['http' => null, 'nombre' => null];
 
             $this->logger->info(sprintf(
                 'Alexa: petición %s%s sesión=%s nueva=%s idioma=%s persona=%s voz_nombre=%s voz_nombre_http=%s dispositivo=%s cuenta=%s',
@@ -70,16 +70,14 @@ final readonly class DiagnosticoAlexa
      * `http` es el código que devolvió Amazon: 200 con nombre, 204 si el perfil no tiene nombre,
      * 403 si falta el permiso. `null` si ni siquiera se pudo preguntar (sin endpoint o sin token).
      *
-     * @param array<string, mixed> $sobre
      * @return array{http: int|string|null, nombre: string|null}
      */
-    private function nombreDeLaVoz(array $sobre): array
+    private function nombreDeLaVoz(PeticionAlexa $alexa): array
     {
-        $sistema = $sobre['context']['System'] ?? null;
-        $endpoint = is_array($sistema) ? ($sistema['apiEndpoint'] ?? null) : null;
-        $token = is_array($sistema) ? ($sistema['apiAccessToken'] ?? null) : null;
+        $endpoint = $alexa->apiEndpoint;
+        $token = $alexa->apiToken;
 
-        if (!is_string($endpoint) || $endpoint === '' || !is_string($token) || $token === '') {
+        if ($endpoint === null || $token === null) {
             return ['http' => null, 'nombre' => null];
         }
 

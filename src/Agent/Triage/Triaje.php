@@ -242,9 +242,11 @@ final readonly class Triaje
             return DecisionDeTriaje::indeterminado('respuesta no era JSON: ' . mb_substr($limpio, 0, 120));
         }
 
-        $tipo = TipoDeMensaje::tryFrom((string) ($datos['tipo'] ?? ''));
+        $leida = RespuestaDeTriaje::fromArray($datos);
+
+        $tipo = TipoDeMensaje::tryFrom($leida->tipo ?? '');
         if ($tipo === null || $tipo === TipoDeMensaje::Indeterminado) {
-            return DecisionDeTriaje::indeterminado('tipo no reconocido: ' . (string) ($datos['tipo'] ?? '—'));
+            return DecisionDeTriaje::indeterminado('tipo no reconocido: ' . ($leida->tipo ?? '—'));
         }
 
         // 🔒 El nombre de la skill se comprueba contra las que ESTE actor puede usar, no contra
@@ -253,7 +255,7 @@ final readonly class Triaje
         // siguiente decide por su cuenta, que es exactamente lo que pasaba antes del triaje.
         // ⚠️ DOS listas blancas, y la asimetría entre ellas es el mecanismo entero. Las dos son
         // puras y viven en `CatalogoDelTriaje`, donde se pueden probar sin montar nada.
-        $skill = trim((string) ($datos['skill'] ?? ''));
+        $skill = $leida->skill;
         $permitidas = CatalogoDelTriaje::permitidas($skills);
         $directas = CatalogoDelTriaje::enrutablesDirectas($skills);
 
@@ -278,12 +280,12 @@ final readonly class Triaje
         // pregunta por salidas no le puede quedar más de un candidato aunque el modelo liste dos:
         // la skill de tours no está en su catálogo. Ése es justo el motivo de filtrar aquí y no
         // después.
-        $candidatos = CatalogoDelTriaje::candidatos(array_values((array) ($datos['candidatos'] ?? [])), $permitidas);
+        $candidatos = CatalogoDelTriaje::candidatos($leida->candidatos, $permitidas);
 
         // La pista es un TEMA, no una frase. Si viene larga es que el modelo pegó el mensaje
         // del huésped, y eso es justo lo que hace que la guía responda por casualidad: ver
         // ConsultarGuiaSkill::MAX_PALABRAS_BUSQUEDA.
-        $pista = trim((string) ($datos['pista'] ?? ''));
+        $pista = $leida->pista;
         if ($pista !== '' && count(preg_split('/\s+/u', $pista) ?: []) > 3) {
             $pista = '';
         }
@@ -293,7 +295,7 @@ final readonly class Triaje
         // queda la pista de palabras, que era el comportamiento de antes del índice. La skill
         // volvería a filtrarlo igual (árbol podado), pero descartarlo aquí ahorra mandarle al
         // camino largo una sugerencia que no puede cumplir.
-        $temaId = trim((string) ($datos['tema_id'] ?? ''));
+        $temaId = $leida->temaId;
         if ($temaId !== '' && !in_array($temaId, $temasPermitidos, true)) {
             $this->logger->info(sprintf(
                 'Agent: el triaje propuso un tema de guía fuera de la casita («%s»); se ignora.',
@@ -304,7 +306,7 @@ final readonly class Triaje
 
         // La respuesta de charla sólo vale con su tipo. Con cualquier otro es el modelo
         // saltándose el reparto de trabajo —contestar una petición sin herramientas— y se tira.
-        $respuesta = trim((string) ($datos['respuesta'] ?? ''));
+        $respuesta = $leida->respuesta;
         if ($tipo !== TipoDeMensaje::Conversacion) {
             $respuesta = '';
         }
@@ -314,9 +316,9 @@ final readonly class Triaje
             skill: $skill !== '' ? $skill : null,
             pista: $pista !== '' ? $pista : null,
             temaId: $temaId !== '' ? $temaId : null,
-            motivo: trim((string) ($datos['motivo'] ?? '')),
+            motivo: $leida->motivo,
             respuesta: $respuesta !== '' ? $respuesta : null,
-            resumen: trim((string) ($datos['resumen'] ?? '')) ?: null,
+            resumen: $leida->resumen !== '' ? $leida->resumen : null,
             candidatos: $candidatos,
         );
     }

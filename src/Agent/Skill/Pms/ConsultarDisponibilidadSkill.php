@@ -435,12 +435,18 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
         $lineas = [];
 
         foreach ($casitas as $c) {
+            // Las filas son las MISMAS que se le devuelven al modelo (`toArray()` del DTO más lo
+            // que se calculó), y por eso van sin forma cerrada. Se comprueba cada campo al usarlo.
+            $nombre = $c['nombre'] ?? null;
+            $personas = $c['pax'] ?? null;
+            // El desglose ya trae «tarifa × noches + extras + limpieza → TOTAL».
+            $cuenta = $c['desglose'] ?? ($c['precio'] ?? null);
+
             $lineas[] = sprintf(
                 '%s · %d persona(s): %s',
-                $c['nombre'] ?? 'Casita',
-                (int) ($c['pax'] ?? 0),
-                // El desglose ya trae «tarifa × noches + extras + limpieza → TOTAL».
-                $c['desglose'] ?? ($c['precio'] ?? '')
+                is_string($nombre) ? $nombre : 'Casita',
+                is_int($personas) ? $personas : 0,
+                is_string($cuenta) ? $cuenta : ''
             );
         }
 

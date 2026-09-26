@@ -216,7 +216,8 @@ final readonly class ConsultarWifiSkill implements SkillInterface, SkillDominioI
      * cada idioma; aquí se resuelve a UNO, el del huésped: mandarle al modelo «Salón / Living
      * Room / Salon» por cada red es pagar tres veces la misma palabra.
      *
-     * @param array<int, array<string, mixed>> $wifiNetworks
+     * @param list<array{ssid?: string|null, password?: string|null, ubicacion?: list<array{language?: string, content?: string|null}>}> $wifiNetworks
+     *        La forma que declara `PmsUnidad::getWifiNetworks()`, de donde viene.
      * @return list<array<string, string>>
      */
     private function redes(array $wifiNetworks, string $idioma): array
@@ -245,7 +246,7 @@ final readonly class ConsultarWifiSkill implements SkillInterface, SkillDominioI
     }
 
     /**
-     * @param array<int, array{language?: string, content?: string}> $i18n
+     * @param list<array{language?: string, content?: string|null}> $i18n
      */
     private function enIdioma(array $i18n, string $idioma): string
     {

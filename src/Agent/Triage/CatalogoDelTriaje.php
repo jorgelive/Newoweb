@@ -88,7 +88,7 @@ final readonly class CatalogoDelTriaje
      * —«¿te refieres a X o a algo que no existe?»—, y el modelo se inventa identificadores con
      * toda la seguridad del mundo.
      *
-     * @param list<mixed> $propuestos
+     * @param list<string> $propuestos
      * @param list<string> $permitidas
      * @return list<string>
      */
@@ -97,7 +97,7 @@ final readonly class CatalogoDelTriaje
         $vistos = [];
 
         foreach ($propuestos as $nombre) {
-            $nombre = trim((string) $nombre);
+            $nombre = trim($nombre);
 
             if ($nombre !== '' && in_array($nombre, $permitidas, true)) {
                 $vistos[$nombre] = true;

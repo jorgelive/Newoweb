@@ -63,6 +63,8 @@ use App\Agent\Skill\EntradaDeSkill;
  * Las **notas** de los pagos quedan fuera: son apuntes internos («el huésped discutió el
  * cargo», «pendiente de revisar con Susan»), y esta skill puede acabar alimentando una
  * respuesta que el operador copia y pega al huésped.
+ *
+ * @phpstan-type FilaDeCargo array{concepto?: string, explicacion_para_huesped?: string, tipo?: string, importe?: string, moneda?: string, tipo_cambio?: string, automatico?: bool}
  */
 final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDominioInterface
 {
@@ -519,7 +521,7 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
      * `$hayExtras` viene de fuera porque la sospecha de alojamiento mal marcado ya puso el total
      * a cero, y ese caso NO puede acabar dando cifras: es el único que no puede mentir.
      *
-     * @param list<array<string, mixed>> $cargos
+     * @param list<FilaDeCargo> $cargos
      *
      * @return list<array{moneda: string, total: string}>
      */
@@ -708,13 +710,11 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
     }
 
     /**
+     * @param string|null $idioma Idioma del huésped, para elegir la explicación del cargo.
      * @param bool $excluirEspejoCanal Deja fuera la contabilidad espejo del canal que cobra
      *        por nosotros. Ver {@see self::cuentaDeCanalQueCobra()}.
-     */
-    /**
-     * @param string|null $idioma Idioma del huésped, para elegir la explicación del cargo.
      *
-     * @return list<array<string, mixed>>
+     * @return list<FilaDeCargo>
      */
     private function cargos(PmsInformacionFinanciera $info, ?string $idioma, bool $excluirEspejoCanal = false): array
     {

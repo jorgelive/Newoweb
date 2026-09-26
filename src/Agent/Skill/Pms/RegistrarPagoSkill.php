@@ -781,7 +781,10 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
                 ->setParameter('q', '%' . mb_strtolower($busqueda) . '%');
         }
 
-        return array_values($qb->getQuery()->getResult());
+        /** @var list<User> $cobradores */
+        $cobradores = $qb->getQuery()->getResult();
+
+        return $cobradores;
     }
 
     /**

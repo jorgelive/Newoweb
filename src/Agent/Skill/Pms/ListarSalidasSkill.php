@@ -271,6 +271,8 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
             ORDER BY e.$columna
         SQL;
 
+        // `es_ota` llega como entero o como texto según el driver: de ahí el `(bool)` de abajo.
+        /** @var list<array{evento_id: string, reserva_id: ?string, fecha: string, hora: ?string, casita: ?string, huesped: string, localizador: ?string, es_ota: int|string|null, telefono: ?string, conversacion_id: ?string, limpieza: ?string, peticiones: ?string}> $filas */
         $filas = $this->em->getConnection()->executeQuery(
             $sql,
             [

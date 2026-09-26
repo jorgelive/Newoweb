@@ -160,7 +160,8 @@ final readonly class VigilanteDelMotor
     private function sumarFallo(): int
     {
         $item = $this->cache->getItem(self::CLAVE_CUENTA);
-        $cuenta = $item->isHit() ? ((int) $item->get()) + 1 : 1;
+        $previa = $item->isHit() ? $item->get() : null;
+        $cuenta = is_int($previa) ? $previa + 1 : 1;
 
         $item->set($cuenta)->expiresAfter(self::VENTANA_SEGUNDOS);
         $this->cache->save($item);
