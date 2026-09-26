@@ -40,6 +40,10 @@ framework:
             # mensaje se compone al ENVIAR (cron `exchange:run`), no al encolar.
             App\Pms\Dispatch\RevisarOrdenDelNombreDispatch: async
 
+            # La confirmación por pago que hizo un UPDATE en SQL, llevada a Beds24 por el ORM.
+            # Asíncrona por obligación: la lanza un `postFlush`, y el handler necesita hacer flush.
+            App\Pms\Dispatch\AnunciarConfirmacionAlCanalDispatch: async
+
             # Sin esta ruta el dispatch se maneja SÍNCRONO, y como quien lo lanza es un
             # postPersist/postUpdate de Doctrine, el router del Agent acababa corriendo
             # DENTRO de un flush: flush anidado, persist de la respuesta dentro de un

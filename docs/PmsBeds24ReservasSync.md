@@ -5157,6 +5157,26 @@ Desde entonces `BookingsPushMappingStrategy` manda `status` también cuando la r
 `PmsEventoCalendario::$estadoBeds24`, el último `status` que reportó Beds24. Si el canal ya la
 canceló, el push no lleva `status` y la cancelación sobrevive.
 
+#### El segundo camino, que seguía abierto (26/09/2026)
+
+El arreglo de arriba sólo cubría la confirmación que pasa por el **ORM** —el panel—, porque es
+`Beds24BookingsPushQueueListener` quien marca `estadoPushSolicitado` y encola el push. Pero
+cuando un pago deja la estancia en `pago-total`/`pago-parcial` por el recálculo de finanzas,
+quien la confirma es `PmsEstadoPagoEventosService::confirmarPorPago()`, **en SQL** (corre en un
+`postFlush`). Nadie marcaba ni encolaba, Beds24 seguía en `new`, y el ciclo siguiente del pull la
+devolvía a `pendiente`.
+
+Lo destapó **José (TA3WSE)**: pagó el total el 25/09 a las 15:48 y a la mañana siguiente
+figuraba «Pendiente · Pago total». Su último push a Beds24 no llevaba `status`. Camille (RXY9QC)
+estaba igual con un pago parcial.
+
+**Ahora** `confirmarPorPago()` apunta qué estancias confirma y las manda por el bus
+(`AnunciarConfirmacionAlCanalDispatch`, `async`). El handler, ya fuera del flush, hace lo que
+haría el panel: si sigue confirmada marca `estadoPushSolicitado` —la entidad se ensucia, el
+listener encola el push y la estrategia manda `status`—; si un pull la devolvió a `pendiente`
+entre medias, la vuelve a confirmar por el ORM. Verificado con datos reales en
+`tools/pruebas/probar-confirmacion-por-pago-al-canal.php`.
+
 #### Consecuencia práctica al sanear a mano
 
 Un `UPDATE` directo en SQL **no sirve para arreglar estas filas**: no pasa por el UnitOfWork,

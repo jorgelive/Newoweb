@@ -39,7 +39,9 @@ $em = $kernel->getContainer()->get('doctrine')->getManager();
 $conn = $em->getConnection();
 
 $recalculo = new PmsInformacionFinancieraRecalculoService();
-$estados = new PmsEstadoPagoEventosService(new SyncContext(), new NullLogger());
+$estados = new PmsEstadoPagoEventosService(new SyncContext(), new class implements Symfony\Component\Messenger\MessageBusInterface {
+    public function dispatch(object $message, array $stamps = []): Symfony\Component\Messenger\Envelope { return new Symfony\Component\Messenger\Envelope($message); }
+});
 
 $conn->beginTransaction();
 

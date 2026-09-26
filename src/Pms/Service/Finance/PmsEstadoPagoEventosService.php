@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Pms\Service\Finance;
 
 use App\Exchange\Service\Context\SyncContext;
+use App\Pms\Dispatch\AnunciarConfirmacionAlCanalDispatch;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -41,6 +43,8 @@ final class PmsEstadoPagoEventosService
 {
     public function __construct(
         private readonly SyncContext $syncContext,
+        // Para que la confirmación por pago llegue a Beds24. Ver `confirmarPorPago()`.
+        private readonly MessageBusInterface $bus,
     ) {}
 
     /*
@@ -275,27 +279,57 @@ final class PmsEstadoPagoEventosService
         $confiables = $this->comoLista(PmsEventoEstadoPago::ESTADOS_PAGO_CONFIABLES);
         $sinAutoConfirmacion = $this->comoLista(PmsEventoCalendario::ESTADOS_SIN_AUTO_CONFIRMACION);
 
-        return (int) $conn->executeStatement(
+        $condicion = sprintf(
+            <<<'SQL'
+                WHERE i.id IN (%s)
+                  AND e.estado_pago_id IN (%s)
+                  AND e.estado_id NOT IN (%s)
+                  AND e.estado_id <> '%s'
+                  AND e.evento_origen_id IS NULL
+                SQL,
+            $in,
+            $confiables,
+            $sinAutoConfirmacion,
+            PmsEventoEstado::CODIGO_CONFIRMADA,
+        );
+
+        // 🔥 QUIÉNES, antes de confirmarlas: hay que contárselo al canal.
+        //
+        // Este UPDATE va en SQL, así que no pasa por el UnitOfWork y
+        // `Beds24BookingsPushQueueListener` nunca se entera: no marca la intención de push ni
+        // encola nada. Beds24 seguía diciendo `new` y el siguiente ciclo del pull devolvía la
+        // estancia a `pendiente` —para Booking, `new` → `pendiente` (§5.4)—. José (TA3WSE) pagó
+        // el total el 25/09 y a la mañana siguiente figuraba pendiente. Ver el handler.
+        /** @var list<string> $confirmadas */
+        $confirmadas = $conn->fetchFirstColumn(
+            'SELECT LOWER(BIN_TO_UUID(e.id)) FROM pms_evento_calendario e
+               INNER JOIN pms_informacion_financiera i ON i.reserva_id = e.reserva_id ' . $condicion,
+            $binaryIds,
+            $types,
+        );
+
+        $tocadas = (int) $conn->executeStatement(
             sprintf(
                 <<<'SQL'
                     UPDATE pms_evento_calendario e
                     INNER JOIN pms_informacion_financiera i ON i.reserva_id = e.reserva_id
                     SET e.estado_id = '%s'
-                    WHERE i.id IN (%s)
-                      AND e.estado_pago_id IN (%s)
-                      AND e.estado_id NOT IN (%s)
-                      AND e.estado_id <> '%s'
-                      AND e.evento_origen_id IS NULL
+                    %s
                     SQL,
                 PmsEventoEstado::CODIGO_CONFIRMADA,
-                $in,
-                $confiables,
-                $sinAutoConfirmacion,
-                PmsEventoEstado::CODIGO_CONFIRMADA,
+                $condicion,
             ),
             $binaryIds,
             $types,
         );
+
+        // Por el bus y no aquí: esto corre en un `postFlush`, donde el ORM obligaría a un flush
+        // anidado. El handler, ya fuera, hace lo que haría el panel.
+        if ($confirmadas !== []) {
+            $this->bus->dispatch(new AnunciarConfirmacionAlCanalDispatch($confirmadas));
+        }
+
+        return $tocadas;
     }
 
     /**
