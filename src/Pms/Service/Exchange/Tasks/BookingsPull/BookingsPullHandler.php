@@ -67,7 +67,10 @@ final class BookingsPullHandler implements ExchangeHandlerInterface
 
         // 4. Procesamiento Masivo (Fila por Fila)
         foreach ($bookings as $index => $bookingData) {
-            $bookId = $bookingData['id'] ?? $bookingData['bookId'] ?? 'unknown';
+            // Sólo para el mensaje de error: la fila la lee de verdad `Beds24BookingDto`. Una fila
+            // que no es un objeto, o un id que no es escalar, se identifica como 'unknown'.
+            $bookId = is_array($bookingData) ? ($bookingData['id'] ?? $bookingData['bookId'] ?? null) : null;
+            $bookId = is_scalar($bookId) ? (string) $bookId : 'unknown';
 
             try {
                 // 🔥 **`fromArray()`, el MISMO camino que el webhook — no el serializer.** Aquí se

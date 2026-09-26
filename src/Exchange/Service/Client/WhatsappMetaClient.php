@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Service\Client;
 
+use App\Exchange\Dto\Meta\RespuestaGraphMeta;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Service\Common\ExchangeNetworkResult;
@@ -86,21 +87,24 @@ final class WhatsappMetaClient implements ExchangeClientInterface
                 $content = $response->getContent(false);
 
                 // Decodificamos temporalmente el RAW para que el JSON final de auditoría quede limpio
-                $rawBodies[$index] = json_decode($content, true) ?? $content;
+                $decoded = json_decode($content, true);
+                $rawBodies[$index] = $decoded ?? $content;
 
-                $decoded = json_decode($content, true) ?? [];
+                // La respuesta se lee una vez, por el DTO; lo que no es un objeto no trae ni error
+                // ni id, y cuenta como éxito sin id, como antes.
+                $respuesta = RespuestaGraphMeta::fromArray(is_array($decoded) ? $decoded : []);
 
-                if (isset($decoded['error'])) {
+                if ($respuesta->hayError) {
                     $responses[$index] = [
                         'status' => 'error',
-                        'message' => $decoded['error']['message'] ?? 'Error de Meta API',
-                        'error_code' => $decoded['error']['code'] ?? null,
+                        'message' => $respuesta->errorMensaje ?? 'Error de Meta API',
+                        'error_code' => $respuesta->errorCodigo,
                     ];
                 } else {
                     $responses[$index] = [
                         'status' => 'success',
-                        'messageId' => $decoded['messages'][0]['id'] ?? null,
-                        'raw' => $decoded
+                        'messageId' => $respuesta->idMensaje,
+                        'raw' => $decoded ?? []
                     ];
                 }
             } catch (Throwable $e) {
@@ -156,15 +160,14 @@ final class WhatsappMetaClient implements ExchangeClientInterface
             ]
         ]);
 
-        $content = $response->getContent(false);
-        $decoded = json_decode($content, true);
+        $respuesta = RespuestaGraphMeta::deCuerpo($response->getContent(false));
 
         if ($response->getStatusCode() >= 400) {
-            $errorMsg = $decoded['error']['message'] ?? 'Error desconocido sincronizando plantillas de Meta.';
+            $errorMsg = $respuesta->errorMensaje ?? 'Error desconocido sincronizando plantillas de Meta.';
             throw new \RuntimeException('Meta API Error: ' . $errorMsg);
         }
 
-        return $decoded ?? [];
+        return $respuesta->crudo;
     }
 
     /**
@@ -194,27 +197,13 @@ final class WhatsappMetaClient implements ExchangeClientInterface
             'json' => $templatePayload
         ]);
 
-        $content = $response->getContent(false);
-        $decoded = json_decode($content, true);
+        $respuesta = RespuestaGraphMeta::deCuerpo($response->getContent(false));
 
         if ($response->getStatusCode() >= 400) {
-            // 🔥 EXTRACCIÓN PROFUNDA DEL ERROR DE META 🔥
-            $baseError = $decoded['error']['message'] ?? 'Error desconocido';
-            $userMsg = $decoded['error']['error_user_msg'] ?? '';
-            $details = $decoded['error']['error_data']['details'] ?? '';
-
-            $detailedError = $baseError;
-            if ($userMsg) {
-                $detailedError .= ' | ' . $userMsg;
-            }
-            if ($details) {
-                $detailedError .= ' | Detalles: ' . $details;
-            }
-
-            throw new \RuntimeException($detailedError);
+            throw new \RuntimeException(self::errorDetallado($respuesta));
         }
 
-        return $decoded ?? [];
+        return $respuesta->crudo;
     }
 
     /**
@@ -265,17 +254,16 @@ final class WhatsappMetaClient implements ExchangeClientInterface
             'query' => ['name' => $templateName, 'hsm_id' => $hsmId],
         ]);
 
-        $content = $response->getContent(false);
-        $decoded = json_decode($content, true);
+        $respuesta = RespuestaGraphMeta::deCuerpo($response->getContent(false));
 
         if ($response->getStatusCode() >= 400) {
-            $baseError = $decoded['error']['message'] ?? 'Error desconocido';
-            $userMsg = $decoded['error']['error_user_msg'] ?? '';
+            $baseError = $respuesta->errorMensaje ?? 'Error desconocido';
+            $userMsg = $respuesta->errorMensajeUsuario ?? '';
 
             throw new \RuntimeException('Error BORRANDO en Meta API: ' . $baseError . ($userMsg ? ' | ' . $userMsg : ''));
         }
 
-        return $decoded ?? [];
+        return $respuesta->crudo;
     }
 
     /**
@@ -301,21 +289,31 @@ final class WhatsappMetaClient implements ExchangeClientInterface
             'json' => ['components' => $componentsPayload]
         ]);
 
-        $content = $response->getContent(false);
-        $decoded = json_decode($content, true);
+        $respuesta = RespuestaGraphMeta::deCuerpo($response->getContent(false));
 
         if ($response->getStatusCode() >= 400) {
-            $baseError = $decoded['error']['message'] ?? 'Error desconocido';
-            $userMsg = $decoded['error']['error_user_msg'] ?? '';
-            $details = $decoded['error']['error_data']['details'] ?? '';
-
-            $detailedError = $baseError;
-            if ($userMsg) $detailedError .= ' | ' . $userMsg;
-            if ($details) $detailedError .= ' | Detalles: ' . $details;
-
-            throw new \RuntimeException('Error EDITANDO en Meta API: ' . $detailedError);
+            throw new \RuntimeException('Error EDITANDO en Meta API: ' . self::errorDetallado($respuesta));
         }
 
-        return $decoded ?? [];
+        return $respuesta->crudo;
+    }
+
+    /**
+     * 🔥 El motivo entero de un rechazo de plantilla: el mensaje técnico, el legible
+     * (`error_user_msg`, que es el que dice QUÉ está mal) y los detalles. Crear y editar lo
+     * componían igual, cada uno con su copia.
+     */
+    private static function errorDetallado(RespuestaGraphMeta $respuesta): string
+    {
+        $detallado = $respuesta->errorMensaje ?? 'Error desconocido';
+
+        if ($respuesta->errorMensajeUsuario) {
+            $detallado .= ' | ' . $respuesta->errorMensajeUsuario;
+        }
+        if ($respuesta->errorDetalles) {
+            $detallado .= ' | Detalles: ' . $respuesta->errorDetalles;
+        }
+
+        return $detallado;
     }
 }

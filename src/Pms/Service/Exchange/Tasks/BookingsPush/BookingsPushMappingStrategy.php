@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Exchange\Tasks\BookingsPush;
 
+use App\Exchange\Dto\Beds24\Beds24Respuesta;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
@@ -132,17 +133,18 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
             }
             $queueId = $mapping->idDeCola($index);
 
-            // 2. Determinar éxito/fracaso
-            $success = (bool)($respData['success'] ?? false);
+            // 2. Determinar éxito/fracaso. La pieza se lee una vez, por el DTO.
+            $pieza = Beds24Respuesta::dePieza($respData);
+            $success = $pieza->exito ?? false;
             $errorMsg = null;
 
             if (!$success) {
                 // Captura mensajes anidados como "access denied" o validaciones
-                $errorMsg = $respData['errors'][0]['message'] ?? $respData['message'] ?? 'Error desconocido';
+                $errorMsg = $pieza->primerError ?? $pieza->mensaje ?? 'Error desconocido';
             }
 
             // 3. Extraer el ID remoto confirmado
-            $remoteId = $respData['new']['id'] ?? $respData['id'] ?? $respData['bookId'] ?? null;
+            $remoteId = $pieza->idNuevo ?? $pieza->id ?? $pieza->bookId;
 
             // 4. Construir el resultado normalizado
             $results[$queueId] = new ItemResult(
@@ -150,7 +152,7 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
                 success: $success,
                 message: $errorMsg,
                 remoteId: $remoteId ? (string)$remoteId : null,
-                extraData: (array)$respData // Guardamos para la auditoría RAW del Handler
+                extraData: $pieza->crudo // Guardamos para la auditoría RAW del Handler
             );
         }
 
@@ -248,8 +250,11 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         }
 
         // 6. MARCADORES Y AUDITORÍA
-        if ($isMirror && isset($payload['firstName'])) {
-            $payload['firstName'] = '(M) ' . $payload['firstName'];
+        // El nombre lo ha puesto `setIf()` o `mapSyntheticData()`, así que es texto; se comprueba
+        // porque el payload es un mapa abierto y el analizador no puede saberlo.
+        $nombre = $payload['firstName'] ?? null;
+        if ($isMirror && is_string($nombre)) {
+            $payload['firstName'] = '(M) ' . $nombre;
         }
 
         $payload['comment'] = $isMirror ? 'Reserva espejo' : $this->buildAuditComment($queue);
@@ -362,14 +367,14 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
     /**
      * @param array<string, mixed> $arr
      */
-    private function setIf(array &$arr, string $key, mixed $val): void
+    private function setIf(array &$arr, string $key, string|int|float|null $val): void
     {
         if ($val === null) return;
         $s = trim((string)$val);
         if ($s !== '') $arr[$key] = $s;
     }
 
-    private function toIntOrNull(mixed $v): ?int
+    private function toIntOrNull(int|string|null $v): ?int
     {
         if (is_int($v)) return $v;
         $s = trim((string)$v);

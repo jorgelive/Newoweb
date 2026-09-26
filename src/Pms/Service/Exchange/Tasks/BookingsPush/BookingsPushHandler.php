@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Exchange\Tasks\BookingsPush;
 
+use App\Exchange\Dto\Beds24\Beds24Respuesta;
 use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Pms\Entity\PmsBookingsPushQueue;
@@ -40,13 +41,19 @@ final class BookingsPushHandler implements ExchangeHandlerInterface
 
         $item->setLastHttpCode(200); // Asumimos 200 si llegó a handleSuccess
 
-        // 3. Extracción de Datos de Negocio
+        // 3. Extracción de Datos de Negocio. `$data` es la pieza de Beds24 que la estrategia dejó
+        // en `extraData`, y se lee con el mismo DTO que la leyó allí.
+        //
+        // ⚠️ El orden de los ids NO es el de la estrategia (ahí el tercero es `bookId`, aquí
+        // `new[0].id`) y el éxito por defecto tampoco (`?? false` allí, `?? true` aquí). Son dos
+        // lecturas distintas desde siempre y se conservan tal cual: este cambio sólo tipa.
+        $pieza = Beds24Respuesta::fromArray($data);
         $link = $item->getLink();
-        $remoteId =  $data['new']['id'] ?? $data['id'] ?? $data['new'][0]['id'] ?? null;
-        $success = $data['success'] ?? true;
+        $remoteId = $pieza->idNuevo ?? $pieza->id ?? $pieza->idNuevoEnLista;
+        $success = $pieza->exito ?? true;
 
         if (!$success) {
-            throw new \RuntimeException($data['message'] ?? 'Error lógico en API Beds24 (Success=false)');
+            throw new \RuntimeException($pieza->mensaje ?? 'Error lógico en API Beds24 (Success=false)');
         }
 
         // 4. Lógica de Actualización y Snapshots
@@ -102,7 +109,7 @@ final class BookingsPushHandler implements ExchangeHandlerInterface
             'status'    => 'success',
             'remote_id' => $remoteId,
             'link_id'   => $logLinkId,
-            'msg'       => $data['message'] ?? 'Procesado correctamente'
+            'msg'       => $pieza->mensaje ?? 'Procesado correctamente'
         ];
 
         // Guardar el resultado estructurado en la BD

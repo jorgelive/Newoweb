@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Exchange\Tasks\InvoiceReceive;
 
+use App\Exchange\Dto\Beds24\Beds24Respuesta;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
@@ -72,9 +73,12 @@ final readonly class Beds24InvoiceReceiveMappingStrategy implements MappingStrat
         /** @var array<string, string[]> $correlacion bookingId => ids de cola */
         $correlacion = $mapping->correlationMap;
 
+        // El sobre se lee una vez, por el DTO. Ver `Beds24Respuesta`.
+        $respuesta = Beds24Respuesta::fromArray($apiResponse);
+
         // Error estructurado desde la API: falla el lote entero, no hay nada que repartir.
-        if (isset($apiResponse['success']) && $apiResponse['success'] === false) {
-            $msg = $apiResponse['message'] ?? 'Error desconocido desde Beds24';
+        if ($respuesta->declaraFallo) {
+            $msg = $respuesta->mensaje ?? 'Error desconocido desde Beds24';
             $fallos = [];
             foreach ($correlacion as $jobIds) {
                 foreach ($jobIds as $jobId) {
@@ -91,25 +95,27 @@ final readonly class Beds24InvoiceReceiveMappingStrategy implements MappingStrat
         // único envoltorio con las líneas de todas mezcladas.
         $porBooking = [];
 
-        foreach ($apiResponse['data'] ?? [] as $factura) {
+        foreach ($respuesta->datos ?? [] as $factura) {
             if (!is_array($factura)) {
                 continue;
             }
 
+            // Tal cual, sin leer: se copian a cada línea y las lee `Beds24InvoiceItemDto`.
             $invoiceId = $factura['invoiceId'] ?? null;
             $invoiceDate = $factura['invoiceDate'] ?? null;
+            $lineas = $factura['invoiceItems'] ?? [];
 
-            foreach ($factura['invoiceItems'] ?? [] as $linea) {
+            foreach (is_array($lineas) ? $lineas : [] as $linea) {
                 if (!is_array($linea)) {
                     continue;
                 }
                 $linea['invoiceId']   ??= $invoiceId;
                 $linea['invoiceDate'] ??= $invoiceDate;
 
-                // ⚠️ El cast a string es obligatorio: PHP convierte a int las claves
+                // ⚠️ El paso a texto es obligatorio: PHP convierte a int las claves
                 // numéricas de un array, y `getTargetBookId()` devuelve string. Sin él,
                 // la búsqueda de abajo no encuentra nada y TODAS las reservas parecen vacías.
-                $porBooking[(string) ($linea['bookingId'] ?? '')][] = $linea;
+                $porBooking[Beds24Respuesta::bookingIdDe($linea)][] = $linea;
             }
         }
 

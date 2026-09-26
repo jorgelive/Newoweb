@@ -48,10 +48,28 @@ final readonly class HidratadorDeMarcadores
         return (string) preg_replace_callback(
             self::PATRON,
             static fn (array $m): string => array_key_exists($m[1], $variables)
-                ? (string) $variables[$m[1]]
+                ? self::comoTexto($variables[$m[1]])
                 : $m[0],
             $texto
         );
+    }
+
+    /**
+     * Cómo se escribe el VALOR de una variable dentro de un texto. La usan también las estrategias
+     * que sustituyen por su cuenta (la de correo, que además anota los marcadores que faltan; la de
+     * WhatsApp; los botones de Beds24), para que la regla sea una.
+     *
+     * Es el `(string)` de siempre para lo que tiene forma de texto —números, booleanos, `null` como
+     * vacío, un objeto que sabe escribirse—. Lo que NO la tiene (una lista, un objeto cualquiera)
+     * sale vacío: con el cast salía la palabra «Array» en el mensaje del huésped y un warning.
+     */
+    public static function comoTexto(mixed $valor): string
+    {
+        if ($valor === null) {
+            return '';
+        }
+
+        return is_scalar($valor) || $valor instanceof \Stringable ? (string) $valor : '';
     }
 
     /**

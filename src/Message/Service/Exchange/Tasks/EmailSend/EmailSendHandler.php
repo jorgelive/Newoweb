@@ -39,7 +39,9 @@ final readonly class EmailSendHandler implements ExchangeHandlerInterface
             return ['status' => 'error'];
         }
 
-        $item->setExternalId(isset($data['messageId']) ? (string) $data['messageId'] : null);
+        // `$data` es lo que la estrategia sacó de `ResultadoDelCorreo`: `messageId` es texto o null.
+        $idDelMensaje = $data['messageId'] ?? null;
+        $item->setExternalId(is_string($idDelMensaje) ? $idDelMensaje : null);
 
         // ⚠️ **CIERRA LA COLA.** El orquestador no lo hace: delega el estado final en el handler
         // de cada canal, y sin esta línea el ítem se queda en `processing` con su bloqueo puesto.

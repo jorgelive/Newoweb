@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\Beds24Send;
 
+use App\Exchange\Dto\Beds24\Beds24Respuesta;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
@@ -180,7 +181,7 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                         if ($btnType === 'url') {
                             $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
                             $fallbackKey = str_ends_with($resolverKey, '_path') ? str_replace('_path', '_url', $resolverKey) : $resolverKey;
-                            $urlValue = (string) ($variables[$fallbackKey] ?? $variables[$resolverKey] ?? '');
+                            $urlValue = HidratadorDeMarcadores::comoTexto($variables[$fallbackKey] ?? $variables[$resolverKey] ?? null);
 
                             if ($urlValue !== '') {
                                 $content .= "🔗 *" . trim($btnText) . "*:\n" . $urlValue . "\n\n";
@@ -263,16 +264,20 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             }
 
             $queueId = $mapping->idDeCola($index);
-            $success = (bool)($respData['success'] ?? false);
+            $pieza = Beds24Respuesta::dePieza($respData);
+            $success = $pieza->exito ?? false;
 
-            $remoteId = $respData['id'] ?? $respData['new']['id'] ?? null;
+            // ⚠️ Aquí `id` va ANTES que `new.id`, al revés que en el handler. Se conserva: un
+            // mensaje nuevo sólo trae `new.id` y un marcado como leído sólo `modified.id`, así que
+            // en la práctica no compiten.
+            $remoteId = $pieza->id ?? $pieza->idNuevo;
 
             $results[$queueId] = new ItemResult(
                 queueItemId: $queueId,
                 success: $success,
-                message: $success ? null : ($respData['message'] ?? 'Error desconocido al enviar mensaje'),
+                message: $success ? null : ($pieza->mensaje ?? 'Error desconocido al enviar mensaje'),
                 remoteId: $remoteId ? (string)$remoteId : null,
-                extraData: (array)$respData
+                extraData: $pieza->crudo
             );
         }
 

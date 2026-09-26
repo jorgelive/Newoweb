@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\WhatsappMetaSend;
 
+use App\Exchange\Dto\Meta\RespuestaGraphMeta;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
@@ -12,6 +13,7 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageAttachment;
 use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\Formato\FormatoDeTexto;
+use App\Message\Service\Formato\HidratadorDeMarcadores;
 use App\Message\Service\MessageDataResolverRegistry;
 use App\Exchange\Entity\MetaConfig;
 use RuntimeException;
@@ -543,18 +545,30 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             if (!isset($mapping->correlationMap[$index])) continue;
 
             $queueId = $mapping->idDeCola($index);
-            $isError = isset($respData['error']);
-            $success = !$isError;
+
+            // 🔥 **Esta lectura NO ve los errores de Meta, y es así desde antes de tipar.** Lo que
+            // llega aquí no es el cuerpo de Meta sino la fila que ya normalizó
+            // `WhatsappMetaClient::send()` —`{status, message, error_code}` o `{status, messageId,
+            // raw}`—, y en ella no existen ni `error` ni `messages`. Así que `hayError` es siempre
+            // `false`: un rechazo síncrono de Meta (132000 parámetros, 132005 texto largo…) se da
+            // por ENVIADO, sin `wamid`. Medido el 26/09/2026 en producción: 193 colas `success`
+            // con al menos un rechazo en su respuesta guardada (132005, 100, 132000, 131000).
+            //
+            // Se conserva tal cual porque arreglarlo cambia qué se reintenta y qué ve el operador
+            // —una decisión, no un tipado—. Ver `docs/Mensajeria.md` §14.c. El id, en cambio, sí
+            // llega: lo recoge el handler de `messageId`.
+            $respuesta = RespuestaGraphMeta::fromArray(is_array($respData) ? $respData : []);
+            $success = !$respuesta->hayError;
 
             // Meta devuelve el identificador 'wamid...' en el nodo messages[0][id]
-            $remoteId = $success && isset($respData['messages'][0]['id']) ? $respData['messages'][0]['id'] : null;
+            $remoteId = $success ? $respuesta->idMensaje : null;
 
             $results[$queueId] = new ItemResult(
                 queueItemId: $queueId,
                 success: $success,
-                message: $isError ? ($respData['error']['message'] ?? 'Error desconocido de Meta') : null,
+                message: $respuesta->hayError ? ($respuesta->errorMensaje ?? 'Error desconocido de Meta') : null,
                 remoteId: $remoteId,
-                extraData: (array)$respData
+                extraData: $respuesta->crudo
             );
         }
 
@@ -581,7 +595,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // No existe = se deja el marcador, que es un fallo de la plantilla y tiene que
                 // verse. Beds24 y Email ya distinguían las dos cosas; éste era el que no.
                 static fn (array $m): string => array_key_exists($m[1], $variables)
-                    ? (string) $variables[$m[1]]
+                    ? HidratadorDeMarcadores::comoTexto($variables[$m[1]])
                     : $m[0],
                 $content
             ) ?? $content;   // null sólo si la expresión falla: entonces, el texto tal cual

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\EmailSend;
 
+use App\Exchange\Dto\Correo\CorreoSaliente;
+use App\Exchange\Dto\Correo\ResultadoDelCorreo;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
@@ -11,6 +13,7 @@ use App\Exchange\Service\Mapping\MappingStrategyInterface;
 use App\Message\Entity\EmailSendQueue;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageTemplate;
+use App\Message\Service\Formato\HidratadorDeMarcadores;
 use App\Message\Service\MessageDataResolverRegistry;
 
 /**
@@ -66,11 +69,11 @@ final readonly class EmailSendMappingStrategy implements MappingStrategyInterfac
             // cambie la plantilla, no de que las variables lleguen sin resolver.
             $variables = $this->variables($item);
 
-            $payload[$clave] = [
-                'to' => $item->getDestinationEmail(),
-                'subject' => $this->hidratar((string) $item->getSubject(), $variables, $item),
-                'text' => $this->hidratar($cuerpo, $variables, $item),
-            ];
+            $payload[$clave] = (new CorreoSaliente(
+                para: $item->getDestinationEmail(),
+                asunto: $this->hidratar((string) $item->getSubject(), $variables, $item),
+                texto: $this->hidratar($cuerpo, $variables, $item),
+            ))->toArray();
 
             $correlacion[$clave] = $clave;
         }
@@ -162,7 +165,7 @@ final readonly class EmailSendMappingStrategy implements MappingStrategyInterfac
                     return $m[0];
                 }
 
-                return (string) $variables[$m[1]];
+                return HidratadorDeMarcadores::comoTexto($variables[$m[1]]);
             },
             $texto
         );
@@ -190,23 +193,21 @@ final readonly class EmailSendMappingStrategy implements MappingStrategyInterfac
      */
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {
-        /** @var array<string, array<string, mixed>> $enviados */
-        $enviados = is_array($apiResponse['enviados'] ?? null) ? $apiResponse['enviados'] : [];
-        /** @var array<string, string> $fallos */
-        $fallos = is_array($apiResponse['fallos'] ?? null) ? $apiResponse['fallos'] : [];
+        $respuesta = ResultadoDelCorreo::fromArray($apiResponse);
 
         $resultados = [];
 
         foreach (array_keys($mapping->correlationMap) as $clave) {
             $id = $mapping->idDeCola($clave);
-            $fallo = $fallos[$id] ?? null;
+            $fallo = $respuesta->fallos[$id] ?? null;
+            $enviado = array_key_exists($id, $respuesta->enviados);
 
             $resultados[$id] = new ItemResult(
                 queueItemId: $id,
                 success: $fallo === null,
                 message: $fallo,
-                remoteId: $enviados[$id]['messageId'] ?? null,
-                extraData: $enviados[$id] ?? [],
+                remoteId: $respuesta->enviados[$id] ?? null,
+                extraData: $enviado ? ['messageId' => $respuesta->enviados[$id]] : [],
             );
         }
 

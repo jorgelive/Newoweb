@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Exchange\Service\Client;
 
+use App\Exchange\Dto\Correo\CorreoSaliente;
+use App\Exchange\Dto\Correo\ResultadoDelCorreo;
 use App\Exchange\Entity\EmailConfig;
 use App\Exchange\Service\Common\ExchangeNetworkResult;
 use App\Exchange\Service\Contract\ExchangeClientInterface;
@@ -67,8 +69,11 @@ final readonly class MailerExchangeClient implements ExchangeClientInterface
         $resultados = [];
         $fallos = [];
 
-        foreach ($mapping->payload as $clave => $correo) {
-            $destino = trim((string) ($correo['to'] ?? ''));
+        foreach ($mapping->payload as $clave => $crudo) {
+            // Lo escribió `EmailSendMappingStrategy` con el mismo DTO; el motor lo trae como
+            // `mixed`, y lo que no es un correo se queda sin destinatario, que es un fallo.
+            $correo = CorreoSaliente::fromArray(is_array($crudo) ? $crudo : []);
+            $destino = trim($correo->para ?? '');
 
             if ($destino === '') {
                 $fallos[(string) $clave] = 'Sin destinatario.';
@@ -79,8 +84,8 @@ final readonly class MailerExchangeClient implements ExchangeClientInterface
                 $mensaje = (new Email())
                     ->from(new Address($remitente, $config->getRemitenteNombre() ?? ''))
                     ->to($destino)
-                    ->subject((string) ($correo['subject'] ?? ''))
-                    ->text((string) ($correo['text'] ?? ''));
+                    ->subject($correo->asunto)
+                    ->text($correo->texto);
 
                 if (($responderA = trim((string) $config->getResponderA())) !== '') {
                     $mensaje->replyTo($responderA);
@@ -90,7 +95,7 @@ final readonly class MailerExchangeClient implements ExchangeClientInterface
 
                 // El `Message-ID` que el puente deja en la cabecera es lo único que permite
                 // rastrear después un envío concreto en el buzón.
-                $resultados[(string) $clave] = ['messageId' => $mensaje->getHeaders()->get('Message-ID')?->getBodyAsString()];
+                $resultados[(string) $clave] = $mensaje->getHeaders()->get('Message-ID')?->getBodyAsString();
             } catch (TransportExceptionInterface $e) {
                 $fallos[(string) $clave] = $e->getMessage();
             }
@@ -100,9 +105,11 @@ final readonly class MailerExchangeClient implements ExchangeClientInterface
         // elemento, no el lote, así que un éxito parcial no se pierde.
         $codigo = $fallos === [] ? 200 : 502;
 
+        $resultado = (new ResultadoDelCorreo($resultados, $fallos))->toArray();
+
         return new ExchangeNetworkResult(
-            ['enviados' => $resultados, 'fallos' => $fallos],
-            (string) json_encode(['enviados' => $resultados, 'fallos' => $fallos], JSON_UNESCAPED_UNICODE),
+            $resultado,
+            (string) json_encode($resultado, JSON_UNESCAPED_UNICODE),
             $codigo
         );
     }
