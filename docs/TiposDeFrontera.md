@@ -69,7 +69,9 @@ El patrón que se usó con Meta y con pagos, y que se repite en cada frontera co
 3. **Antes de tocar el consumidor**, una prueba en `tools/pruebas/probar-dto-*.php` que recorre
    los datos REALES guardados —la auditoría de webhooks, las respuestas de las pasarelas— y compara
    la lectura cruda de antes con la del DTO, campo a campo. Se corre en el servidor, desde `/tmp`,
-   sin tocar el árbol de producción.
+   sin tocar el árbol de producción: se copian el script y las clases NUEVAS a `/tmp/<algo>` y se
+   cargan con `require_once` antes de usarlas, porque el autoloader de producción tiene las viejas
+   (`probar-dto-canales.php` lo hace con `APP_DIR` y `DTO_DIR`).
 4. Sólo con ✅ idénticos, se pasa el consumidor al DTO.
 5. Después del despliegue, la misma prueba otra vez, y el flujo real con la transacción deshecha.
 
@@ -79,6 +81,10 @@ El patrón que se usó con Meta y con pagos, y que se repite en cada frontera co
 | Pagos (Culqi, Izipay) | `probar-dto-pagos.php` | 18 enlaces, 15 cargos, 22 intentos auditados, 17 avisos |
 | Booking de Beds24 | comparación de los dos caminos del DTO | 400 webhooks + 366 respuestas de pull |
 | Webhook de Beds24 (sobre, mensajes, facturas) | `probar-dto-beds24-webhook.php` | 2 304 webhooks: 41 133 mensajes, 4 362 líneas de factura |
+| Respuestas de los canales (Beds24, Meta, correo) | `probar-dto-canales.php` | 1 043 push, 49 962 tarifas, 7 697 envíos, 14 678 pulls (48 069 reservas), 173 075 mensajes y 15 028 líneas de factura recibidos, 6 201 cuerpos de Meta, 3 correos |
+| Plantillas de Meta + columnas JSON de Mensajería | `probar-dto-plantillas.php` | 16 plantillas / 112 versiones de idioma (reconstruidas de lo guardado), 398 conversaciones, 8 323 mensajes |
+| Respuestas de los modelos de IA | `probar-dto-ia.php` + `LineasDeConsumoTest` | 41 huellas reales de la escalera; no se guardan respuestas crudas, así que las líneas de consumo de `info.log` se comparan con el motor viejo y el nuevo sobre respuestas grabadas |
+| Configuración de los calendarios | `probar-calendario-config.php` (foto `--guardar` con el código viejo, `--contra` con el nuevo) | 9 calendarios reales + 22 configuraciones sintéticas: 294 respuestas, 4 960 eventos/recursos idénticos, contra la base local |
 
 ## 4. El mapa de fronteras y su estado
 
@@ -90,6 +96,17 @@ El patrón que se usó con Meta y con pagos, y que se repite en cada frontera co
 | Webhook de Beds24: el paquete (reserva, mensajes, facturas, instante) | `Beds24WebhookSobre` | ✅ lo leían a mano el controlador y el worker |
 | Entrada de las skills del agente (la escribe el modelo) | `EntradaDeSkill`, leída por el nombre que declara la `SkillDefinition` | ✅ `EntradaDeSkillTest` exige que cada nombre leído esté declarado |
 | Consultas de Doctrine sin `@var` | el `@var` con el tipo que el propio método ya declaraba | ✅ 41, con un transformador guiado por PHPStan |
+| Respuestas de los proveedores de IA (DeepSeek, Gemini) · JSON del triaje · sobre de Alexa | `RespuestaDelModelo` vía `DeepSeekRespuesta`/`GoogleRespuesta::fromArray()` · `RespuestaDeTriaje` · `PeticionAlexa` | ✅ Anthropic no aplica: su SDK ya tipa. El turno del modelo se devuelve a la API intacto (DeepSeek casa cada `tool_call_id`, Gemini 3 exige su `thoughtSignature`) |
+| Respuestas de Beds24 (push, tarifas, mensajes, pull, facturas, paginación) | `src/Exchange/Dto/Beds24/Beds24Respuesta` | ✅ ids `int\|string` sin convertir; cada consumidor conserva su orden de ids y su éxito por defecto |
+| Respuesta de la Graph API de Meta (envío y plantillas) | `src/Exchange/Dto/Meta/RespuestaGraphMeta` | ✅ destapó que los rechazos síncronos se daban por enviados (§5) |
+| Correo: payload estrategia→cliente y resultado cliente→estrategia | `CorreoSaliente`, `ResultadoDelCorreo` | ✅ no es externa, pero cruza el motor como `array<mixed>`: un solo objeto escribe y lee |
+| Sobre de Tuya | `src/Exchange/Dto/Tuya/RespuestaTuya` | ✅ sin datos guardados; lo cubre `RespuestaTuyaTest` |
+| Credenciales de `MetaConfig` | `getCredential(): ?string` con `Lee::texto()` | ✅ último recurso (JSON de configuración) |
+| Listado de plantillas de Meta | `PlantillaMeta::listaDesdeRespuesta()` (+ componente y botón) | ✅ lo leían tres sitios (sync, push, inventario) |
+| Metadata del asunto que da el resolver de mensajes | forma `MetadatosDeAsunto` en `MessageDataResolverInterface` | ✅ contrato; PHPStan lo comprueba donde se construye |
+| Cuerpo HTTP `{contextType, contextId}` | `App\Message\Dto\AsuntoPedido` | ✅ compartido por abrir hilo y cambiar titular |
+| JSON de `MessageConversation::contextData` y `Message::metadata` | getters con comprobación (`textoDeContexto()`, `bloqueDeMetadata()`…) | ✅ columnas que Doctrine hidrata sin setters |
+| Configuración de los calendarios (`parameters.calendars_*`) | `ConfiguracionCalendario::fromArray()` en `CalendarConfigResolver`, bloques en `src/Calendar/Config/` | ✅ interna, pero cada provider la leía a mano: 170 avisos |
 
 El resto de fronteras se va añadiendo aquí según se cierra; el orden y las cifras de partida están
 en el historial de la subida (1 256 avisos en 14 fronteras el 26/09/2026).
@@ -111,6 +128,18 @@ un nombre que su definición no declara. Una sola fuente, y el descuido sale en 
 - **Pagos**: el `?? 'Error desconocido'` de los rechazos de Meta nunca podía actuar: `json_encode()`
   falla con `false`, no con `null`.
 - **El lector mismo**: el `filter_var(null)` de la sección 2, cazado antes de salir.
+- **WhatsApp**: `WhatsappMetaSendMappingStrategy::parseResponse()` buscaba las claves del cuerpo de
+  Meta en la fila que ya había normalizado el cliente. **Todo rechazo síncrono de Meta se daba por
+  enviado**: 193 colas entre marzo y septiembre de 2026. Arreglado; ver `docs/Mensajeria.md` §14.c.
+- **Plantillas**: al botón guardado le faltaba `content` en su tipo; tres entradas de la baseline
+  protegían justo ese hueco.
+- **Calendario**: `resources.establecimientoId` compara un UUID en texto contra `binary(16)` y da
+  cero filas (hoy vale `null` en todos los calendarios). Y las exclusiones de
+  `services_calendar.yaml` y `services_exchange.yaml` apuntaban a rutas que no existen.
+- **Un `vendor` enlazado no carga el `src/` del worktree.** Con `vendor` como symlink al repo
+  principal, el classmap optimizado resuelve `App\` contra el repo principal: `phpunit` y
+  `bin/console` dentro de un worktree prueban el código de `master` y salen en verde. PHPStan no se
+  ve afectado. Quien trabaje en un worktree necesita un autoloader que anteponga su `src/`.
 
 ## 6. Dónde tocar para cambiar X
 
