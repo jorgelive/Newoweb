@@ -66,6 +66,17 @@ final class PmsGuiaMotosCommand extends Command
         Dilo por lo que es —no entra— y no como una prohibición. Y ofrécele en el acto la cochera privada de pago de a una cuadra: para una moto es lo que recomendamos siempre, porque el estacionamiento público de enfrente no es vigilado y ahí queda demasiado expuesta. NO escales esto: la respuesta es ésta y no depende de nadie.
         TXT;
 
+    /** Las dos redacciones anteriores, para poder reconocerlas y sustituirlas. */
+    private const string HUESPED_SEGUNDA = '<p>🏍️ <strong>¿Y las motocicletas?</strong> No es posible '
+        . 'dejarlas en el pasillo. Por motivos de seguridad y dado que quedarían muy expuestas, '
+        . 'nuestra recomendación es que las resguarden en una cochera vigilada para su total '
+        . 'tranquilidad. Además, el pasaje no es de uso exclusivo nuestro y debemos mantener el '
+        . 'área despejada para evitar cualquier incomodidad a los vecinos con quienes '
+        . 'compartimos el espacio.</p>'
+        . '<p>Les sugerimos el <strong>Garaje de Saphy</strong>, el estacionamiento más cercano: '
+        . 'Calle Saphy 644, teléfono +51 984 631 997.<br>'
+        . '📍 <a href="https://maps.app.goo.gl/rvxnSoKnNmtwuh5e7">Ver ubicación</a></p>';
+
     private const string HUESPED_PRIMERA = '<p>🏍️ <strong>¿Y las motos?</strong> En el pasaje no caben '
         . '—las de viaje son grandes y además hay maceteros, y es zona de paso y evacuación—, '
         . 'así que para una moto te recomendamos la <strong>cochera privada</strong> de a una '
@@ -92,15 +103,26 @@ final class PmsGuiaMotosCommand extends Command
         Dale el sitio concreto, no «una cochera cerca»: Garaje de Saphy, el estacionamiento más cercano, en Calle Saphy 644, teléfono +51 984 631 997. Y pásale la ubicación: https://maps.app.goo.gl/rvxnSoKnNmtwuh5e7
         TXT;
 
-    /** Para el huésped, con las palabras de Jorge. */
-    private const string HUESPED = '<p>🏍️ <strong>¿Y las motocicletas?</strong> No es posible '
-        . 'dejarlas en el pasillo. Por motivos de seguridad y dado que quedarían muy expuestas, '
-        . 'nuestra recomendación es que las resguarden en una cochera vigilada para su total '
-        . 'tranquilidad. Además, el pasaje no es de uso exclusivo nuestro y debemos mantener el '
-        . 'área despejada para evitar cualquier incomodidad a los vecinos con quienes '
-        . 'compartimos el espacio.</p>'
-        . '<p>Les sugerimos el <strong>Garaje de Saphy</strong>, el estacionamiento más cercano: '
-        . 'Calle Saphy 644, teléfono +51 984 631 997.<br>'
+    /**
+     * Para el huésped: SÓLO la recomendación. El pasaje no se menciona.
+     *
+     * ⚠️ La primera versión explicaba en la guía por qué no se puede dejar la moto en el pasaje,
+     * y Jorge lo paró: **en la guía nadie ha preguntado eso**. Mencionarlo mete una idea que el
+     * huésped no tenía —«ah, ¿se podía dejar ahí?»— y encima sin el contexto que la haría
+     * entenderse, porque quien lee la guía todavía no ha visto el pasaje.
+     *
+     * El motivo no se pierde: vive en `AGENTE`, que es quien lo necesita, y sale cuando alguien
+     * pregunta. Es la misma regla que en los niveles de las casitas: el dato existe, pero no se
+     * cuenta de entrada.
+     *
+     * Y tutea, como el resto de la guía. El texto de Jorge venía del chat —donde le hablaba a un
+     * grupo con motos— y ahí el «ustedes» era natural; en una ficha que dice «si prefieres» dos
+     * párrafos antes, cambia de tono a mitad.
+     */
+    private const string HUESPED = '<p>🏍️ <strong>¿Vienes en moto?</strong> Te recomendamos '
+        . 'dejarla en una <strong>cochera vigilada</strong>: la más cercana es el '
+        . '<strong>Garaje de Saphy</strong>, en Calle Saphy 644 (teléfono +51 984 631 997). '
+        . 'En la playa gratuita de enfrente quedaría demasiado expuesta.<br>'
         . '📍 <a href="https://maps.app.goo.gl/rvxnSoKnNmtwuh5e7">Ver ubicación</a></p>';
 
     public function __construct(private readonly EntityManagerInterface $em)
@@ -136,7 +158,7 @@ final class PmsGuiaMotosCommand extends Command
             }
         }
 
-        if (str_contains($agente, 'Garaje de Saphy') && str_contains($cuerpo, 'Garaje de Saphy')) {
+        if (str_contains($agente, 'Garaje de Saphy') && str_contains($cuerpo, '¿Vienes en moto?')) {
             $io->success('Ya lo dice.');
 
             return Command::SUCCESS;
@@ -146,7 +168,7 @@ final class PmsGuiaMotosCommand extends Command
         // —quedan expuestas y el pasaje se comparte con los vecinos—, y además no daba el sitio
         // con nombre y dirección.
         $agente = str_replace(self::AGENTE_PRIMERA, '', $agente);
-        $cuerpo = str_replace(self::HUESPED_PRIMERA, '', $cuerpo);
+        $cuerpo = str_replace([self::HUESPED_PRIMERA, self::HUESPED_SEGUNDA], '', $cuerpo);
 
         $io->section('Texto del agente');
         $io->writeln(self::AGENTE);
@@ -163,7 +185,7 @@ final class PmsGuiaMotosCommand extends Command
             $item->setAgenteContenido(trim($agente . "\n\n" . self::AGENTE));
         }
 
-        if (!str_contains($cuerpo, 'Garaje de Saphy')) {
+        if (!str_contains($cuerpo, '¿Vienes en moto?')) {
             // Sólo el español: el listener rehace los otros seis. Mandar los siete conservados
             // dejaría el párrafo de las motos sólo en castellano.
             $item->setDescripcion([['language' => 'es', 'content' => trim($cuerpo . "\n" . self::HUESPED)]]);
