@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Api;
 
+use App\Dto\Lee;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\Conversacion\FusionadorDeHilos;
 use App\Security\Roles;
@@ -69,10 +70,10 @@ final class FusionarHilosController extends AbstractController
     {
         $this->denyAccessUnlessGranted(Roles::MENSAJES_WRITE, null, 'Acceso denegado a las conversaciones.');
 
-        /** @var array<string, mixed> $cuerpo */
-        $cuerpo = json_decode($request->getContent(), true) ?: [];
+        // Un solo campo, `{"con": "<uuid del otro hilo>"}`: se lee en el sitio y no merece DTO.
+        $con = Lee::texto(Lee::en(json_decode($request->getContent(), true), 'con')) ?? '';
 
-        [$superviviente, $absorbido, $error] = $this->parejaDe($id, (string) ($cuerpo['con'] ?? ''));
+        [$superviviente, $absorbido, $error] = $this->parejaDe($id, $con);
 
         // `parejaDe()` devuelve los dos hilos O el error, nunca mezcla; pero al desestructurar la
         // tupla el análisis pierde esa correlación. Se pregunta por los tres para que no la pierda.
@@ -151,16 +152,28 @@ final class FusionarHilosController extends AbstractController
         return [
             'id' => $id,
             'nombre' => $hilo->getGuestName(),
-            'mensajes' => (int) $this->db->fetchOne(
+            'mensajes' => $this->contar(
                 'SELECT COUNT(*) FROM msg_message WHERE conversation_id = UNHEX(REPLACE(?, \'-\', \'\'))',
                 [$id],
             ),
-            'asuntos' => (int) $this->db->fetchOne(
+            'asuntos' => $this->contar(
                 'SELECT (SELECT COUNT(*) FROM pms_conversacion_enlace WHERE conversacion_id = UNHEX(REPLACE(?, \'-\', \'\')))
                       + (SELECT COUNT(*) FROM cotizacion_conversacion_enlace WHERE conversacion_id = UNHEX(REPLACE(?, \'-\', \'\')))',
                 [$id, $id],
             ),
             'desde' => $hilo->getCreatedAt()?->format('Y-m-d'),
         ];
+    }
+
+    /**
+     * Un `COUNT(*)`. El driver lo devuelve como entero o como texto numérico según la versión.
+     *
+     * @param list<string> $parametros
+     */
+    private function contar(string $sql, array $parametros): int
+    {
+        $total = $this->db->fetchOne($sql, $parametros);
+
+        return is_numeric($total) ? (int) $total : 0;
     }
 }

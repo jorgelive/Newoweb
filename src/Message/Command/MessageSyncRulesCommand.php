@@ -52,7 +52,8 @@ class MessageSyncRulesCommand extends Command
         $foto = [];
 
         foreach (['msg_message', 'msg_whatsapp_meta_send_queue'] as $tabla) {
-            $foto[$tabla] = (int) $conexion->fetchOne(sprintf('SELECT COUNT(*) FROM %s', $tabla));
+            $total = $conexion->fetchOne(sprintf('SELECT COUNT(*) FROM %s', $tabla));
+            $foto[$tabla] = is_numeric($total) ? (int) $total : 0;
         }
 
         return $foto;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Api;
 
+use App\Dto\Lee;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageIdentidad;
 use App\Message\Enum\IdentidadTipo;
@@ -49,14 +50,14 @@ final class IdentidadesDeConversacionController extends AbstractController
 
         /** @var array<string, mixed> $cuerpo */
         $cuerpo = json_decode($request->getContent() ?: '{}', true) ?: [];
-        $tipo = IdentidadTipo::tryFrom((string) ($cuerpo['tipo'] ?? ''));
+        $tipo = IdentidadTipo::tryFrom(Lee::texto($cuerpo['tipo'] ?? null) ?? '');
 
         if ($tipo === null) {
             return $this->error('Tipo de identificador desconocido.', Response::HTTP_BAD_REQUEST);
         }
 
         try {
-            $identidad = $this->editor->anadir($data, $tipo, (string) ($cuerpo['valor'] ?? ''));
+            $identidad = $this->editor->anadir($data, $tipo, Lee::texto($cuerpo['valor'] ?? null) ?? '');
         } catch (RuntimeException $e) {
             // 409 y no 400: no es que el dato esté mal escrito, es que choca con otro hilo y
             // eso lo resuelve una persona decidiendo si son la misma.

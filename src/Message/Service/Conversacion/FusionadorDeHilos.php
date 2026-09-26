@@ -58,10 +58,12 @@ final class FusionadorDeHilos
      */
     public function unir(MessageConversation $superviviente, MessageConversation $absorbido): int
     {
-        $movidos = (int) $this->db->fetchOne(
+        $movidos = $this->db->fetchOne(
             'SELECT COUNT(*) FROM msg_message WHERE conversation_id = UNHEX(REPLACE(?, \'-\', \'\'))',
             [(string) $absorbido->getId()],
         );
+        // El driver devuelve el `COUNT(*)` como entero o como texto numérico según la versión.
+        $movidos = is_numeric($movidos) ? (int) $movidos : 0;
 
         $this->fusionar($superviviente, [$absorbido]);
         $this->em->flush();

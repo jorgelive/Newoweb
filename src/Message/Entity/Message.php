@@ -819,9 +819,51 @@ class Message
      */
     public function getVariablesPlantilla(): array
     {
-        $vars = $this->metadata['variables_plantilla'] ?? [];
+        // Sólo lo que puede ir en una plantilla: clave de texto y valor escalar. Un array ahí
+        // habría salido como la palabra «Array» dentro del mensaje al huésped. Hoy son todas
+        // texto (870 en producción, 26/09/2026), así que esto no quita nada.
+        $variables = [];
 
-        return is_array($vars) ? $vars : [];
+        foreach ($this->bloqueDeMetadata('variables_plantilla') as $clave => $valor) {
+            if ($valor === null || is_scalar($valor)) {
+                $variables[$clave] = $valor;
+            }
+        }
+
+        return $variables;
+    }
+
+    /**
+     * Un bloque anidado de la metadata (`beds24`, `whatsappMeta`…) con sus claves de texto; lo
+     * que no sea un objeto es vacío.
+     *
+     * `metadata` es JSON que hidrata Doctrine sin pasar por los setters, y lo escriben muchos
+     * sitios —el envío, los webhooks, el agente—: lo que prometa un tipo aquí lo promete un
+     * docblock, no PHP. Los getters leen por este método y por {@see self::textoDeMetadata()}
+     * en vez de devolver el valor tal cual; antes, un número donde se esperaba texto era un
+     * `TypeError` en el `?string` de retorno.
+     *
+     * @return array<string, mixed>
+     */
+    private function bloqueDeMetadata(string $bloque): array
+    {
+        $valor = $this->metadata[$bloque] ?? null;
+
+        if (!is_array($valor)) {
+            return [];
+        }
+
+        // Un objeto JSON sólo tiene claves de texto, salvo las numéricas («"0"»), que
+        // `json_decode()` convierte en enteros. Ninguno de estos bloques las usa.
+        return array_filter($valor, is_string(...), ARRAY_FILTER_USE_KEY);
+    }
+
+    /** Un texto dentro de un bloque de la metadata; lo que no sea texto es «no está». */
+    private function textoDeMetadata(string $bloque, string $clave): ?string
+    {
+        $valor = $this->bloqueDeMetadata($bloque)[$clave] ?? null;
+
+        return is_string($valor) ? $valor : null;
     }
 
     /** @param array<string, scalar|null> $variables */
@@ -831,7 +873,7 @@ class Message
     }
 
     /** @return array<string, mixed> */
-    public function getBeds24Metadata(): array { return $this->metadata['beds24'] ?? []; }
+    public function getBeds24Metadata(): array { return $this->bloqueDeMetadata('beds24'); }
 
     /** @param array<string, mixed> $data */
     public function setBeds24Metadata(array $data): self
@@ -854,15 +896,15 @@ class Message
         return $this;
     }
 
-    public function getBeds24SentAt(): ?string { return $this->metadata['beds24']['sent_at'] ?? null; }
+    public function getBeds24SentAt(): ?string { return $this->textoDeMetadata('beds24', 'sent_at'); }
     public function setBeds24SentAt(string $dateTimeIso8601): self { return $this->addBeds24Metadata('sent_at', $dateTimeIso8601); }
-    public function getBeds24ReceivedAt(): ?string { return $this->metadata['beds24']['received_at'] ?? null; }
+    public function getBeds24ReceivedAt(): ?string { return $this->textoDeMetadata('beds24', 'received_at'); }
     public function setBeds24ReceivedAt(string $dateTimeIso8601): self { return $this->addBeds24Metadata('received_at', $dateTimeIso8601); }
-    public function getBeds24ReadAt(): ?string { return $this->metadata['beds24']['read_at'] ?? null; }
+    public function getBeds24ReadAt(): ?string { return $this->textoDeMetadata('beds24', 'read_at'); }
     public function setBeds24ReadAt(string $dateTimeIso8601): self { return $this->addBeds24Metadata('read_at', $dateTimeIso8601); }
 
     /** @return array<string, mixed> */
-    public function getWhatsappMetaMetadata(): array { return $this->metadata['whatsappMeta'] ?? []; }
+    public function getWhatsappMetaMetadata(): array { return $this->bloqueDeMetadata('whatsappMeta'); }
 
     /** @param array<string, mixed> $data */
     public function setWhatsappMetaMetadata(array $data): self
@@ -885,15 +927,15 @@ class Message
         return $this;
     }
 
-    public function getWhatsappMetaSentAt(): ?string { return $this->metadata['whatsappMeta']['sent_at'] ?? null; }
+    public function getWhatsappMetaSentAt(): ?string { return $this->textoDeMetadata('whatsappMeta', 'sent_at'); }
     public function setWhatsappMetaSentAt(string $dateTimeIso8601): self { return $this->addWhatsappMetaMetadata('sent_at', $dateTimeIso8601); }
-    public function getWhatsappMetaDeliveredAt(): ?string { return $this->metadata['whatsappMeta']['delivered_at'] ?? null; }
+    public function getWhatsappMetaDeliveredAt(): ?string { return $this->textoDeMetadata('whatsappMeta', 'delivered_at'); }
     public function setWhatsappMetaDeliveredAt(string $dateTimeIso8601): self { return $this->addWhatsappMetaMetadata('delivered_at', $dateTimeIso8601); }
-    public function getWhatsappMetaReadAt(): ?string { return $this->metadata['whatsappMeta']['read_at'] ?? null; }
+    public function getWhatsappMetaReadAt(): ?string { return $this->textoDeMetadata('whatsappMeta', 'read_at'); }
     public function setWhatsappMetaReadAt(string $dateTimeIso8601): self { return $this->addWhatsappMetaMetadata('read_at', $dateTimeIso8601); }
-    public function getWhatsappMetaErrorCode(): ?string { return $this->metadata['whatsappMeta']['error_code'] ?? null; }
+    public function getWhatsappMetaErrorCode(): ?string { return $this->textoDeMetadata('whatsappMeta', 'error_code'); }
     public function setWhatsappMetaErrorCode(string $code): self { return $this->addWhatsappMetaMetadata('error_code', $code); }
-    public function getWhatsappMetaErrorReason(): ?string { return $this->metadata['whatsappMeta']['error_reason'] ?? null; }
+    public function getWhatsappMetaErrorReason(): ?string { return $this->textoDeMetadata('whatsappMeta', 'error_reason'); }
     public function setWhatsappMetaErrorReason(string $reason): self { return $this->addWhatsappMetaMetadata('error_reason', $reason); }
 
     // =========================================================================
@@ -1054,7 +1096,9 @@ class Message
      */
     public function getInboundIntent(): ?array
     {
-        return $this->metadata['inbound_intent'] ?? null;
+        // `null` y no `[]` cuando no hay intención: los llamadores distinguen «no hay» de «está
+        // vacía» (`ProcessInboundIntentDispatchHandler` sale con el primero).
+        return is_array($this->metadata['inbound_intent'] ?? null) ? $this->bloqueDeMetadata('inbound_intent') : null;
     }
 
     /**

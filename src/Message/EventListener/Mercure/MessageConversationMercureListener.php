@@ -67,9 +67,13 @@ readonly class MessageConversationMercureListener
         $unitOfWork = $event->getObjectManager()->getUnitOfWork();
         $changeSet = $unitOfWork->getEntityChangeSet($conversation);
 
-        if (isset($changeSet['unreadCount'])) {
-            $oldUnread = (int) $changeSet['unreadCount'][0];
-            $newUnread = (int) $changeSet['unreadCount'][1];
+        // El par es `[antes, después]` en una columna, pero el tipo del changeset admite también
+        // una colección; se comprueba en vez de indexar a ciegas.
+        $par = $changeSet['unreadCount'] ?? null;
+
+        if (is_array($par)) {
+            $oldUnread = is_numeric($par[0]) ? (int) $par[0] : 0;
+            $newUnread = is_numeric($par[1]) ? (int) $par[1] : 0;
 
             // Si el número aumentó, es un mensaje nuevo. Disparamos Push.
             if ($newUnread > $oldUnread) {

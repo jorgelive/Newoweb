@@ -96,11 +96,17 @@ final readonly class MessageAutoResponderListener
 
         [$antes, $despues] = $par;
 
-        if (($antes['inbound_intent'] ?? null) === ($despues['inbound_intent'] ?? null)) {
+        if (self::intentDe($antes) === self::intentDe($despues)) {
             return;
         }
 
         $this->processIntent($message);
+    }
+
+    /** El `inbound_intent` de una foto de la metadata; `null` si la foto no es un array. */
+    private static function intentDe(mixed $metadata): mixed
+    {
+        return is_array($metadata) ? ($metadata['inbound_intent'] ?? null) : null;
     }
 
     private function processIntent(Message $message): void

@@ -45,6 +45,20 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * Uso:
  *   php bin/console app:contactos:poblar --dry-run
  *   php bin/console app:contactos:poblar
+ *
+ * La forma de una fila de cualquiera de las tres fuentes: las consultas de `fuentes()` renombran
+ * sus columnas para que salgan todas iguales.
+ *
+ * @phpstan-type FilaDeFuente array{
+ *     nombre: string|null,
+ *     apellido: string|null,
+ *     telefono: string,
+ *     telefono2: string|null,
+ *     telefono2_es_principal: int|string|bool|null,
+ *     email: string|null,
+ *     pais_id: string|null,
+ *     idioma_id: string|null
+ * }
  */
 #[AsCommand(
     name: 'app:contactos:poblar',
@@ -86,7 +100,7 @@ final class PoblarContactosCommand extends Command
             $deEstaFuente = 0;
 
             foreach ($registros as $registro) {
-                $clave = $this->clave($registro['telefono'] ?? null);
+                $clave = $this->clave($registro['telefono']);
 
                 if ($clave === null || isset($vistos[$clave])) {
                     $saltados++;
@@ -142,7 +156,10 @@ final class PoblarContactosCommand extends Command
         /** @var array<string, string> $porClave clave de teléfono → id del contacto, en hexadecimal */
         $porClave = [];
 
-        foreach ($conexion->fetchAllAssociative('SELECT LOWER(HEX(id)) AS id, telefono FROM maestro_contacto') as $fila) {
+        /** @var list<array{id: string, telefono: string|null}> $contactos */
+        $contactos = $conexion->fetchAllAssociative('SELECT LOWER(HEX(id)) AS id, telefono FROM maestro_contacto');
+
+        foreach ($contactos as $fila) {
             $clave = $this->clave($fila['telefono']);
 
             // El primero gana, igual que al crear: con dos contactos que comparten número —un
@@ -161,6 +178,7 @@ final class PoblarContactosCommand extends Command
         ] as $tabla => $columna) {
             $enganchadas = 0;
 
+            /** @var list<array{id: string, telefono: string}> $pendientes */
             $pendientes = $conexion->fetchAllAssociative(
                 sprintf(
                     'SELECT LOWER(HEX(id)) AS id, %s AS telefono FROM %s
@@ -205,7 +223,10 @@ final class PoblarContactosCommand extends Command
     {
         $claves = [];
 
-        foreach ($conexion->fetchFirstColumn('SELECT telefono FROM maestro_contacto') as $telefono) {
+        /** @var list<string|null> $telefonos */
+        $telefonos = $conexion->fetchFirstColumn('SELECT telefono FROM maestro_contacto');
+
+        foreach ($telefonos as $telefono) {
             $clave = $this->clave($telefono);
 
             if ($clave !== null) {
@@ -231,11 +252,12 @@ final class PoblarContactosCommand extends Command
     /**
      * Las tres fuentes, de la más rica a la más pobre.
      *
-     * @return array<string, list<array<string, mixed>>>
+     * @return array<string, list<FilaDeFuente>>
      */
     private function fuentes(Connection $conexion): array
     {
-        return [
+        /** @var array<string, list<FilaDeFuente>> $fuentes */
+        $fuentes = [
             'pms_reserva' => $conexion->fetchAllAssociative(
                 "SELECT nombre_cliente AS nombre, apellido_cliente AS apellido, telefono,
                         telefono2, telefono2_es_principal, email_cliente AS email,
@@ -259,9 +281,11 @@ final class PoblarContactosCommand extends Command
                   ORDER BY last_message_at DESC"
             ),
         ];
+
+        return $fuentes;
     }
 
-    /** @param array<string, mixed> $registro */
+    /** @param FilaDeFuente $registro */
     private function contactoDe(array $registro): MaestroContacto
     {
         $contacto = new MaestroContacto();

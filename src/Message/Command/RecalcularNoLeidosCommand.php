@@ -139,6 +139,7 @@ final class RecalcularNoLeidosCommand extends Command
         // no casaban nunca con `(string) $conversacion->getId()`, y el comando
         // "veía" cero pendientes en todas: habría puesto a cero TODOS los
         // contadores. Lo cazó el --dry-run; por eso existe.
+        /** @var list<array{conversationId: \Symfony\Component\Uid\Uuid, pendientes: int|string}> $conteos */
         $conteos = $this->em->createQueryBuilder()
             ->select('c.id AS conversationId', 'COUNT(m.id) AS pendientes')
             ->from(Message::class, 'm')

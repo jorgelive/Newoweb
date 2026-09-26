@@ -68,6 +68,7 @@ class RebuildConversationContextCommand extends Command
         );
 
         // 2. PRE-CALCULAMOS lastMessageAt en una sola query — sin lazy-load
+        /** @var list<array{convId: string, lastReal: string|null, lastOutgoing: string|null}> $lastMessageData */
         $lastMessageData = $this->entityManager->getConnection()->executeQuery('
                 SELECT 
                     BIN_TO_UUID(m.conversation_id) AS convId,

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Formato;
 
+use Stringable;
+
 /**
  * Sustituye los marcadores `{{ variable }}` de un cuerpo de plantilla por sus valores.
  *
@@ -21,6 +23,7 @@ namespace App\Message\Service\Formato;
  * | existe con valor | el valor | lo esperado |
  * | existe y vale `null` o `''` | **nada** | hay variables que valen vacío a propósito: `bloque_pago` cuando no hay nada que cobrar. Sustituir por nada es lo que deja la frase legible |
  * | **no existe** | el marcador crudo | es un fallo de la plantilla y tiene que verse |
+ * | existe y es un array u objeto | el marcador crudo | es un fallo del resolver; antes salía la palabra «Array» dentro del mensaje. Así lo caza `msg:plantilla:ver` como cualquier otro marcador sin resolver |
  *
  * ⚠️ Es `array_key_exists`, **no `??`**. El `??` trata `null` como ausente y dejaba el marcador
  * en el mensaje: un huésped llegó a leer literalmente «Queda pendiente un pago por
@@ -47,9 +50,15 @@ final readonly class HidratadorDeMarcadores
 
         return (string) preg_replace_callback(
             self::PATRON,
-            static fn (array $m): string => array_key_exists($m[1], $variables)
-                ? (string) $variables[$m[1]]
-                : $m[0],
+            static function (array $m) use ($variables): string {
+                if (!array_key_exists($m[1], $variables)) {
+                    return $m[0];
+                }
+
+                $valor = $variables[$m[1]];
+
+                return $valor === null || is_scalar($valor) || $valor instanceof Stringable ? (string) $valor : $m[0];
+            },
             $texto
         );
     }
