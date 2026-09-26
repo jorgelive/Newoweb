@@ -58,6 +58,29 @@ final class PmsGuiaCalefactorCommand extends Command
         . 'proporcionamos como una opción extra para garantizar mayor comodidad durante su '
         . 'estancia.</p>';
 
+    /**
+     * Las frazadas, en la ficha del CALEFACTOR y no en la de toallas.
+     *
+     * ── Por qué aquí ────────────────────────────────────────────────────────────
+     * Hasta hoy el huésped no podía enterarse de que existen: la única mención viva estaba en el
+     * conocimiento, que no se publica. Y hay que pedirlas con antelación, así que quien no sabe
+     * que existen descubre que las necesita a las once de la noche, cuando ya no se pueden
+     * llevar.
+     *
+     * Pero anunciarlas en «Toallas y ropa de cama» las lee TODO EL MUNDO y se convierten en un
+     * extra gratis que se pide por si acaso — y **no hay frazadas para tantas camas**, un par
+     * por casita. Aquí las ve quien ya está pensando en el frío, que es quien las necesita: el
+     * que duerme bien no abre esta ficha.
+     *
+     * ⚠️ **Sin cantidad, por decisión de Jorge**, y «algunas» no es un adorno: es lo que hace
+     * que quien no pasa frío no las pida. «Tenemos frazadas adicionales sin costo» y «tenemos
+     * algunas, si crees que vas a necesitarlas» piden cosas distintas.
+     */
+    private const string FRAZADAS_EN_GUIA = '<p>🧣 <strong>¿Y si solo tienes algo de frío?</strong> '
+        . 'Tenemos <strong>algunas frazadas adicionales sin costo</strong>. Si crees que vas a '
+        . 'necesitarlas, pídelas por el chat <strong>con antelación</strong> —no podemos llevarlas '
+        . 'en el momento— y te las dejamos preparadas.</p>';
+
     /** Lo que se añade al agente: la justificación y la respuesta a «¿hará falta?». */
     private const string AGENTE = <<<'TXT'
         SI LE PARECE CARO. No te disculpes ni lo repitas: da el motivo una vez. En Cusco el kWh está a unos S/ 0.93 y un calefactor de 2000 W en las 12 horas del turno consume unos 24 kWh, o sea S/ 22 de electricidad — el alquiler no cubre mucho más que eso. Y la mayoría de alojamientos de este precio ni los ofrece.
@@ -65,6 +88,8 @@ final class PmsGuiaCalefactorCommand extends Command
         SI PREGUNTA SI HARÁ FALTA. Es la pregunta que viene siempre después del precio, y esquivarla hace que insista. Contesta con la época: de mayo a agosto las noches bajan mucho y el calefactor se agradece; el resto del año suele bastar con las frazadas.
 
         Ofrece primero las FRAZADAS —son gratis y se piden por el chat— y deja el calefactor como la opción de quien quiere la habitación templada, no sólo la cama caliente. NO prometas que no lo va a necesitar: si pasa frío la primera noche, esa frase se le queda.
+
+        ⚠️ LAS FRAZADAS SON POCAS. Ofrécelas SÓLO si el huésped ha hablado de frío; nunca como cortesía en una conversación de otra cosa. No prometas una cantidad ni «las que necesite»: se piden con antelación y se dejan preparadas, y hay que poder cumplirlo con todas las casitas ocupadas.
         TXT;
 
     public function __construct(private readonly EntityManagerInterface $em)
@@ -124,6 +149,17 @@ final class PmsGuiaCalefactorCommand extends Command
             if (!$simular) {
                 $descripcion[$indice]['content'] = trim(str_replace(self::MOTIVO_EN_GUIA, '', $cuerpo));
                 $item->setDescripcion([['language' => 'es', 'content' => $descripcion[$indice]['content']]]);
+            }
+
+            $tocado = true;
+        }
+
+        if (!str_contains($cuerpo, 'frazadas adicionales sin costo')) {
+            $io->text('<fg=green>+ a la guía: las frazadas, aquí y no en la ficha de toallas</>');
+
+            if (!$simular) {
+                $cuerpo = trim(($descripcion[$indice]['content'] ?? $cuerpo) . "\n" . self::FRAZADAS_EN_GUIA);
+                $item->setDescripcion([['language' => 'es', 'content' => $cuerpo]]);
             }
 
             $tocado = true;
