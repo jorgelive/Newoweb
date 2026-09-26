@@ -54,6 +54,22 @@ final class PmsGuiaMotosCommand extends Command
     private const string CODIGO = 'estacionamiento';
 
     /**
+     * El párrafo de la cochera, que estaba sin nombre.
+     *
+     * Decía «a una cuadra hay una cochera privada de pago» y cuatro líneas más abajo esa misma
+     * cochera aparecía con nombre, calle y mapa. Quien lee de arriba abajo la ve dos veces y la
+     * primera no le sirve para llegar; y quien viene en coche —no en moto— se quedaba sólo con
+     * la versión anónima.
+     */
+    private const string COCHERA_SIN_NOMBRE = '<p>🔒 A <strong>una cuadra</strong> hay una cochera '
+        . 'privada <strong>de pago</strong>, si prefieres dejarlo bajo vigilancia.</p>';
+
+    private const string COCHERA = '<p>🔒 A <strong>una cuadra</strong> está el '
+        . '<strong>Garaje de Saphy</strong> (Calle Saphy 644, teléfono +51 984 631 997), una '
+        . 'cochera <strong>de pago y vigilada</strong>, si prefieres dejarlo bajo techo.<br>'
+        . '📍 <a href="https://maps.app.goo.gl/rvxnSoKnNmtwuh5e7">Ver ubicación</a></p>';
+
+    /**
      * Para el agente. Lleva el motivo antes que la negativa y la alternativa pegada.
      *
      * ⚠️ «No escales esto» va explícito porque es lo que hizo, y lo hizo razonablemente: sin
@@ -120,10 +136,8 @@ final class PmsGuiaMotosCommand extends Command
      * párrafos antes, cambia de tono a mitad.
      */
     private const string HUESPED = '<p>🏍️ <strong>¿Vienes en moto?</strong> Te recomendamos '
-        . 'dejarla en una <strong>cochera vigilada</strong>: la más cercana es el '
-        . '<strong>Garaje de Saphy</strong>, en Calle Saphy 644 (teléfono +51 984 631 997). '
-        . 'En la playa gratuita de enfrente quedaría demasiado expuesta.<br>'
-        . '📍 <a href="https://maps.app.goo.gl/rvxnSoKnNmtwuh5e7">Ver ubicación</a></p>';
+        . 'dejarla en el <strong>Garaje de Saphy</strong>, la cochera vigilada de arriba: en la '
+        . 'playa gratuita de enfrente quedaría demasiado expuesta.</p>';
 
     public function __construct(private readonly EntityManagerInterface $em)
     {
@@ -158,7 +172,10 @@ final class PmsGuiaMotosCommand extends Command
             }
         }
 
-        if (str_contains($agente, 'Garaje de Saphy') && str_contains($cuerpo, '¿Vienes en moto?')) {
+        if (str_contains($agente, 'Garaje de Saphy')
+            && str_contains($cuerpo, '¿Vienes en moto?')
+            && str_contains($cuerpo, self::COCHERA)
+        ) {
             $io->success('Ya lo dice.');
 
             return Command::SUCCESS;
@@ -169,6 +186,20 @@ final class PmsGuiaMotosCommand extends Command
         // con nombre y dirección.
         $agente = str_replace(self::AGENTE_PRIMERA, '', $agente);
         $cuerpo = str_replace([self::HUESPED_PRIMERA, self::HUESPED_SEGUNDA], '', $cuerpo);
+
+        // El nombre sube al párrafo de la cochera: es el que lee quien viene en coche.
+        $cuerpo = str_replace(self::COCHERA_SIN_NOMBRE, self::COCHERA, $cuerpo);
+
+        // Y si la versión de motos con dirección ya estaba escrita, se recorta a la corta.
+        $cuerpo = str_replace(
+            '<p>🏍️ <strong>¿Vienes en moto?</strong> Te recomendamos dejarla en una '
+            . '<strong>cochera vigilada</strong>: la más cercana es el <strong>Garaje de '
+            . 'Saphy</strong>, en Calle Saphy 644 (teléfono +51 984 631 997). En la playa '
+            . 'gratuita de enfrente quedaría demasiado expuesta.<br>'
+            . '📍 <a href="https://maps.app.goo.gl/rvxnSoKnNmtwuh5e7">Ver ubicación</a></p>',
+            '',
+            $cuerpo
+        );
 
         $io->section('Texto del agente');
         $io->writeln(self::AGENTE);
