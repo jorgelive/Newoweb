@@ -121,7 +121,7 @@ final class PmsGuiaEquipajeQuienRecibeCommand extends Command
      * que deja maletas tres semanas «porque pone que es gratis»—; contestado cuando preguntan,
      * es una buena noticia. Mismo criterio que el pasaje de las motos.
      */
-    private const string COSTO_VIEJO = 'Si pregunta el costo,\navisa al equipo.';
+    private const string COSTO_VIEJO = "Si pregunta el costo,\navisa al equipo.";
 
     private const string COSTO = 'Si pregunta el costo: es GRATIS para nuestros huéspedes, díselo '
         . 'sin rodeos y sin avisar a nadie. No lo ofrezcas de entrada — se cuenta cuando lo '
