@@ -890,7 +890,7 @@ class MessageTemplateCrudController extends BaseCrudController
                     if ($result['status'] === 'success') {
                         $successCount++;
                     } else {
-                        $errorMessages[] = strtoupper($lang) . ': ' . $result['message'];
+                        $errorMessages[] = strtoupper($lang) . ': ' . ($result['message'] ?? '');
                     }
                 }
 

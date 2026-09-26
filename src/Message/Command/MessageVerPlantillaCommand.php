@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Command;
 
+use App\Dto\Lee;
 use App\Message\Entity\MessageTemplate;
 use App\Message\Service\Formato\FormatoDeTexto;
 use App\Message\Service\Formato\HidratadorDeMarcadores;
@@ -73,10 +74,10 @@ final class MessageVerPlantillaCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $code = (string) $input->getArgument('code');
-        $localizador = strtoupper((string) $input->getArgument('localizador'));
-        $idioma = strtolower((string) $input->getOption('idioma'));
-        $canal = strtolower((string) $input->getOption('canal'));
+        $code = Lee::texto($input->getArgument('code')) ?? '';
+        $localizador = strtoupper(Lee::texto($input->getArgument('localizador')) ?? '');
+        $idioma = strtolower(Lee::texto($input->getOption('idioma')) ?? '');
+        $canal = strtolower(Lee::texto($input->getOption('canal')) ?? '');
 
         if (!in_array($canal, self::CANALES, true)) {
             $io->error(sprintf('Canal «%s». Los que hay: %s.', $canal, implode(', ', self::CANALES)));

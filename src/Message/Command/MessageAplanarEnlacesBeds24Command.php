@@ -49,6 +49,7 @@ final class MessageAplanarEnlacesBeds24Command extends Command
         $io = new SymfonyStyle($input, $output);
         $simulacro = (bool) $input->getOption('dry-run');
 
+        /** @var list<array{id: string, content_external: string|null, content_local: string|null}> $filas */
         $filas = $this->db->fetchAllAssociative(
             'SELECT id, content_external, content_local FROM msg_message '
             . "WHERE content_external LIKE '%<a %href=%' OR content_local LIKE '%<a %href=%'"

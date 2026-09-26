@@ -70,6 +70,8 @@ final class MessagePurgarTrazaAuditoriaCommand extends Command
         $seco = (bool) $input->getOption('dry-run');
         $respaldo = $input->getOption('respaldo');
 
+        // `ROUND()` sobre un DECIMAL llega como texto; `COUNT(*)`, como entero o texto según el driver.
+        /** @var array{filas: int|string, mb: string|null, traza_mb: string|null}|false $antes */
         $antes = $this->conexion->fetchAssociative(
             'SELECT COUNT(*) AS filas,
                     ROUND(SUM(LENGTH(metadata))/1048576, 1) AS mb,
@@ -120,7 +122,7 @@ final class MessagePurgarTrazaAuditoriaCommand extends Command
         $io->success(sprintf(
             '%d mensajes limpiados. La columna `metadata` de toda la tabla pesa ahora %s MB.',
             $total,
-            (string) $despues
+            is_scalar($despues) ? (string) $despues : ''
         ));
 
         // El espacio no vuelve al disco solo: InnoDB lo deja como hueco reutilizable. Se recupera

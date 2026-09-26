@@ -6691,12 +6691,45 @@ Y dos cosas que el tipado destapó por el camino: los `?? 'Error desconocido'` d
 fallido no podían actuar nunca —`json_encode()` falla devolviendo `false`, no `null`—, y
 `findMessageByMetaId()` devolvía lo que diera la consulta nativa sin comprobar que fuera un `Message`.
 
+### El resto del módulo, al nivel 9 (26/09/2026)
+
+Fuera del motor de intercambio (`Service/Exchange`, aparte) quedaban 163 avisos del nivel 9 en
+`src/Message`. El camino con más eran las plantillas de Meta (52, §18, «Lo que devuelve Meta al
+listar»); el resto se cerró así, **sin cambiar lo que se guarda ni lo que sale**, comprobado contra las 398
+conversaciones y los 8 323 mensajes de producción con `tools/pruebas/probar-dto-plantillas.php`:
+
+| Qué | Cómo se lee ahora | Por qué así |
+|---|---|---|
+| `MessageConversation::$contextData` | `textoDeContexto()` / `mapaDeContexto()`: lo que no es del tipo es «no está» | JSON que Doctrine hidrata sin setters. Un número donde va texto era un `TypeError` al serializar la bandeja entera |
+| `Message::$metadata` (`beds24.*`, `whatsappMeta.*`, `variables_plantilla`, `inbound_intent`) | `bloqueDeMetadata()` / `textoDeMetadata()` | La misma frontera. `getInboundIntent()` sigue devolviendo `null` —no `[]`— cuando no hay intención, porque `ProcessInboundIntentDispatchHandler` distingue las dos |
+| `MessageDataResolverInterface::getMetadata()` | la forma `MetadatosDeAsunto` declarada en el contrato | Es un contrato con cinco claves y una tabla que ya decía sus tipos; ahora PHPStan comprueba el resolver que la construye (`PmsMessageDataResolver`) en vez de los cinco sitios que la leían con `(string)` |
+| `{contextType, contextId}` del cuerpo HTTP | `App\Message\Dto\AsuntoPedido`, compartido por abrir hilo y cambiar titular | Se leía dos veces igual; los cuerpos de un solo campo (`con`, `tipo`/`valor`) se leen en el sitio con `Lee` |
+| Filas de SQL crudo en comandos y servicios | `@var list<array{…}>` sobre el `fetchAllAssociative()`; los `COUNT(*)` con `is_numeric()` | La forma la define la consulta. El driver da el `COUNT` como entero o texto según versión |
+| `$input->getArgument()/getOption()` | `Lee::texto()` / `Lee::entero()` con el mismo valor por defecto que daba el cast | Mismo resultado que el `(string)`/`(int)` de antes, salvo el array que era «Array» |
+
+Dos comportamientos cambian, los dos en casos que en producción no se dan (medido):
+
+- **`HidratadorDeMarcadores`**: una variable que vale un array u objeto deja el **marcador crudo**
+  en vez de la palabra «Array». Es un fallo del resolver, y así lo caza `msg:plantilla:ver` como
+  cualquier marcador sin resolver. Ver la tabla del hidratador en §18.
+- **Los motivos de un envío fallido** (`NotificadorPushConversacion::motivoDe()`,
+  `AvisarEnvioFallidoDispatchHandler::esPorLaVentana()`) descartan lo que no sea escalar en vez de
+  convertirlo con `strval()`.
+
+⚠️ **Al tipar lo que devuelve Meta salió que al botón guardado le faltaba `content`** en el tipo
+`BotonDeMenu` de `MessageTemplate` —la URL que copia el sincronizador y lee el envío—. Tres entradas
+de la baseline (`nullCoalesce.offset` sobre ese tipo, en la entidad y en las dos estrategias de
+envío) protegían justo ese hueco y quedan sin uso.
+
 ## 15. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
 | Leer un campo nuevo del webhook de Meta | `src/Message/Dto/Meta/` | el `fromArray()` de su pieza — y `tools/pruebas/probar-dto-meta.php` para comprobar que no cambia lo demás (§14.b) |
 | Cambiar cómo se recorre el sobre de Meta | `WhatsappMetaWebhookMessageFastTrackService` | `procesarSobre()` — el único recorrido, lo usan el webhook y el «reprocesar» |
+| Leer un campo nuevo del listado de plantillas de Meta | `src/Message/Dto/PlantillaMeta/` | el `fromArray()` de la pieza — y `tools/pruebas/probar-dto-plantillas.php` (§18) |
+| Que el núcleo lea una clave nueva de la metadata del asunto | `MessageDataResolverInterface` | la forma `MetadatosDeAsunto` **y** su tabla — el resolver que la construye la comprueba PHPStan |
+| Leer un dato nuevo de `contextData` o de `metadata` | `MessageConversation` / `Message` | un getter que pase por `textoDeContexto()`/`mapaDeContexto()` o `bloqueDeMetadata()`/`textoDeMetadata()` (§14.b) |
 | **Cambiar a qué correo se le escribe** | `src/Message/Service/Queue/EmailSendEnqueuer.php` | `destino()` + `asuntoElegido()` — dos regímenes, §24 |
 | Cambiar qué reservas usan alias de plataforma en vez del correo personal | `src/Pms/Entity/PmsConversacionEnlace.php` | `correoEsExclusivo()` (→ `PmsChannel::esDePlataforma()`) |
 | Cambiar qué orígenes se consideran «reserva nuestra» | `src/Pms/Entity/PmsChannel.php` | `ORIGENES_PROPIOS` / `esDePlataforma()` — **única fuente**: la usan Beds24, `MessageFactory` y el correo |
@@ -7532,6 +7565,7 @@ servicio que el envío** — si el panel miente, es que el cable también.
 | existe con valor | el valor | lo esperado |
 | existe y vale `null` o `''` | **nada** | hay variables que valen vacío a propósito: `bloque_pago` cuando no hay nada que cobrar |
 | **no existe** | el marcador crudo | es un fallo de la plantilla y tiene que verse |
+| existe y es un array u objeto | el marcador crudo | fallo del resolver; hasta el 26/09/2026 salía la palabra «Array» dentro del mensaje |
 
 ⚠️ Beds24 ya está migrado. **Meta y correo siguen con su copia**: tienen matices propios —el
 correo apunta los marcadores sin resolver en `failedReason` de la cola— y se pliegan cuando se
@@ -7791,6 +7825,46 @@ La salida es la que ya usa `welcome_airbnb`: **cuerpo corto + botón `url` al ca
 `beds24_tmpl`, que es texto plano de OTA y no tiene ese límite — para eso las columnas están
 separadas. Hoy `menu_tours` no tiene ningún botón en su JSON de Meta (`buttons_map: []`).
 
+### 🧾 Lo que devuelve Meta al listar se lee con un DTO (26/09/2026)
+
+El listado de la Graph API (`GET /{wabaId}/message_templates`) lo leían **tres sitios con tres
+copias** de `(string) ($fila['name'] ?? '')`: el sincronizador, la subida (para encontrar el `id`
+de la versión que se edita o se borra) y «Ver plantillas en Meta». Ahora se lee una vez:
+
+```
+fetchTemplates() (array)
+   └─ PlantillaMeta::listaDesdeRespuesta()      ← el ÚNICO sitio que toca `data[]`
+        └─ list<PlantillaMeta>                  una por NOMBRE + IDIOMA, con su id y su status
+             └─ componente('BODY'|'HEADER'|…)   el PRIMERO de ese tipo, sin distinguir mayúsculas
+                  └─ list<BotonDePlantillaMeta> sólo en BUTTONS: tipo, texto, url
+```
+
+| Consumidor | Lo que lee |
+|---|---|
+| `WhatsappMetaTemplateSyncService::processTemplateRecord()` | nombre, idioma, estado, categoría, cuerpo, cabecera, pie y botones |
+| `WhatsappMetaTemplatePushService::findExistingTemplateId()` | nombre, idioma, id |
+| `WhatsappMetaTemplateInventario::listar()` | nombre, idioma, estado |
+
+⚠️ **El DTO es lo que MANDA Meta; lo que GUARDAMOS sigue siendo nuestro JSON** (`BloqueDeCanal`
+en `MessageTemplate`), con su `resolver_key`, sus `disable_meta_buttons` y demás que Meta no conoce.
+No se ha convertido en objeto a propósito: lo editan el panel (por `CollectionField`, que necesita
+arrays y `stdClass`), el sincronizador, las migraciones y el envío, y su forma ya está declarada
+—y comprobada por PHPStan— en ese `@phpstan-type`.
+
+Reglas del DTO, las mismas que en §14.b: `Lee::texto()` (sin recortar, porque se guarda tal cual) y
+lo que no es del tipo es «no llegó». Un `id` ausente sigue dando `''` y no `null` en
+`findExistingTemplateId()`, que era lo que hacía la lectura cruda: el push lo trata como «no existe,
+créala» y el borrado no lo da por inexistente.
+
+**La prueba que decidió que era seguro:** `tools/pruebas/probar-dto-plantillas.php`. Como Meta no
+guarda el listado y aquí no se le llama, reconstruye cada versión de idioma **desde las plantillas
+guardadas** —cuyo texto es el que el sincronizador copió de Meta— y compara lo viejo (copiado en el
+script) con lo nuevo (cargado de verdad): el payload de subida y los topes, el JSON que queda al
+sincronizar sobre lo guardado y sobre una plantilla vacía, y las lecturas del listado. En
+producción, antes de desplegar: **16 plantillas con nombre en Meta, 112 versiones de idioma,
+idénticas byte a byte**. Se corre desde `/tmp` con `APP_RAIZ` apuntando a la app instalada (ver la
+cabecera del script).
+
 ### 👁️ «Ver plantillas en Meta»: la pantalla que no escribe
 
 `MessageTemplateCrudController::executeInventarioMeta()` (botón del listado de plantillas)
@@ -7942,6 +8016,8 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 | Subir a Meta la versión local | `WhatsappMetaTemplatePushService` (valida que no falte ningún `resolver_key`) |
 | Saber cuándo corre la sincronización | Cron de `www-data`: `app:whatsapp:sync-templates`, 03:15 |
 | Ver qué tiene Meta sin escribir nada | Botón «Ver plantillas en Meta» → `WhatsappMetaTemplateInventario::listar()` |
+| Leer un campo nuevo de lo que devuelve Meta al listar | `src/Message/Dto/PlantillaMeta/` — y correr `tools/pruebas/probar-dto-plantillas.php` |
+| Cambiar la forma del JSON guardado de una plantilla | `@phpstan-type BloqueDeCanal` / `BotonDeMenu` en `MessageTemplate` — derivada del uso real, no supuesta |
 | Averiguar por qué una plantilla lleva meses en `PENDING` | Mirar `meta_template_name` y `is_official_meta`: si es `null`/`false`, nunca llegó a Meta |
 | Que una plantilla de Meta deje de recrearse cada noche | `WhatsappMetaTemplateSyncService::NOMBRES_IGNORADOS` (y borrarla en Meta, que es lo definitivo) |
 | Impedir que se guarde una plantilla de Meta sin nombre | `MessageTemplate::validarNombreDeMeta()` |

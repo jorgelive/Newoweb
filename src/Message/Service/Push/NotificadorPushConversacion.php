@@ -140,7 +140,9 @@ final readonly class NotificadorPushConversacion
             return 'Se quedó sin enviar y no hay motivo registrado. Ábrelo y vuelve a intentarlo.';
         }
 
-        return implode(' · ', array_map(strval(...), $motivos));
+        // Los motivos los escribe el despachador y son texto; lo que no lo sea (un array que
+        // alguien metiera ahí) se descarta en vez de reventar el aviso con un `strval()`.
+        return implode(' · ', array_map(strval(...), array_filter($motivos, is_scalar(...))));
     }
 
     /**

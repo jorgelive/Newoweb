@@ -61,6 +61,8 @@ final readonly class ResumenNoLeidosService
      */
     public function resumen(): array
     {
+        // `SUM()` y `COUNT()` llegan como texto numérico o entero según el driver; `(int)` abajo.
+        /** @var list<array{status: string, mensajes: int|string|null, conversaciones: int|string}> $porEstado */
         $porEstado = $this->em->createQueryBuilder()
             ->select('c.status AS status', 'SUM(c.unreadCount) AS mensajes', 'COUNT(c.id) AS conversaciones')
             ->from(MessageConversation::class, 'c')

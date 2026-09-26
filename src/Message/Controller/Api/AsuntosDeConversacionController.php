@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Message\Controller\Api;
 
 use App\Contract\ConversationMilestoneInterface;
+use App\Dto\Lee;
+use App\Message\Dto\AsuntoPedido;
 use App\Message\Contract\ConversacionEnlaceInterface;
 use DateTimeImmutable;
 use Exception;
@@ -157,16 +159,13 @@ final class AsuntosDeConversacionController extends AbstractController
     {
         $this->denyAccessUnlessGranted(Roles::MENSAJES_WRITE, null, 'No tienes permiso para editar la conversación.');
 
-        /** @var array<string, mixed> $cuerpo */
-        $cuerpo = json_decode($request->getContent() ?: '{}', true) ?: [];
-        $tipo = trim((string) ($cuerpo['contextType'] ?? ''));
-        $id   = trim((string) ($cuerpo['contextId'] ?? ''));
+        $asunto = AsuntoPedido::fromArray(Lee::mapa(json_decode($request->getContent() ?: '{}', true)));
 
-        if ($tipo === '' || $id === '') {
+        if ($asunto->estaIncompleto()) {
             return new JsonResponse(['error' => 'Falta el asunto.'], Response::HTTP_BAD_REQUEST);
         }
 
-        if (!$this->enlaces->cambiarTitular($data, $tipo, $id)) {
+        if (!$this->enlaces->cambiarTitular($data, $asunto->tipo, $asunto->id)) {
             // No se inventa el enlace: un titular sin enlace sería un asunto atendido desde una
             // conversación que no lo tiene colgado.
             return new JsonResponse(['error' => 'Ese asunto no cuelga de esta conversación.'], Response::HTTP_NOT_FOUND);

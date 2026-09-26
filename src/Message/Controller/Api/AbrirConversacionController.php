@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Api;
 
+use App\Dto\Lee;
+use App\Message\Dto\AsuntoPedido;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\Conversacion\AperturaDeHilo;
 use App\Security\Roles;
@@ -48,18 +50,14 @@ final class AbrirConversacionController extends AbstractController
         // Abrir un hilo es escribir, no mirar: no basta con MENSAJES_SHOW.
         $this->denyAccessUnlessGranted(Roles::MENSAJES_WRITE, null, 'No tienes permiso para abrir conversaciones.');
 
-        /** @var array<string, mixed> $cuerpo */
-        $cuerpo = json_decode($request->getContent() ?: '{}', true) ?: [];
+        $asunto = AsuntoPedido::fromArray(Lee::mapa(json_decode($request->getContent() ?: '{}', true)));
 
-        $tipo = trim((string) ($cuerpo['contextType'] ?? ''));
-        $id = trim((string) ($cuerpo['contextId'] ?? ''));
-
-        if ($tipo === '' || $id === '') {
+        if ($asunto->estaIncompleto()) {
             return $this->json(['error' => 'Falta el asunto: `contextType` y `contextId`.'], Response::HTTP_BAD_REQUEST);
         }
 
         try {
-            $hilo = $this->apertura->abrir($tipo, $id);
+            $hilo = $this->apertura->abrir($asunto->tipo, $asunto->id);
         } catch (RuntimeException $e) {
             return $this->json(['error' => $e->getMessage()], Response::HTTP_CONFLICT);
         }

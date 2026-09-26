@@ -35,6 +35,10 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  * Es la tercera corrección a este tipo, y la razón de que estas anotaciones se escriban leyendo
  * el uso real y comprobando, no en tandas.
  *
+ * Y la cuarta (26/09/2026): al botón le faltaba **`content`**, la URL que el sincronizador copia
+ * de Meta y que `getWhatsappMetaButtons()` y el envío leen. Se leía por `?? ''` y el tipo no lo
+ * decía; salió al tipar lo que devuelve Meta (`App\Message\Dto\PlantillaMeta`).
+ *
  * @phpstan-type TextoTraducido array{
  *     language?: string,
  *     content?: string|null,
@@ -45,6 +49,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  *     type?: string|null,
  *     index?: int|string|null,
  *     resolver_key?: string|null,
+ *     content?: string|null,
  *     payload?: mixed,
  *     button_text?: list<TextoTraducido>
  * }
@@ -840,7 +845,8 @@ class MessageTemplate
      * Modificado para incluir el 'resolver_key' necesario para hidratar URLs dinámicas.
      *
      * @param string $lang Código del idioma (ej. 'es').
-     * @return array<int, array<string, mixed>> Lista de botones.
+     * @return list<array{index: int|string, type: string, content: string, resolver_key: string|null, button_text: string|null}>
+     *         Lista de botones, con los valores por defecto ya puestos.
      */
     public function getWhatsappMetaButtons(string $lang): array
     {

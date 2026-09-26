@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Command;
 
+use App\Dto\Lee;
 use App\Message\Entity\MessageTemplate;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -72,8 +73,8 @@ final class MessageCuerpoPlantillaCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $code = (string) $input->getArgument('code');
-        $canal = (string) $input->getOption('canal');
+        $code = Lee::texto($input->getArgument('code')) ?? '';
+        $canal = Lee::texto($input->getOption('canal')) ?? '';
 
         if (!isset(self::CANALES[$canal])) {
             $io->error(sprintf(
@@ -213,7 +214,7 @@ final class MessageCuerpoPlantillaCommand extends Command
 
         foreach ($cuerpos as $cuerpo) {
             if (is_array($cuerpo) && is_string($cuerpo['language'] ?? null)) {
-                $mapa[$cuerpo['language']] = (string) ($cuerpo['content'] ?? '');
+                $mapa[$cuerpo['language']] = Lee::texto($cuerpo['content'] ?? null) ?? '';
             }
         }
 

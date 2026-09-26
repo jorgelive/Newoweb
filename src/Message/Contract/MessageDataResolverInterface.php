@@ -10,6 +10,22 @@ namespace App\Message\Contract;
  * El Resolver es llamado justo ANTES de enviar un mensaje (por el Worker)
  * para hidratar la plantilla y obtener los datos más "frescos" de la base de datos,
  * superando así el aislamiento del "Join Lógico".
+ *
+ * La forma de {@see self::getMetadata()}: las claves que hoy lee el núcleo, con el tipo que dice
+ * su tabla. Todas opcionales, porque «ausente» es una respuesta válida —ver allí—.
+ *
+ * ⚠️ Era `array<string, mixed>` y los cinco sitios que la leen lo hacían con `(string)` y
+ * `?? false` a ciegas: un dominio que mandara `source` como número o `beds24_config` como id
+ * habría pasado el análisis y reventado al encolar. Declarada aquí, la comprueba PHPStan en
+ * el resolver que la construye, que es donde se puede arreglar.
+ *
+ * @phpstan-type MetadatosDeAsunto array{
+ *     es_plataforma?: bool,
+ *     source?: string|null,
+ *     agency_id?: string|null,
+ *     beds24_book_id?: string|null,
+ *     beds24_config?: \App\Exchange\Service\Contract\ChannelConfigInterface|null
+ * }
  */
 interface MessageDataResolverInterface
 {
@@ -57,7 +73,7 @@ interface MessageDataResolverInterface
      * | `es_plataforma` | `bool` | `MessageFactory`, `Beds24SendEnqueuer` | Si hay una OTA entre el cliente y nosotros: decide si el canal del channel manager se ofrece y si se permite mandar por él |
      * | `source` | `string` | `ValidTemplateScopeValidator`, `MessageCrudController` | Acotar plantillas por origen. **Se compara, no se interpreta**: contra lo que alguien puso en `MessageTemplate::allowedSources` |
      * | `agency_id` | `string` | los mismos | Acotar plantillas por agencia, igual |
-     * | `beds24_book_id`, `beds24_config` | `mixed` | `Beds24SendEnqueuer` | La dirección de la estancia en el channel manager |
+     * | `beds24_book_id`, `beds24_config` | `string`, `ChannelConfigInterface` | `Beds24SendEnqueuer` | La dirección de la estancia en el channel manager |
      *
      * ⚠️ **Ausente se lee como `false`/vacío en todas.** Un dominio que no tenga channel manager
      * —Turismo, y mañana Travel— sencillamente no trae esas claves, y el canal se apaga solo. No
@@ -65,7 +81,7 @@ interface MessageDataResolverInterface
      * dice.
      *
      * @param string $contextId El UUID de la entidad.
-     * @return array<string, mixed>
+     * @return MetadatosDeAsunto
      *
      * @example
      * return ['beds24_book_id' => '12345678', 'source' => 'booking', 'es_plataforma' => true];

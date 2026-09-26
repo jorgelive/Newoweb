@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Command;
 
+use App\Dto\Lee;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\Resumen\ResumenConversacionService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -53,7 +54,7 @@ final class ResumirConversacionesCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $dryRun = (bool) $input->getOption('dry-run');
         $forzar = (bool) $input->getOption('forzar');
-        $limite = max(1, (int) $input->getOption('limite'));
+        $limite = max(1, Lee::entero($input->getOption('limite')) ?? 0);
 
         $qb = $this->em->getRepository(MessageConversation::class)->createQueryBuilder('c')
             ->where('c.unreadCount > 0')

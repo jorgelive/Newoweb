@@ -641,8 +641,38 @@ class MessageConversation
         }
     }
 
+    /**
+     * Un valor de texto del contexto; lo que no sea texto es «no está».
+     *
+     * `contextData` es JSON que hidrata Doctrine sin pasar por los setters, así que su forma la
+     * promete un docblock, no PHP. Los getters leen por aquí y por {@see self::mapaDeContexto()}
+     * en vez de devolver el valor tal cual: antes, un número guardado donde se esperaba texto era
+     * un `TypeError` al serializar la conversación (el `?string` de retorno lo rechaza), y con él
+     * la bandeja entera. Medido en producción el 26/09/2026: 398 hilos, todos con las formas
+     * esperadas, así que esto no cambia lo que sale hoy.
+     */
+    private function textoDeContexto(string $clave): ?string
+    {
+        $valor = $this->contextData[$clave] ?? null;
+
+        return is_string($valor) ? $valor : null;
+    }
+
+    /**
+     * Un objeto anidado del contexto (`milestones`, `financials`, `items`); lo que no sea un
+     * array es vacío.
+     *
+     * @return array<mixed>
+     */
+    private function mapaDeContexto(string $clave): array
+    {
+        $valor = $this->contextData[$clave] ?? null;
+
+        return is_array($valor) ? $valor : [];
+    }
+
     #[Groups(['conversation:read'])]
-    public function getContextOrigin(): ?string { return $this->contextData['origin'] ?? null; }
+    public function getContextOrigin(): ?string { return $this->textoDeContexto('origin'); }
     public function setContextOrigin(?string $origin): self {
         $this->initContextData();
         $this->contextData['origin'] = $origin;
@@ -654,7 +684,7 @@ class MessageConversation
      * de MessageRule::matchesSegmentation().
      */
     #[Groups(['conversation:read'])]
-    public function getContextAgency(): ?string { return $this->contextData['agency'] ?? null; }
+    public function getContextAgency(): ?string { return $this->textoDeContexto('agency'); }
     public function setContextAgency(?string $agency): self {
         $this->initContextData();
         $this->contextData['agency'] = $agency;
@@ -662,7 +692,7 @@ class MessageConversation
     }
 
     #[Groups(['conversation:read'])]
-    public function getContextStatusTag(): ?string { return $this->contextData['status_tag'] ?? null; }
+    public function getContextStatusTag(): ?string { return $this->textoDeContexto('status_tag'); }
 
     /**
      * El vínculo que declaró el contexto, o `null` en conversaciones anteriores al campo.
@@ -695,15 +725,30 @@ class MessageConversation
      * La forma persistida y la que sale por la API. No cambia de tipo: `conversation:read` la
      * serializa tal cual y el front la consume así.
      *
+     * Sólo los pares texto → texto, que es lo único que escribe `addContextMilestone()`
+     * (`MomentoDeHito::comoTexto()`). En producción son todos así (26/09/2026: 1 256 hitos en 373
+     * hilos, y 11 hilos con la lista vacía).
+     *
      * @return array<string, string>
      */
     #[Groups(['conversation:read'])]
-    public function getContextMilestones(): array { return $this->contextData['milestones'] ?? []; }
+    public function getContextMilestones(): array
+    {
+        $hitos = [];
+
+        foreach ($this->mapaDeContexto('milestones') as $clave => $valor) {
+            if (is_string($clave) && is_string($valor)) {
+                $hitos[$clave] = $valor;
+            }
+        }
+
+        return $hitos;
+    }
 
     /** Los mismos hitos, ya tipados, para operar con ellos. */
     public function getMapaDeHitos(): MapaDeHitos
     {
-        return MapaDeHitos::desdeCrudo($this->contextData['milestones'] ?? []);
+        return MapaDeHitos::desdeCrudo($this->getContextMilestones());
     }
 
     public function setContextMilestones(MapaDeHitos $hitos): self {
@@ -750,14 +795,21 @@ class MessageConversation
             return $this;
         }
 
-        $this->contextData['milestones'][$key] = $momento->comoTexto();
+        $hitos = $this->mapaDeContexto('milestones');
+        $hitos[$key] = $momento->comoTexto();
+        $this->contextData['milestones'] = $hitos;
 
         return $this;
     }
 
     /** @return list<string> */
     #[Groups(['conversation:read'])]
-    public function getContextItems(): array { return $this->contextData['items'] ?? []; }
+    public function getContextItems(): array
+    {
+        // Sólo los textos: son los nombres de las unidades («Casita 3»), y es lo que escribe
+        // `setContextItems()`.
+        return array_values(array_filter($this->mapaDeContexto('items'), is_string(...)));
+    }
     /** @param list<string> $items */
     public function setContextItems(array $items): self {
         $this->initContextData();
@@ -767,14 +819,15 @@ class MessageConversation
 
     #[Groups(['conversation:read'])]
     public function getContextFinancialTotal(): ?float {
-        return isset($this->contextData['financials']['total'])
-            ? (float) $this->contextData['financials']['total']
-            : null;
+        $total = $this->mapaDeContexto('financials')['total'] ?? null;
+
+        // `is_numeric()` y no `is_float()`: el `(float)` de antes aceptaba el importe en texto.
+        return is_numeric($total) ? (float) $total : null;
     }
 
     #[Groups(['conversation:read'])]
     public function getContextFinancialIsCleared(): bool {
-        return (bool) ($this->contextData['financials']['is_cleared'] ?? false);
+        return (bool) ($this->mapaDeContexto('financials')['is_cleared'] ?? false);
     }
 
     public function setContextFinancials(?float $total, bool $isCleared = false): self {

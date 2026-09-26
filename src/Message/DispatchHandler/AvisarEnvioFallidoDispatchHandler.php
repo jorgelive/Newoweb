@@ -77,7 +77,7 @@ final readonly class AvisarEnvioFallidoDispatchHandler
         );
 
         foreach ($motivos as $motivo) {
-            if (str_contains(mb_strtolower((string) $motivo), self::SEÑAL_VENTANA)) {
+            if (is_scalar($motivo) && str_contains(mb_strtolower((string) $motivo), self::SEÑAL_VENTANA)) {
                 return true;
             }
         }

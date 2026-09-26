@@ -194,8 +194,10 @@ final class FusionarHilosCommand extends Command
         }
 
         $grupos = [];
-        foreach ($this->db->fetchAllAssociative($sql, $params) as $fila) {
-            $grupos[(string) $fila['valor']][] = self::conGuiones((string) $fila['cid']);
+        /** @var list<array{valor: string, cid: string}> $filas */
+        $filas = $this->db->fetchAllAssociative($sql, $params);
+        foreach ($filas as $fila) {
+            $grupos[$fila['valor']][] = self::conGuiones($fila['cid']);
         }
 
         // ⚠️ La tabla de identidades tiene UNA por hilo (el arrastre usó INSERT IGNORE), así que
@@ -213,9 +215,11 @@ final class FusionarHilosCommand extends Command
             $params['valor'] = IdentidadTipo::TELEFONO->normalizar($soloTelefono);
         }
 
-        foreach ($this->db->fetchAllAssociative($sql, $params) as $fila) {
-            $valor = (string) $fila['valor'];
-            $cid = self::conGuiones((string) $fila['cid']);
+        /** @var list<array{valor: string, cid: string}> $filas */
+        $filas = $this->db->fetchAllAssociative($sql, $params);
+        foreach ($filas as $fila) {
+            $valor = $fila['valor'];
+            $cid = self::conGuiones($fila['cid']);
 
             if (!in_array($cid, $grupos[$valor] ?? [], true)) {
                 $grupos[$valor][] = $cid;
@@ -256,10 +260,13 @@ final class FusionarHilosCommand extends Command
         $ids = array_map(static fn (MessageConversation $c): string => str_replace('-', '', (string) $c->getId()), $hilos);
         $marcadores = implode(',', array_fill(0, count($ids), 'UNHEX(?)'));
 
-        return (int) $this->db->fetchOne(
+        $total = $this->db->fetchOne(
             sprintf('SELECT COUNT(*) FROM msg_message WHERE conversation_id IN (%s)', $marcadores),
             $ids
         );
+
+        // El driver devuelve el `COUNT(*)` como entero o como texto numérico según la versión.
+        return is_numeric($total) ? (int) $total : 0;
     }
 
 }

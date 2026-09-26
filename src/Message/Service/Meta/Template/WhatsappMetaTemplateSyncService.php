@@ -8,6 +8,7 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Service\Client\WhatsappMetaClient;
+use App\Message\Dto\PlantillaMeta\PlantillaMeta;
 use App\Message\Entity\MessageTemplate;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -23,6 +24,10 @@ use Throwable;
  * del sistema de variables local sin que Meta lo destruya.
  * * OPTIMIZACIÓN GREENFIELD: Ahora sincroniza componentes HEADER y FOOTER para descargar peso
  * del BODY y evitar romper el límite de 1024 caracteres de Meta.
+ *
+ * Lo que devuelve Meta se lee UNA vez, con {@see PlantillaMeta}; lo que se escribe es nuestro
+ * JSON (`BloqueDeCanal` de `MessageTemplate`). Que el cambio al DTO no movió ni un carácter de lo
+ * guardado lo comprueba `tools/pruebas/probar-dto-plantillas.php`. Ver `docs/Mensajeria.md` §18.
  */
 final readonly class WhatsappMetaTemplateSyncService
 {
@@ -72,16 +77,15 @@ final readonly class WhatsappMetaTemplateSyncService
         try {
             // El cliente ya maneja la URL dinámica, los tokens y lanza excepciones si hay error HTTP
             $response = $this->metaClient->fetchTemplates($config, $endpoint);
-            $templates = $response['data'] ?? [];
 
-            foreach ($templates as $templateData) {
-                $status = strtoupper((string)($templateData['status'] ?? ''));
+            foreach (PlantillaMeta::listaDesdeRespuesta($response) as $plantilla) {
+                $status = strtoupper($plantilla->estado ?? '');
 
                 // Ya no hay lista de nombres a ignorar: el sincronizador no adopta nada, así que
                 // una plantilla huérfana en Meta no puede fabricar una fila aquí. Ver
                 // `processTemplateRecord()`.
                 if (in_array($status, ['APPROVED', 'PENDING', 'REJECTED'], true)) {
-                    $isNew = $this->processTemplateRecord($templateData, $templateCache, $allowedLanguages);
+                    $isNew = $this->processTemplateRecord($plantilla, $templateCache, $allowedLanguages);
 
                     if ($isNew === true) {
                         $createdCount++;
@@ -107,15 +111,16 @@ final readonly class WhatsappMetaTemplateSyncService
     /**
      * Procesa y persiste una plantilla individual inyectándola en el JSON estructurado `whatsappMetaTmpl`.
      *
-     * @param array<string, mixed> $data Un registro tal como lo devuelve Meta.
+     * @param PlantillaMeta $plantilla Un registro (un idioma) tal como lo devuelve Meta.
      * @param array<string, MessageTemplate> $templateCache
      * @param list<string> $allowedLanguages
      */
-    private function processTemplateRecord(array $data, array &$templateCache, array $allowedLanguages): ?bool
+    private function processTemplateRecord(PlantillaMeta $plantilla, array &$templateCache, array $allowedLanguages): ?bool
     {
-        $metaName = (string)($data['name'] ?? '');
-        $rawLanguage = (string)($data['language'] ?? '');
-        $status = (string)($data['status'] ?? 'UNKNOWN');
+        $metaName = $plantilla->nombre ?? '';
+        $rawLanguage = $plantilla->idioma ?? '';
+        // El estado se guarda TAL CUAL llega; el filtro de `sync()` lo compara en mayúsculas.
+        $status = $plantilla->estado ?? 'UNKNOWN';
 
         if ($metaName === '' || $rawLanguage === '') {
             return null;
@@ -187,10 +192,13 @@ final readonly class WhatsappMetaTemplateSyncService
         // MARCADO CRÍTICO: Todo lo que viene de la API es oficial de Meta.
         $metaTmpl['is_official_meta'] = true;
         $metaTmpl['meta_template_name'] = $metaName;
-        $metaTmpl['category'] = $data['category'] ?? ($metaTmpl['category'] ?? 'UTILITY');
+        $metaTmpl['category'] = $plantilla->categoria ?? ($metaTmpl['category'] ?? 'UTILITY');
 
-        // 4. Procesamiento del BODY
-        $bodyText = $this->extractBodyText($data['components'] ?? []);
+        // 4. Procesamiento del BODY. Del componente, el PRIMERO de su tipo (ver
+        // `PlantillaMeta::componente()`); sin él, el texto es vacío y se guarda vacío. El `??`
+        // cubre también que no haya componente: leer una propiedad de `null` dentro de `??` no
+        // avisa, igual que un `isset()`.
+        $bodyText = $plantilla->componente('BODY')->texto ?? '';
         $bodyArray = $metaTmpl['body'] ?? [];
         $foundLangBody = false;
 
@@ -213,8 +221,10 @@ final readonly class WhatsappMetaTemplateSyncService
         }
         $metaTmpl['body'] = $bodyArray;
 
-        // 5. Procesamiento de BOTONES (buttons_map) - Preservamos resolver_key
-        $metaButtons = $this->extractButtons($data['components'] ?? []);
+        // 5. Procesamiento de BOTONES (buttons_map) - Preservamos resolver_key.
+        // Meta agrupa todos los botones dentro de un único componente `BUTTONS`; su posición en
+        // esa lista es el `index` con el que se emparejan con los nuestros.
+        $metaButtons = $plantilla->componente('BUTTONS')->botones ?? [];
         $buttonsMap = $metaTmpl['buttons_map'] ?? [];
 
         foreach ($metaButtons as $index => $btn) {
@@ -229,7 +239,7 @@ final readonly class WhatsappMetaTemplateSyncService
                     $foundText = false;
                     foreach ($btnTextArray as &$txt) {
                         if (($txt['language'] ?? '') === $language) {
-                            $txt['content'] = $btn['text'] ?? '';
+                            $txt['content'] = $btn->texto ?? '';
                             $foundText = true;
                             break;
                         }
@@ -237,15 +247,15 @@ final readonly class WhatsappMetaTemplateSyncService
                     unset($txt);
 
                     if (!$foundText) {
-                        $btnTextArray[] = ['language' => $language, 'content' => $btn['text'] ?? ''];
+                        $btnTextArray[] = ['language' => $language, 'content' => $btn->texto ?? ''];
                     }
                     $bMap['button_text'] = $btnTextArray;
 
-                    if (isset($btn['url'])) {
-                        $bMap['content'] = $btn['url'];
+                    if ($btn->url !== null) {
+                        $bMap['content'] = $btn->url;
                     }
 
-                    $bMap['type'] = strtolower((string)($btn['type'] ?? 'url'));
+                    $bMap['type'] = strtolower($btn->tipo ?? 'url');
 
                     // IMPORTANTE: NO tocamos la llave 'resolver_key' aquí para preservarla
 
@@ -259,19 +269,20 @@ final readonly class WhatsappMetaTemplateSyncService
             if (!$foundBtn) {
                 $buttonsMap[] = [
                     'index'        => $index,
-                    'type'         => strtolower((string)($btn['type'] ?? 'url')),
-                    'content'      => $btn['url'] ?? '',
+                    'type'         => strtolower($btn->tipo ?? 'url'),
+                    'content'      => $btn->url ?? '',
                     'resolver_key' => null, // Lo inicializamos en null para que se llene vía EasyAdmin
                     'button_text'  => [
-                        ['language' => $language, 'content' => $btn['text'] ?? '']
+                        ['language' => $language, 'content' => $btn->texto ?? '']
                     ]
                 ];
             }
         }
         $metaTmpl['buttons_map'] = $buttonsMap;
 
-        // 6. Procesamiento del FOOTER (Nuevo)
-        $footerText = $this->extractFooterText($data['components'] ?? []);
+        // 6. Procesamiento del FOOTER. Meta lo maneja como componente propio, con tope de 60
+        // caracteres: sincronizarlo descarga peso del body, que tiene el suyo de 1024.
+        $footerText = $plantilla->componente('FOOTER')->texto ?? '';
         $footerArray = $metaTmpl['footer'] ?? [];
         $foundLangFooter = false;
 
@@ -290,9 +301,14 @@ final readonly class WhatsappMetaTemplateSyncService
         }
         $metaTmpl['footer'] = $footerArray;
 
-        // 7. Procesamiento del HEADER (Nuevo)
-        $headerData = $this->extractHeaderData($data['components'] ?? []);
-        if (!empty($headerData)) {
+        // 7. Procesamiento del HEADER. Puede ser TEXT, IMAGE, VIDEO o DOCUMENT; si es TEXT lleva
+        // hasta 60 caracteres y puede incluir marcadores («Hola {{guest_name}}»).
+        $header = $plantilla->componente('HEADER');
+        if ($header !== null) {
+            $headerData = [
+                'format'  => strtoupper($header->formato ?? 'TEXT'),
+                'content' => $header->texto ?? '',
+            ];
             $headerArray = $metaTmpl['header'] ?? [];
             $foundLangHeader = false;
 
@@ -344,83 +360,5 @@ final readonly class WhatsappMetaTemplateSyncService
         }
 
         return $allowed;
-    }
-
-    /**
-     * @param list<array<string, mixed>> $components
-     */
-    private function extractBodyText(array $components): string
-    {
-        foreach ($components as $component) {
-            if (strtoupper((string)($component['type'] ?? '')) === 'BODY') {
-                return (string)($component['text'] ?? '');
-            }
-        }
-        return '';
-    }
-
-    /**
-     * Extrae el array de botones físicos configurados en Meta.
-     * ¿Por qué existe? Meta agrupa todos los botones dentro de un único componente de tipo 'BUTTONS'.
-     * Este método aísla ese sub-array para poder indexarlos correctamente en nuestra base de datos.
-     *
-     * @param array $components Arreglo de componentes de Meta.
-     * @return array<int, array> Lista de botones encontrados en el payload.
-     *
-     * @param list<array<string, mixed>> $components
-     * @return list<array<string, mixed>>
-     */
-    private function extractButtons(array $components): array
-    {
-        foreach ($components as $component) {
-            if (strtoupper((string)($component['type'] ?? '')) === 'BUTTONS') {
-                return $component['buttons'] ?? [];
-            }
-        }
-        return [];
-    }
-
-    /**
-     * Extrae el texto del componente FOOTER de Meta.
-     * ¿Por qué existe? Meta maneja el footer como un componente independiente con un límite de 60 caracteres.
-     * Sincronizarlo ayuda a descargar peso del body principal para no exceder los 1024 caracteres.
-     *
-     * @param array $components Arreglo de componentes.
-     * @return string El texto del footer o cadena vacía si no existe.
-     *
-     * @param list<array<string, mixed>> $components
-     */
-    private function extractFooterText(array $components): string
-    {
-        foreach ($components as $component) {
-            if (strtoupper((string)($component['type'] ?? '')) === 'FOOTER') {
-                return (string)($component['text'] ?? '');
-            }
-        }
-        return '';
-    }
-
-    /**
-     * Extrae los datos del componente HEADER de Meta.
-     * ¿Por qué existe? El header puede ser de tipo TEXT, IMAGE, VIDEO o DOCUMENT.
-     * Si es TEXT, puede contener texto plano (hasta 60 chars) y variables.
-     *
-     * @param array $components Arreglo de componentes.
-     * @return array<string, string> Retorna el formato y el contenido del header.
-     *
-     * @param list<array<string, mixed>> $components
-     * @return array<string, mixed>
-     */
-    private function extractHeaderData(array $components): array
-    {
-        foreach ($components as $component) {
-            if (strtoupper((string)($component['type'] ?? '')) === 'HEADER') {
-                return [
-                    'format'  => strtoupper((string)($component['format'] ?? 'TEXT')),
-                    'content' => (string)($component['text'] ?? '') // Puede incluir "Hola {{1}}" o {{guest_name}}
-                ];
-            }
-        }
-        return [];
     }
 }
