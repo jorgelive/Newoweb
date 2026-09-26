@@ -1672,8 +1672,9 @@ la bóveda, porque el orden de `ARCHIVO_TIPO_LABELS` es el del enum.
   que motivó dejarlo fuera.
 - `esEscaneoDeIdentidad()` → **no**: es un permiso, no una identidad; no hay número que cotejar
   contra el manifiesto.
-- `mesesDeRetencion()` → **1 tras el retorno**: lleva nombre, número de pasaporte e itinerario, y
-  pasado el viaje ya cumplió su función.
+- `mesesDeRetencion()` → **6 tras el retorno**, igual que los demás escaneos (era 1 hasta el
+  26/09/2026): lleva nombre, número de pasaporte e itinerario, pero una consulta tardía de
+  Migración o del seguro necesita poder enseñarlo.
 
 ⚠️ 🔥 **Es el único documento de la lista atado a UN DESTINO, y se pide a TODO el mundo.**
 `DOCUMENTOS_PEDIDOS` es una lista única para todos los expedientes, así que hoy un viaje a Cusco
@@ -3699,7 +3700,7 @@ ya existía —24 en el expediente que lo motivó— y es justo lo que los disti
 ⚠️ **Y el DNI son DOS tipos, no uno con campo «cara»**: un control migratorio quiere las dos. Con
 un caso por cara, «¿a quién le falta algo?» se contesta mirando qué tipos tiene.
 
-**Caducan al mes del retorno**: `app:cotizacion:purgar-archivos` borra fichero y fila. **No toca
+**Caducan a los seis meses del retorno** (eran uno hasta el 26/09/2026): `app:cotizacion:purgar-archivos` borra fichero y fila. **No toca
 `CotizacionPasajeroIdentificacion`** —el número de pasaporte con el que se emitió un boleto se
 queda—: esa separación es lo que permite borrar la foto sin romper el expediente.
 
@@ -3709,9 +3710,16 @@ de un comando que está en otra carpeta.
 
 | Tipo | Plazo tras el retorno |
 |---|---|
-| Pasaporte, DNI ×2, autorización | 1 mes |
-| **Boleto / boarding pass** | **1 mes** |
+| Pasaporte, DNI ×2, autorización, E-Ticket | 6 meses |
+| **Los tres tickets** (aéreo, ingreso, transporte) | **6 meses** |
 | Factura, confirmación de reserva, otros | no caduca |
+
+⚠️ **El plazo pasó de 1 a 6 meses el 26/09/2026**, decidido por el operador al cerrar el primer
+grupo grande (5SRAJV, 134 personas): un mes se quedaba corto para lo que llega tarde —una
+reclamación a la aerolínea, un seguro, una consulta de Migración— y el escaneo es lo único que lo
+respalda. El precio es guardar cinco meses más documentos de identidad de terceros, muchos de
+menores. Para cambiarlo es **un número** en `ArchivoTipoEnum::mesesDeRetencion()`; el comando y el
+cron no se tocan.
 
 ⚠️ **El boarding pass caduca igual que el pasaporte** (decidido el 08/09/2026; antes se quedaba
 para siempre «por si hay una reclamación»). Lleva nombre, vuelo, asiento y el **localizador** — y

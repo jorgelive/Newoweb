@@ -25,8 +25,9 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * filtrarse. Con 133 personas por expediente —cien de ellas menores— eso no es una hipótesis
  * incómoda, es un archivo que hay que dejar de tener.
  *
- * El plazo lo puso el operador: **un mes después del retorno**. Da margen para un trámite tardío
- * —una reclamación, un seguro— y no convierte el sistema en un archivo de documentos de identidad.
+ * El plazo lo puso el operador: **seis meses después del retorno** (era uno hasta el 26/09/2026;
+ * se quedaba corto para una reclamación o un seguro que llegan tarde). Da margen para el trámite
+ * tardío y no convierte el sistema en un archivo de documentos de identidad.
  *
  * ── Qué borra y qué NO ──────────────────────────────────────────────────────
  * Borra **el fichero** y la fila del adjunto. El plazo NO está aquí: lo dice cada tipo en

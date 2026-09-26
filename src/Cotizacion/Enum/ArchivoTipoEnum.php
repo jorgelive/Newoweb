@@ -248,6 +248,12 @@ enum ArchivoTipoEnum: string
     /**
      * Cuántos meses se guarda **después del retorno del grupo**. `null` = no caduca.
      *
+     * ⚠️ **Seis meses desde el 26/09/2026; antes era uno.** Lo decidió el operador al cerrar el
+     * primer grupo grande: un mes se quedaba corto para lo que llega tarde —una reclamación a la
+     * aerolínea, un seguro, una consulta de Migración— y el escaneo es lo único que lo respalda.
+     * El precio es guardar cinco meses más documentos de identidad de terceros, muchos de menores:
+     * no bajar de aquí sin una razón igual de concreta.
+     *
      * 🔥 **Es la única fuente de la caducidad.** No hay columna `caduca_el`: la fecha se calcula
      * cada vez a partir del retorno del expediente, así que si el viaje se mueve, la caducidad se
      * mueve con él. Una fecha guardada se habría quedado apuntando al viaje que se planeó.
@@ -270,7 +276,7 @@ enum ArchivoTipoEnum: string
         return match ($this) {
             // El E-Ticket migratorio caduca con los demás: lleva nombre, número de pasaporte y
             // el itinerario. Pasado el viaje ya cumplió su función y no compensa guardarlo.
-            self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::TICKET_AEREO, self::TICKET_INGRESO, self::TICKET_TRANSPORTE, self::ETICKET => 1,
+            self::PASAPORTE, self::DNI_ANVERSO, self::DNI_REVERSO, self::AUTORIZACION, self::TICKET_AEREO, self::TICKET_INGRESO, self::TICKET_TRANSPORTE, self::ETICKET => 6,
             self::FACTURA, self::RESERVA, self::OTROS => null,
         };
     }
