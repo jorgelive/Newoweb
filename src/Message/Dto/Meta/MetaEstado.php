@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Dto\Meta;
 
+use App\Dto\Lee;
+
 /**
  * Un cambio de estado de un mensaje NUESTRO: un elemento de `value.statuses[]` (enviado, entregado,
  * leído, fallido).
@@ -27,15 +29,15 @@ final readonly class MetaEstado
     /** @param array<mixed> $estado */
     public static function fromArray(array $estado): self
     {
-        $errores = LeeMeta::listaDeMapas($estado['errors'] ?? null);
+        $errores = Lee::listaDeMapas($estado['errors'] ?? null);
         $primero = $errores[0] ?? [];
 
         return new self(
-            id: LeeMeta::texto($estado['id'] ?? null),
-            estado: LeeMeta::texto($estado['status'] ?? null),
-            timestamp: LeeMeta::entero($estado['timestamp'] ?? null),
-            errorCodigo: LeeMeta::texto($primero['code'] ?? null),
-            errorMensaje: LeeMeta::texto($primero['message'] ?? null),
+            id: Lee::texto($estado['id'] ?? null),
+            estado: Lee::texto($estado['status'] ?? null),
+            timestamp: Lee::entero($estado['timestamp'] ?? null),
+            errorCodigo: Lee::texto($primero['code'] ?? null),
+            errorMensaje: Lee::texto($primero['message'] ?? null),
             errores: $errores,
         );
     }

@@ -38,6 +38,7 @@ class FinMedioCobroRepository extends ServiceEntityRepository
      */
     public function ofrecibles(?bool $desdePeru = null, ?int $dias = null): array
     {
+        /** @var list<FinMedioCobro> $medios */
         $medios = $this->createQueryBuilder('m')
             ->where('m.activo = true')
             ->orderBy('m.orden', 'ASC')

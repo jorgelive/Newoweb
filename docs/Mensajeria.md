@@ -6678,7 +6678,7 @@ se toca un DTO.
 
 Reglas de los DTO (`src/Message/Dto/Meta/`):
 
-- **Lo que no es del tipo esperado es «no llegó»** (`LeeMeta`): un array donde se esperaba texto es
+- **Lo que no es del tipo esperado es «no llegó»** (`App\Dto\Lee`, compartido por todos los DTO de frontera — ver `docs/TiposDeFrontera.md`): un array donde se esperaba texto es
   `null`, no la palabra «Array». Los números (coordenadas, códigos de error) se pasan a texto igual
   que los pasaba la interpolación de antes; los timestamps, que Meta manda como texto, a entero.
 - ⚠️ **No normalizan vacíos ni recortan**, a diferencia de `Beds24BookingDto`. El persister ya hace

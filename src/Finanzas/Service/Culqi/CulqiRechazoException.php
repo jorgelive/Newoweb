@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Finanzas\Service\Culqi;
 
 use RuntimeException;
+use App\Finanzas\Dto\RespuestaCulqi;
 
 /**
  * Un rechazo de Culqi, con su cuerpo entero.
@@ -54,11 +55,13 @@ final class CulqiRechazoException extends RuntimeException
      */
     public function pideAutenticacion3DS(): bool
     {
-        if (($this->datos['action_code'] ?? null) === 'REVIEW') {
+        $leida = RespuestaCulqi::fromArray($this->datos);
+
+        if ($leida->actionCode === 'REVIEW') {
             return true;
         }
 
-        $motivo = $this->datos['outcome']['decline_code'] ?? $this->datos['decline_code'] ?? null;
+        $motivo = $leida->resultadoCodigoRechazo ?? $leida->codigoRechazo;
 
         if ($motivo === 'authentication_required') {
             return true;
@@ -69,15 +72,15 @@ final class CulqiRechazoException extends RuntimeException
 
     public function codigo(): ?string
     {
-        $codigo = $this->datos['outcome']['code'] ?? $this->datos['code'] ?? null;
+        $leida = RespuestaCulqi::fromArray($this->datos);
 
-        return is_string($codigo) ? $codigo : null;
+        return $leida->resultadoCodigo ?? $leida->codigo;
     }
 
     public function motivoDelComercio(): ?string
     {
-        $motivo = $this->datos['outcome']['merchant_message'] ?? $this->datos['merchant_message'] ?? null;
+        $leida = RespuestaCulqi::fromArray($this->datos);
 
-        return is_string($motivo) ? $motivo : null;
+        return $leida->resultadoMotivoComercio ?? $leida->motivoComercio;
     }
 }

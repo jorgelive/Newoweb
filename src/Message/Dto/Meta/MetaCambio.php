@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Dto\Meta;
 
+use App\Dto\Lee;
+
 /**
  * Un `changes[].value` del webhook de Meta: los mensajes, estados y llamadas que trae, y de quién.
  */
@@ -31,13 +33,13 @@ final readonly class MetaCambio
     /** @param array<mixed> $valor */
     public static function fromArray(array $valor): self
     {
-        $contactos = LeeMeta::listaDeMapas($valor['contacts'] ?? null);
+        $contactos = Lee::listaDeMapas($valor['contacts'] ?? null);
 
         return new self(
             contacto: $contactos !== [] ? MetaContacto::fromArray($contactos[0]) : null,
-            mensajes: array_map(MetaMensajeEntrante::fromArray(...), LeeMeta::listaDeMapas($valor['messages'] ?? null)),
-            estados: array_map(MetaEstado::fromArray(...), LeeMeta::listaDeMapas($valor['statuses'] ?? null)),
-            llamadas: array_map(MetaLlamada::fromArray(...), LeeMeta::listaDeMapas($valor['calls'] ?? null)),
+            mensajes: array_map(MetaMensajeEntrante::fromArray(...), Lee::listaDeMapas($valor['messages'] ?? null)),
+            estados: array_map(MetaEstado::fromArray(...), Lee::listaDeMapas($valor['statuses'] ?? null)),
+            llamadas: array_map(MetaLlamada::fromArray(...), Lee::listaDeMapas($valor['calls'] ?? null)),
         );
     }
 }

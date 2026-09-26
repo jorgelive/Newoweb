@@ -13,6 +13,7 @@ use RuntimeException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use App\Finanzas\Dto\RespuestaCulqi;
 
 /**
  * Cliente REST de Culqi (`api.culqi.com/v2`).
@@ -231,8 +232,9 @@ final class CulqiClient implements FinPasarelaClientInterface
         //
         // Ahora cualquier cuerpo que no sea un cargo sale por la puerta de la excepción, que es
         // la que sabe distinguir «no» de «autentica y vuelve».
-        if (($respuesta['object'] ?? null) !== 'charge') {
-            $detalle = $respuesta['user_message'] ?? $respuesta['merchant_message'] ?? 'sin cargo';
+        $leida = RespuestaCulqi::fromArray($respuesta);
+        if (!$leida->esCargo()) {
+            $detalle = $leida->detalle();
 
             // ⚠️ **El cuerpo entero al log, y a propósito.** El reto sólo lo dispara el banco
             // emisor de una tarjeta extranjera, así que esto no se puede provocar desde aquí:
@@ -414,14 +416,17 @@ final class CulqiClient implements FinPasarelaClientInterface
      */
     public function cargoPagaElEnlace(array $cargo, FinEnlacePago $enlace): bool
     {
+        // Leído una vez: `RespuestaCulqi` separa los campos de `outcome` de los de la raíz.
+        $leido = RespuestaCulqi::fromArray($cargo);
+
         // ⚠️ **Con log.** Esta salida no escribía nada, y por eso los cinco intentos denegados de
         // los días 4 y 5 se quedaron sin explicación: el controlador decía «no cuadra» y no había
         // forma de saber qué había llegado. Una rama muda en el camino del dinero es una rama que
         // no se puede diagnosticar.
-        if (($cargo['object'] ?? null) !== 'charge') {
+        if (!$leido->esCargo()) {
             $this->logger->error('[culqi] la respuesta no es un cargo', [
                 'enlace' => (string) $enlace->getId(),
-                'object' => $cargo['object'] ?? null,
+                'object' => $leido->objeto,
                 'respuesta' => FinCobroAuditor::sinDatosDelTitular($cargo),
             ]);
 
@@ -429,7 +434,7 @@ final class CulqiClient implements FinPasarelaClientInterface
         }
 
         // El veredicto de verdad. Ver el bloque de arriba: un denegado también es un `charge`.
-        $resultado = $cargo['outcome']['type'] ?? null;
+        $resultado = $leido->resultadoTipo;
 
         if ($resultado !== 'venta_exitosa') {
             // ⚠️ **Con el cuerpo entero.** Ésta es la rama del agujero INVERSO: si un cargo que
@@ -439,24 +444,24 @@ final class CulqiClient implements FinPasarelaClientInterface
             // es que la primera vez quede escrito qué llegó.
             $this->logger->error('[culqi] cargo NO autorizado; no salda el enlace', [
                 'enlace' => (string) $enlace->getId(),
-                'cargo' => $cargo['id'] ?? null,
+                'cargo' => $leido->id,
                 'outcome' => $resultado,
-                'code' => $cargo['outcome']['code'] ?? null,
-                'motivo' => $cargo['outcome']['merchant_message'] ?? null,
+                'code' => $leido->resultadoCodigo,
+                'motivo' => $leido->resultadoMotivoComercio,
                 'respuesta' => FinCobroAuditor::sinDatosDelTitular($cargo),
             ]);
 
             return false;
         }
 
-        $importeOk = (int) ($cargo['amount'] ?? 0) === $enlace->montoTotalCentimos();
-        $monedaOk = ($cargo['currency_code'] ?? null) === ($enlace->getMonedaCodigo() ?? 'PEN');
+        $importeOk = ($leido->importeCentimos ?? 0) === $enlace->montoTotalCentimos();
+        $monedaOk = $leido->moneda === ($enlace->getMonedaCodigo() ?? 'PEN');
 
         if (!$importeOk || !$monedaOk) {
             $this->logger->error('[culqi] cargo que NO corresponde al enlace; se rechaza', [
                 'enlace' => (string) $enlace->getId(),
                 'esperado' => $enlace->montoTotalCentimos() . ' ' . $enlace->getMonedaCodigo(),
-                'recibido' => ($cargo['amount'] ?? '?') . ' ' . ($cargo['currency_code'] ?? '?'),
+                'recibido' => ($leido->importeCentimos ?? '?') . ' ' . ($leido->moneda ?? '?'),
             ]);
 
             return false;
@@ -464,7 +469,7 @@ final class CulqiClient implements FinPasarelaClientInterface
 
         $this->logger->info('[culqi] cargo verificado', [
             'enlace' => (string) $enlace->getId(),
-            'outcome' => $cargo['outcome']['type'] ?? null,
+            'outcome' => $leido->resultadoTipo,
         ]);
 
         return true;
@@ -479,18 +484,18 @@ final class CulqiClient implements FinPasarelaClientInterface
      */
     public function comoRespuestaNormalizada(array $cargo): array
     {
-        $tarjeta = $cargo['source'] ?? [];
+        $leido = RespuestaCulqi::fromArray($cargo);
 
         return [
             'orderStatus' => 'PAID',
             'transactions' => [[
-                'uuid' => $cargo['id'] ?? null,
+                'uuid' => $leido->id,
                 'transactionDetails' => [
                     'cardDetails' => [
-                        'effectiveBrand' => $tarjeta['iin']['card_brand'] ?? null,
-                        'pan' => isset($tarjeta['last_four']) ? '****' . $tarjeta['last_four'] : null,
+                        'effectiveBrand' => $leido->marcaTarjeta,
+                        'pan' => $leido->ultimosCuatro !== null ? '****' . $leido->ultimosCuatro : null,
                         'authorizationResponse' => [
-                            'authorizationNumber' => $cargo['reference_code'] ?? null,
+                            'authorizationNumber' => $leido->codigoReferencia,
                         ],
                     ],
                 ],
@@ -565,8 +570,9 @@ final class CulqiClient implements FinPasarelaClientInterface
 
         // Culqi SÍ usa códigos HTTP correctamente (a diferencia de Lyra, que responde 200
         // aunque rechace), y en el error devuelve `object: "error"` con `user_message`.
-        if ($codigo >= 400 || ($datos['object'] ?? null) === 'error') {
-            $detalle = $datos['user_message'] ?? $datos['merchant_message'] ?? 'error desconocido';
+        $leida = RespuestaCulqi::fromArray($datos);
+        if ($codigo >= 400 || $leida->objeto === 'error') {
+            $detalle = $leida->mensajeUsuario ?? $leida->motivoComercio ?? 'error desconocido';
 
             $this->logger->error('[culqi] respuesta de error', [
                 'ruta' => $ruta,

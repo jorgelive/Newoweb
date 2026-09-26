@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Dto\Meta;
 
+use App\Dto\Lee;
+
 /**
  * El sobre entero de un webhook de Meta: `entry[].changes[].value`, ya aplanado.
  *
@@ -33,14 +35,14 @@ final readonly class MetaWebhookSobre
     {
         $cambios = [];
 
-        foreach (LeeMeta::listaDeMapas($payload['entry'] ?? null) as $entrada) {
-            foreach (LeeMeta::listaDeMapas($entrada['changes'] ?? null) as $cambio) {
-                $cambios[] = MetaCambio::fromArray(LeeMeta::mapa($cambio['value'] ?? null));
+        foreach (Lee::listaDeMapas($payload['entry'] ?? null) as $entrada) {
+            foreach (Lee::listaDeMapas($entrada['changes'] ?? null) as $cambio) {
+                $cambios[] = MetaCambio::fromArray(Lee::mapa($cambio['value'] ?? null));
             }
         }
 
         return new self(
-            objeto: LeeMeta::texto($payload['object'] ?? null),
+            objeto: Lee::texto($payload['object'] ?? null),
             cambios: $cambios,
         );
     }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Dto\Meta;
 
+use App\Dto\Lee;
+
 /**
  * Quién escribe: `value.contacts[0]` del webhook de Meta.
  */
@@ -20,8 +22,8 @@ final readonly class MetaContacto
     public static function fromArray(array $contacto): self
     {
         return new self(
-            waId: LeeMeta::texto($contacto['wa_id'] ?? null),
-            nombre: LeeMeta::texto(LeeMeta::mapa($contacto['profile'] ?? null)['name'] ?? null),
+            waId: Lee::texto($contacto['wa_id'] ?? null),
+            nombre: Lee::texto(Lee::mapa($contacto['profile'] ?? null)['name'] ?? null),
         );
     }
 }

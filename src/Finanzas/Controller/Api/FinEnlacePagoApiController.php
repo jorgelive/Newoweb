@@ -22,6 +22,8 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
 use ValueError;
+use App\Finanzas\Dto\CuerpoDeEnlace;
+use App\Dto\Lee;
 
 /**
  * API interna de enlaces de pago, consumida por la SPA `util`.
@@ -78,11 +80,10 @@ final class FinEnlacePagoApiController extends AbstractController
     #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para emitir cobros.')]
     public function crear(Request $request): JsonResponse
     {
-        /** @var array<string, mixed> $datos */
-        $datos = json_decode((string) $request->getContent(), true) ?: [];
+        $cuerpo = CuerpoDeEnlace::fromArray(Lee::mapa(json_decode((string) $request->getContent(), true)));
 
-        $tipo = $this->tipoDesde($datos['origenTipo'] ?? null);
-        $origenId = $this->uuidDesde($datos['origenId'] ?? null);
+        $tipo = $cuerpo->origenTipo;
+        $origenId = $cuerpo->origenId;
 
         if ($tipo === null || $origenId === null) {
             return $this->json(['error' => 'Faltan origenTipo u origenId.'], 400);
@@ -96,17 +97,17 @@ final class FinEnlacePagoApiController extends AbstractController
             $enlace = $this->servicio->crear(
                 origenTipo: $tipo,
                 origenId: $origenId,
-                montoNeto: isset($datos['monto']) ? (string) $datos['monto'] : null,
-                conRecargo: (bool) ($datos['conRecargo'] ?? true),
-                vigenciaDias: isset($datos['vigenciaDias']) ? (int) $datos['vigenciaDias'] : null,
-                concepto: isset($datos['concepto']) ? (string) $datos['concepto'] : null,
+                montoNeto: $cuerpo->monto,
+                conRecargo: $cuerpo->conRecargo,
+                vigenciaDias: $cuerpo->vigenciaDias,
+                concepto: $cuerpo->concepto,
                 creadoPor: $this->getUser() instanceof \App\Entity\User ? $this->getUser() : null,
                 // Null = la del registry. El operador sólo elige si hay más de una con
                 // credenciales; el selector de la SPA se puebla desde `/pasarelas`.
-                pasarela: isset($datos['pasarela']) ? FinPasarela::tryFrom((string) $datos['pasarela']) : null,
+                pasarela: $cuerpo->pasarela,
                 // Opcional: sin ella, el resolver elige la moneda con más saldo. El panel la manda
                 // cuando el operador pulsa el atajo de una moneda concreta.
-                moneda: $this->textoONull($datos['moneda'] ?? null),
+                moneda: $cuerpo->moneda,
             );
         } catch (DomainException $e) {
             return $this->json(['error' => $e->getMessage()], 422);
@@ -130,28 +131,27 @@ final class FinEnlacePagoApiController extends AbstractController
     #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para emitir cobros.')]
     public function crearManual(Request $request): JsonResponse
     {
-        /** @var array<string, mixed> $datos */
-        $datos = json_decode((string) $request->getContent(), true) ?: [];
+        $cuerpo = CuerpoDeEnlace::fromArray(Lee::mapa(json_decode((string) $request->getContent(), true)));
 
         try {
+            // Los obligatorios del manual van como texto vacío si faltan: quien decide que faltan
+            // es el servicio, con su mensaje, no este controlador.
             $enlace = $this->servicio->crearManual(
-                montoNeto: (string) ($datos['monto'] ?? ''),
-                moneda: (string) ($datos['moneda'] ?? ''),
-                concepto: (string) ($datos['concepto'] ?? ''),
-                conRecargo: (bool) ($datos['conRecargo'] ?? true),
-                vigenciaDias: isset($datos['vigenciaDias']) ? (int) $datos['vigenciaDias'] : null,
+                montoNeto: $cuerpo->monto ?? '',
+                moneda: $cuerpo->moneda ?? '',
+                concepto: $cuerpo->concepto ?? '',
+                conRecargo: $cuerpo->conRecargo,
+                vigenciaDias: $cuerpo->vigenciaDias,
                 // Sólo una ETIQUETA de módulo: no vincula con ningún documento, así que se
                 // admite aunque ese módulo todavía no tenga resolver.
-                modulo: isset($datos['modulo']) && $datos['modulo'] !== ''
-                    ? FinOrigenCobro::tryFrom((string) $datos['modulo'])
-                    : null,
-                clienteNombre: $this->textoONull($datos['clienteNombre'] ?? null),
-                clienteApellido: $this->textoONull($datos['clienteApellido'] ?? null),
-                clienteEmail: $this->textoONull($datos['clienteEmail'] ?? null),
-                clienteTelefono: $this->textoONull($datos['clienteTelefono'] ?? null),
-                referencia: $this->textoONull($datos['referencia'] ?? null),
+                modulo: $cuerpo->modulo,
+                clienteNombre: $cuerpo->clienteNombre,
+                clienteApellido: $cuerpo->clienteApellido,
+                clienteEmail: $cuerpo->clienteEmail,
+                clienteTelefono: $cuerpo->clienteTelefono,
+                referencia: $cuerpo->referencia,
                 creadoPor: $this->getUser() instanceof \App\Entity\User ? $this->getUser() : null,
-                pasarela: isset($datos['pasarela']) ? FinPasarela::tryFrom((string) $datos['pasarela']) : null,
+                pasarela: $cuerpo->pasarela,
             );
         } catch (DomainException $e) {
             return $this->json(['error' => $e->getMessage()], 422);
@@ -289,15 +289,6 @@ final class FinEnlacePagoApiController extends AbstractController
         return $this->serializador->aArray($enlace);
     }
 
-    /** Cadena vacía → null: un campo opcional que el formulario deja en blanco no es "". */
-    private function textoONull(mixed $valor): ?string
-    {
-        if (!is_string($valor)) {
-            return null;
-        }
-
-        return trim($valor) === '' ? null : trim($valor);
-    }
 
     private function tipoDesde(mixed $valor): ?FinOrigenCobro
     {

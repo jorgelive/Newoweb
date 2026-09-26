@@ -17,6 +17,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
 use Throwable;
+use App\Finanzas\Dto\AvisoDePasarela;
+use App\Dto\Lee;
 
 /**
  * IPN de Izipay: la ÚNICA fuente de verdad de que un cobro ocurrió.
@@ -71,8 +73,9 @@ final class IzipayWebhookController extends AbstractController
         }
 
         try {
-            $respuesta = $this->izipay->decodificarRespuesta((string) $post['kr-answer']);
-            $enlace = $this->localizarEnlace($respuesta);
+            // `validarFirma()` ya exigió que `kr-answer` exista; aquí se comprueba que sea texto.
+            $respuesta = $this->izipay->decodificarRespuesta(Lee::texto($post['kr-answer'] ?? null) ?? '');
+            $enlace = $this->localizarEnlace(AvisoDePasarela::deIzipay($respuesta));
 
             if (!$enlace instanceof FinEnlacePago) {
                 $this->cerrarAudit($audit, FinPasarelaWebhookAudit::ESTADO_IGNORADO, 'enlace_no_encontrado');
@@ -110,15 +113,13 @@ final class IzipayWebhookController extends AbstractController
      * intacto; el `orderId` es el plan B por si el cobro se lanzó desde el Backoffice de
      * Izipay sin pasar por nosotros y no lleva metadata.
      *
-     * @param array<string, mixed> $respuesta
+     * Las dos rutas de cada dato las lee `AvisoDePasarela::deIzipay()`.
      */
-    private function localizarEnlace(array $respuesta): ?FinEnlacePago
+    private function localizarEnlace(AvisoDePasarela $aviso): ?FinEnlacePago
     {
-        $enlaceId = $respuesta['transactions'][0]['metadata']['enlaceId']
-            ?? $respuesta['metadata']['enlaceId']
-            ?? null;
+        $enlaceId = $aviso->enlaceId;
 
-        if (is_string($enlaceId) && Uuid::isValid($enlaceId)) {
+        if ($enlaceId !== null && Uuid::isValid($enlaceId)) {
             $enlace = $this->repository->find(Uuid::fromString($enlaceId));
 
             if ($enlace instanceof FinEnlacePago) {
@@ -126,9 +127,7 @@ final class IzipayWebhookController extends AbstractController
             }
         }
 
-        $ordenId = $respuesta['orderDetails']['orderId'] ?? $respuesta['orderId'] ?? null;
-
-        return is_string($ordenId) ? $this->repository->porOrdenId($ordenId) : null;
+        return $aviso->ordenId !== null ? $this->repository->porOrdenId($aviso->ordenId) : null;
     }
 
     private function cerrarAudit(FinPasarelaWebhookAudit $audit, string $estado, ?string $error = null): void

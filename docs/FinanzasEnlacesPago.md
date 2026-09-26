@@ -2716,6 +2716,21 @@ se marca «Retraducir la nota al guardar». Las ocho cuentas bancarias no llevan
 
 ---
 
+## Las respuestas de las pasarelas se leen en DTO (26/09/2026)
+
+Lo que devuelven Culqi e Izipay, lo que avisan por webhook y lo que manda el panel al emitir un
+enlace se lee una vez, en `src/Finanzas/Dto/`: `RespuestaCulqi` (cargo o error, con los campos de
+`outcome` aparte de los de la raíz), `AvisoDePasarela` (sólo identificadores, nunca el veredicto),
+`TransaccionDePasarela` (la forma común a las dos pasarelas) y `CuerpoDeEnlace`. Las firmas públicas
+de `CulqiClient` no cambiaron: el DTO se construye dentro.
+
+Antes de pasar el código, `tools/pruebas/probar-dto-pagos.php` comparó las lecturas viejas y las
+nuevas sobre los datos guardados: **18 enlaces, 15 cargos, 22 intentos auditados y 17 avisos,
+idénticos**.
+
+⚠️ **`conRecargo` era `(bool) ($datos['conRecargo'] ?? true)`**, y `(bool) "false"` es `true`. Ahora
+es un booleano de verdad; ausente sigue siendo «con recargo». Ver `docs/TiposDeFrontera.md`.
+
 ## Gotcha: `#[Groups]` en métodos y Symfony 7
 
 Symfony 7 exige que todo método anotado con `#[Groups]` empiece por **`get`, `is`,

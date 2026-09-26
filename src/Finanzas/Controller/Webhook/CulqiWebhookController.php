@@ -19,6 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
 use Throwable;
+use App\Finanzas\Dto\AvisoDePasarela;
 
 /**
  * Webhook de Culqi. **Red de seguridad, no camino principal.**
@@ -74,8 +75,10 @@ final class CulqiWebhookController extends AbstractController
             $payload = json_decode($crudo, true, 512, JSON_THROW_ON_ERROR);
             $payload['data'] = self::datosDelEvento($payload);
 
-            $idCargo = $this->idDeCargo($payload);
-            $enlace = $this->localizarEnlace($payload);
+            // El aviso se lee una vez: sólo identificadores, nunca el veredicto (ver `AvisoDePasarela`).
+            $aviso = AvisoDePasarela::deCulqi($payload);
+            $idCargo = $aviso->idCargo;
+            $enlace = $this->localizarEnlace($aviso);
 
             if ($idCargo === null || !$enlace instanceof FinEnlacePago) {
                 $this->cerrarAudit($audit, FinPasarelaWebhookAudit::ESTADO_IGNORADO, 'sin_cargo_o_enlace');
@@ -168,42 +171,12 @@ final class CulqiWebhookController extends AbstractController
         return is_array($datos) ? $datos : [];
     }
 
-    /**
-     * Id del cargo dentro del aviso.
-     *
-     * Culqi manda el objeto en `data` para los eventos de cargo; se aceptan también las
-     * formas planas por si el evento llega con otra envoltura. Sólo se toma el ID: todo lo
-     * demás del cuerpo se ignora por diseño.
-     *
-     * @param array<string, mixed> $payload
-     */
-    private function idDeCargo(array $payload): ?string
+
+    private function localizarEnlace(AvisoDePasarela $aviso): ?FinEnlacePago
     {
-        $candidatos = [
-            $payload['data']['id'] ?? null,
-            $payload['object']['id'] ?? null,
-            $payload['id'] ?? null,
-        ];
+        $enlaceId = $aviso->enlaceId;
 
-        foreach ($candidatos as $candidato) {
-            // Los cargos de Culqi son `chr_...`; descartar el resto evita ir a preguntar
-            // por el id del propio evento y llevarse un 404.
-            if (is_string($candidato) && str_starts_with($candidato, 'chr_')) {
-                return $candidato;
-            }
-        }
-
-        return null;
-    }
-
-    /** @param array<string, mixed> $payload */
-    private function localizarEnlace(array $payload): ?FinEnlacePago
-    {
-        $enlaceId = $payload['data']['metadata']['enlaceId']
-            ?? $payload['metadata']['enlaceId']
-            ?? null;
-
-        if (is_string($enlaceId) && Uuid::isValid($enlaceId)) {
+        if ($enlaceId !== null && Uuid::isValid($enlaceId)) {
             $enlace = $this->repository->find(Uuid::fromString($enlaceId));
 
             if ($enlace instanceof FinEnlacePago) {
@@ -211,9 +184,7 @@ final class CulqiWebhookController extends AbstractController
             }
         }
 
-        $ordenId = $payload['data']['metadata']['ordenId'] ?? null;
-
-        return is_string($ordenId) ? $this->repository->porOrdenId($ordenId) : null;
+        return $aviso->ordenId !== null ? $this->repository->porOrdenId($aviso->ordenId) : null;
     }
 
     private function cerrarAudit(FinPasarelaWebhookAudit $audit, string $estado, ?string $error = null): void

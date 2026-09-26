@@ -20,6 +20,7 @@ use RuntimeException;
 use Throwable;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Uid\Uuid;
+use App\Finanzas\Dto\TransaccionDePasarela;
 
 /**
  * Emisión y cierre de enlaces de pago. Es el único sitio que cambia su estado.
@@ -329,16 +330,14 @@ final class FinEnlacePagoService
 
         $enlace->setRespuestaPasarela($respuesta);
 
-        $transaccion = $this->primeraTransaccion($respuesta);
+        // La forma común a las dos pasarelas, leída una vez: ver `TransaccionDePasarela`.
+        $transaccion = TransaccionDePasarela::primeraDe($respuesta);
 
         $enlace
             ->setEstado(FinEnlacePagoEstado::PAGADO)
             ->setPagadoEn(new DateTimeImmutable())
-            ->setTransaccionUuid($this->comoTexto($transaccion['uuid'] ?? null, 64))
-            ->setAutorizacionCodigo($this->comoTexto(
-                $transaccion['transactionDetails']['cardDetails']['authorizationResponse']['authorizationNumber'] ?? null,
-                32,
-            ))
+            ->setTransaccionUuid($this->comoTexto($transaccion->uuid, 64))
+            ->setAutorizacionCodigo($this->comoTexto($transaccion->autorizacion, 32))
             ->setMedioDetalle($this->describirMedio($transaccion));
 
         // El módulo dueño crea su propio asiento (el PmsPagoFinanciero, aquí). Va DESPUÉS
@@ -575,40 +574,21 @@ final class FinEnlacePagoService
         return number_format((float) $valor, 2, '.', '');
     }
 
-    /**
-     * @param array<string, mixed> $respuesta
-     * @return array<string, mixed>
-     */
-    private function primeraTransaccion(array $respuesta): array
+
+    private function describirMedio(TransaccionDePasarela $transaccion): ?string
     {
-        $transacciones = $respuesta['transactions'] ?? [];
-
-        return is_array($transacciones) && isset($transacciones[0]) && is_array($transacciones[0])
-            ? $transacciones[0]
-            : [];
-    }
-
-    /** @param array<string, mixed> $transaccion */
-    private function describirMedio(array $transaccion): ?string
-    {
-        $marca = $transaccion['transactionDetails']['cardDetails']['effectiveBrand'] ?? null;
-        $pan = $transaccion['transactionDetails']['cardDetails']['pan'] ?? null;
-
-        $partes = array_filter([
-            is_string($marca) ? $marca : null,
-            is_string($pan) ? $pan : null,
-        ]);
+        $partes = array_filter([$transaccion->marca, $transaccion->pan]);
 
         return $partes === [] ? null : substr(implode(' ', $partes), 0, 60);
     }
 
-    private function comoTexto(mixed $valor, int $maximo): ?string
+    private function comoTexto(?string $valor, int $maximo): ?string
     {
-        if (!is_string($valor) && !is_int($valor)) {
+        if ($valor === null) {
             return null;
         }
 
-        $texto = trim((string) $valor);
+        $texto = trim($valor);
 
         return $texto === '' ? null : substr($texto, 0, $maximo);
     }

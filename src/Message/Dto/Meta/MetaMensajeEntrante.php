@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Dto\Meta;
 
+use App\Dto\Lee;
+
 /**
  * Un mensaje del huésped: un elemento de `value.messages[]` del webhook de Meta.
  *
@@ -43,35 +45,35 @@ final readonly class MetaMensajeEntrante
     /** @param array<mixed> $mensaje */
     public static function fromArray(array $mensaje): self
     {
-        $tipo = LeeMeta::texto($mensaje['type'] ?? null) ?? 'text';
+        $tipo = Lee::texto($mensaje['type'] ?? null) ?? 'text';
 
-        $interactivo = LeeMeta::mapa($mensaje['interactive'] ?? null);
-        $interactivoTipo = LeeMeta::texto($interactivo['type'] ?? null);
+        $interactivo = Lee::mapa($mensaje['interactive'] ?? null);
+        $interactivoTipo = Lee::texto($interactivo['type'] ?? null);
         // La respuesta vive bajo su propio tipo: `interactive.button_reply` o `interactive.list_reply`.
-        $respuesta = $interactivoTipo !== null ? LeeMeta::mapa($interactivo[$interactivoTipo] ?? null) : [];
+        $respuesta = $interactivoTipo !== null ? Lee::mapa($interactivo[$interactivoTipo] ?? null) : [];
 
-        $adjunto = in_array($tipo, self::TIPOS_ADJUNTO, true) ? LeeMeta::mapa($mensaje[$tipo] ?? null) : [];
-        $boton = LeeMeta::mapa($mensaje['button'] ?? null);
-        $ubicacion = LeeMeta::mapa($mensaje['location'] ?? null);
-        $reaccion = LeeMeta::mapa($mensaje['reaction'] ?? null);
+        $adjunto = in_array($tipo, self::TIPOS_ADJUNTO, true) ? Lee::mapa($mensaje[$tipo] ?? null) : [];
+        $boton = Lee::mapa($mensaje['button'] ?? null);
+        $ubicacion = Lee::mapa($mensaje['location'] ?? null);
+        $reaccion = Lee::mapa($mensaje['reaction'] ?? null);
 
         return new self(
-            id: LeeMeta::texto($mensaje['id'] ?? null),
+            id: Lee::texto($mensaje['id'] ?? null),
             tipo: $tipo,
-            timestamp: LeeMeta::entero($mensaje['timestamp'] ?? null),
-            texto: LeeMeta::texto(LeeMeta::mapa($mensaje['text'] ?? null)['body'] ?? null),
-            botonPayload: LeeMeta::texto($boton['payload'] ?? null),
-            botonTexto: LeeMeta::texto($boton['text'] ?? null),
+            timestamp: Lee::entero($mensaje['timestamp'] ?? null),
+            texto: Lee::texto(Lee::mapa($mensaje['text'] ?? null)['body'] ?? null),
+            botonPayload: Lee::texto($boton['payload'] ?? null),
+            botonTexto: Lee::texto($boton['text'] ?? null),
             interactivoTipo: $interactivoTipo,
-            interactivoId: LeeMeta::texto($respuesta['id'] ?? null),
-            interactivoTitulo: LeeMeta::texto($respuesta['title'] ?? null),
-            adjuntoId: LeeMeta::texto($adjunto['id'] ?? null),
-            adjuntoMime: LeeMeta::texto($adjunto['mime_type'] ?? null),
-            adjuntoNombre: LeeMeta::texto($adjunto['filename'] ?? null),
-            latitud: LeeMeta::texto($ubicacion['latitude'] ?? null),
-            longitud: LeeMeta::texto($ubicacion['longitude'] ?? null),
-            reaccionAMensaje: LeeMeta::texto($reaccion['message_id'] ?? null),
-            reaccionEmoji: LeeMeta::texto($reaccion['emoji'] ?? null),
+            interactivoId: Lee::texto($respuesta['id'] ?? null),
+            interactivoTitulo: Lee::texto($respuesta['title'] ?? null),
+            adjuntoId: Lee::texto($adjunto['id'] ?? null),
+            adjuntoMime: Lee::texto($adjunto['mime_type'] ?? null),
+            adjuntoNombre: Lee::texto($adjunto['filename'] ?? null),
+            latitud: Lee::texto($ubicacion['latitude'] ?? null),
+            longitud: Lee::texto($ubicacion['longitude'] ?? null),
+            reaccionAMensaje: Lee::texto($reaccion['message_id'] ?? null),
+            reaccionEmoji: Lee::texto($reaccion['emoji'] ?? null),
         );
     }
 }

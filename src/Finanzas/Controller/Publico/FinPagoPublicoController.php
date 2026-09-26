@@ -146,7 +146,10 @@ final class FinPagoPublicoController extends AbstractController
 
         // Los cinco parámetros del reto, si el navegador ya lo pasó. Ausentes en el primer
         // intento; ver `CulqiClient::cobrarConToken()`.
-        $autenticacion = is_array($datos['autenticacion3DS'] ?? null) ? $datos['autenticacion3DS'] : null;
+        // Un objeto con claves de texto, o nada: es lo que Culqi espera en `authentication_3DS`.
+        $reto = $datos['autenticacion3DS'] ?? null;
+        /** @var array<string, mixed>|null $autenticacion */
+        $autenticacion = is_array($reto) && array_filter(array_keys($reto), 'is_int') === [] ? $reto : null;
 
         // ⚠️ **La fila se abre ANTES de llamar a Culqi.** Un intento que se queda en `iniciado`
         // es el caso que no deja rastro en ningún otro sitio: la petición salió, el cargo pudo

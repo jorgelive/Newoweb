@@ -44,7 +44,8 @@ class FinEnlacePagoRepository extends ServiceEntityRepository
      */
     public function porOrigen(FinOrigenCobro $tipo, Uuid $origenId): array
     {
-        return $this->createQueryBuilder('e')
+        /** @var list<FinEnlacePago> $resultado */
+        $resultado = $this->createQueryBuilder('e')
             ->andWhere('e.origenTipo = :tipo')
             ->andWhere('e.origenId = :origenId')
             ->setParameter('tipo', $tipo->value)
@@ -52,6 +53,8 @@ class FinEnlacePagoRepository extends ServiceEntityRepository
             ->orderBy('e.createdAt', 'DESC')
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 
     /**
@@ -101,7 +104,10 @@ class FinEnlacePagoRepository extends ServiceEntityRepository
             ))->setParameter('texto', '%' . trim($texto) . '%');
         }
 
-        return $qb->getQuery()->getResult();
+        /** @var list<FinEnlacePago> $resultado */
+        $resultado = $qb->getQuery()->getResult();
+
+        return $resultado;
     }
 
     /**
@@ -115,7 +121,8 @@ class FinEnlacePagoRepository extends ServiceEntityRepository
      */
     public function pendientesCaducados(): array
     {
-        return $this->createQueryBuilder('e')
+        /** @var list<FinEnlacePago> $resultado */
+        $resultado = $this->createQueryBuilder('e')
             ->andWhere('e.estado = :estado')
             ->andWhere('e.expiraEn IS NOT NULL')
             ->andWhere('e.expiraEn < :ahora')
@@ -123,5 +130,7 @@ class FinEnlacePagoRepository extends ServiceEntityRepository
             ->setParameter('ahora', new \DateTimeImmutable())
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 }

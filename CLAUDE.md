@@ -250,6 +250,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Api/Filter/` (filtros de API compartidos entre módulos) | `docs/Operacion.md` §8 — ahí está el porqué de `UuidRelacionFilter` y la regla relación vs. texto |
 | `config/packages/security.yaml`, `src/Controller/SecurityController.php`, login y «Recordarme» en `util/` | `docs/Autenticacion.md` — y la regla de cuándo vale `IS_AUTHENTICATED_FULLY` |
 | `src/Panel/Controller/DashboardController.php` (menú lateral), acciones personalizadas de cualquier `*CrudController` (`linkToCrudAction()`) | `docs/PanelEasyAdmin.md` — por qué una acción sin `#[AdminRoute]` no resalta su entrada del menú |
+| `src/Dto/Lee.php`, cualquier `src/<Modulo>/Dto/` que lea un JSON de fuera (webhooks, APIs, skills) | `docs/TiposDeFrontera.md` — la regla, el lector y la prueba contra datos reales antes de cambiar una frontera |
 | Algo del panel Sonata viejo (`Oweb`, archivado), sus tablas `res_*`/`use_*`, o un feed iCal para un canal | `docs/OwebArchivado.md` — qué se quitó, qué se quedó y quién leía sus iCal |
 
 Si el módulo que tocas no tiene doc (`src/Pax/`…), **créalo**

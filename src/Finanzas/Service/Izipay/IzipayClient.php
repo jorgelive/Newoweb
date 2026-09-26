@@ -13,6 +13,7 @@ use RuntimeException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use App\Dto\Lee;
 
 /**
  * Cliente REST de Izipay (plataforma Lyra, `api.micuentaweb.pe`).
@@ -149,7 +150,7 @@ final class IzipayClient implements FinPasarelaClientInterface
 
         $respuesta = $this->post(self::RUTA_CREATE_PAYMENT, $payload);
 
-        $formToken = $respuesta['answer']['formToken'] ?? null;
+        $formToken = Lee::en($respuesta, 'answer', 'formToken');
 
         if (!is_string($formToken) || $formToken === '') {
             $this->logger->error('[izipay] CreatePayment sin formToken', [
@@ -298,8 +299,8 @@ final class IzipayClient implements FinPasarelaClientInterface
         // La API responde 200 incluso cuando rechaza: el veredicto está en `status`, no en
         // el código HTTP. Comprobar sólo el 200 daría por buena una respuesta de error.
         if (($datos['status'] ?? null) !== 'SUCCESS') {
-            $detalle = $datos['answer']['errorMessage']
-                ?? $datos['answer']['detailedErrorMessage']
+            $detalle = Lee::texto(Lee::en($datos, 'answer', 'errorMessage'))
+                ?? Lee::texto(Lee::en($datos, 'answer', 'detailedErrorMessage'))
                 ?? 'error desconocido';
 
             $this->logger->error('[izipay] respuesta de error', ['ruta' => $ruta, 'respuesta' => $datos]);
