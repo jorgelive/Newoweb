@@ -222,8 +222,8 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
 
         // ⚠️ Lo decide el modelo, y eso es una decisión consciente: aquí la asimetría manda. Un
         // falso positivo cuesta un WhatsApp de más; un falso negativo silencia una emergencia de
-        // verdad. Ante la duda, que suene.
-        $emergencia = $e->booleano('emergencia');
+        // verdad. Ante la duda, que suene: si el campo vino y no se entiende («si», «sí»), suena.
+        $emergencia = $e->tiene('emergencia') && $e->booleano('emergencia', siNoViene: true);
 
         // 🔇 SILENCIOSO: el equipo se entera, el huésped no.
         //

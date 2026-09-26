@@ -282,8 +282,10 @@ class MaestroIdioma
                 ));
             }
 
+            // Un número se conserva como texto: este getter alimenta el formulario de EasyAdmin, y un
+            // `null` aquí se escribiría al guardar —un dato perdido sin que nadie lo borrara—.
             $contenido = $fila['content'] ?? null;
-            $fila['content'] = is_string($contenido) ? $contenido : null;
+            $fila['content'] = is_scalar($contenido) ? (string) $contenido : null;
             $filas[] = $fila;
         }
 

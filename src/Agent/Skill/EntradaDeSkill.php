@@ -24,7 +24,14 @@ use App\Dto\Lee;
  * |---|---|---|
  * | `(string) ($entrada['x'] ?? '')` | `texto('x')` | llega un array: era «Array», es `''` |
  * | `filter_var($entrada['x'] ?? false, FILTER_VALIDATE_BOOL)` | `booleano('x')` | nunca |
- * | `(int) ($entrada['x'] ?? 0)` | `entero('x')` | llega «12abc»: era 12, es 0 |
+ * | `(int) ($entrada['x'] ?? 0)` | `entero('x')` | llega un array: era 0 o 1, es el valor por defecto |
+ * | `(float) ($entrada['x'] ?? 0)` | `decimal('x')` | ídem |
+ *
+ * ⚠️ **`entero()` y `decimal()` conservan el cast, a propósito.** Se probó leerlos con
+ * `Lee::entero()` (lo que no es un número limpio es «no vino») y la revisión lo tumbó: el modelo
+ * escribe «2 adultos» o `2.5` en un campo `integer`, y con el cast eso era 2. Con la lectura
+ * estricta era 0 —`ModificarReservaSkill` ponía los niños a 0, `ConsultarDisponibilidadSkill`
+ * cotizaba para 0 personas—, sin error. Un 0 inventado es peor que el cast.
  *
  * Lo que escribe el modelo es la frontera menos fiable del sistema —se inventa formas con toda la
  * seguridad del mundo—, y estas skills escriben en la base. Ver `docs/TiposDeFrontera.md`.
@@ -40,6 +47,18 @@ final readonly class EntradaDeSkill
     public function tiene(string $nombre): bool
     {
         return isset($this->entrada[$nombre]);
+    }
+
+    /**
+     * ¿Vino, pero sin forma de texto (una lista, un objeto)? `texto()` lo lee como `''`, y hay
+     * campos donde el vacío SIGNIFICA algo —«canales» vacío es «todos»—: ahí una lista del modelo
+     * no puede pasar por vacío, tiene que leerse como lista o devolverse como error.
+     */
+    public function noEsTexto(string $nombre): bool
+    {
+        $valor = $this->entrada[$nombre] ?? null;
+
+        return $valor !== null && !is_scalar($valor);
     }
 
     /**
@@ -69,14 +88,20 @@ final readonly class EntradaDeSkill
         return Lee::booleano($this->entrada[$nombre] ?? null) ?? $siNoViene;
     }
 
+    /** El `(int)` de siempre sobre lo que vino (ver la cabecera); un array es «no vino». */
     public function entero(string $nombre, int $siNoViene = 0): int
     {
-        return Lee::entero($this->entrada[$nombre] ?? null) ?? $siNoViene;
+        $valor = $this->entrada[$nombre] ?? null;
+
+        return is_scalar($valor) ? (int) $valor : $siNoViene;
     }
 
+    /** El `(float)` de siempre sobre lo que vino (ver la cabecera); un array es «no vino». */
     public function decimal(string $nombre, float $siNoViene = 0.0): float
     {
-        return Lee::decimal($this->entrada[$nombre] ?? null) ?? $siNoViene;
+        $valor = $this->entrada[$nombre] ?? null;
+
+        return is_scalar($valor) ? (float) $valor : $siNoViene;
     }
 
     /**

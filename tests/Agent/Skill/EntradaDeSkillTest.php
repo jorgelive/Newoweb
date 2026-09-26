@@ -47,7 +47,7 @@ final class EntradaDeSkillTest extends TestCase
         self::assertFalse($e->booleano('falta'));
         self::assertTrue($e->booleano('falta', siNoViene: true));
         self::assertSame(7, $e->entero('n'));
-        self::assertSame(0, $e->entero('x'), '«12abc» no es un número');
+        self::assertSame(12, $e->entero('x'), 'el cast de antes: el modelo escribe «2 adultos» en un integer');
         self::assertSame(120.5, $e->decimal('p'));
     }
 
@@ -102,5 +102,29 @@ final class EntradaDeSkillTest extends TestCase
 
         self::assertGreaterThanOrEqual(25, $comprobadas, "Sólo se comprobaron $comprobadas skills ($sinDefinicionLegible sin definición legible): el test pasaría en vacío.");
         self::assertSame([], $sinDeclarar, 'Campos que la skill lee y el modelo no conoce: ' . implode(', ', $sinDeclarar));
+    }
+
+    /** Lo que la revisión encontró con la lectura estricta: un 0 inventado donde había un número. */
+    public function testEnteroYDecimalConservanElCast(): void
+    {
+        $e = new EntradaDeSkill(['a' => '2 adultos', 'b' => 2.5, 'c' => '2.0', 'p' => '120,50', 'l' => [1]]);
+
+        self::assertSame(2, $e->entero('a'));
+        self::assertSame(2, $e->entero('b'));
+        self::assertSame(2, $e->entero('c'));
+        self::assertSame(120.0, $e->decimal('p'));
+        self::assertSame(7, $e->entero('l', siNoViene: 7), 'un array es «no vino»');
+    }
+
+    /** Donde el vacío significa algo («canales» vacío = todos), una lista no puede pasar por vacío. */
+    public function testNoEsTextoDistingueUnaListaDeUnVacio(): void
+    {
+        $e = new EntradaDeSkill(['c' => ['whatsapp_meta'], 'v' => '', 'n' => 3]);
+
+        self::assertTrue($e->noEsTexto('c'));
+        self::assertSame(['whatsapp_meta'], $e->textos('c'));
+        self::assertFalse($e->noEsTexto('v'));
+        self::assertFalse($e->noEsTexto('n'));
+        self::assertFalse($e->noEsTexto('falta'));
     }
 }

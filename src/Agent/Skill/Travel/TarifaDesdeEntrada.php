@@ -52,6 +52,12 @@ final readonly class TarifaDesdeEntrada
         }
 
         if ($e->tiene('precio') && $e->texto('precio') !== '') {
+            // Un precio que no es un número limpio se devuelve, no se adivina: «120,50» con el cast
+            // era 120 y con una lectura estricta 0.00, y los dos se guardaban como tarifa.
+            if (!is_numeric(trim($e->texto('precio')))) {
+                return sprintf('No entiendo el precio «%s»: escribe sólo el número, con punto decimal (120.50).', $e->texto('precio'));
+            }
+
             $precio = $e->decimal('precio');
 
             if ($precio < 0) {

@@ -234,7 +234,14 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
         //
         // Objeto y no array a propósito: la versión array de este contrato se rompió en
         // producción y tumbó la skill en el caso normal — el porqué, en {@see DistribucionLeida}.
-        $leido = DistribucionLeida::deTexto($e->texto('distribucion'));
+        // Una lista de trozos (`["2:7", "5:2"]`) se une en el texto que se esperaba; otra forma se
+        // devuelve como error. Leída como texto sería `''` —«sin distribución»— y cotizaría en
+        // silencio otra cosa de la que se pidió.
+        if ($e->noEsTexto('distribucion') && $e->textos('distribucion') === []) {
+            return SkillResult::error('La distribución va como texto casita:personas separado por comas, por ejemplo «2:7, 5:2».');
+        }
+
+        $leido = DistribucionLeida::deTexto($e->noEsTexto('distribucion') ? implode(',', $e->textos('distribucion')) : $e->texto('distribucion'));
 
         if ($leido->ilegibles !== []) {
             return SkillResult::error(sprintf(

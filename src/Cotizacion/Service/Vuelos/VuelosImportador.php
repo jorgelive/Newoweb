@@ -146,8 +146,17 @@ final class VuelosImportador
         $this->renombrar($file, $grupo, $reserva, $r);
 
         // ⚠️ `Lee::booleano()` y no `(bool)`: un `"false"` escrito a mano era `true`, o sea dar
-        // por EMITIDO un billete que no lo está. Lo ilegible no cambia nada.
+        // por EMITIDO un billete que no lo está. Lo ilegible no cambia nada, pero SE DICE: el
+        // archivo lo escribe una persona, y un «si» que no actúa sin un aviso no se descubre nunca.
         $emitido = Lee::booleano($reserva['emitido'] ?? null);
+
+        if ($emitido === null && array_key_exists('emitido', $reserva) && $reserva['emitido'] !== null) {
+            $r->problema(sprintf(
+                '%s · «emitido» no se entiende (%s): va true o false. No se toca.',
+                $grupo->getClave(),
+                is_scalar($reserva['emitido']) ? '«' . $reserva['emitido'] . '»' : get_debug_type($reserva['emitido']),
+            ));
+        }
 
         if ($emitido !== null && $emitido !== $grupo->isEmitido()) {
             $r->cambio(sprintf(

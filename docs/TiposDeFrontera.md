@@ -161,6 +161,14 @@ un nombre que su definición no declara. Una sola fuente, y el descuido sale en 
   `CotizacionFile::$propuestasFechas`), el `api.d.ts` regenerado pasó a decir «lista» de lo que
   viaja como objeto. Se estrecha en el provider con `Lee::objeto()`, no en el tipo. **Tras tocar
   tipos de entidades, regenerar `api.d.ts` y leer el diff.**
+- **Arreglar lo que el tipado destapa cambia lo que se reintenta.** Dar por fallido un rechazo de
+  Meta —correcto— convirtió en duplicados dos fallos que antes eran mudos: respuestas de un lote
+  cruzadas por índice y timeouts de los que no se sabe si salieron (`docs/Mensajeria.md` §14.c).
+  Antes de cambiar un «éxito» en «fallo», mirar qué hace el motor con un fallo.
+- **La lectura estricta no siempre es la buena.** En la entrada de las skills, `Lee::entero()` hacía
+  de «2 adultos» un 0 y los niños de una reserva pasaban a cero sin error. `EntradaDeSkill` volvió
+  al cast para números; donde un vacío SIGNIFICA algo («canales» vacío = todos), una lista del
+  modelo se lee como lista (`noEsTexto()`) en vez de como `''`.
 - **Un `vendor` enlazado no carga el `src/` del worktree.** Con `vendor` como symlink al repo
   principal, el classmap optimizado resuelve `App\` contra el repo principal: `phpunit` y
   `bin/console` dentro de un worktree prueban el código de `master` y salen en verde. PHPStan no se

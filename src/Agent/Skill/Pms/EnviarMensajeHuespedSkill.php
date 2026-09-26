@@ -156,7 +156,15 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface, SkillD
             );
         }
 
-        $pedidos = $this->canalesPedidos(($e->textoONull('canales') ?? 'todos'), $disponibles);
+        // ⚠️ Una LISTA (`["whatsapp_meta"]`) se lee como la lista que es. Leída como texto sería
+        // `''`, y vacío aquí es «todos los canales»: el mensaje saldría también por los que no se
+        // pidieron. Con el `(string)` de antes era «Array» y no salía nada.
+        $lista = $e->textos('canales');
+        if ($lista === [] && $e->noEsTexto('canales')) {
+            return SkillResult::error('«canales» va como texto separado por comas, por ejemplo «whatsapp_meta,beds24», o «todos».');
+        }
+
+        $pedidos = $this->canalesPedidos($lista !== [] ? implode(',', $lista) : ($e->textoONull('canales') ?? 'todos'), $disponibles);
         if ($pedidos === []) {
             return SkillResult::error(sprintf(
                 'Ninguno de los canales indicados está disponible. Disponibles: %s.',

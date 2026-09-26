@@ -219,6 +219,15 @@ class TipocambioManager
             $venta = Lee::texto($item[self::CAMPO_VENTA] ?? null);
 
             if ($fecha === null || !is_numeric($compra) || !is_numeric($venta)) {
+                // Ruidoso: el fallo del 26/08 costó quince días por un vacío mudo, y una fila
+                // descartada sin rastro es lo mismo — se serviría la tasa vieja sin que nadie lo sepa.
+                $this->logger->warning(sprintf(
+                    'Tipo de cambio: fila descartada, sin fecha o con importe no numérico (fecha %s, compra %s, venta %s).',
+                    $fecha ?? '—',
+                    $compra ?? get_debug_type($item[self::CAMPO_COMPRA] ?? null),
+                    $venta ?? get_debug_type($item[self::CAMPO_VENTA] ?? null),
+                ));
+
                 continue;
             }
             $fechaStr = substr($fecha, 0, 10);
