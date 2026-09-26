@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Vision;
 
 use App\Agent\Provider\Google\GoogleAIClient;
+use App\Agent\Provider\Google\GoogleRespuesta;
 use JsonException;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -82,23 +83,27 @@ final readonly class GoogleLectorDeImagen implements LectorDeImagenInterface
             ],
         ]);
 
-        $uso = is_array($datos['usageMetadata'] ?? null) ? $datos['usageMetadata'] : [];
+        $leida = GoogleRespuesta::fromArray($datos);
         $this->logger->info(sprintf(
             'Visión (google): %s · %.1f s · %s · %d KB · entrada %d · salida %d tokens.',
             $modelo,
             microtime(true) - $cronometro,
             $mime,
             intdiv(strlen($bytes), 1024),
-            (int) ($uso['promptTokenCount'] ?? 0),
-            (int) ($uso['candidatesTokenCount'] ?? 0),
+            $leida->consumo->entrada,
+            $leida->consumo->salida ?? 0,
         ));
 
-        $texto = $datos['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        if (!is_string($texto) || trim($texto) === '') {
+        // ⚠️ Todas las partes de texto, no sólo la primera. Así lo lee también el turno con
+        // esquema del motor, y un JSON que Gemini partiera en dos trozos se leería entero en vez
+        // de fallar a la mitad. Con `responseSchema` llega en una sola parte, así que en la
+        // práctica es lo mismo que leía antes (`parts[0].text`).
+        $texto = $leida->texto;
+        if (trim($texto) === '') {
             // Sin candidatos casi siempre es un filtro de seguridad: un documento de identidad
             // con una cara dentro los roza de vez en cuando, y el motivo viene en la respuesta.
-            $motivo = $datos['candidates'][0]['finishReason'] ?? $datos['promptFeedback']['blockReason'] ?? 'sin detalle';
-            throw new RuntimeException(sprintf('Google no devolvió lectura (%s).', is_string($motivo) ? $motivo : 'sin detalle'));
+            $motivo = $leida->motivoFin !== '' ? $leida->motivoFin : ($leida->motivoBloqueo ?? 'sin detalle');
+            throw new RuntimeException(sprintf('Google no devolvió lectura (%s).', $motivo));
         }
 
         try {
