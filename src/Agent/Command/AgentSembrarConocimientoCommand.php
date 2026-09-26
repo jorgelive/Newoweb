@@ -382,9 +382,18 @@ final class AgentSembrarConocimientoCommand extends Command
                 // habría revertido esa edición sin que nadie lo pidiera: se trae aquí para que
                 // las dos digan lo mismo. Es la regla de esta tabla desde hoy — lo que se toque
                 // en el panel hay que devolverlo al archivo.
-                'contenido' => 'Tenemos disponibles frazadas adicionales. Se pueden solicitar '
-                    . 'CON ANTICIPACIÓN: no se pueden llevar en el momento, así que conviene '
-                    . 'avisar por el chat con tiempo y se las dejamos preparadas.'
+                'contenido' => 'Sí, tenemos algunas frazadas adicionales y no cuestan nada. Se '
+                    . 'piden CON ANTICIPACIÓN: no se pueden llevar en el momento, así que '
+                    . 'conviene avisar por el chat con tiempo y se las dejamos preparadas.'
+                    . "\n\n"
+                    // ⚠️ SON POCAS —un par por casita— y el modelo tiende a ofrecer lo gratis
+                    // para quedar bien. Sin este freno, una cortesía en una conversación de otra
+                    // cosa se convierte en una promesa que no se puede cumplir con las siete
+                    // casitas llenas. La cifra no se le da: una instrucción de «no lo digas»
+                    // sobre un número que está delante ya se ha ignorado tres veces en este
+                    // proyecto.
+                    . 'NO las ofrezcas si el huésped no ha hablado de frío, y no prometas una '
+                    . 'cantidad ni «las que necesite»: son pocas.'
                     . "\n\n"
                     // 🔗 El calefactor NO se explica aquí, se enlaza. Su precio (20 soles por
                     // periodo), sus horarios y cómo se enciende viven en su ficha de guía y
