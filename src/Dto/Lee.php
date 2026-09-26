@@ -110,6 +110,28 @@ final class Lee
     }
 
     /**
+     * Un objeto JSON con sus claves de texto: lo que tenga clave numérica se descarta.
+     *
+     * `mapa()` basta para leer campos por nombre. Éste es para lo que se PUBLICA con su tipo —un
+     * getter que API Platform convierte en esquema—: con `array<mixed>` el esquema dice «lista»,
+     * y el `api.d.ts` generado describe una forma que no es la que viaja.
+     *
+     * @return array<string, mixed>
+     */
+    public static function objeto(mixed $valor): array
+    {
+        $objeto = [];
+
+        foreach (self::mapa($valor) as $clave => $v) {
+            if (is_string($clave)) {
+                $objeto[$clave] = $v;
+            }
+        }
+
+        return $objeto;
+    }
+
+    /**
      * Una lista de objetos: lo que no sea un array dentro de ella se descarta.
      *
      * @return list<array<mixed>>

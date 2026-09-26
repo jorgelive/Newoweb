@@ -1147,7 +1147,47 @@ export interface paths {
          * Retrieves the collection of Message resources.
          * @description Retrieves the collection of Message resources.
          */
-        get: operations["api_messageconversations_idmessages_get_collection"];
+        get: operations["hilo_historial"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/message/conversations/{id}/messages/cancelados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of Message resources.
+         * @description Retrieves the collection of Message resources.
+         */
+        get: operations["hilo_cancelados"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/message/conversations/{id}/messages/programados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of Message resources.
+         * @description Retrieves the collection of Message resources.
+         */
+        get: operations["hilo_programados"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2188,6 +2228,46 @@ export interface paths {
         patch: operations["api_pmspms_pago_financieros_id_patch"];
         trace?: never;
     };
+    "/platform/pms/peticiones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of PmsPeticion resources.
+         * @description Retrieves the collection of PmsPeticion resources.
+         */
+        get: operations["api_pmspeticiones_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/pms/peticiones/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Updates the PmsPeticion resource.
+         * @description Updates the PmsPeticion resource.
+         */
+        patch: operations["api_pmspeticiones_id_patch"];
+        trace?: never;
+    };
     "/platform/client/pax/pms/pms_reserva/{localizador}": {
         parameters: {
             query?: never;
@@ -2602,6 +2682,11 @@ export interface components {
              */
             readonly providerName?: string;
             readonly baseUrlRaw?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Beds24Config.html": {
             /** @description Gestión de auditoría temporal (DateTimeImmutable). */
@@ -2629,6 +2714,11 @@ export interface components {
              */
             readonly providerName?: string;
             readonly baseUrlRaw?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Beds24Config.jsonld": {
             /** @description Gestión de auditoría temporal (DateTimeImmutable). */
@@ -2656,6 +2746,11 @@ export interface components {
              */
             readonly providerName?: string;
             readonly baseUrlRaw?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Beds24Config.multipart": {
             /** @description Gestión de auditoría temporal (DateTimeImmutable). */
@@ -2683,6 +2778,11 @@ export interface components {
              */
             readonly providerName?: string;
             readonly baseUrlRaw?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         Beds24ReceiveQueue: {
             config?: components["schemas"]["Beds24Config"];
@@ -2711,6 +2811,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Beds24ReceiveQueue.html": {
             config?: components["schemas"]["Beds24Config.html"];
@@ -2739,6 +2844,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Beds24ReceiveQueue.jsonld": {
             config?: components["schemas"]["Beds24Config.jsonld"];
@@ -2767,6 +2877,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Beds24ReceiveQueue.multipart": {
             config?: components["schemas"]["Beds24Config.multipart"];
@@ -2795,6 +2910,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         Beds24SendQueue: {
             /**
@@ -2831,9 +2951,20 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: iri-reference
+             * @description `message_id` es NOT NULL: ver {@see Message::getConversationOrFail()}.
+             * @example https://example.com/
+             */
+            readonly messageOrFail?: string;
             /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
             readonly channelId?: string;
             readonly sendTaskName?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Beds24SendQueue-message.read": {
             /** @default pending */
@@ -2876,9 +3007,20 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: iri-reference
+             * @description `message_id` es NOT NULL: ver {@see Message::getConversationOrFail()}.
+             * @example https://example.com/
+             */
+            readonly messageOrFail?: string;
             /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
             readonly channelId?: string;
             readonly sendTaskName?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Beds24SendQueue.html-message.read": {
             /** @default pending */
@@ -2921,9 +3063,20 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: iri-reference
+             * @description `message_id` es NOT NULL: ver {@see Message::getConversationOrFail()}.
+             * @example https://example.com/
+             */
+            readonly messageOrFail?: string;
             /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
             readonly channelId?: string;
             readonly sendTaskName?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Beds24SendQueue.jsonld-message.read": {
             /** @default pending */
@@ -2966,9 +3119,20 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: iri-reference
+             * @description `message_id` es NOT NULL: ver {@see Message::getConversationOrFail()}.
+             * @example https://example.com/
+             */
+            readonly messageOrFail?: string;
             /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
             readonly channelId?: string;
             readonly sendTaskName?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Beds24SendQueue.multipart-message.read": {
             /** @default pending */
@@ -3189,6 +3353,11 @@ export interface components {
             readonly virtualTarifas?: string;
             readonly virtualSegmentosInyectados?: string;
             readonly virtualLugares?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-componente.item.read": {
@@ -3485,6 +3654,11 @@ export interface components {
             readonly virtualTarifas?: string;
             readonly virtualSegmentosInyectados?: string;
             readonly virtualLugares?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html-componente.item.read": {
@@ -3747,6 +3921,11 @@ export interface components {
             readonly virtualTarifas?: string;
             readonly virtualSegmentosInyectados?: string;
             readonly virtualLugares?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld-componente.item.read": {
@@ -4010,6 +4189,11 @@ export interface components {
             readonly virtualTarifas?: string;
             readonly virtualSegmentosInyectados?: string;
             readonly virtualLugares?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart-componente.item.read": {
@@ -4338,6 +4522,11 @@ export interface components {
             contextFinancials?: number | null;
             readonly correoPrincipal?: components["schemas"]["MessageIdentidad"] | null;
             readonly telefonoPrincipal?: components["schemas"]["MessageIdentidad"] | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Conversation-conversation.read": {
             /** @default open */
@@ -4571,6 +4760,11 @@ export interface components {
             contextFinancials?: number | null;
             readonly correoPrincipal?: components["schemas"]["MessageIdentidad"] | null;
             readonly telefonoPrincipal?: components["schemas"]["MessageIdentidad"] | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Conversation.jsonld-conversation.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @default open */
@@ -7083,6 +7277,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
@@ -7277,6 +7476,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
@@ -7423,6 +7627,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
@@ -7573,6 +7782,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
@@ -7804,6 +8018,12 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: iri-reference
+             * @description `cotservicio_id` es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly cotservicioOrFail?: string;
             /** @description ¿Este componente es una PARTE de un servicio repartido? */
             readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
@@ -7819,6 +8039,11 @@ export interface components {
             readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"] | null;
@@ -8333,6 +8558,12 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: iri-reference
+             * @description `cotservicio_id` es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly cotservicioOrFail?: string;
             /** @description ¿Este componente es una PARTE de un servicio repartido? */
             readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
@@ -8348,6 +8579,11 @@ export interface components {
             readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"] | null;
@@ -8747,6 +8983,12 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: iri-reference
+             * @description `cotservicio_id` es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly cotservicioOrFail?: string;
             /** @description ¿Este componente es una PARTE de un servicio repartido? */
             readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
@@ -8762,6 +9004,11 @@ export interface components {
             readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -9166,6 +9413,12 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: iri-reference
+             * @description `cotservicio_id` es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly cotservicioOrFail?: string;
             /** @description ¿Este componente es una PARTE de un servicio repartido? */
             readonly esParteRepartida?: boolean;
             /** @description Superficie segura para el cliente final. */
@@ -9181,6 +9434,11 @@ export interface components {
             readonly unidadDeConteo?: "noches" | "dias" | "unidades";
             /** @description Cómo se llama la unidad, en singular: «noche», «día», «desayuno». */
             readonly sustantivoUnidad?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"] | null;
@@ -9502,6 +9760,11 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionCotservicio-cotizacion.read_timestamp.read": {
             /**
@@ -9679,6 +9942,11 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionCotservicio.html-cotizacion.read_timestamp.read": {
             /**
@@ -9818,6 +10086,11 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -9957,6 +10230,11 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionCotservicio.multipart-cotizacion.read_timestamp.read": {
             /**
@@ -10106,6 +10384,11 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionCottarifa-cotizacion.read_timestamp.read": {
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
@@ -10321,6 +10604,11 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionCottarifa.html-cotizacion.read_timestamp.read": {
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
@@ -10486,6 +10774,11 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
@@ -10651,6 +10944,11 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionCottarifa.multipart-cotizacion.read_timestamp.read": {
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
@@ -10818,9 +11116,9 @@ export interface components {
              *     $cotizaciones/$cotservicios por cada fila.
              */
             propuestasFechas?: {
-                [key: string]: {
+                [key: string]: number | {
                     [key: string]: string | null;
-                }[] | number | string | null;
+                }[] | string | null;
             }[];
             /**
              * @description Qué documentos se le EXIGEN al pasajero en este expediente.
@@ -10908,6 +11206,11 @@ export interface components {
              */
             readonly paisDeControl?: "DO" | null;
             readonly exigeIdentificacion?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionFile-cotizacion.read_timestamp.read": {
             /** Format: date-time */
@@ -10996,9 +11299,9 @@ export interface components {
              *     $cotizaciones/$cotservicios por cada fila.
              */
             propuestasFechas?: {
-                [key: string]: {
+                [key: string]: number | {
                     [key: string]: string | null;
-                }[] | number | string | null;
+                }[] | string | null;
             }[];
             /**
              * @description Qué documentos se le EXIGEN al pasajero en este expediente.
@@ -11056,9 +11359,9 @@ export interface components {
              *     $cotizaciones/$cotservicios por cada fila.
              */
             propuestasFechas?: {
-                [key: string]: {
+                [key: string]: number | {
                     [key: string]: string | null;
-                }[] | number | string | null;
+                }[] | string | null;
             }[];
             /**
              * @description Qué documentos se le EXIGEN al pasajero en este expediente.
@@ -11415,9 +11718,9 @@ export interface components {
              *     $cotizaciones/$cotservicios por cada fila.
              */
             propuestasFechas?: {
-                [key: string]: {
+                [key: string]: number | {
                     [key: string]: string | null;
-                }[] | number | string | null;
+                }[] | string | null;
             }[];
             /**
              * @description Qué documentos se le EXIGEN al pasajero en este expediente.
@@ -11505,6 +11808,11 @@ export interface components {
              */
             readonly paisDeControl?: "DO" | null;
             readonly exigeIdentificacion?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionFile.html-cotizacion.read_timestamp.read": {
             /** Format: date-time */
@@ -11593,9 +11901,9 @@ export interface components {
              *     $cotizaciones/$cotservicios por cada fila.
              */
             propuestasFechas?: {
-                [key: string]: {
+                [key: string]: number | {
                     [key: string]: string | null;
-                }[] | number | string | null;
+                }[] | string | null;
             }[];
             /**
              * @description Qué documentos se le EXIGEN al pasajero en este expediente.
@@ -11653,9 +11961,9 @@ export interface components {
              *     $cotizaciones/$cotservicios por cada fila.
              */
             propuestasFechas?: {
-                [key: string]: {
+                [key: string]: number | {
                     [key: string]: string | null;
-                }[] | number | string | null;
+                }[] | string | null;
             }[];
             /**
              * @description Qué documentos se le EXIGEN al pasajero en este expediente.
@@ -11938,9 +12246,9 @@ export interface components {
              *     $cotizaciones/$cotservicios por cada fila.
              */
             propuestasFechas?: {
-                [key: string]: {
+                [key: string]: number | {
                     [key: string]: string | null;
-                }[] | number | string | null;
+                }[] | string | null;
             }[];
             /**
              * @description Qué documentos se le EXIGEN al pasajero en este expediente.
@@ -12028,6 +12336,11 @@ export interface components {
              */
             readonly paisDeControl?: "DO" | null;
             readonly exigeIdentificacion?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -12117,9 +12430,9 @@ export interface components {
              *     $cotizaciones/$cotservicios por cada fila.
              */
             propuestasFechas?: {
-                [key: string]: {
+                [key: string]: number | {
                     [key: string]: string | null;
-                }[] | number | string | null;
+                }[] | string | null;
             }[];
             /**
              * @description Qué documentos se le EXIGEN al pasajero en este expediente.
@@ -12177,9 +12490,9 @@ export interface components {
              *     $cotizaciones/$cotservicios por cada fila.
              */
             propuestasFechas?: {
-                [key: string]: {
+                [key: string]: number | {
                     [key: string]: string | null;
-                }[] | number | string | null;
+                }[] | string | null;
             }[];
             /**
              * @description Qué documentos se le EXIGEN al pasajero en este expediente.
@@ -12465,9 +12778,9 @@ export interface components {
              *     $cotizaciones/$cotservicios por cada fila.
              */
             propuestasFechas?: {
-                [key: string]: {
+                [key: string]: number | {
                     [key: string]: string | null;
-                }[] | number | string | null;
+                }[] | string | null;
             }[];
             /**
              * @description Qué documentos se le EXIGEN al pasajero en este expediente.
@@ -12555,6 +12868,11 @@ export interface components {
              */
             readonly paisDeControl?: "DO" | null;
             readonly exigeIdentificacion?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionFile.multipart-cotizacion.read_timestamp.read": {
             /** Format: date-time */
@@ -12643,9 +12961,9 @@ export interface components {
              *     $cotizaciones/$cotservicios por cada fila.
              */
             propuestasFechas?: {
-                [key: string]: {
+                [key: string]: number | {
                     [key: string]: string | null;
-                }[] | number | string | null;
+                }[] | string | null;
             }[];
             /**
              * @description Qué documentos se le EXIGEN al pasajero en este expediente.
@@ -12703,9 +13021,9 @@ export interface components {
              *     $cotizaciones/$cotservicios por cada fila.
              */
             propuestasFechas?: {
-                [key: string]: {
+                [key: string]: number | {
                     [key: string]: string | null;
-                }[] | number | string | null;
+                }[] | string | null;
             }[];
             /**
              * @description Qué documentos se le EXIGEN al pasajero en este expediente.
@@ -13207,6 +13525,11 @@ export interface components {
              *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
              */
             readonly totalMiembros?: number;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionFileGrupo.html-file.item.read": {
             /** @enum {string} */
@@ -13405,6 +13728,11 @@ export interface components {
              *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
              */
             readonly totalMiembros?: number;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -13604,6 +13932,11 @@ export interface components {
              *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
              */
             readonly totalMiembros?: number;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionFileGrupo.multipart-file.item.read": {
             /** @enum {string} */
@@ -13839,6 +14172,11 @@ export interface components {
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -14221,6 +14559,11 @@ export interface components {
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -14555,6 +14898,11 @@ export interface components {
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -14889,6 +15237,11 @@ export interface components {
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
             readonly alcance?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -15132,6 +15485,7 @@ export interface components {
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         CotizacionFilepasajero: {
             nombre?: string;
             apellido?: string;
@@ -15193,6 +15547,11 @@ export interface components {
             readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionFilepasajero-file.item.read": {
             nombre?: string;
@@ -15235,6 +15594,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero-file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -15325,6 +15685,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero-file.write": {
             nombre?: string;
             apellido?: string;
@@ -15354,6 +15715,7 @@ export interface components {
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero-file.write.jsonMergePatch": {
             nombre?: string;
             apellido?: string;
@@ -15419,6 +15781,7 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-pax_file.read_pax_cotizacion.read"][];
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.html": {
             nombre?: string;
             apellido?: string;
@@ -15480,6 +15843,11 @@ export interface components {
             readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionFilepasajero.html-file.item.read": {
             nombre?: string;
@@ -15522,6 +15890,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.html-file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -15648,6 +16017,7 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-pax_file.read_pax_cotizacion.read"][];
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15709,7 +16079,13 @@ export interface components {
             readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15751,6 +16127,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15796,6 +16173,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15841,6 +16219,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-pax_file.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15859,6 +16238,7 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-pax_file.read"][];
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -15877,6 +16257,7 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-pax_file.read_pax_cotizacion.read"][];
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.multipart": {
             nombre?: string;
             apellido?: string;
@@ -15938,6 +16319,11 @@ export interface components {
             readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionFilepasajero.multipart-file.item.read": {
             nombre?: string;
@@ -15980,6 +16366,7 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        /** @description ⚠️ **No existía, y por eso el panel recargaba el expediente entero.** */
         "CotizacionFilepasajero.multipart-file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -16133,6 +16520,11 @@ export interface components {
              * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
              */
             readonly grupoId?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionPasajeroGrupo-file.item.read": {
             /**
@@ -16212,6 +16604,11 @@ export interface components {
              * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
              */
             readonly grupoId?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionPasajeroGrupo.html-file.item.read": {
             /**
@@ -16287,6 +16684,11 @@ export interface components {
              * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
              */
             readonly grupoId?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionPasajeroGrupo.jsonld-file.item.read": {
             /**
@@ -16362,6 +16764,11 @@ export interface components {
              * @description El id del subgrupo, que es **lo único que hacía falta leer** de esta relación.
              */
             readonly grupoId?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionPasajeroGrupo.multipart-file.item.read": {
             /**
@@ -16479,6 +16886,11 @@ export interface components {
             readonly tieneEscaneo?: boolean;
             /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
             readonly sePuedeConfirmar?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionPasajeroIdentificacion-file.item.read": {
             /**
@@ -16758,6 +17170,11 @@ export interface components {
             readonly tieneEscaneo?: boolean;
             /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
             readonly sePuedeConfirmar?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionPasajeroIdentificacion.html-file.item.read": {
             /**
@@ -17016,6 +17433,11 @@ export interface components {
             readonly tieneEscaneo?: boolean;
             /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
             readonly sePuedeConfirmar?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionPasajeroIdentificacion.jsonld-file.item.read": {
             /**
@@ -17274,6 +17696,11 @@ export interface components {
             readonly tieneEscaneo?: boolean;
             /** @description ¿Se le puede poner el «lo he mirado, está bien»? */
             readonly sePuedeConfirmar?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionPasajeroIdentificacion.multipart-file.item.read": {
             /**
@@ -17516,6 +17943,11 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionSegmento-cotizacion.read_timestamp.read": {
             /** @default 1 */
@@ -17700,6 +18132,11 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionSegmento.html-cotizacion.read_timestamp.read": {
             /** @default 1 */
@@ -17846,6 +18283,11 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionSegmento.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @default 1 */
@@ -17992,6 +18434,11 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionSegmento.multipart-cotizacion.read_timestamp.read": {
             /** @default 1 */
@@ -18120,6 +18567,11 @@ export interface components {
             updatedAt?: string | null;
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionVuelo-file.item.read": {
             /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
@@ -18243,6 +18695,11 @@ export interface components {
             updatedAt?: string | null;
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionVuelo.html-file.item.read": {
             /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
@@ -18365,6 +18822,11 @@ export interface components {
             updatedAt?: string | null;
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionVuelo.jsonld-file.item.read": {
             /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
@@ -18487,6 +18949,11 @@ export interface components {
             updatedAt?: string | null;
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "CotizacionVuelo.multipart-file.item.read": {
             /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
@@ -18602,6 +19069,11 @@ export interface components {
             readonly virtualTituloEs?: string;
             /** @description Muestra los componentes (y su modo) donde se está usando este término del diccionario. */
             readonly virtualComponentesUsados?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Diccionario-diccionario.item.read": {
             nombreInterno?: string;
@@ -18649,6 +19121,11 @@ export interface components {
             readonly virtualTituloEs?: string;
             /** @description Muestra los componentes (y su modo) donde se está usando este término del diccionario. */
             readonly virtualComponentesUsados?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Diccionario.html-diccionario.item.read": {
             nombreInterno?: string;
@@ -18690,6 +19167,11 @@ export interface components {
             readonly virtualTituloEs?: string;
             /** @description Muestra los componentes (y su modo) donde se está usando este término del diccionario. */
             readonly virtualComponentesUsados?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Diccionario.jsonld-diccionario.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
@@ -18731,6 +19213,11 @@ export interface components {
             readonly virtualTituloEs?: string;
             /** @description Muestra los componentes (y su modo) donde se está usando este término del diccionario. */
             readonly virtualComponentesUsados?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Diccionario.multipart-diccionario.item.read": {
             nombreInterno?: string;
@@ -18842,6 +19329,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "ExchangeEndpoint.html": {
             /** @enum {string} */
@@ -18872,6 +19364,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "ExchangeEndpoint.jsonld": {
             /** @enum {string} */
@@ -18902,6 +19399,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "ExchangeEndpoint.multipart": {
             /** @enum {string} */
@@ -18932,6 +19434,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "HallazgoCoherencia-coherencia.read": {
             clave?: string;
@@ -19146,6 +19653,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
             readonly virtualTitulo?: string;
             readonly virtualSegmentos?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Itinerario-itinerario.item.read": {
             /**
@@ -19253,6 +19765,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
             readonly virtualTitulo?: string;
             readonly virtualSegmentos?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Itinerario.html-itinerario.item.read": {
             /**
@@ -19344,6 +19861,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
             readonly virtualTitulo?: string;
             readonly virtualSegmentos?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Itinerario.jsonld-itinerario.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -19435,6 +19957,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
             readonly virtualTitulo?: string;
             readonly virtualSegmentos?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Itinerario.multipart-itinerario.item.read": {
             /**
@@ -19524,6 +20051,11 @@ export interface components {
              *     así que conviene ver cuánto se lleva por delante.
              */
             readonly virtualComponentesCount?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description Centro de operación / lugar con el que se etiquetan los componentes. */
         "Lugar-lugar.read": {
@@ -19598,6 +20130,11 @@ export interface components {
              *     así que conviene ver cuánto se lleva por delante.
              */
             readonly virtualComponentesCount?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description Centro de operación / lugar con el que se etiquetan los componentes. */
         "Lugar.html-lugar.read": {
@@ -19653,6 +20190,11 @@ export interface components {
              *     así que conviene ver cuánto se lleva por delante.
              */
             readonly virtualComponentesCount?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description Centro de operación / lugar con el que se etiquetan los componentes. */
         "Lugar.jsonld-lugar.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -19708,6 +20250,11 @@ export interface components {
              *     así que conviene ver cuánto se lleva por delante.
              */
             readonly virtualComponentesCount?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description Centro de operación / lugar con el que se etiquetan los componentes. */
         "Lugar.multipart-lugar.read": {
@@ -19771,6 +20318,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "MaestroContacto-file.item.read": Record<string, never>;
         "MaestroContacto-file.read_file.item.read_timestamp.read": {
@@ -19835,6 +20387,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "MaestroContacto.html-file.item.read": Record<string, never>;
         "MaestroContacto.html-file.read_file.item.read_timestamp.read": {
@@ -19897,6 +20454,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "MaestroContacto.jsonld-file.item.read": Record<string, never>;
         "MaestroContacto.jsonld-file.read_file.item.read_timestamp.read": {
@@ -19959,6 +20521,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "MaestroContacto.multipart-file.item.read": Record<string, never>;
         "MaestroContacto.multipart-file.read_file.item.read_timestamp.read": {
@@ -20010,7 +20577,10 @@ export interface components {
             status: string;
             /** @default host */
             senderType: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description ⚠️ Recalcula `ocurrio_at` en el acto, y por eso no vale asignar la propiedad a pelo.
+             */
             scheduledAt?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
@@ -20018,7 +20588,7 @@ export interface components {
             createdAt?: string;
             /**
              * Format: date-time
-             * @description Obtiene la fecha efectiva del mensaje para el ordenamiento en el frontend.
+             * @description Cuándo OCURRIÓ este mensaje, que es por donde lo ordena y lo fecha el chat.
              */
             readonly effectiveDateTime?: string | null;
             /** @description Determina de forma robusta si este mensaje es una programación futura. */
@@ -20056,7 +20626,10 @@ export interface components {
             senderType: string;
             /** @description Canales elegidos para ESTE envío; no se persiste. */
             transientChannels?: string[];
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description ⚠️ Recalcula `ocurrio_at` en el acto, y por eso no vale asignar la propiedad a pelo.
+             */
             scheduledAt?: string | null;
         };
         /**
@@ -20088,7 +20661,10 @@ export interface components {
             status: string;
             /** @default host */
             senderType: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description ⚠️ Recalcula `ocurrio_at` en el acto, y por eso no vale asignar la propiedad a pelo.
+             */
             scheduledAt?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
@@ -20096,7 +20672,7 @@ export interface components {
             createdAt?: string;
             /**
              * Format: date-time
-             * @description Obtiene la fecha efectiva del mensaje para el ordenamiento en el frontend.
+             * @description Cuándo OCURRIÓ este mensaje, que es por donde lo ordena y lo fecha el chat.
              */
             readonly effectiveDateTime?: string | null;
             /** @description Determina de forma robusta si este mensaje es una programación futura. */
@@ -20135,7 +20711,10 @@ export interface components {
             status: string;
             /** @default host */
             senderType: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description ⚠️ Recalcula `ocurrio_at` en el acto, y por eso no vale asignar la propiedad a pelo.
+             */
             scheduledAt?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
@@ -20143,7 +20722,7 @@ export interface components {
             createdAt?: string;
             /**
              * Format: date-time
-             * @description Obtiene la fecha efectiva del mensaje para el ordenamiento en el frontend.
+             * @description Cuándo OCURRIÓ este mensaje, que es por donde lo ordena y lo fecha el chat.
              */
             readonly effectiveDateTime?: string | null;
             /** @description Determina de forma robusta si este mensaje es una programación futura. */
@@ -20182,7 +20761,10 @@ export interface components {
             status: string;
             /** @default host */
             senderType: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description ⚠️ Recalcula `ocurrio_at` en el acto, y por eso no vale asignar la propiedad a pelo.
+             */
             scheduledAt?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
@@ -20190,7 +20772,7 @@ export interface components {
             createdAt?: string;
             /**
              * Format: date-time
-             * @description Obtiene la fecha efectiva del mensaje para el ordenamiento en el frontend.
+             * @description Cuándo OCURRIÓ este mensaje, que es por donde lo ordena y lo fecha el chat.
              */
             readonly effectiveDateTime?: string | null;
             /** @description Determina de forma robusta si este mensaje es una programación futura. */
@@ -20283,6 +20865,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "MessageIdentidad-conversation.read": {
             /** @enum {string} */
@@ -20426,6 +21013,11 @@ export interface components {
             /** @description El «App Secret» de la app de Meta, con el que se firma cada webhook. */
             appSecret?: string | null;
             readonly baseUrlRaw?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "MetaConfig.html": {
             nombre?: string | null;
@@ -20457,6 +21049,11 @@ export interface components {
             /** @description El «App Secret» de la app de Meta, con el que se firma cada webhook. */
             appSecret?: string | null;
             readonly baseUrlRaw?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "MetaConfig.jsonld": {
             nombre?: string | null;
@@ -20488,6 +21085,11 @@ export interface components {
             /** @description El «App Secret» de la app de Meta, con el que se firma cada webhook. */
             appSecret?: string | null;
             readonly baseUrlRaw?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "MetaConfig.multipart": {
             nombre?: string | null;
@@ -20519,6 +21121,11 @@ export interface components {
             /** @description El «App Secret» de la app de Meta, con el que se firma cada webhook. */
             appSecret?: string | null;
             readonly baseUrlRaw?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Moneda-componente.item.read": {
             id?: string;
@@ -20868,6 +21475,11 @@ export interface components {
              */
             readonly virtualContenidoEs?: string;
             readonly virtualSegmentos?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
@@ -21021,6 +21633,11 @@ export interface components {
              */
             readonly virtualContenidoEs?: string;
             readonly virtualSegmentos?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
@@ -21156,6 +21773,11 @@ export interface components {
              */
             readonly virtualContenidoEs?: string;
             readonly virtualSegmentos?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
@@ -21291,6 +21913,11 @@ export interface components {
              */
             readonly virtualContenidoEs?: string;
             readonly virtualSegmentos?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
@@ -24932,6 +25559,11 @@ export interface components {
             readonly virtualGaleria?: string;
             /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
             readonly virtualLugares?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion-organizacion.read": {
@@ -25126,6 +25758,11 @@ export interface components {
             readonly virtualGaleria?: string;
             /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
             readonly virtualLugares?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.html-organizacion.read": {
@@ -25264,6 +25901,11 @@ export interface components {
             readonly virtualGaleria?: string;
             /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
             readonly virtualLugares?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.jsonld-organizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -25402,6 +26044,11 @@ export interface components {
             readonly virtualGaleria?: string;
             /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
             readonly virtualLugares?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.multipart-organizacion.read": {
@@ -25523,6 +26170,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly token?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -25657,6 +26309,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly token?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -25747,6 +26404,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly token?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -25837,6 +26499,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly token?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -25938,6 +26605,11 @@ export interface components {
             /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
             readonly virtualTitulo?: string;
             readonly virtualGaleria?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
@@ -26114,6 +26786,11 @@ export interface components {
             /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
             readonly virtualTitulo?: string;
             readonly virtualGaleria?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
@@ -26240,6 +26917,11 @@ export interface components {
             /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
             readonly virtualTitulo?: string;
             readonly virtualGaleria?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
@@ -26366,6 +27048,11 @@ export interface components {
             /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
             readonly virtualTitulo?: string;
             readonly virtualGaleria?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
@@ -27016,6 +27703,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsBookingsPullQueue.html": {
             config?: components["schemas"]["Beds24Config.html"];
@@ -27051,6 +27743,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsBookingsPullQueue.jsonld": {
             config?: components["schemas"]["Beds24Config.jsonld"];
@@ -27086,6 +27783,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsBookingsPullQueue.multipart": {
             config?: components["schemas"]["Beds24Config.multipart"];
@@ -27121,6 +27823,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         PmsBookingsPushQueue: {
             link?: components["schemas"]["PmsEventoBeds24Link"] | null;
@@ -27156,6 +27863,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsBookingsPushQueue.html": {
             link?: components["schemas"]["PmsEventoBeds24Link.html"] | null;
@@ -27191,6 +27903,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsBookingsPushQueue.jsonld": {
             link?: components["schemas"]["PmsEventoBeds24Link.jsonld"] | null;
@@ -27226,6 +27943,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsBookingsPushQueue.multipart": {
             link?: components["schemas"]["PmsEventoBeds24Link.multipart"] | null;
@@ -27261,6 +27983,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /** @description Un concepto financiero individual de una reserva Beds24 (invoiceItem). */
         "PmsCargoFinanciero-pms_cargo.patch.jsonMergePatch": {
@@ -28246,6 +28973,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            beds24ConfigOrFail?: components["schemas"]["Beds24Config"];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEstablecimiento-pax_catalogo.read": {
             nombreComercial: string | null;
@@ -28291,6 +29024,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            beds24ConfigOrFail?: components["schemas"]["Beds24Config.html"];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEstablecimiento.html-pax_catalogo.read": {
             nombreComercial: string | null;
@@ -28336,6 +29075,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            beds24ConfigOrFail?: components["schemas"]["Beds24Config.jsonld"];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEstablecimiento.jsonld-pax_catalogo.read": {
             nombreComercial: string | null;
@@ -28381,6 +29126,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            beds24ConfigOrFail?: components["schemas"]["Beds24Config.multipart"];
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEstablecimiento.multipart-pax_catalogo.read": {
             nombreComercial: string | null;
@@ -28423,6 +29174,11 @@ export interface components {
             readonly token?: string | null;
             /** @description Lo que hay que servir, venga de un archivo o de una URL. */
             readonly valor?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -28459,6 +29215,11 @@ export interface components {
             readonly token?: string | null;
             /** @description Lo que hay que servir, venga de un archivo o de una URL. */
             readonly valor?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -28495,6 +29256,11 @@ export interface components {
             readonly token?: string | null;
             /** @description Lo que hay que servir, venga de un archivo o de una URL. */
             readonly valor?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -28531,6 +29297,11 @@ export interface components {
             readonly token?: string | null;
             /** @description Lo que hay que servir, venga de un archivo o de una URL. */
             readonly valor?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -28560,6 +29331,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEstablecimientoVirtual.html": {
             /**
@@ -28587,6 +29363,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEstablecimientoVirtual.jsonld": {
             /**
@@ -28614,6 +29395,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEstablecimientoVirtual.multipart": {
             /**
@@ -28641,6 +29427,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         PmsEventAssignment: {
             /**
@@ -28658,6 +29449,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEventAssignment.html": {
             /**
@@ -28675,6 +29471,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEventAssignment.jsonld": {
             /**
@@ -28692,6 +29493,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEventAssignment.multipart": {
             /**
@@ -28709,6 +29515,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         PmsEventAssignmentActivity: {
             /** @description Identificador Natural (PK). */
@@ -28812,6 +29623,11 @@ export interface components {
             updatedAt?: string | null;
             readonly mirror?: boolean;
             readonly active?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEventoBeds24Link.html": {
             /**
@@ -28847,6 +29663,11 @@ export interface components {
             updatedAt?: string | null;
             readonly mirror?: boolean;
             readonly active?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEventoBeds24Link.jsonld": {
             /**
@@ -28882,6 +29703,11 @@ export interface components {
             updatedAt?: string | null;
             readonly mirror?: boolean;
             readonly active?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEventoBeds24Link.multipart": {
             /**
@@ -28917,6 +29743,11 @@ export interface components {
             updatedAt?: string | null;
             readonly mirror?: boolean;
             readonly active?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description Entidad PmsEventoCalendario.
@@ -29022,6 +29853,12 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /**
+             * Format: iri-reference
+             * @description La unidad de un evento YA GUARDADO, que siempre la tiene: `pms_unidad_id` es `NOT NULL`.
+             * @example https://example.com/
+             */
+            readonly pmsUnidadOrFail?: string;
             /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
             readonly limpieza?: {
                 /** @example 018f... */
@@ -29029,12 +29866,27 @@ export interface components {
                 /** @example María Apaza */
                 nombre: string;
             }[];
+            /**
+             * Format: date-time
+             * @description Ver {@see self::getPmsUnidadOrFail()}: la columna `inicio` es NOT NULL.
+             */
+            readonly inicioOrFail?: string;
+            /**
+             * Format: date-time
+             * @description Ver {@see self::getPmsUnidadOrFail()}: la columna `fin` es NOT NULL.
+             */
+            readonly finOrFail?: string;
             readonly ota?: boolean;
             /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
             readonly trazabilidadReserva?: string | null;
             readonly trazabilidadLinks?: string | null;
             /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
             readonly noches?: number;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEventoCalendario-pax_reserva.read": {
             pmsUnidad: components["schemas"]["PmsUnidad-pax_reserva.read"];
@@ -29341,6 +30193,12 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /**
+             * Format: iri-reference
+             * @description La unidad de un evento YA GUARDADO, que siempre la tiene: `pms_unidad_id` es `NOT NULL`.
+             * @example https://example.com/
+             */
+            readonly pmsUnidadOrFail?: string;
             /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
             readonly limpieza?: {
                 /** @example 018f... */
@@ -29348,12 +30206,27 @@ export interface components {
                 /** @example María Apaza */
                 nombre: string;
             }[];
+            /**
+             * Format: date-time
+             * @description Ver {@see self::getPmsUnidadOrFail()}: la columna `inicio` es NOT NULL.
+             */
+            readonly inicioOrFail?: string;
+            /**
+             * Format: date-time
+             * @description Ver {@see self::getPmsUnidadOrFail()}: la columna `fin` es NOT NULL.
+             */
+            readonly finOrFail?: string;
             readonly ota?: boolean;
             /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
             readonly trazabilidadReserva?: string | null;
             readonly trazabilidadLinks?: string | null;
             /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
             readonly noches?: number;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEventoCalendario.html-pax_reserva.read": {
             pmsUnidad: components["schemas"]["PmsUnidad.html-pax_reserva.read"];
@@ -29547,6 +30420,12 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /**
+             * Format: iri-reference
+             * @description La unidad de un evento YA GUARDADO, que siempre la tiene: `pms_unidad_id` es `NOT NULL`.
+             * @example https://example.com/
+             */
+            readonly pmsUnidadOrFail?: string;
             /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
             readonly limpieza?: {
                 /** @example 018f... */
@@ -29554,12 +30433,27 @@ export interface components {
                 /** @example María Apaza */
                 nombre: string;
             }[];
+            /**
+             * Format: date-time
+             * @description Ver {@see self::getPmsUnidadOrFail()}: la columna `inicio` es NOT NULL.
+             */
+            readonly inicioOrFail?: string;
+            /**
+             * Format: date-time
+             * @description Ver {@see self::getPmsUnidadOrFail()}: la columna `fin` es NOT NULL.
+             */
+            readonly finOrFail?: string;
             readonly ota?: boolean;
             /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
             readonly trazabilidadReserva?: string | null;
             readonly trazabilidadLinks?: string | null;
             /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
             readonly noches?: number;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description Entidad PmsEventoCalendario.
@@ -29766,6 +30660,12 @@ export interface components {
             readonly safeToDelete?: boolean;
             /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
             readonly motivoNoBorrable?: string | null;
+            /**
+             * Format: iri-reference
+             * @description La unidad de un evento YA GUARDADO, que siempre la tiene: `pms_unidad_id` es `NOT NULL`.
+             * @example https://example.com/
+             */
+            readonly pmsUnidadOrFail?: string;
             /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
             readonly limpieza?: {
                 /** @example 018f... */
@@ -29773,12 +30673,27 @@ export interface components {
                 /** @example María Apaza */
                 nombre: string;
             }[];
+            /**
+             * Format: date-time
+             * @description Ver {@see self::getPmsUnidadOrFail()}: la columna `inicio` es NOT NULL.
+             */
+            readonly inicioOrFail?: string;
+            /**
+             * Format: date-time
+             * @description Ver {@see self::getPmsUnidadOrFail()}: la columna `fin` es NOT NULL.
+             */
+            readonly finOrFail?: string;
             readonly ota?: boolean;
             /** @description Getters virtuales para EasyAdmin (Trazabilidad) */
             readonly trazabilidadReserva?: string | null;
             readonly trazabilidadLinks?: string | null;
             /** @description Calcula la cantidad de noches (días calendario) de la estancia. */
             readonly noches?: number;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsEventoCalendario.multipart-pax_reserva.read": {
             pmsUnidad: components["schemas"]["PmsUnidad.multipart-pax_reserva.read"];
@@ -30308,6 +31223,8 @@ export interface components {
             };
         };
         "PmsGuiaItem-pax_guia.read": {
+            /** @description La ETIQUETA con la que otras fichas enlazan a ésta: `{{ ficha: calefactor }}`. */
+            codigo: string | null;
             /**
              * @default card
              * @enum {string}
@@ -30353,6 +31270,8 @@ export interface components {
             readonly visibilidad?: string;
         };
         "PmsGuiaItem.html-pax_guia.read": {
+            /** @description La ETIQUETA con la que otras fichas enlazan a ésta: `{{ ficha: calefactor }}`. */
+            codigo: string | null;
             /**
              * @default card
              * @enum {string}
@@ -30398,6 +31317,8 @@ export interface components {
             readonly visibilidad?: string;
         };
         "PmsGuiaItem.jsonld-pax_guia.read": {
+            /** @description La ETIQUETA con la que otras fichas enlazan a ésta: `{{ ficha: calefactor }}`. */
+            codigo: string | null;
             /**
              * @default card
              * @enum {string}
@@ -30443,6 +31364,8 @@ export interface components {
             readonly visibilidad?: string;
         };
         "PmsGuiaItem.multipart-pax_guia.read": {
+            /** @description La ETIQUETA con la que otras fichas enlazan a ésta: `{{ ficha: calefactor }}`. */
+            codigo: string | null;
             /**
              * @default card
              * @enum {string}
@@ -31494,6 +32417,110 @@ export interface components {
             /** @description Nombre del cobrador listo para pintar, sin arrastrar la entidad `User` al JSON. */
             readonly cobradorNombre?: string | null;
         };
+        /** @description Algo que un huésped pidió para su estancia, y que alguien tiene que dejar puesto. */
+        "PmsPeticion-pms_peticion.read": {
+            /**
+             * Format: iri-reference
+             * @description La estancia a la que se le deja puesto.
+             * @example https://example.com/
+             */
+            evento?: string;
+            /**
+             * @description Lo que pidió, en una línea y con sus palabras.
+             * @default
+             */
+            texto: string;
+            /** @description De qué conversación salió, para poder volver al chat sin buscarla. */
+            conversacionId?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo alguien comprobó que estaba puesta. `null` = pendiente.
+             */
+            efectuadaAt?: string | null;
+            readonly pendiente?: boolean;
+            /** @description Quién la dio por hecha, para la lista. El objeto entero no hace falta ahí. */
+            readonly efectuadaPorNombre?: string | null;
+        };
+        /** @description Algo que un huésped pidió para su estancia, y que alguien tiene que dejar puesto. */
+        "PmsPeticion-pms_peticion.write.jsonMergePatch": {
+            /**
+             * Format: date-time
+             * @description Cuándo alguien comprobó que estaba puesta. `null` = pendiente.
+             */
+            efectuadaAt?: string | null;
+        };
+        /** @description Algo que un huésped pidió para su estancia, y que alguien tiene que dejar puesto. */
+        "PmsPeticion.html-pms_peticion.read": {
+            /**
+             * Format: iri-reference
+             * @description La estancia a la que se le deja puesto.
+             * @example https://example.com/
+             */
+            evento?: string;
+            /**
+             * @description Lo que pidió, en una línea y con sus palabras.
+             * @default
+             */
+            texto: string;
+            /** @description De qué conversación salió, para poder volver al chat sin buscarla. */
+            conversacionId?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo alguien comprobó que estaba puesta. `null` = pendiente.
+             */
+            efectuadaAt?: string | null;
+            readonly pendiente?: boolean;
+            /** @description Quién la dio por hecha, para la lista. El objeto entero no hace falta ahí. */
+            readonly efectuadaPorNombre?: string | null;
+        };
+        /** @description Algo que un huésped pidió para su estancia, y que alguien tiene que dejar puesto. */
+        "PmsPeticion.jsonld-pms_peticion.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * Format: iri-reference
+             * @description La estancia a la que se le deja puesto.
+             * @example https://example.com/
+             */
+            evento?: string;
+            /**
+             * @description Lo que pidió, en una línea y con sus palabras.
+             * @default
+             */
+            texto: string;
+            /** @description De qué conversación salió, para poder volver al chat sin buscarla. */
+            conversacionId?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo alguien comprobó que estaba puesta. `null` = pendiente.
+             */
+            efectuadaAt?: string | null;
+            readonly pendiente?: boolean;
+            /** @description Quién la dio por hecha, para la lista. El objeto entero no hace falta ahí. */
+            readonly efectuadaPorNombre?: string | null;
+        };
+        /** @description Algo que un huésped pidió para su estancia, y que alguien tiene que dejar puesto. */
+        "PmsPeticion.multipart-pms_peticion.read": {
+            /**
+             * Format: iri-reference
+             * @description La estancia a la que se le deja puesto.
+             * @example https://example.com/
+             */
+            evento?: string;
+            /**
+             * @description Lo que pidió, en una línea y con sus palabras.
+             * @default
+             */
+            texto: string;
+            /** @description De qué conversación salió, para poder volver al chat sin buscarla. */
+            conversacionId?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo alguien comprobó que estaba puesta. `null` = pendiente.
+             */
+            efectuadaAt?: string | null;
+            readonly pendiente?: boolean;
+            /** @description Quién la dio por hecha, para la lista. El objeto entero no hace falta ahí. */
+            readonly efectuadaPorNombre?: string | null;
+        };
         PmsRatesPushQueue: {
             /**
              * Format: iri-reference
@@ -31550,6 +32577,21 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: date-time
+             * @description La columna es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}.
+             */
+            readonly fechaInicioOrFail?: string;
+            /**
+             * Format: date-time
+             * @description La columna es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}.
+             */
+            readonly fechaFinOrFail?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsRatesPushQueue.html": {
             /**
@@ -31607,6 +32649,21 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: date-time
+             * @description La columna es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}.
+             */
+            readonly fechaInicioOrFail?: string;
+            /**
+             * Format: date-time
+             * @description La columna es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}.
+             */
+            readonly fechaFinOrFail?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsRatesPushQueue.jsonld": {
             /**
@@ -31664,6 +32721,21 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: date-time
+             * @description La columna es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}.
+             */
+            readonly fechaInicioOrFail?: string;
+            /**
+             * Format: date-time
+             * @description La columna es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}.
+             */
+            readonly fechaFinOrFail?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsRatesPushQueue.multipart": {
             /**
@@ -31721,6 +32793,21 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: date-time
+             * @description La columna es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}.
+             */
+            readonly fechaInicioOrFail?: string;
+            /**
+             * Format: date-time
+             * @description La columna es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}.
+             */
+            readonly fechaFinOrFail?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         PmsReserva: {
             beds24MasterId?: string | null;
@@ -31830,6 +32917,11 @@ export interface components {
             readonly urlCanalExtranet?: string | null;
             /** @description Getter virtual para EasyAdmin (Trazabilidad) */
             readonly trazabilidadEventos?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsReserva-pax_reserva.read": {
             nombreCliente: string | null;
@@ -32096,6 +33188,11 @@ export interface components {
             readonly urlCanalExtranet?: string | null;
             /** @description Getter virtual para EasyAdmin (Trazabilidad) */
             readonly trazabilidadEventos?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsReserva.html-pax_reserva.read": {
             nombreCliente: string | null;
@@ -32305,6 +33402,11 @@ export interface components {
             readonly urlCanalExtranet?: string | null;
             /** @description Getter virtual para EasyAdmin (Trazabilidad) */
             readonly trazabilidadEventos?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsReserva.jsonld-pax_reserva.read": {
             readonly eventosActivosGuia?: components["schemas"]["PmsEventoCalendario.jsonld-pax_reserva.read"][];
@@ -32515,6 +33617,11 @@ export interface components {
             readonly urlCanalExtranet?: string | null;
             /** @description Getter virtual para EasyAdmin (Trazabilidad) */
             readonly trazabilidadEventos?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsReserva.multipart-pax_reserva.read": {
             nombreCliente: string | null;
@@ -32672,6 +33779,11 @@ export interface components {
             updatedAt?: string | null;
             readonly token?: string | null;
             readonly edadAlCheckOut?: number | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -32731,6 +33843,11 @@ export interface components {
             updatedAt?: string | null;
             readonly token?: string | null;
             readonly edadAlCheckOut?: number | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -32790,6 +33907,11 @@ export interface components {
             updatedAt?: string | null;
             readonly token?: string | null;
             readonly edadAlCheckOut?: number | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -32849,6 +33971,11 @@ export interface components {
             updatedAt?: string | null;
             readonly token?: string | null;
             readonly edadAlCheckOut?: number | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -33217,6 +34344,7 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            establecimientoOrFail?: components["schemas"]["PmsEstablecimiento"];
             /** @description La portada de la casita, para el catálogo, `pax` y la web. */
             readonly imageUrl?: string | null;
             /** @description Helper: Obtiene el SSID de la primera red (Principal). */
@@ -33242,6 +34370,11 @@ export interface components {
             readonly tarifaBaseMonedaId?: string | null;
             readonly tarifaBaseMonedaSimbolo?: string | null;
             readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map"] | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsUnidad-pax_catalogo.read": {
             establecimiento?: components["schemas"]["PmsEstablecimiento-pax_catalogo.read"];
@@ -33516,6 +34649,7 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            establecimientoOrFail?: components["schemas"]["PmsEstablecimiento.html"];
             /** @description La portada de la casita, para el catálogo, `pax` y la web. */
             readonly imageUrl?: string | null;
             /** @description Helper: Obtiene el SSID de la primera red (Principal). */
@@ -33541,6 +34675,11 @@ export interface components {
             readonly tarifaBaseMonedaId?: string | null;
             readonly tarifaBaseMonedaSimbolo?: string | null;
             readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map.html"] | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsUnidad.html-pax_catalogo.read": {
             establecimiento?: components["schemas"]["PmsEstablecimiento.html-pax_catalogo.read"];
@@ -33819,6 +34958,7 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            establecimientoOrFail?: components["schemas"]["PmsEstablecimiento.jsonld"];
             /** @description La portada de la casita, para el catálogo, `pax` y la web. */
             readonly imageUrl?: string | null;
             /** @description Helper: Obtiene el SSID de la primera red (Principal). */
@@ -33844,6 +34984,11 @@ export interface components {
             readonly tarifaBaseMonedaId?: string | null;
             readonly tarifaBaseMonedaSimbolo?: string | null;
             readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map.jsonld"] | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description Entidad PmsUnidad.
@@ -34138,6 +35283,7 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            establecimientoOrFail?: components["schemas"]["PmsEstablecimiento.multipart"];
             /** @description La portada de la casita, para el catálogo, `pax` y la web. */
             readonly imageUrl?: string | null;
             /** @description Helper: Obtiene el SSID de la primera red (Principal). */
@@ -34163,6 +35309,11 @@ export interface components {
             readonly tarifaBaseMonedaId?: string | null;
             readonly tarifaBaseMonedaSimbolo?: string | null;
             readonly beds24MapPrincipal?: components["schemas"]["PmsUnidadBeds24Map.multipart"] | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsUnidad.multipart-pax_catalogo.read": {
             establecimiento?: components["schemas"]["PmsEstablecimiento.multipart-pax_catalogo.read"];
@@ -34349,8 +35500,19 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: iri-reference
+             * @description `pms_unidad_id` es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}.
+             * @example https://example.com/
+             */
+            readonly pmsUnidadOrFail?: string;
             readonly channelPropId?: string | null;
             readonly esPrincipal?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsUnidadBeds24Map.html": {
             /**
@@ -34371,8 +35533,19 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: iri-reference
+             * @description `pms_unidad_id` es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}.
+             * @example https://example.com/
+             */
+            readonly pmsUnidadOrFail?: string;
             readonly channelPropId?: string | null;
             readonly esPrincipal?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsUnidadBeds24Map.jsonld": {
             /**
@@ -34393,8 +35566,19 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: iri-reference
+             * @description `pms_unidad_id` es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}.
+             * @example https://example.com/
+             */
+            readonly pmsUnidadOrFail?: string;
             readonly channelPropId?: string | null;
             readonly esPrincipal?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "PmsUnidadBeds24Map.multipart": {
             /**
@@ -34415,8 +35599,19 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: iri-reference
+             * @description `pms_unidad_id` es NOT NULL: ver {@see PmsEventoCalendario::getPmsUnidadOrFail()}.
+             * @example https://example.com/
+             */
+            readonly pmsUnidadOrFail?: string;
             readonly channelPropId?: string | null;
             readonly esPrincipal?: boolean;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         PmsUnidadMedia: {
             /**
@@ -34455,6 +35650,11 @@ export interface components {
             readonly token?: string | null;
             /** @description Lo que hay que servir, venga de un archivo o de una URL. */
             readonly valor?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -34495,6 +35695,11 @@ export interface components {
             readonly token?: string | null;
             /** @description Lo que hay que servir, venga de un archivo o de una URL. */
             readonly valor?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -34535,6 +35740,11 @@ export interface components {
             readonly token?: string | null;
             /** @description Lo que hay que servir, venga de un archivo o de una URL. */
             readonly valor?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -34575,6 +35785,11 @@ export interface components {
             readonly token?: string | null;
             /** @description Lo que hay que servir, venga de un archivo o de una URL. */
             readonly valor?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -34633,6 +35848,11 @@ export interface components {
             readonly virtualUsoEnCotizaciones?: string;
             /** @description 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo. */
             readonly virtualPuntos?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Segmento-segmento.item.read": {
             nombreInterno?: string;
@@ -34742,6 +35962,11 @@ export interface components {
             readonly virtualUsoEnCotizaciones?: string;
             /** @description 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo. */
             readonly virtualPuntos?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Segmento.html-segmento.item.read": {
             nombreInterno?: string;
@@ -34839,6 +36064,11 @@ export interface components {
             readonly virtualUsoEnCotizaciones?: string;
             /** @description 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo. */
             readonly virtualPuntos?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Segmento.jsonld-segmento.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
@@ -34936,6 +36166,11 @@ export interface components {
             readonly virtualUsoEnCotizaciones?: string;
             /** @description 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo. */
             readonly virtualPuntos?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Segmento.multipart-segmento.item.read": {
             nombreInterno?: string;
@@ -35007,6 +36242,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
             readonly virtualTitulo?: string;
             readonly virtualComponentes?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Servicio-servicio.item.read": {
             nombreInterno?: string;
@@ -35068,6 +36308,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
             readonly virtualTitulo?: string;
             readonly virtualComponentes?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Servicio.html-servicio.item.read": {
             nombreInterno?: string;
@@ -35119,6 +36364,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
             readonly virtualTitulo?: string;
             readonly virtualComponentes?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Servicio.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
@@ -35170,6 +36420,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
             readonly virtualTitulo?: string;
             readonly virtualComponentes?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "Servicio.multipart-servicio.item.read": {
             nombreInterno?: string;
@@ -35699,6 +36954,11 @@ export interface components {
             updatedAt?: string | null;
             readonly promedio?: string;
             readonly promedioredondeado?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         /**
          * @description Entidad MaestroTipocambio.
@@ -35819,6 +37079,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelComponenteItem-componente.item.read": {
             /**
@@ -35941,6 +37206,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelComponenteItem.html-componente.item.read": {
             /**
@@ -36028,6 +37298,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelComponenteItem.jsonld-componente.item.read": {
             /**
@@ -36115,6 +37390,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelComponenteItem.multipart-componente.item.read": {
             /**
@@ -36169,6 +37449,23 @@ export interface components {
             orden: number;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * Format: iri-reference
+             * @description La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly itinerarioOrFail?: string;
+            /**
+             * Format: iri-reference
+             * @description La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly segmentoOrFail?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelItinerarioSegmentoRel-itinerario.item.read": {
             /**
@@ -36212,6 +37509,23 @@ export interface components {
             orden: number;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * Format: iri-reference
+             * @description La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly itinerarioOrFail?: string;
+            /**
+             * Format: iri-reference
+             * @description La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly segmentoOrFail?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelItinerarioSegmentoRel.html-itinerario.item.read": {
             /**
@@ -36243,6 +37557,23 @@ export interface components {
             orden: number;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * Format: iri-reference
+             * @description La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly itinerarioOrFail?: string;
+            /**
+             * Format: iri-reference
+             * @description La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly segmentoOrFail?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelItinerarioSegmentoRel.jsonld-itinerario.item.read": {
             /**
@@ -36274,6 +37605,23 @@ export interface components {
             orden: number;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * Format: iri-reference
+             * @description La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly itinerarioOrFail?: string;
+            /**
+             * Format: iri-reference
+             * @description La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly segmentoOrFail?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelItinerarioSegmentoRel.multipart-itinerario.item.read": {
             /**
@@ -36332,6 +37680,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelPunto.html": {
             /**
@@ -36378,6 +37731,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelPunto.jsonld": {
             /**
@@ -36424,6 +37782,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelPunto.multipart": {
             /**
@@ -36470,6 +37833,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         TravelSegmentoComponente: {
             /**
@@ -36536,6 +37904,17 @@ export interface components {
             horaServicioCompleto: boolean;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * Format: iri-reference
+             * @description La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly componenteOrFail?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelSegmentoComponente-segmento.item.read": {
             componente?: components["schemas"]["Componente-segmento.item.read"];
@@ -36759,6 +38138,17 @@ export interface components {
             horaServicioCompleto: boolean;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * Format: iri-reference
+             * @description La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly componenteOrFail?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelSegmentoComponente.html-segmento.item.read": {
             componente?: components["schemas"]["Componente.html-segmento.item.read"];
@@ -36924,6 +38314,17 @@ export interface components {
             horaServicioCompleto: boolean;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * Format: iri-reference
+             * @description La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly componenteOrFail?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelSegmentoComponente.jsonld-segmento.item.read": {
             componente?: components["schemas"]["Componente.jsonld-segmento.item.read"];
@@ -37089,6 +38490,17 @@ export interface components {
             horaServicioCompleto: boolean;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * Format: iri-reference
+             * @description La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19.
+             * @example https://example.com/
+             */
+            readonly componenteOrFail?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "TravelSegmentoComponente.multipart-segmento.item.read": {
             componente?: components["schemas"]["Componente.multipart-segmento.item.read"];
@@ -37228,6 +38640,11 @@ export interface components {
             readonly virtualSegmentoNombre?: string;
             /** @description Título público en español del segmento padre. */
             readonly virtualSegmentoTituloEs?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -37322,6 +38739,11 @@ export interface components {
             readonly virtualSegmentoNombre?: string;
             /** @description Título público en español del segmento padre. */
             readonly virtualSegmentoTituloEs?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -37400,6 +38822,11 @@ export interface components {
             readonly virtualSegmentoNombre?: string;
             /** @description Título público en español del segmento padre. */
             readonly virtualSegmentoTituloEs?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -37478,6 +38905,11 @@ export interface components {
             readonly virtualSegmentoNombre?: string;
             /** @description Título público en español del segmento padre. */
             readonly virtualSegmentoTituloEs?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -37598,6 +39030,11 @@ export interface components {
             readonly fullname?: string;
             /** @description Alias semántico para el nombre completo. */
             readonly nombre?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "User.html": {
             /** @description Identificador de usuario único para el login. */
@@ -37640,6 +39077,11 @@ export interface components {
             readonly fullname?: string;
             /** @description Alias semántico para el nombre completo. */
             readonly nombre?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "User.jsonld": {
             /** @description Identificador de usuario único para el login. */
@@ -37682,6 +39124,11 @@ export interface components {
             readonly fullname?: string;
             /** @description Alias semántico para el nombre completo. */
             readonly nombre?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "User.multipart": {
             /** @description Identificador de usuario único para el login. */
@@ -37724,6 +39171,11 @@ export interface components {
             readonly fullname?: string;
             /** @description Alias semántico para el nombre completo. */
             readonly nombre?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         WhatsappMetaSendQueue: {
             /**
@@ -37770,9 +39222,20 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: iri-reference
+             * @description `message_id` es NOT NULL: ver {@see Message::getConversationOrFail()}.
+             * @example https://example.com/
+             */
+            readonly messageOrFail?: string;
             /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
             readonly channelId?: string;
             readonly sendTaskName?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "WhatsappMetaSendQueue-message.read": {
             /** @default unknown */
@@ -37827,9 +39290,20 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: iri-reference
+             * @description `message_id` es NOT NULL: ver {@see Message::getConversationOrFail()}.
+             * @example https://example.com/
+             */
+            readonly messageOrFail?: string;
             /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
             readonly channelId?: string;
             readonly sendTaskName?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "WhatsappMetaSendQueue.html-message.read": {
             /** @default unknown */
@@ -37884,9 +39358,20 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: iri-reference
+             * @description `message_id` es NOT NULL: ver {@see Message::getConversationOrFail()}.
+             * @example https://example.com/
+             */
+            readonly messageOrFail?: string;
             /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
             readonly channelId?: string;
             readonly sendTaskName?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "WhatsappMetaSendQueue.jsonld-message.read": {
             /** @default unknown */
@@ -37941,9 +39426,20 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly relatedEntitiesToDetach?: (string | null)[];
+            /**
+             * Format: iri-reference
+             * @description `message_id` es NOT NULL: ver {@see Message::getConversationOrFail()}.
+             * @example https://example.com/
+             */
+            readonly messageOrFail?: string;
             /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
             readonly channelId?: string;
             readonly sendTaskName?: string;
+            /**
+             * Format: uuid
+             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+             */
+            readonly idOrFail?: string;
         };
         "WhatsappMetaSendQueue.multipart-message.read": {
             /** @default unknown */
@@ -42454,7 +43950,91 @@ export interface operations {
             };
         };
     };
-    api_messageconversations_idmessages_get_collection: {
+    hilo_historial: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description MessageConversation identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Message collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["Message.jsonld-message.read"][];
+                    };
+                    "application/json": components["schemas"]["Message-message.read"][];
+                    "text/html": components["schemas"]["Message.html-message.read"][];
+                    "multipart/form-data": components["schemas"]["Message.multipart-message.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    hilo_cancelados: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description MessageConversation identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Message collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["Message.jsonld-message.read"][];
+                    };
+                    "application/json": components["schemas"]["Message-message.read"][];
+                    "text/html": components["schemas"]["Message.html-message.read"][];
+                    "multipart/form-data": components["schemas"]["Message.multipart-message.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    hilo_programados: {
         parameters: {
             query?: {
                 /** @description The collection page number */
@@ -46549,6 +48129,123 @@ export interface operations {
                     "application/json": components["schemas"]["PmsPagoFinanciero-pms_pago.read_maestro.moneda.read"];
                     "text/html": components["schemas"]["PmsPagoFinanciero.html-pms_pago.read_maestro.moneda.read"];
                     "multipart/form-data": components["schemas"]["PmsPagoFinanciero.multipart-pms_pago.read_maestro.moneda.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_pmspeticiones_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+                evento?: string;
+                "evento[]"?: string[];
+                "exists[efectuadaAt]"?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PmsPeticion collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["PmsPeticion.jsonld-pms_peticion.read"][];
+                    };
+                    "application/json": components["schemas"]["PmsPeticion-pms_peticion.read"][];
+                    "text/html": components["schemas"]["PmsPeticion.html-pms_peticion.read"][];
+                    "multipart/form-data": components["schemas"]["PmsPeticion.multipart-pms_peticion.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_pmspeticiones_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description PmsPeticion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated PmsPeticion resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["PmsPeticion-pms_peticion.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description PmsPeticion resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["PmsPeticion.jsonld-pms_peticion.read"];
+                    "application/json": components["schemas"]["PmsPeticion-pms_peticion.read"];
+                    "text/html": components["schemas"]["PmsPeticion.html-pms_peticion.read"];
+                    "multipart/form-data": components["schemas"]["PmsPeticion.multipart-pms_peticion.read"];
                 };
             };
             /** @description Invalid input */

@@ -419,7 +419,7 @@ class CotizacionFile
      * nada más, así que un expediente con tres propuestas —una confirmada, una cancelada y un
      * histórico— se leía igual que uno con tres pendientes.
      *
-     * @var array<int, array{id: string, propuesta: int, estado: string, titulo: array<mixed>, fechaInicio: ?string, fechaFin: ?string}>
+     * @var array<int, array{id: string, propuesta: int, estado: string, titulo: list<array<string, mixed>>, fechaInicio: ?string, fechaFin: ?string}>
      */
     private array $propuestasFechas = [];
 
@@ -427,7 +427,7 @@ class CotizacionFile
      * La misma forma que declara la propiedad. Con `list<array<string, mixed>>` aquí se podía
      * guardar una fila sin `propuesta`, y el getter promete que la trae.
      *
-     * @param array<int, array{id: string, propuesta: int, estado: string, titulo: array<mixed>, fechaInicio: ?string, fechaFin: ?string}> $propuestasFechas
+     * @param array<int, array{id: string, propuesta: int, estado: string, titulo: list<array<string, mixed>>, fechaInicio: ?string, fechaFin: ?string}> $propuestasFechas
      */
     public function setPropuestasFechas(array $propuestasFechas): self
     {
@@ -440,7 +440,7 @@ class CotizacionFile
      * las seis claves que realmente viajan—, así que `estado`, `titulo` y las fechas del tramo
      * eran invisibles para quien lo leyera desde fuera.
      *
-     * @return array<int, array{id: string, propuesta: int, estado: string, titulo: array<mixed>, fechaInicio: ?string, fechaFin: ?string}>
+     * @return array<int, array{id: string, propuesta: int, estado: string, titulo: list<array<string, mixed>>, fechaInicio: ?string, fechaFin: ?string}>
      */
     #[Groups(['file:read'])]
     public function getPropuestasFechas(): array

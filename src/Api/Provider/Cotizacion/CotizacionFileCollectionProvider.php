@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api\Provider\Cotizacion;
 
+use App\Dto\Lee;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Cotizacion\Entity\CotizacionFile;
@@ -116,7 +117,7 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
                 // El i18n crudo: lo traduce el front con el idioma del panel, como el resto de
                 // títulos. Resolverlo aquí obligaría a que el provider supiera qué idioma mira
                 // quien pidió la página.
-                'titulo'      => is_array($f['titulo'] ?? null) ? $f['titulo'] : [],
+                'titulo'      => array_map(Lee::objeto(...), Lee::listaDeMapas($f['titulo'] ?? null)),
                 'fechaInicio' => self::soloFecha($f['fechaInicio']),
                 // El fin del viaje: el último día del itinerario, salvo que una estadía termine
                 // más tarde (el checkout que ya no tiene servicio propio). Se comparan como

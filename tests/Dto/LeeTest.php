@@ -60,4 +60,11 @@ final class LeeTest extends TestCase
         self::assertNull(Lee::en($d, 'a', 'z', 'c'));
         self::assertNull(Lee::en($d, 'x', 'y'), 'un texto no es un mapa por el que seguir');
     }
+
+    /** Lo que se publica con tipo: sólo claves de texto, para que el esquema diga «objeto». */
+    public function testObjetoSoloGuardaLasClavesDeTexto(): void
+    {
+        self::assertSame(['url' => 'a.jpg'], Lee::objeto(['url' => 'a.jpg', 0 => 'suelto']));
+        self::assertSame([], Lee::objeto('texto'));
+    }
 }

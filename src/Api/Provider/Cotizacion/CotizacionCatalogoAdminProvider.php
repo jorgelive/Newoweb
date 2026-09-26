@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api\Provider\Cotizacion;
 
+use App\Dto\Lee;
 use ApiPlatform\Doctrine\Orm\State\ItemProvider;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
@@ -56,7 +57,8 @@ final class CotizacionCatalogoAdminProvider implements ProviderInterface
         foreach ($tours as $tour) {
             $id = TourTarjetaResolver::clave($tour->getId());
             // El override editorial manda; si no hay, la derivada del itinerario.
-            $tour->setImagenTarjeta($tour->getImagenPortada() ?? $portadas[$id] ?? null);
+            $derivada = isset($portadas[$id]) ? Lee::objeto($portadas[$id]) : null;
+            $tour->setImagenTarjeta($tour->getImagenPortada() ?? $derivada);
             $tour->setNumDias($dias[$id] ?? null);
         }
 

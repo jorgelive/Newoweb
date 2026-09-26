@@ -49,6 +49,7 @@ se esperaba texto era, con el cast, la palabra «Array» guardada y un warning.
 | `entero()` / `decimal()` | aceptan el número en texto (`"1727312345"`, `"120.50"`) |
 | `booleano()` | `true`/`"false"`/`"1"`…; ausente o basura es `null` («no se sabe» no es `false`) |
 | `mapa()` / `listaDeMapas()` / `listaDeTextos()` | estructuras, descartando lo que no encaja |
+| `objeto()` | un mapa con sus claves de texto: para lo que se **publica** con tipo (ver §5) |
 | `en($x, 'a', 'b', 0)` | un campo anidado sin avisos por lo que falte |
 
 ⚠️ **`texto()` y `textoLimpio()` no son intercambiables.** Cambiar una por otra en un DTO que ya
@@ -154,6 +155,12 @@ un nombre que su definición no declara. Una sola fuente, y el descuido sale en 
   `RevisorDeOrdenDeNombre` el texto `"false"` pedía invertir el nombre. El mismo `(bool)` que pagos.
 - **Un comando que comparaba ids en texto contra un mapa indexado por el binario**
   (`detalles-a-audiencias`): contaba todo como pendiente. La familia de los UUID de `CLAUDE.md`.
+- **Un `array<mixed>` en un getter publicado cambia el esquema de la API.** API Platform lee el
+  docblock: `array<string, mixed>` es un objeto en el OpenAPI y `array<mixed>` es una lista. Al
+  aflojar dos tipos para callar al analizador (`Cotizacion::$imagenTarjeta` y el `titulo` de
+  `CotizacionFile::$propuestasFechas`), el `api.d.ts` regenerado pasó a decir «lista» de lo que
+  viaja como objeto. Se estrecha en el provider con `Lee::objeto()`, no en el tipo. **Tras tocar
+  tipos de entidades, regenerar `api.d.ts` y leer el diff.**
 - **Un `vendor` enlazado no carga el `src/` del worktree.** Con `vendor` como symlink al repo
   principal, el classmap optimizado resuelve `App\` contra el repo principal: `phpunit` y
   `bin/console` dentro de un worktree prueban el código de `master` y salen en verde. PHPStan no se
