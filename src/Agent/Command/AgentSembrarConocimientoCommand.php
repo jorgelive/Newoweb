@@ -460,7 +460,24 @@ final class AgentSembrarConocimientoCommand extends Command
                     . "+51 984 631 997.\n\n"
                     . "Ofrece las dos con confianza: es de lo que mas preguntan los que llegan en coche.\n"
                     . "El precio y el espacio de la cochera privada los confirman ellos no\n"
-                    . "el equipo.",
+                    . "el equipo."
+                    . "\n\n"
+                    // 🏍️ Se pregunta SIEMPRE —quien llega en moto mira el pasaje y lo ve como un
+                    // parqueo—, así que estaba pidiendo respuesta escrita. El 25/09/2026 un
+                    // huésped lo preguntó recién llegado, a las ocho de la noche, y el agente
+                    // ESCALÓ: dedujo él solo que el pasaje es zona de paso y evacuación —cierto,
+                    // y no estaba escrito en ninguna parte— pero dejó al huésped esperando con
+                    // las motos en la calle, teniendo la respuesta desde siempre.
+                    . 'MOTOS: casi todos los que llegan en moto miran el pasaje y piensan que '
+                    . 'pueden dejarla ahí. NO CABE, y ése es el motivo: las motos de viaje son '
+                    . 'enormes, y aunque fueran pequeñas el pasaje tiene maceteros y plantas. '
+                    . 'Además es zona de paso y de evacuación, que no puede quedar obstaculizada.'
+                    . "\n\n"
+                    . 'Dilo por lo que es —no entra— y no como una prohibición, y ofrécele en el '
+                    . 'acto la cochera privada de pago que está a una cuadra: para una moto es lo '
+                    . 'que recomendamos siempre, porque el estacionamiento público de enfrente no '
+                    . 'es vigilado y ahí queda demasiado expuesta. NO escales esto: la respuesta '
+                    . 'es ésta y no depende de nadie.',
                 'perfiles' => self::PUBLICO,
             ],
             [
