@@ -220,6 +220,11 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
             return SkillResult::error('La cuenta de esta reserva no tiene moneda definida.');
         }
 
+        // El código ISO ES la clave primaria de la moneda: una fila leída siempre lo tiene. Se saca
+        // una vez aquí, y así cada «USD»/«PEN» de abajo es texto y no un «quizá» sobre dinero.
+        $codigoCuenta = $monedaCuenta->getId()
+            ?? throw new \LogicException('Moneda de la cuenta sin código ISO: no se puede cobrar.');
+
         $huesped = trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente());
         $pct = $medio !== null ? (float) $medio->comisionPorcentaje() : 0.0;
 
@@ -237,7 +242,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
 
         // 💱 «20» no dice de qué. Sólo es inequívoco si la cuenta ya está en la moneda local.
         // No depende del medio, así que se pregunta en la misma tanda.
-        if ($monedaIndicada === '' && $monedaCuenta->getId() !== self::MONEDA_LOCAL) {
+        if ($monedaIndicada === '' && $codigoCuenta !== self::MONEDA_LOCAL) {
             $faltan[] = 'moneda';
         }
 
@@ -260,6 +265,8 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
         $monedaOrigen = $monedaIndicada !== ''
             ? $this->monedas->resolve($monedaIndicada)
             : $monedaCuenta;
+        $codigoOrigen = $monedaOrigen->getId()
+            ?? throw new \LogicException('Moneda del cobro sin código ISO: no se puede cobrar.');
 
         $totales = PmsTotalesPorMoneda::de($info);
         $conDeuda = array_keys(array_filter(
@@ -269,7 +276,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
 
         // Sólo con UNA candidata: con deuda en dos monedas distintas de la del cobro, elegir por
         // el operador sería adivinar a cuál se aplica.
-        $candidata = !in_array($monedaOrigen->getId(), $conDeuda, true) && count($conDeuda) === 1
+        $candidata = !in_array($codigoOrigen, $conDeuda, true) && count($conDeuda) === 1
             ? $conDeuda[0]
             : null;
 
@@ -367,16 +374,16 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
             return SkillResult::ok(array_filter([
                 'reserva_id' => $reservaId,
                 'huesped' => $huesped,
-                'moneda_de_la_cuenta' => $monedaCuenta->getId(),
+                'moneda_de_la_cuenta' => $codigoCuenta,
                 // `null` cuando el medio es justo lo que falta: `array_filter` lo quita y el
                 // modelo no ve un campo vacío que pueda confundir con un valor.
                 'medio' => $medio?->label(),
                 'falta_datos' => $faltan,
                 'si_son_' . strtolower(self::MONEDA_LOCAL) => in_array('moneda', $faltan, true)
-                    ? $this->equivalencia($importe, self::MONEDA_LOCAL, $monedaCuenta->getId())
+                    ? $this->equivalencia($importe, self::MONEDA_LOCAL, $codigoCuenta)
                     : null,
-                'si_son_' . strtolower($monedaCuenta->getId()) => in_array('moneda', $faltan, true)
-                    ? sprintf('%.2f %s', $importe, $monedaCuenta->getId())
+                'si_son_' . strtolower($codigoCuenta) => in_array('moneda', $faltan, true)
+                    ? sprintf('%.2f %s', $importe, $codigoCuenta)
                     : null,
                 'si_incluye_comision' => in_array('importe_incluye_comision', $faltan, true)
                     ? $this->desglose($importe, $pct, true, $monedaIndicada ?: '(por aclarar)')
@@ -393,16 +400,16 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
                     array_values($faltan),
                     $importe,
                     $medio,
-                    $monedaCuenta->getId(),
+                    $codigoCuenta,
                     $cobradorIndicado,
                     $candidatos,
                     $porqueFaltaCobrador,
-                    $monedaOrigen->getId(),
+                    $codigoOrigen,
                     $candidata,
                     $candidata !== null && $tipoDelDiaParaPreview !== null
                         ? sprintf(
                             '%.2f %s',
-                            $monedaOrigen->getId() === 'PEN'
+                            $codigoOrigen === 'PEN'
                                 ? $importe / (float) $tipoDelDiaParaPreview
                                 : $importe * (float) $tipoDelDiaParaPreview,
                             $candidata,
@@ -446,7 +453,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
 
         $aplicado = $monedaSaldada === null
             ? $neto
-            : ($monedaOrigen->getId() === 'PEN' ? $neto / (float) $tipoDelDia : $neto * (float) $tipoDelDia);
+            : ($codigoOrigen === 'PEN' ? $neto / (float) $tipoDelDia : $neto * (float) $tipoDelDia);
 
         $saldoDespues = round($saldoAntes - $aplicado, 2);
 
@@ -472,7 +479,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
                 . 'estaba en %s—, no un sobrepago: dalo por saldado.',
                 $saldoDespues,
                 $monedaAfectada,
-                $monedaOrigen->getId(),
+                $codigoOrigen,
                 $monedaAfectada,
             );
         } elseif ($saldoDespues < 0.0) {
@@ -489,7 +496,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
                     'ATENCIÓN: el pago excede lo pendiente (%.2f %s). La cuenta queda en %.2f a '
                     . 'favor del huésped. Confírmalo con el operador antes de aplicarlo.',
                     $saldoAntes,
-                    $monedaCuenta->getId(),
+                    $codigoCuenta,
                     $saldoDespues
                 );
         }
@@ -501,7 +508,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
             'medio' => $medio->label(),
             'cobrado_por' => $cobrador?->getFullname(),
             // En la moneda en que ENTRÓ el dinero: es lo que el huésped reconoce de su recibo.
-            'cobrado_al_huesped' => sprintf('%.2f %s', $cobrado, $monedaOrigen->getId()),
+            'cobrado_al_huesped' => sprintf('%.2f %s', $cobrado, $codigoOrigen),
             'comision_porcentaje' => $medio->comisionPorcentaje(),
             'abona_a_la_deuda' => sprintf('%.2f %s', $aplicado, $monedaAfectada),
             // Sólo cuando el dinero cruzó de moneda de verdad. En un cobro que salda lo suyo no

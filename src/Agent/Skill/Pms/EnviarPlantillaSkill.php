@@ -277,7 +277,14 @@ final readonly class EnviarPlantillaSkill implements SkillInterface, SkillDomini
         $canales = [];
 
         foreach ($this->em->getRepository(MessageChannel::class)->findBy(['isActive' => true]) as $canal) {
-            $getter = 'get' . ucfirst($canal->getTemplateColumn());
+            // Un canal sin columna de plantilla no tiene de dónde leerla: se salta igual que uno
+            // cuyo getter no existe.
+            $columna = $canal->getTemplateColumn();
+            if ($columna === null || $columna === '') {
+                continue;
+            }
+
+            $getter = 'get' . ucfirst($columna);
 
             if (!method_exists($plantilla, $getter)) {
                 continue;

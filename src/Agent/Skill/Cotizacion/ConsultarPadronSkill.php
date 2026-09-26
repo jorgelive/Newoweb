@@ -638,7 +638,9 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
         foreach ($p->getIdentificaciones() as $doc) {
             $documentos[] = trim(sprintf(
                 '%s %s%s',
-                $doc->getTipo()->value,
+                // Una identificación sin tipo es un dato a medio cargar: se nombra como tal en vez
+                // de tumbar la respuesta entera al agente.
+                $doc->getTipo()->value ?? 'documento',
                 (string) $doc->getNumero(),
                 $doc->getVencimiento() !== null ? ' (vence '.$doc->getVencimiento()->format('d/m/Y').')' : '',
             ));

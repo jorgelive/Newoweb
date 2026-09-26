@@ -211,11 +211,6 @@ parameters:
 			count: 3
 			path: src/Agent/Service/AiConversationProcessor.php
 
-		-
-			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: src/Agent/Skill/Pms/AjustarTarifasSkill.php
 
 	
 	

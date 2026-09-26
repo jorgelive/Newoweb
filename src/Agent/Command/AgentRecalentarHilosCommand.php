@@ -188,7 +188,8 @@ final class AgentRecalentarHilosCommand extends Command
             $conversacion = $mensaje->getConversation();
             $quien = $conversacion?->getGuestName() ?? '(sin nombre)';
             $texto = trim((string) ($mensaje->getContentExternal() ?? $mensaje->getContentLocal() ?? ''));
-            $espera = (int) round((time() - $mensaje->getCreatedAt()->getTimestamp()) / 60);
+            // Sin fecha de creación (un mensaje a medio guardar) no hay espera que medir: 0.
+            $espera = (int) round((time() - ($mensaje->getCreatedAt()?->getTimestamp() ?? time())) / 60);
 
             $io->writeln(sprintf(
                 '  <info>%-26s</info> %3d min  %s',

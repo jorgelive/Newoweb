@@ -152,7 +152,9 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
             $faltan[] = 'ajuste';
         }
 
-        if ($faltan !== []) {
+        // `$desde === null || $hasta === null` ya está dentro de `$faltan` como «fechas»; se repite
+        // aquí para que, pasada esta línea, el análisis sepa que las dos fechas existen.
+        if ($faltan !== [] || $desde === null || $hasta === null) {
             return SkillResult::ok([
                 'falta_datos' => $faltan,
                 'pregunta' => 'Pregúntale al operador, todo de una vez: qué casita, qué fechas, '
@@ -432,18 +434,19 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
      */
     private function tramosContinuos(array $noches): array
     {
+        if ($noches === []) {
+            return [];
+        }
+
         sort($noches);
 
+        // El primer tramo arranca en la primera noche, y así ni `$ini` ni `$prev` pasan nunca por
+        // `null`. Antes nacían nulos y el cierre preguntaba `!== null` por algo que ya no podía
+        // serlo: una comparación siempre cierta que vivía en la baseline sólo por esta forma.
+        $ini = $prev = $noches[0];
         $tramos = [];
-        $ini = null;
-        $prev = null;
 
-        foreach ($noches as $noche) {
-            if ($ini === null) {
-                $ini = $prev = $noche;
-                continue;
-            }
-
+        foreach (array_slice($noches, 1) as $noche) {
             $siguiente = (new DateTimeImmutable($prev, new DateTimeZone(self::TZ)))
                 ->modify('+1 day')
                 ->format('Y-m-d');
@@ -456,9 +459,7 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
             $prev = $noche;
         }
 
-        if ($ini !== null && $prev !== null) {
-            $tramos[] = [$ini, $prev];
-        }
+        $tramos[] = [$ini, $prev];
 
         return $tramos;
     }

@@ -1198,7 +1198,9 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
      * la web cambia el texto sin pedir nada al servidor—, pero al modelo se le da UNO: mandarle
      * cinco traducciones del mismo párrafo es pagar cinco veces por la misma frase.
      *
-     * @param array<int, array{language?: string, content?: string}> $i18n
+     * El `content` puede venir nulo —una traducción que falló—, y ya se trata como vacío abajo.
+     *
+     * @param array<int, array{language?: string, content?: string|null}> $i18n
      */
     private function enIdioma(array $i18n, string $idioma): string
     {

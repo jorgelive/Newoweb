@@ -90,7 +90,9 @@ final readonly class AlexaUsuarios
             }
         }
 
-        if ($username === null) {
+        // `$porDonde` se rellena en el mismo `break` que `$username`: los dos van juntos, y se
+        // comprueban juntos para que abajo el análisis sepa que es texto.
+        if ($username === null || $porDonde === null) {
             // Se registran los TRES ids completos: son exactamente lo que hay que copiar a
             // `ALEXA_USUARIOS` para dar de alta a alguien, y sin esta línea toca ir a buscarlos
             // a la consola de Amazon. Van los tres porque cuál de ellos registrar es una

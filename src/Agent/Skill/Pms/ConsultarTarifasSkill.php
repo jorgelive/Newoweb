@@ -133,7 +133,9 @@ final readonly class ConsultarTarifasSkill implements SkillInterface, SkillDomin
             $faltan[] = 'fechas';
         }
 
-        if ($faltan !== []) {
+        // Las fechas nulas ya están en `$faltan`; se repiten aquí para que, pasada esta línea, el
+        // análisis sepa que existen.
+        if ($faltan !== [] || $desde === null || $hasta === null) {
             return SkillResult::ok([
                 'falta_datos' => $faltan,
                 'pregunta' => 'Pregúntale al operador qué fechas quiere mirar (desde y hasta, '

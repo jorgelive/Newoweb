@@ -154,13 +154,18 @@ class AgentConocimiento
             return false;
         }
 
-        if (($this->dominios ?? []) !== [] && $dominiosDelActor !== []
-            && array_intersect($this->dominios, $dominiosDelActor) === []
+        // `null` en la columna es lo mismo que `[]`: sin acotar. Se normaliza una vez aquí, y así
+        // las dos comprobaciones de abajo leen una lista y no un «quizá».
+        $dominios = $this->dominios ?? [];
+        $perfiles = $this->perfiles ?? [];
+
+        if ($dominios !== [] && $dominiosDelActor !== []
+            && array_intersect($dominios, $dominiosDelActor) === []
         ) {
             return false;
         }
 
-        return ($this->perfiles ?? []) === [] || in_array($perfil->value, $this->perfiles, true);
+        return $perfiles === [] || in_array($perfil->value, $perfiles, true);
     }
 
     public function getId(): ?Uuid { return $this->id; }
