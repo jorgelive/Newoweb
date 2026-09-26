@@ -7,16 +7,15 @@ namespace App\Agent\Command;
 use App\Agent\Access\GuardiaDeSkills;
 use App\Agent\Access\AgentActor;
 use App\Agent\Access\AgentActorFactory;
+use App\Agent\Provider\Dto\LlamadaAHerramienta;
 use App\Agent\Skill\SkillRegistry;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Security\Roles;
+use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
@@ -51,23 +50,23 @@ final class AgentSkillCommand extends Command
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this
-            ->addArgument('skill', InputArgument::REQUIRED, 'Nombre de la skill')
-            ->addArgument('entrada', InputArgument::OPTIONAL, 'Parámetros en JSON', '{}')
-            ->addOption('contexto', null, InputOption::VALUE_REQUIRED, 'UUID de reserva, para las skills acotadas al contexto')
-            ->addOption('como-huesped', null, InputOption::VALUE_NONE, 'Ejecutar con ROLE_HUESPED en vez de SUPER_ADMIN')
-            ->addOption('como-prospecto', null, InputOption::VALUE_NONE, 'Ejecutar con ROLE_PROSPECTO: quien pregunta sin reserva ninguna')
-            ->addOption('conversacion', null, InputOption::VALUE_REQUIRED, 'UUID del HILO en curso. No es el contexto: no autoriza a leer nada, solo dice en qué conversación se está. Es lo que necesita escalar_al_equipo')
-            ->addOption('usuario', null, InputOption::VALUE_REQUIRED, 'Username de un usuario REAL: ejecuta con su identidad y sus roles');
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $io = new SymfonyStyle($input, $output);
-
-        $nombre = (string) $input->getArgument('skill');
+    public function __invoke(
+        SymfonyStyle $io,
+        #[Argument('Nombre de la skill', name: 'skill')]
+        string $nombre,
+        #[Argument('Parámetros en JSON', name: 'entrada')]
+        string $json = '{}',
+        #[Option('UUID de reserva, para las skills acotadas al contexto')]
+        ?string $contexto = null,
+        #[Option('Ejecutar con ROLE_HUESPED en vez de SUPER_ADMIN')]
+        bool $comoHuesped = false,
+        #[Option('Ejecutar con ROLE_PROSPECTO: quien pregunta sin reserva ninguna')]
+        bool $comoProspecto = false,
+        #[Option('UUID del HILO en curso. No es el contexto: no autoriza a leer nada, solo dice en qué conversación se está. Es lo que necesita escalar_al_equipo')]
+        ?string $conversacion = null,
+        #[Option('Username de un usuario REAL: ejecuta con su identidad y sus roles', name: 'usuario')]
+        ?string $username = null,
+    ): int {
         $skill = $this->registro->buscar($nombre);
 
         if ($skill === null) {
@@ -77,21 +76,20 @@ final class AgentSkillCommand extends Command
             return Command::INVALID;
         }
 
-        $entrada = json_decode((string) $input->getArgument('entrada'), true);
-        if (!is_array($entrada)) {
+        $decodificada = json_decode($json, true);
+        if (!is_array($decodificada)) {
             $io->error('Los parámetros deben ser un objeto JSON válido.');
             return Command::INVALID;
         }
 
-        $contexto = $input->getOption('contexto');
-        $username = $input->getOption('usuario');
+        // Como la manda el modelo: un objeto, y por nombre. Ver LlamadaAHerramienta::objetoJson().
+        $entrada = LlamadaAHerramienta::objetoJson($decodificada);
 
-        $conversacion = $input->getOption('conversacion');
-        $conversacion = $conversacion !== null ? trim((string) $conversacion) : null;
+        $conversacion = $conversacion !== null ? trim($conversacion) : null;
         $conversacion = $conversacion === '' ? null : $conversacion;
 
         if ($username !== null) {
-            $usuario = $this->usuarios->findOneBy(['username' => (string) $username]);
+            $usuario = $this->usuarios->findOneBy(['username' => $username]);
 
             if ($usuario === null) {
                 $io->error(sprintf('No existe el usuario "%s".', $username));
@@ -101,9 +99,9 @@ final class AgentSkillCommand extends Command
             // Por la factoría: con los roles literales, un usuario real con ROLE_*_DELETE no
             // pasaría un control que pida ROLE_*_WRITE y la prueba mentiría.
             $actor = $contexto !== null
-                ? $this->actores->delEquipoPorChat($usuario, 'cli', 'pms_reserva', (string) $contexto)
+                ? $this->actores->delEquipoPorChat($usuario, 'cli', 'pms_reserva', $contexto)
                 : $this->actores->delPanel($usuario);
-        } elseif ($input->getOption('como-prospecto')) {
+        } elseif ($comoProspecto) {
             // Sin contexto ni aunque se pase `--contexto`: un prospecto sin contexto es la
             // definición, no una limitación de la prueba. El HILO sí se le pasa: es lo único
             // que le permite escalar, y sin él esta prueba no podía reproducir el camino real
@@ -111,10 +109,10 @@ final class AgentSkillCommand extends Command
             // Por la factoría: es la que puebla `dominios()`, y probar una skill con un actor
             // que no los lleva mide un catálogo que en producción no existe.
             $actor = $this->actores->prospecto('cli', $conversacion);
-        } elseif ($input->getOption('como-huesped')) {
-            $actor = $this->actores->huesped('cli', 'pms_reserva', $contexto !== null ? (string) $contexto : null, $conversacion);
+        } elseif ($comoHuesped) {
+            $actor = $this->actores->huesped('cli', 'pms_reserva', $contexto, $conversacion);
         } else {
-            $actor = $this->actorAdmin($contexto !== null ? (string) $contexto : null);
+            $actor = $this->actorAdmin($contexto);
         }
 
         // Por el guardián y no comprobando los roles aquí: era la misma política escrita dos

@@ -19,12 +19,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use ReflectionClass;
 use ReflectionMethod;
 use RuntimeException;
+use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
@@ -84,18 +82,15 @@ final class AgentReplayCommand extends Command
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this
-            ->addArgument('reserva', InputArgument::REQUIRED, 'UUID de la reserva cuyo chat se reproduce')
-            ->addOption('guion', null, InputOption::VALUE_REQUIRED, 'JSON con un array de mensajes del huésped. Sin él, se usan los mensajes entrantes de la conversación.')
-            ->addOption('con-guardia', null, InputOption::VALUE_NONE, 'Seguir aunque haya gente de guardia con móvil: una escalada les llegará de verdad.');
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $io = new SymfonyStyle($input, $output);
-        $reservaId = (string) $input->getArgument('reserva');
+    public function __invoke(
+        SymfonyStyle $io,
+        #[Argument('UUID de la reserva cuyo chat se reproduce', name: 'reserva')]
+        string $reservaId,
+        #[Option('JSON con un array de mensajes del huésped. Sin él, se usan los mensajes entrantes de la conversación.')]
+        ?string $guion = null,
+        #[Option('Seguir aunque haya gente de guardia con móvil: una escalada les llegará de verdad.')]
+        bool $conGuardia = false,
+    ): int {
 
         $reserva = $this->em->getRepository(PmsReserva::class)->find($reservaId);
 
@@ -112,13 +107,13 @@ final class AgentReplayCommand extends Command
             return Command::INVALID;
         }
 
-        if (!$this->guardiaDespejada($io, $input->getOption('con-guardia'))) {
+        if (!$this->guardiaDespejada($io, $conGuardia)) {
             return Command::FAILURE;
         }
 
-        $guion = $this->guion($input->getOption('guion'), $conversacion);
+        $mensajes = $this->guion($guion, $conversacion);
 
-        if ($guion === []) {
+        if ($mensajes === []) {
             $io->error('No hay mensajes que reproducir.');
             return Command::INVALID;
         }
@@ -138,14 +133,14 @@ final class AgentReplayCommand extends Command
             trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente())
         ));
 
-        foreach ($guion as $i => $mensaje) {
+        foreach ($mensajes as $i => $mensaje) {
             $io->writeln(sprintf("\n<fg=cyan>[%d] 👤 %s</>", $i + 1, str_replace("\n", "\n         ", $mensaje)));
 
             $decision = $this->triaje->clasificar(
                 $actor,
                 $mensaje,
                 $historial,
-                (string) $this->porNombre($contextoDe, [
+                $this->porNombre($contextoDe, [
                     'conversacion' => $conversacion,
                     'actor' => $actor,
                 ])
@@ -174,7 +169,7 @@ final class AgentReplayCommand extends Command
 
                 $salida = $elegido->motor->conversar(new ConversationRequest(
                     actor: $actor,
-                    systemPrompt: (string) $this->porNombre($reglas, ['actor' => $actor]),
+                    systemPrompt: $this->porNombre($reglas, ['actor' => $actor]),
                     mensaje: $mensaje,
                     historial: $historial,
                     // La real es `$actor->esDelEquipo()`. Aquí el actor SIEMPRE es el huésped,
@@ -183,7 +178,7 @@ final class AgentReplayCommand extends Command
                     permitirEscritura: false,
                     maxTokens: 1024,
                     modelo: $elegido->modelo,
-                    contexto: (string) $this->porNombre($contextoDe, [
+                    contexto: $this->porNombre($contextoDe, [
                         'conversacion' => $conversacion,
                         'actor' => $actor,
                         'decision' => $decision,
@@ -260,9 +255,12 @@ final class AgentReplayCommand extends Command
      * llamar y se dice cuál falta. Y un parámetro que se renombre deja de emparejar, que también
      * es lo que se quiere saber.
      *
+     * Los dos que se llaman así devuelven el texto de un prompt; lo que no sea texto es otra
+     * firma que cambió sin avisar, y se dice con nombre en vez de castearlo a «Array».
+     *
      * @param array<string, mixed> $argumentos Por nombre de parámetro.
      */
-    private function porNombre(ReflectionMethod $metodo, array $argumentos): mixed
+    private function porNombre(ReflectionMethod $metodo, array $argumentos): string
     {
         $valores = [];
 
@@ -287,7 +285,16 @@ final class AgentReplayCommand extends Command
             ));
         }
 
-        return $metodo->invokeArgs($this->procesador, $valores);
+        $prompt = $metodo->invokeArgs($this->procesador, $valores);
+        if (!is_string($prompt)) {
+            throw new RuntimeException(sprintf(
+                '`%s()` ya no devuelve texto (%s): el procesador cambió de firma. Revisa AgentReplayCommand.',
+                $metodo->getName(),
+                get_debug_type($prompt)
+            ));
+        }
+
+        return $prompt;
     }
 
     /**
@@ -301,8 +308,13 @@ final class AgentReplayCommand extends Command
             $crudo = @file_get_contents($ruta);
             $datos = $crudo === false ? null : json_decode($crudo, true);
 
+            // Lo que no sea texto se descarta: un objeto metido en el guion era, con `strval`, un
+            // aviso y la palabra «Array» mandada al modelo como si la hubiera escrito el huésped.
             return is_array($datos)
-                ? array_values(array_filter(array_map('strval', $datos), static fn (string $m) => trim($m) !== ''))
+                ? array_values(array_filter(
+                    array_map(static fn (mixed $m): ?string => is_scalar($m) ? (string) $m : null, $datos),
+                    static fn (?string $m) => $m !== null && trim($m) !== ''
+                ))
                 : [];
         }
 

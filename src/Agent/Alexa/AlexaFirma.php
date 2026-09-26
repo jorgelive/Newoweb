@@ -249,8 +249,10 @@ final readonly class AlexaFirma
      */
     private function tieneSanDeAlexa(array $hoja): bool
     {
-        $extensiones = $hoja['extensions'] ?? [];
-        $san = is_array($extensiones) ? (string) ($extensiones['subjectAltName'] ?? '') : '';
+        $extensiones = $hoja['extensions'] ?? null;
+        $san = is_array($extensiones) && is_string($extensiones['subjectAltName'] ?? null)
+            ? $extensiones['subjectAltName']
+            : '';
 
         foreach (explode(',', $san) as $entrada) {
             if (trim($entrada) === 'DNS:' . self::SAN_EXIGIDO) {

@@ -455,6 +455,7 @@ final readonly class CrearEstanciaSkill implements SkillInterface, SkillDominioI
             $qb->andWhere('LOWER(u.nombre) LIKE :l')->setParameter('l', '%' . mb_strtolower($busqueda) . '%');
         }
 
+        /** @var list<PmsUnidad> $encontradas */
         $encontradas = $qb->getQuery()->getResult();
 
         if ($encontradas === []) {

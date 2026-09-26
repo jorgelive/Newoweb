@@ -60,7 +60,7 @@ ya hace `PanelAssistant` respecto del chat del huésped.
 
 ## 2. El sobre de Alexa
 
-`PeticionAlexa::desde()` reduce un JSON de seis niveles a lo que usa este skill. Dos trampas:
+`PeticionAlexa::fromArray()` reduce un JSON de seis niveles a lo que usa este skill. Dos trampas:
 
 - **El `applicationId` y el `userId` viajan en dos sitios.** `context.System` es el bueno;
   `session` sobrevive por compatibilidad y puede traer valores distintos. Se lee `context`
@@ -69,6 +69,12 @@ ya hace `PanelAssistant` respecto del chat del huésped.
   en el siguiente turno, así que el endpoint sigue **sin estado**, igual que el del panel. Se
   relee con desconfianza (`PeticionAlexa::historial()`) y recortado: el sobre de respuesta tiene
   tope de tamaño y un hilo largo lo agota.
+
+Es un DTO de frontera (`docs/TiposDeFrontera.md`): `fromArray()` es el único sitio que toca el JSON
+de Amazon y lo lee con `App\Dto\Lee`, así que un campo que no es texto es «no llegó» y no la palabra
+«Array». Por eso lleva también `apiEndpoint` y `apiToken`, que `DiagnosticoAlexa` necesita para
+preguntar por el perfil de voz (§5.2): antes los sacaba él del sobre, que era leer la frontera dos
+veces. ⚠️ `apiToken` da acceso a la API de Amazon en nombre del cliente: nunca al log.
 
 ## 3. Seguridad: qué autentica realmente este endpoint
 

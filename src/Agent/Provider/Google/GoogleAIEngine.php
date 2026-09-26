@@ -162,27 +162,26 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
             //
             // Y el MODELO en la línea, que tampoco estaba: con tres tramos de potencia
             // apuntando a modelos distintos, un coste sin modelo no se puede atribuir.
-            $uso = is_array($datos['usageMetadata'] ?? null) ? $datos['usageMetadata'] : [];
+            $leida = GoogleRespuesta::fromArray($datos);
             $this->logger->info(sprintf(
                 'Agent (google): %s · vuelta %d · %.1f s · entrada %d · cacheado %d · pensamiento %d · salida %d tokens.',
                 $modelo,
                 $vuelta + 1,
                 microtime(true) - $cronometro,
-                (int) ($uso['promptTokenCount'] ?? 0),
-                (int) ($uso['cachedContentTokenCount'] ?? 0),
-                (int) ($uso['thoughtsTokenCount'] ?? 0),
-                (int) ($uso['candidatesTokenCount'] ?? 0)
+                $leida->consumo->entrada,
+                $leida->consumo->cacheLeido,
+                $leida->consumo->pensamiento ?? 0,
+                $leida->consumo->salida ?? 0
             ));
 
             // Sin candidatos hay dos casos distintos: los filtros tumbaron la PREGUNTA
             // (`promptFeedback.blockReason`) o simplemente no vino nada.
-            $candidato = $datos['candidates'][0] ?? null;
-            if (!is_array($candidato)) {
-                if (isset($datos['promptFeedback']['blockReason'])) {
+            if (!$leida->hayTurno) {
+                if ($leida->motivoBloqueo !== null) {
                     $this->logger->warning(sprintf(
                         'Agent (google): petición declinada por los filtros para %s (%s).',
                         $peticion->actor->etiqueta(),
-                        (string) $datos['promptFeedback']['blockReason']
+                        $leida->motivoBloqueo
                     ));
 
                     return ConversationResponse::rechazada();
@@ -192,30 +191,18 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
             }
 
             // Y aquí, que tumbaron la RESPUESTA a medio generar.
-            if (in_array($candidato['finishReason'] ?? '', self::FIN_RECHAZADO, true)) {
+            if (in_array($leida->motivoFin, self::FIN_RECHAZADO, true)) {
                 $this->logger->warning(sprintf(
                     'Agent (google): respuesta cortada por los filtros para %s (%s).',
                     $peticion->actor->etiqueta(),
-                    (string) $candidato['finishReason']
+                    $leida->motivoFin
                 ));
 
                 return ConversationResponse::rechazada();
             }
 
-            $partes = is_array($candidato['content']['parts'] ?? null) ? $candidato['content']['parts'] : [];
-
-            $llamadas = [];
-            $texto = '';
-            foreach ($partes as $parte) {
-                if (is_array($parte['functionCall'] ?? null)) {
-                    $llamadas[] = $parte['functionCall'];
-                } elseif (is_string($parte['text'] ?? null)) {
-                    $texto .= $parte['text'];
-                }
-            }
-
-            if ($llamadas === []) {
-                return $this->desenlace($texto, $usadas);
+            if ($leida->llamadas === []) {
+                return $this->desenlace($leida->texto, $usadas);
             }
 
             // ⚠️ En la ÚLTIMA vuelta no se ejecuta nada, igual que en DeepSeek: ejecutar sin
@@ -233,15 +220,15 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
             }
 
             // (1) El turno del modelo. Casi tal cual vino: ver `devolverParte()`.
-            $contenidos[] = ['role' => 'model', 'parts' => array_map($this->devolverParte(...), $partes)];
+            $contenidos[] = ['role' => 'model', 'parts' => array_map($this->devolverParte(...), $leida->turnoCrudo)];
 
             // (2) Los resultados, en el mismo orden. Gemini puede pedir varias skills a la vez.
             $resultados = [];
             $todasFallaron = true;
 
-            foreach ($llamadas as $llamada) {
-                $nombre = (string) ($llamada['name'] ?? '');
-                $argumentos = is_array($llamada['args'] ?? null) ? $llamada['args'] : [];
+            foreach ($leida->llamadas as $llamada) {
+                $nombre = $llamada->nombre;
+                $argumentos = $llamada->argumentos;
                 $huella = $nombre.'|'.RastroDeSkill::argumentos($argumentos);
 
                 // La MISMA skill con los MISMOS argumentos no se vuelve a ejecutar. El resultado
@@ -348,27 +335,16 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
             return ConversationResponse::vacia();
         }
 
-        $uso = is_array($datos['usageMetadata'] ?? null) ? $datos['usageMetadata'] : [];
+        $leida = GoogleRespuesta::fromArray($datos);
         $this->logger->info(sprintf(
             'Agent (google): %s · cierre forzado · entrada %d · cacheado %d · salida %d tokens.',
             $modelo,
-            (int) ($uso['promptTokenCount'] ?? 0),
-            (int) ($uso['cachedContentTokenCount'] ?? 0),
-            (int) ($uso['candidatesTokenCount'] ?? 0)
+            $leida->consumo->entrada,
+            $leida->consumo->cacheLeido,
+            $leida->consumo->salida ?? 0
         ));
 
-        $partes = is_array($datos['candidates'][0]['content']['parts'] ?? null)
-            ? $datos['candidates'][0]['content']['parts']
-            : [];
-
-        $texto = '';
-        foreach ($partes as $parte) {
-            if (is_array($parte) && is_string($parte['text'] ?? null)) {
-                $texto .= $parte['text'];
-            }
-        }
-
-        return $this->desenlace($texto, $usadas);
+        return $this->desenlace($leida->texto, $usadas);
     }
 
     public function turnoDirecto(ConversationRequest $peticion, ?array $esquema = null): ?string
@@ -429,8 +405,8 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
             return null;
         }
 
-        $candidato = $datos['candidates'][0] ?? null;
-        if (!is_array($candidato) || in_array($candidato['finishReason'] ?? '', self::FIN_RECHAZADO, true)) {
+        $leida = GoogleRespuesta::fromArray($datos);
+        if (!$leida->hayTurno || in_array($leida->motivoFin, self::FIN_RECHAZADO, true)) {
             return null;
         }
 
@@ -444,33 +420,24 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
         // Se devuelve `null`, que es lo que ya significa «no pude»: quien llama degrada al
         // camino de siempre. Y se avisa con `warning`, no con `info`, porque un tramo que no
         // cabe en su presupuesto es configuración rota, no información de paso.
-        if (($candidato['finishReason'] ?? '') === 'MAX_TOKENS') {
+        if ($leida->motivoFin === 'MAX_TOKENS') {
             // El desglose es la mitad del valor del aviso: dice si el presupuesto se fue en
             // pensamiento (y entonces sobra con apagarlo) o en salida de verdad (y entonces
             // hay que subirlo). Sin esto, «no cabe» deja las dos hipótesis abiertas.
-            $uso = $datos['usageMetadata'] ?? [];
-
             $this->logger->warning(sprintf(
                 'Agent (google): turno directo truncado para %s — no cabe en maxTokens=%d '
                 . '(pensamiento: %s, salida: %s). En Gemini 3.x los tokens de pensamiento SALEN '
                 . 'DE AHÍ: si «pensamiento» no es 0, apágalo antes de subir el presupuesto.',
                 $peticion->actor->etiqueta(),
                 $peticion->maxTokens,
-                (string) ($uso['thoughtsTokenCount'] ?? '?'),
-                (string) ($uso['candidatesTokenCount'] ?? '?')
+                (string) ($leida->consumo->pensamiento ?? '?'),
+                (string) ($leida->consumo->salida ?? '?')
             ));
 
             return null;
         }
 
-        $texto = '';
-        foreach ((is_array($candidato['content']['parts'] ?? null) ? $candidato['content']['parts'] : []) as $parte) {
-            if (is_string($parte['text'] ?? null)) {
-                $texto .= $parte['text'];
-            }
-        }
-
-        return trim($texto) === '' ? null : $texto;
+        return trim($leida->texto) === '' ? null : $leida->texto;
     }
 
     /**
@@ -485,8 +452,8 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
      * - Un `type` en lista se queda con el primer tipo que no sea `null`, y el campo se saca de
      *   `required`. Es la traducción honesta: en Gemini «opcional» se dice no exigiéndolo.
      *
-     * @param array<string, mixed> $esquema
-     * @return array<string, mixed>
+     * @param array<mixed> $esquema
+     * @return array<mixed>
      */
     private function esquemaGemini(array $esquema): array
     {
@@ -507,14 +474,19 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
                 }
 
                 if (is_array($propiedad['type'] ?? null) && in_array('null', $propiedad['type'], true)) {
-                    $opcionales[] = $nombre;
+                    $opcionales[] = (string) $nombre;
                 }
 
                 $esquema['properties'][$nombre] = $this->esquemaGemini($propiedad);
             }
 
             if ($opcionales !== [] && is_array($esquema['required'] ?? null)) {
-                $esquema['required'] = array_values(array_diff($esquema['required'], $opcionales));
+                // Por comparación estricta y no con `array_diff()`, que pasa cada valor a texto: un
+                // `required` es una lista de nombres, y lo que no sea texto se queda como estaba.
+                $esquema['required'] = array_values(array_filter(
+                    $esquema['required'],
+                    static fn (mixed $requerido): bool => !in_array($requerido, $opcionales, true),
+                ));
             }
         }
 

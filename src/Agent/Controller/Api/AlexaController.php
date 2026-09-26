@@ -83,7 +83,7 @@ final class AlexaController extends AbstractController
             return new Response('', Response::HTTP_BAD_REQUEST);
         }
 
-        $alexa = PeticionAlexa::desde($sobre);
+        $alexa = PeticionAlexa::fromArray($sobre);
 
         if (!$this->firma->marcaDeTiempoEsReciente($alexa->timestamp)) {
             return new Response('', Response::HTTP_BAD_REQUEST);

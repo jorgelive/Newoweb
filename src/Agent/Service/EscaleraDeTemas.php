@@ -145,12 +145,12 @@ final class EscaleraDeTemas
             }
 
             foreach ($this->huellasDe($mensaje) as $huella) {
-                if (($huella['tema'] ?? null) !== $temaId) {
+                if ($huella['tema'] !== $temaId) {
                     continue;
                 }
 
                 ++$cuenta;
-                $servidoMax = max($servidoMax, (int) ($huella['peldano'] ?? 0));
+                $servidoMax = max($servidoMax, $huella['peldano']);
             }
         }
 
@@ -179,17 +179,27 @@ final class EscaleraDeTemas
      * **sigue habiendo mensajes con ella en producción**. Dejar de leerla sería reiniciar a cero
      * la escalera de todas las conversaciones vivas el día del despliegue.
      *
-     * @return list<array{tema?: string, peldano?: int}>
+     * Cada huella sale ya con tipo: `tema` sólo si es texto —es lo único que puede igualar a un
+     * uuid— y `peldano` 0 si falta. Las escribe {@see self::tomarServido()} con esos mismos tipos
+     * y el JSON los conserva, así que no hay nada que convertir: sólo que comprobarlo.
+     *
+     * @return list<array{tema: ?string, peldano: int}>
      */
     private function huellasDe(Message $mensaje): array
     {
         $metadata = $mensaje->getMetadata();
 
-        if (is_array($metadata['temas_peldano'] ?? null)) {
-            return array_values(array_filter($metadata['temas_peldano'], 'is_array'));
-        }
+        $crudas = is_array($metadata['temas_peldano'] ?? null)
+            ? array_values(array_filter($metadata['temas_peldano'], 'is_array'))
+            : (is_array($metadata['tema_peldano'] ?? null) ? [$metadata['tema_peldano']] : []);
 
-        return is_array($metadata['tema_peldano'] ?? null) ? [$metadata['tema_peldano']] : [];
+        return array_map(
+            static fn (array $huella): array => [
+                'tema' => is_string($huella['tema'] ?? null) ? $huella['tema'] : null,
+                'peldano' => is_int($huella['peldano'] ?? null) ? $huella['peldano'] : 0,
+            ],
+            $crudas,
+        );
     }
 
     /** La skill deja constancia de qué tema y qué peldaño acaba de entregar. */

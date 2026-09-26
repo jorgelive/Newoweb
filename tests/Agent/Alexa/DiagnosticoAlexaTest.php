@@ -85,7 +85,7 @@ final class DiagnosticoAlexaTest extends TestCase
             }
         };
 
-        (new DiagnosticoAlexa($http, $logger))->registrar($this->sobre(), PeticionAlexa::desde($this->sobre()));
+        (new DiagnosticoAlexa($http, $logger))->registrar($this->sobre(), PeticionAlexa::fromArray($this->sobre()));
 
         return $logger->texto;
     }

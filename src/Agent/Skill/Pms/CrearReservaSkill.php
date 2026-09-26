@@ -66,6 +66,8 @@ use App\Agent\Skill\EntradaDeSkill;
  * Por defecto el sistema pone alojamiento del tarifario, limpieza fija y **exonera servicio**
  * (§ `PmsCargosAutomaticosService`). Esta skill deja apartarse de eso porque es lo que se
  * negocia al vender: un precio cerrado, perdonar la limpieza, o cobrar un % de servicio.
+ *
+ * @phpstan-type ResumenDeReserva array{casita?: string, establecimiento?: string, huesped: string, idioma?: string, entrada: string, salida: string, noches: int, adultos: int, ninos?: int, telefono?: string, email?: string, estado: string, cargos_previstos: list<array{concepto: string, importe: string, origen: string, tipo: PmsTipoCargo}>, total_previsto: string}
  */
 final readonly class CrearReservaSkill implements SkillInterface, SkillDominioInterface
 {
@@ -481,7 +483,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
      * lo que separa «¿creo la reserva?» de «¿retiro esta casita de la venta en Booking y
      * programo dos mensajes al huésped?».
      *
-     * @param array<string, mixed> $resumen El resumen de la reserva que se acaba de armar.
+     * @param ResumenDeReserva $resumen El resumen de la reserva que se acaba de armar.
      *
      * @return list<string>
      */
@@ -518,7 +520,9 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
                 . 'el aviso de salida para el %s. Le llegarán DE VERDAD, en %s.',
                 $desde->format('Y-m-d'),
                 $hasta->format('Y-m-d'),
-                $resumen['idioma']
+                // Siempre viene —sale del idioma resuelto de la reserva—, pero `array_filter` lo
+                // quitaría si ese idioma no tuviera id.
+                $resumen['idioma'] ?? ''
             );
         } else {
             $lista[] = 'Sin teléfono, los mensajes automáticos se programan pero NO podrán '
@@ -531,7 +535,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
 
     /**
      * @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface.
-     * @param array<string, mixed> $resumen
+     * @param ResumenDeReserva $resumen
      */
     private function crear(
         array $entrada,
@@ -667,6 +671,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
             $qb->andWhere('LOWER(u.nombre) LIKE :l')->setParameter('l', '%' . mb_strtolower($busqueda) . '%');
         }
 
+        /** @var list<PmsUnidad> $encontradas */
         $encontradas = $qb->getQuery()->getResult();
 
         if ($encontradas === []) {

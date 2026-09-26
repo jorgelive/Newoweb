@@ -230,6 +230,7 @@ final readonly class CambiarCodigoCajaSkill implements SkillInterface, SkillDomi
         // el código viejo» metía a los que **llegan mañana** — gente que todavía no tiene ese
         // código. Sobraba, no faltaba, pero el agente lo contaba como si estuvieran alojados.
         // Ver `docs/ZonasHorarias.md` §6.
+        /** @var list<array{casita: ?string, nombre_cliente: ?string, apellido_cliente: ?string, localizador: ?string}> $filas */
         $filas = $this->em->getConnection()->executeQuery($sql, [
             'hoy' => (new \DateTimeImmutable())->format('Y-m-d'),
         ])->fetchAllAssociative();

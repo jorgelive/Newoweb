@@ -166,6 +166,61 @@ que nadie mira eso no lo descubre nadie.
 modelo: no lo completa leyendo la entidad, porque no la recibe. Ver `docs/Mensajeria.md` §11,
 «lo que devuelves y no anuncias, no existe».
 
+### 3.4 Lo que devuelve el proveedor: `RespuestaDelModelo` (26/09/2026)
+
+Hacia dentro, cada motor recibe el JSON de su API. Se lee **una vez**, en la carpeta del proveedor, y
+el motor trabaja con el resultado (la regla general está en `docs/TiposDeFrontera.md`):
+
+```
+JSON de DeepSeek ──► DeepSeekRespuesta::fromArray() ──┐
+                                                      ├──► RespuestaDelModelo
+JSON de Gemini ────► GoogleRespuesta::fromArray() ────┘      hayTurno · texto · motivoFin · motivoBloqueo
+                     (motor Y lector de documentos)          llamadas: list<LlamadaAHerramienta{id, nombre, argumentos}>
+                                                             consumo: ConsumoDeTokens{entrada, cacheLeido, pensamiento, salida}
+                                                             turnoCrudo  ← lo único sin leer
+```
+
+- **Anthropic no pasa por aquí**, y no es un olvido: su SDK ya devuelve objetos tipados
+  (`BetaMessage->usage->cacheReadInputTokens`) y el bucle lo lleva su `toolRunner`. No hay JSON que
+  leer; traducirlo sería una capa sin frontera detrás.
+- **`turnoCrudo` se reenvía tal cual llegó** en la vuelta siguiente, y es a propósito que no se
+  interprete: DeepSeek empareja cada `tool_call_id` contra ese mensaje, y Gemini 3 devuelve una
+  `thoughtSignature` en la parte de la llamada que hay que devolverle intacta. Rehacerlo a partir de
+  los campos leídos perdería lo que el DTO no conoce.
+- ⚠️ **`ConsumoDeTokens::$entrada` es el TOTAL, cacheado incluido.** Gemini lo manda así; DeepSeek lo
+  manda partido en `prompt_cache_hit_tokens` + `prompt_cache_miss_tokens` y se suman, de forma que
+  `entradaSinCache()` devuelve exactamente el «caché fallo» que ya se registraba.
+- ⚠️ **`pensamiento` y `salida` son nulables, y `null` no es 0.** El aviso de turno truncado de
+  Google escribe `pensamiento: ?` cuando no vino, y esa diferencia es la que dice si el presupuesto
+  se fue en razonar (se apaga) o en contestar (se sube).
+- **Las cifras de las líneas `Agent (deepseek|google): …` de `info.log` no cambiaron**, y de ellas sale
+  el coste real del agente. `LineasDeConsumoTest` monta el motor entero con respuestas grabadas y
+  comprueba las líneas exactas; **pasa igual con el código de antes y con el de ahora**, que es la
+  prueba de que la lectura no se movió.
+- Los **argumentos** de una llamada se quedan con las claves de texto
+  (`LlamadaAHerramienta::objetoJson()`): la skill lee por nombre, así que una lista que el modelo
+  mandara donde iba un objeto nunca se habría leído. Así `SkillInterface::ejecutar()` recibe lo que
+  su firma promete (`array<string, mixed>`). `app:agent:skill` usa lo mismo.
+- **Único cambio de lectura:** el lector de documentos (`GoogleLectorDeImagen`) tomaba sólo
+  `parts[0].text` y ahora concatena todas las partes de texto, como ya hacía el turno con esquema del
+  motor. Con `responseSchema` Gemini manda una sola parte, así que en la práctica es lo mismo; si
+  algún día la partiera, antes se leía medio JSON y fallaba.
+
+**Qué datos reales hay para comparar: ninguna respuesta de modelo.** No se guardan ni en la base ni
+en `info.log` (sólo las cifras ya calculadas). Por eso la comparación contra lo de antes está en
+`RespuestaDelModeloTest` —payloads con la forma de cada API frente a una copia literal de la lectura
+vieja— y en el test del motor de arriba. Lo que sí hay guardado, las huellas de la escalera de temas
+en `msg_message.metadata` (41 mensajes el 26/09/2026), lo compara `tools/pruebas/probar-dto-ia.php`
+contra producción: idénticas.
+
+Lo mismo, en pequeño, para las otras fronteras del agente:
+
+| Frontera | Se lee en | Nota |
+|---|---|---|
+| El JSON del clasificador | `RespuestaDeTriaje::fromArray()` | sólo la forma; la validación contra las listas blancas sigue en `Triaje::interpretar()` |
+| El sobre de Alexa | `PeticionAlexa::fromArray()` | lleva también `apiEndpoint`/`apiToken` para `DiagnosticoAlexa` (`docs/AgentVoz.md` §2) |
+| Los parámetros de los comandos `app:agent:*` | `#[Argument]` / `#[Option]` en `__invoke()` | la consola los entrega tipados; `--maximo-horas=abc` ahora es un error con nombre en vez de «1 hora» en silencio |
+
 ---
 
 ## 4. Los contratos con los dominios
@@ -647,7 +702,10 @@ molestar a una persona, y hubo 95 escalados en 30 días).
 | Añadir un trabajo de sistema que consulte al modelo | `src/<Modulo>/Dispatch` + `DispatchHandler` | `AgentActor::sistema()` + `turnoDirecto()` **con esquema** |
 | Cambiar cuánta cabeza se paga en un paso | `src/Agent/Conversation/PotenciaRequerida.php` | y `AGENT_IA_POTENCIA_*` en `.env` |
 | Cambiar el modelo de un tramo | `.env` | `AGENT_IA_POTENCIA_{ALTA,MEDIA,BAJA}` = `proveedor:modelo` |
-| Añadir un proveedor de IA | `src/Agent/Provider/**` | implementar `AgentEngineInterface`; `AgentEngineRegistry` lo recoge |
+| Añadir un proveedor de IA | `src/Agent/Provider/**` | implementar `AgentEngineInterface`; `AgentEngineRegistry` lo recoge. Si habla JSON a pelo, su `*Respuesta::fromArray()` devuelve `RespuestaDelModelo` (§3.4) |
+| Leer un campo nuevo de la respuesta de DeepSeek o Gemini | `src/Agent/Provider/{DeepSeek/DeepSeekRespuesta,Google/GoogleRespuesta}.php` | `fromArray()` — y su caso en `RespuestaDelModeloTest` |
+| Cambiar cómo se cuentan los tokens de una vuelta | `src/Agent/Provider/Dto/ConsumoDeTokens.php` | ⚠️ cambia las cifras de `info.log` con las que se mide el coste: `LineasDeConsumoTest` |
+| Leer un campo nuevo del JSON del triaje | `src/Agent/Triage/RespuestaDeTriaje.php` | `fromArray()`; la validación, en `Triaje::interpretar()` |
 | Cambiar cuándo se pregunta ante dos herramientas | `src/Agent/Conversation/AclaracionDeEmpate.php` | `obliga()` |
 | Cambiar qué puede empatar o enrutarse directo | `src/Agent/Triage/CatalogoDelTriaje.php` | `veEscrituras()` / `permitidas()` / `enrutablesDirectas()` |
 | Ver qué skills tiene cada perfil | — | `php bin/console app:agent:permisos` |

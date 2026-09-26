@@ -154,20 +154,16 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
                     : ConversationResponse::ok($texto, array_values(array_unique($usadas)));
             }
 
-            $uso = $respuesta['usage'] ?? [];
-            $aciertoCache += (int) ($uso['prompt_cache_hit_tokens'] ?? 0);
-            $falloCache += (int) ($uso['prompt_cache_miss_tokens'] ?? 0);
-            $salida += (int) ($uso['completion_tokens'] ?? 0);
-
-            $eleccion = $respuesta['choices'][0] ?? null;
-            $mensaje = $eleccion['message'] ?? null;
-            $motivoFin = (string) ($eleccion['finish_reason'] ?? '');
+            $leida = DeepSeekRespuesta::fromArray($respuesta);
+            $aciertoCache += $leida->consumo->cacheLeido;
+            $falloCache += $leida->consumo->entradaSinCache();
+            $salida += $leida->consumo->salida ?? 0;
 
             // Los filtros de contenido cortan la respuesta. Los otros dos motores lo distinguen
             // —Anthropic con `refusal`, Google con `FIN_RECHAZADO`— y el canal de arriba decide
             // qué hacer con eso. Sin esta rama, una respuesta filtrada salía como texto normal a
             // medias: peor que no contestar, porque parece una respuesta.
-            if ($motivoFin === 'content_filter') {
+            if ($leida->motivoFin === 'content_filter') {
                 $this->logger->warning(sprintf(
                     'Agent (deepseek): petición filtrada por el proveedor para %s.',
                     $peticion->actor->etiqueta(),
@@ -176,19 +172,16 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
                 return ConversationResponse::rechazada();
             }
 
-            if (!is_array($mensaje)) {
+            if (!$leida->hayTurno) {
                 break;
             }
 
-            $contenido = trim((string) ($mensaje['content'] ?? ''));
+            $contenido = trim($leida->texto);
             if ($contenido !== '') {
                 $texto = $contenido;
             }
 
-            /** @var list<array<string, mixed>> $llamadas */
-            $llamadas = is_array($mensaje['tool_calls'] ?? null) ? $mensaje['tool_calls'] : [];
-
-            if ($llamadas === []) {
+            if ($leida->llamadas === []) {
                 break;
             }
 
@@ -209,23 +202,13 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
 
             // El turno del asistente vuelve al hilo TAL CUAL lo devolvió la API: la API exige que
             // cada `tool` responda a un `tool_call_id` que esté en el mensaje anterior.
-            $mensajes[] = $mensaje;
+            $mensajes[] = $leida->turnoCrudo;
 
-            foreach ($llamadas as $llamada) {
-                $nombre = (string) ($llamada['function']['name'] ?? '');
-                $crudos = (string) ($llamada['function']['arguments'] ?? '{}');
-
-                // Los argumentos llegan como CADENA JSON, no como objeto. Un modelo puede mandar
-                // JSON roto; se le contesta con el error en vez de reventar el turno.
-                $argumentos = json_decode($crudos, true);
-                if (!is_array($argumentos)) {
-                    $argumentos = [];
-                }
-
+            foreach ($leida->llamadas as $llamada) {
                 $mensajes[] = [
                     'role' => 'tool',
-                    'tool_call_id' => (string) ($llamada['id'] ?? ''),
-                    'content' => $this->adaptador->ejecutar($skills, $nombre, $argumentos, $peticion->actor, $usadas),
+                    'tool_call_id' => $llamada->id,
+                    'content' => $this->adaptador->ejecutar($skills, $llamada->nombre, $llamada->argumentos, $peticion->actor, $usadas),
                 ];
             }
         }
@@ -309,16 +292,16 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
             return null;
         }
 
-        $uso = $respuesta['usage'] ?? [];
+        $leida = DeepSeekRespuesta::fromArray($respuesta);
         $this->logger->info(sprintf(
             'Agent (deepseek): turno directo · %s · caché acierto %d · caché fallo %d · salida %d tokens.',
             $modelo,
-            (int) ($uso['prompt_cache_hit_tokens'] ?? 0),
-            (int) ($uso['prompt_cache_miss_tokens'] ?? 0),
-            (int) ($uso['completion_tokens'] ?? 0),
+            $leida->consumo->cacheLeido,
+            $leida->consumo->entradaSinCache(),
+            $leida->consumo->salida ?? 0,
         ));
 
-        $motivoFin = (string) ($respuesta['choices'][0]['finish_reason'] ?? '');
+        $motivoFin = $leida->motivoFin;
 
         // ⚠️ `length` con esquema: el JSON viene CORTADO A MEDIA CLAVE y parece una respuesta.
         //
@@ -341,7 +324,7 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
             return null;
         }
 
-        $texto = trim((string) ($respuesta['choices'][0]['message']['content'] ?? ''));
+        $texto = trim($leida->texto);
 
         return $texto === '' ? null : $texto;
     }

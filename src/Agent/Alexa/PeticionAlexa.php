@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Agent\Alexa;
 
+use App\Dto\Lee;
+
 /**
  * El JSON que manda Alexa, leído en términos nuestros.
  *
@@ -11,15 +13,22 @@ namespace App\Agent\Alexa;
  * expone lo que este skill usa; el resto del sobre —`context.Viewport`, `AudioPlayer`…— se
  * ignora a propósito.
  *
+ * Es un DTO de frontera: {@see self::fromArray()} es el único sitio que toca el JSON de Amazon, y lo
+ * lee con `App\Dto\Lee` —lo que no es del tipo esperado es «no llegó»—. Ver
+ * `docs/TiposDeFrontera.md`.
+ *
  * Ver docs/AgentVoz.md §2.
  */
 final readonly class PeticionAlexa
 {
     /**
      * @param string $tipo `LaunchRequest`, `IntentRequest` o `SessionEndedRequest`.
-     * @param array<string, mixed> $atributos Lo que devolvimos en el turno anterior. Es donde
+     * @param array<mixed> $atributos Lo que devolvimos en el turno anterior. Es donde
      *        viaja el historial: Alexa lo guarda por nosotros y lo reenvía en cada turno de la
      *        misma sesión, así el endpoint sigue sin estado como el del panel.
+     * @param string|null $apiEndpoint Y {@see self::$apiToken}: con qué preguntarle a la API de
+     *        Amazon por el perfil de voz ({@see DiagnosticoAlexa}). ⚠️ El token da acceso a esa
+     *        API en nombre del cliente: nunca al log.
      */
     private function __construct(
         public string $tipo,
@@ -34,12 +43,14 @@ final readonly class PeticionAlexa
         public ?string $sesion = null,
         public bool $sesionNueva = false,
         public ?string $idioma = null,
+        public ?string $apiEndpoint = null,
+        public ?string $apiToken = null,
     ) {}
 
     /**
-     * @param array<string, mixed> $sobre
+     * @param array<mixed> $sobre
      */
-    public static function desde(array $sobre): self
+    public static function fromArray(array $sobre): self
     {
         $peticion = self::sub($sobre, 'request');
         $sesion = self::sub($sobre, 'session');
@@ -55,21 +66,23 @@ final readonly class PeticionAlexa
         $intent = self::sub($peticion, 'intent');
 
         return new self(
-            tipo: (string) ($peticion['type'] ?? ''),
-            intent: isset($intent['name']) ? (string) $intent['name'] : null,
+            tipo: Lee::texto($peticion['type'] ?? null) ?? '',
+            intent: Lee::texto($intent['name'] ?? null),
             consulta: self::slot($intent),
-            applicationId: isset($aplicacion['applicationId']) ? (string) $aplicacion['applicationId'] : null,
+            applicationId: Lee::texto($aplicacion['applicationId'] ?? null),
             usuarioAlexa: self::usuario($sistema, $sesion),
             dispositivo: self::id(self::sub($sistema, 'device'), 'deviceId'),
             // `person` sólo viaja cuando Alexa RECONOCIÓ la voz contra un perfil entrenado.
             // Ausente no significa «no era nadie»: significa «no sé quién era».
             persona: self::id(self::sub($sistema, 'person'), 'personId'),
-            timestamp: isset($peticion['timestamp']) ? (string) $peticion['timestamp'] : null,
+            timestamp: Lee::texto($peticion['timestamp'] ?? null),
             atributos: self::sub($sesion, 'attributes'),
             // Para cruzar en el log la identidad con la pregunta: ver DiagnosticoAlexa.
             sesion: self::id($sesion, 'sessionId'),
             sesionNueva: ($sesion['new'] ?? false) === true,
-            idioma: isset($peticion['locale']) ? (string) $peticion['locale'] : null,
+            idioma: Lee::texto($peticion['locale'] ?? null),
+            apiEndpoint: self::id($sistema, 'apiEndpoint'),
+            apiToken: self::id($sistema, 'apiAccessToken'),
         );
     }
 
@@ -80,7 +93,7 @@ final readonly class PeticionAlexa
      * interacción es de un solo slot `AMAZON.SearchQuery`, pero renombrarlo en la consola de
      * Amazon no debería dejar el skill mudo sin ninguna pista de por qué.
      *
-     * @param array<string, mixed> $intent
+     * @param array<mixed> $intent
      */
     private static function slot(array $intent): ?string
     {
@@ -101,8 +114,8 @@ final readonly class PeticionAlexa
     }
 
     /**
-     * @param array<string, mixed> $sistema
-     * @param array<string, mixed> $sesion
+     * @param array<mixed> $sistema
+     * @param array<mixed> $sesion
      */
     private static function usuario(array $sistema, array $sesion): ?string
     {
@@ -117,7 +130,7 @@ final readonly class PeticionAlexa
     }
 
     /**
-     * @param array<string, mixed> $origen
+     * @param array<mixed> $origen
      */
     private static function id(array $origen, string $clave): ?string
     {
@@ -138,14 +151,12 @@ final readonly class PeticionAlexa
     }
 
     /**
-     * @param array<string, mixed> $origen
-     * @return array<string, mixed>
+     * @param array<mixed> $origen
+     * @return array<mixed>
      */
     private static function sub(array $origen, string $clave): array
     {
-        $valor = $origen[$clave] ?? null;
-
-        return is_array($valor) ? $valor : [];
+        return Lee::mapa($origen[$clave] ?? null);
     }
 
     public function esLanzamiento(): bool
@@ -196,8 +207,8 @@ final readonly class PeticionAlexa
                 continue;
             }
 
-            $rol = (string) ($turno['rol'] ?? '');
-            $texto = trim((string) ($turno['texto'] ?? ''));
+            $rol = Lee::texto($turno['rol'] ?? null) ?? '';
+            $texto = trim(Lee::texto($turno['texto'] ?? null) ?? '');
 
             if ($texto === '' || !in_array($rol, ['usuario', 'asistente'], true)) {
                 continue;

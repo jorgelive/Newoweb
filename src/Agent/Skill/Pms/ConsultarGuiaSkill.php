@@ -469,7 +469,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
      * distinto.
      *
      * @param array<string, mixed> $entrada
-     * @param array<string, mixed> $base
+     * @param array<string, string|null> $base
      * @param array<int, PmsGuiaSeccion> $secciones
      */
     private function responder(
@@ -484,7 +484,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         $e = new EntradaDeSkill($entrada);
         // El nombre de la casita se lee de `$base` y no de la unidad: las dos puertas lo ponen
         // ahí, y así este tramo no necesita conocer por cuál se entró.
-        $casita = (string) ($base['casita'] ?? 'esta casita');
+        $casita = $base['casita'] ?? 'esta casita';
         $busqueda = trim($e->texto('busqueda'));
 
         // ── Camino 2 de 2: el modelo ya eligió y pide un tema por su id ──────────────────
