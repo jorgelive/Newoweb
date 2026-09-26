@@ -118,6 +118,31 @@ arrancar, y lo dice sólo en su log de errores.
 Resultado del 17/09/2026: **245 de 245 tablas**, 475 MB de datos reales —la carpeta ocupaba 2,7 GB
 por logs y espacio reservado—, 36 MB comprimido. Copia en `~/Backups/openperu_oweb-mamp-20260917.sql.gz`.
 
+### MAMP borrado del todo (26/09/2026)
+
+Nueve días después, al desinstalarlo: **nada del proyecto dependía ya de él.** Comprobado antes de
+borrar, y es la lista que vale para cualquier otro resto:
+
+| | Estado |
+|---|---|
+| El `mysqld` que sirve la base local | `/opt/homebrew/opt/mysql@8.4`, datos en `/opt/homebrew/var/mysql`, puerto 3306. No es el de MAMP |
+| El `php` del shell | ya apuntaba a `/opt/homebrew/opt/php@8.4/bin/php` (8.4.25) |
+| `/Applications/MAMP/htdocs` | vacía desde noviembre de 2024 |
+| Los volcados de la mudanza | en `~/Backups/`, fuera de MAMP |
+
+Se van con la aplicación los 2,8 GB de `/Library/Application Support/appsolute/MAMP PRO/db`, que
+son la carpeta de datos vieja — ya volcada el 17/09 en `openperu_oweb-mamp-20260917.sql.gz`.
+
+⚠️ **El resto que sí mordió: un alias viejo en una sesión abierta.** MAMP se retiró el 17/09 y el
+`.zshrc` se corrigió ese día, pero una sesión de agente que arrancó antes conservaba en su entorno
+el `alias php=/Applications/MAMP/bin/php/php8.4.1/bin/php`. Como MAMP seguía instalado, la única
+señal fue un `No such file or directory` —MAMP había pasado a 8.4.17— y a partir de ahí se siguió
+usando el PHP de MAMP durante días **sin que nada fallara**, que es lo que lo hizo invisible.
+
+Retirar una herramienta y dejarla instalada es dejar el camino viejo abierto. Si se retira, se
+borra; y en una sesión que ya estaba abierta, se comprueba el binario con `php -v` antes de creerse
+el alias.
+
 ## Comprobar que funciona
 
 ```bash
