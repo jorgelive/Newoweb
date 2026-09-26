@@ -920,6 +920,46 @@ export interface paths {
         patch: operations["api_salescotizacion_filepasajeros_id_patch"];
         trace?: never;
     };
+    "/platform/cotizacion/pedidos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of CotizacionPedido resources.
+         * @description Retrieves the collection of CotizacionPedido resources.
+         */
+        get: operations["api_cotizacionpedidos_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/cotizacion/pedidos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Updates the CotizacionPedido resource.
+         * @description Updates the CotizacionPedido resource.
+         */
+        patch: operations["api_cotizacionpedidos_id_patch"];
+        trace?: never;
+    };
     "/platform/sales/cotizacion_segmentos/{id}": {
         parameters: {
             query?: never;
@@ -17889,6 +17929,141 @@ export interface components {
              */
             vencimiento?: string | null;
             id?: string;
+        };
+        /**
+         * @description Algo que un cliente pidió de viaje —un tour, una cotización, un cambio de itinerario— y que el
+         *     área de Cotizaciones tiene que trabajar.
+         */
+        "CotizacionPedido-cotizacion_pedido.read": {
+            /** @description De qué conversación salió. Ver el docblock de la clase: aquí nace, no en el expediente. */
+            conversacionId?: string;
+            /**
+             * @description Lo que pidió, en una línea y con sus palabras.
+             * @default
+             */
+            texto: string;
+            /**
+             * Format: iri-reference
+             * @description El expediente que lo resolvió. `null` mientras está pendiente.
+             * @example https://example.com/
+             */
+            file?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo se resolvió. `null` = pendiente.
+             */
+            efectuadaAt?: string | null;
+            readonly pendiente?: boolean;
+            /** @description Se cerró solo, al vincular un expediente a la conversación — nadie lo marcó a mano. */
+            readonly cerradoAutomaticamente?: boolean;
+            /** @description Quién lo dio por hecho, para la lista. El objeto entero no hace falta ahí. */
+            readonly efectuadaPorNombre?: string | null;
+            /** @description El localizador del expediente que lo resolvió, si ya hay uno. */
+            readonly fileLocalizador?: string | null;
+        };
+        /**
+         * @description Algo que un cliente pidió de viaje —un tour, una cotización, un cambio de itinerario— y que el
+         *     área de Cotizaciones tiene que trabajar.
+         */
+        "CotizacionPedido-cotizacion_pedido.write.jsonMergePatch": {
+            /**
+             * Format: date-time
+             * @description Cuándo se resolvió. `null` = pendiente.
+             */
+            efectuadaAt?: string | null;
+        };
+        /**
+         * @description Algo que un cliente pidió de viaje —un tour, una cotización, un cambio de itinerario— y que el
+         *     área de Cotizaciones tiene que trabajar.
+         */
+        "CotizacionPedido.html-cotizacion_pedido.read": {
+            /** @description De qué conversación salió. Ver el docblock de la clase: aquí nace, no en el expediente. */
+            conversacionId?: string;
+            /**
+             * @description Lo que pidió, en una línea y con sus palabras.
+             * @default
+             */
+            texto: string;
+            /**
+             * Format: iri-reference
+             * @description El expediente que lo resolvió. `null` mientras está pendiente.
+             * @example https://example.com/
+             */
+            file?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo se resolvió. `null` = pendiente.
+             */
+            efectuadaAt?: string | null;
+            readonly pendiente?: boolean;
+            /** @description Se cerró solo, al vincular un expediente a la conversación — nadie lo marcó a mano. */
+            readonly cerradoAutomaticamente?: boolean;
+            /** @description Quién lo dio por hecho, para la lista. El objeto entero no hace falta ahí. */
+            readonly efectuadaPorNombre?: string | null;
+            /** @description El localizador del expediente que lo resolvió, si ya hay uno. */
+            readonly fileLocalizador?: string | null;
+        };
+        /**
+         * @description Algo que un cliente pidió de viaje —un tour, una cotización, un cambio de itinerario— y que el
+         *     área de Cotizaciones tiene que trabajar.
+         */
+        "CotizacionPedido.jsonld-cotizacion_pedido.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description De qué conversación salió. Ver el docblock de la clase: aquí nace, no en el expediente. */
+            conversacionId?: string;
+            /**
+             * @description Lo que pidió, en una línea y con sus palabras.
+             * @default
+             */
+            texto: string;
+            /**
+             * Format: iri-reference
+             * @description El expediente que lo resolvió. `null` mientras está pendiente.
+             * @example https://example.com/
+             */
+            file?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo se resolvió. `null` = pendiente.
+             */
+            efectuadaAt?: string | null;
+            readonly pendiente?: boolean;
+            /** @description Se cerró solo, al vincular un expediente a la conversación — nadie lo marcó a mano. */
+            readonly cerradoAutomaticamente?: boolean;
+            /** @description Quién lo dio por hecho, para la lista. El objeto entero no hace falta ahí. */
+            readonly efectuadaPorNombre?: string | null;
+            /** @description El localizador del expediente que lo resolvió, si ya hay uno. */
+            readonly fileLocalizador?: string | null;
+        };
+        /**
+         * @description Algo que un cliente pidió de viaje —un tour, una cotización, un cambio de itinerario— y que el
+         *     área de Cotizaciones tiene que trabajar.
+         */
+        "CotizacionPedido.multipart-cotizacion_pedido.read": {
+            /** @description De qué conversación salió. Ver el docblock de la clase: aquí nace, no en el expediente. */
+            conversacionId?: string;
+            /**
+             * @description Lo que pidió, en una línea y con sus palabras.
+             * @default
+             */
+            texto: string;
+            /**
+             * Format: iri-reference
+             * @description El expediente que lo resolvió. `null` mientras está pendiente.
+             * @example https://example.com/
+             */
+            file?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo se resolvió. `null` = pendiente.
+             */
+            efectuadaAt?: string | null;
+            readonly pendiente?: boolean;
+            /** @description Se cerró solo, al vincular un expediente a la conversación — nadie lo marcó a mano. */
+            readonly cerradoAutomaticamente?: boolean;
+            /** @description Quién lo dio por hecho, para la lista. El objeto entero no hace falta ahí. */
+            readonly efectuadaPorNombre?: string | null;
+            /** @description El localizador del expediente que lo resolvió, si ya hay uno. */
+            readonly fileLocalizador?: string | null;
         };
         CotizacionSegmento: {
             /**
@@ -42998,6 +43173,122 @@ export interface operations {
                     "application/json": components["schemas"]["CotizacionFilepasajero-file.item.read_timestamp.read"];
                     "text/html": components["schemas"]["CotizacionFilepasajero.html-file.item.read_timestamp.read"];
                     "multipart/form-data": components["schemas"]["CotizacionFilepasajero.multipart-file.item.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_cotizacionpedidos_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+                conversacionId?: string;
+                "conversacionId[]"?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CotizacionPedido collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["CotizacionPedido.jsonld-cotizacion_pedido.read"][];
+                    };
+                    "application/json": components["schemas"]["CotizacionPedido-cotizacion_pedido.read"][];
+                    "text/html": components["schemas"]["CotizacionPedido.html-cotizacion_pedido.read"][];
+                    "multipart/form-data": components["schemas"]["CotizacionPedido.multipart-cotizacion_pedido.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_cotizacionpedidos_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionPedido identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated CotizacionPedido resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["CotizacionPedido-cotizacion_pedido.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description CotizacionPedido resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionPedido.jsonld-cotizacion_pedido.read"];
+                    "application/json": components["schemas"]["CotizacionPedido-cotizacion_pedido.read"];
+                    "text/html": components["schemas"]["CotizacionPedido.html-cotizacion_pedido.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionPedido.multipart-cotizacion_pedido.read"];
                 };
             };
             /** @description Invalid input */

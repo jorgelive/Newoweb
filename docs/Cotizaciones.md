@@ -11356,3 +11356,88 @@ extracción —falta un dato que nunca se pidió—, así que hay que releer, y 
 | Cambiar qué filas se le piden al modelo | `LectorDeEticket` | `INSTRUCCION` + `ESQUEMA.pasajeros` |
 | Leer una lectura guardada con la forma vieja | `LectorDeEticket` | `pasajeros()` |
 | Cambiar si manda lo impreso o la MRZ | `LectorDeDocumentoIdentidad` | `preferir()` + `laMrzEstaMasCompleta()` |
+
+---
+
+## Pendientes de cotizar: `CotizacionPedido` (26/09/2026)
+
+**El caso que lo destapó.** Un huésped de hotel (PMS) pidió por WhatsApp tres tours con fechas y
+personas — Valle Sagrado, Montaña de 7 Colores, Glaciar Quelccaya, con un niño de 9 años. El agente
+no podía resolverlo solo: hay que armar itinerario, precio y disponibilidad. Una persona intervino
+a mano, y el pedido quedó escrito **sólo en el chat**. Nada lo marcaba como pendiente de trabajar, y
+nada avisaba cuando alguien por fin abría el expediente.
+
+Es la hermana de `App\Pms\Entity\PmsPeticion` (ver el mapa de `CLAUDE.md`), para el otro negocio, y
+con la misma pregunta detrás: ¿dónde queda escrito lo que alguien pidió, para que se vea el día que
+alguien tiene un hueco para trabajarlo?
+
+### Por qué no bastaba lo que ya había
+
+| Qué hay | Por qué no cubre esto |
+|---|---|
+| `PmsPeticion` | Cuelga de una **estancia** y es sólo para lo que se deja puesto en la casita (plancha, secador). |
+| `escalar_al_equipo` | Manda un WhatsApp inmediato que se lee una vez; no sobrevive como tarea. |
+| «La Biblia» / Órdenes de Servicio (`docs/Operacion.md`) | Nace de una cotización **ya confirmada y vendida** — es para operar el tour, no para el pedido que aún no se cotizó. |
+| `CotizacionConversacionEnlace` | Cuelga de un **expediente que ya existe**. Al pedirse, casi nunca lo hay todavía. |
+
+### Nace en la conversación, se cierra con el expediente
+
+`CotizacionPedido` guarda `conversacion_id` como texto plano (mismo desacople deliberado que
+`PmsPeticion`: `MessageConversation` es de otro módulo), no una relación. `file` empieza `null` y se
+rellena solo — sin que nadie lo marque — en cuanto se vincula el **primer** expediente a esa
+conversación:
+
+```
+Huésped pide tours ──► anotar_pedido_cotizacion ──► CotizacionPedido (pendiente)
+                                                            │
+Alguien crea/edita el CotizacionFile con teléfono o correo  │
+        │                                                   │
+        ▼                                                   │
+CotizacionFileConversacionListener (onFlush/postFlush)      │
+        │                                                   │
+        ▼                                                   │
+MessageConversationFactory::upsertFromContext()              │
+        │                                                   │
+        ▼                                                   │
+CotizacionSincronizadorDeEnlace::sincronizar()               │
+        │ (primer enlace de este expediente en este hilo)   │
+        ▼                                                   │
+CotizacionPedido::resolverPorExpediente($file) ◄─────────────┘
+```
+
+El gancho vive en `CotizacionSincronizadorDeEnlace::sincronizar()`, dentro de la rama que crea el
+enlace por primera vez — no en un listener aparte: es exactamente la señal de que alguien empezó a
+trabajarlo, y ya estaba ahí el sitio correcto para engancharse.
+
+⚠️ **`resolverPorExpediente()` pone tres cosas a la vez**: expediente, hora y **sin autor humano**
+(`efectuadaPor` se queda `null`). Es lo que distingue un cierre automático de uno manual —
+`isCerradoAutomaticamente()` lo deriva de ahí—, y por eso no es un setter cualquiera: un `file`
+puesto sin `efectuadaAt` seguiría en la lista de pendientes, y un `efectuadaAt` sin `file` no diría
+qué lo resolvió.
+
+⚠️ **Un pedido ya cerrado a mano no se toca.** `cerrarPedidosPendientes()` sólo busca los que siguen
+con `efectuadaAt IS NULL`; uno resuelto por otra vía (el cliente canceló, era un duplicado) queda
+tal cual quedó. Comprobado en `tools/pruebas/probar-pedido-cotizacion.php`.
+
+### Quién lo crea, y por qué no hay «marcar_pedido»
+
+La skill del agente es `anotar_pedido_cotizacion`
+(`src/Agent/Skill/Cotizacion/AnotarPedidoCotizacionSkill.php`), hermana de `anotar_peticion`. La
+puede llamar el propio cliente —es él quien pide— porque es `NivelRiesgo::Interna`: no promete
+precio, no reserva nada, sólo anota que alguien lo pidió.
+
+**No existe una skill `marcar_pedido_cotizacion`** equivalente a `marcar_peticion`. A propósito: lo
+que cierra un pedido es el trabajo real (abrir el expediente), no un aviso de que se hizo. El panel
+sí puede cerrarlo a mano (`Patch /cotizacion/pedidos/{id}`, mismo patrón de firma en servidor que
+`PmsPeticionProcessor`) para los casos que no pasan por ahí — un duplicado, uno que el cliente
+retiró.
+
+### Dónde tocar
+
+| Necesidad | Archivo | Método |
+|---|---|---|
+| Cambiar qué anota el agente | `AnotarPedidoCotizacionSkill` | `definicion()` / `ejecutar()` |
+| Cambiar cuándo se cierra solo | `CotizacionSincronizadorDeEnlace` | `cerrarPedidosPendientes()` |
+| Cambiar qué pone el cierre automático | `CotizacionPedido` | `resolverPorExpediente()` |
+| Cerrarlo a mano desde el panel | `CotizacionPedidoProcessor` | `process()` |
+| Comprobar el cierre automático contra el flujo real | `tools/pruebas/probar-pedido-cotizacion.php` | — |

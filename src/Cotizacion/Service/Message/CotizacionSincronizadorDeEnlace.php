@@ -6,6 +6,7 @@ namespace App\Cotizacion\Service\Message;
 
 use App\Cotizacion\Entity\CotizacionConversacionEnlace;
 use App\Cotizacion\Entity\CotizacionFile;
+use App\Cotizacion\Entity\CotizacionPedido;
 use App\Message\Contract\MessageContextInterface;
 use App\Message\Contract\SincronizadorDeEnlaceInterface;
 use App\Message\Entity\MessageConversation;
@@ -53,6 +54,11 @@ final readonly class CotizacionSincronizadorDeEnlace implements SincronizadorDeE
         if ($enlace === null) {
             $enlace = new CotizacionConversacionEnlace($conversacion, $file);
             $this->em->persist($enlace);
+
+            // Primer enlace de ESTE expediente en ESTE hilo: es la señal de que alguien empezó a
+            // trabajarlo. Cierra los pedidos que llevaban pendientes desde antes de que existiera.
+            // Ver `CotizacionPedido::resolverPorExpediente()`.
+            $this->cerrarPedidosPendientes($conversacion, $file);
         }
 
         $enlace->setVinculo($contexto->getVinculo());
@@ -80,5 +86,23 @@ final readonly class CotizacionSincronizadorDeEnlace implements SincronizadorDeE
         }
 
         return null;
+    }
+
+    /**
+     * Cierra en bloque los pedidos que esperaban, en esta conversación, a que existiera un
+     * expediente. `getId()` de la conversación ya está poblado aquí —el UUID v7 se asigna al
+     * construirla, no lo da la base—, así que la consulta ve incluso una conversación recién
+     * creada en esta misma unidad de trabajo.
+     */
+    private function cerrarPedidosPendientes(MessageConversation $conversacion, CotizacionFile $file): void
+    {
+        $pendientes = $this->em->getRepository(CotizacionPedido::class)->findBy([
+            'conversacionId' => (string) $conversacion->getId(),
+            'efectuadaAt' => null,
+        ]);
+
+        foreach ($pendientes as $pedido) {
+            $pedido->resolverPorExpediente($file);
+        }
     }
 }
