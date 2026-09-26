@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Controller\Api;
 
+use App\Dto\Lee;
 use App\Agent\Service\PanelAssistant;
 use App\Agent\Access\AgentActorFactory;
 use App\Entity\User;
@@ -63,7 +64,7 @@ final class PanelAssistantController extends AbstractController
         }
 
         $payload = json_decode($request->getContent(), true);
-        $pregunta = is_array($payload) ? (string) ($payload['pregunta'] ?? '') : '';
+        $pregunta = is_array($payload) ? (Lee::texto($payload['pregunta'] ?? null) ?? '') : '';
 
         // El hilo lo mantiene el cliente y viaja en cada petición: así el endpoint no guarda
         // estado y el operador ve exactamente el mismo contexto que el modelo.

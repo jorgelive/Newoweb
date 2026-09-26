@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\DispatchHandler;
 
+use App\Dto\Lee;
 use App\Agent\Dispatch\ProcessInboundIntentDispatch;
 use App\Agent\Router\IntentRouter;
 use App\Agent\Triage\PreRouterRafaga;
@@ -155,7 +156,7 @@ final readonly class ProcessInboundIntentDispatchHandler
             return true;
         }
 
-        if ((int) $resultado !== 1) {
+        if (Lee::entero($resultado) !== 1) {
             // Ruidoso a propósito: es lo único que distingue «mi gemelo está trabajando» —lo
             // normal— de «un worker lleva media hora colgado reteniendo el turno», que deja
             // todos los trabajos siguientes de ese mensaje sin contestar y en silencio.
