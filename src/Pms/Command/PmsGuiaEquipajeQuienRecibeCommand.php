@@ -107,6 +107,26 @@ final class PmsGuiaEquipajeQuienRecibeCommand extends Command
     /** Lo que ya está en `agenteContenido` y se reescribe: también decía «bultos». */
     private const string ANCLA_AGENTE = 'día de antelación para coordinarlo, y que diga cuantos bultos son.';
 
+    /**
+     * El precio, que estaba mandando a preguntar algo que se sabe.
+     *
+     * Decía «Si pregunta el costo, avisa al equipo» y el guardaequipaje **es gratis** — Jorge se
+     * lo escribió a Vanessa el 30/08 y me lo confirmó el 25/09. Con esa línea, cada «¿cuánto
+     * cuesta?» interrumpía a una persona para decir cero. El agente llegó a contestar «es
+     * gratuito» por su cuenta el 04/09 y acertó, que es la misma suerte que tuvo con la
+     * recepción y con el dúplex.
+     *
+     * ⚠️ **Y no entra en la guía del huésped**, por decisión de Jorge: gratis *si preguntan*.
+     * Anunciarlo en la ficha lo convierte en un servicio ofrecido, con lo que eso arrastra —el
+     * que deja maletas tres semanas «porque pone que es gratis»—; contestado cuando preguntan,
+     * es una buena noticia. Mismo criterio que el pasaje de las motos.
+     */
+    private const string COSTO_VIEJO = 'Si pregunta el costo,\navisa al equipo.';
+
+    private const string COSTO = 'Si pregunta el costo: es GRATIS para nuestros huéspedes, díselo '
+        . 'sin rodeos y sin avisar a nadie. No lo ofrezcas de entrada — se cuenta cuando lo '
+        . 'preguntan, no antes.';
+
     private const string AGENTE = 'día de antelación para coordinarlo.'
         . "\n\n"
         . "LO PRIMERO ES LA HORA. Aquí no hay una respuesta única: dónde queda el equipaje y "
@@ -213,8 +233,23 @@ final class PmsGuiaEquipajeQuienRecibeCommand extends Command
             $tocado = true;
         }
 
-        // ── Lo que lee el agente ────────────────────────────────────────────
+        // ── El precio, que va SÓLO aquí ─────────────────────────────────────
         $agente = (string) $item->getAgenteContenido();
+
+        if (str_contains($agente, self::COSTO_VIEJO)) {
+            $io->section('Agente · precio');
+            $io->writeln('<fg=red>- Si pregunta el costo, avisa al equipo.</>');
+            $io->writeln('<fg=green>+ es GRATIS, díselo sin avisar a nadie; no lo ofrezcas de entrada</>');
+
+            if (!$simular) {
+                $item->setAgenteContenido(str_replace(self::COSTO_VIEJO, self::COSTO, $agente));
+                $agente = (string) $item->getAgenteContenido();
+            }
+
+            $tocado = true;
+        }
+
+        // ── Lo que lee el agente ────────────────────────────────────────────
 
         if (str_contains($agente, 'propio apartamento o va al almacén')) {
             $io->text('· El texto del agente ya lo cuenta.');
