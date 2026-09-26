@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Pms\Factory\PmsBookingsPullQueueFactory;
@@ -82,11 +83,11 @@ final class PmsBookingsPullQueueCrudController extends BaseCrudController
         // ✅ Manejo de UUID para visualización
         yield TextField::new('id', 'UUID')
             ->onlyOnIndex()
-            ->formatValue(fn($value) => substr((string)$value, 0, 8) . '...');
+            ->formatValue(fn(mixed $value) => substr(ValorDeCampo::texto($value), 0, 8) . '...');
 
         yield TextField::new('id', 'UUID Completo')
             ->onlyOnDetail()
-            ->formatValue(fn($value) => (string)$value);
+            ->formatValue(fn(mixed $value) => ValorDeCampo::texto($value));
 
         // --- PANEL DE CONFIGURACIÓN ---
         yield FormField::addPanel('Configuración del Job')->setIcon('fa fa-download');
@@ -151,7 +152,7 @@ final class PmsBookingsPullQueueCrudController extends BaseCrudController
 
         yield CodeEditorField::new('executionResult', 'Execution Summary (JSON)')
             ->setLanguage('js')
-            ->formatValue(function ($value) {
+            ->formatValue(function (mixed $value) {
                 return $value ? json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : null;
             })
             ->onlyOnDetail();

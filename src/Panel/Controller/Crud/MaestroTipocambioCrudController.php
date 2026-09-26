@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Panel\Controller\Crud;
 
 // ✅ Restauramos la herencia de tu BaseCrudController
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Entity\Maestro\MaestroTipocambio;
 use App\Security\Roles;
@@ -78,7 +79,7 @@ class MaestroTipocambioCrudController extends BaseCrudController
         // ✅ UUID para visualización técnica
         yield TextField::new('id', 'UUID')
             ->onlyOnDetail()
-            ->formatValue(fn($value) => (string) $value);
+            ->formatValue(fn(mixed $value) => ValorDeCampo::texto($value));
 
         yield DateField::new('fecha', 'Fecha de la Tasa')
             ->setColumns(6)

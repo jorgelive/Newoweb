@@ -119,7 +119,7 @@ class PmsGuiaCrudController extends BaseCrudController
 
         yield TextField::new('virtualSecciones', 'Secciones')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, PmsGuia $entity) {
                 $relaciones = $entity->getGuiaHasSecciones();
                 if ($relaciones->isEmpty()) {
                     return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin secciones vinculadas</span>';

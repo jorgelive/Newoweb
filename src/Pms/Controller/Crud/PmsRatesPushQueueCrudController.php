@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsRatesPushQueue;
 use App\Security\Roles;
@@ -78,11 +79,11 @@ final class PmsRatesPushQueueCrudController extends BaseCrudController
         // ✅ Manejo de UUID (IdTrait)
         yield TextField::new('id', 'UUID')
             ->onlyOnIndex()
-            ->formatValue(fn($value) => substr((string)$value, 0, 8) . '...');
+            ->formatValue(fn(mixed $value) => substr(ValorDeCampo::texto($value), 0, 8) . '...');
 
         yield TextField::new('id', 'UUID Completo')
             ->onlyOnDetail()
-            ->formatValue(fn($value) => (string)$value);
+            ->formatValue(fn(mixed $value) => ValorDeCampo::texto($value));
 
         // --- PANEL 1: CONTEXTO DE MAPEO ---
         yield FormField::addPanel('Contexto de Mapeo')->setIcon('fa fa-map-marker-alt');
@@ -172,7 +173,7 @@ final class PmsRatesPushQueueCrudController extends BaseCrudController
 
         yield CodeEditorField::new('executionResult', 'Resultado del Proceso')
             ->setLanguage('javascript')
-            ->formatValue(function ($value) {
+            ->formatValue(function (mixed $value) {
                 return $value ? json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : null;
             })
             ->onlyOnDetail();

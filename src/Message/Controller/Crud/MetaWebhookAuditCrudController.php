@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Message\Entity\MetaWebhookAudit;
 use App\Message\Service\Meta\Webhook\WhatsappMetaWebhookMessageFastTrackService;
 use App\Panel\Controller\Crud\BaseCrudController;
@@ -107,12 +108,12 @@ final class MetaWebhookAuditCrudController extends BaseCrudController
         // ID Corto (Index) para no romper el diseño de la tabla
         yield TextField::new('id', 'UUID')
             ->onlyOnIndex()
-            ->formatValue(fn($value) => substr((string)$value, 0, 8) . '...');
+            ->formatValue(fn(mixed $value) => substr(ValorDeCampo::texto($value), 0, 8) . '...');
 
         // ID Completo (Detalle) para trazabilidad exacta
         yield TextField::new('id', 'UUID Completo')
             ->onlyOnDetail()
-            ->formatValue(fn($value) => (string) $value);
+            ->formatValue(fn(mixed $value) => ValorDeCampo::texto($value));
 
         yield ChoiceField::new('status', 'Estado')
             ->setChoices([

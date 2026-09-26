@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Panel\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Entity\User;
 use App\Security\Roles;
@@ -86,7 +87,7 @@ class UserCrudController extends BaseCrudController
         // UUID para visualización técnica en detalle
         yield TextField::new('id', 'UUID')
             ->onlyOnDetail()
-            ->formatValue(fn($value) => (string) $value);
+            ->formatValue(fn(mixed $value) => ValorDeCampo::texto($value));
 
         // --- CREDENCIALES ---
         yield FormField::addPanel('Credenciales de Acceso')->setIcon('fa fa-key');

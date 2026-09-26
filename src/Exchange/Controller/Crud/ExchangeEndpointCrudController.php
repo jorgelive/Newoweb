@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Enum\ConnectivityProvider;
 use App\Panel\Controller\Crud\BaseCrudController;
@@ -87,7 +88,7 @@ class ExchangeEndpointCrudController extends BaseCrudController
 
         yield TextField::new('id', 'UUID')
             ->onlyOnDetail()
-            ->formatValue(fn($value) => (string) $value);
+            ->formatValue(fn(mixed $value) => ValorDeCampo::texto($value));
 
         // ✅ NUEVO: Selector de Proveedor (Mapea el Enum para EasyAdmin)
         yield ChoiceField::new('provider', 'Proveedor')

@@ -192,7 +192,7 @@ class TravelSegmentoCrudController extends BaseCrudController
         // 🔥 LECTURA (Getter Virtual)
         yield TextField::new('virtualServicios', 'Servicios')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, TravelSegmento $entity) {
                 $servicios = $entity->getServicios();
                 if ($servicios->isEmpty()) return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin servicios vinculados</span>';
 
@@ -230,7 +230,7 @@ class TravelSegmentoCrudController extends BaseCrudController
         // error**, que es la peor forma de fallar: parece «no se usa en ninguna».
         yield TextField::new('virtualUsoEnCotizaciones', 'Congelado en cotizaciones')
             ->onlyOnDetail()
-            ->formatValue(function ($value, TravelSegmento $entity) {
+            ->formatValue(function (mixed $value, TravelSegmento $entity) {
                 $id = $entity->getId();
 
                 if ($id === null) {
@@ -264,7 +264,7 @@ class TravelSegmentoCrudController extends BaseCrudController
 
         yield TextField::new('virtualItinerarios', 'Plantillas donde se usa')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, TravelSegmento $entity) {
                 $coleccion = $entity->getItinerarioSegmentosInyectados();
 
                 if ($coleccion->isEmpty()) {
@@ -313,7 +313,7 @@ class TravelSegmentoCrudController extends BaseCrudController
 
         yield ChoiceField::new('inicioModo', 'Empieza en')
             ->setChoices(array_reduce(PuntoModoEnum::cases(), static fn ($c, $e) => $c + [$e->etiqueta() => $e], []))
-            ->formatValue(static fn ($value) => $value instanceof PuntoModoEnum ? $value->etiqueta() : $value)
+            ->formatValue(static fn (mixed $value) => $value instanceof PuntoModoEnum ? $value->etiqueta() : $value)
             ->onlyOnForms()
             ->setColumns(3);
 
@@ -325,7 +325,7 @@ class TravelSegmentoCrudController extends BaseCrudController
 
         yield ChoiceField::new('finModo', 'Termina en')
             ->setChoices(array_reduce(PuntoModoEnum::cases(), static fn ($c, $e) => $c + [$e->etiqueta() => $e], []))
-            ->formatValue(static fn ($value) => $value instanceof PuntoModoEnum ? $value->etiqueta() : $value)
+            ->formatValue(static fn (mixed $value) => $value instanceof PuntoModoEnum ? $value->etiqueta() : $value)
             ->onlyOnForms()
             ->setColumns(3);
 
@@ -340,7 +340,7 @@ class TravelSegmentoCrudController extends BaseCrudController
         // 🔥 LECTURA (Getter Virtual)
         yield TextField::new('virtualTitulo', 'Título del Segmento')
             ->hideOnForm()
-            ->formatValue(function ($value, TravelSegmento $entity) {
+            ->formatValue(function (mixed $value, TravelSegmento $entity) {
                 foreach ($entity->getTitulo() as $item) {
                     if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
                         return sprintf(
@@ -373,7 +373,7 @@ class TravelSegmentoCrudController extends BaseCrudController
         // Ver el aviso de migración vs. comando en CLAUDE.md.
         yield TextField::new('virtualContenido', 'Cuerpo del Relato')
             ->hideOnForm()
-            ->formatValue(function ($value, TravelSegmento $entity) {
+            ->formatValue(function (mixed $value, TravelSegmento $entity) {
                 $español = null;
 
                 foreach ($entity->getContenido() as $item) {
@@ -406,7 +406,7 @@ class TravelSegmentoCrudController extends BaseCrudController
         // 🔥 LECTURA (Getter Virtual ya existente)
         yield TextField::new('virtualLogistica', 'Logística Inyectada')
             ->hideOnForm()
-            ->formatValue(function ($value, TravelSegmento $entity) {
+            ->formatValue(function (mixed $value, TravelSegmento $entity) {
                 // Sin `@var`: el getter ya declara `Collection<int, TravelSegmentoComponente>`.
                 // La anotación que había aquí lo rebajaba a `iterable`, y con eso `isEmpty()`
                 // —que es de `Collection`, no de `iterable`— pasaba a ser una llamada sin
@@ -462,7 +462,7 @@ class TravelSegmentoCrudController extends BaseCrudController
         // le subas, y no da error en ningún sitio.
         yield TextField::new('virtualCadenaFotos', '¿De dónde saldrán las fotos?')
             ->onlyOnDetail()
-            ->formatValue(static function ($value, TravelSegmento $entity) {
+            ->formatValue(static function (mixed $value, TravelSegmento $entity) {
                 $propias = $entity->getImagenes()->count();
 
                 if ($propias > 0) {
@@ -579,7 +579,7 @@ class TravelSegmentoCrudController extends BaseCrudController
         // 🔥 NUEVO: LECTURA — Galería con thumbnails (Liip) + modal
         yield TextField::new('virtualGaleria', 'Galería de Fotos')
             ->hideOnForm()
-            ->formatValue(fn ($value, $entity) => $this->renderGaleriaThumbnails(
+            ->formatValue(fn (mixed $value, TravelSegmento $entity) => $this->renderGaleriaThumbnails(
                 $entity->getImagenes(),
                 $entity,
                 $this->uploadPath,
@@ -600,7 +600,7 @@ class TravelSegmentoCrudController extends BaseCrudController
         // 🔥 LECTURA (Getter Virtual)
         yield TextField::new('virtualNotas', 'Intros y tips')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, TravelSegmento $entity) {
                 $notas = $entity->getNotas();
                 if ($notas->isEmpty()) return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin notas vinculadas</span>';
 

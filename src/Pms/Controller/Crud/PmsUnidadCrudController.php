@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Field\LiipImageField;
 use App\Panel\Form\Type\WifiNetworkType;
@@ -91,12 +92,12 @@ final class PmsUnidadCrudController extends BaseCrudController
         // ID: Versión corta para Index
         yield TextField::new('id', 'UUID')
             ->onlyOnIndex()
-            ->formatValue(fn($value) => substr((string)$value, 0, 8) . '...');
+            ->formatValue(fn(mixed $value) => substr(ValorDeCampo::texto($value), 0, 8) . '...');
 
         // ID: Versión completa para Detail
         yield TextField::new('id', 'UUID Completo')
             ->onlyOnDetail()
-            ->formatValue(fn($value) => (string) $value);
+            ->formatValue(fn(mixed $value) => ValorDeCampo::texto($value));
 
         yield AssociationField::new('establecimiento', 'Establecimiento')
             ->setRequired(true);
@@ -290,7 +291,7 @@ final class PmsUnidadCrudController extends BaseCrudController
         yield TextField::new('virtualPaxExtra', 'Pax extra')
             ->onlyOnIndex()
             ->setSortable(false)
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, PmsUnidad $entity) {
                 if (!$entity instanceof PmsUnidad || !$entity->cobraPaxAdicional()) {
                     return '—';
                 }
@@ -353,7 +354,7 @@ final class PmsUnidadCrudController extends BaseCrudController
         yield TextField::new('virtualLimpiezaServicio', 'Limpieza / servicio')
             ->onlyOnIndex()
             ->setSortable(false)
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, PmsUnidad $entity) {
                 if (!$entity instanceof PmsUnidad) {
                     return '—';
                 }

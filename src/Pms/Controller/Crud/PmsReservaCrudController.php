@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Pms\Entity\PmsEstablecimientoVirtual;
+use Doctrine\ORM\QueryBuilder;
+use App\Panel\Helper\ValorDeCampo;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Message\Entity\MessageTemplate;
 use App\Panel\Controller\Crud\BaseCrudController;
@@ -323,8 +326,8 @@ final class PmsReservaCrudController extends BaseCrudController
 
         $replacePairs = [];
         foreach ($variables as $key => $value) {
-            $replacePairs['{{ ' . $key . ' }}'] = (string) $value;
-            $replacePairs['{{' . $key . '}}'] = (string) $value;
+            $replacePairs['{{ ' . $key . ' }}'] = ValorDeCampo::texto($value);
+            $replacePairs['{{' . $key . '}}'] = ValorDeCampo::texto($value);
         }
 
         $textoFinal = strtr($cuerpoPlantilla, $replacePairs);
@@ -476,8 +479,8 @@ TXT;
 
         yield TextField::new('establecimientoVirtualPrincipal', 'Listing Virtual')
             ->onlyOnDetail()
-            ->formatValue(function ($virtual) {
-                if (!$virtual) return '-';
+            ->formatValue(function (mixed $virtual) {
+                if (!$virtual instanceof PmsEstablecimientoVirtual) return '-';
                 return sprintf(
                     '<span class="badge bg-secondary-subtle text-secondary font-monospace" style="padding: 0.5em 0.7em;"><i class="fas fa-building me-1"></i> %s</span>',
                     $virtual->getNombre() ?? $virtual->getCodigo()
@@ -487,7 +490,7 @@ TXT;
 
         yield TextField::new('syncStatusAggregate', 'Estado Sincro')
             ->setVirtual(true)
-            ->formatValue(function ($statusValue) {
+            ->formatValue(function (mixed $statusValue) {
                 return match ($statusValue) {
                     'synced'  => '<span class="badge badge-success"><i class="fa fa-check"></i> Sync</span>',
                     'error'   => '<span class="badge badge-danger"><i class="fa fa-exclamation"></i> Error</span>',
@@ -500,7 +503,7 @@ TXT;
 
         yield TextField::new('canalesAggregate', 'Canales')
             ->hideOnForm()
-            ->formatValue(fn($v) => $v ? sprintf('<span class="badge badge-info">%s</span>', $v) : '-');
+            ->formatValue(fn(mixed $v) => $v ? sprintf('<span class="badge badge-info">%s</span>', ValorDeCampo::texto($v)) : '-');
 
         yield TextField::new('referenciaCanalAggregate', 'Referencia OTA')
             ->hideOnForm()
@@ -531,7 +534,7 @@ TXT;
                 . 'retirar el equivocado y marcar cuál es el bueno.'
             )
             ->setTemplatePath('panel/pms/pms_reserva/fields/telefono_wa_vcard.html.twig')
-            ->formatValue(function ($val, $entity) {
+            ->formatValue(function (mixed $val, PmsReserva $entity) {
                 if (!$entity instanceof PmsReserva) return $val;
 
                 // Los botones (WhatsApp, vCard) apuntan al número de las IDENTIDADES, que es
@@ -577,13 +580,13 @@ TXT;
 
         yield AssociationField::new('pais', 'País')
             ->setColumns(6)
-            ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.prioritario', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
+            ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->orderBy('entity.prioritario', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
 
         yield AssociationField::new('idioma', 'Idioma')
             ->setColumns(6)
             ->setRequired(true)
             ->setFormTypeOption('attr', ['required' => true])
-            ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.prioridad', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
+            ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->orderBy('entity.prioridad', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
 
         yield BooleanField::new('datosLocked', 'Bloquear Datos')
             ->setHelp('Protege los datos contra sobrescritura por sincronización.');
@@ -637,8 +640,8 @@ TXT;
 
         yield TextField::new('id', 'Query Navicat (Copiar)')
             ->onlyOnDetail()
-            ->formatValue(function ($value) {
-                $uuid = (string) $value;
+            ->formatValue(function (mixed $value) {
+                $uuid = ValorDeCampo::texto($value);
                 return sprintf(
                     '<code style="user-select: all; padding: 5px; background: #f8f9fa; border: 1px solid #ddd; display: block; margin-bottom: 10px;">SELECT BIN_TO_UUID(id) as id_str, r.* FROM pms_reserva r WHERE id = UUID_TO_BIN(\'%s\');</code>',
                     $uuid
@@ -650,7 +653,7 @@ TXT;
         yield TextField::new('trazabilidadEventos', 'Eventos Vinculados (Trazabilidad)')
             ->setVirtual(true)
             ->onlyOnDetail()
-            ->formatValue(function ($value, $entity) {
+            ->formatValue(function (mixed $value, PmsReserva $entity) {
                 if (!$entity instanceof PmsReserva) return '-';
 
                 $eventos = $entity->getEventosCalendario();

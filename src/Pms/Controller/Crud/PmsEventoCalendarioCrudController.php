@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use Doctrine\ORM\EntityRepository;
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
@@ -181,13 +183,13 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             yield TextField::new('localizador', 'Localizador')
                 ->setFormTypeOption('disabled', true)
                 ->setColumns(6)
-                ->formatValue(fn($v) => $v ? sprintf('<span class="badge badge-secondary">%s</span>', $v) : '');
+                ->formatValue(fn(mixed $v) => $v ? sprintf('<span class="badge badge-secondary">%s</span>', ValorDeCampo::texto($v)) : '');
         }
 
         yield TextField::new('syncStatus', 'Estado Sincro')
             ->setVirtual(true)
             ->hideOnForm()
-            ->formatValue(fn($s) => match ($s) {
+            ->formatValue(fn(mixed $s) => match ($s) {
                 'synced' => '<span class="badge badge-success"><i class="fa fa-check"></i> Sync</span>',
                 'error' => '<span class="badge badge-danger"><i class="fa fa-exclamation"></i> Error</span>',
                 'pending' => '<span class="badge badge-warning"><i class="fa fa-sync fa-spin"></i> Pend.</span>',
@@ -255,7 +257,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         yield AssociationField::new('channel', 'Canal')
             ->setColumns(6)
             ->setFormTypeOption('disabled', true)
-            ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.orden', 'ASC'));
+            ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->orderBy('entity.orden', 'ASC'));
 
         // 🔥 CONTROL VISUAL INTELIGENTE DEL ESTADO
         $estadoActualId = $entity instanceof PmsEventoCalendario ? $entity->getEstado()?->getId() : null;
@@ -264,7 +266,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             ->setRequired(true)
             ->setFormTypeOptions([
                 'placeholder' => false,
-                'query_builder' => function ($repo) use ($isBloqueo, $isOta, $estadoActualId) {
+                'query_builder' => function (EntityRepository $repo) use ($isBloqueo, $isOta, $estadoActualId) {
                     $qb = $repo->createQueryBuilder('e');
 
                     if ($isBloqueo) {
@@ -391,7 +393,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         yield TextField::new('trazabilidadReserva', 'Reserva Padre (Trazabilidad)')
             ->setVirtual(true)
             ->onlyOnDetail()
-            ->formatValue(function ($value, $entity) {
+            ->formatValue(function (mixed $value, PmsEventoCalendario $entity) {
                 if (!$entity instanceof PmsEventoCalendario || !$entity->getReserva()) return 'Sin reserva padre';
 
                 $reserva = $entity->getReserva();
@@ -413,7 +415,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         yield TextField::new('trazabilidadLinks', 'Vínculos Beds24 (Trazabilidad)')
             ->setVirtual(true)
             ->onlyOnDetail()
-            ->formatValue(function ($value, $entity) {
+            ->formatValue(function (mixed $value, PmsEventoCalendario $entity) {
                 if (!$entity instanceof PmsEventoCalendario) return '-';
 
                 $links = $entity->getBeds24Links();

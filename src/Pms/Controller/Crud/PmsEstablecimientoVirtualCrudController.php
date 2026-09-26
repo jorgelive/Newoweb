@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsEstablecimientoVirtual;
 use App\Pms\Enum\PmsPoliticaPrepago;
@@ -89,11 +90,11 @@ final class PmsEstablecimientoVirtualCrudController extends BaseCrudController
         // UUID: Corto en Index, Completo en Detalle
         yield TextField::new('id', 'UUID')
             ->onlyOnIndex()
-            ->formatValue(fn($value) => substr((string)$value, 0, 8) . '...');
+            ->formatValue(fn(mixed $value) => substr(ValorDeCampo::texto($value), 0, 8) . '...');
 
         yield TextField::new('id', 'UUID Completo')
             ->onlyOnDetail()
-            ->formatValue(fn($value) => (string) $value);
+            ->formatValue(fn(mixed $value) => ValorDeCampo::texto($value));
 
         // Vinculación al Hotel Físico
         yield AssociationField::new('establecimiento', 'Establecimiento (Hotel)')

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Exchange\Entity\Beds24Config;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
@@ -86,7 +87,7 @@ class Beds24ConfigCrudController extends BaseCrudController
         // ✅ UUID para visualización técnica
         yield TextField::new('id', 'UUID')
             ->onlyOnDetail()
-            ->formatValue(fn($value) => (string) $value);
+            ->formatValue(fn(mixed $value) => ValorDeCampo::texto($value));
 
         yield TextField::new('nombre', 'Nombre interno');
 

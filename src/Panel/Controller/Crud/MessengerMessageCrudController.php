@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Panel\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Entity\MessengerMessage;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
@@ -90,7 +91,7 @@ class MessengerMessageCrudController extends BaseCrudController
         // Dependiendo de tu config, puedes tener 'default', 'async', 'failed', etc.
         yield TextField::new('queueName', 'Cola de Destino')
             ->setColumns(10)
-            ->formatValue(fn($val) => sprintf('<span class="badge badge-info">%s</span>', $val));
+            ->formatValue(fn(mixed $val) => sprintf('<span class="badge badge-info">%s</span>', ValorDeCampo::texto($val)));
 
         // --- LÍNEA DE TIEMPO ---
         yield DateTimeField::new('createdAt', 'Creado El')
@@ -114,10 +115,10 @@ class MessengerMessageCrudController extends BaseCrudController
             ->hideOnIndex()
             ->setLanguage('javascript')
             ->setColumns(12)
-            ->formatValue(function ($value) {
+            ->formatValue(function (mixed $value) {
                 if (!$value) return '{}';
                 // Los headers nativos vienen en JSON
-                $decoded = json_decode((string) $value, true);
+                $decoded = json_decode(ValorDeCampo::texto($value), true);
                 return $decoded ? json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : $value;
             });
 
@@ -127,10 +128,10 @@ class MessengerMessageCrudController extends BaseCrudController
             ->setLanguage('javascript')
             ->setHelp('Contiene los parámetros exactos con los que se llamó a la tarea asíncrona.')
             ->setColumns(12)
-            ->formatValue(function ($value) {
+            ->formatValue(function (mixed $value) {
                 if (!$value) return '';
                 // Intenta formatear JSON si el serializador está en json
-                $decoded = json_decode((string) $value, true);
+                $decoded = json_decode(ValorDeCampo::texto($value), true);
                 if ($decoded) {
                     return json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                 }

@@ -115,12 +115,10 @@ class PmsGuiaSeccionCrudController extends BaseCrudController
         // 🔥 LECTURA (getter virtual)
         yield TextField::new('virtualTitulo', 'Título de Venta')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
-                if (is_iterable($entity->getTitulo())) {
-                    foreach ($entity->getTitulo() as $item) {
-                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
-                            return sprintf('<span class="fw-bold">%s</span>', htmlspecialchars(strip_tags($item['content'])));
-                        }
+            ->formatValue(static function (mixed $value, PmsGuiaSeccion $entity) {
+                foreach ($entity->getTitulo() as $item) {
+                    if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                        return sprintf('<span class="fw-bold">%s</span>', htmlspecialchars(strip_tags($item['content'])));
                     }
                 }
                 return '<span class="text-muted small"><i class="fas fa-language"></i> Sin título en español</span>';
@@ -141,12 +139,10 @@ class PmsGuiaSeccionCrudController extends BaseCrudController
         // 🔥 LECTURA (getter virtual)
         yield TextField::new('virtualSubtitulo', 'Subtítulo')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
-                if (is_iterable($entity->getSubtitulo())) {
-                    foreach ($entity->getSubtitulo() as $item) {
-                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
-                            return sprintf('<span class="text-muted">%s</span>', htmlspecialchars(strip_tags($item['content'])));
-                        }
+            ->formatValue(static function (mixed $value, PmsGuiaSeccion $entity) {
+                foreach ($entity->getSubtitulo() as $item) {
+                    if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                        return sprintf('<span class="text-muted">%s</span>', htmlspecialchars(strip_tags($item['content'])));
                     }
                 }
                 return '<span class="text-muted small"><i class="fas fa-language"></i> Sin subtítulo</span>';
@@ -171,7 +167,7 @@ class PmsGuiaSeccionCrudController extends BaseCrudController
 
         yield TextField::new('virtualItems', 'Ítems')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, PmsGuiaSeccion $entity) {
                 $relaciones = $entity->getSeccionHasItems();
                 if ($relaciones->isEmpty()) {
                     return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin ítems vinculados</span>';

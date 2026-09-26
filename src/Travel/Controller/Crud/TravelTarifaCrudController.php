@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Panel\Helper\AdminFieldHelper;
@@ -165,7 +166,7 @@ class TravelTarifaCrudController extends BaseCrudController
         if (!$isEmbedded) {
             yield TextField::new('componente', 'Componente Logístico')
                 ->hideOnForm()
-                ->formatValue(static fn($value) => $value ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-cube text-muted"></i> %s</span>', htmlspecialchars((string) $value)) : '-')
+                ->formatValue(static fn(mixed $value) => $value ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-cube text-muted"></i> %s</span>', htmlspecialchars(ValorDeCampo::texto($value))) : '-')
                 ->renderAsHtml();
 
             yield AssociationField::new('componente', 'Componente Logístico')
@@ -177,7 +178,7 @@ class TravelTarifaCrudController extends BaseCrudController
 
         yield TextField::new('moneda', 'Moneda')
             ->hideOnForm()
-            ->formatValue(static fn($value) => $value ? sprintf('<span class="badge bg-secondary text-white">%s</span>', htmlspecialchars((string) $value)) : '-')
+            ->formatValue(static fn(mixed $value) => $value ? sprintf('<span class="badge bg-secondary text-white">%s</span>', htmlspecialchars(ValorDeCampo::texto($value))) : '-')
             ->renderAsHtml();
 
         yield AssociationField::new('moneda', 'Moneda')
@@ -187,11 +188,11 @@ class TravelTarifaCrudController extends BaseCrudController
         yield NumberField::new('monto', 'Costo Neto')
             ->setNumDecimals(2)
             ->setColumns(3)
-            ->formatValue(static fn($value) => $value ? sprintf('<strong class="text-dark">%s</strong>', $value) : '0.00');
+            ->formatValue(static fn(mixed $value) => $value ? sprintf('<strong class="text-dark">%s</strong>', ValorDeCampo::texto($value)) : '0.00');
 
         yield TextField::new('virtualCostoPorGrupo', '¿Costo Fijo (Grupal)?')
             ->hideOnForm()
-            ->formatValue(static fn($value, $entity) => $entity->isCostoPorGrupo()
+            ->formatValue(static fn(mixed $value, TravelTarifa $entity) => $entity->isCostoPorGrupo()
                 ? '<span class="badge bg-primary text-white"><i class="fas fa-users"></i> Grupal Fijo</span>'
                 : '<span class="badge bg-light text-dark border"><i class="fas fa-user text-muted"></i> Por Pasajero</span>')
             ->renderAsHtml();
@@ -215,8 +216,8 @@ class TravelTarifaCrudController extends BaseCrudController
 
         yield TextField::new('prestador', 'Prestador')
             ->hideOnForm()
-            ->formatValue(static fn ($value) => $value
-                ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-building text-info"></i> %s</span>', htmlspecialchars((string) $value))
+            ->formatValue(static fn (mixed $value) => $value
+                ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-building text-info"></i> %s</span>', htmlspecialchars(ValorDeCampo::texto($value)))
                 : '<span class="text-muted small">Sin definir</span>')
             ->renderAsHtml();
 
@@ -247,8 +248,8 @@ class TravelTarifaCrudController extends BaseCrudController
 
         yield TextField::new('prestadorServicio', 'Servicio del prestador')
             ->hideOnForm()
-            ->formatValue(static fn ($value) => $value
-                ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-concierge-bell text-warning"></i> %s</span>', htmlspecialchars((string) $value))
+            ->formatValue(static fn (mixed $value) => $value
+                ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-concierge-bell text-warning"></i> %s</span>', htmlspecialchars(ValorDeCampo::texto($value)))
                 : '<span class="text-muted small">—</span>')
             ->renderAsHtml();
 
@@ -262,8 +263,8 @@ class TravelTarifaCrudController extends BaseCrudController
 
         yield TextField::new('comprador', 'Comprador')
             ->hideOnForm()
-            ->formatValue(static fn ($value) => $value
-                ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-file-invoice text-success"></i> %s</span>', htmlspecialchars((string) $value))
+            ->formatValue(static fn (mixed $value) => $value
+                ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-file-invoice text-success"></i> %s</span>', htmlspecialchars(ValorDeCampo::texto($value)))
                 : '<span class="text-muted small">Al prestador</span>')
             ->renderAsHtml();
 
@@ -300,7 +301,7 @@ class TravelTarifaCrudController extends BaseCrudController
 
         yield TextField::new('virtualModalidad', 'Modalidad')
             ->hideOnForm()
-            ->formatValue(static fn($value, $entity) => $entity->getModalidad() ? sprintf('<span class="text-dark fw-medium">%s</span>', $entity->getModalidad()->value) : '<span class="text-muted small">Cualquiera</span>')
+            ->formatValue(static fn(mixed $value, TravelTarifa $entity) => $entity->getModalidad() ? sprintf('<span class="text-dark fw-medium">%s</span>', $entity->getModalidad()->value) : '<span class="text-muted small">Cualquiera</span>')
             ->renderAsHtml();
 
         yield ChoiceField::new('modalidad', 'Modalidad')
@@ -309,7 +310,7 @@ class TravelTarifaCrudController extends BaseCrudController
 
         yield TextField::new('virtualCategoria', 'Categoría')
             ->hideOnForm()
-            ->formatValue(static fn($value, $entity) => $entity->getCategoria() ? sprintf('<span class="text-dark fw-medium">%s</span>', ucfirst($entity->getCategoria()->value)) : '<span class="text-muted small">Cualquiera</span>')
+            ->formatValue(static fn(mixed $value, TravelTarifa $entity) => $entity->getCategoria() ? sprintf('<span class="text-dark fw-medium">%s</span>', ucfirst($entity->getCategoria()->value)) : '<span class="text-muted small">Cualquiera</span>')
             ->renderAsHtml();
 
         yield ChoiceField::new('categoria', 'Categoría')
@@ -318,17 +319,17 @@ class TravelTarifaCrudController extends BaseCrudController
 
         yield TextField::new('virtualProcedencia', 'Mercado (Procedencia)')
             ->hideOnForm()
-            ->formatValue(static fn($value, $entity) => $entity->getProcedencia() ? sprintf('<span class="text-dark fw-medium">%s</span>', $entity->getProcedencia()->value) : '<span class="text-muted small">Cualquiera</span>')
+            ->formatValue(static fn(mixed $value, TravelTarifa $entity) => $entity->getProcedencia() ? sprintf('<span class="text-dark fw-medium">%s</span>', $entity->getProcedencia()->value) : '<span class="text-muted small">Cualquiera</span>')
             ->renderAsHtml();
 
         yield ChoiceField::new('procedencia', 'Mercado (Procedencia)')
             ->setChoices(array_reduce(TarifaProcedenciaEnum::cases(), fn($c, $e) => $c + [$e->name => $e], []))
             ->setRequired(false)->onlyOnForms()->setColumns(6);
 
-        yield IntegerField::new('edadMinima', 'Edad Mín.')->setRequired(false)->setColumns(3)->formatValue(static fn($value) => $value ?? '-');
-        yield IntegerField::new('edadMaxima', 'Edad Máx.')->setRequired(false)->setColumns(3)->formatValue(static fn($value) => $value ?? '-');
-        yield IntegerField::new('capacidadMinima', 'Cap. Mínima')->setRequired(false)->setColumns(3)->hideOnIndex()->formatValue(static fn($value) => $value ?? '-');
-        yield IntegerField::new('capacidadMaxima', 'Cap. Máxima')->setRequired(false)->setColumns(3)->hideOnIndex()->formatValue(static fn($value) => $value ?? '-');
+        yield IntegerField::new('edadMinima', 'Edad Mín.')->setRequired(false)->setColumns(3)->formatValue(static fn(mixed $value) => $value ?? '-');
+        yield IntegerField::new('edadMaxima', 'Edad Máx.')->setRequired(false)->setColumns(3)->formatValue(static fn(mixed $value) => $value ?? '-');
+        yield IntegerField::new('capacidadMinima', 'Cap. Mínima')->setRequired(false)->setColumns(3)->hideOnIndex()->formatValue(static fn(mixed $value) => $value ?? '-');
+        yield IntegerField::new('capacidadMaxima', 'Cap. Máxima')->setRequired(false)->setColumns(3)->hideOnIndex()->formatValue(static fn(mixed $value) => $value ?? '-');
 
         /* ====================================================================
          * PANEL: TRADUCCIONES
@@ -340,12 +341,10 @@ class TravelTarifaCrudController extends BaseCrudController
 
         yield TextField::new('virtualTitulo', 'Título Visible al Cliente')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
-                if (is_iterable($entity->getTitulo())) {
-                    foreach ($entity->getTitulo() as $item) {
-                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
-                            return sprintf('<span class="text-dark fw-semibold" style="letter-spacing: -0.2px;">%s</span>', htmlspecialchars(strip_tags($item['content'])));
-                        }
+            ->formatValue(static function (mixed $value, TravelTarifa $entity) {
+                foreach ($entity->getTitulo() as $item) {
+                    if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                        return sprintf('<span class="text-dark fw-semibold" style="letter-spacing: -0.2px;">%s</span>', htmlspecialchars(strip_tags($item['content'])));
                     }
                 }
                 return '<span class="text-muted small"><i class="fas fa-language"></i> Sin título en español</span>';

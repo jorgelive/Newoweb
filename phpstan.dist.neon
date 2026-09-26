@@ -1,5 +1,13 @@
 # Análisis estático — la red que faltaba
 #
+# **Nivel 10 desde el 26/09/2026**, el máximo: además del `mixed` que entra de fuera (el 9), el que
+# el propio código fabrica al no declarar un tipo —un parámetro de closure, un `static $x`, lo que
+# devuelve un getter llamado por nombre—. Eran 378 avisos, arreglados todos: 111 en el código y 267
+# en los `formatValue()` del panel, tipados como `(mixed $value, Entidad $entity)` y comprobados con
+# 7 100 llamadas idénticas antes y después (`docs/PanelEasyAdmin.md` §3). Por el camino salieron un
+# tipo que no declaraba la huella de la autotraducción y un `transliterate()` que devolvía `false`
+# sin que nadie lo cazara (`docs/TiposDeFrontera.md` §4).
+#
 # **Nivel 9 desde el 26/09/2026**, el de `mixed`: todo lo que llega sin tipo —un webhook, la
 # respuesta de una API, lo que escribe el modelo en una skill, una fila de SQL crudo, un argumento
 # de consola— se convierte en tipos en UN sitio antes de usarse. Eran 1 454 avisos en 290 archivos
@@ -89,7 +97,7 @@ includes:
     - phpstan-baseline.neon
 
 parameters:
-    level: 9
+    level: 10
     paths:
         - src
     bootstrapFiles:

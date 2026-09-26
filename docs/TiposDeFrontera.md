@@ -123,7 +123,7 @@ El patrón que se usó con Meta y con pagos, y que se repite en cada frontera co
 **Cerrado el 26/09/2026: nivel 9 en `phpstan.dist.neon`, cero avisos.** Una frontera nueva entra
 con su fila aquí; si no, el analizador no la deja pasar.
 
-### Hacia el nivel 10 (el `mixed` que nace dentro)
+### El nivel 10 (el `mixed` que nace dentro)
 
 El 9 cierra el `mixed` que entra de fuera; el 10 cierra el que el propio código fabrica al no
 declarar un tipo: un parámetro de closure sin tipo, un `static $x` de función, lo que devuelve un
@@ -144,10 +144,9 @@ getter llamado por nombre (`$entidad->$getter()`), un `(array) $objeto`. Medido 
 static fn (array $a) …` ni sobre la asignación). Donde la closure necesita tipo, se convierte en un
 método estático con su docblock, o en un bucle.
 
-Quedan los 267 del panel: `formatValue(static fn ($value) => …)` que EasyAdmin llama con lo que tenga
-el campo. Se hacen por controlador, con `mixed $value` y la comprobación dentro —no con `?int
-$value`, que con `strict_types` convierte un dato raro en un `TypeError` que tumba el listado—,
-abriendo cada pantalla.
+Y los 267 del panel, el mismo día: los `formatValue()` pasaron a `(mixed $value, Entidad $entity)`,
+con `ValorDeCampo::texto()` para escribir el valor. **Nivel 10 activo desde el 26/09/2026.** El
+cómo y la comprobación (7 100 llamadas idénticas) están en `docs/PanelEasyAdmin.md` §3.
 
 ### Por qué la entrada de las skills no es un DTO por skill
 

@@ -122,6 +122,34 @@ Tres detalles que cuestan una tarde si se descubren en caliente:
   líneas en blanco: en el móvil salían huecos enormes. Con partes etiquetadas, quien pinta le da a
   cada trozo su sitio —rótulo pequeño en gris, rayita divisoria— y el cuerpo se lee de un vistazo.
 
+## 3. Los callbacks de `formatValue()` van tipados (26/09/2026, nivel 10 de PHPStan)
+
+EasyAdmin llama a `formatValue()` **sólo en índice y detalle** (`CommonPostConfigurator`), con dos
+argumentos: el valor del campo y `$entityDto->getInstance()`, que es siempre la entidad del propio
+controlador. De ahí la forma:
+
+```php
+->formatValue(static fn (mixed $value, PmsUnidad $entity) => …)
+```
+
+- **La entidad, con su clase.** Es seguro: nunca llega otra cosa, y tiparla hace que PHPStan revise
+  todo lo que se lee de ella. Al hacerlo aparecieron guardas muertos (`is_iterable($entity->getTitulo())`)
+  y un `htmlspecialchars()` recibiendo un `?string`.
+- **El valor, `mixed`, y se comprueba dentro.** NO `?int $value` ni `PmsReserva $value`: con
+  `strict_types`, un dato que no sea de ese tipo es un `TypeError` y **tumba el listado entero**, no la
+  celda. Para escribirlo, `App\Panel\Helper\ValorDeCampo::texto()` (el `(string)` de siempre para lo que
+  tiene forma de texto, un enum por su valor, y vacío para lo demás); para una relación,
+  `instanceof` y el caso vacío.
+- **Una closure dentro de otra también se tipa** (el `uasort()` de los pasos de un itinerario pasó a
+  `uasort($rels, static function (TravelItinerarioSegmentoRel $a, …)`).
+
+⚠️ **Cómo se comprobó sin entrar al panel**, que pide sesión: `tools/pruebas/probar-formatos-panel.php`
+llama a cada `formatValue()` de los CRUD con entidades reales de la base local y vuelca el resultado.
+Sobre el código anterior y el nuevo: 33 controladores, **7 100 llamadas idénticas y cero
+excepciones**. La única diferencia que puede salir —`media/cache/resolve/…` frente a `media/cache/…`
+en una miniatura— depende de si la imagen ya está generada en el `public/` de cada copia, no del
+código.
+
 ## Dónde tocar para cambiar X
 
 | Necesito… | Archivo | Método |
@@ -129,3 +157,5 @@ Tres detalles que cuestan una tarde si se descubren en caliente:
 | Añadir/quitar una entrada del menú lateral | `src/Panel/Controller/DashboardController.php` | `configureMenuItems()` |
 | Que una acción personalizada nueva resalte su entrada del menú | el CRUD controller de esa acción | añadir `#[AdminRoute(path: '...', name: '...')]` sobre el método `renderXxx()` |
 | Ver qué rutas bonitas existen ya | — | `php bin/console debug:router \| grep panel_dashboard` |
+| Escribir el valor de un campo en un `formatValue()` | `src/Panel/Helper/ValorDeCampo.php` | `texto()` — y el callback con `mixed $value, Entidad $entity` (§3) |
+| Comprobar que un cambio en los `formatValue()` no altera el panel | `tools/pruebas/probar-formatos-panel.php` | viejo vs nuevo sobre la base local (§3) |

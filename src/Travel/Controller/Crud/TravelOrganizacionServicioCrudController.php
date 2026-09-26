@@ -145,12 +145,10 @@ class TravelOrganizacionServicioCrudController extends BaseCrudController
         yield TextField::new('virtualTitulo', 'Título Comercial')
             ->setVirtual(true)
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
-                if (is_iterable($entity->getTitulo())) {
-                    foreach ($entity->getTitulo() as $item) {
-                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
-                            return sprintf('<span class="text-dark fw-semibold" style="letter-spacing: -0.2px;">%s</span>', htmlspecialchars(strip_tags($item['content'])));
-                        }
+            ->formatValue(static function (mixed $value, TravelOrganizacionServicio $entity) {
+                foreach ($entity->getTitulo() as $item) {
+                    if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                        return sprintf('<span class="text-dark fw-semibold" style="letter-spacing: -0.2px;">%s</span>', htmlspecialchars(strip_tags($item['content'])));
                     }
                 }
                 return '<span class="text-muted small"><i class="fas fa-language"></i> Sin título en español</span>';
@@ -189,7 +187,7 @@ class TravelOrganizacionServicioCrudController extends BaseCrudController
          * ==================================================================== */
         yield TextField::new('virtualGaleria', 'Galería')
             ->onlyOnIndex()
-            ->formatValue(fn ($value, $entity) => $this->renderGaleriaThumbnails(
+            ->formatValue(fn (mixed $value, TravelOrganizacionServicio $entity) => $this->renderGaleriaThumbnails(
                 $entity->getImagenes(),
                 $entity,
                 $this->uploadPath,

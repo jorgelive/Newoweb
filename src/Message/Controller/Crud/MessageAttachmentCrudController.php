@@ -51,7 +51,7 @@ class MessageAttachmentCrudController extends BaseCrudController
         yield LiipImageField::new('fileUrl', 'Vista Previa')
             ->onlyOnIndex()
             ->setSortable(false)
-            ->formatValue(function ($value, $entity) {
+            ->formatValue(function (mixed $value, MessageAttachment $entity) {
                 if ($entity instanceof MessageAttachment) {
                     // Usamos el isImage() propio de la entidad que lee el MimeType (más seguro que la extensión)
                     if (!$entity->isImage()) {
@@ -77,6 +77,6 @@ class MessageAttachmentCrudController extends BaseCrudController
         yield TextField::new('mimeType', 'Tipo MIME');
 
         yield IntegerField::new('fileSize', 'Tamaño (Bytes)')
-            ->formatValue(fn($v) => round($v / 1024, 2) . ' KB');
+            ->formatValue(fn(mixed $v) => is_numeric($v) ? round((float) $v / 1024, 2) . ' KB' : '');
     }
 }

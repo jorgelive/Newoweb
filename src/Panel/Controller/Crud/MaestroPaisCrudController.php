@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Panel\Controller\Crud;
 
+use Doctrine\ORM\QueryBuilder;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Entity\Maestro\MaestroPais;
 use App\Security\Roles;
@@ -98,7 +99,7 @@ class MaestroPaisCrudController extends BaseCrudController
         yield AssociationField::new('idiomaDefault', 'Idioma por Defecto')
             ->setHelp('Se inferirá automáticamente si la OTA no envía el idioma del huésped.')
             ->setColumns(12)
-            ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.prioridad', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
+            ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->orderBy('entity.prioridad', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
 
         // 5. PRIORIDAD
         yield BooleanField::new('prioritario', 'Prioridad')
@@ -125,7 +126,7 @@ class MaestroPaisCrudController extends BaseCrudController
         // Campo virtual solo para detalle (Lógica legacy Consettur)
         yield TextField::new('id', 'Cód. Ciudad (Consettur)')
             ->onlyOnDetail()
-            ->formatValue(function ($value, $entity) {
+            ->formatValue(function (mixed $value, MaestroPais $entity) {
                 return $value === 'PE' ? '1610' : 'N/A';
             })
             ->setHelp('Código calculado automáticamente.');

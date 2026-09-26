@@ -330,7 +330,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
 
         yield TextField::new('virtualTitulo', 'Título')
             ->hideOnForm()
-            ->formatValue(fn ($value, $entity) => $this->renderTraduccionEs($entity->getTitulo(), 60, 'Sin título en español'))
+            ->formatValue(fn (mixed $value, PmsGuiaItem $entity) => $this->renderTraduccionEs($entity->getTitulo(), 60, 'Sin título en español'))
             ->renderAsHtml();
 
         yield CollectionField::new('titulo', 'Título')
@@ -351,7 +351,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
         // 🔥 LECTURA — Contenido en ES truncado (index + detalle)
         yield TextField::new('virtualDescripcion', 'Contenido')
             ->hideOnForm()
-            ->formatValue(fn ($value, $entity) => $this->renderTraduccionEs($entity->getDescripcion(), 120, 'Sin contenido'))
+            ->formatValue(fn (mixed $value, PmsGuiaItem $entity) => $this->renderTraduccionEs($entity->getDescripcion(), 120, 'Sin contenido'))
             ->renderAsHtml();
 
         // 🔥 ESCRITURA — solo formulario (mantiene el help de variables)
@@ -378,7 +378,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
         // 🔥 LECTURA — Texto del botón en ES (index + detalle)
         yield TextField::new('virtualLabelBoton', 'Texto Botón')
             ->hideOnForm()
-            ->formatValue(fn ($value, $entity) => $this->renderTraduccionEs($entity->getLabelBoton(), 40, 'Sin botón'))
+            ->formatValue(fn (mixed $value, PmsGuiaItem $entity) => $this->renderTraduccionEs($entity->getLabelBoton(), 40, 'Sin botón'))
             ->renderAsHtml();
 
         // 🔥 ESCRITURA — solo formulario
@@ -400,7 +400,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
         // 🔥 NUEVO: LECTURA — thumbnails con Liip + modal, solo para el índice
         yield TextField::new('virtualGaleria', 'Fotos')
             ->onlyOnIndex()
-            ->formatValue(function ($value, $entity) {
+            ->formatValue(function (mixed $value, PmsGuiaItem $entity) {
                 $fotos = $entity->getGaleria();
 
                 if ($fotos->isEmpty()) {

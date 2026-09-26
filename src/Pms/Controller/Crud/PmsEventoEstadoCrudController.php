@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Security\Roles;
@@ -83,7 +84,7 @@ class PmsEventoEstadoCrudController extends BaseCrudController
         // ID Visual (Index) - Truncado
         yield TextField::new('id', 'ID')
             ->onlyOnIndex()
-            ->formatValue(fn($v) => substr((string)$v, 0, 8) . '...');
+            ->formatValue(fn(mixed $v) => substr(ValorDeCampo::texto($v), 0, 8) . '...');
 
         // ID Técnico (Forms/Detail)
         yield TextField::new('id', 'Código (ID)')
@@ -98,14 +99,14 @@ class PmsEventoEstadoCrudController extends BaseCrudController
         // `#FFB300` en otra columna. En los formularios se edita el texto pelado.
         yield TextField::new('nombre', 'Estado')
             ->onlyOnIndex()
-            ->formatValue(function ($valor, PmsEventoEstado $estado): string {
+            ->formatValue(function (mixed $valor, PmsEventoEstado $estado): string {
                 return sprintf(
                     '<span style="display:inline-flex;align-items:center;gap:.5rem">'
                     . '<i class="%s" style="color:%s;width:1.1rem;text-align:center"></i>'
                     . '<span>%s</span></span>',
                     htmlspecialchars($estado->getIcono() ?? 'fas fa-circle', ENT_QUOTES),
                     htmlspecialchars($estado->getColor() ?? '#94a3b8', ENT_QUOTES),
-                    htmlspecialchars((string) $valor, ENT_QUOTES),
+                    htmlspecialchars(ValorDeCampo::texto($valor), ENT_QUOTES),
                 );
             })
             ->renderAsHtml();
@@ -130,7 +131,7 @@ class PmsEventoEstadoCrudController extends BaseCrudController
         // `BaseCrudController::muestraDeColor()`, compartida con el maestro de estados de pago.
         yield TextField::new('color', 'Color')
             ->onlyOnIndex()
-            ->formatValue(static fn ($valor): string => self::muestraDeColor($valor))
+            ->formatValue(static fn (mixed $valor): string => self::muestraDeColor($valor))
             ->renderAsHtml();
 
         yield TextField::new('color', 'Color (HEX)')
@@ -148,7 +149,7 @@ class PmsEventoEstadoCrudController extends BaseCrudController
         // icono sin tocar PHP ni recompilar el front.
         yield TextField::new('icono', 'Icono')
             ->onlyOnIndex()
-            ->formatValue(function ($valor): string {
+            ->formatValue(function (mixed $valor): string {
                 if (!is_string($valor) || $valor === '') {
                     return '<span style="color:#94a3b8">—</span>';
                 }

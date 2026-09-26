@@ -55,7 +55,7 @@ class TravelNotaCrudController extends BaseCrudController
 
         yield ChoiceField::new('tipo', 'Tipo de Nota / Categoría')
             ->setChoices(array_reduce(NotaTipoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
-            ->formatValue(static fn ($value) => $value instanceof NotaTipoEnum ? $value->value : $value)
+            ->formatValue(static fn (mixed $value) => $value instanceof NotaTipoEnum ? $value->value : $value)
             ->setHelp('Define si es una Historia, Tip, Alerta o Política.')
             ->setColumns(6);
 
@@ -83,7 +83,7 @@ class TravelNotaCrudController extends BaseCrudController
         // 🔥 Segmentos donde está vinculada esta nota (solo listado)
         yield TextField::new('virtualSegmentos', 'Usada en Segmentos')
             ->onlyOnIndex()
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, TravelNota $entity) {
                 $segmentos = $entity->getSegmentos();
                 if ($segmentos->isEmpty()) {
                     return '<span class="badge bg-light text-muted border">Sin segmentos vinculados</span>';

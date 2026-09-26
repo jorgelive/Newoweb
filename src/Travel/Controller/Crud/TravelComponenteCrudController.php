@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Travel\Entity\TravelComponente;
@@ -147,7 +148,7 @@ class TravelComponenteCrudController extends BaseCrudController
 
         yield ChoiceField::new('tipo', 'Categoría Operativa')
             ->setChoices(array_reduce(ComponenteTipoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
-            ->formatValue(static fn ($value) => $value instanceof ComponenteTipoEnum ? $value->value : $value)
+            ->formatValue(static fn (mixed $value) => $value instanceof ComponenteTipoEnum ? $value->value : $value)
             ->setColumns(6);
 
         // ── Cómo se cuenta y dónde se lee ────────────────────────────────────
@@ -159,7 +160,7 @@ class TravelComponenteCrudController extends BaseCrudController
         // Si cambia la convención, el otro texto que la explica está en el editor de cotizaciones.
         yield ChoiceField::new('unidadDeConteo', 'Se cuenta en')
             ->setChoices(array_reduce(UnidadDeConteoEnum::cases(), static fn ($c, $e) => $c + [ucfirst($e->value) => $e], []))
-            ->formatValue(static fn ($value) => $value instanceof UnidadDeConteoEnum ? $value->value : $value)
+            ->formatValue(static fn (mixed $value) => $value instanceof UnidadDeConteoEnum ? $value->value : $value)
             ->setRequired(false)
             ->setHelp(
                 '<i class="fas fa-circle-info text-primary"></i> '
@@ -182,7 +183,7 @@ class TravelComponenteCrudController extends BaseCrudController
 
         yield ChoiceField::new('momentoDelDia', 'Se lee en el día')
             ->setChoices(array_reduce(MomentoDelDiaEnum::cases(), static fn ($c, $e) => $c + [$e->etiqueta() => $e], []))
-            ->formatValue(static fn ($value) => $value instanceof MomentoDelDiaEnum ? $value->etiqueta() : $value)
+            ->formatValue(static fn (mixed $value) => $value instanceof MomentoDelDiaEnum ? $value->etiqueta() : $value)
             ->setRequired(false)
             ->setHelp(
                 '<i class="fas fa-circle-info text-primary"></i> '
@@ -201,12 +202,10 @@ class TravelComponenteCrudController extends BaseCrudController
         // 🔥 LECTURA OPTIMIZADA: Se eliminó el fw-bold rudo por un fw-semibold más fino y limpio
         yield TextField::new('virtualTitulo', 'Título Comercial')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
-                if (is_iterable($entity->getTitulo())) {
-                    foreach ($entity->getTitulo() as $item) {
-                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
-                            return sprintf('<span class="text-dark fw-semibold" style="letter-spacing: -0.2px;">%s</span>', htmlspecialchars(strip_tags($item['content'])));
-                        }
+            ->formatValue(static function (mixed $value, TravelComponente $entity) {
+                foreach ($entity->getTitulo() as $item) {
+                    if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                        return sprintf('<span class="text-dark fw-semibold" style="letter-spacing: -0.2px;">%s</span>', htmlspecialchars(strip_tags($item['content'])));
                     }
                 }
                 return '<span class="text-muted small"><i class="fas fa-language"></i> Sin título en español</span>';
@@ -226,7 +225,7 @@ class TravelComponenteCrudController extends BaseCrudController
         // 🔥 LECTURA OPTIMIZADA: solo en Detalle, listado bonito de solo-lectura
         yield TextField::new('virtualServicios', 'Servicios (Tours)')
             ->hideOnForm() // se ve en índice y detalle, pero no en el formulario new/edit (para eso está el AssociationField)
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, TravelComponente $entity) {
                 $servicios = $entity->getServicios();
 
                 if ($servicios->isEmpty()) {
@@ -261,7 +260,7 @@ class TravelComponenteCrudController extends BaseCrudController
 
         yield TextField::new('virtualSegmentosInyectados', 'Segmentos donde se usa')
             ->hideOnForm() // se ve en índice y detalle, no en new/edit
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, TravelComponente $entity) {
                 $coleccion = $entity->getSegmentoComponentesInyectados();
 
                 if ($coleccion->isEmpty()) {
@@ -272,7 +271,7 @@ class TravelComponenteCrudController extends BaseCrudController
                 foreach ($coleccion as $sc) {
                     $segmentoNombre = $sc->getSegmento() ? htmlspecialchars((string) $sc->getSegmento()) : 'N/A';
                     $hora = $sc->getHora() ? $sc->getHora()->format('H:i') : 'Horario BD';
-                    $ctx = $sc->getItinerarioContexto() ? htmlspecialchars($sc->getItinerarioContexto()->getNombreInterno()) : 'Global';
+                    $ctx = $sc->getItinerarioContexto() ? htmlspecialchars($sc->getItinerarioContexto()->getNombreInterno() ?? '') : 'Global';
                     $colorCtx = $sc->getItinerarioContexto() ? 'text-primary' : 'text-success';
                     $iconCtx = $sc->getItinerarioContexto() ? 'fa-filter' : 'fa-globe';
 
@@ -296,12 +295,12 @@ class TravelComponenteCrudController extends BaseCrudController
         yield NumberField::new('duracion', 'Duración')
             ->setNumDecimals(1)
             ->setColumns(4)
-            ->formatValue(static fn ($value) => $value ? sprintf('%s hrs', $value) : '-');
+            ->formatValue(static fn (mixed $value) => $value ? sprintf('%s hrs', ValorDeCampo::texto($value)) : '-');
 
         yield IntegerField::new('anticipacionalerta', 'Alerta Temprana')
             ->setColumns(4)
             ->hideOnIndex()
-            ->formatValue(static fn ($value) => $value ? sprintf('%d Días', $value) : '-');
+            ->formatValue(static fn (mixed $value) => $value ? sprintf('%d Días', ValorDeCampo::texto($value)) : '-');
 
         yield FormField::addPanel('Lugares / Centros de operación')->setIcon('fa fa-map-marker-alt');
 
@@ -318,7 +317,7 @@ class TravelComponenteCrudController extends BaseCrudController
 
         yield TextField::new('virtualLugares', 'Lugares')
             ->onlyOnIndex()
-            ->formatValue(function ($value, $entity): string {
+            ->formatValue(function (mixed $value, TravelComponente $entity): string {
                 $lugares = $entity->getLugares();
 
                 if ($lugares->isEmpty()) {
@@ -344,7 +343,7 @@ class TravelComponenteCrudController extends BaseCrudController
         // 🔥 LECTURA OPTIMIZADA: Detalle de inclusiones con scroll vertical limpio y alineado
         yield TextField::new('virtualItems', 'Detalle de Inclusiones')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, TravelComponente $entity) {
                 $items = $entity->getComponenteItems();
                 if ($items->isEmpty()) {
                     return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin inclusiones</span>';
@@ -380,7 +379,7 @@ class TravelComponenteCrudController extends BaseCrudController
         // 🔥 LECTURA OPTIMIZADA: Tarifas con scrollbar y diseño en bloque blanco alineado
         yield TextField::new('virtualTarifas', 'Costos Maestros')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, TravelComponente $entity) {
                 $tarifas = $entity->getTarifas();
                 if ($tarifas->isEmpty()) {
                     return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin costos maestros</span>';

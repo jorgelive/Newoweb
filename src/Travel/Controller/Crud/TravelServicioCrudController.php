@@ -116,12 +116,10 @@ class TravelServicioCrudController extends BaseCrudController
         // 🔥 LECTURA (Getter Virtual)
         yield TextField::new('virtualTitulo', 'Título de Venta')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
-                if (is_iterable($entity->getTitulo())) {
-                    foreach ($entity->getTitulo() as $item) {
-                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
-                            return sprintf('<span class="fw-bold">%s</span>', htmlspecialchars(strip_tags($item['content'])));
-                        }
+            ->formatValue(static function (mixed $value, TravelServicio $entity) {
+                foreach ($entity->getTitulo() as $item) {
+                    if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                        return sprintf('<span class="fw-bold">%s</span>', htmlspecialchars(strip_tags($item['content'])));
                     }
                 }
                 return '<span class="text-muted small"><i class="fas fa-language"></i> Sin título en español</span>';
@@ -140,7 +138,7 @@ class TravelServicioCrudController extends BaseCrudController
         // 🔥 LECTURA (Getter Virtual)
         yield TextField::new('virtualComponentes', 'Componentes Disponibles')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, TravelServicio $entity) {
                 $componentes = $entity->getComponentes();
                 if ($componentes->isEmpty()) return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin componentes vinculados</span>';
 

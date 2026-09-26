@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsReserva;
@@ -76,11 +77,11 @@ class PmsEventoBeds24LinkCrudController extends BaseCrudController
         // UUID: Corto en Index, Completo en Detalle
         yield TextField::new('id', 'UUID')
             ->onlyOnIndex()
-            ->formatValue(static fn($value) => substr((string)$value, 0, 8) . '...');
+            ->formatValue(static fn(mixed $value) => substr(ValorDeCampo::texto($value), 0, 8) . '...');
 
         yield TextField::new('id', 'UUID Completo')
             ->onlyOnDetail()
-            ->formatValue(static fn($value) => (string) $value);
+            ->formatValue(static fn(mixed $value) => ValorDeCampo::texto($value));
 
         yield TextField::new('beds24BookId', 'Beds24 Book ID')
             ->setHelp('Identificador técnico en la API de Beds24.');
@@ -114,9 +115,9 @@ class PmsEventoBeds24LinkCrudController extends BaseCrudController
         // Campos informativos (Solo Detalle) calculados desde el Evento
         yield TextField::new('evento.reserva', 'Info Reserva')
             ->onlyOnDetail()
-            ->formatValue(static function ($value) {
-                /* @var $value PmsReserva */
-                if ($value === null) return null;
+            ->formatValue(static function (mixed $value) {
+                // Un evento sin reserva es un bloqueo: no hay nada que enseñar.
+                if (!$value instanceof PmsReserva) return null;
                 $rid = $value->getId() ?? '?';
                 $master = $value->getBeds24MasterId() ?? '-';
                 return sprintf('ID: %s | Master: %s', $rid, $master);
@@ -124,9 +125,8 @@ class PmsEventoBeds24LinkCrudController extends BaseCrudController
 
         yield TextField::new('evento.reserva', 'Info Cliente')
             ->onlyOnDetail()
-            ->formatValue(static function ($value) {
-                /* @var $value PmsReserva */
-                if ($value === null) return null;
+            ->formatValue(static function (mixed $value) {
+                if (!$value instanceof PmsReserva) return null;
                 $nombre = $value->getNombreApellido() ?? '';
                 return $nombre ?: 'Sin nombre';
             });

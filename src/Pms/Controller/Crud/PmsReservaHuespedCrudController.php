@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use Doctrine\ORM\QueryBuilder;
+use App\Panel\Helper\ValorDeCampo;
 use App\Enum\DocumentoTipoEnum;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Field\LiipImageField;
@@ -101,20 +103,20 @@ class PmsReservaHuespedCrudController extends BaseCrudController
         // ✅ UUID para visualización técnica
         yield TextField::new('id', 'UUID')
             ->onlyOnDetail()
-            ->formatValue(fn($value) => (string) $value);
+            ->formatValue(fn(mixed $value) => ValorDeCampo::texto($value));
 
         yield TextField::new('localizador', 'Localizador')
             ->setFormTypeOption('disabled', true) // ✅ IMPRESCINDIBLE: Solo lectura
             ->setColumns(6)
             // En el listado (Index) lo mostramos como una "etiqueta" negrita
-            ->formatValue(function ($value) {
-                return $value ? sprintf('<span class="badge badge-secondary" style="font-size: 1.1em; letter-spacing: 1px;">%s</span>', $value) : '';
+            ->formatValue(function (mixed $value) {
+                return $value ? sprintf('<span class="badge badge-secondary" style="font-size: 1.1em; letter-spacing: 1px;">%s</span>', ValorDeCampo::texto($value)) : '';
             })
             // En el formulario mostramos ayuda
             ->setHelp('Código único autogenerado (Referencia Interna).');
 
         yield AssociationField::new('reserva', 'Reserva Padre')
-            ->setQueryBuilder(fn($queryBuilder) => $queryBuilder->orderBy('entity.createdAt', 'DESC'))
+            ->setQueryBuilder(fn (QueryBuilder $queryBuilder) => $queryBuilder->orderBy('entity.createdAt', 'DESC'))
             ->setColumns(6);
 
         yield BooleanField::new('esPrincipal', 'Titular de Reserva')->setColumns(6);

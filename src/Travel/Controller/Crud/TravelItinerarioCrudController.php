@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Travel\Entity\TravelItinerario;
@@ -134,14 +135,14 @@ class TravelItinerarioCrudController extends BaseCrudController
 
         yield IntegerField::new('duracionDias', 'Duración Total')
             ->setColumns(4)
-            ->formatValue(static fn ($value) => $value ? sprintf('%d Días', $value) : '-');
+            ->formatValue(static fn (mixed $value) => $value ? sprintf('%d Días', ValorDeCampo::texto($value)) : '-');
 
         // LECTURA
         yield TextField::new('servicio', 'Servicio Vinculado')
             ->hideOnForm()
-            ->formatValue(static function ($value) {
+            ->formatValue(static function (mixed $value) {
                 if (!$value) return '<span class="text-muted"><i class="fas fa-exclamation-circle"></i> Sin servicio</span>';
-                return sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-cube text-muted" style="margin-right: 4px;"></i> %s</span>', htmlspecialchars((string) $value));
+                return sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-cube text-muted" style="margin-right: 4px;"></i> %s</span>', htmlspecialchars(ValorDeCampo::texto($value)));
             })
             ->renderAsHtml();
 
@@ -160,12 +161,10 @@ class TravelItinerarioCrudController extends BaseCrudController
         // LECTURA: Se usa el getter virtual
         yield TextField::new('virtualTitulo', 'Título Comercial')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
-                if (is_iterable($entity->getTitulo())) {
-                    foreach ($entity->getTitulo() as $item) {
-                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
-                            return sprintf('<span class="fw-bold">%s</span>', htmlspecialchars(strip_tags($item['content'])));
-                        }
+            ->formatValue(static function (mixed $value, TravelItinerario $entity) {
+                foreach ($entity->getTitulo() as $item) {
+                    if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                        return sprintf('<span class="fw-bold">%s</span>', htmlspecialchars(strip_tags($item['content'])));
                     }
                 }
                 return '<span class="text-muted small"><i class="fas fa-language"></i> Sin título en español</span>';
@@ -184,12 +183,12 @@ class TravelItinerarioCrudController extends BaseCrudController
         // 🔥 LECTURA MEJORADA: Se usa el getter virtual con mejor UI (Flexbox y Badge blanco)
         yield TextField::new('virtualSegmentos', 'Pasos del Itinerario')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
+            ->formatValue(static function (mixed $value, TravelItinerario $entity) {
                 $segmentos = $entity->getItinerarioSegmentos();
                 if ($segmentos->isEmpty()) return '<span class="text-muted small"><i class="fas fa-info-circle"></i> Sin segmentos definidos</span>';
 
-                $iterator = $segmentos->getIterator();
-                $iterator->uasort(function ($a, $b) {
+                $iterator = $segmentos->toArray();
+                uasort($iterator, static function (TravelItinerarioSegmentoRel $a, TravelItinerarioSegmentoRel $b): int {
                     if ($a->getDia() === $b->getDia()) return $a->getOrden() <=> $b->getOrden();
                     return $a->getDia() <=> $b->getDia();
                 });

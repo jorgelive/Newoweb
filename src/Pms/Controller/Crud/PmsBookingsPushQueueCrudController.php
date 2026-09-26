@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Crud;
 
 // ✅ Jerarquía de herencia restaurada
+use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Security\Roles;
@@ -78,11 +79,11 @@ final class PmsBookingsPushQueueCrudController extends BaseCrudController
         // ✅ Manejo de UUID (IdTrait)
         yield TextField::new('id', 'UUID')
             ->onlyOnIndex()
-            ->formatValue(fn($value) => substr((string)$value, 0, 8) . '...');
+            ->formatValue(fn(mixed $value) => substr(ValorDeCampo::texto($value), 0, 8) . '...');
 
         yield TextField::new('id', 'UUID Completo')
             ->onlyOnDetail()
-            ->formatValue(fn($value) => (string)$value);
+            ->formatValue(fn(mixed $value) => ValorDeCampo::texto($value));
 
         // --- PANEL DE CONTEXTO ---
         yield FormField::addPanel('Contexto de Sincronización')->setIcon('fa fa-info-circle');
@@ -150,7 +151,7 @@ final class PmsBookingsPushQueueCrudController extends BaseCrudController
 
         yield CodeEditorField::new('executionResult', 'Resumen Ejecución (JSON)')
             ->setLanguage('js')
-            ->formatValue(function ($value) {
+            ->formatValue(function (mixed $value) {
                 return $value ? json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : null;
             })
             ->onlyOnDetail();

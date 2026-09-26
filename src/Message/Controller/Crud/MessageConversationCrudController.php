@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
+use App\Panel\Helper\ValorDeCampo;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
@@ -171,7 +172,7 @@ class MessageConversationCrudController extends BaseCrudController
         yield IntegerField::new('unreadCount', 'No leídos')
             ->hideOnForm()
             ->setColumns(4)
-            ->formatValue(fn ($value) => $value > 0 ? sprintf('<span class="badge badge-danger">%d</span>', $value) : '0');
+            ->formatValue(fn (mixed $value) => $value > 0 ? sprintf('<span class="badge badge-danger">%d</span>', ValorDeCampo::texto($value)) : '0');
 
         // --- SECCIÓN 2: DATOS DEL HUÉSPED ---
         yield FormField::addPanel('Huésped e Idioma')->setIcon('fa fa-user');
@@ -238,7 +239,7 @@ class MessageConversationCrudController extends BaseCrudController
             ->setLanguage('javascript')
             ->setColumns(12)
             ->setFormTypeOption('disabled', true)
-            ->formatValue(function ($value) {
+            ->formatValue(function (mixed $value) {
                 return is_array($value) ? json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '{}';
             });
 
