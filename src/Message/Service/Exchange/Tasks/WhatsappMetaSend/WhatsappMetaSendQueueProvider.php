@@ -47,7 +47,8 @@ final readonly class WhatsappMetaSendQueueProvider implements ExchangeQueueProvi
             $refEp = (string)$endpoint->getId();
 
             foreach ($items as $item) {
-                if ((string)$item->getConfig()->getId() !== $refCfg ||
+                // Un ítem SIN config da '' y cae en la violación, que es lo que es.
+                if ((string) $item->getConfig()?->getId() !== $refCfg ||
                     (string)$item->getEndpoint()->getId() !== $refEp) {
                     throw new RuntimeException("Violación de homogeneidad en Meta Whatsapp Batch Manual.");
                 }

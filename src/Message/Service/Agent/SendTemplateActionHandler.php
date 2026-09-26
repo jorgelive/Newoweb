@@ -118,6 +118,6 @@ final readonly class SendTemplateActionHandler implements BotActionHandlerInterf
         // 5. Persistimos (El Router o el Worker hará el flush final)
         $this->em->persist($outboundMessage);
 
-        $this->logger->info("Bot: Plantilla '{$templateCode}' encolada para la conv. {$conversation->getId()} vía canal " . ($targetChannel ? $targetChannel->getId() : 'desconocido'));
+        $this->logger->info("Bot: Plantilla '{$templateCode}' encolada para la conv. {$conversation?->getId()} vía canal " . ($targetChannel ? $targetChannel->getId() : 'desconocido'));
     }
 }

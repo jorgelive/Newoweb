@@ -90,7 +90,7 @@ class MercureMessageDto implements JsonSerializable
 
         // Rutas reales, comprobadas con `debug:router`. Las que había —con el prefijo
         // `/platform/user/util/msg/`— son de un esquema de rutas anterior y ya no resuelven.
-        $this->conversation = '/platform/message/conversations/' . $message->getConversation()->getId();
+        $this->conversation = '/platform/message/conversations/' . $message->getConversationOrFail()->getId();
         $this->metadata = $message->getMetadata();
 
         if ($message->getChannel()) {

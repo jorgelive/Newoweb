@@ -69,6 +69,12 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             // ⬇️ ESCENARIO B: ENVÍO DE MENSAJE NUEVO (OUTGOING) ⬇️
             // =================================================================
             $conversation = $msg->getConversation();
+            // Mismo trato que una cola sin mensaje, unas líneas arriba: el ítem roto se salta y no
+            // se lleva el lote por delante. `conversation_id` es NOT NULL, así que no debería pasar.
+            if ($conversation === null) {
+                continue;
+            }
+
             // Del asunto del MENSAJE si lo lleva estampado; si no, del contexto de la
             // conversación. Mismo motivo que en la estrategia de WhatsApp: con varios asuntos por
             // hilo, redactar siempre con el de la conversación manda un mensaje impecable con los
@@ -79,7 +85,7 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             $resolver = $this->resolverRegistry->getResolver($asuntoType);
 
             $idiomaEntity = $conversation->getIdioma();
-            $internalLang = strtolower($idiomaEntity->getId());
+            $internalLang = strtolower((string) $idiomaEntity->getId());
             // NUEVO: Bifurcación de idiomas. El texto libre usa $internalLang, pero las plantillas usan $templateLang.
             $templateLang = ($idiomaEntity->getPrioridad() > 0) ? $internalLang : 'en';
 

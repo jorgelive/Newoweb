@@ -608,6 +608,17 @@ class Message
 
     public function getConversation(): ?MessageConversation { return $this->conversation; }
 
+    /**
+     * El hilo de un mensaje GUARDADO, que siempre lo tiene: `conversation_id` es NOT NULL (8 323
+     * de 8 323 en producción el 26/09/2026). El getter nulable queda para el mensaje a medio
+     * construir. Criterio en `docs/PmsBeds24ReservasSync.md` §12.19.
+     */
+    public function getConversationOrFail(): MessageConversation
+    {
+        return $this->conversation
+            ?? throw new \LogicException('Mensaje sin conversación (la columna es NOT NULL): #' . ($this->id ?? 'nuevo'));
+    }
+
     public function setConversation(?MessageConversation $conversation): self
     {
         $this->conversation = $conversation;
@@ -952,7 +963,13 @@ class Message
     public function setBeds24ExternalId(?string $id): self
     {
         $ext = $this->externalIds ?? [];
-        $ext['beds24'] = $id;
+        // Un id nulo QUITA la clave: el mapa es de texto, y un `null` dentro se guardaba como
+        // `"beds24": null` en el JSON, contradiciendo su propio tipo.
+        if ($id === null) {
+            unset($ext['beds24']);
+        } else {
+            $ext['beds24'] = $id;
+        }
         $this->externalIds = $ext;
         return $this;
     }
@@ -962,7 +979,13 @@ class Message
     public function setWhatsappMetaExternalId(?string $id): self
     {
         $ext = $this->externalIds ?? [];
-        $ext['whatsapp_meta'] = $id;
+        // Un id nulo QUITA la clave: el mapa es de texto, y un `null` dentro se guardaba como
+        // `"whatsapp_meta": null` en el JSON, contradiciendo su propio tipo.
+        if ($id === null) {
+            unset($ext['whatsapp_meta']);
+        } else {
+            $ext['whatsapp_meta'] = $id;
+        }
         $this->externalIds = $ext;
         return $this;
     }

@@ -52,8 +52,10 @@ final class FusionarHilosController extends AbstractController
 
         [$superviviente, $absorbido, $error] = $this->parejaDe($id, (string) $request->query->get('con', ''));
 
-        if ($error !== null) {
-            return $this->json(['error' => $error], Response::HTTP_BAD_REQUEST);
+        // `parejaDe()` devuelve los dos hilos O el error, nunca mezcla; pero al desestructurar la
+        // tupla el análisis pierde esa correlación. Se pregunta por los tres para que no la pierda.
+        if ($error !== null || $superviviente === null || $absorbido === null) {
+            return $this->json(['error' => $error ?? 'Pareja de hilos incompleta.'], Response::HTTP_BAD_REQUEST);
         }
 
         return $this->json([
@@ -72,8 +74,10 @@ final class FusionarHilosController extends AbstractController
 
         [$superviviente, $absorbido, $error] = $this->parejaDe($id, (string) ($cuerpo['con'] ?? ''));
 
-        if ($error !== null) {
-            return $this->json(['error' => $error], Response::HTTP_BAD_REQUEST);
+        // `parejaDe()` devuelve los dos hilos O el error, nunca mezcla; pero al desestructurar la
+        // tupla el análisis pierde esa correlación. Se pregunta por los tres para que no la pierda.
+        if ($error !== null || $superviviente === null || $absorbido === null) {
+            return $this->json(['error' => $error ?? 'Pareja de hilos incompleta.'], Response::HTTP_BAD_REQUEST);
         }
 
         $movidos = $this->fusionador->unir($superviviente, $absorbido);

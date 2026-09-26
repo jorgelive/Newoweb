@@ -745,13 +745,23 @@ final readonly class MessageRuleEngine
         }
 
         // 1. Obtenemos los canales que la REGLA quiere usar
-        $targetChannelIds = $rule->getTargetCommunicationChannels()->map(fn($c) => $c->getId())->toArray();
+        // Canales de la regla, ya guardados: su id existe. Se filtra igual para que la lista sea
+        // de texto y no de «quizá»: un id nulo aquí acabaría como canal fantasma en las colas.
+        $targetChannelIds = array_values(array_filter(
+            $rule->getTargetCommunicationChannels()->map(static fn (MessageChannel $c): ?string => $c->getId())->toArray(),
+            static fn (?string $id): bool => $id !== null,
+        ));
 
         // 2. 🔥 FILTRO DE SEGURIDAD: Validamos cada canal contra su Enqueuer
         $validChannelIds = [];
         foreach ($targetChannelIds as $channelId) {
+            $canal = $this->em->getReference(MessageChannel::class, $channelId);
+            if ($canal === null) {
+                continue;
+            }
+
             foreach ($this->enqueuers as $enqueuer) {
-                if ($enqueuer->supports($this->em->getReference(MessageChannel::class, $channelId))) {
+                if ($enqueuer->supports($canal)) {
                     if ($enqueuer->isValid($message)) {
                         $validChannelIds[] = $channelId;
                     } else {

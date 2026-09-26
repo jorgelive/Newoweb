@@ -1,6 +1,14 @@
 # Análisis estático — la red que faltaba
 #
-# **Nivel 7 desde el 30/08/2026**, y con el baseline SIN una sola entrada nueva: los 144 avisos
+# **Nivel 8 desde el 26/09/2026**, el que revisa lo que puede ser `null`, otra vez sin una sola
+# entrada nueva en el baseline (y con dos menos). Eran 240 avisos en 91 archivos y se arreglaron
+# los 240. El criterio, que es lo que importa: un nulable NO se aprieta porque hoy no haya nulos —
+# un evento sin reserva parece un dato roto y es un bloqueo—; lo obligatorio en la base se lee con
+# un `getXOrFail()` que nombra el dato, y `?->` sólo donde el dominio dice que puede faltar. Ver
+# `docs/PmsBeds24ReservasSync.md` §12.19. Lo que encontró que ya estaba en producción: los cobros
+# sueltos por Culqi leían `->value` sobre null (un warning, así que se cobraba igual y nadie lo vio).
+#
+# Nivel 7 desde el 30/08/2026, y con el baseline SIN una sola entrada nueva: los 144 avisos
 # que sacó se arreglaron uno a uno. Esa es la regla desde ahora — se sube arreglando, no
 # congelando (ver `CLAUDE.md`).
 #
@@ -61,7 +69,7 @@ includes:
     - phpstan-baseline.neon
 
 parameters:
-    level: 7
+    level: 8
     paths:
         - src
     bootstrapFiles:

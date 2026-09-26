@@ -165,6 +165,12 @@ class EmailSendQueue implements MessageQueueItemInterface, MemoryCleanableInterf
     public function getId(): ?Uuid { return $this->id; }
 
     public function getMessage(): ?Message { return $this->message; }
+
+    /** `message_id` es NOT NULL: ver {@see Message::getConversationOrFail()}. */
+    public function getMessageOrFail(): Message
+    {
+        return $this->message ?? throw new \LogicException('Cola EmailSendQueue sin mensaje (la columna es NOT NULL).');
+    }
     public function setMessage(?Message $message): self { $this->message = $message; return $this; }
 
     public function getChannelId(): string { return 'email'; }

@@ -50,7 +50,7 @@ class MessageChannel
 
     public function __toString(): string
     {
-        return $this->name ?? $this->id;
+        return $this->name ?? $this->id ?? 'Canal nuevo';
     }
 
     // =========================================================================

@@ -99,6 +99,12 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             $msg = $item->getMessage();
 
             try {
+                // ⚠️ `RuntimeException` y no el `OrFail` de la entidad: el `catch` de abajo sólo
+                // recoge `RuntimeException`, y un `LogicException` se saltaría el fallo POR ÍTEM y
+                // tumbaría el lote entero. Una cola sin mensaje es un ítem roto, no el lote.
+                if ($msg === null) {
+                    throw new RuntimeException("Cola de WhatsApp #{$item->getId()} sin mensaje.");
+                }
 
                 // 🔥 ESCENARIO A: RECIBO DE LECTURA
                 if ($endpoint->getAccion() === 'MARK_WHATSAPP_MESSAGE_READ'
@@ -121,6 +127,9 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
                 // 🔥 ESCENARIO B: ENVÍO DE MENSAJE
                 $conversation = $msg->getConversation();
+                if ($conversation === null) {
+                    throw new RuntimeException("Mensaje #{$msg->getId()} sin conversación: no hay a quién ni en qué idioma escribir.");
+                }
 
                 // 🚧 EL VETO DEL CANAL SE COMPRUEBA **AQUÍ**, no al encolar.
                 //
@@ -135,7 +144,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // El `RuntimeException` cae en el `catch` de abajo y `parseResponse()` lo
                 // convierte en un `ItemResult` fallido con este motivo: la fila de la cola
                 // cuenta lo que le pasó **hoy**, y no una foto de hace tres días.
-                if ($conversation !== null && $conversation->isWhatsappDisabled()) {
+                if ($conversation->isWhatsappDisabled()) {
                     throw new RuntimeException(sprintf(
                         'Envío cancelado: El canal WhatsApp para esta conversación está DESHABILITADO. Motivo: %s',
                         $conversation->getWhatsappDisabledReason() ?? 'Desconocido'
@@ -177,7 +186,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // 🌐 RESOLUCIÓN DE IDIOMAS (Local vs Meta API)
                 // -------------------------------------------------------------------------
                 $idiomaEntity = $conversation->getIdioma();
-                $internalLang = strtolower($idiomaEntity->getId());
+                $internalLang = strtolower((string) $idiomaEntity->getId());
                 // NUEVO: Bifurcación. Si la prioridad es 0, las plantillas y menús caen en inglés.
                 $templateLang = ($idiomaEntity->getPrioridad() > 0) ? $internalLang : 'en';
 
@@ -575,7 +584,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     ? (string) $variables[$m[1]]
                     : $m[0],
                 $content
-            );
+            ) ?? $content;   // null sólo si la expresión falla: entonces, el texto tal cual
         }
         return $content;
     }

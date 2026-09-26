@@ -116,7 +116,10 @@ readonly class MessageConversationFactory
             $langCode = substr($context->getContextLanguage() ?? MaestroIdioma::DEFAULT_IDIOMA, 0, 2);
 
             // Inyectamos la referencia directamente sin ensuciar con llamadas extra
-            $idiomaRef = $this->entityManager->getReference(MaestroIdioma::class, $langCode);
+            // `getReference()` puede devolver null en Doctrine 3. Sin idioma no hay conversación
+            // (la columna es NOT NULL): que lo diga aquí y no en el flush.
+            $idiomaRef = $this->entityManager->getReference(MaestroIdioma::class, $langCode)
+                ?? throw new \LogicException("No hay idioma «{$langCode}» para la conversación.");
             $conversation->setIdioma($idiomaRef);
         }
 

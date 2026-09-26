@@ -66,7 +66,8 @@ final class MessageRuleEngineListener
         foreach ($uow->getScheduledEntityInsertions() as $entity) {
             if ($entity instanceof MessageConversation) {
                 // Se marca explícitamente como INSERT usando su UUID como llave
-                $this->conversationsToInsert[$entity->getId()->toRfc4122()] = $entity;
+                // El id es `GeneratedValue(NONE)`: una fila programada para INSERT lo lleva ya puesto.
+                $this->conversationsToInsert[$entity->getIdOrFail()->toRfc4122()] = $entity;
             }
         }
 
@@ -76,7 +77,7 @@ final class MessageRuleEngineListener
                 $changeSet = $uow->getEntityChangeSet($entity);
 
                 if (array_intersect_key($changeSet, array_flip(self::CAMPOS_CRITICOS)) !== []) {
-                    $id = $entity->getId()->toRfc4122();
+                    $id = $entity->getIdOrFail()->toRfc4122();
                     // Si por casualidad también estaba en insert, priorizamos el insert.
                     if (!isset($this->conversationsToInsert[$id])) {
                         $this->conversationsToUpdate[$id] = $entity;

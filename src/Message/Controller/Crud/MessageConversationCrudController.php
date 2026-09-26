@@ -134,7 +134,7 @@ class MessageConversationCrudController extends BaseCrudController
                 if ($msg->getId() !== null) {
                     $usedChannelIds = [];
                     foreach ($channels as $ch) {
-                        $name = strtolower($ch->getName());
+                        $name = strtolower((string) $ch->getName());
                         if (str_contains($name, 'beds24') && !$msg->getBeds24SendQueues()->isEmpty()) {
                             $usedChannelIds[] = (string) $ch->getId();
                         }

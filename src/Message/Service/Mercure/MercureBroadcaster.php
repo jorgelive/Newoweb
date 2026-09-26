@@ -32,7 +32,7 @@ class MercureBroadcaster
     public function broadcastMessage(Message $message): void
     {
         try {
-            $topic = sprintf('https://openperu.pe/conversations/%s', $message->getConversation()->getId());
+            $topic = sprintf('https://openperu.pe/conversations/%s', $message->getConversationOrFail()->getId());
 
             // FIX: IRI real del recurso (mismo que devuelve el endpoint REST)
             $dto = new MercureMessageDto($message, $this->resolveIri($message));

@@ -157,7 +157,7 @@ readonly class WhatsappMetaReceivePersister
                 $newIdiomaEntity = $repoIdioma->find($iso2LangCode) ?? $repoIdioma->find('en');
 
                 if ($newIdiomaEntity instanceof MaestroIdioma) {
-                    $detectedLangCode = $newIdiomaEntity->getId();
+                    $detectedLangCode = $newIdiomaEntity->getId() ?? 'es';
 
                     // ⚠️ **El cerrojo manda.** `idiomaFijado` es el checkbox «Fijado» del panel:
                     // alguien miró y decidió en qué idioma se le escribe a esta persona. La
@@ -457,7 +457,10 @@ readonly class WhatsappMetaReceivePersister
                     'category'       => 'system_alert',
                     'action_code'    => 'ERR_' . $errorCode,
                     'source_channel' => 'whatsapp_meta',
-                    'context_id'     => $message->getConversation()->getContextId(),
+                    // `?->` a propósito: es el aviso de que Meta NO entregó un mensaje. Si además el
+                    // dato estuviera roto, perder el aviso por una excepción sería peor que
+                    // registrarlo sin contexto.
+                    'context_id'     => $message->getConversation()?->getContextId(),
                     'resolved'       => false,
                     'payload'        => [
                         'error_message' => $metaDataToMerge['error_reason'] ?? 'Error desconocido'
@@ -736,11 +739,9 @@ readonly class WhatsappMetaReceivePersister
         $conversation->setGuestName($guestName);
         $conversation->setStatus(MessageConversation::STATUS_OPEN);
 
-        $idiomaDefault = $this->idiomaPorDefecto();
-
-        if ($idiomaDefault) {
-            $conversation->setIdioma($idiomaDefault);
-        }
+        // Antes se saltaba si no había idioma, y el flush reventaba después por la columna NOT
+        // NULL. Ahora `idiomaPorDefecto()` lo dice en su sitio.
+        $conversation->setIdioma($this->idiomaPorDefecto());
 
         $this->resolutor->vincular($conversation, IdentidadTipo::TELEFONO, $phone, 'whatsapp');
 
@@ -755,11 +756,14 @@ readonly class WhatsappMetaReceivePersister
      * Se usa cuando no hay de dónde sacarlo. Una conversación identificada como reserva
      * prefiere el idioma DE LA RESERVA: al huésped se le escribe en el suyo, no en el nuestro.
      */
-    private function idiomaPorDefecto(): ?MaestroIdioma
+    private function idiomaPorDefecto(): MaestroIdioma
     {
         $repoIdioma = $this->em->getRepository(MaestroIdioma::class);
 
-        return $repoIdioma->find('es') ?? $repoIdioma->findOneBy([]);
+        // Sin ningún idioma en el maestro no hay conversación posible (la columna es NOT NULL):
+        // mejor decirlo aquí que en el flush, con un «idioma_id cannot be null» sin contexto.
+        return $repoIdioma->find('es') ?? $repoIdioma->findOneBy([])
+            ?? throw new \LogicException('maestro_idioma está vacío: no hay idioma para la conversación nueva.');
     }
 
     /**

@@ -570,11 +570,6 @@ parameters:
 			count: 3
 			path: src/Message/Service/Translation/MessageTranslator.php
 
-		-
-			message: '#^Ternary operator condition is always true\.$#'
-			identifier: ternary.alwaysTrue
-			count: 1
-			path: src/Message/Service/Translation/MessageTranslator.php
 
 	
 	

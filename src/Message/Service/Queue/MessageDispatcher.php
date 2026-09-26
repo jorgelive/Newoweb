@@ -304,6 +304,11 @@ readonly class MessageDispatcher
             // 1A. Identificamos qué canales permite la plantilla
             foreach ($allActiveChannels as $channel) {
                 $column = $channel->getTemplateColumn();
+                // Un canal sin columna de plantilla no tiene de dónde leerla: se salta, igual que
+                // uno cuyo getter no existe (mismo trato que en `EnviarPlantillaSkill`).
+                if ($column === null || $column === '') {
+                    continue;
+                }
                 $getter = 'get' . ucfirst($column);
 
                 if (method_exists($template, $getter)) {

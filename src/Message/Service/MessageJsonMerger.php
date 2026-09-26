@@ -28,7 +28,7 @@ readonly class MessageJsonMerger
         ?string $externalIdValue = null
     ): void {
         $conn = $this->em->getConnection();
-        $id = $message->getId()->toBinary();
+        $id = $message->getIdOrFail()->toBinary();   // se fusiona sobre una fila que ya existe
 
         // Preparamos payload de metadata (JSON_MERGE_PATCH hace un deep merge automático)
         $metaPayload = json_encode([$metaKey => $metaData], JSON_THROW_ON_ERROR);

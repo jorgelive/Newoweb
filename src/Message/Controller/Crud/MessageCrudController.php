@@ -58,7 +58,8 @@ class MessageCrudController extends BaseCrudController
         $message->setStatus(Message::STATUS_PENDING);
 
         $request = $this->requestStack->getCurrentRequest();
-        $replyToId = $request->query->get('reply_to');
+        // Sin petición en curso (un comando, un test) no hay a qué responder: se crea sin cita.
+        $replyToId = $request?->query->get('reply_to');
 
         if ($replyToId) {
             $incoming = $this->em->getRepository(Message::class)->find($replyToId);
@@ -357,7 +358,7 @@ class MessageCrudController extends BaseCrudController
                 continue;
             }
 
-            $validIds[] = $t->getId();
+            $validIds[] = $t->getIdOrFail();
         }
 
         return $validIds;

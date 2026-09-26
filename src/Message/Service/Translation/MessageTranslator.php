@@ -42,8 +42,11 @@ class MessageTranslator
      */
     public function process(Message $message): void
     {
-        $conversation = $message->getConversation();
-        $storedGuestLang = $conversation->getIdioma() ? $conversation->getIdioma()->getId() : null;
+        // El hilo y su idioma son NOT NULL, y el código ISO es la clave del idioma: siempre hay
+        // uno. Antes se toleraba un `null` aquí que luego acababa en `setLanguageCode(string)`.
+        $conversation = $message->getConversationOrFail();
+        $storedGuestLang = $conversation->getIdioma()->getId()
+            ?? throw new \LogicException('Idioma de la conversación sin código ISO.');
 
         $hasLocal = !empty($message->getContentLocal());
         $hasExternal = !empty($message->getContentExternal());
@@ -70,7 +73,7 @@ class MessageTranslator
         if ($hasExternal && !$hasLocal && Message::DIRECTION_OUTGOING === $message->getDirection()) {
             $message->setLanguageCode($storedGuestLang);
 
-            if ($storedGuestLang === null || $storedGuestLang === $this->baseLanguage) {
+            if ($storedGuestLang === $this->baseLanguage) {
                 $message->setContentLocal($message->getContentExternal());
                 return;
             }
@@ -81,7 +84,7 @@ class MessageTranslator
 
         // 1. FLUJO ENTRANTE (Webhooks): Viene de afuera (External), falta Local.
         if ($hasExternal && !$hasLocal) {
-            $cleanExternal = trim(strip_tags($message->getContentExternal()));
+            $cleanExternal = trim(strip_tags((string) $message->getContentExternal()));
 
             // 🔥 CORTAFUEGOS NUMÉRICO ESTRICTO:
             // Los números puros ("2", "1") no tienen idioma ni van a Google. Heredan el actual.
@@ -118,12 +121,13 @@ class MessageTranslator
      * Actualiza el LanguageCode del mensaje y, si difiere del actual, actualiza la entidad Conversación.
      *
      * @param Message $message La entidad que contiene los campos Local y External.
-     * @param string|null $currentConvLang Código del idioma actual en la conversación.
+     * @param string $currentConvLang Código del idioma actual en la conversación.
      */
-    private function translateToLocalWithDetection(Message $message, ?string $currentConvLang): void
+    private function translateToLocalWithDetection(Message $message, string $currentConvLang): void
     {
         try {
-            $rawExternal = $message->getContentExternal();
+            // `process()` sólo llega aquí con `contentExternal` no vacío.
+            $rawExternal = (string) $message->getContentExternal();
             $results = $this->googleTranslator->translateWithDetection(
                 [$rawExternal],
                 $this->baseLanguage
@@ -149,9 +153,9 @@ class MessageTranslator
 
                     // Ver el mismo aviso en `WhatsappMetaReceivePersister`: el checkbox «Fijado»
                     // es una decisión de persona y la detección automática no la pisa.
-                    if ($idiomaEntity instanceof MaestroIdioma && !$message->getConversation()->isIdiomaFijado()) {
-                        $detectedLang = $idiomaEntity->getId();
-                        $message->getConversation()->setIdioma($idiomaEntity);
+                    if ($idiomaEntity instanceof MaestroIdioma && !$message->getConversationOrFail()->isIdiomaFijado()) {
+                        $detectedLang = $idiomaEntity->getId() ?? $currentConvLang;
+                        $message->getConversationOrFail()->setIdioma($idiomaEntity);
                         $this->logger->info("Language mismatch: Conversation updated to {$detectedLang}");
                     } else {
                         $detectedLang = $currentConvLang;
@@ -183,8 +187,9 @@ class MessageTranslator
     private function translateToExternal(Message $message, string $targetLang): void
     {
         try {
+            // `process()` sólo llega aquí con `contentLocal` no vacío.
             $results = $this->googleTranslator->translate(
-                [$message->getContentLocal()],
+                [(string) $message->getContentLocal()],
                 $targetLang,
                 $this->baseLanguage
             );
@@ -213,8 +218,9 @@ class MessageTranslator
     private function traducirParaElOperador(Message $message, string $idiomaHuesped): void
     {
         try {
+            // `process()` sólo llega aquí con `contentExternal` no vacío.
             $traducido = $this->googleTranslator->translate(
-                [$message->getContentExternal()],
+                [(string) $message->getContentExternal()],
                 $this->baseLanguage,
                 $idiomaHuesped
             );

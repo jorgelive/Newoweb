@@ -30,7 +30,7 @@
   ejecutarlo a ciegas borra el respaldo que alguien guardó a propósito. Sin `--complete`, el diff
   es aditivo y es el que se lee.
 
-  **Análisis estático:** PHPStan **nivel 7** sobre `src/` entero —`src/Oweb/`, el panel Sonata
+  **Análisis estático:** PHPStan **nivel 8** sobre `src/` entero —`src/Oweb/`, el panel Sonata
   heredado que se excluía, se archivó el 17/09/2026 (ver `docs/OwebArchivado.md` y la etiqueta git
   `oweb-final`)—, con `phpstan-baseline.neon` congelando la deuda que ya existía. Correrlo antes de
   cerrar un cambio no es opcional; es más barato que cualquier test que se pueda escribir para
@@ -54,10 +54,9 @@
   `[viejo, nuevo]` cuando en una colección es una `PersistentCollection`. **Ninguno daba error
   hoy.** El detalle está en la cabecera de `phpstan.dist.neon`.
 
-  **Camino al 8 (el de los `null`), por módulos.** Medido el 26/09/2026: 240 avisos en 91
-  archivos. **Todo pasa el 8 salvo `src/Message` (69)**: Pms, Agent, Api y el resto, el 26/09/2026. No se sube el
-  nivel en `phpstan.dist.neon` hasta que pase el proyecto entero. Para comprobar un módulo:
-  `vendor/bin/phpstan analyse --level=8 src/Pms`.
+  Y al **8 el 26/09/2026**, el que revisa lo que puede ser `null`: 240 avisos en 91 archivos,
+  arreglados los 240 por módulos —Pms, Agent, Api y sueltos, Message— y el baseline con **dos
+  entradas menos**, ninguna nueva.
 
   ⚠️ **Y el 8 encontró fallos que ya estaban en producción, no sólo tipos.** Los cobros sueltos por
   Culqi leían `->value` sobre un `origenTipo` nulo: un *warning*, así que se cobraba igual y nadie

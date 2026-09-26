@@ -102,7 +102,7 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
             $this->logger->info(sprintf(
                 'WhatsApp no aplica al mensaje %s: la conversación %s no tiene teléfono.',
                 $message->getId()?->toRfc4122() ?? 'N/A',
-                $conversation->getId()->toRfc4122()
+                $conversation->getId()?->toRfc4122() ?? 'N/A'
             ));
 
             return null;
@@ -141,7 +141,7 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
             // 🔥 FLUJO B: ENVÍO DE MENSAJE NUEVO O PLANTILLA
 
             $template = $message->getTemplate();
-            $lang = $conversation->getIdioma()->getId();
+            $lang = (string) $conversation->getIdioma()->getId();   // el código ISO es la clave del idioma
             $isSessionActive = $conversation->isWhatsappSessionActive();
 
             if (!$isSessionActive) {

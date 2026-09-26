@@ -53,7 +53,7 @@ class RebuildConversationContextCommand extends Command
         $conversationIds = []; // array de objetos Uuid — Doctrine los convierte solo
 
         foreach ($conversations as $c) {
-            $conversationIds[] = $c->getId();
+            $conversationIds[] = $c->getIdOrFail();   // leídas de la base: tienen id
             $reservaIds[]      = $c->getContextId();
         }
 
