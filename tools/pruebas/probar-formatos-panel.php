@@ -24,7 +24,9 @@ spl_autoload_register(static function (string $c) use ($raiz): void {
     if (str_starts_with($c, 'App\\')) { $f = $raiz . '/src/' . str_replace('\\', '/', substr($c, 4)) . '.php'; if (is_file($f)) require $f; }
 }, true, true);
 (new Symfony\Component\Dotenv\Dotenv())->bootEnv($raiz . '/.env');
-$kernel = new App\Kernel('dev', true);
+// `APP_ENV=prod` para correrlo en el servidor, sobre sus datos (sin tocarlos).
+$entorno = getenv('APP_ENV') ?: 'dev';
+$kernel = new App\Kernel($entorno, $entorno === 'dev');
 $kernel->boot();
 $c = $kernel->getContainer();
 $em = $c->get('doctrine')->getManager();
