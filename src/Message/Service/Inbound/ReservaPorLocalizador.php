@@ -35,8 +35,8 @@ use Psr\Log\LoggerInterface;
  * entrar en la casa.
  *
  * ── Las tres validaciones ───────────────────────────────────────────────────
- * 1. **Formato**: sólo se miran palabras de 6 a 12 caracteres alfanuméricos. Sin esto, cualquier
- *    «hola» largo entraría a consultar la base.
+ * 1. **Formato**: sólo palabras con la forma EXACTA de un localizador —seis caracteres del
+ *    alfabeto sin `0 1 I L O`—. Sin esto, «Buenas» o «Melanie» entraban a consultar la base.
  * 2. **Existe y está viva**: el estado tiene que ocupar la unidad. Una cancelada no reabre nada.
  * 3. **En su tiempo**: desde 60 días antes de la llegada hasta 15 después de la salida. Un
  *    localizador de hace dos años no sirve para colarse en un hilo, y el margen de después deja
@@ -44,11 +44,30 @@ use Psr\Log\LoggerInterface;
  */
 final readonly class ReservaPorLocalizador
 {
-    /** Lo que puede ser un localizador y no una palabra cualquiera. */
-    private const string PATRON = '/\b[A-Z0-9]{6,12}\b/i';
+    /**
+     * Exactamente la forma de un localizador nuestro, no «una palabra que podría serlo».
+     *
+     * 🔥 El patrón de la primera versión era `[A-Z0-9]{6,12}`, y con él «Buenas», «tardes»,
+     * «quisiera», «confirmar» o «Melanie» eran candidatos. Con el tope de cinco, un mensaje
+     * educado —«Buenas tardes, quisiera confirmar mi llegada. Hola, soy Melanie, reserva
+     * RXY9QC»— dejaba el código fuera y el huésped caía en un hilo «manual» sin reserva.
+     *
+     * `initializeLocator()` genera SEIS caracteres de `23456789ABCDEFGHJKMNPQRSTUVWXYZ`, o sea
+     * sin `0`, `1`, `I`, `L` ni `O` — los que se confunden al leerlos. Exigir el alfabeto
+     * exacto descarta de golpe «reserva», «booking», «Buchung» y casi cualquier nombre, y de
+     * paso hace innecesario el tope: ya no hay contra qué protegerse.
+     *
+     * ⚠️ **En MAYÚSCULAS primero, y no es lo mismo que ser indiferente a la caja.** Con `/i`,
+     * «Buenas» y «tardes» encajan en el patrón —sus seis letras están en el alfabeto—, y el día
+     * que un localizador sea `TARDES` un «buenas tardes» engancharía el hilo de otra persona.
+     * Nuestro enlace escribe el código en mayúsculas, así que ésos se miran primero; los de caja
+     * mixta quedan de reserva para quien lo reescriba a mano, y sólo se consultan si ninguno de
+     * los buenos casó.
+     */
+    private const string PATRON = '/\b[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}\b/';
 
-    /** Cuántas palabras candidatas se miran como mucho. Un mensaje no trae veinte códigos. */
-    private const int MAX_CANDIDATOS = 5;
+    /** El mismo, sin distinguir mayúsculas: para el que lo reescribe en minúsculas. */
+    private const string PATRON_LAXO = '/\b[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}\b/i';
 
     private const int DIAS_ANTES = 60;
     private const int DIAS_DESPUES = 15;
@@ -72,11 +91,16 @@ final readonly class ReservaPorLocalizador
             return null;
         }
 
-        if (preg_match_all(self::PATRON, $texto, $coincidencias) === 0) {
+        preg_match_all(self::PATRON, $texto, $exactos);
+        preg_match_all(self::PATRON_LAXO, $texto, $laxos);
+
+        // Los de mayúsculas primero: son los que escribe nuestro enlace. Los demás detrás, y
+        // sólo llegan a consultarse si ninguno de los primeros casó con una reserva viva.
+        $candidatos = array_unique(array_merge($exactos[0], $laxos[0]));
+
+        if ($candidatos === []) {
             return null;
         }
-
-        $candidatos = array_slice(array_unique($coincidencias[0]), 0, self::MAX_CANDIDATOS);
         $repositorio = $this->em->getRepository(PmsReserva::class);
 
         foreach ($candidatos as $candidato) {

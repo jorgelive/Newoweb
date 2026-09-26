@@ -83,6 +83,23 @@ final class ReservaPorLocalizadorTest extends TestCase
     }
 
     /** Y una cancelada tampoco: no queda estancia que ocupe la casita. */
+    /**
+     * 🔥 El mensaje educado, que es como escribe la gente de verdad.
+     *
+     * Con el patrón de 6-12 alfanuméricos y el tope de cinco candidatos, «Buenas», «tardes»,
+     * «quisiera», «confirmar» y «llegada» llenaban la lista y el código quedaba fuera: el
+     * huésped acababa en un hilo «manual» sin reserva.
+     */
+    #[Test]
+    public function un_saludo_largo_no_desplaza_al_localizador(): void
+    {
+        $servicio = $this->servicio($this->reserva('-1 day', '+2 days'));
+
+        self::assertNotNull($servicio->enElTexto(
+            'Buenas tardes, quisiera confirmar mi llegada. Hola, soy Melanie, reserva RXY9QC'
+        ));
+    }
+
     #[Test]
     public function una_reserva_sin_estancia_viva_no_vincula(): void
     {

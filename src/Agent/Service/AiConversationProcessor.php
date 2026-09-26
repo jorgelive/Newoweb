@@ -834,10 +834,15 @@ final readonly class AiConversationProcessor
             $conversacion->getId()
         ));
 
-        // Mismo aviso que en el `catch`, y por el mismo motivo: para el huésped las dos ramas son
-        // idénticas —recibe la frase hecha— y para nosotros también deberían serlo. Un proveedor
-        // que declina cada turno es una avería aunque no lance excepción.
-        $this->vigilante->motorCaido('El motor no devolvió texto: ' . $respuesta->motivo);
+        // ⚠️ SÓLO SI ES UNA AVERÍA. Aquí se llega también cuando el huésped pidió algo que su rol
+        // no permite (`sin_permisos`) o cuando el clasificador del proveedor declinó ESE mensaje
+        // (`rechazado`): eso no es que el motor esté caído, es un turno que no se contesta. Sin
+        // este filtro, un mensaje raro a las tres de la mañana manda al grupo de soporte un «EL
+        // MOTOR NO RESPONDE» — y una alarma que suena cuando no pasa nada es una alarma que se
+        // deja de leer, que es justo lo que este vigilante existe para impedir.
+        if (in_array($respuesta->motivo, self::MOTIVOS_DE_AVERIA, true)) {
+            $this->vigilante->motorCaido('El motor no devolvió texto: ' . $respuesta->motivo);
+        }
 
         // `null` = no se encola nada, y es lo correcto cuando el último mensaje que salió ya era
         // el acuse: repetirlo no añade información y dice que no hay nadie leyendo. El entrante
@@ -1367,31 +1372,43 @@ final readonly class AiConversationProcessor
      * 🔁 **El acuse se manda UNA vez, no una por mensaje.** Durante la caída del 19/09/2026 un
      * huésped que quería reservar tres tours recibió cuatro acuses idénticos seguidos, uno de
      * ellos contestando a un «gracias». La frase está pensada para que nadie se quede mirando el
-     * vacío; repetida, dice justo lo contrario —que al otro lado no hay nadie leyendo— y además
-     * empuja al huésped a insistir, que genera más mensajes y más acuses.
+     * vacío; repetida dice justo lo contrario —que al otro lado no hay nadie leyendo— y además
+     * empuja a insistir, que genera más mensajes y más acuses.
      *
-     * La condición es deterministra y no lleva reloj: **si lo último que salió de aquí es un
-     * acuse, no se manda otro**. En cuanto una persona escribe, lo último deja de ser el acuse y
-     * el suelo vuelve a estar disponible para la siguiente vez. El mensaje entrante sigue sin
-     * leer y el panel lo sigue enseñando, que es lo que sostiene la promesa.
+     * ── Por metadata y no por texto (25/09/2026) ────────────────────────────────
+     * La primera versión comparaba `contentLocal` con las siete redacciones y **sólo funcionaba
+     * en castellano**: el bot escribe el acuse en el idioma del huésped y `MessageTranslator`
+     * pone en `contentLocal` la traducción de Google al español, que no coincide con la
+     * constante. En un hilo en inglés esto devolvía siempre `false`.
+     *
+     * ── Y por consulta, no recorriendo el hilo ──────────────────────────────────
+     * Recorrer `getMessages()` hidrataba la conversación entera —un hilo grande pasa de 5.000
+     * mensajes— para mirar uno, y además contaba como «último» un programado a futuro o un
+     * cancelado: si el motor de reglas creaba un recordatorio para mañana justo después del
+     * acuse, el acuse se repetía. La consulta pide lo que ya ocurrió y no está cancelado,
+     * ordenado por la misma clave con la que se pinta el chat.
      */
     private function yaSeAcusoRecibo(MessageConversation $conversacion): bool
     {
-        $ultimaSalida = null;
+        $ultimo = $this->em->createQueryBuilder()
+            ->select('m')
+            ->from(Message::class, 'm')
+            ->andWhere('m.conversation = :conversacion')
+            ->andWhere('m.direction = :saliente')
+            ->andWhere('m.status != :cancelado')
+            ->andWhere('COALESCE(m.ocurrioAt, m.createdAt) <= :ahora')
+            ->setParameter('conversacion', $conversacion)
+            ->setParameter('saliente', Message::DIRECTION_OUTGOING)
+            ->setParameter('cancelado', Message::STATUS_CANCELLED)
+            ->setParameter('ahora', new DateTimeImmutable())
+            ->orderBy('COALESCE(m.ocurrioAt, m.createdAt)', 'DESC')
+            ->addOrderBy('m.id', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
 
-        foreach ($conversacion->getMessages() as $m) {
-            if ($m->getDirection() !== Message::DIRECTION_OUTGOING) {
-                continue;
-            }
-
-            $texto = trim((string) $m->getContentLocal());
-
-            if ($texto !== '') {
-                $ultimaSalida = $texto;
-            }
-        }
-
-        return $ultimaSalida !== null && in_array($ultimaSalida, self::ACUSES, true);
+        return $ultimo instanceof Message
+            && ($ultimo->getMetadata()[self::MARCA_ACUSE] ?? false) === true;
     }
 
     /**
@@ -1449,6 +1466,31 @@ final readonly class AiConversationProcessor
      * Crea el mensaje de respuesta. No lo envía: al persistirlo, el
      * MessageEnqueuerEntityListener genera las colas del canal por el que llegó la consulta.
      */
+    /**
+     * La marca que identifica un acuse de recibo, para poder reconocerlo después.
+     *
+     * 🔥 Antes se reconocía COMPARANDO EL TEXTO contra {@see self::ACUSES}, y eso sólo funcionaba
+     * en castellano: el bot escribe el acuse en el idioma del huésped y `MessageTranslator`
+     * rellena `contentLocal` con la traducción de Google al español, que no coincide byte a byte
+     * con la constante. En un hilo en inglés `yaSeAcusoRecibo()` devolvía siempre `false` y el
+     * acuse se repetía — que es exactamente lo que el arreglo del 21/09 decía haber cerrado, y
+     * el huésped de los cuatro tours escribía en español por casualidad.
+     *
+     * La metadata no la toca el traductor y no depende de la redacción.
+     */
+    private const string MARCA_ACUSE = 'acuse_de_recibo';
+
+    /**
+     * Qué motivos de «sin texto» cuentan como motor caído.
+     *
+     * Los que NO están son tan importantes como los que sí: `sin_permisos` y `rechazado` son
+     * turnos que no se contestan —un rol sin acceso, un clasificador que declina ese mensaje—,
+     * no una avería del proveedor.
+     *
+     * @var list<string>
+     */
+    private const array MOTIVOS_DE_AVERIA = ['motor_no_disponible', 'sin_respuesta'];
+
     private function encolarRespuesta(MessageConversation $conversacion, Message $entrante, string $texto): void
     {
         $canal = $entrante->getChannel();
@@ -1467,6 +1509,12 @@ final readonly class AiConversationProcessor
         $salida->setContentExternal($texto);
         $salida->setLanguageCode($conversacion->getIdioma()?->getId() ?? 'es');
         $salida->addMetadata('generado_por', 'ia');
+
+        // El acuse se marca para poder reconocerlo sin mirar su texto. Comparar aquí con las
+        // siete redacciones es barato y pasa una sola vez; hacerlo al leer era lo que fallaba.
+        if (in_array($texto, self::ACUSES, true)) {
+            $salida->addMetadata(self::MARCA_ACUSE, true);
+        }
 
         // 🪜 La huella del tema, si en este turno se sirvió uno con escalera. Es lo que permite
         // que la próxima vez que vuelva sobre lo mismo se le dé el paso siguiente en vez de la

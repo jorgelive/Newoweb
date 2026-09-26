@@ -10,6 +10,7 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Enum\IdentidadTipo;
 use App\Message\Service\Conversacion\ResolutorDeHilo;
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Message\Service\Inbound\ReservaPorLocalizador;
 use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
@@ -45,6 +46,7 @@ readonly class WhatsappMetaReceivePersister
         // Un solo resolutor para todos los canales: antes cada uno buscaba a su manera.
         private ResolutorDeHilo              $resolutor,
         private ReservaPorLocalizador        $localizadores,
+        private EnlacesDeConversacion        $enlaces,
     ) {}
 
     /**
@@ -650,8 +652,14 @@ readonly class WhatsappMetaReceivePersister
             // 🧵 SE REUTILIZA SU HILO si ya existe —y para un huésped de Booking existe, porque
             // viene hablando por el chat de la OTA—. Crear otro partiría el historial en dos
             // justo cuando el huésped cambia de canal, que es cuando más falta hace verlo junto.
-            $suyo = $this->em->getRepository(MessageConversation::class)
-                ->findOneBy(['contextType' => 'pms_reserva', 'contextId' => (string) $porLocalizador->getId()]);
+            //
+            // ⚠️ POR EL TITULAR DEL ASUNTO, no por `findOneBy(contextType, contextId)`. Esa
+            // pareja **no es única** desde la fusión de hilos y devuelve el equivocado: está
+            // documentado en `MessageConversation` —26 reservas abrían un hilo archivado con 0
+            // mensajes—. Con un número de Booking recién presentado, engancharlo a un hilo
+            // archivado y vacío sería peor que crear uno nuevo, porque el historial existe pero
+            // queda en otro sitio.
+            $suyo = $this->enlaces->hiloTitularDe('pms_reserva', (string) $porLocalizador->getId());
 
             if ($suyo !== null) {
                 $this->resolutor->vincular($suyo, IdentidadTipo::TELEFONO, $phone, 'whatsapp');
@@ -660,8 +668,17 @@ readonly class WhatsappMetaReceivePersister
                     $suyo->setGuestPhone($phone);
                 }
 
-                $this->logger->info('WhatsApp: número nuevo unido a su hilo por el localizador.', [
+                // Un hilo que YA tenía teléfono y recibe un segundo número por localizador es el
+                // único caso en que esto podría ser alguien colándose —o, mucho más probable, el
+                // acompañante del huésped—. No se bloquea: se deja ver. Con `info` quedaba
+                // enterrado entre miles de líneas, que es como no registrarlo.
+                $nivel = ($suyo->getGuestPhone() ?? '') !== '' && $suyo->getGuestPhone() !== $phone
+                    ? 'warning'
+                    : 'info';
+
+                $this->logger->log($nivel, 'WhatsApp: número nuevo unido a su hilo por el localizador.', [
                     'telefono' => $phone,
+                    'telefono_previo' => $suyo->getGuestPhone(),
                     'reserva' => (string) $porLocalizador->getId(),
                     'conversacion' => (string) $suyo->getId(),
                 ]);
