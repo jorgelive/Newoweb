@@ -24,6 +24,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
+use App\Message\Dto\Meta\MetaWebhookSobre;
 
 /**
  * MetaWebhookAuditCrudController.
@@ -177,59 +178,10 @@ final class MetaWebhookAuditCrudController extends BaseCrudController
             return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());
         }
 
-        $responseDetails = [];
-        $globalErrors = [];
-        $processedAny = false;
-
-        // Replicamos la lógica de enrutamiento que está en el Controller principal.
-        // Lo ideal a futuro es extraer este bloque a un método "processPayload(array $payload)" en el FastTrackService.
-        if (isset($payload['entry'])) {
-            foreach ($payload['entry'] as $entry) {
-                foreach ($entry['changes'] as $change) {
-                    $value = $change['value'];
-
-                    // 1. MESSAGES
-                    if (isset($value['messages']) && isset($value['contacts'])) {
-                        $contactData = $value['contacts'][0];
-                        foreach ($value['messages'] as $messageData) {
-                            try {
-                                $res = $fastTrackService->processMessage($messageData, $contactData);
-                                $responseDetails['messages'][] = $res['id'];
-                            } catch (Throwable $e) {
-                                $globalErrors[] = ['type' => 'message', 'id' => $messageData['id'] ?? 'unknown', 'error' => $e->getMessage()];
-                            }
-                        }
-                        $processedAny = true;
-                    }
-
-                    // 2. CALLS
-                    if (isset($value['calls'])) {
-                        foreach ($value['calls'] as $callData) {
-                            try {
-                                $res = $fastTrackService->processCall($callData, $value['contacts'][0] ?? []);
-                                $responseDetails['calls'][] = $res['id'];
-                            } catch (Throwable $e) {
-                                $globalErrors[] = ['type' => 'call', 'id' => $callData['id'] ?? 'unknown', 'error' => $e->getMessage()];
-                            }
-                        }
-                        $processedAny = true;
-                    }
-
-                    // 3. STATUSES
-                    if (isset($value['statuses'])) {
-                        foreach ($value['statuses'] as $statusData) {
-                            try {
-                                $res = $fastTrackService->processStatus($statusData);
-                                $responseDetails['statuses'][] = $res['id'];
-                            } catch (Throwable $e) {
-                                $globalErrors[] = ['type' => 'status', 'id' => $statusData['id'] ?? 'unknown', 'error' => $e->getMessage()];
-                            }
-                        }
-                        $processedAny = true;
-                    }
-                }
-            }
-        }
+        // El mismo recorrido que el webhook, del mismo sitio: antes estaba copiado aquí a mano.
+        $resultado = $fastTrackService->procesarSobre(MetaWebhookSobre::fromArray($payload));
+        $responseDetails = $resultado['responseDetails'];
+        $globalErrors = $resultado['globalErrors'];
 
         // Evaluar resultado final
         $finalStatus = empty($globalErrors) ? MetaWebhookAudit::STATUS_PROCESSED : 'partial_error';

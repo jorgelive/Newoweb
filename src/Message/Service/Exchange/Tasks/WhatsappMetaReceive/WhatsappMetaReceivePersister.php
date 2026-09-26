@@ -25,6 +25,10 @@ use Doctrine\ORM\Query\ResultSetMappingBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Throwable;
+use App\Message\Dto\Meta\MetaContacto;
+use App\Message\Dto\Meta\MetaEstado;
+use App\Message\Dto\Meta\MetaLlamada;
+use App\Message\Dto\Meta\MetaMensajeEntrante;
 
 /**
  * Motor central de persistencia para WhatsApp Meta.
@@ -59,36 +63,34 @@ readonly class WhatsappMetaReceivePersister
      * - Puede crear una nueva entidad MessageConversation si el remitente no existe.
      * - Puede actualizar el idioma de la conversación si detecta un cambio.
      * - Activa la ventana de sesión de 24 horas de WhatsApp Meta al persistir un mensaje nuevo.
-     * * @param array $messageData El nodo 'messages[0]' del payload del webhook de Meta.
-     * @param array $contactData El nodo 'contacts[0]' del payload del webhook de Meta.
      *
-     * @param array<string, mixed> $messageData Mensaje crudo del webhook de Meta.
-     * @param array<string, mixed> $contactData
+     * Recibe los DTO del webhook, no el array crudo: el JSON de Meta se lee UNA vez, en
+     * `MetaWebhookSobre::fromArray()`, y aquí sólo se decide. Ver `docs/Mensajeria.md`.
      */
-    public function upsertInboundMessage(array $messageData, array $contactData): void
+    public function upsertInboundMessage(MetaMensajeEntrante $mensaje, MetaContacto $contacto): void
     {
-        $metaMessageId = $messageData['id'] ?? null;
+        $metaMessageId = $mensaje->id;
         if (!$metaMessageId) return;
 
         // 1. Deduplicación en BD
         $existingMessage = $this->findMessageByMetaId($metaMessageId);
         if ($existingMessage) return;
 
-        $type = $messageData['type'] ?? 'text';
+        $type = $mensaje->tipo;
 
         // =====================================================================
         // CASO ESPECIAL: REACCIONES (Mutación atómica)
         // =====================================================================
         if ($type === 'reaction') {
-            $this->handleReaction($messageData, $contactData);
+            $this->handleReaction($mensaje, $contacto);
             return;
         }
 
         // 2. Extraer Remitente
-        $guestPhone = $contactData['wa_id'] ?? null;
+        $guestPhone = $contacto->waId;
         if (!$guestPhone) return;
 
-        $guestName = $contactData['profile']['name'] ?? 'Desconocido (WhatsApp)';
+        $guestName = $contacto->nombre ?? 'Desconocido (WhatsApp)';
 
         // 3. Resolución de Conversación
         //
@@ -98,7 +100,7 @@ readonly class WhatsappMetaReceivePersister
         $conversation = $this->resolveConversation(
             $guestPhone,
             $guestName,
-            trim((string) ($messageData['text']['body'] ?? ''))
+            trim($mensaje->texto ?? '')
         );
 
         // Es imperativo instanciar el canal antes de agregarlo, ya que la entidad
@@ -114,8 +116,7 @@ readonly class WhatsappMetaReceivePersister
         $message->setWhatsappMetaExternalId($metaMessageId);
 
         // Fecha original en la que el usuario envió el mensaje
-        $timestamp = $messageData['timestamp'] ?? time();
-        $msgDate = new DateTimeImmutable()->setTimestamp((int)$timestamp);
+        $msgDate = new DateTimeImmutable()->setTimestamp($mensaje->timestamp ?? time());
         $message->setCreatedAt($msgDate);
 
         // =====================================================================
@@ -132,7 +133,7 @@ readonly class WhatsappMetaReceivePersister
         ];
 
         if ($type === 'text') {
-            $textoRecibido = trim($messageData['text']['body'] ?? '');
+            $textoRecibido = trim($mensaje->texto ?? '');
 
             // PROTECCIÓN DE LONGITUD: Evitamos el "Data too long" en MySQL
             $safeContent = mb_substr($textoRecibido, 0, 60000, 'UTF-8');
@@ -191,8 +192,8 @@ readonly class WhatsappMetaReceivePersister
             $message->setInboundIntent($intent);
 
         } elseif ($type === 'button') {
-            $payload = $messageData['button']['payload'] ?? 'BTN_UNKNOWN';
-            $btnText = $messageData['button']['text'] ?? 'Botón';
+            $payload = $mensaje->botonPayload ?? 'BTN_UNKNOWN';
+            $btnText = $mensaje->botonTexto ?? 'Botón';
             $message->setContentExternal("🔘 [Respuesta rápida]: " . $btnText);
             $message->setLanguageCode($currentConversationLang);
             $message->setInboundIntent(array_merge($baseIntent, [
@@ -202,16 +203,16 @@ readonly class WhatsappMetaReceivePersister
 
         } elseif ($type === 'interactive') {
             // Respuestas a botones nuevos o listas de opciones
-            $intType = $messageData['interactive']['type'] ?? '';
+            $intType = $mensaje->interactivoTipo ?? '';
             $textoInt = '🤖 [Interacción no soportada]';
             $payload = 'UNKNOWN';
 
             if ($intType === 'button_reply') {
-                $payload = $messageData['interactive']['button_reply']['id'] ?? 'BTN_UNKNOWN';
-                $textoInt = "🔘 [Botón interactivo]: " . ($messageData['interactive']['button_reply']['title'] ?? 'Botón');
+                $payload = $mensaje->interactivoId ?? 'BTN_UNKNOWN';
+                $textoInt = "🔘 [Botón interactivo]: " . ($mensaje->interactivoTitulo ?? 'Botón');
             } elseif ($intType === 'list_reply') {
-                $payload = $messageData['interactive']['list_reply']['id'] ?? 'LST_UNKNOWN';
-                $textoInt = "📋 [Opción de lista]: " . ($messageData['interactive']['list_reply']['title'] ?? 'Opción');
+                $payload = $mensaje->interactivoId ?? 'LST_UNKNOWN';
+                $textoInt = "📋 [Opción de lista]: " . ($mensaje->interactivoTitulo ?? 'Opción');
             }
 
             $message->setContentExternal($textoInt);
@@ -224,9 +225,9 @@ readonly class WhatsappMetaReceivePersister
 
         } elseif (in_array($type, ['image', 'document', 'audio', 'video', 'sticker'])) {
             // Manejo de Archivos Multimedia
-            $mediaId = $messageData[$type]['id'] ?? null;
-            $mimeType = $messageData[$type]['mime_type'] ?? 'application/octet-stream';
-            $fileName = $messageData[$type]['filename'] ?? ($type . '_' . uniqid() . '.file');
+            $mediaId = $mensaje->adjuntoId;
+            $mimeType = $mensaje->adjuntoMime ?? 'application/octet-stream';
+            $fileName = $mensaje->adjuntoNombre ?? ($type . '_' . uniqid() . '.file');
             $textoMedia = "🚫 [Archivo multimedia sin ID válido]";
 
             if ($mediaId) {
@@ -271,8 +272,8 @@ readonly class WhatsappMetaReceivePersister
             ]));
 
         } elseif ($type === 'location') {
-            $lat = $messageData['location']['latitude'] ?? '';
-            $lng = $messageData['location']['longitude'] ?? '';
+            $lat = $mensaje->latitud ?? '';
+            $lng = $mensaje->longitud ?? '';
             $message->setContentExternal("📍 [Ubicación compartida]: https://maps.google.com/?q={$lat},{$lng}");
             $message->setLanguageCode($currentConversationLang);
 
@@ -332,17 +333,12 @@ readonly class WhatsappMetaReceivePersister
      * * Ejemplo de JSON resultante en BD:
      * {"reactions": {"51970393305": "👍", "51999888777": "❤️"}}
      * Si el valor recibido es vacío (''), JSON_MERGE_PATCH recibirá un null y eliminará la clave.
-     * * @param array $messageData Datos de la reacción provenientes de Meta.
-     * @param array $contactData Datos del remitente para extraer el wa_id.
-     *
-     * @param array<string, mixed> $messageData
-     * @param array<string, mixed> $contactData
      */
-    private function handleReaction(array $messageData, array $contactData): void
+    private function handleReaction(MetaMensajeEntrante $mensaje, MetaContacto $contacto): void
     {
-        $targetMetaId = $messageData['reaction']['message_id'] ?? null;
-        $emoji = $messageData['reaction']['emoji'] ?? null;
-        $reactorPhone = $contactData['wa_id'] ?? 'unknown';
+        $targetMetaId = $mensaje->reaccionAMensaje;
+        $emoji = $mensaje->reaccionEmoji;
+        $reactorPhone = $contacto->waId ?? 'unknown';
 
         if (!$targetMetaId) return;
 
@@ -396,15 +392,12 @@ readonly class WhatsappMetaReceivePersister
      * (como baneos o ventanas cerradas) y bloqueando el canal si el error es permanente.
      * * PROTECCIÓN ACTIVA: Usa bloqueo pesimista o merge atómico dependiendo de la implementación.
      * Se apoya en la transacción del FastTrackService.
-     * * @param array $statusData Payload JSON proveniente de Meta con los datos de estado
-     *
-     * @param array<string, mixed> $statusData
      */
-    public function updateMessageStatus(array $statusData): void
+    public function updateMessageStatus(MetaEstado $estado): void
     {
-        $metaMessageId = $statusData['id'] ?? null;
-        $status = $statusData['status'] ?? null;
-        $timestamp = $statusData['timestamp'] ?? null;
+        $metaMessageId = $estado->id;
+        $status = $estado->estado;
+        $timestamp = $estado->timestamp;
 
         if (!$metaMessageId || !$status) return;
 
@@ -437,11 +430,14 @@ readonly class WhatsappMetaReceivePersister
                 $metaDataToMerge['sent_at'] = $isoDate;
             }
         } elseif ($status === 'failed') {
-            $errorInfo = $statusData['errors'][0] ?? [];
-            $errorCode = (string)($errorInfo['code'] ?? 'unknown');
+            $errorCode = $estado->errorCodigo ?? 'unknown';
 
             $metaDataToMerge['error_code'] = $errorCode;
-            $metaDataToMerge['error_reason'] = $errorInfo['message'] ?? json_encode($statusData['errors'] ?? [], JSON_UNESCAPED_UNICODE);
+            // Siempre texto: el mensaje de Meta, o sus errores en crudo, o —si ni eso se puede
+            // codificar— un genérico. Los `?? 'Error desconocido'` de abajo cubrían justo esto, pero
+            // desde el sitio equivocado: `json_encode()` devuelve `false`, no `null`, y `??` no lo ve.
+            $metaDataToMerge['error_reason'] = $estado->errorMensaje
+                ?? (json_encode($estado->errores, JSON_UNESCAPED_UNICODE) ?: 'Error desconocido');
 
             // Si falla, aquí sí es válido forzar el status global a FAILED
             // para que visualmente resalte si no fue leído por el otro canal.
@@ -463,7 +459,7 @@ readonly class WhatsappMetaReceivePersister
                     'context_id'     => $message->getConversation()?->getContextId(),
                     'resolved'       => false,
                     'payload'        => [
-                        'error_message' => $metaDataToMerge['error_reason'] ?? 'Error desconocido'
+                        'error_message' => $metaDataToMerge['error_reason']
                     ]
                 ];
             }
@@ -481,7 +477,7 @@ readonly class WhatsappMetaReceivePersister
             if (in_array($errorCode, $permanentErrors, true)) {
                 $this->vetarDestino(
                     $message,
-                    sprintf('Meta Error %s: %s', $errorCode, $metaDataToMerge['error_reason'] ?? 'Número inválido')
+                    sprintf('Meta Error %s: %s', $errorCode, $metaDataToMerge['error_reason'])
                 );
             }
         }
@@ -516,18 +512,16 @@ readonly class WhatsappMetaReceivePersister
      * intenta llamar, Meta envía un evento de tipo 'call' (o un mensaje de sistema
      * indicando llamada perdida). Este método materializa ese evento como un mensaje
      * informativo en la UI para alertar al anfitrión.
-     * * @param array $callData Datos de la llamada
-     * @param array $contactData Datos del perfil de contacto que emite la llamada
      *
-     * @param array<string, mixed> $callData
-     * @param array<string, mixed> $contactData
+     * Sin contacto no hay a quién atribuir la llamada, y se descarta —como antes, que salía por el
+     * `wa_id` vacío—.
      */
-    public function processCall(array $callData, array $contactData): void
+    public function processCall(MetaLlamada $llamada, ?MetaContacto $contacto): void
     {
-        $guestPhone = $contactData['wa_id'] ?? null;
-        if (!$guestPhone) return;
+        $guestPhone = $contacto?->waId;
+        if ($contacto === null || !$guestPhone) return;
 
-        $guestName = $contactData['profile']['name'] ?? 'Huésped';
+        $guestName = $contacto->nombre ?? 'Huésped';
         $conversation = $this->resolveConversation($guestPhone, $guestName);
 
         $message = new Message();
@@ -538,8 +532,7 @@ readonly class WhatsappMetaReceivePersister
         $message->setContentExternal("📞 [Llamada perdida]: El huésped intentó llamarte por WhatsApp.");
         $message->setLanguageCode($conversation->getIdioma()->getId() ?? 'es');
 
-        $timestamp = $callData['timestamp'] ?? time();
-        $msgDate = new DateTimeImmutable()->setTimestamp((int)$timestamp);
+        $msgDate = new DateTimeImmutable()->setTimestamp($llamada->timestamp ?? time());
         $message->setCreatedAt($msgDate);
 
         // Touch explícito
@@ -783,7 +776,9 @@ readonly class WhatsappMetaReceivePersister
         $query = $this->em->createNativeQuery($sql, $rsm);
         $query->setParameter('path', '$."whatsapp_meta"');
         $query->setParameter('metaId', $metaMessageId);
-        return $query->getOneOrNullResult();
+        $encontrado = $query->getOneOrNullResult();
+
+        return $encontrado instanceof Message ? $encontrado : null;
     }
 
     /**
@@ -795,7 +790,9 @@ readonly class WhatsappMetaReceivePersister
     private function downloadMediaFromMeta(string $mediaId): ?string
     {
         $config = $this->em->getRepository(MetaConfig::class)->findOneBy(['activo' => true]);
+        // La credencial viaja en un JSON de configuración: sólo un texto no vacío es una clave.
         $apiKey = $config?->getCredential('apiKey');
+        $apiKey = is_string($apiKey) && $apiKey !== '' ? $apiKey : null;
         $baseUrl = rtrim($config?->getBaseUrl() ?? 'https://graph.facebook.com/v19.0', '/');
 
         if (!$apiKey) {

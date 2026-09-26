@@ -6642,10 +6642,61 @@ query builder.
 ⚠️ **`PmsCargosAutomaticosService::estimarAlojamiento()` tiene ESA MISMA consulta y sigue sin
 arreglar** — ver el aviso al final de esta sección.
 
+## 14.b El webhook de Meta: el JSON se lee una vez, en unos DTO (26/09/2026)
+
+**Hasta hoy el payload de Meta era `array<string, mixed>` de punta a punta.** El controlador
+recorría el sobre a mano (`entry[] → changes[] → value`), el «reprocesar» del panel de auditoría
+tenía **la misma copia** de ese recorrido —con un comentario pidiendo extraerlo—, y el persister
+leía `$messageData['interactive']['button_reply']['id']` y compañía sin que nada comprobara que eran
+lo que se esperaba. Era el camino con más avisos del nivel 9 de PHPStan: 84.
+
+```
+payload (array)
+   └─ MetaWebhookSobre::fromArray()            ← el ÚNICO sitio que lee el JSON
+        └─ list<MetaCambio>
+             ├─ ?MetaContacto                  contacts[0]
+             ├─ list<MetaMensajeEntrante>      messages[]
+             ├─ list<MetaEstado>               statuses[]
+             └─ list<MetaLlamada>              calls[]
+
+WhatsappMetaWebhookMessageFastTrackService::procesarSobre()   ← el ÚNICO recorrido
+   ├─ MetaWebhookController (webhook)
+   └─ MetaWebhookAuditCrudController (reprocesar)
+```
+
+**No escondía ningún fallo activo, y se comprobó antes de tocarlo:** en 3 250 webhooks reales
+desde junio no hay un solo warning de ese camino; los seis tipos de mensaje que llegan (texto 357,
+botón 43, reacción 20, imagen 13, interactivo 12, documento 11) los maneja el persister; y un tipo
+desconocido se guarda como «Tipo de mensaje no soportado» con su intent, no se pierde. El riesgo
+era de futuro: el día que Meta cambie la forma de un campo, el fallo saldría como un `null` o un
+warning en cualquier punto del persister.
+
+**La prueba que decidió que el cambio era seguro:** `tools/pruebas/probar-dto-meta.php` recorre la
+auditoría entera por los dos caminos —las expresiones crudas de antes y los DTO— y compara cada campo
+que lee el persister. Resultado: **456 mensajes y 2 794 estados, idénticos**. Se vuelve a correr si
+se toca un DTO.
+
+Reglas de los DTO (`src/Message/Dto/Meta/`):
+
+- **Lo que no es del tipo esperado es «no llegó»** (`LeeMeta`): un array donde se esperaba texto es
+  `null`, no la palabra «Array». Los números (coordenadas, códigos de error) se pasan a texto igual
+  que los pasaba la interpolación de antes; los timestamps, que Meta manda como texto, a entero.
+- ⚠️ **No normalizan vacíos ni recortan**, a diferencia de `Beds24BookingDto`. El persister ya hace
+  su `trim()` y sus `?? ''`, y el objetivo era leer lo mismo, no cambiar lo que se guarda.
+- **Un mensaje sin contacto es un error visible, no se salta.** El recorrido viejo sólo miraba los
+  mensajes si venía `contacts`: uno sin contacto desaparecía sin rastro. No ha pasado nunca (0 de
+  456), pero si pasa, el huésped escribió y tiene que verse.
+
+Y dos cosas que el tipado destapó por el camino: los `?? 'Error desconocido'` del motivo de un envío
+fallido no podían actuar nunca —`json_encode()` falla devolviendo `false`, no `null`—, y
+`findMessageByMetaId()` devolvía lo que diera la consulta nativa sin comprobar que fuera un `Message`.
+
 ## 15. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
+| Leer un campo nuevo del webhook de Meta | `src/Message/Dto/Meta/` | el `fromArray()` de su pieza — y `tools/pruebas/probar-dto-meta.php` para comprobar que no cambia lo demás (§14.b) |
+| Cambiar cómo se recorre el sobre de Meta | `WhatsappMetaWebhookMessageFastTrackService` | `procesarSobre()` — el único recorrido, lo usan el webhook y el «reprocesar» |
 | **Cambiar a qué correo se le escribe** | `src/Message/Service/Queue/EmailSendEnqueuer.php` | `destino()` + `asuntoElegido()` — dos regímenes, §24 |
 | Cambiar qué reservas usan alias de plataforma en vez del correo personal | `src/Pms/Entity/PmsConversacionEnlace.php` | `correoEsExclusivo()` (→ `PmsChannel::esDePlataforma()`) |
 | Cambiar qué orígenes se consideran «reserva nuestra» | `src/Pms/Entity/PmsChannel.php` | `ORIGENES_PROPIOS` / `esDePlataforma()` — **única fuente**: la usan Beds24, `MessageFactory` y el correo |

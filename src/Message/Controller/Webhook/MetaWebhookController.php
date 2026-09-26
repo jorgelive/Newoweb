@@ -18,6 +18,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Throwable;
+use App\Message\Dto\Meta\MetaWebhookSobre;
 
 #[Route('/message/meta/webhook', name: 'message_meta_webhook_')]
 final class MetaWebhookController extends AbstractController
@@ -140,11 +141,14 @@ final class MetaWebhookController extends AbstractController
         try {
             // Decodificamos el JSON
             $payload = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
-            $audit->setPayload($payload);
 
-            // Meta suele enviar el canal en la llave 'object' (ej. 'whatsapp_business_account')
+            // Un JSON válido que no es un objeto (`"hola"`, `3`) no es un webhook de Meta: se audita
+            // sin payload estructurado, y el sobre sale vacío más abajo.
             if (is_array($payload)) {
-                $audit->setEventType($payload['object'] ?? 'unknown');
+                /** @var array<string, mixed> $payload */
+                $audit->setPayload($payload);
+                // Meta suele enviar el canal en la llave 'object' (ej. 'whatsapp_business_account')
+                $audit->setEventType(MetaWebhookSobre::fromArray($payload)->objeto ?? 'unknown');
             }
 
             $this->persistAudit($audit);
@@ -153,66 +157,13 @@ final class MetaWebhookController extends AbstractController
             // ENRUTAMIENTO (ROUTING OMNICANAL)
             // =================================================================
 
-            $responseDetails = [];
-            $globalErrors = [];
-            $processedAny = false;
-
-            if (isset($payload['entry'])) {
-                foreach ($payload['entry'] as $entry) {
-                    foreach ($entry['changes'] as $change) {
-                        $value = $change['value'];
-
-                        // 1. MESSAGES (El huésped escribe)
-                        if (isset($value['messages']) && isset($value['contacts'])) {
-                            $contactData = $value['contacts'][0];
-
-                            foreach ($value['messages'] as $messageData) {
-                                try {
-                                    $res = $this->fastTrackService->processMessage($messageData, $contactData);
-                                    $responseDetails['messages'][] = $res['id'];
-                                } catch (Throwable $e) {
-                                    $globalErrors[] = [
-                                        'type' => 'message',
-                                        'id' => $messageData['id'] ?? 'unknown',
-                                        'error' => $e->getMessage()
-                                    ];
-                                }
-                            }
-                            $processedAny = true;
-                        }
-
-                        if (isset($value['calls'])) {
-                            foreach ($value['calls'] as $callData) {
-                                try {
-                                    // Pasamos la llamada al fastTrackService
-                                    $res = $this->fastTrackService->processCall($callData, $value['contacts'][0] ?? []);
-                                    $responseDetails['calls'][] = $res['id'];
-                                } catch (Throwable $e) {
-                                    $globalErrors[] = ['type' => 'call', 'id' => $callData['id'] ?? 'unknown', 'error' => $e->getMessage()];
-                                }
-                            }
-                            $processedAny = true;
-                        }
-
-                        // 2. STATUSES (Confirmaciones de lectura/entrega)
-                        if (isset($value['statuses'])) {
-                            foreach ($value['statuses'] as $statusData) {
-                                try {
-                                    $res = $this->fastTrackService->processStatus($statusData);
-                                    $responseDetails['statuses'][] = $res['id'];
-                                } catch (Throwable $e) {
-                                    $globalErrors[] = [
-                                        'type' => 'status',
-                                        'id' => $statusData['id'] ?? 'unknown',
-                                        'error' => $e->getMessage()
-                                    ];
-                                }
-                            }
-                            $processedAny = true;
-                        }
-                    }
-                }
-            }
+            // El recorrido del sobre vive en UN sitio —el servicio—, que comparte con el «reprocesar»
+            // del panel de auditoría. Aquí estaba escrito a mano y copiado allí línea a línea.
+            $sobre = is_array($payload) ? MetaWebhookSobre::fromArray($payload) : new MetaWebhookSobre(null, []);
+            $resultado = $this->fastTrackService->procesarSobre($sobre);
+            $responseDetails = $resultado['responseDetails'];
+            $globalErrors = $resultado['globalErrors'];
+            $processedAny = $resultado['processedAny'];
 
             // =================================================================
             // CIERRE DE AUDITORÍA
