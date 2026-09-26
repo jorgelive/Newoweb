@@ -90,4 +90,20 @@ final class DtoDePagosTest extends TestCase
         self::assertSame('USD', $c->moneda);
         self::assertSame(FinPasarela::CULQI, CuerpoDeEnlace::fromArray(['pasarela' => 'culqi'])->pasarela);
     }
+
+    /** El `(int)` de antes: un importe con decimales no es «no vino», que rechazaba un cargo cobrado. */
+    public function testElImporteDeCulqiConDecimalesSeTruncaComoAntes(): void
+    {
+        self::assertSame(10550, RespuestaCulqi::fromArray(['object' => 'charge', 'amount' => '10550.0'])->importeCentimos);
+        self::assertSame(10550, RespuestaCulqi::fromArray(['object' => 'charge', 'amount' => 10550])->importeCentimos);
+        self::assertNull(RespuestaCulqi::fromArray(['object' => 'charge'])->importeCentimos);
+    }
+
+    /** Vacío es «no vino» → los 7 días por defecto; `0` escrito sigue siendo «sin caducidad». */
+    public function testLaVigenciaVaciaNoEsSinCaducidad(): void
+    {
+        self::assertNull(CuerpoDeEnlace::fromArray(['vigenciaDias' => ''])->vigenciaDias);
+        self::assertSame(0, CuerpoDeEnlace::fromArray(['vigenciaDias' => 0])->vigenciaDias);
+        self::assertSame(15, CuerpoDeEnlace::fromArray(['vigenciaDias' => '15'])->vigenciaDias);
+    }
 }

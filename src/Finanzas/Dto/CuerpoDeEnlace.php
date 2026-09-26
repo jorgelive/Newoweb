@@ -53,6 +53,9 @@ final readonly class CuerpoDeEnlace
             moneda: Lee::textoLimpio($datos['moneda'] ?? null),
             concepto: Lee::texto($datos['concepto'] ?? null),
             conRecargo: Lee::booleano($datos['conRecargo'] ?? null) ?? true,
+            // ⚠️ Un campo VACÍO (`""`, lo que manda el `v-model.number` del panel si el operador lo
+            // borra) es «no vino» → los 7 días por defecto. Con el `(int)` de antes era 0, o sea
+            // «sin caducidad», y eso es una decisión explícita (`0` escrito), no un borrado.
             vigenciaDias: Lee::entero($datos['vigenciaDias'] ?? null),
             pasarela: FinPasarela::tryFrom(Lee::texto($datos['pasarela'] ?? null) ?? ''),
             modulo: self::origen($datos['modulo'] ?? null),

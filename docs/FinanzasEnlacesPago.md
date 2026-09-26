@@ -1438,6 +1438,12 @@ puede quedar un importe escrito contradiciendo lo que el enlace cobra.
 **Vigencia.** Los automáticos nacen con `vigenciaDias: 0` —sin caducidad—; los manuales conservan
 la de por defecto. El porqué, abajo.
 
+⚠️ **Vacío no es `0`.** Si el operador borra el campo «Vigencia (días)», el `v-model.number` del
+panel manda `""`. Hasta el 26/09/2026 el `(int)` lo convertía en `0` —**sin caducidad**— sin que
+nadie lo hubiera pedido; desde que el cuerpo se lee en `CuerpoDeEnlace` (nivel 9 de PHPStan), vacío
+es «no vino» y vale la vigencia por defecto. `0` escrito sigue siendo sin caducidad, que es lo que
+dice la ayuda del campo. Lo fija `DtoDePagosTest`.
+
 ---
 
 ### El enlace se emite SOLO cuando la reserva estrena importes

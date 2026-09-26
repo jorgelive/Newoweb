@@ -63,7 +63,7 @@ final readonly class RespuestaCulqi
             motivoComercio: Lee::texto($cuerpo['merchant_message'] ?? null),
             codigoRechazo: Lee::texto($cuerpo['decline_code'] ?? null),
             mensajeUsuario: Lee::texto($cuerpo['user_message'] ?? null),
-            importeCentimos: Lee::entero($cuerpo['amount'] ?? null),
+            importeCentimos: self::centimos($cuerpo['amount'] ?? null),
             moneda: Lee::texto($cuerpo['currency_code'] ?? null),
             codigoReferencia: Lee::texto($cuerpo['reference_code'] ?? null),
             marcaTarjeta: Lee::texto(Lee::en($tarjeta, 'iin', 'card_brand')),
@@ -81,5 +81,18 @@ final readonly class RespuestaCulqi
     public function detalle(): string
     {
         return $this->mensajeUsuario ?? $this->motivoComercio ?? 'sin cargo';
+    }
+
+    /**
+     * El importe en céntimos, con la semántica del `(int)` al que sustituye: un `"10550.0"` son
+     * 10 550 céntimos, no «no vino». Culqi manda un entero, pero si algún día llega con decimales
+     * el fallo tiene que caer del lado de antes; con `Lee::entero()` era 0, y un cargo ya cobrado
+     * se daba por «no corresponde al enlace» y el enlace se quedaba sin saldar.
+     */
+    private static function centimos(mixed $valor): ?int
+    {
+        $decimal = Lee::decimal($valor);
+
+        return $decimal === null ? null : (int) $decimal;
     }
 }
