@@ -93,8 +93,8 @@ final class CotizacionValidarEticketsCommand extends Command
             return Command::FAILURE;
         }
 
-        $limite = $input->getOption('limite');
-        $limite = is_string($limite) ? max(1, (int) $limite) : null;
+        $limite = EntradaDeConsola::enteroOpcional($input->getOption('limite'), 'limite');
+        $limite = $limite !== null ? max(1, $limite) : null;
         $soloLeidos = (bool) $input->getOption('solo-leidos');
         $reintentar = (bool) $input->getOption('reintentar');
         $aplicar = (bool) $input->getOption('aplicar');

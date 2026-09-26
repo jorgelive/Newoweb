@@ -20,9 +20,10 @@ use Symfony\Component\Console\Exception\InvalidArgumentException;
  * opción** en vez de seguir con un cero. `Application` de Symfony pinta la excepción como el resto
  * de errores de uso y sale con código 1.
  *
- * ⚠️ No convierte los comandos en invocables con `#[Argument]`/`#[Option]`: hay crons de
- * producción que los llaman, y cambiar la firma de todos es otra decisión. Ver
- * `docs/TiposDeFrontera.md`.
+ * Convive con los comandos invocables (`#[Argument]`/`#[Option]`, los del agente y los de
+ * `src/Exchange/Command`). En ésos, una opción numérica se declara **texto** y se lee con
+ * `entero()`: declarada `int`, un `--limit=abc` revienta con un `TypeError` de la reflexión que no
+ * nombra la opción. Ver `docs/TiposDeFrontera.md`.
  */
 final class EntradaDeConsola
 {

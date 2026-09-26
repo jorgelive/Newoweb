@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Exchange\Service\Engine\ExchangeOrchestrator;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -63,8 +64,11 @@ EOT
         #[Argument('Nombre de la tarea/cola: [bookings_pull | bookings_push | rates_push]')]
         string $task,
         #[Option('Cantidad máxima de ítems a procesar en esta ejecución', shortcut: 'l')]
-        int $limit = 50,
+        string $limit = '50',
     ): int {
+        // Texto y no `int` en la firma: con `int`, un `--limit=abc` revienta con un `TypeError` de
+        // la reflexión que no nombra la opción. Así falla como el resto de comandos.
+        $limit = EntradaDeConsola::entero($limit, 'limit');
         $io->title("Iniciando Runner de Intercambio: <comment>$task</comment>");
         $io->note("Buscando hasta $limit ítems pendientes para procesar.");
 
