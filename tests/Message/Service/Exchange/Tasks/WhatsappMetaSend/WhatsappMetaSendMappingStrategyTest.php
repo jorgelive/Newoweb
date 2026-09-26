@@ -11,24 +11,47 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
- * 🔥 **Fija un fallo conocido, no un comportamiento deseado.** La estrategia busca `error` y
- * `messages` en la fila que ya normalizó `WhatsappMetaClient::send()`, donde no existen: un rechazo
- * síncrono de Meta se da por ENVIADO. Al tipar la respuesta se conservó tal cual —arreglarlo cambia
- * reintentos y estados, y es una decisión aparte—, y este test existe para que ese cambio, cuando
- * se haga, se haga a propósito y no de rebote. Ver `docs/Mensajeria.md` §14.c.
+ * La estrategia lee la fila que ya normalizó `WhatsappMetaClient::send()`, no el cuerpo de Meta.
+ * Hasta el 26/09/2026 buscaba ahí las claves del cuerpo, que no existen, y un rechazo síncrono de
+ * Meta se daba por ENVIADO. Ver `docs/Mensajeria.md` §14.c.
  */
 #[CoversClass(WhatsappMetaSendMappingStrategy::class)]
 final class WhatsappMetaSendMappingStrategyTest extends TestCase
 {
-    public function testHoyUnRechazoDeMetaSeDaPorEnviado(): void
+    public function testUnRechazoDeMetaEsUnFalloConSuCodigo(): void
     {
         $resultados = $this->estrategia()->parseResponse(
             [['status' => 'error', 'message' => '(#132005) Translated text too long', 'error_code' => 132005]],
             $this->mapeo(),
         );
 
-        self::assertTrue($resultados['cola-1']->success);
+        self::assertFalse($resultados['cola-1']->success);
         self::assertNull($resultados['cola-1']->remoteId);
+        self::assertSame('[Meta 132005] (#132005) Translated text too long', $resultados['cola-1']->message);
+    }
+
+    /** Un fallo de red no trae código: el motivo va solo. */
+    public function testUnFalloSinCodigoLlevaSoloElMotivo(): void
+    {
+        $resultados = $this->estrategia()->parseResponse(
+            [['status' => 'error', 'message' => 'HTTP Exception: timeout']],
+            $this->mapeo(),
+        );
+
+        self::assertFalse($resultados['cola-1']->success);
+        self::assertSame('HTTP Exception: timeout', $resultados['cola-1']->message);
+    }
+
+    public function testUnEnvioAceptadoEsExitoConSuWamid(): void
+    {
+        $resultados = $this->estrategia()->parseResponse(
+            [['status' => 'success', 'messageId' => 'wamid.OK', 'raw' => []]],
+            $this->mapeo(),
+        );
+
+        self::assertTrue($resultados['cola-1']->success);
+        self::assertSame('wamid.OK', $resultados['cola-1']->remoteId);
+        self::assertNull($resultados['cola-1']->message);
     }
 
     /** El `wamid` no lo recoge la estrategia sino el handler, de `messageId` en `extraData`. */

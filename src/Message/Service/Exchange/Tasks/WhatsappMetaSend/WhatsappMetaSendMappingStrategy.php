@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\WhatsappMetaSend;
 
-use App\Exchange\Dto\Meta\RespuestaGraphMeta;
+use App\Dto\Lee;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
@@ -537,7 +537,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             );
         }
 
-        if (isset($apiResponse['messages']) || isset($apiResponse['error']) || isset($apiResponse['success'])) {
+        if (isset($apiResponse['status']) || isset($apiResponse['messages']) || isset($apiResponse['error']) || isset($apiResponse['success'])) {
             $apiResponse = [$apiResponse];
         }
 
@@ -546,29 +546,27 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
             $queueId = $mapping->idDeCola($index);
 
-            // 🔥 **Esta lectura NO ve los errores de Meta, y es así desde antes de tipar.** Lo que
-            // llega aquí no es el cuerpo de Meta sino la fila que ya normalizó
-            // `WhatsappMetaClient::send()` —`{status, message, error_code}` o `{status, messageId,
-            // raw}`—, y en ella no existen ni `error` ni `messages`. Así que `hayError` es siempre
-            // `false`: un rechazo síncrono de Meta (132000 parámetros, 132005 texto largo…) se da
-            // por ENVIADO, sin `wamid`. Medido el 26/09/2026 en producción: 193 colas `success`
-            // con al menos un rechazo en su respuesta guardada (132005, 100, 132000, 131000).
-            //
-            // Se conserva tal cual porque arreglarlo cambia qué se reintenta y qué ve el operador
-            // —una decisión, no un tipado—. Ver `docs/Mensajeria.md` §14.c. El id, en cambio, sí
-            // llega: lo recoge el handler de `messageId`.
-            $respuesta = RespuestaGraphMeta::fromArray(is_array($respData) ? $respData : []);
-            $success = !$respuesta->hayError;
-
-            // Meta devuelve el identificador 'wamid...' en el nodo messages[0][id]
-            $remoteId = $success ? $respuesta->idMensaje : null;
+            // Lo que llega aquí NO es el cuerpo de Meta sino la fila que ya normalizó
+            // `WhatsappMetaClient::send()`: `{status: 'error', message, error_code}` o
+            // `{status: 'success', messageId, raw}`. Hasta el 26/09/2026 se buscaban aquí las
+            // claves del cuerpo (`error`, `messages`), que en la fila no existen, y un rechazo
+            // síncrono de Meta —132005 texto largo, 100 parámetro inválido…— se daba por ENVIADO:
+            // 193 colas en producción, con el operador viendo «enviado» y el huésped sin mensaje.
+            // Ver `docs/Mensajeria.md` §14.c.
+            $fila = is_array($respData) ? $respData : [];
+            $rechazado = ($fila['status'] ?? null) === 'error';
+            $codigo = Lee::texto($fila['error_code'] ?? null);
+            $motivo = Lee::texto($fila['message'] ?? null) ?? 'Error desconocido de Meta';
 
             $results[$queueId] = new ItemResult(
                 queueItemId: $queueId,
-                success: $success,
-                message: $respuesta->hayError ? ($respuesta->errorMensaje ?? 'Error desconocido de Meta') : null,
-                remoteId: $remoteId,
-                extraData: $respuesta->crudo
+                success: !$rechazado,
+                // El código de Meta va en el texto: `handleFailure()` sólo recibe el mensaje, y
+                // sin el código no se distingue un texto demasiado largo de un corte de red.
+                message: $rechazado ? ($codigo !== null ? sprintf('[Meta %s] %s', $codigo, $motivo) : $motivo) : null,
+                // El `wamid` lo recoge el handler de `messageId`; aquí sólo se informa.
+                remoteId: $rechazado ? null : Lee::texto($fila['messageId'] ?? null),
+                extraData: $fila
             );
         }
 

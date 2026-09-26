@@ -6748,9 +6748,10 @@ piezas de Beds24, 6 201 cuerpos de Meta y las 3 respuestas de correo, **idéntic
 caminos. Y las credenciales de `MetaConfig` —que `getCredential()` devuelve ahora como `?string`—
 son todas texto.
 
-### 🔥 La respuesta del envío a Meta: los rechazos se dan por ENVIADOS
+### 🔥 La respuesta del envío a Meta: los rechazos se daban por ENVIADOS (arreglado el 26/09/2026)
 
-**Lo destapó el tipado, y NO se ha arreglado: se conservó tal cual a propósito.**
+Lo destapó el tipado. La estrategia buscaba las claves del **cuerpo** de Meta en una fila que ya
+no las tenía:
 
 ```
 WhatsappMetaClient::send()         cuerpo de Meta ──► fila normalizada
@@ -6758,17 +6759,17 @@ WhatsappMetaClient::send()         cuerpo de Meta ──► fila normalizada
    {"messages": [{"id": …}]}          → {status: 'success', messageId, raw}
 
 WhatsappMetaSendMappingStrategy::parseResponse()   sobre la FILA
-   success = !isset(fila['error'])       ← 'error' NO existe en la fila: siempre true
-   remoteId = fila['messages'][0]['id']  ← tampoco existe: siempre null
+   antes:  success = !isset(fila['error'])      ← 'error' no existe en la fila: siempre true
+   ahora:  success = fila['status'] !== 'error'
 
 WhatsappMetaSendHandler::handleSuccess()
-   remoteId = fila['messageId']          ← éste sí: el wamid llega por aquí
-   mensaje → SENT
+   remoteId = fila['messageId']          ← el wamid llega por aquí (siempre lo hizo)
 ```
 
-La estrategia busca las claves del cuerpo de Meta en una fila que ya no las tiene. Resultado: **un
-rechazo síncrono de Meta —el que llega en la propia respuesta, sin `wamid`— marca el mensaje como
-enviado** y la cola como `success`. No hay reintento, no hay aviso, y el operador ve «enviado».
+Resultado de lo de antes: **un rechazo síncrono de Meta —el que llega en la propia respuesta, sin
+`wamid`— marcaba el mensaje como enviado** y la cola como `success`. Sin reintento, sin aviso, y el
+operador veía «enviado» de un mensaje que el huésped nunca recibió. Como no hay `wamid`, tampoco
+llega luego ningún webhook de estado que lo corrija.
 
 Medido en producción el 26/09/2026: **193 colas `success`** guardan una respuesta de lote con al
 menos un rechazo (375 cuerpos de error contando cada copia del lote), entre el 27/03 y el 01/09/2026:
@@ -6780,14 +6781,16 @@ menos un rechazo (375 cuerpos de error contando cada copia del lote), entre el 2
 | 132000 | nº de parámetros de la plantilla no cuadra | 4 | 4 |
 | 131000 | error genérico | 2 | 2 |
 
-PHPStan lo ve en cuanto se le da el tipo de la fila: *«Offset 'error' … in isset() does not exist»*.
+**Ahora** un rechazo va por `handleFailure()`: el mensaje pasa a `failed` —y, si lo escribió una
+persona o el agente, sale el aviso de envío fallido (`AvisoEnvioFallidoListener`)—, el motivo se guarda como `[Meta <código>] <texto>` —el código va en el texto
+porque `handleFailure()` sólo recibe el mensaje, y sin él un texto largo no se distingue de un corte
+de red— y la cola se reintenta con el límite de siempre (`maxAttempts` = 3). Reintentar un 132005
+no lo arregla, pero tampoco duplica nada: un rechazo síncrono **no envió**, así que el peor caso son
+dos rechazos más. Las 193 colas viejas se quedan como están: son historia, y reabrirlas mandaría
+hoy mensajes de hace meses.
 
-**Por qué no se arregló aquí:** leer `status === 'error'` cambia qué se reintenta (`markFailure()`
-con reintento a los pocos minutos), qué estado ve el operador y qué avisos salen. Es una decisión de
-comportamiento, y el cambio en el que apareció sólo tipaba. `WhatsappMetaSendMappingStrategyTest`
-lo fija —«hoy un rechazo de Meta se da por enviado»— para que, cuando se cambie, se cambie a
-propósito. Antes de hacerlo, mirar qué pasa con los reintentos de un 132005 (un texto demasiado
-largo no se arregla reintentando).
+PHPStan lo vio en cuanto tuvo el tipo de la fila: *«Offset 'error' … in isset() does not exist»*.
+`WhatsappMetaSendMappingStrategyTest` fija las tres ramas (rechazo con código, fallo de red, éxito).
 
 ### El valor de una variable dentro de un texto: `HidratadorDeMarcadores::comoTexto()`
 
