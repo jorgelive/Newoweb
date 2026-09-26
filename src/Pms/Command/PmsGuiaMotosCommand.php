@@ -22,8 +22,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * cuenta que el pasaje es zona de paso y evacuación —cierto, y no estaba escrito en ninguna
  * parte— pero no tenía la respuesta, que existe desde siempre.
  *
- * Y no es una norma, es física: **las motos de viaje son enormes y el pasaje tiene maceteros y
- * plantas**. Eso convence; «no está permitido» invita a discutir.
+ * ⚠️ El motivo que yo escribí primero —«no caben, hay maceteros»— no era el bueno. Jorge lo
+ * corrigió: lo que manda es que **quedarían muy expuestas** —de ahí la recomendación de una
+ * cochera vigilada— y que **el pasaje no es de uso exclusivo nuestro**, se comparte con los
+ * vecinos. El segundo no admite excepción ni depende del tamaño de la moto, que es justo lo que
+ * mi versión dejaba abierto a discusión.
  *
  * ── Por qué también aquí, si ya está en el conocimiento ─────────────────────
  * Porque son dos públicos con dos caminos. Al añadirlo sólo a la ficha de conocimiento se
@@ -34,6 +37,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * Es la misma frontera que ya estaba escrita en `ValidadorDeConocimiento`, vista desde el otro
  * lado: para el huésped manda su guía.
+ *
+ * ── Y el sitio va con nombre y mapa ─────────────────────────────────────────
+ * Garaje de Saphy, Calle Saphy 644. Mandar a alguien «a una cochera a una cuadra» con una moto
+ * cargada y de noche es mandarlo a buscar.
  *
  * Nace `hidden` porque es de una vez. Idempotente por contenido.
  */
@@ -53,17 +60,48 @@ final class PmsGuiaMotosCommand extends Command
      * respuesta escrita, preguntar a una persona es lo prudente. La instrucción sólo vale
      * acompañada del dato — decirle que no escale sin darle qué contestar sería peor.
      */
-    private const string AGENTE = <<<'TXT'
+    private const string AGENTE_PRIMERA = <<<'TXT'
         MOTOS. Casi todos los que llegan en moto miran el pasaje y piensan que pueden dejarla ahí, así que espera la pregunta. NO CABE, y ése es el motivo: las motos de viaje son enormes, y aunque fueran pequeñas el pasaje tiene maceteros y plantas. Además es zona de paso y de evacuación, que no puede quedar obstaculizada.
 
         Dilo por lo que es —no entra— y no como una prohibición. Y ofrécele en el acto la cochera privada de pago de a una cuadra: para una moto es lo que recomendamos siempre, porque el estacionamiento público de enfrente no es vigilado y ahí queda demasiado expuesta. NO escales esto: la respuesta es ésta y no depende de nadie.
         TXT;
 
-    /** Para el huésped, en su guía. Más corto: le basta saber dónde sí y por qué no ahí. */
-    private const string HUESPED = '<p>🏍️ <strong>¿Y las motos?</strong> En el pasaje no caben '
+    private const string HUESPED_PRIMERA = '<p>🏍️ <strong>¿Y las motos?</strong> En el pasaje no caben '
         . '—las de viaje son grandes y además hay maceteros, y es zona de paso y evacuación—, '
         . 'así que para una moto te recomendamos la <strong>cochera privada</strong> de a una '
         . 'cuadra: el estacionamiento de enfrente no es vigilado y ahí queda muy expuesta.</p>';
+
+    /**
+     * La versión de Jorge, con los datos que faltaban.
+     *
+     * Dos cosas que yo no tenía y cambian la respuesta: **el pasaje no es de uso exclusivo
+     * nuestro** —se comparte con vecinos, y ése es un motivo que no admite excepción ni depende
+     * del tamaño de la moto— y la cochera **tiene nombre, dirección y mapa**: Garaje de Saphy,
+     * Calle Saphy 644. Mandar a alguien «a una cochera a una cuadra» con una moto cargada, de
+     * noche, es mandarlo a buscar.
+     *
+     * El orden también es suyo y es mejor: primero la seguridad de la moto —que es lo que al
+     * huésped le importa— y después lo de los vecinos. Al revés sonaría a que el problema es
+     * nuestro y él el estorbo.
+     */
+    private const string AGENTE = <<<'TXT'
+        MOTOS. Casi todos los que llegan en moto miran el pasaje y piensan que pueden dejarla ahí, así que espera la pregunta. La respuesta es que no, y NO ESCALES: no depende de nadie.
+
+        Dos motivos, en este orden. Primero, quedarían muy expuestas: la recomendación es que las resguarden en una cochera vigilada, por su tranquilidad. Y segundo, el pasaje NO es de uso exclusivo nuestro —se comparte con los vecinos— y hay que mantenerlo despejado.
+
+        Dale el sitio concreto, no «una cochera cerca»: Garaje de Saphy, el estacionamiento más cercano, en Calle Saphy 644, teléfono +51 984 631 997. Y pásale la ubicación: https://maps.app.goo.gl/rvxnSoKnNmtwuh5e7
+        TXT;
+
+    /** Para el huésped, con las palabras de Jorge. */
+    private const string HUESPED = '<p>🏍️ <strong>¿Y las motocicletas?</strong> No es posible '
+        . 'dejarlas en el pasillo. Por motivos de seguridad y dado que quedarían muy expuestas, '
+        . 'nuestra recomendación es que las resguarden en una cochera vigilada para su total '
+        . 'tranquilidad. Además, el pasaje no es de uso exclusivo nuestro y debemos mantener el '
+        . 'área despejada para evitar cualquier incomodidad a los vecinos con quienes '
+        . 'compartimos el espacio.</p>'
+        . '<p>Les sugerimos el <strong>Garaje de Saphy</strong>, el estacionamiento más cercano: '
+        . 'Calle Saphy 644, teléfono +51 984 631 997.<br>'
+        . '📍 <a href="https://maps.app.goo.gl/rvxnSoKnNmtwuh5e7">Ver ubicación</a></p>';
 
     public function __construct(private readonly EntityManagerInterface $em)
     {
@@ -98,11 +136,17 @@ final class PmsGuiaMotosCommand extends Command
             }
         }
 
-        if (str_contains($agente, 'MOTOS.') && str_contains($cuerpo, '¿Y las motos?')) {
+        if (str_contains($agente, 'Garaje de Saphy') && str_contains($cuerpo, 'Garaje de Saphy')) {
             $io->success('Ya lo dice.');
 
             return Command::SUCCESS;
         }
+
+        // La primera redacción se sustituye entera: decía «no caben» y el motivo real es otro
+        // —quedan expuestas y el pasaje se comparte con los vecinos—, y además no daba el sitio
+        // con nombre y dirección.
+        $agente = str_replace(self::AGENTE_PRIMERA, '', $agente);
+        $cuerpo = str_replace(self::HUESPED_PRIMERA, '', $cuerpo);
 
         $io->section('Texto del agente');
         $io->writeln(self::AGENTE);
@@ -115,11 +159,11 @@ final class PmsGuiaMotosCommand extends Command
             return Command::SUCCESS;
         }
 
-        if (!str_contains($agente, 'MOTOS.')) {
+        if (!str_contains($agente, 'Garaje de Saphy')) {
             $item->setAgenteContenido(trim($agente . "\n\n" . self::AGENTE));
         }
 
-        if (!str_contains($cuerpo, '¿Y las motos?')) {
+        if (!str_contains($cuerpo, 'Garaje de Saphy')) {
             // Sólo el español: el listener rehace los otros seis. Mandar los siete conservados
             // dejaría el párrafo de las motos sólo en castellano.
             $item->setDescripcion([['language' => 'es', 'content' => trim($cuerpo . "\n" . self::HUESPED)]]);
