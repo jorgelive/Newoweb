@@ -7,6 +7,7 @@ namespace App\Message\Dto\Mercure;
 use App\Message\Entity\Message;
 use DateTimeInterface;
 use JsonSerializable;
+use App\Dto\Lee;
 
 /**
  * Data Transfer Object para estandarizar el payload de los mensajes
@@ -113,7 +114,7 @@ class MercureMessageDto implements JsonSerializable
         }
 
         // Definimos el dominio base una sola vez para concatenarlo a las rutas relativas
-        $apiBaseUrl = rtrim($_ENV['APP_URL'] ?? 'https://api.openperu.pe', '/');
+        $apiBaseUrl = rtrim(Lee::texto($_ENV['APP_URL'] ?? null) ?? 'https://api.openperu.pe', '/');
 
         // Se mapean los adjuntos formateando la URL para el frontend
         foreach ($message->getAttachments() as $attachment) {

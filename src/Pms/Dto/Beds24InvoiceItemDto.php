@@ -7,6 +7,7 @@ namespace App\Pms\Dto;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Throwable;
+use App\Dto\Lee;
 
 /**
  * DTO fuertemente tipado de un invoiceItem de Beds24. Espejo de
@@ -47,7 +48,7 @@ final readonly class Beds24InvoiceItemDto
             invoiceId: self::toStringOrNull($data['invoiceId'] ?? null),
             invoiceeId: self::toStringOrNull($data['invoiceeId'] ?? null),
             type: self::toStringOrNull($data['type'] ?? null),
-            subType: isset($data['subType']) && $data['subType'] !== '' ? (int) $data['subType'] : null,
+            subType: Lee::entero($data['subType'] ?? null),
             description: self::toStringOrNull($data['description'] ?? null),
             status: self::toStringOrNull($data['status'] ?? null),
             qty: self::toDecimalStringOrNull($data['qty'] ?? null),
@@ -62,9 +63,9 @@ final readonly class Beds24InvoiceItemDto
 
     private static function toStringOrNull(mixed $v): ?string
     {
-        if ($v === null) return null;
-        $s = trim((string) $v);
-        return $s === '' ? null : $s;
+        // La lectura limpia de todas las fronteras: recorta, vacío = null, y lo que no es texto
+        // (un array) es null en vez de «Array». Ver `docs/TiposDeFrontera.md`.
+        return Lee::textoLimpio($v);
     }
 
     /** Normaliza importes numéricos a string decimal (compatible con columnas Doctrine 'decimal'). */

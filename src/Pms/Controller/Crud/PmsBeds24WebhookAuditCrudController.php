@@ -24,6 +24,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
+use App\Dto\Lee;
 
 /**
  * PmsBeds24WebhookAuditCrudController.
@@ -212,12 +213,9 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
 
         // 1. Extraer el Token de las cabeceras guardadas
         $headers = $audit->getHeaders();
-        $token = '';
-
-        // Buscamos la llave 'x-beds24-webhook-token'. Symfony suele guardar todo en minúsculas en los headers.
-        if (isset($headers['x-beds24-webhook-token'][0])) {
-            $token = $headers['x-beds24-webhook-token'][0];
-        }
+        // La llave 'x-beds24-webhook-token'. Symfony guarda los headers en minúsculas, y cada uno
+        // como lista de valores: el token es el primero.
+        $token = Lee::texto(Lee::en($headers, 'x-beds24-webhook-token', 0)) ?? '';
 
         // Si no encontramos el token, abortamos para no encolar algo que va a fallar de todos modos
         if (empty($token)) {

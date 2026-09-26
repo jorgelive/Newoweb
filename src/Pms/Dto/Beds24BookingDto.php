@@ -6,6 +6,7 @@ namespace App\Pms\Dto;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use App\Dto\Lee;
 
 final class Beds24BookingDto
 {
@@ -70,7 +71,7 @@ final class Beds24BookingDto
         public readonly ?array $bookingGroup = null,
     ) {}
 
-    /** @param array<string, mixed> $booking Una reserva tal como la devuelve la API de Beds24. */
+    /** @param array<mixed> $booking Una reserva tal como la devuelve la API de Beds24 (o el webhook). */
     public static function fromArray(array $booking): self
     {
         // 1. Capturamos el grupo entero (si viene)
@@ -83,8 +84,8 @@ final class Beds24BookingDto
         // Prioridad B: El 'masterId' en la raíz (API v1 / Legacy)
         $rawMasterId = $bookingGroup['master'] ?? $booking['masterId'] ?? null;
 
-        $numAdult = isset($booking['numAdult']) ? (int) $booking['numAdult'] : 0;
-        $numChild = isset($booking['numChild']) ? (int) $booking['numChild'] : 0;
+        $numAdult = Lee::entero($booking['numAdult'] ?? null) ?? 0;
+        $numChild = Lee::entero($booking['numChild'] ?? null) ?? 0;
 
         return new self(
             id: self::toIntOrNull($booking['id'] ?? null),
@@ -122,11 +123,9 @@ final class Beds24BookingDto
 
     private static function toStringOrNull(mixed $v): ?string
     {
-        // Sólo lo escalar es texto. Un array u objeto donde se esperaba texto era, con `(string)`,
-        // la palabra «Array» guardada en la reserva y un warning en el log (nivel 9 de PHPStan).
-        if (!is_scalar($v)) return null;
-        $s = trim((string) $v);
-        return $s === '' ? null : $s;
+        // La lectura limpia de todas las fronteras: recorta, vacío = null, y lo que no es texto
+        // (un array) es null en vez de «Array». Ver `docs/TiposDeFrontera.md`.
+        return Lee::textoLimpio($v);
     }
 
     private static function toIntOrNull(mixed $v): ?int

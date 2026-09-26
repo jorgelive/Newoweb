@@ -18,6 +18,8 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Throwable;
 use RuntimeException;
+use App\Pms\Dto\Beds24WebhookSobre;
+use App\Dto\Lee;
 
 /**
  * Worker Asíncrono Principal para procesar los Webhooks de Beds24 en su totalidad.
@@ -59,19 +61,22 @@ final readonly class ProcessBeds24WebhookDispatchHandler
 
         try {
             $payload = json_decode($dispatch->rawPayload, true, 512, JSON_THROW_ON_ERROR);
+            if (!is_array($payload)) {
+                throw new \RuntimeException('El webhook de Beds24 no es un objeto JSON.');
+            }
 
+            /** @var array<string, mixed> $payload */
             $audit->setPayload($payload);
 
+            // El paquete, leído una vez: qué piezas trae y la etiqueta. Ver `Beds24WebhookSobre`.
+            $sobre = Beds24WebhookSobre::fromArray($payload);
+            $bookingId = $sobre->reservaId ?? 'N/A';
+            $guestName = $sobre->huesped;
+            $channel = $sobre->canal;
 
-            // 1. Extraemos los datos del objeto 'booking'
-            $booking = $payload['booking'] ?? [];
-            $bookingId = $booking['id'] ?? 'N/A';
-            $guestName = trim(($booking['firstName'] ?? '') . ' ' . ($booking['lastName'] ?? ''));
-            $channel = strtoupper($booking['referer'] ?? 'DIRECT');
-
-            // 2. Contadores de sub-nodos
-            $msgCount = count($payload['messages'] ?? []);
-            $invCount = count($payload['invoiceItems'] ?? []);
+            // 2. Contadores de sub-nodos (del nodo tal cual, como siempre: es lo que llegó)
+            $msgCount = is_countable($payload['messages'] ?? null) ? count($payload['messages']) : 0;
+            $invCount = is_countable($payload['invoiceItems'] ?? null) ? count($payload['invoiceItems']) : 0;
 
             // 3. Construimos el string descriptivo
             // Ejemplo: "B24 #83116820 | ANA CAÑABATE LOPEZ | [B.COM] | MSGS: 6 | INVS: 1"
@@ -92,22 +97,22 @@ final readonly class ProcessBeds24WebhookDispatchHandler
             $globalErrors = [];
 
             // 1. PROCESAR BOOKINGS
-            if (isset($payload['booking'])) {
-                $bookingResult = $this->handleBookings($payload['booking'], $dispatch->token);
+            if ($sobre->traeReserva) {
+                $bookingResult = $this->handleBookings($sobre->reservas, $dispatch->token);
                 $responseDetails['bookings'] = $bookingResult['processed'];
                 $globalErrors = array_merge($globalErrors, $bookingResult['errors']);
             }
 
             // 2. PROCESAR MENSAJES (Con el Persister optimizado)
-            if (isset($payload['messages'])) {
-                $messageResult = $this->handleMessages($payload['messages']);
+            if ($sobre->traeMensajes) {
+                $messageResult = $this->handleMessages($sobre->mensajes);
                 $responseDetails['messages'] = $messageResult['processed'];
                 $globalErrors = array_merge($globalErrors, $messageResult['errors']);
             }
 
             // 3. PROCESAR INFORMACIÓN FINANCIERA (invoiceItems)
-            if (isset($payload['invoiceItems'])) {
-                $invoiceResult = $this->handleInvoiceItems($payload['invoiceItems']);
+            if ($sobre->traeFacturas) {
+                $invoiceResult = $this->handleInvoiceItems($sobre->facturas);
                 $responseDetails['invoices'] = $invoiceResult['processed'];
                 $globalErrors = array_merge($globalErrors, $invoiceResult['errors']);
             }
@@ -166,17 +171,15 @@ final readonly class ProcessBeds24WebhookDispatchHandler
      * * @param mixed $bookingData Nodo 'booking' del payload
      * @param string $token Token de seguridad del webhook
      * @return array
-     *
-     * @return array<string, mixed>
+     * @param list<array<mixed>> $bookingsToProcess Ya filtradas por el sobre: arrays con `id`.
+     * @return array{processed: list<mixed>, errors: list<array{id: mixed, error: string}>}
      */
-    private function handleBookings(mixed $bookingData, string $token): array
+    private function handleBookings(array $bookingsToProcess, string $token): array
     {
-        $bookingsToProcess = is_array($bookingData) && array_is_list($bookingData) ? $bookingData : [$bookingData];
         $processedIds = [];
         $errors = [];
 
         foreach ($bookingsToProcess as $data) {
-            if (!is_array($data) || !isset($data['id'])) continue;
             try {
                 // Llama a tu servicio síncrono original, pero ahora corre en background
                 $res = $this->bookingService->process($token, $data);
@@ -196,19 +199,16 @@ final readonly class ProcessBeds24WebhookDispatchHandler
 
     /**
      * Procesa los mensajes recibidos del huésped en el canal de Beds24.
-     * * @param mixed $messagesData Nodo 'messages' del payload
-     * @return array
      *
-     * @return array<string, mixed>
+     * @param list<array<mixed>> $messagesToProcess Ya filtrados por el sobre: arrays con `id`.
+     * @return array{processed: list<mixed>, errors: list<array{message_id: mixed, error: string}>}
      */
-    private function handleMessages(mixed $messagesData): array
+    private function handleMessages(array $messagesToProcess): array
     {
-        $messagesToProcess = is_array($messagesData) && array_is_list($messagesData) ? $messagesData : [$messagesData];
         $processedIds = [];
         $errors = [];
 
         foreach ($messagesToProcess as $data) {
-            if (!is_array($data) || !isset($data['id'])) continue;
             try {
                 $dto = Beds24MessageDto::fromArray($data);
                 if (!empty($dto->bookingId)) {
@@ -235,22 +235,15 @@ final readonly class ProcessBeds24WebhookDispatchHandler
      * Los agrupamos por bookingId y delegamos cada grupo al persister, que hace find-or-create
      * de la cabecera financiera de la reserva. Espejo de handleMessages().
      *
-     * @param mixed $invoiceData Nodo 'invoiceItems' del payload
+     * @param list<array<mixed>> $invoiceData Ya filtradas por el sobre: arrays con `id`.
      * @return array{processed: string[], errors: array<array{invoice_id: string, error: string}>}
      */
-    private function handleInvoiceItems(mixed $invoiceData): array
+    private function handleInvoiceItems(array $invoiceData): array
     {
-        if (!is_array($invoiceData)) {
-            return ['processed' => [], 'errors' => []];
-        }
-
         // Agrupamos los invoiceItems por bookingId para hacer un upsert por reserva.
         $porBooking = [];
         foreach ($invoiceData as $data) {
-            if (!is_array($data) || !isset($data['id'])) {
-                continue;
-            }
-            $bookingId = isset($data['bookingId']) ? (string) $data['bookingId'] : '';
+            $bookingId = Lee::texto($data['bookingId'] ?? null) ?? '';
             if ($bookingId === '') {
                 continue;
             }

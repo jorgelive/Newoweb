@@ -78,6 +78,7 @@ El patrón que se usó con Meta y con pagos, y que se repite en cada frontera co
 | Webhook de Meta | `probar-dto-meta.php` | 3 250 webhooks: 456 mensajes, 2 794 estados |
 | Pagos (Culqi, Izipay) | `probar-dto-pagos.php` | 18 enlaces, 15 cargos, 22 intentos auditados, 17 avisos |
 | Booking de Beds24 | comparación de los dos caminos del DTO | 400 webhooks + 366 respuestas de pull |
+| Webhook de Beds24 (sobre, mensajes, facturas) | `probar-dto-beds24-webhook.php` | 2 304 webhooks: 41 133 mensajes, 4 362 líneas de factura |
 
 ## 4. El mapa de fronteras y su estado
 
@@ -86,6 +87,7 @@ El patrón que se usó con Meta y con pagos, y que se repite en cada frontera co
 | Booking de Beds24 (pull y webhook) | `Beds24BookingDto::fromArray()` | ✅ un solo camino (26/09/2026) |
 | Webhook de Meta | `src/Message/Dto/Meta/` | ✅ |
 | Pagos: respuestas de Culqi, avisos, transacción, cuerpo del enlace | `src/Finanzas/Dto/` | ✅ |
+| Webhook de Beds24: el paquete (reserva, mensajes, facturas, instante) | `Beds24WebhookSobre` | ✅ lo leían a mano el controlador y el worker |
 
 El resto de fronteras se va añadiendo aquí según se cierra; el orden y las cifras de partida están
 en el historial de la subida (1 256 avisos en 14 fronteras el 26/09/2026).

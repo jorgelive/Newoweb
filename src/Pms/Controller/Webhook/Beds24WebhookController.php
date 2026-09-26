@@ -16,6 +16,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Routing\Attribute\Route;
 use Throwable;
+use App\Pms\Dto\Beds24WebhookSobre;
 
 #[Route('/pms/webhooks', name: 'webhook_beds24_')]
 final class Beds24WebhookController extends AbstractController
@@ -69,49 +70,10 @@ final class Beds24WebhookController extends AbstractController
             // =================================================================
             // 🔥 DETERMINACIÓN DEL TIEMPO DEL EVENTO 🔥
             // =================================================================
-            $eventTimestamp = null;
-
-            // CONDICIÓN A: Prioridad absoluta a los mensajes
-            if (isset($payload['messages']) && is_array($payload['messages']) && !empty($payload['messages'])) {
-                $lastMessage = end($payload['messages']);
-                //Solo aplicamos si es host, queremos lo mas tapido possible los guests
-                if (is_array($lastMessage) && ($lastMessage['source'] ?? '') === 'host' && !empty($lastMessage['time'])) {
-                    try {
-                        $eventTimestamp = (new DateTimeImmutable($lastMessage['time']))->getTimestamp();
-                    } catch (Throwable) {
-                        // Error de parseo, se mantiene null para ir al fallback
-                    }
-                }
-            }
-
-            // CONDICIÓN B: Si no hay mensajes, usamos los tiempos de la reserva/webhook
-            if ($eventTimestamp === null) {
-                // Primero intentamos con el timeStamp general del paquete
-                if (!empty($payload['timeStamp'])) {
-                    try {
-                        // Mismo caso: «2025-07-30T14:32:00», sin huso y en UTC.
-                        $eventTimestamp = (new DateTimeImmutable($payload['timeStamp'], new \DateTimeZone('UTC')))->getTimestamp();
-                    } catch (Throwable) {}
-                }
-                // Si no, buscamos en la estructura de la reserva
-                elseif (isset($payload['booking'])) {
-                    try {
-                        // Preferimos modifiedTime porque indica la última acción real
-                        $timeStr = !empty($payload['booking']['modifiedTime'])
-                            ? $payload['booking']['modifiedTime']
-                            : ($payload['booking']['bookingTime'] ?? null);
-
-                        if ($timeStr) {
-                            // UTC explícito: Beds24 manda «2025-07-30T14:32:00» sin huso, y
-                            // parsearla como local desplazaba el instante la diferencia entera —
-                            // cinco horas aquí. Con la ventana de 10 minutos de abajo eso
-                            // significaba que ningún evento de reserva se consideraba reciente
-                            // NUNCA, y el colchón de 15 s no llegaba a aplicarse a ninguno.
-                            $eventTimestamp = (new DateTimeImmutable($timeStr, new \DateTimeZone('UTC')))->getTimestamp();
-                        }
-                    } catch (Throwable) {}
-                }
-            }
+            // Del sobre, que es quien sabe leerlo: el último mensaje del anfitrión, el `timeStamp`
+            // del paquete, o las fechas de la reserva — en ese orden y en UTC. Ver
+            // `Beds24WebhookSobre::momentoDe()`.
+            $eventTimestamp = is_array($payload) ? Beds24WebhookSobre::fromArray($payload)->momento : null;
 
             // =================================================================
             // ⏳ EL COLCHÓN DE 15 SEGUNDOS

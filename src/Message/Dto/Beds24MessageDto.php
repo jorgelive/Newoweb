@@ -7,6 +7,7 @@ namespace App\Message\Dto;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Throwable;
+use App\Dto\Lee;
 
 final readonly class Beds24MessageDto
 {
@@ -27,7 +28,7 @@ final readonly class Beds24MessageDto
     ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param array<mixed> $data Un mensaje de Beds24 tal cual; se lee aquí y en ningún otro sitio.
      */
     public static function fromArray(array $data): self
     {
@@ -51,9 +52,9 @@ final readonly class Beds24MessageDto
 
     private static function toStringOrNull(mixed $v): ?string
     {
-        if ($v === null) return null;
-        $s = trim((string) $v);
-        return $s === '' ? null : $s;
+        // La lectura limpia de todas las fronteras: recorta, vacío = null, y lo que no es texto
+        // (un array) es null en vez de «Array». Ver `docs/TiposDeFrontera.md`.
+        return Lee::textoLimpio($v);
     }
 
     private static function toDateTimeOrNull(mixed $v): ?DateTimeInterface
