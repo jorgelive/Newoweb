@@ -122,7 +122,9 @@ final class Beds24BookingDto
 
     private static function toStringOrNull(mixed $v): ?string
     {
-        if ($v === null) return null;
+        // Sólo lo escalar es texto. Un array u objeto donde se esperaba texto era, con `(string)`,
+        // la palabra «Array» guardada en la reserva y un warning en el log (nivel 9 de PHPStan).
+        if (!is_scalar($v)) return null;
         $s = trim((string) $v);
         return $s === '' ? null : $s;
     }

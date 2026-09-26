@@ -9,7 +9,6 @@ use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Pms\Dto\Beds24BookingDto;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use DateTimeImmutable;
-use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Throwable;
 
 /**
@@ -22,10 +21,6 @@ final class BookingsPullHandler implements ExchangeHandlerInterface
 {
     public function __construct(
         private readonly BookingPullPersister $persister,
-        // ⚠️ `DenormalizerInterface` y no `SerializerInterface`: `denormalize()` vive en la
-        // primera. El servicio real de Symfony implementa las dos, así que la inyección no
-        // cambia — lo que cambia es que el tipo declara lo que de verdad se llama.
-        private readonly DenormalizerInterface $serializer
     ) {}
 
     /**
@@ -75,9 +70,19 @@ final class BookingsPullHandler implements ExchangeHandlerInterface
             $bookId = $bookingData['id'] ?? $bookingData['bookId'] ?? 'unknown';
 
             try {
-                // ✅ Deserialización Automática
-                /** @var Beds24BookingDto $dto */
-                $dto = $this->serializer->denormalize($bookingData, Beds24BookingDto::class);
+                // 🔥 **`fromArray()`, el MISMO camino que el webhook — no el serializer.** Aquí se
+                // usaba `denormalize()`, que construye el DTO por su constructor sin pasar por
+                // `fromArray()`: sin `trim`, sin «vacío = null» y sin `bookingGroup` normalizado.
+                // Medido el 26/09/2026 con 400 reservas reales: los dos caminos daban DTOs
+                // distintos en 13 campos, y en la base el mismo dato vivía de dos formas según
+                // quién tocó la reserva por última vez (comentarios: 92 `''` y 149 `NULL`; hora de
+                // llegada: 184 y 273; nota: 89 y 178). Cada alternancia pull↔webhook era un cambio
+                // que no era un cambio. Ver `docs/PmsBeds24ReservasSync.md` §12.20.
+                if (!is_array($bookingData)) {
+                    throw new \RuntimeException('Fila de reserva que no es un objeto.');
+                }
+                /** @var array<string, mixed> $bookingData */
+                $dto = Beds24BookingDto::fromArray($bookingData);
 
                 // Persistencia (Upsert) - Ahora retorna array con info
                 $result = $this->persister->upsert($config, $dto);

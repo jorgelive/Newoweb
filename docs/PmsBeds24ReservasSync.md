@@ -38,6 +38,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
     · [Corrección 10/09/2026: los mensajes también vienen en UTC](#-corrección-del-10092026-los-mensajes-también-vienen-en-utc)
 12.17. [Los emojis llegan como `?`](#1217-los-emojis-llegan-como--y-no-es-culpa-nuestra-08092026)
 12.19. [Nulos: decide el dominio, no los datos](#1219-nulos-decide-el-dominio-no-los-datos-26092026)
+12.20. [El pull y el webhook construían el DTO por dos caminos](#1220-el-pull-y-el-webhook-construían-el-dto-por-dos-caminos-26092026)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
 > Horario extra (early check-in / late check-out → evento `extension` invisible): §7.1.b.
@@ -6038,10 +6039,45 @@ Dos arreglos que salieron por el camino y no eran sólo de tipos:
 - `TipoCambioDelDia` memorizaba `null` en vez de `false` para «ese día no hay»: el `?: null` se
   aplicaba antes de asignar. Funcionaba por casualidad y contradecía el tipo de su propia memoria.
 
+## 12.20 El pull y el webhook construían el DTO por dos caminos (26/09/2026)
+
+**La pregunta que lo destapó:** «¿el webhook de Beds24 no usa el DTO?». Sí lo usa, por
+`Beds24BookingDto::fromArray()`. El **pull no**: lo construía con `DenormalizerInterface::denormalize()`,
+que rellena el constructor por nombre y **no pasa por `fromArray()`**. Así que la limpieza que hace
+`fromArray()` —`trim`, «vacío = `null`», `bookingGroup` como array, la cascada del `masterId`— sólo
+se aplicaba a lo que llegaba por webhook.
+
+Medido con datos reales, los dos caminos sobre el mismo booking:
+
+| | Webhook (400 payloads) | Pull (366 respuestas) |
+|---|---|---|
+| Fechas, precio, comisión, ids, estado, llegada/salida | idénticos | idénticos |
+| `comments`, `notes`, `email`, `phone`, `mobile`, `arrivalTime`, `custom1/2`, `apiReference`… | `null` | `''` |
+| `rateDescription` | recortado | con espacios |
+| `bookingGroup` | `[]` | `null` |
+
+Las decisiones del persister no cambiaban —trata `''` y `null` igual (`empty()`, `trim((string)…)`)
+y resuelve el master desde `bookingGroup` por su cuenta—, pero **lo guardado sí**. El mismo dato
+vivía de dos formas según quién tocó la reserva por última vez: comentarios 92 `''` frente a 149
+`NULL`, hora de llegada 184 frente a 273, nota de la reserva 89 frente a 178. Y cada alternancia
+pull↔webhook era un cambio que no era un cambio, que Doctrine registraba y los listeners veían.
+
+**Lo arreglado:**
+
+1. `BookingsPullHandler` usa `Beds24BookingDto::fromArray()`. Un solo camino de payload a DTO.
+2. `toStringOrNull()` ya no hace `(string)` sobre un array: lo que no es escalar es `null`, no la
+   palabra «Array» guardada en la reserva.
+3. `Version20260926140000` deja en `NULL` los vacíos ya guardados (seis columnas).
+
+⚠️ **Si se añade un campo al DTO, va en `fromArray()` y en ningún otro sitio.** El serializer ya no
+lo construye, así que un campo que no esté ahí no llega por ningún camino — que es mejor que llegar
+por uno y no por el otro.
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
+| Añadir un campo de Beds24 a la reserva | `Beds24BookingDto` | `fromArray()` — el ÚNICO camino, pull y webhook (§12.20) |
 | Un dato obligatorio del PMS que llega `null` (unidad, fechas, config de Beds24) | la entidad | su `getXOrFail()`, §12.19 — y NUNCA uno para la reserva del evento |
 | Cambiar cómo se normaliza un nombre que llega en mayúsculas | `NombreSanitizer` | `formatear()` — sólo actúa si NO hay ninguna minúscula; se llama desde `BookingPullPersister::upsert()` |
 | Cambiar cuándo se revisa si nombre y apellido vienen cruzados | `OrdenDelNombre` + `PmsNombreOrdenListener` | `mereceRevision()` / `esNuestroIntercambio()` — el corta-bucles |
