@@ -469,15 +469,17 @@ final class AgentSembrarConocimientoCommand extends Command
                     // y no estaba escrito en ninguna parte— pero dejó al huésped esperando con
                     // las motos en la calle, teniendo la respuesta desde siempre.
                     . 'MOTOS: casi todos los que llegan en moto miran el pasaje y piensan que '
-                    . 'pueden dejarla ahí. NO CABE, y ése es el motivo: las motos de viaje son '
-                    . 'enormes, y aunque fueran pequeñas el pasaje tiene maceteros y plantas. '
-                    . 'Además es zona de paso y de evacuación, que no puede quedar obstaculizada.'
+                    . 'pueden dejarla ahí, así que espera la pregunta. La respuesta es que no, y '
+                    . 'NO ESCALES: no depende de nadie.'
                     . "\n\n"
-                    . 'Dilo por lo que es —no entra— y no como una prohibición, y ofrécele en el '
-                    . 'acto la cochera privada de pago que está a una cuadra: para una moto es lo '
-                    . 'que recomendamos siempre, porque el estacionamiento público de enfrente no '
-                    . 'es vigilado y ahí queda demasiado expuesta. NO escales esto: la respuesta '
-                    . 'es ésta y no depende de nadie.',
+                    . 'Dos motivos, en este orden. Primero, quedarían muy expuestas: la '
+                    . 'recomendación es que las resguarden en una cochera vigilada, por su '
+                    . 'tranquilidad. Y segundo, el pasaje NO es de uso exclusivo nuestro —se '
+                    . 'comparte con los vecinos— y hay que mantenerlo despejado.'
+                    . "\n\n"
+                    . 'Dale el sitio concreto, no «una cochera cerca»: Garaje de Saphy, el '
+                    . 'estacionamiento más cercano, en Calle Saphy 644, teléfono '
+                    . '+51 984 631 997, ubicación https://maps.app.goo.gl/rvxnSoKnNmtwuh5e7',
                 'perfiles' => self::PUBLICO,
             ],
             [
