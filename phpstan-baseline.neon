@@ -498,12 +498,6 @@ parameters:
 			path: src/Message/Entity/MessageTemplate.php
 
 		-
-			message: '#^Offset ''content'' on array\{type\?\: string\|null, index\?\: int\|string\|null, resolver_key\?\: string\|null, payload\?\: mixed, button_text\?\: list\<array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null\}\>\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Message/Entity/MessageTemplate.php
-
-		-
 			message: '#^Strict comparison using \!\=\= between 2 and 2 will always evaluate to false\.$#'
 			identifier: notIdentical.alwaysFalse
 			count: 1
@@ -530,22 +524,10 @@ parameters:
 			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendHandler.php
 
 		-
-			message: '#^Offset ''content'' on array\{type\?\: string\|null, index\?\: int\|string\|null, resolver_key\?\: string\|null, payload\?\: mixed, button_text\?\: list\<array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null\}\>\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendMappingStrategy.php
-
-		-
 			message: '#^Property App\\Message\\Service\\Exchange\\Tasks\\WhatsappMetaSend\\WhatsappMetaSendHandler\:\:\$em is never read, only written\.$#'
 			identifier: property.onlyWritten
 			count: 1
 			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendHandler.php
-
-		-
-			message: '#^Offset ''content'' on array\{type\?\: string\|null, index\?\: int\|string\|null, resolver_key\?\: string\|null, payload\?\: mixed, button_text\?\: list\<array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null\}\>\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendMappingStrategy.php
 
 		-
 			message: '#^Offset ''format'' on array\{format\: string, content\: string\|null\} on left side of \?\? always exists and is not nullable\.$#'
