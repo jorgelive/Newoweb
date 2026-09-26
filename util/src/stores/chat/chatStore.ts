@@ -223,6 +223,24 @@ export const useChatStore = defineStore('chatStore', () => {
     const hasMoreMessages = ref(true);
     const loadingMoreMessages = ref(false);
 
+    /**
+     * Las pestañas de programados y cancelados también paginan, de 30 en 30 como el historial.
+     *
+     * ⚠️ No es un adorno: hasta el 26/09/2026 estas dos listas pedían la página 1 y nada más,
+     * «porque caben de sobra». En producción hay un hilo con **631 cancelados** y otro con 331,
+     * así que la pestaña decía «Cancelados (631)» y enseñaba 30 sin un solo control para ver el
+     * resto. El contador no mentía —ése sale del total de la API— y eso lo hacía peor: la única
+     * señal visible era que los números no cuadraban.
+     *
+     * No se arregló quitando la paginación del servidor: 631 mensajes con sus traducciones y sus
+     * colas en una respuesta es justo lo que la paginación existe para evitar.
+     */
+    const programadosPage = ref(1);
+    const canceladosPage = ref(1);
+    const hayMasProgramados = ref(false);
+    const hayMasCancelados = ref(false);
+    const cargandoMasPestana = ref(false);
+
     // UI & Webhooks
     const isChatVisible = ref(true);
     const newNotification = ref<{ show: boolean, title: string, conversationId: string } | null>(null);
@@ -667,6 +685,10 @@ export const useChatStore = defineStore('chatStore', () => {
         loadingMessages.value = true;
         messagesPage.value = 1;
         hasMoreMessages.value = true;
+        programadosPage.value = 1;
+        canceladosPage.value = 1;
+        hayMasProgramados.value = false;
+        hayMasCancelados.value = false;
         canalesDelChat.value = [];
         asuntosDelChat.value = [];
         asuntoElegido.value = null;
@@ -689,9 +711,8 @@ export const useChatStore = defineStore('chatStore', () => {
                 found.unreadCount = 0;
             }
 
-            // Tres consultas, una por pestaña. El historial es el único que se pagina: los
-            // programados y los cancelados de un hilo caben de sobra en una página, y si algún
-            // día no cupieran, el total de la pestaña seguiría siendo el real.
+            // Tres consultas, una por pestaña, y las tres paginadas de 30 en 30. Aquí se pide
+            // la primera página de cada una; las otras dos crecen con `cargarMasDePestana()`.
             const [response, respProgramados, respCancelados] = await Promise.all([
                 apiClient.get(`/platform/message/conversations/${id}/messages?page=1`),
                 apiClient.get(`/platform/message/conversations/${id}/messages/programados`),
@@ -709,6 +730,8 @@ export const useChatStore = defineStore('chatStore', () => {
             cancelados.value = extractData<ApiMessage>(respCancelados);
             totalProgramados.value = totalHydra(respProgramados) ?? programados.value.length;
             totalCancelados.value = totalHydra(respCancelados) ?? cancelados.value.length;
+            hayMasProgramados.value = hasNextPage(respProgramados);
+            hayMasCancelados.value = hasNextPage(respCancelados);
 
             // Ahora sí: con los mensajes delante se puede proponer el asunto del último
             // entrante, igual que el canal se preselecciona por el último mensaje recibido.
@@ -1012,6 +1035,55 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     /**
+     * La página siguiente de los programados o de los cancelados.
+     *
+     * Una sola función para las dos: lo único que cambia es la ruta y en qué lista se acumula.
+     * El historial tiene la suya aparte porque se dispara al hacer scroll y tiene que conservar
+     * la posición; aquí es un botón, que además es lo honesto cuando el orden de pintado no
+     * coincide con el de descarga —los cancelados llegan de más nuevo a más viejo y se pintan al
+     * revés—.
+     *
+     * ⚠️ El orden final NO se toca aquí: lo pone `groupedMessages` en la vista, que reordena por
+     * fecha efectiva. Basta con que el mensaje esté en la lista.
+     */
+    const cargarMasDePestana = async (pestana: 'scheduled' | 'cancelled'): Promise<void> => {
+        const id = uuidOf(currentConversation.value);
+        if (!id || cargandoMasPestana.value) return;
+
+        const esProgramados = pestana === 'scheduled';
+        const hayMas = esProgramados ? hayMasProgramados : hayMasCancelados;
+        if (!hayMas.value) return;
+
+        const pagina = (esProgramados ? programadosPage : canceladosPage).value + 1;
+        const ruta = esProgramados ? 'programados' : 'cancelados';
+        cargandoMasPestana.value = true;
+
+        try {
+            const resp = await apiClient.get(`/platform/message/conversations/${id}/messages/${ruta}?page=${pagina}`);
+
+            // Si mientras cargaba se cambió de chat, esto ya no es de nadie.
+            if (uuidOf(currentConversation.value) !== id) return;
+
+            const lista = esProgramados ? programados : cancelados;
+
+            // Dedup por UUID, igual que en el historial: un mensaje que se cancela o se
+            // reprograma mientras se pagina desplaza la ventana, y la página siguiente puede
+            // repetir el último de la anterior.
+            const nuevos = extractData<ApiMessage>(resp)
+                .filter(n => !lista.value.some(m => sameEntity(m, n)));
+
+            lista.value = [...lista.value, ...nuevos];
+            hayMas.value = hasNextPage(resp);
+            if (esProgramados) programadosPage.value = pagina;
+            else canceladosPage.value = pagina;
+        } catch {
+            error.value = 'Error al paginar la pestaña.';
+        } finally {
+            cargandoMasPestana.value = false;
+        }
+    };
+
+    /**
      * Despacha un nuevo mensaje hacia Symfony utilizando FormData.
      * Soporta adjuntos (Multipart) y envíos multicanal (Transient Channels).
      *
@@ -1249,6 +1321,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, totalProgramados, totalCancelados, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation, cargarCabecera
+        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, totalProgramados, totalCancelados, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, cargarMasDePestana, hayMasProgramados, hayMasCancelados, cargandoMasPestana, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation, cargarCabecera
     };
 });

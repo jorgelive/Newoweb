@@ -139,18 +139,17 @@ final readonly class InboundMenuResolver
     {
         return $this->em->getRepository(Message::class)
             ->createQueryBuilder('m')
-            ->addSelect('COALESCE(m.ocurrioAt, m.createdAt) AS HIDDEN efectiva')
             ->where('m.conversation = :conv')
             ->andWhere('m.status IN (:estados)')
             // Nada del futuro: un programado que aún no ha salido no es «lo último que vio».
-            ->andWhere('COALESCE(m.ocurrioAt, m.createdAt) <= :ahora')
+            ->andWhere('m.ocurrioAt <= :ahora')
             // ⚠️ El id con tipo `uuid`, no la entidad: ligada a secas la consulta devuelve
             // CERO filas sin fallar, y entonces «el último mensaje» era siempre null y ningún
             // menú numérico resolvía. Misma trampa que en `Beds24SendEnqueuer`.
             ->setParameter('conv', $conversation->getId(), UuidType::NAME)
             ->setParameter('estados', self::ESTADOS_REALES)
             ->setParameter('ahora', new \DateTimeImmutable())
-            ->orderBy('efectiva', 'DESC')
+            ->orderBy('m.ocurrioAt', 'DESC')
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

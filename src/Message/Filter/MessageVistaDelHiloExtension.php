@@ -39,6 +39,10 @@ use Doctrine\ORM\QueryBuilder;
  * hacerlo se verificó en producción que no hubiera enviados con fecha futura —serían datos
  * corruptos, no un caso a contemplar—: de 1.157 filas con fecha futura, 1.100 canceladas y 57
  * encoladas. Cero `sent`, `delivered` o `read`.
+ *
+ * La columna se compara a pelo, sin `COALESCE`: es NOT NULL desde el 26/09/2026 y una función
+ * sobre ella habría dejado fuera el índice `(conversation_id, ocurrio_at)`, que es justo el que
+ * hace baratas estas tres consultas.
  */
 final class MessageVistaDelHiloExtension implements QueryCollectionExtensionInterface
 {
@@ -60,14 +64,9 @@ final class MessageVistaDelHiloExtension implements QueryCollectionExtensionInte
 
         $alias = $queryBuilder->getRootAliases()[0];
 
-        // `ocurrio_at` puede ser nulo en una fila escrita fuera del ORM. Se trata como su fecha
-        // de creación —que es lo que hace el getter— para que no desaparezca de ninguna pestaña:
-        // un mensaje que no se ve es peor que uno mal colocado.
-        $efectiva = sprintf('COALESCE(%s.ocurrioAt, %s.createdAt)', $alias, $alias);
-
         match ($operation->getName()) {
-            self::HISTORIAL => $this->historial($queryBuilder, $alias, $efectiva),
-            self::PROGRAMADOS => $this->programados($queryBuilder, $alias, $efectiva),
+            self::HISTORIAL => $this->historial($queryBuilder, $alias),
+            self::PROGRAMADOS => $this->programados($queryBuilder, $alias),
             self::CANCELADOS => $queryBuilder->andWhere(sprintf('%s.status = :cancelado', $alias))
                 ->setParameter('cancelado', Message::STATUS_CANCELLED),
             default => null,
@@ -75,18 +74,18 @@ final class MessageVistaDelHiloExtension implements QueryCollectionExtensionInte
     }
 
     /** Lo que ya pasó: ni futuro ni cancelado. Es la pestaña que se abre por defecto. */
-    private function historial(QueryBuilder $qb, string $alias, string $efectiva): void
+    private function historial(QueryBuilder $qb, string $alias): void
     {
-        $qb->andWhere(sprintf('%s <= :ahora', $efectiva))
+        $qb->andWhere(sprintf('%s.ocurrioAt <= :ahora', $alias))
             ->andWhere(sprintf('%s.status != :cancelado', $alias))
             ->setParameter('ahora', new DateTimeImmutable())
             ->setParameter('cancelado', Message::STATUS_CANCELLED);
     }
 
     /** Lo que está por salir. Cancelado no es programado aunque tenga fecha futura. */
-    private function programados(QueryBuilder $qb, string $alias, string $efectiva): void
+    private function programados(QueryBuilder $qb, string $alias): void
     {
-        $qb->andWhere(sprintf('%s > :ahora', $efectiva))
+        $qb->andWhere(sprintf('%s.ocurrioAt > :ahora', $alias))
             ->andWhere(sprintf('%s.status != :cancelado', $alias))
             ->setParameter('ahora', new DateTimeImmutable())
             ->setParameter('cancelado', Message::STATUS_CANCELLED);

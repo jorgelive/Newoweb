@@ -38,8 +38,15 @@ use App\Message\Contract\MessageQueueItemInterface;
 #[ORM\Index(columns: ['asunto_type', 'asunto_id'], name: 'idx_msg_asunto')]
 // El enfriamiento del escalado consulta por (escalado_de, created_at) en CADA escalado.
 #[ORM\Index(columns: ['escalado_de', 'created_at'], name: 'idx_msg_escalado_de')]
-// El listado de un hilo es la consulta más caliente del panel y ahora ordena por `ocurrio_at`:
+// El listado de un hilo es la consulta más caliente del panel y ordena por `ocurrio_at`:
 // sin este índice, cada apertura de chat es un `filesort` sobre todo el hilo.
+//
+// ⚠️ **No le falta un tercer tramo `id`.** El orden real es `ocurrio_at DESC, id DESC`, así que
+// parece que el desempate quedaría fuera del índice — y no: InnoDB **extiende** todo índice
+// secundario con la clave primaria, de modo que para el optimizador esto ya es
+// `(conversation_id, ocurrio_at, id)`. Comprobado con EXPLAIN en producción el 26/09/2026 sobre
+// el hilo de 665 mensajes: `backward index scan`, 31 filas, sin `filesort`. Declarar el tercer
+// tramo a mano sólo duplicaría la columna en el índice.
 #[ORM\Index(columns: ['conversation_id', 'ocurrio_at'], name: 'idx_msg_hilo_ocurrio')]
 #[ORM\HasLifecycleCallbacks]
 #[ValidTemplateScope]
@@ -375,8 +382,20 @@ class Message
      * insertar y {@see setScheduledAt()} al reprogramar, que son las dos únicas formas de que
      * cambie. Si algún día se escribe por SQL directo —una migración, un comando—, hay que
      * recalcularla en la misma sentencia.
+     *
+     * ── Y es NOT NULL desde el 26/09/2026 ───────────────────────────────────────
+     * Nació nullable como red: «si una fila entra por un camino que no sea el ORM, mejor un nulo
+     * visible que un INSERT que revienta». El precio era que las ONCE consultas seguían llevando
+     * `COALESCE(ocurrio_at, created_at)` —la fórmula duplicada que esta columna venía a matar,
+     * sólo más corta— y que ninguna de ellas podía usar índice, porque una función sobre la
+     * columna lo descarta. Medido en producción: la consulta del acuse pasaba de un
+     * `index_merge` de 332 filas con `filesort` a 31 filas de `backward index scan`.
+     *
+     * El camino que había que temer no existe: no hay un solo `INSERT INTO msg_message` en
+     * `src/`. El tipo de la propiedad sigue admitiendo nulo porque una entidad recién construida
+     * aún no ha pasado por `PrePersist`; en base de datos no hay ni uno.
      */
-    #[ORM\Column(name: 'ocurrio_at', type: 'datetime_immutable', nullable: true)]
+    #[ORM\Column(name: 'ocurrio_at', type: 'datetime_immutable')]
     private ?DateTimeImmutable $ocurrioAt = null;
 
     public function __construct()
@@ -539,9 +558,9 @@ class Message
     #[Groups(['message:read'])]
     public function getEffectiveDateTime(): ?DateTimeInterface
     {
-        // La columna manda cuando está sellada. El cálculo queda para el mensaje recién creado
-        // que aún no ha pasado por `PrePersist` —el front lo pinta antes de guardar— y para las
-        // filas anteriores a la migración que la estrenó.
+        // La columna manda siempre: en base de datos es NOT NULL. El cálculo queda para el
+        // objeto recién construido que todavía no ha pasado por `PrePersist` — nunca para una
+        // fila leída.
         return $this->ocurrioAt ?? $this->calcularCuandoOcurrio();
     }
 

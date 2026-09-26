@@ -226,20 +226,21 @@ final readonly class ResumenConversacionService
 
         $ultimaSalida = $this->corteUltimaSalida($conversacion);
 
-        // Se ordena por `createdAt` y no por la fecha efectiva por dos motivos: DQL no
-        // admite COALESCE en ORDER BY (sí en SELECT y WHERE), y para un mensaje ENTRANTE
-        // ambas coinciden — `scheduledAt` solo lo llevan los salientes programados, y un
-        // huésped no programa nada.
+        // Se ordena por `ocurrio_at`, la misma clave con la que se pinta el chat. Antes era
+        // `createdAt`, porque la fecha efectiva era un `COALESCE` y DQL no lo admitía en el
+        // ORDER BY; con la columna materializada ya no hay motivo para usar otra clave aquí.
+        // Para un mensaje ENTRANTE las dos coinciden —`scheduledAt` solo lo llevan los
+        // salientes programados, y un huésped no programa nada—, así que el orden no cambia.
         $qb = $repo->createQueryBuilder('m')
             ->where('m.conversation = :c')
             ->andWhere('m.direction = :entrante')
             ->setParameter('c', $conversacion->getId(), 'uuid')
             ->setParameter('entrante', Message::DIRECTION_INCOMING)
-            ->orderBy('m.createdAt', 'DESC')
+            ->orderBy('m.ocurrioAt', 'DESC')
             ->setMaxResults(self::MAX_MENSAJES);
 
         if ($ultimaSalida !== null) {
-            $qb->andWhere('COALESCE(m.ocurrioAt, m.createdAt) > :corte')
+            $qb->andWhere('m.ocurrioAt > :corte')
                 ->setParameter('corte', $ultimaSalida);
         }
 
@@ -270,7 +271,7 @@ final readonly class ResumenConversacionService
     private function corteUltimaSalida(MessageConversation $conversacion): ?string
     {
         $corte = $this->em->getRepository(Message::class)->createQueryBuilder('m')
-            ->select('MAX(COALESCE(m.ocurrioAt, m.createdAt))')
+            ->select('MAX(m.ocurrioAt)')
             ->where('m.conversation = :c')
             ->andWhere('m.direction = :saliente')
             ->andWhere('(m.scheduledAt IS NULL OR m.scheduledAt <= :ahora)')

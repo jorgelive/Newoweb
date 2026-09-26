@@ -1452,6 +1452,18 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
               <p class="text-sm font-bold uppercase tracking-widest">No hay mensajes cancelados</p>
             </div>
 
+            <!-- La página siguiente de la pestaña. Va ARRIBA en cancelados y ABAJO en
+                 programados porque cada lista se descarga hacia un lado distinto: los
+                 cancelados llegan de más nuevo a más viejo —lo que entra después se pinta
+                 antes— y los programados al contrario, que es el orden de una agenda. -->
+            <div v-if="activeTab === 'cancelled' && store.hayMasCancelados" class="flex justify-center py-4">
+              <button type="button" :disabled="store.cargandoMasPestana" @click="store.cargarMasDePestana('cancelled')"
+                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-800 disabled:opacity-40">
+                <i class="fas mr-1" :class="store.cargandoMasPestana ? 'fa-circle-notch fa-spin' : 'fa-arrow-up'"></i>
+                Ver los {{ store.totalCancelados - store.cancelledMessages.length }} cancelados anteriores
+              </button>
+            </div>
+
             <div v-for="(group, date) in groupedMessages" :key="date" class="flex flex-col">
               <div class="flex justify-center my-6 sticky top-2 z-10">
                 <span :class="activeTab === 'scheduled' ? 'bg-[#E07845] text-white' : (activeTab === 'cancelled' ? 'bg-red-500 text-white' : 'bg-white/90 text-slate-800')" class="px-4 py-1.5 backdrop-blur-md border border-slate-200 shadow-sm rounded-full text-[10px] font-black uppercase tracking-widest">
@@ -1619,6 +1631,14 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div v-if="activeTab === 'scheduled' && store.hayMasProgramados" class="flex justify-center py-4">
+              <button type="button" :disabled="store.cargandoMasPestana" @click="store.cargarMasDePestana('scheduled')"
+                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-800 disabled:opacity-40">
+                <i class="fas mr-1" :class="store.cargandoMasPestana ? 'fa-circle-notch fa-spin' : 'fa-arrow-down'"></i>
+                Ver los {{ store.totalProgramados - store.scheduledMessages.length }} programados siguientes
+              </button>
             </div>
           </div>
         </div>

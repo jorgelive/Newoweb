@@ -300,8 +300,8 @@ final class AgentRecalentarHilosCommand extends Command
      * conversaciones, frente a 36 abiertas. La mayoría de los hilos activos de huéspedes con
      * reserva —justo la población para la que existe este comando— quedaba fuera en silencio.
      *
-     * Se excluyen espejando `Message::isScheduledForFuture()` y NO quitando el `COALESCE`: para
-     * un mensaje ya enviado, su `scheduledAt` pasado sí es el momento bueno para ordenar.
+     * Se excluyen espejando `Message::isScheduledForFuture()`, y NO dejando de mirar `ocurrio_at`:
+     * para un mensaje ya enviado, su `scheduledAt` pasado sí es el momento bueno para ordenar.
      */
     private function esElUltimo(Message $mensaje): bool
     {
@@ -315,7 +315,7 @@ final class AgentRecalentarHilosCommand extends Command
             ->select('COUNT(m.id)')
             ->andWhere('m.conversation = :conversacion')
             ->andWhere('m.status != :cancelado')
-            ->andWhere('COALESCE(m.ocurrioAt, m.createdAt) > :cuando')
+            ->andWhere('m.ocurrioAt > :cuando')
             ->andWhere('NOT (m.scheduledAt > :ahora AND m.status IN (:pendientes))')
             ->setParameter('conversacion', $conversacion->getId(), 'uuid')
             ->setParameter('cancelado', Message::STATUS_CANCELLED)

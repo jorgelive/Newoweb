@@ -70,6 +70,18 @@ Las dos primeras escriben de verdad y hacen `rollback`. La tercera sólo lee.
 falsos positivos por un ítem transitorio sin orden, y un diff en bloque que atropellaba la
 asimetría de la hora confirmada. Ninguno se veía leyendo.
 
+## Las de Mensajería, añadidas el 26/09/2026
+
+| | Qué comprueba |
+|---|---|
+| `pruebas/probar-fecha-efectiva.php` | Que `ocurrio_at` no tiene nulos y es `NOT NULL`, que el SQL de las tres pestañas del chat sale **sin `COALESCE`**, que las tres suman el hilo entero —ni un mensaje sin sitio ni repetido— y que el listado usa `idx_msg_hilo_ocurrio` sin `filesort` |
+| `pruebas/probar-enfriamiento.php` | Que un aviso de escalado reciente frena al siguiente. ⚠️ Envejece la fila por SQL y por eso mueve **`created_at` y `ocurrio_at` a la vez**: desde que la fecha efectiva se lee a pelo, tocar sólo una deja el mensaje «de hace tres horas» contando como de ahora |
+
+Sólo leen (la de enfriamiento escribe y hace `rollback`). La de la fecha efectiva elige a propósito
+el hilo con **más cancelados**, no el más largo: es el único donde las tres pestañas están llenas y
+la partición se comprueba de verdad. El hilo más largo tiene el historial entero y las otras dos
+vacías, y ahí la comprobación pasa sin comprobar nada.
+
 ## De dónde salen
 
 Vivían en `var/`, que en Symfony es basura de ejecución —caché y logs— y está en `.gitignore`.

@@ -11765,8 +11765,41 @@ calculado y tocar una propiedad es sutil. Índice `(conversation_id, ocurrio_at)
 la consulta más caliente del panel, y `GREATEST(...)` como expresión nunca habría podido usar
 índice. Esa es la otra mitad de por qué es una columna y no una fórmula.
 
-Las consultas la leen como `COALESCE(m.ocurrio_at, m.created_at)`, porque es nullable: una fila
-escrita fuera del ORM cae a su creación en vez de desaparecer de la consulta.
+### La red que obligaba a repetir la fórmula, retirada (26/09/2026)
+
+La columna nació **nullable** como precaución —«si una fila entra por un camino que no sea el ORM,
+mejor un nulo visible que un INSERT que revienta»— y el precio fue que las once consultas se
+quedaron leyéndola como `COALESCE(m.ocurrio_at, m.created_at)`. O sea: **la fórmula duplicada que
+la columna venía a matar siguió viva**, sólo más corta. Una red que obliga a repetir en once sitios
+lo que la columna ya sabe no es una red.
+
+Y el camino que había que temer no existe: en `src/` no hay ni un `INSERT INTO msg_message`, y los
+dos `UPDATE` crudos que hay tocan `metadata` y `status`, nunca las fechas. Producción tenía **cero
+nulos** en 8.323 filas.
+
+Desde el 26/09/2026 la columna es `NOT NULL` y las consultas la comparan a pelo. No es estética:
+**una función sobre la columna descarta el índice.** Medido en producción sobre el hilo de 665
+mensajes, con la consulta del acuse de recibo:
+
+| filtro y orden | plan |
+|---|---|
+| `COALESCE(ocurrio_at, created_at)` | `index_merge` de 332 filas **+ filesort** |
+| `ocurrio_at` a secas | `idx_msg_hilo_ocurrio`, 31 filas, `backward index scan`, sin sort |
+
+⚠️ **Al índice NO le falta un tercer tramo `id`.** El orden real es `ocurrio_at DESC, id DESC`, así
+que parece que el desempate se queda fuera — y no: **InnoDB extiende todo índice secundario con la
+clave primaria**, de modo que para el optimizador `idx_msg_hilo_ocurrio` ya es
+`(conversation_id, ocurrio_at, id)`. El listado del chat nunca tuvo ese `filesort`; declarar el
+tercer tramo a mano sólo duplicaría la columna. Comprobado con EXPLAIN antes de tocar nada.
+
+⚠️ Lo que sí hay que recordar: **`ocurrio_at` viaja con `created_at`**. Cualquier SQL que envejezca
+la fecha de un mensaje —una migración, una prueba como `tools/pruebas/probar-enfriamiento.php`—
+tiene que mover las dos, o la fila queda con una fecha efectiva de hoy y un `created_at` de hace
+tres horas. Antes el `COALESCE` lo disimulaba.
+
+Lo verifica `tools/pruebas/probar-fecha-efectiva.php` con datos reales: que no haya nulos, que el
+SQL de las tres pestañas salga sin `COALESCE`, que las tres sumen el hilo entero y que el plan use
+el índice.
 
 ### Una operación por pestaña
 
@@ -11801,6 +11834,26 @@ mueve de lista él solo. Si algún día cambia la frontera, hay que tocarla en l
 advertido en ambos.
 
 Los contadores de pestaña salen ahora del total de Hydra (`totalHydra()`), no de `lista.length`.
+
+### Las tres pestañas PAGINAN, también las dos pequeñas (26/09/2026)
+
+Al partir el subrecurso en tres se paginó sólo el historial: los programados y los cancelados se
+pedían «página 1 y ya», porque «caben de sobra en una página». No caben. En producción hay un hilo
+con **631 cancelados** y otro con 331; en local, uno con **75 programados y 138 cancelados**. La
+pestaña decía «Cancelados (631)» y enseñaba 30, **sin un solo control para ver el resto**.
+
+El contador no mentía —ése sale del total de la API—, y eso lo hacía peor: la única señal visible
+de que faltaban 601 mensajes era que los números no cuadraban.
+
+No se arregló con `paginationEnabled: false`: 631 mensajes con sus traducciones y sus colas en una
+respuesta es justo lo que la paginación existe para evitar. Se arregló dándoles página siguiente:
+`cargarMasDePestana('scheduled'|'cancelled')` en `chatStore.ts`, una sola función para las dos.
+
+⚠️ **El botón va ARRIBA en cancelados y ABAJO en programados**, y no es un capricho: cada lista se
+descarga hacia un lado distinto. Los cancelados llegan de más nuevo a más viejo y se pintan al
+revés, así que la página siguiente aparece por encima de lo que ya hay; los programados son una
+agenda ascendente y la siguiente aparece por debajo. El historial conserva su carga por scroll
+—tiene que preservar la posición—, y su manejador ya se corta si la pestaña activa no es la suya.
 
 ---
 

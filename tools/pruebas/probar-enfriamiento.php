@@ -85,8 +85,14 @@ try {
         $sets = ['status = ?'];
         $args = [$estado];
 
+        // ⚠️ `ocurrio_at` VIAJA CON `created_at`. Es la fecha efectiva materializada y, desde que
+        // es NOT NULL, las consultas la miran a pelo —sin `COALESCE` con la creación—. Envejecer
+        // sólo `created_at` dejaría la fila con su fecha efectiva de hoy: un aviso «de hace tres
+        // horas» que el enfriamiento seguiría viendo como recién hecho.
         if ($cuando !== null) {
             $sets[] = 'created_at = ?';
+            $args[] = $cuando;
+            $sets[] = 'ocurrio_at = ?';
             $args[] = $cuando;
         }
 
