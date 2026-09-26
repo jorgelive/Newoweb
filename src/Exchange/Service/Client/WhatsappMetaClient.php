@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Service\Client;
 
+use App\Dto\Lee;
 use App\Exchange\Dto\Meta\RespuestaGraphMeta;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Entity\MetaConfig;
@@ -280,7 +281,7 @@ final class WhatsappMetaClient implements ExchangeClientInterface
             throw new \RuntimeException('Error BORRANDO en Meta API: ' . $baseError . ($userMsg ? ' | ' . $userMsg : ''));
         }
 
-        return $respuesta->crudo;
+        return Lee::objeto($respuesta->crudo);
     }
 
     /**

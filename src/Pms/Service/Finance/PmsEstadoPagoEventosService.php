@@ -79,7 +79,7 @@ final class PmsEstadoPagoEventosService
         $tocadas = 0;
 
         foreach (array_chunk($informacionIds, 400) as $chunk) {
-            $binaryIds = array_map(static fn (string $id) => Uuid::fromString($id)->toBinary(), $chunk);
+            $binaryIds = array_map(static fn (string $id): string => Uuid::fromString($id)->toBinary(), $chunk);
             $in = implode(',', array_fill(0, count($binaryIds), '?'));
             $types = array_fill(0, count($binaryIds), ParameterType::BINARY);
 
@@ -260,8 +260,8 @@ final class PmsEstadoPagoEventosService
      * — si cambia una, hay que cambiar la otra. Se construye desde las mismas constantes
      * para que al menos los valores no se desincronicen.
      *
-     * @param string[] $binaryIds
-     * @param int[]    $types
+     * @param list<string>        $binaryIds
+     * @param list<int>           $types
      */
     private function confirmarPorPago(Connection $conn, string $in, array $binaryIds, array $types): int
     {

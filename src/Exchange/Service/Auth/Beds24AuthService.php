@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Service\Auth;
 
+use App\Dto\Lee;
 use App\Exchange\Entity\Beds24Config;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Enum\ConnectivityProvider;
@@ -53,12 +54,16 @@ final class Beds24AuthService
         ]);
 
         $data = $response->toArray();
-        $token = $data['token'] ?? $data['authToken'] ?? null;
+        $token = Lee::texto($data['token'] ?? $data['authToken'] ?? null);
 
         if (!$token) throw new RuntimeException('Error obteniendo token de Beds24');
 
+        // Un `expiresIn` que no sea un número daba `+ seconds`, que `modify()` no entiende: el
+        // token quedaba con una caducidad basura. Se usa la hora de siempre.
+        $segundos = Lee::entero($data['expiresIn'] ?? null) ?? 3600;
+
         $config->setAuthToken($token);
-        $config->setAuthTokenExpiresAt((new \DateTimeImmutable())->modify('+' . ($data['expiresIn'] ?? 3600) . ' seconds'));
+        $config->setAuthTokenExpiresAt((new \DateTimeImmutable())->modify('+' . $segundos . ' seconds'));
 
         $this->em->flush();
         return $token;

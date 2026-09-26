@@ -43,7 +43,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  *     language?: string,
  *     content?: string|null,
  *     format?: string|null,
- *     status?: string|null
+ *     status?: string|null,
+ *     origenHash?: string|null
  * }
  * @phpstan-type BotonDeMenu array{
  *     type?: string|null,
@@ -949,7 +950,7 @@ class MessageTemplate
     /** @param list<object|array<string, mixed>> $bodies Vienen del CollectionField de EasyAdmin. */
     public function setWhatsappMetaBodies(array $bodies): self
     {
-        $this->whatsappMetaTmpl['body'] = array_map(fn($item) => (array) $item, $bodies);
+        $this->whatsappMetaTmpl['body'] = array_map(self::textoTraducido(...), $bodies);
         return $this;
     }
 
@@ -974,7 +975,7 @@ class MessageTemplate
     /** @param list<object|array<string, mixed>> $buttons Vienen del CollectionField de EasyAdmin. */
     public function setWhatsappMetaButtonsMap(array $buttons): self
     {
-        $this->whatsappMetaTmpl['buttons_map'] = array_map(fn($item) => (array) $item, $buttons);
+        $this->whatsappMetaTmpl['buttons_map'] = array_map(self::botonDeMenu(...), $buttons);
         return $this;
     }
 
@@ -987,7 +988,7 @@ class MessageTemplate
     /** @param list<object|array<string, mixed>> $headers Vienen del CollectionField de EasyAdmin. */
     public function setWhatsappMetaHeaders(array $headers): self
     {
-        $this->whatsappMetaTmpl['header'] = array_map(fn($item) => (array) $item, $headers);
+        $this->whatsappMetaTmpl['header'] = array_map(self::textoTraducido(...), $headers);
         return $this;
     }
 
@@ -1000,7 +1001,7 @@ class MessageTemplate
     /** @param list<object|array<string, mixed>> $footers Vienen del CollectionField de EasyAdmin. */
     public function setWhatsappMetaFooters(array $footers): self
     {
-        $this->whatsappMetaTmpl['footer'] = array_map(fn($item) => (array) $item, $footers);
+        $this->whatsappMetaTmpl['footer'] = array_map(self::textoTraducido(...), $footers);
         return $this;
     }
 
@@ -1013,7 +1014,7 @@ class MessageTemplate
     /** @param list<object|array<string, mixed>> $bodies Vienen del CollectionField de EasyAdmin. */
     public function setBeds24Bodies(array $bodies): self
     {
-        $this->beds24Tmpl['body'] = array_map(fn($item) => (array) $item, $bodies);
+        $this->beds24Tmpl['body'] = array_map(self::textoTraducido(...), $bodies);
         return $this;
     }
 
@@ -1026,7 +1027,7 @@ class MessageTemplate
     /** @param list<object|array<string, mixed>> $subjects Vienen del CollectionField de EasyAdmin. */
     public function setEmailSubjects(array $subjects): self
     {
-        $this->emailTmpl['subject'] = array_map(fn($item) => (array) $item, $subjects);
+        $this->emailTmpl['subject'] = array_map(self::textoTraducido(...), $subjects);
         return $this;
     }
 
@@ -1039,7 +1040,7 @@ class MessageTemplate
     /** @param list<object|array<string, mixed>> $bodies Vienen del CollectionField de EasyAdmin. */
     public function setEmailBodies(array $bodies): self
     {
-        $this->emailTmpl['body'] = array_map(fn($item) => (array) $item, $bodies);
+        $this->emailTmpl['body'] = array_map(self::textoTraducido(...), $bodies);
         return $this;
     }
 
@@ -1052,7 +1053,7 @@ class MessageTemplate
     /** @param list<object|array<string, mixed>> $bodies Vienen del CollectionField de EasyAdmin. */
     public function setWhatsappLinkBodies(array $bodies): self
     {
-        $this->whatsappLinkTmpl['body'] = array_map(fn($item) => (array) $item, $bodies);
+        $this->whatsappLinkTmpl['body'] = array_map(self::textoTraducido(...), $bodies);
         return $this;
     }
 
@@ -1095,5 +1096,67 @@ class MessageTemplate
         $finalItem = $foundItem ?? $englishItem ?? $list[0];
 
         return $finalItem[$key] ?? null;
+    }
+
+    /**
+     * Una fila de texto traducido tal como la entrega el CollectionField de EasyAdmin (objeto o
+     * array), con la forma de `TextoTraducido`.
+     *
+     * Antes era un `(array) $item` guardado bajo ese tipo sin mirarlo. Se conservan las cinco
+     * claves que existen —medido el 26/09/2026 sobre las plantillas de producción: `language`,
+     * `content`, `format`, `status` y `origenHash`, la huella de la autotraducción, que el tipo no
+     * declaraba y sin la cual se retraduciría todo al guardar—, cada una sólo si es del tipo que
+     * promete.
+     *
+     * @return TextoTraducido
+     */
+    private static function textoTraducido(mixed $item): array
+    {
+        $crudo = is_object($item) ? (array) $item : (is_array($item) ? $item : []);
+        $fila = [];
+
+        if (is_string($crudo['language'] ?? null)) {
+            $fila['language'] = $crudo['language'];
+        }
+
+        foreach (['content', 'format', 'status', 'origenHash'] as $clave) {
+            if (array_key_exists($clave, $crudo) && (is_string($crudo[$clave]) || $crudo[$clave] === null)) {
+                $fila[$clave] = $crudo[$clave];
+            }
+        }
+
+        return $fila;
+    }
+
+    /**
+     * Un botón del menú, con la forma de `BotonDeMenu`. Mismo motivo que `textoTraducido()`.
+     *
+     * @return BotonDeMenu
+     */
+    private static function botonDeMenu(mixed $item): array
+    {
+        $crudo = is_object($item) ? (array) $item : (is_array($item) ? $item : []);
+        $boton = [];
+
+        foreach (['type', 'resolver_key', 'content'] as $clave) {
+            if (array_key_exists($clave, $crudo) && (is_string($crudo[$clave]) || $crudo[$clave] === null)) {
+                $boton[$clave] = $crudo[$clave];
+            }
+        }
+
+        $indice = $crudo['index'] ?? null;
+        if (array_key_exists('index', $crudo) && (is_int($indice) || is_string($indice) || $indice === null)) {
+            $boton['index'] = $indice;
+        }
+
+        if (array_key_exists('payload', $crudo)) {
+            $boton['payload'] = $crudo['payload'];
+        }
+
+        if (is_array($crudo['button_text'] ?? null)) {
+            $boton['button_text'] = array_values(array_map(self::textoTraducido(...), $crudo['button_text']));
+        }
+
+        return $boton;
     }
 }

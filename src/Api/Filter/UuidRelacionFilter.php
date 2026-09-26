@@ -92,7 +92,7 @@ final class UuidRelacionFilter extends AbstractFilter
         $campo = $property;
 
         if ($this->isPropertyNested($property, $resourceClass)) {
-            [$alias, $campo] = $this->addJoinsForNestedProperty(
+            [$aliasUnido, $campoUnido] = $this->addJoinsForNestedProperty(
                 $property,
                 $alias,
                 $queryBuilder,
@@ -100,6 +100,14 @@ final class UuidRelacionFilter extends AbstractFilter
                 $resourceClass,
                 Join::INNER_JOIN,
             );
+
+            // El trait de API Platform declara `array` a secas: son el alias del último join y el
+            // campo dentro de él, y así se comprueba en vez de suponerlo.
+            if (!is_string($aliasUnido) || !is_string($campoUnido)) {
+                throw new \LogicException(sprintf('addJoinsForNestedProperty() no devolvió [alias, campo] para «%s».', $property));
+            }
+
+            [$alias, $campo] = [$aliasUnido, $campoUnido];
         }
 
         // ⚠️ **Un parámetro por valor, unidos con OR. NO un `IN` con un array.**

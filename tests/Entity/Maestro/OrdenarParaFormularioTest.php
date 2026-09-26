@@ -49,4 +49,24 @@ final class OrdenarParaFormularioTest extends TestCase
     {
         self::assertSame([], MaestroIdioma::ordenarParaFormulario([]));
     }
+
+    /** Un número se conserva como texto: el formulario escribe lo que el getter le da. */
+    public function testUnContenidoNumericoSeConservaComoTexto(): void
+    {
+        $ordenado = MaestroIdioma::ordenarParaFormulario([['language' => 'es', 'content' => 120]]);
+
+        self::assertSame('120', $ordenado[0]['content']);
+    }
+
+    /** La salida de `normalizarParaDB()` es la que promete su tipo, o lanza. */
+    public function testNormalizarParaDbExigeIdiomaDeTextoYContenidoDeTextoONull(): void
+    {
+        self::assertSame(
+            [['language' => 'es', 'content' => 'Hola', 'origenHash' => 'x']],
+            MaestroIdioma::normalizarParaDB([['language' => 'es', 'content' => 'Hola', 'origenHash' => 'x']]),
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        MaestroIdioma::normalizarParaDB([['language' => 7, 'content' => 'Hola']]);
+    }
 }

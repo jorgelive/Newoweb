@@ -44,7 +44,8 @@ class MediaTokenNamer implements NamerInterface
             if ($object->getToken() === null && method_exists($object, 'initializeToken')) {
                 $object->initializeToken();
             }
-            $token = $object->getToken() ?? 'general';
+            $leido = $object->getToken();
+            $token = is_string($leido) ? $leido : 'general';
         }
 
         // 4. RANDOM CORTO (Anti-colisión)

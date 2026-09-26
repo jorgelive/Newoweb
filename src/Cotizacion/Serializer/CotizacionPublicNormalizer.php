@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Serializer;
 
+use App\Dto\Lee;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Service\PrestadorVivoResolver;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
@@ -74,7 +75,8 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
         $data = $this->decorated->normalize($object, $format, $context);
 
         if ($isPublicView && $object instanceof Cotizacion && \is_array($data) && $object->isPrecioOculto()) {
-            $data = $this->redactarMontos($data);
+            // Lo normalizado de un objeto es un mapa: sus claves son texto.
+            $data = $this->redactarMontos(Lee::objeto($data));
         }
 
         return $data;

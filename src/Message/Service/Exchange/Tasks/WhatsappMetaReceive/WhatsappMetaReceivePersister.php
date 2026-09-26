@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\WhatsappMetaReceive;
 
+use App\Dto\Lee;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Exchange\Entity\MetaConfig;
 use App\Message\Entity\Message;
@@ -807,7 +808,7 @@ readonly class WhatsappMetaReceivePersister
             ]);
 
             $mediaData = $response->toArray(false);
-            $url = $mediaData['url'] ?? null;
+            $url = Lee::texto($mediaData['url'] ?? null);
 
             if (!$url) {
                 $this->logger->warning("Meta no devolvió una URL válida para el Media ID: {$mediaId}");
@@ -855,8 +856,9 @@ readonly class WhatsappMetaReceivePersister
 
         $destino = null;
         foreach ($message->getAllQueues() as $cola) {
-            if (method_exists($cola, 'getDestinationPhone') && $cola->getDestinationPhone() !== null) {
-                $destino = (string) $cola->getDestinationPhone();
+            $telefono = method_exists($cola, 'getDestinationPhone') ? $cola->getDestinationPhone() : null;
+            if (is_scalar($telefono)) {
+                $destino = (string) $telefono;
                 break;
             }
         }

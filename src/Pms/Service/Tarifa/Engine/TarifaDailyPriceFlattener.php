@@ -7,6 +7,7 @@ use DateInterval;
 use DatePeriod;
 use DateTimeImmutable;
 use DateTimeInterface;
+use App\Dto\Lee;
 use InvalidArgumentException;
 
 /**
@@ -18,6 +19,23 @@ use InvalidArgumentException;
  * - Preserva un identificador del "rango ganador" por día: sourceId
  *   (si no viene id, genera un hash estable).
  * - Si un día NO tiene ganador, puede rellenar con fallbackProvider (tarifa base).
+ *
+ * Lo que devuelve el `rangeAccessor` se lee UNA vez, en `leerRango()`, a una forma con tipo: el
+ * comparador y el día ganador trabajan con ella, no con el array que dio el accessor (nivel 10 de
+ * PHPStan). El `sourceId` se calcula ANTES, sobre los datos crudos, para que el hash no cambie.
+ *
+ * @phpstan-type RangoLeido array{
+ *     start: DateTimeInterface,
+ *     end: DateTimeInterface,
+ *     price: float,
+ *     minStay: ?int,
+ *     currency: ?string,
+ *     important: bool,
+ *     weight: int,
+ *     id: int,
+ *     sourceId: string,
+ * }
+ * @phpstan-type Candidato array{raw: mixed, data: RangoLeido, start: DateTimeImmutable, end: DateTimeImmutable}
  */
 final class TarifaDailyPriceFlattener
 {
@@ -33,7 +51,7 @@ final class TarifaDailyPriceFlattener
      *     weight?:int,
      *     id?:int|string|null,
      * }
-     * @param callable|null $priorityComparator fn($a,$b): int
+     * @param (callable(Candidato, Candidato): int)|null $priorityComparator
      * @param callable|null $fallbackProvider fn(DateTimeImmutable $day): ?array{
      *   price:float|int|string,
      *   minStay?:int|null,
@@ -66,11 +84,11 @@ final class TarifaDailyPriceFlattener
         // Pre-filtra rangos que intersecten [from, to)
         $candidates = [];
         foreach ($rangos as $r) {
-            $data = $rangeAccessor($r);
+            $data = $this->leerRango($rangeAccessor($r));
 
-            // Un precio que no es un número es un precio que no está: antes `(float) 'abc'` era
-            // 0.00 y el día salía gratis a la venta.
-            if (!isset($data['start'], $data['end'], $data['price']) || self::decimal($data['price']) === null) {
+            // Sin fechas o con un precio que no es un número, el rango no cuenta: antes
+            // `(float) 'abc'` era 0.00 y el día salía gratis a la venta.
+            if ($data === null) {
                 continue;
             }
 
@@ -87,7 +105,8 @@ final class TarifaDailyPriceFlattener
             }
 
             // Asegura que exista un sourceId estable (id o hash).
-            $data['sourceId'] = $this->computeSourceId($data, $rs, $re);
+            $data['sourceId'] = $this->computeSourceId($data['crudo'], $rs, $re);
+            unset($data['crudo']);
 
             $candidates[] = [
                 'raw' => $r,
@@ -101,16 +120,18 @@ final class TarifaDailyPriceFlattener
             // Default mejorado:
             // important desc, weight desc, duración asc (más corto gana), id desc.
             $priorityComparator = static function (array $a, array $b): int {
+                /** @var Candidato $a */
+                /** @var Candidato $b */
                 // 1) important: true gana
-                $ai = !empty($a['data']['important']) ? 1 : 0;
-                $bi = !empty($b['data']['important']) ? 1 : 0;
+                $ai = $a['data']['important'] ? 1 : 0;
+                $bi = $b['data']['important'] ? 1 : 0;
                 if ($ai !== $bi) {
                     return $bi <=> $ai; // (a mejor si es más importante)
                 }
 
                 // 2) weight: más grande gana
-                $ap = (int) ($a['data']['weight'] ?? 0);
-                $bp = (int) ($b['data']['weight'] ?? 0);
+                $ap = $a['data']['weight'];
+                $bp = $b['data']['weight'];
                 if ($ap !== $bp) {
                     return $bp <=> $ap; // (a mejor si tiene más prioridad)
                 }
@@ -130,13 +151,7 @@ final class TarifaDailyPriceFlattener
                 }
 
                 // 4) id desc (si existe)
-                $aidRaw = $a['data']['id'] ?? 0;
-                $bidRaw = $b['data']['id'] ?? 0;
-
-                $aid = is_numeric($aidRaw) ? (int) $aidRaw : 0;
-                $bid = is_numeric($bidRaw) ? (int) $bidRaw : 0;
-
-                return $bid <=> $aid; // (a mejor si tiene id mayor)
+                return $b['data']['id'] <=> $a['data']['id']; // (a mejor si tiene id mayor)
             };
         }
 
@@ -191,21 +206,75 @@ final class TarifaDailyPriceFlattener
             if ($best !== null) {
                 $data = $best['data'];
 
-                $minStay = isset($data['minStay']) ? (int) $data['minStay'] : 2;
+                $minStay = $data['minStay'] ?? 2;
                 if ($minStay <= 0) {
                     $minStay = 2;
                 }
 
                 $daily[$day->format('Y-m-d')] = [
-                    'price' => (float) ($data['price'] ?? 0),
+                    'price' => $data['price'],
                     'minStay' => $minStay,
-                    'currency' => isset($data['currency']) ? (string) $data['currency'] : null,
-                    'sourceId' => (string) $data['sourceId'],
+                    'currency' => $data['currency'],
+                    'sourceId' => $data['sourceId'],
                 ];
             }
         }
 
         return $daily;
+    }
+
+    /**
+     * Lo que dio el `rangeAccessor`, con tipo. Cada campo con la MISMA lectura que tenía donde se
+     * usaba —el comparador, el día ganador—, para que el ganador de cada día no cambie:
+     *
+     * - `important`: `!empty()`. `weight` y el `id` para desempatar: `is_numeric` → `(int)`, o 0.
+     * - `minStay` y `currency`: el `(int)`/`(string)` de antes sobre un escalar; ausente es `null`.
+     * - `null` si faltan las fechas o el precio no es un número: el rango no cuenta.
+     *
+     * `crudo` viaja sólo hasta `computeSourceId()`, que hashea lo que llegó y no lo leído.
+     *
+     * @return array{
+     *     start: DateTimeInterface,
+     *     end: DateTimeInterface,
+     *     price: float,
+     *     minStay: ?int,
+     *     currency: ?string,
+     *     important: bool,
+     *     weight: int,
+     *     id: int,
+     *     sourceId: string,
+     *     crudo: array<string, mixed>,
+     * }|null
+     */
+    private function leerRango(mixed $data): ?array
+    {
+        if (!is_array($data)) {
+            return null;
+        }
+
+        $inicio = $data['start'] ?? null;
+        $fin = $data['end'] ?? null;
+        $precio = self::decimal($data['price'] ?? null);
+
+        if (!$inicio instanceof DateTimeInterface || !$fin instanceof DateTimeInterface || $precio === null) {
+            return null;
+        }
+
+        $minStay = $data['minStay'] ?? null;
+        $moneda = $data['currency'] ?? null;
+
+        return [
+            'start' => $inicio,
+            'end' => $fin,
+            'price' => $precio,
+            'minStay' => is_scalar($minStay) ? (int) $minStay : null,
+            'currency' => is_scalar($moneda) ? (string) $moneda : null,
+            'important' => !empty($data['important']),
+            'weight' => self::entero($data['weight'] ?? null) ?? 0,
+            'id' => self::entero($data['id'] ?? null) ?? 0,
+            'sourceId' => '',
+            'crudo' => Lee::objeto($data),
+        ];
     }
 
     /**

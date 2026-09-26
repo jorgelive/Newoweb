@@ -481,14 +481,14 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
      * libres, y qué preguntar para poder cerrar. Sin la última se queda en un dato y lo que
      * hay que hacer es vender.
      *
-     * @param list<object> $libres
+     * @param list<PmsUnidadDisponibleDto> $libres
      */
     private function reparto(array $libres, ?int $pax): string
     {
         $capacidad = 0;
 
         foreach ($libres as $u) {
-            $capacidad += (int) ($u->capacidad ?? 0);
+            $capacidad += $u->capacidad ?? 0;
         }
 
         $alcanza = $pax !== null && $capacidad >= $pax;

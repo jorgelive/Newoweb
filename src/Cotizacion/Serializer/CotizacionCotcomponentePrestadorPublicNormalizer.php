@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Serializer;
 
+use App\Dto\Lee;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Service\PrestadorVivoResolver;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
@@ -113,7 +114,8 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
             // un `unset()`, y eso sólo protegía en JSON-LD —este decorador no cubre el normalizer
             // de JSON plano—, con lo que el mismo enlace público en otro formato los enseñaba todos.
             if ($object->isPrestadorVisible()) {
-                $data = $this->conDatosVivos($object, $data);
+                // Lo normalizado de un objeto es un mapa: sus claves son texto.
+                $data = $this->conDatosVivos($object, Lee::objeto($data));
             }
         }
 

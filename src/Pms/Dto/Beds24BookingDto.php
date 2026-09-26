@@ -76,7 +76,7 @@ final class Beds24BookingDto
     {
         // 1. Capturamos el grupo entero (si viene)
         $bookingGroup = isset($booking['bookingGroup']) && is_array($booking['bookingGroup'])
-            ? $booking['bookingGroup']
+            ? Lee::objeto($booking['bookingGroup'])
             : [];
 
         // 2. Lógica "Cascada" para el Master ID

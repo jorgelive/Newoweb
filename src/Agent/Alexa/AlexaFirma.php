@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Alexa;
 
+use App\Dto\Lee;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -237,7 +238,7 @@ final readonly class AlexaFirma
             return false;
         }
 
-        if (!$this->tieneSanDeAlexa($hoja)) {
+        if (!$this->tieneSanDeAlexa(Lee::objeto($hoja))) {
             return false;
         }
 

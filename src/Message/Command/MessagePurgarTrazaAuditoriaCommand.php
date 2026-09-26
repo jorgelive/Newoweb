@@ -111,7 +111,7 @@ final class MessagePurgarTrazaAuditoriaCommand extends Command
                   WHERE JSON_CONTAINS_PATH(metadata, "one", "$._debug_trace")
                   LIMIT ' . self::TANDA
             );
-            $total += $tocadas;
+            $total += (int) $tocadas;
             $io->write(sprintf("\r  %d / %s mensajes limpiados", $total, $antes['filas']));
         } while ($tocadas > 0);
 

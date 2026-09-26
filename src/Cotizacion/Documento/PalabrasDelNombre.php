@@ -46,6 +46,7 @@ final readonly class PalabrasDelNombre
      */
     public static function de(string $texto): array
     {
+        /** @var \Transliterator|null $translit */
         static $translit = null;
         $translit ??= \Transliterator::create('Any-Latin; Latin-ASCII; Upper');
 

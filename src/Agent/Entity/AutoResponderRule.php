@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Entity;
 
+use App\Dto\Lee;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
@@ -156,7 +157,7 @@ class AutoResponderRule
 
         // Si el JSON es válido, lo asignamos. Si hay un error de sintaxis,
         // fallback a array vacío para evitar que Doctrine lance una excepción fatal.
-        $this->actionParameters = is_array($decoded) ? $decoded : [];
+        $this->actionParameters = Lee::objeto($decoded);
 
         return $this;
     }

@@ -442,7 +442,7 @@ parameters:
 
 	
 		-
-			message: '#^Call to function is_array\(\) with list\<array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null\}\> will always evaluate to true\.$#'
+			message: '#^Call to function is_array\(\) with list\<array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null, origenHash\?\: string\|null\}\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Message/Controller/Crud/MessageTemplateCrudController.php
@@ -486,13 +486,13 @@ parameters:
 			path: src/Message/Entity/MessageConversation.php
 
 		-
-			message: '#^Call to function is_array\(\) with array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null\} will always evaluate to true\.$#'
+			message: '#^Call to function is_array\(\) with array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null, origenHash\?\: string\|null\} will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Message/Entity/MessageTemplate.php
 
 		-
-			message: '#^Call to function is_array\(\) with non\-empty\-list\<array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null\}\> will always evaluate to true\.$#'
+			message: '#^Call to function is_array\(\) with non\-empty\-list\<array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null, origenHash\?\: string\|null\}\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Message/Entity/MessageTemplate.php

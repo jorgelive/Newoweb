@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Finanzas\Controller\Webhook;
 
+use App\Dto\Lee;
 use App\Finanzas\Entity\FinEnlacePago;
 use App\Finanzas\Entity\FinPasarelaWebhookAudit;
 use App\Finanzas\Enum\FinEnlacePagoEstado;
@@ -165,10 +166,10 @@ final class CulqiWebhookController extends AbstractController
         if (is_string($datos)) {
             $decodificado = json_decode($datos, true);
 
-            return is_array($decodificado) ? $decodificado : [];
+            return Lee::objeto($decodificado);
         }
 
-        return is_array($datos) ? $datos : [];
+        return Lee::objeto($datos);
     }
 
 

@@ -76,8 +76,11 @@ trait MediaTrait
     public function isImage(?string $fileName = null): bool
     {
         // 1. VALIDACIÓN ESTRICTA: Por MIME Type (Si la entidad tiene la propiedad)
-        if (method_exists($this, 'getMimeType') && $this->getMimeType() !== null) {
-            if (str_starts_with($this->getMimeType(), 'image/')) {
+        // Los getters se llaman por nombre (el trait no sabe qué entidad lo usa), así que lo que
+        // devuelven se comprueba en vez de suponerlo.
+        $mime = method_exists($this, 'getMimeType') ? $this->getMimeType() : null;
+        if (is_string($mime)) {
+            if (str_starts_with($mime, 'image/')) {
                 return true;
             }
             // Si tiene MimeType y NO empieza con image/, descartamos inmediatamente
@@ -94,7 +97,7 @@ trait MediaTrait
             }
         }
 
-        if (!$fileName) {
+        if (!is_string($fileName) || $fileName === '') {
             return false;
         }
 

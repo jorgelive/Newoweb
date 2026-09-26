@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Provider\Google;
 
+use App\Dto\Lee;
 use App\Agent\Access\GuardiaDeSkills;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Skill\RastroDeSkill;
@@ -143,7 +144,8 @@ final readonly class GoogleAISkillAdapter
         // que se envuelve bajo una clave.
         $respuesta = $resultado->datos === [] || array_is_list($resultado->datos)
             ? ['resultado' => $resultado->datos]
-            : $resultado->datos;
+            // No es lista: es un objeto JSON, y sus claves son texto.
+            : Lee::objeto($resultado->datos);
 
         // Qué se le devolvió, por claves y tamaño. Es la otra mitad del rastro: sin ella no se
         // distingue «reintenta porque le contestaste que no existe» de «reintenta porque sí».

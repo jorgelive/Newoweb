@@ -92,7 +92,7 @@ final class FinPasarelaRegistry
     /**
      * Pasarelas con credenciales, en el orden del enum.
      *
-     * @return FinPasarela[]
+     * @return list<FinPasarela>
      */
     public function disponibles(): array
     {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Translate;
 
+use App\Dto\Lee;
 use App\Attribute\AutoTranslate;
 use App\Entity\Maestro\MaestroIdioma;
 use Doctrine\ORM\EntityManagerInterface;
@@ -552,8 +553,9 @@ class AutoTranslationService
                 ));
             }
 
-            $row['content'] = $row['content'] ?? '';
-            $out[strtolower((string) $row['language'])] = $row;
+            $fila = Lee::objeto($row);
+            $fila['content'] = $row['content'] ?? '';
+            $out[strtolower((string) $row['language'])] = $fila;
         }
         return $out;
     }

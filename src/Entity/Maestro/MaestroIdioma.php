@@ -325,19 +325,25 @@ class MaestroIdioma
      */
     public static function normalizarParaDB(array $data): array
     {
+        $filas = [];
         foreach ($data as $index => $item) {
-            // Si no es array, o faltan las llaves exactas, o sobran llaves extrañas... ¡BOOM!
+            // Si no es array, o faltan las llaves, o no son del tipo que promete la salida... ¡BOOM!
+            // Hasta el nivel 10 de PHPStan sólo se miraba que existieran: un `language` numérico
+            // o un `content` en forma de lista se guardaban bajo un tipo que decía otra cosa.
             if (
                 !is_array($item) ||
-                !array_key_exists('language', $item) ||
-                !array_key_exists('content', $item)
+                !is_string($item['language'] ?? null) ||
+                !array_key_exists('content', $item) ||
+                !(is_string($item['content']) || $item['content'] === null)
             ) {
                 throw new \InvalidArgumentException(
-                    "Estructura de traducción inválida en el índice $index. Se requiere exactamente 'language' y 'content'."
+                    "Estructura de traducción inválida en el índice $index. Se requiere exactamente 'language' (texto) y 'content' (texto o null)."
                 );
             }
+
+            $filas[] = $item;
         }
 
-        return array_values($data);
+        return $filas;
     }
 }

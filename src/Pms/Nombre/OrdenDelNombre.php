@@ -159,6 +159,8 @@ final readonly class OrdenDelNombre
             return $original;
         }
 
+        /** @var \Transliterator|null $translit */
+
         static $translit = null;
         $translit ??= \Transliterator::create('Any-Latin; Latin-ASCII; Upper');
 

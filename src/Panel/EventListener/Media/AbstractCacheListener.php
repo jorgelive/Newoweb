@@ -38,7 +38,7 @@ abstract class AbstractCacheListener
             $getter = 'get' . ucfirst($field);
             if (method_exists($entity, $getter)) {
                 $filename = $entity->$getter();
-                if ($filename) {
+                if (is_string($filename) && $filename !== '') {
                     $this->removeCache($path, $filename);
                 }
             }

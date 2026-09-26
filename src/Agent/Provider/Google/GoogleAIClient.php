@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Provider\Google;
 
+use App\Dto\Lee;
 use App\Agent\Provider\CatalogoModelos;
 use RuntimeException;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -121,10 +122,10 @@ final class GoogleAIClient
             throw new RuntimeException(sprintf(
                 'Google AI %d: %s',
                 $estado,
-                is_string($datos['error']['message'] ?? null) ? $datos['error']['message'] : 'sin detalle'
+                Lee::texto(Lee::en($datos, 'error', 'message')) ?? 'sin detalle'
             ));
         }
 
-        return $datos;
+        return Lee::objeto($datos);
     }
 }

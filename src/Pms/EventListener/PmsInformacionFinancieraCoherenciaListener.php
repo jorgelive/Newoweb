@@ -296,7 +296,7 @@ final class PmsInformacionFinancieraCoherenciaListener
         }
 
         [$old, $new] = $cambio;
-        $esCancelada = static fn ($e): bool => $e?->getId() === PmsEventoEstado::CODIGO_CANCELADA;
+        $esCancelada = static fn (mixed $e): bool => $e instanceof PmsEventoEstado && $e->getId() === PmsEventoEstado::CODIGO_CANCELADA;
 
         // Sólo la transición hacia cancelada.
         if ($esCancelada($old) || !$esCancelada($new)) {

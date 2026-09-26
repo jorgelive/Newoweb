@@ -375,17 +375,23 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
      */
     private static function mismasDiscrepancias(array $a, array $b): bool
     {
-        $clave = static function (array $lista): array {
-            $claves = array_map(
-                static fn (array $d): string => implode("\u{1F}", [$d['campo'], $d['documento'], $d['manifiesto']]),
-                $lista,
-            );
-            sort($claves);
+        return self::clavesDeDiscrepancias($a) === self::clavesDeDiscrepancias($b);
+    }
 
-            return $claves;
-        };
+    /**
+     * @param list<array{campo: string, documento: string, manifiesto: string}> $lista
+     *
+     * @return list<string>
+     */
+    private static function clavesDeDiscrepancias(array $lista): array
+    {
+        $claves = [];
+        foreach ($lista as $d) {
+            $claves[] = implode("\u{1F}", [$d['campo'], $d['documento'], $d['manifiesto']]);
+        }
+        sort($claves);
 
-        return $clave($a) === $clave($b);
+        return $claves;
     }
 
     /**

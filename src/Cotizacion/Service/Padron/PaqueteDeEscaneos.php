@@ -347,10 +347,13 @@ final readonly class PaqueteDeEscaneos
      */
     private function sinTildes(string $texto): string
     {
+        /** @var \Transliterator|null $translit */
         static $translit = null;
         $translit ??= Transliterator::create('Any-Latin; Latin-ASCII');
 
-        $plano = $translit?->transliterate($texto) ?? $texto;
+        // `transliterate()` devuelve `false` si falla, y el `??` no lo cazaba: el nombre salía vacío.
+        $plano = $translit?->transliterate($texto);
+        $plano = is_string($plano) ? $plano : $texto;
         $plano = (string) preg_replace('/[^A-Za-z0-9 ,._()-]+/', '', $plano);
 
         return trim((string) preg_replace('/\s+/', ' ', $plano));

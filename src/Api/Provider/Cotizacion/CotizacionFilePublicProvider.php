@@ -478,6 +478,17 @@ final class CotizacionFilePublicProvider implements ProviderInterface
     }
 
     /**
+     * La salida del primer tramo, en ISO-8601: se compara como texto porque así viene y así ordena
+     * bien. Lo que no vuela va al final de su propio peso, no al principio.
+     *
+     * @param Subgrupo $subgrupo
+     */
+    private static function salidaDelSubgrupo(array $subgrupo): string
+    {
+        return ($subgrupo['vuelos'][0] ?? null)['salida'] ?? '9999';
+    }
+
+    /**
      * El orden de las tarjetas de «Lo tuyo».
      *
      * ⚠️ **No había ninguno.** Ni aquí, ni en el store, ni en la vista, y
@@ -516,13 +527,9 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             default => 2,
         };
 
-        // La salida del primer tramo, en ISO-8601: se compara como texto porque así viene y así
-        // ordena bien. Lo que no vuela va al final de su propio peso, no al principio.
-        $cuando = static fn (array $sg): string => (string) ($sg['vuelos'][0]['salida'] ?? '9999');
-
-        usort($subgrupos, static function (array $a, array $b) use ($peso, $cuando): int {
-            return [$peso($a['eje']), $cuando($a), $a['clave']]
-                <=> [$peso($b['eje']), $cuando($b), $b['clave']];
+        usort($subgrupos, static function (array $a, array $b) use ($peso): int {
+            return [$peso($a['eje']), self::salidaDelSubgrupo($a), $a['clave']]
+                <=> [$peso($b['eje']), self::salidaDelSubgrupo($b), $b['clave']];
         });
 
         return $subgrupos;

@@ -123,6 +123,32 @@ El patrón que se usó con Meta y con pagos, y que se repite en cada frontera co
 **Cerrado el 26/09/2026: nivel 9 en `phpstan.dist.neon`, cero avisos.** Una frontera nueva entra
 con su fila aquí; si no, el analizador no la deja pasar.
 
+### Hacia el nivel 10 (el `mixed` que nace dentro)
+
+El 9 cierra el `mixed` que entra de fuera; el 10 cierra el que el propio código fabrica al no
+declarar un tipo: un parámetro de closure sin tipo, un `static $x` de función, lo que devuelve un
+getter llamado por nombre (`$entidad->$getter()`), un `(array) $objeto`. Medido el 26/09/2026:
+**378 avisos**, 267 de ellos en los controladores CRUD de EasyAdmin.
+
+**Fuera del panel, a cero** (26/09/2026). Lo que no era sólo tipos:
+
+| Dónde | Qué pasaba |
+|---|---|
+| `TarifaDailyPriceFlattener` | Lo que da el `rangeAccessor` se lee una vez en `leerRango()` a una forma con tipo. Comprobado contra el código anterior con 3 000 combinaciones aleatorias de rangos, pesos, ids y precios en texto: **mismo ganador y mismo `sourceId` en todos los días** |
+| `MessageTemplate` (setters del CollectionField) | Guardaban `(array) $item` bajo un tipo que no se miraba. Y el tipo mentía por omisión: las filas traen **`origenHash`**, la huella de la autotraducción, que `TextoTraducido` no declaraba. Un lector «de lo declarado» la habría borrado al guardar y se habría retraducido todo. Medido antes de escribir el lector: las claves reales de todas las plantillas de producción |
+| `MaestroIdioma::normalizarParaDB()` | Decía garantizar su salida y sólo miraba que las claves existieran. Ahora exige `language` texto y `content` texto o `null`. Las 3 032 filas guardadas pasan |
+| `PaqueteDeEscaneos::sinTildes()` | `transliterate()` devuelve `false` al fallar y el `??` no lo cazaba: el nombre del archivo salía vacío |
+| `Beds24AuthService` | Un `expiresIn` que no fuera número construía `+ seconds`, una caducidad basura para el token |
+
+⚠️ **Un `@param` en un docblock encima de una closure NO lo lee PHPStan** (ni `/** @param X $a */
+static fn (array $a) …` ni sobre la asignación). Donde la closure necesita tipo, se convierte en un
+método estático con su docblock, o en un bucle.
+
+Quedan los 267 del panel: `formatValue(static fn ($value) => …)` que EasyAdmin llama con lo que tenga
+el campo. Se hacen por controlador, con `mixed $value` y la comprobación dentro —no con `?int
+$value`, que con `strict_types` convierte un dato raro en un `TypeError` que tumba el listado—,
+abriendo cada pantalla.
+
 ### Por qué la entrada de las skills no es un DTO por skill
 
 Cada skill ya declara sus parámetros —nombre, tipo, obligatoriedad— en su `SkillDefinition`, que es

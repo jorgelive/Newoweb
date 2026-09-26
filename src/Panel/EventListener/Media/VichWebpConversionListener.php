@@ -169,7 +169,9 @@ class VichWebpConversionListener
     {
         $getter = 'get' . ucfirst($property);
         if (method_exists($object, $getter)) {
-            return $object->$getter();
+            $archivo = $object->$getter();
+
+            return is_object($archivo) ? $archivo : null;
         }
         return null;
     }

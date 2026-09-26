@@ -154,7 +154,7 @@ final class OperacionServicioLugarExtension implements QueryCollectionExtensionI
     }
 
     /**
-     * @param array<int, mixed> $crudos
+     * @param array<mixed> $crudos
      *
      * @return array<int, Uuid>
      */

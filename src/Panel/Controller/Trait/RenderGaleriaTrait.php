@@ -40,13 +40,14 @@ trait RenderGaleriaTrait
         $i = 0;
 
         foreach ($imagenes as $imagen) {
-            if (!method_exists($imagen, 'getImageName') || !$imagen->getImageName()) {
+            $nombre = method_exists($imagen, 'getImageName') ? $imagen->getImageName() : null;
+            if (!is_string($nombre) || $nombre === '') {
                 continue;
             }
             $tieneImagenes = true;
 
-            $thumbUrl = $this->resolveThumbUrl($uploadPath, $imagen->getImageName(), $thumbFilter);
-            $fullUrl  = $this->resolveThumbUrl($uploadPath, $imagen->getImageName(), $fullFilter);
+            $thumbUrl = $this->resolveThumbUrl($uploadPath, $nombre, $thumbFilter);
+            $fullUrl  = $this->resolveThumbUrl($uploadPath, $nombre, $fullFilter);
             $alt = htmlspecialchars(sprintf('Foto %d', $i + 1));
 
             $portadaBadge = (method_exists($imagen, 'getIsPortada') && $imagen->getIsPortada())

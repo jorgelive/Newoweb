@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Provider\DeepSeek;
 
+use App\Dto\Lee;
 use App\Agent\Provider\CatalogoModelos;
 use RuntimeException;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -184,11 +185,11 @@ final class DeepSeekClient
         }
 
         if ($estado !== 200) {
-            $motivo = $datos['error']['message'] ?? 'respuesta '.$estado;
+            $motivo = Lee::en($datos, 'error', 'message') ?? 'respuesta '.$estado;
 
             throw new RuntimeException('DeepSeek: '.(is_string($motivo) ? $motivo : 'error '.$estado));
         }
 
-        return $datos;
+        return Lee::objeto($datos);
     }
 }

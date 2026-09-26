@@ -69,6 +69,10 @@
   `docs/Mensajeria.md` §14.c), un `conRecargo: "false"` que el `(bool)` leía como `true` en un
   enlace de pago, y un precio nocturno no numérico que ponía ese día a la venta a 0,00.
 
+  **Nivel 10** (el `mixed` que nace dentro: closures y getters sin tipo): fuera de los controladores
+  CRUD del panel, **a cero** desde el 26/09/2026; quedan 267 ahí. No se activa hasta cerrarlos. Ver
+  `docs/TiposDeFrontera.md` §4, «Hacia el nivel 10».
+
   ⚠️ **Un lector genérico (`Lee`, `(string)`, `(int)`) en la lógica de negocio es la señal de que
   falta un DTO.** Y un `(string)` sobre `mixed` no es una conversión: es la palabra «Array» guardada
   en la base el día que llega una lista.

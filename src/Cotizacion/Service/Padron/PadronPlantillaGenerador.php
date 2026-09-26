@@ -341,12 +341,6 @@ final readonly class PadronPlantillaGenerador
         // `#Reserva aérea nacional` volvería a subirse sin ella, y el importador leería que a esa
         // gente le quitaron el vuelo nacional. Sobrar una columna es inofensivo; faltar, no.
         $permitidos = $soloEstos === null ? null : array_flip($soloEstos);
-        $texto = static function (\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $h, array $porNombre, int $fila, string $columna, ?string $valor): void {
-            if ($valor === null || $valor === '' || !isset($porNombre[$columna])) {
-                return;
-            }
-            $h->setCellValueExplicit([$porNombre[$columna] + 1, $fila], $valor, DataType::TYPE_STRING);
-        };
 
         $n = 2;
 
@@ -355,15 +349,15 @@ final readonly class PadronPlantillaGenerador
                 continue;
             }
 
-            $texto($hoja, $porNombre, $n, PadronFormato::COL_ID, (string) $pasajero->getId());
-            $texto($hoja, $porNombre, $n, PadronFormato::COL_NOMBRES, $pasajero->getNombre());
-            $texto($hoja, $porNombre, $n, PadronFormato::COL_APELLIDOS, $pasajero->getApellido());
-            $texto($hoja, $porNombre, $n, PadronFormato::COL_NACIONALIDAD, $pasajero->getPais()?->getId());
-            $texto($hoja, $porNombre, $n, PadronFormato::COL_SEXO, $pasajero->getSexo()?->value);
-            $texto($hoja, $porNombre, $n, PadronFormato::COL_NACIMIENTO, $pasajero->getFechanacimiento()?->format('d/m/Y'));
-            $texto($hoja, $porNombre, $n, PadronFormato::COL_TIPO, $pasajero->getTipo()?->label());
-            $texto($hoja, $porNombre, $n, PadronFormato::COL_TELEFONO, $pasajero->getTelefono());
-            $texto($hoja, $porNombre, $n, PadronFormato::COL_OBSERVACIONES, $pasajero->getObservaciones());
+            self::celdaDeTexto($hoja, $porNombre, $n, PadronFormato::COL_ID, (string) $pasajero->getId());
+            self::celdaDeTexto($hoja, $porNombre, $n, PadronFormato::COL_NOMBRES, $pasajero->getNombre());
+            self::celdaDeTexto($hoja, $porNombre, $n, PadronFormato::COL_APELLIDOS, $pasajero->getApellido());
+            self::celdaDeTexto($hoja, $porNombre, $n, PadronFormato::COL_NACIONALIDAD, $pasajero->getPais()?->getId());
+            self::celdaDeTexto($hoja, $porNombre, $n, PadronFormato::COL_SEXO, $pasajero->getSexo()?->value);
+            self::celdaDeTexto($hoja, $porNombre, $n, PadronFormato::COL_NACIMIENTO, $pasajero->getFechanacimiento()?->format('d/m/Y'));
+            self::celdaDeTexto($hoja, $porNombre, $n, PadronFormato::COL_TIPO, $pasajero->getTipo()?->label());
+            self::celdaDeTexto($hoja, $porNombre, $n, PadronFormato::COL_TELEFONO, $pasajero->getTelefono());
+            self::celdaDeTexto($hoja, $porNombre, $n, PadronFormato::COL_OBSERVACIONES, $pasajero->getObservaciones());
 
             foreach ($pasajero->getIdentificaciones() as $identificacion) {
                 $tipo = $identificacion->getTipo();
@@ -371,8 +365,8 @@ final readonly class PadronPlantillaGenerador
                     continue;
                 }
                 $etiqueta = PadronFormato::etiquetaDeDocumento($tipo);
-                $texto($hoja, $porNombre, $n, $etiqueta, $identificacion->getNumero());
-                $texto($hoja, $porNombre, $n, PadronFormato::PREFIJO_VENCIMIENTO.$etiqueta,
+                self::celdaDeTexto($hoja, $porNombre, $n, $etiqueta, $identificacion->getNumero());
+                self::celdaDeTexto($hoja, $porNombre, $n, PadronFormato::PREFIJO_VENCIMIENTO.$etiqueta,
                     $identificacion->getVencimiento()?->format('d/m/Y'));
             }
 
@@ -385,7 +379,7 @@ final readonly class PadronPlantillaGenerador
                 }
                 $columna = PadronFormato::MARCA_SERVICIO.$grupo->getClave();
                 $va = in_array($grupo, $pasajero->grupos(), true);
-                $texto($hoja, $porNombre, $n, $columna, $va ? 'SI' : 'NO');
+                self::celdaDeTexto($hoja, $porNombre, $n, $columna, $va ? 'SI' : 'NO');
             }
 
             foreach ($pasajero->grupos() as $grupo) {
@@ -456,6 +450,19 @@ final readonly class PadronPlantillaGenerador
      *
      * ⚠️ Por qué no es una columna de la hoja de pasajeros: ver {@see PadronFormato::HOJA_GRUPOS}.
      */
+    /**
+     * Una celda de texto en la columna que se llame así, si la plantilla la tiene.
+     *
+     * @param array<string, int> $porNombre Cabecera → índice de columna (base 0).
+     */
+    private static function celdaDeTexto(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $h, array $porNombre, int $fila, string $columna, ?string $valor): void
+    {
+        if ($valor === null || $valor === '' || !isset($porNombre[$columna])) {
+            return;
+        }
+        $h->setCellValueExplicit([$porNombre[$columna] + 1, $fila], $valor, DataType::TYPE_STRING);
+    }
+
     private function hojaGrupos(Spreadsheet $libro, ?CotizacionFile $file): void
     {
         $hoja = $libro->createSheet();

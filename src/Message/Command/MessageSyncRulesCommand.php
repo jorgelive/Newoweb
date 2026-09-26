@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\Queue\MessageRuleEngine;
 use Doctrine\ORM\EntityManagerInterface;
@@ -72,7 +73,7 @@ class MessageSyncRulesCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $conversationId = $input->getArgument('conversation_id');
+        $conversationId = EntradaDeConsola::textoOpcional($input->getArgument('conversation_id'), 'conversation_id');
         $syncAll = $input->getOption('all');
         $syncClosed = $input->getOption('closed');
         $force = (bool) $input->getOption('force');
@@ -104,6 +105,7 @@ class MessageSyncRulesCommand extends Command
         }
 
         $repository = $this->em->getRepository(MessageConversation::class);
+        /** @var list<string|\Symfony\Component\Uid\Uuid> $conversationIds */
         $conversationIds = [];
 
         // 🔥 CORRECCIÓN: Solo extraemos los IDs (strings) de la base de datos, no los objetos completos
@@ -120,6 +122,8 @@ class MessageSyncRulesCommand extends Command
                     ->setParameter('statuses', [MessageConversation::STATUS_CLOSED, MessageConversation::STATUS_ARCHIVED]);
             }
 
+            // `c.id` es un `Uuid` hidratado: se pasa tal cual a `find()`, que lo acepta.
+            /** @var list<array{id: \Symfony\Component\Uid\Uuid}> $results */
             $results = $qb->getQuery()->getArrayResult();
             $conversationIds = array_column($results, 'id');
 
@@ -146,7 +150,7 @@ class MessageSyncRulesCommand extends Command
                     $countSynced++;
                 }
             } catch (\Throwable $e) {
-                $io->warning(sprintf('Error al procesar la conversación %s: %s', $id, $e->getMessage()));
+                $io->warning(sprintf('Error al procesar la conversación %s: %s', (string) $id, $e->getMessage()));
             }
 
             $io->progressAdvance();

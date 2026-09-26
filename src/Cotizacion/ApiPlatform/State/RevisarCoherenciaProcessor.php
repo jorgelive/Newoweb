@@ -38,17 +38,18 @@ final class RevisarCoherenciaProcessor implements ProcessorInterface
 
         $hallazgos = $this->checker->revisar($this->reparar, $id);
 
-        $mapear = static fn (array $h): HallazgoCoherencia => new HallazgoCoherencia(
-            $h['clave'],
-            $h['titulo'],
-            $h['detalle'],
-            $h['filas'],
-        );
+        $reparables = [];
+        $manuales = [];
+        foreach ($hallazgos as $h) {
+            $hallazgo = new HallazgoCoherencia($h['clave'], $h['titulo'], $h['detalle'], $h['filas']);
 
-        return new InformeCoherencia(
-            array_values(array_map($mapear, array_filter($hallazgos, static fn (array $h): bool => $h['reparable']))),
-            array_values(array_map($mapear, array_filter($hallazgos, static fn (array $h): bool => !$h['reparable']))),
-            $this->reparar,
-        );
+            if ($h['reparable']) {
+                $reparables[] = $hallazgo;
+            } else {
+                $manuales[] = $hallazgo;
+            }
+        }
+
+        return new InformeCoherencia($reparables, $manuales, $this->reparar);
     }
 }
