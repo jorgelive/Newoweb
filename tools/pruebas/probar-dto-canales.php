@@ -273,7 +273,7 @@ foreach ($db->iterateColumn('SELECT credentials FROM exchange_meta_config') as $
 foreach ($cuenta as $que => $cuantos) {
     printf("%-36s %7d\n", $que, $cuantos);
 }
-printf("\nWhatsApp: errores de Meta que la estrategia da por enviados (sin cambio, ver docs/Mensajeria.md): %d\n", $errorComoExito);
+printf("\nWhatsApp: rechazos de Meta en colas `success` de antes del arreglo del 26/09/2026 (docs/Mensajeria.md §14.c): %d\n", $errorComoExito);
 
 if ($difs === []) {
     echo "\n✅ Idénticos: cada campo que leía el motor de intercambio sale igual por los DTO.\n";
