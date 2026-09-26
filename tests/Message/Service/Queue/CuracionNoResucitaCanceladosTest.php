@@ -9,6 +9,7 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
+use App\Message\Service\Queue\MessageDispatcher;
 use App\Message\Service\Queue\MessageRuleEngine;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -72,11 +73,13 @@ final class CuracionNoResucitaCanceladosTest extends TestCase
         $hilo = new MessageConversation('pms_reserva', 'prueba');
         $hilo->addMessage($mensaje);
 
+        $em = $this->createStub(EntityManagerInterface::class);
         $motor = new MessageRuleEngine(
-            $this->createStub(EntityManagerInterface::class),
+            $em,
             new NullLogger(),
             [],
             new EnlacesDeConversacion([]),
+            new MessageDispatcher([], $em, new NullLogger(), new EnlacesDeConversacion([])),
         );
 
         new ReflectionMethod(MessageRuleEngine::class, 'healZombieMessages')

@@ -18,6 +18,7 @@ use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Message\Entity\MessageRule;
 use App\Contract\VinculoComercial;
 use App\Message\Entity\WhatsappMetaSendQueue;
+use App\Message\Service\Queue\MessageDispatcher;
 use App\Message\Service\Queue\MessageRuleEngine;
 use App\Pms\Entity\PmsConversacionEnlace;
 use App\Pms\Entity\PmsReserva;
@@ -68,10 +69,20 @@ final class MessageRuleEngineTest extends TestCase
     {
         $repositorio = $this->createStub(EntityRepository::class);
         $repositorio->method('findBy')->willReturnCallback(
-            static fn (array $criterios): array => array_values(array_filter(
-                $reglas,
-                static fn (MessageRule $r): bool => $r->getContextType() === $criterios['contextType']
-            ))
+            static function (array $criterios) use ($reglas): array {
+                // El despachador pide los canales por id al revivir un `sin_canal`.
+                if (isset($criterios['id'])) {
+                    return array_map(
+                        static fn (string $id): MessageChannel => new MessageChannel()->setId($id),
+                        array_values((array) $criterios['id'])
+                    );
+                }
+
+                return array_values(array_filter(
+                    $reglas,
+                    static fn (MessageRule $r): bool => $r->getContextType() === $criterios['contextType']
+                ));
+            }
         );
 
         $em = $this->createStub(EntityManagerInterface::class);
@@ -89,7 +100,15 @@ final class MessageRuleEngineTest extends TestCase
             static fn (string $clase, mixed $id): MessageChannel => new MessageChannel()->setId((string) $id)
         );
 
-        return new MessageRuleEngine($em, new NullLogger(), $enqueuers, $this->enlacesDe(...$this->enlaces));
+        $enlaces = $this->enlacesDe(...$this->enlaces);
+
+        return new MessageRuleEngine(
+            $em,
+            new NullLogger(),
+            $enqueuers,
+            $enlaces,
+            new MessageDispatcher($enqueuers, $em, new NullLogger(), $enlaces)
+        );
     }
 
     /** @var list<ConversacionEnlaceInterface> Los asuntos que verá el motor en esta prueba. */
@@ -157,7 +176,16 @@ final class MessageRuleEngineTest extends TestCase
                 Message $message,
                 MessageChannel $channel,
                 DateTimeImmutable $runAt
-            ): ?MessageQueueItemInterface { return null; }
+            ): ?MessageQueueItemInterface {
+                if (!$this->valido) {
+                    return null;
+                }
+
+                $cola = new WhatsappMetaSendQueue();
+                $cola->setStatus('pending');
+
+                return $cola;
+            }
         };
     }
 
@@ -729,6 +757,8 @@ final class MessageRuleEngineTest extends TestCase
         $mensaje->setAsunto('pms_reserva', (string) $reserva->getId());
         $mensaje->setSenderType(Message::SENDER_SYSTEM);
         $mensaje->setStatus($estado);
+        // Con texto: el despachador se niega, con razón, a encolar un mensaje vacío.
+        $mensaje->setContentLocal('Mañana llegas: aquí tienes cómo entrar.');
         $mensaje->setScheduledAt(new DateTimeImmutable($cuando, new DateTimeZone(self::TZ)));
         $conversacion->addMessage($mensaje);
 
@@ -795,13 +825,21 @@ final class MessageRuleEngineTest extends TestCase
         $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicio]), $reserva);
 
         $esperando = $this->programado($conversacion, $regla, $reserva, Message::STATUS_SIN_CANAL, '+9 days noon');
+        // La cola que le cortó `quedarseSinCanal()` cuando se quedó sin canal.
+        $this->fabricarCola($esperando, 'cancelled');
 
         $this->motor([$regla], [$this->enqueuer()])
             ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
 
         self::assertCount(1, $this->mensajesDelSistema($conversacion), 'Revivir no es fabricar otro.');
-        self::assertSame(Message::STATUS_PENDING, $esperando->getStatus(), 'Con canal otra vez, el `sin_canal` tiene que volver a la cola.');
-        self::assertSame(['whatsapp_meta'], $esperando->getTransientChannels());
+        self::assertSame(
+            Message::STATUS_QUEUED,
+            $esperando->getStatus(),
+            'Con canal otra vez tiene que volver a la cola. Si sale `cancelled`, `resolveMessageStatus()` vio sólo la cola vieja: las nuevas se pidieron tarde.'
+        );
+
+        $vivas = array_filter($esperando->getAllQueues(), static fn ($q): bool => $q->getStatus() === 'pending');
+        self::assertCount(1, $vivas, 'Revivir sin fabricar la cola es dejarlo como estaba: nadie lo enviaría.');
         self::assertSame($this->esperado($inicio, -1440), $esperando->getScheduledAt()?->getTimestamp());
     }
 

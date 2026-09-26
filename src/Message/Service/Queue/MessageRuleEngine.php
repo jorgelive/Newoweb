@@ -76,7 +76,9 @@ final readonly class MessageRuleEngine
         #[TaggedIterator('app.message.enqueuer')]
         private iterable $enqueuers,
         // Los asuntos del hilo, vengan del dominio que vengan.
-        private readonly EnlacesDeConversacion $enlaces
+        private readonly EnlacesDeConversacion $enlaces,
+        // Para darle colas a un `sin_canal` que revive. Ver `syncPendingMessage()` §4.b.
+        private readonly MessageDispatcher $dispatcher
     ) {}
 
     /**
@@ -788,18 +790,24 @@ final readonly class MessageRuleEngine
         // `queued`, y aquí se sincronizaba la fecha sin tocar el estado. Añadir el teléfono,
         // fusionar el hilo con el de su número o desbloquear WhatsApp no despertaba nada.
         //
-        // Pasar a `pending` es lo que lo despierta: cambia el estado, Doctrine calcula el
-        // changeset, y el `preUpdate` le fabrica las colas con los canales que acaban de
-        // publicarse en `transientChannels`.
+        // Las colas se le piden al despachador AQUÍ, al final de este método —ver el bloque de
+        // `$revive`—, y no se dejan al `preUpdate` de `MessageEnqueuerEntityListener`: lo que se
+        // persiste dentro de un `preUpdate` va en mitad del flush y Doctrine no lo inserta en
+        // ese flush. Se comprobó en producción con Melanie: el motor la revivía y el ensayo
+        // terminaba con cero colas nuevas. Es la misma trampa que `cancelPendingQueues()` ya
+        // esquiva trabajando antes del flush.
         //
         // ⚠️ **Sólo lo que todavía no ha pasado.** Una guía de llegada de ayer no sale hoy: se
         // queda en `sin_canal`, que es lo que le pasó.
+        $revive = false;
+
         if ($message->getStatus() === Message::STATUS_SIN_CANAL) {
             if ($newRunAt <= new DateTimeImmutable('now', new DateTimeZone(self::TZ))) {
                 return;
             }
 
             $message->setStatus(Message::STATUS_PENDING);
+            $revive = true;
 
             $this->logger->info(sprintf(
                 'Regla Engine: el mensaje %s vuelve a tener canal (%s) y se reprograma para %s.',
@@ -841,6 +849,20 @@ final readonly class MessageRuleEngine
 
             if ($plantillaDeLaRegla !== null && $message->getTemplate() !== $plantillaDeLaRegla) {
                 $message->setTemplate($plantillaDeLaRegla);
+            }
+        }
+
+        // 🔁 LAS COLAS DEL QUE REVIVE, después de la fecha y la plantilla —para que nazcan con la
+        // hora y el texto buenos— y ANTES de `resolveMessageStatus()`.
+        //
+        // ⚠️ El orden con la línea de abajo no es estético. `resolveMessageStatus()` deduce el
+        // estado de las colas, y un `sin_canal` suele conservar la suya cancelada —la cortó
+        // `quedarseSinCanal()`—: sin colas nuevas vería «todas canceladas» y lo CANCELARÍA, y
+        // con eso volvería el bucle de crear y cancelar que el `sin_canal` vino a cerrar.
+        if ($revive) {
+            foreach ($this->dispatcher->dispatch($message) as $queue) {
+                $message->addQueue($queue);
+                $this->em->persist($queue);
             }
         }
 

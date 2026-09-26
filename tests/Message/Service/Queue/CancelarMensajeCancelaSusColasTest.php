@@ -8,6 +8,7 @@ use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
 use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
+use App\Message\Service\Queue\MessageDispatcher;
 use App\Message\Service\Queue\MessageRuleEngine;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\Test;
@@ -76,11 +77,13 @@ final class CancelarMensajeCancelaSusColasTest extends TestCase
 
     private function cancelar(Message $mensaje): void
     {
+        $em = $this->createStub(EntityManagerInterface::class);
         $motor = new MessageRuleEngine(
-            $this->createStub(EntityManagerInterface::class),
+            $em,
             new NullLogger(),
             [],
             new EnlacesDeConversacion([]),
+            new MessageDispatcher([], $em, new NullLogger(), new EnlacesDeConversacion([])),
         );
 
         new ReflectionMethod(MessageRuleEngine::class, 'cancelPendingQueues')->invoke($motor, $mensaje);

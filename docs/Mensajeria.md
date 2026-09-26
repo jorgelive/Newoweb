@@ -7984,6 +7984,23 @@ cuatro. Mismo dibujo que el vaivén de Vanessa del 17/09, con otra causa.
 | Vuelve a haber canal y la fecha ya pasó | nada | se queda en `sin_canal`: un recordatorio de ayer no sale hoy |
 | La regla deja de aplicar (reserva cancelada) | `sin_canal` se quedaba vivo | `cancelled`, como los demás (`cancelPendingQueues()`) |
 
+**Las colas del que revive las pide el motor, no el `preUpdate`.** La primera versión de este
+arreglo pasaba el mensaje a `pending` y confiaba en que el `preUpdate` de
+`MessageEnqueuerEntityListener` le fabricara las colas, como dice su paso 4. En producción, el
+ensayo sobre el hilo de Melanie registró «vuelve a tener canal» dos veces y terminó con **cero
+colas nuevas**: lo que se persiste dentro de un `preUpdate` va en mitad del flush, y Doctrine no
+lo inserta en ese flush. Es la trampa que `cancelPendingQueues()` ya esquiva trabajando antes del
+flush. Ahora `syncPendingMessage()` llama a `MessageDispatcher::dispatch()` él mismo.
+
+⚠️ **Y el orden importa.** Esas colas se piden **antes** de `resolveMessageStatus()`, que deduce el
+estado a partir de las colas. Un `sin_canal` suele conservar su cola vieja cancelada; sin las
+nuevas, esa línea vería «todas canceladas» y lo **cancelaría**, y el bucle volvería. El test
+`un_sin_canal_revive_cuando_vuelve_a_haber_canal` parte de ese caso y falla si se quita el bloque.
+
+⚠️ **Deuda que queda a la vista:** el paso 4 del `preUpdate` («fabricar colas por si apareció un
+canal nuevo») tiene la misma limitación para cualquier otro llamador. Lo que persiste no se
+inserta en ese flush; sólo entra si el mismo `EntityManager` vuelve a hacer flush después.
+
 **Quién lo despierta.** No hace falta nada nuevo: el motor ya pasa por el hilo cuando cambia
 `guestPhone` o `whatsappDisabled` (`MessageRuleEngineListener::CAMPOS_CRITICOS`), en cada
 recálculo de reserva y en el barrido de `app:message:sync-rules`. El revivir va en
