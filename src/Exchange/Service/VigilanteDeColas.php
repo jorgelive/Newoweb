@@ -199,7 +199,10 @@ final readonly class VigilanteDeColas
     private function contar(string $sql, array $parametros = []): ?int
     {
         try {
-            return (int) $this->conexion->fetchOne($sql, $parametros);
+            $valor = $this->conexion->fetchOne($sql, $parametros);
+
+            // Un COUNT: el driver lo da como número o como texto, y `false` si no hay fila.
+            return is_numeric($valor) ? (int) $valor : 0;
         } catch (Throwable $e) {
             // Una tabla que no exista —un módulo aún sin desplegar— no puede callar al resto.
             $this->logger->warning('[Colas] No se pudo consultar: ' . $e->getMessage());

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Exchange\Service\Contract;
 
+use Symfony\Component\Uid\Uuid;
+
 /**
  * Interface ChannelConfigInterface.
  * Define el contrato mínimo para las configuraciones de canales externos.
@@ -12,10 +14,11 @@ namespace App\Exchange\Service\Contract;
 interface ChannelConfigInterface
 {
     /**
-     * Retorna el identificador único.
-     * Cambiado a 'mixed' o 'string' para soportar UUIDs binarios/hex.
+     * Identificador único: el UUID del `IdTrait`, como en las tres configuraciones que lo
+     * implementan (`Beds24Config`, `MetaConfig`, `EmailConfig`). Decía `mixed`; ver el mismo
+     * cambio en `ExchangeQueueItemInterface::getId()`.
      */
-    public function getId(): mixed;
+    public function getId(): ?Uuid;
 
     /**
      * Retorna el alias del proveedor que debe procesar esta configuración

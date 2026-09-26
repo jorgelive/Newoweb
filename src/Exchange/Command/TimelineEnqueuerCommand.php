@@ -4,11 +4,9 @@ declare(strict_types=1);
 namespace App\Exchange\Command;
 
 use App\Exchange\Service\Cron\TimelineEnqueuerService;
+use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
@@ -34,22 +32,14 @@ class TimelineEnqueuerCommand extends Command
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this->addArgument(
-            'job',
-            InputArgument::REQUIRED,
-            'Identificador del generador (ej: beds24_bookings_push)'
-        );
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $io = new SymfonyStyle($input, $output);
-        $jobName = $input->getArgument('job');
-
+    /** El argumento lo tipa el framework (`#[Argument]`); antes era un `getArgument()` `mixed`. */
+    public function __invoke(
+        SymfonyStyle $io,
+        #[Argument('Identificador del generador (ej: beds24_bookings_push)')]
+        string $job,
+    ): int {
         try {
-            $isSuccess = $this->timelineEnqueuerService->enqueue($jobName, $io);
+            $isSuccess = $this->timelineEnqueuerService->enqueue($job, $io);
 
             return $isSuccess ? Command::SUCCESS : Command::FAILURE;
 

@@ -134,6 +134,8 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
                          LIMIT :limit 
                          FOR UPDATE SKIP LOCKED";
 
+            // SQL crudo: la forma la fija la consulta. `id` es BINARY(16), que llega como bytes.
+            /** @var list<string> $ids */
             $ids = $conn->fetchFirstColumn(
                 $sqlFetch,
                 [
@@ -224,6 +226,8 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
                          AND (run_at IS NULL OR run_at <= :now) 
                          FOR UPDATE SKIP LOCKED";
 
+            // SQL crudo: la forma la fija la consulta. `id` es BINARY(16), que llega como bytes.
+            /** @var list<string> $availableBinaryIds */
             $availableBinaryIds = $conn->fetchFirstColumn(
                 $sqlCheck,
                 [
@@ -285,12 +289,7 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
      * Obtiene metadatos ligeros para agrupación (Pre-Sorting) en el MessageHandler.
      * Devuelve los IDs y Configs en formato TEXTO (UUID con guiones) para PHP.
      *
-     * @param array<array-key, mixed> $ids UUIDs en texto, tal como llegan del transporte.
-     *
-     * @return array<string, array{config_id: string, endpoint_id: string}>
-     */
-    /**
-     * @param list<string> $ids
+     * @param list<string> $ids UUIDs en texto, tal como llegan del transporte.
      *
      * @return array<string, array{config_id: string|null, endpoint_id: string|null}>
      */
@@ -312,6 +311,9 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
         FROM {$table} 
         WHERE id IN (:binaryIds)";
 
+        // SQL crudo: la forma la fija la consulta. `BIN_TO_UUID()` de una columna nula es NULL, y
+        // `id` es la clave primaria, así que nunca lo es.
+        /** @var list<array{id: string, config_id: string|null, endpoint_id: string|null}> $rows */
         $rows = $conn->fetchAllAssociative(
             $sql,
             ['binaryIds' => $binaryIds],

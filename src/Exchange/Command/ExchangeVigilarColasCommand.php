@@ -6,10 +6,8 @@ namespace App\Exchange\Command;
 
 use App\Exchange\Service\VigilanteDeColas;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
@@ -31,25 +29,17 @@ final class ExchangeVigilarColasCommand extends Command
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this
-            ->addOption(
-                'horas',
-                null,
-                InputOption::VALUE_REQUIRED,
-                'Ventana a revisar. Corta a propósito: un fallo viejo que ya se decidió dejar estar no debe sonar cada hora.',
-                '24'
-            )
-            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Dice qué avisaría, sin avisar.');
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $io = new SymfonyStyle($input, $output);
-        $horas = (int) $input->getOption('horas');
-        $seco = (bool) $input->getOption('dry-run');
-
+    /**
+     * Las opciones las tipa el framework (`#[Option]`): antes se leían con `getOption()`, que
+     * devuelve `mixed`, y se convertían a mano con `(int)` y `(bool)`.
+     */
+    public function __invoke(
+        SymfonyStyle $io,
+        #[Option('Ventana a revisar. Corta a propósito: un fallo viejo que ya se decidió dejar estar no debe sonar cada hora.')]
+        int $horas = 24,
+        #[Option('Dice qué avisaría, sin avisar.', name: 'dry-run')]
+        bool $seco = false,
+    ): int {
         $lineas = $this->vigilante->revisar($horas);
 
         if ([] === $lineas) {

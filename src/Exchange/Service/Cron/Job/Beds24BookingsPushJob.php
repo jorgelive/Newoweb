@@ -105,6 +105,7 @@ class Beds24BookingsPushJob implements CronJobInterface, CronHorizonteInterface
             foreach (array_chunk($ids, self::BATCH_SIZE) as $batchIds) {
 
                 // Carga optimizada con Joins para el lote
+                /** @var list<PmsEventoCalendario> $eventos */
                 $eventos = $this->em->createQueryBuilder()
                     ->select('e', 'l', 'm', 'q')
                     ->from(PmsEventoCalendario::class, 'e')
@@ -116,7 +117,6 @@ class Beds24BookingsPushJob implements CronJobInterface, CronHorizonteInterface
                     ->getQuery()
                     ->getResult();
 
-                /** @var PmsEventoCalendario $evento */
                 foreach ($eventos as $evento) {
                     /** @var PmsEventoBeds24Link $link */
                     foreach ($evento->getBeds24Links() as $link) {

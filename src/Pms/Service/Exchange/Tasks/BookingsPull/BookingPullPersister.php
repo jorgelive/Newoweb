@@ -43,7 +43,7 @@ final class BookingPullPersister implements ResetInterface
     /** @var array<string, PmsEventoBeds24Link|false> */
     private array $cacheLinks = [];
 
-    /** @var array<string, mixed> Caché de mapa de unidad por clave, para no repetir consultas en el lote. */
+    /** @var array<string, PmsUnidadBeds24Map|false> Caché de mapa de unidad por clave, para no repetir consultas en el lote; `false` = se buscó y no existe. */
     private array $cacheMaps = [];
     /** @var array<string, MaestroPais> Caché de país por clave, para no repetir consultas en el lote. */
     private array $cachePaises = [];
@@ -363,7 +363,11 @@ final class BookingPullPersister implements ResetInterface
             $i = (int) $v;
             return $i > 0 ? (string) $i : null;
         }
-        $s = trim((string) $v);
+        // Lo que no es número ni texto (una lista, un objeto) no es un id.
+        if (!is_string($v)) {
+            return null;
+        }
+        $s = trim($v);
         // Validar que no sea cadena vacía o "0"
         return ($s !== '' && $s !== '0') ? $s : null;
     }
