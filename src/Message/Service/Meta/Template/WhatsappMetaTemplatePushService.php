@@ -7,6 +7,8 @@ namespace App\Message\Service\Meta\Template;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Service\Client\WhatsappMetaClient;
+use App\Dto\Lee;
+use App\Message\Dto\PlantillaMeta\PlantillaMeta;
 use App\Message\Entity\MessageTemplate;
 use App\Pms\Service\Message\PmsMessageDataResolver;
 use Doctrine\ORM\EntityManagerInterface;
@@ -19,6 +21,9 @@ use Throwable;
  * * * AUTO-DISCOVERY: Detecta si el idioma existe en Meta para decidir si crear o editar.
  * * VALIDACIÓN ESTRICTA: Lanza excepción si un Quick Reply o URL no tiene 'resolver_key'.
  * * REGLA META: En la definición de estructura, los botones Quick Reply no llevan payload técnico.
+ *
+ * @phpstan-import-type BloqueDeCanal from MessageTemplate
+ * @phpstan-import-type TextoTraducido from MessageTemplate
  */
 final readonly class WhatsappMetaTemplatePushService
 {
@@ -44,7 +49,7 @@ final readonly class WhatsappMetaTemplatePushService
      *        usar fuera de la ventana de 24 h. Es un daño real, no una molestia.
      *
      * @param list<string> $soloIdiomas
-     * @return array<string, mixed> Resumen de lo empujado, por idioma.
+     * @return array<string, array{status: string, action?: string, meta_id?: string|null, message?: string}> Resumen de lo empujado, por idioma.
      */
     public function pushTemplateToMeta(MessageTemplate $template, array $soloIdiomas = []): array
     {
@@ -94,8 +99,9 @@ final readonly class WhatsappMetaTemplatePushService
 
         // AUTO-DISCOVERY: Obtenemos lo que ya existe en Meta para no duplicar
         try {
-            $metaResponse = $this->metaClient->fetchTemplates($config, $fetchEndpoint);
-            $existingTemplates = $metaResponse['data'] ?? [];
+            $existingTemplates = PlantillaMeta::listaDesdeRespuesta(
+                $this->metaClient->fetchTemplates($config, $fetchEndpoint)
+            );
         } catch (Throwable $e) {
             $this->logger->error('Error recuperando plantillas de Meta: ' . $e->getMessage());
             $existingTemplates = [];
@@ -136,7 +142,7 @@ final readonly class WhatsappMetaTemplatePushService
 
             try {
                 // Construimos payload minimalista (sin payloads técnicos en botones)
-                $payload = $this->buildSingleLanguagePayload($metaTmpl, $localLang, $metaLangCode, $previewData);
+                $payload = $this->buildSingleLanguagePayload($metaTmpl, $templateName, $localLang, $metaLangCode, $previewData);
 
                 $existingId = $this->findExistingTemplateId($existingTemplates, $templateName, $metaLangCode);
 
@@ -147,7 +153,7 @@ final readonly class WhatsappMetaTemplatePushService
                 } else {
                     // --- MODO CREACIÓN ---
                     $response = $this->metaClient->pushTemplateDefinition($config, $pushEndpoint, $payload);
-                    $results[$localLang] = ['status' => 'success', 'action' => 'CREATED', 'meta_id' => $response['id'] ?? null];
+                    $results[$localLang] = ['status' => 'success', 'action' => 'CREATED', 'meta_id' => Lee::texto($response['id'] ?? null)];
                 }
 
                 $this->logger->info("Sincronización exitosa: $templateName ($metaLangCode)");
@@ -221,7 +227,7 @@ final readonly class WhatsappMetaTemplatePushService
         }
 
         try {
-            $existentes = $this->metaClient->fetchTemplates($config, $endpoint)['data'] ?? [];
+            $existentes = PlantillaMeta::listaDesdeRespuesta($this->metaClient->fetchTemplates($config, $endpoint));
         } catch (Throwable $e) {
             throw new RuntimeException('No se pudo consultar el inventario de Meta: ' . $e->getMessage());
         }
@@ -282,13 +288,17 @@ final readonly class WhatsappMetaTemplatePushService
     /**
      * El id de la versión de idioma concreta, que es lo que Meta necesita para editar o borrar.
      *
-     * @param list<array<string, mixed>> $metaTemplates Lo que devuelve `fetchTemplates()`.
+     * ⚠️ Una versión que llegue SIN `id` devuelve `''`, no `null`: es lo que hacía la lectura
+     * cruda, y los dos llamadores lo tratan distinto a propósito de `null` —el push la crea de
+     * nuevo (`''` es falso), el borrado no la da por inexistente—.
+     *
+     * @param list<PlantillaMeta> $metaTemplates Lo que devuelve `fetchTemplates()`, ya leído.
      */
     private function findExistingTemplateId(array $metaTemplates, string $name, string $langCode): ?string
     {
         foreach ($metaTemplates as $tpl) {
-            if (($tpl['name'] ?? '') === $name && ($tpl['language'] ?? '') === $langCode) {
-                return (string)($tpl['id'] ?? '');
+            if ($tpl->nombre === $name && $tpl->idioma === $langCode) {
+                return $tpl->id ?? '';
             }
         }
         return null;
@@ -298,11 +308,14 @@ final readonly class WhatsappMetaTemplatePushService
      * Construye el payload JSON para un idioma específico.
      * @throws RuntimeException Si un Quick Reply carece de resolver_key.
      *
-     * @param array<string, mixed> $metaTmpl
-     * @param array<string, mixed> $previewData
-     * @return array<string, mixed> El cuerpo que espera la API de Meta.
+     * @param BloqueDeCanal $metaTmpl
+     * @param string $nombre El `meta_template_name`, ya comprobado por quien llama: sin él no
+     *        se sube nada (ver `pushTemplateToMeta()`).
+     * @param array<string, string|int|float> $previewData
+     * @return array{name: string, language: string, category: string, components: list<array<string, mixed>>, parameter_format: string}
+     *         El cuerpo que espera la API de Meta.
      */
-    private function buildSingleLanguagePayload(array $metaTmpl, string $localLang, string $metaLangCode, array $previewData): array
+    private function buildSingleLanguagePayload(array $metaTmpl, string $nombre, string $localLang, string $metaLangCode, array $previewData): array
     {
         $components = [];
 
@@ -362,7 +375,7 @@ final readonly class WhatsappMetaTemplatePushService
                     ));
                 }
 
-                if ($btnMap['type'] === 'url') {
+                if (($btnMap['type'] ?? null) === 'url') {
                     $url = (string)($btnMap['content'] ?? '');
                     $btnComp = [
                         'type' => 'URL',
@@ -376,7 +389,7 @@ final readonly class WhatsappMetaTemplatePushService
                     }
                     $buttons[] = $btnComp;
 
-                } elseif ($btnMap['type'] === 'quick_reply') {
+                } elseif (($btnMap['type'] ?? null) === 'quick_reply') {
                     // Para definición estructural en Meta, no enviamos el payload técnico
                     $buttons[] = [
                         'type' => 'QUICK_REPLY',
@@ -394,7 +407,7 @@ final readonly class WhatsappMetaTemplatePushService
         }
 
         return [
-            'name'             => $metaTmpl['meta_template_name'],
+            'name'             => $nombre,
             'language'         => $metaLangCode,
             'category'         => $metaTmpl['category'] ?? 'MARKETING',
             'components'       => $components,
@@ -423,7 +436,7 @@ final readonly class WhatsappMetaTemplatePushService
     /**
      * Extrae el contenido traducido para un idioma específico desde el array local.
      *
-     * @param list<array<string, mixed>> $componentList
+     * @param list<TextoTraducido> $componentList
      */
     private function extractTextByLanguage(array $componentList, string $targetLang): string
     {
@@ -444,7 +457,7 @@ final readonly class WhatsappMetaTemplatePushService
      * quien programara contra la firma habría desempaquetado dos variables de una lista de
      * arrays. No falló porque el único llamador es de esta misma clase.
      *
-     * @param array<string, mixed> $previewVars
+     * @param array<string, string|int|float> $previewVars
      * @return list<array{param_name: string, example: string}> Cada variable con su ejemplo.
      */
     private function generateNamedExamples(string $text, array $previewVars): array
@@ -488,7 +501,7 @@ final readonly class WhatsappMetaTemplatePushService
      * Se mide con `mb_strlen`: Meta cuenta caracteres, no bytes, y estos textos van llenos de
      * emojis y tildes. Contar bytes daría un falso positivo en cuanto haya un 🌄.
      *
-     * @param array<string, mixed> $metaTmpl
+     * @param BloqueDeCanal $metaTmpl
      */
     private function medirExcesos(array $metaTmpl, string $idioma): ?string
     {
@@ -512,7 +525,7 @@ final readonly class WhatsappMetaTemplatePushService
     }
 
     /**
-     * @param array<int, array{language?: string, content?: string}> $bloques
+     * @param list<TextoTraducido> $bloques
      */
     private function contenidoDe(array $bloques, string $idioma): string
     {

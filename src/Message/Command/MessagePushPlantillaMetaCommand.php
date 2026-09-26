@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Command;
 
+use App\Dto\Lee;
 use App\Message\Entity\MessageTemplate;
 use App\Message\Service\Meta\Template\WhatsappMetaTemplatePushService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -67,7 +68,7 @@ final class MessagePushPlantillaMetaCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $code = (string) $input->getArgument('code');
+        $code = Lee::texto($input->getArgument('code')) ?? '';
 
         $plantilla = $this->em->getRepository(MessageTemplate::class)->findOneBy(['code' => $code]);
 
@@ -135,7 +136,7 @@ final class MessagePushPlantillaMetaCommand extends Command
         $fallos = 0;
 
         foreach ($resultados as $lang => $r) {
-            $ok = ($r['status'] ?? '') === 'success';
+            $ok = $r['status'] === 'success';
             $fallos += $ok ? 0 : 1;
 
             $io->writeln(sprintf(

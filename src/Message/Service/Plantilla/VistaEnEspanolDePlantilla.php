@@ -48,13 +48,13 @@ final readonly class VistaEnEspanolDePlantilla
         foreach ($plantilla->getWhatsappMetaButtons(self::IDIOMA) as $boton) {
             // El destino también: un botón sin su enlace no se puede revisar, y es justo lo que
             // más se equivoca —apunta a la guía, a la cuenta o a un ancla distinta.
-            $destino = (string) ($boton['resolver_key'] ?? '') !== ''
-                ? (string) $boton['resolver_key']
-                : (string) ($boton['content'] ?? '');
+            $destino = ($boton['resolver_key'] ?? '') !== ''
+                ? $boton['resolver_key']
+                : $boton['content'];
 
             $partes[] = [
                 'etiqueta' => 'Botón',
-                'texto' => sprintf('%s → %s', (string) ($boton['button_text'] ?? '¿?'), $destino),
+                'texto' => sprintf('%s → %s', $boton['button_text'] ?? '¿?', $destino),
             ];
         }
 

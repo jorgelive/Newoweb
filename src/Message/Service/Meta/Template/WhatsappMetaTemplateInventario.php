@@ -7,6 +7,7 @@ namespace App\Message\Service\Meta\Template;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Service\Client\WhatsappMetaClient;
+use App\Message\Dto\PlantillaMeta\PlantillaMeta;
 use App\Message\Entity\MessageTemplate;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
@@ -65,22 +66,21 @@ final readonly class WhatsappMetaTemplateInventario
             throw new RuntimeException('No se encontró el endpoint con acción FETCH_META_TEMPLATES.');
         }
 
-        $respuesta = $this->metaClient->fetchTemplates($config, $endpoint);
-        $filas = $respuesta['data'] ?? [];
+        $filas = PlantillaMeta::listaDesdeRespuesta($this->metaClient->fetchTemplates($config, $endpoint));
 
         /** @var array<string, list<array{codigo: string, estado: string}>> $porNombre */
         $porNombre = [];
 
         foreach ($filas as $fila) {
-            $nombre = (string) ($fila['name'] ?? '');
+            $nombre = $fila->nombre ?? '';
 
             if ($nombre === '' || $nombre === self::PLANTILLA_DE_EJEMPLO) {
                 continue;
             }
 
             $porNombre[$nombre][] = [
-                'codigo' => (string) ($fila['language'] ?? '?'),
-                'estado' => strtoupper((string) ($fila['status'] ?? '?')),
+                'codigo' => $fila->idioma ?? '?',
+                'estado' => strtoupper($fila->estado ?? '?'),
             ];
         }
 
