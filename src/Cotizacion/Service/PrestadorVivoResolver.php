@@ -189,7 +189,8 @@ final class PrestadorVivoResolver
             return strtolower((string) Uuid::fromBinary($id));
         }
 
-        return strtolower(trim((string) $id));
+        // Un id que falta —una entidad sin guardar— es la clave vacía, que no casa con ninguna.
+        return is_string($id) ? strtolower(trim($id)) : '';
     }
 
     /**

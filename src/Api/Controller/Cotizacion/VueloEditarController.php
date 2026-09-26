@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Api\Controller\Cotizacion;
 
+use App\Cotizacion\Dto\CuerpoDeVuelo;
 use App\Cotizacion\Entity\CotizacionVuelo;
 use App\Security\Roles;
-use DateTimeImmutable;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -61,38 +61,33 @@ final class VueloEditarController extends AbstractController
             return $this->json(['error' => 'No encontré ese vuelo.'], Response::HTTP_NOT_FOUND);
         }
 
-        /** @var array<string, mixed> $datos */
-        $datos = json_decode($request->getContent(), true) ?: [];
+        $datos = json_decode($request->getContent(), true);
+        $cuerpo = CuerpoDeVuelo::fromArray(is_array($datos) ? $datos : []);
 
-        if (isset($datos['numero'])) {
-            $numero = trim((string) $datos['numero']);
-
-            if ($numero === '') {
+        if ($cuerpo->trae('numero')) {
+            if ($cuerpo->numero === '') {
                 return $this->json(['error' => 'El número de vuelo no puede quedar vacío.'], Response::HTTP_BAD_REQUEST);
             }
 
-            $vuelo->setNumero($numero);
+            $vuelo->setNumero($cuerpo->numero);
         }
 
-        if (array_key_exists('aerolinea', $datos)) {
-            $vuelo->setAerolinea($this->textoONulo($datos['aerolinea']));
+        if ($cuerpo->trae('aerolinea')) {
+            $vuelo->setAerolinea($cuerpo->aerolinea);
         }
 
-        // Mayúsculas: los códigos IATA lo son, y así «lim» y «LIM» no son dos aeropuertos.
-        if (array_key_exists('origen', $datos)) {
-            $vuelo->setOrigen($this->codigo($datos['origen']));
+        if ($cuerpo->trae('origen')) {
+            $vuelo->setOrigen($cuerpo->origen);
         }
 
-        if (array_key_exists('destino', $datos)) {
-            $vuelo->setDestino($this->codigo($datos['destino']));
+        if ($cuerpo->trae('destino')) {
+            $vuelo->setDestino($cuerpo->destino);
         }
 
-        foreach (['salida', 'llegada'] as $campo) {
-            if (!array_key_exists($campo, $datos)) {
+        foreach (['salida' => $cuerpo->salida, 'llegada' => $cuerpo->llegada] as $campo => $momento) {
+            if (!$cuerpo->trae($campo)) {
                 continue;
             }
-
-            $momento = $this->momento($datos[$campo]);
 
             if ($momento === false) {
                 return $this->json(
@@ -118,35 +113,5 @@ final class VueloEditarController extends AbstractController
         }
 
         return $this->json(['ok' => true]);
-    }
-
-    private function textoONulo(mixed $valor): ?string
-    {
-        $texto = trim((string) $valor);
-
-        return $texto === '' ? null : $texto;
-    }
-
-    private function codigo(mixed $valor): ?string
-    {
-        $texto = $this->textoONulo($valor);
-
-        return $texto === null ? null : strtoupper($texto);
-    }
-
-    /** `false` cuando no se entiende; `null` cuando se quiere vaciar. */
-    private function momento(mixed $valor): DateTimeImmutable|false|null
-    {
-        $texto = trim((string) $valor);
-
-        if ($texto === '') {
-            return null;
-        }
-
-        try {
-            return new DateTimeImmutable($texto);
-        } catch (\Exception) {
-            return false;
-        }
     }
 }

@@ -93,7 +93,9 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
     {
         $data = $this->decorated->normalize($object, $format, $context);
 
-        $isPublicView = \in_array(self::GRUPO_PUBLICO, $context['groups'] ?? [], true);
+        // Symfony admite los grupos como lista o como un texto suelto; los dos cuentan.
+        $grupos = $context['groups'] ?? [];
+        $isPublicView = \is_array($grupos) ? \in_array(self::GRUPO_PUBLICO, $grupos, true) : $grupos === self::GRUPO_PUBLICO;
 
         if ($isPublicView && $object instanceof CotizacionCotcomponente && \is_array($data)) {
             // ⚠️ **Un solo interruptor, y vive en el componente.** Hasta el 27/08/2026 había

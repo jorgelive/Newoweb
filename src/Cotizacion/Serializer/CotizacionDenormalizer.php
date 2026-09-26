@@ -40,31 +40,46 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
     {
         $permiteUpdate = true === ($context['api_allow_update'] ?? false);
 
+        // El cuerpo de la petición, sin tipo: lo que no tenga la forma esperada no se toca aquí y lo
+        // rechaza el denormalizador de API Platform con su 400, en vez de un `TypeError` (500).
         $rootId = null;
-        if (!$permiteUpdate && isset($data['id'])) {
-            $rootId = $data['id'];
+        if (!$permiteUpdate && is_array($data) && isset($data['id'])) {
+            $rootId = is_string($data['id']) ? $data['id'] : null;
             unset($data['id'], $data['@id']);
         }
 
         // Mapa estricto para reconstruir la relación Componente -> Segmento aislando los índices.
         $componentToSegmentMap = [];
 
-        if (isset($data['cotservicios']) && is_array($data['cotservicios'])) {
+        if (is_array($data) && isset($data['cotservicios']) && is_array($data['cotservicios'])) {
             foreach ($data['cotservicios'] as &$servicio) {
+                if (!is_array($servicio)) {
+                    continue;
+                }
+
                 $this->embedIdInJson($servicio, CotizacionCotservicio::class, 'nombreInternoSnapshot', $permiteUpdate);
 
                 if (isset($servicio['cotsegmentos']) && is_array($servicio['cotsegmentos'])) {
                     foreach ($servicio['cotsegmentos'] as &$segData) {
+                        if (!is_array($segData)) {
+                            continue;
+                        }
+
                         $this->embedIdInJson($segData, CotizacionSegmento::class, 'tituloSnapshot', $permiteUpdate);
                     }
                 }
 
                 if (isset($servicio['cotcomponentes']) && is_array($servicio['cotcomponentes'])) {
                     foreach ($servicio['cotcomponentes'] as &$comp) {
+                        if (!is_array($comp)) {
+                            continue;
+                        }
+
                         $frontendCompId = $comp['id'] ?? null;
 
                         // Guardamos la relación en un mapa local antes de que el normalizador elimine la clave.
-                        if (!empty($comp['cotsegmento']) && $frontendCompId && Uuid::isValid($frontendCompId)) {
+                        if (is_string($comp['cotsegmento'] ?? null) && $comp['cotsegmento'] !== ''
+                            && is_string($frontendCompId) && Uuid::isValid($frontendCompId)) {
                             $componentToSegmentMap[$frontendCompId] = basename($comp['cotsegmento']);
                         }
 
@@ -75,6 +90,10 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
 
                         if (isset($comp['cottarifas']) && is_array($comp['cottarifas'])) {
                             foreach ($comp['cottarifas'] as &$tar) {
+                                if (!is_array($tar)) {
+                                    continue;
+                                }
+
                                 $this->embedIdInJson($tar, CotizacionCottarifa::class, 'tituloSnapshot', $permiteUpdate);
                             }
                         }
@@ -148,7 +167,7 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
      * PUT/PATCH: quita el id solo si no existe en BD (upsert).
      * Inyecta el UUID temporalmente en el campo JSON.
      *
-     * @param array<string, mixed> $item
+     * @param array<mixed> $item Un objeto del cuerpo JSON, tal cual.
      *
      * @param class-string $class La entidad que se busca. `string` a secas no basta:
      *        `EntityManagerInterface::find()` declara `@param class-string<T>` y sin eso PHPStan

@@ -430,7 +430,7 @@ final readonly class PadronPlantillaGenerador
         $ultima = Coordinate::columnIndexFromString($hoja->getHighestColumn());
 
         for ($col = 1; $col <= $ultima; ++$col) {
-            if ((string) $hoja->getCell([$col, 1])->getValue() === $cabecera) {
+            if (PadronFormato::celda($hoja->getCell([$col, 1])->getValue()) === $cabecera) {
                 $columnas[] = $col;
             }
         }

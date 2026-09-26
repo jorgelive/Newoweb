@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Documento\ValidadorDeManifiesto;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\ValidacionIdentificacionEnum;
@@ -53,7 +54,7 @@ final class CotizacionValidarDocumentosCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $id = (string) $input->getArgument('expediente');
+        $id = EntradaDeConsola::texto($input->getArgument('expediente'), 'expediente');
 
         if (!Uuid::isValid($id)) {
             $io->error('Eso no es un UUID.');
@@ -72,7 +73,7 @@ final class CotizacionValidarDocumentosCommand extends Command
         $conteo = $this->validador->validar(
             $expediente,
             (bool) $input->getOption('forzar'),
-            $limite !== null ? max(1, (int) $limite) : null,
+            $limite !== null ? max(1, EntradaDeConsola::entero($limite, 'limite')) : null,
         );
 
         $io->table(

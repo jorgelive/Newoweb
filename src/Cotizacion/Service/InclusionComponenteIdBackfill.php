@@ -46,6 +46,7 @@ final class InclusionComponenteIdBackfill
         $ambiguas = 0;
         $mapa = $this->mapaDeComponentes($ambiguas);
 
+        /** @var list<array{id: string, clasificacion_financiera: ?string, clasificacion_financiera_cliente: ?string}> $cotizaciones */
         $cotizaciones = $this->conn->fetchAllAssociative(
             'SELECT LOWER(HEX(id)) AS id, clasificacion_financiera, clasificacion_financiera_cliente
              FROM cotizacion_cotizacion
@@ -78,7 +79,7 @@ final class InclusionComponenteIdBackfill
                         continue;
                     }
 
-                    $servicioId = strtolower((string) ($servicio['servicioId'] ?? ''));
+                    $servicioId = is_string($servicio['servicioId'] ?? null) ? strtolower($servicio['servicioId']) : '';
 
                     foreach (self::SECCIONES as $seccion) {
                         if (!isset($servicio[$seccion]) || !is_array($servicio[$seccion])) {
@@ -163,6 +164,8 @@ final class InclusionComponenteIdBackfill
      */
     private function mapaDeComponentes(int &$ambiguas): array
     {
+        // `nombre` es NULL si el título no tiene primera entrada; `fecha`, si no hay hora de inicio.
+        /** @var list<array{id_bin: string, servicio_bin: ?string, nombre: ?string, fecha: ?string}> $filas */
         $filas = $this->conn->fetchAllAssociative(
             "SELECT c.id AS id_bin,
                     c.cotservicio_id AS servicio_bin,
@@ -182,7 +185,7 @@ final class InclusionComponenteIdBackfill
                 continue;
             }
 
-            $clave = self::clave($servicioId, (string) $f['nombre'], $f['fecha']);
+            $clave = self::clave($servicioId, $f['nombre'] ?? '', $f['fecha']);
 
             if (isset($mapa[$clave])) {
                 $chocan[$clave] = true;
@@ -221,15 +224,15 @@ final class InclusionComponenteIdBackfill
             $texto = '';
             foreach ($nombre as $n) {
                 if (is_array($n) && ($n['language'] ?? '') === 'es') {
-                    $texto = (string) ($n['content'] ?? '');
+                    $texto = is_string($n['content'] ?? null) ? $n['content'] : '';
                     break;
                 }
             }
             if ($texto === '' && isset($nombre[0]) && is_array($nombre[0])) {
-                $texto = (string) ($nombre[0]['content'] ?? '');
+                $texto = is_string($nombre[0]['content'] ?? null) ? $nombre[0]['content'] : '';
             }
         } else {
-            $texto = (string) $nombre;
+            $texto = is_string($nombre) ? $nombre : '';
         }
 
         $dia = '';

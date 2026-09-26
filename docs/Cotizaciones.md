@@ -4424,6 +4424,13 @@ las 7 traducciones intactas.
 puede deshacer: que a un proveedor le falte una línea se ve y se añade; que le sobre, se ve cuando
 ya la leyó.
 
+🐛 **Hasta el 26/09/2026 daba por «a convertir» TODOS los componentes**, también los ya convertidos.
+Buscaba la fila guardada por el id en texto (`(string) $componente->getId()`) en un mapa cuyas
+claves eran el id BINARIO que devuelve el SQL: no casaba nunca, la fila guardada salía `[]` y
+cualquier componente con detalles contaba como cambio (en local, 25 de 25). Reescribía lo mismo, así
+que no rompía datos, pero el `--dry-run` no decía nada útil. Ahora busca por `toBinary()`: 0 de 25.
+Lo destapó el nivel 9 de PHPStan al tipar el `fetchAllKeyValue()`.
+
 `--todas` marca las tres en todos los bloques, y es lo que se decidió el 22/08/2026 mirando el
 contenido: de los diecisiete, quince son número de vuelo, frecuencia de tren y dirección de hotel
 —justo lo que el proveedor necesita para trabajar—. **Quitarle la marca a dos sale más barato que
@@ -7382,6 +7389,18 @@ fantasma.
 palabras son apellidos—, **avisando de que es una conjetura**: acierta con nombres locales y falla
 con extranjeros («Todd Joseph Rouse» daría apellido «Joseph Rouse»).
 
+### Cada celda llega con el tipo que le dio Excel
+
+La hoja se lee **sin formato** (`toArray(…, formatData: false)`), así que una celda es texto,
+número, booleano o nada, según lo que se tecleó. Todas pasan por `PadronFormato::celda()`, que da lo
+mismo que el `(string)` de antes con cualquier escalar y convierte lo demás —el array de una fórmula
+matricial— en celda vacía en vez de en la palabra «Array».
+
+🐛 **Un `1` tecleado en una columna de servicio tumbaba la importación.** Excel lo guarda como
+NÚMERO, y llegaba tal cual a `PadronFormato::participa(?string)`: con `strict_types`, un
+`TypeError`. «SI» o «X» funcionaban; «1», que la ayuda da como válido, no. Ahora pasa por `celda()`
+y cuenta como sí. Lo fija `PadronFormatoCeldaTest`.
+
 ### Resultado con el padrón real (133 personas)
 
 ```
@@ -8804,6 +8823,20 @@ donde se pega el JSON, con su ayuda plegada y un ejemplo de un clic.
 `VuelosCargaController` es una envoltura sobre el mismo `VuelosImportador` que usa el comando: no
 hay una segunda copia de las reglas.
 
+Lo que lee del JSON lo lee con `App\Dto\Lee`, y tres cosas cambiaron el 26/09/2026 (nivel 9):
+
+- **`emitido: "false"` era `true`** —`(bool)` de un texto no vacío—: un billete sin emitir se daba
+  por emitido. Ahora `Lee::booleano()`, y lo ilegible no cambia nada.
+- **Un vuelo con `numero` vacío se creaba** con número «»; ahora es «un vuelo sin numero: se salta».
+- **Un elemento de la lista que no es un objeto** (`[1, 2]`) era un `TypeError` (500 en el
+  expediente); ahora se dice y se salta. Antes, el comando y el controlador declaraban con un `@var`
+  que la lista era de objetos sin comprobarlo.
+
+El `PATCH` de un vuelo suelto (`VueloEditarController`) lee su cuerpo con `CuerpoDeVuelo`, que
+guarda **qué campos vinieron**: en un PATCH, no mandar un campo es no tocarlo y mandarlo vacío es
+vaciarlo, y un `null` solo no distingue las dos cosas. Misma lectura que antes; una fecha que llega
+como algo que no es texto ahora es un 400 («no la entiendo») y no un vaciado.
+
 ⚠️ **El ensayo escribe y deshace**, como el del padrón: se abre transacción, se hace `flush` y se
 revierte. Un ensayo más permisivo que la carga no sirve de nada — así se comprueban el índice
 único y las claves foráneas, que es donde falla lo que no se ve leyendo el archivo. Y en HTTP no
@@ -9065,6 +9098,10 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 
 ## 9. "Quiero cambiar X — ¿dónde toco?"
 
+- **Qué campos lee el PATCH de un vuelo** → `App\Cotizacion\Dto\CuerpoDeVuelo::fromArray()`; el
+  controlador sólo decide con `trae()`. Un campo nuevo va en los dos sitios.
+- **Cómo se lee una celda del padrón** → `PadronFormato::celda()`: el único sitio que convierte lo
+  que guardó Excel en texto; `participa()` decide el sí/no sobre ese texto.
 - **Cuándo sale la lista de horarios bajo la tarjeta** → `compsConHora(item).length > 1 ||
   ...some(c => c.esParteRepartida)` en `PaxCotizacionGuiaView.vue`. Con un solo componente la hora
   ya está en la pastilla de la cabecera y repetirla debajo sobra — **salvo** si ese componente es

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFileGrupo;
 use App\Cotizacion\Enum\GrupoTipoEnum;
@@ -77,8 +78,8 @@ final class CotizacionRenumerarHabitacionesCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $alumnos = mb_strtoupper(trim((string) $input->getOption('alumnos')));
-        $adultos = mb_strtoupper(trim((string) $input->getOption('adultos')));
+        $alumnos = mb_strtoupper(trim(EntradaDeConsola::texto($input->getOption('alumnos'), 'alumnos')));
+        $adultos = mb_strtoupper(trim(EntradaDeConsola::texto($input->getOption('adultos'), 'adultos')));
         $simular = (bool) $input->getOption('dry-run');
 
         if ($alumnos === '' || $adultos === '' || $alumnos === $adultos) {
@@ -102,7 +103,7 @@ final class CotizacionRenumerarHabitacionesCommand extends Command
         }
 
         $file = $this->em->getRepository(CotizacionFile::class)
-            ->findOneBy(['localizador' => (string) $input->getArgument('localizador')]);
+            ->findOneBy(['localizador' => EntradaDeConsola::texto($input->getArgument('localizador'), 'localizador')]);
 
         if ($file === null) {
             $io->error('No existe ese expediente.');

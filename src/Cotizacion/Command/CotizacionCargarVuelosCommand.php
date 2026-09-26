@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Service\Vuelos\VuelosImportador;
 use Doctrine\ORM\EntityManagerInterface;
@@ -52,7 +53,7 @@ final class CotizacionCargarVuelosCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $aplicar = (bool) $input->getOption('aplicar');
-        $ruta = (string) $input->getArgument('archivo');
+        $ruta = EntradaDeConsola::texto($input->getArgument('archivo'), 'archivo');
 
         if (!is_file($ruta)) {
             $io->error(sprintf('No existe el archivo %s', $ruta));
@@ -61,10 +62,10 @@ final class CotizacionCargarVuelosCommand extends Command
         }
 
         $file = $this->em->getRepository(CotizacionFile::class)
-            ->findOneBy(['localizador' => (string) $input->getArgument('expediente')]);
+            ->findOneBy(['localizador' => EntradaDeConsola::texto($input->getArgument('expediente'), 'expediente')]);
 
         if ($file === null) {
-            $io->error(sprintf('No existe el expediente %s', (string) $input->getArgument('expediente')));
+            $io->error(sprintf('No existe el expediente %s', EntradaDeConsola::texto($input->getArgument('expediente'), 'expediente')));
 
             return Command::FAILURE;
         }
@@ -83,7 +84,6 @@ final class CotizacionCargarVuelosCommand extends Command
             return Command::FAILURE;
         }
 
-        /** @var list<array<string, mixed>> $reservas */
         $io->title(sprintf('Vuelos de %s · %d localizador(es)', (string) $file->getLocalizador(), count($reservas)));
 
         $r = $this->importador->importar($file, $reservas, $aplicar);

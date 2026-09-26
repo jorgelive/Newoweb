@@ -74,6 +74,7 @@ final readonly class CotizacionFileGrupoCollectionProvider implements ProviderIn
         // Envolver la columna en `HEX()` renuncia al índice, y aquí da igual: son 56 filas en
         // total y la alternativa —convertir a binario en PHP— vuelve a poner el error a un
         // descuido de distancia.
+        /** @var list<array{grupo: string, numero: ?string, origen: ?string, destino: ?string, salida: ?string, llegada: ?string}> $filas */
         $filas = $this->conn->fetchAllAssociative(
             'SELECT LOWER(HEX(gv.grupo_id)) AS grupo, v.numero, v.origen, v.destino, v.salida, v.llegada
                FROM cotizacion_grupo_vuelo gv

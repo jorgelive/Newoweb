@@ -175,6 +175,10 @@ final readonly class CotizacionFilepasajeroProcessor implements ProcessorInterfa
             return [];
         }
 
-        return array_values($coleccion->getSnapshot());
+        // `getSnapshot()` no declara tipo, pero la foto es de los mismos elementos que la colección.
+        /** @var array<int, T> $foto */
+        $foto = $coleccion->getSnapshot();
+
+        return array_values($foto);
     }
 }

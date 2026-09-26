@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Documento\Discrepancia;
 use App\Cotizacion\Documento\ValidadorDeEticket;
 use App\Cotizacion\Entity\CotizacionFile;
@@ -71,12 +72,12 @@ final class CotizacionValidarEticketsCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $pais = PaisDeControlEnum::tryFrom((string) $input->getOption('pais'));
+        $pais = PaisDeControlEnum::tryFrom(EntradaDeConsola::texto($input->getOption('pais'), 'pais'));
 
         if ($pais === null) {
             $io->error(sprintf(
                 'No hay trámite declarado para «%s». Los que hay: %s. Se añaden en PaisDeControlEnum.',
-                (string) $input->getOption('pais'),
+                EntradaDeConsola::texto($input->getOption('pais'), 'pais'),
                 implode(', ', array_map(static fn (PaisDeControlEnum $p): string => $p->value, PaisDeControlEnum::cases())),
             ));
 
@@ -84,7 +85,7 @@ final class CotizacionValidarEticketsCommand extends Command
         }
 
         $file = $this->em->getRepository(CotizacionFile::class)
-            ->findOneBy(['localizador' => (string) $input->getArgument('localizador')]);
+            ->findOneBy(['localizador' => EntradaDeConsola::texto($input->getArgument('localizador'), 'localizador')]);
 
         if ($file === null) {
             $io->error('No existe ese expediente.');

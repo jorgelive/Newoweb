@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -71,8 +72,8 @@ final class CorregirDuracionComponenteCommand extends Command
         $seco = (bool) $input->getOption('dry-run');
         $conHistorico = (bool) $input->getOption('incluir-historico');
 
-        $titulo = trim((string) ($input->getOption('titulo') ?? ''));
-        $horasTexto = (string) ($input->getOption('horas') ?? '');
+        $titulo = trim(EntradaDeConsola::textoOpcional($input->getOption('titulo'), 'titulo') ?? '');
+        $horasTexto = EntradaDeConsola::textoOpcional($input->getOption('horas'), 'horas') ?? '';
 
         if ($titulo === '' || $horasTexto === '' || !is_numeric($horasTexto)) {
             $io->error('Hacen falta --titulo y --horas (número decimal).');

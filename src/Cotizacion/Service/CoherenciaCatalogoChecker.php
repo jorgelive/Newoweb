@@ -69,10 +69,12 @@ final class CoherenciaCatalogoChecker
             $params    = $bin === null ? [] : ['cot' => $bin];
             $filtro    = $bin === null ? '' : ' AND ' . $chk['deCotizacion'];
 
-            $filas = (int) $this->db->fetchOne(
+            /** @var int|string $cuantas Un `COUNT(*)`: entero o texto según el driver. */
+            $cuantas = $this->db->fetchOne(
                 sprintf('SELECT COUNT(*) FROM %s WHERE %s%s', $chk['desde'], $chk['donde'], $filtro),
                 $params
             );
+            $filas = (int) $cuantas;
 
             if ($filas === 0) {
                 continue;

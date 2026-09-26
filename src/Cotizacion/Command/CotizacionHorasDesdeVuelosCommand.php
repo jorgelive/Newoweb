@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Entity\CotizacionFile;
@@ -73,7 +74,7 @@ final class CotizacionHorasDesdeVuelosCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $ensayo = (bool) $input->getOption('dry-run');
-        $localizador = (string) $input->getArgument('localizador');
+        $localizador = EntradaDeConsola::texto($input->getArgument('localizador'), 'localizador');
 
         $file = $this->em->getRepository(CotizacionFile::class)->findOneBy(['localizador' => $localizador]);
 
@@ -86,11 +87,11 @@ final class CotizacionHorasDesdeVuelosCommand extends Command
         $criterio = ['file' => $file];
 
         if ($input->getOption('propuesta') !== null) {
-            $criterio['propuesta'] = (int) $input->getOption('propuesta');
+            $criterio['propuesta'] = EntradaDeConsola::entero($input->getOption('propuesta'), 'propuesta');
         }
 
         if ($input->getOption('estado') !== null) {
-            $criterio['estado'] = (string) $input->getOption('estado');
+            $criterio['estado'] = EntradaDeConsola::texto($input->getOption('estado'), 'estado');
         }
 
         /** @var list<Cotizacion> $cotizaciones */
