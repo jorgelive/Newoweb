@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api\Controller;
 
+use App\Dto\Lee;
 use App\Entity\Maestro\MaestroTipocambio;
 use App\Service\TipocambioManager;
 use DateTime;
@@ -25,11 +26,18 @@ class TipocambioConsultaController extends AbstractController
     public function __invoke(Request $request, TipocambioManager $tcManager): JsonResponse
     {
         // 1. Extraer datos del payload JSON
-        $data = json_decode($request->getContent(), true) ?? [];
-        $fechaStr = $data['fecha'] ?? 'now';
+        // Sin `fecha` es hoy; con una que no es texto ni número (un array) es un 400 como el de una
+        // fecha mal escrita, y no un `TypeError` dentro de `DateTime`.
+        $data = json_decode($request->getContent(), true);
+        $crudo = is_array($data) ? ($data['fecha'] ?? null) : null;
+        $fechaStr = $crudo === null ? 'now' : Lee::texto($crudo);
 
         // 2. Normalizar fecha a zona horaria operativa (Cusco/Lima)
         try {
+            if ($fechaStr === null) {
+                throw new \InvalidArgumentException('La fecha no es texto.');
+            }
+
             $fecha = new DateTime($fechaStr, new DateTimeZone('America/Lima'));
         } catch (\Exception $e) {
             throw new BadRequestHttpException('El formato de fecha es inválido. Utilice YYYY-MM-DD.');

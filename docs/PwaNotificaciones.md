@@ -56,7 +56,7 @@ nada.**
 |---|---|---|
 | Disparo | `MessageConversationMercureListener::safeDispatchPushNotifications()` | Elige destinatarios por rol y arma el payload |
 | Envío | `WebPushNotificationService::sendToUser()` | Cifra VAPID, encola y hace `flush()` |
-| Persistencia | `PushSubscription` + `PushSubscriptionController::subscribe()` | Una fila por dispositivo y usuario |
+| Persistencia | `PushSubscription` + `PushSubscriptionController::subscribe()` | Una fila por dispositivo y usuario. El cuerpo se lee con `CuerpoDeSuscripcionPush`: las claves **tal cual**, y lo que no es texto es «falta» (400) — antes un array se guardaba como la palabra «Array» y la suscripción no descifraba nada |
 | Alta desde el cliente | `util/src/stores/notificationStore.ts` → `subscribeToPushNotifications()` | Pide permiso, se suscribe y hace POST al backend |
 | Recepción | `util/public/push-sw.js` | **Único sitio con el listener de `push`** |
 | SW contenedor | generado por VitePWA → `public/util-service-worker.js` | Precache + `importScripts('/app_util/push-sw.js')` |

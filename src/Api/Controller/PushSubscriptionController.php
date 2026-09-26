@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api\Controller;
 
+use App\Api\Dto\CuerpoDeSuscripcionPush;
 use App\Entity\PushSubscription;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -60,12 +61,13 @@ class PushSubscriptionController extends AbstractController
         }
 
         $data = json_decode($content, true);
+        $cuerpo = CuerpoDeSuscripcionPush::fromArray(is_array($data) ? $data : []);
 
-        $endpoint = $data['endpoint'] ?? null;
-        $p256dh   = $data['p256dh'] ?? null;
-        $auth     = $data['auth'] ?? null;
+        $endpoint = $cuerpo->endpoint;
+        $p256dh   = $cuerpo->p256dh;
+        $auth     = $cuerpo->auth;
 
-        if (!$endpoint || !$p256dh || !$auth) {
+        if ($endpoint === null || $p256dh === null || $auth === null) {
             return new JsonResponse(['error' => 'Datos de suscripción incompletos (endpoint, p256dh o auth ausentes).'], Response::HTTP_BAD_REQUEST);
         }
 
@@ -74,12 +76,12 @@ class PushSubscriptionController extends AbstractController
 
         if (null === $subscription) {
             $subscription = new PushSubscription();
-            $subscription->setEndpoint((string) $endpoint);
+            $subscription->setEndpoint($endpoint);
         }
 
         $subscription->setUser($user);
-        $subscription->setP256dhKey((string) $p256dh);
-        $subscription->setAuthToken((string) $auth);
+        $subscription->setP256dhKey($p256dh);
+        $subscription->setAuthToken($auth);
 
         try {
             $this->entityManager->persist($subscription);
@@ -112,9 +114,9 @@ class PushSubscriptionController extends AbstractController
         }
 
         $data = json_decode($content, true);
-        $endpoint = $data['endpoint'] ?? null;
+        $endpoint = CuerpoDeSuscripcionPush::fromArray(is_array($data) ? $data : [])->endpoint;
 
-        if (!$endpoint) {
+        if ($endpoint === null) {
             return new JsonResponse(['error' => 'Falta el endpoint a desuscribir.'], Response::HTTP_BAD_REQUEST);
         }
 

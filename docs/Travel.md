@@ -1066,6 +1066,18 @@ extras → actividad_fijo
  * puntos: ninguno → ninguno
 ```
 
+- **Guardar la logística específica de un párrafo borraba antes de leer** (hasta el 26/09/2026).
+  `TravelSegmentoComponenteAjaxController::saveComponentes()` purga las filas de ese
+  `(itinerarioContexto, segmento)` y escribe las del modal; leía cada fila DESPUÉS de purgar, así
+  que un id de tarifa mal formado o una hora ilegible en la fila 7 era un 500 con la logística vieja
+  ya borrada. Ahora el cuerpo entero pasa antes por `App\Travel\Dto\FilaDeLogistica::lista()`, que
+  lo valida todo y devuelve 400 diciendo qué fila, sin tocar nada. Comprobado con las tres relaciones
+  locales que tienen logística: ida y vuelta (GET → POST) deja las filas idénticas. De paso,
+  `servicioCompleto: "false"` ya no cuenta como marcado.
+- **Las subidas de imágenes a organización, servicio y segmento** comprueban que `file` sea un
+  `UploadedFile`: un `file[]` llegaba como array y reventaba en el setter de Vich (500); ahora es el
+  mismo 400 de «no se ha enviado ningún archivo».
+
 ## 11 bis. Escribirle a un proveedor (21/08/2026)
 
 `src/Travel/` entra en la mensajería por primera vez, y por la puerta pequeña: una
@@ -2381,6 +2393,7 @@ migración: `titulo` y `contenido` llevan `#[AutoTranslate]`.
 
 | Necesidad | Archivo | Símbolo |
 |---|---|---|
+| Leer un campo nuevo de la logística específica del modal | `src/Travel/Dto/FilaDeLogistica.php` | `fromArray()` — y el controlador lo copia a la entidad |
 | **Filtrar una colección por una relación (organización, prestador…)** | la entidad del recurso | `#[ApiFilter(UuidRelacionFilter::class, …)]` — **nunca** `SearchFilter` (devuelve cero) ni una extensión a mano (devuelve de más). Regenerar `api.d.ts` en `util/` y `pax/` (§6 bis) |
 | **Cambiar si un tipo lleva punto de recojo/entrega** | `src/Travel/Enum/ComponenteTipoEnum.php` | `puntosDeServicio()` (§11 quater) |
 | **Cambiar qué lugar le toca a un componente** | `src/Travel/Command/TravelEtiquetarLugaresCommand.php` | `REGLAS` — patrón y a qué otros lugares arrastra (§11 ter) |

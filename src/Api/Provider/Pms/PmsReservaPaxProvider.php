@@ -176,7 +176,15 @@ final class PmsReservaPaxProvider implements ProviderInterface
      * 100 %, sin una sola cifra. Con extras ve SOLO esos, que son los que nos debe
      * a nosotros y sí puede reconocer.
      *
-     * @return array<string, mixed>
+     * @return array{soloProgreso: true}|array{
+     *     total: string, pagado: string, saldo: string, monedaCuadre: string, mixta: bool,
+     *     cruceSaldado: bool, cuadra: bool,
+     *     porMoneda: list<array{moneda: string, simbolo: string|null, cargos: string, pagado: string, saldo: string}>,
+     *     cargos: array<string, string>,
+     *     lineas: list<array{tipo: string, descripcion: list<array{language?: string, content?: string|null}>, monto: string}>,
+     *     pagos: list<array{fecha: string|null, medio: string, monto: string}>,
+     *     prepago: array{monto: string, claveI18n: string, politica: string}|null
+     * }
      */
     private function cifras(PmsInformacionFinanciera $finanzas): array
     {

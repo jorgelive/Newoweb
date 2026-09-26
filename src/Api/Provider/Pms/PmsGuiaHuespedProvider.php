@@ -74,7 +74,9 @@ final class PmsGuiaHuespedProvider implements ProviderInterface
             return $this->rechazar();
         }
 
-        $evento = $this->elegirEvento($eventos, $uriVariables['unidad'] ?? null);
+        // Una variable de ruta es texto; lo que no lo sea cuenta como «sin unidad».
+        $slugUnidad = $uriVariables['unidad'] ?? null;
+        $evento = $this->elegirEvento($eventos, is_string($slugUnidad) ? $slugUnidad : null);
 
         if (null === $evento) {
             return $this->rechazar(); // slug de unidad que no pertenece a esta reserva
