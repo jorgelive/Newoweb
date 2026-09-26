@@ -12,6 +12,7 @@ use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsReservaHuesped;
+use App\Pms\Entity\PmsUnidad;
 use App\Pms\Factory\PmsEventoCalendarioFactory;
 use App\Pms\Form\Type\PmsReservaHuespedType;
 use App\Pms\Service\Message\PmsMessageDataResolver;
@@ -171,18 +172,25 @@ final class PmsReservaCrudController extends BaseCrudController
                     }
 
                     // 2. Protección de inmutabilidad en fechas OTA
+                    // El changeset de un campo es [antes, después]; el de estas columnas lo tipa su mapeo.
                     if (array_key_exists('inicio', $changes)) {
-                        $evento->setInicio($changes['inicio'][0]);
+                        /** @var \DateTimeInterface|null $inicioAnterior */
+                        $inicioAnterior = $changes['inicio'][0];
+                        $evento->setInicio($inicioAnterior);
                         $uow->recomputeSingleEntityChangeSet($metaEvento, $evento);
                     }
                     if (array_key_exists('fin', $changes)) {
-                        $evento->setFin($changes['fin'][0]);
+                        /** @var \DateTimeInterface|null $finAnterior */
+                        $finAnterior = $changes['fin'][0];
+                        $evento->setFin($finAnterior);
                         $uow->recomputeSingleEntityChangeSet($metaEvento, $evento);
                     }
 
                     // 3. 🔥 NUEVO: Protección de inmutabilidad en la Unidad OTA
                     if (array_key_exists('pmsUnidad', $changes)) {
-                        $evento->setPmsUnidad($changes['pmsUnidad'][0]); // Revertimos al valor original [0]
+                        /** @var PmsUnidad|null $unidadAnterior */
+                        $unidadAnterior = $changes['pmsUnidad'][0];
+                        $evento->setPmsUnidad($unidadAnterior); // Revertimos al valor original [0]
                         $uow->recomputeSingleEntityChangeSet($metaEvento, $evento);
                     }
 
@@ -540,6 +548,7 @@ TXT;
 
                     // Asumiendo que la tabla se llama 'conversation'
                     $sql = "SELECT id FROM msg_conversation WHERE context_type = 'pms_reserva' AND context_id = :uuid LIMIT 1";
+                    /** @var string|false $convIdRaw El `id` BINARY(16), o `false` si no hay hilo. */
                     $convIdRaw = $conn->fetchOne($sql, ['uuid' => (string) $entity->getId()]);
 
                     if ($convIdRaw) {

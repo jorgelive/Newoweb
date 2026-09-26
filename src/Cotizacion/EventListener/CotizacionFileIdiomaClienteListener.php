@@ -35,8 +35,9 @@ final class CotizacionFileIdiomaClienteListener
             return;
         }
 
-        $nuevoIdioma = (string) $args->getNewValue('idiomaCliente');
-        if ($nuevoIdioma === '') {
+        // `idiomaCliente` es texto; vaciarlo (o un null) no arrastra nada.
+        $nuevoIdioma = $args->getNewValue('idiomaCliente');
+        if (!is_string($nuevoIdioma) || $nuevoIdioma === '') {
             return;
         }
 

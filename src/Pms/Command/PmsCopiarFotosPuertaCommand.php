@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Entity\PmsUnidadMedia;
 use App\Pms\Enum\PmsUnidadMediaTipo;
@@ -88,11 +89,11 @@ final class PmsCopiarFotosPuertaCommand extends Command
         // no por nada que esté en el archivo.
         $elegidas = [];
 
-        foreach ((array) $input->getOption('elegir') as $par) {
-            [$casita, $archivo] = array_pad(explode('=', (string) $par, 2), 2, '');
+        foreach (EntradaDeConsola::textos($input->getOption('elegir'), 'elegir') as $par) {
+            [$casita, $archivo] = array_pad(explode('=', $par, 2), 2, '');
 
             if (trim($casita) === '' || trim($archivo) === '') {
-                $io->error(sprintf('No entiendo «%s». Se escribe --elegir="Casita 4=archivo.webp".', (string) $par));
+                $io->error(sprintf('No entiendo «%s». Se escribe --elegir="Casita 4=archivo.webp".', $par));
 
                 return Command::FAILURE;
             }

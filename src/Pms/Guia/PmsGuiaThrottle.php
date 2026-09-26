@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Guia;
 
+use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
@@ -79,7 +80,7 @@ final class PmsGuiaThrottle
     {
         $item = $this->cache->getItem($this->clave());
 
-        $actual = $item->isHit() ? (int) $item->get() : 0;
+        $actual = $this->fallosEn($item);
 
         $item->set($actual + 1);
 
@@ -95,9 +96,15 @@ final class PmsGuiaThrottle
 
     private function contarFallos(): int
     {
-        $item = $this->cache->getItem($this->clave());
+        return $this->fallosEn($this->cache->getItem($this->clave()));
+    }
 
-        return $item->isHit() ? (int) $item->get() : 0;
+    /** El contador sólo lo escribe esta clase, y escribe enteros. */
+    private function fallosEn(CacheItemInterface $item): int
+    {
+        $fallos = $item->get();
+
+        return $item->isHit() && is_int($fallos) ? $fallos : 0;
     }
 
     /**

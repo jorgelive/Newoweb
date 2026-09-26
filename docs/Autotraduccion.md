@@ -302,6 +302,22 @@ Además del flag de la entidad hay flags `sobreescribirTraduccion` **por contene
 JSON** (`peekLocalOverwrite`/`resetOverwriteFlags`). Quedaron semiobsoletos con el hash y siguen
 funcionando; si alguien los retira, que sea a conciencia.
 
+### Una ruta que no se puede seguir falla con su nombre *(26/09/2026)*
+
+`traverseAndTranslate()` baja por la ruta de `#[AutoTranslate(path: …)]`. Si un nivel intermedio no
+es un objeto ni una lista, antes era un `TypeError` sin contexto al entrar en la recursión; ahora
+`nivel()` lanza un `RuntimeException` que nombra la ruta, igual que `listToMapRows()` con una hoja
+mal formada. **El resultado es el mismo —el guardado falla—**, pero se sabe en qué campo.
+
+Y una fila con `language` que no es escalar (un array) se rechaza en `listToMapRows()` en vez de
+guardarse bajo la clave «array»; un `content` que no es escalar cuenta como hueco a rellenar.
+
+`MaestroIdioma::ordenarParaFormulario()` valida TODAS las filas antes de ordenar —antes sólo las que
+`usort()` llegaba a comparar, así que una lista de una fila no se validaba nunca— y deja `content` en
+texto o `null`, que es lo que promete su tipo. Conserva el resto de claves de la fila (la huella de
+esta traducción). Medido en producción el 26/09/2026 sobre los nueve campos que pasan por él (3 585
+entradas de idioma): **ninguna** lanzaría ni cambiaría.
+
 ## 10. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método / clave |

@@ -305,7 +305,7 @@ class AutoTranslationService
                         $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $itemOverwrite, $vetado, $soloSellar);
                         $item[$currentKey] = $this->mapRowsToList($translatedMap);
                     } else {
-                        $item[$currentKey] = $this->traverseAndTranslate($item[$currentKey], $pathParts, $sourceLang, $mimeType, $itemOverwrite, $fullPath . '.' . $currentKey, $vetado, $soloSellar);
+                        $item[$currentKey] = $this->traverseAndTranslate($this->nivel($item[$currentKey], $fullPath . '.' . $currentKey), $pathParts, $sourceLang, $mimeType, $itemOverwrite, $fullPath . '.' . $currentKey, $vetado, $soloSellar);
                     }
 
                     $data[$index] = $item;
@@ -323,11 +323,29 @@ class AutoTranslationService
                 $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $localOverwrite, $vetado, $soloSellar);
                 $data[$currentKey] = $this->mapRowsToList($translatedMap);
             } else {
-                $data[$currentKey] = $this->traverseAndTranslate($data[$currentKey], $pathParts, $sourceLang, $mimeType, $localOverwrite, $fullPath . '.' . $currentKey, $vetado, $soloSellar);
+                $data[$currentKey] = $this->traverseAndTranslate($this->nivel($data[$currentKey], $fullPath . '.' . $currentKey), $pathParts, $sourceLang, $mimeType, $localOverwrite, $fullPath . '.' . $currentKey, $vetado, $soloSellar);
             }
         }
 
         return $data;
+    }
+
+    /**
+     * Un nivel intermedio de la ruta: tiene que ser un objeto o una lista para seguir bajando.
+     *
+     * Lo que no lo es falla con el nombre de la ruta, igual que falla `listToMapRows()` con una
+     * hoja mal formada. Antes era un `TypeError` sin contexto al entrar en la recursión: el mismo
+     * guardado fallido, pero sin decir en qué campo.
+     *
+     * @return Estructura
+     */
+    private function nivel(mixed $valor, string $ruta): array
+    {
+        if (!is_array($valor)) {
+            throw new RuntimeException(sprintf('El valor de "%s" debe ser un objeto o una lista para seguir la ruta de traducción.', $ruta));
+        }
+
+        return $valor;
     }
 
     /**
@@ -383,7 +401,10 @@ class AutoTranslationService
             if ($targetCode === $sourceLangNorm) continue;
 
             $existingRow = $valuesMap[$targetCode] ?? null;
-            $isContentEmpty = $existingRow === null || trim((string) $existingRow['content']) === '';
+            // Un `content` que no es un escalar no es un texto que conservar: cuenta como hueco.
+            $contenidoExistente = $existingRow['content'] ?? null;
+            $isContentEmpty = $existingRow === null
+                || trim(is_scalar($contenidoExistente) ? (string) $contenidoExistente : '') === '';
             $hashGuardado = is_array($existingRow) ? ($existingRow[self::SOURCE_HASH_KEY] ?? null) : null;
 
             // Propiedad vetada (`preventOverwriteIf`): nunca se pisa una traducción existente,
@@ -524,7 +545,7 @@ class AutoTranslationService
         $out = [];
         foreach ($values as $index => $row) {
             // Se usa array_key_exists en lugar de isset para permitir contenidos "null" de EasyAdmin
-            if (!is_array($row) || !isset($row['language']) || !array_key_exists('content', $row)) {
+            if (!is_array($row) || !is_scalar($row['language'] ?? null) || !array_key_exists('content', $row)) {
                 throw new RuntimeException(sprintf(
                     'Estructura inválida en "%s" (índice %s). Se requiere un objeto con las claves "language" y "content"',
                     $propName, $index

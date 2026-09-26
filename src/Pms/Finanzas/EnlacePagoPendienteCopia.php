@@ -59,7 +59,8 @@ final readonly class EnlacePagoPendienteCopia implements CopiaDelNombre
             return 0;
         }
 
-        return (int) $this->em->createQuery(
+        /** @var int $filas Un `UPDATE` en DQL devuelve las filas afectadas. */
+        $filas = $this->em->createQuery(
             'UPDATE ' . FinEnlacePago::class . ' l
              SET l.clienteNombre = :nombreAhora, l.clienteApellido = :apellidoAhora
              WHERE l.origenTipo = :tipo AND l.origenId = :id
@@ -79,6 +80,8 @@ final readonly class EnlacePagoPendienteCopia implements CopiaDelNombre
             ->setParameter('nombreAhora', $correccion->nombreAhora)
             ->setParameter('apellidoAhora', $correccion->apellidoAhora)
             ->execute();
+
+        return $filas;
     }
 
     /** Enlaces sin cobrar cuyo titular ya no es el que dice su reserva. `BINARY` por la collation. */
@@ -100,6 +103,9 @@ final readonly class EnlacePagoPendienteCopia implements CopiaDelNombre
               )
             SQL;
 
-        return (int) $this->em->getConnection()->fetchOne($sql);
+        /** @var int|string $total Un `COUNT(*)`: entero o texto según el driver. */
+        $total = $this->em->getConnection()->fetchOne($sql);
+
+        return (int) $total;
     }
 }

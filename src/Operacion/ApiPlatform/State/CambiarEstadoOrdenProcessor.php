@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operacion\ApiPlatform\State;
 
+use App\Api\VariableDeRuta;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Operacion\ApiPlatform\Dto\CambiarEstadoOrdenInput;
@@ -47,7 +48,7 @@ final readonly class CambiarEstadoOrdenProcessor implements ProcessorInterface
             throw new DomainException('Entrada no reconocida para cambiar el estado de una orden.');
         }
 
-        $id = (string) ($uriVariables['id'] ?? '');
+        $id = VariableDeRuta::texto($uriVariables, 'id');
 
         if (!Uuid::isValid($id)) {
             throw new DomainException('Falta la orden sobre la que actuar.');

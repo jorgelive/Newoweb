@@ -259,7 +259,7 @@ final class PmsGuiaAccesosCommand extends Command
     {
         foreach ($i18n ?? [] as $fila) {
             if (($fila['language'] ?? null) === 'es') {
-                return (string) ($fila['content'] ?? '');
+                return is_string($fila['content'] ?? null) ? $fila['content'] : '';
             }
         }
 

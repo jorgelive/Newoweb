@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api\Controller\Travel;
 
+use App\Travel\Dto\FilaDeLogistica;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelItinerarioSegmentoRel;
 use App\Travel\Entity\TravelSegmentoComponente;
@@ -14,7 +15,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Uid\Uuid;
 
 #[Route('/travel/user/travel-segmento-componente', name: 'travel_user_segmento_componente')]
 class TravelSegmentoComponenteAjaxController extends AbstractController
@@ -117,7 +117,12 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
         $itinerario = $relacion->getItinerarioOrFail();
         $segmento = $relacion->getSegmentoOrFail();
 
-        $payload = json_decode($request->getContent(), true);
+        // Se lee y se valida TODO antes de borrar nada: ver `FilaDeLogistica`.
+        try {
+            $filas = FilaDeLogistica::lista(json_decode($request->getContent(), true));
+        } catch (\InvalidArgumentException $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
 
         // 1. Purgar logística ESPECÍFICA (NO toca los generales porque buscamos por itinerarioContexto)
         $existing = $this->em->getRepository(TravelSegmentoComponente::class)->findBy([
@@ -134,38 +139,26 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
         // "servicio completo" (una por plantilla y día) la garantiza al flush el
         // listener TravelSegmentoComponentePromocionUnicaListener, así que aquí
         // sólo persistimos el flag tal cual viene por fila.
-        foreach ($payload as $row) {
-            if (empty($row['componenteId'])) continue;
-
-            $uuidObj = Uuid::fromString($row['componenteId']);
-            $comp = $this->em->getReference(TravelComponente::class, $uuidObj);
+        foreach ($filas as $fila) {
+            $comp = $this->em->getReference(TravelComponente::class, $fila->componenteId);
 
             $nuevaLog = new TravelSegmentoComponente();
             $nuevaLog->setItinerarioContexto($itinerario);
             $nuevaLog->setSegmento($segmento);
             $nuevaLog->setComponente($comp);
-            $nuevaLog->setOrden((int)$row['orden']);
-
-            $modoEnum = ComponenteModoEnum::tryFrom($row['modo'] ?? 'incluido') ?? ComponenteModoEnum::INCLUIDO;
-            $nuevaLog->setModo($modoEnum);
-
-            // 🔥 Persistir el campo Día si está presente en el payload
-            if (isset($row['dia']) && $row['dia'] !== '') {
-                $nuevaLog->setDia((int)$row['dia']);
-            } else {
-                $nuevaLog->setDia(null);
-            }
+            $nuevaLog->setOrden($fila->orden);
+            $nuevaLog->setModo($fila->modo);
+            $nuevaLog->setDia($fila->dia);
 
             // Guardar tarifa predeterminada apuntando correctamente a TravelTarifa
-            if (!empty($row['tarifaId'])) {
-                $tarifa = $this->em->getReference(TravelTarifa::class, Uuid::fromString($row['tarifaId']));
-                $nuevaLog->setTarifaPredeterminada($tarifa);
+            if ($fila->tarifaId !== null) {
+                $nuevaLog->setTarifaPredeterminada($this->em->getReference(TravelTarifa::class, $fila->tarifaId));
             }
 
-            if (!empty($row['hora'])) $nuevaLog->setHora(new \DateTimeImmutable($row['hora']));
-            if (!empty($row['horaFin'])) $nuevaLog->setHoraFin(new \DateTimeImmutable($row['horaFin']));
+            if ($fila->hora !== null) $nuevaLog->setHora($fila->hora);
+            if ($fila->horaFin !== null) $nuevaLog->setHoraFin($fila->horaFin);
 
-            $nuevaLog->setHoraServicioCompleto(!empty($row['servicioCompleto']));
+            $nuevaLog->setHoraServicioCompleto($fila->servicioCompleto);
 
             $this->em->persist($nuevaLog);
         }

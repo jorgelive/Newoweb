@@ -34,12 +34,9 @@ final class TourTarjetaResolver
      * imagen disponible. No aplica el override editorial (`imagenPortada`):
      * eso lo decide quien llama, que es quien sabe si debe respetarlo.
      *
-     * @param array<int, mixed> $cotIds
-     * @return array<string, array> Mapa cotizacionId => imagen (snapshot)
+     * @param list<AbstractUid|string> $cotIds
      *
-     * @param list<\Symfony\Component\Uid\Uuid|string> $cotIds
-     *
-     * @return array<string, array<string, mixed>> Mapa cotizacionId => imagen (snapshot)
+     * @return array<string, array<mixed>> Mapa cotizacionId => imagen (snapshot)
      */
     public function portadasDerivadas(array $cotIds): array
     {
@@ -47,6 +44,8 @@ final class TourTarjetaResolver
             return [];
         }
 
+        // `cotId` sale en BINARIO (ver `clave()`); la columna JSON, tal cual la guardó quien fuera.
+        /** @var list<array{cotId: string, imagenesSnapshot: array<mixed>|null}> $filas */
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT IDENTITY(s.cotizacion) AS cotId, seg.imagenesSnapshot
             FROM App\Cotizacion\Entity\CotizacionSegmento seg
@@ -61,7 +60,7 @@ final class TourTarjetaResolver
         $fallbacks = [];
         foreach ($filas as $fila) {
             $cotId = self::clave($fila['cotId']);
-            foreach ((array) ($fila['imagenesSnapshot'] ?? []) as $img) {
+            foreach ($fila['imagenesSnapshot'] ?? [] as $img) {
                 if (!is_array($img)) {
                     continue;
                 }
@@ -78,7 +77,7 @@ final class TourTarjetaResolver
     /**
      * Duración en días de cada tour, en lote.
      *
-     * @param array<int, mixed> $cotIds
+     * @param list<AbstractUid|string> $cotIds
      * @return array<string, int> Mapa cotizacionId => días
      */
     public function diasPorTour(array $cotIds): array
@@ -87,6 +86,8 @@ final class TourTarjetaResolver
             return [];
         }
 
+        // `MIN`/`MAX` de un DQL escalar no pasan por el tipo de la columna: llegan como texto.
+        /** @var list<array{cotId: string, fechaMin: ?string, fechaMax: ?string}> $filas */
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT IDENTITY(s.cotizacion) AS cotId,
                    MIN(s.fechaInicioAbsoluta) AS fechaMin,
@@ -110,6 +111,24 @@ final class TourTarjetaResolver
     }
 
     /**
+     * Ids a binario para el `IN (:ids)`. Otra cara del mismo gotcha: pasar
+     * objetos `Uuid` sin tipo de parámetro los serializa mal y el IN no casa
+     * con nada — la query no falla, simplemente devuelve cero filas.
+     *
+     * @param list<AbstractUid|string> $ids
+     * @return list<string>
+     */
+    private static function binarios(array $ids): array
+    {
+        return array_map(
+            static fn(AbstractUid|string $id): string => $id instanceof AbstractUid
+                ? $id->toBinary()
+                : (strlen($id) === 16 ? $id : Uuid::fromString($id)->toBinary()),
+            $ids
+        );
+    }
+
+    /**
      * Clave canónica de un id de cotización: UUID con guiones, en minúsculas.
      *
      * **Gotcha**: `IDENTITY(s.cotizacion)` en DQL devuelve el UUID **binario en
@@ -117,25 +136,11 @@ final class TourTarjetaResolver
      * dos con `(string)` a secas nunca coincide — el mapa queda vacío en
      * silencio y la portada derivada "desaparece" sin ningún error. Todo id que
      * entre o salga de estos mapas pasa por aquí.
-     */
-    /**
-     * Ids a binario para el `IN (:ids)`. Otra cara del mismo gotcha: pasar
-     * objetos `Uuid` sin tipo de parámetro los serializa mal y el IN no casa
-     * con nada — la query no falla, simplemente devuelve cero filas.
      *
-     * @param array<int, mixed> $ids
-     * @return array<int, string>
+     * `mixed` a propósito: recibe el id de una entidad (`?Uuid`), el de una fila de DQL (binario)
+     * y el de una fila escalar. Un id que falta —una entidad sin guardar— es la clave vacía, que no
+     * casa con ninguna, igual que antes.
      */
-    private static function binarios(array $ids): array
-    {
-        return array_map(
-            static fn(mixed $id): string => $id instanceof AbstractUid
-                ? $id->toBinary()
-                : (strlen((string) $id) === 16 ? (string) $id : Uuid::fromString((string) $id)->toBinary()),
-            $ids
-        );
-    }
-
     public static function clave(mixed $id): string
     {
         if ($id instanceof AbstractUid) {
@@ -144,7 +149,7 @@ final class TourTarjetaResolver
         if (is_string($id) && strlen($id) === 16) {
             return (string) Uuid::fromBinary($id);
         }
-        return strtolower((string) $id);
+        return is_string($id) ? strtolower($id) : '';
     }
 
     /**

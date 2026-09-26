@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operacion\ApiPlatform\State;
 
+use App\Api\VariableDeRuta;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Operacion\ApiPlatform\Dto\AjustarRutasInput;
@@ -48,7 +49,7 @@ final readonly class AjustarRutasProcessor implements ProcessorInterface
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): OperacionOrdenServicio
     {
-        $orden = $this->em->find(OperacionOrdenServicio::class, (string) ($uriVariables['id'] ?? ''));
+        $orden = $this->em->find(OperacionOrdenServicio::class, VariableDeRuta::texto($uriVariables, 'id'));
 
         if (!$orden instanceof OperacionOrdenServicio) {
             throw new DomainException('La orden no existe. Recarga y vuelve a intentarlo.');

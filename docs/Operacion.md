@@ -3340,6 +3340,7 @@ pondrá «4 noches». Ni una cifra, ni un importe, ni una fecha. Lo corre
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
+| Leer el `{id}` de la ruta en un processor | `src/Api/VariableDeRuta.php` | `texto()` — API Platform lo entrega ya convertido (un `Uuid`); lo que no puede venir de una ruta es texto vacío, no «Array» |
 | **Cambiar en qué se cuenta una fila (noches/días)** | `src/Travel/Entity/TravelComponente.php` | `$unidadDeConteo` — lo declara el CATÁLOGO; el tipo sólo da el defecto |
 | Cambiar cómo se rotula la cantidad al proveedor | `src/Operacion/Entity/OperacionOrdenServicioItem.php` | `getCantidadParaProveedor()` — la redacción vive aquí, no en el Twig |
 | Cambiar cuándo sale «hasta el…» | `src/Operacion/Entity/OperacionOrdenServicioItem.php` | `getHastaParaProveedor()` — se calla si acaba el mismo día o si no dura |

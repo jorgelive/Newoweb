@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Command\EntradaDeConsola;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -136,10 +137,9 @@ final class PmsRetirarReservasFantasmaCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $ejecutar = (bool) $input->getOption('ejecutar');
 
-        /** @var list<string> $localizadores */
         $localizadores = array_values(array_unique(array_map(
             static fn (string $l): string => strtoupper(trim($l)),
-            (array) $input->getArgument('localizadores')
+            EntradaDeConsola::textos($input->getArgument('localizadores'), 'localizadores')
         )));
 
         $planes = array_map($this->planificar(...), $localizadores);
@@ -228,6 +228,7 @@ final class PmsRetirarReservasFantasmaCommand extends Command
             'mensajesQueSeQuedan' => 0,
         ];
 
+        /** @var array{hex: string, uuid: string}|false $reserva */
         $reserva = $this->conexion->fetchAssociative(
             'SELECT HEX(id) AS hex, BIN_TO_UUID(id) AS uuid FROM pms_reserva WHERE localizador = ?',
             [$localizador]
@@ -237,11 +238,14 @@ final class PmsRetirarReservasFantasmaCommand extends Command
             return ['motivo' => 'no existe esa reserva.'] + $plan;
         }
 
-        $hex = (string) $reserva['hex'];
-        $uuid = (string) $reserva['uuid'];
+        $hex = $reserva['hex'];
+        $uuid = $reserva['uuid'];
         $plan['reservaHex'] = $hex;
         $plan['uuid'] = $uuid;
 
+        // Una agregación siempre devuelve una fila. `SUM()` sale como DECIMAL (texto) y es NULL
+        // cuando no hay eventos; `COUNT()` llega como entero o texto según el driver.
+        /** @var array{total: int|string, principales: int|string|null, no_espejo: int|string|null, futuros: int|string|null} $ev */
         $ev = $this->conexion->fetchAssociative(
             'SELECT COUNT(*) AS total,
                     SUM(evento_origen_id IS NULL) AS principales,
@@ -250,8 +254,8 @@ final class PmsRetirarReservasFantasmaCommand extends Command
                FROM pms_evento_calendario WHERE reserva_id = UNHEX(?)',
             [$hex]
         );
-        $plan['eventos'] = (int) ($ev['total'] ?? 0);
-        $plan['links'] = (int) $this->conexion->fetchOne(
+        $plan['eventos'] = (int) $ev['total'];
+        $plan['links'] = $this->contar(
             'SELECT COUNT(*) FROM pms_evento_beds24_link l
                JOIN pms_evento_calendario e ON e.id = l.evento_id WHERE e.reserva_id = UNHEX(?)',
             [$hex]
@@ -262,7 +266,7 @@ final class PmsRetirarReservasFantasmaCommand extends Command
         $plan['hilosCompartidos'] = $hilosCompartidos;
 
         if ($hilosCompartidos !== []) {
-            $plan['mensajesQueSeQuedan'] = (int) $this->conexion->fetchOne(
+            $plan['mensajesQueSeQuedan'] = $this->contar(
                 'SELECT COUNT(*) FROM msg_message WHERE asunto_id = ? AND HEX(conversation_id) IN (?)',
                 [$uuid, $hilosCompartidos],
                 [ParameterType::STRING, ArrayParameterType::STRING]
@@ -292,19 +296,23 @@ final class PmsRetirarReservasFantasmaCommand extends Command
     {
         // Los enlazados al fantasma y los que llevan su cabecera: una cáscara de fusión tiene lo
         // segundo sin lo primero, y también hay que retirarla.
-        $entregados = implode(', ', array_map($this->conexion->quote(...), self::ENTREGADOS));
-
+        /**
+         * `con_su_cabecera` es una comparación: 0/1, o NULL si el hilo no tiene `context_id`.
+         *
+         * @var list<array{hex: string, guest_name: ?string, con_su_cabecera: int|string|null, otros_asuntos: int|string, asuntos_cotizacion: int|string, entrantes: int|string, entregados: int|string, identidades_de_persona: int|string}> $hilos
+         */
         $hilos = $this->conexion->fetchAllAssociative(
             'SELECT HEX(c.id) AS hex, c.guest_name, c.context_id = ? AS con_su_cabecera,
                     (SELECT COUNT(*) FROM pms_conversacion_enlace o WHERE o.conversacion_id = c.id AND o.reserva_id <> UNHEX(?)) AS otros_asuntos,
                     (SELECT COUNT(*) FROM cotizacion_conversacion_enlace o WHERE o.conversacion_id = c.id) AS asuntos_cotizacion,
                     (SELECT COUNT(*) FROM msg_message m WHERE m.conversation_id = c.id AND m.direction = "incoming") AS entrantes,
-                    (SELECT COUNT(*) FROM msg_message m WHERE m.conversation_id = c.id AND m.status IN (' . $entregados . ')) AS entregados,
+                    (SELECT COUNT(*) FROM msg_message m WHERE m.conversation_id = c.id AND m.status IN (?)) AS entregados,
                     (SELECT COUNT(*) FROM msg_identidad i WHERE i.conversacion_id = c.id AND i.tipo <> "beds24") AS identidades_de_persona
                FROM msg_conversation c
               WHERE c.context_id = ?
                  OR c.id IN (SELECT l.conversacion_id FROM pms_conversacion_enlace l WHERE l.reserva_id = UNHEX(?))',
-            [$uuid, $hex, $uuid, $hex]
+            [$uuid, $hex, self::ENTREGADOS, $uuid, $hex],
+            [2 => ArrayParameterType::STRING]
         );
 
         $aBorrar = [];
@@ -312,7 +320,7 @@ final class PmsRetirarReservasFantasmaCommand extends Command
 
         foreach ($hilos as $h) {
             if (!(bool) $h['con_su_cabecera']) {
-                $compartidos[] = (string) $h['hex'];
+                $compartidos[] = $h['hex'];
                 continue;
             }
 
@@ -327,12 +335,12 @@ final class PmsRetirarReservasFantasmaCommand extends Command
             if ($porQueNo !== null) {
                 return [[], [], sprintf(
                     'el hilo «%s» lleva su cabecera y %s: puede ser el único registro de una estancia real. Esto lo decide una persona.',
-                    (string) $h['guest_name'],
+                    $h['guest_name'] ?? '',
                     $porQueNo
                 )];
             }
 
-            $aBorrar[] = (string) $h['hex'];
+            $aBorrar[] = $h['hex'];
         }
 
         return [$aBorrar, $compartidos, null];
@@ -340,7 +348,7 @@ final class PmsRetirarReservasFantasmaCommand extends Command
 
     private function tieneDinero(string $hex): bool
     {
-        return (int) $this->conexion->fetchOne(
+        return $this->contar(
             'SELECT (SELECT COUNT(*) FROM pms_cargo_financiero c JOIN pms_informacion_financiera f ON f.id = c.informacion_id WHERE f.reserva_id = UNHEX(:r))
                   + (SELECT COUNT(*) FROM pms_pago_financiero p JOIN pms_informacion_financiera f ON f.id = p.informacion_id WHERE f.reserva_id = UNHEX(:r))
                   + (SELECT COUNT(*) FROM pms_cargo_financiero c JOIN pms_evento_calendario e ON e.id = c.evento_id WHERE e.reserva_id = UNHEX(:r))',
@@ -350,7 +358,7 @@ final class PmsRetirarReservasFantasmaCommand extends Command
 
     private function tieneAsignaciones(string $hex): bool
     {
-        return (int) $this->conexion->fetchOne(
+        return $this->contar(
             'SELECT COUNT(*) FROM pms_event_assignment a JOIN pms_evento_calendario e ON e.id = a.evento_id WHERE e.reserva_id = UNHEX(?)',
             [$hex]
         ) > 0;
@@ -358,7 +366,7 @@ final class PmsRetirarReservasFantasmaCommand extends Command
 
     private function tieneProgramados(string $uuid): bool
     {
-        return (int) $this->conexion->fetchOne(
+        return $this->contar(
             'SELECT COUNT(*) FROM msg_message WHERE asunto_id = ? AND status IN ("pending", "queued")',
             [$uuid]
         ) > 0;
@@ -366,7 +374,7 @@ final class PmsRetirarReservasFantasmaCommand extends Command
 
     private function tienePushEnCurso(string $hex): bool
     {
-        return (int) $this->conexion->fetchOne(
+        return $this->contar(
             'SELECT COUNT(*) FROM pms_bookings_push_queue q
                JOIN pms_evento_beds24_link l ON l.id = q.link_id
                JOIN pms_evento_calendario e ON e.id = l.evento_id
@@ -443,7 +451,7 @@ final class PmsRetirarReservasFantasmaCommand extends Command
             foreach ($planes as $p) {
                 $r = (string) $p['reservaHex'];
                 $a = $antes[$p['localizador']];
-                $contar = fn (string $sql, array $params, array $tipos = []): int => (int) $this->conexion->fetchOne($sql, $params, $tipos);
+                $contar = $this->contar(...);
                 $lista = [ArrayParameterType::STRING];
 
                 $comprobaciones = [
@@ -479,6 +487,20 @@ final class PmsRetirarReservasFantasmaCommand extends Command
         $io->success('Ensayo correcto: el borrado hace exactamente lo previsto. Transacción deshecha: no se ha tocado nada.');
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Un `COUNT(*)`: el driver lo devuelve como entero o como texto, y siempre hay fila.
+     *
+     * @param list<mixed>|array<string, mixed> $params
+     * @param array<int|string, int|string|null> $tipos
+     */
+    private function contar(string $sql, array $params, array $tipos = []): int
+    {
+        /** @var int|string $total */
+        $total = $this->conexion->fetchOne($sql, $params, $tipos);
+
+        return (int) $total;
     }
 
     private function rutaDeRespaldo(mixed $opcion): string

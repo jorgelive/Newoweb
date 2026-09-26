@@ -72,6 +72,13 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
         //
         // Y hace falta además de `MAX(s.fechaInicioAbsoluta)` porque un viaje puede acabar en un
         // checkout sin ningún servicio ese día: el último bloque del itinerario sería la víspera.
+        // Los ids y el estado pasan por su tipo de Doctrine; el título es la columna JSON (que puede
+        // traer el literal `null`); las tres agregaciones, ver `soloFecha()`.
+        /**
+         * @var list<array{fileId: \Symfony\Component\Uid\Uuid, cotizacionId: \Symfony\Component\Uid\Uuid,
+         *     propuesta: int, estado: CotizacionEstadoEnum|string, titulo: array<mixed>|null,
+         *     fechaInicio: mixed, fechaUltimoServicio: mixed, finEstadia: mixed}> $filas
+         */
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT f.id AS fileId, c.id AS cotizacionId, c.propuesta, c.estado, c.titulo,
                    MIN(s.fechaInicioAbsoluta) AS fechaInicio,
@@ -92,7 +99,7 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
         $porFile = [];
         foreach ($filas as $f) {
             $fileId = (string) $f['fileId'];
-            $estado = $f['estado'] ?? null;
+            $estado = $f['estado'];
 
             $porFile[$fileId][] = [
                 // ⚠️ EL ID, y no por capricho: **la versión NO es única dentro del expediente**.

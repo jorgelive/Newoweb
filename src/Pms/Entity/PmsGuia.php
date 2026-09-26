@@ -188,7 +188,7 @@ class PmsGuia
     }
 
     /**
-     * @param array<string, mixed> $contexto
+     * @param array<string, string> $contexto Los `valores` de `PmsGuiaContexto`.
      */
     public function setContextoParaCliente(array $contexto): self
     {

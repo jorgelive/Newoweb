@@ -199,7 +199,7 @@ class UserCrudController extends BaseCrudController
 
             $plainPassword = $form->get('plainPassword')->getData();
 
-            if (!empty($plainPassword)) {
+            if (is_string($plainPassword) && !empty($plainPassword)) {
                 $hashedPassword = $this->userPasswordHasher->hashPassword($user, $plainPassword);
                 $user->setPassword($hashedPassword);
             }

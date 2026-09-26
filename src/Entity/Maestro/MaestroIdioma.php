@@ -257,9 +257,7 @@ class MaestroIdioma
      * que el arreglo cumpla visual y lógicamente con el estándar de negocio definido
      * en la constante estática `JERARQUIA`.
      *
-     * @param array $data Arreglo donde cada ítem debe ser un array asociativo con la llave 'language'.
-     * @throws \RuntimeException Si la estructura de los datos inyectados no posee el nodo 'language'.
-     * @return array El arreglo reorganizado jerárquica y alfabéticamente.
+     * @throws \RuntimeException Si una fila no es un objeto con `language` de texto.
      *
      * ⚠️ Igual que `normalizarParaDB()`: la entrada es lo que haya en la columna JSON, que puede
      * venir de una migración o de una fila antigua, y este método lanza si no cumple. Declararla
@@ -270,27 +268,27 @@ class MaestroIdioma
      */
     public static function ordenarParaFormulario(array $data): array
     {
-        if (empty($data)) {
-            return $data;
+        // Se valida fila a fila ANTES de ordenar, y cada fila sale con la forma que promete el
+        // `@return`: `language` texto y `content` texto o null. Antes sólo se miraba que existiera
+        // `language`, así que un `content` ausente o que no fuera texto salía tal cual bajo un tipo
+        // que decía otra cosa. Las demás claves de la fila —la huella de la autotraducción— se
+        // conservan: esto ordena, no limpia.
+        $filas = [];
+        foreach ($data as $fila) {
+            if (!is_array($fila) || !is_string($fila['language'] ?? null)) {
+                throw new \RuntimeException(sprintf(
+                    "Error de formato en base de datos: Se esperaba un array con la llave 'language', pero se recibió: %s",
+                    json_encode($fila)
+                ));
+            }
+
+            $contenido = $fila['content'] ?? null;
+            $fila['content'] = is_string($contenido) ? $contenido : null;
+            $filas[] = $fila;
         }
 
         // Ordenamos el array de objetos usando la jerarquía
-        usort($data, function ($a, $b) {
-
-            if (!is_array($a) || !isset($a['language'])) {
-                throw new \RuntimeException(sprintf(
-                    "Error de formato en base de datos: Se esperaba un array con la llave 'language', pero se recibió: %s",
-                    json_encode($a)
-                ));
-            }
-
-            // Validamos $b
-            if (!is_array($b) || !isset($b['language'])) {
-                throw new \RuntimeException(sprintf(
-                    "Error de formato en base de datos: Se esperaba un array con la llave 'language', pero se recibió: %s",
-                    json_encode($b)
-                ));
-            }
+        usort($filas, static function (array $a, array $b): int {
             $pA = self::JERARQUIA[$a['language']] ?? 0;
             $pB = self::JERARQUIA[$b['language']] ?? 0;
 
@@ -300,7 +298,7 @@ class MaestroIdioma
                 : ($pB <=> $pA);
         });
 
-        return $data;
+        return $filas;
     }
 
     /**

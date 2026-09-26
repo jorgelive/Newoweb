@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api\Provider\Cotizacion;
 
+use App\Dto\Lee;
 use ApiPlatform\State\ProviderInterface;
 use ApiPlatform\Metadata\Operation;
 use App\Cotizacion\Entity\Cotizacion;
@@ -60,6 +61,15 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
 
 
         // ── 1. Cards para la portada: un solo query escalar ──────────────────
+        // Mismas formas que en `CotizacionFilePublicProvider`: columnas por su tipo, `MIN()`/`MAX()`
+        // en texto, y un JSON `NOT NULL` que puede traer el literal `null`.
+        /**
+         * @var list<array{id: \Symfony\Component\Uid\Uuid, imagenPortada: array<mixed>|null, propuesta: int,
+         *     estado: CotizacionEstadoEnum|string, publicado: bool, numPax: int, titulo: array<mixed>|null,
+         *     resumen: array<mixed>|null, idiomaCliente: string, monedaGlobal: string, precioOculto: bool,
+         *     totalVenta: string, preciosDesde: array<mixed>|null, orden: int,
+         *     fechaMin: ?string, fechaMax: ?string}> $filas
+         */
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT c.id, c.imagenPortada, c.propuesta, c.estado, c.publicado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
                    c.monedaGlobal, c.precioOculto, c.totalVenta,
@@ -88,11 +98,11 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
         // sin publicar es útil y deliberado; que no se distinga de uno vivo, no. Ver
         // `CotizacionCatalogo::$saltosDeOperador` y el cartel `AvisoVistaDeOperador` de `pax`.
         if ($previsualiza) {
-            $hayBorradores = array_filter($filas, static fn (array $f): bool => ($f['publicado'] ?? true) !== true);
+            $hayBorradores = array_filter($filas, static fn (array $f): bool => !$f['publicado']);
             $catalogo->setSaltosDeOperador($hayBorradores !== [] ? ['sin_publicar'] : []);
         }
 
-        $catalogo->setToursParaCliente(array_values(array_map(static function (array $f) use ($portadas, $previsualiza): array {
+        $catalogo->setToursParaCliente(array_map(static function (array $f) use ($portadas, $previsualiza): array {
             $oculto = (bool) $f['precioOculto'];
             $estado = $f['estado'] instanceof CotizacionEstadoEnum ? $f['estado']->value : $f['estado'];
 
@@ -101,7 +111,7 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
                 // Cuál de ellos, no sólo que hay alguno: con varios tours en la parrilla, el
                 // cartel de arriba no basta para saber cuál se puede enseñar. Nulo para el
                 // cliente, que ni siquiera consulta los no publicados.
-                'sinPublicar'       => $previsualiza ? ($f['publicado'] ?? true) !== true : null,
+                'sinPublicar'       => $previsualiza ? !$f['publicado'] : null,
                 'estado'            => $estado,
                 'numPax'            => $f['numPax'],
                 'titulo'            => $f['titulo'] ?? [],         // I18nContent[] (texto)
@@ -116,7 +126,7 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
                 'imagenPortada'     => $f['imagenPortada'] ?? $portadas[TourTarjetaResolver::clave($f['id'])] ?? null,
                 'numDias'           => TourTarjetaResolver::numDias($f['fechaMin'], $f['fechaMax']),
             ];
-        }, $filas)));
+        }, $filas));
 
         // ── 2. Detalle: cargar SOLO el tour solicitado ────────────────────────
         if (isset($uriVariables['propuesta'])) {
@@ -125,7 +135,7 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
             // cualquiera. Mismo motivo que en el provider del expediente.
             $cotizacion = $this->em->getRepository(Cotizacion::class)->findOneBy([
                 'catalogo' => $catalogo,
-                'propuesta' => (int) $uriVariables['propuesta'],
+                'propuesta' => Lee::entero($uriVariables['propuesta']) ?? 0,
                 ...($previsualiza ? [] : ['publicado' => true]),
             ]);
 

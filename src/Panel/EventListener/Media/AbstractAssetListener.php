@@ -45,7 +45,7 @@ abstract class AbstractAssetListener
             if ($this->accessor->isReadable($entity, $fileField)) {
                 $filename = $this->accessor->getValue($entity, $fileField);
 
-                if ($filename) {
+                if (is_string($filename) && $filename !== '') {
                     $url = rtrim($config['path'], '/') . '/' . ltrim($filename, '/');
                     if ($this->accessor->isWritable($entity, $config['setter'])) {
                         $this->accessor->setValue($entity, $config['setter'], $url);

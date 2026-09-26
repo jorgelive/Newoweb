@@ -83,7 +83,8 @@ final class PmsRecalcularTotalesCommand extends Command
         //
         // Medido: sin este matiz, cuatro fichas anuladas salían siempre como «sin totales» por
         // más veces que se recalculara.
-        $sinTotales = (int) $conn->fetchOne(<<<'SQL'
+        /** @var int|string $sinTotales Un `COUNT()`: entero o texto según el driver. */
+        $sinTotales = $conn->fetchOne(<<<'SQL'
             SELECT COUNT(*) FROM pms_informacion_financiera i
             WHERE NOT EXISTS (SELECT 1 FROM pms_finanzas_total_moneda t WHERE t.informacion_id = i.id)
               AND (
@@ -120,7 +121,8 @@ final class PmsRecalcularTotalesCommand extends Command
         $this->recalculo->recalcular($ids, $this->em);
         $ms = (microtime(true) - $inicio) * 1000;
 
-        $conMovimiento = (int) $conn->fetchOne(
+        /** @var int|string $conMovimiento */
+        $conMovimiento = $conn->fetchOne(
             'SELECT COUNT(DISTINCT informacion_id) FROM pms_finanzas_total_moneda',
         );
 

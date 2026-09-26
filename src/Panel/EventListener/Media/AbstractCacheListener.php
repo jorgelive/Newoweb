@@ -24,8 +24,9 @@ abstract class AbstractCacheListener
         foreach ($this->getMapping() as $field => $path) {
             if ($args->hasChangedField($field)) {
                 $oldValue = $args->getOldValue($field);
-                if ($oldValue) {
-                    $this->removeCache($path, (string) $oldValue);
+                // El campo es el nombre del fichero: lo que no sea texto no tiene caché que borrar.
+                if (is_string($oldValue) && $oldValue !== '') {
+                    $this->removeCache($path, $oldValue);
                 }
             }
         }

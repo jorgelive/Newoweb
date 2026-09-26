@@ -31,7 +31,9 @@ class GoogleTranslateService
         private readonly TranslationServiceClient $client,
         private readonly array $googleTranslateCredentials
     ) {
-        $this->projectId = $this->googleTranslateCredentials['project_id'] ?? '';
+        // Lo que no sea texto en las credenciales es lo mismo que no tenerlo: el error de abajo.
+        $projectId = $this->googleTranslateCredentials['project_id'] ?? null;
+        $this->projectId = is_string($projectId) ? $projectId : '';
 
         if ($this->projectId === '') {
             throw new RuntimeException('Google Translate project_id no configurado en las credenciales.');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api\Controller\ImageUpload;
 
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use App\Travel\Entity\TravelSegmento;
 use App\Travel\Entity\TravelSegmentoImagen;
 use Doctrine\ORM\EntityManagerInterface;
@@ -35,7 +36,8 @@ class TravelSegmentoImagenUploadController extends AbstractController
         $segmentoId = $request->request->get('segmento_id');
 
         // 2. Validaciones básicas
-        if (!$uploadedFile) {
+        // Un `file[]` llega como array: sin el `instanceof` era un TypeError (500) en el setter.
+        if (!$uploadedFile instanceof UploadedFile) {
             return $this->json(['error' => 'No se ha enviado ningún archivo'], 400);
         }
 

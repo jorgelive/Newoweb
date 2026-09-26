@@ -52,8 +52,8 @@ class WifiNetworkType extends AbstractType
         $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
             $data = $event->getData();
 
-            // Si no hay datos, salimos
-            if (!$data) {
+            // Si no hay datos, salimos. Y si no es un array, no es una red: nada que corregir.
+            if (!$data || !is_array($data)) {
                 return;
             }
 

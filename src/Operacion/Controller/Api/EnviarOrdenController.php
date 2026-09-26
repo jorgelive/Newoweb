@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operacion\Controller\Api;
 
+use App\Dto\Lee;
 use App\Operacion\Entity\OperacionOrdenServicio;
 use App\Operacion\Service\OperacionOrdenEnvio;
 use App\Security\Roles;
@@ -76,9 +77,9 @@ final class EnviarOrdenController extends AbstractController
             return $this->json(['error' => 'Esa orden ya no existe.'], Response::HTTP_NOT_FOUND);
         }
 
-        /** @var array<string, mixed> $cuerpo */
-        $cuerpo = json_decode($request->getContent() ?: '{}', true) ?: [];
-        $canal = trim((string) ($cuerpo['canal'] ?? ''));
+        // Un solo campo, `canal`: no merece DTO propio. Lo que no es texto es «falta».
+        $cuerpo = json_decode($request->getContent() ?: '{}', true);
+        $canal = trim(is_array($cuerpo) ? Lee::texto($cuerpo['canal'] ?? null) ?? '' : '');
 
         if ($canal === '') {
             return $this->json(['error' => 'Falta por qué canal enviarla.'], Response::HTTP_BAD_REQUEST);

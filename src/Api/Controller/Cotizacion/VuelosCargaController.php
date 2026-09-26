@@ -7,6 +7,7 @@ namespace App\Api\Controller\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Service\Vuelos\VuelosExportador;
 use App\Cotizacion\Service\Vuelos\VuelosImportador;
+use App\Dto\Lee;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -88,7 +89,8 @@ final class VuelosCargaController extends AbstractController
         }
 
         $cuerpo = json_decode($request->getContent(), true);
-        $texto = is_array($cuerpo) ? (string) ($cuerpo['json'] ?? '') : '';
+        // Un solo campo, `json`, con el texto pegado: no merece DTO propio.
+        $texto = is_array($cuerpo) ? Lee::texto($cuerpo['json'] ?? null) ?? '' : '';
 
         if (trim($texto) === '') {
             return $this->json(['error' => 'No pegaste nada.'], Response::HTTP_BAD_REQUEST);
@@ -110,7 +112,6 @@ final class VuelosCargaController extends AbstractController
             );
         }
 
-        /** @var list<array<string, mixed>> $reservas */
         $resultado = $importador->importar($file, $reservas, !$request->query->getBoolean('ensayo', true));
 
         return $this->json([

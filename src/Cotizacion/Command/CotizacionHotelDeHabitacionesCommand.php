@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFileGrupo;
 use App\Cotizacion\Enum\GrupoTipoEnum;
@@ -75,8 +76,8 @@ final class CotizacionHotelDeHabitacionesCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $localizador = (string) $input->getArgument('localizador');
-        $hotel = trim((string) $input->getArgument('hotel'));
+        $localizador = EntradaDeConsola::texto($input->getArgument('localizador'), 'localizador');
+        $hotel = trim(EntradaDeConsola::texto($input->getArgument('hotel'), 'hotel'));
         $prefijo = $input->getOption('prefijo');
         $prefijo = is_string($prefijo) ? mb_strtoupper(trim($prefijo)) : null;
         $forzar = (bool) $input->getOption('forzar');

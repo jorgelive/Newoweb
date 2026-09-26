@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api\Controller\ImageUpload;
 
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use App\Travel\Entity\TravelOrganizacion;
 use App\Travel\Entity\TravelOrganizacionImagen;
 use Doctrine\ORM\EntityManagerInterface;
@@ -36,7 +37,8 @@ class TravelOrganizacionImagenUploadController extends AbstractController
         $organizacionId = $request->request->get('proveedor_id');
 
         // 2. Validaciones básicas
-        if (!$uploadedFile) {
+        // Un `file[]` llega como array: sin el `instanceof` era un TypeError (500) en el setter.
+        if (!$uploadedFile instanceof UploadedFile) {
             return $this->json(['error' => 'No se ha enviado ningún archivo'], Response::HTTP_BAD_REQUEST);
         }
 

@@ -8,6 +8,7 @@ use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFileGrupo;
 use App\Cotizacion\Entity\CotizacionVuelo;
 use App\Cotizacion\Enum\GrupoTipoEnum;
+use App\Dto\Lee;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -69,7 +70,8 @@ final class VuelosImportador
     }
 
     /**
-     * @param list<array<string, mixed>> $reservas
+     * @param list<mixed> $reservas La lista del JSON, tal cual: cada elemento debería ser un objeto,
+     *                              y lo que no lo sea se dice y se salta (antes era un `TypeError`).
      */
     public function importar(CotizacionFile $file, array $reservas, bool $aplicar): ResultadoVuelos
     {
@@ -81,6 +83,12 @@ final class VuelosImportador
         }
 
         foreach ($reservas as $reserva) {
+            if (!is_array($reserva)) {
+                $r->problema(sprintf('Una reserva que no es un objeto (%s): se salta.', get_debug_type($reserva)));
+
+                continue;
+            }
+
             $this->aplicarReserva($file, $reserva, $r);
         }
 
@@ -114,12 +122,12 @@ final class VuelosImportador
     }
 
     /**
-     * @param array<string, mixed> $reserva
+     * @param array<mixed> $reserva
      */
     private function aplicarReserva(CotizacionFile $file, array $reserva, ResultadoVuelos $r): void
     {
         // `pnr` es el nombre bueno; `localizador` se acepta porque así se llamó al principio.
-        $clave = trim((string) ($reserva['pnr'] ?? $reserva['localizador'] ?? ''));
+        $clave = trim(Lee::texto($reserva['pnr'] ?? $reserva['localizador'] ?? null) ?? '');
 
         if ($clave === '') {
             $r->problema('Una reserva sin «pnr»: se salta.');
@@ -137,18 +145,22 @@ final class VuelosImportador
 
         $this->renombrar($file, $grupo, $reserva, $r);
 
-        if (isset($reserva['emitido']) && (bool) $reserva['emitido'] !== $grupo->isEmitido()) {
+        // ⚠️ `Lee::booleano()` y no `(bool)`: un `"false"` escrito a mano era `true`, o sea dar
+        // por EMITIDO un billete que no lo está. Lo ilegible no cambia nada.
+        $emitido = Lee::booleano($reserva['emitido'] ?? null);
+
+        if ($emitido !== null && $emitido !== $grupo->isEmitido()) {
             $r->cambio(sprintf(
                 '%s · emitido: %s → %s',
                 $grupo->getClave(),
                 $grupo->isEmitido() ? 'sí' : 'no',
-                $reserva['emitido'] ? 'sí' : 'no',
+                $emitido ? 'sí' : 'no',
             ));
-            $grupo->setEmitido((bool) $reserva['emitido']);
+            $grupo->setEmitido($emitido);
         }
 
         if (isset($reserva['notas']) && is_array($reserva['notas'])) {
-            $notas = array_values(array_map(static fn ($n): string => (string) $n, $reserva['notas']));
+            $notas = Lee::listaDeTextos($reserva['notas']);
 
             if ($notas !== $grupo->getNotas()) {
                 $r->cambio(sprintf('%s · %d nota(s)', $grupo->getClave(), count($notas)));
@@ -181,11 +193,11 @@ final class VuelosImportador
      * El código provisional pasa a ser el definitivo, y los pasajeros ni se enteran: cuelgan
      * del grupo, no de la clave.
      *
-     * @param array<string, mixed> $reserva
+     * @param array<mixed> $reserva
      */
     private function renombrar(CotizacionFile $file, CotizacionFileGrupo $grupo, array $reserva, ResultadoVuelos $r): void
     {
-        $nuevo = trim((string) ($reserva['pnr_nuevo'] ?? ''));
+        $nuevo = trim(Lee::texto($reserva['pnr_nuevo'] ?? null) ?? '');
 
         if ($nuevo === '' || $nuevo === $grupo->getClave()) {
             return;
@@ -215,17 +227,19 @@ final class VuelosImportador
      * —`fecha` y `salida`— y son el mismo hecho: dejar que se escriban por separado es pedir que
      * un día discrepen. Aquí manda `salida` y `fecha` se deriva.
      *
-     * @param array<string, mixed> $def
+     * @param array<mixed> $def Un objeto del JSON, tal cual: el archivo lo escribe una persona.
      */
     private function upsertVuelo(CotizacionFile $file, array $def, ResultadoVuelos $r): ?CotizacionVuelo
     {
-        if (!isset($def['numero'])) {
+        // Un número vacío o que no es texto es un vuelo sin número: antes se creaba un vuelo con
+        // número «» (o «Array») que no casaba con nada.
+        $numero = trim(Lee::texto($def['numero'] ?? null) ?? '');
+
+        if ($numero === '') {
             $r->problema('Un vuelo sin «numero»: se salta.');
 
             return null;
         }
-
-        $numero = trim((string) $def['numero']);
 
         // ⚠️ La palabra es **leg**, no «segmento».
         //
@@ -279,18 +293,21 @@ final class VuelosImportador
             $r->cambio(sprintf('vuelo nuevo: %s · %s', $numero, $fecha->format('d/m')));
         }
 
-        if (isset($def['aerolinea'])) {
-            $vuelo->setAerolinea((string) $def['aerolinea']);
+        $aerolinea = Lee::texto($def['aerolinea'] ?? null);
+        if ($aerolinea !== null) {
+            $vuelo->setAerolinea($aerolinea);
         }
 
         $antes = $this->pinta($vuelo);
 
-        if (isset($leg['origen'])) {
-            $vuelo->setOrigen(strtoupper(trim((string) $leg['origen'])));
+        $origen = Lee::texto($leg['origen'] ?? null);
+        if ($origen !== null) {
+            $vuelo->setOrigen(strtoupper(trim($origen)));
         }
 
-        if (isset($leg['destino'])) {
-            $vuelo->setDestino(strtoupper(trim((string) $leg['destino'])));
+        $destino = Lee::texto($leg['destino'] ?? null);
+        if ($destino !== null) {
+            $vuelo->setDestino(strtoupper(trim($destino)));
         }
 
         $vuelo->setSalida($salida);
@@ -308,7 +325,7 @@ final class VuelosImportador
         }
 
         if (isset($def['notas']) && is_array($def['notas'])) {
-            $vuelo->setNotas(array_values(array_map(static fn ($n): string => (string) $n, $def['notas'])));
+            $vuelo->setNotas(Lee::listaDeTextos($def['notas']));
         }
 
         return $vuelo;

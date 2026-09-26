@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Documento\LectorDeDocumentoIdentidad;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
 use Doctrine\ORM\EntityManagerInterface;
@@ -53,7 +54,7 @@ final class CotizacionLeerDocumentoCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $id = (string) $input->getArgument('id');
+        $id = EntradaDeConsola::texto($input->getArgument('id'), 'id');
 
         if (!Uuid::isValid($id)) {
             $io->error('Eso no es un UUID.');

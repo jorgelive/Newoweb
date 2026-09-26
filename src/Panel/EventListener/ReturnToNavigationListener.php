@@ -2,6 +2,7 @@
 
 namespace App\Panel\EventListener;
 
+use App\Dto\Lee;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Option\EA;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
@@ -35,7 +36,7 @@ class ReturnToNavigationListener
         $path = $request->getPathInfo();
         $route = $request->attributes->get('_route');
 
-        if ($route && (str_starts_with($route, 'liip_') || str_contains($route, 'imagine'))) return;
+        if (is_string($route) && (str_starts_with($route, 'liip_') || str_contains($route, 'imagine'))) return;
 
         if (str_starts_with($path, '/media/') ||
             str_starts_with($path, '/carga/') ||
@@ -55,12 +56,13 @@ class ReturnToNavigationListener
 
         $request = $event->getRequest();
         $path = $request->getPathInfo();
+        $route = $request->attributes->get('_route');
 
         // VALIDACIÓN EXTRA EN RESPUESTA:
         // Si por alguna razón pasamos el filtro de Request pero es una imagen, abortar.
         if (str_starts_with($path, '/media/') ||
             str_starts_with($path, '/carga/') ||
-            str_starts_with((string)$request->attributes->get('_route'), 'liip_')) {
+            (is_string($route) && str_starts_with($route, 'liip_'))) {
             return;
         }
 
@@ -73,7 +75,7 @@ class ReturnToNavigationListener
 
         if ($response instanceof RedirectResponse) {
             $eaRequest = $request->request->all('ea');
-            $btn = $eaRequest['newForm']['btn'] ?? $eaRequest['editForm']['btn'] ?? null;
+            $btn = Lee::en($eaRequest, 'newForm', 'btn') ?? Lee::en($eaRequest, 'editForm', 'btn');
 
             // CASO A: Botones de "Guardar y..."
             if (in_array($btn, ['saveAndAddAnother', 'saveAndContinue'])) {

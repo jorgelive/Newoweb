@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Entity\CotizacionSegmento;
 use App\Travel\Entity\TravelSegmento;
 use Doctrine\ORM\EntityManagerInterface;
@@ -57,7 +58,7 @@ final class RefrescarTextosMaestrosCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $simula = (bool) $input->getOption('dry-run');
-        $cotizacionId = (string) $input->getOption('cotizacion');
+        $cotizacionId = EntradaDeConsola::textoOpcional($input->getOption('cotizacion'), 'cotizacion') ?? '';
 
         if ($cotizacionId === '' || !Uuid::isValid($cotizacionId)) {
             $io->error('Hace falta --cotizacion con un UUID válido.');
@@ -65,7 +66,7 @@ final class RefrescarTextosMaestrosCommand extends Command
             return Command::FAILURE;
         }
 
-        $solo = array_filter(array_map('trim', explode(',', (string) $input->getOption('solo'))));
+        $solo = array_filter(array_map('trim', explode(',', EntradaDeConsola::textoOpcional($input->getOption('solo'), 'solo') ?? '')));
 
         /** @var list<CotizacionSegmento> $segmentos */
         $segmentos = $this->em->createQueryBuilder()

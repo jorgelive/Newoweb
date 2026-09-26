@@ -138,7 +138,12 @@ abstract class BaseCrudController extends AbstractCrudController
             return $entity->getId();
         }
 
-        // Opción B: Reflexión para encontrar la Primary Key (Lenta pero segura)
+        // Opción B: Reflexión para encontrar la Primary Key (Lenta pero segura). Sobre una
+        // instancia: con un nombre de clase no hay valor que leer.
+        if (!is_object($entity)) {
+            return null;
+        }
+
         try {
             $reflection = new \ReflectionClass($entity);
             foreach ($reflection->getProperties() as $property) {

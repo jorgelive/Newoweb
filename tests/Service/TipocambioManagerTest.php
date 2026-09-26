@@ -180,4 +180,24 @@ final class TipocambioManagerTest extends TestCase
         self::assertSame('EUR', $dtos['2026-08-16']->currencyCode);
         self::assertSame('USD', $dtos['2026-08-14']->currencyCode, 'Sin `base_currency`, se asume el target.');
     }
+
+    /**
+     * Un importe que no es un número deja la fila fuera, como si faltara: antes llegaba tal cual a
+     * la columna DECIMAL. Y un número JSON se guarda como el texto de siempre, sin pasar por float.
+     */
+    public function testUnImporteQueNoEsNumeroDejaLaFilaFueraYUnNumeroJsonSeConservaComoTexto(): void
+    {
+        $manager = $this->manager([]);
+
+        /** @var array<string, ExchangeRateDto> $dtos */
+        $dtos = $this->llamar($manager, 'parseResponse', [
+            ['date' => '2026-08-14', 'buy_price' => 'N/A', 'sell_price' => '3.528'],
+            ['date' => '2026-08-15', 'buy_price' => ['3.520'], 'sell_price' => '3.530'],
+            ['date' => '2026-08-16', 'buy_price' => 3.522, 'sell_price' => 3.532],
+        ]);
+
+        self::assertSame(['2026-08-16'], array_keys($dtos));
+        self::assertSame('3.522', $dtos['2026-08-16']->buy);
+        self::assertSame('3.532', $dtos['2026-08-16']->sell);
+    }
 }

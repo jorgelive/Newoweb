@@ -743,7 +743,9 @@ final class PmsInformacionFinancieraCoherenciaListener
             return;
         }
 
-        [$old, $new] = $cambio;
+        // `tipoCambio` es `?string` (DECIMAL) en las dos entidades: no puede llegar otra cosa.
+        $old = is_string($cambio[0]) ? $cambio[0] : null;
+        $new = is_string($cambio[1]) ? $cambio[1] : null;
 
         // null → X es la reparación; X → X es un no-cambio.
         if ($old === null || $old === '' || (float) $old === (float) $new) {

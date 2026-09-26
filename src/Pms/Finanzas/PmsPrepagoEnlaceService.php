@@ -451,6 +451,7 @@ final readonly class PmsPrepagoEnlaceService
             // 3 segundos: `crear()` es un persist y un flush, milisegundos. Esperar ese poco
             // casi siempre gana el turno, y es preferible a retirarse y dejar el enlace con el
             // importe viejo hasta el siguiente movimiento.
+            /** @var int|string|null $resultado 1 = turno ganado, 0 = ocupado, NULL = error interno. */
             $resultado = $this->em->getConnection()
                 ->fetchOne('SELECT GET_LOCK(?, 3)', [$this->nombreDelLock($reservaId)]);
         } catch (Throwable $e) {

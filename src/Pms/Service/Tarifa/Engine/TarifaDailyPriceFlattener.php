@@ -68,7 +68,9 @@ final class TarifaDailyPriceFlattener
         foreach ($rangos as $r) {
             $data = $rangeAccessor($r);
 
-            if (!isset($data['start'], $data['end'], $data['price'])) {
+            // Un precio que no es un número es un precio que no está: antes `(float) 'abc'` era
+            // 0.00 y el día salía gratis a la venta.
+            if (!isset($data['start'], $data['end'], $data['price']) || self::decimal($data['price']) === null) {
                 continue;
             }
 
@@ -164,8 +166,9 @@ final class TarifaDailyPriceFlattener
             // Si no hay rango ganador y tenemos fallback, rellenamos.
             if ($best === null && $fallbackProvider !== null) {
                 $fb = $fallbackProvider($day);
-                if (is_array($fb) && isset($fb['price'])) {
-                    $fbMinStay = isset($fb['minStay']) ? (int) $fb['minStay'] : 2;
+                $fbPrecio = is_array($fb) ? self::decimal($fb['price'] ?? null) : null;
+                if (is_array($fb) && $fbPrecio !== null) {
+                    $fbMinStay = self::entero($fb['minStay'] ?? null) ?? 2;
                     if ($fbMinStay <= 0) {
                         $fbMinStay = 2;
                     }
@@ -175,10 +178,10 @@ final class TarifaDailyPriceFlattener
                         : 'base';
 
                     $daily[$day->format('Y-m-d')] = [
-                        'price' => (float) ($fb['price'] ?? 0),
+                        'price' => $fbPrecio,
                         'minStay' => $fbMinStay,
-                        'currency' => isset($fb['currency']) ? (string) $fb['currency'] : null,
-                        'sourceId' => (string) $fbSourceId,
+                        'currency' => is_string($fb['currency'] ?? null) ? $fb['currency'] : null,
+                        'sourceId' => $fbSourceId,
                     ];
                 }
 
@@ -205,6 +208,21 @@ final class TarifaDailyPriceFlattener
         return $daily;
     }
 
+    /**
+     * Un importe de tarifa: número, o número en texto (un DECIMAL llega como «120.50»). Lo que no
+     * sea un número no es un importe.
+     */
+    private static function decimal(mixed $valor): ?float
+    {
+        return is_numeric($valor) ? (float) $valor : null;
+    }
+
+    /** Estancia mínima o peso: mismo criterio, truncando como hacía `(int)`. */
+    private static function entero(mixed $valor): ?int
+    {
+        return is_numeric($valor) ? (int) $valor : null;
+    }
+
     private function toDay(DateTimeInterface $dt): DateTimeImmutable
     {
         $imm = ($dt instanceof DateTimeImmutable) ? $dt : DateTimeImmutable::createFromInterface($dt);
@@ -226,19 +244,21 @@ final class TarifaDailyPriceFlattener
             return 'id:' . (string) $idRaw;
         }
 
-        $minStay = isset($data['minStay']) ? (int) $data['minStay'] : 2;
+        $minStay = self::entero($data['minStay'] ?? null) ?? 2;
         if ($minStay <= 0) {
             $minStay = 2;
         }
 
+        // ⚠️ El hash tiene que salir IGUAL que antes para los mismos datos: `(string) (float)` de
+        // un número en texto es lo que era, y un rango con otro `sourceId` es un rango distinto.
         $payload = [
             'start' => $startDay->format('Y-m-d'),
             'end' => $endDay->format('Y-m-d'),
-            'price' => (string) (float) ($data['price'] ?? 0),
+            'price' => (string) (self::decimal($data['price'] ?? null) ?? 0.0),
             'minStay' => (string) $minStay,
-            'currency' => isset($data['currency']) ? (string) $data['currency'] : '',
+            'currency' => is_string($data['currency'] ?? null) ? $data['currency'] : '',
             'important' => !empty($data['important']) ? '1' : '0',
-            'weight' => (string) (int) ($data['weight'] ?? 0),
+            'weight' => (string) (self::entero($data['weight'] ?? null) ?? 0),
         ];
 
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

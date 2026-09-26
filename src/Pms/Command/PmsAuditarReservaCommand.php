@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use App\Pms\Entity\PmsReserva;
@@ -46,7 +47,7 @@ final class PmsAuditarReservaCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $localizador = (string) $input->getArgument('localizador');
+        $localizador = EntradaDeConsola::texto($input->getArgument('localizador'), 'localizador');
 
         $reserva = $this->em->getRepository(PmsReserva::class)->findOneBy(['localizador' => $localizador]);
         if (!$reserva instanceof PmsReserva) {

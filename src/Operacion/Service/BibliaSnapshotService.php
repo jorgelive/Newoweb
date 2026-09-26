@@ -113,6 +113,7 @@ class BibliaSnapshotService
 
         $id = $cotizacion->getId();
         if ($id !== null) {
+            /** @var string|false|null $fileId El `file_id` BINARY(16): NULL sin expediente, `false` sin fila. */
             $fileId = $this->em->getConnection()->fetchOne(
                 'SELECT file_id FROM cotizacion_cotizacion WHERE id = :id',
                 ['id' => $id->toBinary()]

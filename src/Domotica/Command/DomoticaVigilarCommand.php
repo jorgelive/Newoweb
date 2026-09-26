@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domotica\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Domotica\Repository\DomoticaDispositivoRepository;
 use App\Domotica\Service\VigilanteDeDispositivos;
 use Doctrine\ORM\EntityManagerInterface;
@@ -62,7 +63,7 @@ final class DomoticaVigilarCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $horas = (int) ($input->getOption('horas') ?? 0) ?: $this->horasPorDefecto;
+        $horas = EntradaDeConsola::enteroOpcional($input->getOption('horas'), 'horas') ?: $this->horasPorDefecto;
         $seco = (bool) $input->getOption('dry-run');
 
         if ($seco) {

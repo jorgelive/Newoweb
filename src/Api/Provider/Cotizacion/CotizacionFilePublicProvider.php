@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api\Provider\Cotizacion;
 
+use App\Dto\Lee;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
 
 use ApiPlatform\State\ProviderInterface;
@@ -94,6 +95,15 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         $this->ponerIdentidad($file);
 
         // ── 1. Resúmenes para la portada: un solo query escalar ──────────────
+        // Las columnas pasan por su tipo de Doctrine (enum, JSON, decimal en texto); `MIN()` no, y
+        // llega como texto. Un JSON `NOT NULL` puede traer el literal `null` (ver `CLAUDE.md`).
+        /**
+         * @var list<array{propuesta: int, estado: CotizacionEstadoEnum|string, publicado: bool,
+         *     numPax: int, titulo: array<mixed>|null, resumen: array<mixed>|null, idiomaCliente: string,
+         *     monedaGlobal: string, precioOculto: bool, totalVenta: string, adelanto: string,
+         *     tipoCambio: string, fechaExpiracion: ?\DateTimeInterface,
+         *     fechaInicio: \DateTimeInterface|string|null, totalVentaOrigen: ?string}> $filas
+         */
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT c.propuesta, c.estado, c.publicado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
                    c.monedaGlobal, c.precioOculto, c.totalVenta, c.adelanto,
@@ -121,11 +131,11 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         // En la portada la única puerta que hay que saltarse es `publicado`: aquí no se identifica
         // a nadie ni se filtra nada. Ver `CotizacionFile::$saltosDeOperador`.
         if ($previsualiza) {
-            $hayBorradores = array_filter($filas, static fn (array $f): bool => ($f['publicado'] ?? true) !== true);
+            $hayBorradores = array_filter($filas, static fn (array $f): bool => !$f['publicado']);
             $file->setSaltosDeOperador($hayBorradores !== [] ? ['sin_publicar'] : []);
         }
 
-        $file->setPropuestasParaCliente(array_values(array_map(static function (array $f) use ($previsualiza): array {
+        $file->setPropuestasParaCliente(array_map(static function (array $f) use ($previsualiza): array {
             $oculto = (bool) $f['precioOculto'];
             $estado = $f['estado'] instanceof CotizacionEstadoEnum ? $f['estado']->value : $f['estado'];
 
@@ -135,7 +145,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 // arriba avisa del salto; con varias propuestas en la lista, no decir cuál obliga
                 // a abrirlas una a una para averiguarlo. Sólo viaja en previsualización: para el
                 // cliente esta clave no existe, porque las no publicadas ni siquiera se consultan.
-                'sinPublicar'     => $previsualiza ? ($f['publicado'] ?? true) !== true : null,
+                'sinPublicar'     => $previsualiza ? !$f['publicado'] : null,
                 'estado'          => $estado,
                 'numPax'          => $f['numPax'],
                 'titulo'          => $f['titulo'] ?? [],           // I18nContent[] (texto)
@@ -173,7 +183,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                     ? $f['fechaInicio']->format('Y-m-d')
                     : ($f['fechaInicio'] ? substr((string) $f['fechaInicio'], 0, 10) : null),
             ];
-        }, $filas)));
+        }, $filas));
 
         // ── 2. Detalle: cargar SOLO la versión solicitada ─────────────────────
         if (isset($uriVariables['propuesta'])) {
@@ -204,7 +214,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 ->where('c.file = :file')
                 ->andWhere('c.propuesta = :propuesta')
                 ->setParameter('file', $file->getId(), UuidType::NAME)
-                ->setParameter('propuesta', (int) $uriVariables['propuesta']);
+                ->setParameter('propuesta', Lee::entero($uriVariables['propuesta']) ?? 0);
 
             if (!$previsualiza) {
                 $dql->andWhere('c.publicado = true');

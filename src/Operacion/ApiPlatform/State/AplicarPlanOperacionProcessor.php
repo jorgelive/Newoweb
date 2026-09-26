@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operacion\ApiPlatform\State;
 
+use App\Api\VariableDeRuta;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Cotizacion\Entity\Cotizacion;
@@ -41,12 +42,12 @@ final class AplicarPlanOperacionProcessor implements ProcessorInterface
             throw new DomainException('Cuerpo de la petición inválido: falta la firma del plan.');
         }
 
-        $id = $uriVariables['id'] ?? null;
-        if ($id === null || !Uuid::isValid((string) $id)) {
+        $id = VariableDeRuta::texto($uriVariables, 'id');
+        if (!Uuid::isValid($id)) {
             throw new DomainException('Falta el identificador de la cotización.');
         }
 
-        $cotizacion = $this->em->getRepository(Cotizacion::class)->find(Uuid::fromString((string) $id));
+        $cotizacion = $this->em->getRepository(Cotizacion::class)->find(Uuid::fromString($id));
         if ($cotizacion === null) {
             throw new DomainException('No existe la cotización.');
         }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Service\Padron\PadronImportador;
 use Doctrine\ORM\EntityManagerInterface;
@@ -47,7 +48,7 @@ final class CotizacionImportarPadronCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $repo = $this->em->getRepository(CotizacionFile::class);
-        $referencia = (string) $input->getArgument('expediente');
+        $referencia = EntradaDeConsola::texto($input->getArgument('expediente'), 'expediente');
 
         $file = preg_match('/^[0-9a-f-]{36}$/i', $referencia)
             ? $repo->find($referencia)
@@ -59,7 +60,7 @@ final class CotizacionImportarPadronCommand extends Command
             return Command::FAILURE;
         }
 
-        $archivo = (string) $input->getArgument('archivo');
+        $archivo = EntradaDeConsola::texto($input->getArgument('archivo'), 'archivo');
         if (!is_file($archivo)) {
             $io->error(sprintf('No existe el archivo «%s».', $archivo));
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operacion\ApiPlatform\State;
 
+use App\Api\VariableDeRuta;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Operacion\Entity\OperacionOrdenServicio;
@@ -41,7 +42,7 @@ final readonly class AplicarCambiosMenoresProcessor implements ProcessorInterfac
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        $id = (string) ($uriVariables['id'] ?? '');
+        $id = VariableDeRuta::texto($uriVariables, 'id');
 
         if (!Uuid::isValid($id)) {
             throw new DomainException('Falta la orden sobre la que actuar.');

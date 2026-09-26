@@ -381,7 +381,10 @@ class Cotizacion
      * CotizacionCatalogoAdminProvider en el Get del catálogo, que es el único
      * contexto donde se pintan tarjetas de tour en el panel interno.
      *
-     * @var array<string, mixed>|null
+     * `array<mixed>` y no `array<string, mixed>`: la derivada es un elemento de la columna JSON
+     * `imagenesSnapshot` de un segmento, y de ella sólo se sabe que es un objeto.
+     *
+     * @var array<mixed>|null
      */
     #[Groups(['catalogo:item:read'])]
     private ?array $imagenTarjeta = null;
@@ -596,11 +599,11 @@ class Cotizacion
 
     // Virtuales de tarjeta (ver CotizacionCatalogoAdminProvider)
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>|null
      */
     public function getImagenTarjeta(): ?array { return $this->imagenTarjeta; }
     /**
-     * @param array<string, mixed>|null $imagenTarjeta
+     * @param array<mixed>|null $imagenTarjeta
      */
     public function setImagenTarjeta(?array $imagenTarjeta): self { $this->imagenTarjeta = $imagenTarjeta; return $this; }
     public function getNumDias(): ?int { return $this->numDias; }

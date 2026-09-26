@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
 use DateTimeImmutable;
 use InvalidArgumentException;
@@ -53,9 +54,9 @@ final class PmsDisponibilidadCommand extends Command
 
         try {
             $libres = $this->disponibilidad->buscar(
-                new DateTimeImmutable((string) $input->getArgument('desde')),
-                new DateTimeImmutable((string) $input->getArgument('hasta')),
-                $pax !== null ? (int) $pax : null,
+                new DateTimeImmutable(EntradaDeConsola::texto($input->getArgument('desde'), 'desde')),
+                new DateTimeImmutable(EntradaDeConsola::texto($input->getArgument('hasta'), 'hasta')),
+                EntradaDeConsola::enteroOpcional($pax, 'pax'),
             );
         } catch (InvalidArgumentException $e) {
             $io->error($e->getMessage());

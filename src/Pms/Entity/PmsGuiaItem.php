@@ -352,13 +352,19 @@ class PmsGuiaItem
     }
 
     #[Groups(['pax_guia:read', 'pax_catalogo:read'])]
-    public function getUrlBoton(): ?string { return $this->urlBotonParaCliente ?? $this->metadata['urlBoton'] ?? null; }
+    public function getUrlBoton(): ?string { return $this->urlBotonParaCliente ?? $this->getUrlBotonCruda(); }
 
     /** Lo pone el filtro de la guía tras interpolar; ver `$urlBotonParaCliente`. */
     public function setUrlBotonParaCliente(?string $val): self { $this->urlBotonParaCliente = $val; return $this; }
 
     /** El valor CRUDO, con sus marcadores sin resolver: lo que se edita en el panel. */
-    public function getUrlBotonCruda(): ?string { return $this->metadata['urlBoton'] ?? null; }
+    public function getUrlBotonCruda(): ?string
+    {
+        // `metadata` es un JSON libre: sólo `setUrlBoton()` escribe la clave, y escribe texto.
+        $url = $this->metadata['urlBoton'] ?? null;
+
+        return is_string($url) ? $url : null;
+    }
     public function setUrlBoton(?string $val): self {
         if ($this->metadata === null) $this->metadata = [];
         if (empty($val)) unset($this->metadata['urlBoton']);

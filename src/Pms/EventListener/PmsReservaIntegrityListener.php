@@ -58,8 +58,9 @@ final class PmsReservaIntegrityListener
         $paisIso = $entity->getPais()?->getId() ?? 'PE';
 
         if ($args->hasChangedField('telefono')) {
-            $newTel1 = (string) $args->getNewValue('telefono');
-            if ($newTel1 !== '') {
+            // `telefono` es `?string`: un null (se vació) no se limpia, igual que el texto vacío.
+            $newTel1 = $args->getNewValue('telefono');
+            if (is_string($newTel1) && $newTel1 !== '') {
                 $clean1 = $this->phoneSanitizer->cleanPhoneNumber($newTel1, $paisIso);
                 $args->setNewValue('telefono', $clean1);
                 // Es buena práctica actualizar también la entidad en memoria

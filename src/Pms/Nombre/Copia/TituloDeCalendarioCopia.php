@@ -58,7 +58,8 @@ final readonly class TituloDeCalendarioCopia implements CopiaDelNombre
             return 0;
         }
 
-        return (int) $this->em->createQuery(
+        /** @var int $filas Un `UPDATE` en DQL devuelve las filas afectadas. */
+        $filas = $this->em->createQuery(
             'UPDATE ' . PmsEventoCalendario::class . ' e
              SET e.tituloCache = :ahora
              WHERE e.reserva = :reserva AND e.tituloCache = :antes'
@@ -67,6 +68,8 @@ final readonly class TituloDeCalendarioCopia implements CopiaDelNombre
             ->setParameter('antes', $correccion->completoAntes())
             ->setParameter('ahora', mb_substr($correccion->completoAhora(), 0, 180))
             ->execute();
+
+        return $filas;
     }
 
     /**
@@ -98,6 +101,9 @@ final readonly class TituloDeCalendarioCopia implements CopiaDelNombre
               )
             SQL;
 
-        return (int) $this->em->getConnection()->fetchOne($sql);
+        /** @var int|string $total Un `COUNT(*)`: entero o texto según el driver. */
+        $total = $this->em->getConnection()->fetchOne($sql);
+
+        return (int) $total;
     }
 }

@@ -90,7 +90,10 @@ final class TravelSegmentoComponentePromocionUnicaListener
                 $qb->andWhere('sc.dia = :dia')->setParameter('dia', $dia);
             }
 
-            foreach ($qb->getQuery()->getResult() as $otra) {
+            /** @var list<TravelSegmentoComponente> $otras */
+            $otras = $qb->getQuery()->getResult();
+
+            foreach ($otras as $otra) {
                 if ($otra === $ganador) {
                     continue;
                 }

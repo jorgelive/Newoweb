@@ -72,6 +72,7 @@ final readonly class PmsEspacioEstancia
             return null;
         }
 
+        /** @var list<PmsEventoCalendario> $vecinos */
         $vecinos = $this->em->createQueryBuilder()
             ->select('e')
             ->from(PmsEventoCalendario::class, 'e')
@@ -102,7 +103,6 @@ final readonly class PmsEspacioEstancia
         $ocupadaLaVispera = false;
 
         foreach ($vecinos as $vecino) {
-            /** @var PmsEventoCalendario $vecino */
             $vInicio = $vecino->getInicio();
             $vFin = $vecino->getFin();
 

@@ -869,7 +869,7 @@ class CotizacionCotcomponente
      * Normaliza al leer, así que una fila que todavía tenga el `tipo` viejo sale ya convertida
      * y el editor no necesita entender las dos formas.
      *
-     * @return list<array<string, mixed>>
+     * @return list<array{audiencias: list<string>, ...<string, mixed>}>
      */
     public function getDetallesOperativos(): array
     {
@@ -902,7 +902,7 @@ class CotizacionCotcomponente
      *
      * @param array<string, mixed> $bloque
      *
-     * @return array<string, mixed>
+     * @return array{audiencias: list<string>, ...<string, mixed>}
      */
     private static function normalizarBloque(array $bloque): array
     {

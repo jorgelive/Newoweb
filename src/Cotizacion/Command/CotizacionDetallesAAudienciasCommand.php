@@ -71,6 +71,7 @@ final class CotizacionDetallesAAudienciasCommand extends Command
         // que un bloque con el `tipo` viejo y sin repetidos saldría «sin cambios» y se quedaría
         // con la forma antigua en base para siempre, volviendo permanente una tolerancia que sólo
         // debería durar lo que dura el despliegue.
+        /** @var array<string, string> $crudos id BINARY(16) → el JSON tal cual está guardado. */
         $crudos = $this->em->getConnection()->fetchAllKeyValue(
             'SELECT id, detalles_operativos FROM cotizacion_cotcomponente WHERE JSON_LENGTH(detalles_operativos) > 0',
         );
@@ -90,7 +91,10 @@ final class CotizacionDetallesAAudienciasCommand extends Command
             $antes = $componente->getDetallesOperativos();
             [$despues, $fusiones] = $this->fundir($antes, $todas);
 
-            $guardado = json_decode((string) ($crudos[(string) $componente->getId()] ?? '[]'), true);
+            // ⚠️ Por el id BINARIO, que es la clave que devuelve el SQL. Se buscaba por el texto
+            // RFC 4122 y no casaba nunca: `$guardado` salía siempre `[]` y el comando daba por
+            // «a convertir» todos los componentes, también los que ya estaban en la forma nueva.
+            $guardado = json_decode($crudos[$componente->getIdOrFail()->toBinary()] ?? '[]', true);
             if ($despues === $guardado) {
                 continue;
             }
@@ -137,13 +141,13 @@ final class CotizacionDetallesAAudienciasCommand extends Command
      * para decir «esto es lo mismo escrito dos veces». Comparar el JSON entero fallaría en cuanto
      * dos traducciones del mismo original salieran con una coma distinta.
      *
-     * @param list<array<string, mixed>> $bloques
+     * @param list<array{audiencias: list<string>, ...<string, mixed>}> $bloques
      *
-     * @return array{0: list<array<string, mixed>>, 1: int}
+     * @return array{0: list<array{audiencias: list<string>, ...<string, mixed>}>, 1: int}
      */
     private function fundir(array $bloques, bool $todas): array
     {
-        /** @var array<string, array<string, mixed>> $porTexto */
+        /** @var array<string, array{audiencias: list<string>, ...<string, mixed>}> $porTexto */
         $porTexto = [];
         $fusiones = 0;
 

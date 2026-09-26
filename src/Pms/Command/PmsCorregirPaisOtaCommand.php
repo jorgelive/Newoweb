@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Entity\Maestro\MaestroPais;
 use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsReserva;
@@ -92,7 +93,7 @@ final class PmsCorregirPaisOtaCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $seco = (bool) $input->getOption('dry-run');
-        $canal = (string) $input->getOption('canal');
+        $canal = EntradaDeConsola::texto($input->getOption('canal'), 'canal');
 
         /** @var list<PmsReserva> $reservas */
         $reservas = $this->em->getRepository(PmsReserva::class)

@@ -59,7 +59,9 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
      */
     public function normalize($object, ?string $format = null, array $context = []): array|string|int|float|bool|\ArrayObject|null
     {
-        $isPublicView = \in_array(self::GRUPO_PUBLICO, $context['groups'] ?? [], true);
+        // Symfony admite los grupos como lista o como un texto suelto; los dos cuentan.
+        $grupos = $context['groups'] ?? [];
+        $isPublicView = \is_array($grupos) ? \in_array(self::GRUPO_PUBLICO, $grupos, true) : $grupos === self::GRUPO_PUBLICO;
 
         // Se hace ANTES de delegar. Aquí se recorre el árbol
         // una vez, se juntan los soft-links y se traen todos los maestros de golpe, para

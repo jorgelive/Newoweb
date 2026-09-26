@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Enum\ComponenteTipoEnum;
@@ -66,8 +67,8 @@ final class RetiparComponenteCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $simula = (bool) $input->getOption('dry-run');
 
-        $nombre = (string) $input->getArgument('nombre');
-        $nuevo = ComponenteTipoEnum::tryFrom((string) $input->getArgument('tipo'));
+        $nombre = EntradaDeConsola::texto($input->getArgument('nombre'), 'nombre');
+        $nuevo = ComponenteTipoEnum::tryFrom(EntradaDeConsola::texto($input->getArgument('tipo'), 'tipo'));
 
         if ($nuevo === null) {
             $io->error(sprintf('Tipo desconocido. Los válidos son: %s', implode(', ', array_column(ComponenteTipoEnum::cases(), 'value'))));

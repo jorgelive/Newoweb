@@ -111,7 +111,7 @@ final readonly class PadronImportador
 
         foreach ($filas as $n => $fila) {
             $numeroFila = $indiceCabecera + $n + 2;   // +1 por la cabecera, +1 porque Excel empieza en 1
-            $nombre = trim((string) ($fila[$columnas['fijas'][PadronFormato::COL_NOMBRES]] ?? ''));
+            $nombre = trim(PadronFormato::celda($fila[$columnas['fijas'][PadronFormato::COL_NOMBRES]] ?? null));
 
             if ($nombre === '') {
                 continue;   // fila vacía o la del aviso de ejemplos
@@ -238,7 +238,7 @@ final readonly class PadronImportador
         $ids = [];
 
         foreach ($filas as $n => $fila) {
-            $nombre = trim((string) ($fila[$columnas['fijas'][PadronFormato::COL_NOMBRES]] ?? ''));
+            $nombre = trim(PadronFormato::celda($fila[$columnas['fijas'][PadronFormato::COL_NOMBRES]] ?? null));
             if ($nombre === '' || $this->pareceTotal($nombre)) {
                 continue;
             }
@@ -246,7 +246,7 @@ final readonly class PadronImportador
             // Un `Id` repetido llega copiando una fila para crear a alguien parecido, y es tan
             // destructivo como un documento repetido: las dos filas escribirían sobre la misma
             // persona y una desaparecería.
-            $id = trim((string) ($fila[$columnas['fijas'][PadronFormato::COL_ID] ?? -1] ?? ''));
+            $id = trim(PadronFormato::celda($fila[$columnas['fijas'][PadronFormato::COL_ID] ?? -1] ?? null));
             if ($id !== '') {
                 if (isset($ids[$id])) {
                     $resultado->error(sprintf(
@@ -260,7 +260,7 @@ final readonly class PadronImportador
             }
 
             foreach ($columnas['docs'] as $valorTipo => $donde) {
-                $numero = trim((string) ($fila[$donde['col']] ?? ''));
+                $numero = trim(PadronFormato::celda($fila[$donde['col']] ?? null));
                 if ($numero === '') {
                     continue;
                 }
@@ -325,7 +325,7 @@ final readonly class PadronImportador
             // consumidor la usa como número de fila de cabecera.
             foreach (array_slice($filas, 0, self::FILAS_A_MIRAR, true) as $i => $fila) {
                 foreach ($fila as $celda) {
-                    $texto = (string) $celda;
+                    $texto = PadronFormato::celda($celda);
                     if (PadronFormato::canonica($texto) === PadronFormato::COL_NOMBRES || PadronFormato::esNombreCompleto($texto)) {
                         return [$filas, (int) $i, $hoja->getTitle()];
                     }
@@ -356,7 +356,7 @@ final readonly class PadronImportador
         $ultimaEtiquetaDeEje = null;
 
         foreach ($cabeceras as $i => $bruta) {
-            $cabecera = trim((string) $bruta);
+            $cabecera = trim(PadronFormato::celda($bruta));
             if ($cabecera === '') {
                 continue;
             }
@@ -458,7 +458,7 @@ final readonly class PadronImportador
      */
     private function pasajeroDeLaFila(CotizacionFile $file, array $fila, array $columnas, ResultadoDelPadron $resultado): CotizacionFilepasajero
     {
-        $texto = fn (string $col): string => trim((string) ($fila[$columnas['fijas'][$col] ?? -1] ?? ''));
+        $texto = fn (string $col): string => trim(PadronFormato::celda($fila[$columnas['fijas'][$col] ?? -1] ?? null));
 
         // ── Identidad, en tres peldaños de menos a más adivinanza ───────────
         //
@@ -567,7 +567,7 @@ final readonly class PadronImportador
     private function buscarPorDocumento(CotizacionFile $file, array $fila, array $columnas): ?CotizacionFilepasajero
     {
         foreach ($columnas['docs'] as $valorTipo => $donde) {
-            $numero = trim((string) ($fila[$donde['col']] ?? ''));
+            $numero = trim(PadronFormato::celda($fila[$donde['col']] ?? null));
             if ($numero === '') {
                 continue;
             }
@@ -613,7 +613,7 @@ final readonly class PadronImportador
     private function aplicarIdentificaciones(CotizacionFilepasajero $pasajero, array $fila, array $columnas, ResultadoDelPadron $resultado): void
     {
         foreach ($columnas['docs'] as $valorTipo => $donde) {
-            $numero = trim((string) ($fila[$donde['col']] ?? ''));
+            $numero = trim(PadronFormato::celda($fila[$donde['col']] ?? null));
             if ($numero === '') {
                 continue;
             }
@@ -631,7 +631,7 @@ final readonly class PadronImportador
 
             $identificacion->setNumero($numero);
 
-            $vencimiento = $donde['venc'] !== null ? $this->fecha(trim((string) ($fila[$donde['venc']] ?? ''))) : null;
+            $vencimiento = $donde['venc'] !== null ? $this->fecha(trim(PadronFormato::celda($fila[$donde['venc']] ?? null))) : null;
             if ($vencimiento !== null) {
                 $identificacion->setVencimiento($vencimiento);
             }
@@ -651,7 +651,7 @@ final readonly class PadronImportador
         $codigoPorGrupo = [];
 
         foreach ($columnas['ejes'] as $i => $eje) {
-            $clave = trim((string) ($fila[$i] ?? ''));
+            $clave = trim(PadronFormato::celda($fila[$i] ?? null));
             if ($clave === '') {
                 continue;
             }
@@ -662,7 +662,7 @@ final readonly class PadronImportador
             // El código de esta persona en este subgrupo, si el archivo lo trae. Se busca por la
             // COLUMNA que se está leyendo, no por el eje: ver el emparejamiento en mapearCabeceras().
             $col = $columnas['codigos'][$i] ?? null;
-            $codigo = $col !== null ? trim((string) ($fila[$col] ?? '')) : '';
+            $codigo = $col !== null ? trim(PadronFormato::celda($fila[$col] ?? null)) : '';
 
             if ($codigo !== '') {
                 $codigoPorGrupo[spl_object_hash($grupo)] = $codigo;
@@ -670,7 +670,7 @@ final readonly class PadronImportador
         }
 
         foreach ($columnas['servicios'] as $i => $servicio) {
-            if (PadronFormato::participa($fila[$i] ?? null)) {
+            if (PadronFormato::participa(PadronFormato::celda($fila[$i] ?? null))) {
                 $deseados[] = $this->grupo($file, GrupoTipoEnum::SERVICIO, $servicio, $nombresDeGrupo, $resultado);
             }
         }
@@ -794,7 +794,7 @@ final readonly class PadronImportador
 
         // Sin `?? []`: el `=== []` de arriba ya garantiza al menos una fila, y desde PhpSpreadsheet 5
         // `toArray()` declara que devuelve filas, así que PHPStan lo sabe también.
-        $cabeceras = array_map(static fn ($c): string => trim((string) $c), array_shift($filas));
+        $cabeceras = array_map(static fn (mixed $c): string => trim(PadronFormato::celda($c)), array_shift($filas));
 
         // ⚠️ La PRIMERA que aparezca, no la última. `array_flip` se queda con la última, y una
         // cabecera repetida —copiar la hoja y olvidar borrar la columna vieja— hacía que se leyera
@@ -823,13 +823,13 @@ final readonly class PadronImportador
 
         $nombres = [];
         foreach ($filas as $fila) {
-            $eje = trim((string) ($fila[$col[PadronFormato::COL_GRUPO_EJE]] ?? ''));
-            $clave = trim((string) ($fila[$col[PadronFormato::COL_GRUPO_CLAVE]] ?? ''));
+            $eje = trim(PadronFormato::celda($fila[$col[PadronFormato::COL_GRUPO_EJE]] ?? null));
+            $clave = trim(PadronFormato::celda($fila[$col[PadronFormato::COL_GRUPO_CLAVE]] ?? null));
             $nombre = isset($col[PadronFormato::COL_GRUPO_NOMBRE])
-                ? trim((string) ($fila[$col[PadronFormato::COL_GRUPO_NOMBRE]] ?? ''))
+                ? trim(PadronFormato::celda($fila[$col[PadronFormato::COL_GRUPO_NOMBRE]] ?? null))
                 : '';
             $detalle = isset($col[PadronFormato::COL_GRUPO_DETALLE])
-                ? trim((string) ($fila[$col[PadronFormato::COL_GRUPO_DETALLE]] ?? ''))
+                ? trim(PadronFormato::celda($fila[$col[PadronFormato::COL_GRUPO_DETALLE]] ?? null))
                 : '';
 
             // «Y9KZ7J Jetsmart» en una sola celda: se parte por el primer espacio, y SÓLO si la

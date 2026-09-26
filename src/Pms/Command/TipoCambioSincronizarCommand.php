@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Maestro\MaestroTipocambio;
 use App\Service\TipocambioManager;
@@ -95,7 +96,7 @@ final class TipoCambioSincronizarCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $dias = max(1, (int) $input->getOption('dias'));
+        $dias = max(1, EntradaDeConsola::entero($input->getOption('dias'), 'dias'));
         $callado = (bool) $input->getOption('sin-aviso');
 
         // Zona de Lima y no la del servidor: el servidor va en UTC, así que a partir de las 19:00

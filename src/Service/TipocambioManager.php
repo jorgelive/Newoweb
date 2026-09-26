@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Dto\Lee;
 use App\Dto\ExchangeRateDto;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Maestro\MaestroTipocambio;
@@ -146,7 +147,7 @@ class TipocambioManager
      *
      * @param array<string, string> $queryParams
      *
-     * @return list<array<string, mixed>>
+     * @return list<array<mixed>>
      */
     private function callApi(array $queryParams): array
     {
@@ -196,7 +197,16 @@ class TipocambioManager
     }
 
     /**
-     * @param list<array<string, mixed>> $lista
+     * La respuesta del proveedor, a DTO. Los importes se guardan como TEXTO tal cual llegan
+     * (`Lee::texto()`: un número JSON pasa a texto igual que con el `(string)` de antes), porque
+     * van a una columna DECIMAL y pasar por float los redondearía.
+     *
+     * ⚠️ **Un importe que no es un número deja la fila fuera**, igual que si faltara. Antes entraba
+     * tal cual —un «N/A» del proveedor, o la palabra «Array»— hasta la columna DECIMAL, y ahí o
+     * reventaba el `flush` o se guardaba un 0.000 como tipo de cambio de ese día. Sin la fila, rige
+     * la última cotización buena, que es el respaldo que ya existe para «hoy no hay dato».
+     *
+     * @param list<array<mixed>> $lista
      *
      * @return array<string, ExchangeRateDto> Indexadas por fecha `Y-m-d`.
      */
@@ -204,16 +214,20 @@ class TipocambioManager
     {
         $dtos = [];
         foreach ($lista as $item) {
-            if (!isset($item[self::CAMPO_FECHA], $item[self::CAMPO_COMPRA], $item[self::CAMPO_VENTA])) {
+            $fecha = Lee::texto($item[self::CAMPO_FECHA] ?? null);
+            $compra = Lee::texto($item[self::CAMPO_COMPRA] ?? null);
+            $venta = Lee::texto($item[self::CAMPO_VENTA] ?? null);
+
+            if ($fecha === null || !is_numeric($compra) || !is_numeric($venta)) {
                 continue;
             }
-            $fechaStr = substr((string) $item[self::CAMPO_FECHA], 0, 10);
+            $fechaStr = substr($fecha, 0, 10);
 
             $dtos[$fechaStr] = new ExchangeRateDto(
                 new DateTimeImmutable($fechaStr), // El time vendrá 00:00:00 por defecto en immutable desde Y-m-d
-                (string) $item[self::CAMPO_COMPRA],
-                (string) $item[self::CAMPO_VENTA],
-                (string) ($item['base_currency'] ?? self::MONEDA_TARGET)
+                $compra,
+                $venta,
+                Lee::texto($item['base_currency'] ?? null) ?? self::MONEDA_TARGET
             );
         }
         return $dtos;
@@ -228,6 +242,7 @@ class TipocambioManager
         $fin    = (clone $fechaReferencia)->modify('last day of this month')->setTime(23,59,59);
 
         // Obtenemos solo las fechas existentes
+        /** @var list<array{fecha: \DateTimeInterface|string|null}> $existingRows */
         $existingRows = $this->em->createQueryBuilder()
             ->select('tc.fecha')
             ->from(MaestroTipocambio::class, 'tc')

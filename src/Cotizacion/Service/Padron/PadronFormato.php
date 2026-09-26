@@ -370,6 +370,19 @@ final class PadronFormato
     }
 
     /**
+     * Una celda como texto, sin recortar.
+     *
+     * La hoja se lee SIN formato (`toArray(…, formatData: false)`), así que llega lo que Excel
+     * guardó: texto, número, booleano, nada, o un `RichText` en las cabeceras. Con un escalar da lo
+     * mismo que el `(string)` de antes; lo que no lo es —el array de una fórmula matricial— es una
+     * celda vacía, no la palabra «Array».
+     */
+    public static function celda(mixed $valor): string
+    {
+        return is_scalar($valor) || $valor instanceof \Stringable ? (string) $valor : '';
+    }
+
+    /**
      * ¿Esta celda dice que sí participa?
      *
      * Se acepta lo que la gente escribe de verdad —SI, SÍ, X, 1— y **todo lo demás es no**,
