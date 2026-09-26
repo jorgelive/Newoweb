@@ -27,6 +27,7 @@ use App\Security\Roles;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Crea una reserva directa. **Es la skill que más cosas dispara del catálogo.**
@@ -150,9 +151,10 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $desde = $this->fecha($entrada['desde'] ?? null);
-        $hasta = $this->fecha($entrada['hasta'] ?? null);
-        $unidad = $this->resolverCasita(trim((string) ($entrada['casita'] ?? '')));
+        $e = new EntradaDeSkill($entrada);
+        $desde = $this->fecha($e->textoONull('desde'));
+        $hasta = $this->fecha($e->textoONull('hasta'));
+        $unidad = $this->resolverCasita(trim($e->texto('casita')));
 
         // Una salida anterior a la entrada NO es un dato que falte: es uno que está mal, y
         // preguntarlo junto a otros tres sería enterrar el aviso.
@@ -181,10 +183,10 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
             $preguntas[] = $unidad;
         }
 
-        $nombre = trim((string) ($entrada['nombre'] ?? ''));
-        $idioma = strtolower(trim((string) ($entrada['idioma'] ?? '')));
-        $adultos = (int) ($entrada['adultos'] ?? 0);
-        $telefono = trim((string) ($entrada['telefono'] ?? ''));
+        $nombre = trim($e->texto('nombre'));
+        $idioma = strtolower(trim($e->texto('idioma')));
+        $adultos = $e->entero('adultos', 0);
+        $telefono = trim($e->texto('telefono'));
 
         if ($nombre === '') {
             $faltan[] = 'nombre';
@@ -275,7 +277,8 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
         DateTimeImmutable $hasta,
         ActorInterface $actor
     ): SkillResult {
-        $confirmado = filter_var($entrada['confirmado'] ?? false, FILTER_VALIDATE_BOOL);
+        $e = new EntradaDeSkill($entrada);
+        $confirmado = $e->booleano('confirmado');
         $establecimiento = $unidad->getEstablecimiento();
 
         if ($establecimiento === null) {
@@ -283,19 +286,19 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
         }
 
         $idiomaEnt = $this->em->getRepository(MaestroIdioma::class)
-            ->find(strtolower(trim((string) $entrada['idioma'])));
+            ->find(strtolower(trim($e->texto('idioma'))));
 
         if ($idiomaEnt === null) {
             return SkillResult::error('Ese idioma no está dado de alta en el maestro.');
         }
 
-        $estadoId = strtolower(trim((string) ($entrada['estado'] ?? 'pendiente')));
+        $estadoId = strtolower(trim($e->textoONull('estado') ?? 'pendiente'));
         if (!in_array($estadoId, ['pendiente', 'confirmada'], true)) {
             $estadoId = 'pendiente';
         }
 
-        $adultos = max(1, (int) $entrada['adultos']);
-        $ninos = max(0, (int) ($entrada['ninos'] ?? 0));
+        $adultos = max(1, $e->entero('adultos'));
+        $ninos = max(0, $e->entero('ninos', 0));
 
         // Las horas del establecimiento, no una constante: ver el docblock de la clase.
         $horaIn = $establecimiento->getHoraCheckIn()?->format('H:i') ?? '14:00';
@@ -312,15 +315,15 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
         $resumen = array_filter([
             'casita' => $unidad->getNombre(),
             'establecimiento' => $establecimiento->getNombreComercial(),
-            'huesped' => trim($entrada['nombre'] . ' ' . ($entrada['apellido'] ?? '')),
+            'huesped' => trim($e->texto('nombre') . ' ' . $e->texto('apellido')),
             'idioma' => $idiomaEnt->getId(),
             'entrada' => $inicio->format('Y-m-d H:i'),
             'salida' => $fin->format('Y-m-d H:i'),
             'noches' => $desde->diff($hasta)->days,
             'adultos' => $adultos,
             'ninos' => $ninos ?: null,
-            'telefono' => trim((string) ($entrada['telefono'] ?? '')) ?: null,
-            'email' => trim((string) ($entrada['email'] ?? '')) ?: null,
+            'telefono' => trim($e->texto('telefono')) ?: null,
+            'email' => trim($e->texto('email')) ?: null,
             'estado' => $estadoId,
             'cargos_previstos' => $cargos['lineas'],
             'total_previsto' => sprintf('%.2f %s', $cargos['total'], $cargos['moneda']),
@@ -373,10 +376,11 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
         DateTimeImmutable $fin,
         int $pax = 0
     ): array {
+        $e = new EntradaDeSkill($entrada);
         $moneda = $unidad->getTarifaBaseMonedaId() ?? 'USD';
         $lineas = [];
 
-        $precioFinal = trim((string) ($entrada['precio_final'] ?? ''));
+        $precioFinal = trim($e->texto('precio_final'));
 
         if ($precioFinal !== '') {
             $alojamiento = (float) str_replace(',', '.', $precioFinal);
@@ -425,7 +429,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
 
         $total = $alojamiento + $suplemento;
 
-        if (strtolower(trim((string) ($entrada['cobrar_limpieza'] ?? 'si'))) !== 'no') {
+        if (strtolower(trim($e->textoONull('cobrar_limpieza') ?? 'si')) !== 'no') {
             // 🧹 De la unidad, no de una constante: puede ser importe fijo o porcentaje. La
             // base del porcentaje es alojamiento + suplemento, y la decide `costoLimpieza()`.
             $limpieza = $unidad->costoLimpieza($noches, $total);
@@ -450,7 +454,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
             ];
         }
 
-        $pct = (float) str_replace(',', '.', (string) ($entrada['servicio_porcentaje'] ?? '0'));
+        $pct = (float) str_replace(',', '.', $e->textoONull('servicio_porcentaje') ?? '0');
 
         if ($pct > 0) {
             // ⚠️ Sobre alojamiento + suplemento, NO sobre `$total`: la limpieza no entra en la
@@ -541,19 +545,20 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
         array $resumen,
         ActorInterface $actor
     ): SkillResult {
+        $e = new EntradaDeSkill($entrada);
         $reserva = new PmsReserva();
-        $reserva->setNombreCliente(trim((string) $entrada['nombre']));
-        $reserva->setApellidoCliente(trim((string) ($entrada['apellido'] ?? '')));
+        $reserva->setNombreCliente(trim($e->texto('nombre')));
+        $reserva->setApellidoCliente(trim($e->texto('apellido')));
         $reserva->setIdioma($idioma);
         $reserva->setEstablecimiento($unidad->getEstablecimiento());
         $reserva->setFechaLlegada($inicio);
         $reserva->setFechaSalida($fin);
 
-        if (($tel = trim((string) ($entrada['telefono'] ?? ''))) !== '') {
+        if (($tel = trim($e->texto('telefono'))) !== '') {
             $reserva->setTelefono($tel);
         }
 
-        if (($mail = trim((string) ($entrada['email'] ?? ''))) !== '') {
+        if (($mail = trim($e->texto('email'))) !== '') {
             $reserva->setEmailCliente($mail);
         }
 
@@ -679,9 +684,9 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
         return $encontradas[0];
     }
 
-    private function fecha(mixed $valor): ?DateTimeImmutable
+    private function fecha(?string $valor): ?DateTimeImmutable
     {
-        $texto = trim((string) ($valor ?? ''));
+        $texto = trim($valor ?? '');
 
         if ($texto === '') {
             return null;

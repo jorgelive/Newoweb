@@ -21,6 +21,7 @@ use App\Pms\Guia\PmsGuiaEstanciaResolver;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Las redes WiFi de la casita: nombre, contraseña y dónde llega mejor cada una.
@@ -103,9 +104,10 @@ final readonly class ConsultarWifiSkill implements SkillInterface, SkillDominioI
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        $e = new EntradaDeSkill($entrada);
         // 🔒 Misma frontera que en consultar_guia: el contexto manda sobre el parámetro, o un
         // huésped podría pedir la contraseña de otra casita escribiendo un UUID.
-        $reservaId = $actor->contextoId() ?? trim((string) ($entrada['reserva_id'] ?? ''));
+        $reservaId = $actor->contextoId() ?? trim($e->texto('reserva_id'));
 
         if ($actor->contextoId() === null && !$actor->esDelEquipo()) {
             return SkillResult::error('Esta conversación no está asociada a ninguna reserva.');
@@ -129,7 +131,7 @@ final readonly class ConsultarWifiSkill implements SkillInterface, SkillDominioI
 
         // 🏠 Cada casita tiene SUS redes. Dar la contraseña de la de al lado no es un error
         // menor: el huésped no se conecta y cree que el wifi no funciona.
-        $eleccion = $this->estancias->resolver($eventos, trim((string) ($entrada['casita'] ?? '')));
+        $eleccion = $this->estancias->resolver($eventos, trim($e->texto('casita')));
 
         if ($eleccion['ambiguo']) {
             return SkillResult::ok([

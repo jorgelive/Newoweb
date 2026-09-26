@@ -21,6 +21,7 @@ use App\Entity\Maestro\MaestroMoneda;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Sube o baja el precio de unas fechas. **Escribe, y viaja a todos los portales.**
@@ -132,10 +133,11 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $desde = $this->fecha($entrada['desde'] ?? null);
-        $hasta = $this->fecha($entrada['hasta'] ?? null);
-        $casitaPedida = trim((string) ($entrada['casita'] ?? ''));
-        $ajusteTexto = trim((string) ($entrada['ajuste'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $desde = $this->fecha($e->textoONull('desde'));
+        $hasta = $this->fecha($e->textoONull('hasta'));
+        $casitaPedida = trim($e->texto('casita'));
+        $ajusteTexto = trim($e->texto('ajuste'));
 
         // Todo lo que falte, junto: preguntar la casita y luego el ajuste son dos viajes.
         $faltan = [];
@@ -202,7 +204,7 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
             );
         }
 
-        $soloLibres = filter_var($entrada['solo_libres'] ?? false, FILTER_VALIDATE_BOOL);
+        $soloLibres = $e->booleano('solo_libres');
         $ocupadas = $soloLibres ? $this->nochesOcupadas($unidad, $desde, $hasta) : [];
 
         $afectadas = array_filter(
@@ -281,7 +283,7 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
             ),
         ], static fn ($v) => $v !== null);
 
-        if (!filter_var($entrada['confirmado'] ?? false, FILTER_VALIDATE_BOOL)) {
+        if (!$e->booleano('confirmado')) {
             return SkillResult::ok($resumen + [
                 'aplicado' => false,
                 'motivo' => 'falta_confirmacion',
@@ -571,9 +573,9 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
         return null;
     }
 
-    private function fecha(mixed $valor): ?DateTimeImmutable
+    private function fecha(?string $valor): ?DateTimeImmutable
     {
-        $texto = trim((string) ($valor ?? ''));
+        $texto = trim($valor ?? '');
 
         if ($texto === '') {
             return null;

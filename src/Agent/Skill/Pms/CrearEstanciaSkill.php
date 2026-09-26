@@ -24,6 +24,7 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Añade una estancia a una reserva que YA existe. **Escribe y sale al canal.**
@@ -130,7 +131,8 @@ final readonly class CrearEstanciaSkill implements SkillInterface, SkillDominioI
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $reservaId = trim((string) ($entrada['reserva_id'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $reservaId = trim($e->texto('reserva_id'));
 
         if (!Uuid::isValid($reservaId)) {
             return SkillResult::error(
@@ -155,10 +157,10 @@ final readonly class CrearEstanciaSkill implements SkillInterface, SkillDominioI
             ));
         }
 
-        $desde = $this->fecha($entrada['desde'] ?? null);
-        $hasta = $this->fecha($entrada['hasta'] ?? null);
-        $unidad = $this->resolverCasita(trim((string) ($entrada['casita'] ?? '')));
-        $adultos = (int) ($entrada['adultos'] ?? 0);
+        $desde = $this->fecha($e->textoONull('desde'));
+        $hasta = $this->fecha($e->textoONull('hasta'));
+        $unidad = $this->resolverCasita(trim($e->texto('casita')));
+        $adultos = $e->entero('adultos', 0);
 
         // Una salida anterior a la entrada está MAL, no falta: se avisa sola para que no quede
         // enterrada entre otras preguntas.
@@ -238,10 +240,11 @@ final readonly class CrearEstanciaSkill implements SkillInterface, SkillDominioI
         DateTimeImmutable $hasta,
         int $adultos
     ): SkillResult {
-        $confirmado = filter_var($entrada['confirmado'] ?? false, FILTER_VALIDATE_BOOL);
-        $ninos = max(0, (int) ($entrada['ninos'] ?? 0));
+        $e = new EntradaDeSkill($entrada);
+        $confirmado = $e->booleano('confirmado');
+        $ninos = max(0, $e->entero('ninos', 0));
 
-        $estadoId = strtolower(trim((string) ($entrada['estado'] ?? PmsEventoEstado::CODIGO_PENDIENTE)));
+        $estadoId = strtolower(trim($e->textoONull('estado') ?? PmsEventoEstado::CODIGO_PENDIENTE));
         if (!in_array($estadoId, [PmsEventoEstado::CODIGO_PENDIENTE, PmsEventoEstado::CODIGO_CONFIRMADA], true)) {
             $estadoId = PmsEventoEstado::CODIGO_PENDIENTE;
         }
@@ -469,9 +472,9 @@ final readonly class CrearEstanciaSkill implements SkillInterface, SkillDominioI
         return $encontradas[0];
     }
 
-    private function fecha(mixed $valor): ?DateTimeImmutable
+    private function fecha(?string $valor): ?DateTimeImmutable
     {
-        $texto = trim((string) ($valor ?? ''));
+        $texto = trim($valor ?? '');
 
         if ($texto === '') {
             return null;

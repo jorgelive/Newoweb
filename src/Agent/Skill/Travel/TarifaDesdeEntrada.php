@@ -12,6 +12,7 @@ use App\Travel\Enum\TarifaModalidadEnum;
 use App\Travel\Enum\TarifaProcedenciaEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Lo que comparten `crear_tarifa` y `modificar_tarifa`: volcar la entrada, validarla y
@@ -44,12 +45,14 @@ final readonly class TarifaDesdeEntrada
      */
     public function aplicar(TravelTarifa $tarifa, array $entrada, bool $exigeNombre): ?string
     {
-        if (isset($entrada['nombre']) && trim((string) $entrada['nombre']) !== '') {
-            $tarifa->setNombreInterno(trim((string) $entrada['nombre']));
+        $e = new EntradaDeSkill($entrada);
+
+        if (trim($e->texto('nombre')) !== '') {
+            $tarifa->setNombreInterno(trim($e->texto('nombre')));
         }
 
-        if (isset($entrada['precio']) && $entrada['precio'] !== '') {
-            $precio = (float) $entrada['precio'];
+        if ($e->tiene('precio') && $e->texto('precio') !== '') {
+            $precio = $e->decimal('precio');
 
             if ($precio < 0) {
                 return 'Un precio negativo no es una tarifa. Si querías un descuento, va como cargo aparte.';
@@ -58,8 +61,8 @@ final readonly class TarifaDesdeEntrada
             $tarifa->setMonto(number_format($precio, 2, '.', ''));
         }
 
-        if (isset($entrada['moneda']) && trim((string) $entrada['moneda']) !== '') {
-            $id = mb_strtoupper(trim((string) $entrada['moneda']));
+        if (trim($e->texto('moneda')) !== '') {
+            $id = mb_strtoupper(trim($e->texto('moneda')));
             $moneda = $this->em->find(MaestroMoneda::class, $id);
 
             if ($moneda === null) {
@@ -84,11 +87,11 @@ final readonly class TarifaDesdeEntrada
             'categoria' => TarifaCategoriaEnum::class,
             'procedencia' => TarifaProcedenciaEnum::class,
         ] as $clave => $enum) {
-            if (!isset($entrada[$clave]) || trim((string) $entrada[$clave]) === '') {
+            if (trim($e->texto($clave)) === '') {
                 continue;
             }
 
-            $valor = mb_strtolower(trim((string) $entrada[$clave]));
+            $valor = mb_strtolower(trim($e->texto($clave)));
             $caso = $enum::tryFrom($valor);
 
             if ($caso === null) {
@@ -113,11 +116,11 @@ final readonly class TarifaDesdeEntrada
             'capacidad_minima' => 'setCapacidadMinima',
             'capacidad_maxima' => 'setCapacidadMaxima',
         ] as $clave => $setter) {
-            if (!array_key_exists($clave, $entrada) || $entrada[$clave] === '' || $entrada[$clave] === null) {
+            if (!$e->tiene($clave) || $e->texto($clave) === '') {
                 continue;
             }
 
-            $n = (int) $entrada[$clave];
+            $n = $e->entero($clave);
 
             if ($n < 0) {
                 return sprintf('«%s» no puede ser negativo.', $clave);

@@ -311,7 +311,8 @@ class TipocambioManager
         $usdRef = $this->getUsdRef();
 
         // Buscamos <= fecha (medianoche inclusive)
-        return $repo->createQueryBuilder('tc')
+        /** @var \App\Entity\Maestro\MaestroTipocambio|null $resultado */
+        $resultado = $repo->createQueryBuilder('tc')
             ->where('tc.moneda = :moneda')
             ->andWhere('tc.fecha <= :fecha')
             ->setParameter('moneda', $usdRef)
@@ -321,6 +322,8 @@ class TipocambioManager
             ->getQuery()
             ->getOneOrNullResult()
             ?? $repo->findOneBy(['moneda' => $usdRef], ['fecha' => 'DESC']);
+
+        return $resultado;
     }
 
     /**

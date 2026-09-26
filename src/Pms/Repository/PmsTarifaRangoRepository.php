@@ -52,6 +52,9 @@ final class PmsTarifaRangoRepository extends ServiceEntityRepository
  //dump($qb->getQuery()->getSQL());
  //dump($qb->getQuery()->getParameters());
  //die();
-           return $qb->getQuery()->getResult();
+           /** @var list<\App\Pms\Entity\PmsTarifaRango> $resultado */
+           $resultado = $qb->getQuery()->getResult();
+
+           return $resultado;
     }
 }

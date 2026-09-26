@@ -18,6 +18,7 @@ use App\Security\Roles;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Marca la salida tardía o la entrada temprana de una estancia. **Escribe.**
@@ -151,9 +152,10 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $eventoId = trim((string) ($entrada['evento_id'] ?? ''));
-        $cambio = strtolower(trim((string) ($entrada['cambio'] ?? '')));
-        $confirmado = filter_var($entrada['confirmado'] ?? false, FILTER_VALIDATE_BOOL);
+        $e = new EntradaDeSkill($entrada);
+        $eventoId = trim($e->texto('evento_id'));
+        $cambio = strtolower(trim($e->texto('cambio')));
+        $confirmado = $e->booleano('confirmado');
 
         if (!Uuid::isValid($eventoId)) {
             return SkillResult::error('El evento_id no es válido.');
@@ -173,7 +175,7 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
 
         // 🕒 La hora acordada, si la hay. Se compara con el horario del establecimiento para
         // saber si esto es un horario extra de verdad o sólo un dato que apuntar.
-        $horaPedida = trim((string) ($entrada['hora'] ?? ''));
+        $horaPedida = trim($e->texto('hora'));
 
         if ($horaPedida !== '' && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $horaPedida)) {
             return SkillResult::error('La hora debe ir en formato HH:MM, por ejemplo "14:00".');

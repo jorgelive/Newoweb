@@ -13,6 +13,7 @@ use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Pms\Service\Finance\TipoCambioDelDia;
 use App\Security\Roles;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * El tipo de cambio USD→PEN que usa la casa, para quien va a pagar en soles.
@@ -86,6 +87,7 @@ final readonly class ConsultarTipoCambioSkill implements SkillInterface
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        $e = new EntradaDeSkill($entrada);
         $referencia = $this->tipoCambio->referencia();
         $tasa = $referencia?->getVenta();
 
@@ -106,12 +108,13 @@ final readonly class ConsultarTipoCambioSkill implements SkillInterface
             'fuente' => 'Tipo de cambio venta SUNAT, el mismo que se usa al registrar los pagos.',
         ];
 
-        $monto = $entrada['monto_usd'] ?? null;
+        // Número o texto numérico; cualquier otra cosa no es un importe.
+        $monto = $e->decimal('monto_usd');
 
-        if (is_numeric($monto) && (float) $monto > 0.0) {
-            $salida['monto_usd'] = number_format((float) $monto, 2, '.', '');
+        if ($monto > 0.0) {
+            $salida['monto_usd'] = number_format($monto, 2, '.', '');
             // Se redondea a 2 decimales porque es lo que el huésped va a teclear en el Yape.
-            $salida['equivalente_pen'] = number_format((float) $monto * (float) $tasa, 2, '.', '');
+            $salida['equivalente_pen'] = number_format($monto * (float) $tasa, 2, '.', '');
         }
 
         return SkillResult::ok($salida);

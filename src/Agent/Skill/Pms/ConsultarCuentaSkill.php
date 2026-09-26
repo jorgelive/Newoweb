@@ -33,6 +33,7 @@ use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * La cuenta de una reserva: cargos y pagos, línea a línea.
@@ -140,8 +141,9 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        $e = new EntradaDeSkill($entrada);
         $reservaId = $this->reservaDelContexto($actor)
-            ?? trim((string) ($entrada['reserva_id'] ?? ''));
+            ?? trim($e->texto('reserva_id'));
 
         if (!Uuid::isValid($reservaId)) {
             return SkillResult::error(

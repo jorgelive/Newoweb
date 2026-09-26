@@ -21,6 +21,7 @@ use App\Pms\Guia\PmsGuiaEstanciaResolver;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Corrige los datos de una reserva que ya existe: teléfono, correo, idioma, cuántos son y el
@@ -136,7 +137,8 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $reservaId = trim((string) ($entrada['reserva_id'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $reservaId = trim($e->texto('reserva_id'));
 
         if (!Uuid::isValid($reservaId)) {
             return SkillResult::error('Necesito el reserva_id. Localízala con buscar_reserva.');
@@ -173,7 +175,7 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
                 return SkillResult::error('Esta reserva no tiene ninguna estancia activa que corregir.');
             }
 
-            $eleccion = $this->estancias->resolver($eventos, trim((string) ($entrada['casita'] ?? '')));
+            $eleccion = $this->estancias->resolver($eventos, trim($e->texto('casita')));
 
             if ($eleccion['ambiguo']) {
                 return SkillResult::ok([
@@ -219,7 +221,7 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
             'cambios' => $cambios,
         ], static fn ($v) => $v !== null);
 
-        if (!filter_var($entrada['confirmado'] ?? false, FILTER_VALIDATE_BOOL)) {
+        if (!$e->booleano('confirmado')) {
             // Se revierte lo tocado en memoria: los setters ya se llamaron para poder describir
             // el «antes → después», y sin esto un flush ajeno en la misma petición lo guardaría.
             $this->em->refresh($reserva);
@@ -257,8 +259,9 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
     /** @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface. */
     private function pidenAlgoDeLaEstancia(array $entrada): bool
     {
+        $e = new EntradaDeSkill($entrada);
         foreach (['adultos', 'ninos', 'estado_pago'] as $campo) {
-            if (trim((string) ($entrada[$campo] ?? '')) !== '') {
+            if (trim($e->texto($campo)) !== '') {
                 return true;
             }
         }
@@ -274,21 +277,22 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
      */
     private function camposDelHuesped(array $entrada, PmsReserva $reserva, array &$cambios): void
     {
+        $e = new EntradaDeSkill($entrada);
         // El teléfono se guarda tal cual llega: PmsReservaIntegrityListener lo normaliza a
         // dígitos con código de país antes del INSERT (§12.9.b). Sanearlo aquí sería una
         // segunda verdad que se desincroniza.
-        if (($tel = trim((string) ($entrada['telefono'] ?? ''))) !== '') {
+        if (($tel = trim($e->texto('telefono'))) !== '') {
             $cambios[] = sprintf('teléfono: %s → %s', $reserva->getTelefono() ?? '(vacío)', $tel);
             $reserva->setTelefono($tel);
         }
 
 
-        if (($mail = trim((string) ($entrada['email'] ?? ''))) !== '') {
+        if (($mail = trim($e->texto('email'))) !== '') {
             $cambios[] = sprintf('correo: %s → %s', $reserva->getEmailCliente() ?? '(vacío)', $mail);
             $reserva->setEmailCliente($mail);
         }
 
-        $idioma = strtolower(trim((string) ($entrada['idioma'] ?? '')));
+        $idioma = strtolower(trim($e->texto('idioma')));
 
         if ($idioma !== '' && in_array($idioma, self::IDIOMAS, true)) {
             $entidad = $this->em->getRepository(MaestroIdioma::class)->find($idioma);
@@ -320,15 +324,16 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
         array &$cambios,
         array &$consecuencias
     ): ?string {
-        $adultos = (int) ($entrada['adultos'] ?? 0);
+        $e = new EntradaDeSkill($entrada);
+        $adultos = $e->entero('adultos', 0);
 
         if ($adultos > 0 && $adultos !== $evento->getCantidadAdultos()) {
             $cambios[] = sprintf('adultos: %d → %d', $evento->getCantidadAdultos() ?? 0, $adultos);
             $evento->setCantidadAdultos($adultos);
         }
 
-        if (($entrada['ninos'] ?? null) !== null && trim((string) $entrada['ninos']) !== '') {
-            $ninos = max(0, (int) $entrada['ninos']);
+        if ($e->tiene('ninos') && trim($e->texto('ninos')) !== '') {
+            $ninos = max(0, $e->entero('ninos'));
 
             if ($ninos !== $evento->getCantidadNinos()) {
                 $cambios[] = sprintf('niños: %d → %d', $evento->getCantidadNinos() ?? 0, $ninos);
@@ -336,7 +341,7 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
             }
         }
 
-        $estadoPago = strtolower(trim((string) ($entrada['estado_pago'] ?? '')));
+        $estadoPago = strtolower(trim($e->texto('estado_pago')));
 
         if ($estadoPago === '') {
             return null;

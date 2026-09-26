@@ -15,6 +15,7 @@ use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsUnidad;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * La tarifa base de cada casita: el suelo al que se vende cuando nadie cargó tarifa.
@@ -89,7 +90,8 @@ final readonly class ConsultarTarifasBaseSkill implements SkillInterface, SkillD
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $pedida = mb_strtolower(trim((string) ($entrada['casita'] ?? '')));
+        $e = new EntradaDeSkill($entrada);
+        $pedida = mb_strtolower(trim($e->texto('casita')));
 
         $unidades = $this->em->getRepository(PmsUnidad::class)->findBy([], ['nombre' => 'ASC']);
 

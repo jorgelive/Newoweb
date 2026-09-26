@@ -88,9 +88,20 @@ El patrón que se usó con Meta y con pagos, y que se repite en cada frontera co
 | Webhook de Meta | `src/Message/Dto/Meta/` | ✅ |
 | Pagos: respuestas de Culqi, avisos, transacción, cuerpo del enlace | `src/Finanzas/Dto/` | ✅ |
 | Webhook de Beds24: el paquete (reserva, mensajes, facturas, instante) | `Beds24WebhookSobre` | ✅ lo leían a mano el controlador y el worker |
+| Entrada de las skills del agente (la escribe el modelo) | `EntradaDeSkill`, leída por el nombre que declara la `SkillDefinition` | ✅ `EntradaDeSkillTest` exige que cada nombre leído esté declarado |
+| Consultas de Doctrine sin `@var` | el `@var` con el tipo que el propio método ya declaraba | ✅ 41, con un transformador guiado por PHPStan |
 
 El resto de fronteras se va añadiendo aquí según se cierra; el orden y las cifras de partida están
 en el historial de la subida (1 256 avisos en 14 fronteras el 26/09/2026).
+
+### Por qué la entrada de las skills no es un DTO por skill
+
+Cada skill ya declara sus parámetros —nombre, tipo, obligatoriedad— en su `SkillDefinition`, que es
+lo que ve el modelo. Un DTO por skill obligaría a escribir cada campo dos veces, y el día que
+discrepen el modelo mandaría un campo que el código no lee, sin error: la skill contestaría «indica
+la casita» para siempre. `EntradaDeSkill` lee por nombre con la semántica exacta del cast de antes
+—salvo el array que se volvía «Array»—, y `EntradaDeSkillTest` recorre las skills y falla si una lee
+un nombre que su definición no declara. Una sola fuente, y el descuido sale en los tests.
 
 ## 5. Lo que destapó por el camino
 

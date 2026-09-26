@@ -20,6 +20,7 @@ use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Manda una plantilla ya escrita al huésped. **Escribe fuera.**
@@ -119,9 +120,10 @@ final readonly class EnviarPlantillaSkill implements SkillInterface, SkillDomini
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $conversacionId = trim((string) ($entrada['conversacion_id'] ?? ''));
-        $codigo = trim((string) ($entrada['plantilla'] ?? ''));
-        $confirmado = filter_var($entrada['confirmado'] ?? false, FILTER_VALIDATE_BOOL);
+        $e = new EntradaDeSkill($entrada);
+        $conversacionId = trim($e->texto('conversacion_id'));
+        $codigo = trim($e->texto('plantilla'));
+        $confirmado = $e->booleano('confirmado');
 
         if (!Uuid::isValid($conversacionId)) {
             return SkillResult::error('El conversacion_id no es válido.');

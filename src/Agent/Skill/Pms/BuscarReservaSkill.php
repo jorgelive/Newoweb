@@ -18,6 +18,7 @@ use App\Security\Roles;
 use DateTimeImmutable;
 use Symfony\Component\String\UnicodeString;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Busca la reserva de un huésped por nombre o localizador.
@@ -124,7 +125,8 @@ final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioI
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $busqueda = trim((string) ($entrada['busqueda'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $busqueda = trim($e->texto('busqueda'));
 
         if (mb_strlen($busqueda) < 3) {
             return SkillResult::error('Indica al menos 3 caracteres para buscar.');
@@ -152,7 +154,7 @@ final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioI
         // agente pregunte; y si el operador dice «búscala entre todas», se repite con
         // incluir_canceladas=true. Las PASADAS sí salen siempre —se consulta historial a
         // menudo (cobros, facturas)—, pero ordenadas al final.
-        $incluirCanceladas = filter_var($entrada['incluir_canceladas'] ?? false, FILTER_VALIDATE_BOOL);
+        $incluirCanceladas = $e->booleano('incluir_canceladas');
         $ocultas = 0;
 
         if (!$incluirCanceladas) {

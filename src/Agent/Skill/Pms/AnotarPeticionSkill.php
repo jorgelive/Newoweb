@@ -17,6 +17,7 @@ use App\Pms\Guia\PmsGuiaEstanciaResolver;
 use App\Pms\Service\Agent\PmsFrentes;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Apunta lo que el huésped pide para su estancia, donde quien prepara la casita lo verá.
@@ -103,7 +104,8 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $texto = trim((string) ($entrada['peticion'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $texto = trim($e->texto('peticion'));
 
         if ($texto === '') {
             return SkillResult::error(
@@ -131,7 +133,7 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
         // porque además alguien la deja puesta para quien no la pidió.
         $eleccion = $this->estancias->resolver(
             $reserva->getEventosActivosGuia(),
-            trim((string) ($entrada['casita'] ?? ''))
+            trim($e->texto('casita'))
         );
 
         $evento = $eleccion['evento'];

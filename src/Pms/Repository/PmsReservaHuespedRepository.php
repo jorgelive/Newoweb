@@ -76,12 +76,15 @@ class PmsReservaHuespedRepository extends ServiceEntityRepository
      */
     public function findByReservaId(string|Uuid $reservaId): array
     {
-        return $this->createQueryBuilder('h')
+        /** @var array<\App\Pms\Entity\PmsReservaHuesped> $resultado */
+        $resultado = $this->createQueryBuilder('h')
             ->andWhere('h.reserva = :reservaId')
             ->setParameter('reservaId', $reservaId, UuidType::NAME)
             ->orderBy('h.esPrincipal', 'DESC') // Titulares primero
             ->addOrderBy('h.apellido', 'ASC')  // Luego alfabéticamente
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 }

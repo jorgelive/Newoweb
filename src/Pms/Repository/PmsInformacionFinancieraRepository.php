@@ -41,11 +41,14 @@ class PmsInformacionFinancieraRepository extends ServiceEntityRepository
             return null; // Id mal formado: no es un 500, simplemente no hay resultado.
         }
 
-        return $this->createQueryBuilder('i')
+        /** @var \App\Pms\Entity\PmsInformacionFinanciera|null $resultado */
+        $resultado = $this->createQueryBuilder('i')
             ->andWhere('i.reserva = :reserva')
             ->setParameter('reserva', $uuid, UuidType::NAME)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+
+        return $resultado;
     }
 }

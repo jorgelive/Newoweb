@@ -102,7 +102,10 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
                 throw new \LogicException(sprintf('El método %s::%s debe devolver QueryBuilder.', get_class($repository), $method));
             }
 
-            return $qb->getQuery()->getResult();
+            /** @var list<object> $resultado */
+            $resultado = $qb->getQuery()->getResult();
+
+            return $resultado;
         }
 
         // Fallback: requiere que config.parameters tenga start/end
@@ -117,7 +120,10 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
             ->setParameter('firstDate', $from)
             ->setParameter('lastDate', $to);
 
-        return $qb->getQuery()->getResult();
+        /** @var list<object> $resultado */
+        $resultado = $qb->getQuery()->getResult();
+
+        return $resultado;
     }
 
     /**

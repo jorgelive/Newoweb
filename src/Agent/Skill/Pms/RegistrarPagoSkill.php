@@ -26,6 +26,7 @@ use App\Security\Roles;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Registra un pago recibido del huésped. **Escribe, y toca dinero.**
@@ -181,9 +182,10 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $reservaId = trim((string) ($entrada['reserva_id'] ?? ''));
-        $importe = (float) str_replace(',', '.', (string) ($entrada['importe'] ?? '0'));
-        $confirmado = filter_var($entrada['confirmado'] ?? false, FILTER_VALIDATE_BOOL);
+        $e = new EntradaDeSkill($entrada);
+        $reservaId = trim($e->texto('reserva_id'));
+        $importe = (float) str_replace(',', '.', $e->textoONull('importe') ?? '0');
+        $confirmado = $e->booleano('confirmado');
 
         if (!Uuid::isValid($reservaId)) {
             return SkillResult::error('El reserva_id no es válido.');
@@ -198,7 +200,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
         // mirar la moneda y le preguntaba OTRA vez. Tres vueltas para un pago. Ahora entra en
         // la misma bolsa que el resto, y sólo se saltan las comprobaciones que de verdad
         // dependen de él —la comisión y el cobrador, que salen del medio—.
-        $medio = PmsMedioPago::tryFrom(strtolower(trim((string) ($entrada['medio_pago'] ?? ''))));
+        $medio = PmsMedioPago::tryFrom(strtolower(trim($e->texto('medio_pago'))));
 
         $reserva = $this->em->getRepository(PmsReserva::class)->find($reservaId);
         if ($reserva === null) {
@@ -228,8 +230,8 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
         $huesped = trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente());
         $pct = $medio !== null ? (float) $medio->comisionPorcentaje() : 0.0;
 
-        $monedaIndicada = strtoupper(trim((string) ($entrada['moneda'] ?? '')));
-        $incluye = strtolower(trim((string) ($entrada['importe_incluye_comision'] ?? '')));
+        $monedaIndicada = strtoupper(trim($e->texto('moneda')));
+        $incluye = strtolower(trim($e->texto('importe_incluye_comision')));
 
         // Todo lo que un importe suelto no trae y que vale dinero. Se pide JUNTO: cada
         // repregunta de más es una vuelta más al operador por el mismo pago.
@@ -280,7 +282,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
             ? $conDeuda[0]
             : null;
 
-        $imputacion = strtolower(trim((string) ($entrada['salda_deuda_en'] ?? '')));
+        $imputacion = strtolower(trim($e->texto('salda_deuda_en')));
         // Se consulta aquí y no más abajo porque la PREGUNTA ya necesita enseñar la equivalencia:
         // «¿va contra la deuda en USD? abonaría 65.97» se responde mucho mejor que «¿va contra la
         // deuda en USD?» a secas.
@@ -299,7 +301,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
         // 🧑 ¿Quién recibió el dinero? Sólo en los medios que cobra una persona: en una
         // transferencia no hay a quién apuntar. Se resuelve aquí para que un nombre que no
         // existe o que baila entre dos personas entre en la MISMA repregunta que el resto.
-        $cobradorIndicado = trim((string) ($entrada['cobrador'] ?? ''));
+        $cobradorIndicado = trim($e->texto('cobrador'));
         $cobrador = null;
         $candidatos = [];
         // Por qué falta, no sólo que falta: «no hay nadie que se llame María» y «hay dos
@@ -557,7 +559,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
         // el bloque de $faltan no deja llegar hasta aquí sin cobrador resuelto.
         $pago->setCobrador($cobrador);
 
-        $referencia = trim((string) ($entrada['referencia'] ?? ''));
+        $referencia = trim($e->texto('referencia'));
         if ($referencia !== '') {
             $pago->setReferencia($referencia);
         }
@@ -748,6 +750,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
      */
     private function cobradorPrincipal(): ?User
     {
+        /** @var list<User> $principales */
         $principales = $this->em->getRepository(User::class)->createQueryBuilder('u')
             ->where('u.esCobradorPrincipal = true')
             ->andWhere('u.roles LIKE :rol')

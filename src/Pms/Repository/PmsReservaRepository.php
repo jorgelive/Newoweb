@@ -35,7 +35,8 @@ class PmsReservaRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('r');
 
-        return $qb
+        /** @var \App\Pms\Entity\PmsReserva|null $resultado */
+        $resultado = $qb
             ->leftJoin('r.eventosCalendario', 'e')
             ->leftJoin('e.beds24Links', 'l')
             ->where(
@@ -48,6 +49,8 @@ class PmsReservaRepository extends ServiceEntityRepository
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+
+        return $resultado;
     }
 
     /**

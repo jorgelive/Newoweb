@@ -15,6 +15,7 @@ use App\Security\Roles;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Enum\ComponenteTipoEnum;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Encuentra el COMPONENTE, que es de donde cuelga todo lo demás.
@@ -93,8 +94,9 @@ final readonly class BuscarComponentesSkill implements SkillInterface, SkillDomi
     /** @param array<string, mixed> $entrada */
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $busqueda = trim((string) ($entrada['busqueda'] ?? ''));
-        $tipoTexto = trim((string) ($entrada['tipo'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $busqueda = trim($e->texto('busqueda'));
+        $tipoTexto = trim($e->texto('tipo'));
         $tipo = null;
 
         if ($tipoTexto !== '') {

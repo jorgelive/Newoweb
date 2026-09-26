@@ -15,6 +15,7 @@ use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEstablecimiento;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Cambia el código de las cajas fuertes del alojamiento. **Escribe, y afecta a todo el mundo.**
@@ -103,7 +104,8 @@ final readonly class CambiarCodigoCajaSkill implements SkillInterface, SkillDomi
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $caja = strtolower(trim((string) ($entrada['caja'] ?? '')));
+        $e = new EntradaDeSkill($entrada);
+        $caja = strtolower(trim($e->texto('caja')));
 
         if (!in_array($caja, ['principal', 'secundaria'], true)) {
             return SkillResult::error(
@@ -112,7 +114,7 @@ final readonly class CambiarCodigoCajaSkill implements SkillInterface, SkillDomi
             );
         }
 
-        $codigo = trim((string) ($entrada['codigo'] ?? ''));
+        $codigo = trim($e->texto('codigo'));
 
         if ($codigo === '') {
             return SkillResult::error('Dime el código nuevo.');
@@ -168,7 +170,7 @@ final readonly class CambiarCodigoCajaSkill implements SkillInterface, SkillDomi
             'quienes' => $afectados !== [] ? $afectados : null,
         ], static fn ($v) => $v !== null);
 
-        if (!filter_var($entrada['confirmado'] ?? false, FILTER_VALIDATE_BOOL)) {
+        if (!$e->booleano('confirmado')) {
             return SkillResult::ok($resumen + [
                 'aplicado' => false,
                 'motivo' => 'falta_confirmacion',

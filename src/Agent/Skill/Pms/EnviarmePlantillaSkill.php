@@ -18,6 +18,7 @@ use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * El AUTOENVÍO: el huésped se pide una plantilla a sí mismo («mándame mi guía»).
@@ -107,7 +108,8 @@ final readonly class EnviarmePlantillaSkill implements SkillInterface, SkillDomi
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $codigo = trim((string) ($entrada['plantilla'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $codigo = trim($e->texto('plantilla'));
 
         // 🚧 Cuarto candado: el canal.
         //

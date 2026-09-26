@@ -65,6 +65,9 @@ class PmsPagoFinancieroRepository extends ServiceEntityRepository
             ))->setParameter('texto', '%' . trim($filtro->texto) . '%');
         }
 
-        return $qb->getQuery()->getResult();
+        /** @var array<\App\Pms\Entity\PmsPagoFinanciero> $resultado */
+        $resultado = $qb->getQuery()->getResult();
+
+        return $resultado;
     }
 }

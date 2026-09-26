@@ -21,6 +21,7 @@ use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Envía un mensaje de texto al huésped por los canales que se indiquen. **Escribe fuera.**
@@ -118,9 +119,10 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface, SkillD
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $conversacionId = trim((string) ($entrada['conversacion_id'] ?? ''));
-        $texto = trim((string) ($entrada['texto'] ?? ''));
-        $confirmado = filter_var($entrada['confirmado'] ?? false, FILTER_VALIDATE_BOOL);
+        $e = new EntradaDeSkill($entrada);
+        $conversacionId = trim($e->texto('conversacion_id'));
+        $texto = trim($e->texto('texto'));
+        $confirmado = $e->booleano('confirmado');
 
         if (!Uuid::isValid($conversacionId)) {
             return SkillResult::error('El conversacion_id no es válido.');
@@ -154,7 +156,7 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface, SkillD
             );
         }
 
-        $pedidos = $this->canalesPedidos((string) ($entrada['canales'] ?? 'todos'), $disponibles);
+        $pedidos = $this->canalesPedidos(($e->textoONull('canales') ?? 'todos'), $disponibles);
         if ($pedidos === []) {
             return SkillResult::error(sprintf(
                 'Ninguno de los canales indicados está disponible. Disponibles: %s.',

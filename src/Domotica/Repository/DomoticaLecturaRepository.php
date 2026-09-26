@@ -30,13 +30,16 @@ class DomoticaLecturaRepository extends ServiceEntityRepository
      */
     public function historialDe(DomoticaSuscripcion $suscripcion): array
     {
-        return $this->createQueryBuilder('l')
+        /** @var list<\App\Domotica\Entity\DomoticaLectura> $resultado */
+        $resultado = $this->createQueryBuilder('l')
             ->andWhere('l.suscripcion = :s')
             ->setParameter('s', $suscripcion)
             ->orderBy('l.leidaEn', 'ASC')
             ->addOrderBy('l.id', 'ASC')
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 
     /**
@@ -49,7 +52,8 @@ class DomoticaLecturaRepository extends ServiceEntityRepository
      */
     public function ultimaDe(DomoticaDispositivo $dispositivo): ?DomoticaLectura
     {
-        return $this->createQueryBuilder('l')
+        /** @var \App\Domotica\Entity\DomoticaLectura|null $resultado */
+        $resultado = $this->createQueryBuilder('l')
             ->andWhere('l.dispositivo = :d')
             ->setParameter('d', $dispositivo)
             ->orderBy('l.leidaEn', 'DESC')
@@ -57,6 +61,8 @@ class DomoticaLecturaRepository extends ServiceEntityRepository
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+
+        return $resultado;
     }
 
     /**

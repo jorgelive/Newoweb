@@ -20,6 +20,7 @@ use DateTimeZone;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Quién entra o sale en los próximos días.
@@ -125,18 +126,19 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $tipo = strtolower(trim((string) ($entrada['tipo'] ?? 'ambas')));
+        $e = new EntradaDeSkill($entrada);
+        $tipo = strtolower(trim($e->textoONull('tipo') ?? 'ambas'));
         if (!in_array($tipo, ['salidas', 'entradas', 'ambas'], true)) {
             $tipo = 'ambas';
         }
 
-        $dias = max(1, min((int) ($entrada['dias'] ?? 1), self::MAX_DIAS));
+        $dias = max(1, min($e->entero('dias', 1), self::MAX_DIAS));
 
         // El día de partida es un parámetro y no siempre hoy: sin él, «quién sale mañana»
         // obliga a pedir dos días y descartar los de hoy por fuera. La fila de hoy se cuela
         // en la respuesta como distractor, y contestar «sale mañana» sobre alguien que se fue
         // hoy es un error que llega al huésped.
-        $inicio = $this->fecha($entrada['desde'] ?? null)
+        $inicio = $this->fecha($e->textoONull('desde'))
             ?? new DateTimeImmutable('now', new DateTimeZone(self::TZ));
 
         $desde = $inicio->format('Y-m-d');
@@ -346,9 +348,9 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
     }
 
     /** Fecha estricta: un texto que no sea YYYY-MM-DD cae a `null` y se usa hoy. */
-    private function fecha(mixed $valor): ?DateTimeImmutable
+    private function fecha(?string $valor): ?DateTimeImmutable
     {
-        $texto = trim((string) ($valor ?? ''));
+        $texto = trim($valor ?? '');
 
         if ($texto === '') {
             return null;

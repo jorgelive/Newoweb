@@ -19,6 +19,7 @@ use App\Security\Roles;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Quién está alojado en una casita entre dos fechas. El reverso de {@see ConsultarDisponibilidadSkill}.
@@ -105,14 +106,15 @@ final readonly class ConsultarOcupacionSkill implements SkillInterface, SkillDom
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $desde = $this->fecha($entrada['desde'] ?? null);
-        $hasta = $this->fecha($entrada['hasta'] ?? null);
+        $e = new EntradaDeSkill($entrada);
+        $desde = $this->fecha($e->textoONull('desde'));
+        $hasta = $this->fecha($e->textoONull('hasta'));
 
         if ($desde === null || $hasta === null) {
             return SkillResult::error('Indica las fechas «desde» y «hasta» en formato YYYY-MM-DD.');
         }
 
-        $casita = trim((string) ($entrada['casita'] ?? ''));
+        $casita = trim($e->texto('casita'));
         $unidad = null;
 
         if ($casita !== '') {
@@ -192,12 +194,15 @@ final readonly class ConsultarOcupacionSkill implements SkillInterface, SkillDom
                ->setParameter('like', '%' . mb_strtolower($busqueda) . '%');
         }
 
-        return $qb->getQuery()->getResult();
+        /** @var list<\App\Pms\Entity\PmsUnidad> $resultado */
+        $resultado = $qb->getQuery()->getResult();
+
+        return $resultado;
     }
 
-    private function fecha(mixed $valor): ?DateTimeImmutable
+    private function fecha(?string $valor): ?DateTimeImmutable
     {
-        $texto = trim((string) ($valor ?? ''));
+        $texto = trim($valor ?? '');
 
         if ($texto === '') {
             return null;

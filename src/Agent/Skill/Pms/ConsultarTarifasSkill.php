@@ -20,6 +20,7 @@ use App\Security\Roles;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * A cuánto sale una casita unas fechas concretas, noche a noche.
@@ -124,8 +125,9 @@ final readonly class ConsultarTarifasSkill implements SkillInterface, SkillDomin
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $desde = $this->fecha($entrada['desde'] ?? null);
-        $hasta = $this->fecha($entrada['hasta'] ?? null);
+        $e = new EntradaDeSkill($entrada);
+        $desde = $this->fecha($e->textoONull('desde'));
+        $hasta = $this->fecha($e->textoONull('hasta'));
 
         $faltan = [];
 
@@ -157,7 +159,7 @@ final readonly class ConsultarTarifasSkill implements SkillInterface, SkillDomin
             ));
         }
 
-        $unidades = $this->resolverUnidades(trim((string) ($entrada['casita'] ?? '')));
+        $unidades = $this->resolverUnidades(trim($e->texto('casita')));
 
         if ($unidades === []) {
             return SkillResult::error(
@@ -166,7 +168,7 @@ final readonly class ConsultarTarifasSkill implements SkillInterface, SkillDomin
             );
         }
 
-        $soloLibres = filter_var($entrada['solo_libres'] ?? false, FILTER_VALIDATE_BOOL);
+        $soloLibres = $e->booleano('solo_libres');
         $resultado = [];
 
         foreach ($unidades as $unidad) {
@@ -348,9 +350,9 @@ final readonly class ConsultarTarifasSkill implements SkillInterface, SkillDomin
     }
 
     /** Fecha estricta: lo que no sea YYYY-MM-DD cae a `null` y se pregunta. */
-    private function fecha(mixed $valor): ?DateTimeImmutable
+    private function fecha(?string $valor): ?DateTimeImmutable
     {
-        $texto = trim((string) ($valor ?? ''));
+        $texto = trim($valor ?? '');
 
         if ($texto === '') {
             return null;

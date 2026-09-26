@@ -31,7 +31,8 @@ final class Beds24ReceiveQueueRepository extends AbstractExchangeRepository
      */
     protected function hydrateItems(array $ids): array
     {
-        return $this->createQueryBuilder('j')
+        /** @var list<\App\Message\Entity\Beds24ReceiveQueue> $resultado */
+        $resultado = $this->createQueryBuilder('j')
             ->addSelect('cfg', 'ep')
             ->innerJoin('j.config', 'cfg')
             ->innerJoin('j.endpoint', 'ep')
@@ -39,5 +40,7 @@ final class Beds24ReceiveQueueRepository extends AbstractExchangeRepository
             ->setParameter('ids', $ids, ArrayParameterType::BINARY)
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 }

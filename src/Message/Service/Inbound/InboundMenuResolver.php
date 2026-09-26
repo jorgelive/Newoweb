@@ -137,7 +137,8 @@ final readonly class InboundMenuResolver
      */
     private function ultimoMensajeReal(MessageConversation $conversation): ?Message
     {
-        return $this->em->getRepository(Message::class)
+        /** @var \App\Message\Entity\Message|null $resultado */
+        $resultado = $this->em->getRepository(Message::class)
             ->createQueryBuilder('m')
             ->where('m.conversation = :conv')
             ->andWhere('m.status IN (:estados)')
@@ -153,5 +154,7 @@ final readonly class InboundMenuResolver
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+
+        return $resultado;
     }
 }

@@ -26,6 +26,7 @@ use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Lo que hace falta para entrar: el código de la caja de las llaves y el número de la llave.
@@ -188,9 +189,10 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        $e = new EntradaDeSkill($entrada);
         // 🔒 El contexto manda sobre el parámetro: un huésped no puede pedir los códigos de
         // otra casita escribiendo un UUID. Misma frontera que consultar_guia y consultar_wifi.
-        $reservaId = $actor->contextoId() ?? trim((string) ($entrada['reserva_id'] ?? ''));
+        $reservaId = $actor->contextoId() ?? trim($e->texto('reserva_id'));
 
         if ($actor->contextoId() === null && !$actor->esDelEquipo()) {
             return SkillResult::error('Esta conversación no está asociada a ninguna reserva.');
@@ -225,7 +227,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
             return SkillResult::error('Esta reserva no tiene ninguna estancia activa.');
         }
 
-        $eleccion = $this->estancias->resolver($eventos, trim((string) ($entrada['casita'] ?? '')));
+        $eleccion = $this->estancias->resolver($eventos, trim($e->texto('casita')));
 
         if ($eleccion['ambiguo']) {
             return SkillResult::ok([

@@ -40,7 +40,8 @@ final class WhatsappMetaSendQueueRepository extends AbstractExchangeRepository
             return [];
         }
 
-        return $this->createQueryBuilder('q')
+        /** @var list<\App\Message\Entity\WhatsappMetaSendQueue> $resultado */
+        $resultado = $this->createQueryBuilder('q')
             ->addSelect('msg', 'cfg', 'ep') // Eager loading para evitar N+1
             ->innerJoin('q.message', 'msg')
             ->innerJoin('q.config', 'cfg')
@@ -49,5 +50,7 @@ final class WhatsappMetaSendQueueRepository extends AbstractExchangeRepository
             ->setParameter('ids', $ids, ArrayParameterType::BINARY)
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 }

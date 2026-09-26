@@ -37,10 +37,13 @@ class DomoticaDispositivoRepository extends ServiceEntityRepository
             $qb->andWhere('d.mideConsumo = true');
         }
 
-        return $qb
+        /** @var list<\App\Domotica\Entity\DomoticaDispositivo> $resultado */
+        $resultado = $qb
             ->orderBy('d.nombre', 'ASC')
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 
     /**
@@ -56,7 +59,8 @@ class DomoticaDispositivoRepository extends ServiceEntityRepository
     {
         $limite = new \DateTimeImmutable(sprintf('-%d hours', $horas));
 
-        return $this->createQueryBuilder('d')
+        /** @var list<\App\Domotica\Entity\DomoticaDispositivo> $resultado */
+        $resultado = $this->createQueryBuilder('d')
             ->andWhere('d.activo = true')
             // Los que no miden nunca están mudos: avisar de ellos cada tres horas quemaría el canal.
             ->andWhere('d.mideConsumo = true')
@@ -65,5 +69,7 @@ class DomoticaDispositivoRepository extends ServiceEntityRepository
             ->orderBy('d.lecturaTomadaEn', 'ASC')
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 }

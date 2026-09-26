@@ -327,6 +327,7 @@ final readonly class WhatsappMetaTemplateSyncService
      */
     private function getAllowedLanguages(): array
     {
+        /** @var list<MaestroIdioma> $idiomas */
         $idiomas = $this->em->getRepository(MaestroIdioma::class)
             ->createQueryBuilder('m')
             ->where('m.prioridad > 0')

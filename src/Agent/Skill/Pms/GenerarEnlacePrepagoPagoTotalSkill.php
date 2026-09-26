@@ -21,6 +21,7 @@ use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use DomainException;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Emite el enlace con el que el huésped paga lo que se le pide. **Crea un cobro.**
@@ -135,6 +136,7 @@ final readonly class GenerarEnlacePrepagoPagoTotalSkill implements SkillInterfac
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        $e = new EntradaDeSkill($entrada);
         // El filtro del catálogo no basta: por nombre se llega igual. Ver el docblock.
         if (!$this->prepagoEnlaces->estaActivo()) {
             return SkillResult::error(
@@ -143,8 +145,8 @@ final readonly class GenerarEnlacePrepagoPagoTotalSkill implements SkillInterfac
             );
         }
 
-        $reservaId = trim((string) ($entrada['reserva_id'] ?? ''));
-        $confirmado = filter_var($entrada['confirmado'] ?? false, FILTER_VALIDATE_BOOL);
+        $reservaId = trim($e->texto('reserva_id'));
+        $confirmado = $e->booleano('confirmado');
 
         if (!Uuid::isValid($reservaId)) {
             return SkillResult::error(

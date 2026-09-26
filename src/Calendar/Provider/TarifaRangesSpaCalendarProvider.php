@@ -323,7 +323,10 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
 
         $qb->addOrderBy(sprintf('r.%s', $startField), 'ASC');
 
-        return $qb->getQuery()->getResult();
+        /** @var list<object> $resultado */
+        $resultado = $qb->getQuery()->getResult();
+
+        return $resultado;
     }
 
     /**

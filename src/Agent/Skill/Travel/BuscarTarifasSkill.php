@@ -16,6 +16,7 @@ use App\Travel\Entity\TravelTarifa;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Las tarifas del catálogo maestro, con sus restricciones.
@@ -105,8 +106,9 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
     /** @param array<string, mixed> $entrada */
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $componenteId = trim((string) ($entrada['componente_id'] ?? ''));
-        $busqueda = trim((string) ($entrada['busqueda'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $componenteId = trim($e->texto('componente_id'));
+        $busqueda = trim($e->texto('busqueda'));
 
         if ($componenteId === '' && mb_strlen($busqueda) < 3) {
             return SkillResult::error(
@@ -131,8 +133,8 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
             ]);
         }
 
-        $procedencia = trim((string) ($entrada['procedencia'] ?? '')) ?: null;
-        $pax = isset($entrada['pax']) ? (int) $entrada['pax'] : null;
+        $procedencia = trim($e->texto('procedencia')) ?: null;
+        $pax = $e->tiene('pax') ? $e->entero('pax') : null;
 
         $salida = [];
         $total = 0;

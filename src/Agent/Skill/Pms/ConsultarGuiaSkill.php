@@ -31,6 +31,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\String\UnicodeString;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Responde con el contenido de la guía de la casita: cómo va la ducha, la calefacción, las
@@ -196,10 +197,11 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        $e = new EntradaDeSkill($entrada);
         // 🔒 El contexto MANDA sobre el parámetro. Si quien pregunta está atado a una reserva
         // —un huésped por chat—, es la suya y sólo la suya: aceptar aquí un `reserva_id` sería
         // regalarle la guía de cualquiera, con sus códigos de puerta, escribiendo un UUID.
-        $reservaId = $actor->contextoId() ?? trim((string) ($entrada['reserva_id'] ?? ''));
+        $reservaId = $actor->contextoId() ?? trim($e->texto('reserva_id'));
 
         // 🚪 SEGUNDA PUERTA: por casita y sin reserva ninguna.
         //
@@ -216,7 +218,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         if ($reservaId === '' && ($actor->esProspecto() || $actor->esDelEquipo())) {
             return $this->guiaPublica(
                 $entrada,
-                trim((string) ($entrada['casita'] ?? '')),
+                trim($e->texto('casita')),
                 $actor->restriccion()->categoriasBloqueadas(),
                 $actor->conversacionId()
             );
@@ -247,7 +249,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         // 🏠 ¿De qué casita? La guía NO es igual en cada una —la ducha de la 1 se abre con la
         // manija izquierda y la de la 2 con la derecha—, así que responder por la que no es da
         // la instrucción contraria. Ver PmsGuiaEstanciaResolver.
-        $eleccion = $this->estancias->resolver($eventos, trim((string) ($entrada['casita'] ?? '')));
+        $eleccion = $this->estancias->resolver($eventos, trim($e->texto('casita')));
 
         if ($eleccion['ambiguo']) {
             return SkillResult::ok([
@@ -450,7 +452,10 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
                ->setParameter('like', '%' . mb_strtolower($busqueda) . '%');
         }
 
-        return $qb->getQuery()->getResult();
+        /** @var list<\App\Pms\Entity\PmsUnidad> $resultado */
+        $resultado = $qb->getQuery()->getResult();
+
+        return $resultado;
     }
 
     /**
@@ -476,13 +481,14 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         PmsGuiaAcceso $acceso,
         ?string $conversacionId = null,
     ): SkillResult {
+        $e = new EntradaDeSkill($entrada);
         // El nombre de la casita se lee de `$base` y no de la unidad: las dos puertas lo ponen
         // ahí, y así este tramo no necesita conocer por cuál se entró.
         $casita = (string) ($base['casita'] ?? 'esta casita');
-        $busqueda = trim((string) ($entrada['busqueda'] ?? ''));
+        $busqueda = trim($e->texto('busqueda'));
 
         // ── Camino 2 de 2: el modelo ya eligió y pide un tema por su id ──────────────────
-        $temaId = trim((string) ($entrada['tema_id'] ?? ''));
+        $temaId = trim($e->texto('tema_id'));
 
         if ($temaId !== '') {
             $item = $this->buscarPorId($secciones, $temaId);
@@ -504,7 +510,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
                 'encontrado' => true,
                 'resultados' => [$this->detalle(
                     $item['item'], $item['seccion'], $idioma, $contexto, $acceso, $conversacionId,
-                    (bool) ($entrada['ya_lo_intento'] ?? false)
+                    $e->booleano('ya_lo_intento')
                 )],
             ]);
         }

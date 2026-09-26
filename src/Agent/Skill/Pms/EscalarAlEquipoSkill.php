@@ -25,6 +25,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\Uid\Uuid;
 use Throwable;
 use App\Service\Config\Parametro;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Deja constancia de que un huésped se quedó esperando, y avisa por WhatsApp a la guardia.
@@ -208,7 +209,8 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $motivo = trim((string) ($entrada['motivo'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $motivo = trim($e->texto('motivo'));
 
         if ($motivo === '') {
             return SkillResult::error(
@@ -221,7 +223,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         // ⚠️ Lo decide el modelo, y eso es una decisión consciente: aquí la asimetría manda. Un
         // falso positivo cuesta un WhatsApp de más; un falso negativo silencia una emergencia de
         // verdad. Ante la duda, que suene.
-        $emergencia = (bool) ($entrada['emergencia'] ?? false);
+        $emergencia = $e->booleano('emergencia');
 
         // 🔇 SILENCIOSO: el equipo se entera, el huésped no.
         //
@@ -233,7 +235,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         // No lo decide el modelo por su cuenta: se lo indican las skills deterministas que
         // conocen la situación (`consultar_codigos` devuelve `escalar_en_silencio` cuando el
         // huésped ya tiene enlace y teléfono).
-        $silencioso = (bool) ($entrada['silencioso'] ?? false);
+        $silencioso = $e->booleano('silencioso');
 
         // ── La última red: ¿esto ya está contestado? ─────────────────────────
         // Buena parte de lo que se escala son preguntas repetidas cuya respuesta no cambia
@@ -387,6 +389,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
     /** @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface. */
     private function conversacionDe(array $entrada, ActorInterface $actor): ?MessageConversation
     {
+        $e = new EntradaDeSkill($entrada);
         $repo = $this->em->getRepository(MessageConversation::class);
 
         if ($actor->contextoId() !== null && $actor->contextoTipo() !== null) {
@@ -406,7 +409,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
             return $repo->find($delHilo);
         }
 
-        $id = trim((string) ($entrada['conversacion_id'] ?? ''));
+        $id = trim($e->texto('conversacion_id'));
 
         return $id !== '' && Uuid::isValid($id) ? $repo->find($id) : null;
     }

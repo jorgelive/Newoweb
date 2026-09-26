@@ -85,7 +85,8 @@ final class PmsLimpiezaAsignacionListener
         // el efecto hasta el siguiente reinicio, y el síntoma —«las estancias nuevas siguen
         // saliendo a nombre de la anterior»— es de los que se investigan dos veces antes de
         // sospechar de un caché. Es una consulta indexada sobre una tabla de cinco filas.
-        return $this->em->getRepository(User::class)
+        /** @var \App\Entity\User|null $resultado */
+        $resultado = $this->em->getRepository(User::class)
             ->createQueryBuilder('u')
             ->where('u.esLimpiezaPorDefecto = true')
             // 🚫 NO se filtra por `enabled`, y cuesta un párrafo explicar por qué.
@@ -103,5 +104,7 @@ final class PmsLimpiezaAsignacionListener
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+
+        return $resultado;
     }
 }

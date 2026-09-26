@@ -18,6 +18,7 @@ use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Las estancias (eventos de calendario) de una reserva ya identificada.
@@ -83,7 +84,8 @@ final readonly class BuscarEventoEstanciaSkill implements SkillInterface, SkillD
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $reservaId = trim((string) ($entrada['reserva_id'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $reservaId = trim($e->texto('reserva_id'));
 
         if (!Uuid::isValid($reservaId)) {
             return SkillResult::error(

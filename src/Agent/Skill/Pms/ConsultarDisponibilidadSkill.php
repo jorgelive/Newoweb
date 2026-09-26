@@ -21,6 +21,7 @@ use App\Security\Roles;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Throwable;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Qué casitas están libres entre dos fechas, y a cuánto salen.
@@ -171,11 +172,12 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        $e = new EntradaDeSkill($entrada);
         try {
-            $desde = new DateTimeImmutable((string) ($entrada['desde'] ?? ''));
-            $hasta = new DateTimeImmutable((string) ($entrada['hasta'] ?? ''));
+            $desde = new DateTimeImmutable($e->texto('desde'));
+            $hasta = new DateTimeImmutable($e->texto('hasta'));
 
-            $pax = isset($entrada['pax']) ? (int) $entrada['pax'] : null;
+            $pax = $e->tiene('pax') ? $e->entero('pax') : null;
 
             // 📅 NO SE COTIZA EL PASADO, y esto no es una comodidad: es una red.
             //
@@ -232,7 +234,7 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
         //
         // Objeto y no array a propósito: la versión array de este contrato se rompió en
         // producción y tumbó la skill en el caso normal — el porqué, en {@see DistribucionLeida}.
-        $leido = DistribucionLeida::deTexto((string) ($entrada['distribucion'] ?? ''));
+        $leido = DistribucionLeida::deTexto($e->texto('distribucion'));
 
         if ($leido->ilegibles !== []) {
             return SkillResult::error(sprintf(

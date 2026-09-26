@@ -13,6 +13,7 @@ use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Cambia una tarifa que ya existe.
@@ -74,7 +75,8 @@ final readonly class ModificarTarifaSkill implements SkillInterface, SkillDomini
     /** @param array<string, mixed> $entrada */
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $tarifa = $this->tarifas->buscarTarifa(trim((string) ($entrada['tarifa_id'] ?? '')));
+        $e = new EntradaDeSkill($entrada);
+        $tarifa = $this->tarifas->buscarTarifa(trim($e->texto('tarifa_id')));
 
         if ($tarifa === null) {
             return SkillResult::error(
@@ -92,7 +94,7 @@ final readonly class ModificarTarifaSkill implements SkillInterface, SkillDomini
 
         $despues = $this->tarifas->retrato($tarifa);
 
-        if (!(bool) ($entrada['confirmado'] ?? false)) {
+        if (!$e->booleano('confirmado')) {
             // ⚠️ La entidad está GESTIONADA y ya lleva los cambios en memoria: sin esto, un
             // flush posterior de cualquier otra cosa en el mismo turno los arrastraría a la
             // base sin que nadie los aprobara. Se descartan.

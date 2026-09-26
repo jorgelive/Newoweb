@@ -14,6 +14,7 @@ use App\Agent\Skill\SkillResult;
 use App\Security\Roles;
 use App\Travel\Entity\TravelTarifa;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Añade una tarifa nueva a un componente del catálogo.
@@ -80,7 +81,8 @@ final readonly class CrearTarifaSkill implements SkillInterface, SkillDominioInt
     /** @param array<string, mixed> $entrada */
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $componente = $this->tarifas->buscarComponente(trim((string) ($entrada['componente'] ?? '')));
+        $e = new EntradaDeSkill($entrada);
+        $componente = $this->tarifas->buscarComponente(trim($e->texto('componente')));
 
         if ($componente === null) {
             return SkillResult::error(
@@ -100,7 +102,7 @@ final readonly class CrearTarifaSkill implements SkillInterface, SkillDominioInt
 
         $retrato = $this->tarifas->retrato($tarifa);
 
-        if (!(bool) ($entrada['confirmado'] ?? false)) {
+        if (!$e->booleano('confirmado')) {
             // No se ha persistido nada: sin `persist()` Doctrine no sabe que existe.
             return SkillResult::ok([
                 'accion' => 'crear',

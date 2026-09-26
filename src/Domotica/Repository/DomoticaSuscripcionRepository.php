@@ -29,7 +29,8 @@ class DomoticaSuscripcionRepository extends ServiceEntityRepository
     {
         $momento ??= new \DateTimeImmutable();
 
-        return $this->createQueryBuilder('s')
+        /** @var list<\App\Domotica\Entity\DomoticaSuscripcion> $resultado */
+        $resultado = $this->createQueryBuilder('s')
             ->addSelect('d')
             ->join('s.dispositivo', 'd')
             ->andWhere('s.activa = true')
@@ -39,6 +40,8 @@ class DomoticaSuscripcionRepository extends ServiceEntityRepository
             ->setParameter('ahora', $momento)
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 
     /**
@@ -49,7 +52,8 @@ class DomoticaSuscripcionRepository extends ServiceEntityRepository
      */
     public function abiertaDe(DomoticaDispositivo $dispositivo): ?DomoticaSuscripcion
     {
-        return $this->createQueryBuilder('s')
+        /** @var \App\Domotica\Entity\DomoticaSuscripcion|null $resultado */
+        $resultado = $this->createQueryBuilder('s')
             ->andWhere('s.dispositivo = :d')
             ->setParameter('d', $dispositivo)
             ->andWhere('s.activa = true')
@@ -57,6 +61,8 @@ class DomoticaSuscripcionRepository extends ServiceEntityRepository
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+
+        return $resultado;
     }
 
     /**
@@ -69,7 +75,8 @@ class DomoticaSuscripcionRepository extends ServiceEntityRepository
      */
     public function delEvento(Uuid $eventoId): array
     {
-        return $this->createQueryBuilder('s')
+        /** @var list<\App\Domotica\Entity\DomoticaSuscripcion> $resultado */
+        $resultado = $this->createQueryBuilder('s')
             ->addSelect('d')
             ->join('s.dispositivo', 'd')
             ->andWhere('IDENTITY(s.evento) = :evento')
@@ -77,5 +84,7 @@ class DomoticaSuscripcionRepository extends ServiceEntityRepository
             ->orderBy('d.nombre', 'ASC')
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 }

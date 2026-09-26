@@ -25,6 +25,7 @@ use App\Pms\Service\Finance\TipoCambioDelDia;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Añade un cargo a la cuenta de una reserva. **Escribe.**
@@ -134,10 +135,11 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $reservaId = trim((string) ($entrada['reserva_id'] ?? ''));
-        $concepto = trim((string) ($entrada['concepto'] ?? ''));
-        $importe = (float) str_replace(',', '.', (string) ($entrada['importe'] ?? '0'));
-        $confirmado = filter_var($entrada['confirmado'] ?? false, FILTER_VALIDATE_BOOL);
+        $e = new EntradaDeSkill($entrada);
+        $reservaId = trim($e->texto('reserva_id'));
+        $concepto = trim($e->texto('concepto'));
+        $importe = (float) str_replace(',', '.', $e->textoONull('importe') ?? '0');
+        $confirmado = $e->booleano('confirmado');
 
         if (!Uuid::isValid($reservaId)) {
             return SkillResult::error('El reserva_id no es válido.');
@@ -176,7 +178,7 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
             return SkillResult::error('La cuenta de esta reserva no tiene moneda definida.');
         }
 
-        $monedaIndicada = strtoupper(trim((string) ($entrada['moneda'] ?? '')));
+        $monedaIndicada = strtoupper(trim($e->texto('moneda')));
         $monedaOrigen = $monedaIndicada !== ''
             ? $this->monedas->resolve($monedaIndicada)
             : $monedaCuenta;
@@ -197,7 +199,7 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
 
         // El tipo se resuelve ANTES de la previsualización porque de él depende que el cargo
         // llegue a sumar en una cuenta anulada (ver la advertencia de abajo).
-        $tipo = PmsTipoCargo::tryFrom(strtolower(trim((string) ($entrada['tipo'] ?? 'servicio'))))
+        $tipo = PmsTipoCargo::tryFrom(strtolower(trim($e->textoONull('tipo') ?? 'servicio')))
             ?? PmsTipoCargo::SERVICIO;
 
         // 🏠 ¿A qué casita se imputa? Un cargo manual no tiene `beds24BookingId` del que
@@ -205,7 +207,7 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
         // — y si no se rellena, el panel lo pinta en «Cargos de la reserva», repartido contra
         // toda la reserva en vez de contra la casita que lo generó.
         $estancias = $this->estanciasImputables($reserva);
-        $eventoIndicado = trim((string) ($entrada['evento_id'] ?? ''));
+        $eventoIndicado = trim($e->texto('evento_id'));
         $evento = null;
 
         if ($eventoIndicado !== '') {

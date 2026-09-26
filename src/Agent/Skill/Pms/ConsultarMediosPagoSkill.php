@@ -21,6 +21,7 @@ use App\Pms\Finanzas\PmsProcedenciaHuesped;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Por dónde puede pagar el huésped: Yape, Plin, transferencia, Western Union, efectivo.
@@ -132,6 +133,7 @@ final readonly class ConsultarMediosPagoSkill implements SkillInterface, SkillDo
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        $e = new EntradaDeSkill($entrada);
         // 🚧 Por un canal restringido esto no sale, y se corta AQUÍ y no en el prompt.
         //
         // Esta skill devuelve titulares, números de Yape y cuentas bancarias: es exactamente
@@ -150,7 +152,7 @@ final readonly class ConsultarMediosPagoSkill implements SkillInterface, SkillDo
         }
 
         $reservaId = $this->reservaDelContexto($actor)
-            ?? trim((string) ($entrada['reserva_id'] ?? ''));
+            ?? trim($e->texto('reserva_id'));
 
         if (!Uuid::isValid($reservaId)) {
             return SkillResult::error(

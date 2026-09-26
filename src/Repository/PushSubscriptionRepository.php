@@ -89,12 +89,15 @@ class PushSubscriptionRepository extends ServiceEntityRepository
      */
     public function findByUser(User $user): array
     {
-        return $this->createQueryBuilder('p')
+        /** @var array<\App\Entity\PushSubscription> $resultado */
+        $resultado = $this->createQueryBuilder('p')
             ->andWhere('p.user = :val')
             // ⚠️ El id con tipo `uuid`: ligar la entidad devuelve CERO suscripciones sin
             // fallar, y entonces no le llega ninguna notificación push a nadie.
             ->setParameter('val', $user->getId(), UuidType::NAME)
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 }

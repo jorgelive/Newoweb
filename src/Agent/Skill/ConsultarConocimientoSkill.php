@@ -97,8 +97,9 @@ final readonly class ConsultarConocimientoSkill implements SkillInterface
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $categoria = trim((string) ($entrada['categoria'] ?? ''));
-        $itemId = trim((string) ($entrada['item_id'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $categoria = trim($e->texto('categoria'));
+        $itemId = trim($e->texto('item_id'));
 
         // SEGUNDA fase: ya eligió, se le da el texto.
         if ($itemId !== '') {

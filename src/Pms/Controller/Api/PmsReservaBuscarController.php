@@ -86,7 +86,10 @@ final class PmsReservaBuscarController extends AbstractController
             ))->setParameter("t$i", '%' . mb_strtolower($termino) . '%');
         }
 
-        return $qb->getQuery()->getResult();
+        /** @var array<\App\Pms\Entity\PmsEventoCalendario> $resultado */
+        $resultado = $qb->getQuery()->getResult();
+
+        return $resultado;
     }
 
     /**

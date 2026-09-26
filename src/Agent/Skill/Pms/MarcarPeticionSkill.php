@@ -18,6 +18,7 @@ use App\Security\Roles;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Da por puesta una petición: alguien la comprobó.
@@ -89,7 +90,8 @@ final readonly class MarcarPeticionSkill implements SkillInterface, SkillDominio
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $eventoId = trim((string) ($entrada['evento_id'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $eventoId = trim($e->texto('evento_id'));
 
         if ($eventoId === '') {
             return SkillResult::error(
@@ -126,7 +128,7 @@ final readonly class MarcarPeticionSkill implements SkillInterface, SkillDominio
             ]);
         }
 
-        $buscado = trim((string) ($entrada['peticion'] ?? ''));
+        $buscado = trim($e->texto('peticion'));
 
         if ($buscado !== '') {
             $pendientes = array_values(array_filter(

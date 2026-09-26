@@ -41,7 +41,8 @@ final class Beds24SendQueueRepository extends AbstractExchangeRepository
             return [];
         }
 
-        return $this->createQueryBuilder('q')
+        /** @var list<\App\Message\Entity\Beds24SendQueue> $resultado */
+        $resultado = $this->createQueryBuilder('q')
             ->addSelect('msg', 'cfg', 'ep')
             ->innerJoin('q.message', 'msg')
             ->innerJoin('q.config', 'cfg')
@@ -51,5 +52,7 @@ final class Beds24SendQueueRepository extends AbstractExchangeRepository
             ->setParameter('ids', $ids, ArrayParameterType::BINARY)
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 }

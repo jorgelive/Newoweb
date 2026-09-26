@@ -19,6 +19,7 @@ use App\Cotizacion\Enum\PasajeroTipoEnum;
 use App\Security\Roles;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Responde preguntas sobre el padrón: quién está en el grupo 6, quién NO lleva vuelo nacional.
@@ -160,7 +161,8 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
      */
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $localizador = trim((string) ($entrada['expediente'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $localizador = trim($e->texto('expediente'));
 
         $file = $this->em->getRepository(CotizacionFile::class)->findOneBy(['localizador' => $localizador]);
 
@@ -171,7 +173,7 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
             ));
         }
 
-        $incluirNoParticipa = (bool) ($entrada['incluir_no_participa'] ?? false);
+        $incluirNoParticipa = $e->booleano('incluir_no_participa');
 
         /** @var list<CotizacionFilepasajero> $gente */
         $gente = array_values(array_filter(
@@ -181,7 +183,7 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
         ));
 
         // ── Subgrupo: contra lista blanca, y si falla se devuelven las opciones ──
-        $subgrupoPedido = trim((string) ($entrada['subgrupo'] ?? ''));
+        $subgrupoPedido = trim($e->texto('subgrupo'));
         $grupos = null;
         if ($subgrupoPedido !== '') {
             $grupos = $this->gruposQueEncajan($file, $subgrupoPedido);
@@ -195,7 +197,7 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
         }
 
         // ── Servicio: igual, y con la negación ──────────────────────────────
-        $servicioPedido = trim((string) ($entrada['servicio'] ?? ''));
+        $servicioPedido = trim($e->texto('servicio'));
         $servicio = null;
         if ($servicioPedido !== '') {
             $servicio = $this->servicioQueEncaja($file, $servicioPedido);
@@ -208,10 +210,10 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
             }
         }
 
-        $persona = trim((string) ($entrada['persona'] ?? ''));
-        $negar = (bool) ($entrada['negar_servicio'] ?? false);
+        $persona = trim($e->texto('persona'));
+        $negar = $e->booleano('negar_servicio');
         $rol = $this->rolPedido($entrada);
-        $documentos = mb_strtolower(trim((string) ($entrada['documentos'] ?? '')));
+        $documentos = mb_strtolower(trim($e->texto('documentos')));
 
         $cumplen = array_values(array_filter($gente, function (CotizacionFilepasajero $p) use (
             $grupos, $servicio, $negar, $rol, $documentos, $persona
@@ -256,7 +258,7 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
         // nueve grupos son nueve vueltas, el turno topa en ocho y **se queda sin contestar** —
         // habiendo pagado el catálogo entero ocho veces. Pasó en producción el 24/08/2026 y costó
         // 188 000 tokens en un solo turno.
-        $eje = $this->comparable((string) ($entrada['agrupar_por'] ?? ''));
+        $eje = $this->comparable($e->texto('agrupar_por'));
         if ($eje !== '') {
             // ⚠️ El eje se valida contra la lista blanca ANTES de contar, no según si sale alguien.
             //
@@ -311,7 +313,7 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
             return SkillResult::ok($salida);
         }
 
-        if ((bool) ($entrada['solo_conteo'] ?? false)) {
+        if ($e->booleano('solo_conteo')) {
             return SkillResult::ok($salida);
         }
 
@@ -575,7 +577,8 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
     /** @param array<string, mixed> $entrada */
     private function rolPedido(array $entrada): ?PasajeroTipoEnum
     {
-        $pedido = $this->comparable((string) ($entrada['rol'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $pedido = $this->comparable($e->texto('rol'));
 
         if ($pedido === '') {
             return null;

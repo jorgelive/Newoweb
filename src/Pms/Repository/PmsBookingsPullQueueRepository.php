@@ -23,7 +23,8 @@ final class PmsBookingsPullQueueRepository extends AbstractExchangeRepository
      */
     protected function hydrateItems(array $ids): array
     {
-        return $this->createQueryBuilder('j')
+        /** @var list<\App\Pms\Entity\PmsBookingsPullQueue> $resultado */
+        $resultado = $this->createQueryBuilder('j')
             ->addSelect('cfg', 'ep', 'u', 'm')
             ->innerJoin('j.config', 'cfg')
             ->innerJoin('j.endpoint', 'ep')
@@ -36,5 +37,7 @@ final class PmsBookingsPullQueueRepository extends AbstractExchangeRepository
             ->setParameter('ids', $ids, ArrayParameterType::BINARY)
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 }

@@ -63,13 +63,16 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
      */
     public function findOneByEmailOrUsername(string $identifier): ?User
     {
-        return $this->createQueryBuilder('u')
+        /** @var \App\Entity\User|null $resultado */
+        $resultado = $this->createQueryBuilder('u')
             ->where('u.email = :identifier')
             ->orWhere('u.username = :identifier')
             ->setParameter('identifier', $identifier)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+
+        return $resultado;
     }
 
     /**
@@ -79,11 +82,14 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
      */
     public function findByRole(string $role): array
     {
-        return $this->createQueryBuilder('u')
+        /** @var array<\App\Entity\User> $resultado */
+        $resultado = $this->createQueryBuilder('u')
             ->andWhere('u.roles LIKE :role')
             ->setParameter('role', '%"' . $role . '"%')
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 
     /**
@@ -121,11 +127,14 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             return null;
         }
 
-        return $this->createQueryBuilder('u')
+        /** @var \App\Entity\User|null $resultado */
+        $resultado = $this->createQueryBuilder('u')
             ->andWhere('u.telefono = :tel')
             ->setParameter('tel', $limpio)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+
+        return $resultado;
     }
 }

@@ -15,6 +15,7 @@ use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\GrupoTipoEnum;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Encuentra el expediente por su localizador o por el nombre del grupo.
@@ -91,7 +92,8 @@ final readonly class BuscarExpedienteSkill implements SkillInterface, SkillDomin
      */
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $busqueda = trim((string) ($entrada['busqueda'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $busqueda = trim($e->texto('busqueda'));
 
         if (mb_strlen($busqueda) < 3) {
             return SkillResult::error('Indica al menos 3 caracteres para buscar.');

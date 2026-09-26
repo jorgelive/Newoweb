@@ -123,7 +123,10 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         $this->applyIdFilter($qb, 'es', 'estado', $filters);
         $this->applyIdFilter($qb, 'ep', 'estadoPago', $filters);
 
-        return $qb->getQuery()->getResult();
+        /** @var list<\App\Pms\Entity\PmsEventoCalendario> $resultado */
+        $resultado = $qb->getQuery()->getResult();
+
+        return $resultado;
     }
 
     /**

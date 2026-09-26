@@ -20,6 +20,7 @@ use App\Pms\Guia\PmsGuiaEstanciaResolver;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * Confirma una estancia. Sólo eso. **Escribe.**
@@ -107,7 +108,8 @@ final readonly class ConfirmarEstanciaSkill implements SkillInterface, SkillDomi
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $reservaId = trim((string) ($entrada['reserva_id'] ?? ''));
+        $e = new EntradaDeSkill($entrada);
+        $reservaId = trim($e->texto('reserva_id'));
 
         if (!Uuid::isValid($reservaId)) {
             return SkillResult::error('Necesito el reserva_id. Localízala con buscar_reserva.');
@@ -133,7 +135,7 @@ final readonly class ConfirmarEstanciaSkill implements SkillInterface, SkillDomi
             return SkillResult::error('Esta reserva no tiene ninguna estancia activa que confirmar.');
         }
 
-        $eleccion = $this->estancias->resolver($eventos, trim((string) ($entrada['casita'] ?? '')));
+        $eleccion = $this->estancias->resolver($eventos, trim($e->texto('casita')));
 
         if ($eleccion['ambiguo']) {
             return SkillResult::ok([
@@ -196,7 +198,7 @@ final readonly class ConfirmarEstanciaSkill implements SkillInterface, SkillDomi
             ),
         ], static fn ($v) => $v !== null);
 
-        if (!filter_var($entrada['confirmado'] ?? false, FILTER_VALIDATE_BOOL)) {
+        if (!$e->booleano('confirmado')) {
             return SkillResult::ok($resumen + [
                 'aplicado' => false,
                 'motivo' => 'falta_confirmacion',

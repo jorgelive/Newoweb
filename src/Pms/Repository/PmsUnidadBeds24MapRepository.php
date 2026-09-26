@@ -23,7 +23,8 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
 
     public function findPreferidoPorUnidad(PmsUnidad $unidad): ?PmsUnidadBeds24Map
     {
-        return $this->createQueryBuilder('m')
+        /** @var \App\Pms\Entity\PmsUnidadBeds24Map|null $resultado */
+        $resultado = $this->createQueryBuilder('m')
             ->andWhere('m.pmsUnidad = :u')
             // ⚠️ El id con tipo `uuid`, no la entidad: ver la nota de `findRoomIdsForPull()`.
             ->setParameter('u', $unidad->getId(), UuidType::NAME)
@@ -32,6 +33,8 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+
+        return $resultado;
     }
 
     /**
@@ -39,7 +42,8 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
      */
     public function findAllOrdenadosPorUnidad(PmsUnidad $unidad): array
     {
-        return $this->createQueryBuilder('m')
+        /** @var array<\App\Pms\Entity\PmsUnidadBeds24Map> $resultado */
+        $resultado = $this->createQueryBuilder('m')
             ->andWhere('m.pmsUnidad = :u')
             // ⚠️ El id con tipo `uuid`, no la entidad: ver la nota de `findRoomIdsForPull()`.
             ->setParameter('u', $unidad->getId(), UuidType::NAME)
@@ -47,6 +51,8 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
             ->addOrderBy('m.id', 'ASC')
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 
     /**

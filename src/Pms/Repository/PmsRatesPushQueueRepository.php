@@ -32,7 +32,8 @@ final class PmsRatesPushQueueRepository extends AbstractExchangeRepository
     {
         if (empty($ids)) return [];
 
-        return $this->createQueryBuilder('q')
+        /** @var list<\App\Pms\Entity\PmsRatesPushQueue> $resultado */
+        $resultado = $this->createQueryBuilder('q')
             ->addSelect('cfg', 'ep', 'm')
             ->leftJoin('q.config', 'cfg')
             ->innerJoin('q.endpoint', 'ep')
@@ -41,6 +42,8 @@ final class PmsRatesPushQueueRepository extends AbstractExchangeRepository
             ->setParameter('ids', $ids, ArrayParameterType::BINARY)
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 
     /**
@@ -51,7 +54,8 @@ final class PmsRatesPushQueueRepository extends AbstractExchangeRepository
      */
     public function findPendingForUnit(string $unidadId, \DateTimeInterface $start, \DateTimeInterface $end): array
     {
-        return $this->createQueryBuilder('q')
+        /** @var list<\App\Pms\Entity\PmsRatesPushQueue> $resultado */
+        $resultado = $this->createQueryBuilder('q')
             ->join('q.unidadBeds24Map', 'm') // Usamos el mapa para llegar a la unidad
             ->where('m.pmsUnidad = :unidadId')
             ->andWhere('q.status = :status')
@@ -64,5 +68,7 @@ final class PmsRatesPushQueueRepository extends AbstractExchangeRepository
             ->setParameter('end', $end)
             ->getQuery()
             ->getResult();
+
+        return $resultado;
     }
 }

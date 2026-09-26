@@ -214,6 +214,7 @@ final class AgentReplayCommand extends Command
      */
     private function guardiaDespejada(SymfonyStyle $io, bool $forzar): bool
     {
+        /** @var list<User> $guardias */
         $guardias = $this->em->getRepository(User::class)->createQueryBuilder('u')
             ->where('u.roles LIKE :rol')->setParameter('rol', '%CUSTOMER_SUPPORT%')
             ->andWhere('u.telefono IS NOT NULL')

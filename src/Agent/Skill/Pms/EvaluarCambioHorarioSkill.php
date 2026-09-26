@@ -17,6 +17,7 @@ use App\Pms\Service\Reserva\PmsDisponibilidadService;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Agent\Skill\EntradaDeSkill;
 
 /**
  * ¿Se puede cambiar el horario de esta estancia, y qué pasaría?
@@ -101,8 +102,9 @@ final readonly class EvaluarCambioHorarioSkill implements SkillInterface, SkillD
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        $eventoId = trim((string) ($entrada['evento_id'] ?? ''));
-        $cambio = strtolower(trim((string) ($entrada['cambio'] ?? '')));
+        $e = new EntradaDeSkill($entrada);
+        $eventoId = trim($e->texto('evento_id'));
+        $cambio = strtolower(trim($e->texto('cambio')));
 
         if (!Uuid::isValid($eventoId)) {
             return SkillResult::error(
