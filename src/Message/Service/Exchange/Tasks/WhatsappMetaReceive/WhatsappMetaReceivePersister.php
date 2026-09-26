@@ -555,14 +555,43 @@ readonly class WhatsappMetaReceivePersister
     }
 
     /**
+     * El hilo de quien escribe, y con quien escribe como destino si el que había no sirve.
+     *
+     * Son dos pasos y van juntos a propósito. El primero decide DE QUIÉN es el número —por
+     * identidad, por la cola del número, por reserva o por localizador—; el segundo, que el
+     * número que acaba de demostrar que funciona sea al que se contesta cuando el de antes está
+     * vetado o no existe. Va aquí, a la salida, y no en cada rama: son cinco caminos y el hueco
+     * de Or Cohen (§ `MessageConversation::preferirTelefonoQueEscribe()`) estaba en uno que nadie
+     * había mirado.
+     *
+     * @param string $phone El número de teléfono del remitente (wa_id exacto de Meta).
+     * @param string $guestName El nombre extraído del perfil de WhatsApp.
+     */
+    private function resolveConversation(
+        string $phone,
+        string $guestName,
+        string $texto = ''
+    ): MessageConversation {
+        $conversation = $this->buscarOCrearHilo($phone, $guestName, $texto);
+
+        if ($conversation->preferirTelefonoQueEscribe($phone)) {
+            $this->logger->info('WhatsApp: el número que escribe pasa a ser el destino; el anterior no servía.', [
+                'conversacion' => (string) $conversation->getId(),
+                'telefono' => $phone,
+            ]);
+        }
+
+        return $conversation;
+    }
+
+    /**
      * Busca una conversación abierta por teléfono, o crea una nueva genérica (Walk-in).
      * Implementa un "Fuzzy Match" para sortear números sucios provenientes de OTAs (ej. doble código de país).
      *
      * @param string $phone El número de teléfono del remitente (wa_id exacto de Meta).
      * @param string $guestName El nombre extraído del perfil de WhatsApp.
-     * @return MessageConversation
      */
-    private function resolveConversation(
+    private function buscarOCrearHilo(
         string $phone,
         string $guestName,
         string $texto = ''

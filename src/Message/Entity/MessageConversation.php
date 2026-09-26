@@ -867,8 +867,8 @@ class MessageConversation
      * ⚠️ **Sin ningún teléfono vivo, la copia se VACÍA.** Decía «preferimos el último valor
      * conocido a dejar el hilo sin teléfono», y ese último valor podía ser justo el que se
      * acababa de retirar: se seguía escribiendo al número del que el operador quiso deshacerse,
-     * con el editor mostrándolo tachado. Sin teléfono, el encolador lanza «no se pudo resolver
-     * el número» — un fallo VISIBLE, que es lo que se quiere aquí.
+     * con el editor mostrándolo tachado. Sin teléfono, WhatsApp no aplica y el mensaje queda en
+     * `sin_canal` —vivo, y con aviso si alguien lo esperaba—, que revive cuando llegue un número.
      *
      * Con varios vivos y ninguno principal no se toca —no hay respuesta correcta— pero se deja
      * el valor anterior a sabiendas: quien lo mire verá el aviso ámbar del panel.
@@ -892,6 +892,92 @@ class MessageConversation
         }
 
         return $this;
+    }
+
+    /**
+     * El número que acaba de escribirnos pasa a ser la salida si la actual no sirve.
+     *
+     * ── El caso que lo pide ─────────────────────────────────────────────────────
+     * Or Cohen (24/09/2026). Airbnb nos pasó un número de EE. UU. sin WhatsApp; la bienvenida
+     * volvió con `131026` y ese número quedó vetado. Cuarenta segundos después Or escribió desde
+     * uno israelí con «Hola, soy Or, reservando XNGAVG», el localizador lo unió a su hilo… y el
+     * hilo siguió bloqueado y apuntando al número muerto. Dos huecos:
+     *
+     * - **El veto no se recalculaba.** El hilo sólo está bloqueado si TODOS sus teléfonos vivos
+     *   lo están, pero el espejo `whatsappDisabled` sólo se recalculaba al tocar una identidad
+     *   desde el editor o al vetarla Meta. Añadir un número al recibir no lo movía.
+     * - **El destino no cambiaba.** Los envíos salen a `guestPhone`, y el camino del localizador
+     *   sólo lo rellenaba si estaba vacío. El número que acababa de demostrar que funciona —y
+     *   con la ventana de 24 h abierta— no era al que se escribía.
+     *
+     * Su primer mensaje se quedó sin respuesta por WhatsApp. Se arregló marcando el israelí como
+     * principal a mano, que es lo que esto hace solo.
+     *
+     * ── La regla ────────────────────────────────────────────────────────────────
+     * Cambia de destino **sólo si el actual no sirve**: no hay, está retirado o está vetado. Si
+     * el actual funciona y escribe otro número —el acompañante, muy a menudo— el destino no se
+     * toca: quien reservó sigue siendo a quien se escribe. Y un número que escribe estando él
+     * mismo vetado no se desveta aquí: eso lo decide una persona desde el panel.
+     *
+     * El veto se recalcula siempre, cambie o no el destino: un número sano recién llegado basta
+     * para que el hilo deje de estar bloqueado.
+     *
+     * @param string $telefono El número que escribe, tal como llega de Meta.
+     * @return bool Si el destino cambió.
+     */
+    public function preferirTelefonoQueEscribe(string $telefono): bool
+    {
+        $valor = IdentidadTipo::TELEFONO->normalizar($telefono);
+        $escribe = null;
+        $actual = null;
+        $destino = IdentidadTipo::TELEFONO->normalizar((string) $this->guestPhone);
+
+        foreach ($this->identidades as $identidad) {
+            if ($identidad->getTipo() !== IdentidadTipo::TELEFONO) {
+                continue;
+            }
+
+            if ($identidad->getValor() === $valor && $identidad->estaViva()) {
+                $escribe = $identidad;
+            }
+
+            if ($destino !== '' && $identidad->getValor() === $destino) {
+                $actual = $identidad;
+            }
+        }
+
+        // Sin identidad para quien escribe —el número era de otro hilo y no se movió— o vetado
+        // él mismo: no hay nada que preferir.
+        if ($escribe === null || $escribe->isBloqueado()) {
+            $this->recalcularBloqueoWhatsapp();
+
+            return false;
+        }
+
+        // ¿Sirve el destino de ahora? Con identidad, lo dice ella. Sin identidad —hilos
+        // anteriores a las identidades— se mira el espejo del hilo, que es lo único que hay.
+        $sirve = $destino !== '' && ($actual !== null
+            ? $actual->estaViva() && !$actual->isBloqueado()
+            : !$this->whatsappDisabled);
+
+        if ($sirve || $actual === $escribe) {
+            $this->recalcularBloqueoWhatsapp();
+
+            return false;
+        }
+
+        foreach ($this->identidades as $identidad) {
+            if ($identidad->getTipo() === IdentidadTipo::TELEFONO) {
+                $identidad->setPrincipal($identidad === $escribe);
+            }
+        }
+
+        // Por los dos recálculos de siempre, en este orden: el primero mueve `guestPhone` —y por
+        // el setter levanta el espejo del veto—; el segundo lo deja como dicen las identidades.
+        $this->recalcularTelefonoPrincipal();
+        $this->recalcularBloqueoWhatsapp();
+
+        return true;
     }
 
     /** ¿Le queda a esta persona algún teléfono sin retirar? */

@@ -10739,6 +10739,44 @@ retirar un número sería imposible. Con la fila presente, `addIdentidad()` dedu
 vetos vivos es una decisión de persona y se hace mirando la prueba de vida, no dentro de una
 migración.
 
+### El número que escribe pasa a ser el destino si el de antes no sirve (26/09/2026)
+
+**El caso: Or Cohen, 24/09.** Airbnb nos pasó un número de EE. UU. sin WhatsApp; la bienvenida
+volvió con `131026` y ese número quedó vetado. Cuarenta segundos después Or escribió desde un
+número israelí —«Hola, soy Or, reservando XNGAVG»— y el localizador lo unió a su hilo. El hilo
+**siguió bloqueado y apuntando al número muerto**, y su primer mensaje no tuvo respuesta por
+WhatsApp.
+
+⚠️ Se diagnosticó primero mal: se dio por hecho que había escrito desde el número vetado y se
+propuso «un entrante desveta su número». Mirando `msg_identidad` había **dos** teléfonos. Antes
+de proponer nada sobre un veto, mira qué identidades tiene el hilo.
+
+Dos huecos del camino automático, que el editor del panel no tiene:
+
+| | Editor del panel | Al recibir (antes) |
+|---|---|---|
+| Recalcular el espejo del veto | sí (`recalcularBloqueoWhatsapp()`) | **no**: el hilo seguía bloqueado con un número sano |
+| Mover `guestPhone` al principal | sí (`recalcularTelefonoPrincipal()`) | **no**: el localizador sólo lo rellenaba si estaba vacío |
+
+**Ahora:** `WhatsappMetaReceivePersister::resolveConversation()` resuelve el hilo por cualquiera
+de sus cinco caminos y, a la salida, llama a
+`MessageConversation::preferirTelefonoQueEscribe()`:
+
+- el número que escribe pasa a ser el **principal** —y con él `guestPhone`— **sólo si el destino
+  actual no sirve**: no hay, está retirado o está vetado;
+- si el actual funciona y escribe otro (a menudo el acompañante), el destino **no** cambia;
+- si el que escribe está vetado él mismo, **no** se desveta: eso sigue siendo una decisión de
+  persona desde el panel;
+- el espejo del veto se recalcula **siempre**.
+
+Va a la salida y no en cada rama porque el hueco estaba en una rama que nadie había mirado; con
+cinco caminos, arreglarlo en uno deja cuatro. Tests en `TelefonoQueEscribeTest`.
+
+**Lo que NO arregla:** las colas de WhatsApp que ya existían guardan su `destination_phone`. Los
+mensajes programados que ya tenían cola al número viejo no se redirigen; si esa cola estaba
+cancelada y el mensaje salía por otro canal (el de Or iba también por Airbnb), no reciben una de
+WhatsApp nueva. Ver la deuda del `preUpdate` en §17.z.2.
+
 ### Cómo se corrige un número malo, y por qué no hay lápiz
 
 El caso que lo fijó: la reserva `EKFHMC` (Booking) sembró `8651925969679` —un `86` de más
