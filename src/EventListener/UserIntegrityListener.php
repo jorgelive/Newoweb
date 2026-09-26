@@ -71,7 +71,9 @@ final class UserIntegrityListener
             return;
         }
 
-        $nuevo = trim((string) $args->getNewValue('telefono'));
+        // `telefono` es `?string`: un null (se vació) queda vacío, como antes.
+        $valor = $args->getNewValue('telefono');
+        $nuevo = is_string($valor) ? trim($valor) : '';
         $limpio = $nuevo !== ''
             ? ($this->phoneSanitizer->cleanPhoneNumber($nuevo, self::PAIS_POR_DEFECTO) ?: null)
             : null;

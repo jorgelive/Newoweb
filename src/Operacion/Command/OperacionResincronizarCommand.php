@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operacion\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Operacion\ApiPlatform\Dto\AplicarPlanInput;
@@ -75,7 +76,7 @@ TXT);
         if ($input->getOption('todas')) {
             $cotizaciones = $cotRepo->findBy(['estado' => CotizacionEstadoEnum::CONFIRMADO]);
         } else {
-            $id = $input->getArgument('cotizacion');
+            $id = EntradaDeConsola::textoOpcional($input->getArgument('cotizacion'), 'cotizacion');
             if ($id === null) {
                 $io->error('Indica el UUID de una cotización o usa --todas.');
 

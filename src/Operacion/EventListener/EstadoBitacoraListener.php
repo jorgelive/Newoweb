@@ -108,7 +108,11 @@ final readonly class EstadoBitacoraListener
         ];
     }
 
-    /** El changeset da enums; se guarda su `value`. Cualquier otra cosa, a string. */
+    /**
+     * El changeset da enums; se guarda su `value`. Un escalar, como texto. Lo que no se puede
+     * escribir como texto (hoy no hay ningún campo vigilado así) deja constancia de su tipo en vez
+     * de reventar el `flush` con un «could not be converted to string».
+     */
     private function comoTexto(mixed $valor): ?string
     {
         if ($valor === null) {
@@ -118,7 +122,7 @@ final readonly class EstadoBitacoraListener
             return (string) $valor->value;
         }
 
-        return (string) $valor;
+        return is_scalar($valor) || $valor instanceof \Stringable ? (string) $valor : get_debug_type($valor);
     }
 
     /** @return array{0: ?string, 1: ?string} [uuid, nombre] del usuario, o [null, null]. */

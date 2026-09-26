@@ -138,9 +138,11 @@ final class BackfillNombreComponenteCommand extends Command
             return Command::SUCCESS;
         }
 
-        $huerfanas = (int) $this->db->fetchOne(
+        /** @var int|string $cuantas Un `COUNT(*)`: entero o texto según el driver. */
+        $cuantas = $this->db->fetchOne(
             'SELECT COUNT(*) FROM operacion_orden_servicio_item WHERE nombre_componente IS NULL'
         );
+        $huerfanas = (int) $cuantas;
 
         if ($huerfanas > 0) {
             $io->note(sprintf(

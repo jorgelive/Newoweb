@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Util\Controller;
 
+use App\Service\Front\ManifiestoVite;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -59,21 +60,25 @@ class UtilAppController extends AbstractController
         }
 
         // 4. Decodificar el manifest y buscar los assets cacheados
-        $manifest = json_decode((string) file_get_contents($manifestPath), true);
+        $manifest = ManifiestoVite::desdeJson((string) file_get_contents($manifestPath));
 
-        // Definimos el punto de entrada principal
-        $entryPoint = 'src/main.ts';
+        // El punto de entrada principal; si cambió de extensión (.js en lugar de .ts), ése; y si
+        // no, la primera entrada que haya, como antes.
+        $primera = $manifest->claves()[0] ?? null;
+        $entrada = $manifest->entrada('src/main.ts')
+            ?? $manifest->entrada('src/main.js')
+            ?? ($primera !== null ? $manifest->entrada($primera) : null);
 
-        // Prevención de errores si el entry point cambió de extensión (.js en lugar de .ts)
-        if (!isset($manifest[$entryPoint])) {
-            $entryPoint = isset($manifest['src/main.js']) ? 'src/main.js' : array_key_first($manifest);
+        // Un manifest sin ninguna entrada con su `file` era una página en blanco sin error.
+        if ($entrada === null) {
+            throw $this->createNotFoundException('El manifest.json de util no tiene ninguna entrada con su fichero JS.');
         }
 
         // 5. Renderizar la plantilla inyectando el JS y CSS ya compilados
         return $this->render('util/app.html.twig', [
             'is_dev' => false,
-            'js_file' => $manifest[$entryPoint]['file'],
-            'css_files' => $manifest[$entryPoint]['css'] ?? [],
+            'js_file' => $entrada['file'],
+            'css_files' => $entrada['css'],
         ]);
     }
 }

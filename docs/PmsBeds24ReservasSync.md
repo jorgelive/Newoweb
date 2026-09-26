@@ -5951,6 +5951,13 @@ que existían justo para eso.
 Van como constantes (`CAMPO_FECHA`, `CAMPO_COMPRA`, `CAMPO_VENTA`) para que el próximo cambio se
 vea en un sitio y no en tres.
 
+⚠️ **Un importe que no es un número deja la fila fuera** (26/09/2026, nivel 9 de PHPStan).
+`parseResponse()` hacía `(string)` sobre lo que llegara: un «N/A» del proveedor, o un array, entraba
+en el DTO y de ahí a la columna DECIMAL, donde o reventaba el `flush` o quedaba un 0.000 como tasa de
+ese día. Ahora se lee con `Lee::texto()` —un número JSON pasa a texto igual que antes, sin float
+por medio— y se exige `is_numeric()`. Sin la fila rige la última cotización buena, que es el respaldo
+que ya existía; y el cron de las 08:00 avisa si falta el día. Lo fija `TipocambioManagerTest`.
+
 ### El cron, que es lo que faltaba de verdad
 
 `app:pms:tipo-cambio:sincronizar`, todos los días a las **08:00 de Lima** (13:40 UTC — el servidor

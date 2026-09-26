@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Travel\Entity\TravelComponente;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -61,8 +62,8 @@ final class CopiarTarifasDeComponenteCommand extends Command
     {
         $io      = new SymfonyStyle($input, $output);
         $simula  = (bool) $input->getOption('dry-run');
-        $desde   = (string) $input->getOption('desde');
-        $patron  = (string) $input->getOption('a');
+        $desde   = EntradaDeConsola::textoOpcional($input->getOption('desde'), 'desde') ?? '';
+        $patron  = EntradaDeConsola::textoOpcional($input->getOption('a'), 'a') ?? '';
 
         if ($desde === '' || $patron === '') {
             $io->error('Hacen falta --desde y --a.');

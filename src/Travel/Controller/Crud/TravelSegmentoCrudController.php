@@ -237,13 +237,15 @@ class TravelSegmentoCrudController extends BaseCrudController
                     return '<span class="text-muted small">sin guardar</span>';
                 }
 
-                $usos = (int) $this->conexion->fetchOne(
+                /** @var int|string $cuantas Un `COUNT()`: entero o texto según el driver. */
+                $cuantas = $this->conexion->fetchOne(
                     'SELECT COUNT(DISTINCT cs.cotizacion_id)
                        FROM cotizacion_segmento sg
                        JOIN cotizacion_cotservicio cs ON cs.id = sg.cotservicio_id
                       WHERE sg.segmento_maestro_id = :id',
                     ['id' => (string) $id],
                 );
+                $usos = (int) $cuantas;
 
                 if ($usos === 0) {
                     return '<span class="badge bg-light text-muted border">Todavía en ninguna</span>';

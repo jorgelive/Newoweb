@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Travel\Entity\TravelComponente;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -55,8 +56,8 @@ final class RenombrarComponenteCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $simula = (bool) $input->getOption('dry-run');
-        $actual = (string) $input->getArgument('actual');
-        $nuevo = (string) $input->getArgument('nuevo');
+        $actual = EntradaDeConsola::texto($input->getArgument('actual'), 'actual');
+        $nuevo = EntradaDeConsola::texto($input->getArgument('nuevo'), 'nuevo');
 
         $repo = $this->em->getRepository(TravelComponente::class);
         $componente = $repo->findOneBy(['nombreInterno' => $actual]);

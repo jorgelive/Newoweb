@@ -42,7 +42,7 @@ class TestTipocambioCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $fechaInput = $input->getArgument('fecha');
+        $fechaInput = EntradaDeConsola::texto($input->getArgument('fecha'), 'fecha');
 
         // Convertir input a DateTime
         try {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operacion\ApiPlatform\State;
 
+use App\Api\VariableDeRuta;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Operacion\ApiPlatform\Dto\AgregarAOrdenInput;
@@ -47,7 +48,7 @@ final readonly class AgregarAOrdenProcessor implements ProcessorInterface
     {
         // Sin `instanceof`: el tipo lo garantiza el `input:` de la operación y la genérica de
         // ProcessorInterface, y comprobarlo otra vez sólo añade una rama que no puede ocurrir.
-        $orden = $this->em->find(OperacionOrdenServicio::class, (string) ($uriVariables['id'] ?? ''));
+        $orden = $this->em->find(OperacionOrdenServicio::class, VariableDeRuta::texto($uriVariables, 'id'));
 
         if (!$orden instanceof OperacionOrdenServicio) {
             throw new DomainException('La orden no existe. Recarga y vuelve a intentarlo.');

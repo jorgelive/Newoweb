@@ -237,7 +237,7 @@ final class OperacionServicioLugarExtension implements QueryCollectionExtensionI
      * pasarlos tal cual produce una comparación que nunca casa y un filtro que devuelve
      * cero sin error.
      *
-     * @param array<int, array<string, mixed>> $filas
+     * @param array<mixed> $filas Lo que da `getScalarResult()`, sin forma garantizada (ver arriba).
      *
      * @return array<int, string>
      */
@@ -246,7 +246,7 @@ final class OperacionServicioLugarExtension implements QueryCollectionExtensionI
         $ids = [];
 
         foreach ($filas as $fila) {
-            $id = $fila['id'] ?? null;
+            $id = is_array($fila) ? ($fila['id'] ?? null) : null;
 
             if ($id instanceof Uuid) {
                 $ids[] = $id->toRfc4122();

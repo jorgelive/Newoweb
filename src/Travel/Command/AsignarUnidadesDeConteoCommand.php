@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Enum\MomentoDelDiaEnum;
@@ -81,23 +82,23 @@ final class AsignarUnidadesDeConteoCommand extends Command
         // confirmada tiene la fecha buena y la cantidad corta, donde ajustar encogería la
         // cobertura. Sin poder acotar, la única salida era tocar la base a mano, que es justo lo
         // que este comando existe para evitar.
-        $estadoFiltro = (string) ($input->getOption('estado') ?? '');
+        $estadoFiltro = (EntradaDeConsola::textoOpcional($input->getOption('estado'), 'estado') ?? '');
 
-        $busqueda = (string) ($input->getOption('componente') ?? '');
+        $busqueda = (EntradaDeConsola::textoOpcional($input->getOption('componente'), 'componente') ?? '');
         if ($busqueda === '') {
             $io->error('Falta --componente: el nombre interno del componente maestro.');
 
             return Command::INVALID;
         }
 
-        $unidad = UnidadDeConteoEnum::tryFrom((string) ($input->getOption('unidad') ?? ''));
+        $unidad = UnidadDeConteoEnum::tryFrom((EntradaDeConsola::textoOpcional($input->getOption('unidad'), 'unidad') ?? ''));
         if ($unidad === null) {
             $io->error('--unidad tiene que ser noches, dias o unidades.');
 
             return Command::INVALID;
         }
 
-        $momentoTexto = (string) ($input->getOption('momento') ?? '');
+        $momentoTexto = (EntradaDeConsola::textoOpcional($input->getOption('momento'), 'momento') ?? '');
         $momento = $momentoTexto === '' ? null : MomentoDelDiaEnum::tryFrom($momentoTexto);
         if ($momentoTexto !== '' && $momento === null) {
             $io->error(sprintf('--momento «%s» no existe.', $momentoTexto));
@@ -105,7 +106,7 @@ final class AsignarUnidadesDeConteoCommand extends Command
             return Command::INVALID;
         }
 
-        $sustantivo = (string) ($input->getOption('sustantivo') ?? '');
+        $sustantivo = (EntradaDeConsola::textoOpcional($input->getOption('sustantivo'), 'sustantivo') ?? '');
 
         /** @var list<TravelComponente> $maestros */
         $maestros = $this->em->createQuery(

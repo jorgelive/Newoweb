@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pax\Controller;
 
+use App\Service\Front\ManifiestoVite;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -60,23 +61,19 @@ class PaxAppController extends AbstractController
             );
         }
 
-        $manifest = json_decode((string) file_get_contents($manifestPath), true);
+        $manifest = ManifiestoVite::desdeJson((string) file_get_contents($manifestPath));
 
-        $entryPoint = 'src/main.ts';
+        $entrada = $manifest->entrada('src/main.ts') ?? $manifest->entrada('src/main.js');
 
-        if (!isset($manifest[$entryPoint])) {
-            if (isset($manifest['src/main.js'])) {
-                $entryPoint = 'src/main.js';
-            } else {
-                $keys = implode(', ', array_keys($manifest));
-                throw $this->createNotFoundException("Entrada '$entryPoint' no encontrada en manifest.json. Claves disponibles: [$keys]");
-            }
+        if ($entrada === null) {
+            $keys = implode(', ', $manifest->claves());
+            throw $this->createNotFoundException("Entrada 'src/main.ts' no encontrada en manifest.json. Claves disponibles: [$keys]");
         }
 
         return $this->render('pax/app.html.twig', [
             'is_dev' => false,
-            'js_file' => $manifest[$entryPoint]['file'],
-            'css_files' => $manifest[$entryPoint]['css'] ?? [],
+            'js_file' => $entrada['file'],
+            'css_files' => $entrada['css'],
         ]);
     }
 }
