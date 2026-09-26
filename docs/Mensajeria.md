@@ -8503,6 +8503,41 @@ Airbnb)» y admitía Booking, y `bienvenida_booking` no tenía origen, así que 
 
 ---
 
+## 18.f Limpieza de Meta: tres rotaciones y lo que nadie usaba (26/09/2026)
+
+**Inventario antes de tocar nada**, cruzando Meta con las plantillas locales y con lo enviado en
+30 días: todo `APPROVED`, y cuatro nombres en Meta sin ninguna plantilla local que los reclamara
+—`aviso_tecnico_interno_v1` (el del francés equivocado, que acabó aprobándose), `bienvenida_v1`,
+`welcome_booking` (sólo en español) y `hello_world`—.
+
+**Rotadas a `_v2`** con `msg:plantillas:rotar-textos` (oculto, idempotente):
+
+| Plantilla | Qué cambia | Idiomas tocados |
+|---|---|---|
+| `aviso_escalado_interno`, `aviso_cobro_interno` | pie «Aviso automático del PMS» → «Aviso automático · Sistema OpenPeru», el mismo del aviso técnico | los siete, escritos a mano |
+| `menu_tours` | de «usted» a «tú» | español **e italiano** |
+
+⚠️ **El tuteo no es «todo informal».** La convención de la casa, medida sobre `bienvenida`,
+`check_out` y `guia_llegada`: español e italiano tutean; alemán, francés, portugués y neerlandés
+van de *Sie*, *vous*, *você* y *u*. `menu_tours` sólo se salía en los dos primeros.
+
+⚠️ **Estas plantillas no se traducen solas.** Llevan `is_official_meta`, que veta a
+AutoTranslate pisar una traducción existente: cambiar el español no propaga nada. Lo que cambia se
+escribe idioma por idioma; lo demás se queda como estaba.
+
+⚠️ **Comparar un bloque JSON leído de MySQL con `===` no funciona**: MySQL guarda los objetos con
+las claves ordenadas, y un pie escrito como `{language, content}` vuelve como `{content,
+language}`. El comando reescribía en cada pasada hasta que se comparó con `==`.
+
+**Archivadas** (`msg:plantilla:archivar`): `recordatorio_llegada` (sustituida por `guia_llegada`
+el 17/09), `welcome_airbnb` y `welcome_booking` (sustituidas por las bienvenidas el 12/09) y
+`solicitar_mensaje_whatsapp` (no se envió nunca). Ninguna regla activa las usaba y no tenían nada
+por salir —sólo 11 `sin_canal` de marzo, que no reviven porque su fecha pasó—.
+
+**Borradas en Meta** las que no reclama ninguna plantilla local, y las generaciones viejas de las
+tres rotadas una vez aprobada su `_v2`. Borrar reserva el nombre cuatro semanas: por eso la
+rotación usa nombres nuevos y no reutiliza los viejos.
+
 ## 18.b Plan de reformulación de las plantillas al huésped (30/08/2026)
 
 ### El inventario, con datos y no de memoria
