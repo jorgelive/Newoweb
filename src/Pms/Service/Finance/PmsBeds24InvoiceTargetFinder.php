@@ -41,6 +41,7 @@ final class PmsBeds24InvoiceTargetFinder
     public function findTargetsForPeriod(DateTimeInterface $from, DateTimeInterface $to): Generator
     {
         // Misma navegación que el finder de mensajes: Link -> Evento -> Reserva -> Establecimiento -> Config
+        /** @var list<PmsEventoBeds24Link> $links */
         $links = $this->em->createQueryBuilder()
             ->select('l', 'e', 'r', 'est', 'cfg')
             ->from(PmsEventoBeds24Link::class, 'l')
@@ -62,7 +63,6 @@ final class PmsBeds24InvoiceTargetFinder
         $porReserva = [];
 
         foreach ($links as $link) {
-            /** @var PmsEventoBeds24Link $link */
             $reserva = $link->getEvento()?->getReserva();
             $config = $reserva?->getEstablecimiento()?->getBeds24Config();
             $bookId = $link->getBeds24BookId();

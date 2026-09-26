@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Nombre;
 
+use App\Dto\Lee;
 use App\Agent\Access\AgentActor;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\PotenciaRequerida;
@@ -93,12 +94,14 @@ final readonly class RevisorDeOrdenDeNombre
             return null;
         }
 
+        // Lo escribe el modelo: el esquema pide la forma, pero se lee como un dato de fuera. Un
+        // `invertido` que no sea un booleano legible es «no tocar», que es lo que cuesta nada.
         return [
-            'invertido' => (bool) ($veredicto['invertido'] ?? false),
-            'confianza' => (string) ($veredicto['confianza'] ?? ''),
-            'motivo' => (string) ($veredicto['motivo'] ?? 'sin motivo'),
-            'nombreCapitalizado' => (string) ($veredicto['nombreCapitalizado'] ?? ''),
-            'apellidoCapitalizado' => (string) ($veredicto['apellidoCapitalizado'] ?? ''),
+            'invertido' => Lee::booleano($veredicto['invertido'] ?? null) ?? false,
+            'confianza' => Lee::texto($veredicto['confianza'] ?? null) ?? '',
+            'motivo' => Lee::texto($veredicto['motivo'] ?? null) ?? 'sin motivo',
+            'nombreCapitalizado' => Lee::texto($veredicto['nombreCapitalizado'] ?? null) ?? '',
+            'apellidoCapitalizado' => Lee::texto($veredicto['apellidoCapitalizado'] ?? null) ?? '',
         ];
     }
 

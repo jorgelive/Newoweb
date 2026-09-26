@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Helper\VistaI18n;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Pms\Entity\PmsCatalogo;
@@ -133,7 +134,7 @@ class PmsCatalogoCrudController extends BaseCrudController
             ->renderExpanded(true)
             ->setColumns(12)
             ->addCssClass('field-full-width')
-            ->formatValue(self::primeraTraduccion(...));
+            ->formatValue(VistaI18n::espanol(...));
 
         yield CollectionField::new('subtitulo', 'Gancho (bajo el título)')
             ->setEntryType(TranslationTextType::class)
@@ -143,7 +144,7 @@ class PmsCatalogoCrudController extends BaseCrudController
             ->setRequired(false)
             ->setColumns(12)
             ->addCssClass('field-full-width')
-            ->formatValue(self::primeraTraduccion(...));
+            ->formatValue(VistaI18n::espanol(...));
 
         // --- PANEL 3: CONTENIDOS ---
         yield FormField::addPanel('Contenidos del escaparate')
@@ -183,22 +184,6 @@ class PmsCatalogoCrudController extends BaseCrudController
             ->hideOnIndex()
             ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
-    }
-
-    /** Texto en español de un campo i18n, con el primero como respaldo. */
-    private static function primeraTraduccion(mixed $value): string
-    {
-        if (empty($value) || !is_array($value)) {
-            return '';
-        }
-
-        foreach ($value as $item) {
-            if (($item['language'] ?? null) === 'es') {
-                return $item['content'] ?? '';
-            }
-        }
-
-        return reset($value)['content'] ?? '';
     }
 
     /**

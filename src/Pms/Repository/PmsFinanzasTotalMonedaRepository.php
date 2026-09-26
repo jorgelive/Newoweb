@@ -67,6 +67,8 @@ class PmsFinanzasTotalMonedaRepository extends ServiceEntityRepository
 
         $marcadores = implode(',', array_fill(0, count($binarios), '?'));
 
+        // Todas NOT NULL: el id va en BINARY(16) y los importes DECIMAL llegan como texto.
+        /** @var list<array{informacion_id: string, moneda_id: string, total_cargos: string, total_pagos: string}> $filas */
         $filas = $this->getEntityManager()->getConnection()->fetchAllAssociative(
             "SELECT informacion_id, moneda_id, total_cargos, total_pagos
              FROM pms_finanzas_total_moneda
@@ -83,11 +85,11 @@ class PmsFinanzasTotalMonedaRepository extends ServiceEntityRepository
             // canónica con guiones y **lanza `Invalid UUID` con 32 caracteres hex seguidos**, que
             // es justo lo que devuelve `HEX()` de MySQL. Se devuelve el UUID canónico para que
             // quien llame pueda indexar con `(string) $info->getId()` sin traducir nada.
-            $uuid = Uuid::fromBinary((string) $fila['informacion_id']);
-            $cargos = (string) $fila['total_cargos'];
-            $pagos = (string) $fila['total_pagos'];
+            $uuid = Uuid::fromBinary($fila['informacion_id']);
+            $cargos = $fila['total_cargos'];
+            $pagos = $fila['total_pagos'];
 
-            $porFicha[(string) $uuid][(string) $fila['moneda_id']] = [
+            $porFicha[(string) $uuid][$fila['moneda_id']] = [
                 'cargos' => $cargos,
                 'pagos' => $pagos,
                 'saldo' => number_format((float) $cargos - (float) $pagos, 2, '.', ''),

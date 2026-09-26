@@ -109,7 +109,7 @@ final class PmsGuiaTandaReglasCommand extends Command
     {
         foreach ($traducciones as $t) {
             if (is_array($t) && ($t['language'] ?? null) === 'es') {
-                return (string) ($t['content'] ?? '');
+                return is_string($t['content'] ?? null) ? $t['content'] : '';
             }
         }
 

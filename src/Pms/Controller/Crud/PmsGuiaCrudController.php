@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Helper\VistaI18n;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Form\Type\PmsGuiaHasSeccionType;
 use App\Panel\Form\Type\TranslationTextType;
@@ -109,13 +110,7 @@ class PmsGuiaCrudController extends BaseCrudController
             ->renderExpanded(true)         // ✅ Evita conflictos de colapsos
             ->setColumns(12)               // ✅ Full Width real con tu CSS
             ->addCssClass('field-full-width')
-            ->formatValue(function ($value) {
-                if (empty($value) || !is_array($value)) return '';
-                foreach ($value as $item) {
-                    if (isset($item['language']) && $item['language'] === 'es') return $item['content'] ?? '';
-                }
-                return reset($value)['content'] ?? '';
-            });
+            ->formatValue(VistaI18n::espanol(...));
 
         // --- PANEL 3: ESTRUCTURA ---
         yield FormField::addPanel('Secciones de la Guía')

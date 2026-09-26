@@ -43,10 +43,10 @@ final class PmsBeds24MessageTargetFinder
             ->setParameter('to', $to)
             ->setParameter('statusDeleted', PmsEventoBeds24Link::STATUS_SYNCED_DELETED);
 
+        /** @var list<PmsEventoBeds24Link> $links */
         $links = $qb->getQuery()->getResult();
 
         foreach ($links as $link) {
-            /** @var PmsEventoBeds24Link $link */
 
             // Extraemos la configuración a través de la nueva jerarquía
             $evento = $link->getEvento();

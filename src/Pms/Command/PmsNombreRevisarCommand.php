@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Nombre\OrdenDelNombre;
 use App\Pms\Nombre\RevisorDeOrdenDeNombre;
@@ -90,7 +91,7 @@ final class PmsNombreRevisarCommand extends Command
         $localizador = $input->getArgument('localizador');
         $reservas = is_string($localizador) && $localizador !== ''
             ? array_filter([$this->em->getRepository(PmsReserva::class)->findOneBy(['localizador' => $localizador])])
-            : $this->em->getRepository(PmsReserva::class)->findBy([], ['createdAt' => 'DESC'], max(1, (int) $input->getOption('limite')));
+            : $this->em->getRepository(PmsReserva::class)->findBy([], ['createdAt' => 'DESC'], max(1, EntradaDeConsola::entero($input->getOption('limite'), 'limite')));
 
         if ($reservas === []) {
             $io->error('No hay reservas que revisar.');

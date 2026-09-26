@@ -106,9 +106,13 @@ final readonly class PmsDisponibilidadService
                ->setParameter('establecimiento', $establecimientoId, UuidType::NAME);
         }
 
-        // `array_values()` porque `array_map` conserva las claves del origen, y la firma
-        // promete una lista: sin esto el JSON sale como objeto `{"3": …}` en vez de array.
-        return array_values(array_map(
+        // La firma promete una lista, y el JSON tiene que salir como array y no como `{"3": …}`.
+        // Lo es sin `array_values()`: la consulta no lleva `INDEX BY`, así que `getResult()` da
+        // una lista y `array_map` conserva sus claves.
+        /** @var list<PmsUnidad> $unidades */
+        $unidades = $qb->getQuery()->getResult();
+
+        return array_map(
             static fn (PmsUnidad $u) => new PmsUnidadDisponibleDto(
                 id:              (string) $u->getId(),
                 nombre:          $u->getNombre() ?? 'Sin nombre',
@@ -120,8 +124,8 @@ final readonly class PmsDisponibilidadService
                 camas:           $u->getCamas(),
                 banos:           $u->getBanos(),
             ),
-            $qb->getQuery()->getResult()
-        ));
+            $unidades
+        );
     }
 
     /**
@@ -190,6 +194,14 @@ final readonly class PmsDisponibilidadService
             ORDER BY u.nombre ASC, e.inicio ASC
         SQL;
 
+        // La unidad y las fechas nunca faltan (JOIN y WHERE); lo que cuelga de un LEFT JOIN, o del
+        // evento sin reserva que es un bloqueo, sí. `is_ota` es TINYINT: entero o texto.
+        /**
+         * @var list<array{evento_id: string, reserva_id: ?string, casita_id: string, casita: ?string,
+         *     establecimiento: ?string, huesped: ?string, entra: string, sale: string,
+         *     hora_entrada: ?string, hora_salida: ?string, estado: string, es_ota: int|string|null,
+         *     localizador: ?string}> $filas
+         */
         $filas = $this->em->getConnection()->executeQuery(
             $sql,
             [
@@ -245,6 +257,7 @@ final readonly class PmsDisponibilidadService
               AND DATE(e.fin)    > :desde
         SQL;
 
+        /** @var list<string> $filas `BIN_TO_UUID()` de una columna filtrada por NOT NULL. */
         $filas = $this->em->getConnection()->executeQuery(
             $sql,
             [
@@ -255,7 +268,7 @@ final readonly class PmsDisponibilidadService
             ['estados' => ArrayParameterType::STRING]
         )->fetchFirstColumn();
 
-        return array_map('strval', $filas);
+        return $filas;
     }
     /**
      * ¿Está libre la casita justo ANTES de entrar y justo DESPUÉS de salir?

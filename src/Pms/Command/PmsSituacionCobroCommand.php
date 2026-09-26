@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsQueSePide;
 use App\Pms\Finanzas\PmsSituacionDeCobro;
@@ -72,10 +73,10 @@ final class PmsSituacionCobroCommand extends Command
         $localizador = $input->getArgument('localizador');
 
         if (is_string($localizador) && $localizador !== '') {
-            return $this->unaReserva($io, $localizador, (string) $input->getOption('idioma'));
+            return $this->unaReserva($io, $localizador, EntradaDeConsola::texto($input->getOption('idioma'), 'idioma'));
         }
 
-        return $this->listado($io, max(1, (int) $input->getOption('limite')));
+        return $this->listado($io, max(1, EntradaDeConsola::entero($input->getOption('limite'), 'limite')));
     }
 
     private function unaReserva(SymfonyStyle $io, string $localizador, string $idioma): int

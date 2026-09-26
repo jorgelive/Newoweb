@@ -95,13 +95,13 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
                 );
         }
 
+        // `IS NOT NULL` arriba: nunca falta. Entero o texto según hidrate el driver.
+        /** @var list<array{roomId: int|string}> $rows */
         $rows = $qb->getQuery()->getArrayResult();
 
         $ids = [];
         foreach ($rows as $row) {
-            if (isset($row['roomId'])) {
-                $ids[] = (int) $row['roomId'];
-            }
+            $ids[] = (int) $row['roomId'];
         }
 
         return array_values(array_unique($ids));
@@ -138,13 +138,13 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
                 );
         }
 
+        // `IS NOT NULL` arriba: nunca falta. Entero o texto según hidrate el driver.
+        /** @var list<array{propertyId: int|string}> $rows */
         $rows = $qb->getQuery()->getArrayResult();
 
         $ids = [];
         foreach ($rows as $row) {
-            if (isset($row['propertyId'])) {
-                $ids[] = (int) $row['propertyId'];
-            }
+            $ids[] = (int) $row['propertyId'];
         }
 
         return array_values(array_unique($ids));

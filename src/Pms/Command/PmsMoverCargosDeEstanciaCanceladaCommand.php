@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Pms\Entity\PmsCargoFinanciero;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
@@ -61,7 +62,7 @@ final class PmsMoverCargosDeEstanciaCanceladaCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $seco = (bool) $input->getOption('dry-run');
-        $buscado = trim((string) $input->getArgument('reserva'));
+        $buscado = trim(EntradaDeConsola::texto($input->getArgument('reserva'), 'reserva'));
 
         $reserva = $this->buscarReserva($buscado);
 

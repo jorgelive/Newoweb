@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Command\EntradaDeConsola;
 use App\Finanzas\Entity\FinEnlacePago;
 use App\Finanzas\Enum\FinOrigenCobro;
 use App\Finanzas\Repository\FinEnlacePagoRepository;
@@ -95,7 +96,7 @@ final class PmsPrepagoRevisarLlegadasCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $seco = (bool) $input->getOption('dry-run');
-        $diasAtras = max(0, (int) $input->getOption('dias-atras'));
+        $diasAtras = max(0, EntradaDeConsola::entero($input->getOption('dias-atras'), 'dias-atras'));
 
         if (!$this->prepago->estaActivo()) {
             $io->warning('Los enlaces de prepago están desactivados (FINANZAS_ENLACES_PREPAGO=0): no hay nada que relevar.');
@@ -107,6 +108,7 @@ final class PmsPrepagoRevisarLlegadasCommand extends Command
         $hoy = new DateTimeImmutable('today');
         $desde = $hoy->modify(sprintf('-%d days', $diasAtras));
 
+        /** @var list<array{info_id: string, loc: string, llegada: ?string}> $filas */
         $filas = $this->em->getConnection()->fetchAllAssociative(
             'SELECT DISTINCT BIN_TO_UUID(i.id) AS info_id, r.localizador AS loc, r.fecha_llegada AS llegada
              FROM pms_reserva r
@@ -157,8 +159,8 @@ final class PmsPrepagoRevisarLlegadasCommand extends Command
         $sinCambio = 0;
 
         foreach ($filas as $fila) {
-            $localizador = (string) $fila['loc'];
-            $info = $this->em->getRepository(PmsInformacionFinanciera::class)->find((string) $fila['info_id']);
+            $localizador = $fila['loc'];
+            $info = $this->em->getRepository(PmsInformacionFinanciera::class)->find($fila['info_id']);
 
             if (!$info instanceof PmsInformacionFinanciera) {
                 continue;

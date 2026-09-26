@@ -85,6 +85,7 @@ final class PmsGuiaItemGaleriaRepository extends ServiceEntityRepository
      */
     public function normalizeByItemId(Uuid $itemId): void
     {
+        /** @var list<PmsGuiaItemGaleria> $rows */
         $rows = $this->createQueryBuilder('g')
             ->andWhere('IDENTITY(g.item) = :itemId')
             ->setParameter('itemId', $itemId, 'uuid')
@@ -97,10 +98,8 @@ final class PmsGuiaItemGaleriaRepository extends ServiceEntityRepository
         $i = 0;
 
         foreach ($rows as $r) {
-            if ($r instanceof PmsGuiaItemGaleria) {
-                $r->setOrden($i++);
-                $em->persist($r);
-            }
+            $r->setOrden($i++);
+            $em->persist($r);
         }
     }
 }

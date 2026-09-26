@@ -39,6 +39,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
 12.17. [Los emojis llegan como `?`](#1217-los-emojis-llegan-como--y-no-es-culpa-nuestra-08092026)
 12.19. [Nulos: decide el dominio, no los datos](#1219-nulos-decide-el-dominio-no-los-datos-26092026)
 12.20. [El pull y el webhook construían el DTO por dos caminos](#1220-el-pull-y-el-webhook-construían-el-dto-por-dos-caminos-26092026)
+12.21. [El nivel 9 (`mixed`) en Pms: lo que no era sólo tipos](#1221-el-nivel-9-mixed-en-pms-lo-que-no-era-sólo-tipos-26092026)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
 > Horario extra (early check-in / late check-out → evento `extension` invisible): §7.1.b.
@@ -6073,6 +6074,28 @@ pull↔webhook era un cambio que no era un cambio, que Doctrine registraba y los
 lo construye, así que un campo que no esté ahí no llega por ningún camino — que es mejor que llegar
 por uno y no por el otro.
 
+## 12.21 El nivel 9 (`mixed`) en Pms: lo que no era sólo tipos (26/09/2026)
+
+El nivel 9 de PHPStan es el que no deja operar sobre `mixed`: filas de SQL crudo, argumentos de
+consola, columnas JSON, el changeset de Doctrine. Casi todo se cerró **declarando la forma que ya
+tenía** —`@var list<array{…}>` según el `SELECT`, `@var list<Entidad>` en cada `getResult()`—, sin
+tocar lo que hace el código. Cuatro sitios no eran sólo tipos:
+
+| Dónde | Qué pasaba | Ahora |
+|---|---|---|
+| `TarifaDailyPriceFlattener::flatten()` | un precio que no es número (`'abc'`) entraba como `(float) 'abc'` = **0.00**: el día salía gratis, al calendario y al push de tarifas | el rango **no cuenta**, como si le faltara el precio, y el día lo rellena la tarifa base (o se omite, que es el contrato de siempre, §12.0.1). Igual con un fallback sin precio legible |
+| `PmsRepararHitosCommand` | un hito guardado como **número** llegaba a `MomentoDeHito::de()`, que no lo admite: `TypeError` con `strict_types`. El comando que repara hitos raros se caía con uno raro | se descarta, que es lo que `MapaDeHitos::desdeCrudo()` hace con lo ilegible |
+| `RevisorDeOrdenDeNombre::veredicto()` | `(bool) ($veredicto['invertido'] ?? false)`: un `"false"` en texto era `true`, o sea **cruzar el nombre** | se lee con `Lee::booleano()`; lo ilegible es «no tocar». El esquema pide un booleano, así que hoy no pasaba |
+| Opciones numéricas de los comandos (`--limite`, `--dias`, `--dias-atras`, `--pax`) | `(int) 'diez'` era `0`, y `max(1, 0)` revisaba UNA reserva diciendo que había terminado | `App\Command\EntradaDeConsola` falla con el nombre de la opción. Con un número, nada cambia: los crons siguen igual |
+
+⚠️ **El `sourceId` de un rango sin id es un hash de sus datos y NO cambió**: un rango con otro
+`sourceId` parecería otro rango. Lo fija `TarifaDailyPriceFlattenerTest` con el valor que daba el
+código anterior.
+
+⚠️ **`app:pms:retirar-fantasmas` pasa los estados «entregados» como parámetro de lista** (`IN (?)`
+con `ArrayParameterType::STRING`) y no con `quote()`, que en DBAL 3 devuelve `mixed`. Comprobado
+contra la base local: mismos veredictos que antes.
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -6099,6 +6122,8 @@ por uno y no por el otro.
 | Tocar cascadas del grafo evento/link/cola de push | `Beds24BookingsPushQueueCreator` | `enqueueForLink()` — **lee §12.11 antes** |
 | Qué hace el pull con un espejo que ningún link reclama | `BookingPullPersister` | `upsert()`, la guarda de `custom2 === 'MIRROR'` — §6.3.d |
 | Que el pull no le invente reserva a un evento que ya existe sin ella | `BookingPullPersister` | `upsert()`, rama madre/individual — §7.1.d |
+| Qué se hace con un precio de tarifa que no es número (§12.21) | `TarifaDailyPriceFlattener` | `decimal()` — hoy: el rango no cuenta |
+| Leer un argumento u opción de un comando | `App\Command\EntradaDeConsola` | `texto()`/`entero()`/`textos()` — falla con el nombre, no con un cero (§12.21) |
 | Retirar reservas fantasma (espejos adoptados) | `PmsRetirarReservasFantasmaCommand` | `app:pms:retirar-fantasmas <loc…>` — informe por defecto, `--ensayo`, `--ejecutar`. **La lista la decide una persona**: §6.3.d |
 | Que el refresco de tarifas deje de re-encolar lo idéntico (§8.1) | `Beds24RatesPushQueueCreator` | `enqueueForInterval()` — añadir dedupe por valor contra el último `success` de la unidad+fecha |
 | Cambiar el paso/horizonte del barrido de tarifas (§8.1) | `Beds24RatesPushJob` | `getStepInterval()` (`P2W`) / `getHorizonteMaximo()` |

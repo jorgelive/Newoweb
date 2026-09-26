@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Helper\VistaI18n;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Field\LiipImageField;
 use App\Panel\Form\Type\TranslationTextType;
@@ -199,13 +200,7 @@ class PmsGuiaItemGaleriaCrudController extends BaseCrudController
             ->showEntryLabel(false)
             ->renderExpanded(true)
             ->setColumns(12)
-            ->formatValue(function ($value) {
-                if (empty($value) || !is_array($value)) return '';
-                foreach ($value as $item) {
-                    if (isset($item['language']) && $item['language'] === 'es') return $item['content'] ?? '';
-                }
-                return (string) (reset($value)['content'] ?? '');
-            });
+            ->formatValue(VistaI18n::espanol(...));
 
         yield ImageField::new('imageName', 'Archivo')
             ->setBasePath($basePath)

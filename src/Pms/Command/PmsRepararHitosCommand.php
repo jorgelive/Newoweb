@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Command;
 
 use App\Contract\MapaDeHitos;
+use DateTimeInterface;
 use App\Pms\Entity\PmsConversacionEnlace;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -89,7 +90,7 @@ final class PmsRepararHitosCommand extends Command
             if (!$seco) {
                 // El normalizador de la entidad hace el trabajo: basta con devolverle lo que
                 // había leído.
-                $enlace->setMilestones(MapaDeHitos::desdeCrudo($hitos));
+                $enlace->setMilestones(MapaDeHitos::desdeCrudo($this->legibles($hitos)));
             }
         }
 
@@ -105,5 +106,32 @@ final class PmsRepararHitosCommand extends Command
         ));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Lo que `MapaDeHitos::desdeCrudo()` sabe leer: texto, fecha, o el objeto serializado con su
+     * `date`. Lo demás —un número, una lista sin fecha— es ilegible y se descarta aquí, que es lo
+     * mismo que haría él con un valor que no entiende.
+     *
+     * ⚠️ No es un filtro de estilo. Un número llegaba hasta `MomentoDeHito::de()`, cuya firma no lo
+     * admite, y con `strict_types` eso es un `TypeError`: el comando que existe para reparar hitos
+     * raros se caía justo con uno raro.
+     *
+     * @param array<string, mixed> $crudos
+     * @return array<string, DateTimeInterface|string|array{date: string}|null>
+     */
+    private function legibles(array $crudos): array
+    {
+        $legibles = [];
+
+        foreach ($crudos as $clave => $valor) {
+            if ($valor === null || is_string($valor) || $valor instanceof DateTimeInterface) {
+                $legibles[$clave] = $valor;
+            } elseif (is_array($valor) && is_string($valor['date'] ?? null)) {
+                $legibles[$clave] = ['date' => $valor['date']];
+            }
+        }
+
+        return $legibles;
     }
 }
