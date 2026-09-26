@@ -20,8 +20,12 @@ Stimulus controller  →  fetch(eventUrl / resourceUrl)  →  FullCalendar
 
 ## 2. Configuración YAML
 
-Ubicación: `config/services/services_pms.yaml`
+Ubicación: `config/services/services_parameters_pms.yaml` (los servicios del módulo viven en
+`services_pms.yaml`; los parámetros, no).
 Clave raíz: `parameters.calendars_pms` (prefijo `calendars_` escaneado por CalendarConfigResolver)
+
+Son **nueve** calendarios; `ConfiguracionRealTest` falla si aparece o desaparece uno sin que nadie
+lo mire. Los `*_spa` son los de `util/` (§12); los demás, del panel EasyAdmin legacy.
 
 ### Reservas
 
@@ -29,8 +33,15 @@ Clave raíz: `parameters.calendars_pms` (prefijo `calendars_` escaneado por Cale
 |---|---|
 | `pms_eventos_no_cancelados` | `pms_eventos_raw` |
 | `pms_eventos_todos` | `pms_eventos_raw` |
+| `pms_eventos_no_cancelados_spa` / `pms_eventos_todos_spa` | `pms_eventos_spa` |
+| `pms_eventos_ocupacion_spa` | `pms_eventos_spa` (fondo del calendario de tarifas, §12) |
 
-Filtros relevantes: `estado.not_in: [cancelada]` para el calendario sin canceladas.
+Filtros relevantes: `estado.not_in: [cancelada, extension]` para el calendario sin canceladas.
+
+⚠️ **`filters.establecimientoId` y `filters.unidadIds` están en los cinco y NO los lee nadie.**
+Ningún provider los aplicaba antes del tipado y el DTO tampoco los lee, a propósito: leerlos haría
+creer que filtran. El filtro por establecimiento que sí existe es el del catálogo de filas
+(`resources.establecimientoId`, §3), y ése tiene su propia trampa.
 
 URLs generadas por el provider (bifurcación reserva vs bloqueo):
 - Con reserva: `reservaEdit` / `reservaShow`
@@ -42,6 +53,8 @@ URLs generadas por el provider (bifurcación reserva vs bloqueo):
 |---|---|
 | `tarifa_rangos_raw` | `tarifa_ranges_raw` |
 | `tarifa_rangos_compactados` | `tarifa_compressed_ranges` |
+| `tarifa_rangos_raw_spa` | `tarifa_ranges_spa` |
+| `tarifa_rangos_compactados_spa` | `tarifa_compressed_ranges_spa` |
 
 Campos clave del config de tarifas:
 - `fields.resourceRoot: unidad` — navega getUnidad()
@@ -51,12 +64,88 @@ Campos clave del config de tarifas:
 
 ---
 
-## 3. CalendarConfigResolver
+## 3. CalendarConfigResolver y la configuración tipada
 
 `src/Calendar/Service/CalendarConfigResolver.php`
 
 Escanea todos los parámetros del DI con prefijo `calendars_`, los fusiona en un map único
 y entrega la sub-config por clave cuando el controller la solicita.
+
+**Y la entrega ya tipada** (desde el 26/09/2026): `getConfig()` devuelve un
+`App\Calendar\Config\ConfiguracionCalendario`, no el array. Es el **único** sitio que toca el
+array del YAML; los providers, el registro y el catálogo de filas trabajan con el objeto.
+
+```
+YAML (calendars_*) ──► CalendarConfigResolver::getConfig('clave')
+                          └─ ConfiguracionCalendario::fromArray()   ← único lector del array
+                               ├─ campos     CamposDeTarifa       (fields)
+                               ├─ filtros    FiltrosDeCalendario  (filters) ─ FiltroDeIds ×2
+                               ├─ evento     OpcionesDeEvento     (event)   ─ EnlacesDeEvento (event.url)
+                               ├─ horas      HorasDeEvento        (eventTime)
+                               ├─ recursos   OpcionesDeCatalogo   (resources)
+                               ├─ enlacesRaiz EnlacesDeEvento     (url en la raíz)
+                               └─ doctrine   OpcionesDoctrineLegacy (parameters, resource, repositorymethod)
+FullcalendarLoadController ──► $config->conRetorno(current_page)   ← copia; la guardada no se toca
+ProviderRegistry / Provider::supports|getEvents|getResources(ConfiguracionCalendario)
+```
+
+Antes cada provider leía `$config['fields']['start']` a mano, con su propio `(string)` y su propio
+valor por defecto: eran ~170 `mixed` para el nivel 9 de PHPStan en `src/Calendar/`. El objetivo no
+era el nivel, sino que el valor por defecto de cada clave estuviera escrito **una vez**.
+
+#### Lo que NO decide el DTO: si la configuración es válida
+
+Leer nunca lanza. Lo que falta o no tiene el tipo esperado queda en `null` (o en su defecto), y es
+**el provider** el que rechaza, con el mensaje de siempre («`tarifa_ranges_raw requiere
+fields.price`»). Validar al leer adelantaría el 500 y cambiaría los mensajes que ya conoce quien
+lee el log. Por eso `CamposDeTarifa` lo tiene todo anulable: qué es obligatorio depende del provider
+(`unit` sólo lo exigen los compactados).
+
+**La regla de lectura:** un valor de otro tipo es un valor que no está. Con el YAML real no cambia
+nada; con uno roto, lo que antes era un `(string)` de un array —«Array» y un warning— ahora es el
+valor por defecto.
+
+#### Los valores por defecto, en un sitio
+
+| Clave | Si no está | Dónde |
+|---|---|---|
+| `resources.showAll` | `true` — el catálogo lista TODAS las unidades | `OpcionesDeCatalogo` |
+| `resources.activeField` / `establecimientoField` | `activo` / `establecimiento` | `OpcionesDeCatalogo` |
+| `event.includeCurrency` | `true` | `OpcionesDeEvento` |
+| `event.priceDecimals` | `2` (nadie lo escribe) | `OpcionesDeEvento` |
+| `event.titleFormat` | **distinto por provider**: `'{currency} {price} \| {minStay}'` (raw, que además lo ignora) o `'{currency} {price} · {minStay}N'` (SPA). Por eso el DTO lo deja en `null` y lo pone cada provider | el provider |
+| `eventTime.start` / `end` | `12:00:00` / **`11:59:59`** (el YAML real pone `11:59:00`) | `HorasDeEvento` |
+| `fields.unitId` / `unitTitle` | `<unit>.id` / `nombre` | el provider compactado |
+| `parameters.start/end/id/title` (Doctrine) | `start`/`end`/`id`/`title`; un `id` vacío también cae a `id` | `OpcionesDoctrineLegacy` |
+
+`eventTime` se guarda como **texto**, no como `[h, m, s]`: los compactados descartan una hora fuera
+de rango y los sin compactar la aceptan (y `25:00` pasa al día siguiente). Unificarlo cambiaría lo
+que se pinta con un YAML raro.
+
+#### Trampas que el tipado dejó a la vista
+
+- ⚠️ **`provider: null` también aparta al provider Doctrine.** `supports()` miraba
+  `array_key_exists`, no `isset`; por eso `ConfiguracionCalendario` lleva `declaraProvider` aparte
+  de `provider`.
+- ⚠️ **En el calendario de estancias legacy el `role` de un enlace es OPCIONAL** (sin él, el enlace
+  sale para todos), y en tarifas es obligatorio. Un `role` ilegible —una lista— se le pasaba crudo
+  a `isGranted()`, que lo denegaba. Si el DTO lo leyera como «sin rol», abriría el enlace a todos:
+  `Enlace` lleva `rolDeclarado` para que el provider siga denegando.
+- ⚠️ **`resources.establecimientoId` compara texto contra `binary(16)`** y devuelve CERO unidades,
+  sin error (comprobado contra la base local). Hoy vale `null` en todos los calendarios; quien lo
+  active tiene que tipar el parámetro en `CalendarResourceCatalog::fetchCatalog()` antes.
+- La exclusión de `config/services/services_calendar.yaml` apuntaba a `config/src/…` (`../src/` en
+  vez de `../../src/`) y no excluía nada. Corregida, y `Config/` añadida.
+
+#### Cómo se comprobó que la salida no cambió
+
+`tools/pruebas/probar-calendario-config.php --guardar=antes.json` con el código viejo y
+`--contra=antes.json` con el nuevo, contra la base local: los nueve calendarios reales por el
+controlador (con y sin roles, con y sin `current_page`, tres ventanas de fechas) y 22
+configuraciones sintéticas con lo que el YAML no ejercita (defectos, `event.tooltip`,
+`priceDecimals`, `url` en la raíz, filtros planos, el provider Doctrine, configuraciones rotas y sus
+mensajes). 294 respuestas y 4 960 eventos/recursos: **idénticas**. Se corre de nuevo en cuanto se
+toque un provider o un DTO de `Config/`.
 
 ---
 
@@ -78,17 +167,22 @@ GET /fullcalendar/load/resource/{calendarKey}?start=ISO&end=ISO
 
 `src/Calendar/Provider/`
 
-| Clase | supports() |
+| Clase | supports() (sobre `ConfiguracionCalendario`, §3) |
 |---|---|
-| `DoctrineCalendarProvider` | config tiene `entity` y NO tiene `provider` |
-| `PmsEventosRawCalendarProvider` (legacy/EasyAdmin) | `config['provider'] === 'pms_eventos_raw'` |
-| `PmsEventosSpaCalendarProvider` (SPA/Vue) | `config['provider'] === 'pms_eventos_spa'` |
-| `TarifaRangesRawCalendarProvider` (legacy/EasyAdmin) | `config['provider'] === 'tarifa_ranges_raw'` |
-| `TarifaRangesSpaCalendarProvider` (SPA/Vue) | `config['provider'] === 'tarifa_ranges_spa'` |
-| `TarifaCompressedRangesCalendarProvider` (legacy/EasyAdmin) | `config['provider'] === 'tarifa_compressed_ranges'` |
-| `TarifaCompressedRangesSpaCalendarProvider` (SPA/Vue) | `config['provider'] === 'tarifa_compressed_ranges_spa'` |
+| `DoctrineCalendarProvider` | trae `entity` no vacía y NO declara `provider` (ni siquiera a `null`). **Ningún calendario del YAML actual cae aquí** |
+| `PmsEventosRawCalendarProvider` (legacy/EasyAdmin) | `provider === 'pms_eventos_raw'` |
+| `PmsEventosSpaCalendarProvider` (SPA/Vue) | `provider === 'pms_eventos_spa'` |
+| `TarifaRangesRawCalendarProvider` (legacy/EasyAdmin) | `provider === 'tarifa_ranges_raw'` y trae `entity` |
+| `TarifaRangesSpaCalendarProvider` (SPA/Vue) | `provider === 'tarifa_ranges_spa'` y trae `entity` |
+| `TarifaCompressedRangesCalendarProvider` (legacy/EasyAdmin) | `provider === 'tarifa_compressed_ranges'` y trae `entity` |
+| `TarifaCompressedRangesSpaCalendarProvider` (SPA/Vue) | `provider === 'tarifa_compressed_ranges_spa'` y trae `entity` |
 
-`ProviderRegistry` exige exactamente 1 match (0 o >1 → HTTP 500).
+`ProviderRegistry` exige exactamente 1 match (0 o >1 → HTTP 500). `ConfiguracionRealTest` pasa
+los nueve calendarios del YAML por el registro real y comprueba que cada uno cae en el que nombra.
+
+Los providers de tarifas comprueban lo obligatorio en su `assertConfig()`, que devuelve las rutas
+ya como `string` (`entidad`, `start`, `end`, `price` y, en los compactados, `unit`): el resto del
+provider no vuelve a preguntar si están.
 
 ### Providers "Spa" (implementados para desacoplar de EasyAdmin)
 
@@ -258,6 +352,19 @@ getEvents:
 - Título: `"{precio} ({neto20%} | 20% - {neto30%} | 30%) {minStay}N"`
 
 getResources: igual que reservas (deduplica unidad, ordena, asigna orden)
+
+### TarifaCompressedRangesCalendarProvider — lo que el legacy NO hace
+
+Dos rarezas que el tipado dejó a la vista y que se conservaron **a propósito** (es el panel viejo;
+la variante SPA ya las resolvió y es la que usa `util/`):
+
+- **Nunca genera `urledit`/`urlshow`.** Pasa el id del rango CRUDO (un `Uuid`) al flattener, que lo
+  descarta por no ser escalar y marca el tramo con un `hash:…`; y el respaldo `fields.id` del primer
+  rango tampoco pasa el `is_scalar()`. Sin id, no hay enlace.
+- **Agrupa por `spl_object_id()`**, no por la unidad: `unidad.id` es un `Uuid` y no pasa el
+  `is_scalar()`. Los ids de sus eventos y recursos cambian entre peticiones, y como el catálogo de
+  filas (§6) usa el UUID real, `getResources()` devuelve **cada unidad dos veces** (14 filas para 7
+  casitas en la base local). La sonda de §3 renumera esos ids para poder comparar.
 
 ---
 
@@ -566,8 +673,11 @@ const calendarOptions = computed(() => ({
 
 | Archivo | Responsabilidad |
 |---|---|
-| `config/services/services_pms.yaml` | Config YAML de calendarios PMS |
-| `src/Calendar/Service/CalendarConfigResolver.php` | Fusiona configs de parámetros calendars_* |
+| `config/services/services_parameters_pms.yaml` | Config YAML de calendarios PMS (`parameters.calendars_pms`) |
+| `src/Calendar/Service/CalendarConfigResolver.php` | Fusiona configs de parámetros calendars_* y las entrega tipadas |
+| `src/Calendar/Config/ConfiguracionCalendario.php` | La config de UN calendario, leída una vez del array (§3); el resto de `Config/` son sus bloques |
+| `tests/Calendar/Config/ConfiguracionRealTest.php` | Lee el YAML real: nueve calendarios, un provider cada uno, y sus valores |
+| `tools/pruebas/probar-calendario-config.php` | Foto del feed de todos los calendarios contra la base local, para comparar antes/después |
 | `src/Calendar/Provider/ProviderRegistry.php` | Elige el provider por supports() |
 | `src/Calendar/Controller/FullcalendarLoadController.php` | Endpoints /fullcalendar/load/event|resource/{cal} |
 | `src/Calendar/Provider/PmsEventosRawCalendarProvider.php` | Eventos PMS con filtros (legacy/EasyAdmin) |

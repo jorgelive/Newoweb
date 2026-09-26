@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Calendar\Service;
 
+use App\Calendar\Config\ConfiguracionCalendario;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -12,15 +13,18 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  * MODIFICACIÓN:
  * Este servicio ha sido actualizado para soportar configuraciones distribuidas.
  * En lugar de leer únicamente 'parameters.calendars', ahora escanea y fusiona
- * dinámicamente cualquier parámetro que comience con el prefijo "calendar_".
+ * dinámicamente cualquier parámetro que comience con el prefijo "calendars_".
  *
  * Prioridad de carga:
  * 1. Parámetro legacy 'calendars' (si existe).
- * 2. Parámetros modulares 'calendar_*' (ej: calendar_pms, calendar_reserva).
+ * 2. Parámetros modulares 'calendars_*' (ej: calendars_pms).
  *
  * Esto permite:
  * - Mantener la configuración dividida en múltiples archivos YAML.
  * - Centralizar la validación de existencia y tipo de array.
+ *
+ * Y es el ÚNICO sitio que convierte el array del YAML en {@see ConfiguracionCalendario}: los
+ * providers ya no ven el array.
  */
 final class CalendarConfigResolver
 {
@@ -28,9 +32,17 @@ final class CalendarConfigResolver
      * Almacena en caché la configuración fusionada para evitar re-escanear
      * el ParameterBag en múltiples llamadas dentro del mismo request.
      *
-     * @var array<string, mixed>|null
+     * @var array<mixed>|null
      */
     private ?array $resolvedConfig = null;
+
+    /**
+     * Las ya convertidas, por clave. Son inmutables: lo propio de cada petición (el `returnTo`) se
+     * añade sobre una copia, así que compartirlas no mezcla peticiones.
+     *
+     * @var array<string, ConfiguracionCalendario>
+     */
+    private array $convertidas = [];
 
     public function __construct(
         private readonly ParameterBagInterface $params,
@@ -41,12 +53,14 @@ final class CalendarConfigResolver
      *
      * @param string $calendarKey La clave única del calendario (ej: 'pms_eventos_no_cancelados').
      *
-     * @return array<string, mixed> La configuración del calendario solicitado.
-     *
      * @throws HttpException 500 si la clave no existe o no es un array válido.
      */
-    public function getConfig(string $calendarKey): array
+    public function getConfig(string $calendarKey): ConfiguracionCalendario
     {
+        if (isset($this->convertidas[$calendarKey])) {
+            return $this->convertidas[$calendarKey];
+        }
+
         // Cargamos y fusionamos las configuraciones si aún no se ha hecho
         if ($this->resolvedConfig === null) {
             $this->resolvedConfig = $this->loadAllConfigurations();
@@ -54,7 +68,7 @@ final class CalendarConfigResolver
 
         if (!array_key_exists($calendarKey, $this->resolvedConfig)) {
             throw new HttpException(500, sprintf(
-                'El calendario "%s" no fue encontrado en la configuración fusionada (buscando en parameters.calendars y parameters.calendar_*).',
+                'El calendario "%s" no fue encontrado en la configuración fusionada (buscando en parameters.calendars y parameters.calendars_*).',
                 $calendarKey
             ));
         }
@@ -65,7 +79,7 @@ final class CalendarConfigResolver
             throw new HttpException(500, sprintf('La configuración de "%s" debe ser un array válido.', $calendarKey));
         }
 
-        return $cfg;
+        return $this->convertidas[$calendarKey] = ConfiguracionCalendario::fromArray($cfg);
     }
 
     /**
@@ -73,9 +87,9 @@ final class CalendarConfigResolver
      *
      * Busca:
      * 1. La clave exacta 'calendars' (compatibilidad).
-     * 2. Cualquier clave que empiece por 'calendar_'.
+     * 2. Cualquier clave que empiece por 'calendars_'.
      *
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     private function loadAllConfigurations(): array
     {
@@ -87,7 +101,7 @@ final class CalendarConfigResolver
             $mergedParams = array_merge($mergedParams, $allParams['calendars']);
         }
 
-        // 2. Escanear dinámicamente buscando prefijos 'calendar_'
+        // 2. Escanear dinámicamente buscando prefijos 'calendars_'
         foreach ($allParams as $key => $value) {
             // Verificamos prefijo y que sea un array para evitar errores con strings
             if (str_starts_with($key, 'calendars_') && is_array($value)) {

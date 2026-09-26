@@ -25,9 +25,12 @@ services:
 
     App\Calendar\:
         resource: '../../src/Calendar/'
+        # `../../` como el `resource`: las rutas son relativas a ESTE archivo, y con `../src/`
+        # apuntaban a `config/src/`, que no existe — la exclusión no excluía nada.
         exclude:
-            - '../src/Calendar/Dto/'
-            - '../src/Calendar/Entity/'
+            - '../../src/Calendar/Config/'
+            - '../../src/Calendar/Dto/'
+            - '../../src/Calendar/Entity/'
 
     # =========================
     # controllers del módulo Calendar

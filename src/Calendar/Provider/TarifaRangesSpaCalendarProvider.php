@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Calendar\Provider;
 
+use App\Calendar\Config\CamposDeTarifa;
+use App\Calendar\Config\ConfiguracionCalendario;
 use Doctrine\ORM\EntityRepository;
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
@@ -11,7 +13,6 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
-use Doctrine\Persistence\ObjectRepository;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -31,39 +32,36 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
         private readonly CalendarResourceCatalog $resourceCatalog,
     ) {}
 
-    public function supports(array $config): bool
+    public function supports(ConfiguracionCalendario $config): bool
     {
-        return (($config['provider'] ?? null) === 'tarifa_ranges_spa')
-            && isset($config['entity'])
-            && is_string($config['entity']);
+        return $config->provider === 'tarifa_ranges_spa' && $config->entidad !== null;
     }
 
     /**
      * @return list<CalendarEventDto>
      */
-    public function getEvents(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    public function getEvents(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
-        $this->assertConfig($config);
+        $valida = $this->assertConfig($config);
+        $fields = $valida['campos'];
 
-        $entities = $this->fetchEntities($from, $to, $config);
+        $entities = $this->fetchEntities($from, $to, $config, $valida);
 
-        $fields = (array) $config['fields'];
-        $eventCfg = isset($config['event']) && is_array($config['event']) ? $config['event'] : [];
+        $eventCfg = $config->evento;
 
-        $includeCurrency = (bool) ($eventCfg['includeCurrency'] ?? true);
-        $titleFormat = (string) ($eventCfg['titleFormat'] ?? '{currency} {price} · {minStay}N');
-        $priceDecimals = (int) ($eventCfg['priceDecimals'] ?? 2);
+        $includeCurrency = $eventCfg->incluirMoneda;
+        $titleFormat = $eventCfg->formatoTitulo ?? '{currency} {price} · {minStay}N';
+        $priceDecimals = $eventCfg->decimalesPrecio;
 
-        $eventTime = (isset($config['eventTime']) && is_array($config['eventTime'])) ? $config['eventTime'] : [];
-        [$sh, $sm, $ss] = $this->parseHms((string)($eventTime['start'] ?? '12:00:00'), [12, 0, 0]);
-        [$eh, $em, $es] = $this->parseHms((string)($eventTime['end'] ?? '11:59:59'), [11, 59, 59]);
+        [$sh, $sm, $ss] = $this->parseHms($config->horas->inicio, [12, 0, 0]);
+        [$eh, $em, $es] = $this->parseHms($config->horas->fin, [11, 59, 59]);
 
         $out = [];
 
         foreach ($entities as $entity) {
             // 1. Datos básicos (Fechas)
-            $startRaw = $this->resolvePath($entity, (string) $fields['start']);
-            $endRaw = $this->resolvePath($entity, (string) $fields['end']);
+            $startRaw = $this->resolvePath($entity, $valida['start']);
+            $endRaw = $this->resolvePath($entity, $valida['end']);
 
             if (!$startRaw instanceof DateTimeInterface || !$endRaw instanceof DateTimeInterface) {
                 continue;
@@ -74,8 +72,8 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
 
             // 2. Active / Inactive
             $isInactive = false;
-            if (!empty($fields['active'])) {
-                $activeVal = $this->resolvePath($entity, (string) $fields['active']);
+            if ($fields->active !== null) {
+                $activeVal = $this->resolvePath($entity, $fields->active);
                 if ($activeVal !== null) {
                     $isInactive = ((bool) $activeVal) === false;
                 }
@@ -83,50 +81,48 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
 
             // 3. IDs y Recursos
             $id = null;
-            if (!empty($fields['id'])) {
-                $id = $this->resolvePath($entity, (string) $fields['id']);
+            if ($fields->id !== null) {
+                $id = $this->resolvePath($entity, $fields->id);
             }
 
             if ($id instanceof Uuid) {
                 $id = (string) $id;
             }
             // `is_scalar()` deja pasar `bool` y `float`, que no son identificadores: dos eventos
-        // con `true` compartirían id y FullCalendar pintaría uno solo. Se acota a los dos que
-        // sí valen, y lo demás cae al identificador de objeto.
-        $id = (is_string($id) || is_int($id)) && $id !== '' ? $id : spl_object_id($entity);
+            // con `true` compartirían id y FullCalendar pintaría uno solo. Se acota a los dos que
+            // sí valen, y lo demás cae al identificador de objeto.
+            $id = (is_string($id) || is_int($id)) && $id !== '' ? $id : spl_object_id($entity);
 
             $resourceId = null;
             $resourceRoot = $entity;
-            if (!empty($fields['resourceRoot'])) {
-                $resourceRoot = $this->resolvePath($entity, (string) $fields['resourceRoot']);
+            if ($fields->resourceRoot !== null) {
+                $resourceRoot = $this->resolvePath($entity, $fields->resourceRoot);
             }
 
-            if (!empty($fields['resourceId'])) {
-                $rid = $this->resolvePath($entity, (string) $fields['resourceId']);
+            if ($fields->resourceId !== null) {
+                $rid = $this->resolvePath($entity, $fields->resourceId);
                 if ($rid instanceof Uuid) {
                     $rid = (string) $rid;
                 }
-                $resourceId = (is_scalar($rid) && $rid !== '') ? $rid : null;
+                // Texto o entero: un `bool` o un `float` —que el `is_scalar()` de antes dejaba
+                // pasar— reventaba en el constructor del DTO con un TypeError.
+                $resourceId = (is_string($rid) || is_int($rid)) && $rid !== '' ? $rid : null;
             } elseif (is_object($resourceRoot) && method_exists($resourceRoot, 'getId')) {
-                $resourceId = $resourceRoot->getId();
-                if ($resourceId instanceof Uuid) {
-                    $resourceId = (string) $resourceId;
-                }
+                $resourceId = $this->idDeRecurso($resourceRoot->getId());
             }
 
             // 4. Precio y MinStay
-            $priceVal = $this->resolvePath($entity, (string) $fields['price']);
-            $price = (float) ($priceVal ?? 0);
+            $price = $this->aDecimal($this->resolvePath($entity, $valida['price']));
 
             $minStay = 2;
-            if (!empty($fields['minStay'])) {
-                $ms = $this->resolvePath($entity, (string) $fields['minStay']);
-                if ($ms !== null) $minStay = (int) $ms;
+            if ($fields->minStay !== null) {
+                $ms = $this->resolvePath($entity, $fields->minStay);
+                if (is_scalar($ms)) $minStay = (int) $ms;
             }
 
             $currencyCode = null;
-            if ($includeCurrency && !empty($fields['currency'])) {
-                $c = $this->resolvePath($entity, (string) $fields['currency']);
+            if ($includeCurrency && $fields->currency !== null) {
+                $c = $this->resolvePath($entity, $fields->currency);
                 $currencyCode = $this->scalarToStringOrNull($c);
             }
 
@@ -139,16 +135,16 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
             $prioridadScore = 0;
             $esImportante = false;
 
-            if (!empty($fields['important'])) {
-                $val = $this->resolvePath($entity, (string) $fields['important']);
+            if ($fields->important !== null) {
+                $val = $this->resolvePath($entity, $fields->important);
                 $esImportante = ((bool) $val === true);
                 if ($esImportante) {
                     $prioridadScore += 10_000_000;
                 }
             }
 
-            if (!empty($fields['weight'])) {
-                $val = $this->resolvePath($entity, (string) $fields['weight']);
+            if ($fields->weight !== null) {
+                $val = $this->resolvePath($entity, $fields->weight);
                 if (is_numeric($val)) {
                     $prioridadScore += ((int)$val * 10_000);
                 }
@@ -161,12 +157,12 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
 
             // 7. Tooltip
             $tooltip = null;
-            if (!empty($eventCfg['tooltip']) && is_array($eventCfg['tooltip'])) {
+            if ($eventCfg->tooltip !== null) {
                 $lines = [];
-                foreach ($eventCfg['tooltip'] as $path) {
+                foreach ($eventCfg->tooltip as $path) {
                     // Un campo vacío no es una línea: antes salía como una fila en blanco del
                     // tooltip (o «null», según quién lo pintara).
-                    $linea = $this->scalarToStringOrNull($this->resolvePath($entity, (string) $path));
+                    $linea = $this->scalarToStringOrNull($this->resolvePath($entity, $path));
                     if ($linea !== null) {
                         $lines[] = $linea;
                     }
@@ -212,15 +208,15 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
         return $out;
     }
 
-    public function getResources(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    public function getResources(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
-        $this->assertConfig($config);
-        $entities = $this->fetchEntities($from, $to, $config);
-        $fields = (array) $config['fields'];
+        $valida = $this->assertConfig($config);
+        $entities = $this->fetchEntities($from, $to, $config, $valida);
+        $fields = $valida['campos'];
 
-        $resourceRootPath = (string) ($fields['resourceRoot'] ?? '');
-        $resourceIdPath = (string) ($fields['resourceId'] ?? '');
-        $resourceTitlePath = (string) ($fields['resourceTitle'] ?? '');
+        $resourceRootPath = $fields->resourceRoot ?? '';
+        $resourceIdPath = $fields->resourceId ?? '';
+        $resourceTitlePath = $fields->resourceTitle ?? '';
 
         $seen = [];
         $out = [];
@@ -265,22 +261,27 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
         // se encarga del orden natural + índice `orden`.
         return $this->resourceCatalog->merge(
             $out,
-            $config,
+            $config->recursos,
             $this->resourceCatalog->targetClassOf(
-                (string) $config['entity'],
+                $valida['entidad'],
                 $resourceRootPath !== '' ? $resourceRootPath : $resourceIdPath
             )
         );
     }
 
     /**
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     * @param array{entidad: string, campos: CamposDeTarifa, start: string, end: string, price: string} $valida
      * @return list<object>
      */
-    private function fetchEntities(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    private function fetchEntities(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config, array $valida): array
     {
-        /** @var class-string $entityClass La clase viene de la configuración del calendario. */
-        $entityClass = (string) $config['entity'];
+        $entityClass = $valida['entidad'];
+
+        // `getManagerForClass()` pide `class-string`. Una clase que no existe reventaba DENTRO de
+        // Doctrine con un ReflectionException; ahora es el mismo 500 con el mensaje de al lado.
+        if (!class_exists($entityClass)) {
+            throw new HttpException(500, sprintf('No hay ObjectManager para %s', $entityClass));
+        }
 
         $manager = $this->managerRegistry->getManagerForClass($entityClass);
         if (!$manager instanceof ObjectManager) {
@@ -294,13 +295,11 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
             throw new HttpException(500, sprintf('No hay repository para %s', $entityClass));
         }
 
-        $fields = (array) $config['fields'];
-        $filters = isset($config['filters']) && is_array($config['filters']) ? $config['filters'] : [];
+        $filters = $config->filtros;
 
-        $startField = (string) $fields['start'];
-        $endField = (string) $fields['end'];
+        $startField = $valida['start'];
+        $endField = $valida['end'];
 
-        /** @var \Doctrine\ORM\QueryBuilder $qb */
         $qb = $repo->createQueryBuilder('r');
 
         $qb
@@ -309,13 +308,13 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
             ->setParameter('from', $from)
             ->setParameter('to', $to);
 
-        $showInactive = (bool) ($filters['showInactive'] ?? false);
+        $showInactive = $filters->mostrarInactivos;
 
-        if (!empty($filters['activeOnly']) && !$showInactive) {
-            if (empty($fields['active'])) {
+        if ($filters->soloActivos && !$showInactive) {
+            $activeField = $valida['campos']->active;
+            if ($activeField === null) {
                 throw new HttpException(500, 'filters.activeOnly=true requiere fields.active');
             }
-            $activeField = (string) $fields['active'];
 
             $qb->andWhere(sprintf('r.%s = :active', $activeField))
                 ->setParameter('active', true);
@@ -330,24 +329,26 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
     }
 
     /**
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
+     * Lo obligatorio de la configuración, ya comprobado. Mismos mensajes y mismo orden que antes.
+     *
+     * @return array{entidad: string, campos: CamposDeTarifa, start: string, end: string, price: string}
      */
-    private function assertConfig(array $config): void
+    private function assertConfig(ConfiguracionCalendario $config): array
     {
-        if (empty($config['entity']) || !is_string($config['entity'])) {
+        $entidad = $config->entidad;
+        if ($entidad === null || $entidad === '') {
             throw new HttpException(500, 'tarifa_ranges_spa requiere "entity"');
         }
 
-        $fields = $config['fields'] ?? null;
-        if (!is_array($fields)) {
-            throw new HttpException(500, 'tarifa_ranges_spa requiere "fields" (array).');
-        }
+        $campos = $config->campos ?? throw new HttpException(500, 'tarifa_ranges_spa requiere "fields" (array).');
 
-        foreach (['start', 'end', 'price'] as $k) {
-            if (empty($fields[$k]) || !is_string($fields[$k])) {
-                throw new HttpException(500, sprintf('tarifa_ranges_spa requiere fields.%s', $k));
-            }
-        }
+        return [
+            'entidad' => $entidad,
+            'campos' => $campos,
+            'start' => $campos->start ?? throw new HttpException(500, 'tarifa_ranges_spa requiere fields.start'),
+            'end' => $campos->end ?? throw new HttpException(500, 'tarifa_ranges_spa requiere fields.end'),
+            'price' => $campos->price ?? throw new HttpException(500, 'tarifa_ranges_spa requiere fields.price'),
+        ];
     }
 
     /**
@@ -416,5 +417,29 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
         if ($v === null) return null;
         if (is_scalar($v) || (is_object($v) && method_exists($v, '__toString'))) return (string)$v;
         return null;
+    }
+
+    /**
+     * El precio de la entidad (un `decimal`, que Doctrine entrega como texto). Mismo resultado que
+     * el `(float)` de antes para todo escalar, y `null` es 0; lo que no sea escalar también es 0,
+     * en vez de un warning.
+     */
+    private function aDecimal(mixed $valor): float
+    {
+        return is_scalar($valor) ? (float) $valor : 0.0;
+    }
+
+    /**
+     * El id de un recurso tal como lo acepta el DTO. El `Uuid` pasa a texto como antes; cualquier
+     * otra cosa que no sea texto, entero o `Stringable` reventaba en el constructor del DTO, y
+     * ahora es «sin recurso».
+     */
+    private function idDeRecurso(mixed $valor): string|int|\Stringable|null
+    {
+        if ($valor instanceof Uuid) {
+            return (string) $valor;
+        }
+
+        return is_string($valor) || is_int($valor) || $valor instanceof \Stringable ? $valor : null;
     }
 }

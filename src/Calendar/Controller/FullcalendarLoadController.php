@@ -40,9 +40,11 @@ final class FullcalendarLoadController extends AbstractController
         // 🔥 CORRECCIÓN CRÍTICA: PASO DE TESTIGO (TOKEN BASE64)
         // Recibimos el 'current_page' (que viene en btoa desde JS) y NO LO TOCAMOS.
         // Lo pasamos crudo a la configuración para que el provider lo use en los links.
-        $encodedPage = $request->query->get('current_page');
+        // `getString()` y no `get()`: lo que llega por query es texto igual, y el `empty()` de
+        // siempre sigue descartando el vacío y el '0'.
+        $encodedPage = $request->query->getString('current_page');
         if (!empty($encodedPage)) {
-            $config['runtime_returnTo'] = $encodedPage;
+            $config = $config->conRetorno($encodedPage);
         }
 
         $provider = $this->providerRegistry->getProviderForConfig($config);
@@ -67,9 +69,9 @@ final class FullcalendarLoadController extends AbstractController
         $config = $this->configResolver->getConfig($calendar);
 
         // Misma lógica para recursos, por si los necesitas con links
-        $encodedPage = $request->query->get('current_page');
+        $encodedPage = $request->query->getString('current_page');
         if (!empty($encodedPage)) {
-            $config['runtime_returnTo'] = $encodedPage;
+            $config = $config->conRetorno($encodedPage);
         }
 
         $provider = $this->providerRegistry->getProviderForConfig($config);

@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace App\Calendar\Provider;
 
+use App\Calendar\Config\ConfiguracionCalendario;
+use App\Calendar\Config\Enlace;
+use App\Calendar\Config\OpcionesDoctrineLegacy;
 use Doctrine\ORM\EntityRepository;
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
@@ -11,7 +14,6 @@ use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
-use Doctrine\Persistence\ObjectRepository;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
@@ -22,6 +24,8 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  * Importante:
  * - Si config incluye `provider: ...`, este provider NO aplica.
  *   Eso evita colisiones cuando agregues providers nuevos.
+ * - Hoy ningún calendario del YAML cae aquí: todos declaran `provider`. Ver
+ *   {@see OpcionesDoctrineLegacy}.
  */
 final class DoctrineCalendarProvider implements CalendarProviderInterface
 {
@@ -32,41 +36,44 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
         private readonly UrlGeneratorInterface $router,
     ) {}
 
-    public function supports(array $config): bool
+    public function supports(ConfiguracionCalendario $config): bool
     {
         // Si el usuario fuerza un provider explícito, evitamos heurística.
-        if (array_key_exists('provider', $config)) {
+        if ($config->declaraProvider) {
             return false;
         }
 
         // Heurística: si hay entity => Doctrine legacy.
-        return isset($config['entity']) && is_string($config['entity']) && $config['entity'] !== '';
+        return $config->entidad !== null && $config->entidad !== '';
     }
 
-    public function getEvents(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    public function getEvents(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
         $entities = $this->fetchEntities($from, $to, $config);
-        return $this->mapEntitiesToEventDtos($entities, $config);
+        return $this->mapEntitiesToEventDtos($entities, $config->doctrine);
     }
 
-    public function getResources(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    public function getResources(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
         $entities = $this->fetchEntities($from, $to, $config);
-        return $this->mapEntitiesToResourceDtos($entities, $config);
+        return $this->mapEntitiesToResourceDtos($entities, $config->doctrine);
     }
 
     /**
      * Obtiene entidades a partir del repositorymethod (recomendado) o un fallback simple.
      *
      * @return list<object>
-     *
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
-     * @return list<object>
      */
-    private function fetchEntities(DateTimeInterface $from, DateTimeInterface $to, array $config): array
+    private function fetchEntities(DateTimeInterface $from, DateTimeInterface $to, ConfiguracionCalendario $config): array
     {
-        /** @var class-string $entityClass La clase viene de la configuración del calendario. */
-        $entityClass = (string) $config['entity'];
+        $entityClass = $config->entidad ?? '';
+        $opciones = $config->doctrine;
+
+        // `getManagerForClass()` pide `class-string`. Una clase que no existe reventaba DENTRO de
+        // Doctrine con un ReflectionException; ahora es la misma excepción de al lado.
+        if (!class_exists($entityClass)) {
+            throw new \LogicException(sprintf('No hay ObjectManager para %s', $entityClass));
+        }
 
         $manager = $this->managerRegistry->getManagerForClass($entityClass);
         if (!$manager instanceof ObjectManager) {
@@ -85,8 +92,8 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
         $token = $this->tokenStorage->getToken();
         $user = is_object($token?->getUser()) ? $token->getUser() : null;
 
-        if (!empty($config['repositorymethod'])) {
-            $method = (string) $config['repositorymethod'];
+        if ($opciones->metodoRepositorio !== null) {
+            $method = $opciones->metodoRepositorio;
             if (!method_exists($repository, $method)) {
                 throw new \LogicException(sprintf('Repository %s no tiene método %s', get_class($repository), $method));
             }
@@ -109,11 +116,9 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
         }
 
         // Fallback: requiere que config.parameters tenga start/end
-        $p = isset($config['parameters']) && is_array($config['parameters']) ? $config['parameters'] : [];
-        $startField = (string) ($p['start'] ?? 'start');
-        $endField = (string) ($p['end'] ?? 'end');
+        $startField = $opciones->inicio;
+        $endField = $opciones->fin;
 
-        /** @var QueryBuilder $qb */
         $qb = $repository->createQueryBuilder('me');
         $qb
             ->where(sprintf('me.%s >= :firstDate AND me.%s <= :lastDate', $endField, $startField))
@@ -134,15 +139,10 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
      *
      * @param list<object> $entities
      * @return list<CalendarResourceDto>
-     *
-     * @param list<object> $entities
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
-     * @return list<\App\Calendar\Dto\CalendarResourceDto>
      */
-    private function mapEntitiesToResourceDtos(array $entities, array $config): array
+    private function mapEntitiesToResourceDtos(array $entities, OpcionesDoctrineLegacy $opciones): array
     {
-        $resourceCfg = isset($config['resource']) && is_array($config['resource']) ? $config['resource'] : null;
-        if (empty($resourceCfg)) {
+        if (!$opciones->conRecurso) {
             return [new CalendarResourceDto(id: 'default', title: 'Default', orden: 0)];
         }
 
@@ -152,12 +152,12 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
         foreach ($entities as $entity) {
             $resourceRoot = $entity;
 
-            if (!empty($resourceCfg['root'])) {
-                $resourceRoot = $this->resolvePath($entity, (string) $resourceCfg['root']);
+            if ($opciones->recursoRaiz !== null) {
+                $resourceRoot = $this->resolvePath($entity, $opciones->recursoRaiz);
             }
             if ($resourceRoot === null) continue;
 
-            $id = $this->resolvePath($resourceRoot, (string) ($resourceCfg['id'] ?? 'id'));
+            $id = $this->idDe($this->resolvePath($resourceRoot, $opciones->recursoId));
             if ($id === null) continue;
 
             $key = (string) $id;
@@ -165,7 +165,7 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
 
             $seen[$key] = true;
 
-            $titleVal = $this->resolvePath($resourceRoot, (string) ($resourceCfg['title'] ?? 'title'));
+            $titleVal = $this->resolvePath($resourceRoot, $opciones->recursoTitulo);
             $title = $this->scalarToStringOrNull($titleVal) ?? '';
 
             $out[] = new CalendarResourceDto(id: $id, title: $title);
@@ -192,26 +192,19 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
      *
      * @param list<object> $entities
      * @return list<CalendarEventDto>
-     *
-     * @param list<object> $entities
-     * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
-     * @return list<\App\Calendar\Dto\CalendarEventDto>
      */
-    private function mapEntitiesToEventDtos(array $entities, array $config): array
+    private function mapEntitiesToEventDtos(array $entities, OpcionesDoctrineLegacy $p): array
     {
-        $p = isset($config['parameters']) && is_array($config['parameters']) ? $config['parameters'] : [];
-        $resourceCfg = isset($config['resource']) && is_array($config['resource']) ? $config['resource'] : null;
-
         $out = [];
 
         foreach ($entities as $entity) {
-            $id = $this->resolvePath($entity, (string) (($p['id'] ?? null) ?: 'id'));
+            $id = $this->idDe($this->resolvePath($entity, $p->id));
 
-            $titleVal = $this->resolvePath($entity, (string) ($p['title'] ?? 'title'));
+            $titleVal = $this->resolvePath($entity, $p->titulo);
             $title = $this->scalarToStringOrNull($titleVal) ?? '';
 
-            $start = $this->resolvePath($entity, (string) ($p['start'] ?? 'start'));
-            $end = $this->resolvePath($entity, (string) ($p['end'] ?? 'end'));
+            $start = $this->resolvePath($entity, $p->inicio);
+            $end = $this->resolvePath($entity, $p->fin);
 
             if (!$start instanceof DateTimeInterface || !$end instanceof DateTimeInterface) {
                 continue;
@@ -219,27 +212,32 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
 
             // resourceId desde el root (unit / pmsUnidad / etc.)
             $resourceId = null;
-            if (!empty($resourceCfg)) {
+            if ($p->conRecurso) {
                 $resourceRoot = $entity;
-                if (!empty($resourceCfg['root'])) {
-                    $resourceRoot = $this->resolvePath($entity, (string) $resourceCfg['root']);
+                if ($p->recursoRaiz !== null) {
+                    $resourceRoot = $this->resolvePath($entity, $p->recursoRaiz);
                 }
                 if ($resourceRoot !== null) {
-                    $resourceId = $this->resolvePath($resourceRoot, (string) ($resourceCfg['id'] ?? 'id'));
+                    $resourceId = $this->idDe($this->resolvePath($resourceRoot, $p->recursoId));
                 }
             }
 
-            $textColor = isset($p['textColor']) ? $this->scalarToStringOrNull($this->resolvePath($entity, (string) $p['textColor'])) : null;
-            $backgroundColor = isset($p['backgroundColor']) ? $this->scalarToStringOrNull($this->resolvePath($entity, (string) $p['backgroundColor'])) : null;
-            $borderColor = isset($p['borderColor']) ? $this->scalarToStringOrNull($this->resolvePath($entity, (string) $p['borderColor'])) : null;
-            $color = isset($p['color']) ? $this->scalarToStringOrNull($this->resolvePath($entity, (string) $p['color'])) : null;
+            $textColor = $p->colorTexto !== null ? $this->scalarToStringOrNull($this->resolvePath($entity, $p->colorTexto)) : null;
+            $backgroundColor = $p->colorFondo !== null ? $this->scalarToStringOrNull($this->resolvePath($entity, $p->colorFondo)) : null;
+            $borderColor = $p->colorBorde !== null ? $this->scalarToStringOrNull($this->resolvePath($entity, $p->colorBorde)) : null;
+            $color = $p->color !== null ? $this->scalarToStringOrNull($this->resolvePath($entity, $p->color)) : null;
 
             // classNames: array o string con espacios
             $classNames = null;
-            if (isset($p['classNames'])) {
-                $cn = $this->resolvePath($entity, (string) $p['classNames']);
+            if ($p->clases !== null) {
+                $cn = $this->resolvePath($entity, $p->clases);
                 if (is_array($cn)) {
-                    $classNames = array_values(array_map('strval', $cn));
+                    // `strval()` con lo que tenga texto; lo que no (una lista, un objeto sin
+                    // `__toString`) avisaba o reventaba, y ahora es una clase vacía.
+                    $classNames = array_values(array_map(
+                        static fn (mixed $c): string => is_scalar($c) || $c === null || $c instanceof \Stringable ? (string) $c : '',
+                        $cn
+                    ));
                 } elseif (is_string($cn) && $cn !== '') {
                     $classNames = preg_split('/\s+/', trim($cn)) ?: null;
                 }
@@ -247,12 +245,11 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
 
             // tooltip: permite lista de paths
             $tooltip = null;
-            if (isset($p['tooltip'])) {
-                $tooltipCfg = $p['tooltip'];
-                if (is_array($tooltipCfg)) {
+            if ($p->tooltip !== null) {
+                if (is_array($p->tooltip)) {
                     $lines = [];
-                    foreach ($tooltipCfg as $subject) {
-                        $v = $this->resolvePath($entity, (string) $subject);
+                    foreach ($p->tooltip as $subject) {
+                        $v = $this->resolvePath($entity, $subject);
                         $s = $this->scalarToStringOrNull($v);
                         if ($s !== null && $s !== '') {
                             $lines[] = $s;
@@ -260,23 +257,18 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
                     }
                     $tooltip = $lines;
                 } else {
-                    $tooltip = $this->scalarToStringOrNull($this->resolvePath($entity, (string) $tooltipCfg));
+                    $tooltip = $this->scalarToStringOrNull($this->resolvePath($entity, $p->tooltip));
                 }
             }
 
             // URLs con permisos (Oweb admin)
             $urledit = null;
             $urlshow = null;
-            if (isset($p['url']) && is_array($p['url'])) {
-                $urlCfg = $p['url'];
-                $urlId = $this->resolvePath($entity, (string) ($urlCfg['id'] ?? 'id'));
+            if ($p->enlaces !== null) {
+                $urlId = $this->resolvePath($entity, $p->enlaces->rutaId ?? 'id');
 
-                if (isset($urlCfg['edit']) && true === $this->authorizationChecker->isGranted($urlCfg['edit']['role'])) {
-                    $urledit = $this->router->generate((string) $urlCfg['edit']['route'], ['id' => $urlId, 'tl' => 'es']);
-                }
-                if (isset($urlCfg['show']) && true === $this->authorizationChecker->isGranted($urlCfg['show']['role'])) {
-                    $urlshow = $this->router->generate((string) $urlCfg['show']['route'], ['id' => $urlId, 'tl' => 'es']);
-                }
+                $urledit = $this->urlDe($p->enlaces->enlace('edit'), 'edit', $urlId);
+                $urlshow = $this->urlDe($p->enlaces->enlace('show'), 'show', $urlId);
             }
 
             $out[] = new CalendarEventDto(
@@ -300,6 +292,25 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
     }
 
     /**
+     * Un enlace del panel. Sin rol no hay enlace (`isGranted()` sin atributo deniega), y los
+     * `params` del YAML no se leen: este provider siempre mandó sólo `id` y `tl`.
+     */
+    private function urlDe(?Enlace $enlace, string $nombre, mixed $urlId): ?string
+    {
+        if ($enlace === null || $enlace->rol === null || true !== $this->authorizationChecker->isGranted($enlace->rol)) {
+            return null;
+        }
+
+        // Sin `route` esto era un `generate('')`, que revienta con «la ruta "" no existe». Sigue
+        // reventando —una configuración rota tiene que verse—, pero diciendo qué falta.
+        if ($enlace->nombreRuta === null) {
+            throw new \LogicException(sprintf('parameters.url.%s requiere "route".', $nombre));
+        }
+
+        return $this->router->generate($enlace->nombreRuta, ['id' => $urlId, 'tl' => 'es']);
+    }
+
+    /**
      * Resuelve "a.b.c" -> $obj->getA()->getB()->getC().
      *
      * - Si falta un getter intermedio: null
@@ -320,6 +331,15 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
         }
 
         return $val;
+    }
+
+    /**
+     * Un identificador tal como lo aceptan los DTO (texto, entero o `Stringable`, que es el `Uuid`).
+     * Lo demás reventaba en el constructor del DTO con un TypeError; ahora es «sin id».
+     */
+    private function idDe(mixed $valor): string|int|\Stringable|null
+    {
+        return is_string($valor) || is_int($valor) || $valor instanceof \Stringable ? $valor : null;
     }
 
     /**
