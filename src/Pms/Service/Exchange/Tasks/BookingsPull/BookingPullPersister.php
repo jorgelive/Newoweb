@@ -155,17 +155,37 @@ final class BookingPullPersister implements ResetInterface
         // débil —lo escribimos nosotros, pero nada impide que un huésped se llame así— y por eso
         // no se usa para decidir, sino para avisar.
         if (!$existingLink && $booking->custom2 === 'MIRROR') {
-            $this->logger->warning(
-                'Espejo huérfano en el pull: llegó un espejo que ningún link reclama. No se crea nada.',
-                [
-                    'beds24_book_id' => $bookingIdStr,
-                    'room_id'        => $booking->roomId,
-                    'llegada'        => $booking->arrival,
-                    'salida'         => $booking->departure,
-                    'nombre'         => $booking->firstName,
-                    'que_significa'  => 'El link es_principal=0 de la estancia real se perdió; hay que reponerlo.',
-                ]
-            );
+            // ⚠️ **Un huérfano no significa siempre «link perdido».** El único que ha aparecido
+            // (Scott, 14–17/10, `90846486`) era lo contrario: la estancia tenía su espejo bien
+            // enlazado, y en Beds24 había un SEGUNDO espejo en la misma habitación y fechas,
+            // empujado 37 h después del bueno el 02/08/2026 y nunca más tocado. El texto de antes
+            // decía «hay que reponer el link», y reponerlo habría dejado dos espejos enlazados.
+            // Se canceló en Beds24 el 26/09/2026.
+            //
+            // Y uno ya CANCELADO no bloquea nada: sólo queda como rastro. Este pull trae las
+            // canceladas a propósito (ver `BookingsPullMappingStrategy`), así que sin esta
+            // distinción el aviso se repetiría en cada pasada hasta que pasaran las fechas.
+            $contexto = [
+                'beds24_book_id' => $bookingIdStr,
+                'room_id'        => $booking->roomId,
+                'llegada'        => $booking->arrival,
+                'salida'         => $booking->departure,
+                'nombre'         => $booking->firstName,
+                'estado'         => $booking->status,
+            ];
+
+            if ($booking->status === 'cancelled') {
+                $this->logger->info('Espejo huérfano ya cancelado en Beds24: no bloquea nada. No se crea nada.', $contexto);
+            } else {
+                $this->logger->warning(
+                    'Espejo huérfano en el pull: llegó un espejo que ningún link reclama. No se crea nada.',
+                    $contexto + [
+                        'que_significa' => 'Mira si la estancia real de esa casita y fechas ya tiene su espejo enlazado. '
+                            . 'Si lo tiene, éste es un DUPLICADO en Beds24 y hay que cancelarlo allí. '
+                            . 'Si no lo tiene, se perdió su link es_principal=0 y hay que reponerlo.',
+                    ]
+                );
+            }
 
             return [
                 'status'  => 'skipped',

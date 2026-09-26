@@ -158,10 +158,30 @@ class Message
      * que Beds24 rechaza por diseño—. Con 395 filas en rojo un fallo de verdad no se distingue, y
      * `AvisoEnvioFallidoListener` sólo mira los del equipo: nadie iba a leerlas nunca.
      *
-     * ⚠️ **No es terminal.** El mensaje sigue vivo y `preUpdate` vuelve a pedir colas: si el canal
-     * aparece después —se añade el teléfono, se vincula la reserva a Beds24— sale sin más.
+     * ⚠️ **No es terminal.** El mensaje sigue vivo, y lo revive `MessageRuleEngine::syncPendingMessage()`
+     * cuando vuelve a haber canal —se añade el teléfono, se fusiona el hilo con el de su número,
+     * se desbloquea WhatsApp—, siempre que su fecha no haya pasado.
+     *
+     * 🔥 **Aquí decía que lo revivía el `preUpdate`, y no era verdad hasta el 26/09/2026.** El
+     * listener sólo pide colas para `pending` y `queued`, y el motor sincronizaba la fecha sin
+     * tocar el estado: un `sin_canal` se quedaba así para siempre. Además, «no hay teléfono» ni
+     * siquiera llegaba aquí —el encolador de WhatsApp lanzaba y caía en `failed`—. Lo destapó
+     * Melanie: hilo fusionado con el de su número y la guía de llegada seguía muerta.
+     *
+     * Y es también lo que queda cuando la regla se queda sin ningún canal válido. Antes eso
+     * CANCELABA, y como un cancelado no es el intento vigente de su regla, el motor fabricaba
+     * otro en cada disparo: un bucle de crear y cancelar.
      */
     public const string STATUS_SIN_CANAL = 'sin_canal';
+
+    /**
+     * Los estados que significan «no salió», para quien espera el mensaje.
+     *
+     * Los leen los dos lados del aviso de envío fallido —el listener que lo detecta y el
+     * manejador que lo manda—, y tienen que leer la misma lista: si uno aceptara `sin_canal` y
+     * el otro no, el aviso se encolaría y se descartaría sin decir nada.
+     */
+    public const array ESTADOS_NO_SALIO = [self::STATUS_FAILED, self::STATUS_SIN_CANAL];
     public const string STATUS_PENDING   = 'pending';
     public const string STATUS_QUEUED    = 'queued';
     public const string STATUS_SENT      = 'sent';

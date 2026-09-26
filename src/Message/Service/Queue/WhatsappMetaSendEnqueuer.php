@@ -16,6 +16,7 @@ use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\MessageDataResolverRegistry;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 
@@ -28,7 +29,8 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
 {
     public function __construct(
         private EntityManagerInterface      $em,
-        private MessageDataResolverRegistry $resolverRegistry
+        private MessageDataResolverRegistry $resolverRegistry,
+        private LoggerInterface             $logger
     ) {}
 
     public function supports(MessageChannel $channel): bool
@@ -84,15 +86,26 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
             }
         }
 
-        // Si después de todo no hay teléfono, no podemos enviar un WhatsApp.
-        // Retornamos null para que el Dispatcher ignore silenciosamente este canal
-        // o lanzamos una excepción si prefieres que sea un error crítico.
+        // Sin teléfono, WhatsApp NO APLICA: se devuelve `null`, no se lanza.
+        //
+        // El despachador distingue las dos respuestas —`null` es «este canal no aplica» y deja
+        // el mensaje en `sin_canal`, vivo; una excepción es «lo intenté y se rompió» y lo deja
+        // en `failed`—. Aquí se lanzaba, y un simple «todavía no tenemos su número» quedaba
+        // registrado como avería.
+        //
+        // 🔥 Y `failed` no revive. Medido el 26/09/2026 con Melanie: reserva directa sin
+        // teléfono, guía de llegada y check-out en `failed`; se fusionó su hilo con el de su
+        // número y los dos siguieron muertos, porque el motor sólo resucita lo que está en
+        // `sin_canal` (`MessageRuleEngine::syncPendingMessage()`). Es la misma corrección que
+        // se hizo en `Beds24SendEnqueuer` el 14/09 con las reservas directas.
         if (empty($targetPhone)) {
-            throw new RuntimeException(
-                sprintf('WhatsappMetaSendEnqueuer: No se pudo resolver el número de teléfono para la conversación: %s, con el contexto: %s.',
-                $conversation->getId()->toRfc4122(),
-                $conversation->getContextType())
-            );
+            $this->logger->info(sprintf(
+                'WhatsApp no aplica al mensaje %s: la conversación %s no tiene teléfono.',
+                $message->getId()?->toRfc4122() ?? 'N/A',
+                $conversation->getId()->toRfc4122()
+            ));
+
+            return null;
         }
 
 

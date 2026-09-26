@@ -53,7 +53,8 @@ final readonly class AvisarEnvioFallidoDispatchHandler
         // entre la detección y este momento pudo reintentarse y salir.
         $this->em->refresh($mensaje);
 
-        if ($mensaje->getStatus() !== Message::STATUS_FAILED) {
+        // La MISMA lista que el listener que lo encoló: ver `Message::ESTADOS_NO_SALIO`.
+        if (!in_array($mensaje->getStatus(), Message::ESTADOS_NO_SALIO, true)) {
             return;
         }
 

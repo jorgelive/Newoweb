@@ -237,6 +237,7 @@ final class DestinoDeCorreoTest extends TestCase
             $this->createStub(EntityManagerInterface::class),
             $enlacesDe,
             new AliasDePlataforma($enlacesDe),
+            new \Psr\Log\NullLogger(),
         );
     }
 

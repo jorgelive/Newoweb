@@ -763,10 +763,50 @@ final readonly class MessageRuleEngine
         // 3. Publicamos la lista filtrada para el Listener (fabricación de canales nuevos).
         $message->setTransientChannels($validChannelIds);
 
-        // 4. Si no quedan canales válidos, cancelamos el mensaje padre completamente
+        // 4. Sin ningún canal válido HOY, el mensaje se queda SIN CANAL — no se cancela.
+        //
+        // 🔥 Cancelarlo abría un bucle. `findExistingSystemMessage()` no reconoce un cancelado
+        // como el intento vigente de su regla —a propósito: es lo que deja volver a programar
+        // una reserva reactivada—, así que el siguiente disparo del motor fabricaba OTRO
+        // mensaje, que nacía con su cola (encolar no mira el bloqueo, ver
+        // `WhatsappMetaSendEnqueuer::createQueueEntity()`) y esta misma línea cancelaba en el
+        // mismo segundo. Medido el 24/09/2026 con Or Cohen: WhatsApp bloqueado por un 131026 y
+        // **cinco** «Menú de tours» creados y cancelados en 50 minutos. Con Gyunyul, cuatro.
+        //
+        // `sin_canal` sí es el intento vigente: la pasada siguiente lo encuentra, lo sincroniza
+        // y no fabrica otro. Y no muere: el bloque de abajo lo revive cuando vuelve a haber canal.
         if (empty($validChannelIds)) {
-            $this->cancelPendingQueues($message);
+            $this->quedarseSinCanal($message);
             return;
+        }
+
+        // 4.b VUELVE A HABER CANAL: el `sin_canal` revive.
+        //
+        // Es la mitad que faltaba. La migración que estrenó el estado (`Version20260914180000`)
+        // prometía que «si el canal aparece después, sale sin más», y no era verdad: el
+        // `preUpdate` de `MessageEnqueuerEntityListener` sólo pide colas para `pending` y
+        // `queued`, y aquí se sincronizaba la fecha sin tocar el estado. Añadir el teléfono,
+        // fusionar el hilo con el de su número o desbloquear WhatsApp no despertaba nada.
+        //
+        // Pasar a `pending` es lo que lo despierta: cambia el estado, Doctrine calcula el
+        // changeset, y el `preUpdate` le fabrica las colas con los canales que acaban de
+        // publicarse en `transientChannels`.
+        //
+        // ⚠️ **Sólo lo que todavía no ha pasado.** Una guía de llegada de ayer no sale hoy: se
+        // queda en `sin_canal`, que es lo que le pasó.
+        if ($message->getStatus() === Message::STATUS_SIN_CANAL) {
+            if ($newRunAt <= new DateTimeImmutable('now', new DateTimeZone(self::TZ))) {
+                return;
+            }
+
+            $message->setStatus(Message::STATUS_PENDING);
+
+            $this->logger->info(sprintf(
+                'Regla Engine: el mensaje %s vuelve a tener canal (%s) y se reprograma para %s.',
+                $message->getId(),
+                implode(', ', $validChannelIds),
+                $newRunAt->format('Y-m-d H:i')
+            ));
         }
 
         // 5. Poda explícita de las colas cuyo canal dejó de ser válido.
@@ -839,7 +879,10 @@ final readonly class MessageRuleEngine
      */
     private function cancelPendingQueues(Message $message): void
     {
-        if (!in_array($message->getStatus(), [Message::STATUS_QUEUED, Message::STATUS_PENDING], true)) {
+        // `sin_canal` también: es un mensaje VIVO esperando canal, y si la regla deja de aplicar
+        // —se canceló la reserva— tiene que morir como los demás. Sin esto se quedaría en la
+        // pestaña de programados de una reserva cancelada, y reviviría si le llegara un teléfono.
+        if (!in_array($message->getStatus(), [Message::STATUS_QUEUED, Message::STATUS_PENDING, Message::STATUS_SIN_CANAL], true)) {
             return;
         }
 
@@ -866,6 +909,34 @@ final readonly class MessageRuleEngine
                 $queue->setStatus('cancelled');
             }
         }
+    }
+
+    /**
+     * El mensaje sigue vivo pero hoy no tiene por dónde salir: `sin_canal`, con sus colas
+     * cortadas.
+     *
+     * Las colas se cortan AQUÍ por el mismo motivo que en {@see cancelPendingQueues()}: la
+     * cascada del listener sólo corre con `cancelled`, y una cola viva de un canal que ya no
+     * vale acabaría saliendo. Un `sin_canal` que ya lo era no se toca.
+     */
+    private function quedarseSinCanal(Message $message): void
+    {
+        if (!in_array($message->getStatus(), [Message::STATUS_QUEUED, Message::STATUS_PENDING], true)) {
+            return;
+        }
+
+        foreach ($message->getAllQueues() as $queue) {
+            if (in_array($queue->getStatus(), ['pending', 'queued'], true)) {
+                $queue->setStatus('cancelled');
+            }
+        }
+
+        $message->setStatus(Message::STATUS_SIN_CANAL);
+
+        $this->logger->info(sprintf(
+            'Regla Engine: el mensaje %s se queda sin canal; espera a que vuelva a haber uno.',
+            $message->getId()
+        ));
     }
 
     private function createNewScheduledMessage(

@@ -67,7 +67,7 @@ $apertura = new AperturaDeHilo($factoria, $log, [
     new App\Travel\Service\Message\TravelProveedorDeContexto($em),
 ]);
 
-$correo = new EmailSendEnqueuer($em, $enlaces, new App\Message\Service\Conversacion\AliasDePlataforma($enlaces));
+$correo = new EmailSendEnqueuer($em, $enlaces, new App\Message\Service\Conversacion\AliasDePlataforma($enlaces), new Psr\Log\NullLogger());
 
 $em->getConnection()->beginTransaction();
 

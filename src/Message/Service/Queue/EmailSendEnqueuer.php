@@ -20,6 +20,7 @@ use App\Message\Service\Conversacion\AliasDePlataforma;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 
 /**
@@ -53,6 +54,7 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
         private EntityManagerInterface $em,
         private EnlacesDeConversacion $enlaces,
         private AliasDePlataforma $alias,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -69,7 +71,7 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
      * dos cosas distintas, y las dos merecen decirse: el despachador recoge el mensaje de la
      * excepción y lo guarda en `dispatch_errors`, donde el panel lo enseña.
      */
-    public function createQueueEntity(Message $message, MessageChannel $channel, DateTimeImmutable $runAt): MessageQueueItemInterface
+    public function createQueueEntity(Message $message, MessageChannel $channel, DateTimeImmutable $runAt): ?MessageQueueItemInterface
     {
         $conversation = $message->getConversation();
 
@@ -79,11 +81,17 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
 
         $destino = $this->destino($conversation, $message->getAsuntoType(), $message->getAsuntoId());
 
+        // Sin dirección, el correo NO APLICA: `null`, no excepción. Mismo motivo que en
+        // `WhatsappMetaSendEnqueuer` sin teléfono — lanzar deja el mensaje en `failed`, que no
+        // revive cuando el dato llega; `sin_canal` sí.
         if ($destino === null) {
-            throw new RuntimeException(sprintf(
-                'No hay un correo al que escribir en la conversación %s.',
+            $this->logger->info(sprintf(
+                'El correo no aplica al mensaje %s: la conversación %s no tiene dirección.',
+                $message->getId()?->toRfc4122() ?? 'N/A',
                 $conversation->getId()?->toRfc4122() ?? '—'
             ));
+
+            return null;
         }
 
         $config = $this->em->getRepository(EmailConfig::class)->findOneBy(['activo' => true]);

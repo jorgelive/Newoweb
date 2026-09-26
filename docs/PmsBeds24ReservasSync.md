@@ -864,6 +864,29 @@ if (!$existingLink && $booking->custom2 === 'MIRROR') {
 - Complementa a §7.1.d («el pull no inventa reservas»), que cierra el caso simétrico: el
   **principal** de un bloqueo sin reserva.
 
+#### Un huérfano no es siempre un link perdido: el espejo de Scott (26/09/2026)
+
+El aviso decía «el link `es_principal=0` se perdió; hay que reponerlo», y el **único** huérfano
+que ha salido desde que existe la guarda era lo contrario. Consultado en Beds24:
+
+| bookId | habitación | creado (UTC) | estado |
+|---|---|---|---|
+| 90761245 principal (Booking) | 633708 | 01/08 01:26:22 | confirmed |
+| 90761255 espejo, **enlazado** | 633682 | 01/08 01:26:44 | confirmed |
+| 90846486 espejo, **huérfano** | 633682 | 02/08 19:32:48 | new, nunca modificado |
+
+La estancia tenía su espejo bien enlazado; el huérfano era un **segundo** espejo con nuestra marca
+(`custom2 = MIRROR`), empujado 37 h después y que ningún link llegó a guardar —la actualización
+masiva del 11/08 pasó por todos los espejos enlazados y a éste no lo tocó—. Qué lo empujó no se
+pudo reconstruir: la cola de push reutiliza una fila por link y el log de esas fechas ya había
+rotado. Lo más probable es un link espejo recreado al reconstruir los de la estancia, que hizo su
+POST y se descartó sin borrar su booking. Reponer el link, como pedía el aviso, habría dejado **dos
+espejos enlazados** a la misma estancia.
+
+Se canceló en Beds24 el 26/09/2026. El aviso distingue ahora los dos casos —mira si la estancia
+real ya tiene su espejo— y un huérfano **ya cancelado** baja a `info`: no bloquea nada, y este pull
+trae las canceladas a propósito, así que el aviso se habría repetido en cada pasada hasta octubre.
+
 #### La limpieza: `app:pms:retirar-fantasmas`
 
 Lo que dejaron: **17 reservas cuyos eventos son todos «(M) …»**, más 13 eventos «(M) …» colgando

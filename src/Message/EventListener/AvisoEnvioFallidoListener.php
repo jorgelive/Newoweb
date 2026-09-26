@@ -31,6 +31,13 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * disparar el aviso. Es exactamente el fallo que ya se pagó en
  * `MessageAutoResponderListener`, y aquí el síntoma sería un móvil sonando en bucle.
  *
+ * ── «Fallido» incluye `sin_canal` desde el 26/09/2026 ──────────────────────
+ * Hasta entonces «no hay teléfono» se registraba como `failed` —el encolador de WhatsApp
+ * lanzaba— y este aviso lo cazaba de rebote. Al corregirlo para que el mensaje quede vivo y
+ * pueda revivir, una respuesta del agente a un hilo sin teléfono habría dejado de avisar a
+ * nadie. Para quien espera la respuesta da igual por qué no salió. Ver
+ * `Message::ESTADOS_NO_SALIO`.
+ *
  * ── A quién cubre, y por qué no a todos ────────────────────────────────────
  * Mensajes SALIENTES que alguien está esperando ahora mismo:
  *
@@ -59,7 +66,7 @@ final readonly class AvisoEnvioFallidoListener
 
     public function postPersist(Message $mensaje, PostPersistEventArgs $evento): void
     {
-        if ($mensaje->getStatus() !== Message::STATUS_FAILED) {
+        if (!in_array($mensaje->getStatus(), Message::ESTADOS_NO_SALIO, true)) {
             return;
         }
 
@@ -70,8 +77,8 @@ final readonly class AvisoEnvioFallidoListener
     {
         $cambios = $evento->getObjectManager()->getUnitOfWork()->getEntityChangeSet($mensaje);
 
-        // Sólo la TRANSICIÓN a fallido. Ver el aviso de la cabecera.
-        if (!array_key_exists('status', $cambios) || $cambios['status'][1] !== Message::STATUS_FAILED) {
+        // Sólo la TRANSICIÓN a fallido o sin canal. Ver el aviso de la cabecera.
+        if (!array_key_exists('status', $cambios) || !in_array($cambios['status'][1], Message::ESTADOS_NO_SALIO, true)) {
             return;
         }
 

@@ -7898,6 +7898,8 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 | Cambiar a qué catálogo apuntan los botones de tours | `config/services/services_parameters.yaml` → `pax_catalogo_localizador` |
 | Cambiar qué cuenta como mensaje vacío | `MessageDispatcher::estaVacio()` |
 | Cambiar a quién avisa un envío fallido | `NotificadorPushConversacion::avisarEnvioFallido()` / `AvisoEnvioFallidoListener` |
+| Cambiar qué estados cuentan como «no salió» para el aviso | `Message::ESTADOS_NO_SALIO` (lo leen el listener **y** `AvisarEnvioFallidoDispatchHandler`) |
+| Cambiar cuándo revive un `sin_canal`, o qué pasa si una regla se queda sin canal | `MessageRuleEngine::syncPendingMessage()` / `quedarseSinCanal()` — ver §17.z.2 |
 | Cambiar la frase que sugiere qué hacer con la ventana cerrada | `NotificadorPushConversacion::avisarEnvioFallido()` |
 | Volver a encender el correo | `Version20260812220000` (`down`) **y** `email_tmpl.is_active` en cada plantilla |
 
@@ -7932,8 +7934,8 @@ nunca. Es la familia de fallo que persigue este proyecto — el que no se ve.
 Así que `$errors` vacío con `$queues` vacío ya identificaba el caso. Ahora
 `Message::STATUS_SIN_CANAL` lo nombra, y el panel lo pinta en gris en vez de rojo.
 
-⚠️ **No es terminal.** El mensaje sigue vivo y `preUpdate` vuelve a pedir colas: si el canal
-aparece después —se añade el teléfono, se vincula la reserva a Beds24— sale sin más.
+⚠️ **No es terminal**, pero lo que aquí decía el 14/09 —«`preUpdate` vuelve a pedir colas y sale
+sin más»— **no era verdad**. Ver §17.z.2: hasta el 26/09 un `sin_canal` no revivía nunca.
 
 ### Y una regla de negocio que lanzaba excepción
 
@@ -7944,6 +7946,63 @@ cumple como estaba previsto en 106 mensajes rojos. Ahora **devuelve `null`** y l
 `Version20260914180000` reetiqueta lo que ya estaba decidido. No borra ni reintenta nada, y usa
 los mismos criterios que el despachador dejó escritos en `metadata`, así que un `failed` de verdad
 no casa con ninguno y se queda como está.
+
+### 17.z.2 La otra mitad: `sin_canal` revive, y deja de ser un bucle (26/09/2026)
+
+Tres fallos de la misma familia, destapados por dos huéspedes el mismo día.
+
+**Melanie: el teléfono llegó y la guía de llegada siguió muerta.** Se pasó de Airbnb a una
+reserva directa sin teléfono; su guía de llegada (12/11) y su check-out (14/11) quedaron en
+`failed`. Se fusionó su hilo con el de su número y **los dos siguieron en `failed`, sin cola**.
+Dos causas encadenadas:
+
+1. **Caía en `failed`, no en `sin_canal`.** `WhatsappMetaSendEnqueuer` sin teléfono y
+   `EmailSendEnqueuer` sin dirección **lanzaban**, así que «todavía no tenemos su número» se
+   registraba como avería. Es exactamente lo que se corrigió el 14/09 en `Beds24SendEnqueuer`, en
+   los dos encoladores que no se miraron. Y la propia `ChannelEnqueuerInterface` lo dice en su
+   docblock desde el principio: «retorna NULL si faltan datos críticos (ej.: huésped sin
+   teléfono)». Las implementaciones contradecían al contrato.
+2. **Aunque hubiera caído en `sin_canal`, no habría revivido.** `MessageEnqueuerEntityListener`
+   sólo pide colas para `pending` y `queued`, y `MessageRuleEngine::syncPendingMessage()`
+   sincronizaba la fecha sin tocar el estado. Nada lo despertaba: ni añadir el teléfono, ni
+   fusionar, ni desbloquear WhatsApp.
+
+**Or Cohen: cinco «Menú de tours» en 50 minutos.** WhatsApp bloqueado por un `131026`. Cada
+mensaje nacía con su cola —encolar no mira el bloqueo, a propósito— y `syncPendingMessage()`, al
+no quedarle ningún canal válido, lo **cancelaba** en el mismo segundo. Un cancelado no es el
+intento vigente de su regla (`findExistingSystemMessage()` lo salta para que una reserva
+reactivada pueda volver a programar), así que el disparo siguiente fabricaba otro. Con Gyunyul,
+cuatro. Mismo dibujo que el vaivén de Vanessa del 17/09, con otra causa.
+
+**Lo que cambió:**
+
+| Situación | Antes | Ahora |
+|---|---|---|
+| WhatsApp sin teléfono / correo sin dirección | excepción → `failed` | `null` → `sin_canal` |
+| La regla se queda sin ningún canal válido | `cancelled` → el motor fabrica otro | `sin_canal`, colas vivas cortadas (`quedarseSinCanal()`); es el intento vigente, no se fabrica otro |
+| Vuelve a haber canal y la fecha no ha pasado | nada | `sin_canal` → `pending`; el `preUpdate` le fabrica las colas |
+| Vuelve a haber canal y la fecha ya pasó | nada | se queda en `sin_canal`: un recordatorio de ayer no sale hoy |
+| La regla deja de aplicar (reserva cancelada) | `sin_canal` se quedaba vivo | `cancelled`, como los demás (`cancelPendingQueues()`) |
+
+**Quién lo despierta.** No hace falta nada nuevo: el motor ya pasa por el hilo cuando cambia
+`guestPhone` o `whatsappDisabled` (`MessageRuleEngineListener::CAMPOS_CRITICOS`), en cada
+recálculo de reserva y en el barrido de `app:message:sync-rules`. El revivir va en
+`syncPendingMessage()`, que es por donde pasan todos.
+
+⚠️ **El aviso de envío fallido cubre ahora `sin_canal`** (`Message::ESTADOS_NO_SALIO`). Hasta
+hoy, una respuesta del agente a un hilo sin teléfono avisaba al equipo porque caía en `failed`; al
+dejarla viva habría dejado de avisar a nadie. Para quien espera la respuesta da igual por qué no
+salió. La lista es una constante de la entidad porque la leen **dos** sitios —el listener que lo
+detecta y el manejador que lo manda, que vuelve a comprobar el estado—: si uno aceptara
+`sin_canal` y el otro no, el aviso se encolaría y se tiraría sin decir nada.
+
+`Version20260926120000` reetiqueta los `failed` que eran «sin teléfono» o «sin correo»: **3**
+filas, dos de Melanie y una pasada. Tests en `MessageRuleEngineTest` (los cuatro `sin_canal`/
+`un_sin_canal_*`); tres de ellos fallan con el motor de antes.
+
+⚠️ **Corrección a algo que se dijo en la sesión:** `allowFailedRetry` sí se usa — es la reparación
+manual (`app:message:sync-rules <uuid> --force`), que regenera un `failed` sin reintentos creando
+un mensaje nuevo al lado. Lo que no había era nada automático.
 
 ---
 

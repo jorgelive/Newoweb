@@ -134,14 +134,19 @@ final class MessageRuleEngineTest extends TestCase
         return new EnlacesDeConversacion([$proveedor]);
     }
 
-    /** Encolador que da por bueno todo lo del canal indicado: el camino feliz del worker. */
-    private function enqueuer(string $canalId = 'whatsapp_meta'): ChannelEnqueuerInterface
+    /**
+     * Encolador que da por bueno todo lo del canal indicado: el camino feliz del worker.
+     *
+     * Con `$valido = false` es el canal que hoy no sirve —WhatsApp bloqueado, hilo sin
+     * teléfono—: `syncPendingMessage()` lo descarta al validar.
+     */
+    private function enqueuer(string $canalId = 'whatsapp_meta', bool $valido = true): ChannelEnqueuerInterface
     {
-        return new class ($canalId) implements ChannelEnqueuerInterface {
-            public function __construct(private readonly string $canalId) {}
+        return new class ($canalId, $valido) implements ChannelEnqueuerInterface {
+            public function __construct(private readonly string $canalId, private readonly bool $valido) {}
 
             public function supports(MessageChannel $channel): bool { return $channel->getId() === $this->canalId; }
-            public function isValid(Message $message): bool { return true; }
+            public function isValid(Message $message): bool { return $this->valido; }
             public function disponiblePara(
                 MessageConversation $conversacion,
                 ?string $asuntoType = null,
@@ -704,5 +709,147 @@ final class MessageRuleEngineTest extends TestCase
             ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
 
         self::assertSame(Message::STATUS_CANCELLED, $huerfano->getStatus());
+    }
+
+    // =========================================================================
+    // SIN CANAL: VIVO, SIN DUPLICARSE, Y REVIVE CUANDO VUELVE EL CANAL
+    // =========================================================================
+
+    /** Un mensaje programado del sistema, colgado de la conversación y de su asunto. */
+    private function programado(
+        MessageConversation $conversacion,
+        MessageRule $regla,
+        PmsReserva $reserva,
+        string $estado,
+        string $cuando
+    ): Message {
+        $mensaje = new Message();
+        $mensaje->setConversation($conversacion);
+        $mensaje->setRule($regla);
+        $mensaje->setAsunto('pms_reserva', (string) $reserva->getId());
+        $mensaje->setSenderType(Message::SENDER_SYSTEM);
+        $mensaje->setStatus($estado);
+        $mensaje->setScheduledAt(new DateTimeImmutable($cuando, new DateTimeZone(self::TZ)));
+        $conversacion->addMessage($mensaje);
+
+        return $mensaje;
+    }
+
+    /**
+     * El bucle de Or Cohen (24/09/2026): WhatsApp bloqueado por un 131026 y cinco «Menú de
+     * tours» creados y cancelados en 50 minutos.
+     *
+     * El mensaje nacía con su cola —encolar no mira el bloqueo— y la sincronización lo
+     * CANCELABA por no tener canal válido. Un cancelado no es el intento vigente de su regla,
+     * así que el disparo siguiente fabricaba otro. Ahora se queda en `sin_canal`, que sí lo es.
+     */
+    #[Test]
+    public function sin_canal_valido_se_queda_esperando_y_no_se_fabrica_otro(): void
+    {
+        $inicio = $this->hito('+5 days noon');
+        $canal = new MessageChannel()->setId('whatsapp_meta');
+        $regla = $this->regla(canal: $canal);
+
+        $reserva = new PmsReserva();
+        $conversacion = new MessageConversation('pms_reserva', (string) $reserva->getId());
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicio]), $reserva);
+
+        $motor = $this->motor([$regla], [$this->enqueuer(valido: false)]);
+
+        $motor->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_INSERT);
+        $mensajes = $this->mensajesDelSistema($conversacion);
+        self::assertCount(1, $mensajes);
+
+        // Lo que hace el listener en producción: la cola nace aunque el canal esté bloqueado.
+        $this->fabricarCola($mensajes[0]);
+
+        $motor->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
+        $motor->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
+        $motor->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
+
+        $mensajes = $this->mensajesDelSistema($conversacion);
+
+        self::assertCount(1, $mensajes, 'Sin canal, el motor volvió a fabricar el mensaje en cada disparo: es el bucle de crear y cancelar.');
+        self::assertSame(Message::STATUS_SIN_CANAL, $mensajes[0]->getStatus());
+        self::assertSame(
+            ['cancelled'],
+            array_values(array_unique(array_map(static fn ($q): string => (string) $q->getStatus(), $mensajes[0]->getAllQueues()))),
+            'La cola del canal que ya no vale tiene que quedar cortada, o saldría igual.'
+        );
+    }
+
+    /**
+     * Melanie (26/09/2026): se le añade el teléfono —en su caso, fusionando el hilo con el de
+     * su número— y su guía de llegada tiene que volver a salir. Antes `sin_canal` no revivía
+     * nunca: el listener sólo pide colas para `pending` y `queued`.
+     */
+    #[Test]
+    public function un_sin_canal_revive_cuando_vuelve_a_haber_canal(): void
+    {
+        $inicio = $this->hito('+10 days noon');
+        $canal = new MessageChannel()->setId('whatsapp_meta');
+        $regla = $this->regla(canal: $canal);
+
+        $reserva = new PmsReserva();
+        $conversacion = new MessageConversation('pms_reserva', (string) $reserva->getId());
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicio]), $reserva);
+
+        $esperando = $this->programado($conversacion, $regla, $reserva, Message::STATUS_SIN_CANAL, '+9 days noon');
+
+        $this->motor([$regla], [$this->enqueuer()])
+            ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
+
+        self::assertCount(1, $this->mensajesDelSistema($conversacion), 'Revivir no es fabricar otro.');
+        self::assertSame(Message::STATUS_PENDING, $esperando->getStatus(), 'Con canal otra vez, el `sin_canal` tiene que volver a la cola.');
+        self::assertSame(['whatsapp_meta'], $esperando->getTransientChannels());
+        self::assertSame($this->esperado($inicio, -1440), $esperando->getScheduledAt()?->getTimestamp());
+    }
+
+    /**
+     * Lo que ya pasó no sale tarde. La regla sigue aplicando —la llegada es hoy— pero el
+     * recordatorio era para ayer: se queda en `sin_canal`, que es lo que le pasó.
+     */
+    #[Test]
+    public function un_sin_canal_cuya_hora_ya_paso_no_revive(): void
+    {
+        $inicio = $this->hito('today 23:59');
+        $canal = new MessageChannel()->setId('whatsapp_meta');
+        $regla = $this->regla(canal: $canal);
+
+        $reserva = new PmsReserva();
+        $conversacion = new MessageConversation('pms_reserva', (string) $reserva->getId());
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicio]), $reserva);
+
+        $vencido = $this->programado($conversacion, $regla, $reserva, Message::STATUS_SIN_CANAL, 'yesterday 23:59');
+
+        $this->motor([$regla], [$this->enqueuer()])
+            ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
+
+        self::assertSame(Message::STATUS_SIN_CANAL, $vencido->getStatus(), 'Un recordatorio vencido no puede salir ahora.');
+        self::assertCount(1, $this->mensajesDelSistema($conversacion));
+    }
+
+    /**
+     * `sin_canal` es un mensaje VIVO, así que cuando la regla deja de aplicar muere como los
+     * demás. Si no, se quedaría en la pestaña de programados de una reserva cancelada, y
+     * reviviría el día que le llegara un teléfono.
+     */
+    #[Test]
+    public function un_sin_canal_muere_cuando_la_regla_deja_de_aplicar(): void
+    {
+        $canal = new MessageChannel()->setId('whatsapp_meta');
+        $regla = $this->regla(canal: $canal);
+
+        $reserva = new PmsReserva();
+        $conversacion = new MessageConversation('pms_reserva', (string) $reserva->getId());
+        // La llegada ya pasó: la regla de «un día antes de llegar» deja de aplicar.
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $this->hito('-2 days noon')]), $reserva);
+
+        $esperando = $this->programado($conversacion, $regla, $reserva, Message::STATUS_SIN_CANAL, '+1 day noon');
+
+        $this->motor([$regla], [$this->enqueuer()])
+            ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
+
+        self::assertSame(Message::STATUS_CANCELLED, $esperando->getStatus());
     }
 }
