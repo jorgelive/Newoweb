@@ -125,7 +125,7 @@ final class UnificarTarifasIncaRail360Command extends Command
         return Command::SUCCESS;
     }
 
-    /** @param array<int, array{language?: string, content?: string}> $i18n */
+    /** @param array<int, array{language?: string, content?: string|null}> $i18n `content` nulo = traducción fallida, cuenta como vacío. */
     private function textoEspanol(array $i18n): ?string
     {
         foreach ($i18n as $item) {

@@ -593,7 +593,7 @@ final class TravelProponerPuntosCommand extends Command
         $porItinerario = [];
 
         foreach ($rels as $rel) {
-            $itinerario = $rel->getItinerario();
+            $itinerario = $rel->getItinerarioOrFail();
             $id = $itinerario->getId()?->toRfc4122();
 
             if ($id === null) {

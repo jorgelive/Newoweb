@@ -143,8 +143,11 @@ class Beds24BookingsPushJob implements CronJobInterface, CronHorizonteInterface
                 $this->em->flush();
                 $this->em->clear();
 
-                // Recuperar el endpoint tras el clear()
-                $postEndpoint = $this->em->getRepository(ExchangeEndpoint::class)->find($endpointId);
+                // Recuperar el endpoint tras el clear(). Si desapareció a mitad del job, el siguiente
+                // lote no tiene a dónde enviar: mejor pararse aquí diciendo por qué que reventar en
+                // `enqueueForLink()` con un TypeError sin contexto.
+                $postEndpoint = $this->em->getRepository(ExchangeEndpoint::class)->find($endpointId)
+                    ?? throw new \RuntimeException('El endpoint de push de reservas desapareció a mitad del job.');
 
                 if ($io->isVerbose()) {
                     $io->write('.');

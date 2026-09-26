@@ -55,9 +55,14 @@
   hoy.** El detalle está en la cabecera de `phpstan.dist.neon`.
 
   **Camino al 8 (el de los `null`), por módulos.** Medido el 26/09/2026: 240 avisos en 91
-  archivos. `src/Pms` (96) y `src/Agent` (25) ya pasan el 8; faltan Message, Api y sueltos. No se sube el
+  archivos. **Todo pasa el 8 salvo `src/Message` (69)**: Pms, Agent, Api y el resto, el 26/09/2026. No se sube el
   nivel en `phpstan.dist.neon` hasta que pase el proyecto entero. Para comprobar un módulo:
   `vendor/bin/phpstan analyse --level=8 src/Pms`.
+
+  ⚠️ **Y el 8 encontró fallos que ya estaban en producción, no sólo tipos.** Los cobros sueltos por
+  Culqi leían `->value` sobre un `origenTipo` nulo: un *warning*, así que se cobraba igual y nadie
+  lo veía (`docs/FinanzasEnlacesPago.md`). Un warning en el log de producción no es ruido: es un
+  `null` que el código no esperaba.
 
   ⚠️ **Un nulable no se aprieta porque hoy no haya nulos: lo decide el dominio.** Un evento sin
   reserva parece un dato roto y es un **bloqueo**. La regla y los `getXOrFail()` que existen están

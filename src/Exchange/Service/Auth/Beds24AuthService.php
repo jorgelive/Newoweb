@@ -41,7 +41,12 @@ final class Beds24AuthService
         if (!$endpoint) throw new RuntimeException('Endpoint GET_TOKEN no definido.');
 
         // Usamos la baseUrl de la configuración
-        $url = rtrim($config->getBaseUrl(), '/') . '/' . ltrim($endpoint->getEndpoint(), '/');
+        // Sin ruta, la URL quedaría en la base a secas y pediría el token donde no es.
+        $ruta = $endpoint->getEndpoint();
+        if ($ruta === null || $ruta === '') {
+            throw new RuntimeException('Endpoint GET_TOKEN sin ruta configurada.');
+        }
+        $url = rtrim($config->getBaseUrl(), '/') . '/' . ltrim($ruta, '/');
 
         $response = $this->httpClient->request($endpoint->getMetodo(), $url, [
             'headers' => ['refreshToken' => $config->getRefreshToken()]

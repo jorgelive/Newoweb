@@ -82,6 +82,12 @@ class TravelItinerarioSegmentoRel
         return $this->itinerario;
     }
 
+    /** La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19. */
+    public function getItinerarioOrFail(): TravelItinerario
+    {
+        return $this->itinerario ?? throw new \LogicException('Relación itinerario-segmento sin itinerario (la columna es NOT NULL).');
+    }
+
     public function setItinerario(?TravelItinerario $itinerario): self
     {
         $this->itinerario = $itinerario;
@@ -91,6 +97,12 @@ class TravelItinerarioSegmentoRel
     public function getSegmento(): ?TravelSegmento
     {
         return $this->segmento;
+    }
+
+    /** La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19. */
+    public function getSegmentoOrFail(): TravelSegmento
+    {
+        return $this->segmento ?? throw new \LogicException('Relación itinerario-segmento sin segmento (la columna es NOT NULL).');
     }
 
     public function setSegmento(?TravelSegmento $segmento): self

@@ -141,6 +141,12 @@ class PmsCatalogo
 
     #[Groups(['pax_catalogo:read'])]
     public function getUnidad(): ?PmsUnidad { return $this->unidad; }
+
+    /** `unidad_id` es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19. */
+    public function getUnidadOrFail(): PmsUnidad
+    {
+        return $this->unidad ?? throw new \LogicException('Catálogo sin unidad (la columna es NOT NULL).');
+    }
     public function setUnidad(?PmsUnidad $unidad): self { $this->unidad = $unidad; return $this; }
 
     public function isActivo(): bool { return $this->activo; }

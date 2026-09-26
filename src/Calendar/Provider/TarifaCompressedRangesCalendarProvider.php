@@ -116,6 +116,8 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                     'MinStay: ' . $minStay,
                     $currency,
                 ];
+                // La moneda puede faltar, y una línea vacía no es una línea del tooltip.
+                $tooltip = array_filter($tooltip, static fn (?string $linea): bool => $linea !== null);
 
                 // --- Lógica de URLs (Mantenida intacta) ---
                 $urledit = null;

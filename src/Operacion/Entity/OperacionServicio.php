@@ -845,6 +845,12 @@ class OperacionServicio
     public function setCotizacionTarifa(?CotizacionCottarifa $cotizacionTarifa): self { $this->cotizacionTarifa = $cotizacionTarifa; return $this; }
 
     public function getFechaServicio(): ?\DateTimeImmutable { return $this->fechaServicio; }
+
+    /** `fecha_servicio` es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19. */
+    public function getFechaServicioOrFail(): \DateTimeImmutable
+    {
+        return $this->fechaServicio ?? throw new \LogicException('Servicio de operación sin fecha (la columna es NOT NULL).');
+    }
     public function setFechaServicio(\DateTimeImmutable $fechaServicio): self { $this->fechaServicio = $fechaServicio; return $this; }
 
     public function getEstadoReservaProveedorDesde(): ?\DateTimeImmutable { return $this->estadoReservaProveedorDesde; }

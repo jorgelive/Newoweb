@@ -54,7 +54,7 @@ final readonly class CotizacionPuntosDelServicio
      *     tieneFin: bool,
      *     completo: bool,
      *     faltantes: list<string>,
-     *     detalle: list<array{componente: string, tipo: string, inicio: string, fin: ?string}>
+     *     detalle: list<array{componente: string, tipo: string, inicio: ?string, fin: ?string}>
      * }>
      */
     public function paraCotizacion(Cotizacion $cotizacion): array
@@ -89,7 +89,7 @@ final readonly class CotizacionPuntosDelServicio
      *     tieneFin: bool,
      *     completo: bool,
      *     faltantes: list<string>,
-     *     detalle: list<array{componente: string, tipo: string, inicio: string, fin: ?string}>
+     *     detalle: list<array{componente: string, tipo: string, inicio: ?string, fin: ?string}>
      * }
      */
     public function paraServicio(CotizacionCotservicio $servicio, array $maestros): array

@@ -571,7 +571,9 @@ class BibliaSnapshotService
     /**
      * Extrae el contenido en español de un snapshot i18n ([{language, content}, ...]).
      *
-     * @param array<int, array{language?: string, content?: string}> $snapshot
+     * El `content` puede venir nulo —una traducción que falló—, y abajo se trata como vacío.
+     *
+     * @param array<int, array{language?: string, content?: string|null}> $snapshot
      */
     public function textoEspanol(array $snapshot): ?string
     {

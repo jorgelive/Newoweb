@@ -35,19 +35,19 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
             return $this->json(['error' => 'No encontrado'], 404);
         }
 
-        $itinerarioId = $relacion->getItinerario()->getId();
-        $segmentoId = $relacion->getSegmento()->getId();
+        $itinerarioId = $relacion->getItinerarioOrFail()->getId();
+        $segmentoId = $relacion->getSegmentoOrFail()->getId();
 
         // 1. Catálogo para el Select
         $componentes = $this->em->getRepository(TravelComponente::class)->findBy([], ['nombreInterno' => 'ASC']);
         $cat = array_map(function($c) {
             $tarifas = array_map(fn($t) => [
-                'id' => $t->getId()->toRfc4122(),
+                'id' => $t->getIdOrFail()->toRfc4122(),
                 'nombre' => $t->getNombreInterno() . ' (' . ($t->getMoneda() ? $t->getMoneda()->getId() : '') . ' ' . $t->getMonto() . ')'
             ], $c->getTarifas()->toArray());
 
             return [
-                'id' => $c->getId()->toRfc4122(),
+                'id' => $c->getIdOrFail()->toRfc4122(),
                 'nombre' => $c->getNombreInterno(),
                 'tarifas' => $tarifas
             ];
@@ -61,8 +61,8 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
 
         // 🔥 Se mapea el día a la vista
         $dataEspecifica = array_map(fn($l) => [
-            'componenteId'     => $l->getComponente()->getId()->toRfc4122(),
-            'tarifaId'         => $l->getTarifaPredeterminada() ? $l->getTarifaPredeterminada()->getId()->toRfc4122() : null,
+            'componenteId'     => $l->getComponenteOrFail()->getIdOrFail()->toRfc4122(),
+            'tarifaId'         => $l->getTarifaPredeterminada()?->getIdOrFail()->toRfc4122(),
             'dia'              => $l->getDia(), // <-- Inyectamos el filtro de día relativo
             'hora'             => $l->getHora() ? $l->getHora()->format('H:i') : '',
             'horaFin'          => $l->getHoraFin() ? $l->getHoraFin()->format('H:i') : '',
@@ -79,7 +79,7 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
 
         // 🔥 Se mapea el día a la vista
         $dataGeneral = array_map(fn($l) => [
-            'nombre'       => $l->getComponente()->getNombreInterno(),
+            'nombre'       => $l->getComponenteOrFail()->getNombreInterno(),
             'tarifaNombre' => $l->getTarifaPredeterminada() ? $l->getTarifaPredeterminada()->getNombreInterno() : 'Auto / Varias',
             'dia'          => $l->getDia(), // <-- Inyectamos el filtro de día relativo
             'hora'         => $l->getHora() ? $l->getHora()->format('H:i') : '--:--',
@@ -108,8 +108,14 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
     public function saveComponentes(Request $request, string $relId): JsonResponse
     {
         $relacion = $this->em->find(TravelItinerarioSegmentoRel::class, $relId);
-        $itinerario = $relacion->getItinerario();
-        $segmento = $relacion->getSegmento();
+        // El GET ya devolvía 404; el POST no, y un id que no existe acababa en un 500 con
+        // «Call to a member function getItinerario() on null».
+        if (!$relacion) {
+            return $this->json(['error' => 'No encontrado'], 404);
+        }
+
+        $itinerario = $relacion->getItinerarioOrFail();
+        $segmento = $relacion->getSegmentoOrFail();
 
         $payload = json_decode($request->getContent(), true);
 

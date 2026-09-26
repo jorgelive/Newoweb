@@ -86,7 +86,10 @@ class TimelineEnqueuerService
             $this->em->flush();
         }
 
-        $startDate = DateTimeImmutable::createFromInterface($cursor->getCursorDate());
+        // `cursor_date` es NOT NULL y el constructor la rellena: un cursor sin fecha es un dato roto.
+        $startDate = DateTimeImmutable::createFromInterface(
+            $cursor->getCursorDate() ?? throw new \LogicException("Cursor $jobName sin fecha (la columna es NOT NULL).")
+        );
         $endDate = $startDate->add($this->resolverPaso($jobService, $startDate));
 
         // Seguridad: evitar que el cursor avance a fechas irreales.

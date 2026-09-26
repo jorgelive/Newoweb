@@ -42,7 +42,8 @@ abstract class BaseCrudController extends AbstractCrudController
             $currentUri = $request->getUri();
 
             // Limpiamos la URL por si trae basura vieja para evitar el "Efecto Bola de Nieve Base64"
-            $cleanUri = preg_replace('/([?&])returnTo=[^&]*(&|$)/', '$1', $currentUri);
+            // `preg_replace` devuelve null sólo si la expresión falla: entonces, la URI tal cual.
+            $cleanUri = preg_replace('/([?&])returnTo=[^&]*(&|$)/', '$1', $currentUri) ?? $currentUri;
             $cleanUri = rtrim($cleanUri, '?&');
 
             // Generamos el pasaporte

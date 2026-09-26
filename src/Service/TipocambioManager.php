@@ -322,6 +322,9 @@ class TipocambioManager
      */
     private function getUsdRef(): MaestroMoneda
     {
-        return $this->em->getReference(MaestroMoneda::class, self::MONEDA_TARGET);
+        // `getReference()` puede devolver null en Doctrine 3; sin la moneda en la base no hay a
+        // qué referir el tipo de cambio.
+        return $this->em->getReference(MaestroMoneda::class, self::MONEDA_TARGET)
+            ?? throw new \LogicException('No existe la moneda ' . self::MONEDA_TARGET . ' en maestro_moneda.');
     }
 }

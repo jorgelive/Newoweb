@@ -435,7 +435,7 @@ class TravelSegmentoCrudController extends BaseCrudController
                     };
                     $modoTxt = sprintf('<i class="fas %s %s ms-1" title="%s"></i>', $modoIcon, $modoColor, ucfirst($sc->getModo()->value));
 
-                    $ctx = $sc->getItinerarioContexto() ? htmlspecialchars($sc->getItinerarioContexto()->getNombreInterno()) : 'Global';
+                    $ctx = $sc->getItinerarioContexto() ? htmlspecialchars((string) $sc->getItinerarioContexto()->getNombreInterno()) : 'Global';
                     $colorCtx = $sc->getItinerarioContexto() ? 'text-primary' : 'text-success';
                     $iconCtx = $sc->getItinerarioContexto() ? 'fa-filter' : 'fa-globe';
                     // Puntito rojo: su hora está promovida al horario de toda la excursión (servicio completo).

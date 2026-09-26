@@ -665,6 +665,13 @@ etiquetado como PMS sigue siendo manual: no hay reserva a la que imputarle el di
 Consecuencia: al cobrarse, un manual **no llama a ningún resolver** — el dinero queda
 registrado sólo en Finanzas. No es un caso degradado, es el caso normal de una venta suelta.
 
+⚠️ **Y por eso todo lo que lee `origenTipo` tiene que aceptar `null`, empezando por las pasarelas.**
+`CulqiClient` e `IzipayClient` mandaban `$enlace->getOrigenTipo()->value` en los metadatos del
+cobro, y cada cobro suelto dejaba en producción un `Warning: Attempt to read property "value" on
+null` (26/08, 31/08 y 06/09/2026). Es un aviso, no un error: el cobro salía igual con el metadato
+en `null`, y nadie lo vio. Lo destapó la subida a PHPStan nivel 8 (26/09/2026); ahora es `?->` a
+propósito, y `CobroSueltoSinOrigenTest` reproduce el aviso contra el código viejo.
+
 El `modulo` del formulario es **sólo una etiqueta para filtrar**. Por eso se admite
 `cotizacion` aunque ese módulo todavía no tenga resolver: etiquetar no requiere saber leer
 saldos.

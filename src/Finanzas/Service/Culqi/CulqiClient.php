@@ -209,7 +209,11 @@ final class CulqiClient implements FinPasarelaClientInterface
             // Culqi con nuestra fila sin depender de parsear el `orderId`.
             'metadata' => [
                 'enlaceId' => (string) $enlace->getId(),
-                'origenTipo' => $enlace->getOrigenTipo()->value,
+                // ⚠️ `?->` a propósito: un cobro manual SUELTO no tiene módulo (`origenTipo` nulo,
+                // ver la tabla de `FinEnlacePago::$origenTipo`). Con `->` era un «Attempt to read
+                // property "value" on null» —un warning, no un error— en cada cobro suelto: salió
+                // en producción el 26/08, el 31/08 y el 06/09/2026, y se cobró igual de casualidad.
+                'origenTipo' => $enlace->getOrigenTipo()?->value,
                 'ordenId' => (string) $enlace->getOrdenId(),
             ],
         ] + $this->antifraude($enlace));

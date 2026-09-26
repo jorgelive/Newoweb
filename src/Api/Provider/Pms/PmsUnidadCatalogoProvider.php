@@ -92,7 +92,7 @@ final class PmsUnidadCatalogoProvider implements ProviderInterface
      */
     private function construirBloques(PmsCatalogo $catalogo): array
     {
-        $contexto = PmsGuiaContexto::construir($catalogo->getUnidad(), null);
+        $contexto = PmsGuiaContexto::construir($catalogo->getUnidadOrFail(), null);
         $acceso = PmsGuiaAcceso::publico();
 
         /** @var array<string, array<int, array{orden: int, item: PmsGuiaItem}>> $porBloque */

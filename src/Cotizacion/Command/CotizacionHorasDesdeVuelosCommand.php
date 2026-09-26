@@ -246,6 +246,14 @@ final class CotizacionHorasDesdeVuelosCommand extends Command
             ? trim(($primero->getNumero() ?? '') . ' ' . ($primero->getOrigen() ?? '') . '→' . ($primero->getDestino() ?? ''))
             : sprintf('%s→%s (%d tramos)', $primero->getOrigen() ?? '?', $ultimo->getDestino() ?? '?', count($delDia));
 
-        return [$primero->getSalida(), $ultimo->getLlegada(), $etiqueta];
+        // Los dos existen: arriba sólo entran vuelos con salida y llegada. Se comprueba otra vez
+        // porque el filtro está en otro bucle y el análisis no lo sigue hasta aquí.
+        $salida = $primero->getSalida();
+        $llegada = $ultimo->getLlegada();
+        if ($salida === null || $llegada === null) {
+            return false;
+        }
+
+        return [$salida, $llegada, $etiqueta];
     }
 }

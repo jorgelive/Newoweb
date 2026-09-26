@@ -584,6 +584,12 @@ class CotizacionCotcomponente
      */
     public function getCotservicio(): ?CotizacionCotservicio { return $this->cotservicio; }
 
+    /** `cotservicio_id` es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19. */
+    public function getCotservicioOrFail(): CotizacionCotservicio
+    {
+        return $this->cotservicio ?? throw new \LogicException('Componente sin servicio (la columna es NOT NULL).');
+    }
+
     /**
      * Establece el servicio de cotización padre.
      *

@@ -19,7 +19,10 @@ class MediaTokenNamer implements NamerInterface
 {
     public function name($object, PropertyMapping $mapping): string
     {
-        $file = $mapping->getFile($object);
+        // Vich sólo llama al namer cuando hay fichero; si llegara sin él, que lo diga aquí y no
+        // como «Call to a member function guessExtension() on null» unas líneas abajo.
+        $file = $mapping->getFile($object)
+            ?? throw new \InvalidArgumentException('El namer de medios se llamó sin fichero.');
 
         // 1. EXTENSIÓN
         // Respetamos si el listener PreUpload ya lo convirtió a 'webp'

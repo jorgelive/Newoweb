@@ -72,15 +72,15 @@ class TestTipocambioCommand extends Command
             [
                 ['ID (BD)', $tc->getId() ?? 'N/A'],
                 ['Fecha Solicitada', $fecha->format('Y-m-d')],
-                ['Fecha del Dato', $tc->getFecha()->format('Y-m-d')], // Para ver si hizo fallback
-                ['Moneda', $tc->getMoneda()->getId() ?? 'USD'], // Asumiendo que tu entidad tiene getCodigo
+                ['Fecha del Dato', $tc->getFecha()?->format('Y-m-d') ?? '— (sin fecha)'], // Para ver si hizo fallback
+                ['Moneda', $tc->getMoneda()?->getId() ?? '— (sin moneda)'],
                 ['Compra', $tc->getCompra()],
                 ['Venta', $tc->getVenta()],
                 ['Tiempo de respuesta', $duration . ' ms'],
             ]
         );
 
-        if ($fecha->format('Y-m-d') !== $tc->getFecha()->format('Y-m-d')) {
+        if ($fecha->format('Y-m-d') !== $tc->getFecha()?->format('Y-m-d')) {
             $io->note('Nota: La fecha del dato es diferente a la solicitada. Esto indica que se usó un día hábil anterior (Fallback).');
         }
 

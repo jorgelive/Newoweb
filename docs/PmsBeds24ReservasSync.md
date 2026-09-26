@@ -6019,6 +6019,8 @@ Los accesores que existen, todos sobre columnas `NOT NULL`:
 | `PmsUnidadBeds24Map::getPmsUnidadOrFail()` | la unidad del mapeo |
 | `PmsTarifaRango::getUnidadOrFail()`, `getFechaInicioOrFail()`, `getFechaFinOrFail()` | unidad y fechas del rango |
 | `PmsRatesPushQueue::getFechaInicioOrFail()`, `getFechaFinOrFail()` | fechas de la cola de tarifas |
+| `IdTrait::getIdOrFail()` (todas las entidades con `IdTrait`) | el id de una fila ya guardada o inicializada |
+| `PmsCatalogo`, `CotizacionCotcomponente`, `OperacionServicio`, `TravelItinerarioSegmentoRel`, `TravelSegmentoComponente` | sus relaciones y fechas `NOT NULL` (26/09/2026, al pasar el resto del proyecto al 8) |
 
 ⚠️ **Y `PmsEventoCalendario::getReservaOrFail()` NO existe, a propósito.** Lo fija
 `NulosDelDominioTest`: el día que alguien lo añada para callar al analizador, el test le dice por

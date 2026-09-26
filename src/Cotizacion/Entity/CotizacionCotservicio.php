@@ -190,7 +190,7 @@ class CotizacionCotservicio
             $copiaSeg = $segmento->duplicar();
             $copiaSeg->setCotservicio($copia);
             $copia->cotsegmentos->add($copiaSeg);
-            $mapaSegmentos[$segmento->getId()->toRfc4122()] = $copiaSeg;
+            $mapaSegmentos[$segmento->getIdOrFail()->toRfc4122()] = $copiaSeg;
         }
 
         $copia->cotcomponentes = new ArrayCollection();
@@ -204,8 +204,8 @@ class CotizacionCotservicio
 
             $segOriginal = $componente->getCotsegmento();
             $copiaComp->setCotsegmento(
-                $segOriginal !== null && isset($mapaSegmentos[$segOriginal->getId()->toRfc4122()])
-                    ? $mapaSegmentos[$segOriginal->getId()->toRfc4122()]
+                $segOriginal !== null && isset($mapaSegmentos[$segOriginal->getIdOrFail()->toRfc4122()])
+                    ? $mapaSegmentos[$segOriginal->getIdOrFail()->toRfc4122()]
                     : null
             );
 

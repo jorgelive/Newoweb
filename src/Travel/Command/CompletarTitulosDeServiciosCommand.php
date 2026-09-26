@@ -104,7 +104,7 @@ final class CompletarTitulosDeServiciosCommand extends Command
         return Command::SUCCESS;
     }
 
-    /** @param array<int, array{language?: string, content?: string}> $i18n */
+    /** @param array<int, array{language?: string, content?: string|null}> $i18n `content` nulo = traducción fallida, cuenta como vacío. */
     private function tieneTexto(array $i18n): bool
     {
         foreach ($i18n as $item) {

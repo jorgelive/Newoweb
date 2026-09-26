@@ -58,7 +58,7 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
         // bind genérico (invoca __toString() de la entidad), por lo que el
         // WHERE nunca matchea. Hay que pasar el binario crudo del UUID.
         $fileIds = array_map(
-            static fn (CotizacionFile $file): string => $file->getId()->toBinary(),
+            static fn (CotizacionFile $file): string => $file->getIdOrFail()->toBinary(),
             $files
         );
 

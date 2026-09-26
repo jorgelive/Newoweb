@@ -95,7 +95,7 @@ class WebPushNotificationService
 
         try {
             foreach ($subscriptions as $dbSubscription) {
-                $this->logger->info("🔗 [WebPush] Encolando para endpoint: " . substr($dbSubscription->getEndpoint(), 0, 50) . "...");
+                $this->logger->info("🔗 [WebPush] Encolando para endpoint: " . substr((string) $dbSubscription->getEndpoint(), 0, 50) . "...");
 
                 $sub = Subscription::create([
                     'endpoint' => $dbSubscription->getEndpoint(),

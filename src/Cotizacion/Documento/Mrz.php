@@ -306,6 +306,10 @@ final readonly class Mrz
             }
         }
 
+        if ($mejor === null) {
+            return $linea;   // imposible: `preg_match_all` encontró al menos un tramo arriba
+        }
+
         [$texto, $desde] = $mejor;
         $nuevo = strlen($texto) - $diferencia;
 

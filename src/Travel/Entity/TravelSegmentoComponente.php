@@ -188,6 +188,12 @@ class TravelSegmentoComponente
         return $this->componente;
     }
 
+    /** La columna es NOT NULL: ver `docs/PmsBeds24ReservasSync.md` §12.19. */
+    public function getComponenteOrFail(): TravelComponente
+    {
+        return $this->componente ?? throw new \LogicException('Componente de segmento sin componente (la columna es NOT NULL).');
+    }
+
     /**
      * @param TravelComponente|null $componente
      * @return self

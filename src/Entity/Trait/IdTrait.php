@@ -20,6 +20,20 @@ trait IdTrait
     }
 
     /**
+     * El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
+     *
+     * ⚠️ El getter nulable se queda: una entidad recién creada no tiene id hasta el flush. Esto es
+     * para el código que lee filas de la base —un `find()`, un `findBy()`— y necesita su id como
+     * texto o binario: ahí un `null` no es un caso, es un dato roto, y tiene que decir de qué
+     * clase era en vez de reventar con «Call to a member function toRfc4122() on null».
+     * Criterio en `docs/PmsBeds24ReservasSync.md` §12.19.
+     */
+    public function getIdOrFail(): Uuid
+    {
+        return $this->id ?? throw new \LogicException(static::class . ' sin id: no se ha guardado ni inicializado.');
+    }
+
+    /**
      * Genera un ID si la entidad aún no lo tiene.
      * Útil cuando necesitas el ID antes del flush (colas, dedupe, etc.).
      */

@@ -164,8 +164,12 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
             if (!empty($eventCfg['tooltip']) && is_array($eventCfg['tooltip'])) {
                 $lines = [];
                 foreach ($eventCfg['tooltip'] as $path) {
-                    $v = $this->resolvePath($entity, (string) $path);
-                    $lines[] = $this->scalarToStringOrNull($v);
+                    // Un campo vacío no es una línea: antes salía como una fila en blanco del
+                    // tooltip (o «null», según quién lo pintara).
+                    $linea = $this->scalarToStringOrNull($this->resolvePath($entity, (string) $path));
+                    if ($linea !== null) {
+                        $lines[] = $linea;
+                    }
                 }
                 $tooltip = $lines;
             } else {

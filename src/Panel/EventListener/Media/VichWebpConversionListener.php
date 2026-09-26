@@ -128,7 +128,8 @@ class VichWebpConversionListener
         // A. Convertir el archivo físico en un objeto binario para Liip
         $binary = new Binary(
             $contenido,
-            $originalFile->getMimeType(),
+            // Sin tipo detectado, el genérico: Liip abre la imagen por su contenido, no por esto.
+            $originalFile->getMimeType() ?? 'application/octet-stream',
             $originalFile->getClientOriginalExtension()
         );
 

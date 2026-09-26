@@ -134,7 +134,7 @@ final readonly class OperacionHitosDeViaje
      */
     private function cuando(OperacionServicio $servicio): DateTimeImmutable
     {
-        $fecha = DateTimeImmutable::createFromInterface($servicio->getFechaServicio())->setTime(0, 0);
+        $fecha = $servicio->getFechaServicioOrFail()->setTime(0, 0);
         $hora = trim((string) $servicio->getHoraRecojo());
 
         if (preg_match('/^(\d{1,2}):(\d{2})/', $hora, $partes) !== 1) {

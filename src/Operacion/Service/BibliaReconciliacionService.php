@@ -260,7 +260,7 @@ class BibliaReconciliacionService
                         ++$omitidos;
                         break;
                     }
-                    $valores = $this->snapshot->calcularValores($componente, $componente->getCotservicio(), $cantidadPax);
+                    $valores = $this->snapshot->calcularValores($componente, $componente->getCotservicioOrFail(), $cantidadPax);
                     if ($valores === null) {
                         ++$omitidos;
                         break;
@@ -287,7 +287,7 @@ class BibliaReconciliacionService
                         ++$omitidos;
                         break;
                     }
-                    $valores = $this->snapshot->calcularValores($componente, $componente->getCotservicio(), $cantidadPax);
+                    $valores = $this->snapshot->calcularValores($componente, $componente->getCotservicioOrFail(), $cantidadPax);
                     if ($valores === null) {
                         ++$omitidos;
                         break;
