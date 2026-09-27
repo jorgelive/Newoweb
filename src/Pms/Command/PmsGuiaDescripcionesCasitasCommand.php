@@ -88,6 +88,36 @@ final class PmsGuiaDescripcionesCasitasCommand extends Command
                 Si hay alguien en silla de ruedas, dile esos cuatro escalones de bajada: no es accesible sin ayuda.
                 TXT,
         ],
+        'descripcion-casa-2' => [
+            'publica' => <<<'HTML'
+                <h3>Distribución</h3>
+                <ul>
+                <li>🛋️ <strong>Sala/comedor.</strong></li>
+                <li>🍳 <strong>Cocina:</strong> cocina de 4 hornillas, menajería, cubiertos, horno microondas, olla arrocera y refrigerador.</li>
+                <li>🛁 <strong>Baño completo</strong> en el área social: agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.</li>
+                <li>🛏️ <strong>Habitación 1:</strong> dos camas dobles y una cama individual, TV con Roku (incluye Netflix y <strong>HBO Max</strong>).</li>
+                <li>🛏️ <strong>Habitación 2:</strong> una cama doble, TV con Roku (incluye Netflix y <strong>HBO Max</strong>).</li>
+                </ul>
+                HTML,
+            'agente' => <<<'TXT'
+                Distribución
+
+                - 🛋️ Sala/comedor: UN SOLO AMBIENTE, con una mesa para 6 personas y dos sillones pequeños con una mesa de centro.
+                - 🍳 Cocina: cocina de 4 hornillas, menajería, cubiertos, horno microondas, olla arrocera y refrigerador.
+                - 🛁 UN SOLO BAÑO, completo, en el área social. Ninguna habitación tiene baño propio: si preguntan, dilo tal cual. Agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.
+                - 🛏️ Habitación 1: dos camas dobles y una cama individual, TV con Roku (incluye Netflix y HBO Max).
+                - 🛏️ Habitación 2: una cama doble, TV con Roku (incluye Netflix y HBO Max).
+
+                Para comer: 6 en la mesa, y la mesa de centro de los sillones también sirve para el resto. Cuéntalo si preguntan dónde comen todos.
+                TXT,
+            'acceso' => <<<'TXT'
+                Su puerta da a la calle Saphi, pero la vivienda está en un segundo nivel: para llegar se sube un corto tramo de 10 escalones, y a cambio queda por encima de la calle, con más luz y tranquilidad. Dentro, dos escalones hasta la sala y uno pequeño a la cocina.
+
+                ⚠️ Que la puerta esté a pie de calle sirve para ENCONTRARLA, no quiere decir que no haya escaleras: nunca la ofrezcas como sin gradas.
+
+                {PREGUNTA}
+                TXT,
+        ],
         'descripcion-casa-6' => [
             'publica' => <<<'HTML'
                 <h3>Distribución (dúplex)</h3>
