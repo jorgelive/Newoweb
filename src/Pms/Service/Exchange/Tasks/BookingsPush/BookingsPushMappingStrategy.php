@@ -175,6 +175,26 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
     {
         $link = $queue->getLink();
 
+        // 🧹 RETIRADA DE UNA RESERVA AJENA A NOSOTROS.
+        //
+        // Una fila SIN link pero CON id de Beds24 no describe ninguna estancia nuestra: es una
+        // reserva que sobra allí y que queremos quitar de en medio (el duplicado de §9.7). Lo
+        // único que se le manda es el estado, porque no hay nada más que decirle: la casita, las
+        // fechas y el huésped son suyos, y pisarlos con los de otra sería peor que dejarla.
+        //
+        // Existe porque **Beds24 no borra reservas activas** —«cannot delete active bookings»—,
+        // así que un `DELETE` sobre una que llegó en estado `new` falla siempre. Hay que
+        // cancelarla primero, y cancelar es exactamente esto.
+        if ($link === null && $queue->getBeds24BookIdOriginal() !== null) {
+            $id = $this->toIntOrNull($queue->getBeds24BookIdOriginal());
+
+            if ($id === null) {
+                throw new RuntimeException('Retirada sin id de Beds24 al que apuntar.');
+            }
+
+            return ['id' => $id, 'status' => self::BEDS24_CANCELLED];
+        }
+
         // Validación estricta de integridad (Cláusula de Guarda)
         if (!$link || !$link->getEvento() || !$link->getUnidadBeds24Map()) {
             throw new RuntimeException('Estructura de Link incompleta/corrupta.');

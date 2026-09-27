@@ -2122,6 +2122,14 @@ Sin `--ejecutar` sólo dice lo que haría, y si cualquier comprobación falla no
 la buena no la reclame ya otro link, que la duplicada esté suelta, que el link cuelgue de un
 evento.
 
+⚠️ **Y son DOS filas por duplicado, no una: Beds24 no borra reservas activas.** Un `DELETE` sobre
+una que llegó en estado `new` contesta `cannot delete active bookings`, así que primero va una
+cancelación y dos minutos después el borrado. La cancelación viaja por la misma cola y con la
+misma forma —sin `link`, con el id en el snapshot—, y `BookingsPushMappingStrategy::buildUpsertPayload()`
+la reconoce justo por eso: **una fila sin link no describe ninguna estancia nuestra**, así que
+sólo le manda `{id, status: cancelled}`. Pisarle casita, fechas o huésped con los de otra reserva
+sería peor que dejarla ahí.
+
 ⚠️ **Corre dentro de `SyncContext::MODE_PULL`, y eso no es decorado.** Mover el `beds24BookId` es
 una escritura sobre un link principal, que dispara `Beds24BookingsPushQueueListener`. Ese push
 viajaría con el estado que el evento tiene en ese instante —`cancelada`, el que metió la

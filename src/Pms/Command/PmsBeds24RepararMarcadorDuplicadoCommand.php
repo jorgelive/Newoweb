@@ -188,7 +188,11 @@ final class PmsBeds24RepararMarcadorDuplicadoCommand extends Command
             $link->setLastSeenAt($ahora);
 
             foreach ($aBorrar as $id) {
-                $this->em->persist($this->colaDeBorrado($link, $id, $ahora));
+                // Primero la cancelación, después el borrado: Beds24 se niega a borrar una
+                // reserva activa («cannot delete active bookings»). El desfase le da margen a
+                // la primera; si aun así llega pronto, el `DELETE` falla y reintenta solo.
+                $this->em->persist($this->colaDeRetirada($link, $id, $ahora));
+                $this->em->persist($this->colaDeBorrado($link, $id, $ahora->modify('+2 minutes')));
             }
 
             if ($llegada !== null) {
@@ -221,20 +225,57 @@ final class PmsBeds24RepararMarcadorDuplicadoCommand extends Command
     }
 
     /**
+     * La cancelación previa. Misma forma que el borrado —sin `link`, con el id en el snapshot—,
+     * y la estrategia de mapeo la reconoce por eso mismo: sin link no hay estancia que describir,
+     * así que sólo le manda el estado. Ver `BookingsPushMappingStrategy::buildUpsertPayload()`.
+     */
+    private function colaDeRetirada(PmsEventoBeds24Link $link, string $bookId, DateTimeImmutable $ahora): PmsBookingsPushQueue
+    {
+        return $this->colaSinLink(
+            $link,
+            $bookId,
+            $ahora,
+            PmsBookingsPushQueue::ACCION_POST_BOOKINGS,
+            'retirada',
+        );
+    }
+
+    /**
      * El DELETE, con la misma forma que le da `Beds24BookingsPushQueueCreator`: sin `link` —para
      * que el borrado no arrastre al link que acabamos de arreglar— y con el id en el snapshot,
      * que es de donde lo lee la estrategia de mapeo.
      */
-    private function colaDeBorrado(PmsEventoBeds24Link $link, string $bookId, DateTimeImmutable $ahora): PmsBookingsPushQueue
+    private function colaDeBorrado(PmsEventoBeds24Link $link, string $bookId, DateTimeImmutable $runAt): PmsBookingsPushQueue
     {
+        return $this->colaSinLink(
+            $link,
+            $bookId,
+            $runAt,
+            PmsBookingsPushQueue::ACCION_DELETE_BOOKINGS,
+            'duplicado',
+        );
+    }
+
+    /**
+     * Una fila de cola que apunta a una reserva de Beds24 **sin link**: ni la adopta ni la
+     * resucita, sólo la nombra. El `link` sólo se usa para llegar a la config y para dejar
+     * escrito de qué arreglo salió.
+     */
+    private function colaSinLink(
+        PmsEventoBeds24Link $link,
+        string $bookId,
+        DateTimeImmutable $runAt,
+        string $accion,
+        string $prefijoDedupe,
+    ): PmsBookingsPushQueue {
         $endpoint = $this->endpoints->findOneBy([
             'provider' => ConnectivityProvider::BEDS24,
-            'accion' => PmsBookingsPushQueue::ACCION_DELETE_BOOKINGS,
+            'accion' => $accion,
             'activo' => true,
         ]);
 
         if ($endpoint === null) {
-            throw new \RuntimeException('No hay endpoint activo de borrado de reservas en Beds24.');
+            throw new \RuntimeException(sprintf('No hay endpoint activo «%s» en Beds24.', $accion));
         }
 
         $config = $link->getUnidadBeds24Map()?->getPmsUnidadOrFail()->getEstablecimientoOrFail()->getBeds24ConfigOrFail();
@@ -247,8 +288,8 @@ final class PmsBeds24RepararMarcadorDuplicadoCommand extends Command
         $cola->setLink(null);
         $cola->setLinkIdOriginal((string) $link->getId());
         $cola->setBeds24BookIdOriginal($bookId);
-        $cola->setDedupeKey(sprintf('duplicado:%s:provider:%s:endpoint:%s', $bookId, ConnectivityProvider::BEDS24->value, PmsBookingsPushQueue::ACCION_DELETE_BOOKINGS));
-        $cola->setRunAt($ahora);
+        $cola->setDedupeKey(sprintf('%s:%s:provider:%s:endpoint:%s', $prefijoDedupe, $bookId, ConnectivityProvider::BEDS24->value, $accion));
+        $cola->setRunAt($runAt);
 
         return $cola;
     }
