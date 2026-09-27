@@ -118,6 +118,32 @@ final class PmsGuiaDescripcionesCasitasCommand extends Command
                 {PREGUNTA}
                 TXT,
         ],
+        'descripcion-casa-3' => [
+            'publica' => <<<'HTML'
+                <h3>Distribución</h3>
+                <ul>
+                <li>🍽️ <strong>Comedor con área de cocina:</strong> cocina de 4 hornillas, menajería, cubiertos, horno microondas, olla arrocera y refrigerador.</li>
+                <li>🛁 <strong>Baño completo</strong> en el área social: agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.</li>
+                <li>🛏️ <strong>Habitación 1:</strong> dos camas dobles, TV con Roku (incluye Netflix y <strong>HBO Max</strong>).</li>
+                <li>🛏️ <strong>Habitación 2:</strong> dos camas dobles, TV con Roku (incluye Netflix y <strong>HBO Max</strong>).</li>
+                </ul>
+                HTML,
+            'agente' => <<<'TXT'
+                Distribución
+
+                - 🍽️ Comedor con área de cocina, UN SOLO AMBIENTE: mesa con 4 sillas y un sillón. NO HAY SALA: si preguntan, dilo así. Cocina de 4 hornillas, menajería, cubiertos, horno microondas, olla arrocera y refrigerador.
+                - 🛁 UN SOLO BAÑO, completo, en el área social. Ninguna habitación tiene baño propio. Agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.
+                - 🛏️ Habitación 1: dos camas dobles, TV con Roku (incluye Netflix y HBO Max).
+                - 🛏️ Habitación 2: dos camas dobles, TV con Roku (incluye Netflix y HBO Max).
+
+                ESPACIO PARA UN GRUPO GRANDE. No lo cuentes de entrada: sólo si preguntan dónde comen todos, dónde sentarse o por la comodidad para 8. Para comer hay 4 sillas y un sillón, y no hay otro espacio donde sentarse: si van 8, se turnan. La capacidad es «hasta» 8 compartiendo las camas dobles, así que con el grupo completo se gana en precio y se cede en amplitud. Dilo con naturalidad, sin disculparte. Si todavía no ha reservado y buscan más amplitud, la Casita 1 (mesa para 6, sillones y un baño en cada habitación) o la 6 (tres habitaciones, sitio para comer 10): mira con consultar_disponibilidad cuál está libre en sus fechas y ofrécela. Si ya está alojado, no ofrezcas otra casita.
+                TXT,
+            'acceso' => <<<'TXT'
+                Está en el pasaje, al pie de las gradas: no hay que subir nada para llegar. Al entrar se bajan tres escalones al comedor y dos más hacia las habitaciones.
+
+                Si hay alguien en silla de ruedas, dile esos escalones de bajada: no es accesible sin ayuda.
+                TXT,
+        ],
         'descripcion-casa-6' => [
             'publica' => <<<'HTML'
                 <h3>Distribución (dúplex)</h3>
