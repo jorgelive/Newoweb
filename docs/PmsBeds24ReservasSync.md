@@ -25,6 +25,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
     · [8.1 Quién llena la cola — reactivo vs. Timeline Enqueuer](#81-quién-llena-la-cola--el-listener-reactivo-vs-el-timeline-enqueuer)
     · [8.2 Las respuestas de los canales se leen en un DTO](#82-las-respuestas-de-los-canales-se-leen-en-un-dto-26092026)
 9. [Anti-duplicación y Seguridad](#9-anti-duplicación-y-seguridad)
+9.7. [El `custom1` NO es único en Beds24: manda el `bookId`](#97-️-el-custom1-no-es-único-en-beds24-manda-el-bookid-27092026)
 10. [Políticas de Reintento y Error](#10-políticas-de-reintento-y-error)
 11. [Camino D — Sincronización Financiera (invoiceItems)](#11-camino-d--sincronización-financiera-invoiceitems)
 12. [Coherencia Financiera — Rollup Multi-moneda y Candado](#12-coherencia-financiera--rollup-multi-moneda-y-candado)
@@ -2056,6 +2057,78 @@ Puntos finos:
 ### 9.6 Validación de establecimiento en config
 
 `resolveEstablecimiento()` valida que el establecimiento de la unidad esté en los establecimientos autorizados por la `Beds24Config` del token. Previene cross-contamination entre propiedades.
+
+### 9.7 ⚠️ El `custom1` NO es único en Beds24: manda el `bookId` (27/09/2026)
+
+`custom1` viaja como `PMS:<uuid del link>` y es nuestra ancla de identidad: permite reconocer
+una reserva que empujamos nosotros aunque todavía no le hayamos anotado el id que nos devolvió
+Beds24 (migraciones, y el hueco entre el `POST` y la respuesta).
+
+**Lo que no es: una clave única.** Beds24 no lo valida ni lo protege, y nada impide que dos
+reservas suyas lleven el mismo marcador — una copia hecha en su panel lo arrastra, y el propio
+motor ya se había topado con un segundo espejo idéntico al bueno (§6.3.d).
+
+Hasta el 27/09/2026 `BookingPullPersister::upsert()` resolvía **primero** por `custom1`:
+
+```php
+$existingLink = $this->resolveLinkByPmsUuid($booking->custom1)   // ← primero el marcador
+    ?? $this->resolveLink($bookingIdStr);
+```
+
+Con dos reservas del mismo marcador, la segunda que pasara por el barrido **se adoptaba encima de
+la primera**: se le pisaba el `beds24BookId` al link y el link se ponía a seguir a la equivocada.
+Sin error, sin aviso, y con la reserva buena quedándose sin ningún link que la reclame.
+
+**Lo que costó.** Melanie (29ZY2P, 13–15/11/2026, Casita 1 directa). En Beds24 había dos
+reservas con el mismo `custom1`: `93628251` —la que creó nuestro push, con apellido— y `93628253`,
+sin apellido ni teléfono. El link pasó a seguir a la segunda. Cuando el operador canceló esa
+segunda creyendo que limpiaba un duplicado, **la cancelación entró al PMS como si fuera la
+estancia buena**: evento a `cancelada`, casita libre en el calendario y la reserva vendida y
+confirmada en el canal. El riesgo no era el duplicado: era revender la noche.
+
+**Ahora el orden es el contrario, y el marcador sólo adopta links LIBRES:**
+
+| Se busca | Qué decide |
+|---|---|
+| Un link cuyo `beds24BookId` sea el de esta reserva | Es el suyo. No hay nada que decidir |
+| Si no hay, el link del `custom1` **sin `beds24BookId`** | Adopción determinista, el caso para el que existe el marcador |
+| Si el link del `custom1` ya sigue a OTRA | **Choque**: no se toca nada y se avisa por `warning` |
+
+Quedarse quieto es más barato que deshacerlo: el duplicado en Beds24 no estorba a nadie mientras
+exista, y la estancia buena sigue enlazada. El `warning` dice a quién sigue el link y qué mirar.
+
+**Lo que no se sabe.** De dónde salió la segunda reserva no lo cuenta ningún dato nuestro:
+`last_request_raw` y `last_response_raw` guardan sólo la **última** llamada de cada fila de cola, y
+la última ya iba con el `id` correcto. Nuestra fila de push anotó `93628251` y ninguna otra la
+creó. Apuntan a Beds24 dos detalles —la duplicada no lleva apellido ni teléfono, que es lo que
+pierde una copia hecha en su panel; y el push de esa estancia **directa** viajaba con el
+`masterId` de la reserva de **Airbnb** de la que colgaba (§11.6)—, pero eso es una hipótesis, no
+un hecho. Lo que sí es un hecho es que el pull no debe volver a elegir.
+
+### 9.7.b Deshacerlo: `app:pms:beds24:reparar-marcador-duplicado`
+
+No se arregla desde el panel: `beds24_book_id` no es un campo editable, es el hilo que une el
+evento con Beds24, y moverlo a mano deja el resto sin hacer. El comando
+({@see PmsBeds24RepararMarcadorDuplicadoCommand}) hace las tres cosas, en este orden:
+
+1. **Devuelve el link a la reserva buena** — sólo el `beds24BookId` y el `lastSeenAt`.
+2. **Encola un pull del día de llegada.** El estado del evento NO se escribe a mano: lo repone el
+   pull leyendo Beds24. Con el link ya apuntando bien, la buena entra por `bookId` y la duplicada
+   se queda fuera por la guarda de §9.7.
+3. **Encola el `DELETE` de la duplicada** por la cola de siempre (`link` a NULL y el id en el
+   snapshot, §7.2). Beds24 sólo borra reservas canceladas.
+
+Sin `--ejecutar` sólo dice lo que haría, y si cualquier comprobación falla no toca **nada**: que
+la buena no la reclame ya otro link, que la duplicada esté suelta, que el link cuelgue de un
+evento.
+
+⚠️ **Corre dentro de `SyncContext::MODE_PULL`, y eso no es decorado.** Mover el `beds24BookId` es
+una escritura sobre un link principal, que dispara `Beds24BookingsPushQueueListener`. Ese push
+viajaría con el estado que el evento tiene en ese instante —`cancelada`, el que metió la
+duplicada— y en una reserva directa el `status` **siempre** viaja (§7.2): cancelaría en Beds24 la
+reserva buena, justo lo contrario de lo que se viene a hacer. En modo PULL el creador de colas se
+aparta solo para los links principales (§9.2), que es exactamente lo que esto es: escribir lo que
+Beds24 ya dice.
 
 ---
 
@@ -6216,6 +6289,8 @@ contra la base local: mismos veredictos que antes.
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
 | Añadir un campo de Beds24 a la reserva | `Beds24BookingDto` | `fromArray()` — el ÚNICO camino, pull y webhook (§12.20) |
+| Cambiar qué link reclama una reserva que llega del pull | `BookingPullPersister` | `upsert()` — manda el `bookId`; el `custom1` sólo adopta links LIBRES (§9.7) |
+| **Deshacer un `custom1` duplicado** (el link sigue a la reserva equivocada) | `PmsBeds24RepararMarcadorDuplicadoCommand` | `app:pms:beds24:reparar-marcador-duplicado <link> --quedarse=… --borrar=…` (§9.7.b) |
 | Leer un campo nuevo de una respuesta de Beds24 (éxito, error, id, paginación) | `src/Exchange/Dto/Beds24/Beds24Respuesta.php` | `fromArray()` — y `tools/pruebas/probar-dto-canales.php` para comprobar que no cambia lo demás (§8.2) |
 | Cambiar cómo se pagina un GET de Beds24 | `Beds24ExchangeClient` + `Beds24Respuesta` | `send()` / `siguientePagina` (§8.2) |
 | Un dato obligatorio del PMS que llega `null` (unidad, fechas, config de Beds24) | la entidad | su `getXOrFail()`, §12.19 — y NUNCA uno para la reserva del evento |

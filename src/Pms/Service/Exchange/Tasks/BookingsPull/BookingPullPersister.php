@@ -115,9 +115,61 @@ final class BookingPullPersister implements ResetInterface
 
         $establecimiento = $this->resolveEstablecimiento(config: $config, map: $map);
 
-        // 3. Resolver Link existente — primero por UUID (custom1) para migración determinista
-        $existingLink = $this->resolveLinkByPmsUuid($booking->custom1)
-            ?? $this->resolveLink($bookingIdStr);
+        // 3. Resolver Link existente.
+        //
+        // El `bookId` manda: si hay un link que YA es de esta reserva de Beds24, no hay nada que
+        // decidir. El `custom1` sólo entra cuando nadie la reclama por id, y entonces su trabajo
+        // es el de siempre: adoptar de forma determinista una reserva que empujamos nosotros y
+        // cuyo id aún no habíamos anotado (migraciones, y el hueco entre el POST y la respuesta).
+        //
+        // ⚠️ **El orden estaba al revés y por eso se pudo pisar una reserva viva.** (27/09/2026)
+        // `custom1` es nuestra ancla de identidad, pero en Beds24 NO es única: si por lo que sea
+        // se crean dos reservas con el mismo marcador, las dos apuntan al mismo link. Con el
+        // `custom1` primero, la segunda se adoptaba encima de la primera —se le pisaba el
+        // `beds24BookId`— y el link pasaba a seguir a la equivocada. Pasó con Melanie (29ZY2P,
+        // 13–15/11): `93628251` seguía confirmada en Beds24, el operador canceló la duplicada
+        // `93628253`, y la cancelación entró al PMS como si fuera la estancia buena.
+        $porBookId = $this->resolveLink($bookingIdStr);
+        $porMarcador = $this->resolveLinkPorPmsUuid($booking->custom1);
+
+        // Un link LIBRE es el que aún no sigue a ninguna reserva de Beds24. Es la única
+        // situación en la que adoptar por marcador es seguro.
+        $marcadorLibre = $porMarcador !== null
+            && $this->normalizeBeds24Id($porMarcador->getBeds24BookId()) === null;
+
+        $existingLink = $porBookId ?? ($marcadorLibre ? $porMarcador : null);
+
+        // 🚫 **DOS RESERVAS DE BEDS24 CON EL MISMO `custom1`.**
+        //
+        // Llegados aquí el link no es de esta reserva y tampoco estaba libre: alguien más lleva
+        // su marcador. Adoptarla sería repetir el caso de arriba, así que no se toca nada y se
+        // avisa. Quedarse quieto es más barato que deshacerlo: el duplicado en Beds24 no estorba
+        // a nadie mientras exista, y la estancia buena sigue enlazada a su link.
+        if ($existingLink === null && $porMarcador !== null) {
+            $enConflicto = $porMarcador;
+
+            $this->logger->warning(
+                'Marcador PMS duplicado en Beds24: dos reservas llevan el mismo custom1. No se adopta ninguna.',
+                [
+                    'beds24_book_id'    => $bookingIdStr,
+                    'custom1'           => $booking->custom1,
+                    'link'              => (string) $enConflicto->getId(),
+                    'link_apunta_a'     => $enConflicto->getBeds24BookId(),
+                    'room_id'           => $booking->roomId,
+                    'llegada'           => $booking->arrival,
+                    'salida'            => $booking->departure,
+                    'estado'            => $booking->status,
+                    'que_significa'     => 'Una de las dos sobra en Beds24. Comprueba cuál lleva los datos completos, '
+                        . 'deja ésa enlazada y borra la otra allí. Hasta entonces el PMS ignora la que no reclama el link.',
+                ]
+            );
+
+            return [
+                'status'  => 'skipped',
+                'action'  => 'ignored',
+                'message' => "Marcador PMS duplicado (ID: $bookingIdStr): el link {$enConflicto->getId()} ya sigue a {$enConflicto->getBeds24BookId()}.",
+            ];
+        }
 
         // Determinación de Autoridad:
         // Si existe link en BD → respetamos su valor.
@@ -320,7 +372,13 @@ final class BookingPullPersister implements ResetInterface
         ));
     }
 
-    private function resolveLinkByPmsUuid(?string $custom1): ?PmsEventoBeds24Link
+    /**
+     * El link que nombra el `custom1`, esté libre u ocupado.
+     *
+     * Quién puede adoptar y quién sólo sirve para avisar del choque lo decide
+     * {@see self::upsert()}: aquí sólo se traduce el marcador a su link.
+     */
+    private function resolveLinkPorPmsUuid(?string $custom1): ?PmsEventoBeds24Link
     {
         if (empty($custom1) || !str_starts_with($custom1, 'PMS:')) {
             return null;
@@ -331,6 +389,7 @@ final class BookingPullPersister implements ResetInterface
         } catch (\Throwable) {
             return null;
         }
+
         return $this->em->getRepository(PmsEventoBeds24Link::class)->find($uuid);
     }
 
