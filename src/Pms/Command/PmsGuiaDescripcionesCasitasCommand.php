@@ -133,6 +133,8 @@ final class PmsGuiaDescripcionesCasitasCommand extends Command
                 - 🛏️ Habitación 2: dos camas dobles, TV con Roku (incluye Netflix y HBO Max). No tiene baño: usa el del área social, abajo.
 
                 DOS BAÑOS COMPLETOS, los dos en la planta baja: uno dentro de la Habitación 1 y otro en el área social. Tienen agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.
+
+                ESPACIO PARA UN GRUPO GRANDE. No lo cuentes de entrada: sólo si preguntan dónde comen todos, dónde sentarse o por la comodidad para 10. Para comer hay 6 sillas y no hay otro espacio donde sentarse: si van 10, se turnan. La capacidad es «hasta» 10 compartiendo las camas dobles, así que con el grupo completo se gana en precio y se cede en amplitud. Dilo con naturalidad, sin disculparte. Si buscan más amplitud, la Casita 6 tiene tres habitaciones y sitio para comer 10 a la vez: ofrécela mirando antes que esté libre.
                 TXT,
             'acceso' => <<<'TXT'
                 Está en un nivel elevado respecto al pasaje, lo que le da más tranquilidad, luz y privacidad. Para llegar se suben dos tramos cortos de escalera, 20 escalones en total. Por dentro, casi todo está en una sola planta: el comedor, la cocina, un baño completo y la habitación de tres camas dobles, que tiene su propio baño. La habitación de dos camas dobles está en un segundo nivel, apartada y tranquila.
