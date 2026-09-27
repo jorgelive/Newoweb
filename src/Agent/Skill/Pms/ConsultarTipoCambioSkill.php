@@ -8,6 +8,7 @@ use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Conversation\PotenciaRequerida;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillDeImportesInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
@@ -39,7 +40,7 @@ use App\Agent\Skill\EntradaDeSkill;
  * Fachada delgada, como manda docs/Mensajeria.md §11: la caché, la llamada a SUNAT y la caída
  * a la última tasa disponible viven en el servicio.
  */
-final readonly class ConsultarTipoCambioSkill implements SkillInterface
+final readonly class ConsultarTipoCambioSkill implements SkillInterface, SkillDeImportesInterface
 {
     public function __construct(
         private TipoCambioDelDia $tipoCambio,

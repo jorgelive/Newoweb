@@ -89,6 +89,24 @@ enum RestriccionCanal: string
     }
 
     /**
+     * ¿Se ocultan los importes? Sí en una consulta de OTA sin confirmar.
+     *
+     * Allí el precio lo pone la plataforma —con su comisión— y lo ve el cliente en el anuncio:
+     * cualquier cifra nuestra sería otra distinta de la que tiene delante. Y no basta con
+     * pedírselo al modelo: si una herramienta le devuelve el total, acaba escrito.
+     *
+     * Lo consumen dos sitios, y los dos preguntan AQUÍ:
+     * - {@see \App\Agent\Skill\SkillRegistry::paraActor()} no ofrece las herramientas que sólo
+     *   hablan de dinero ({@see \App\Agent\Skill\SkillDeImportesInterface});
+     * - las que mezclan dinero con otra cosa —disponibilidad, la reserva— quitan los importes
+     *   al construir la respuesta y dejan una nota en su lugar.
+     */
+    public function ocultaImportes(): bool
+    {
+        return self::OtaPreReserva === $this;
+    }
+
+    /**
      * Variables del resolver que no pueden viajar al modelo por este canal.
      *
      * Son enlaces a sitio propio, y lo que se protege es la conversación **antes** de que haya
@@ -121,11 +139,18 @@ enum RestriccionCanal: string
     {
         return match ($this) {
             self::Ninguna => [],
+            // 🔥 Faltaban cuatro hasta el 27/09/2026: la cuenta es LA MISMA página que la guía
+            // —con dirección, wifi y teléfonos dentro— y el enlace de WhatsApp es literalmente
+            // otro canal. Salían enteros en `consultar_mi_reserva` a una consulta de Airbnb.
             self::OtaPreReserva => [
                 'guide_url',
                 'guide_path',
                 'tours_catalog_url',
                 'tours_catalog_path',
+                'account_url',
+                'account_detail_url',
+                'account_path',
+                'whatsapp_enlace_reserva',
             ],
         };
     }

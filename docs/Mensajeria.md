@@ -8853,14 +8853,51 @@ Un módulo de tours implementa esa interfaz y hereda los cinco perfiles sin toca
   (este último tiene dos teléfonos y el número de Yape, y hoy es alcanzable por una inquiry).
 - **No hay guarda léxica de salida.** Todo lo anterior impide que el dato LLEGUE al modelo;
   nada impide que el modelo escriba un teléfono de su cosecha. Esa capa va en el envío.
-- **`consultar_cuenta` devuelve `prepago_pendiente`** también en canal restringido. Es decisión
-  de negocio: para Booking.com de pago en destino puede ser legítimo; para Airbnb la propia
-  guía dice que no se pide depósito.
+- ~~**`consultar_cuenta` devuelve `prepago_pendiente`** también en canal restringido.~~
+  Superado el 27/09/2026: ver §19.7.b, la consulta de OTA ya no ve ningún importe.
 - **`getAgencyId()` sigue devolviendo `null`**: el B2B no está modelado, así que «cliente de
   agencia que no ve precios» todavía no se puede expresar.
 - **`RestriccionCanal::deOrigenYVinculo()` asume que todo lo que no es `directo` es una OTA**, y
   `variablesBloqueadas()` nombra variables del resolver del PMS. Ambas cosas habrá que rehacerlas
   con el segundo dominio.
+
+### 19.7.b Sin importes en una consulta de OTA, y el enlace de cada casita (27/09/2026)
+
+**Regla del dueño:** en Airbnb el precio lo pone la plataforma, con su comisión. Al prospecto
+directo se le cotiza; al interesado (consulta de OTA sin confirmar), ninguna cifra.
+
+No va en el prompt —si una herramienta le devuelve el total, acaba escrito— sino en la fuente, y
+todo pregunta a UNA regla, `RestriccionCanal::ocultaImportes()` (verdadera en `OtaPreReserva`):
+
+| Herramienta | Qué ve la consulta de OTA |
+|---|---|
+| `consultar_cuenta`, `consultar_medios_pago`, `consultar_tipo_cambio` | **no existen**: llevan `SkillDeImportesInterface` y `SkillRegistry::paraActor()` no se las ofrece |
+| `consultar_disponibilidad` | qué casitas están libres, sin importes. **Lista blanca** de campos (`CAMPOS_SIN_IMPORTES`): un importe que se añada mañana no se cuela |
+| `consultar_mi_reserva` | fechas, casita y personas, sin `CLAVES_DE_IMPORTE` del resolver |
+
+En su lugar viaja una nota `precio`: sin ella, lo que se le quita al modelo lo NIEGA («no hay
+precio») en vez de remitir a la plataforma.
+
+🔥 **Al revisar esto salieron dos fugas previas**: `consultar_mi_reserva` le daba a una consulta
+de Airbnb `account_url` —la misma página de la guía, con dirección y wifi dentro— y
+`whatsapp_enlace_reserva`, que es literalmente otro canal. `variablesBloqueadas()` sólo tenía la
+guía y el catálogo. Añadidas las cuatro.
+
+**El enlace de cada casita** lo resuelve `EnlaceDeCasita::para()` y lo devuelve
+`consultar_disponibilidad` como `enlace`:
+
+| Escribe desde | Enlace |
+|---|---|
+| Airbnb, y la casita tiene anuncio (`PmsUnidad::$urlAnuncioAirbnb`, panel) | el anuncio de Airbnb |
+| consulta de OTA sin anuncio de su plataforma (Booking, siempre) | **ninguno**: nuestra web sería sacar la venta |
+| lo demás | la página pública de la casita, `/{establecimiento}/{unidad}` — nunca la guía de una reserva |
+
+Un solo campo de anuncio y no uno por plataforma a propósito: sólo Airbnb tiene anuncio por
+casita, y Booking no trae consultas (0 en doce meses).
+
+**Las alternativas sin escaleras** viven en las instrucciones de prospecto e interesado
+(`PmsInstruccionesDominio`), no en las fichas: la ficha llega igual a todos los perfiles, y al
+huésped alojado no hay nada que ofrecerle. Orden: la 1 (acceso más plano), luego la 3 y la 4.
 
 ### 19.8 Dónde tocar para cambiar X
 
@@ -8872,6 +8909,10 @@ Un módulo de tours implementa esa interfaz y hereda los cinco perfiles sin toca
 | Qué categorías bloquea un canal | `RestriccionCanal::categoriasBloqueadas()` |
 | Qué variables del resolver no salen | `RestriccionCanal::variablesBloqueadas()` |
 | El texto que lee el modelo sobre sus límites | `RestriccionCanal::avisoParaElPrompt()` |
+| Qué canal oculta importes | `RestriccionCanal::ocultaImportes()` |
+| Que una herramienta de dinero no se ofrezca en consulta de OTA | implementar `SkillDeImportesInterface` |
+| Una variable nueva con importe en el resolver | `PmsMessageDataResolver::CLAVES_DE_IMPORTE` |
+| Qué enlace se da de cada casita | `EnlaceDeCasita::para()`; el anuncio, en el panel de la casita |
 | Clasificar un ítem de guía | Panel → ítem de guía → «De qué habla» (`PmsGuiaItemCrudController`) |
 | Dónde se aplica la resta al árbol | `PmsGuiaArbolFiltro::podarItems()` |
 | Los prompts de negocio de alojamiento | `PmsInstruccionesDominio` |

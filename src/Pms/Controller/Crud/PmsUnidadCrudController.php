@@ -23,6 +23,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -149,6 +150,13 @@ final class PmsUnidadCrudController extends BaseCrudController
             ->setHelp('Cuántos baños tiene la casita, en total. Todos son privados: el '
                 . 'apartamento es independiente. Es de lo primero que pregunta un grupo que se '
                 . 'reparte entre gente que no se conoce.');
+
+        yield UrlField::new('urlAnuncioAirbnb', 'Anuncio en Airbnb')
+            ->hideOnIndex()
+            ->setRequired(false)
+            ->setHelp('El enlace del anuncio de ESTA casita en Airbnb. El agente se lo da a quien '
+                . 'pregunta desde una consulta de Airbnb y le interesa otra casita: allí no se '
+                . 'puede mandar a nuestra web. Vacío = no se le ofrece enlace.');
 
         // ---------------------------------------------------------------------
         // PANEL: ESTADO

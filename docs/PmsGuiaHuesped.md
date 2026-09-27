@@ -2476,3 +2476,26 @@ en qué pantallas se pinta la cadena.**
 Se reescribió dejando **sólo el español** y dejando que `AutoTranslate` rellenara los seis
 restantes, que es el modo seguro: son frases con contexto suficiente y salieron bien a la primera
 —al revés que las de una sola palabra, ver `docs/Mensajeria.md`.
+
+---
+
+## Las gradas se cuentan vendiendo: la Casita 6 (27/09/2026)
+
+El texto de acceso del agente empezaba por el número —«se SUBEN 20 escalones», los 12 peldaños
+interiores, «quien duerma arriba sube 32»—. El dueño lo reescribió con la ventaja delante: nivel
+elevado, más tranquilidad, luz y privacidad; «dos tramos cortos, 20 escalones»; dúplex con el
+descanso separado de las áreas sociales. La escalera interior se cuenta **sólo** si alguien tiene
+dificultad para subir: a quien no, no le aporta nada, pero omitirla del todo sería que se la
+encontrara al llegar.
+
+El texto termina preguntando si a alguien le cuesta subir o prefieren evitar escaleras, **sólo si
+todavía no ha reservado**. La respuesta la recogen las instrucciones de prospecto e interesado
+(ver `docs/Mensajeria.md` §19.7.b).
+
+De paso se corrigió la distribución publicada, que ponía baño privado en las habitaciones 1 y 3:
+es un dúplex con un baño completo en cada planta. El **mobiliario** (mesa para 6 y dos sillones en
+la sala/comedor, que es UN ambiente; mesa para 4 en la cocina; estar arriba con mesa y 4 sillas)
+va **sólo al campo de IA**: en la guía, «Sala/comedor» y «Estar» a secas.
+
+Aplicado con `app:pms:guia:casita-6` (oculto, idempotente). Es el molde para las demás casitas.
+

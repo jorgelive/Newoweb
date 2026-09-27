@@ -135,6 +135,16 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface, SkillDom
         // regla, y las reglas duplicadas divergen.
         $datos = array_diff_key($datos, array_flip(PmsMessageDataResolver::CLAVES_DE_ACCESO));
 
+        // 💵 Y fuera los importes cuando el canal los oculta: en una consulta de OTA el precio
+        // lo pone la plataforma. Con la nota en su lugar, para que remita a ella en vez de negar
+        // que haya precio. Ver RestriccionCanal::ocultaImportes().
+        if ($actor->restriccion()->ocultaImportes()) {
+            $datos = array_diff_key($datos, array_flip(PmsMessageDataResolver::CLAVES_DE_IMPORTE));
+            $datos['precio'] = 'No te doy importes: esta persona escribe desde la plataforma y allí el '
+                . 'precio y el pago los lleva la plataforma. Si pregunta, remítele a lo que ve en '
+                . 'ella. No digas ninguna cifra.';
+        }
+
         // 🔗 El id es lo que permite ENCADENAR: sin él, el modelo no puede pasar esta
         // reserva a la siguiente skill y cada consulta muere en sí misma. `getMessageVariables()`
         // no lo trae porque nació para rellenar plantillas, donde un UUID no pinta nada.

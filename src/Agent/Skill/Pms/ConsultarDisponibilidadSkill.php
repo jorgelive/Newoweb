@@ -13,6 +13,9 @@ use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsUnidad;
+use Symfony\Component\Uid\Uuid;
+use App\Pms\Entity\PmsReserva;
+use App\Pms\Service\Agent\EnlaceDeCasita;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
 use App\Pms\Service\Tarifa\PmsTarifaCalculadora;
 use App\Pms\Service\Finance\TipoCambioDelDia;
@@ -46,7 +49,22 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
         private PmsTarifaCalculadora $tarifas,
         private TipoCambioDelDia $tipoCambio,
         private EntityManagerInterface $em,
+        private EnlaceDeCasita $enlaces,
     ) {}
+
+    /**
+     * Lo único que ve de cada casita quien no puede ver importes. LISTA BLANCA: lo que no está
+     * aquí no sale, también lo que se añada mañana a la respuesta.
+     */
+    private const array CAMPOS_SIN_IMPORTES = [
+        'id', 'nombre', 'establecimiento', 'capacidad', 'habitaciones', 'camas', 'banos', 'pax',
+        'estancia_minima',
+    ];
+
+    /** Y lo único del resumen. Fuera `cotizacion` y `aviso_pax`, que hablan de dinero. */
+    private const array RESUMEN_SIN_IMPORTES = [
+        'total', 'noches', 'pax', 'pax_total', 'reparto', 'no_disponibles', 'casitas',
+    ];
 
     /** La única moneda desde la que se sabe convertir: el maestro publica USD→PEN. */
     private const string MONEDA_DOLARES = 'USD';
@@ -108,7 +126,10 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
                 . 'consultar_guia indicando esa casita. '
                 . '«servicio_en_otas» es sólo para comparar: quien te escribe está reservando '
                 . 'DIRECTO y no paga ese porcentaje. Úsalo como argumento de venta —reservando '
-                . 'directo se lo ahorra—, nunca lo sumes al total.',
+                . 'directo se lo ahorra—, nunca lo sumes al total. '
+                . '🔗 Cada casita trae «enlace» cuando hay uno que se pueda dar: pásalo tal cual '
+                . 'cuando la ofrezcas. Si no lo trae, no lo inventes ni pases otro: nómbrala. '
+                . 'Si la respuesta trae «precio» en vez de importes, síguelo al pie de la letra.',
             parametros: [
                 SkillParameter::texto('desde', 'Fecha de entrada en formato YYYY-MM-DD.'),
                 SkillParameter::texto('hasta', 'Fecha de salida en formato YYYY-MM-DD. '
@@ -171,6 +192,84 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
     }
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
+    {
+        $resultado = $this->calcular($entrada);
+
+        return $resultado->esError() ? $resultado : $this->segunQuienPregunta($resultado, $actor);
+    }
+
+    /**
+     * Lo que la respuesta enseña depende de quién pregunta, y se decide AQUÍ, en código.
+     *
+     * - **El enlace de cada casita** lo resuelve {@see EnlaceDeCasita}: el anuncio de Airbnb a
+     *   quien consulta desde Airbnb, la página pública a los demás, nada en una consulta de OTA
+     *   sin anuncio de su plataforma.
+     * - **Los importes desaparecen** cuando la restricción de canal los oculta
+     *   ({@see \App\Agent\Access\RestriccionCanal::ocultaImportes()}): en una consulta de
+     *   Airbnb el precio lo pone la plataforma. No con una instrucción en el prompt —si el total
+     *   llega, acaba escrito— sino dejando pasar sólo una LISTA BLANCA de campos: un importe
+     *   nuevo que alguien añada mañana a la respuesta no se cuela por olvido.
+     *
+     *   Y queda una nota donde estaba el precio. Sin ella, lo que se le quita al modelo lo
+     *   NIEGA —contestaría «no tengo precio»— en vez de remitir a la plataforma.
+     */
+    private function segunQuienPregunta(SkillResult $resultado, ActorInterface $actor): SkillResult
+    {
+        $restriccion = $actor->restriccion();
+        $plataforma = $this->plataformaDe($actor);
+        $datos = $resultado->datos;
+
+        $casitas = [];
+
+        foreach (is_array($datos['casitas'] ?? null) ? $datos['casitas'] : [] as $fila) {
+            if (!is_array($fila)) {
+                continue;
+            }
+
+            $unidad = is_string($fila['id'] ?? null) ? $this->em->getRepository(PmsUnidad::class)->find($fila['id']) : null;
+            $enlace = $unidad instanceof PmsUnidad ? $this->enlaces->para($unidad, $plataforma, $restriccion) : null;
+
+            if ($restriccion->ocultaImportes()) {
+                $fila = array_intersect_key($fila, array_flip(self::CAMPOS_SIN_IMPORTES));
+            }
+
+            $casitas[] = array_filter($fila + ['enlace' => $enlace], static fn ($v) => $v !== null);
+        }
+
+        $datos['casitas'] = $casitas;
+
+        if (!$restriccion->ocultaImportes()) {
+            return SkillResult::ok($datos);
+        }
+
+        $datos = array_intersect_key($datos, array_flip(self::RESUMEN_SIN_IMPORTES));
+        $datos['precio'] = 'No te doy precios: esta persona escribe desde la plataforma, y allí el '
+            . 'precio lo pone la plataforma. Dile que lo ve en el anuncio de cada casita '
+            . '(«enlace») y que desde allí la reserva. No digas ninguna cifra.';
+
+        return SkillResult::ok($datos);
+    }
+
+    /** El canal de la reserva desde la que se escribe (`airbnb`, `booking`…), o null. */
+    private function plataformaDe(ActorInterface $actor): ?string
+    {
+        $id = $actor->contextoId();
+
+        if ($actor->contextoTipo() !== 'pms_reserva' || $id === null || !Uuid::isValid($id)) {
+            return null;
+        }
+
+        $reserva = $this->em->getRepository(PmsReserva::class)->find(Uuid::fromString($id));
+
+        return $reserva instanceof PmsReserva ? $reserva->getChannel()?->getId() : null;
+    }
+
+    /**
+     * Lo que se calcula es igual para todos. Quién ve qué, en {@see segunQuienPregunta()}.
+     *
+     * @param array<string, mixed> $entrada
+     */
+    private function calcular(array $entrada): SkillResult
     {
         $e = new EntradaDeSkill($entrada);
         try {

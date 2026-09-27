@@ -274,6 +274,19 @@ class PmsUnidad
     private ?int $banos = null;
 
     /**
+     * El anuncio de ESTA casita en Airbnb. Uno por casita: allí cada una tiene el suyo.
+     *
+     * Lo lee `EnlaceDeCasita` para dárselo a quien escribe desde una consulta de Airbnb: en ese
+     * chat la plataforma prohíbe mandar a otra web, así que la única casita alternativa que se
+     * le puede enseñar es la de su propio anuncio. Booking no tiene equivalente —allí no hay
+     * anuncio por casita— y por eso no hay un campo genérico por plataforma.
+     *
+     * Sin `Groups` a propósito: nadie fuera del agente y del panel lo necesita.
+     */
+    #[ORM\Column(name: 'url_anuncio_airbnb', type: 'string', length: 500, nullable: true)]
+    private ?string $urlAnuncioAirbnb = null;
+
+    /**
      * Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
      * la base.
      *
@@ -699,6 +712,15 @@ class PmsUnidad
 
     public function getBanos(): ?int { return $this->banos; }
     public function setBanos(?int $val): self { $this->banos = $val; return $this; }
+
+    public function getUrlAnuncioAirbnb(): ?string { return $this->urlAnuncioAirbnb; }
+    public function setUrlAnuncioAirbnb(?string $val): self
+    {
+        $val = trim((string) $val);
+        $this->urlAnuncioAirbnb = $val === '' ? null : $val;
+
+        return $this;
+    }
 
     public function getPrecioLimpieza(): string { return $this->precioLimpieza; }
     public function setPrecioLimpieza(string $val): self { $this->precioLimpieza = $val; return $this; }

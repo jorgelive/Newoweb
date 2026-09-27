@@ -11,6 +11,7 @@ use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
 use App\Agent\Skill\SkillDominioInterface;
+use App\Agent\Skill\SkillDeImportesInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
@@ -66,7 +67,7 @@ use App\Agent\Skill\EntradaDeSkill;
  *
  * @phpstan-type FilaDeCargo array{concepto?: string, explicacion_para_huesped?: string, tipo?: string, importe?: string, moneda?: string, tipo_cambio?: string, automatico?: bool}
  */
-final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDominioInterface
+final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDominioInterface, SkillDeImportesInterface
 {
     public function __construct(
         private EntityManagerInterface $em,

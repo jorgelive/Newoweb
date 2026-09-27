@@ -57,6 +57,12 @@ final readonly class SkillRegistry
                 continue;
             }
 
+            // 💵 En una consulta de OTA el precio lo pone la plataforma: las herramientas de
+            // dinero no existen para ese actor. Ver RestriccionCanal::ocultaImportes().
+            if ($skill instanceof SkillDeImportesInterface && $actor->restriccion()->ocultaImportes()) {
+                continue;
+            }
+
             // Ojo: NO es «deja fuera todo lo que escriba». `NivelRiesgo::Interna` escribe
             // —avisa al equipo, marca la conversación— y sobrevive a este filtro a propósito:
             // sin ella el chat del huésped se quedaba sin la única herramienta que le sirve

@@ -139,6 +139,28 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
      * Las plantillas SÍ las usan —`caja_dinero` no existe sin ellas—: ahí el filtro es quién puede
      * mandarlas, `ROLE_MENSAJES_WRITE` sobre `enviar_plantilla`.
      */
+    /**
+     * Las variables que son DINERO: importes, moneda, cómo pagar.
+     *
+     * Las resta `ConsultarMiReservaSkill` cuando la restricción de canal oculta importes
+     * (`RestriccionCanal::ocultaImportes()`): en una consulta de OTA el precio lo pone la
+     * plataforma. Al añadir una variable con un importe, va aquí — la skill vuelca el diccionario
+     * entero y lo que no se reste, sale.
+     */
+    public const array CLAVES_DE_IMPORTE = [
+        'accommodation_amount',
+        'balance',
+        'bloque_pago',
+        'cleaning_fee',
+        'currency',
+        'importe_a_pagar',
+        'medios_de_pago',
+        'medios_de_pago_todos',
+        'paid_amount',
+        'service_fee',
+        'total_amount',
+    ];
+
     public const array CLAVES_DE_ACCESO = [
         'codigo_caja_llaves',
         'codigo_caja_dinero',
