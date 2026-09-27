@@ -144,6 +144,31 @@ final class PmsGuiaDescripcionesCasitasCommand extends Command
                 Si hay alguien en silla de ruedas, dile esos escalones de bajada: no es accesible sin ayuda.
                 TXT,
         ],
+        'descripcion-casa-4' => [
+            'publica' => <<<'HTML'
+                <h3>Distribución</h3>
+                <ul>
+                <li>🍳 <strong>Cocina:</strong> cocina de 4 hornillas, menajería, cubiertos, horno microondas, olla arrocera y refrigerador.</li>
+                <li>🛁 <strong>Baño completo</strong>, junto a la cocina: agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.</li>
+                <li>🛏️ <strong>Habitación:</strong> una cama doble y dos camas individuales, mesa con dos sillas, un pequeño sillón y TV con Roku (incluye Netflix y <strong>HBO Max</strong>).</li>
+                </ul>
+                HTML,
+            'agente' => <<<'TXT'
+                Distribución
+
+                Al entrar hay un pequeño distribuidor con la cocina y dos puertas: la del baño y la de la habitación.
+                - 🍳 Cocina: pequeña, sin mesa. Cocina de 4 hornillas, menajería, cubiertos, horno microondas, olla arrocera y refrigerador.
+                - 🛁 UN SOLO BAÑO, completo, junto a la cocina (no dentro de la habitación). Agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.
+                - 🛏️ Habitación: una cama doble y dos camas individuales, una mesa con dos sillas y un pequeño sillón, TV con Roku (incluye Netflix y HBO Max). NO HAY SALA NI COMEDOR aparte: se come en la mesa de la habitación.
+
+                ESPACIO PARA 4. No lo cuentes de entrada: sólo si preguntan dónde comen o dónde sentarse. Hay una mesa con dos sillas y un pequeño sillón: si van 4, se turnan para comer. Es una casita compacta y económica; dilo con naturalidad, sin disculparte. Si todavía no ha reservado y buscan más amplitud, la Casita 3, su vecina (comedor con 4 sillas y dos habitaciones), o la 2 (mesa para 6 y sillones): mira con consultar_disponibilidad cuál está libre en sus fechas y ofrécela. Si ya está alojado, no ofrezcas otra casita.
+                TXT,
+            'acceso' => <<<'TXT'
+                Está en el pasaje: no hay que subir nada para llegar. Al entrar se bajan tres escalones al distribuidor, donde están la cocina y el baño, y dos más a la habitación.
+
+                Si hay alguien en silla de ruedas, dile esos escalones de bajada: no es accesible sin ayuda.
+                TXT,
+        ],
         'descripcion-casa-6' => [
             'publica' => <<<'HTML'
                 <h3>Distribución (dúplex)</h3>
