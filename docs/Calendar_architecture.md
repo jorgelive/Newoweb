@@ -396,7 +396,7 @@ FullCalendar mueve urledit/urlshow/tooltip/prioridadImportante a extendedProps a
   "id": "uuid-unidad",
   "title": "Casita 1",
   "orden": 0,
-  "extendedProps": { "activo": true, "slug": "casita-1", "establecimientoSlug": "casita" }
+  "extendedProps": { "activo": true, "slug": "casita-1", "establecimientoSlug": "casita", "urlAnuncioAirbnb": "https://airbnb.com.pe/h/inti1" }
 }
 ```
 
@@ -408,6 +408,7 @@ resources:
     extraFields:                                # → extendedProps.<clave>
         slug: slug
         establecimientoSlug: establecimiento.slug
+        urlAnuncioAirbnb: urlAnuncioAirbnb
 ```
 
 El valor es una **ruta de getters** separada por puntos (`establecimiento.slug` →
@@ -416,9 +417,18 @@ incompleto no puede reventar el feed.
 
 Se declaran en el YAML y no en el servicio porque `CalendarResourceCatalog` es **genérico** —
 sirve a los seis calendarios y no debe saber qué es una `PmsUnidad`. Hoy solo los piden
-`pms_eventos_no_cancelados_spa` y `pms_eventos_todos_spa`, para que al tocar el nombre de una
-casita en el calendario se pueda abrir o copiar su **catálogo público** (`pax`:
-`/{establecimiento}/{unidad}`) sin una segunda petición.
+`pms_eventos_no_cancelados_spa` y `pms_eventos_todos_spa`, para el menú que sale al tocar el
+nombre de una casita: abrir o copiar su **catálogo público** (`pax`: `/{establecimiento}/{unidad}`)
+y, si la tiene, su **anuncio en Airbnb** ({@see `PmsUnidad::$urlAnuncioAirbnb`}) — la única casita
+alternativa que se le puede ofrecer a quien escribe desde una consulta de esa plataforma, que
+prohíbe enlazar fuera. Los tres, sin una segunda petición.
+
+⚠️ **La ruta de getters no pasa por el serializer de API Platform, así que ignora sus
+`#[Groups]`.** `urlAnuncioAirbnb` no lleva ninguno en la entidad —a propósito: fuera del agente y
+del panel nadie lo necesitaba— y aun así llega aquí, porque `resolveRuta()` llama al getter
+directo (`method_exists($valor, 'get'.ucfirst($tramo))`), no al normalizer. Un campo sin `#[Groups]`
+sigue siendo privado para la API pública (`/platform/pms/unidades/...`); sólo deja de serlo para
+este catálogo interno.
 
 > **Cuidado con dónde se ponen.** `merge()` da prioridad al catálogo sobre lo derivado de los
 > eventos, así que basta con declararlos en el bloque `resources`. Añadirlos también en el

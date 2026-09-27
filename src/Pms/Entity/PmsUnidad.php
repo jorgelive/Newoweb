@@ -281,7 +281,10 @@ class PmsUnidad
      * le puede enseñar es la de su propio anuncio. Booking no tiene equivalente —allí no hay
      * anuncio por casita— y por eso no hay un campo genérico por plataforma.
      *
-     * Sin `Groups` a propósito: nadie fuera del agente y del panel lo necesita.
+     * Sin `Groups` a propósito: nadie fuera del agente y del panel lo necesita. El calendario de
+     * Reservas (`util`) también lo enseña —para copiarlo a mano—, pero por otra puerta: lo pide
+     * como `resources.extraFields` en el YAML del calendario, que lee el getter directo y no pasa
+     * por el serializer. Ver `docs/Calendar_architecture.md` §6.
      */
     #[ORM\Column(name: 'url_anuncio_airbnb', type: 'string', length: 500, nullable: true)]
     private ?string $urlAnuncioAirbnb = null;

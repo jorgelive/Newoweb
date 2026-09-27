@@ -380,6 +380,12 @@ interface MenuState {
     unidadNombre?: string;
     /** URL pública del catálogo de esa casita; null si le falta algún slug. */
     catalogoUrl?: string | null;
+    /**
+     * Su anuncio propio en Airbnb ({@see PmsUnidad::$urlAnuncioAirbnb}); null si no tiene.
+     * Uno por casita —allí cada una tiene el suyo—, y es la única alternativa que se le puede
+     * ofrecer a quien escribe desde una consulta de Airbnb, que prohíbe enlazar fuera.
+     */
+    airbnbUrl?: string | null;
     fecha?: Date;
 }
 const menu = ref<MenuState | null>(null);
@@ -615,6 +621,7 @@ function onClickCasita(jsEvent: MouseEvent, recurso: { id: string; title: string
     const props = recurso.extendedProps ?? {};
     const slug = typeof props.slug === 'string' ? props.slug : null;
     const estSlug = typeof props.establecimientoSlug === 'string' ? props.establecimientoSlug : null;
+    const airbnbUrl = typeof props.urlAnuncioAirbnb === 'string' && props.urlAnuncioAirbnb !== '' ? props.urlAnuncioAirbnb : null;
 
     const { x, y } = posicionMenu(jsEvent);
     menu.value = {
@@ -623,25 +630,29 @@ function onClickCasita(jsEvent: MouseEvent, recurso: { id: string; title: string
         unidadId: recurso.id,
         unidadNombre: recurso.title,
         catalogoUrl: slug && estSlug ? `${getUrls().pax}/${estSlug}/${slug}` : null,
+        airbnbUrl,
     };
     limpiarMenuReserva();
 }
 
-/** Copia al portapapeles el enlace público de la casita. */
+/** Copia al portapapeles el enlace público de la casita, o su anuncio de Airbnb. */
 const copiadoCasita = ref(false);
+const copiadoAirbnb = ref(false);
 
-async function copiarCatalogoUrl(): Promise<void> {
-    const url = menu.value?.catalogoUrl;
+async function copiarAlPortapapeles(url: string | null | undefined, marcado: typeof copiadoCasita): Promise<void> {
     if (!url) return;
     try {
         await navigator.clipboard.writeText(url);
-        copiadoCasita.value = true;
-        setTimeout(() => { copiadoCasita.value = false; cerrarMenu(); }, 900);
+        marcado.value = true;
+        setTimeout(() => { marcado.value = false; cerrarMenu(); }, 900);
     } catch {
         avisar('No se pudo copiar el enlace.');
         cerrarMenu();
     }
 }
+
+const copiarCatalogoUrl = (): Promise<void> => copiarAlPortapapeles(menu.value?.catalogoUrl, copiadoCasita);
+const copiarAirbnbUrl = (): Promise<void> => copiarAlPortapapeles(menu.value?.airbnbUrl, copiadoAirbnb);
 
 function cerrarMenu(): void {
     menu.value = null;
@@ -1532,6 +1543,23 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
                         <i class="fas fa-triangle-exclamation mr-1"></i>
                         Esta casita no tiene slug configurado, así que no tiene página pública.
                     </p>
+
+                    <!-- Su anuncio en Airbnb: la única casita alternativa que se le puede
+                         ofrecer a quien escribe desde una consulta de esa plataforma, que
+                         prohíbe enlazar fuera. Ver PmsUnidad::$urlAnuncioAirbnb. -->
+                    <template v-if="menu.airbnbUrl">
+                        <div class="my-1 border-t border-slate-100"></div>
+                        <a :href="menu.airbnbUrl" target="_blank" rel="noopener" @click="cerrarMenu"
+                            class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
+                            <i class="fab fa-airbnb w-4 text-rose-500"></i> Abrir en Airbnb
+                        </a>
+                        <button @click="copiarAirbnbUrl"
+                            class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold hover:bg-slate-50"
+                            :class="copiadoAirbnb ? 'text-emerald-600' : 'text-slate-700'">
+                            <i class="fas w-4" :class="copiadoAirbnb ? 'fa-check text-emerald-500' : 'fa-link text-slate-400'"></i>
+                            {{ copiadoAirbnb ? 'Enlace copiado' : 'Copiar enlace de Airbnb' }}
+                        </button>
+                    </template>
                 </template>
                 <template v-else-if="menu.kind === 'whatsapp'">
                     <p class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">

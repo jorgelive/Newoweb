@@ -198,7 +198,10 @@ final class ConfiguracionRealTest extends TestCase
         self::assertSame('App\Pms\Entity\PmsUnidad', $sinCanceladas->recursos->entidad);
         self::assertSame('nombre', $sinCanceladas->recursos->campoTitulo);
         self::assertFalse($sinCanceladas->recursos->soloActivos);
-        self::assertSame(['slug' => 'slug', 'establecimientoSlug' => 'establecimiento.slug'], $sinCanceladas->recursos->camposExtra);
+        self::assertSame(
+            ['slug' => 'slug', 'establecimientoSlug' => 'establecimiento.slug', 'urlAnuncioAirbnb' => 'urlAnuncioAirbnb'],
+            $sinCanceladas->recursos->camposExtra,
+        );
         // Sin `eventTime`: los defectos.
         self::assertSame('12:00:00', $sinCanceladas->horas->inicio);
         self::assertSame('11:59:59', $sinCanceladas->horas->fin);

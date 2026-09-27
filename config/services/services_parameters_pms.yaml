@@ -229,9 +229,15 @@ parameters:
                 # casita (pax: /{establecimiento}/{unidad}) desde el propio
                 # calendario, sin una segunda petición. Solo aquí: es el único
                 # calendario cuyas filas enlazan al escaparate.
+                #
+                # `urlAnuncioAirbnb` no lleva `#[Groups]` en la entidad —es sólo del
+                # agente y del panel, ver PmsUnidad::$urlAnuncioAirbnb—, pero eso no
+                # aplica aquí: el catálogo de recursos lee la propiedad por getter,
+                # sin pasar por el serializer de API Platform.
                 extraFields:
                     slug: slug
                     establecimientoSlug: establecimiento.slug
+                    urlAnuncioAirbnb: urlAnuncioAirbnb
         pms_eventos_todos_spa:
             provider: pms_eventos_spa
             filters:
@@ -255,9 +261,12 @@ parameters:
                 # casita (pax: /{establecimiento}/{unidad}) desde el propio
                 # calendario, sin una segunda petición. Solo aquí: es el único
                 # calendario cuyas filas enlazan al escaparate.
+                #
+                # `urlAnuncioAirbnb`: ver el comentario gemelo en `pms_eventos_no_cancelados_spa`.
                 extraFields:
                     slug: slug
                     establecimientoSlug: establecimiento.slug
+                    urlAnuncioAirbnb: urlAnuncioAirbnb
 
         # OCUPACIÓN DE FONDO DEL CALENDARIO DE TARIFAS
         #
