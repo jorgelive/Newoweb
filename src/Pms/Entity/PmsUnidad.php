@@ -750,6 +750,28 @@ class PmsUnidad
         return $this;
     }
 
+    /**
+     * Lo usa el formulario del panel: PropertyAccess singulariza en inglés
+     * («serviciosCanales» → «serviciosCanale») y no encuentra addServicioCanal().
+     *
+     * @param iterable<PmsChannel> $canales
+     */
+    public function setServiciosCanales(iterable $canales): self
+    {
+        $nuevos = [];
+        foreach ($canales as $canal) {
+            $nuevos[] = $canal;
+            $this->addServicioCanal($canal);
+        }
+        foreach ($this->serviciosCanales->toArray() as $canal) {
+            if (!in_array($canal, $nuevos, true)) {
+                $this->removeServicioCanal($canal);
+            }
+        }
+
+        return $this;
+    }
+
     public function getTarifaBaseMoneda(): ?MaestroMoneda { return $this->tarifaBaseMoneda; }
 
     public function getTarifaBaseMonedaOrFail(): MaestroMoneda
