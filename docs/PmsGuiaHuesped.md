@@ -2497,5 +2497,5 @@ es un dúplex con un baño completo en cada planta. El **mobiliario** (mesa para
 la sala/comedor, que es UN ambiente; mesa para 4 en la cocina; estar arriba con mesa y 4 sillas)
 va **sólo al campo de IA**: en la guía, «Sala/comedor» y «Estar» a secas.
 
-Aplicado con `app:pms:guia:casita-6` (oculto, idempotente). Es el molde para las demás casitas.
+Aplicado con `app:pms:guia:descripciones-casitas` (oculto, idempotente), que lleva el contenido de cada casita: añadir una es añadir su entrada. La Casita 7 entró el mismo día (baño del área social abajo y el privado dentro de la habitación de tres camas; arriba, la de dos camas sin baño; sin sala).
 
