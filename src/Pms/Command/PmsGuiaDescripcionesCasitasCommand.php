@@ -169,6 +169,31 @@ final class PmsGuiaDescripcionesCasitasCommand extends Command
                 Si hay alguien en silla de ruedas, dile esos escalones de bajada: no es accesible sin ayuda.
                 TXT,
         ],
+        'descripcion-casa-5' => [
+            'publica' => <<<'HTML'
+                <h3>Distribución</h3>
+                <ul>
+                <li>🍽️ <strong>Comedor con área de cocina:</strong> cocina de inducción de una hornilla, menajería, cubiertos, horno microondas y refrigerador.</li>
+                <li>🛏️ <strong>Habitación:</strong> una cama doble, TV con Roku (incluye Netflix y <strong>HBO Max</strong>).</li>
+                <li>🛁 <strong>Baño completo:</strong> agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.</li>
+                </ul>
+                HTML,
+            'agente' => <<<'TXT'
+                Distribución
+
+                Todo en una sola planta:
+                - 🍽️ Comedor con área de cocina, UN SOLO AMBIENTE: mesa para 4 personas. NO HAY SALA: si preguntan, dilo así. Cocina de inducción de UNA hornilla, menajería, cubiertos, horno microondas y refrigerador: da para desayunos y comidas sencillas, no para cocinar a lo grande.
+                - 🛏️ Habitación: una cama doble, TV con Roku (incluye Netflix y HBO Max).
+                - 🛁 Baño completo: agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.
+
+                Es para dos: la mesa para 4 les deja sitio de sobra para comer o trabajar.
+                TXT,
+            'acceso' => <<<'TXT'
+                Está en un segundo nivel sobre el pasaje: para llegar se sube un corto tramo de 10 escalones, y a cambio queda más tranquila y con más luz. Dentro no se sube ni se baja nada: todo está en la misma planta.
+
+                {PREGUNTA}
+                TXT,
+        ],
         'descripcion-casa-6' => [
             'publica' => <<<'HTML'
                 <h3>Distribución (dúplex)</h3>
