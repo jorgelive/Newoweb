@@ -11432,6 +11432,22 @@ sí puede cerrarlo a mano (`Patch /cotizacion/pedidos/{id}`, mismo patrón de fi
 `PmsPeticionProcessor`) para los casos que no pasan por ahí — un duplicado, uno que el cliente
 retiró.
 
+### La pantalla en `util`: `/cotizacion/pendientes`
+
+Dos pestañas, no una lista sola: **Pendientes** (lo normal, con el contador en la propia pestaña) y
+**Resueltos** (el historial, tachado). En cada resuelto se distingue **cómo** se cerró —«se abrió su
+expediente» para el automático, «marcado por…» para el manual— leyendo `cerradoAutomaticamente` y
+`efectuadaPorNombre`, que es la misma pregunta que responde `isCerradoAutomaticamente()` en el
+backend.
+
+Se llega desde el botón «Pendientes» de `DashboardView.vue` (la lista de expedientes), no desde el
+mosaico de módulos del portal: es una sub-pantalla de Cotizaciones, como `FileDetalle.vue`, no un
+módulo con entrada propia en `modulosApp.ts`.
+
+⚠️ **Sin `id` en el JSON:** igual que `PmsPeticion`, el esquema no expone `id` — la identidad viaja
+en `@id` (la IRI), que es lo que usa el store para el `PATCH` y para leer `pedido.file` (también una
+IRI: `idDeExpediente()` en la vista le quita la ruta para armar el enlace a la ficha).
+
 ### Dónde tocar
 
 | Necesidad | Archivo | Método |
@@ -11441,3 +11457,6 @@ retiró.
 | Cambiar qué pone el cierre automático | `CotizacionPedido` | `resolverPorExpediente()` |
 | Cerrarlo a mano desde el panel | `CotizacionPedidoProcessor` | `process()` |
 | Comprobar el cierre automático contra el flujo real | `tools/pruebas/probar-pedido-cotizacion.php` | — |
+| La pantalla del área de Cotizaciones | `util/src/views/Cotizaciones/PendientesView.vue` | — |
+| Traer/cerrar pedidos desde `util` | `util/src/stores/cotizacion/pedidosStore.ts` | `fetchPedidos()` / `marcarHecho()` |
+| El tipo anclado al esquema generado | `util/src/types/cotizacionPedidoModel.ts` | `ApiCotizacionPedido` |

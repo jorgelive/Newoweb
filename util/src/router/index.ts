@@ -31,6 +31,14 @@ const router = createRouter({
             component: () => import('../views/Cotizaciones/DashboardView.vue')
         },
 
+        // 1.bis Pendientes de cotizar: lo que un cliente pidió y hay que trabajar.
+        // Antes que ':id' a propósito: si no, el router leería "pendientes" como el id de un file.
+        {
+            path: '/cotizacion/pendientes',
+            name: 'cotizaciones_pendientes',
+            component: () => import('../views/Cotizaciones/PendientesView.vue')
+        },
+
         // 2. Sala del File (NUEVO): Datos del cliente y lista de versiones (V1, V2...)
         {
             path: '/cotizacion/:id',

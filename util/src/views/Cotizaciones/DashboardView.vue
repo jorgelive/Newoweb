@@ -283,9 +283,14 @@ const loadMore = (): void => {
           <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Dashboard de Expedientes</p>
         </div>
       </div>
-      <button @click="showCreateModal = true" class="px-5 py-2.5 bg-[#E07845] hover:bg-[#c96636] text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2">
-        <i class="fas fa-plus"></i> <span class="hidden sm:inline">Nuevo File</span>
-      </button>
+      <div class="flex items-center gap-3">
+        <button @click="router.push('/cotizacion/pendientes')" class="px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 font-bold rounded-xl transition-colors flex items-center gap-2 shadow-sm">
+          <i class="fas fa-list-check"></i> <span class="hidden sm:inline">Pendientes</span>
+        </button>
+        <button @click="showCreateModal = true" class="px-5 py-2.5 bg-[#E07845] hover:bg-[#c96636] text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2">
+          <i class="fas fa-plus"></i> <span class="hidden sm:inline">Nuevo File</span>
+        </button>
+      </div>
     </header>
 
     <!-- ÁREA PRINCIPAL -->
