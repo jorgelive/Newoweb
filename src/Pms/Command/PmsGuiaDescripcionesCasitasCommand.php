@@ -111,14 +111,14 @@ final class PmsGuiaDescripcionesCasitasCommand extends Command
                 <ul>
                 <li>🍽️ <strong>Comedor.</strong></li>
                 <li>🍳 <strong>Cocina:</strong> cocina de 4 hornillas, menajería, cubiertos, horno microondas, olla arrocera y refrigerador.</li>
-                <li>🛁 <strong>Baño completo.</strong></li>
-                <li>🛏️ <strong>Habitación 1:</strong> tres camas dobles, baño privado, TV con Roku (incluye Netflix y <strong>HBO Max</strong>).</li>
+                <li>🛏️ <strong>Habitación 1:</strong> tres camas dobles, con su propio baño completo, TV con Roku (incluye Netflix y <strong>HBO Max</strong>).</li>
+                <li>🛁 <strong>Baño completo</strong> en el área social.</li>
                 </ul>
                 <p><strong>Planta alta</strong></p>
                 <ul>
                 <li>🛏️ <strong>Habitación 2:</strong> dos camas dobles, TV con Roku (incluye Netflix y <strong>HBO Max</strong>).</li>
                 </ul>
-                <p>Los dos baños tienen agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.</p>
+                <p><strong>Dos baños completos</strong>, los dos en la planta baja: uno dentro de la Habitación 1 y otro en el área social. Tienen agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.</p>
                 HTML,
             'agente' => <<<'TXT'
                 Distribución
@@ -126,13 +126,13 @@ final class PmsGuiaDescripcionesCasitasCommand extends Command
                 Planta baja:
                 - 🍽️ Comedor: mesa con 6 sillas. NO HAY SALA: si preguntan, dilo así.
                 - 🍳 Cocina: cocina de 4 hornillas, menajería, cubiertos, horno microondas, olla arrocera y refrigerador.
-                - 🛁 Baño completo, en el área social.
-                - 🛏️ Habitación 1: tres camas dobles, con su baño privado dentro, TV con Roku (incluye Netflix y HBO Max).
+                - 🛏️ Habitación 1: tres camas dobles, con su propio baño completo dentro, TV con Roku (incluye Netflix y HBO Max).
+                - 🛁 Baño completo en el área social.
 
                 Planta alta:
                 - 🛏️ Habitación 2: dos camas dobles, TV con Roku (incluye Netflix y HBO Max). No tiene baño: usa el del área social, abajo.
 
-                Los dos baños tienen agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.
+                DOS BAÑOS COMPLETOS, los dos en la planta baja: uno dentro de la Habitación 1 y otro en el área social. Tienen agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.
                 TXT,
             'acceso' => <<<'TXT'
                 Está en un nivel elevado respecto al pasaje, lo que le da más tranquilidad, luz y privacidad. Para llegar se suben dos tramos cortos de escalera, 20 escalones en total. Por dentro, casi todo está en una sola planta: el comedor, la cocina, un baño completo y la habitación de tres camas dobles, que tiene su propio baño. La habitación de dos camas dobles está en un segundo nivel, apartada y tranquila.
