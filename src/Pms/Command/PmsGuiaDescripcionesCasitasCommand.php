@@ -58,6 +58,36 @@ final class PmsGuiaDescripcionesCasitasCommand extends Command
      * @var array<string, array{publica: string, agente: string, acceso: string}>
      */
     private const array CASITAS = [
+        'descripcion-casa-1' => [
+            'publica' => <<<'HTML'
+                <h3>Distribución</h3>
+                <ul>
+                <li>🛋️ <strong>Sala/comedor.</strong></li>
+                <li>🍳 <strong>Cocina:</strong> cocina de 4 hornillas, menajería, cubiertos, horno microondas, olla arrocera y refrigerador.</li>
+                <li>🛏️ <strong>Habitación 1:</strong> dos camas individuales y una cama doble, con su propio baño completo, TV con Roku (incluye Netflix y <strong>HBO Max</strong>).</li>
+                <li>🛏️ <strong>Habitación 2:</strong> dos camas dobles, con su propio baño completo, TV con Roku (incluye Netflix y <strong>HBO Max</strong>).</li>
+                </ul>
+                <p><strong>Dos baños completos</strong>, uno dentro de cada habitación. Tienen agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.</p>
+                HTML,
+            'agente' => <<<'TXT'
+                Distribución
+
+                Todo en una sola planta:
+                - 🛋️ Sala/comedor: UN SOLO AMBIENTE, con una mesa para 6 personas y dos sillones con una mesa de centro.
+                - 🍳 Cocina: cocina de 4 hornillas, menajería, cubiertos, horno microondas, olla arrocera y refrigerador.
+                - 🛏️ Habitación 1: dos camas individuales y una cama doble, con su propio baño completo dentro, TV con Roku (incluye Netflix y HBO Max).
+                - 🛏️ Habitación 2: dos camas dobles, con su propio baño completo dentro, TV con Roku (incluye Netflix y HBO Max).
+
+                DOS BAÑOS COMPLETOS, uno dentro de cada habitación. Tienen agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.
+
+                Para comer: 6 en la mesa, y la mesa de centro de los sillones también sirve, así que el resto del grupo puede comer ahí, de forma más informal. Cuéntalo si preguntan dónde comen todos.
+                TXT,
+            'acceso' => <<<'TXT'
+                Es la de acceso más cómodo: la puerta da directamente a la calle, sin gradas para llegar, ideal si viajan con maletas pesadas, con personas mayores o con alguien con dificultad para subir escaleras. Por dentro todo está en una sola planta, con apenas unos escalones: se bajan dos al entrar a la sala y dos más hacia las habitaciones. Cada habitación tiene su propio baño completo, así que nadie cruza la casa de noche.
+
+                Si hay alguien en silla de ruedas, dile esos cuatro escalones de bajada: no es accesible sin ayuda.
+                TXT,
+        ],
         'descripcion-casa-6' => [
             'publica' => <<<'HTML'
                 <h3>Distribución (dúplex)</h3>
