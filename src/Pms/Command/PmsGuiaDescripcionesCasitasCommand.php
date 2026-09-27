@@ -175,7 +175,7 @@ final class PmsGuiaDescripcionesCasitasCommand extends Command
                 <ul>
                 <li>🍽️ <strong>Comedor con área de cocina:</strong> cocina de inducción de una hornilla, menajería, cubiertos, horno microondas y refrigerador.</li>
                 <li>🛏️ <strong>Habitación:</strong> una cama doble, TV con Roku (incluye Netflix y <strong>HBO Max</strong>).</li>
-                <li>🛁 <strong>Baño completo:</strong> agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.</li>
+                <li>🛁 <strong>Baño completo</strong>, al costado del comedor: agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.</li>
                 </ul>
                 HTML,
             'agente' => <<<'TXT'
@@ -184,7 +184,7 @@ final class PmsGuiaDescripcionesCasitasCommand extends Command
                 Todo en una sola planta:
                 - 🍽️ Comedor con área de cocina, UN SOLO AMBIENTE: mesa para 4 personas. NO HAY SALA: si preguntan, dilo así. Cocina de inducción de UNA hornilla, menajería, cubiertos, horno microondas y refrigerador: da para desayunos y comidas sencillas, no para cocinar a lo grande.
                 - 🛏️ Habitación: una cama doble, TV con Roku (incluye Netflix y HBO Max).
-                - 🛁 Baño completo: agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.
+                - 🛁 Baño completo, al costado del comedor (no dentro de la habitación): agua caliente con calentador a gas, jabón líquido para manos y papel higiénico.
 
                 Es para dos: la mesa para 4 les deja sitio de sobra para comer o trabajar.
                 TXT,

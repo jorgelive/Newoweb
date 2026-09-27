@@ -8888,8 +8888,8 @@ variables es de categoría `Contacto`, que ya se resta.
 
 **Lo que SÍ sigue llegando a la consulta de OTA, a sabiendas:** precios de servicios EXTRA que no
 son el alojamiento — el calefactor (ficha `calefactor`, visibilidad `cliente`) y la lavandería
-(conocimiento). Si esos también cuentan como «precio que pone la plataforma» es decisión de
-negocio; está pendiente.
+(conocimiento). **Decidido por el dueño el 27/09/2026: se quedan.** Lo que pone la plataforma es
+el precio del alojamiento; los extras son nuestros y se pueden contar.
 
 **El enlace de cada casita** lo resuelve `EnlaceDeCasita::para()` y lo devuelve
 `consultar_disponibilidad` como `enlace`:
