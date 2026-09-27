@@ -8878,10 +8878,18 @@ todo pregunta a UNA regla, `RestriccionCanal::ocultaImportes()` (verdadera en `O
 En su lugar viaja una nota `precio`: sin ella, lo que se le quita al modelo lo NIEGA («no hay
 precio») en vez de remitir a la plataforma.
 
-🔥 **Al revisar esto salieron dos fugas previas**: `consultar_mi_reserva` le daba a una consulta
-de Airbnb `account_url` —la misma página de la guía, con dirección y wifi dentro— y
-`whatsapp_enlace_reserva`, que es literalmente otro canal. `variablesBloqueadas()` sólo tenía la
-guía y el catálogo. Añadidas las cuatro.
+🔥 **Al revisar esto salieron ocho fugas previas**, todas en `consultar_mi_reserva`: le daba a
+una consulta de Airbnb `account_url`/`account_detail_url`/`account_path` —la misma página de la
+guía, con dirección y wifi dentro—, `whatsapp_enlace_reserva` y los cuatro WhatsApp del
+alojamiento (`whatsapp_numero`/`_url`, `emergencia_numero`/`_url`), que son contacto por otro
+canal. `variablesBloqueadas()` sólo tenía la guía y el catálogo. Lo cazó una sonda que ejecuta
+las herramientas como la consulta real W3TRMZ; la guía no fugaba, porque la única ficha con esas
+variables es de categoría `Contacto`, que ya se resta.
+
+**Lo que SÍ sigue llegando a la consulta de OTA, a sabiendas:** precios de servicios EXTRA que no
+son el alojamiento — el calefactor (ficha `calefactor`, visibilidad `cliente`) y la lavandería
+(conocimiento). Si esos también cuentan como «precio que pone la plataforma» es decisión de
+negocio; está pendiente.
 
 **El enlace de cada casita** lo resuelve `EnlaceDeCasita::para()` y lo devuelve
 `consultar_disponibilidad` como `enlace`:

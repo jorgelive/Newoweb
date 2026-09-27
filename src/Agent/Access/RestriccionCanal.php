@@ -139,9 +139,11 @@ enum RestriccionCanal: string
     {
         return match ($this) {
             self::Ninguna => [],
-            // 🔥 Faltaban cuatro hasta el 27/09/2026: la cuenta es LA MISMA página que la guía
-            // —con dirección, wifi y teléfonos dentro— y el enlace de WhatsApp es literalmente
-            // otro canal. Salían enteros en `consultar_mi_reserva` a una consulta de Airbnb.
+            // 🔥 Faltaban ocho hasta el 27/09/2026, y salían enteros en `consultar_mi_reserva` a
+            // una consulta de Airbnb (lo cazó una sonda con la consulta real W3TRMZ): la cuenta
+            // es LA MISMA página que la guía —con dirección, wifi y teléfonos dentro—, y los
+            // números y enlaces de WhatsApp del alojamiento son contacto por otro canal, lo mismo
+            // que la categoría `Contacto` ya le quita a la guía.
             self::OtaPreReserva => [
                 'guide_url',
                 'guide_path',
@@ -151,6 +153,10 @@ enum RestriccionCanal: string
                 'account_detail_url',
                 'account_path',
                 'whatsapp_enlace_reserva',
+                'whatsapp_numero',
+                'whatsapp_url',
+                'emergencia_numero',
+                'emergencia_url',
             ],
         };
     }

@@ -108,6 +108,21 @@ final class RestriccionCanalTest extends TestCase
         self::assertContains('tours_catalog_path', $variables);
     }
 
+    /**
+     * Las ocho que se escapaban por `consultar_mi_reserva` hasta el 27/09/2026: la cuenta es la
+     * misma página que la guía, y los WhatsApp del alojamiento son contacto por otro canal.
+     */
+    #[Test]
+    public function bloquea_la_cuenta_y_los_whatsapp_del_alojamiento(): void
+    {
+        $variables = RestriccionCanal::OtaPreReserva->variablesBloqueadas();
+
+        foreach (['account_url', 'account_detail_url', 'account_path', 'whatsapp_enlace_reserva',
+            'whatsapp_numero', 'whatsapp_url', 'emergencia_numero', 'emergencia_url'] as $clave) {
+            self::assertContains($clave, $variables);
+        }
+    }
+
     /** El aviso existe para que el modelo sepa EXPLICARLO, no para que se contenga. */
     #[Test]
     public function el_aviso_nombra_lo_prohibido_y_lo_permitido(): void
