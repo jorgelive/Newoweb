@@ -34478,6 +34478,8 @@ export interface components {
              *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
             banos?: number | null;
+            /** @description El anuncio de ESTA casita en Airbnb. Uno por casita: allí cada una tiene el suyo. */
+            urlAnuncioAirbnb?: string | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -34486,7 +34488,7 @@ export interface components {
             /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
-            readonly serviciosCanales?: string[];
+            serviciosCanales?: string[];
             beds24Maps?: components["schemas"]["PmsUnidadBeds24Map"][];
             tarifaQueues?: components["schemas"]["PmsRatesPushQueue"][];
             bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue"][];
@@ -34644,7 +34646,7 @@ export interface components {
             limpiezaEsPorcentaje: boolean;
             /** @default 0.00 */
             porcentajeServicio: string;
-            readonly serviciosCanales?: components["schemas"]["PmsChannel-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
+            serviciosCanales?: components["schemas"]["PmsChannel-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -34710,7 +34712,7 @@ export interface components {
             /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
-            readonly serviciosCanales?: string[];
+            serviciosCanales?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
@@ -34783,6 +34785,8 @@ export interface components {
              *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
             banos?: number | null;
+            /** @description El anuncio de ESTA casita en Airbnb. Uno por casita: allí cada una tiene el suyo. */
+            urlAnuncioAirbnb?: string | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -34791,7 +34795,7 @@ export interface components {
             /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
-            readonly serviciosCanales?: string[];
+            serviciosCanales?: string[];
             beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.html"][];
             tarifaQueues?: components["schemas"]["PmsRatesPushQueue.html"][];
             bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.html"][];
@@ -34949,7 +34953,7 @@ export interface components {
             limpiezaEsPorcentaje: boolean;
             /** @default 0.00 */
             porcentajeServicio: string;
-            readonly serviciosCanales?: components["schemas"]["PmsChannel.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
+            serviciosCanales?: components["schemas"]["PmsChannel.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -35015,7 +35019,7 @@ export interface components {
             /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
-            readonly serviciosCanales?: string[];
+            serviciosCanales?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
@@ -35092,6 +35096,8 @@ export interface components {
              *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
             banos?: number | null;
+            /** @description El anuncio de ESTA casita en Airbnb. Uno por casita: allí cada una tiene el suyo. */
+            urlAnuncioAirbnb?: string | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -35100,7 +35106,7 @@ export interface components {
             /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
-            readonly serviciosCanales?: string[];
+            serviciosCanales?: string[];
             beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.jsonld"][];
             tarifaQueues?: components["schemas"]["PmsRatesPushQueue.jsonld"][];
             bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.jsonld"][];
@@ -35278,7 +35284,7 @@ export interface components {
             limpiezaEsPorcentaje: boolean;
             /** @default 0.00 */
             porcentajeServicio: string;
-            readonly serviciosCanales?: components["schemas"]["PmsChannel.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
+            serviciosCanales?: components["schemas"]["PmsChannel.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -35344,7 +35350,7 @@ export interface components {
             /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
-            readonly serviciosCanales?: string[];
+            serviciosCanales?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
@@ -35417,6 +35423,8 @@ export interface components {
              *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
             banos?: number | null;
+            /** @description El anuncio de ESTA casita en Airbnb. Uno por casita: allí cada una tiene el suyo. */
+            urlAnuncioAirbnb?: string | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -35425,7 +35433,7 @@ export interface components {
             /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
-            readonly serviciosCanales?: string[];
+            serviciosCanales?: string[];
             beds24Maps?: components["schemas"]["PmsUnidadBeds24Map.multipart"][];
             tarifaQueues?: components["schemas"]["PmsRatesPushQueue.multipart"][];
             bookingsPullQueues?: components["schemas"]["PmsBookingsPullQueue.multipart"][];
@@ -35583,7 +35591,7 @@ export interface components {
             limpiezaEsPorcentaje: boolean;
             /** @default 0.00 */
             porcentajeServicio: string;
-            readonly serviciosCanales?: components["schemas"]["PmsChannel.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
+            serviciosCanales?: components["schemas"]["PmsChannel.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -35649,7 +35657,7 @@ export interface components {
             /** @default 0.00 */
             porcentajeServicio: string;
             /** @description En qué canales se aplica {@see $porcentajeServicio}. */
-            readonly serviciosCanales?: string[];
+            serviciosCanales?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
