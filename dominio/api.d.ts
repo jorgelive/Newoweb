@@ -35244,6 +35244,7 @@ export interface operations {
                 "contextType[]"?: string[];
                 contextId?: string;
                 "contextId[]"?: string[];
+                guestName?: string;
             };
             header?: never;
             path?: never;
@@ -35391,6 +35392,7 @@ export interface operations {
                 "contextType[]"?: string[];
                 contextId?: string;
                 "contextId[]"?: string[];
+                guestName?: string;
             };
             header?: never;
             path?: never;
