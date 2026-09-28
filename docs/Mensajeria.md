@@ -12294,6 +12294,24 @@ agenda ascendente y la siguiente aparece por debajo. El historial conserva su ca
 
 ---
 
+## Buscador del Inbox: por nombre, en el servidor (27/09/2026)
+
+`GET /platform/message/conversations?guestName=…` —`SearchFilter` `ipartial` sobre
+`MessageConversation::$guestName`— y un campo de texto en `ChatView.vue` (`chatStore.busqueda`,
+con 300 ms de espera al teclear).
+
+⚠️ **Va en el servidor porque la lista está paginada y mezcla los tres estados.** Filtrar en el
+cliente sólo encontraría lo ya descargado: un huésped de hace meses, en Cerrados, no aparecería
+aunque exista, y «no sale» se lee como «no existe».
+
+- **Buscando, las pestañas dejan de acotar**: quien busca no sabe si el hilo está activo,
+  archivado o cerrado. Las filas no activas llevan una etiqueta con su estado.
+- **`fetchConversations` descarta respuestas viejas** (`fetchConversacionesGen`): escrito rápido,
+  «edu» puede terminar de llegar después de «eduardo» y dejaría en pantalla lo que no toca.
+- `filteredConversations` repite el filtro por nombre en el cliente sólo para lo que Mercure
+  meta en la lista mientras se busca.
+- Sólo nombre. El teléfono no entra: se guarda normalizado y no se compara como se teclea.
+
 ## El hilo por asunto devolvía un 500, y se leía como «no tiene conversación» (28/08/2026)
 
 `ConversacionPorAsuntoController` devolvía el `MessageConversation` confiando en que API

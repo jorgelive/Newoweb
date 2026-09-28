@@ -247,7 +247,7 @@ use Symfony\Component\Uid\Uuid;
     securityMessage: 'Acceso denegado a las conversaciones.'
 )]
 #[ApiFilter(OrderFilter::class, properties: ['lastMessageAt' => 'DESC', 'createdAt' => 'DESC'])]
-#[ApiFilter(SearchFilter::class, properties: ['contextType' => 'exact', 'contextId' => 'exact'])]
+#[ApiFilter(SearchFilter::class, properties: ['contextType' => 'exact', 'contextId' => 'exact', 'guestName' => 'ipartial'])]
 #[ORM\HasLifecycleCallbacks]
 class MessageConversation
 {

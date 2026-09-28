@@ -126,6 +126,10 @@ export type ApiMessage = Omit<BaseApiMessage, 'metadata' | 'template' | 'channel
 const uuidOf = uuidDe;
 const sameEntity = mismaEntidad;
 
+// Sin mayúsculas ni tildes, como compara el servidor: «jose» tiene que encontrar «José».
+const normalizarBusqueda = (texto: string): string =>
+    texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
 export const useChatStore = defineStore('chatStore', () => {
 
     /**
@@ -207,6 +211,8 @@ export const useChatStore = defineStore('chatStore', () => {
 
     const templates = ref<ApiTemplate[]>([]);
     const filterStatus = ref<string>('open');
+    // Texto del buscador del Inbox. Vacío = bandeja normal, con sus tres pestañas.
+    const busqueda = ref<string>('');
 
     // Estados de Carga
     const loadingConversations = ref(false);
@@ -279,7 +285,14 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
     // GETTERS (sin cambios funcionales)
     // ============================================================================
-    const filteredConversations = computed(() => conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase()));
+    // Buscando, las pestañas dejan de acotar: quien busca a «Eduardo» no sabe si está activo,
+    // archivado o cerrado. El servidor ya filtró por nombre; el `includes` de aquí sólo cubre
+    // lo que Mercure meta en la lista mientras se busca.
+    const filteredConversations = computed(() => {
+        const q = normalizarBusqueda(busqueda.value);
+        if (q !== '') return conversations.value.filter(c => normalizarBusqueda(c.guestName ?? '').includes(q));
+        return conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase());
+    });
 
     /**
      * Mete un mensaje en la pestaña que le toca, y lo saca de las otras dos.
@@ -417,7 +430,12 @@ export const useChatStore = defineStore('chatStore', () => {
      *
      * @param {boolean} loadMore Si es true, añade los resultados al final de la lista existente.
      */
+    // Una búsqueda escrita rápido lanza varias peticiones y la más lenta puede llegar la última:
+    // sin este contador, la lista mostraría el resultado de «edu» bajo el texto «eduardo».
+    let fetchConversacionesGen = 0;
+
     const fetchConversations = async (loadMore = false) => {
+        const gen = loadMore ? fetchConversacionesGen : ++fetchConversacionesGen;
         let pageToFetch = 1;
         if (loadMore) {
             if (!hasMoreConversations.value || loadingMoreConversations.value) return;
@@ -429,7 +447,9 @@ export const useChatStore = defineStore('chatStore', () => {
         }
 
         try {
-            const response = await apiClient.get(`/platform/message/conversations?order[lastMessageAt]=desc&page=${pageToFetch}`);
+            const filtroNombre = busqueda.value.trim() !== '' ? `&guestName=${encodeURIComponent(busqueda.value.trim())}` : '';
+            const response = await apiClient.get(`/platform/message/conversations?order[lastMessageAt]=desc&page=${pageToFetch}${filtroNombre}`);
+            if (gen !== fetchConversacionesGen) return;
             const data = extractData<ApiConversation>(response);
             if (loadMore) {
                 // FIX #4: la paginación + eventos de Mercure entre páginas puede
@@ -448,8 +468,10 @@ export const useChatStore = defineStore('chatStore', () => {
                 error.value = 'Error al sincronizar chats';
             }
         } finally {
-            loadingConversations.value = false;
-            loadingMoreConversations.value = false;
+            if (gen === fetchConversacionesGen) {
+                loadingConversations.value = false;
+                loadingMoreConversations.value = false;
+            }
         }
     };
 
@@ -1321,6 +1343,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, totalProgramados, totalCancelados, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, cargarMasDePestana, hayMasProgramados, hayMasCancelados, cargandoMasPestana, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation, cargarCabecera
+        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, totalProgramados, totalCancelados, templates, validTemplates, filterStatus, busqueda, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, cargarMasDePestana, hayMasProgramados, hayMasCancelados, cargandoMasPestana, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation, cargarCabecera
     };
 });

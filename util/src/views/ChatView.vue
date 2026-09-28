@@ -597,6 +597,15 @@ const onMessageScroll = async () => {
   }
 };
 
+// Espera a que se deje de teclear: una petición por letra saturaría el listado y
+// mostraría resultados a medias.
+let temporizadorBusqueda: ReturnType<typeof setTimeout> | null = null;
+watch(() => store.busqueda, () => {
+  if (temporizadorBusqueda) clearTimeout(temporizadorBusqueda);
+  temporizadorBusqueda = setTimeout(() => { void store.fetchConversations(); }, 300);
+});
+onUnmounted(() => { if (temporizadorBusqueda) clearTimeout(temporizadorBusqueda); });
+
 const onConversationScroll = async () => {
   const el = conversationsContainer.value;
   if (!el || store.loadingMoreConversations || !store.hasMoreConversations) return;
@@ -1298,7 +1307,12 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
           están cargadas. Justo por eso se pintan: es la única señal de que hay
           algo pendiente en una pestaña donde nadie mira.
         -->
-        <div class="flex bg-slate-100 p-1 rounded-xl mb-4 shadow-inner">
+        <div class="relative mb-3">
+          <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
+          <input v-model="store.busqueda" type="search" placeholder="Buscar por nombre…" autocomplete="off"
+                 class="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 placeholder:text-slate-300 placeholder:font-bold focus:outline-none focus:border-[#376875]" />
+        </div>
+        <div v-show="!store.busqueda.trim()" class="flex bg-slate-100 p-1 rounded-xl mb-4 shadow-inner">
           <button v-for="status in (['open', 'archived', 'closed'] as const)" :key="status" @click="store.filterStatus = status" class="flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5" :class="store.filterStatus === status ? 'bg-white text-[#376875] shadow-sm' : 'text-slate-400 hover:text-slate-600'">
             <span>{{ status === 'open' ? 'Activos' : status === 'archived' ? 'Archivados' : 'Cerrados' }}</span>
             <span
@@ -1311,7 +1325,7 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
 
       <div class="flex-1 overflow-y-auto scrollbar-hide py-2 px-3" ref="conversationsContainer" @scroll="onConversationScroll">
         <div v-if="store.loadingConversations" class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-slate-300"></i></div>
-        <div v-else-if="store.filteredConversations.length === 0" class="p-10 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">Bandeja Vacía</div>
+        <div v-else-if="store.filteredConversations.length === 0" class="p-10 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">{{ store.busqueda.trim() ? 'Sin resultados' : 'Bandeja Vacía' }}</div>
 
         <div v-for="(chat, index) in store.filteredConversations" :key="chat?.id ?? index" class="mb-1">
           <button @click="handleChatClick(chat)"
@@ -1336,6 +1350,9 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
             <span class="flex-1 min-w-0 flex flex-col justify-center">
               <span class="font-bold truncate text-sm leading-tight mb-1" :class="store.currentConversation?.id === chat.id ? 'text-[#376875]' : 'text-slate-800'">
                 {{ chat.guestName || 'Huésped' }}
+                <span v-if="store.busqueda.trim() && chat.status !== 'open'" class="ml-1.5 align-middle text-[9px] font-black uppercase tracking-wider text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">
+                  {{ chat.status === 'archived' ? 'Archivado' : 'Cerrado' }}
+                </span>
               </span>
 
               <span class="flex flex-col gap-1.25">
