@@ -1348,9 +1348,11 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
             </span>
 
             <span class="flex-1 min-w-0 flex flex-col justify-center">
-              <span class="font-bold truncate text-sm leading-tight mb-1" :class="store.currentConversation?.id === chat.id ? 'text-[#376875]' : 'text-slate-800'">
-                {{ chat.guestName || 'Huésped' }}
-                <span v-if="store.busqueda.trim() && chat.status !== 'open'" class="ml-1.5 align-middle text-[9px] font-black uppercase tracking-wider text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">
+              <span class="flex items-center gap-1.5 min-w-0 mb-1">
+                <span class="font-bold truncate text-sm leading-tight" :class="store.currentConversation?.id === chat.id ? 'text-[#376875]' : 'text-slate-800'">
+                  {{ chat.guestName || 'Huésped' }}
+                </span>
+                <span v-if="store.busqueda.trim() && chat.status !== 'open'" class="shrink-0 text-[9px] font-black uppercase tracking-wider text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">
                   {{ chat.status === 'archived' ? 'Archivado' : 'Cerrado' }}
                 </span>
               </span>
