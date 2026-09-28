@@ -546,6 +546,55 @@ la sostenía. Ver `docs/PlanProcesamientoCompartido.md` §6 S2.
 junto al archivo que escribe. No entra en el despliegue —esto se regenera en desarrollo— así que
 `dominio/` sigue sin `node_modules` en producción.
 
+#### ⚠️ Un `Delete` sin grupos siembra esquemas «todo expuesto» (27/09/2026)
+
+Al regenerar tras darle setter a `PmsUnidad::$serviciosCanales` apareció otro cambio sin relación:
+`urlAnuncioAirbnb` —sin `#[Groups]` a propósito, no se sirve— entraba en `"PmsUnidad"`,
+`"PmsUnidad.jsonld"`, `.html` y `.multipart`, y **no** en `PmsUnidad-pms_unidad.read`, la que sirve
+el `GetCollection`. La sospecha era una relación embebida sin grupos. No era eso:
+
+```
+OpenApiFactory, por CADA operación y formato de salida, también DELETE:
+  buildSchema(TYPE_OUTPUT) → sin normalizationContext = sin grupos = TODAS las propiedades
+  appendSchemaDefinitions  → la variante sin sufijo entra en components.schemas
+  case 'DELETE'            → responde 204 y no referencia ese esquema
+                                 ↓
+  PmsReserva (sin sufijo) → estancias → PmsEventoCalendario → … → PmsEstablecimiento → PmsUnidad
+```
+
+El `Delete` de `PmsReserva` y el de `PmsEventoCalendario` no declaraban `normalizationContext`, y
+cada uno arrastraba por sus relaciones un grafo de variantes con **todas** las propiedades:
+**116 esquemas huérfanos** —que ningún `path` alcanza— de 30 entidades, incluidas colas,
+`Beds24Config`, `MetaConfig` y `User`. Con los grupos puestos quedaron **28** (1083 → 995 esquemas,
+−4 787 líneas de `api.d.ts`).
+
+**Nunca se sirvió.** Comprobado con la cadena real de procesadores (write → serialize → respond) y
+el `RemoveProcessor` sustituido por lo que devuelve (`void`): los dos DELETE salen **204 con cuerpo
+vacío**, en `jsonld` y en `json` (el de `PmsEventoCalendario` también antes del cambio). Los
+grupos no tocan la respuesta: era sólo documentación. Y ningún
+endpoint normaliza `PmsUnidad` a mano sin grupos: los `normalize()`/`->json()` de `src/` pasan
+grupos o arrays.
+
+⚠️ **Por qué se arregla aunque no se sirva.** El nombre sin sufijo es el **más fácil de escribir**:
+`components['schemas']['PmsUnidad']` describe `beds24Maps`, `tarifaQueues`, `urlAnuncioAirbnb`…,
+campos que la API no manda nunca. Un `*Model.ts` anclado ahí compila y lee `undefined` — un tipo
+que describe una API que no existe, la familia de fallo de siempre. Y cada propiedad nueva sin
+grupos en cualquier entidad del grafo ensucia regeneraciones que no tienen que ver, que es como se
+vio esto.
+
+**La regla:** un `Delete` (o cualquier operación sin cuerpo) lleva el `normalizationContext` de
+sus hermanas. No cambia la respuesta; cambia qué esquema se genera. Para localizar al culpable,
+los huérfanos se cuentan recorriendo los `$ref` desde `paths` en el export: las raíces no bastan,
+porque los huérfanos forman ciclos entre sí (`PmsReserva` ↔ `PmsEventoCalendario`) y no tienen
+raíz.
+
+⚠️ **Los 28 que quedan son de `CotizacionFile`, `CotizacionFilearchivo`, `CotizacionFilepasajero`
+y `CotizacionFileGrupo`**, con el mismo `Delete` sin grupos, y **no se tocaron a propósito**:
+`util/src/types/fileDetalleModel.ts` saca de ahí tres enums (`tipoArchivo`, `sexo`, el `tipo` de la
+identificación). Un enum no depende del grupo, así que el ancla funciona; pero cuelga de un
+artefacto de documentación. Al ponerles grupos, `vue-tsc` avisará en esas tres líneas (el fallo es
+ruidoso) y hay que reanclarlas a una variante con grupo que traiga el campo.
+
 ### 🔥 Los tres espejos nunca fueron el mismo cálculo
 
 Al ir a unificarlos se compararon línea a línea, y **no coincidían**:
@@ -793,5 +842,6 @@ calcula, así que el servidor persiste lo que le mande el navegador. Resumido:
 | Saber qué falta para el procesamiento compartido | §9 | El paso cero es la capa común entre `util` y `pax`, que no existe |
 | Ver cómo es un módulo puro ya extraído | `pax/src/dominio/itinerarioVista.ts` | Sin `vue`, sin store, sin `window`. Se ejecuta en Node |
 | Escribir tests de una regla de negocio en TS | `pax/src/dominio/*.test.ts` + §5 | `npm test` en `pax`. Fixtures reales podados, poda verificada |
+| Un esquema sin sufijo de grupo aparece en `api.d.ts` con campos que la API no sirve | §9, «Un `Delete` sin grupos…» | Casi siempre una operación sin `normalizationContext`; contar huérfanos desde `paths` |
 | Elegir framework/transporte para Node | §10 | Hoy: ninguno. `Process` + 50 ms. Hono si una medición lo pide; NestJS no |
 | Despliegue de PWAs y Node en producción | memoria `newoweb-deploy-procedure` | Node vive en nvm, no está en el PATH de ssh |

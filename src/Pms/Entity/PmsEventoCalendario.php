@@ -61,9 +61,17 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
         // El permiso solo abre la puerta: quién puede borrar *qué* lo decide
         // isSafeToDelete() vía PmsEventoCalendarioSecurityListener::preRemove
         // (OTA, existencia en Beds24, sincronización en curso).
+        //
+        // ⚠️ El `normalizationContext` no cambia la respuesta —un DELETE sale 204 y sin cuerpo—:
+        // cambia el ESQUEMA. API Platform documenta la salida de toda operación, también la que
+        // no tiene, y sin grupos la documenta con TODAS las propiedades. Esa variante huérfana
+        // (`PmsEventoCalendario` sin sufijo) arrastraba por sus relaciones esquemas «todo
+        // expuesto» —hasta `PmsUnidad` con campos que la API nunca sirve—. Ver
+        // docs/NodeEnElStack.md §9, «Un `Delete` sin grupos…».
         new Delete(
             security: "is_granted('" . Roles::RESERVAS_DELETE . "')",
             securityMessage: 'No tienes permiso para eliminar eventos de calendario.',
+            normalizationContext: ['groups' => ['pms_evento:read', 'timestamp:read']],
         ),
     ],
     routePrefix: '/pms',

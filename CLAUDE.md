@@ -387,6 +387,13 @@ La metadata vive en pools de caché que `cache:clear` no toca. Medido el 25/08/2
 Si publicas un campo y no lo ves en `api.d.ts`, **no es que el grupo esté mal**: comprueba
 primero que el export no venga de caché.
 
+⚠️ **Y al revés: un campo SIN grupos que aparece en `api.d.ts`** —en la clave sin sufijo
+(`"PmsUnidad"`), no en la del grupo— casi siempre es una operación sin `normalizationContext`,
+típicamente un `Delete`. API Platform documenta su salida con **todas** las propiedades aunque
+responda 204, y la arrastra por las relaciones: 116 esquemas huérfanos hasta el 27/09/2026. No se
+sirve, pero `components['schemas']['X']` es el nombre más fácil de escribir y describe una API que
+no existe. Un `Delete` lleva los grupos de sus hermanas. Ver `docs/NodeEnElStack.md` §9.
+
 ⚠️ **Y hay un segundo caché que tampoco limpia: el de METADATA de Doctrine.** Un campo nuevo con
 su `#[ORM\Column]` puede quedar **sin mapear** en un sondeo de CLI, y entonces `setX()` no
 persiste: el `flush()` corre, no da error, y la columna se queda en `NULL`. Medido el 03/09/2026

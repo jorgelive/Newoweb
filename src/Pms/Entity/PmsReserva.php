@@ -80,10 +80,15 @@ use Symfony\Component\Validator\Constraints as Assert;
         // Borra la reserva y, en cascada, todas sus estancias. El permiso solo abre
         // la puerta: PmsReservaDeleteListener::preRemove veta la operación si alguna
         // de sus estancias no es isSafeToDelete() (OTA, Beds24, sync en curso).
+        //
+        // El `normalizationContext` no cambia la respuesta (204, sin cuerpo): quita del esquema
+        // la variante «todas las propiedades» que API Platform documenta para un DELETE sin
+        // grupos. Ver docs/NodeEnElStack.md §9 y el mismo aviso en PmsEventoCalendario.
         new Delete(
             uriTemplate: '/pms/pms_reservas/{id}',
             security: "is_granted('" . Roles::RESERVAS_DELETE . "')",
             securityMessage: 'No tienes permiso para eliminar reservas.',
+            normalizationContext: ['groups' => ['pms_reserva:read', 'timestamp:read']],
         ),
     ],
 )]
