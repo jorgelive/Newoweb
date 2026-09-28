@@ -1045,10 +1045,10 @@ async function abrirChatInterno(): Promise<void> {
 /**
  * Lleva al editor de identificadores de esta persona.
  *
- * ⚠️ **El error se guarda aparte de `localError` a propósito.** Ése se pinta arriba del todo del
- * scroll, y este botón está abajo, en «Datos del titular»: si la reserva no tenía hilo, el aviso
- * aparecía fuera de la pantalla y desde el móvil se veía exactamente como si el botón no hiciera
- * nada. Un fallo invisible es peor que uno feo.
+ * ⚠️ **El error se guarda aparte de `localError` a propósito.** Ése se pinta en el pie, junto a
+ * Guardar (antes, arriba del todo del scroll), y este botón está en medio, en «Datos del titular»:
+ * el aviso tiene que salir al lado de lo que se pulsó, o desde el móvil se ve exactamente como si
+ * el botón no hiciera nada. Un fallo invisible es peor que uno feo.
  */
 const errorTelefono = ref<string | null>(null);
 
@@ -1956,10 +1956,6 @@ async function ejecutarBorrado(): Promise<void> {
 
             <div v-else ref="scrollerRef" class="flex-1 overflow-y-auto px-5 py-4 space-y-6">
 
-                <div v-if="localError" class="bg-rose-50 border border-rose-200 text-rose-700 text-sm font-bold rounded-xl px-4 py-3">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>{{ localError }}
-                </div>
-
                 <!-- El drawer NO se cierra al guardar un horario extra: el cargo nace
                      ahora, en 0.00, y hay que poder valorarlo sin volver a buscar la
                      reserva (ver el final de `guardar()`). -->
@@ -2692,7 +2688,15 @@ async function ejecutarBorrado(): Promise<void> {
 
             </div>
 
-            <footer class="border-t border-slate-200 px-5 py-4 flex items-center justify-end gap-3 shrink-0">
+            <footer class="border-t border-slate-200 px-5 py-4 shrink-0">
+                <!-- El error va AQUÍ, junto a los botones, y no arriba del scroll: allí quedaba
+                     fuera de la pantalla y en el móvil «Guardar» parecía no hacer nada — el
+                     rechazo por noche ocupada (casita 4, 28/09/2026) salía tres veces sin que
+                     nadie lo viera. Mismo motivo que `errorTelefono`. -->
+                <div v-if="localError" role="alert" class="mb-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm font-bold rounded-xl px-4 py-3">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>{{ localError }}
+                </div>
+                <div class="flex items-center justify-end gap-3">
                 <button v-if="readOnly" @click="emit('close')"
                     class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-black transition-colors">
                     Cerrar
@@ -2719,6 +2723,7 @@ async function ejecutarBorrado(): Promise<void> {
                         {{ isCreateReserva ? 'Crear Reserva' : (isCreate ? 'Crear Bloqueo' : (avisoGuardado ? 'Guardado' : 'Guardar Cambios')) }}
                     </button>
                 </template>
+                </div>
             </footer>
         </div>
     </div>

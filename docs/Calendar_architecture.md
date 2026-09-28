@@ -862,6 +862,11 @@ Al guardar sin cerrar se hace `cargarDatos()` en vez de confiar en el formulario
 de borrado se abre. El caso de «horario extra» ya funcionaba así desde antes (§7.1.b de
 `PmsBeds24ReservasSync.md`); ahora es la norma y no la excepción.
 
+⚠️ **El error de guardar se pinta en el PIE, junto a los botones.** Hasta el 28/09/2026 iba
+arriba del todo del scroll: en el móvil, con el formulario bajado, «Guardar» parecía no hacer
+nada. Así pasó con el primer rechazo por noche ocupada (casita 4): el servidor contestó 422 con el
+motivo tres veces y nadie lo vio. Un aviso tiene que salir al lado de lo que se pulsó.
+
 #### Borrado desde el drawer: por qué espera a la sincronización
 
 La zona de borrado sólo aparece en edición, sobre una estancia que ya existe, y exige **dos**
