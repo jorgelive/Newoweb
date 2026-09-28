@@ -1152,7 +1152,10 @@ const calendarOptions: CalendarOptions = {
         if (p?.context === 'horario_extra') {
             const nombre = (p.cliente ?? '').trim().split(/\s+/)[0] ?? '';
             return {
-                html: `<span class="fc-horario-extra-titulo">${marcaHorarioExtra(p.extremo ?? 'entrada')} ${escaparHtml(nombre)}</span>`,
+                // Dos líneas, como las barras: la franja es estrecha (una noche recortada a la hora
+                // real de entrada) pero alta, y en una sola línea el nombre se perdía.
+                html: `<span class="fc-horario-extra-titulo">${marcaHorarioExtra(p.extremo ?? 'entrada')}`
+                    + `<span class="fc-horario-extra-nombre">${escaparHtml(nombre)}</span></span>`,
             };
         }
         // Un evento SIN reserva —un bloqueo de mantenimiento, típicamente— también va a dos
@@ -1946,12 +1949,19 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 }
 
 .fc-horario-extra-titulo {
-    display: block;
-    padding: 2px 4px;
-    font-size: 0.62rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 4px;
+    font-size: 0.7rem;
     font-weight: 700;
     line-height: 1.1;
     color: #92400e;
+}
+
+.fc-horario-extra-nombre {
+    max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
