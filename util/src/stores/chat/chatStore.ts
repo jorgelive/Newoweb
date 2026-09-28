@@ -1112,8 +1112,16 @@ export const useChatStore = defineStore('chatStore', () => {
      * @param {string} text Contenido local redactado por el usuario.
      * @param {string | null} templateIri IRI del recurso plantilla (opcional).
      * @param {string[]} channels Array con IDs de canales seleccionados (ej. 'beds24').
+     * @param {'pending' | 'en_espera'} estado `en_espera` para WhatsApp con la ventana cerrada: el
+     *   backend manda el aviso `mensaje_pendiente` y suelta este mensaje cuando el cliente conteste
+     *   (`MensajeEnEsperaDeVentana`).
      */
-    const sendMessage = async (text: string, templateIri: string | null = null, channels: string[] = []) => {
+    const sendMessage = async (
+        text: string,
+        templateIri: string | null = null,
+        channels: string[] = [],
+        estado: 'pending' | 'en_espera' = 'pending',
+    ) => {
         if (!currentConversation.value) return;
 
         sendingMessage.value = true;
@@ -1129,7 +1137,7 @@ export const useChatStore = defineStore('chatStore', () => {
             form.append('conversation', convId);
             form.append('direction', 'outgoing');
             form.append('senderType', 'host');
-            form.append('status', 'pending');
+            form.append('status', estado);
 
             channels.forEach(channel => form.append('transientChannels[]', channel));
 

@@ -4,7 +4,7 @@
 // El backend expone `status` como `string` porque sale de un getter, y OpenAPI no
 // ve un enum ahí (es el caso descrito en CLAUDE.md, §"los tipos de la API se
 // GENERAN"). Del lado del front sí sabemos que es una lista cerrada: son los ocho
-// estados que MessageStatusIcon sabe pintar.
+// estados que MessageStatusIcon sabe pintar (nueve desde `en_espera`).
 //
 // Espejo de los estados que emiten `Message` y las colas de envío en
 // `src/Message/`. Si allí nace un estado nuevo, esta unión y el icono se tocan
@@ -19,10 +19,13 @@ export type EstadoMensaje =
     | 'read'
     | 'failed'
     | 'received'
-    | 'cancelled';
+    | 'cancelled'
+    // Escrito para WhatsApp con la ventana cerrada: sale cuando el cliente conteste
+    // (`Message::STATUS_EN_ESPERA`, `MensajeEnEsperaDeVentana`).
+    | 'en_espera';
 
 const ESTADOS: readonly EstadoMensaje[] = [
-    'pending', 'queued', 'sent', 'delivered', 'read', 'failed', 'received', 'cancelled',
+    'pending', 'queued', 'sent', 'delivered', 'read', 'failed', 'received', 'cancelled', 'en_espera',
 ];
 
 /**

@@ -7,6 +7,7 @@ namespace App\Message\EventListener\Queue;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\Message;
 use App\Message\Service\Conversacion\AsuntoDelMensaje;
+use App\Message\Service\Queue\MensajeEnEsperaDeVentana;
 use App\Message\Service\Queue\MessageDispatcher;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
 use Doctrine\ORM\EntityManagerInterface;
@@ -34,6 +35,7 @@ readonly class MessageEnqueuerEntityListener
         private MessageDispatcher      $dispatcher,
         private EntityManagerInterface $em,
         private AsuntoDelMensaje       $asuntos,
+        private MensajeEnEsperaDeVentana $espera,
     ) {}
 
     /**
@@ -69,6 +71,13 @@ readonly class MessageEnqueuerEntityListener
         // La generación de colas para marcar como leído se hace de forma PROACTIVA
         // y manual directamente dentro del controlador `MarkConversationReadController`.
         // =========================================================================
+
+        // ⏳ WhatsApp con la ventana cerrada: el mensaje espera y sale un aviso en su lugar. Si
+        // resulta que la ventana está abierta, `retener()` lo devuelve a `pending` y sigue abajo
+        // por el camino de siempre. Ver `MensajeEnEsperaDeVentana`.
+        if ($message->getStatus() === Message::STATUS_EN_ESPERA) {
+            $this->espera->retener($message);
+        }
 
         if ($message->getDirection() === Message::DIRECTION_OUTGOING
             && in_array($message->getStatus(), [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {

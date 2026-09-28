@@ -578,6 +578,47 @@ Lo que sigue creciendo a mano, y es la deuda pendiente: la **columna por canal**
 `MessageTemplate` (exige migración cada vez) y el hecho de que `buttons_map` viva dentro de
 `whatsappMetaTmpl` aunque defina el menú de todos los canales (§8).
 
+### ⏳ Mensaje en espera: WhatsApp con la ventana cerrada (28/09/2026)
+
+Fuera de la ventana de 24 h WhatsApp sólo acepta plantillas, y el operador se quedaba sin forma de
+mandar lo que ya tenía escrito — el caso que lo trajo: la cotización de Eduardo, tres párrafos y
+un enlace, con la ventana cerrada desde hacía una semana. Una **plantilla genérica con el texto
+como variable** se descartó: Meta revisa por el texto fijo (una casi todo variable es la que se usa
+para saltarse la ventana), los parámetros no admiten saltos de línea, y su categoría sería una
+lotería.
+
+```
+chat: WhatsApp 🔒 sin plantilla → se puede elegir igual, en ámbar (modo «esperar», va SOLO)
+        │  POST status=en_espera, transientChannels=[whatsapp_meta]
+        ▼
+MessageEnqueuerEntityListener::prePersist → MensajeEnEsperaDeVentana::retener()
+        ├─ ¿ventana abierta? → vuelve a `pending` y sale normal (el cliente escribió mientras tanto)
+        ├─ su mensaje: `en_espera`, SIN cola, visible en el hilo con reloj de arena
+        └─ aviso `mensaje_pendiente` (plantilla, UTILITY, sin variables):
+             «Hola, soy Susan 😊 Tengo una respuesta para ti. ¿Te la envío por aquí?»
+             [ Sí, envíamela ]  ← respuesta rápida: CMD_ENVIAR_PENDIENTE
+        ▼
+WhatsappMetaReceivePersister (cualquier mensaje suyo, botón o texto) → abre la ventana
+        → MensajeEnEsperaDeVentana::liberar(): `pending`, scheduledAt = ahora, colas
+        → sale tal cual se escribió, colocado DEBAJO de su respuesta
+```
+
+- **Un solo aviso por espera.** Si ya hay algo esperando en el hilo, el mensaje nuevo se suma sin
+  otro «¿te lo envío?».
+- **El botón no tiene regla de autorespuesta, a propósito**: `IntentRouter` lo cierra como
+  `sin_regla` y lo que contesta es lo liberado. Si en vez de pulsar escribe texto, el agente lo
+  atiende además, como cualquier mensaje.
+- **Las colas se piden en `liberar()`, no en el `preUpdate`**: lo persistido dentro de `preUpdate`
+  no entra en ese flush (la misma trampa que el revivido de `sin_canal`).
+- **Sin variables en la plantilla** para que valga en cualquier hilo —reserva, cotización o un
+  número suelto— sin depender de que su contexto tenga resolutor.
+- ⚠️ **Hasta que Meta apruebe `mensaje_pendiente_v1`**, el aviso falla como cualquier plantilla sin
+  ID oficial; el mensaje sigue esperando y sale si el cliente escribe por su cuenta.
+- ⚠️ **No caduca todavía.** Un mensaje que espera a alguien que no contesta nunca se queda en
+  `en_espera` indefinidamente. Pendiente decidir el plazo y el aviso al equipo.
+
+Se crea con `msg:plantillas:mensaje-pendiente` y se sube con `msg:meta:push mensaje_pendiente --todos`.
+
 ### 🚫 La última puerta: un mensaje cancelado no sale, aunque su cola siga viva (17/09/2026)
 
 El worker elige qué ejecutar mirando **sólo la cola** (`AbstractExchangeRepository::claimRunnable()`)
@@ -6837,6 +6878,8 @@ de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar
 | Leer un campo nuevo del webhook de Meta | `src/Message/Dto/Meta/` | el `fromArray()` de su pieza — y `tools/pruebas/probar-dto-meta.php` para comprobar que no cambia lo demás (§14.b) |
 | Leer un campo nuevo de la RESPUESTA de un envío (Meta, Beds24, correo) | `src/Exchange/Dto/` | `RespuestaGraphMeta` / `Beds24Respuesta` / `ResultadoDelCorreo` — y `tools/pruebas/probar-dto-canales.php` (§14.c) |
 | Que un rechazo síncrono de Meta deje el mensaje FALLIDO (hoy se da por enviado) | `WhatsappMetaSendMappingStrategy` | `parseResponse()` — leer `status` de la fila del cliente; **y** actualizar `WhatsappMetaSendMappingStrategyTest`. Decidir antes el reintento (§14.c) |
+| Cambiar qué pasa con lo que se escribe para WhatsApp con la ventana cerrada (aviso, liberación) | `MensajeEnEsperaDeVentana` | `retener()` / `liberar()` — §5, «Mensaje en espera». El modo del chat: `puedeEsperarVentana` en `ChatView.vue` |
+| Cambiar el texto o el botón del aviso de mensaje en espera | plantilla `mensaje_pendiente` (panel) | la crea `msg:plantillas:mensaje-pendiente`; en Meta, texto nuevo = versión nueva (§18) |
 | Cambiar cómo se escribe el valor de una variable en un texto | `HidratadorDeMarcadores` | `comoTexto()` — lo usan los tres canales de envío (§14.c) |
 | Cambiar cómo se recorre el sobre de Meta | `WhatsappMetaWebhookMessageFastTrackService` | `procesarSobre()` — el único recorrido, lo usan el webhook y el «reprocesar» |
 | Leer un campo nuevo del listado de plantillas de Meta | `src/Message/Dto/PlantillaMeta/` | el `fromArray()` de la pieza — y `tools/pruebas/probar-dto-plantillas.php` (§18) |

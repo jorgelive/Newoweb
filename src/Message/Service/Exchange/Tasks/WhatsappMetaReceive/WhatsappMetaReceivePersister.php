@@ -17,6 +17,7 @@ use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Service\Inbound\InboundMenuResolver;
 use App\Message\Service\MessageJsonMerger;
+use App\Message\Service\Queue\MensajeEnEsperaDeVentana;
 use App\Message\Service\Translation\GuestLanguageDetectorService;
 use App\Pms\Repository\PmsReservaRepository;
 use App\Service\Phone\PhoneSanitizer;
@@ -52,6 +53,7 @@ readonly class WhatsappMetaReceivePersister
         private ResolutorDeHilo              $resolutor,
         private ReservaPorLocalizador        $localizadores,
         private EnlacesDeConversacion        $enlaces,
+        private MensajeEnEsperaDeVentana     $espera,
     ) {}
 
     /**
@@ -320,6 +322,18 @@ readonly class WhatsappMetaReceivePersister
         // 3. 🔥 VENTANA DE 24 HORAS DE META (Vital para WhatsApp)
         $windowExpiry = (clone $msgDate)->modify('+24 hours');
         $conversation->setWhatsappSessionValidUntil($windowExpiry);
+
+        // 4. ⏳ Con la ventana abierta, sale lo que el operador dejó esperando. Da igual que el
+        // cliente pulse «Sí, envíamela» o escriba otra cosa: cualquier mensaje suyo la abre.
+        if ($conversation->isWhatsappSessionActive()) {
+            $liberados = $this->espera->liberar($conversation);
+
+            if ($liberados > 0) {
+                $this->logger->info(sprintf('WhatsApp: ventana abierta, salen %d mensajes en espera.', $liberados), [
+                    'conversacion' => $conversation->getId()?->toRfc4122(),
+                ]);
+            }
+        }
 
         $this->em->flush();
     }

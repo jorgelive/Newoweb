@@ -182,6 +182,19 @@ class Message
      * el otro no, el aviso se encolaría y se descartaría sin decir nada.
      */
     public const array ESTADOS_NO_SALIO = [self::STATUS_FAILED, self::STATUS_SIN_CANAL];
+
+    /**
+     * Escrito por el operador para WhatsApp con la ventana de 24 h CERRADA: espera a que el
+     * cliente la abra.
+     *
+     * Mientras tanto no tiene cola: sale la plantilla corta `mensaje_pendiente` («tengo una
+     * respuesta para ti, ¿te la envío por aquí?») y, en cuanto el cliente escribe o pulsa su botón,
+     * {@see \App\Message\Service\Queue\MensajeEnEsperaDeVentana::liberar()} lo pasa a `pending` y
+     * sale tal cual se escribió, con sus párrafos y su enlace. Nace porque una plantilla genérica
+     * con el texto como variable ni la aprueba Meta ni admite saltos de línea (28/09/2026, la
+     * cotización de Eduardo). Ver docs/Mensajeria.md §5.
+     */
+    public const string STATUS_EN_ESPERA = 'en_espera';
     public const string STATUS_PENDING   = 'pending';
     public const string STATUS_QUEUED    = 'queued';
     public const string STATUS_SENT      = 'sent';

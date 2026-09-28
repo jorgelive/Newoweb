@@ -742,6 +742,25 @@ const isWhatsappAllowed = computed(() => {
   return sessionActive;
 });
 
+/**
+ * WhatsApp con la ventana de 24 h cerrada y SIN plantilla: se puede elegir igual, en modo
+ * «esperar». El mensaje se guarda, sale el aviso `mensaje_pendiente` y el texto se envía solo
+ * cuando el cliente conteste (`MensajeEnEsperaDeVentana` en el backend).
+ *
+ * Con plantilla no aplica: una plantilla oficial ya sale con la ventana cerrada.
+ */
+const puedeEsperarVentana = computed(() =>
+  canalHabilitado('whatsapp_meta')
+  && !store.currentConversation?.whatsappDisabled
+  && !(store.currentConversation?.whatsappSessionActive ?? false)
+  && !selectedTemplateId.value
+);
+
+/** WhatsApp elegido en modo «esperar»: va SOLO, porque el mensaje tiene un único estado. */
+const esperaVentana = computed(() =>
+  selectedChannels.value.includes('whatsapp_meta') && !isWhatsappAllowed.value && puedeEsperarVentana.value
+);
+
 const setDefaultChannels = () => {
   const chat = store.currentConversation;
   if (!chat) return;
@@ -783,7 +802,7 @@ watch(() => store.canalesDelChat, () => {
   // mano— y el botón parecía no responder.
   const permitido: Record<string, boolean> = {
     beds24: isBeds24Allowed.value,
-    whatsapp_meta: isWhatsappAllowed.value,
+    whatsapp_meta: isWhatsappAllowed.value || puedeEsperarVentana.value,
     email: isEmailAllowed.value,
   };
 
@@ -841,6 +860,14 @@ const toggleChannel = (channel: string) => {
   if (selectedChannels.value.includes(channel)) {
     selectedChannels.value = selectedChannels.value.filter(c => c !== channel);
   } else {
+    // Modo «esperar»: WhatsApp va solo. Elegirlo quita los demás, y elegir otro lo quita a él.
+    if (channel === 'whatsapp_meta' && !isWhatsappAllowed.value && puedeEsperarVentana.value) {
+      selectedChannels.value = ['whatsapp_meta'];
+      return;
+    }
+    if (esperaVentana.value) {
+      selectedChannels.value = [];
+    }
     if (channel === 'beds24') {
       if (!isBeds24Allowed.value) return;
       if (attachmentStore.file && !attachmentStore.isImage) {
@@ -906,6 +933,15 @@ const send = async () => {
   if (!newMessageText.value.trim() && !selectedTemplateId.value && !attachmentStore.file) return;
   if (selectedChannels.value.length === 0 && !selectedTemplateId.value) {
     store.error = 'Selecciona al menos un canal de envío.';
+    return;
+  }
+
+  if (esperaVentana.value) {
+    await store.sendMessage(newMessageText.value, null, ['whatsapp_meta'], 'en_espera');
+    newMessageText.value = '';
+    clearTemplate();
+    await nextTick();
+    if (messageTextarea.value) messageTextarea.value.style.height = 'auto';
     return;
   }
 
@@ -1723,11 +1759,16 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
 
             <div class="relative group">
               <button
-                  @click="isWhatsappAllowed ? toggleChannel('whatsapp_meta') : null"
-                  :disabled="!isWhatsappAllowed"
+                  @click="(isWhatsappAllowed || puedeEsperarVentana) ? toggleChannel('whatsapp_meta') : null"
+                  :disabled="!isWhatsappAllowed && !puedeEsperarVentana"
+                  :title="puedeEsperarVentana ? 'Ventana de 24 h cerrada: se le pedirá permiso y tu mensaje saldrá cuando conteste' : undefined"
                   :class="[
                     store.currentConversation?.whatsappDisabled
                       ? 'bg-red-50 text-red-400 border-red-100 opacity-60 cursor-not-allowed'
+                      : esperaVentana
+                        ? 'bg-amber-50 text-amber-700 border-amber-200 shadow-sm'
+                      : puedeEsperarVentana
+                        ? 'bg-white text-slate-500 border-slate-200 hover:bg-amber-50 hover:text-amber-700 shadow-sm'
                       : !isWhatsappAllowed
                         ? 'bg-slate-50 text-slate-300 border-slate-100 opacity-60 cursor-not-allowed'
                         : selectedChannels.includes('whatsapp_meta')
@@ -1739,6 +1780,7 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                 <i class="fab fa-whatsapp text-sm"></i> WhatsApp
 
                 <i v-if="store.currentConversation?.whatsappDisabled" class="fas fa-exclamation-triangle text-red-500 animate-pulse ml-1 text-[10px]" title="Canal Bloqueado"></i>
+                <i v-else-if="esperaVentana" class="fas fa-hourglass-half text-[10px] ml-1 text-amber-600" title="Saldrá cuando conteste"></i>
                 <i v-else-if="!store.currentConversation?.whatsappSessionActive" class="fas fa-lock text-[10px] ml-1" :class="selectedChannels.includes('whatsapp_meta') ? 'text-green-700/50' : 'text-slate-400'" title="Sesión de 24h inactiva"></i>
                 <i v-else-if="!isWhatsappAllowed" class="fas fa-ban text-[9px] ml-0.5 opacity-50" :title="motivoCanal('whatsapp_meta') ?? 'La plantilla elegida no sale por WhatsApp'"></i>
               </button>
@@ -1772,6 +1814,12 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
             </button>
 
           </div>
+
+          <!-- Modo «esperar»: que quede claro ANTES de enviar que no sale ya. -->
+          <p v-if="esperaVentana" class="px-1 pt-1.5 text-[11px] font-bold text-amber-700 leading-snug">
+            <i class="fas fa-hourglass-half mr-1"></i>
+            La ventana de WhatsApp está cerrada. Le llegará un aviso para que conteste, y tu mensaje saldrá tal cual en cuanto lo haga.
+          </p>
 
           <Transition name="fade-slide">
             <div v-if="showTemplateDropdown" class="absolute bottom-22.5 left-2 right-2 md:left-auto md:right-auto z-50 bg-white border border-slate-200 shadow-2xl rounded-2xl p-2 md:w-96 max-h-64 overflow-y-auto">

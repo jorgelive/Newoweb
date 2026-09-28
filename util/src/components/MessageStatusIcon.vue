@@ -24,6 +24,13 @@
       <path fill="currentColor" d="M7.002 11a1 1 0 112 0 1 1 0 01-2 0zM7.1 4.995a.905.905 0 111.8 0l-.35 3.507a.552.552 0 01-1.1 0L7.1 4.995z"/>
     </svg>
 
+    <!-- en_espera — reloj de arena ámbar: no ha salido porque espera a que el cliente abra la
+         ventana de WhatsApp. No es un fallo ni un «en camino»: depende de él. -->
+    <svg v-else-if="status === 'en_espera'" viewBox="0 0 16 16" width="12" height="12" class="icon-amber">
+      <title>Esperando a que conteste para enviarse por WhatsApp</title>
+      <path fill="currentColor" d="M3 1h10v1.5h-1v1.8c0 1.3-.7 2.5-1.8 3.2L9.3 8l.9.5c1.1.7 1.8 1.9 1.8 3.2v1.8h1V15H3v-1.5h1v-1.8c0-1.3.7-2.5 1.8-3.2L6.7 8l-.9-.5C4.7 6.8 4 5.6 4 4.3V2.5H3V1zm2.5 1.5v1.8c0 .8.4 1.5 1.1 1.9L8 7l1.4-.8c.7-.4 1.1-1.1 1.1-1.9V2.5h-5zM8 9l-1.4.8c-.7.4-1.1 1.1-1.1 1.9v1.8h5v-1.8c0-.8-.4-1.5-1.1-1.9L8 9z"/>
+    </svg>
+
     <!-- NUEVO: cancelled — círculo con X rojo -->
     <svg v-else-if="status === 'cancelled'" viewBox="0 0 16 16" width="12" height="12" class="icon-red">
       <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.2"/>
@@ -58,5 +65,9 @@ defineProps<{ status: EstadoMensaje }>();
 
 .icon-red {
   color: #f15c6d;
+}
+
+.icon-amber {
+  color: #d97706;
 }
 </style>
