@@ -46,6 +46,9 @@ final class CalendarEventDto implements JsonSerializable
         public readonly string|array|null $tooltip = null,
         public readonly ?int $prioridadImportante = null,
         public readonly ?array $extendedProps = null,
+        // `background` pinta el tramo como fondo de la fila, sin barra: no se arrastra, no se
+        // abre y no ocupa hueco. Ver PmsEventosSpaCalendarProvider::horariosExtra().
+        public readonly ?string $display = null,
     ) {}
 
     /**
@@ -82,6 +85,8 @@ final class CalendarEventDto implements JsonSerializable
             // FullCalendar necesita un array JSON, no un objeto. El reindexado sobraba.
             $out['classNames'] = $this->classNames;
         }
+
+        if ($this->display !== null) $out['display'] = $this->display;
 
         if ($this->urledit !== null) $out['urledit'] = $this->urledit;
         if ($this->urlshow !== null) $out['urlshow'] = $this->urlshow;

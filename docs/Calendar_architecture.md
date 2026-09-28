@@ -271,6 +271,25 @@ línea:
 `descripcion` viaja para todos los eventos, también los de reserva, pero ahí no se pinta: esa
 segunda fila la ocupan pax, noches y saldo.
 
+#### La noche de un horario extra, como fondo rayado (`context: horario_extra`)
+
+Una entrada temprana o una salida tardía bloquean una noche entera en el canal con un evento
+aparte que cuelga de la estancia por `eventoOrigen`. `fetchEventos()` filtra esos eventos —no son
+estancias—, y hasta el 28/09/2026 **esa noche no se pintaba**: sólo un iconito dentro de la barra
+de la estancia. La celda parecía libre, y el 26/09 se creó encima la noche extra de José en la
+casita 4, sobre la entrada temprana de Lizbeth.
+
+`PmsEventosSpaCalendarProvider::horariosExtra()` los añade ahora como `display: 'background'`:
+franja rayada en ámbar con «Entrada temprana · Nombre» o «Salida tardía · Nombre». No se abre, no
+se arrastra y no ocupa hueco en la fila. Sólo los vivos (`IMPIDEN_VENTA`), y sólo en los
+calendarios que no acotan estados —los dos de Reservas—: el de ocupación de Tarifas pide
+`OCUPAN_UNIDAD` y una noche de horario extra no es una venta que tarifar.
+
+En el front, `ReservasView` corta `eventContent`, `eventDidMount` y `onEventClick` para ese
+`context` antes de tratarlo como reserva. El servidor además rechaza guardar encima
+(`PmsEventoCalendarioSolapeListener`, `docs/PmsDisponibilidad.md` §8.c): lo que se ve y lo que se
+rechaza dicen lo mismo.
+
 #### El icono del estado (`estadoIcono`, `estadoColor`)
 
 La barra pinta el estado como una pastilla más de esa fila (`iconoEstadoHtml()`), y hay tres

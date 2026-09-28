@@ -85,6 +85,88 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             );
         }
 
+        // Sólo en los calendarios que no acotan estados (los dos de Reservas). El de ocupación
+        // de Tarifas pide únicamente estancias vendidas (`OCUPAN_UNIDAD`), y una noche de
+        // horario extra no es una venta que tarifar.
+        if ($config->filtros->estado->incluir === []) {
+            foreach ($this->horariosExtra($from, $to) as $franja) {
+                $out[] = $franja;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * La noche que bloquea una entrada temprana o una salida tardía, pintada como FONDO.
+     *
+     * 🔥 Hasta el 28/09/2026 esa noche no se pintaba de ninguna forma: sólo un iconito dentro de
+     * la barra de la estancia. La celda se veía libre y el 26/09 se creó encima la noche extra de
+     * José en la casita 4, sobre la entrada temprana de Lizbeth. Desde entonces el servidor lo
+     * rechaza ({@see \App\Pms\EventListener\PmsEventoCalendarioSolapeListener}), pero lo que
+     * se ve tiene que decir lo mismo que lo que se rechaza.
+     *
+     * Va aparte de `fetchEventos()` y como `display: background` a propósito: la extensión no es
+     * una estancia —no se abre, no se arrastra, no ocupa hueco en la fila— y `fetchEventos()` la
+     * sigue filtrando para todo lo demás. Sólo las vivas (`IMPIDEN_VENTA`): al retirar el horario
+     * extra pasan a `cancelada` y dejan de pintarse.
+     *
+     * @return list<CalendarEventDto>
+     */
+    private function horariosExtra(DateTimeInterface $from, DateTimeInterface $to): array
+    {
+        $em = $this->managerRegistry->getManagerForClass(PmsEventoCalendario::class);
+        if (!$em instanceof EntityManagerInterface) {
+            return [];
+        }
+
+        /** @var list<PmsEventoCalendario> $extensiones */
+        $extensiones = $em->createQueryBuilder()
+            ->select('e, o, u')
+            ->from(PmsEventoCalendario::class, 'e')
+            ->join('e.eventoOrigen', 'o')
+            ->join('e.pmsUnidad', 'u')
+            ->andWhere('e.inicio < :to AND e.fin > :from')
+            ->andWhere('IDENTITY(e.estado) IN (:vivas)')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->setParameter('vivas', PmsEventoEstado::IMPIDEN_VENTA)
+            ->getQuery()
+            ->getResult();
+
+        $out = [];
+
+        foreach ($extensiones as $extension) {
+            $origen = $extension->getEventoOrigen();
+            $inicio = $extension->getInicio();
+            $fin = $extension->getFin();
+            $unidad = $extension->getPmsUnidad();
+
+            if ($origen === null || $inicio === null || $fin === null || $unidad === null) {
+                continue;
+            }
+
+            // Es la de ENTRADA si acaba el día en que empieza la estancia; si no, la de salida.
+            $esEntrada = $origen->getInicio()?->format('Y-m-d') === $fin->format('Y-m-d');
+            $titulo = sprintf(
+                '%s · %s',
+                $esEntrada ? 'Entrada temprana' : 'Salida tardía',
+                $origen->getTituloCache() ?? 'huésped'
+            );
+
+            $out[] = new CalendarEventDto(
+                id: 'horario-extra-' . $extension->getId(),
+                title: $titulo,
+                start: $inicio,
+                end: $fin,
+                resourceId: $unidad->getId(),
+                classNames: ['fc-horario-extra'],
+                tooltip: $titulo . ': esta noche está ocupada.',
+                extendedProps: ['context' => 'horario_extra'],
+                display: 'background',
+            );
+        }
+
         return $out;
     }
 

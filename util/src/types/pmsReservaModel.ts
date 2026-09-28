@@ -241,7 +241,9 @@ export interface PmsReservaCrearPayload {
 // ============================================================================
 
 export interface PmsEventoExtendedProps {
-    context: 'reserva' | 'bloqueo';
+    // `horario_extra`: la noche de una entrada temprana o salida tardía, pintada como fondo
+    // (PmsEventosSpaCalendarProvider::horariosExtra()). No trae más datos que éste.
+    context: 'reserva' | 'bloqueo' | 'horario_extra';
     eventoId: string;
     reservaId: string | null;
     isOta: boolean;

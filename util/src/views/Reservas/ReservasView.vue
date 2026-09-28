@@ -505,6 +505,9 @@ function limpiarMenuReserva(): void {
 }
 
 async function onEventClick(info: EventClickArg): Promise<void> {
+    // La franja de un horario extra es un fondo: no hay nada que abrir.
+    if ((info.event.extendedProps as PmsEventoExtendedProps).context === 'horario_extra') return;
+
     const { x, y } = posicionMenu(info.jsEvent);
     // `extendedProps` es un diccionario abierto en FullCalendar: el contrato real
     // lo fija PmsEventosSpaCalendarProvider::buildContext() en el backend.
@@ -1124,6 +1127,12 @@ const calendarOptions: CalendarOptions = {
      */
     eventContent: (arg) => {
         const p = arg.event.extendedProps as PmsEventoExtendedProps;
+
+        // La noche de un horario extra llega como FONDO: sólo el rótulo, sin la anatomía de
+        // una barra. Antes no se pintaba y la celda parecía libre (casita 4, 27/09/2026).
+        if (p?.context === 'horario_extra') {
+            return { html: `<span class="fc-horario-extra-titulo">${escaparHtml(arg.event.title)}</span>` };
+        }
         // Un evento SIN reserva —un bloqueo de mantenimiento, típicamente— también va a dos
         // filas, y por el mismo motivo que una estancia: tiene dos cosas que decir.
         //
@@ -1211,6 +1220,11 @@ const calendarOptions: CalendarOptions = {
 
     eventDidMount: (info: EventMountArg) => {
         const p = info.event.extendedProps as PmsEventoExtendedProps;
+
+        if (p?.context === 'horario_extra') {
+            info.el.title = String(info.event.extendedProps.tooltip ?? info.event.title);
+            return;
+        }
 
         // El provider sigue mandando `tooltip` como lista de líneas de texto: es
         // el respaldo si el evento llegara sin los datos sueltos.
@@ -1889,6 +1903,23 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 .fc-reserva-tarde {
     color: #92400e;
     background: #fde68a;
+}
+
+/* La noche de una entrada temprana o salida tardía: ocupada aunque no haya barra. Rayada en el
+   mismo ámbar que el icono de la estancia, para que se lea como «suya». */
+.fc-horario-extra.fc-bg-event {
+    opacity: 1;
+    background: repeating-linear-gradient(135deg, #fde68a 0 6px, #fef3c7 6px 12px);
+}
+
+.fc-horario-extra-titulo {
+    display: block;
+    padding: 2px 4px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #92400e;
+    white-space: normal;
 }
 
 .fc-reserva-pagado {

@@ -24,6 +24,8 @@ export interface CalendarEventoFeed<TProps = Record<string, unknown>> {
     classNames?: string[];
     tooltip?: string | string[];
     prioridadImportante?: number;
+    /** `background`: fondo de la fila, sin barra (la noche de un horario extra). */
+    display?: 'background';
     extendedProps?: TProps;
 
     // Banderas de FullCalendar que el backend NO manda: las inyecta la vista en
