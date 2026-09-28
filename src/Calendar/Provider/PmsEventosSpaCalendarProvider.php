@@ -154,6 +154,22 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
                 $origen->getTituloCache() ?? 'huésped'
             );
 
+            // Recortada contra la estancia: un fondo va DEBAJO de las barras, y con la hora real
+            // de entrada (Lizbeth, 07:00 del 28) la barra empezaba antes de que acabara la
+            // franja (10:00) y la tapaba. La entrada temprana acaba cuando él entra; la salida
+            // tardía empieza cuando se va.
+            $origenInicio = $origen->getInicio();
+            $origenFin = $origen->getFin();
+            if ($esEntrada && $origenInicio !== null && $origenInicio < $fin) {
+                $fin = $origenInicio;
+            }
+            if (!$esEntrada && $origenFin !== null && $origenFin > $inicio) {
+                $inicio = $origenFin;
+            }
+            if ($fin <= $inicio) {
+                continue;
+            }
+
             $out[] = new CalendarEventDto(
                 id: 'horario-extra-' . $extension->getId(),
                 title: $titulo,

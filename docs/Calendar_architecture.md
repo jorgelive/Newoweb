@@ -281,7 +281,9 @@ casita 4, sobre la entrada temprana de Lizbeth.
 
 `PmsEventosSpaCalendarProvider::horariosExtra()` los añade ahora como `display: 'background'`:
 franja rayada en ámbar con «Entrada temprana · Nombre» o «Salida tardía · Nombre». No se abre, no
-se arrastra y no ocupa hueco en la fila. Sólo los vivos (`IMPIDEN_VENTA`), y sólo en los
+se arrastra y no ocupa hueco en la fila. ⚠️ Un fondo va **debajo** de las barras: la franja se
+recorta contra la estancia (la entrada temprana acaba a la hora real de entrada; la salida tardía
+empieza a la de salida), o una entrada a las 07:00 la tapaba entera. Sólo los vivos (`IMPIDEN_VENTA`), y sólo en los
 calendarios que no acotan estados —los dos de Reservas—: el de ocupación de Tarifas pide
 `OCUPAN_UNIDAD` y una noche de horario extra no es una venta que tarifar.
 
