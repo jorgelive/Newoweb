@@ -1532,7 +1532,7 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
                             <i class="fas fa-store w-4 text-slate-400"></i> Abrir catálogo
                         </a>
                         <button @click="copiarCatalogoUrl"
-                            class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold hover:bg-slate-50"
+                            class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-left hover:bg-slate-50"
                             :class="copiadoCasita ? 'text-emerald-600' : 'text-slate-700'">
                             <i class="fas w-4" :class="copiadoCasita ? 'fa-check text-emerald-500' : 'fa-link text-slate-400'"></i>
                             {{ copiadoCasita ? 'Enlace copiado' : 'Copiar enlace' }}
@@ -1554,7 +1554,7 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
                             <i class="fab fa-airbnb w-4 text-rose-500"></i> Abrir en Airbnb
                         </a>
                         <button @click="copiarAirbnbUrl"
-                            class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold hover:bg-slate-50"
+                            class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-left hover:bg-slate-50"
                             :class="copiadoAirbnb ? 'text-emerald-600' : 'text-slate-700'">
                             <i class="fas w-4" :class="copiadoAirbnb ? 'fa-check text-emerald-500' : 'fa-link text-slate-400'"></i>
                             {{ copiadoAirbnb ? 'Enlace copiado' : 'Copiar enlace de Airbnb' }}
