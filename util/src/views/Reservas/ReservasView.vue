@@ -1130,8 +1130,16 @@ const calendarOptions: CalendarOptions = {
 
         // La noche de un horario extra llega como FONDO: sólo el rótulo, sin la anatomía de
         // una barra. Antes no se pintaba y la celda parecía libre (casita 4, 27/09/2026).
+        //
+        // Icono + nombre, sin «Entrada temprana ·»: en el móvil la celda de una noche no daba
+        // para el texto. El icono es el MISMO que marca la barra de la estancia, para que se lea
+        // como suya.
         if (p?.context === 'horario_extra') {
-            return { html: `<span class="fc-horario-extra-titulo">${escaparHtml(arg.event.title)}</span>` };
+            const icono = p.extremo === 'salida' ? 'fa-right-from-bracket' : 'fa-right-to-bracket';
+            const nombre = (p.cliente ?? '').trim().split(/\s+/)[0] ?? '';
+            return {
+                html: `<span class="fc-horario-extra-titulo"><i class="fas ${icono}"></i> ${escaparHtml(nombre)}</span>`,
+            };
         }
         // Un evento SIN reserva —un bloqueo de mantenimiento, típicamente— también va a dos
         // filas, y por el mismo motivo que una estancia: tiene dos cosas que decir.
@@ -1919,7 +1927,9 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
     font-weight: 700;
     line-height: 1.1;
     color: #92400e;
-    white-space: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .fc-reserva-pagado {

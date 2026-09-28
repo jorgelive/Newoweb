@@ -178,7 +178,13 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
                 resourceId: $unidad->getId(),
                 classNames: ['fc-horario-extra'],
                 tooltip: $titulo . ': esta noche está ocupada.',
-                extendedProps: ['context' => 'horario_extra'],
+                // El rótulo se arma en el front con icono + nombre: el texto largo no cabía en la
+                // celda de una noche en el móvil. El título completo queda para el tooltip.
+                extendedProps: [
+                    'context' => 'horario_extra',
+                    'extremo' => $esEntrada ? 'entrada' : 'salida',
+                    'cliente' => $origen->getTituloCache(),
+                ],
                 display: 'background',
             );
         }

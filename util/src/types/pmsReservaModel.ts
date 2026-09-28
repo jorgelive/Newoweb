@@ -244,6 +244,8 @@ export interface PmsEventoExtendedProps {
     // `horario_extra`: la noche de una entrada temprana o salida tardía, pintada como fondo
     // (PmsEventosSpaCalendarProvider::horariosExtra()). No trae más datos que éste.
     context: 'reserva' | 'bloqueo' | 'horario_extra';
+    /** Sólo en `horario_extra`: qué extremo de la estancia alarga. */
+    extremo?: 'entrada' | 'salida';
     eventoId: string;
     reservaId: string | null;
     isOta: boolean;
