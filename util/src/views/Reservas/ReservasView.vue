@@ -922,6 +922,21 @@ function estiloColorEstado(p: PmsEventoExtendedProps): string {
     return /^#[0-9A-Fa-f]{6}$/.test(color) ? ` style="color:${color}"` : '';
 }
 
+/**
+ * La marca de un horario extra: un reloj con el CORCHETE del extremo que alarga.
+ *
+ * `[⏲` abre el intervalo (entrada temprana) y `⏲]` lo cierra (salida tardía). Antes eran las
+ * flechas entrar/salir del umbral de Font Awesome, y la de entrar —una flecha metiéndose en un
+ * corchete a su derecha— se leía como «salida» (Jorge, 28/09/2026). Es la misma marca en la barra
+ * de la estancia y en la franja de la noche bloqueada, para que se lean como la misma cosa.
+ */
+function marcaHorarioExtra(extremo: 'entrada' | 'salida'): string {
+    const reloj = '<i class="fas fa-clock"></i>';
+    return extremo === 'entrada'
+        ? `<span class="fc-marca-extra"><b>[</b>${reloj}</span>`
+        : `<span class="fc-marca-extra">${reloj}<b>]</b></span>`;
+}
+
 const calendarOptions: CalendarOptions = {
     plugins: [resourceTimelinePlugin, interactionPlugin],
     schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
@@ -1135,10 +1150,9 @@ const calendarOptions: CalendarOptions = {
         // para el texto. El icono es el MISMO que marca la barra de la estancia, para que se lea
         // como suya.
         if (p?.context === 'horario_extra') {
-            const icono = p.extremo === 'salida' ? 'fa-right-from-bracket' : 'fa-right-to-bracket';
             const nombre = (p.cliente ?? '').trim().split(/\s+/)[0] ?? '';
             return {
-                html: `<span class="fc-horario-extra-titulo"><i class="fas ${icono}"></i> ${escaparHtml(nombre)}</span>`,
+                html: `<span class="fc-horario-extra-titulo">${marcaHorarioExtra(p.extremo ?? 'entrada')} ${escaparHtml(nombre)}</span>`,
             };
         }
         // Un evento SIN reserva —un bloqueo de mantenimiento, típicamente— también va a dos
@@ -1184,12 +1198,12 @@ const calendarOptions: CalendarOptions = {
             //
             // Las dos son la misma bandera y el ámbar de `.fc-reserva-tarde` ya
             // dice «fuera de horario», así que al glifo sólo le toca decir POR QUÉ
-            // EXTREMO. De ahí el par entrar/salir del umbral: misma silueta y
-            // sentido opuesto, que a 0.58rem es lo único que se distingue de un
-            // vistazo. Antes eran una puerta y un reloj —dos dibujos sin relación
-            // entre sí, y ninguno decía si era el principio o el final—.
-            p.entradaTemprana ? '<span class="fc-reserva-dato fc-reserva-tarde" title="Entrada temprana"><i class="fas fa-right-to-bracket"></i></span>' : '',
-            p.salidaTardia ? '<span class="fc-reserva-dato fc-reserva-tarde" title="Salida tardía"><i class="fas fa-right-from-bracket"></i></span>' : '',
+            // EXTREMO: un reloj con el corchete del lado que alarga (ver
+            // marcaHorarioExtra()). Antes fueron una puerta y un reloj —sin relación
+            // entre sí— y luego el par entrar/salir del umbral, cuya flecha de entrar
+            // se leía como salida.
+            p.entradaTemprana ? `<span class="fc-reserva-dato fc-reserva-tarde" title="Entrada temprana">${marcaHorarioExtra('entrada')}</span>` : '',
+            p.salidaTardia ? `<span class="fc-reserva-dato fc-reserva-tarde" title="Salida tardía">${marcaHorarioExtra('salida')}</span>` : '',
             p.pax ? `<span class="fc-reserva-dato fc-reserva-num"><i class="fas fa-user"></i>${escaparHtml(String(p.pax))}</span>` : '',
             p.noches ? `<span class="fc-reserva-dato fc-reserva-num"><i class="fas fa-moon"></i>${escaparHtml(String(p.noches))}</span>` : '',
             // ⚠️ `simboloTotal`, NO `simbolo`: el total puede venir en la moneda de los cargos y
@@ -1918,6 +1932,17 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 .fc-horario-extra.fc-bg-event {
     opacity: 1;
     background: repeating-linear-gradient(135deg, #fde68a 0 6px, #fef3c7 6px 12px);
+}
+
+.fc-marca-extra {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+}
+
+.fc-marca-extra b {
+    font-weight: 900;
+    line-height: 1;
 }
 
 .fc-horario-extra-titulo {

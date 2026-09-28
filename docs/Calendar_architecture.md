@@ -280,7 +280,12 @@ de la estancia. La celda parecía libre, y el 26/09 se creó encima la noche ext
 casita 4, sobre la entrada temprana de Lizbeth.
 
 `PmsEventosSpaCalendarProvider::horariosExtra()` los añade ahora como `display: 'background'`:
-franja rayada en ámbar con «Entrada temprana · Nombre» o «Salida tardía · Nombre». No se abre, no
+franja rayada en ámbar rotulada con la marca del horario extra y el nombre de pila (el texto
+largo no cabía en la celda de una noche en el móvil; el completo va en el tooltip).
+
+**La marca es un reloj con el corchete del extremo que alarga:** `[⏲` entrada temprana, `⏲]`
+salida tardía (`marcaHorarioExtra()` en `ReservasView`, y la misma en las casillas del drawer). Las
+flechas entrar/salir del umbral se descartaron: la de entrar se leía como salida. No se abre, no
 se arrastra y no ocupa hueco en la fila. ⚠️ Un fondo va **debajo** de las barras: la franja se
 recorta contra la estancia (la entrada temprana acaba a la hora real de entrada; la salida tardía
 empieza a la de salida), o una entrada a las 07:00 la tapaba entera. Sólo los vivos (`IMPIDEN_VENTA`), y sólo en los
