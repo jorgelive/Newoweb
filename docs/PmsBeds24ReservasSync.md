@@ -1847,6 +1847,14 @@ Fallo catastrófico:
    → Relanza excepción (Messenger gestiona reintentos)
 ```
 
+⚠️ **El lote sale en orden de `run_at`, y eso se garantiza en `AbstractExchangeRepository`, no
+en el SELECT.** El `ORDER BY run_at` elegía bien las filas, pero `hydrateItems()` las carga con
+`WHERE id IN (…)` y MySQL las devuelve por clave: el orden se perdía. Importa cuando un lote viaja
+en UNA petición —Beds24 acepta un array de mensajes y los enseña en ese orden—: en Booking llegaba
+la bienvenida (`run_at` +2 min) antes que las políticas del prepago (+1 min), porque las dos colas
+nacen en el mismo instante y caen en el mismo barrido de 5 minutos (BPRHMB, 27/09/2026).
+`enOrdenDe()` reordena tras hidratar, para las nueve colas a la vez.
+
 La sección 8 describe el **consumidor** (`exchange:run <tarea>`): saca filas de la cola y las
 envía. Pero la cola no se llena sola —alguien encola—, y ahí hay dos patrones que conviene no
 confundir.

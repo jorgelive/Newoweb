@@ -30,6 +30,32 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
     abstract protected function hydrateItems(array $ids): array;
 
     /**
+     * Devuelve los ítems en el orden de `$ids`, que es el de `run_at`.
+     *
+     * 🔥 `hydrateItems()` carga con `WHERE id IN (…)`, y MySQL devuelve eso en el orden que le
+     * conviene —por clave—, no en el de la lista. El `ORDER BY run_at` del SELECT se perdía ahí,
+     * y un lote que viaja en UNA petición (Beds24 acepta un array de mensajes) salía desordenado:
+     * en Booking llegaba antes la bienvenida (run_at +2 min) que las políticas del prepago
+     * (+1 min), porque las dos colas nacen en el mismo instante y caen en el mismo barrido
+     * (BPRHMB, 27/09/2026). Se ordena aquí y no en cada repositorio: son nueve.
+     *
+     * @param list<string> $ids Binarios de 16 bytes, en el orden deseado.
+     * @param list<T> $items
+     *
+     * @return list<T>
+     */
+    private function enOrdenDe(array $ids, array $items): array
+    {
+        $posicion = array_flip($ids);
+
+        usort($items, static fn ($a, $b): int =>
+            ($posicion[$a->getId()?->toBinary() ?? ''] ?? PHP_INT_MAX)
+            <=> ($posicion[$b->getId()?->toBinary() ?? ''] ?? PHP_INT_MAX));
+
+        return $items;
+    }
+
+    /**
      * ✅ NORMALIZADOR ESTÁNDAR (UUID v7 / v4).
      * * Convierte strings UUID (con o sin guiones) a binario de 16 bytes.
      * * NOTA IMPORTANTE SOBRE UUID v7:
@@ -162,8 +188,8 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
             // 5. COMMIT: Las filas quedan con su status='processing' y se libera el bloqueo del SELECT.
             $conn->commit();
 
-            // 6. HYDRATE: Devolver objetos Doctrine
-            $items = $this->hydrateItems($ids);
+            // 6. HYDRATE: Devolver objetos Doctrine, EN EL ORDEN del SELECT.
+            $items = $this->enOrdenDe($ids, $this->hydrateItems($ids));
 
             // 7. 🛠️ EL FIX: SINCRONIZAR DOCTRINE
             // Como bloqueamos por SQL directo (DBAL), Doctrine no sabe que los registros cambiaron.
@@ -224,6 +250,7 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
                          AND status IN ('pending', 'failed')
                          AND locked_at IS NULL
                          AND (run_at IS NULL OR run_at <= :now) 
+                         ORDER BY run_at ASC, id ASC
                          FOR UPDATE SKIP LOCKED";
 
             // SQL crudo: la forma la fija la consulta. `id` es BINARY(16), que llega como bytes.
@@ -248,8 +275,8 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
             $this->lockItems($availableBinaryIds, $workerId, $nowSql, $table);
             $conn->commit();
 
-            // 5. HYDRATE
-            $items = $this->hydrateItems($availableBinaryIds);
+            // 5. HYDRATE, en el orden del SELECT
+            $items = $this->enOrdenDe($availableBinaryIds, $this->hydrateItems($availableBinaryIds));
 
             // 6. 🛠️ EL FIX: SINCRONIZAR DOCTRINE
             foreach ($items as $item) {
