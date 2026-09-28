@@ -7371,6 +7371,13 @@ otra cosa: **qué hay alrededor en la misma casita**. Lo calcula
 | `desde_cuando_libre` | Para decir «libre desde el 08» en vez de un «sí» seco |
 | `entra_alguien_el_dia_que_se_va` (+ hora) | Si entra otro, la salida es a su hora |
 
+⚠️ **La estancia llega hasta su ÚLTIMO evento en esa casita, no hasta el primero.** Una noche
+extra se carga como un segundo evento de la misma reserva (MMQSB2 + 55XPMS, 27/09/2026). Mirando
+sólo el primero, el agente creía que José se iba el 27 y que ese día «entraba otro huésped a las
+14:00» — que era él. Desde el 28/09/2026 `finDeLaEstancia()` sigue la cadena de eventos contiguos
+y toda la reserva queda fuera de los vecinos. Se ve con datos reales en
+`tools/pruebas/probar-espacio-estancia.php <localizador>`.
+
 La ocupación se cuenta con `PmsEventoEstado::IMPIDEN_VENTA`, la misma constante que el
 calendario. Reimplementar el criterio habría hecho que el agente y el calendario contaran
 noches distintas, y la que se equivoca siempre es la que nadie mira.

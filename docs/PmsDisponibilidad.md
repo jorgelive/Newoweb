@@ -184,6 +184,35 @@ misma casita.
 Lo consume `EscalarAlEquipoSkill`, que lo mete en el WhatsApp que recibe el operador — **nunca en
 lo que ve el huésped** (§11 de `Mensajeria.md`).
 
+## 8.c El candado al guardar: nadie ocupa lo ocupado
+
+Hasta el 28/09/2026 la disponibilidad **informaba** pero nada **impedía**: desde el calendario, el
+panel o el agente se podía crear una estancia encima de otra. Pasó en la casita 4, noche del
+27/09: la entrada temprana de Lizbeth bloqueaba esa noche desde el 10/09 (un `bloqueo` que cuelga
+de su estancia por `eventoOrigen`) y el 26/09 se creó encima la noche extra de José. El bloqueo de
+una entrada temprana no se pinta como barra, es una marca pequeña en la estancia de al lado, y
+nadie lo vio. Beds24 lo habría rechazado por el canal, pero una reserva creada por API no pasa por
+esa comprobación.
+
+`PmsEventoCalendarioSolapeListener` (`prePersist` y `preUpdate` si cambian fechas, casita o
+estado) lanza `DomainException` —422 en la API, con el motivo— cuando lo que se guarda pisa:
+
+| Pisa… | ¿Frena? | Por qué |
+|---|---|---|
+| Una estancia de otro huésped | **Sí** | Doble booking |
+| Un `bloqueo`/`extension` **con** `eventoOrigen` (entrada temprana, salida tardía) | **Sí** | Es un huésped aunque no se vea |
+| Un `bloqueo` **suelto** | No | Se usa para cerrar la casita en los canales y es normal crear una directa encima (Jorge, 28/09/2026) |
+| Algo de la misma reserva | No | Su propio tramo o sus extensiones, como en `margenesDe()` |
+
+Cuenta las noches con `ocupacion()`, así que hereda `IMPIDEN_VENTA` y el solape por `DATE()`.
+
+⚠️ **Sólo con `SyncContext` en UI.** Lo que baja de Beds24 es la verdad del canal: si llega un
+solape, ya ha pasado, y rechazarlo rompería la sincronización sin deshacerlo. El push tampoco,
+porque sólo refleja lo ya guardado.
+
+Se prueba sin guardar nada con `tools/pruebas/probar-solape-estancia.php "Casita 4" 2026-09-27
+2026-09-28`: sólo llama a `persist()`, que es donde corre el candado, y nunca a `flush()`.
+
 ## 9. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
@@ -197,5 +226,6 @@ lo que ve el huésped** (§11 de `Mensajeria.md`).
 | Subir el techo de noches | `PmsDisponibilidadService` | `MAX_NOCHES` |
 | Cambiar qué noche se mira para un late check-out / early check-in | `PmsDisponibilidadService` | `margenesDe()` — §8.b |
 | Cambiar cómo se le presentan los márgenes al operador | `EscalarAlEquipoSkill` | `margenes()` — es texto de WhatsApp, no JSON |
+| Cambiar qué frena al crear o mover una estancia | `PmsEventoCalendarioSolapeListener` | `comprobar()` — §8.c |
 | Comprobar disponibilidad a mano | — | `php bin/console app:pms:disponibilidad <desde> <hasta>` |
 | Comprobar que las dos caras cuadran | — | Los tres comandos de §8 |
