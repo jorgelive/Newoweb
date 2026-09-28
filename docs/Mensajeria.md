@@ -12310,7 +12310,7 @@ aunque exista, y «no sale» se lee como «no existe».
   «edu» puede terminar de llegar después de «eduardo» y dejaría en pantalla lo que no toca.
 - `filteredConversations` repite el filtro por nombre en el cliente sólo para lo que Mercure
   meta en la lista mientras se busca.
-- Sólo nombre. El teléfono no entra: se guarda normalizado y no se compara como se teclea.
+- Sólo nombre, que es lo pedido. Buscar por teléfono sería otro parámetro (`guestPhone`) y habría que mirar en qué formato se guarda antes de compararlo con lo que teclea la persona.
 
 ## El hilo por asunto devolvía un 500, y se leía como «no tiene conversación» (28/08/2026)
 
