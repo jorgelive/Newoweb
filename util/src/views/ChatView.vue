@@ -939,7 +939,10 @@ const send = async () => {
   if (esperaVentana.value) {
     await store.sendMessage(newMessageText.value, null, ['whatsapp_meta'], 'en_espera');
     newMessageText.value = '';
-    clearTemplate();
+    // Sin `clearTemplate()`: re-elegiría los canales por defecto, y con la ventana cerrada eso es
+    // Beds24 — el segundo párrafo de una cotización saldría por el chat de Booking sin que nadie
+    // lo eligiera (revisión del 28/09/2026). Se sigue en modo «esperar».
+    selectedChannels.value = ['whatsapp_meta'];
     await nextTick();
     if (messageTextarea.value) messageTextarea.value.style.height = 'auto';
     return;

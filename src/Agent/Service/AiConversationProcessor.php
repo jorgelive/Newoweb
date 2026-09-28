@@ -1425,7 +1425,9 @@ final readonly class AiConversationProcessor
         $turnos = [];
 
         foreach ($conversacion->getMessages() as $m) {
-            if ($m->getStatus() === Message::STATUS_CANCELLED || $m === $entrante) {
+            // `en_espera` no ha salido: el cliente todavía no lo ha leído, y dárselo al modelo como
+            // dicho le haría contar con algo que no llegó.
+            if (in_array($m->getStatus(), [Message::STATUS_CANCELLED, Message::STATUS_EN_ESPERA], true) || $m === $entrante) {
                 continue;
             }
 

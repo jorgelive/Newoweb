@@ -32,8 +32,10 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
  * cliente pulsa o escribe → se abre la ventana → liberar(): el mensaje sale tal cual
  * ```
  *
- * ⚠️ **Una sola plantilla por espera.** Si ya hay algo esperando en el hilo, el mensaje nuevo se
- * suma sin mandar otro aviso: dos «¿te lo envío?» seguidos es lo contrario de parecer una persona.
+ * ⚠️ **Una sola plantilla por espera.** Si ya hay algo esperando en el hilo y su aviso salió, el
+ * mensaje nuevo se suma sin mandar otro: dos «¿te lo envío?» seguidos es lo contrario de parecer
+ * una persona. Si el aviso NO se puede mandar (plantilla sin aprobar en su idioma), el mensaje no
+ * espera: queda `failed` con el motivo, para que se vea en rojo y avise al equipo.
  */
 final readonly class MensajeEnEsperaDeVentana
 {
@@ -74,19 +76,37 @@ final readonly class MensajeEnEsperaDeVentana
         // y un mensaje tiene un solo estado — mezclarlos dejaría uno de los dos colgado.
         $mensaje->setTransientChannels([self::CANAL]);
 
-        if ($this->yaHayOtroEsperando($hilo, $mensaje)) {
-            $mensaje->addMetadata('en_espera', ['aviso' => 'el del mensaje anterior']);
+        $avisoVigente = $this->avisoVigente($hilo, $mensaje);
+
+        if ($avisoVigente !== null) {
+            // Ya se le pidió permiso y el aviso salió: éste espera con los demás.
+            $mensaje->addMetadata('en_espera', ['aviso' => (string) $avisoVigente->getId()]);
 
             return;
         }
 
         $plantilla = $this->em->getRepository(MessageTemplate::class)->findOneBy(['code' => self::PLANTILLA]);
+        $idioma = $this->idiomaDePlantilla($hilo);
 
-        if (!$plantilla instanceof MessageTemplate) {
-            // Sin plantilla no hay forma de pedir permiso: se dice en el propio mensaje, que se
-            // queda esperando igual y saldrá si el cliente escribe por su cuenta.
-            $mensaje->addMetadata('en_espera', ['aviso' => 'no enviado: falta la plantilla ' . self::PLANTILLA]);
-            $this->logger->error('Mensaje en espera sin aviso: no existe la plantilla ' . self::PLANTILLA);
+        // ❌ Sin aviso que se pueda mandar, NO se espera: se da por no salido, en rojo y con el
+        // motivo. Esperar en silencio era lo peor de los dos mundos —el chat decía «esperando a
+        // que conteste» sin que nadie le hubiera pedido nada—, y así además salta el aviso de
+        // envío fallido al equipo (`AvisoEnvioFallidoListener`). Pasaba de verdad: Meta aprueba
+        // la plantilla idioma por idioma, y el inglés tardó más que el resto (revisión del
+        // 28/09/2026).
+        if (!$plantilla instanceof MessageTemplate || !$plantilla->hasWhatsappMetaOfficialData($idioma)) {
+            $motivo = !$plantilla instanceof MessageTemplate
+                ? sprintf('falta la plantilla «%s»', self::PLANTILLA)
+                : sprintf('el aviso «%s» todavía no está aprobado por Meta en «%s»', self::PLANTILLA, $idioma);
+
+            $mensaje->setStatus(Message::STATUS_FAILED);
+            $mensaje->addMetadata('dispatch_errors', [sprintf(
+                'La ventana de WhatsApp está cerrada y no se le puede pedir permiso: %s. Envíalo con una plantilla o por otro canal.',
+                $motivo
+            )]);
+            $this->logger->warning('Mensaje en espera sin aviso posible: ' . $motivo, [
+                'mensaje' => (string) $mensaje->getId(),
+            ]);
 
             return;
         }
@@ -123,7 +143,10 @@ final readonly class MensajeEnEsperaDeVentana
         $ahora = new DateTimeImmutable();
         $liberados = 0;
 
-        foreach ($this->esperando($hilo) as $mensaje) {
+        // 🔒 Con bloqueo de fila: si Meta repite el webhook mientras el primero sigue vivo, los
+        // dos pasarían la deduplicación y los dos soltarían el mismo mensaje — una cotización
+        // enviada dos veces. El segundo espera aquí al commit del primero y ya no encuentra nada.
+        foreach ($this->esperando($hilo, bloquear: true) as $mensaje) {
             $mensaje->setStatus(Message::STATUS_PENDING);
             $mensaje->setTransientChannels([self::CANAL]);
             // Ocurre AHORA, no cuando se escribió: en el hilo tiene que quedar debajo de la
@@ -142,15 +165,46 @@ final readonly class MensajeEnEsperaDeVentana
         return $liberados;
     }
 
-    private function yaHayOtroEsperando(MessageConversation $hilo, Message $nuevo): bool
+    /**
+     * El aviso que ya pidió permiso por lo que espera en el hilo, si salió.
+     *
+     * No basta con que haya algo esperando: si su aviso falló, nadie le ha preguntado nada al
+     * cliente y hay que volver a intentarlo.
+     */
+    private function avisoVigente(MessageConversation $hilo, Message $nuevo): ?Message
     {
         foreach ($this->esperando($hilo) as $mensaje) {
-            if ($mensaje !== $nuevo) {
-                return true;
+            if ($mensaje === $nuevo) {
+                continue;
+            }
+
+            $espera = $mensaje->getMetadata()['en_espera'] ?? null;
+            $id = is_array($espera) ? ($espera['aviso'] ?? null) : null;
+
+            if (!is_string($id) || !\Symfony\Component\Uid\Uuid::isValid($id)) {
+                continue;
+            }
+
+            $aviso = $this->em->find(Message::class, \Symfony\Component\Uid\Uuid::fromString($id));
+
+            if ($aviso instanceof Message
+                && !in_array($aviso->getStatus(), [...Message::ESTADOS_NO_SALIO, Message::STATUS_CANCELLED], true)) {
+                return $aviso;
             }
         }
 
-        return false;
+        return null;
+    }
+
+    /**
+     * El idioma en que saldrá el aviso: el mismo cálculo que hace el envío
+     * (`WhatsappMetaSendMappingStrategy`), porque es el que Meta tiene que tener aprobado.
+     */
+    private function idiomaDePlantilla(MessageConversation $hilo): string
+    {
+        $idioma = $hilo->getIdioma();
+
+        return $idioma->getPrioridad() > 0 ? strtolower((string) $idioma->getId()) : 'en';
     }
 
     /**
@@ -159,10 +213,9 @@ final readonly class MensajeEnEsperaDeVentana
      *
      * @return list<Message>
      */
-    private function esperando(MessageConversation $hilo): array
+    private function esperando(MessageConversation $hilo, bool $bloquear = false): array
     {
-        /** @var list<Message> $mensajes */
-        $mensajes = $this->em->createQueryBuilder()
+        $consulta = $this->em->createQueryBuilder()
             ->select('m')
             ->from(Message::class, 'm')
             ->where('m.conversation = :hilo')
@@ -172,8 +225,15 @@ final readonly class MensajeEnEsperaDeVentana
             ->setParameter('espera', Message::STATUS_EN_ESPERA)
             ->setParameter('saliente', Message::DIRECTION_OUTGOING)
             ->orderBy('m.createdAt', 'ASC')
-            ->getQuery()
-            ->getResult();
+            ->getQuery();
+
+        // El bloqueo exige transacción; la recepción de WhatsApp corre dentro de una.
+        if ($bloquear && $this->em->getConnection()->isTransactionActive()) {
+            $consulta->setLockMode(\Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
+        }
+
+        /** @var list<Message> $mensajes */
+        $mensajes = $consulta->getResult();
 
         return $mensajes;
     }

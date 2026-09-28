@@ -119,6 +119,7 @@ class MessageCrudController extends BaseCrudController
                 'Enviado/Delivered' => Message::STATUS_SENT,
                 'Fallido' => Message::STATUS_FAILED,
                 'Sin canal' => Message::STATUS_SIN_CANAL,
+                'En espera (WhatsApp)' => Message::STATUS_EN_ESPERA,
                 'Recibido' => Message::STATUS_RECEIVED,
                 'Leído' => Message::STATUS_READ,
                 'Cancelado' => Message::STATUS_CANCELLED,
@@ -185,6 +186,7 @@ class MessageCrudController extends BaseCrudController
                 'Enviado' => Message::STATUS_SENT,
                 'Fallido' => Message::STATUS_FAILED,
                 'Sin canal' => Message::STATUS_SIN_CANAL,
+                'En espera (WhatsApp)' => Message::STATUS_EN_ESPERA,
                 'Recibido' => Message::STATUS_RECEIVED,
                 'Leído' => Message::STATUS_READ,
                 'Cancelado' => Message::STATUS_CANCELLED,
@@ -196,6 +198,8 @@ class MessageCrudController extends BaseCrudController
                 Message::STATUS_FAILED => 'danger',
                 // Gris, no rojo: no aplicaba ningún canal, que no es lo mismo que romperse.
                 Message::STATUS_SIN_CANAL => 'secondary',
+                // Ámbar: no salió porque espera a que el cliente abra la ventana de WhatsApp.
+                Message::STATUS_EN_ESPERA => 'warning',
                 Message::STATUS_RECEIVED => 'primary',
                 Message::STATUS_READ => 'success',
                 Message::STATUS_CANCELLED => 'dark',

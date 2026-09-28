@@ -612,8 +612,24 @@ WhatsappMetaReceivePersister (cualquier mensaje suyo, botón o texto) → abre l
   no entra en ese flush (la misma trampa que el revivido de `sin_canal`).
 - **Sin variables en la plantilla** para que valga en cualquier hilo —reserva, cotización o un
   número suelto— sin depender de que su contexto tenga resolutor.
-- ⚠️ **Hasta que Meta apruebe `mensaje_pendiente_v1`**, el aviso falla como cualquier plantilla sin
-  ID oficial; el mensaje sigue esperando y sale si el cliente escribe por su cuenta.
+- ❌ **Si el aviso no se puede mandar** (Meta aprueba idioma por idioma; el inglés y el neerlandés
+  tardaron más), el mensaje NO espera: queda `failed` con el motivo en `dispatch_errors`, en rojo
+  en el chat y con el aviso de envío fallido al equipo. Esperar en silencio decía «esperando a que
+  conteste» sin que nadie le hubiera preguntado nada. El idioma se calcula igual que en el envío
+  (prioridad 0 → `en`). Y un segundo mensaje sólo se suma a la espera si el aviso del primero
+  **salió**; si falló, pide permiso otra vez.
+- 🔒 **`liberar()` bloquea las filas** (`PESSIMISTIC_WRITE`) dentro de la transacción de la
+  recepción: un webhook repetido por Meta mientras el primero sigue vivo pasaba la deduplicación
+  y soltaba el mismo mensaje dos veces — una cotización enviada por duplicado.
+- El agente **no ve** los `en_espera` en su historial (`AiConversationProcessor::historial()`): no
+  han llegado al cliente.
+- Tras enviar en espera, el chat **sigue en modo esperar**: re-elegir los canales por defecto con
+  la ventana cerrada marcaba Beds24 y el siguiente párrafo salía por Booking.
+- ⚠️ **La traducción se fija al escribir** (`MessageTranslator` en `prePersist`). Si la respuesta del
+  cliente cambia el idioma del hilo, lo liberado sale en el idioma anterior. Raro: sólo hilos no
+  fijados que nacieron en `es` por defecto.
+- **Primer uso real (28/09/2026):** la cotización de Eduardo. Aviso a las 18:07, pulsó «Sí,
+  envíamela» a las 18:35:57 y su mensaje salió a las 18:35:59.
 - ⚠️ **No caduca todavía.** Un mensaje que espera a alguien que no contesta nunca se queda en
   `en_espera` indefinidamente. Pendiente decidir el plazo y el aviso al equipo.
 

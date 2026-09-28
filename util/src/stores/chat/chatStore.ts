@@ -1183,7 +1183,8 @@ export const useChatStore = defineStore('chatStore', () => {
             // fecha ni por cancelado: eso lo decide `MessageVistaDelHiloExtension`. Lo que sí se
             // quita es lo que aún no ha salido —`pending`/`queued` con fecha ya vencida—, que es
             // historial para el servidor pero el huésped todavía no lo ha visto.
-            const realHistoryMessages = data.filter(m => m.status !== 'pending' && m.status !== 'queued');
+            // `en_espera` tampoco ha salido: espera a que el cliente abra la ventana de WhatsApp.
+            const realHistoryMessages = data.filter(m => !['pending', 'queued', 'en_espera'].includes(m.status ?? ''));
             const latest5 = realHistoryMessages.slice(0, limite);
 
             return latest5.sort((a, b) => new Date(a.effectiveDateTime || a.createdAt as string).getTime() - new Date(b.effectiveDateTime || b.createdAt as string).getTime());
