@@ -66,7 +66,7 @@ final readonly class PmsEspacioEstancia
 
         $unidad = $propio->getPmsUnidad();
         $inicio = $propio->getInicio();
-        $fin = $propio->getFin();
+        $fin = $this->finDeLaEstancia($reserva, $propio);
 
         if ($unidad === null || $inicio === null || $fin === null) {
             return null;
@@ -78,7 +78,10 @@ final readonly class PmsEspacioEstancia
             ->from(PmsEventoCalendario::class, 'e')
             ->join('e.estado', 'es')
             ->where('e.pmsUnidad = :unidad')
-            ->andWhere('e.id != :propio')
+            // Fuera TODA la reserva, no sólo la estancia principal: una noche extra se carga
+            // como un segundo evento de la misma reserva, y comparando sólo contra el primero
+            // el huésped aparecía como «otro huésped que entra el día que se va».
+            ->andWhere('e.reserva IS NULL OR e.reserva != :reserva')
             ->andWhere('es.id IN (:ocupan)')
             ->andWhere('e.fin >= :desde')
             ->andWhere('e.inicio <= :hasta')
@@ -87,7 +90,7 @@ final readonly class PmsEspacioEstancia
             // devuelve CERO filas sin fallar — aquí eso significa «no hay vecinos», y el
             // early check-in / late check-out se ofrecería sobre una casita ocupada.
             ->setParameter('unidad', $unidad->getId(), UuidType::NAME)
-            ->setParameter('propio', $propio->getId(), UuidType::NAME)
+            ->setParameter('reserva', $reserva->getId(), UuidType::NAME)
             ->setParameter('ocupan', PmsEventoEstado::IMPIDEN_VENTA)
             // Una noche por cada lado basta: sólo interesa quién pega con su estancia.
             ->setParameter('desde', (new DateTimeImmutable($inicio->format('Y-m-d')))->modify('-1 day'))
@@ -153,6 +156,50 @@ final readonly class PmsEspacioEstancia
         usort($vivas, static fn (PmsEventoCalendario $a, PmsEventoCalendario $b) => ($a->getInicio()?->getTimestamp() ?? 0) <=> ($b->getInicio()?->getTimestamp() ?? 0));
 
         return $vivas[0] ?? null;
+    }
+
+    /**
+     * Hasta cuándo se queda de verdad en ESA casita.
+     *
+     * 🔥 Caso MMQSB2 (José, 27/09/2026): reservó del 25 al 27 y alargó una noche. La noche extra
+     * entra como un segundo evento de la misma reserva y la misma casita (27→28). Con el `fin`
+     * del primero, el agente creía que se iba el 27 y que ese día «entraba otro huésped a las
+     * 14:00» — que era él mismo. La estancia es la cadena de eventos contiguos de la reserva
+     * en la casita de la llegada; si cambia de casita a mitad, se corta ahí.
+     */
+    private function finDeLaEstancia(PmsReserva $reserva, PmsEventoCalendario $propio): ?\DateTimeInterface
+    {
+        $fin = $propio->getFin();
+        $unidad = $propio->getPmsUnidad();
+
+        $siguientes = [];
+        foreach ($reserva->getEventosCalendario() as $evento) {
+            $codigo = $evento->getEstado()?->getId();
+
+            if ($evento !== $propio
+                && $evento->getPmsUnidad() === $unidad
+                && $codigo !== null && in_array($codigo, PmsEventoEstado::IMPIDEN_VENTA, true)) {
+                $siguientes[] = $evento;
+            }
+        }
+
+        usort($siguientes, static fn (PmsEventoCalendario $a, PmsEventoCalendario $b) => ($a->getInicio()?->getTimestamp() ?? 0) <=> ($b->getInicio()?->getTimestamp() ?? 0));
+
+        foreach ($siguientes as $evento) {
+            $vInicio = $evento->getInicio();
+            $vFin = $evento->getFin();
+
+            if ($fin === null || $vInicio === null || $vFin === null) {
+                continue;
+            }
+
+            // Contiguo: empieza el mismo día (o antes) de que acabe lo que ya llevamos.
+            if ($vInicio->format('Y-m-d') <= $fin->format('Y-m-d') && $vFin > $fin) {
+                $fin = $vFin;
+            }
+        }
+
+        return $fin;
     }
 
     /**
