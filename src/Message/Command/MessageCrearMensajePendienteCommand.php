@@ -52,7 +52,7 @@ final class MessageCrearMensajePendienteCommand extends Command
 
     /**
      * El botón, escrito a mano en cada idioma: la traducción automática los dejaba largos (el
-     * neerlandés en 28 caracteres) y Meta corta en 25.
+     * neerlandés en 28 caracteres) y Meta corta en 25. Se aplican DESPUÉS de traducir: ver `crear()`.
      */
     private const array BOTONES = [
         'es' => 'Sí, envíamela', 'en' => 'Yes, send it', 'pt' => 'Sim, pode enviar', 'fr' => 'Oui, envoie-la',
@@ -64,9 +64,9 @@ final class MessageCrearMensajePendienteCommand extends Command
      * el caso que lo trajo (la cotización de Eduardo), y la prueba de que responde a algo pedido.
      */
     private const array EJEMPLOS_REFERENCIA = [
-        'es' => 'los tours que pediste', 'en' => 'the tours you asked about', 'pt' => 'os passeios que você pediu',
-        'fr' => 'les excursions que tu as demandées', 'it' => 'i tour che hai chiesto',
-        'de' => 'die Touren, nach denen Sie gefragt haben', 'nl' => 'de tours waar je om vroeg',
+        'es' => 'los tours que pediste', 'en' => 'the tours you asked about', 'pt' => 'sua consulta sobre passeios',
+        'fr' => 'votre demande d’excursions', 'it' => 'la tua richiesta di tour',
+        'de' => 'Ihre Anfrage zu Touren', 'nl' => 'de tours waar je om vroeg',
     ];
 
     public function __construct(
@@ -156,6 +156,22 @@ final class MessageCrearMensajePendienteCommand extends Command
 
         $this->em->persist($plantilla);
         // `AutoTranslate` corre en `prePersist` y rellena los seis idiomas que faltan.
+        $this->em->flush();
+
+        // 🔥 Y también PISA los botones escritos a mano: los reescribe desde el español y les pone
+        // su `origenHash`. Se vuelven a poner los cortos después, conservando ese hash, que es lo
+        // que le dice al traductor que están al día y no hay que tocarlos (pasó al crear
+        // `respuesta_pendiente`: el neerlandés volvió a 28 caracteres).
+        $meta = $plantilla->getWhatsappMetaTmpl() ?? [];
+        foreach ($meta['buttons_map'] ?? [] as $i => $boton) {
+            foreach ($boton['button_text'] ?? [] as $j => $texto) {
+                $idioma = $texto['language'] ?? '';
+                if (isset(self::BOTONES[$idioma])) {
+                    $meta['buttons_map'][$i]['button_text'][$j]['content'] = self::BOTONES[$idioma];
+                }
+            }
+        }
+        $plantilla->setWhatsappMetaTmpl($meta);
         $this->em->flush();
 
         $io->success(sprintf('«%s» creada. Súbela con: msg:meta:push %s --todos', $codigo, $codigo));

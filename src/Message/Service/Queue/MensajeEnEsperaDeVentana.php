@@ -9,7 +9,9 @@ use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageTemplate;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Service\Translate\GoogleTranslateService;
 use Psr\Log\LoggerInterface;
+use Throwable;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 
 /**
@@ -64,6 +66,7 @@ final readonly class MensajeEnEsperaDeVentana
         private EntityManagerInterface $em,
         private MessageDispatcher $dispatcher,
         private LoggerInterface $logger,
+        private GoogleTranslateService $traductor,
     ) {}
 
     /**
@@ -161,7 +164,7 @@ final readonly class MensajeEnEsperaDeVentana
             $conReferencia = $repo->findOneBy(['code' => self::PLANTILLA_CON_REFERENCIA]);
 
             if ($conReferencia instanceof MessageTemplate && $conReferencia->hasWhatsappMetaOfficialData($idioma)) {
-                return [$conReferencia, ['guest_name' => $nombre, 'referencia' => $referencia]];
+                return [$conReferencia, ['guest_name' => $nombre, 'referencia' => $this->alIdiomaDelAviso($referencia, $idioma)]];
             }
         }
 
@@ -189,6 +192,28 @@ final readonly class MensajeEnEsperaDeVentana
         return mb_strlen($limpia) > self::MAX_REFERENCIA
             ? rtrim(mb_substr($limpia, 0, self::MAX_REFERENCIA - 1)) . '…'
             : $limpia;
+    }
+
+    /**
+     * La referencia la escribe el operador en español, y el aviso sale en el idioma del hilo: sin
+     * traducir, un huésped inglés leería «we have the answer regarding los tours que pediste».
+     * Si el traductor falla, va tal cual: mejor mezclado que sin aviso.
+     */
+    private function alIdiomaDelAviso(string $referencia, string $idioma): string
+    {
+        if ($idioma === 'es') {
+            return $referencia;
+        }
+
+        try {
+            $traducida = $this->traductor->translate([$referencia], $idioma, 'es')[0] ?? null;
+
+            return is_string($traducida) && trim($traducida) !== '' ? $this->limpiarReferencia($traducida) ?? $referencia : $referencia;
+        } catch (Throwable $e) {
+            $this->logger->warning('No se pudo traducir la referencia del aviso: ' . $e->getMessage());
+
+            return $referencia;
+        }
     }
 
     /** El nombre de pila del hilo; sin nombre, el aviso con referencia no sale («Hola ,»). */

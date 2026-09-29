@@ -640,6 +640,11 @@ WhatsappMetaReceivePersister (cualquier mensaje suyo, botón o texto) → abre l
     `referencia`), que ganan al resolver del contexto.
   - `elegirAviso()` prefiere `respuesta_pendiente` si está aprobada en el idioma del hilo y hay
     referencia y nombre; si no, la genérica. Ninguna aprobada → `failed`.
+  - La referencia se escribe en español y **se traduce al idioma del aviso** (`GoogleTranslateService`);
+    sin eso, un inglés leería «regarding los tours que pediste». Si el traductor falla, va tal cual.
+  - ⚠️ **`AutoTranslate` pisa los botones escritos a mano al crear la plantilla** (los reescribe
+    desde el español con su `origenHash`). El comando los vuelve a poner DESPUÉS del flush
+    conservando el hash, que es lo que le dice al traductor que están al día.
   - Los **ejemplos que ve Meta** salen de `ejemplos` en el JSON de la plantilla, por idioma
     (`WhatsappMetaTemplatePushService`), en vez de «Dato_Ejemplo». ⚠️ Esa clave no la edita el
     panel: si se guarda la plantilla desde EasyAdmin, comprobar que sigue antes de re-subirla.
