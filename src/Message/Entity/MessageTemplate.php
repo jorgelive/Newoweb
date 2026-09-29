@@ -64,7 +64,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  *     is_official_meta?: bool,
  *     disable_meta_buttons?: bool,
  *     meta_template_name?: string|null,
- *     category?: string|null
+ *     category?: string|null,
+ *     ejemplos?: array<string, array<string, string>>
  * }
  */
 #[ORM\Entity]

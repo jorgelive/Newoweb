@@ -756,10 +756,30 @@ const puedeEsperarVentana = computed(() =>
   && !selectedTemplateId.value
 );
 
+/**
+ * Sobre qué es lo que espera, para el aviso: «ya tenemos la respuesta sobre {{referencia}}».
+ *
+ * Lo escribe el operador porque el hilo no lo sabe: el chat de Eduardo es de una RESERVA y la
+ * respuesta era sobre tours. El asunto elegido sólo sugiere un punto de partida.
+ */
+const referenciaEspera = ref('');
+
+const sugerirReferencia = (): string => {
+  const tipo = store.asuntoElegido?.contextType ?? '';
+  if (tipo.includes('cotizacion')) return 'tu cotización';
+  if (tipo === 'pms_reserva') return 'tu reserva';
+  return 'tu consulta';
+};
+
 /** WhatsApp elegido en modo «esperar»: va SOLO, porque el mensaje tiene un único estado. */
 const esperaVentana = computed(() =>
   selectedChannels.value.includes('whatsapp_meta') && !isWhatsappAllowed.value && puedeEsperarVentana.value
 );
+
+// Al entrar en modo «esperar», la sugerencia; al salir, nada que arrastrar al siguiente hilo.
+watch(esperaVentana, (activo) => {
+  referenciaEspera.value = activo ? sugerirReferencia() : '';
+});
 
 const setDefaultChannels = () => {
   const chat = store.currentConversation;
@@ -937,7 +957,11 @@ const send = async () => {
   }
 
   if (esperaVentana.value) {
-    await store.sendMessage(newMessageText.value, null, ['whatsapp_meta'], 'en_espera');
+    if (!referenciaEspera.value.trim()) {
+      store.error = 'Escribe sobre qué es la respuesta: es lo que verá el cliente en el aviso.';
+      return;
+    }
+    await store.sendMessage(newMessageText.value, null, ['whatsapp_meta'], 'en_espera', referenciaEspera.value.trim());
     newMessageText.value = '';
     // Sin `clearTemplate()`: re-elegiría los canales por defecto, y con la ventana cerrada eso es
     // Beds24 — el segundo párrafo de una cotización saldría por el chat de Booking sin que nadie
@@ -1819,10 +1843,28 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
           </div>
 
           <!-- Modo «esperar»: que quede claro ANTES de enviar que no sale ya. -->
-          <p v-if="esperaVentana" class="px-1 pt-1.5 text-[11px] font-bold text-amber-700 leading-snug">
-            <i class="fas fa-hourglass-half mr-1"></i>
-            La ventana de WhatsApp está cerrada. Le llegará un aviso para que conteste, y tu mensaje saldrá tal cual en cuanto lo haga.
-          </p>
+          <div v-if="esperaVentana" class="px-1 pt-1.5 space-y-1.5">
+            <p class="text-[11px] font-bold text-amber-700 leading-snug">
+              <i class="fas fa-hourglass-half mr-1"></i>
+              La ventana de WhatsApp está cerrada. Le llegará un aviso para que conteste, y tu mensaje saldrá tal cual en cuanto lo haga.
+            </p>
+            <!-- Lo que ve el cliente en el aviso: «Hola X, ya tenemos la respuesta sobre …».
+                 Una línea: Meta no admite saltos en una variable. -->
+            <label class="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+              <span class="shrink-0">Sobre qué es:</span>
+              <input
+                  v-model="referenciaEspera"
+                  type="text"
+                  maxlength="60"
+                  placeholder="los tours que pediste"
+                  class="flex-1 min-w-0 px-2 py-1 rounded-lg border border-amber-200 bg-amber-50/40 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                  @keydown.enter.prevent
+              />
+            </label>
+            <p class="text-[10px] text-slate-400 leading-snug">
+              El cliente verá: «Hola {{ (store.currentConversation?.guestName ?? '').split(' ')[0] || '…' }}, ya tenemos la respuesta sobre {{ referenciaEspera.trim() || '…' }}. ¿Te la enviamos por aquí?»
+            </p>
+          </div>
 
           <Transition name="fade-slide">
             <div v-if="showTemplateDropdown" class="absolute bottom-22.5 left-2 right-2 md:left-auto md:right-auto z-50 bg-white border border-slate-200 shadow-2xl rounded-2xl p-2 md:w-96 max-h-64 overflow-y-auto">

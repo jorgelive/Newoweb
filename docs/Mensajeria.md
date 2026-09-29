@@ -628,6 +628,21 @@ WhatsappMetaReceivePersister (cualquier mensaje suyo, botón o texto) → abre l
 - ⚠️ **La traducción se fija al escribir** (`MessageTranslator` en `prePersist`). Si la respuesta del
   cliente cambia el idioma del hilo, lo liberado sale en el idioma anterior. Raro: sólo hilos no
   fijados que nacieron en `es` por defecto.
+- 🏷️ **Meta pasó `mensaje_pendiente_v1` de UTILITY a MARKETING el mismo día** (correo del
+  Administrador de WhatsApp). Lo más probable: no nombra ninguna operación concreta, y para su
+  clasificador eso es un gancho para reabrir la conversación. Nació `respuesta_pendiente`:
+  «Hola {{guest_name}}, ya tenemos la respuesta sobre {{referencia}}. ¿Te la enviamos por aquí?».
+  - La **referencia la escribe el operador** en el chat («Sobre qué es:»), con una sugerencia según
+    el asunto elegido. No se saca del contexto porque el hilo no lo sabe: el de Eduardo es de una
+    RESERVA y la respuesta era sobre tours.
+  - Viaja en `Message::$referenciaEspera` (no persistido) → `metadata.en_espera.referencia` del
+    mensaje, y al aviso como `variables_plantilla` (`guest_name` = nombre de pila del hilo,
+    `referencia`), que ganan al resolver del contexto.
+  - `elegirAviso()` prefiere `respuesta_pendiente` si está aprobada en el idioma del hilo y hay
+    referencia y nombre; si no, la genérica. Ninguna aprobada → `failed`.
+  - Los **ejemplos que ve Meta** salen de `ejemplos` en el JSON de la plantilla, por idioma
+    (`WhatsappMetaTemplatePushService`), en vez de «Dato_Ejemplo». ⚠️ Esa clave no la edita el
+    panel: si se guarda la plantilla desde EasyAdmin, comprobar que sigue antes de re-subirla.
 - **Primer uso real (28/09/2026):** la cotización de Eduardo. Aviso a las 18:07, pulsó «Sí,
   envíamela» a las 18:35:57 y su mensaje salió a las 18:35:59.
 - ⚠️ **No caduca todavía.** Un mensaje que espera a alguien que no contesta nunca se queda en

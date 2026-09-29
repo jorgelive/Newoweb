@@ -39,8 +39,21 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
  */
 final readonly class MensajeEnEsperaDeVentana
 {
-    /** La plantilla del aviso. La crea `msg:plantillas:mensaje-pendiente`. */
+    /** El aviso genérico, sin variables. La crea `msg:plantillas:mensaje-pendiente`. */
     public const string PLANTILLA = 'mensaje_pendiente';
+
+    /**
+     * El aviso que dice SOBRE QUÉ es la respuesta: «ya tenemos la respuesta sobre {{referencia}}».
+     *
+     * Existe porque Meta pasó `mensaje_pendiente_v1` de UTILITY a MARKETING (28/09/2026): una
+     * plantilla que no nombra ninguna operación concreta es, para su clasificador, un gancho para
+     * reabrir la conversación. Se prefiere ésta cuando está aprobada en el idioma del hilo y hay
+     * referencia y nombre; si no, la genérica.
+     */
+    public const string PLANTILLA_CON_REFERENCIA = 'respuesta_pendiente';
+
+    /** Lo que cabe en una variable de Meta sin romper la frase: una línea corta. */
+    private const int MAX_REFERENCIA = 60;
 
     /** Lo que manda su botón. Sin regla de autorespuesta a propósito: la respuesta ES lo liberado. */
     public const string PAYLOAD_BOTON = 'CMD_ENVIAR_PENDIENTE';
@@ -76,17 +89,19 @@ final readonly class MensajeEnEsperaDeVentana
         // y un mensaje tiene un solo estado — mezclarlos dejaría uno de los dos colgado.
         $mensaje->setTransientChannels([self::CANAL]);
 
+        $referencia = $this->limpiarReferencia($mensaje->getReferenciaEspera());
         $avisoVigente = $this->avisoVigente($hilo, $mensaje);
 
         if ($avisoVigente !== null) {
             // Ya se le pidió permiso y el aviso salió: éste espera con los demás.
-            $mensaje->addMetadata('en_espera', ['aviso' => (string) $avisoVigente->getId()]);
+            $mensaje->addMetadata('en_espera', ['aviso' => (string) $avisoVigente->getId(), 'referencia' => $referencia]);
 
             return;
         }
 
-        $plantilla = $this->em->getRepository(MessageTemplate::class)->findOneBy(['code' => self::PLANTILLA]);
         $idioma = $this->idiomaDePlantilla($hilo);
+        $nombre = $this->nombreDePila($hilo);
+        [$plantilla, $variables] = $this->elegirAviso($idioma, $referencia, $nombre);
 
         // ❌ Sin aviso que se pueda mandar, NO se espera: se da por no salido, en rojo y con el
         // motivo. Esperar en silencio era lo peor de los dos mundos —el chat decía «esperando a
@@ -94,10 +109,8 @@ final readonly class MensajeEnEsperaDeVentana
         // envío fallido al equipo (`AvisoEnvioFallidoListener`). Pasaba de verdad: Meta aprueba
         // la plantilla idioma por idioma, y el inglés tardó más que el resto (revisión del
         // 28/09/2026).
-        if (!$plantilla instanceof MessageTemplate || !$plantilla->hasWhatsappMetaOfficialData($idioma)) {
-            $motivo = !$plantilla instanceof MessageTemplate
-                ? sprintf('falta la plantilla «%s»', self::PLANTILLA)
-                : sprintf('el aviso «%s» todavía no está aprobado por Meta en «%s»', self::PLANTILLA, $idioma);
+        if (!$plantilla instanceof MessageTemplate) {
+            $motivo = sprintf('ningún aviso («%s», «%s») está aprobado por Meta en «%s»', self::PLANTILLA_CON_REFERENCIA, self::PLANTILLA, $idioma);
 
             $mensaje->setStatus(Message::STATUS_FAILED);
             $mensaje->addMetadata('dispatch_errors', [sprintf(
@@ -120,12 +133,74 @@ final readonly class MensajeEnEsperaDeVentana
             ->setTransientChannels([self::CANAL]);
         $aviso->addMetadata('aviso_de_mensaje_en_espera', (string) $mensaje->getId());
 
+        // Las del propio mensaje ganan a las del resolver del hilo: la referencia no sale del
+        // contexto, y el nombre tampoco en un hilo sin resolutor (ver Message::getVariablesPlantilla()).
+        if ($variables !== []) {
+            $aviso->setVariablesPlantilla($variables);
+        }
+
         $hilo->addMessage($aviso);
         // Dentro del `prePersist` del mensaje del operador: un `persist()` aquí dispara el
         // `prePersist` del aviso, que fabrica su cola, y los dos entran en el mismo flush.
         $this->em->persist($aviso);
 
-        $mensaje->addMetadata('en_espera', ['aviso' => (string) $aviso->getId()]);
+        $mensaje->addMetadata('en_espera', ['aviso' => (string) $aviso->getId(), 'referencia' => $referencia]);
+    }
+
+    /**
+     * Qué aviso sale y con qué variables: el que nombra la referencia si se puede, si no el
+     * genérico. `null` como plantilla = ninguno de los dos está aprobado en ese idioma.
+     *
+     * @return array{0: ?MessageTemplate, 1: array<string, string>}
+     */
+    private function elegirAviso(string $idioma, ?string $referencia, ?string $nombre): array
+    {
+        $repo = $this->em->getRepository(MessageTemplate::class);
+
+        if ($referencia !== null && $nombre !== null) {
+            $conReferencia = $repo->findOneBy(['code' => self::PLANTILLA_CON_REFERENCIA]);
+
+            if ($conReferencia instanceof MessageTemplate && $conReferencia->hasWhatsappMetaOfficialData($idioma)) {
+                return [$conReferencia, ['guest_name' => $nombre, 'referencia' => $referencia]];
+            }
+        }
+
+        $generica = $repo->findOneBy(['code' => self::PLANTILLA]);
+
+        if ($generica instanceof MessageTemplate && $generica->hasWhatsappMetaOfficialData($idioma)) {
+            return [$generica, []];
+        }
+
+        return [null, []];
+    }
+
+    /**
+     * Una línea, sin saltos ni espacios repetidos, y corta: Meta rechaza una variable con saltos
+     * de línea, y una larga rompe la frase del aviso.
+     */
+    private function limpiarReferencia(?string $referencia): ?string
+    {
+        $limpia = trim((string) preg_replace('/\s+/u', ' ', (string) $referencia));
+
+        if ($limpia === '') {
+            return null;
+        }
+
+        return mb_strlen($limpia) > self::MAX_REFERENCIA
+            ? rtrim(mb_substr($limpia, 0, self::MAX_REFERENCIA - 1)) . '…'
+            : $limpia;
+    }
+
+    /** El nombre de pila del hilo; sin nombre, el aviso con referencia no sale («Hola ,»). */
+    private function nombreDePila(MessageConversation $hilo): ?string
+    {
+        $nombre = trim((string) $hilo->getGuestName());
+
+        if ($nombre === '') {
+            return null;
+        }
+
+        return explode(' ', $nombre)[0];
     }
 
     /**

@@ -393,6 +393,15 @@ class Message
     #[Groups(['message:write'])]
     private array $transientChannels = [];
 
+    /**
+     * Sobre qué es lo que espera la ventana de WhatsApp —«los tours que pediste»—, escrito por el
+     * operador. No se persiste aquí: `MensajeEnEsperaDeVentana::retener()` lo guarda en la
+     * metadata (`en_espera.referencia`) y lo pasa al aviso como variable. Lo escribe una persona
+     * porque el contexto del hilo no lo sabe: un chat de una RESERVA puede estar hablando de tours.
+     */
+    #[Groups(['message:write'])]
+    private ?string $referenciaEspera = null;
+
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     #[Groups(['message:read', 'message:write'])]
     private ?DateTimeImmutable $scheduledAt = null;
@@ -685,6 +694,9 @@ class Message
     public function getTransientChannels(): array { return $this->transientChannels; }
     /** @param list<string> $channels */
     public function setTransientChannels(array $channels): self { $this->transientChannels = $channels; return $this; }
+
+    public function getReferenciaEspera(): ?string { return $this->referenciaEspera; }
+    public function setReferenciaEspera(?string $referencia): self { $this->referenciaEspera = $referencia; return $this; }
 
     public function getScheduledAt(): ?DateTimeImmutable { return $this->scheduledAt; }
     /**

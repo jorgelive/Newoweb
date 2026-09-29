@@ -142,7 +142,12 @@ final readonly class WhatsappMetaTemplatePushService
 
             try {
                 // Construimos payload minimalista (sin payloads técnicos en botones)
-                $payload = $this->buildSingleLanguagePayload($metaTmpl, $templateName, $localLang, $metaLangCode, $previewData);
+                // Los ejemplos PROPIOS de la plantilla, por idioma, ganan a los del resolver. Una
+                // variable que no sale del contexto —la `referencia` del aviso de mensaje en
+                // espera— no tiene muestra en el resolver y viajaba como «Dato_Ejemplo»: lo que
+                // Meta revisaba no se parecía en nada al uso real.
+                $ejemplosPropios = $metaTmpl['ejemplos'][$localLang] ?? [];
+                $payload = $this->buildSingleLanguagePayload($metaTmpl, $templateName, $localLang, $metaLangCode, $ejemplosPropios + $previewData);
 
                 $existingId = $this->findExistingTemplateId($existingTemplates, $templateName, $metaLangCode);
 

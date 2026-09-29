@@ -20202,6 +20202,13 @@ export interface components {
             /** @description Canales elegidos para ESTE envío; no se persiste. */
             transientChannels?: string[];
             /**
+             * @description Sobre qué es lo que espera la ventana de WhatsApp —«los tours que pediste»—, escrito por el
+             *     operador. No se persiste aquí: `MensajeEnEsperaDeVentana::retener()` lo guarda en la
+             *     metadata (`en_espera.referencia`) y lo pasa al aviso como variable. Lo escribe una persona
+             *     porque el contexto del hilo no lo sabe: un chat de una RESERVA puede estar hablando de tours.
+             */
+            referenciaEspera?: string | null;
+            /**
              * Format: date-time
              * @description ⚠️ Recalcula `ocurrio_at` en el acto, y por eso no vale asignar la propiedad a pelo.
              */

@@ -1121,6 +1121,7 @@ export const useChatStore = defineStore('chatStore', () => {
         templateIri: string | null = null,
         channels: string[] = [],
         estado: 'pending' | 'en_espera' = 'pending',
+        referenciaEspera: string | null = null,
     ) => {
         if (!currentConversation.value) return;
 
@@ -1138,6 +1139,9 @@ export const useChatStore = defineStore('chatStore', () => {
             form.append('direction', 'outgoing');
             form.append('senderType', 'host');
             form.append('status', estado);
+            // Sobre qué es lo que espera: va al aviso como `{{referencia}}` («ya tenemos la
+            // respuesta sobre …»). La escribe el operador: el contexto del hilo no lo sabe.
+            if (estado === 'en_espera' && referenciaEspera) form.append('referenciaEspera', referenciaEspera);
 
             channels.forEach(channel => form.append('transientChannels[]', channel));
 
