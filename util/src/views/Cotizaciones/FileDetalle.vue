@@ -151,16 +151,32 @@ const propuestaCopiada = ref<number | null>(null);
  * El fallback no es decorativo: con el portapapeles bloqueado —http, o permiso denegado— el
  * `alert` enseña la URL entera para poder seleccionarla a mano. Mismo criterio que `copiarLink()`.
  */
-const copiarLinkPropuesta = async (propuesta?: number) => {
-  const url = linkPublicoPropuesta(propuesta);
+const copiarLinkPropuesta = async (cot: { '@id'?: string; propuesta?: number; publicado?: boolean }) => {
+  const url = linkPublicoPropuesta(cot.propuesta);
   if (!url) return;
 
   try {
+    // Se copia PRIMERO, dentro del gesto: el portapapeles exige que la escritura venga de un clic,
+    // y tras el `await` de publicar Safari ya no lo considera así.
     await navigator.clipboard.writeText(url);
-    propuestaCopiada.value = propuesta ?? 0;
+    propuestaCopiada.value = cot.propuesta ?? 0;
     setTimeout(() => { propuestaCopiada.value = null; }, 2000);
   } catch {
     alert('No se pudo copiar. Copia manualmente: ' + url);
+    return;
+  }
+
+  // 🔥 Un enlace a una propuesta SIN publicar le da al cliente «Propuesta no encontrada»: el
+  // operador la ve (tiene sesión) y no nota nada. Pasó el 28/09/2026 con la cotización de
+  // Eduardo — se envió el enlace, el cliente mandó la captura. Se pregunta aquí porque éste es
+  // el gesto de «voy a mandárselo».
+  const iri = cot['@id'];
+  if (!cot.publicado && iri && confirm(
+    `Enlace copiado, pero la propuesta ${cot.propuesta} NO está publicada: el cliente verá «Propuesta no encontrada».\n\n¿La publico ahora?`
+  )) {
+    const ok = await fileStore.actualizarPublicado(iri, true);
+    if (ok) await cargarFile();
+    else alert(fileStore.error || 'No se pudo publicar. Hazlo con el botón del ojo.');
   }
 };
 
@@ -5655,6 +5671,16 @@ const eliminarDocumento = async (iri?: string) => {
                       <span class="text-[9px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 uppercase shrink-0">{{ cot.estado || 'Pendiente' }}</span>
                       <span class="text-[9px] font-black bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded border border-orange-100 uppercase shrink-0">{{ cot.monedaGlobal || 'USD' }}</span>
 
+                      <!-- 🔥 NO PUBLICADA, a la vista. El estado («enviado») no dice si el cliente
+                           la ve: publicar es un eje aparte, y sólo lo contaba el color del ojo.
+                           Así se mandó un enlace que daba «Propuesta no encontrada» (28/09/2026). -->
+                      <button v-if="!cot.publicado" type="button" @click="alternarPublicado(cot)"
+                              class="text-[9px] font-black bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-200 uppercase shrink-0 flex items-center gap-1 hover:bg-rose-100"
+                              title="El cliente NO ve esta propuesta: su enlace le da «Propuesta no encontrada». Pulsa para publicarla.">
+                        <i class="fas fa-eye-slash text-[8px]"></i>
+                        No publicada
+                      </button>
+
                       <!-- ⚠️ Dice dónde vive la operación, que ya NO se deduce del estado: desde
                            el 02/09/2026 confirmar no la arma y la operativa se la lleva. Las dos
                            dejan una confirmada vacía y significan cosas opuestas. -->
@@ -5713,7 +5739,7 @@ const eliminarDocumento = async (iri?: string) => {
                   <!-- Copiar ese mismo enlace. Va PEGADO al de abrir porque son la misma cosa en
                        dos gestos: mirarla uno o mandársela al cliente — y mandársela era abrir la
                        pestaña y copiar de la barra de direcciones. -->
-                  <button v-tooltip-tactil @click="copiarLinkPropuesta(cot.propuesta)"
+                  <button v-tooltip-tactil @click="copiarLinkPropuesta(cot)"
                           :class="propuestaCopiada === cot.propuesta
                             ? 'text-emerald-600 border-emerald-200 bg-emerald-50'
                             : 'text-slate-400 border-slate-200 hover:text-emerald-500 hover:border-emerald-200 hover:bg-emerald-50'"

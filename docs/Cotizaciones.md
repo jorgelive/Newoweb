@@ -4878,6 +4878,16 @@ está bajo el firewall `main`, que es *stateful*.
 ⚠️ **La caducidad NO se salta.** Una propuesta expirada tampoco se previsualiza: si no, el operador
 vería algo que el cliente no puede ver y creería que sí.
 
+🔥 **Y por eso mismo el operador no nota que no está publicada.** El 28/09/2026 se copió el enlace
+de la propuesta 1 de GC4NEM (estado «enviado», `publicado = false`), se mandó a Eduardo y el
+cliente respondió con la captura de «Propuesta no encontrada». Lo único que lo decía era el color
+del ojo. Desde entonces, en `FileDetalle.vue`:
+
+- una etiqueta roja **«No publicada»** junto al estado, que publica al pulsarla;
+- **copiar el enlace** de una no publicada pregunta «¿La publico ahora?» — es el gesto de «voy a
+  mandárselo». Se copia antes de preguntar: tras el `await` de publicar, Safari ya no deja
+  escribir en el portapapeles.
+
 ### Y el guarda de conflictos financieros vigila lo que siempre quiso
 
 `guardarCotizacion()` bloqueaba el paso a `enviado`/`confirmado`/`operado` con conflictos, y su
