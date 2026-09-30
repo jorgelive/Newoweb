@@ -220,12 +220,35 @@ final readonly class MensajeEnEsperaDeVentana
         try {
             $traducida = $this->traductor->translate([$referencia], $idioma, 'es')[0] ?? null;
 
-            return is_string($traducida) && trim($traducida) !== '' ? $this->limpiarReferencia($traducida) ?? $referencia : $referencia;
+            if (!is_string($traducida) || trim($traducida) === '') {
+                return $referencia;
+            }
+
+            return $this->limpiarReferencia($this->sinMayusculaInicial($traducida, $referencia, $idioma)) ?? $referencia;
         } catch (Throwable $e) {
             $this->logger->warning('No se pudo traducir la referencia del aviso: ' . $e->getMessage());
 
             return $referencia;
         }
+    }
+
+    /**
+     * El traductor devuelve la frase como si empezara una oración —«Your reservation…»—, y aquí va
+     * EN MEDIO de otra: «…the answer regarding Your reservation». Si el operador la escribió en
+     * minúscula, se le devuelve la minúscula.
+     *
+     * ⚠️ Menos en alemán: «Ihre» (su, de usted) en minúscula es «ihre» (de ellos), otra palabra,
+     * y los sustantivos van siempre con mayúscula.
+     */
+    private function sinMayusculaInicial(string $traducida, string $original, string $idioma): string
+    {
+        $primera = mb_substr($original, 0, 1);
+
+        if ($idioma === 'de' || $primera === '' || $primera !== mb_strtolower($primera)) {
+            return $traducida;
+        }
+
+        return mb_strtolower(mb_substr($traducida, 0, 1)) . mb_substr($traducida, 1);
     }
 
     /** El nombre de pila del hilo; sin nombre, el aviso con referencia no sale («Hola ,»). */

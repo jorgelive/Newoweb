@@ -673,6 +673,9 @@ WhatsappMetaReceivePersister (cualquier mensaje suyo, botón o texto) → abre l
   traducción se fija al escribir, y un cliente que contesta en inglés a un hilo que estaba en
   español recibía el mensaje en español.
 - 🧪 `msg:espera:referencia "texto"` enseña cómo queda el «sobre qué es» en cada idioma, sin enviar.
+  El traductor devuelve la frase con mayúscula inicial («Your reservation…») y va en medio de otra:
+  se le quita si el operador la escribió en minúscula — salvo en alemán, donde «Ihre» en minúscula
+  es otra palabra.
 
 Se crea con `msg:plantillas:mensaje-pendiente` y se sube con `msg:meta:push respuesta_pendiente --todos`.
 
