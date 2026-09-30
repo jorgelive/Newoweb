@@ -961,6 +961,12 @@ const send = async () => {
       store.error = 'Escribe sobre qué es la respuesta: es lo que verá el cliente en el aviso.';
       return;
     }
+    // El aviso empieza por «Hola {nombre}»: sin nombre no hay aviso que mandar, y el backend
+    // dejaría el mensaje en rojo. Se dice aquí, antes de perder lo escrito.
+    if (!(store.currentConversation?.guestName ?? '').trim()) {
+      store.error = 'Este chat no tiene nombre de cliente y el aviso empieza por «Hola …». Ponle nombre al chat y vuelve a enviarlo.';
+      return;
+    }
     await store.sendMessage(newMessageText.value, null, ['whatsapp_meta'], 'en_espera', referenciaEspera.value.trim());
     newMessageText.value = '';
     // Sin `clearTemplate()`: re-elegiría los canales por defecto, y con la ventana cerrada eso es

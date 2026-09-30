@@ -15,17 +15,17 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Las dos plantillas que piden permiso para mandar lo que el operador dejó esperando: la que
- * nombra la operación (`respuesta_pendiente`, preferida) y la genérica (`mensaje_pendiente`).
+ * La plantilla que pide permiso para mandar lo que el operador dejó esperando
+ * (`respuesta_pendiente`: «ya tenemos la respuesta sobre {{referencia}}»).
  *
- * La genérica va sin variables: vale para cualquier hilo —reserva, cotización o un número suelto—
- * sin depender de que su contexto tenga resolutor de datos, y Meta la revisa por un texto fijo que
- * es exactamente lo que se envía. El botón es una **respuesta rápida**, no un enlace: es lo que
- * abre la ventana de 24 h (un botón de enlace no le manda nada al negocio).
+ * Hubo una genérica sin variables (`mensaje_pendiente`), retirada el 30/09/2026: ver
+ * `MensajeEnEsperaDeVentana::PLANTILLA`.
+ *
+ * El botón es una **respuesta rápida**, no un enlace: es lo que abre la ventana de 24 h (un botón
+ * de enlace no le manda nada al negocio).
  *
  * ```
- * php bin/console msg:plantillas:mensaje-pendiente        # crea las dos (idempotente)
- * php bin/console msg:meta:push mensaje_pendiente --todos
+ * php bin/console msg:plantillas:mensaje-pendiente        # idempotente
  * php bin/console msg:meta:push respuesta_pendiente --todos
  * php bin/console app:whatsapp:sync-templates          # cuando Meta la apruebe
  * ```
@@ -38,8 +38,6 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class MessageCrearMensajePendienteCommand extends Command
 {
-    private const string CUERPO = 'Hola, soy Susan 😊 Tengo una respuesta para ti. ¿Te la envío por aquí?';
-
     private const string AGENTE_USO = 'Interna: la manda SOLA el sistema cuando un operador deja un mensaje esperando '
         . 'a que se abra la ventana de WhatsApp. No la envíes tú.';
 
@@ -85,11 +83,10 @@ final class MessageCrearMensajePendienteCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $simular = (bool) $input->getOption('dry-run');
 
-        $this->crear($io, $simular, MensajeEnEsperaDeVentana::PLANTILLA, 'Mensaje en espera (aviso)', self::CUERPO, []);
         $this->crear(
             $io,
             $simular,
-            MensajeEnEsperaDeVentana::PLANTILLA_CON_REFERENCIA,
+            MensajeEnEsperaDeVentana::PLANTILLA,
             'Mensaje en espera (aviso con referencia)',
             self::CUERPO_CON_REFERENCIA,
             array_map(static fn (string $ejemplo): array => ['guest_name' => 'Eduardo', 'referencia' => $ejemplo], self::EJEMPLOS_REFERENCIA)

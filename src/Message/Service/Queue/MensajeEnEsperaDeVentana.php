@@ -29,8 +29,8 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
  * operador escribe → WhatsApp 🔒 → «Enviar cuando conteste»
  *        │
  *        ├─ su mensaje: EN ESPERA, sin cola (se ve en el hilo)
- *        └─ plantilla `mensaje_pendiente`: «Tengo una respuesta para ti. ¿Te la envío por aquí?»
- *                                          [ Sí, envíamela ]
+ *        └─ plantilla `respuesta_pendiente`: «Hola X, ya tenemos la respuesta sobre …»
+ *                                            [ Sí, envíamela ]
  * cliente pulsa o escribe → se abre la ventana → liberar(): el mensaje sale tal cual
  * ```
  *
@@ -41,18 +41,18 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
  */
 final readonly class MensajeEnEsperaDeVentana
 {
-    /** El aviso genérico, sin variables. La crea `msg:plantillas:mensaje-pendiente`. */
-    public const string PLANTILLA = 'mensaje_pendiente';
-
     /**
-     * El aviso que dice SOBRE QUÉ es la respuesta: «ya tenemos la respuesta sobre {{referencia}}».
+     * El aviso: dice SOBRE QUÉ es la respuesta («ya tenemos la respuesta sobre {{referencia}}»).
+     * Lo crea `msg:plantillas:mensaje-pendiente`.
      *
-     * Existe porque Meta pasó `mensaje_pendiente_v1` de UTILITY a MARKETING (28/09/2026): una
-     * plantilla que no nombra ninguna operación concreta es, para su clasificador, un gancho para
-     * reabrir la conversación. Se prefiere ésta cuando está aprobada en el idioma del hilo y hay
-     * referencia y nombre; si no, la genérica.
+     * 🗑️ **Hubo una genérica, `mensaje_pendiente`** («Tengo una respuesta para ti»), sin variables
+     * para que valiera en cualquier hilo. Meta le pasó el portugués de UTILITY a MARKETING el mismo
+     * día de aprobarla: una plantilla que no nombra ninguna operación es, para su clasificador, un
+     * gancho para reabrir la conversación. Se retiró el 30/09/2026 —dos plantillas para lo mismo,
+     * una medio en marketing— y con ella el respaldo: sin nombre o sin referencia el mensaje no
+     * espera, queda `failed` con el motivo.
      */
-    public const string PLANTILLA_CON_REFERENCIA = 'respuesta_pendiente';
+    public const string PLANTILLA = 'respuesta_pendiente';
 
     /** Lo que cabe en una variable de Meta sin romper la frase: una línea corta. */
     private const int MAX_REFERENCIA = 60;
@@ -104,7 +104,8 @@ final readonly class MensajeEnEsperaDeVentana
 
         $idioma = $this->idiomaDePlantilla($hilo);
         $nombre = $this->nombreDePila($hilo);
-        [$plantilla, $variables] = $this->elegirAviso($idioma, $referencia, $nombre);
+        $plantilla = $this->em->getRepository(MessageTemplate::class)->findOneBy(['code' => self::PLANTILLA]);
+        $motivo = $this->porQueNoSePuedeAvisar($plantilla, $idioma, $referencia, $nombre);
 
         // ❌ Sin aviso que se pueda mandar, NO se espera: se da por no salido, en rojo y con el
         // motivo. Esperar en silencio era lo peor de los dos mundos —el chat decía «esperando a
@@ -112,12 +113,11 @@ final readonly class MensajeEnEsperaDeVentana
         // envío fallido al equipo (`AvisoEnvioFallidoListener`). Pasaba de verdad: Meta aprueba
         // la plantilla idioma por idioma, y el inglés tardó más que el resto (revisión del
         // 28/09/2026).
-        if (!$plantilla instanceof MessageTemplate) {
-            $motivo = sprintf('ningún aviso («%s», «%s») está aprobado por Meta en «%s»', self::PLANTILLA_CON_REFERENCIA, self::PLANTILLA, $idioma);
-
+        if ($motivo !== null || !$plantilla instanceof MessageTemplate || $referencia === null || $nombre === null) {
+            $motivo ??= 'no hay aviso que mandar';
             $mensaje->setStatus(Message::STATUS_FAILED);
             $mensaje->addMetadata('dispatch_errors', [sprintf(
-                'La ventana de WhatsApp está cerrada y no se le puede pedir permiso: %s. Envíalo con una plantilla o por otro canal.',
+                'La ventana de WhatsApp está cerrada y no se le puede pedir permiso: %s.',
                 $motivo
             )]);
             $this->logger->warning('Mensaje en espera sin aviso posible: ' . $motivo, [
@@ -138,9 +138,10 @@ final readonly class MensajeEnEsperaDeVentana
 
         // Las del propio mensaje ganan a las del resolver del hilo: la referencia no sale del
         // contexto, y el nombre tampoco en un hilo sin resolutor (ver Message::getVariablesPlantilla()).
-        if ($variables !== []) {
-            $aviso->setVariablesPlantilla($variables);
-        }
+        $aviso->setVariablesPlantilla([
+            'guest_name' => $nombre,
+            'referencia' => $this->alIdiomaDelAviso($referencia, $idioma),
+        ]);
 
         $hilo->addMessage($aviso);
         // Dentro del `prePersist` del mensaje del operador: un `persist()` aquí dispara el
@@ -151,30 +152,30 @@ final readonly class MensajeEnEsperaDeVentana
     }
 
     /**
-     * Qué aviso sale y con qué variables: el que nombra la referencia si se puede, si no el
-     * genérico. `null` como plantilla = ninguno de los dos está aprobado en ese idioma.
+     * Por qué no se puede pedir permiso, dicho para quien lo va a arreglar; `null` si se puede.
      *
-     * @return array{0: ?MessageTemplate, 1: array<string, string>}
+     * Cada motivo nombra lo que falta: el operador lo lee en rojo en el chat y tiene que poder
+     * resolverlo sin preguntar —ponerle nombre al hilo, escribir el asunto, mandar una plantilla—.
      */
-    private function elegirAviso(string $idioma, ?string $referencia, ?string $nombre): array
+    private function porQueNoSePuedeAvisar(?MessageTemplate $plantilla, string $idioma, ?string $referencia, ?string $nombre): ?string
     {
-        $repo = $this->em->getRepository(MessageTemplate::class);
-
-        if ($referencia !== null && $nombre !== null) {
-            $conReferencia = $repo->findOneBy(['code' => self::PLANTILLA_CON_REFERENCIA]);
-
-            if ($conReferencia instanceof MessageTemplate && $conReferencia->hasWhatsappMetaOfficialData($idioma)) {
-                return [$conReferencia, ['guest_name' => $nombre, 'referencia' => $this->alIdiomaDelAviso($referencia, $idioma)]];
-            }
+        if (!$plantilla instanceof MessageTemplate) {
+            return sprintf('falta la plantilla «%s»', self::PLANTILLA);
         }
 
-        $generica = $repo->findOneBy(['code' => self::PLANTILLA]);
-
-        if ($generica instanceof MessageTemplate && $generica->hasWhatsappMetaOfficialData($idioma)) {
-            return [$generica, []];
+        if ($nombre === null) {
+            return 'este chat no tiene nombre de cliente, y el aviso empieza por «Hola …». Ponle nombre al chat y vuelve a enviarlo';
         }
 
-        return [null, []];
+        if ($referencia === null) {
+            return 'falta decir sobre qué es la respuesta';
+        }
+
+        if (!$plantilla->hasWhatsappMetaOfficialData($idioma)) {
+            return sprintf('el aviso «%s» no está aprobado por Meta en «%s». Envíalo con una plantilla o por otro canal', self::PLANTILLA, $idioma);
+        }
+
+        return null;
     }
 
     /**
