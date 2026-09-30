@@ -629,7 +629,12 @@ WhatsappMetaReceivePersister (cualquier mensaje suyo, botón o texto) → abre l
   cliente cambia el idioma del hilo, lo liberado sale en el idioma anterior. Raro: sólo hilos no
   fijados que nacieron en `es` por defecto.
 - 🏷️ **Meta pasó `mensaje_pendiente_v1` de UTILITY a MARKETING el mismo día** (correo del
-  Administrador de WhatsApp). Lo más probable: no nombra ninguna operación concreta, y para su
+  Administrador de WhatsApp). ⚠️ **Sólo el PORTUGUÉS**: el correo no dice el idioma y se dio por
+  hecho que era la plantilla entera. Consultado a Meta el 30/09/2026
+  (`/message_templates?fields=category,previous_category`): `pt_BR` en MARKETING con
+  `previous_category: UTILITY`, los otros seis en UTILITY. Cada idioma es una plantilla aparte para
+  Meta y se clasifica por separado; **`app:whatsapp:sync-templates` no refleja esa diferencia**
+  (guarda UNA categoría por plantilla), así que para saber la verdad hay que preguntarle a Meta. Lo más probable: no nombra ninguna operación concreta, y para su
   clasificador eso es un gancho para reabrir la conversación. Nació `respuesta_pendiente`:
   «Hola {{guest_name}}, ya tenemos la respuesta sobre {{referencia}}. ¿Te la enviamos por aquí?».
   - La **referencia la escribe el operador** en el chat («Sobre qué es:»), con una sugerencia según
