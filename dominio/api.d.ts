@@ -35252,6 +35252,8 @@ export interface operations {
                 contextId?: string;
                 "contextId[]"?: string[];
                 guestName?: string;
+                /** @description Sólo los hilos con mensajes esperando a que el cliente abra la ventana de WhatsApp. */
+                enEspera?: boolean;
             };
             header?: never;
             path?: never;
@@ -35400,6 +35402,8 @@ export interface operations {
                 contextId?: string;
                 "contextId[]"?: string[];
                 guestName?: string;
+                /** @description Sólo los hilos con mensajes esperando a que el cliente abra la ventana de WhatsApp. */
+                enEspera?: boolean;
             };
             header?: never;
             path?: never;

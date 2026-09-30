@@ -6,6 +6,7 @@ namespace App\Message\Command;
 
 use App\Command\EntradaDeConsola;
 use App\Message\Entity\MessageConversation;
+use App\Message\Service\Queue\MensajeEnEsperaDeVentana;
 use App\Message\Service\Queue\MessageRuleEngine;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -34,7 +35,8 @@ class MessageSyncRulesCommand extends Command
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly MessageRuleEngine $ruleEngine
+        private readonly MessageRuleEngine $ruleEngine,
+        private readonly MensajeEnEsperaDeVentana $espera,
     ) {
         parent::__construct();
     }
@@ -162,6 +164,18 @@ class MessageSyncRulesCommand extends Command
         }
 
         $io->progressFinish();
+
+        // ⏳ De paso, en el barrido general: lo que lleva días esperando a que el cliente abra la
+        // ventana de WhatsApp se da por no salido. Va aquí y no en un cron propio: este comando
+        // ya corre cada 15 minutos y es el que decide qué sigue vivo.
+        if ($syncAll) {
+            $caducados = $this->espera->caducar();
+            $this->em->flush();
+
+            if ($caducados > 0) {
+                $io->note(sprintf('%d mensaje(s) en espera caducados: el cliente no contestó en %d días.', $caducados, MensajeEnEsperaDeVentana::DIAS_DE_ESPERA));
+            }
+        }
 
         if ($dryRun) {
             $this->em->flush();

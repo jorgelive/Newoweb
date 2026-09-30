@@ -9,6 +9,7 @@ use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageTemplate;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Message\Service\Translation\MessageTranslator;
 use App\Service\Translate\GoogleTranslateService;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -54,6 +55,15 @@ final readonly class MensajeEnEsperaDeVentana
      */
     public const string PLANTILLA = 'respuesta_pendiente';
 
+    /**
+     * Cuánto espera un mensaje a que el cliente conteste antes de darse por no salido.
+     *
+     * Tres días (Jorge, 30/09/2026): pasado eso, quien lo escribió ya no cuenta con que salga, y
+     * un reloj de arena eterno esconde que hay que llamar o probar otro canal. Al caducar queda
+     * `failed` con el motivo y salta el aviso de envío fallido al equipo.
+     */
+    public const int DIAS_DE_ESPERA = 3;
+
     /** Lo que cabe en una variable de Meta sin romper la frase: una línea corta. */
     private const int MAX_REFERENCIA = 60;
 
@@ -67,6 +77,7 @@ final readonly class MensajeEnEsperaDeVentana
         private MessageDispatcher $dispatcher,
         private LoggerInterface $logger,
         private GoogleTranslateService $traductor,
+        private MessageTranslator $traductorDeMensajes,
     ) {}
 
     /**
@@ -140,7 +151,7 @@ final readonly class MensajeEnEsperaDeVentana
         // contexto, y el nombre tampoco en un hilo sin resolutor (ver Message::getVariablesPlantilla()).
         $aviso->setVariablesPlantilla([
             'guest_name' => $nombre,
-            'referencia' => $this->alIdiomaDelAviso($referencia, $idioma),
+            'referencia' => $this->referenciaEnIdioma($referencia, $idioma),
         ]);
 
         $hilo->addMessage($aviso);
@@ -200,7 +211,7 @@ final readonly class MensajeEnEsperaDeVentana
      * traducir, un huésped inglés leería «we have the answer regarding los tours que pediste».
      * Si el traductor falla, va tal cual: mejor mezclado que sin aviso.
      */
-    private function alIdiomaDelAviso(string $referencia, string $idioma): string
+    public function referenciaEnIdioma(string $referencia, string $idioma): string
     {
         if ($idioma === 'es') {
             return $referencia;
@@ -253,6 +264,7 @@ final readonly class MensajeEnEsperaDeVentana
             // Ocurre AHORA, no cuando se escribió: en el hilo tiene que quedar debajo de la
             // respuesta del cliente, que es cuando de verdad le llegó.
             $mensaje->setScheduledAt($ahora);
+            $this->retraducirSiCambioElIdioma($mensaje, $hilo);
             $mensaje->addMetadata('en_espera_liberado', $ahora->format(DATE_ATOM));
 
             foreach ($this->dispatcher->dispatch($mensaje) as $cola) {
@@ -264,6 +276,64 @@ final readonly class MensajeEnEsperaDeVentana
         }
 
         return $liberados;
+    }
+
+    /**
+     * Da por no salido lo que lleva más de {@see self::DIAS_DE_ESPERA} días esperando.
+     *
+     * Lo llama el barrido de reglas (`app:message:sync-rules --all`, cada 15 minutos): no tiene
+     * cron propio. NO hace flush. El paso a `failed` dispara `AvisoEnvioFallidoListener`, que es
+     * quien se lo cuenta al equipo — no se duplica aquí el aviso.
+     *
+     * @return int Cuántos caducaron.
+     */
+    public function caducar(?DateTimeImmutable $ahora = null): int
+    {
+        $limite = ($ahora ?? new DateTimeImmutable())->modify(sprintf('-%d days', self::DIAS_DE_ESPERA));
+
+        /** @var list<Message> $vencidos */
+        $vencidos = $this->em->createQueryBuilder()
+            ->select('m')
+            ->from(Message::class, 'm')
+            ->where('m.status = :espera')
+            ->andWhere('m.direction = :saliente')
+            ->andWhere('m.createdAt < :limite')
+            ->setParameter('espera', Message::STATUS_EN_ESPERA)
+            ->setParameter('saliente', Message::DIRECTION_OUTGOING)
+            ->setParameter('limite', $limite)
+            ->getQuery()
+            ->getResult();
+
+        foreach ($vencidos as $mensaje) {
+            $mensaje->setStatus(Message::STATUS_FAILED);
+            $mensaje->addMetadata('dispatch_errors', [sprintf(
+                'El cliente no contestó al aviso de WhatsApp en %d días: este mensaje NO salió. '
+                . 'Escríbele por otro canal o vuelve a intentarlo.',
+                self::DIAS_DE_ESPERA
+            )]);
+        }
+
+        return count($vencidos);
+    }
+
+    /**
+     * Si el cliente contestó en otro idioma, lo que esperaba se vuelve a traducir.
+     *
+     * La traducción se fija al escribir (`MessageTranslator` en `prePersist`), con el idioma que
+     * el hilo tenía entonces. Un hilo que nació en español por defecto y cuyo cliente contesta en
+     * inglés cambia de idioma en ese mismo mensaje — y lo liberado salía en español.
+     */
+    private function retraducirSiCambioElIdioma(Message $mensaje, MessageConversation $hilo): void
+    {
+        $idiomaDelHilo = (string) $hilo->getIdioma()->getId();
+
+        if (trim((string) $mensaje->getContentLocal()) === '' || $mensaje->getLanguageCode() === $idiomaDelHilo) {
+            return;
+        }
+
+        // Vaciar el externo manda a `process()` por su rama «escrito aquí, falta el del huésped».
+        $mensaje->setContentExternal(null);
+        $this->traductorDeMensajes->process($mensaje);
     }
 
     /**

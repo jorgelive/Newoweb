@@ -623,9 +623,6 @@ WhatsappMetaReceivePersister (cualquier mensaje suyo, botón o texto) → abre l
   han llegado al cliente.
 - Tras enviar en espera, el chat **sigue en modo esperar**: re-elegir los canales por defecto con
   la ventana cerrada marcaba Beds24 y el siguiente párrafo salía por Booking.
-- ⚠️ **La traducción se fija al escribir** (`MessageTranslator` en `prePersist`). Si la respuesta del
-  cliente cambia el idioma del hilo, lo liberado sale en el idioma anterior. Raro: sólo hilos no
-  fijados que nacieron en `es` por defecto.
 - 🏷️ **Meta pasó `mensaje_pendiente_v1` de UTILITY a MARKETING el mismo día** (correo del
   Administrador de WhatsApp). ⚠️ **Sólo el PORTUGUÉS**: el correo no dice el idioma y se dio por
   hecho que era la plantilla entera. Consultado a Meta el 30/09/2026
@@ -660,8 +657,22 @@ WhatsappMetaReceivePersister (cualquier mensaje suyo, botón o texto) → abre l
     panel: si se guarda la plantilla desde EasyAdmin, comprobar que sigue antes de re-subirla.
 - **Primer uso real (28/09/2026):** la cotización de Eduardo. Aviso a las 18:07, pulsó «Sí,
   envíamela» a las 18:35:57 y su mensaje salió a las 18:35:59.
-- ⚠️ **No caduca todavía.** Un mensaje que espera a alguien que no contesta nunca se queda en
-  `en_espera` indefinidamente. Pendiente decidir el plazo y el aviso al equipo.
+- ⌛ **Caduca a los 3 días** (`MensajeEnEsperaDeVentana::DIAS_DE_ESPERA`, 30/09/2026). Lo que
+  sigue esperando pasa a `failed` con el motivo («el cliente no contestó al aviso en 3 días: este
+  mensaje NO salió») y `AvisoEnvioFallidoListener` avisa al equipo. Sin cron propio: lo hace
+  `caducar()` desde el barrido `app:message:sync-rules --all`, cada 15 minutos.
+- 🔎 **Filtro «en espera» en la bandeja**: el reloj de arena del buscador pide `?enEspera=1`
+  (`ConversacionConMensajeEnEsperaFilter`, un `EXISTS` en el servidor — la bandeja está paginada y
+  filtrar en el navegador sólo encontraría lo ya cargado). Como al buscar, deja de acotar por
+  pestaña.
+- 🕐 **La ventana se calcula contra el reloj en el chat** (`ventanaAbierta` en `ChatView.vue`, con
+  `whatsappSessionValidUntil` y un reloj de 30 s), no con el booleano `whatsappSessionActive`, que
+  es una foto de cuando se cargó el hilo. Si caduca con el chat abierto, el botón pasa solo a modo
+  «esperar»; antes el envío salía como texto libre y el backend lo rechazaba.
+- 🌐 **Al liberar se retraduce si el hilo cambió de idioma** (`retraducirSiCambioElIdioma()`): la
+  traducción se fija al escribir, y un cliente que contesta en inglés a un hilo que estaba en
+  español recibía el mensaje en español.
+- 🧪 `msg:espera:referencia "texto"` enseña cómo queda el «sobre qué es» en cada idioma, sin enviar.
 
 Se crea con `msg:plantillas:mensaje-pendiente` y se sube con `msg:meta:push respuesta_pendiente --todos`.
 
@@ -6925,6 +6936,7 @@ de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar
 | Leer un campo nuevo de la RESPUESTA de un envío (Meta, Beds24, correo) | `src/Exchange/Dto/` | `RespuestaGraphMeta` / `Beds24Respuesta` / `ResultadoDelCorreo` — y `tools/pruebas/probar-dto-canales.php` (§14.c) |
 | Que un rechazo síncrono de Meta deje el mensaje FALLIDO (hoy se da por enviado) | `WhatsappMetaSendMappingStrategy` | `parseResponse()` — leer `status` de la fila del cliente; **y** actualizar `WhatsappMetaSendMappingStrategyTest`. Decidir antes el reintento (§14.c) |
 | Cambiar qué pasa con lo que se escribe para WhatsApp con la ventana cerrada (aviso, liberación) | `MensajeEnEsperaDeVentana` | `retener()` / `liberar()` — §5, «Mensaje en espera». El modo del chat: `puedeEsperarVentana` en `ChatView.vue` |
+| Cambiar cuánto espera un mensaje antes de darse por no salido | `MensajeEnEsperaDeVentana` | `DIAS_DE_ESPERA` / `caducar()` — lo llama `app:message:sync-rules --all` |
 | Cambiar el texto o el botón del aviso de mensaje en espera | plantilla `respuesta_pendiente` (panel) | la crea `msg:plantillas:mensaje-pendiente`; en Meta, texto nuevo = versión nueva (§18) |
 | Cambiar cómo se escribe el valor de una variable en un texto | `HidratadorDeMarcadores` | `comoTexto()` — lo usan los tres canales de envío (§14.c) |
 | Cambiar cómo se recorre el sobre de Meta | `WhatsappMetaWebhookMessageFastTrackService` | `procesarSobre()` — el único recorrido, lo usan el webhook y el «reprocesar» |

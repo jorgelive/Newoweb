@@ -213,6 +213,12 @@ export const useChatStore = defineStore('chatStore', () => {
     const filterStatus = ref<string>('open');
     // Texto del buscador del Inbox. Vacío = bandeja normal, con sus tres pestañas.
     const busqueda = ref<string>('');
+    /**
+     * Sólo los hilos con algo esperando a que el cliente abra la ventana de WhatsApp.
+     * Lo resuelve el servidor (`?enEspera=1`, `ConversacionConMensajeEnEsperaFilter`): la bandeja
+     * está paginada y filtrando aquí sólo se encontraría lo ya cargado.
+     */
+    const soloEnEspera = ref(false);
 
     // Estados de Carga
     const loadingConversations = ref(false);
@@ -291,6 +297,9 @@ export const useChatStore = defineStore('chatStore', () => {
     const filteredConversations = computed(() => {
         const q = normalizarBusqueda(busqueda.value);
         if (q !== '') return conversations.value.filter(c => normalizarBusqueda(c.guestName ?? '').includes(q));
+        // Igual que al buscar: «qué tengo esperando» no distingue activo de archivado, y el
+        // servidor ya filtró.
+        if (soloEnEspera.value) return conversations.value;
         return conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase());
     });
 
@@ -448,7 +457,8 @@ export const useChatStore = defineStore('chatStore', () => {
 
         try {
             const filtroNombre = busqueda.value.trim() !== '' ? `&guestName=${encodeURIComponent(busqueda.value.trim())}` : '';
-            const response = await apiClient.get(`/platform/message/conversations?order[lastMessageAt]=desc&page=${pageToFetch}${filtroNombre}`);
+            const filtroEspera = soloEnEspera.value ? '&enEspera=1' : '';
+            const response = await apiClient.get(`/platform/message/conversations?order[lastMessageAt]=desc&page=${pageToFetch}${filtroNombre}${filtroEspera}`);
             if (gen !== fetchConversacionesGen) return;
             const data = extractData<ApiConversation>(response);
             if (loadMore) {
@@ -1356,6 +1366,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, totalProgramados, totalCancelados, templates, validTemplates, filterStatus, busqueda, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, cargarMasDePestana, hayMasProgramados, hayMasCancelados, cargandoMasPestana, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation, cargarCabecera
+        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, totalProgramados, totalCancelados, templates, validTemplates, filterStatus, busqueda, soloEnEspera, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, cargarMasDePestana, hayMasProgramados, hayMasCancelados, cargandoMasPestana, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation, cargarCabecera
     };
 });

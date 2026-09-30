@@ -606,6 +606,11 @@ watch(() => store.busqueda, () => {
 });
 onUnmounted(() => { if (temporizadorBusqueda) clearTimeout(temporizadorBusqueda); });
 
+const alternarEnEspera = () => {
+  store.soloEnEspera = !store.soloEnEspera;
+  void store.fetchConversations();
+};
+
 const onConversationScroll = async () => {
   const el = conversationsContainer.value;
   if (!el || store.loadingMoreConversations || !store.hasMoreConversations) return;
@@ -725,10 +730,31 @@ const isEmailAllowed = computed(() => {
   return true;
 });
 
+/**
+ * La ventana de 24 h, calculada AQUÍ contra el reloj, no leída del booleano del servidor.
+ *
+ * `whatsappSessionActive` es una foto del momento en que se cargó el hilo: si la ventana caduca
+ * con el chat abierto —nada avisa de eso—, la vista seguía ofreciendo texto libre y el backend lo
+ * rechazaba («ventana caducada» → mensaje en rojo). Con la hora de caducidad y un reloj que avanza,
+ * el botón pasa solo a modo «esperar» cuando toca.
+ */
+const ahora = ref(Date.now());
+const relojDeVentana = setInterval(() => { ahora.value = Date.now(); }, 30_000);
+onUnmounted(() => clearInterval(relojDeVentana));
+
+const ventanaAbierta = computed(() => {
+  const chat = store.currentConversation;
+  if (!chat) return false;
+
+  const caduca = chat.whatsappSessionValidUntil ? new Date(chat.whatsappSessionValidUntil).getTime() : NaN;
+
+  return Number.isNaN(caduca) ? (chat.whatsappSessionActive ?? false) : caduca > ahora.value;
+});
+
 const isWhatsappAllowed = computed(() => {
   if (!canalHabilitado('whatsapp_meta')) return false;
 
-  const sessionActive = store.currentConversation?.whatsappSessionActive ?? false;
+  const sessionActive = ventanaAbierta.value;
 
   if (selectedTemplateId.value) {
     const tpl = store.templates.find(t => (t['@id'] || t.id) === selectedTemplateId.value);
@@ -752,7 +778,7 @@ const isWhatsappAllowed = computed(() => {
 const puedeEsperarVentana = computed(() =>
   canalHabilitado('whatsapp_meta')
   && !store.currentConversation?.whatsappDisabled
-  && !(store.currentConversation?.whatsappSessionActive ?? false)
+  && !ventanaAbierta.value
   && !selectedTemplateId.value
 );
 
@@ -909,7 +935,7 @@ const selectTemplate = (tpl: ApiTemplate) => {
   let newChannels = tpl.channels || [];
 
   const chat = store.currentConversation;
-  const sessionActive = chat?.whatsappSessionActive;
+  const sessionActive = ventanaAbierta.value;
 
   if (chat?.whatsappDisabled || (!sessionActive && tpl.whatsappMetaOfficial === false)) {
     newChannels = newChannels.filter((c: string) => c !== 'whatsapp_meta');
@@ -951,6 +977,16 @@ const adjustTextareaHeight = () => {
 
 const send = async () => {
   if (!newMessageText.value.trim() && !selectedTemplateId.value && !attachmentStore.file) return;
+
+  // El reloj de la ventana avanza cada 30 s: se pone en hora justo antes de decidir, para que
+  // un envío en el segundo en que caduca no salga por el camino equivocado.
+  ahora.value = Date.now();
+  if (selectedChannels.value.includes('whatsapp_meta') && !selectedTemplateId.value && !ventanaAbierta.value && !esperaVentana.value) {
+    store.error = 'La ventana de WhatsApp acaba de cerrarse. Escribe sobre qué es y envíalo en modo «esperar».';
+    selectedChannels.value = ['whatsapp_meta'];
+    return;
+  }
+
   if (selectedChannels.value.length === 0 && !selectedTemplateId.value) {
     store.error = 'Selecciona al menos un canal de envío.';
     return;
@@ -1379,9 +1415,21 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
         <div class="relative mb-3">
           <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
           <input v-model="store.busqueda" type="search" placeholder="Buscar por nombre…" autocomplete="off"
-                 class="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 placeholder:text-slate-300 placeholder:font-bold focus:outline-none focus:border-[#376875]" />
+                 class="w-full pl-9 pr-12 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 placeholder:text-slate-300 placeholder:font-bold focus:outline-none focus:border-[#376875]" />
+          <!-- Sólo los hilos con algo esperando a que el cliente abra la ventana de WhatsApp:
+               un mensaje en espera sólo se ve dentro de su chat, y sin esto había que acordarse
+               de dónde se dejó. -->
+          <button type="button" @click="alternarEnEspera"
+                  class="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                  :class="store.soloEnEspera ? 'bg-amber-100 text-amber-700' : 'text-slate-300 hover:text-amber-600 hover:bg-amber-50'"
+                  :title="store.soloEnEspera ? 'Viendo sólo los chats con mensajes en espera. Pulsa para ver todos.' : 'Ver sólo los chats con mensajes esperando respuesta para salir'">
+            <i class="fas fa-hourglass-half text-xs"></i>
+          </button>
         </div>
-        <div v-show="!store.busqueda.trim()" class="flex bg-slate-100 p-1 rounded-xl mb-4 shadow-inner">
+        <p v-if="store.soloEnEspera" class="mb-3 px-1 text-[10px] font-black uppercase tracking-wider text-amber-700">
+          <i class="fas fa-hourglass-half mr-1"></i> Con mensajes en espera
+        </p>
+        <div v-show="!store.busqueda.trim() && !store.soloEnEspera" class="flex bg-slate-100 p-1 rounded-xl mb-4 shadow-inner">
           <button v-for="status in (['open', 'archived', 'closed'] as const)" :key="status" @click="store.filterStatus = status" class="flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5" :class="store.filterStatus === status ? 'bg-white text-[#376875] shadow-sm' : 'text-slate-400 hover:text-slate-600'">
             <span>{{ status === 'open' ? 'Activos' : status === 'archived' ? 'Archivados' : 'Cerrados' }}</span>
             <span
@@ -1394,7 +1442,7 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
 
       <div class="flex-1 overflow-y-auto scrollbar-hide py-2 px-3" ref="conversationsContainer" @scroll="onConversationScroll">
         <div v-if="store.loadingConversations" class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-slate-300"></i></div>
-        <div v-else-if="store.filteredConversations.length === 0" class="p-10 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">{{ store.busqueda.trim() ? 'Sin resultados' : 'Bandeja Vacía' }}</div>
+        <div v-else-if="store.filteredConversations.length === 0" class="p-10 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">{{ store.busqueda.trim() ? 'Sin resultados' : (store.soloEnEspera ? 'Nada en espera' : 'Bandeja Vacía') }}</div>
 
         <div v-for="(chat, index) in store.filteredConversations" :key="chat?.id ?? index" class="mb-1">
           <button @click="handleChatClick(chat)"
@@ -1814,7 +1862,7 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
 
                 <i v-if="store.currentConversation?.whatsappDisabled" class="fas fa-exclamation-triangle text-red-500 animate-pulse ml-1 text-[10px]" title="Canal Bloqueado"></i>
                 <i v-else-if="esperaVentana" class="fas fa-hourglass-half text-[10px] ml-1 text-amber-600" title="Saldrá cuando conteste"></i>
-                <i v-else-if="!store.currentConversation?.whatsappSessionActive" class="fas fa-lock text-[10px] ml-1" :class="selectedChannels.includes('whatsapp_meta') ? 'text-green-700/50' : 'text-slate-400'" title="Sesión de 24h inactiva"></i>
+                <i v-else-if="!ventanaAbierta" class="fas fa-lock text-[10px] ml-1" :class="selectedChannels.includes('whatsapp_meta') ? 'text-green-700/50' : 'text-slate-400'" title="Sesión de 24h inactiva"></i>
                 <i v-else-if="!isWhatsappAllowed" class="fas fa-ban text-[9px] ml-0.5 opacity-50" :title="motivoCanal('whatsapp_meta') ?? 'La plantilla elegida no sale por WhatsApp'"></i>
               </button>
 
