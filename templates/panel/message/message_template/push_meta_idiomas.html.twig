@@ -40,6 +40,7 @@
                                         <th style="width:3rem"></th>
                                         <th>Idioma</th>
                                         <th>Estado en Meta</th>
+                                        <th>Categoría</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -61,6 +62,14 @@
                                                 : (idioma.estado == 'DELETED' ? 'badge-dark' : 'badge-warning')) }}">
                                                 {{ idioma.estado }}
                                             </span>
+                                        </td>
+                                        {# Por idioma: Meta reclasifica uno a uno. Marketing, en ámbar. #}
+                                        <td>
+                                            {% if idioma.categoria %}
+                                                <span class="badge {{ idioma.categoria == 'MARKETING' ? 'badge-warning' : 'badge-success' }}">
+                                                    {{ idioma.categoria }}
+                                                </span>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                 {% endfor %}

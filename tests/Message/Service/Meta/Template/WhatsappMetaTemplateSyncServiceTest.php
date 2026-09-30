@@ -130,6 +130,28 @@ final class WhatsappMetaTemplateSyncServiceTest extends TestCase
         self::assertSame([['language' => 'pt', 'content' => 'OpenPeru']], $tmpl['footer'] ?? null);
     }
 
+    /**
+     * Meta reclasifica idioma por idioma: el 28/09/2026 pasó a MARKETING sólo el portugués de
+     * `mensaje_pendiente_v1`, y aquí ganaba el último idioma sincronizado.
+     */
+    #[Test]
+    public function la_categoria_se_guarda_por_idioma_y_la_general_la_mueve_solo_el_espanol(): void
+    {
+        $plantilla = self::plantillaLocal();
+
+        self::sincronizar($plantilla, [
+            'name' => 'welcome_airbnb', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'UTILITY',
+            'components' => [['type' => 'BODY', 'text' => 'Hola']],
+        ]);
+        self::sincronizar($plantilla, [
+            'name' => 'welcome_airbnb', 'language' => 'pt_BR', 'status' => 'APPROVED', 'category' => 'MARKETING',
+            'components' => [['type' => 'BODY', 'text' => 'Olá']],
+        ]);
+
+        self::assertSame('UTILITY', $plantilla->getWhatsappMetaTmpl()['category'] ?? null);
+        self::assertSame(['es' => 'UTILITY', 'pt' => 'MARKETING'], $plantilla->getCategoriaMetaPorIdioma());
+    }
+
     #[Test]
     public function un_idioma_que_no_trabajamos_no_toca_nada(): void
     {

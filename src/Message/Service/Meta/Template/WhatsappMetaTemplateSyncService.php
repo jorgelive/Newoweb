@@ -192,7 +192,17 @@ final readonly class WhatsappMetaTemplateSyncService
         // MARCADO CRÍTICO: Todo lo que viene de la API es oficial de Meta.
         $metaTmpl['is_official_meta'] = true;
         $metaTmpl['meta_template_name'] = $metaName;
-        $metaTmpl['category'] = $plantilla->categoria ?? ($metaTmpl['category'] ?? 'UTILITY');
+        // 🔥 La categoría es POR IDIOMA: Meta las reclasifica una a una. Antes se escribía aquí la
+        // general en cada vuelta, así que ganaba el último idioma que devolviera Meta y un
+        // portugués en MARKETING quedaba tapado por seis en UTILITY (o al revés). Ahora cada
+        // idioma guarda la suya en `categorias`, y la general sólo la mueve el español, que es el
+        // idioma de referencia: es la que se declara al subir un idioma nuevo.
+        $categoria = $plantilla->categoria ?? ($metaTmpl['category'] ?? 'UTILITY');
+        $metaTmpl['categorias'] = [$language => $categoria] + ($metaTmpl['categorias'] ?? []);
+
+        if ($language === 'es' || !isset($metaTmpl['category'])) {
+            $metaTmpl['category'] = $categoria;
+        }
 
         // 4. Procesamiento del BODY. Del componente, el PRIMERO de su tipo (ver
         // `PlantillaMeta::componente()`); sin él, el texto es vacío y se guarda vacío. El `??`

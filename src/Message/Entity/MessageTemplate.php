@@ -65,6 +65,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  *     disable_meta_buttons?: bool,
  *     meta_template_name?: string|null,
  *     category?: string|null,
+ *     categorias?: array<string, string>,
  *     ejemplos?: array<string, array<string, string>>
  * }
  */
@@ -559,6 +560,48 @@ class MessageTemplate
         uksort($conteo, static fn (string $a, string $b): int => ($prioridad[$a] ?? 9) <=> ($prioridad[$b] ?? 9));
 
         return $conteo;
+    }
+
+    /** Stub del listado, por el mismo motivo que {@see self::getVirtualEstadoMeta()}. */
+    public function getVirtualCategoriaMeta(): string
+    {
+        return '';
+    }
+
+    /**
+     * Categoría en Meta de CADA idioma. Campo VIRTUAL.
+     *
+     * 🔥 Meta clasifica cada idioma por separado, igual que lo aprueba por separado. El 28/09/2026
+     * pasó `mensaje_pendiente_v1` de UTILITY a MARKETING **sólo en portugués**: el correo no decía
+     * el idioma, aquí se guardaba UNA categoría por plantilla —la del último idioma sincronizado—
+     * y se dio por hecho que había cambiado entera. La categoría decide precio y tope de frecuencia,
+     * así que hay que verla idioma por idioma.
+     *
+     * Un idioma sincronizado antes de que existiera el dato cae en la categoría general.
+     *
+     * @return array<string, string> Idioma => categoría, ej. `['es' => 'UTILITY', 'pt' => 'MARKETING']`
+     */
+    public function getCategoriaMetaPorIdioma(): array
+    {
+        $cuerpos = $this->whatsappMetaTmpl['body'] ?? null;
+
+        if (!is_array($cuerpos) || $cuerpos === []) {
+            return [];
+        }
+
+        $general = (string) ($this->whatsappMetaTmpl['category'] ?? '');
+        $sincronizadas = $this->whatsappMetaTmpl['categorias'] ?? [];
+        $porIdioma = [];
+
+        foreach ($cuerpos as $cuerpo) {
+            $idioma = (string) ($cuerpo['language'] ?? '');
+
+            if ($idioma !== '') {
+                $porIdioma[$idioma] = strtoupper($sincronizadas[$idioma] ?? $general);
+            }
+        }
+
+        return $porIdioma;
     }
 
     /** @return BloqueDeCanal|null */

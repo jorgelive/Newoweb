@@ -633,8 +633,12 @@ WhatsappMetaReceivePersister (cualquier mensaje suyo, botón o texto) → abre l
   hecho que era la plantilla entera. Consultado a Meta el 30/09/2026
   (`/message_templates?fields=category,previous_category`): `pt_BR` en MARKETING con
   `previous_category: UTILITY`, los otros seis en UTILITY. Cada idioma es una plantilla aparte para
-  Meta y se clasifica por separado; **`app:whatsapp:sync-templates` no refleja esa diferencia**
-  (guarda UNA categoría por plantilla), así que para saber la verdad hay que preguntarle a Meta. Lo más probable: no nombra ninguna operación concreta, y para su
+  Meta y se clasifica por separado. Hasta ese día `app:whatsapp:sync-templates` guardaba UNA
+  categoría por plantilla —la del último idioma que devolviera Meta—; desde entonces guarda
+  `categorias` (idioma → categoría) en el JSON de WhatsApp, la general sólo la mueve el español, y
+  el panel lo enseña: columna «Categoría Meta» del listado (una etiqueta si coinciden; si no, cuál
+  idioma está en cuál, con MARKETING en ámbar) y columna «Categoría» en «Subir a Meta»
+  (`MessageTemplate::getCategoriaMetaPorIdioma()`). Lo más probable: no nombra ninguna operación concreta, y para su
   clasificador eso es un gancho para reabrir la conversación. Nació `respuesta_pendiente`:
   «Hola {{guest_name}}, ya tenemos la respuesta sobre {{referencia}}. ¿Te la enviamos por aquí?».
   - La **referencia la escribe el operador** en el chat («Sobre qué es:»), con una sugerencia según

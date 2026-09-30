@@ -302,6 +302,43 @@ class MessageTemplateCrudController extends BaseCrudController
             })
             ->renderAsHtml();
 
+        // Categoría en Meta, por idioma. Si todos coinciden, una sola etiqueta; si Meta
+        // reclasificó alguno, se ve CUÁL — que es lo que el correo de Meta no dice.
+        yield TextField::new('virtualCategoriaMeta', 'Categoría Meta')
+            ->onlyOnIndex()
+            ->setSortable(false)
+            ->formatValue(static function (mixed $value, ?MessageTemplate $entity): string {
+                $porIdioma = $entity?->getCategoriaMetaPorIdioma() ?? [];
+
+                if ($porIdioma === []) {
+                    return '';
+                }
+
+                $idiomasDe = [];
+                foreach ($porIdioma as $idioma => $categoria) {
+                    $idiomasDe[$categoria !== '' ? $categoria : '?'][] = strtoupper($idioma);
+                }
+
+                // Marketing es la que cuesta y la que tiene tope: va en ámbar para que salte.
+                $color = ['UTILITY' => 'badge-success', 'MARKETING' => 'badge-warning', 'AUTHENTICATION' => 'badge-info'];
+                $mezclada = count($idiomasDe) > 1;
+                $badges = [];
+
+                foreach ($idiomasDe as $categoria => $idiomas) {
+                    $badges[] = sprintf(
+                        '<span class="badge %s" style="%s" title="%s">%s%s</span>',
+                        $color[$categoria] ?? 'badge-secondary',
+                        self::ESTILO_BADGE,
+                        htmlspecialchars(implode(', ', $idiomas), ENT_QUOTES),
+                        htmlspecialchars(ucfirst(strtolower($categoria)), ENT_QUOTES),
+                        $mezclada ? ' · ' . htmlspecialchars(implode(' ', $idiomas), ENT_QUOTES) : ''
+                    );
+                }
+
+                return implode(' ', $badges);
+            })
+            ->renderAsHtml();
+
         yield BooleanField::new('ejecutarTraduccion', 'Traducir Auto')->onlyOnForms()->setColumns(6);
         yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir')->onlyOnForms()->setColumns(6);
 
@@ -855,6 +892,7 @@ class MessageTemplateCrudController extends BaseCrudController
                 'idiomas' => array_map(static fn (array $b): array => [
                     'codigo' => (string) ($b['language'] ?? '?'),
                     'estado' => (string) ($b['status'] ?? 'SIN ENVIAR'),
+                    'categoria' => $template->getCategoriaMetaPorIdioma()[(string) ($b['language'] ?? '')] ?? '',
                 ], is_array($cuerpos) ? $cuerpos : []),
                 'urlVolver' => $peticion->headers->get('referer')
                     ?? $adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl(),
