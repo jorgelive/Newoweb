@@ -33,6 +33,9 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
      */
     private const string BEDS24_CANCELLED = 'cancelled';
 
+    /** Prefijo de `custom3`: nuestro estado, para que el pull lo lea de vuelta sin adivinar. */
+    public const string PREFIJO_ESTADO = 'ESTADO:';
+
 
     /**
      * Transforma el lote de la cola al formato de transporte HTTP.
@@ -287,6 +290,18 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         // Identificadores PMS para deduplicación determinista en migraciones
         $payload['custom1'] = 'PMS:' . (string) $link->getId();
         $payload['custom2'] = $isMirror ? 'MIRROR' : 'PRINCIPAL';
+
+        // Nuestro estado, tal cual, para que el viaje de vuelta sea determinista.
+        //
+        // 🔥 `bloqueo` y `extension` comparten código en Beds24 (`black`): de ida no se pierde nada,
+        // pero el pull, al leer «black», no podía saber cuál de los dos era y se quedaba con el
+        // primero que devolvía la base. La noche de una entrada temprana nacía `extension` y esa
+        // misma noche pasaba a `bloqueo` (UV5XPW, 28/09/2026). Con el estado escrito en `custom3`,
+        // Beds24 nos lo devuelve y no hay nada que adivinar.
+        $estadoPms = $evento->getEstado()?->getId();
+        if ($estadoPms !== null && $estadoPms !== '') {
+            $payload['custom3'] = self::PREFIJO_ESTADO . $estadoPms;
+        }
 
         return $payload;
     }

@@ -58,6 +58,12 @@ final class Beds24BookingDto
         public readonly ?string $custom1 = null,
         public readonly ?string $custom2 = null,
         /**
+         * Nuestro ESTADO, escrito por el push: `ESTADO:extension`. Beds24 sólo tiene un código
+         * (`black`) para dos estados nuestros, y éste es el que dice cuál de los dos es.
+         * Ver `BookingPullPersister::resolveEstado()`.
+         */
+        public readonly ?string $custom3 = null,
+        /**
          * Estructura cruda del grupo, para llegar a `master` o a `ids`.
          *
          * ⚠️ Estaba declarado ANTES de los obligatorios. PHP marca eso como obsoleto desde la
@@ -118,6 +124,7 @@ final class Beds24BookingDto
             modifiedTime: self::toDateTimeOrNull($booking['modifiedTime'] ?? null),
             custom1: self::toStringOrNull($booking['custom1'] ?? null),
             custom2: self::toStringOrNull($booking['custom2'] ?? null),
+            custom3: self::toStringOrNull($booking['custom3'] ?? null),
         );
     }
 

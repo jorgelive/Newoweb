@@ -1063,6 +1063,33 @@ Un evento real resuelve las dos cosas: ocupa la unidad **dentro** del PMS y viaj
 `isOta = false`**, aunque su estancia venga de Airbnb: si heredara el canal, el push se negaría a
 mandar sus fechas y no bloquearía nada.
 
+#### 🏷️ El estado viaja en `custom3`, porque `black` son dos (30/09/2026)
+
+De ida no se pierde nada: `bloqueo` y `extension` tienen el mismo código de Beds24 (`black`), que
+es lo único que Beds24 sabe decir de una noche cerrada. **De vuelta sí**: el pull leía «black» y
+hacía `findOneBy(['codigoBeds24' => 'black'])`, que devuelve el primero que dé la base. La noche de
+la entrada temprana de Lizbeth (UV5XPW) nació `extension` el 28/09 a las 09:07 y a las 23:35 ya era
+`bloqueo`. Sin error: el mismo tipo de noche acababa con dos estados según hubiera pasado o no la
+sincronización, y cualquier filtro por `extension` la perdía.
+
+Se resuelve igual que la identidad (`custom1 = PMS:<link>`) y el papel (`custom2 = MIRROR|PRINCIPAL`):
+**el push escribe nuestro estado en `custom3`** (`ESTADO:extension`,
+`BookingsPushMappingStrategy::PREFIJO_ESTADO`) y el pull lo lee de vuelta.
+
+`BookingPullPersister::elegirEstado()` sólo decide cuando un `status` tiene VARIOS estados nuestros:
+
+| Orden | Manda | Por qué |
+|---|---|---|
+| 1 | `custom3`, si nombra uno de los candidatos | Beds24 nos devuelve lo que le dijimos: determinista |
+| 2 | El estado que ya tiene el evento, si es candidato | Lo empujado antes de `custom3` no lo lleva |
+| 3 | `bloqueo` | Un «black» desconocido y mudo es un cierre hecho a mano en Beds24. Nombrado, no «el primero» |
+
+⚠️ `custom3` **no puede cambiar de código**: un `ESTADO:confirmada` sobre un «black» se ignora. Y con
+un solo candidato ni se mira — el estado de una reserva de OTA lo sigue diciendo el canal.
+
+La migración `Version20260930120000` devolvió a `extension` las dos que ya habían cambiado
+(reconocibles por `evento_origen_id`). Cubierto por `EstadoDesdeBeds24Test`.
+
 #### El reto: que sea invisible
 
 La extensión cuelga de la misma reserva (para que el borrado en cascada y las finanzas la sigan),
@@ -6305,6 +6332,7 @@ contra la base local: mismos veredictos que antes.
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
 | Añadir un campo de Beds24 a la reserva | `Beds24BookingDto` | `fromArray()` — el ÚNICO camino, pull y webhook (§12.20) |
+| Un `status` de Beds24 que corresponde a VARIOS estados nuestros (`black` = bloqueo o extensión) | `BookingPullPersister` + `BookingsPushMappingStrategy` | `elegirEstado()` lee el `custom3` que escribe el push (`PREFIJO_ESTADO`) — §7.1.b |
 | Cambiar qué link reclama una reserva que llega del pull | `BookingPullPersister` | `upsert()` — manda el `bookId`; el `custom1` sólo adopta links LIBRES (§9.7) |
 | **Deshacer un `custom1` duplicado** (el link sigue a la reserva equivocada) | `PmsBeds24RepararMarcadorDuplicadoCommand` | `app:pms:beds24:reparar-marcador-duplicado <link> --quedarse=… --borrar=…` (§9.7.b) |
 | Leer un campo nuevo de una respuesta de Beds24 (éxito, error, id, paginación) | `src/Exchange/Dto/Beds24/Beds24Respuesta.php` | `fromArray()` — y `tools/pruebas/probar-dto-canales.php` para comprobar que no cambia lo demás (§8.2) |

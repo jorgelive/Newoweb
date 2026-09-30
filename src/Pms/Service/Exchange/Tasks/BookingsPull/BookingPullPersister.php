@@ -11,6 +11,7 @@ use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoEstado;
+use App\Pms\Service\Exchange\Tasks\BookingsPush\BookingsPushMappingStrategy;
 use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsUnidadBeds24Map;
@@ -51,7 +52,7 @@ final class BookingPullPersister implements ResetInterface
     private array $cacheIdiomas = [];
     /** @var array<string, PmsChannel> Caché de canal por clave, para no repetir consultas en el lote. */
     private array $cacheCanales = [];
-    /** @var array<string, PmsEventoEstado> Caché de estado de evento por clave, para no repetir consultas en el lote. */
+    /** @var array<string, list<PmsEventoEstado>> Los estados nuestros de cada `status` de Beds24 (`black` tiene dos), para no repetir consultas en el lote. */
     private array $cacheEstados = [];
 
     public function __construct(
@@ -697,7 +698,7 @@ final class BookingPullPersister implements ResetInterface
             $evento->setRateDescription($booking->rateDescription);
 
             // 💡 FIX: Capturamos el estado calculado en una variable para poder pasarlo luego a EstadoPago
-            $estadoReal = $this->resolveEstado($booking);
+            $estadoReal = $this->resolveEstado($booking, $evento->getEstado());
             $evento->setEstado($estadoReal);
 
             //ahora el channel el del evento
@@ -841,25 +842,67 @@ final class BookingPullPersister implements ResetInterface
      *
      * Detalle y motivo en `docs/PmsBeds24ReservasSync.md` §5.4.
      */
-    private function resolveEstado(Beds24BookingDto $dto): PmsEventoEstado
+    /**
+     * El estado nuestro que corresponde a un `status` de Beds24.
+     *
+     * Casi siempre hay uno solo. Pero **`black` son dos** —`bloqueo`, un cierre a mano, y
+     * `extension`, la noche de una entrada temprana o salida tardía—, y un `findOneBy()` sobre el
+     * código devolvía el primero que diera la base: la extensión pasaba a bloqueo en el primer pull.
+     *
+     * Con varios candidatos decide, por este orden:
+     *
+     * 1. **`custom3`**, que es nuestro propio estado escrito por el push (`ESTADO:extension`).
+     *    Es la respuesta determinista: Beds24 nos devuelve lo que le dijimos.
+     * 2. **El estado que ya tiene el evento**, si es uno de los candidatos. Cubre lo empujado
+     *    antes de que existiera `custom3`, que no lo lleva.
+     * 3. **`bloqueo`**: un «black» que no conocemos y que no dice nada es un cierre hecho a mano
+     *    en Beds24. Nombrado, no «el primero que salga».
+     */
+    private function estadoPara(string $statusApi, ?string $custom3, ?PmsEventoEstado $actual): ?PmsEventoEstado
+    {
+        if (!isset($this->cacheEstados[$statusApi])) {
+            /** @var list<PmsEventoEstado> $candidatos */
+            $candidatos = $this->em->getRepository(PmsEventoEstado::class)->findBy(['codigoBeds24' => $statusApi]);
+            $this->cacheEstados[$statusApi] = $candidatos;
+        }
+
+        return self::elegirEstado($this->cacheEstados[$statusApi], $custom3, $actual);
+    }
+
+    /**
+     * La decisión, sin base de datos de por medio: es lo que se prueba.
+     *
+     * @param list<PmsEventoEstado> $candidatos Los estados nuestros con ese código de Beds24.
+     */
+    public static function elegirEstado(array $candidatos, ?string $custom3, ?PmsEventoEstado $actual): ?PmsEventoEstado
+    {
+        if (count($candidatos) <= 1) {
+            return $candidatos[0] ?? null;
+        }
+
+        $porId = [];
+        foreach ($candidatos as $candidato) {
+            $porId[(string) $candidato->getId()] = $candidato;
+        }
+
+        $declarado = str_starts_with((string) $custom3, BookingsPushMappingStrategy::PREFIJO_ESTADO)
+            ? substr((string) $custom3, strlen(BookingsPushMappingStrategy::PREFIJO_ESTADO))
+            : null;
+
+        return $porId[$declarado ?? '']
+            ?? $porId[(string) $actual?->getId()]
+            ?? $porId[PmsEventoEstado::CODIGO_BLOQUEO]
+            ?? $candidatos[0];
+    }
+
+    private function resolveEstado(Beds24BookingDto $dto, ?PmsEventoEstado $actual = null): PmsEventoEstado
     {
         $statusApi = trim((string) ($dto->status ?? ''));
-        $estadoBase = null;
 
         // =======================================================
-        // PASO 1: OBTENER EL ESTADO BASE (Cacheado correctamente)
+        // PASO 1: OBTENER EL ESTADO BASE
         // =======================================================
-        if ($statusApi !== '') {
-            if (isset($this->cacheEstados[$statusApi])) {
-                $estadoBase = $this->cacheEstados[$statusApi];
-            } else {
-                $estadoBase = $this->em->getRepository(PmsEventoEstado::class)->findOneBy(['codigoBeds24' => $statusApi]);
-                if ($estadoBase) {
-                    // Lo guardamos en caché SEA CUAL SEA EL ESTADO
-                    $this->cacheEstados[$statusApi] = $estadoBase;
-                }
-            }
-        }
+        $estadoBase = $statusApi !== '' ? $this->estadoPara($statusApi, $dto->custom3, $actual) : null;
 
         // Fallback de seguridad si no vino status o no existe en BD
         if (!$estadoBase) {
@@ -880,6 +923,8 @@ final class BookingPullPersister implements ResetInterface
             PmsEventoEstado::CODIGO_CANCELADA,
             PmsEventoEstado::CODIGO_ABIERTO,
             PmsEventoEstado::CODIGO_BLOQUEO,
+            // La noche de un horario extra: tampoco es una reserva que confirmar.
+            PmsEventoEstado::CODIGO_EXTENSION,
         ], true)) {
             return $estadoBase;
         }
