@@ -1063,6 +1063,28 @@ Un evento real resuelve las dos cosas: ocupa la unidad **dentro** del PMS y viaj
 `isOta = false`**, aunque su estancia venga de Airbnb: si heredara el canal, el push se negaría a
 mandar sus fechas y no bloquearía nada.
 
+#### 🔒 Mover una estancia con horario extra: qué está cerrado y qué no (30/09/2026)
+
+`sincronizar()` sólo se dispara al tocar las **casillas** o el **estado** de la estancia
+(`PmsInformacionFinancieraCoherenciaListener`, paso 5). Mover fechas o casita NO lo dispara, así
+que la extensión se quedaría atrás. Lo que lo impide:
+
+| Qué se cambia | Reserva directa | Reserva de OTA |
+|---|---|---|
+| La HORA de entrada o salida | Libre: la noche bloqueada es la misma | La pone el canal |
+| El DÍA | **Rechazado**: desmarcar, guardar, mover (`assertFechasMoviblesConHorarioExtra()`) | La pone el canal ⚠️ |
+| La CASITA | **Rechazado** desde el 30/09/2026 (mismo aserto; antes no se miraba) | Sólo por el canal ⚠️ |
+| Cancelar | La extensión se retira | Ídem |
+| Borrar la estancia | La extensión va en cascada con la reserva | Ídem |
+
+⚠️ **El hueco que queda: una OTA que cambia las fechas o la habitación de una reserva con horario
+extra.** El pull actualiza la estancia y la extensión NO la sigue: queda bloqueando la noche vieja
+y la nueva sin proteger. `sincronizarUna()` sabe recolocarla (y rehacer los links si cambia de
+casita), pero nada la llama en ese camino. No ha ocurrido: las 10 extensiones que ha habido son de
+reservas directas. Arreglarlo es disparar `sincronizar()` también cuando cambian `inicio`, `fin` o
+`pmsUnidad` en una estancia con casilla marcada, y avisar al equipo si la noche nueva choca — en
+un pull no se puede rechazar, el canal manda.
+
 #### 🏷️ El estado viaja en `custom3`, porque `black` son dos (30/09/2026)
 
 De ida no se pierde nada: `bloqueo` y `extension` tienen el mismo código de Beds24 (`black`), que

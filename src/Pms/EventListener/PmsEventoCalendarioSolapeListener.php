@@ -63,18 +63,39 @@ final class PmsEventoCalendarioSolapeListener
 
     public function preUpdate(PmsEventoCalendario $evento, PreUpdateEventArgs $args): void
     {
+        $em = $args->getObjectManager();
+
         foreach (['inicio', 'fin', 'pmsUnidad', 'estado'] as $campo) {
             if ($args->hasChangedField($campo)) {
-                $this->comprobar($evento, $args->getObjectManager());
-
-                return;
+                $this->comprobar($evento, $em);
+                break;
             }
+        }
+
+        // ⏰ La noche del horario extra se comprueba AQUÍ, al marcar la casilla, y no cuando nace
+        // su evento.
+        //
+        // Ese evento lo crea `PmsExtensionEstanciaService` en el `postFlush` de la estancia: para
+        // entonces la casilla YA está guardada. Frenarlo allí dejaba la estancia marcada con
+        // entrada temprana y sin noche bloqueada ni en el PMS ni en Beds24 — peor que el solape
+        // que se quería evitar, porque la marca dice que está protegida. Aquí el guardado entero
+        // se rechaza y no queda nada a medias.
+        $reactivada = $args->hasChangedField('estado');
+
+        if (($args->hasChangedField('entradaTemprana') || $reactivada) && $evento->isEntradaTemprana()) {
+            $this->comprobarNocheExtra($evento, $em, esEntrada: true);
+        }
+
+        if (($args->hasChangedField('salidaTardia') || $reactivada) && $evento->isSalidaTardia()) {
+            $this->comprobarNocheExtra($evento, $em, esEntrada: false);
         }
     }
 
     private function comprobar(PmsEventoCalendario $evento, object $em): void
     {
-        if (!$this->syncContext->isUi() || !$em instanceof EntityManagerInterface) {
+        // Una extensión no se comprueba por su cuenta: su noche se validó al marcar la casilla
+        // de su estancia (ver `preUpdate`). Hacerlo aquí sería hacerlo en `postFlush`, tarde.
+        if (!$this->syncContext->isUi() || !$em instanceof EntityManagerInterface || $evento->esExtension()) {
             return;
         }
 
@@ -89,10 +110,50 @@ final class PmsEventoCalendarioSolapeListener
             return;
         }
 
+        $this->frenarSiOcupada($evento, $em, $inicio, $fin, 'Libera esas noches o elige otra casita antes de guardar.');
+    }
+
+    /**
+     * La noche que bloquearía la entrada temprana (la víspera) o la salida tardía (la del día de
+     * salida): si ya es de otro huésped, la casilla no se puede marcar.
+     */
+    private function comprobarNocheExtra(PmsEventoCalendario $evento, object $em, bool $esEntrada): void
+    {
+        $estado = $evento->getEstado()?->getId();
+        $borde = $esEntrada ? $evento->getInicio() : $evento->getFin();
+
+        // Una estancia cancelada no bloquea nada: su extensión se retira, no se crea.
+        if (!$this->syncContext->isUi() || !$em instanceof EntityManagerInterface || $borde === null
+            || $evento->getPmsUnidad() === null || $estado === PmsEventoEstado::CODIGO_CANCELADA) {
+            return;
+        }
+
+        $dia = \DateTimeImmutable::createFromInterface($borde)->setTime(0, 0);
+        [$desde, $hasta] = $esEntrada ? [$dia->modify('-1 day'), $dia] : [$dia, $dia->modify('+1 day')];
+
+        $this->frenarSiOcupada($evento, $em, $desde, $hasta, sprintf(
+            'No se puede marcar la %s: esa noche no está libre.',
+            $esEntrada ? 'entrada temprana' : 'salida tardía'
+        ));
+    }
+
+    private function frenarSiOcupada(
+        PmsEventoCalendario $evento,
+        EntityManagerInterface $em,
+        \DateTimeInterface $desde,
+        \DateTimeInterface $hasta,
+        string $queHacer,
+    ): void {
+        $unidad = $evento->getPmsUnidad();
+
+        if ($unidad === null) {
+            return;
+        }
+
         $propioId = (string) $evento->getId();
         $reservaId = $evento->getReserva()?->getId() !== null ? (string) $evento->getReserva()->getId() : null;
 
-        foreach ($this->disponibilidad->ocupacion($inicio, $fin, (string) $unidad->getId()) as $otro) {
+        foreach ($this->disponibilidad->ocupacion($desde, $hasta, (string) $unidad->getId()) as $otro) {
             if ($otro->eventoId === $propioId || ($reservaId !== null && $otro->reservaId === $reservaId)) {
                 continue;
             }
@@ -114,11 +175,12 @@ final class PmsEventoCalendarioSolapeListener
             }
 
             throw new DomainException(sprintf(
-                '%s ya está ocupada del %s al %s por %s. Libera esas noches o elige otra casita antes de guardar.',
+                '%s ya está ocupada del %s al %s por %s. %s',
                 $unidad->getNombre(),
                 (new \DateTimeImmutable($otro->entra))->format('d/m'),
                 (new \DateTimeImmutable($otro->sale))->format('d/m'),
                 $quien,
+                $queHacer,
             ));
         }
     }

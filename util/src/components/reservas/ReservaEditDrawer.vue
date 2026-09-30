@@ -2303,7 +2303,7 @@ async function ejecutarBorrado(): Promise<void> {
                                         <p v-if="entry.horarioExtraGuardado && !entry.isOta"
                                             class="text-[11px] font-bold text-slate-500 flex items-start gap-2">
                                             <i class="fas fa-lock mt-0.5 text-slate-400"></i>
-                                            <span>Con horario extra el DÍA queda fijo (la hora no): para moverlo, quita la casilla, guarda, y entonces cámbialo.</span>
+                                            <span>Con horario extra el DÍA y la CASITA quedan fijos (la hora no): para moverlos, quita la casilla, guarda, y entonces cámbialos.</span>
                                         </p>
 
                                         <p v-if="errorFechas(entry)" class="text-[11px] font-bold text-rose-600">

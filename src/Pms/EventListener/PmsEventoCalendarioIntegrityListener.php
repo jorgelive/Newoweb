@@ -79,6 +79,15 @@ final class PmsEventoCalendarioIntegrityListener
         // por delante la validación —que no necesita el manager para nada— y la reserva se
         // guardaría con fechas inválidas sin que nadie lo notara. Las redes de abajo sí lo
         // necesitan; la validación no.
+        // 🏠 Y la CASITA, por el mismo motivo que el día: la noche bloqueada vive en la casita
+        // vieja. `PmsExtensionEstanciaService` sólo se dispara al tocar las casillas o el estado,
+        // así que cambiar de casita dejaba la extensión atrás —bloqueando en Beds24 una noche de
+        // la casita que ya no es la suya— y la nueva sin proteger. Nadie lo había visto porque
+        // el aviso del drawer sólo hablaba del día.
+        if ($args->hasChangedField('pmsUnidad')) {
+            $this->assertFechasMoviblesConHorarioExtra($evento, $args);
+        }
+
         $em = $args->getObjectManager();
 
         if (!$em instanceof EntityManagerInterface) {
@@ -177,7 +186,7 @@ final class PmsEventoCalendarioIntegrityListener
      * * @throws LogicException Si la fecha de fin es menor o igual a la de inicio.
      */
     /**
-     * Con horario extra marcado, el DÍA de la estancia queda CONGELADO.
+     * Con horario extra marcado, el DÍA y la CASITA de la estancia quedan CONGELADOS.
      *
      * La HORA sigue siendo editable —quien llama ya filtró por `cambiaDeDia()`—
      * porque pactar un late check-out ES poner las 17:00 en el check-out: si se
@@ -225,8 +234,8 @@ final class PmsEventoCalendarioIntegrityListener
         }
 
         throw new DomainException(sprintf(
-            'Esta estancia tiene %s: quita la casilla y GUARDA antes de mover el DÍA (la hora sí se puede ajustar). '
-            . 'Al cambiarlas hay que recolocar también la noche que bloquea en Beds24, '
+            'Esta estancia tiene %s: quita la casilla y GUARDA antes de mover el DÍA o la CASITA (la hora sí se puede ajustar). '
+            . 'Al cambiarlos hay que recolocar también la noche que bloquea en Beds24, '
             . 'y esa noche puede chocar con otra reserva.',
             implode(' y ', $marcadas)
         ));

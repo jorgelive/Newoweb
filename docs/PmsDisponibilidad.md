@@ -206,6 +206,13 @@ estado) lanza `DomainException` —422 en la API, con el motivo— cuando lo que
 
 Cuenta las noches con `ocupacion()`, así que hereda `IMPIDEN_VENTA` y el solape por `DATE()`.
 
+⚠️ **La noche de un horario extra se comprueba al MARCAR LA CASILLA, no al nacer su evento.** La
+extensión la crea `PmsExtensionEstanciaService` en el `postFlush` de la estancia, cuando la casilla
+ya está guardada: frenarla allí dejaba la estancia marcada con entrada temprana y sin noche
+bloqueada ni en el PMS ni en Beds24 — la marca diciendo que está protegida. Desde el 30/09/2026 el
+`preUpdate` de la ESTANCIA comprueba la víspera (entrada temprana) o la noche del día de salida
+(salida tardía) y rechaza el guardado entero; el candado se salta los eventos `esExtension()`.
+
 ⚠️ **Sólo con `SyncContext` en UI.** Lo que baja de Beds24 es la verdad del canal: si llega un
 solape, ya ha pasado, y rechazarlo rompería la sincronización sin deshacerlo. El push tampoco,
 porque sólo refleja lo ya guardado.
