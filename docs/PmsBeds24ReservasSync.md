@@ -133,8 +133,10 @@ PmsEventoBeds24Link  (Puente técnico Evento ↔ Beds24)
 Un link es de la **estancia** (su principal o su espejo) o es la `black` **extra** que bloquea la
 víspera de una entrada temprana o la noche de salida de una salida tardía. Lo dice la columna
 `rol`; todos los links que había el 01/10/2026 son `estancia`. Los `extra_*` llegan con el plan de
-`docs/PlanHorarioExtraSinEventos.md` (fase 2): hasta entonces no se crea ninguno, y el push de uno
-se niega en `buildUpsertPayload()`.
+`docs/PlanHorarioExtraSinEventos.md`: los crea `NochesExtraDeEstancia` (aún sin enganchar hasta
+la fase 4), y su `black` la arma `BookingsPushMappingStrategy::buildExtraPayload()` con la noche
+de `PmsEventoBeds24Link::nocheQueBloquea()` — o `cancelled` si ya no bloquea. Un link extra no se
+borra nunca.
 
 Lo que ya respeta el rol:
 

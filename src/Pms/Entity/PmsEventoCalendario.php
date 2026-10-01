@@ -14,6 +14,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Pms\ApiPlatform\State\PmsEventoCalendarioProcessor;
+use App\Pms\Dto\NocheExtra;
 use App\Security\Roles;
 use DateTimeInterface;
 use DateTimeImmutable;
@@ -937,6 +938,58 @@ class PmsEventoCalendario
     public function isEntradaTemprana(): bool
     {
         return $this->entradaTemprana;
+    }
+
+    /**
+     * La noche que deja sin vender un horario extra, o `null` si no hay ninguna.
+     *
+     * **La única fuente** de esa noche: ocupación, solapes, agente, calendario y el push a Beds24
+     * la piden aquí. No se guarda: se deriva de la casilla y de las fechas, así que sigue a la
+     * estancia cuando se mueve sin que nadie tenga que recolocarla.
+     *
+     * Sólo cuenta si la estancia está viva (`IMPIDEN_VENTA`): una cancelada, o un inquiry de
+     * Airbnb (`abierto`), no retiene la casita y tampoco su noche extra. Las casillas se quedan
+     * como están, para que reactivar la estancia sea lo que la devuelva.
+     *
+     * Por días, no por horas: una entrada temprana a las 09:00 del 02/02 sigue dejando sin vender
+     * la noche del 01/02.
+     *
+     * @param string $rol `PmsEventoBeds24Link::ROL_EXTRA_ENTRADA` o `ROL_EXTRA_SALIDA`.
+     */
+    public function nocheExtra(string $rol): ?NocheExtra
+    {
+        $marcada = match ($rol) {
+            PmsEventoBeds24Link::ROL_EXTRA_ENTRADA => $this->entradaTemprana,
+            PmsEventoBeds24Link::ROL_EXTRA_SALIDA => $this->salidaTardia,
+            default => throw new \InvalidArgumentException(sprintf('«%s» no es el rol de una noche extra.', $rol)),
+        };
+
+        if (!$marcada || $this->inicio === null || $this->fin === null
+            || !in_array($this->estado?->getId(), PmsEventoEstado::IMPIDEN_VENTA, true)
+        ) {
+            return null;
+        }
+
+        $dia = DateTimeImmutable::createFromInterface(
+            $rol === PmsEventoBeds24Link::ROL_EXTRA_ENTRADA ? $this->inicio : $this->fin
+        )->setTime(0, 0);
+
+        return $rol === PmsEventoBeds24Link::ROL_EXTRA_ENTRADA
+            ? new NocheExtra($rol, $dia->modify('-1 day'), $dia)
+            : new NocheExtra($rol, $dia, $dia->modify('+1 day'));
+    }
+
+    /**
+     * Las noches extra de esta estancia, de 0 a 2.
+     *
+     * @return list<NocheExtra>
+     */
+    public function nochesExtra(): array
+    {
+        return array_values(array_filter([
+            $this->nocheExtra(PmsEventoBeds24Link::ROL_EXTRA_ENTRADA),
+            $this->nocheExtra(PmsEventoBeds24Link::ROL_EXTRA_SALIDA),
+        ]));
     }
 
     public function setEntradaTemprana(bool $entradaTemprana): self

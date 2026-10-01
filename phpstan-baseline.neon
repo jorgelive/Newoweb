@@ -445,11 +445,6 @@ parameters:
 	
 	
 	
-		-
-			message: '#^Instanceof between App\\Pms\\Entity\\PmsUnidadBeds24Map and App\\Pms\\Entity\\PmsUnidadBeds24Map will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Pms/Factory/PmsEventoCalendarioFactory.php
 
 		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsReservaHuesped and App\\Pms\\Entity\\PmsReservaHuesped will always evaluate to true\.$#'

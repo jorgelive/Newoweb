@@ -6,6 +6,7 @@ namespace App\Pms\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Pms\Dto\NocheExtra;
 use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsChannel;
 use DateTimeInterface;
@@ -228,6 +229,35 @@ class PmsEventoBeds24Link
     public function esDeEstancia(): bool
     {
         return $this->rol === self::ROL_ESTANCIA;
+    }
+
+    /**
+     * La noche que este link extra tiene que tener bloqueada en Beds24 AHORA, o `null` si su
+     * `black` debe estar cancelada.
+     *
+     * Bloquea sólo si la estancia tiene esa noche (casilla marcada y estancia viva, ver
+     * `PmsEventoCalendario::nocheExtra()`) **y** el link está en un mapa activo de la casita de
+     * la estancia. Lo segundo cubre el cambio a una casita sin ese establecimiento virtual: el
+     * link se queda en la vieja con su `bookId` y su `black` se cancela, en vez de borrarse.
+     *
+     * La leen el push (qué mandar) y la cola (si hay algo nuevo que mandar): una sola regla.
+     */
+    public function nocheQueBloquea(): ?NocheExtra
+    {
+        if ($this->esDeEstancia()) {
+            return null;
+        }
+
+        $estancia = $this->evento;
+        $mapa = $this->unidadBeds24Map;
+
+        if ($estancia === null || $mapa === null || $mapa->isActivo() !== true
+            || $mapa->getPmsUnidad() !== $estancia->getPmsUnidad()
+        ) {
+            return null;
+        }
+
+        return $estancia->nocheExtra($this->rol);
     }
 
     private function exigirDeEstancia(): void

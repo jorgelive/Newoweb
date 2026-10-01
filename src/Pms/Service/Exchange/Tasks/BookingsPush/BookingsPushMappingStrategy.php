@@ -10,6 +10,7 @@ use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
 use App\Pms\Entity\PmsBookingsPushQueue;
+use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsReserva;
 use RuntimeException;
@@ -32,6 +33,9 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
      * DELETE manda `cancelled` por definición, sin transición que juzgar.
      */
     private const string BEDS24_CANCELLED = 'cancelled';
+
+    /** Lo que bloquea una noche sin venderla. Espejo de `pms_evento_estado.codigo_beds24` de `bloqueo`. */
+    private const string BEDS24_BLACK = 'black';
 
     /** Prefijo de `custom3`: nuestro estado, para que el pull lo lea de vuelta sin adivinar. */
     public const string PREFIJO_ESTADO = 'ESTADO:';
@@ -211,11 +215,9 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
             throw new RuntimeException('Estructura de Link incompleta/corrupta.');
         }
 
-        // Un link de horario extra lleva sus propias fechas (la víspera o la noche de salida), no
-        // las del evento: con este payload saldría como un duplicado de la estancia. Su payload
-        // es la fase 2 de docs/PlanHorarioExtraSinEventos.md; hasta entonces no existe ninguno.
+        // Un link de horario extra no es la estancia: lleva sus propias fechas y nada del huésped.
         if (!$link->esDeEstancia()) {
-            throw new RuntimeException(sprintf('Link %s de rol «%s»: su payload aún no existe.', (string) $link->getId(), $link->getRol()));
+            return $this->buildExtraPayload($queue, $link);
         }
 
         $evento = $link->getEvento();
@@ -319,6 +321,77 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         }
 
         return $payload;
+    }
+
+    /**
+     * La `black` de una noche de horario extra.
+     *
+     * **Es nuestra, sea la estancia de quien sea**: nace por API como reserva directa y bloquea
+     * una noche que el canal no vendió. Por eso lleva siempre sus fechas —también cuando la
+     * estancia es de una OTA, cuyas fechas no se tocan nunca (§9.4)— y nada que sea del canal o
+     * del huésped: ni `masterId` (no es parte del grupo de la reserva), ni precio, ni canal, ni
+     * `apiReference`, ni contacto.
+     *
+     * Fechas y estado se calculan AHORA de la estancia (`nocheQueBloquea()`): si la casilla se
+     * apagó, la estancia se canceló o el link se quedó en otra casita, sale `cancelled`.
+     *
+     * Sin `custom3`: el estado no hace falta leerlo de vuelta. Un link extra no escribe nada en el
+     * pull (no es principal), y uno huérfano se reconoce por `custom2 = EXTRA`.
+     *
+     * Ver docs/PlanHorarioExtraSinEventos.md, fase 2.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildExtraPayload(PmsBookingsPushQueue $queue, PmsEventoBeds24Link $link): array
+    {
+        $estancia = $link->getEvento() ?? throw new RuntimeException('Link extra sin estancia.');
+        $map = $link->getUnidadBeds24Map() ?? throw new RuntimeException('Link extra sin mapa.');
+
+        $bookId = $this->toIntOrNull($link->getBeds24BookId())
+            ?? $this->toIntOrNull($queue->getBeds24BookIdOriginal());
+
+        $noche = $queue->getEndpoint()->getMetodo() === 'DELETE' ? null : $link->nocheQueBloquea();
+
+        if ($noche === null) {
+            // La cola no encola un link apagado que nunca salió (`enqueueForLink()`), así que
+            // aquí siempre hay id. Si no lo hay, no hay nada que retirar en Beds24.
+            if ($bookId === null) {
+                throw new RuntimeException(sprintf('Link extra %s apagado y sin id de Beds24: no hay nada que retirar.', (string) $link->getId()));
+            }
+
+            // Sólo el estado, como la retirada de una reserva ajena: la habitación y las fechas
+            // que tenga allí no importan si ya no bloquea nada.
+            return ['id' => $bookId, 'status' => self::BEDS24_CANCELLED];
+        }
+
+        $payload = [
+            'roomId'    => (int) $map->getBeds24RoomId(),
+            'arrival'   => $noche->desde->format('Y-m-d'),
+            'departure' => $noche->hasta->format('Y-m-d'),
+            'status'    => self::BEDS24_BLACK,
+            // Nadie duerme en ella: es la noche que no se puede vender.
+            'numAdult'  => 0,
+            'numChild'  => 0,
+            'firstName' => $noche->etiqueta() . ' · ' . $this->huespedDe($estancia),
+            'comment'   => 'Noche extra de ' . ($estancia->getReserva()?->getLocalizador() ?? 'una estancia') . ' (PMS)',
+            'custom1'   => 'PMS:' . (string) $link->getId(),
+            'custom2'   => self::MARCA_EXTRA,
+        ];
+
+        if ($bookId !== null) {
+            $payload['id'] = $bookId;
+        }
+
+        return $payload;
+    }
+
+    /** El nombre con el que la `black` se lee en Beds24: el del huésped, o lo que haya. */
+    private function huespedDe(PmsEventoCalendario $estancia): string
+    {
+        $reserva = $estancia->getReserva();
+        $nombre = trim((string) $reserva?->getNombreCliente() . ' ' . (string) $reserva?->getApellidoCliente());
+
+        return $nombre !== '' ? $nombre : ($estancia->getTituloCache() ?? $reserva?->getLocalizador() ?? 'sin nombre');
     }
 
     /**

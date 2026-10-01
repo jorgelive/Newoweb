@@ -85,6 +85,16 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
             return;
         }
 
+        // 2.b Un link extra apagado que nunca llegó a Beds24 no tiene nada que decirle: ni crear
+        // una `black` para cancelarla en el acto, ni retirar una que no existe. Lo que tuviera
+        // pendiente de cuando estaba encendido se cancela, o saldría a bloquear una noche que
+        // ya no hay que bloquear. Ver `NochesExtraDeEstancia`.
+        if (!$isDelete && !$link->esDeEstancia() && $link->nocheQueBloquea() === null && $link->getBeds24BookId() === null) {
+            $this->cancelPendingPostForLink($link, 'Noche extra apagada antes de llegar a Beds24', $uow);
+
+            return;
+        }
+
         // 3. Deduplicación
         $linkId = (string) $link->getId();
         $providerVal = $endpoint->getProvider()->value ?? ConnectivityProvider::BEDS24->value;
@@ -105,6 +115,18 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
             'beds24RoomId' => $map->getBeds24RoomId(),
             'configId'     => $config->getId() !== null ? (string) $config->getId() : null,
         ];
+
+        // Un link extra cambia sin que cambie nada de lo de arriba: marcar o desmarcar la casilla
+        // no toca ni las fechas ni el estado de la estancia. Su noche entra en el snapshot, o la
+        // cola creería que no hay nada nuevo que mandar. Sólo en los extra: añadirlo a todos
+        // cambiaría el hash de cada link de estancia y los reenviaría todos.
+        if (!$link->esDeEstancia()) {
+            $noche = $link->nocheQueBloquea();
+            $payload['rol'] = $link->getRol();
+            $payload['noche'] = $noche !== null
+                ? [$noche->desde->format('Y-m-d'), $noche->hasta->format('Y-m-d')]
+                : null;
+        }
 
         $json = json_encode(value: $payload, flags: JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $payloadHash = sha1((string) $json);

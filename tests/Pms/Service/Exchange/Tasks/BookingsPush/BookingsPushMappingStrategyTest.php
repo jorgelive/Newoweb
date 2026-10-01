@@ -9,7 +9,14 @@ use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\MappingResult;
 use App\Pms\Entity\PmsBookingsPushQueue;
+use App\Pms\Entity\PmsEventoBeds24Link;
+use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Entity\PmsEventoEstado;
+use App\Pms\Entity\PmsReserva;
+use App\Pms\Entity\PmsUnidad;
+use App\Pms\Entity\PmsUnidadBeds24Map;
 use App\Pms\Service\Exchange\Tasks\BookingsPush\BookingsPushMappingStrategy;
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -74,5 +81,94 @@ final class BookingsPushMappingStrategyTest extends TestCase
         ));
 
         self::assertSame([['id' => 93628252, 'status' => 'cancelled']], $mapeo->payload);
+    }
+
+    /**
+     * La `black` de una entrada temprana: la víspera, nuestra y sin nada del canal — aunque la
+     * estancia sea de Booking, cuyas fechas no tocamos nunca.
+     */
+    public function testLaNocheExtraDeUnaOtaSaleConSusFechasYSinNadaDelCanal(): void
+    {
+        [$link] = $this->linkExtra(ota: true);
+
+        $payload = $this->mapear($link);
+
+        self::assertSame([
+            'roomId'    => 633675,
+            'arrival'   => '2027-02-01',
+            'departure' => '2027-02-02',
+            'status'    => 'black',
+            'numAdult'  => 0,
+            'numChild'  => 0,
+            'firstName' => 'Entrada temprana · Anna Müller',
+            'comment'   => 'Noche extra de UV5XPW (PMS)',
+            'custom1'   => 'PMS:' . $link->getId(),
+            'custom2'   => 'EXTRA',
+            'id'        => 93900001,
+        ], $payload);
+    }
+
+    /** Desmarcada la casilla, la misma `black` se cancela — nunca se borra. */
+    public function testDesmarcadaSaleCancelada(): void
+    {
+        [$link, $estancia] = $this->linkExtra(ota: false);
+        $estancia->setEntradaTemprana(false);
+
+        self::assertSame(['id' => 93900001, 'status' => 'cancelled'], $this->mapear($link));
+    }
+
+    /** Si la estancia se fue a otra casita y este link se quedó, su `black` deja de bloquear. */
+    public function testEnOtraCasitaSaleCancelada(): void
+    {
+        [$link, $estancia] = $this->linkExtra(ota: false);
+        $estancia->setPmsUnidad(new PmsUnidad());
+
+        self::assertSame(['id' => 93900001, 'status' => 'cancelled'], $this->mapear($link));
+    }
+
+    /** @return array{PmsEventoBeds24Link, PmsEventoCalendario} */
+    private function linkExtra(bool $ota): array
+    {
+        $casita = new PmsUnidad();
+        $mapa = (new PmsUnidadBeds24Map())->setBeds24RoomId(633675)->setActivo(true);
+        $casita->addBeds24Map($mapa);
+
+        $reserva = (new PmsReserva())->setNombreCliente('Anna')->setApellidoCliente('Müller');
+        $reserva->setLocalizador('UV5XPW');
+
+        $estancia = (new PmsEventoCalendario())
+            ->setPmsUnidad($casita)
+            ->setReserva($reserva)
+            ->setInicio(new DateTimeImmutable('2027-02-02 09:00'))
+            ->setFin(new DateTimeImmutable('2027-02-05 10:00'))
+            ->setEntradaTemprana(true)
+            ->setIsOta($ota)
+            ->setEstado(new PmsEventoEstado(PmsEventoEstado::CODIGO_CONFIRMADA));
+
+        $link = (new PmsEventoBeds24Link())->setRol(PmsEventoBeds24Link::ROL_EXTRA_ENTRADA)
+            ->setUnidadBeds24Map($mapa)
+            ->setBeds24BookId('93900001');
+        $estancia->addBeds24Link($link);
+
+        return [$link, $estancia];
+    }
+
+    /** @return array<string, mixed> */
+    private function mapear(PmsEventoBeds24Link $link): array
+    {
+        $cola = new PmsBookingsPushQueue();
+        $cola->setEndpoint((new ExchangeEndpoint())->setEndpoint('/bookings')->setMetodo('POST'));
+        $cola->setLink($link);
+        $cola->initializeId();
+
+        $mapeo = (new BookingsPushMappingStrategy())->map(new HomogeneousBatch(
+            (new Beds24Config())->setBaseUrl('https://api.beds24.com/v2'),
+            (new ExchangeEndpoint())->setEndpoint('/bookings')->setMetodo('POST'),
+            [$cola],
+        ));
+
+        self::assertCount(1, $mapeo->payload, 'el ítem no debe saltarse');
+
+        return $mapeo->payload[0];
     }
 }

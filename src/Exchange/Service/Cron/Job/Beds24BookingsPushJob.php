@@ -92,8 +92,12 @@ class Beds24BookingsPushJob implements CronJobInterface, CronHorizonteInterface
                 ->from(PmsEventoCalendario::class, 'e')
                 ->where('e.fin >= :from AND e.inicio <= :to')
                 ->orderBy('e.inicio', 'ASC')
-                ->setParameter('from', $from)
-                ->setParameter('to', $to)
+                // Un día más por cada lado: la `black` de una entrada temprana cae la VÍSPERA
+                // de la estancia y la de una salida tardía la noche del día de salida. Una noche
+                // extra dentro del rango cuelga de una estancia que empieza o acaba justo fuera,
+                // y sin el margen no se reenviaría nunca. Ver `NochesExtraDeEstancia`.
+                ->setParameter('from', $from->modify('-1 day'))
+                ->setParameter('to', $to->modify('+1 day'))
                 ->getQuery()
                 ->getSingleColumnResult();
 

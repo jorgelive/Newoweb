@@ -8,7 +8,6 @@ use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsUnidad;
-use App\Pms\Entity\PmsUnidadBeds24Map;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -127,7 +126,7 @@ class PmsEventoCalendarioFactory
         }
 
         // 0) Maps activos de la NUEVA unidad
-        $newMaps = $this->getActiveMaps($unidad);
+        $newMaps = $unidad->getBeds24MapsActivos();
 
         // ⚠️ CASO CRÍTICO: Si la nueva unidad no tiene mapas, no hacemos nada.
         // Los links se quedan apuntando a la unidad vieja (inconsistente pero mejor que borrar IDs).
@@ -357,19 +356,5 @@ class PmsEventoCalendarioFactory
             // programa el DELETE de la fila completa — el ID ya no hace falta después.
             $evento->removeBeds24Link($unused);
         }
-    }
-
-    /**
-     * @return list<PmsUnidadBeds24Map>
-     */
-    private function getActiveMaps(PmsUnidad $unidad): array
-    {
-        $active = [];
-        foreach ($unidad->getBeds24Maps() as $map) {
-            if ($map instanceof PmsUnidadBeds24Map && $map->isActivo()) {
-                $active[] = $map;
-            }
-        }
-        return $active;
     }
 }

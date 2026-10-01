@@ -882,6 +882,20 @@ class PmsUnidad
         return $this->nombre ?? ('Unidad UUID ' . ($this->getId() ? $this->getId()->toBase32() : 'Nueva'));
     }
 
+    /**
+     * Los mapas por los que esta casita existe hoy en Beds24: uno por establecimiento virtual.
+     * Cada estancia lleva un link por cada uno (principal y espejos), y cada noche extra también.
+     *
+     * @return list<PmsUnidadBeds24Map>
+     */
+    public function getBeds24MapsActivos(): array
+    {
+        return array_values(array_filter(
+            $this->beds24Maps->toArray(),
+            static fn (PmsUnidadBeds24Map $map): bool => $map->isActivo() === true
+        ));
+    }
+
     public function getBeds24MapPrincipal(): ?PmsUnidadBeds24Map
     {
         foreach ($this->beds24Maps as $map) {

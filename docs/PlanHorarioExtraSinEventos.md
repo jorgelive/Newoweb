@@ -1,8 +1,9 @@
 # Plan — Horario extra sin eventos hermanos
 
-> **Estado (01/10/2026):** fases 0 y 1 hechas. Fase 1 desplegada sin efecto visible (columna
-> `rol`, único nuevo, hidratador/torneo/pull ya la respetan — §2.1 de `PmsBeds24ReservasSync.md`).
-> Siguiente: fase 2, que pide las decisiones del §5.
+> **Estado (01/10/2026):** fases 0, 1 y 2 hechas y desplegadas, sin efecto visible: la fase 2 deja
+> el código listo pero nadie lo llama todavía (`NochesExtraDeEstancia` no está enganchado). La
+> plantilla del aviso de la fase 5 (`aviso_choque_ota_interno`) está en revisión en Meta.
+> Siguiente: fases 3 + 4, en un solo despliegue.
 
 ## 1. Qué cambia y por qué
 
@@ -96,18 +97,30 @@ quejarse y el corte de una dejaría la otra viva.
 - Pruebas: `LinkConRolTest`, `TorneoDeLinksTest`, `HidratadorIgnoraLinksExtraTest` y dos casos más
   en `BookingPullPersisterMarcadorTest`.
 
-### Fase 2 — La noche extra se deriva (código listo, apagado hasta la fase 4)
-- `PmsEventoCalendario::nocheExtraEntrada()` / `nocheExtraSalida()`: el rango de cada noche, o
-  `null` (casilla apagada o estancia cancelada). **Una sola fuente**, la usan todos los de abajo.
-- Servicio `NochesExtraDeEstancia` (sustituye a `PmsExtensionEstanciaService`): asegura un link
-  extra por mapa y por noche activa; al apagarse, el link pasa a `cancelled` (nunca se borra:
-  misma regla que hoy).
-- Payload de un link extra (`BookingsPushMappingStrategy`): fechas calculadas, `status = black`,
-  `firstName = «Entrada temprana · <nombre>»`, `custom2 = EXTRA`, `custom3 = ESTADO:extra_entrada`,
-  sin `masterId`, `price`, `apiReference` ni `channel` — es nuestra, sea la estancia de quien sea.
-- Hash del snapshot de la cola: incluye el rol y las fechas calculadas.
+### Fase 2 — La noche extra se deriva (código listo, apagado hasta la fase 4) ✅ 01/10/2026
+- `PmsEventoCalendario::nocheExtra($rol)` (y `nochesExtra()`): un `NocheExtra` con `desde`/`hasta`
+  a medianoche, o `null`. **Una sola fuente**, la usan todos los de abajo. Activa si la casilla
+  está marcada y la estancia está en `IMPIDEN_VENTA` — la misma lista que la disponibilidad, así
+  que un inquiry (`abierto`) tampoco bloquea su noche, no sólo una cancelada.
+- `PmsEventoBeds24Link::nocheQueBloquea()`: la noche que ESE link tiene que tener cerrada ahora —
+  la de la estancia, si el link está en un mapa activo de la casita de la estancia; si no, `null`
+  y su `black` se cancela. La leen el push y la cola: una sola regla.
+- Servicio `NochesExtraDeEstancia` (sustituye a `PmsExtensionEstanciaService`): un link extra por
+  mapa activo y por noche activa, repartidos por establecimiento virtual como los espejos (mover
+  de casita conserva el `bookId`). **No borra ningún link**: con la noche apagada el link se
+  queda y su `black` sale `cancelled`; volver a marcar la revive con el mismo `bookId`.
+- Cola (`Beds24BookingsPushQueueCreator`): un link extra apagado que nunca llegó a Beds24 no se
+  encola, y lo que tuviera pendiente se cancela. El snapshot de los extra lleva `rol` y `noche`
+  (marcar la casilla no cambia nada más del evento); los de estancia no cambian de hash.
+- Payload de un link extra (`BookingsPushMappingStrategy::buildExtraPayload()`): fechas
+  calculadas, `status = black`, `numAdult = 0`, `firstName = «Entrada temprana · <huésped>»`,
+  `custom2 = EXTRA`, sin `masterId`, `price`, `apiReference`, `channel` ni contacto — es nuestra,
+  sea la estancia de quien sea. Apagada: sólo `{id, status: cancelled}`.
+  *(Cambio sobre el plan: **sin `custom3`**. Un link extra no escribe nada en el pull y uno huérfano
+  ya se reconoce por `custom2`; `ESTADO:extra_entrada` habría sido un estado que no existe.)*
 - Cron de push: ventana ensanchada un día por cada lado.
-- Pruebas unitarias: fechas derivadas (con hora real de entrada/salida), payload por rol.
+- Pruebas: `NocheExtraTest`, `NochesExtraDeEstanciaTest` y tres casos en
+  `BookingsPushMappingStrategyTest` (OTA con sus fechas, desmarcada, en otra casita).
 
 ### Fase 3 — La ocupación se calcula de la casilla (con la fase 4)
 - `PmsDisponibilidadService::ocupacion()` / `unidadesOcupadas()`: el rango efectivo,
@@ -168,12 +181,19 @@ quejarse y el corte de una dejaría la otra viva.
    del 30/01 al 08/02, así que caben la víspera (01/02) y la noche de salida (05/02).
 2. ~~Nombre de la `black` en Beds24~~ → **«Entrada temprana · <huésped>»** / «Salida tardía ·
    <huésped>» (Jorge, 01/10/2026; hoy la del hermano dice el localizador).
-3. **A quién avisa la fase 5** cuando una OTA mueve una reserva con horario extra sobre otra.
+3. ~~A quién avisa la fase 5~~ → **WhatsApp a `ROLE_CUSTOMER_SUPPORT`** (hoy Susan y Jorge) con la
+   plantilla `aviso_choque_ota_interno`, push del panel de respaldo, y la franja en rojo en el
+   calendario mientras dure el choque (Jorge, 01/10/2026). Texto aprobado: «⚠️ *{{casita}}*: la
+   noche del {{fecha}} estaba reservada para el horario extra de {{huesped}}, pero {{canal}} acaba
+   de mover ahí otra reserva ({{otra}}). Hay que reubicar a una de las dos.»
 
 ## 6. Dónde tocar (cuando esté hecho)
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
-| Cambiar qué noche ocupa un horario extra | `PmsEventoCalendario` | `nocheExtraEntrada()` / `nocheExtraSalida()` |
-| Cambiar qué se manda a Beds24 por esa noche | `BookingsPushMappingStrategy` | payload del rol `extra_*` |
+| Cambiar qué noche ocupa un horario extra | `PmsEventoCalendario` | `nocheExtra()` |
+| Cambiar cuándo una `black` extra deja de bloquear | `PmsEventoBeds24Link` | `nocheQueBloquea()` |
+| Cambiar cuántos links extra tiene una estancia y cómo se mueven | `NochesExtraDeEstancia` | `sincronizar()` |
+| Cambiar qué se manda a Beds24 por esa noche | `BookingsPushMappingStrategy` | `buildExtraPayload()` |
+| Cambiar a quién se avisa si una OTA la pisa (fase 5) | `MessageCrearAvisoChoqueOtaCommand` | plantilla `aviso_choque_ota_interno`, rol `CUSTOMER_SUPPORT` |
 | Cambiar cómo cuenta la ocupación | `PmsDisponibilidadService` | `ocupacion()` / `unidadesOcupadas()` |
