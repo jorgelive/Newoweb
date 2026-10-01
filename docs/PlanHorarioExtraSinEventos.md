@@ -2,9 +2,8 @@
 
 > **Estado (01/10/2026): HECHO.** Las seis fases desplegadas; la 4 probada contra Beds24 real.
 > Ya no hay eventos hermanos, ni `evento_origen_id`, ni estado `extension`: la noche extra sale de
-> la casilla y su `black` es un link de la estancia. Queda fuera del código: la aprobación de Meta
-> de `aviso_choque_ota_interno`, y una segunda plantilla para el caso en que el canal mueve a la
-> DUEÑA de la noche extra (texto por acordar con Jorge).
+> la casilla y su `black` es un link de la estancia. Queda fuera del código: que Meta apruebe las
+> dos plantillas del aviso (`aviso_choque_ota_interno` y `aviso_noche_extra_movida_interno`).
 
 ## 1. Qué cambia y por qué
 
@@ -201,10 +200,12 @@ cancelada en el PMS y en Beds24.
 - `ChoquesDeNocheExtra::de()` busca los choques en los dos sentidos: (1) el canal movió una
   reserva sobre la noche extra de otra; (2) el canal movió a la DUEÑA y su noche extra cayó sobre
   otra.
-- `RevisarChoqueDeNocheExtraDispatchHandler`: WhatsApp a `ROLE_CUSTOMER_SUPPORT` (plantilla
-  `aviso_choque_ota_interno` fuera de la ventana, sólo para el caso 1 — su texto dice «{{canal}}
-  acaba de mover ahí otra reserva», que en el caso 2 sería falso), push del panel si no llegó a
-  nadie, una vez al día por choque.
+- `RevisarChoqueDeNocheExtraDispatchHandler`: WhatsApp a `ROLE_CUSTOMER_SUPPORT`, con una
+  plantilla por caso fuera de la ventana (`aviso_choque_ota_interno` dice «{{canal}} acaba de
+  mover ahí otra reserva», falso en el caso 2, que va con `aviso_noche_extra_movida_interno`:
+  «{{canal}} acaba de cambiar la reserva de {{huesped}}, y su horario extra cae la noche del
+  {{fecha}}, que ya es de {{otra}}»), push del panel si no llegó a nadie, una vez al día por
+  choque.
 - Calendario: `choquesDeNochesExtra()` marca en rojo las dos barras (⚠ con el motivo) y la franja.
 - Ensayado sobre la copia de producción en contexto de pull: los dos casos se detectan y se
   despachan 3 revisiones (dos altas y un cambio de fechas), ninguna por los cambios hechos desde

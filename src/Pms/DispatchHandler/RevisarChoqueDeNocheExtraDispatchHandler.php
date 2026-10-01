@@ -33,10 +33,10 @@ use Throwable;
  * 3. La **marca roja del calendario** no la pone este handler: se calcula sola al pintarlo, con la
  *    misma regla (`PmsEventoCalendario::nocheExtraPisadaPor()`), y dura lo que dure el choque.
  *
- * ⚠️ **La plantilla sólo cuenta UNO de los dos casos**: «{{canal}} acaba de mover ahí otra
- * reserva». Cuando lo que movió el canal es la estancia DUEÑA de la noche extra (su víspera nueva
- * cae sobre otra), esa frase sería falsa, así que ese caso va sin plantilla: dentro de la ventana
- * sale el texto, y fuera, el push. Hace falta una segunda plantilla para él.
+ * ⚠️ **Una plantilla por caso**: la del caso 1 dice «{{canal}} acaba de mover ahí otra reserva»,
+ * que es falso cuando lo que movió el canal es la estancia DUEÑA de la noche extra (su víspera
+ * nueva cae sobre otra). Ese caso va con `aviso_noche_extra_movida_interno`. Las variables son
+ * las mismas en las dos: `{{huesped}}` es siempre la dueña de la noche extra.
  *
  * Un mismo choque se avisa una vez al día: el canal puede reenviar la misma reserva varias veces
  * seguidas (webhook y pull), y el choque no cambia por eso.
@@ -94,7 +94,9 @@ final readonly class RevisarChoqueDeNocheExtraDispatchHandler
             $resultado = $this->avisos->notificar(new AvisoAlEquipo(
                 rol: Roles::CUSTOMER_SUPPORT,
                 texto: $texto,
-                plantillaCodigo: $choque->seMovioElDuenio() ? null : MessageCrearAvisoChoqueOtaCommand::CODIGO,
+                plantillaCodigo: $choque->seMovioElDuenio()
+                    ? MessageCrearAvisoChoqueOtaCommand::CODIGO_DUENIA_MOVIDA
+                    : MessageCrearAvisoChoqueOtaCommand::CODIGO,
                 // ⚠️ UNA línea por valor: Meta no admite saltos en los parámetros.
                 variables: [
                     'casita' => $this->casita($choque->duenio),
@@ -112,7 +114,7 @@ final readonly class RevisarChoqueDeNocheExtraDispatchHandler
             ));
 
             if (!$resultado->alguienFueAvisado()) {
-                // 🛟 Nadie con el rol y móvil, o fuera de la ventana sin plantilla que sirva.
+                // 🛟 Nadie con el rol y móvil, o fuera de la ventana con la plantilla aún sin aprobar.
                 foreach ($this->usuarios->findByRole(Roles::CUSTOMER_SUPPORT) as $usuario) {
                     $this->push->sendToUser($usuario, [
                         'title' => '⚠️ Dos reservas para la misma noche',

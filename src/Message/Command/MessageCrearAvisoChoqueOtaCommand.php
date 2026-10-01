@@ -14,8 +14,13 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * La plantilla con la que se avisa a la guardia de reservas de que un canal movió una reserva
- * encima de la noche extra de otra estancia.
+ * Las dos plantillas con las que se avisa a la guardia de reservas de que un canal dejó dos
+ * estancias para la misma noche por culpa de una noche extra:
+ *
+ * - `aviso_choque_ota_interno`: el canal movió una reserva ENCIMA de la noche extra de otra.
+ * - `aviso_noche_extra_movida_interno`: el canal movió a la DUEÑA de la noche extra, y su noche
+ *   cayó sobre otra estancia (01/10/2026). La primera diría «movió ahí otra reserva», que en este
+ *   caso es falso: por eso hay dos.
  *
  * ── Por qué hace falta una más ──────────────────────────────────────────────
  * La noche extra de una entrada temprana o una salida tardía la bloqueamos nosotros en Beds24,
@@ -36,18 +41,34 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *   php bin/console msg:crear:aviso-choque-ota --dry-run
  *   php bin/console msg:crear:aviso-choque-ota
  *   php bin/console msg:meta:push aviso_choque_ota_interno --todos
+ *   php bin/console msg:meta:push aviso_noche_extra_movida_interno --todos
  */
 #[AsCommand(
     name: 'msg:crear:aviso-choque-ota',
-    description: 'Crea la plantilla «aviso_choque_ota_interno»: un canal movió una reserva sobre una noche extra. Idempotente.',
+    description: 'Crea las plantillas de aviso de choque con una noche extra (aviso_choque_ota_interno y aviso_noche_extra_movida_interno). Idempotente.',
     hidden: true,
 )]
 final class MessageCrearAvisoChoqueOtaCommand extends Command
 {
+    /** Caso 1: el canal movió OTRA reserva sobre la noche extra de `{{huesped}}`. */
     public const string CODIGO = 'aviso_choque_ota_interno';
 
-    private const string CUERPO = '⚠️ *{{casita}}*: la noche del {{fecha}} estaba reservada para el horario extra de {{huesped}}, '
-        . 'pero {{canal}} acaba de mover ahí otra reserva ({{otra}}). Hay que reubicar a una de las dos.';
+    /** Caso 2: el canal movió a `{{huesped}}`, y su noche extra cayó sobre la estancia de `{{otra}}`. */
+    public const string CODIGO_DUENIA_MOVIDA = 'aviso_noche_extra_movida_interno';
+
+    /** Por código: nombre en el panel y cuerpo. Los dos textos los aprobó Jorge el 01/10/2026. */
+    private const array PLANTILLAS = [
+        self::CODIGO => [
+            'Aviso interno: un canal movió una reserva sobre una noche extra',
+            '⚠️ *{{casita}}*: la noche del {{fecha}} estaba reservada para el horario extra de {{huesped}}, '
+            . 'pero {{canal}} acaba de mover ahí otra reserva ({{otra}}). Hay que reubicar a una de las dos.',
+        ],
+        self::CODIGO_DUENIA_MOVIDA => [
+            'Aviso interno: un canal movió una estancia y su noche extra cayó sobre otra',
+            '⚠️ *{{casita}}*: {{canal}} acaba de cambiar la reserva de {{huesped}}, y su horario extra cae '
+            . 'la noche del {{fecha}}, que ya es de {{otra}}. Hay que reubicar a una de las dos.',
+        ],
+    ];
 
     /** La misma cabecera que sus hermanas de escalado y cobro, a mano en los siete idiomas. */
     private const array CABECERA = [
@@ -96,32 +117,42 @@ final class MessageCrearAvisoChoqueOtaCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+        $simular = (bool) $input->getOption('dry-run');
 
-        if ($this->em->getRepository(MessageTemplate::class)->findOneBy(['code' => self::CODIGO]) !== null) {
-            // Idempotente y sin pisar: puede haberla afinado alguien desde el panel.
-            $io->success(sprintf('«%s» ya existe: no se toca.', self::CODIGO));
-
-            return Command::SUCCESS;
+        foreach (self::PLANTILLAS as $codigo => [$nombre, $cuerpo]) {
+            $this->crear($io, $simular, $codigo, $nombre, $cuerpo);
         }
 
-        $io->section('Se creará');
-        $io->writeln(self::CUERPO);
+        return Command::SUCCESS;
+    }
 
-        if ((bool) $input->getOption('dry-run')) {
+    private function crear(SymfonyStyle $io, bool $simular, string $codigo, string $nombre, string $texto): void
+    {
+        if ($this->em->getRepository(MessageTemplate::class)->findOneBy(['code' => $codigo]) !== null) {
+            // Idempotente y sin pisar: puede haberla afinado alguien desde el panel.
+            $io->success(sprintf('«%s» ya existe: no se toca.', $codigo));
+
+            return;
+        }
+
+        $io->section(sprintf('Se creará «%s»', $codigo));
+        $io->writeln($texto);
+
+        if ($simular) {
             $io->note('Simulación: no se ha escrito nada.');
 
-            return Command::SUCCESS;
+            return;
         }
 
-        $cuerpo = [['language' => 'es', 'content' => self::CUERPO]];
+        $cuerpo = [['language' => 'es', 'content' => $texto]];
         $ejemplos = [];
         foreach (self::PIE as $fila) {
             $ejemplos[$fila['language']] = self::EJEMPLO;
         }
 
         $plantilla = (new MessageTemplate())
-            ->setCode(self::CODIGO)
-            ->setName('Aviso interno: un canal movió una reserva sobre una noche extra')
+            ->setCode($codigo)
+            ->setName($nombre)
             // `staff`: no cuelga de ninguna reserva, como sus hermanas.
             ->setContextType('staff')
             ->setAutoenvioHabilitada(false)
@@ -129,7 +160,7 @@ final class MessageCrearAvisoChoqueOtaCommand extends Command
                 'is_active' => true,
                 'category' => 'UTILITY',
                 // Con sufijo desde el primer día: ver §18 de docs/Mensajeria.md.
-                'meta_template_name' => self::CODIGO . '_v1',
+                'meta_template_name' => $codigo . '_v1',
                 'is_official_meta' => false,
                 'header' => self::CABECERA,
                 'footer' => self::PIE,
@@ -147,8 +178,6 @@ final class MessageCrearAvisoChoqueOtaCommand extends Command
         // `AutoTranslate` corre en `prePersist` y rellena los seis idiomas del cuerpo.
         $this->em->flush();
 
-        $io->success(sprintf('«%s» creada. Súbela con: msg:meta:push %s --todos', self::CODIGO, self::CODIGO));
-
-        return Command::SUCCESS;
+        $io->success(sprintf('«%s» creada. Súbela con: msg:meta:push %s --todos', $codigo, $codigo));
     }
 }
