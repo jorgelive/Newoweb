@@ -255,6 +255,16 @@ export const useChatStore = defineStore('chatStore', () => {
 
     // UI & Webhooks
     const isChatVisible = ref(true);
+
+    /**
+     * ¿Alguien está mirando el chat abierto AHORA?
+     *
+     * `isChatVisible` sólo sabe del panel (en el móvil, si la lista lo tapa). Con la app en segundo
+     * plano —otra app delante, la pantalla apagada, otra pestaña— el panel sigue «visible» para
+     * Vue, y lo que llegaba por Mercure se marcaba como LEÍDO sin que nadie lo hubiera visto, y sin
+     * aviso. Se marca al volver (`reanudar()`).
+     */
+    const chatALaVista = (): boolean => isChatVisible.value && document.visibilityState === 'visible';
     const newNotification = ref<{ show: boolean, title: string, conversationId: string } | null>(null);
 
     // Conexiones Mercure
@@ -287,6 +297,12 @@ export const useChatStore = defineStore('chatStore', () => {
     // `lastEventID`; el hub de Mercure re-entrega lo que ocurrió en el gap.
     let globalLastEventId: string | null = null;
     let convLastEventId: string | null = null;
+    /**
+     * De qué hilo es `convLastEventId`. Sólo se olvida al CAMBIAR de hilo: antes se borraba en cada
+     * `connectToMercure()`, también en los reintentos tras un corte, y lo publicado durante el
+     * corte no se volvía a pedir — el chat abierto se quedaba sin esos mensajes hasta recargar.
+     */
+    let convLastEventIdDe: string | null = null;
 
     // ============================================================================
     // GETTERS (sin cambios funcionales)
@@ -538,7 +554,7 @@ export const useChatStore = defineStore('chatStore', () => {
                 const existingConv = conversations.value.find(c => sameEntity(c, convData));
                 const isCurrentOpen = sameEntity(currentConversation.value, convData); // FIX #1
 
-                if (convData.unreadCount > (existingConv?.unreadCount || 0) && (!isCurrentOpen || !isChatVisible.value)) {
+                if (convData.unreadCount > (existingConv?.unreadCount || 0) && (!isCurrentOpen || !chatALaVista())) {
                     const safeId = uuidOf(convData);
                     newNotification.value = { show: true, conversationId: safeId || '', title: convData.guestName || 'Huésped' };
                     setTimeout(() => { newNotification.value = null; }, 5000);
@@ -587,7 +603,11 @@ export const useChatStore = defineStore('chatStore', () => {
         if (convRetryTimer) { clearTimeout(convRetryTimer); convRetryTimer = null; }
         eventSource.value?.close();
         eventSource.value = null;
-        convLastEventId = null; // el historial se recarga completo al seleccionar; empezamos limpio
+        if (convLastEventIdDe !== conversationId) {
+            // Otro hilo: su historial se acaba de cargar entero, así que se empieza limpio.
+            convLastEventId = null;
+            convLastEventIdDe = conversationId;
+        }
 
         try {
             const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
@@ -632,7 +652,7 @@ export const useChatStore = defineStore('chatStore', () => {
 
                     if (incomingData.direction === 'incoming') {
                         // Si el chat está abierto en pantalla, disparamos POST para marcar como leído en BD
-                        if (isChatVisible.value) {
+                        if (chatALaVista()) {
                             apiClient.post(`/platform/message/conversations/${conversationId}/read`)
                                 .then(() => useNoLeidosStore().refrescarPronto())
                                 .catch(() => {});
@@ -686,6 +706,126 @@ export const useChatStore = defineStore('chatStore', () => {
             connectToMercure(openConversationId);
         }
     });
+
+    // ============================================================================
+    // AL VOLVER A LA APP
+    // ============================================================================
+    // 🔥 «Entro al chat y no está actualizado; tengo que tirar hacia abajo.» (Jorge, 01/10/2026)
+    //
+    // En el móvil, al pasar a segundo plano el sistema congela la página y corta los sockets.
+    // Al volver, el EventSource puede seguir diciendo que está abierto sobre una conexión muerta
+    // —el navegador no se entera hasta que vence el TCP, minutos después—, así que no hay
+    // `onerror`, no hay reconexión y no llega nada. La lista y el hilo se quedaban como estaban
+    // al irse. El único remedio era el gesto de recarga, que recarga la app entera.
+    //
+    // Al volver se hacen las dos cosas que haría una recarga, sin recargar:
+    //  1. Se reabren los túneles con su `lastEventID`: el hub re-entrega lo que pasó mientras
+    //     tanto (guarda los últimos 5000 eventos).
+    //  2. Se vuelve a pedir lo que hay en pantalla —la primera página de la lista y del hilo
+    //     abierto— y se FUSIONA con lo que hay, sin vaciar nada: ni parpadea, ni pierde las
+    //     páginas ya cargadas, ni mueve el scroll de quien estaba leyendo.
+    // Lo segundo no sobra aunque lo primero funcione: si el hub se reinició, su historial ya no
+    // tiene el hueco.
+    let ocultaDesde: number | null = null;
+    /** Un cambio de app de un par de segundos no corta nada: no merece dos peticiones. */
+    const PAUSA_QUE_MERECE_REANUDAR_MS = 3000;
+
+    /** La primera página de la lista, fusionada con lo que ya hay. No toca la paginación. */
+    const refrescarListaEnSilencio = async (): Promise<void> => {
+        const gen = fetchConversacionesGen;
+        const filtroNombre = busqueda.value.trim() !== '' ? `&guestName=${encodeURIComponent(busqueda.value.trim())}` : '';
+        const filtroEspera = soloEnEspera.value ? '&enEspera=1' : '';
+        const response = await apiClient.get(`/platform/message/conversations?order[lastMessageAt]=desc&page=1${filtroNombre}${filtroEspera}`);
+
+        // Una búsqueda o un cambio de filtro en medio manda más que esto.
+        if (gen !== fetchConversacionesGen) return;
+
+        for (const fresca of extractData<ApiConversation>(response)) {
+            const existente = conversations.value.find(c => sameEntity(c, fresca));
+            if (existente) {
+                // Mismo cuidado que con Mercure (FIX #5): el "@id" que ya tiene es el que usan los envíos.
+                const { '@id': _iri, '@type': _tipo, ...resto } = fresca;
+                Object.assign(existente, resto);
+            } else {
+                conversations.value.unshift(fresca);
+            }
+        }
+
+        conversations.value.sort((a, b) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime());
+    };
+
+    /** La primera página de cada pestaña del hilo abierto, fusionada. Ver `colocarEnSuPestana()`. */
+    const refrescarHiloEnSilencio = async (id: string): Promise<void> => {
+        const [historial, respProgramados, respCancelados] = await Promise.all([
+            apiClient.get(`/platform/message/conversations/${id}/messages?page=1`),
+            apiClient.get(`/platform/message/conversations/${id}/messages/programados`),
+            apiClient.get(`/platform/message/conversations/${id}/messages/cancelados`),
+        ]);
+
+        if (uuidOf(currentConversation.value) !== id) return;
+
+        for (const m of [
+            ...extractData<ApiMessage>(historial),
+            ...extractData<ApiMessage>(respProgramados),
+            ...extractData<ApiMessage>(respCancelados),
+        ]) {
+            colocarEnSuPestana(m);
+        }
+
+        // Los totales, del servidor: `colocarEnSuPestana()` los ajusta de uno en uno y aquí pueden
+        // haber entrado varios de golpe.
+        totalProgramados.value = totalHydra(respProgramados) ?? programados.value.length;
+        totalCancelados.value = totalHydra(respCancelados) ?? cancelados.value.length;
+
+        // Lo que llegó mientras no se miraba, ahora sí se ha visto.
+        if (chatALaVista() && (currentConversation.value?.unreadCount ?? 0) > 0) {
+            apiClient.post(`/platform/message/conversations/${id}/read`)
+                .then(() => useNoLeidosStore().refrescarPronto())
+                .catch(() => {});
+            if (currentConversation.value) currentConversation.value.unreadCount = 0;
+        }
+    };
+
+    /**
+     * Se ha vuelto a la app (o a la red): reabrir túneles y traer lo que falte. Sólo lo que está en
+     * uso: sin lista cargada no hay lista que refrescar, sin hilo abierto no hay hilo, y si el
+     * túnel global no se abrió nunca, tampoco se abre aquí.
+     */
+    const reanudar = async (): Promise<void> => {
+        if (isSessionExpired.value) return;
+
+        if (globalGen > 0) void initGlobalMercure();
+
+        const abierta = uuidOf(currentConversation.value);
+
+        try {
+            await Promise.all([
+                conversations.value.length > 0 ? refrescarListaEnSilencio() : Promise.resolve(),
+                abierta ? refrescarHiloEnSilencio(abierta) : Promise.resolve(),
+            ]);
+        } catch {
+            // Sin red todavía, o la sesión caducó (eso lo trata el interceptor): lo que hay en
+            // pantalla se queda, y el próximo regreso lo vuelve a intentar.
+        }
+
+        if (abierta && uuidOf(currentConversation.value) === abierta) void connectToMercure(abierta);
+    };
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            ocultaDesde = Date.now();
+
+            return;
+        }
+
+        const fuera = ocultaDesde === null ? 0 : Date.now() - ocultaDesde;
+        ocultaDesde = null;
+        if (fuera >= PAUSA_QUE_MERECE_REANUDAR_MS) void reanudar();
+    });
+    // Volver a tener red tras un túnel o un ascensor: el socket murió aunque la app no se ocultara.
+    window.addEventListener('online', () => { void reanudar(); });
+    // Volver por el historial a una página congelada (bfcache): ni siquiera hubo `visibilitychange`.
+    window.addEventListener('pageshow', (e) => { if (e.persisted) void reanudar(); });
 
     // ============================================================================
     // SELECCIÓN / HISTORIAL

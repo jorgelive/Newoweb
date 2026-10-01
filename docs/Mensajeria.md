@@ -1404,6 +1404,32 @@ Un diccionario a medias no ahorra consultas: fabrica mensajes incompletos que na
 inglés también—. Por eso el controlador del envío a mano pasa el idioma que acaba de elegir para el
 cuerpo, y de paso usa `HidratadorDeMarcadores` en vez de su propio `strtr`.
 
+### 🔥 El chat no se actualizaba al volver a la app (01/10/2026)
+
+«Entro al chat y no se actualiza; tengo que tirar hacia abajo, y a veces ni eso funciona» (Jorge,
+antes de empezar a pasar a Susan a este chat). Tres causas, todas en `chatStore`:
+
+1. **Nada reaccionaba al volver.** En el móvil, con la app en segundo plano, el sistema congela la
+   página y corta el socket de Mercure; al volver, el `EventSource` puede seguir «abierto» sobre
+   una conexión muerta —sin `onerror`, así que sin reconexión— y la lista y el hilo se quedaban
+   como estaban. Sólo el resumen de no leídos se refrescaba (`App.vue`), así que el contador
+   decía «hay algo» y el chat no lo enseñaba. Ahora `reanudar()` corre al volver tras 3 s o más
+   fuera, al recuperar la red (`online`) y al volver de la caché del navegador (`pageshow`):
+   reabre los túneles con su `lastEventID` y FUSIONA la primera página de la lista y del hilo
+   abierto con lo que hay (`colocarEnSuPestana()`), sin vaciar, sin parpadeo y sin perder las
+   páginas cargadas ni el scroll.
+2. **El hilo abierto perdía lo publicado durante un corte.** `connectToMercure()` borraba su
+   `lastEventID` en CADA llamada, también al reintentar tras un error, así que el hub no
+   re-entregaba nada del hueco. Ahora sólo se olvida al cambiar de hilo (`convLastEventIdDe`).
+3. **Con la app en segundo plano, lo entrante se marcaba LEÍDO.** `isChatVisible` sólo sabe si el
+   panel está tapado por la lista; con la pantalla apagada seguía en `true`. `chatALaVista()` exige
+   además `document.visibilityState === 'visible'`, y lo que llegó mientras tanto se marca leído
+   al volver, si el hilo está delante.
+
+El gesto de tirar para recargar (`GestoDeRecarga`) no se tocó: recarga la app entera y en el chat
+apenas sirve —el hilo vive abajo del todo, arriba carga mensajes viejos, y la raíz del chat es
+`fixed`, que el gesto trata como un modal—. Con lo de arriba no debería hacer falta.
+
 ### 🔥 El chat salía VACÍO en los hilos con muchos programados (17/09/2026)
 
 El subrecurso `/conversations/{id}/messages` ordenaba por `scheduledAt DESC` y luego por
