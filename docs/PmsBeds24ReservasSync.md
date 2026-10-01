@@ -1288,6 +1288,15 @@ desbloquearía el día en el acto y el backend rechazaría el guardado. Y el PAT
 > acordar; fuera de ventana, mientras tanto, sale por push. La de fuera de horario usa la del
 > escalado, ya aprobada.
 
+> ✅ **Hora FIRME (01/10/2026).** `llegada_confirmada_at` / `salida_confirmada_at` dicen si la hora
+> está confirmada, porque la hora sola no lo dice. Se confirman: (1) cuando una persona CAMBIA la
+> hora (contexto UI: panel, calendario, agente) — `PmsEventoCalendarioIntegrityListener`; (2) con
+> `confirmar_hora` o `aplicar_cambio_horario`; (3) a mano en el drawer, con el botón «sin
+> confirmar / confirmada» junto a cada hora, que manda `llegadaConfirmada` / `salidaConfirmada`
+> sólo si se tocó. Se pierden si cambia el DÍA (lo mueva una persona o el canal): era para otro
+> día. Las ven el drawer, `listar_entradas_salidas` y el aviso al equipo («sale a las 10:00 (sin
+> confirmar)»).
+
 > 🔁 **01/10/2026 — bloquear lo decide el equipo, y la skill ya sabe decir que no.** Con hora fuera
 > del horario y la noche libre, `aplicar_cambio_horario` pregunta si se bloquea, y la respuesta
 > viaja en `bloquear` (`true` / `false`). Antes la pregunta ofrecía «sólo apunto la hora» pero la

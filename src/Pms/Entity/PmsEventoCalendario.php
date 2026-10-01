@@ -910,6 +910,40 @@ class PmsEventoCalendario
     public function setSalidaConfirmadaAt(?DateTimeImmutable $v): self { $this->salidaConfirmadaAt = $v; return $this; }
 
     /**
+     * Marcar o desmarcar desde el panel que la hora de llegada es FIRME, sin cambiarla: «sí, a
+     * las 14:00» por teléfono. Al marcar se conserva la fecha de una confirmación anterior.
+     * Cambiar la hora a mano ya la confirma sola (`PmsEventoCalendarioIntegrityListener`).
+     */
+    #[Groups(['pms_evento:write'])]
+    public function setLlegadaConfirmada(bool $confirmada): self
+    {
+        $this->llegadaConfirmadaAt = $confirmada ? ($this->llegadaConfirmadaAt ?? new DateTimeImmutable()) : null;
+
+        return $this;
+    }
+
+    #[Groups(['pms_evento:read'])]
+    public function isLlegadaConfirmada(): bool
+    {
+        return $this->llegadaConfirmadaAt !== null;
+    }
+
+    /** Lo mismo para la salida. Ver `setLlegadaConfirmada()`. */
+    #[Groups(['pms_evento:write'])]
+    public function setSalidaConfirmada(bool $confirmada): self
+    {
+        $this->salidaConfirmadaAt = $confirmada ? ($this->salidaConfirmadaAt ?? new DateTimeImmutable()) : null;
+
+        return $this;
+    }
+
+    #[Groups(['pms_evento:read'])]
+    public function isSalidaConfirmada(): bool
+    {
+        return $this->salidaConfirmadaAt !== null;
+    }
+
+    /**
      * La noche que deja sin vender un horario extra, o `null` si no hay ninguna.
      *
      * **La única fuente** de esa noche: ocupación, solapes, agente, calendario y el push a Beds24

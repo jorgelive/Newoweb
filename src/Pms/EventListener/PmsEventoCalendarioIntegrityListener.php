@@ -82,6 +82,35 @@ final class PmsEventoCalendarioIntegrityListener
             return;
         }
 
+        // 🕐 HORA CONFIRMADA. La hora sola no dice si es firme: las 14:00 son las de todos
+        // (Jorge, 01/10/2026). Dos reglas, salvo que el mismo guardado ya diga si está confirmada:
+        //  - Si cambia el DÍA, la confirmación anterior ya no vale: era para otro día. Lo mueva una
+        //    persona o el canal.
+        //  - Si una PERSONA cambia la hora (contexto UI: panel, calendario, agente), esa hora es
+        //    firme: nadie escribe las 08:00 a mano por escribir.
+        foreach ([['inicio', 'llegadaConfirmadaAt'], ['fin', 'salidaConfirmadaAt']] as [$campo, $marca]) {
+            if (!$args->hasChangedField($campo) || $args->hasChangedField($marca)) {
+                continue;
+            }
+
+            $viejo = $args->getOldValue($campo);
+            $nuevo = $args->getNewValue($campo);
+            if (!$viejo instanceof \DateTimeInterface || !$nuevo instanceof \DateTimeInterface) {
+                continue;
+            }
+
+            $confirmada = match (true) {
+                $viejo->format('Y-m-d') !== $nuevo->format('Y-m-d') => null,
+                $this->syncContext->isUi() && $viejo->format('H:i') !== $nuevo->format('H:i') => new \DateTimeImmutable(),
+                default => false,
+            };
+
+            if ($confirmada !== false) {
+                $campo === 'inicio' ? $evento->setLlegadaConfirmadaAt($confirmada) : $evento->setSalidaConfirmadaAt($confirmada);
+                $needsRecompute = true;
+            }
+        }
+
         // RED DE SEGURIDAD 1: Recuperación de Canal Directo
         if ($evento->getChannel() === null && !$evento->isOta()) {
             $this->asegurarCanalDirecto($evento, $em);

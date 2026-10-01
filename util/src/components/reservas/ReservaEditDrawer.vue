@@ -122,6 +122,13 @@ interface EventoFormData {
     /** Late check-out pactado: bloquea la noche en el canal y genera su cargo. */
     salidaTardia: boolean;
     /**
+     * ¿La hora de llegada / salida es FIRME? La hora sola no lo dice: las 14:00 son las de todos.
+     * Cambiar la hora a mano la confirma sola en el servidor; esto es para confirmar la que ya
+     * está («sí, a las 10») o quitarle la confirmación.
+     */
+    llegadaConfirmada: boolean;
+    salidaConfirmada: boolean;
+    /**
      * Quién limpia esta estancia (ids de usuario). Puede ser más de una persona.
      *
      * No es sólo reparto de trabajo: es lo que decide qué estancias ve cada compañera en el
@@ -250,6 +257,8 @@ function formVacio(overrides: Partial<EventoFormData> = {}): EventoFormData {
         cantidadAdultos: 1,
         entradaTemprana: false,
         salidaTardia: false,
+        llegadaConfirmada: false,
+        salidaConfirmada: false,
         cantidadNinos: 0,
         // Vacío a propósito: al crear, quien limpia lo pone solo el backend con la persona
         // marcada como «Limpia por defecto» (PmsLimpiezaAsignacionListener). Aquí se cambia
@@ -288,6 +297,8 @@ function entryDesdeEvento(evento: PmsEventoCalendario): EventoEntry {
             cantidadAdultos: evento.cantidadAdultos ?? 1,
             entradaTemprana: evento.entradaTemprana ?? false,
             salidaTardia: evento.salidaTardia ?? false,
+            llegadaConfirmada: evento.llegadaConfirmada ?? false,
+            salidaConfirmada: evento.salidaConfirmada ?? false,
             cantidadNinos: evento.cantidadNinos ?? 0,
             // `limpieza` llega como [{id, nombre}] (ver PmsEventoCalendario::getLimpieza):
             // el formulario sólo necesita los ids, los nombres los pone el catálogo.
@@ -1511,6 +1522,12 @@ async function guardar(cerrarAlTerminar = false): Promise<void> {
                         salidaTardia: entry.form.salidaTardia,
                     };
 
+                    // La confirmación de la hora viaja SÓLO si se tocó aquí: si cambió la hora,
+                    // el servidor ya la confirma solo, y mandar el valor con que se abrió el
+                    // drawer pisaría esa confirmación.
+                    if (entry.form.llegadaConfirmada !== !!entry.llegadaConfirmadaAt) payload.llegadaConfirmada = entry.form.llegadaConfirmada;
+                    if (entry.form.salidaConfirmada !== !!entry.salidaConfirmadaAt) payload.salidaConfirmada = entry.form.salidaConfirmada;
+
                     // `estado` y `estadoPago` viajan SOLO si se cambiaron en este drawer. El
                     // backend los mueve por su cuenta mientras el formulario está abierto
                     // (registrar un pago en el panel cuadra el saldo y pone `pago-total` +
@@ -2227,12 +2244,20 @@ async function ejecutarBorrado(): Promise<void> {
                                     <div class="col-span-2 space-y-3">
                                         <div>
                                             <div class="flex items-end gap-2">
-                                                <label class="flex-1 min-w-0">
+                                                <!-- `div` y no `label`: dentro va el botón de «confirmada», y un label activa su primer
+                                                     control al tocarlo en cualquier sitio — tocar «Check-in» la desmarcaba. -->
+                                                <div class="flex-1 min-w-0">
                                                     <span class="text-xs font-bold text-slate-500">Check-in</span>
-                                                    <span v-if="entry.llegadaConfirmadaAt" class="ml-1.5 text-[10px] font-bold text-emerald-600"
-                                                        :title="`Hora confirmada el ${fechaHoraCorta(entry.llegadaConfirmadaAt)}`">
-                                                        <i class="fas fa-check"></i> confirmada
-                                                    </span>
+                                                    <!-- ¿Hora firme? Se marca con un toque («sí, a las 10») sin tocar la hora;
+                                                         cambiar la hora a mano ya la confirma en el servidor. -->
+                                                    <button v-if="entry.eventoId" type="button"
+                                                        class="ml-1.5 px-1.5 rounded text-[10px] font-bold transition-colors"
+                                                        :class="entry.form.llegadaConfirmada ? 'text-emerald-700 bg-emerald-50' : 'text-slate-400 bg-slate-100 hover:text-slate-600'"
+                                                        :title="entry.llegadaConfirmadaAt ? `Hora confirmada el ${fechaHoraCorta(entry.llegadaConfirmadaAt)}. Toca para quitarla.` : 'Nadie ha confirmado esta hora. Toca si el huésped la confirmó.'"
+                                                        @click.prevent="entry.form.llegadaConfirmada = !entry.form.llegadaConfirmada">
+                                                        <i class="fas" :class="entry.form.llegadaConfirmada ? 'fa-check' : 'fa-question'"></i>
+                                                        {{ entry.form.llegadaConfirmada ? 'confirmada' : 'sin confirmar' }}
+                                                    </button>
                                                     <!-- Al mover la entrada, la salida se arrastra los mismos días
                                                          (onCambiarInicio). Handler explícito en vez de `v-model` +
                                                          `@update`: con los dos, el orden no está garantizado y
@@ -2243,7 +2268,7 @@ async function ejecutarBorrado(): Promise<void> {
                                                             :borrable="false"
                                                             @update:model-value="(v: string) => { entry.form.inicio = v; onCambiarInicio(entry); }" />
                                                     </div>
-                                                </label>
+                                                </div>
 
                                                 <label class="shrink-0 h-[38px] px-2.5 flex items-center gap-2 rounded-lg border cursor-pointer transition-colors"
                                                     :class="entry.form.entradaTemprana ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white hover:bg-slate-50'"
@@ -2262,12 +2287,18 @@ async function ejecutarBorrado(): Promise<void> {
 
                                         <div>
                                             <div class="flex items-end gap-2">
-                                                <label class="flex-1 min-w-0">
+                                                <div class="flex-1 min-w-0">
                                                     <span class="text-xs font-bold text-slate-500">Check-out</span>
-                                                    <span v-if="entry.salidaConfirmadaAt" class="ml-1.5 text-[10px] font-bold text-emerald-600"
-                                                        :title="`Hora confirmada el ${fechaHoraCorta(entry.salidaConfirmadaAt)}`">
-                                                        <i class="fas fa-check"></i> confirmada
-                                                    </span>
+                                                    <!-- ¿Hora firme? Se marca con un toque («sí, a las 10») sin tocar la hora;
+                                                         cambiar la hora a mano ya la confirma en el servidor. -->
+                                                    <button v-if="entry.eventoId" type="button"
+                                                        class="ml-1.5 px-1.5 rounded text-[10px] font-bold transition-colors"
+                                                        :class="entry.form.salidaConfirmada ? 'text-emerald-700 bg-emerald-50' : 'text-slate-400 bg-slate-100 hover:text-slate-600'"
+                                                        :title="entry.salidaConfirmadaAt ? `Hora confirmada el ${fechaHoraCorta(entry.salidaConfirmadaAt)}. Toca para quitarla.` : 'Nadie ha confirmado esta hora. Toca si el huésped la confirmó.'"
+                                                        @click.prevent="entry.form.salidaConfirmada = !entry.form.salidaConfirmada">
+                                                        <i class="fas" :class="entry.form.salidaConfirmada ? 'fa-check' : 'fa-question'"></i>
+                                                        {{ entry.form.salidaConfirmada ? 'confirmada' : 'sin confirmar' }}
+                                                    </button>
                                                     <div class="mt-1">
                                                         <!-- Suelo = el DÍA de entrada, sin su hora (ver `soloDia`):
                                                              con la hora dentro, cambiar el check-in movía el check-out. -->
@@ -2277,7 +2308,7 @@ async function ejecutarBorrado(): Promise<void> {
                                                             :borrable="false"
                                                             :invalido="!!errorFechas(entry)" />
                                                     </div>
-                                                </label>
+                                                </div>
 
                                                 <label class="shrink-0 h-[38px] px-2.5 flex items-center gap-2 rounded-lg border cursor-pointer transition-colors"
                                                     :class="entry.form.salidaTardia ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white hover:bg-slate-50'"

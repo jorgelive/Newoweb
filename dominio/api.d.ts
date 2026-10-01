@@ -28175,6 +28175,13 @@ export interface components {
                 nombre: string;
             }[];
             readonly ota?: boolean;
+            /**
+             * @description Marcar o desmarcar desde el panel que la hora de llegada es FIRME, sin cambiarla: «sí, a
+             *     las 14:00» por teléfono. Al marcar se conserva la fecha de una confirmación anterior.
+             */
+            llegadaConfirmada?: boolean;
+            /** @description Lo mismo para la salida. Ver `setLlegadaConfirmada()`. */
+            salidaConfirmada?: boolean;
         };
         /**
          * @description Entidad PmsEventoCalendario.
@@ -28229,6 +28236,13 @@ export interface components {
              * @default false
              */
             entradaTemprana: boolean;
+            /**
+             * @description Marcar o desmarcar desde el panel que la hora de llegada es FIRME, sin cambiarla: «sí, a
+             *     las 14:00» por teléfono. Al marcar se conserva la fecha de una confirmación anterior.
+             */
+            llegadaConfirmada?: boolean;
+            /** @description Lo mismo para la salida. Ver `setLlegadaConfirmada()`. */
+            salidaConfirmada?: boolean;
         };
         /**
          * @description Entidad PmsEventoCalendario.
@@ -28288,6 +28302,13 @@ export interface components {
              * @default false
              */
             entradaTemprana: boolean;
+            /**
+             * @description Marcar o desmarcar desde el panel que la hora de llegada es FIRME, sin cambiarla: «sí, a
+             *     las 14:00» por teléfono. Al marcar se conserva la fecha de una confirmación anterior.
+             */
+            llegadaConfirmada?: boolean;
+            /** @description Lo mismo para la salida. Ver `setLlegadaConfirmada()`. */
+            salidaConfirmada?: boolean;
         };
         "PmsEventoCalendario-pms_reserva.read_timestamp.read": {
             /** Format: uuid */
@@ -28385,6 +28406,13 @@ export interface components {
                 nombre: string;
             }[];
             readonly ota?: boolean;
+            /**
+             * @description Marcar o desmarcar desde el panel que la hora de llegada es FIRME, sin cambiarla: «sí, a
+             *     las 14:00» por teléfono. Al marcar se conserva la fecha de una confirmación anterior.
+             */
+            llegadaConfirmada?: boolean;
+            /** @description Lo mismo para la salida. Ver `setLlegadaConfirmada()`. */
+            salidaConfirmada?: boolean;
         };
         "PmsEventoCalendario.html-pms_reserva.read_timestamp.read": {
             /** Format: uuid */
@@ -28488,6 +28516,13 @@ export interface components {
                 nombre: string;
             }[];
             readonly ota?: boolean;
+            /**
+             * @description Marcar o desmarcar desde el panel que la hora de llegada es FIRME, sin cambiarla: «sí, a
+             *     las 14:00» por teléfono. Al marcar se conserva la fecha de una confirmación anterior.
+             */
+            llegadaConfirmada?: boolean;
+            /** @description Lo mismo para la salida. Ver `setLlegadaConfirmada()`. */
+            salidaConfirmada?: boolean;
         };
         /**
          * @description Entidad PmsEventoCalendario.
@@ -28591,6 +28626,13 @@ export interface components {
                 nombre: string;
             }[];
             readonly ota?: boolean;
+            /**
+             * @description Marcar o desmarcar desde el panel que la hora de llegada es FIRME, sin cambiarla: «sí, a
+             *     las 14:00» por teléfono. Al marcar se conserva la fecha de una confirmación anterior.
+             */
+            llegadaConfirmada?: boolean;
+            /** @description Lo mismo para la salida. Ver `setLlegadaConfirmada()`. */
+            salidaConfirmada?: boolean;
         };
         "PmsEventoCalendario.multipart-pms_reserva.read_timestamp.read": {
             /** Format: uuid */
