@@ -183,6 +183,8 @@ final readonly class PmsDisponibilidadService
                    -- que arma la URL de su guía. Devolver el del evento hacía que dos skills
                    -- dieran códigos distintos del mismo huésped.
                    r.localizador                 AS localizador,
+                   e.llegada_confirmada_at IS NOT NULL AS llegada_confirmada,
+                   e.salida_confirmada_at  IS NOT NULL AS salida_confirmada,
                    -- Si lo único que cae en el rango es su noche extra, cuál: los mensajes dicen
                    -- «la entrada temprana de X», no «X», que estaría en otras fechas.
                    CASE WHEN DATE(e.inicio) < :hasta AND DATE(e.fin) > :desde THEN NULL
@@ -206,7 +208,8 @@ final readonly class PmsDisponibilidadService
          * @var list<array{evento_id: string, reserva_id: ?string, casita_id: string, casita: ?string,
          *     establecimiento: ?string, huesped: ?string, entra: string, sale: string,
          *     hora_entrada: ?string, hora_salida: ?string, estado: string, es_ota: int|string|null,
-         *     localizador: ?string, noche_extra: ?string}> $filas
+         *     localizador: ?string, noche_extra: ?string, llegada_confirmada: int|string,
+         *     salida_confirmada: int|string}> $filas
          */
         $filas = $this->em->getConnection()->executeQuery(
             $sql,
@@ -237,6 +240,8 @@ final readonly class PmsDisponibilidadService
                 reservaId:       $f['reserva_id'] !== null ? (string) $f['reserva_id'] : null,
                 eventoId:        (string) $f['evento_id'],
                 nocheExtra:      $f['noche_extra'] !== null ? (string) $f['noche_extra'] : null,
+                llegadaConfirmada: (bool) $f['llegada_confirmada'],
+                salidaConfirmada:  (bool) $f['salida_confirmada'],
             ),
             $filas
         );
@@ -320,9 +325,9 @@ final readonly class PmsDisponibilidadService
         $salida = DateTimeImmutable::createFromInterface($fin)->setTime(0, 0);
 
         return [
-            'antes' => $this->nocheDe($vispera, (string) $unidadId, $evento),
+            'antes' => $this->nocheDe($vispera, (string) $unidadId, $evento, esAntes: true),
             // La noche del día de salida: la que ocuparía el late check-out.
-            'despues' => $this->nocheDe($salida, (string) $unidadId, $evento),
+            'despues' => $this->nocheDe($salida, (string) $unidadId, $evento, esAntes: false),
         ];
     }
 
@@ -331,7 +336,7 @@ final readonly class PmsDisponibilidadService
      *
      * @return array{fecha: string, libre: bool, ocupa: ?string}
      */
-    private function nocheDe(DateTimeImmutable $noche, string $unidadId, PmsEventoCalendario $propio): array
+    private function nocheDe(DateTimeImmutable $noche, string $unidadId, PmsEventoCalendario $propio, bool $esAntes): array
     {
         $reservaPropia = $propio->getReserva()?->getId() !== null
             ? (string) $propio->getReserva()->getId()
@@ -349,7 +354,12 @@ final readonly class PmsDisponibilidadService
 
             // Se queda con el primero: al operador le basta saber que hay algo y de quién,
             // no la lista completa de lo que solapa.
-            $ocupada = $dto->quienOcupa();
+            //
+            // 🕐 Y a qué hora deja libre la casita —la víspera— o a qué hora la necesita —la noche
+            // de salida—, y si esa hora está confirmada. Es lo que decide una entrada temprana o
+            // una salida tardía: no es lo mismo «la víspera la ocupa Juan» que «Juan sale a las
+            // 07:00, confirmado» (Jorge, 01/10/2026).
+            $ocupada = $dto->quienOcupa() . ($dto->esEstancia ? ', ' . ($esAntes ? $dto->cuandoSale() : $dto->cuandoEntra()) : '');
             break;
         }
 

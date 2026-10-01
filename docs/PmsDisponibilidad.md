@@ -183,6 +183,17 @@ tramos en la misma casita.
 Lo consume `EscalarAlEquipoSkill`, que lo mete en el WhatsApp que recibe el operador — **nunca en
 lo que ve el huésped** (§11 de `Mensajeria.md`).
 
+### `margenesDe()` dice también A QUÉ HORA (01/10/2026)
+
+Cuando la noche de al lado está ocupada, `ocupa` ya no es sólo el nombre: lleva la hora que
+decide un horario extra y si está confirmada — en la víspera, a qué hora SALE quien la ocupa
+(«Ricardo, sale el 04/10 a las 10:00 (sin confirmar)»); en la noche de salida, a qué hora ENTRA
+(«…, entra el 13/10 a las 14:00 (confirmada)»). Lo pidió Jorge para que el aviso al equipo traiga
+todo lo necesario para decidir. Sale de `PmsOcupacionDto::cuandoSale()` / `cuandoEntra()`, con
+`llegada_confirmada` / `salida_confirmada` del propio `ocupacion()`, y lo heredan todos los que
+usan `margenesDe()`: `confirmar_hora`, `evaluar_cambio_horario`, `aplicar_cambio_horario` y el
+escalado.
+
 ## 8.c El candado al guardar: nadie ocupa lo ocupado
 
 Hasta el 28/09/2026 la disponibilidad **informaba** pero nada **impedía**: desde el calendario, el

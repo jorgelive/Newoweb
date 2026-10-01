@@ -276,10 +276,11 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
             'motivo' => $esSalida ? 'salida_tardia' : 'entrada_temprana',
             'horario_del_alojamiento' => $limite,
             'aviso' => sprintf(
-                'NO se ha apuntado y NO le confirmes nada. Dile que el %s es a las %s, que lo consultas '
-                . 'con el equipo y le dices algo. Si te pregunta qué puede hacer mientras, mira el '
-                . 'conocimiento (guardar equipaje, entrada autónoma). La petición queda pegada a su '
-                . 'estancia y el equipo YA está avisado: no hace falta escalar_al_equipo.',
+                'NO se ha apuntado y NO le confirmes nada. Dile que el %s es a las %s y que lo '
+                . 'consultas con el equipo, que depende de la disponibilidad. Ofrécele mientras '
+                . 'guardar el equipaje (conocimiento «Guardar equipaje»). NO hables de costes: si '
+                . 'hay algún cobro lo decide el equipo. La petición queda pegada a su estancia y el '
+                . 'equipo YA está avisado: no hace falta escalar_al_equipo.',
                 $esSalida ? 'check-out' : 'check-in',
                 $limite
             ),
@@ -332,7 +333,7 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
             'La noche %s (%s) %s.',
             $esSalida ? 'de su salida' : 'anterior',
             (new DateTimeImmutable($margen['fecha']))->format('d/m'),
-            $margen['libre'] ? 'está libre' : 'ya es de ' . $margen['ocupa']
+            $margen['libre'] ? 'está libre' : 'está ocupada: ' . $margen['ocupa']
         );
     }
 

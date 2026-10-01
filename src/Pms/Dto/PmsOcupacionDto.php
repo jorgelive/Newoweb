@@ -38,7 +38,27 @@ final readonly class PmsOcupacionDto
          * la estancia: la noche extra es la víspera de `entra` o la noche de `sale`.
          */
         public ?string $nocheExtra = null,
+        /** ¿Se confirmó su hora de llegada / de salida? Ver `PmsEventoCalendario::$llegadaConfirmadaAt`. */
+        public bool $llegadaConfirmada = false,
+        public bool $salidaConfirmada = false,
     ) {}
+
+    /** «sale el 08/10 a las 10:00 (sin confirmar)». */
+    public function cuandoSale(): string
+    {
+        return sprintf('sale el %s a las %s (%s)', $this->diaCorto($this->sale), $this->horaSalida ?? '—', $this->salidaConfirmada ? 'confirmada' : 'sin confirmar');
+    }
+
+    /** «entra el 13/10 a las 14:00 (confirmada)». */
+    public function cuandoEntra(): string
+    {
+        return sprintf('entra el %s a las %s (%s)', $this->diaCorto($this->entra), $this->horaEntrada ?? '—', $this->llegadaConfirmada ? 'confirmada' : 'sin confirmar');
+    }
+
+    private function diaCorto(string $ymd): string
+    {
+        return (new \DateTimeImmutable($ymd))->format('d/m');
+    }
 
     /** Quién ocupa, dicho para una persona: «Anna Müller» o «la entrada temprana de Anna Müller». */
     public function quienOcupa(): string
@@ -96,6 +116,8 @@ final readonly class PmsOcupacionDto
             // Sólo cuando lo que ocupa el rango es su entrada temprana o su salida tardía, no la
             // estancia: `entra`/`sale` son los de la estancia, que cae fuera.
             'noche_extra'     => $this->nocheExtra,
+            'llegada_confirmada' => $this->llegadaConfirmada,
+            'salida_confirmada'  => $this->salidaConfirmada,
         ], static fn ($v) => $v !== null);
     }
 }
