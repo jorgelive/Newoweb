@@ -47,19 +47,6 @@ class PmsEventoEstado
     public const string CODIGO_REQUERIMIENTO  = 'requerimiento';
     public const string CODIGO_BLOQUEO        = 'bloqueo';
 
-    /**
-     * Extensión de horario: la noche que una estancia inutiliza sin venderla
-     * (entrada temprana o salida tardía).
-     *
-     * Es un evento REAL —ocupa la unidad y viaja a Beds24 como `black`— pero
-     * INVISIBLE: no sale en los calendarios, ni en el listado de eventos, ni en
-     * las estancias del drawer, ni suma en el rollup de la reserva. Lo crea y lo
-     * retira solo `PmsExtensionEstanciaService`; nadie lo edita a mano.
-     *
-     * Ver docs/PmsBeds24ReservasSync.md §7.1.b.
-     */
-    public const string CODIGO_EXTENSION      = 'extension';
-
     public const array MOSTRAR_EVENTO_GUIA = [
         PmsEventoEstado::CODIGO_PENDIENTE,
         PmsEventoEstado::CODIGO_CONFIRMADA,
@@ -164,8 +151,7 @@ class PmsEventoEstado
      * bajar a la base de datos en mitad del mapeo de un lote.
      *
      * ⚠️ Espejo de la columna `pms_evento_estado.codigo_beds24`. `black` queda fuera a
-     * propósito: lo comparten `bloqueo` y `extension`, así que no tiene vuelta única — y
-     * ninguno de los dos es un estado de reserva de OTA.
+     * propósito: es `bloqueo`, que no es un estado de reserva de OTA.
      */
     public static function desdeCodigoBeds24(?string $codigo): ?string
     {
@@ -198,8 +184,6 @@ class PmsEventoEstado
      * - `bloqueo`: no hay huésped, es la casita cerrada por nosotros o por el canal.
      * - `abierto`: un inquiry de Airbnb es una CONSULTA, no una reserva. Todavía no hay
      *   relación que dé acceso a nada.
-     * - `extension`: la noche fantasma de una entrada temprana o salida tardía (§7.1.b), no
-     *   una estancia. Su reserva ya entra por el tramo que la generó.
      */
     public const array IDENTIFICAN_HUESPED = [
         PmsEventoEstado::CODIGO_PENDIENTE,
@@ -212,13 +196,13 @@ class PmsEventoEstado
      *
      * ⚠️ NO es lo mismo que OCUPAN_UNIDAD, y por eso se declara aparte en vez de
      * derivarse de ella. Aquella responde «¿pinto beige esta noche en el calendario de
-     * tarifas?»; ésta responde «¿puedo alojar a alguien aquí?». Dos estados las separan:
+     * tarifas?»; ésta responde «¿puedo alojar a alguien aquí?». Las separa `bloqueo`: no
+     * es una venta que tarifar (fuera de OCUPAN_UNIDAD), pero la casita está cerrada por
+     * mantenimiento o por el canal — no se puede vender.
      *
-     * - `bloqueo`: no es una venta que tarifar (fuera de OCUPAN_UNIDAD), pero la casita
-     *   está cerrada por mantenimiento o por el canal — no se puede vender.
-     * - `extension`: la noche que inutiliza una entrada temprana o una salida tardía
-     *   (§7.1.b de docs/PmsBeds24ReservasSync.md). Es invisible en el PMS y no se tarifa,
-     *   pero la unidad está físicamente ocupada.
+     * La noche de una entrada temprana o una salida tardía no es un estado: la suma el rango
+     * efectivo de la estancia (`PmsEventoCalendario::nocheExtra()`, docs/PmsDisponibilidad.md
+     * §8.d). Hasta el 01/10/2026 era un evento aparte en estado `extension`.
      *
      * `abierto` (inquiry de Airbnb) queda FUERA a propósito: es una consulta sin reserva,
      * no retiene la unidad. Si algún día se decide que un inquiry sí la retiene, se añade
@@ -231,7 +215,6 @@ class PmsEventoEstado
         PmsEventoEstado::CODIGO_CONFIRMADA,
         PmsEventoEstado::CODIGO_REQUERIMIENTO,
         PmsEventoEstado::CODIGO_BLOQUEO,
-        PmsEventoEstado::CODIGO_EXTENSION,
     ];
 
     /**

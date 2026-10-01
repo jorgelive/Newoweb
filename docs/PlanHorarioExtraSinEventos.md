@@ -1,10 +1,10 @@
 # Plan — Horario extra sin eventos hermanos
 
-> **Estado (01/10/2026):** fases 0 a 5 hechas y desplegadas; la 4 probada contra Beds24 real.
-> Ya no hay eventos hermanos: la noche extra sale de la casilla y su `black` es un link de la
-> estancia. Pendiente: la aprobación de Meta de `aviso_choque_ota_interno`, una segunda plantilla
-> para el caso en que el canal mueve a la DUEÑA de la noche extra (texto por acordar), y la
-> limpieza de la fase 6.
+> **Estado (01/10/2026): HECHO.** Las seis fases desplegadas; la 4 probada contra Beds24 real.
+> Ya no hay eventos hermanos, ni `evento_origen_id`, ni estado `extension`: la noche extra sale de
+> la casilla y su `black` es un link de la estancia. Queda fuera del código: la aprobación de Meta
+> de `aviso_choque_ota_interno`, y una segunda plantilla para el caso en que el canal mueve a la
+> DUEÑA de la noche extra (texto por acordar con Jorge).
 
 ## 1. Qué cambia y por qué
 
@@ -216,7 +216,7 @@ cancelada en el PMS y en Beds24.
 - Lo que falta: si la noche nueva choca con otra estancia, **avisar al equipo** (no se puede
   rechazar: el canal ya lo cambió). Aviso técnico interno con casita, noche y quién ocupa.
 
-### Fase 6 — Limpieza
+### Fase 6 — Limpieza ✅ 01/10/2026
 - Quitar los filtros que ya no filtran nada: `eventoOrigen IS NULL` (calendarios, CRUD, buscador,
   rollup, pagos, `listar_entradas_salidas`, `CambiarCodigoCaja`…) y `not_in: [extension]` del YAML
   (con sus tests de configuración).
@@ -226,6 +226,20 @@ cancelada en el PMS y en Beds24.
   extensión».
 - Docs: §7.1.b de `PmsBeds24ReservasSync.md` reescrito, `PmsDisponibilidad.md`,
   `Calendar_architecture.md`.
+
+### Fase 6 — lo que se hizo
+
+- Fuera los filtros `eventoOrigen IS NULL` / `evento_origen_id IS NULL` (calendarios SPA y raw,
+  CRUD, buscador, `PmsReservaRepository`, rollup, estado de pago, `listar_salidas`,
+  `CambiarCodigoCaja`, `PmsFrentes`, `PmsHitosDeEstancia`, `PmsConversacionEnlace`, limpieza,
+  cargos, skills del agente, drawer, detalle del panel) y `not_in: [extension]` de los cuatro
+  calendarios del YAML, con sus tests de configuración.
+- `PmsEventoEstado::CODIGO_EXTENSION` fuera de `IMPIDEN_VENTA`, de los intocables del pull y de
+  `ESTADOS_SIN_AUTO_CONFIRMACION`. El test de `custom3` usa ahora un estado inventado: la regla se
+  queda para el próximo que comparta código en Beds24.
+- `PmsAuditarReservaCommand` avisa si una noche extra no tiene link que la bloquee.
+- Migración `Version20261001200000`: `DROP evento_origen_id` y `DELETE` del estado `extension`.
+- `dominio/api.d.ts` regenerado (sin `eventoOrigen`).
 
 ## 4. Riesgos y cómo se cubren
 

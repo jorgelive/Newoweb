@@ -310,11 +310,10 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
 
         // Nuestro estado, tal cual, para que el viaje de vuelta sea determinista.
         //
-        // 🔥 `bloqueo` y `extension` comparten código en Beds24 (`black`): de ida no se pierde nada,
-        // pero el pull, al leer «black», no podía saber cuál de los dos era y se quedaba con el
-        // primero que devolvía la base. La noche de una entrada temprana nacía `extension` y esa
-        // misma noche pasaba a `bloqueo` (UV5XPW, 28/09/2026). Con el estado escrito en `custom3`,
-        // Beds24 nos lo devuelve y no hay nada que adivinar.
+        // 🔥 Dos estados nuestros con el mismo código en Beds24 no tienen vuelta única: el pull, al
+        // leer «black», se quedaba con el primero que devolvía la base. Pasó con `bloqueo` y
+        // `extension` (UV5XPW, 28/09/2026; `extension` ya no existe). Con el estado escrito en
+        // `custom3`, Beds24 nos lo devuelve y no hay nada que adivinar.
         $estadoPms = $evento->getEstado()?->getId();
         if ($estadoPms !== null && $estadoPms !== '') {
             $payload['custom3'] = self::PREFIJO_ESTADO . $estadoPms;

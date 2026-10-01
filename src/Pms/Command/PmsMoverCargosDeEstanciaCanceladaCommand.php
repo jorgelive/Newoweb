@@ -84,13 +84,10 @@ final class PmsMoverCargosDeEstanciaCanceladaCommand extends Command
         foreach ($reserva->getEventosCalendario() as $evento) {
             $estado = $evento->getEstado()?->getId();
 
-            // ⚠️ **`extension` y `bloqueo` NO son estancias**: son la salida tardía y el bloqueo de
-            // calendario. Contarlas hacía que una reserva de una sola casita con salida tardía
-            // dijera «hay 2 estancias vivas» y el comando se negara justo cuando servía — o peor,
-            // que los cargos acabaran en la noche fantasma si el tramo real estaba cancelado.
+            // ⚠️ **Un `bloqueo` NO es una estancia**: contarlo hacía que una reserva de una sola
+            // casita dijera «hay 2 estancias vivas» y el comando se negara justo cuando servía.
             if (in_array($estado, [
                 PmsEventoEstado::CODIGO_CANCELADA,
-                PmsEventoEstado::CODIGO_EXTENSION,
                 PmsEventoEstado::CODIGO_BLOQUEO,
             ], true)) {
                 continue;

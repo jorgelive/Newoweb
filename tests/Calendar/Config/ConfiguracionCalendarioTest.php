@@ -166,10 +166,10 @@ final class ConfiguracionCalendarioTest extends TestCase
     /** @return iterable<string, array{mixed, list<string>, list<string>}> */
     public static function filtrosDeIds(): iterable
     {
-        yield 'estructurado' => [['in' => ['confirmada'], 'not_in' => ['cancelada', 'extension']], ['confirmada'], ['cancelada', 'extension']];
+        yield 'estructurado' => [['in' => ['confirmada'], 'not_in' => ['cancelada', 'bloqueo']], ['confirmada'], ['cancelada', 'bloqueo']];
         // Lo que hay en casi todos los calendarios: listas vacías NO filtran.
         yield 'estructurado vacío' => [['in' => [], 'not_in' => []], [], []];
-        yield 'sólo not_in' => [['not_in' => ['extension']], [], ['extension']];
+        yield 'sólo not_in' => [['not_in' => ['bloqueo']], [], ['bloqueo']];
         yield 'not_in suelto' => [['in' => ['a'], 'not_in' => 'b'], ['a'], ['b']];
         yield 'lista plana = in' => [['confirmada', 'bloqueo'], ['confirmada', 'bloqueo'], []];
         yield 'un id suelto = in' => ['cancelada', ['cancelada'], []];

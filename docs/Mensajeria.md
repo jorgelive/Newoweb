@@ -3735,9 +3735,8 @@ Con varias casitas se listan todas, porque la respuesta puede ser distinta en ca
 eso no lo decide la disponibilidad sino una persona. La línea **informa, no autoriza**: libre
 significa que la conversación puede seguir; ocupada sí es concluyente.
 
-Lo propio no cuenta como ocupación ajena, y se compara **por reserva** y no por id de evento: las
-extensiones son eventos aparte que cuelgan por `eventoOrigen`, y buscarlas una a una sería una
-consulta extra por noche. Si el cálculo falla, el aviso sale sin esta línea — que llegue el
+Lo propio no cuenta como ocupación ajena, y se compara **por reserva** y no por id de evento: así
+quedan fuera su propia noche extra y su otro tramo en la misma casita. Si el cálculo falla, el aviso sale sin esta línea — que llegue el
 escalado importa más que el extra.
 
 **Lo dispara el modelo**, no las skills: es quien sabe si acaba de prometer algo. No hay nada

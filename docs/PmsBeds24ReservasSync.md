@@ -1080,7 +1080,9 @@ resolveTasks():
 > Lo que sigue es la historia del mecanismo anterior (evento `extension` + `PmsExtensionEstanciaService`),
 > que se conserva porque explica por qué se cambió. El plan y lo que se hizo en cada fase:
 > `docs/PlanHorarioExtraSinEventos.md`. El estado `extension` y `evento_origen_id` siguen en la base
-> hasta la fase 6, sin uso.
+> hasta la fase 6; desde el 01/10/2026 (Version20261001200000) ya no existen: la columna se borró
+> y el estado también. Los filtros `eventoOrigen IS NULL` y `not_in: [extension]` que se citan
+> abajo ya no están en el código.
 
 Un *late check-out* (se va a las 17:00 en vez de a las 10:00) o un *early check-in* (llega a las
 09:00 en vez de a las 14:00) **no son noches más**, pero dejan la casita invendible una noche: no
@@ -1512,7 +1514,7 @@ comportamiento, no una limpieza.
 > **exactamente 2, y los dos son bloqueos**. La consulta que lo comprueba:
 > ```sql
 > SELECT e.estado_id, COUNT(*) FROM pms_evento_calendario e
-> WHERE e.reserva_id IS NULL AND e.evento_origen_id IS NULL
+> WHERE e.reserva_id IS NULL
 >   AND EXISTS (SELECT 1 FROM pms_evento_beds24_link l WHERE l.evento_id=e.id AND l.es_principal=1)
 > GROUP BY e.estado_id;
 > ```

@@ -458,9 +458,7 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
             // Mismo criterio que `PmsFrentes::etiquetaDe()`: sólo los tramos que cuentan, nunca
             // `getFechaLlegada()`/`getFechaSalida()`, que son agregados y con un tramo cancelado
             // pintan una ventana que no corresponde a ninguna estancia real.
-            if ($evento->getEventoOrigen() !== null
-                || !in_array($evento->getEstado()?->getId(), PmsEventoEstado::IDENTIFICAN_HUESPED, true)
-            ) {
+            if (!in_array($evento->getEstado()?->getId(), PmsEventoEstado::IDENTIFICAN_HUESPED, true)) {
                 continue;
             }
 

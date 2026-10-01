@@ -80,12 +80,8 @@ final class PmsCargosAutomaticosService
             return false;
         }
 
-        // Ni los bloqueos ni las EXTENSIONES: no son ventas. La extensión, además,
-        // ya tiene su propio cargo en la estancia que la generó (sincronizarExtras()),
-        // y si entrara aquí estrenaría alojamiento y limpieza por una noche fantasma.
-        // `esExtension()` y no el estado: una extensión retirada queda en
-        // `cancelada` y tampoco debe estrenar cargos si alguien la revive.
-        if ($evento->getEstado()?->getId() === PmsEventoEstado::CODIGO_BLOQUEO || $evento->esExtension()) {
+        // Los bloqueos no: no son ventas.
+        if ($evento->getEstado()?->getId() === PmsEventoEstado::CODIGO_BLOQUEO) {
             return false;
         }
 
@@ -253,8 +249,8 @@ final class PmsCargosAutomaticosService
      * salida tardía.
      *
      * Las dos bloquean una noche que ya no se puede vender —la víspera y la del
-     * día de salida—: de eso se encarga `PmsExtensionEstanciaService`, creando un
-     * evento hermano. Aquí va solo el dinero, y las dos se cobran igual: **el cargo
+     * día de salida—: esa noche la deriva `PmsEventoCalendario::nocheExtra()` y la
+     * bloquea en Beds24 `NochesExtraDeEstancia`. Aquí va solo el dinero, y las dos se cobran igual: **el cargo
      * se crea con importe CERO y lo valora el operador**. Cuánto vale entrar antes o salir después se
      * negocia caso por caso; sugerir un precio sería peor que no poner ninguno,
      * porque se acabaría cobrando el que el sistema inventó.

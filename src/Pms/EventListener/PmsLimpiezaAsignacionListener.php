@@ -42,14 +42,7 @@ final class PmsLimpiezaAsignacionListener
 
     public function prePersist(PmsEventoCalendario $evento): void
     {
-        // Una EXTENSIÓN no es una estancia: es la noche fantasma que bloquea un horario extra
-        // (ver PmsExtensionEstanciaService). No se limpia, así que no se asigna — y de paso no
-        // ensucia la lista de quien limpia con una noche que no existe.
-        if ($evento->getEventoOrigen() !== null) {
-            return;
-        }
-
-        // Un BLOQUEO por mantenimiento tampoco: no hay huésped que se vaya ni casita que
+        // Un BLOQUEO por mantenimiento no se limpia: no hay huésped que se vaya ni casita que
         // preparar para nadie. Se reconoce por no tener reserva detrás.
         if ($evento->getReserva() === null) {
             return;

@@ -152,11 +152,7 @@ final readonly class PmsFrentes implements FrentesPorDominioInterface
         $salida = null;
 
         foreach ($reserva->getEventosCalendario() as $evento) {
-            // Las extensiones fuera: son la noche fantasma de un horario extra, y estirarían la
-            // ventana un día por su cuenta.
-            if ($evento->getEventoOrigen() !== null
-                || !in_array($evento->getEstado()?->getId(), $estados, true)
-            ) {
+            if (!in_array($evento->getEstado()?->getId(), $estados, true)) {
                 continue;
             }
 

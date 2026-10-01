@@ -63,10 +63,6 @@ final class PmsReservaBuscarController extends AbstractController
             ->innerJoin('e.reserva', 'r')
             ->leftJoin('e.pmsUnidad', 'u')
             ->leftJoin('e.estado', 'es')
-            // Las EXTENSIONES no son estancias: buscar un huésped no debe devolver la
-            // noche que bloquea su salida tardía. Por `eventoOrigen`, que no cambia
-            // cuando se retiran (§7.1.b del doc).
-            ->andWhere('e.eventoOrigen IS NULL')
             ->leftJoin('e.estadoPago', 'ep')
             ->leftJoin('e.channel', 'c')
             // Lo primero que uno busca es la reserva de estos días, no la de hace

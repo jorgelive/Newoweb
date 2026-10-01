@@ -217,7 +217,6 @@ final readonly class CambiarCodigoCajaSkill implements SkillInterface, SkillDomi
             JOIN pms_unidad u   ON u.id = e.pms_unidad_id
             JOIN pms_reserva r  ON r.id = e.reserva_id
             WHERE e.estado_id IN ('pendiente', 'confirmada', 'requerimiento')
-              AND e.evento_origen_id IS NULL
               AND DATE(e.inicio) <= :hoy
               AND DATE(e.fin)    >= :hoy
             ORDER BY u.nombre

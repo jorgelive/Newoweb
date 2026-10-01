@@ -14,10 +14,6 @@ use App\Pms\Factory\PmsEventoCalendarioFactory;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
-use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
-use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
-use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
-use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -38,26 +34,6 @@ use Symfony\Component\Validator\Constraints\NotBlank;
  */
 final class PmsEventoCalendarioCrudController extends BaseCrudController
 {
-    /**
-     * El listado esconde las EXTENSIONES (la noche que bloquea un horario extra).
-     *
-     * Son eventos reales —ocupan la unidad y viajan a Beds24 como `black`— pero no
-     * son estancias: las crea y las retira `PmsExtensionEstanciaService` a partir de
-     * las casillas de la estancia, y nadie debe editarlas a mano desde aquí. Mismo
-     * criterio que los calendarios (§7.1.b del doc).
-     */
-    public function createIndexQueryBuilder(
-        SearchDto $searchDto,
-        EntityDto $entityDto,
-        FieldCollection $fields,
-        FilterCollection $filters,
-    ): QueryBuilder {
-        // Por `eventoOrigen` y no por estado: al retirar una extensión pasa a
-        // `cancelada` y con el filtro de estado reaparecía en el listado.
-        return parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters)
-            ->andWhere('entity.eventoOrigen IS NULL');
-    }
-
     public function __construct(
         protected AdminUrlGenerator                 $adminUrlGenerator,
         protected RequestStack                      $requestStack,

@@ -60,21 +60,18 @@ final class PmsAuditarReservaCommand extends Command
 
         $avisos = [];
 
-        // ── ESTANCIAS Y EXTENSIONES ─────────────────────────────────────────
+        // ── ESTANCIAS ───────────────────────────────────────────────────────
         $filas = [];
         $estancias = [];
         foreach ($reserva->getEventosCalendario() as $evento) {
-            $esExt = $evento->esExtension();
             $clave = ($evento->getPmsUnidad()?->getNombre() ?? '?')
                 . '|' . $evento->getInicio()?->format('Y-m-d')
                 . '|' . $evento->getFin()?->format('Y-m-d');
 
-            if (!$esExt) {
-                $estancias[$clave] = ($estancias[$clave] ?? 0) + 1;
-            }
+            $estancias[$clave] = ($estancias[$clave] ?? 0) + 1;
 
             $filas[] = [
-                $esExt ? '  └ extensión' : 'estancia',
+                $evento->getEstado()?->getId() === 'bloqueo' ? 'bloqueo' : 'estancia',
                 substr((string) $evento->getId(), 0, 8),
                 $evento->getPmsUnidad()?->getNombre() ?? '—',
                 $evento->getInicio()?->format('d/m H:i') . ' → ' . $evento->getFin()?->format('d/m H:i'),
@@ -83,16 +80,16 @@ final class PmsAuditarReservaCommand extends Command
                 ($evento->isEntradaTemprana() ? 'ET ' : '') . ($evento->isSalidaTardia() ? 'ST' : ''),
             ];
 
-            // Una extensión de una estancia cancelada no debería seguir activa.
-            if ($esExt
-                && $evento->getEstado()?->getId() === 'extension'
-                && $evento->getEventoOrigen()?->getEstado()?->getId() === 'cancelada'
-            ) {
-                $avisos[] = sprintf('La extensión %s sigue activa pero su estancia está cancelada.', substr((string) $evento->getId(), 0, 8));
-            }
-
-            if ($esExt && $evento->getEstadoPago()?->getId() !== 'no-pagado') {
-                $avisos[] = sprintf('La extensión %s tiene estado de pago «%s»: debería ser «no-pagado».', substr((string) $evento->getId(), 0, 8), (string) $evento->getEstadoPago()?->getId());
+            // El horario extra ya no es un evento: su noche cuelga de la estancia como link
+            // (docs/PlanHorarioExtraSinEventos.md). Se dice si alguna se quedó sin `black`.
+            foreach ($evento->nochesExtra() as $noche) {
+                $tiene = false;
+                foreach ($evento->getBeds24Links() as $link) {
+                    $tiene = $tiene || ($link->getRol() === $noche->rol && $link->nocheQueBloquea() !== null);
+                }
+                if (!$tiene) {
+                    $avisos[] = sprintf('La %s de %s no tiene link que la bloquee en Beds24.', mb_strtolower($noche->etiqueta()), substr((string) $evento->getId(), 0, 8));
+                }
             }
         }
 

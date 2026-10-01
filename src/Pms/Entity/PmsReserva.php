@@ -621,8 +621,8 @@ class PmsReserva
      * `LocalizarConversacionSkill` y `EnviarMensajeHuespedSkill`; escribirla en cada sitio era
      * garantizar que un día dejaran de coincidir. Ver docs/Mensajeria.md §11.
      *
-     * Los `bloqueo` y `extension` no cuentan: no son tramos del huésped sino el efecto de una
-     * entrada temprana o una salida tardía, y una reserva cancelada puede conservarlos.
+     * Los `bloqueo` no cuentan: no son tramos del huésped, y una reserva cancelada puede
+     * conservarlos.
      */
     public function isCancelada(): bool
     {
@@ -631,7 +631,7 @@ class PmsReserva
         foreach ($this->eventosCalendario as $evento) {
             $estado = $evento->getEstado()?->getId();
 
-            if (in_array($estado, [PmsEventoEstado::CODIGO_BLOQUEO, PmsEventoEstado::CODIGO_EXTENSION], true)) {
+            if ($estado === PmsEventoEstado::CODIGO_BLOQUEO) {
                 continue;
             }
 

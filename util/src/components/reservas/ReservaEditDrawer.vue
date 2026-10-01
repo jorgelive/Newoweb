@@ -1245,18 +1245,7 @@ async function cargarDatos(): Promise<void> {
             const ids = idsDeEventos(reserva);
             if (ids.length) {
                 const detalles = await Promise.all(ids.map((id) => reservasStore.fetchEvento(id)));
-                // Fuera las EXTENSIONES: la noche que bloquea una entrada temprana o
-                // una salida tardía cuelga de la reserva —para que el borrado y las
-                // finanzas la sigan— pero no es una estancia y aquí saldría como una
-                // casita fantasma que además se podría editar.
-                //
-                // Se filtra por `eventoOrigen` y NO por el estado: al desmarcar la
-                // casilla la extensión pasa a `cancelada`, y con el filtro de estado
-                // reaparecían todas — una por cada vez que se marcó y se desmarcó.
-                // Ver §7.1.b del doc de sincronización.
-                eventos.value = detalles
-                    .filter((e) => !e.eventoOrigen)
-                    .map(entryDesdeEvento);
+                eventos.value = detalles.map(entryDesdeEvento);
             } else if (props.eventoId) {
                 // Fallback defensivo: la reserva no trajo la lista pero sabemos qué evento abrir.
                 const evento = await reservasStore.fetchEvento(props.eventoId);

@@ -61,12 +61,8 @@ final class PmsReservaRecalculoService
 
         $conn = $entityManager->getConnection();
         $estadoCancelada = PmsEventoEstado::CODIGO_CANCELADA;
-        // Las EXTENSIONES (la noche que bloquea un horario extra) se excluyen del
-        // rollup ENTERO, no solo de los importes: si entraran, `fecha_salida` de la
-        // reserva se iría al día siguiente y la cabecera diría que el huésped se va
-        // el 06 cuando se va el 05. Se filtran por `evento_origen_id` y no por
-        // estado: al retirarlas pasan a `cancelada` y seguirían siendo extensiones
-        // (§7.1.b del doc).
+        // La noche de un horario extra NO entra en el rollup: no es un evento (se deriva de la
+        // casilla, docs/PlanHorarioExtraSinEventos.md), así que `fecha_salida` es la de verdad.
         //
         // ⚠️ `canalDominante` cae en CASCADA, igual que las fechas: primero el canal de un evento
         // VIVO, y si no queda ninguno, el de los cancelados. Sin ese segundo escalón, una estancia
@@ -119,7 +115,6 @@ LEFT JOIN (
     FROM pms_evento_calendario e
     LEFT JOIN pms_unidad u ON e.pms_unidad_id = u.id 
     WHERE e.reserva_id IN ($in)
-      AND e.evento_origen_id IS NULL
     GROUP BY e.reserva_id
 ) s ON s.reserva_id = r.id
 SET

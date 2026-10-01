@@ -58,8 +58,8 @@ final class Beds24BookingDto
         public readonly ?string $custom1 = null,
         public readonly ?string $custom2 = null,
         /**
-         * Nuestro ESTADO, escrito por el push: `ESTADO:extension`. Beds24 sólo tiene un código
-         * (`black`) para dos estados nuestros, y éste es el que dice cuál de los dos es.
+         * Nuestro ESTADO, escrito por el push: `ESTADO:bloqueo`. Si Beds24 tiene un solo código
+         * para varios estados nuestros, éste es el que dice cuál es.
          * Ver `BookingPullPersister::resolveEstado()`.
          */
         public readonly ?string $custom3 = null,

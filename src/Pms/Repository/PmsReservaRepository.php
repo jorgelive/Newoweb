@@ -192,8 +192,6 @@ class PmsReservaRepository extends ServiceEntityRepository
             ->innerJoin('e.estado', 'est')
             ->where($coincide)
             ->andWhere('est.id IN (:estadosVivos)')
-            // Fuera las extensiones: no son estancias, son la noche que bloquea un horario extra.
-            ->andWhere('e.eventoOrigen IS NULL')
             ->andWhere('e.fin >= :corte')
             ->andWhere('e.inicio <= :hasta')
             ->setParameter('exacto', $limpio)
@@ -248,9 +246,7 @@ class PmsReservaRepository extends ServiceEntityRepository
         $mejorEnCurso = false;
 
         foreach ($reserva->getEventosCalendario() as $evento) {
-            if ($evento->getEventoOrigen() !== null
-                || !in_array($evento->getEstado()?->getId(), $estados, true)
-            ) {
+            if (!in_array($evento->getEstado()?->getId(), $estados, true)) {
                 continue;
             }
 

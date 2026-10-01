@@ -13,6 +13,7 @@ use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Message\Service\MessageDataResolverRegistry;
 use App\Pms\Service\Agent\PmsFrentes;
+use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use DateTimeImmutable;
@@ -449,9 +450,8 @@ final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioI
         foreach ($reserva->getEventosCalendario() as $evento) {
             $estado = $evento->getEstado()?->getId() ?? '';
 
-            // Bloqueos y extensiones no son tramos del huésped: son el efecto de una entrada
-            // temprana o una salida tardía. Mostrarlos aquí sería ruido al elegir.
-            if (in_array($estado, ['bloqueo', 'extension'], true)) {
+            // Un bloqueo no es un tramo del huésped. Mostrarlo aquí sería ruido al elegir.
+            if ($estado === PmsEventoEstado::CODIGO_BLOQUEO) {
                 continue;
             }
 

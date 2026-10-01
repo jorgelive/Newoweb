@@ -377,10 +377,6 @@ final readonly class CrearEstanciaSkill implements SkillInterface, SkillDominioI
         $lista = [];
 
         foreach ($reserva->getEventosCalendario() as $evento) {
-            if ($evento->getEventoOrigen() !== null) {
-                continue;
-            }
-
             $lista[] = sprintf(
                 '%s: %s → %s (%s)',
                 $evento->getPmsUnidad()?->getNombre() ?? '—',

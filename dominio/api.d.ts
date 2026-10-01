@@ -28145,7 +28145,6 @@ export interface components {
              * @default false
              */
             entradaTemprana: boolean;
-            eventoOrigen?: components["schemas"]["PmsEventoCalendario-pms_evento.read_timestamp.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -28346,7 +28345,6 @@ export interface components {
              * @default false
              */
             entradaTemprana: boolean;
-            eventoOrigen?: components["schemas"]["PmsEventoCalendario.html-pms_evento.read_timestamp.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -28409,29 +28407,7 @@ export interface components {
          *     ✅ Entidad limpia de hacks temporales. La protección de estados OTA
          *     se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
          */
-        "PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read": {
-            eventoOrigen?: components["schemas"]["PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read"] | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /** @description Obtiene el estado consolidado de la sincronización. */
-            readonly syncStatus?: string;
-            /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
-            readonly safeToDelete?: boolean;
-            /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
-            readonly motivoNoBorrable?: string | null;
-            /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
-            readonly limpieza?: {
-                /** @example 018f... */
-                id: string;
-                /** @example María Apaza */
-                nombre: string;
-            }[];
-            readonly ota?: boolean;
-        } & (components["schemas"]["HydraItemBaseSchema"] & {
+        "PmsEventoCalendario.jsonld-pms_evento.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             pmsUnidad: components["schemas"]["PmsUnidad.jsonld-pms_evento.read_timestamp.read"];
             reserva?: components["schemas"]["PmsReserva.jsonld-pms_evento.read_timestamp.read"] | null;
             channel: components["schemas"]["PmsChannel.jsonld-pms_evento.read_timestamp.read"] | null;
@@ -28462,7 +28438,27 @@ export interface components {
              * @default false
              */
             entradaTemprana: boolean;
-        });
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el estado consolidado de la sincronización. */
+            readonly syncStatus?: string;
+            /** @description Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización. */
+            readonly safeToDelete?: boolean;
+            /** @description Motivo legible por el que este evento NO se puede eliminar, o null si sí se puede. */
+            readonly motivoNoBorrable?: string | null;
+            /** @description Quién limpia esta estancia. Vacío = sin asignar (no le aparece a nadie de campo). */
+            readonly limpieza?: {
+                /** @example 018f... */
+                id: string;
+                /** @example María Apaza */
+                nombre: string;
+            }[];
+            readonly ota?: boolean;
+        };
         /**
          * @description Entidad PmsEventoCalendario.
          *     Gestiona bloqueos y reservas.
@@ -28535,7 +28531,6 @@ export interface components {
              * @default false
              */
             entradaTemprana: boolean;
-            eventoOrigen?: components["schemas"]["PmsEventoCalendario.multipart-pms_evento.read_timestamp.read"] | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */

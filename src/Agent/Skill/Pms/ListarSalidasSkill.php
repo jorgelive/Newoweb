@@ -265,7 +265,6 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
                    ON c.context_type = 'pms_reserva'
                   AND c.context_id = BIN_TO_UUID(e.reserva_id)
             WHERE e.estado_id IN (:estados)
-              AND e.evento_origen_id IS NULL
               AND DATE(e.$columna) BETWEEN :desde AND :hasta
               $filtroAsignada
             ORDER BY e.$columna
@@ -276,8 +275,6 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
         $filas = $this->em->getConnection()->executeQuery(
             $sql,
             [
-                // Las extensiones quedan fuera por `evento_origen_id IS NULL`: no son
-                // estancias y nadie las espera en una lista de llegadas.
                 'estados' => PmsEventoEstado::OCUPAN_UNIDAD,
                 'desde' => $desde,
                 'hasta' => $hasta,

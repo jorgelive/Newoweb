@@ -103,12 +103,6 @@ final readonly class BuscarEventoEstanciaSkill implements SkillInterface, SkillD
         foreach ($reserva->getEventosCalendario() as $evento) {
             /** @var PmsEventoCalendario $evento */
 
-            // Las extensiones no son estancias: son la noche que bloquea un horario extra
-            // (§7.1.b de PmsBeds24ReservasSync). Se ven en el flag, no como fila propia.
-            if ($evento->getEventoOrigen() !== null) {
-                continue;
-            }
-
             if ($evento->getEstado()?->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
                 continue;
             }

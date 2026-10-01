@@ -174,14 +174,11 @@ final readonly class PmsHitosDeEstancia
     /**
      * ¿Este tramo cuenta como estancia?
      *
-     * Mismo criterio que el resto del sistema: los estados que identifican a un huésped, sin
-     * extensiones. Una extensión es la noche fantasma que bloquea un horario extra (§7.1.b) y
-     * estiraría la estancia un día por su cuenta, inventando un hueco donde no lo hay.
+     * Mismo criterio que el resto del sistema: los estados que identifican a un huésped.
      */
     private function cuenta(PmsEventoCalendario $evento): bool
     {
-        return $evento->getEventoOrigen() === null
-            && $evento->getInicio() !== null
+        return $evento->getInicio() !== null
             && $evento->getFin() !== null
             && in_array($evento->getEstado()?->getId(), PmsEventoEstado::IDENTIFICAN_HUESPED, true);
     }

@@ -407,12 +407,6 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
         $estancias = [];
 
         foreach ($reserva->getEventosCalendario() as $evento) {
-            // Las extensiones son la noche que bloquea un horario extra (§7.1.b), no una
-            // estancia: su cargo ya lo lleva la estancia que las generó.
-            if ($evento->getEventoOrigen() !== null) {
-                continue;
-            }
-
             if ($evento->getEstado()?->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
                 continue;
             }

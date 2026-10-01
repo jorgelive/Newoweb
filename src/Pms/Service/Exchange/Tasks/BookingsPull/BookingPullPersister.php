@@ -860,13 +860,14 @@ final class BookingPullPersister implements ResetInterface
     /**
      * El estado nuestro que corresponde a un `status` de Beds24.
      *
-     * Casi siempre hay uno solo. Pero **`black` son dos** —`bloqueo`, un cierre a mano, y
-     * `extension`, la noche de una entrada temprana o salida tardía—, y un `findOneBy()` sobre el
-     * código devolvía el primero que diera la base: la extensión pasaba a bloqueo en el primer pull.
+     * Casi siempre hay uno solo. Hasta el 01/10/2026 **`black` eran dos** —`bloqueo`, un cierre a
+     * mano, y `extension`, la noche de un horario extra, que ya no existe—, y un `findOneBy()`
+     * sobre el código devolvía el primero que diera la base: la extensión pasaba a bloqueo en el
+     * primer pull. La regla se queda para el próximo estado que comparta código.
      *
      * Con varios candidatos decide, por este orden:
      *
-     * 1. **`custom3`**, que es nuestro propio estado escrito por el push (`ESTADO:extension`).
+     * 1. **`custom3`**, que es nuestro propio estado escrito por el push (`ESTADO:bloqueo`).
      *    Es la respuesta determinista: Beds24 nos devuelve lo que le dijimos.
      * 2. **El estado que ya tiene el evento**, si es uno de los candidatos. Cubre lo empujado
      *    antes de que existiera `custom3`, que no lo lleva.
@@ -938,8 +939,6 @@ final class BookingPullPersister implements ResetInterface
             PmsEventoEstado::CODIGO_CANCELADA,
             PmsEventoEstado::CODIGO_ABIERTO,
             PmsEventoEstado::CODIGO_BLOQUEO,
-            // La noche de un horario extra: tampoco es una reserva que confirmar.
-            PmsEventoEstado::CODIGO_EXTENSION,
         ], true)) {
             return $estadoBase;
         }

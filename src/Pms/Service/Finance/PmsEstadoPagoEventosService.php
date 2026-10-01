@@ -50,13 +50,6 @@ final class PmsEstadoPagoEventosService
     /*
      * QUÉ EVENTOS QUEDAN FUERA, y por qué los dos `UPDATE` lo repiten:
      *
-     * · EXTENSIONES (`evento_origen_id IS NOT NULL`) — la noche que bloquea un
-     *   horario extra no vende nada, así que no tiene estado de pago que seguir.
-     *   Marcarlas tenía dos efectos feos: encolaba un push inútil a Beds24 por el
-     *   cambio de fila, y sobre todo, con un estado de pago «confiable»,
-     *   `requiereAutoConfirmacionPorPago()` las habría convertido en CONFIRMADA —
-     *   una extensión dejaría de serlo sola y pasaría de `black` a `confirmed` en
-     *   el canal.
      * · CANCELADAS — no participan del saldo de la reserva; dejarlas seguir el
      *   cobro de las estancias vivas sólo confunde al leer el histórico.
      *
@@ -102,7 +95,6 @@ final class PmsEstadoPagoEventosService
                           AND t.monedas_sin_convertir = 0
                           AND t.cuadre <= t.tolerancia
                           AND e.estado_pago_id <> '%s'
-                          AND e.evento_origen_id IS NULL
                           AND e.estado_id <> 'cancelada'
                         SQL,
                     $this->subconsultaDeCuadre($in),
@@ -128,7 +120,6 @@ final class PmsEstadoPagoEventosService
                           AND t.hay_pagos > 0
                           AND t.cuadre > t.tolerancia
                           AND e.estado_pago_id = '%s'
-                          AND e.evento_origen_id IS NULL
                           AND e.estado_id <> 'cancelada'
                         SQL,
                     $this->subconsultaDeCuadre($in),
@@ -285,7 +276,6 @@ final class PmsEstadoPagoEventosService
                   AND e.estado_pago_id IN (%s)
                   AND e.estado_id NOT IN (%s)
                   AND e.estado_id <> '%s'
-                  AND e.evento_origen_id IS NULL
                 SQL,
             $in,
             $confiables,

@@ -12,7 +12,7 @@ use App\Dto\Lee;
  * Admite las dos formas que ya aceptaba el provider:
  *
  * ```yaml
- * estado: { in: [confirmada], not_in: [cancelada, extension] }   # la estructurada
+ * estado: { in: [confirmada], not_in: [cancelada, bloqueo] }   # la estructurada
  * estado: [confirmada, bloqueo]                                   # la plana: equivale a `in`
  * estado: cancelada                                               # un solo id, también `in`
  * ```

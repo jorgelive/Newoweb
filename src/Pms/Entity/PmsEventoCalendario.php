@@ -121,16 +121,10 @@ class PmsEventoCalendario
      */
     /**
      * Estados a los que NO les aplica la auto-confirmación por pago.
-     *
-     * `extension` está aquí por seguridad doble: `PmsEstadoPagoEventosService` ya
-     * no toca las extensiones, pero si por cualquier vía una acabara con estado de
-     * pago «confiable», esta regla la convertiría en CONFIRMADA —dejaría de ser
-     * una extensión y pasaría de `black` a `confirmed` en Beds24—.
      */
     public const ESTADOS_SIN_AUTO_CONFIRMACION = [
         PmsEventoEstado::CODIGO_CANCELADA,
         PmsEventoEstado::CODIGO_BLOQUEO,
-        PmsEventoEstado::CODIGO_EXTENSION,
     ];
 
 
@@ -300,9 +294,9 @@ class PmsEventoCalendario
      *
      * Se marca desde el drawer (o desde EasyAdmin) y arrastra dos consecuencias
      * automáticas (ver docs/PmsBeds24ReservasSync.md §7.1.b):
-     *   1. Nace un evento hermano en estado `extension` que cubre esa noche:
-     *      ocupa la unidad en el PMS y viaja a Beds24 como `black`
-     *      (PmsExtensionEstanciaService).
+     *   1. La estancia ocupa también esa noche (`nocheExtra()`): cuenta en la
+     *      disponibilidad del PMS y viaja a Beds24 como una `black` nuestra
+     *      (NochesExtraDeEstancia, docs/PlanHorarioExtraSinEventos.md).
      *   2. Se abre un cargo de SERVICIO en 0.00 que valora el operador
      *      (PmsCargosAutomaticosService::sincronizarExtras()).
      *
@@ -321,7 +315,7 @@ class PmsEventoCalendario
      * El espejo de `$salidaTardia`, hacia atrás: `inicio` sigue siendo el día real
      * de llegada con su hora, pero **la noche ANTERIOR deja de ser vendible** —con
      * la casita entregada a las 09:00 no se puede alojar a nadie la víspera—, así
-     * que nace una `extension` que la cubre.
+     * que la estancia la ocupa también (`nocheExtra()`).
      *
      * Genera su cargo en 0.00, igual que la salida tardía: lo que se cobre por
      * entrar antes se negocia caso por caso.
@@ -329,24 +323,6 @@ class PmsEventoCalendario
     #[ORM\Column(name: 'entrada_temprana', type: 'boolean', options: ['default' => false])]
     #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private bool $entradaTemprana = false;
-
-    /**
-     * Estancia que generó esta EXTENSIÓN (estado `extension`).
-     *
-     * Solo lo llevan los eventos de extensión, y es lo que permite retirarlos
-     * cuando se desmarca la casilla: identificarlos por fechas o por la
-     * descripción sería adivinar. En una estancia normal es `null`.
-     *
-     * Sin cascada a propósito: el borrado de la estancia lo gestiona
-     * `PmsExtensionEstanciaService`, que también avisa a Beds24.
-     */
-    #[ORM\ManyToOne(targetEntity: self::class)]
-    #[ORM\JoinColumn(name: 'evento_origen_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
-    // Se expone en lectura para que el frontend distinga una extensión de una
-    // estancia. Va el dato crudo y no un flag calculado: API Platform sólo
-    // serializa métodos con prefijo `get`/`is`, y `esExtension()` no lo tiene.
-    #[Groups(['pms_evento:read'])]
-    private ?self $eventoOrigen = null;
 
     /* ======================================================
      * CAMPOS DE DOMINIO BEDS24 (⚠️ NO ELIMINAR)
@@ -905,36 +881,6 @@ class PmsEventoCalendario
         $this->salidaTardia = $salidaTardia;
 
         return $this;
-    }
-
-    /**
-     * La estancia que generó esta extensión. `null` en una estancia normal.
-     */
-    public function getEventoOrigen(): ?self
-    {
-        return $this->eventoOrigen;
-    }
-
-    public function setEventoOrigen(?self $eventoOrigen): self
-    {
-        $this->eventoOrigen = $eventoOrigen;
-
-        return $this;
-    }
-
-    /**
-     * ¿Es una extensión de horario (la noche invisible que bloquea la unidad)?
-     *
-     * Se mira `eventoOrigen`, NO el estado. El estado `extension` sólo lo tiene
-     * mientras está activa: al desmarcar la casilla pasa a `cancelada` y seguiría
-     * siendo una extensión, no una estancia. Filtrar por estado las dejaba
-     * reaparecer como estancias fantasma en el drawer y en el calendario «Todas»
-     * —una por cada vez que se marcó y desmarcó—, que es justo lo que hay que
-     * evitar. `eventoOrigen` no cambia nunca.
-     */
-    public function esExtension(): bool
-    {
-        return $this->eventoOrigen !== null;
     }
 
     public function isEntradaTemprana(): bool

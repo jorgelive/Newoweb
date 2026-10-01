@@ -248,8 +248,8 @@ final class PmsRetirarReservasFantasmaCommand extends Command
         /** @var array{total: int|string, principales: int|string|null, no_espejo: int|string|null, futuros: int|string|null} $ev */
         $ev = $this->conexion->fetchAssociative(
             'SELECT COUNT(*) AS total,
-                    SUM(evento_origen_id IS NULL) AS principales,
-                    SUM(evento_origen_id IS NULL AND COALESCE(titulo_cache, "") NOT LIKE "(M)%") AS no_espejo,
+                    COUNT(*) AS principales,
+                    SUM(COALESCE(titulo_cache, "") NOT LIKE "(M)%") AS no_espejo,
                     SUM(fin >= NOW()) AS futuros
                FROM pms_evento_calendario WHERE reserva_id = UNHEX(?)',
             [$hex]
@@ -404,9 +404,8 @@ final class PmsRetirarReservasFantasmaCommand extends Command
         // 3. La cabecera financiera, vacía por comprobación (sus totales por moneda caen en cascada).
         $this->conexion->executeStatement('DELETE FROM pms_informacion_financiera WHERE reserva_id = UNHEX(?)', [$r]);
 
-        // 4. Los eventos: primero las extensiones, que apuntan a su evento de origen. Sus links caen
-        //    en cascada y las colas de push históricas se quedan con `link_id` a NULL.
-        $this->conexion->executeStatement('DELETE FROM pms_evento_calendario WHERE reserva_id = UNHEX(?) AND evento_origen_id IS NOT NULL', [$r]);
+        // 4. Los eventos. Sus links caen en cascada y las colas de push históricas se quedan con
+        //    `link_id` a NULL.
         $this->conexion->executeStatement('DELETE FROM pms_evento_calendario WHERE reserva_id = UNHEX(?)', [$r]);
 
         // 5. La reserva (sus huéspedes caen en cascada).

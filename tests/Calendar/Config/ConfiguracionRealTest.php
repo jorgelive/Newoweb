@@ -191,7 +191,7 @@ final class ConfiguracionRealTest extends TestCase
     {
         $sinCanceladas = self::calendario('pms_eventos_no_cancelados_spa');
         self::assertSame([], $sinCanceladas->filtros->estado->incluir);
-        self::assertSame(['cancelada', 'extension'], $sinCanceladas->filtros->estado->excluir);
+        self::assertSame(['cancelada'], $sinCanceladas->filtros->estado->excluir);
         self::assertSame([], $sinCanceladas->filtros->estadoPago->incluir);
         self::assertSame([], $sinCanceladas->filtros->estadoPago->excluir);
         self::assertTrue($sinCanceladas->recursos->mostrarTodos);
@@ -206,8 +206,8 @@ final class ConfiguracionRealTest extends TestCase
         self::assertSame('12:00:00', $sinCanceladas->horas->inicio);
         self::assertSame('11:59:59', $sinCanceladas->horas->fin);
 
-        self::assertSame(['extension'], self::calendario('pms_eventos_todos_spa')->filtros->estado->excluir);
-        self::assertSame(['cancelada', 'extension'], self::calendario('pms_eventos_no_cancelados')->filtros->estado->excluir);
+        self::assertSame([], self::calendario('pms_eventos_todos_spa')->filtros->estado->excluir);
+        self::assertSame(['cancelada'], self::calendario('pms_eventos_no_cancelados')->filtros->estado->excluir);
 
         // La ocupación de fondo del calendario de tarifas: la lista blanca es la constante del
         // maestro, por `!php/const`, y el catálogo de filas va apagado.
