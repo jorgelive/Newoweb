@@ -1,10 +1,9 @@
 # Plan — Horario extra sin eventos hermanos
 
-> **Estado (01/10/2026):** fases 0 a 4 hechas y desplegadas. **Ya no hay eventos hermanos**: la
-> noche extra sale de la casilla y su `black` es un link de la estancia. Ensayado entero sobre la
-> copia de producción (`tools/pruebas/ensayar-horario-extra.php`). Pendiente: la prueba contra
-> Beds24 real en la Casita 1 (02–05/02/2027), la fase 5 (aviso; la plantilla está en revisión en
-> Meta) y la limpieza de la fase 6.
+> **Estado (01/10/2026):** fases 0 a 4 hechas, desplegadas y **probadas contra Beds24 real**.
+> Ya no hay eventos hermanos: la noche extra sale de la casilla y su `black` es un link de la
+> estancia. Pendiente: la fase 5 (aviso; la plantilla está en revisión en Meta) y la limpieza de
+> la fase 6.
 
 ## 1. Qué cambia y por qué
 
@@ -170,6 +169,25 @@ quejarse y el corte de una dejaría la otra viva.
   pendientes de las demás canceladas; los 10 eventos `extension` borrados con sus links.
 - De paso: `PmsEventoCalendario::isSynced()` comparaba con `canceled` y la cola escribe
   `cancelled`; una cola cancelada contaba como pendiente.
+
+### La prueba contra Beds24 real (01/10/2026)
+
+Con `tools/pruebas/prueba-horario-extra-beds24.php`, una estancia sin reserva («PRUEBA horario
+extra», evento `01a0f830-6a17-76be-8b83-0fabeee554ad`), leyendo Beds24 por API después de cada
+paso:
+
+| Paso | Beds24 |
+|---|---|
+| Crear en Casita 1, 02–05/02/2027, con entrada temprana | 4 reservas: principal `94029154` y espejo `94029155` `confirmed` 02–05/02; las dos `black` `94029156`/`94029157` el 01/02, «Entrada temprana · PRUEBA horario extra», `custom2 = EXTRA`, sin `masterId` |
+| Mover un día (03–06/02) | Las cuatro se mueven con su id; las `black` al 02/02 |
+| Mover a Casita 2 | Las cuatro cambian de habitación con su id (633677 / 633711) |
+| Desmarcar | Las dos `black` pasan a `cancelled` |
+| Volver a marcar | Las MISMAS dos `black` vuelven a `black` |
+| Otra estancia (o un bloqueo) sobre la víspera | Frenado: «Casita 2 ya está ocupada del 02/02 al 03/02 por la entrada temprana de PRUEBA horario extra» |
+| Cancelar la estancia | Las cuatro `cancelled` |
+
+Ningún evento ni reserva nació de rebote por webhook o pull. La estancia de prueba queda
+cancelada en el PMS y en Beds24.
 
 ### Fase 5 — OTA que cambia fechas o habitación
 - Ya funciona por construcción: el pull actualiza la estancia, el listener de push encola todos sus
