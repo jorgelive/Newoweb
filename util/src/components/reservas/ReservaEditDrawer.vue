@@ -170,6 +170,12 @@ interface EventoEntry {
      */
     horarioExtraGuardado: boolean;
     /**
+     * Cuándo se confirmó la hora de llegada / de salida (el huésped por el chat, o el equipo al
+     * apuntarla). La hora sola no lo dice: las 10:00 son las de todos. `null` = sin confirmar.
+     */
+    llegadaConfirmadaAt: string | null;
+    salidaConfirmadaAt: string | null;
+    /**
      * Último valor conocido de `form.inicio`. No es un dato del formulario: sirve para saber
      * CUÁNTOS días se movió el check-in y arrastrar el check-out la misma distancia
      * (ver `onCambiarInicio`). Sin él, al cambiar el inicio no hay contra qué medir el salto.
@@ -263,6 +269,8 @@ function entryDesdeEvento(evento: PmsEventoCalendario): EventoEntry {
         channelNombre: evento.channel?.nombre ?? '—',
         channelId: evento.channel?.id ?? null,
         horarioExtraGuardado: (evento.entradaTemprana ?? false) || (evento.salidaTardia ?? false),
+        llegadaConfirmadaAt: evento.llegadaConfirmadaAt ?? null,
+        salidaConfirmadaAt: evento.salidaConfirmadaAt ?? null,
         inicioPrevio: toDatetimeLocal(evento.inicio),
         safeToDelete: evento.safeToDelete ?? false,
         motivoNoBorrable: evento.motivoNoBorrable ?? null,
@@ -376,6 +384,13 @@ function pagoFuerzaConfirmada(entry: EventoEntry): boolean {
 
 function fechasUnidadBloqueadasPara(entry: EventoEntry): boolean {
     return entry.isOta;
+}
+
+/** «01/10 17:39», para el `title` de la marca de hora confirmada. */
+function fechaHoraCorta(iso: string): string {
+    const d = new Date(iso);
+    const dos = (n: number) => String(n).padStart(2, '0');
+    return `${dos(d.getDate())}/${dos(d.getMonth() + 1)} ${dos(d.getHours())}:${dos(d.getMinutes())}`;
 }
 
 function nombreUnidad(entry: EventoEntry): string {
@@ -698,6 +713,8 @@ function agregarEvento(): void {
         // Una estancia que se crea aquí es, por definición, venta directa.
         channelId: PMS_CHANNEL.DIRECTO,
         horarioExtraGuardado: false,
+        llegadaConfirmadaAt: null,
+        salidaConfirmadaAt: null,
         inicioPrevio: inicioLocal,
         // Una estancia que aún no existe no se borra: se quita del formulario.
         safeToDelete: false,
@@ -1196,6 +1213,8 @@ async function cargarDatos(): Promise<void> {
         // Una estancia que se crea aquí es, por definición, venta directa.
         channelId: PMS_CHANNEL.DIRECTO,
                 horarioExtraGuardado: false,
+                llegadaConfirmadaAt: null,
+                salidaConfirmadaAt: null,
                 inicioPrevio: toDatetimeLocal(props.createDefaults.inicio),
                 safeToDelete: false,
                 motivoNoBorrable: null,
@@ -2210,6 +2229,10 @@ async function ejecutarBorrado(): Promise<void> {
                                             <div class="flex items-end gap-2">
                                                 <label class="flex-1 min-w-0">
                                                     <span class="text-xs font-bold text-slate-500">Check-in</span>
+                                                    <span v-if="entry.llegadaConfirmadaAt" class="ml-1.5 text-[10px] font-bold text-emerald-600"
+                                                        :title="`Hora confirmada el ${fechaHoraCorta(entry.llegadaConfirmadaAt)}`">
+                                                        <i class="fas fa-check"></i> confirmada
+                                                    </span>
                                                     <!-- Al mover la entrada, la salida se arrastra los mismos días
                                                          (onCambiarInicio). Handler explícito en vez de `v-model` +
                                                          `@update`: con los dos, el orden no está garantizado y
@@ -2241,6 +2264,10 @@ async function ejecutarBorrado(): Promise<void> {
                                             <div class="flex items-end gap-2">
                                                 <label class="flex-1 min-w-0">
                                                     <span class="text-xs font-bold text-slate-500">Check-out</span>
+                                                    <span v-if="entry.salidaConfirmadaAt" class="ml-1.5 text-[10px] font-bold text-emerald-600"
+                                                        :title="`Hora confirmada el ${fechaHoraCorta(entry.salidaConfirmadaAt)}`">
+                                                        <i class="fas fa-check"></i> confirmada
+                                                    </span>
                                                     <div class="mt-1">
                                                         <!-- Suelo = el DÍA de entrada, sin su hora (ver `soloDia`):
                                                              con la hora dentro, cambiar el check-in movía el check-out. -->

@@ -215,6 +215,10 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
         ?string $asignadoA = null,
         bool $esCampo = false
     ): array {
+        // De qué extremo es la confirmación: la de llegada para las entradas, la de salida para
+        // las salidas. Columna fija, nunca entrada del usuario.
+        $confirmada = $columna === 'inicio' ? 'llegada_confirmada_at' : 'salida_confirmada_at';
+
         // El filtro se compone aparte porque va DENTRO del heredoc: el parámetro se sigue
         // pasando por `setParameter`, aquí sólo se decide si la condición existe.
         $filtroAsignada = $asignadoA !== null
@@ -234,6 +238,8 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
                 BIN_TO_UUID(e.reserva_id) AS reserva_id,
                 DATE(e.$columna)          AS fecha,
                 TIME(e.$columna)          AS hora,
+                -- 🕐 La hora sola no dice si el huésped la confirmó: las 10:00 son las de todos.
+                e.$confirmada IS NOT NULL AS hora_confirmada,
                 u.nombre                  AS casita,
                 TRIM(CONCAT(COALESCE(r.nombre_cliente, ''), ' ', COALESCE(r.apellido_cliente, ''))) AS huesped,
                 r.localizador             AS localizador,
@@ -271,7 +277,7 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
         SQL;
 
         // `es_ota` llega como entero o como texto según el driver: de ahí el `(bool)` de abajo.
-        /** @var list<array{evento_id: string, reserva_id: ?string, fecha: string, hora: ?string, casita: ?string, huesped: string, localizador: ?string, es_ota: int|string|null, telefono: ?string, conversacion_id: ?string, limpieza: ?string, peticiones: ?string}> $filas */
+        /** @var list<array{evento_id: string, reserva_id: ?string, fecha: string, hora: ?string, hora_confirmada: int|string, casita: ?string, huesped: string, localizador: ?string, es_ota: int|string|null, telefono: ?string, conversacion_id: ?string, limpieza: ?string, peticiones: ?string}> $filas */
         $filas = $this->em->getConnection()->executeQuery(
             $sql,
             [
@@ -287,6 +293,8 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
                 'movimiento' => $movimiento,
                 'fecha' => $f['fecha'],
                 'hora' => substr((string) $f['hora'], 0, 5),
+                // Confirmada por el huésped o apuntada por el equipo; si no, es la de por defecto.
+                'hora_confirmada' => (bool) $f['hora_confirmada'],
                 'huesped' => $f['huesped'] !== '' ? $f['huesped'] : 'Sin nombre',
                 'casita' => $f['casita'] ?? '—',
                 // 🔒 CONTACTO Y LOCALIZADOR: no salen del equipo de oficina. Quien va a la

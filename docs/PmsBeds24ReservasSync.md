@@ -1274,6 +1274,20 @@ desbloquearía el día en el acto y el backend rechazaría el guardado. Y el PAT
 
 #### La HORA acordada: registrarla no es lo mismo que bloquear
 
+> 🕐 **01/10/2026 — el huésped también puede dar su hora: `confirmar_hora`.** Skill `Interna` del
+> chat del huésped. Dentro del horario (o dentro de un horario extra ya pactado) la apunta con la
+> MISMA regla que el equipo (`HoraDeLaEstancia`); fuera del horario NO la apunta: deja una petición
+> («Pide entrar el 08/10 a las 09:00…», `PeticionDeHora`) y avisa al equipo con la noche de al lado,
+> y es `aplicar_cambio_horario` quien decide y la cierra. Llegar pasada la medianoche del día de
+> entrada es una llegada TARDÍA: petición informativa, sin horario extra. **El equipo se entera de
+> TODO**, también de un «salgo a las 10» (Jorge: la hora por defecto no dice si el huésped la
+> confirmó), por WhatsApp y con push del panel si no llega (`AvisoConRespaldo`). Y por eso existen
+> `llegada_confirmada_at` / `salida_confirmada_at`: la hora sola no distingue «confirmó las 10:00»
+> de «no dijo nada»; los ven el drawer (✓ confirmada) y `listar_entradas_salidas`
+> (`hora_confirmada`). La plantilla de la confirmación (`aviso_hora_confirmada_interno`) está por
+> acordar; fuera de ventana, mientras tanto, sale por push. La de fuera de horario usa la del
+> escalado, ya aprobada.
+
 > 🔁 **01/10/2026 — bloquear lo decide el equipo, y la skill ya sabe decir que no.** Con hora fuera
 > del horario y la noche libre, `aplicar_cambio_horario` pregunta si se bloquea, y la respuesta
 > viaja en `bloquear` (`true` / `false`). Antes la pregunta ofrecía «sólo apunto la hora» pero la
@@ -6488,6 +6502,8 @@ contra la base local: mismos veredictos que antes.
 | Cambiar a qué número se llama (§12.10) | `PmsReserva` **y** `util/src/types/pmsReservaModel.ts` | `getTelefonoContacto()` / `telefonoContactoDe()` — son espejo, hay que tocar **los dos** |
 | Cambiar la auto-confirmación por pago (§9.5) | `PmsEventoCalendario` + `util/src/types/pmsReservaModel.ts` | `requiereAutoConfirmacionPorPago()` (hay que tocar **los dos**: son espejo) |
 | Añadir campo nuevo al Pull | `Beds24BookingDto` + `BookingPullPersister` | `fromArray()` + `upsertReservaFull()` |
+| Cambiar qué hace el agente cuando el huésped da su hora | `ConfirmarHoraSkill` | dentro/fuera del horario, madrugada; aviso al equipo |
+| Cambiar qué es «fuera del horario» (equipo y huésped) | `HoraDeLaEstancia` | `excede()` / `limite()` / `registrar()` |
 | Cambiar qué hace el pull con la hora de entrada/salida (§6.4) | `BookingPullPersister` | `horaConservada()` — el día lo manda Beds24, la hora es nuestra |
 | Cambiar qué campos puede escribir un espejo (§6.4) | `BookingPullPersister` | `upsertEvento()` → bloque `if ($isLinkPrincipal ...)` |
 | Cambiar qué se envía al espejo | `BookingsPushMappingStrategy` | `buildUpsertPayload()` bloque `$isMirror` |

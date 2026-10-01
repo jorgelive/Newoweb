@@ -13,6 +13,8 @@ use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Service\Reserva\HoraDeLaEstancia;
+use App\Pms\Service\Reserva\PeticionDeHora;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
 use App\Security\Roles;
 use DateTimeImmutable;
@@ -73,13 +75,11 @@ use App\Agent\Skill\EntradaDeSkill;
  */
 final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillDominioInterface
 {
-    /** Hora de referencia si el establecimiento no la tiene configurada. */
-    private const string CHECK_IN_POR_DEFECTO = '14:00';
-    private const string CHECK_OUT_POR_DEFECTO = '10:00';
-
     public function __construct(
         private EntityManagerInterface $em,
         private PmsDisponibilidadService $disponibilidad,
+        private HoraDeLaEstancia $horas,
+        private PeticionDeHora $peticiones,
     ) {}
 
     public function nombre(): string
@@ -192,12 +192,12 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
         // saber si esto es un horario extra de verdad o sólo un dato que apuntar.
         $horaPedida = trim($e->texto('hora'));
 
-        if ($horaPedida !== '' && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $horaPedida)) {
+        if ($horaPedida !== '' && HoraDeLaEstancia::normalizar($horaPedida) === null) {
             return SkillResult::error('La hora debe ir en formato HH:MM, por ejemplo "14:00".');
         }
 
-        $limite = $this->horarioDelEstablecimiento($evento, $esSalida);
-        $excede = $horaPedida !== '' && $this->excedeElHorario($horaPedida, $limite, $esSalida);
+        $limite = $this->horas->limite($evento, $esSalida);
+        $excede = $horaPedida !== '' && $this->horas->excede($evento, $horaPedida, $esSalida);
 
         // Sin hora se conserva el comportamiento de siempre: marcar y bloquear. Con hora, sólo
         // se bloquea si de verdad se sale del horario — que es la diferencia entre «salgo a las
@@ -269,7 +269,8 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
             // («al final llega a las 8, no a las 10»). Antes se devolvía «no se ha cambiado nada»
             // y la hora nueva se perdía.
             if ($horaPedida !== '' && $confirmado) {
-                $this->registrarHora($evento, $horaPedida, $esSalida);
+                $this->horas->registrar($evento, $horaPedida, $esSalida);
+                $this->peticiones->cerrar($evento, $esSalida);
                 $this->em->flush();
 
                 return SkillResult::ok($resumen + [
@@ -371,7 +372,9 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
         // La hora se registra SIEMPRE que se haya dicho, exceda o no: es el dato que el
         // operador necesita en la lista de salidas del día.
         if ($horaPedida !== '') {
-            $this->registrarHora($evento, $horaPedida, $esSalida);
+            $this->horas->registrar($evento, $horaPedida, $esSalida);
+            // Si la había pedido el huésped (`confirmar_hora`), el equipo ya decidió.
+            $this->peticiones->cerrar($evento, $esSalida);
         }
 
         // El flag SÓLO si de verdad se sale del horario. Marcarlo cuando la hora cabe dentro
@@ -504,58 +507,6 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
         );
 
         return $lista;
-    }
-
-    /**
-     * El horario normal del alojamiento para esta estancia: `HH:MM`.
-     *
-     * Es el hito contra el que se decide si una hora es «horario extra» o simplemente un dato.
-     * Sale del establecimiento —no está hardcodeado— porque es una decisión de negocio que
-     * puede cambiar sin tocar código.
-     */
-    private function horarioDelEstablecimiento(PmsEventoCalendario $evento, bool $esSalida): string
-    {
-        $est = $evento->getPmsUnidad()?->getEstablecimiento();
-        $hora = $esSalida ? $est?->getHoraCheckOut() : $est?->getHoraCheckIn();
-
-        return $hora?->format('H:i')
-            ?? ($esSalida ? self::CHECK_OUT_POR_DEFECTO : self::CHECK_IN_POR_DEFECTO);
-    }
-
-    /**
-     * ¿La hora acordada se sale del horario normal?
-     *
-     * Asimétrico a propósito: salir DESPUÉS del check-out ocupa la casita más tiempo, y entrar
-     * ANTES del check-in la ocupa antes. Salir a las 09:00 o entrar a las 18:00 no molestan a
-     * nadie — son datos útiles para el equipo de limpieza, no horarios extra.
-     *
-     * Se comparan cadenas `HH:MM`, que en formato 24 h ordenan igual que el reloj.
-     */
-    private function excedeElHorario(string $hora, string $limite, bool $esSalida): bool
-    {
-        return $esSalida ? $hora > $limite : $hora < $limite;
-    }
-
-    /**
-     * Escribe la hora conservando el DÍA.
-     *
-     * ⚠️ Nunca se toca la fecha, sólo la hora de pared (§12.5.5 del doc de sync). Mover el día
-     * de una estancia es otra operación —prohibida en OTA— y se hace en el calendario del panel.
-     * Cambiar sólo la hora es seguro incluso en reservas de OTA porque el push al canal manda
-     * `Y-m-d` (`BookingsPushMappingStrategy`): el portal no ve las horas.
-     */
-    private function registrarHora(PmsEventoCalendario $evento, string $hora, bool $esSalida): void
-    {
-        $actual = $esSalida ? $evento->getFin() : $evento->getInicio();
-
-        if ($actual === null) {
-            return;
-        }
-
-        $nueva = DateTimeImmutable::createFromInterface($actual)
-            ->setTime((int) substr($hora, 0, 2), (int) substr($hora, 3, 2));
-
-        $esSalida ? $evento->setFin($nueva) : $evento->setInicio($nueva);
     }
 
     /**

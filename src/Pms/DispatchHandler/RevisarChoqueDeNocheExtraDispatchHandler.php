@@ -6,14 +6,12 @@ namespace App\Pms\DispatchHandler;
 
 use App\Message\Command\MessageCrearAvisoChoqueOtaCommand;
 use App\Message\Service\Aviso\AvisoAlEquipo;
-use App\Message\Service\Aviso\AvisoAlEquipoService;
+use App\Message\Service\Aviso\AvisoConRespaldo;
 use App\Pms\Dispatch\RevisarChoqueDeNocheExtraDispatch;
 use App\Pms\Dto\ChoqueDeNocheExtra;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Service\Reserva\ChoquesDeNocheExtra;
-use App\Repository\UserRepository;
 use App\Security\Roles;
-use App\Service\WebPushNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
@@ -49,9 +47,7 @@ final readonly class RevisarChoqueDeNocheExtraDispatchHandler
     public function __construct(
         private EntityManagerInterface $em,
         private ChoquesDeNocheExtra $choques,
-        private AvisoAlEquipoService $avisos,
-        private WebPushNotificationService $push,
-        private UserRepository $usuarios,
+        private AvisoConRespaldo $avisos,
         private CacheItemPoolInterface $cache,
         private LoggerInterface $logger,
     ) {}
@@ -91,7 +87,7 @@ final readonly class RevisarChoqueDeNocheExtraDispatchHandler
         ]);
 
         try {
-            $resultado = $this->avisos->notificar(new AvisoAlEquipo(
+            $this->avisos->notificar(new AvisoAlEquipo(
                 rol: Roles::CUSTOMER_SUPPORT,
                 texto: $texto,
                 plantillaCodigo: $choque->seMovioElDuenio()
@@ -111,18 +107,7 @@ final readonly class RevisarChoqueDeNocheExtraDispatchHandler
                     'duenio' => (string) $choque->duenio->getId(),
                     'otra' => (string) $choque->otra->getId(),
                 ],
-            ));
-
-            if (!$resultado->alguienFueAvisado()) {
-                // 🛟 Nadie con el rol y móvil, o fuera de la ventana con la plantilla aún sin aprobar.
-                foreach ($this->usuarios->findByRole(Roles::CUSTOMER_SUPPORT) as $usuario) {
-                    $this->push->sendToUser($usuario, [
-                        'title' => '⚠️ Dos reservas para la misma noche',
-                        'body' => $texto,
-                        'actionUrl' => '/reservas',
-                    ]);
-                }
-            }
+            ), titulo: '⚠️ Dos reservas para la misma noche', url: '/reservas');
         } catch (Throwable $e) {
             // El aviso no puede romper nada: el choque ya está en la base y en el calendario.
             $this->logger->error('[horario extra] No se pudo avisar del choque: ' . $e->getMessage());

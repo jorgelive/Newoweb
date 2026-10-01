@@ -96,7 +96,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
      * Se busca por código y no se inyecta: si falta —entorno recién montado, plantilla borrada—
      * el escalado tiene que seguir funcionando en modo degradado, no reventar.
      */
-    private const string PLANTILLA_AVISO = 'aviso_escalado_interno';
+    public const string PLANTILLA_AVISO = 'aviso_escalado_interno';
 
     /**
      * Cuánto se espera antes de volver a hacer sonar los teléfonos por la misma conversación.

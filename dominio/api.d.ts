@@ -28145,6 +28145,16 @@ export interface components {
              * @default false
              */
             entradaTemprana: boolean;
+            /**
+             * Format: date-time
+             * @description Cuándo se confirmó la HORA de llegada (el huésped por el chat, o el equipo al apuntarla).
+             */
+            llegadaConfirmadaAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Lo mismo para la hora de salida. Ver `$llegadaConfirmadaAt`.
+             */
+            salidaConfirmadaAt?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -28345,6 +28355,16 @@ export interface components {
              * @default false
              */
             entradaTemprana: boolean;
+            /**
+             * Format: date-time
+             * @description Cuándo se confirmó la HORA de llegada (el huésped por el chat, o el equipo al apuntarla).
+             */
+            llegadaConfirmadaAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Lo mismo para la hora de salida. Ver `$llegadaConfirmadaAt`.
+             */
+            salidaConfirmadaAt?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -28438,6 +28458,16 @@ export interface components {
              * @default false
              */
             entradaTemprana: boolean;
+            /**
+             * Format: date-time
+             * @description Cuándo se confirmó la HORA de llegada (el huésped por el chat, o el equipo al apuntarla).
+             */
+            llegadaConfirmadaAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Lo mismo para la hora de salida. Ver `$llegadaConfirmadaAt`.
+             */
+            salidaConfirmadaAt?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -28531,6 +28561,16 @@ export interface components {
              * @default false
              */
             entradaTemprana: boolean;
+            /**
+             * Format: date-time
+             * @description Cuándo se confirmó la HORA de llegada (el huésped por el chat, o el equipo al apuntarla).
+             */
+            llegadaConfirmadaAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Lo mismo para la hora de salida. Ver `$llegadaConfirmadaAt`.
+             */
+            salidaConfirmadaAt?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */

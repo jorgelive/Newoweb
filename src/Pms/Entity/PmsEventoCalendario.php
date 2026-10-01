@@ -324,6 +324,22 @@ class PmsEventoCalendario
     #[Groups(['pms_evento:read', 'pms_evento:write'])]
     private bool $entradaTemprana = false;
 
+    /**
+     * Cuándo se confirmó la HORA de llegada (el huésped por el chat, o el equipo al apuntarla).
+     *
+     * La hora sola no lo dice: un `inicio` a las 14:00 es el check-in de todos, haya confirmado el
+     * huésped que llega a esa hora o no haya dicho nada (Jorge, 01/10/2026). `null` = nadie la ha
+     * confirmado. Lo escribe `HoraDeLaEstancia::registrar()`.
+     */
+    #[ORM\Column(name: 'llegada_confirmada_at', type: 'datetime_immutable', nullable: true)]
+    #[Groups(['pms_evento:read'])]
+    private ?DateTimeImmutable $llegadaConfirmadaAt = null;
+
+    /** Lo mismo para la hora de salida. Ver `$llegadaConfirmadaAt`. */
+    #[ORM\Column(name: 'salida_confirmada_at', type: 'datetime_immutable', nullable: true)]
+    #[Groups(['pms_evento:read'])]
+    private ?DateTimeImmutable $salidaConfirmadaAt = null;
+
     /* ======================================================
      * CAMPOS DE DOMINIO BEDS24 (⚠️ NO ELIMINAR)
      * ====================================================== */
@@ -887,6 +903,11 @@ class PmsEventoCalendario
     {
         return $this->entradaTemprana;
     }
+
+    public function getLlegadaConfirmadaAt(): ?DateTimeImmutable { return $this->llegadaConfirmadaAt; }
+    public function setLlegadaConfirmadaAt(?DateTimeImmutable $v): self { $this->llegadaConfirmadaAt = $v; return $this; }
+    public function getSalidaConfirmadaAt(): ?DateTimeImmutable { return $this->salidaConfirmadaAt; }
+    public function setSalidaConfirmadaAt(?DateTimeImmutable $v): self { $this->salidaConfirmadaAt = $v; return $this; }
 
     /**
      * La noche que deja sin vender un horario extra, o `null` si no hay ninguna.
