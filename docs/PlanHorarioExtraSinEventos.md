@@ -164,9 +164,10 @@ quejarse y el corte de una dejaría la otra viva.
 
 ## 5. Lo que hace falta decidir
 
-1. **Casita y fecha de prueba** contra Beds24 real (fase 0).
-2. **Nombre de la `black` en Beds24**: «Entrada temprana · <huésped>» (hoy la del hermano dice
-   «Entrada temprana · <localizador>»).
+1. ~~Casita y fecha de prueba~~ → **Casita 1, del 02 al 05/02/2027** (Jorge, 01/10/2026). Libre
+   del 30/01 al 08/02, así que caben la víspera (01/02) y la noche de salida (05/02).
+2. ~~Nombre de la `black` en Beds24~~ → **«Entrada temprana · <huésped>»** / «Salida tardía ·
+   <huésped>» (Jorge, 01/10/2026; hoy la del hermano dice el localizador).
 3. **A quién avisa la fase 5** cuando una OTA mueve una reserva con horario extra sobre otra.
 
 ## 6. Dónde tocar (cuando esté hecho)
