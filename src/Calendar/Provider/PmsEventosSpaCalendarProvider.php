@@ -206,12 +206,17 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
                 $titulo = sprintf('%s · %s', $noche->etiqueta(), $estancia->getTituloCache() ?? 'huésped');
                 $choque = $choques['noche:' . $estancia->getId() . ':' . $noche->rol] ?? null;
 
-                // Recortada contra la estancia: un fondo va DEBAJO de las barras, y con la hora
-                // real de entrada (Lizbeth, 07:00 del 28) la barra empezaba antes de que acabara la
-                // franja y la tapaba. La entrada temprana acaba cuando él entra; la salida tardía
-                // empieza cuando se va.
-                $inicio = $noche->esEntrada() ? $noche->desde : max($noche->desde, DateTimeImmutable::createFromInterface($sale));
-                $fin = $noche->esEntrada() ? min($noche->hasta, DateTimeImmutable::createFromInterface($entra)) : $noche->hasta;
+                // 🕐 Pegada a la barra, con sus horas: un día ANTES de la entrada hasta la entrada,
+                // o desde la salida hasta un día después. `nocheExtra()` va por días a medianoche
+                // —es lo que cuenta la disponibilidad y lo que viaja a Beds24—, pero pintada así la
+                // franja ocupaba el día 27 entero y dejaba un hueco hasta las 14:00 del 28, donde
+                // empieza la barra: parecía la noche de otro día (Lizbeth, 01/10/2026). El calendario
+                // pinta las noches de hora a hora, y la franja tiene que hacer lo mismo.
+                $entraA = DateTimeImmutable::createFromInterface($entra);
+                $saleA = DateTimeImmutable::createFromInterface($sale);
+                [$inicio, $fin] = $noche->esEntrada()
+                    ? [$entraA->modify('-1 day'), $entraA]
+                    : [$saleA, $saleA->modify('+1 day')];
 
                 if ($fin <= $inicio) {
                     continue;

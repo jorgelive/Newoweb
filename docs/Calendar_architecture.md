@@ -287,9 +287,11 @@ largo no cabía en la celda de una noche en el móvil; el completo va en el tool
 **La marca es un reloj con el corchete del extremo que alarga:** `[⏲` entrada temprana, `⏲]`
 salida tardía (`marcaHorarioExtra()` en `ReservasView`, y la misma en las casillas del drawer). Las
 flechas entrar/salir del umbral se descartaron: la de entrar se leía como salida. No se abre, no
-se arrastra y no ocupa hueco en la fila. ⚠️ Un fondo va **debajo** de las barras: la franja se
-recorta contra la estancia (la entrada temprana acaba a la hora real de entrada; la salida tardía
-empieza a la de salida), o una entrada a las 07:00 la tapaba entera. Sólo los vivos (`IMPIDEN_VENTA`), y sólo en los
+se arrastra y no ocupa hueco en la fila. ⚠️ Un fondo va **debajo** de las barras: la franja va
+**pegada a la estancia, de hora a hora** —la entrada temprana, de un día antes de la entrada hasta
+la entrada; la salida tardía, de la salida a un día después—, o una entrada a las 07:00 la tapaba
+entera. ⚠️ No con los días a medianoche de `nocheExtra()`: así ocupaba el día anterior entero y
+dejaba un hueco hasta la barra, y parecía la noche de otro día (Lizbeth, 01/10/2026). Sólo los vivos (`IMPIDEN_VENTA`), y sólo en los
 calendarios que no acotan estados —los dos de Reservas—: el de ocupación de Tarifas pide
 `OCUPAN_UNIDAD` y una noche de horario extra no es una venta que tarifar.
 
