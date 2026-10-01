@@ -18,8 +18,14 @@
  *
  * ⚠️ Se engancha a `useCapasEnHistorial`, así que el gesto «atrás» lo colapsa en vez de sacarte de
  * la pantalla — que es lo que hacía cualquier capa antes de ese composable.
+ *
+ * ── Se arrastra de lado ─────────────────────────────────────────────────────
+ * «No tapa nada» era cierto en el escritorio, no en el móvil: centrada, caía encima del nombre
+ * del huésped en la cabecera del chat y de lo que hubiera debajo (Jorge, 01/10/2026). En vez de
+ * buscarle a mano un hueco libre en cada pantalla, se arrastra a un lado con el dedo o el ratón y
+ * se queda donde se dejó (en este navegador). Un toque sin arrastre la sigue abriendo.
  */
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import AsistenteBar from '@/components/common/AsistenteBar.vue';
 import { useCapasEnHistorial } from '@/composables/useCapasEnHistorial';
 import { usePermisosStore } from '@/stores/permisosStore';
@@ -63,20 +69,97 @@ const alCambiarDatos = (): void => {
 
 const recargar = (): void => window.location.reload();
 
-onMounted(() => { void permisos.cargar(); });
+// ── Arrastre lateral ─────────────────────────────────────────────────────────
+
+const CLAVE_POSICION = 'asistente.lengueta.x';
+/** Cuánto hay que mover el dedo para que sea un arrastre y no un toque. */
+const UMBRAL_ARRASTRE = 6;
+
+/** Dónde está su centro, como fracción del ancho (0 = borde izquierdo, 1 = derecho). */
+const leerPosicion = (): number => {
+    try {
+        const guardada = Number(localStorage.getItem(CLAVE_POSICION));
+        return Number.isFinite(guardada) && guardada > 0 && guardada < 1 ? guardada : 0.5;
+    } catch {
+        return 0.5;
+    }
+};
+
+const posicion = ref(leerPosicion());
+const anchoVentana = ref(window.innerWidth);
+const lengueta = ref<HTMLElement | null>(null);
+
+/** Su centro en píxeles, sin que se salga por ningún lado. */
+const centroPx = computed(() => {
+    const mitad = (lengueta.value?.offsetWidth ?? 120) / 2;
+    return Math.min(Math.max(posicion.value * anchoVentana.value, mitad), anchoVentana.value - mitad);
+});
+
+let arrastre: { inicioX: number; inicioPos: number; movido: boolean } | null = null;
+/** El `click` que sigue a un arrastre no tiene que abrir el asistente. */
+let ignorarClick = false;
+
+const alApretar = (e: PointerEvent): void => {
+    arrastre = { inicioX: e.clientX, inicioPos: centroPx.value, movido: false };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+};
+
+const alMover = (e: PointerEvent): void => {
+    if (!arrastre) return;
+    const dx = e.clientX - arrastre.inicioX;
+    if (!arrastre.movido && Math.abs(dx) < UMBRAL_ARRASTRE) return;
+    arrastre.movido = true;
+    posicion.value = (arrastre.inicioPos + dx) / anchoVentana.value;
+};
+
+const alSoltar = (): void => {
+    if (!arrastre) return;
+    if (arrastre.movido) {
+        ignorarClick = true;
+        // Se guarda donde se ve, ya recortado al borde.
+        posicion.value = centroPx.value / anchoVentana.value;
+        try { localStorage.setItem(CLAVE_POSICION, String(posicion.value)); } catch { /* sin almacenamiento: dura hasta recargar */ }
+    }
+    arrastre = null;
+};
+
+const alPulsar = (): void => {
+    if (ignorarClick) {
+        ignorarClick = false;
+        return;
+    }
+    abrir();
+};
+
+const alRedimensionar = (): void => { anchoVentana.value = window.innerWidth; };
+
+onMounted(() => {
+    void permisos.cargar();
+    window.addEventListener('resize', alRedimensionar);
+});
+
+onUnmounted(() => window.removeEventListener('resize', alRedimensionar));
 </script>
 
 <template>
   <div v-if="visible" class="fixed top-0 left-0 right-0 z-[9990] pointer-events-none">
     <!-- La lengüeta: pegada al borde y con el asa hacia abajo, para que se lea como algo que
          cuelga y se puede tirar. -->
-    <div class="flex justify-center">
+    <!-- `touch-action: none`: el dedo arrastra la lengüeta, no la página (ni arma el gesto de
+         recargar). `left` + `-translate-x-1/2` para que la posición guardada sea su centro. -->
+    <div class="relative h-0">
       <button
           v-if="!abierto"
+          ref="lengueta"
           type="button"
-          title="Preguntar al asistente"
-          class="pointer-events-auto flex items-center gap-1.5 bg-[#376875] text-white pl-3 pr-3.5 py-1 rounded-b-xl shadow-lg hover:bg-[#2c535d] transition-colors"
-          @click="abrir"
+          title="Preguntar al asistente (arrástrala a un lado si tapa algo)"
+          class="pointer-events-auto absolute top-0 -translate-x-1/2 touch-none select-none flex items-center gap-1.5 bg-[#376875] text-white pl-3 pr-3.5 py-1 rounded-b-xl shadow-lg hover:bg-[#2c535d] transition-colors whitespace-nowrap"
+          :style="{ left: `${centroPx}px` }"
+          @pointerdown="alApretar"
+          @pointermove="alMover"
+          @pointerup="alSoltar"
+          @pointercancel="alSoltar"
+          @click="alPulsar"
       >
         <i class="fas fa-wand-magic-sparkles text-[11px]" aria-hidden="true"></i>
         <span class="text-[11px] font-black uppercase tracking-widest">Asistente</span>
