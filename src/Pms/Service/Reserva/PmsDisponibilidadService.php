@@ -341,7 +341,9 @@ final readonly class PmsDisponibilidadService
         foreach ($this->ocupacion($noche, $noche->modify('+1 day'), $unidadId) as $dto) {
             // Lo de la MISMA reserva no cuenta como ocupación ajena: es el propio evento, su
             // noche extra, o su otro tramo en la misma casita.
-            if ($dto->reservaId !== null && $dto->reservaId === $reservaPropia) {
+            if ($dto->eventoId === (string) $propio->getId()
+                || ($dto->reservaId !== null && $dto->reservaId === $reservaPropia)
+            ) {
                 continue;
             }
 

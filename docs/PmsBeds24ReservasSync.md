@@ -1274,6 +1274,14 @@ desbloquearía el día en el acto y el backend rechazaría el guardado. Y el PAT
 
 #### La HORA acordada: registrarla no es lo mismo que bloquear
 
+> 🔁 **01/10/2026 — bloquear lo decide el equipo, y la skill ya sabe decir que no.** Con hora fuera
+> del horario y la noche libre, `aplicar_cambio_horario` pregunta si se bloquea, y la respuesta
+> viaja en `bloquear` (`true` / `false`). Antes la pregunta ofrecía «sólo apunto la hora» pero la
+> skill no podía hacerlo: confirmar siempre bloqueaba, así que ante un «no» el agente no confirmaba
+> y la hora no se guardaba en ningún sitio. Ahora confirmar sin `bloquear` en ese caso es un error
+> («falta la decisión del equipo»). Y si el horario extra ya estaba marcado, una hora nueva se
+> registra (antes respondía «no se ha cambiado nada»).
+
 `aplicar_cambio_horario` acepta `hora` (`HH:MM`), y ahí está la distinción que faltaba: **no todo
 cambio de hora es un horario extra**.
 
