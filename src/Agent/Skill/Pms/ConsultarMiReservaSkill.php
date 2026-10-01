@@ -205,6 +205,9 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface, SkillDom
             $datos['casita_ese_dia'] = $espacio['desde_cuando_libre'] !== null
                 ? sprintf('Libre desde el %s; nadie sale el día que llega.', $espacio['desde_cuando_libre'])
                 : 'Libre; nadie sale el día que llega.';
+        } else {
+            // La víspera la ocupa la salida tardía de quien se fue el día antes.
+            $datos['casita_ese_dia'] = 'Ocupada la noche anterior: no hay margen para entrar antes.';
         }
 
         if ($espacio['entra_alguien_el_dia_que_se_va'] !== null) {
@@ -212,6 +215,9 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface, SkillDom
                 'Entra otro huésped a las %s el día que se va: la salida es a su hora.',
                 $espacio['entra_alguien_el_dia_que_se_va']
             );
+        } elseif (!$espacio['libre_la_noche_que_se_va']) {
+            // La noche de su salida la ocupa la entrada temprana de quien llega al día siguiente.
+            $datos['casita_tras_su_salida'] = 'La noche del día que se va ya está ocupada: la salida es a su hora.';
         }
 
         return $datos;

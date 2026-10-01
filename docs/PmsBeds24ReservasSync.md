@@ -1066,6 +1066,22 @@ resolveTasks():
 
 ### 7.1.b Horario extra — la noche invisible que bloquea la unidad
 
+> 🔁 **Rediseñado el 01/10/2026: ya no hay eventos hermanos.** La noche extra se deriva de la
+> casilla (`PmsEventoCalendario::nocheExtra()`) y su `black` cuelga de la propia estancia como un
+> link de rol `extra_entrada` / `extra_salida` (§2.1), que mantiene `NochesExtraDeEstancia` y cuyo
+> payload arma `BookingsPushMappingStrategy::buildExtraPayload()`. Consecuencias:
+>
+> - **Una estancia con horario extra se mueve** (día o casita) como cualquier otra: la `black` va
+>   detrás sola, con su mismo `bookId`. El candado de solape valida la estancia con su noche extra.
+> - **La reserva de una OTA no se toca nunca**: lo que se mueve es la `black`, que es nuestra.
+> - Desmarcar o cancelar no borra nada: la `black` se manda `cancelled` y revive al volver a marcar.
+> - El pull no la confunde: `custom2 = EXTRA`, nunca principal, y no mueve la estancia.
+>
+> Lo que sigue es la historia del mecanismo anterior (evento `extension` + `PmsExtensionEstanciaService`),
+> que se conserva porque explica por qué se cambió. El plan y lo que se hizo en cada fase:
+> `docs/PlanHorarioExtraSinEventos.md`. El estado `extension` y `evento_origen_id` siguen en la base
+> hasta la fase 6, sin uso.
+
 Un *late check-out* (se va a las 17:00 en vez de a las 10:00) o un *early check-in* (llega a las
 09:00 en vez de a las 14:00) **no son noches más**, pero dejan la casita invendible una noche: no
 da tiempo a limpiar y entregar. Antes se resolvía creando una SEGUNDA estancia de una noche, que
@@ -6408,10 +6424,9 @@ contra la base local: mismos veredictos que antes.
 | Corregir el país de las reservas YA guardadas | `PmsCorregirPaisOtaCommand` | `app:pms:corregir-pais-ota --dry-run` — idempotente, sólo con evidencia de teléfono |
 | Deducir el país desde un número de teléfono | `PhoneSanitizer` | `paisDelNumero()` — sólo con prefijo internacional; `null` si no se sabe |
 | Cambiar qué datos de huésped se empujan a una OTA | `BookingsPushMappingStrategy` | `mapGuestData()`, bloque `if (!$isOta)` — §7.2 |
-| Cómo se coloca la noche que bloquea un horario extra | `PmsExtensionEstanciaService` | `sincronizar()` — §7.1.b |
+| Cómo se coloca la noche que bloquea un horario extra | `NochesExtraDeEstancia` + `PmsEventoCalendario::nocheExtra()` | `sincronizar()` — §7.1.b (rediseño del 01/10/2026) |
 | Qué estados puede imponerle el PMS a una OTA | `BookingsPushMappingStrategy` | bloque «4. ESTADO» — §12.13 y §12.13.b |
 | Buscar estancias `pendiente` con pago cobrado | — | `WHERE estado_id='pendiente' AND estado_pago_id IN ('pago-parcial','pago-total')` |
-| Que las extensiones dejen de ser invisibles en una vista nueva | — | la tabla de filtros de §7.1.b |
 | Cambiar cómo nacen los cargos de horario extra (hoy en 0.00) | `PmsCargosAutomaticosService` | `sincronizarExtras()` |
 | Cambiar ventana anti-dup | `Beds24WebhookController` | `600` (seg) y `15000` (ms) |
 | Añadir o quitar un estado del pull de reservas | `BookingsPullMappingStrategy` | `ESTADOS_CONSULTADOS` — **repetido en la URL, nunca en el `payload`**: §4.1.b |

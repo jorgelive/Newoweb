@@ -36,8 +36,8 @@ use App\Agent\Skill\EntradaDeSkill;
  *    para fechas en OTA y el push ni siquiera las envía (guard `!$isOta || $isMirror`, §9.4 de
  *    PmsBeds24ReservasSync). Cambiarlas aquí crearía una divergencia silenciosa con el canal.
  * 2. **Retrasar la salida NO es mover `fin`.** Es marcar `salidaTardia`, y entonces
- *    `PmsExtensionEstanciaService` crea un evento de extensión que bloquea esa noche y viaja
- *    al canal como `black`. Mover `fin` fue el primer intento del proyecto y se descartó por
+ *    la estancia ocupa también esa noche (`PmsEventoCalendario::nocheExtra()`) y una `black`
+ *    nuestra la bloquea en el canal (`NochesExtraDeEstancia`). Mover `fin` fue el primer intento del proyecto y se descartó por
  *    dos motivos documentados (§7.1.b).
  * 3. **Alargar ocupa una noche más**, así que hay que comprobar que la casita esté libre —
  *    o se crea un doble booking.
@@ -137,7 +137,7 @@ final readonly class EvaluarCambioHorarioSkill implements SkillInterface, SkillD
 
     /**
      * Salida tardía y entrada temprana SÍ valen en reservas de OTA: no tocan las fechas de la
-     * reserva, crean una extensión aparte que se manda al canal como bloqueo.
+     * reserva, añaden una noche que se bloquea en el canal con una `black` nuestra.
      *
      * @return array<string, mixed>
      */
@@ -168,8 +168,8 @@ final readonly class EvaluarCambioHorarioSkill implements SkillInterface, SkillD
             // estar vendida. ALERTA, no veto: la decisión sigue siendo suya.
             'noche_adyacente' => $this->alertaDeOcupacion($evento, $extremo === 'salida'),
             'implica' => sprintf(
-                'Se marcará la %s y se creará un evento de extensión que bloquea la noche %s. '
-                . 'La extensión viaja al canal como bloqueo, así que la casita deja de venderse '
+                'Se marcará la %s y la estancia ocupará también la noche %s. '
+                . 'Esa noche se bloquea en el canal, así que la casita deja de venderse '
                 . 'esa noche en todos los portales.',
                 $extremo === 'salida' ? 'salida tardía' : 'entrada temprana',
                 $extremo === 'salida' ? 'del día de salida' : 'anterior a la llegada'

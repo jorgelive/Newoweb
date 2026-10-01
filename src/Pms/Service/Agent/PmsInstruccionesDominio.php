@@ -243,6 +243,9 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
             $lineas[] = $espacio['desde_cuando_libre'] !== null
                 ? sprintf('ANTES: la casita está libre desde el %s; nadie sale ese día.', $espacio['desde_cuando_libre'])
                 : 'ANTES: la casita está libre; nadie sale ese día.';
+        } else {
+            // La víspera la ocupa la salida tardía de quien se fue el día antes.
+            $lineas[] = 'ANTES: la noche anterior la casita está ocupada, así que NO está libre por la mañana.';
         }
 
         if ($espacio['entra_alguien_el_dia_que_se_va'] !== null) {
@@ -250,10 +253,9 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
                 'DESPUÉS: el día que se va entra otro huésped a las %s.',
                 $espacio['entra_alguien_el_dia_que_se_va']
             );
-        }
-
-        if ($lineas === []) {
-            return '';
+        } elseif (!$espacio['libre_la_noche_que_se_va']) {
+            // La entrada temprana de quien llega al día siguiente ocupa la noche de su salida.
+            $lineas[] = 'DESPUÉS: la noche del día que se va ya está ocupada, así que no cabe una salida tardía.';
         }
 
         // 🔒 El huésped no tiene por qué enterarse de los movimientos de otro.

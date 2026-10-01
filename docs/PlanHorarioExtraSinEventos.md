@@ -1,9 +1,10 @@
 # Plan — Horario extra sin eventos hermanos
 
-> **Estado (01/10/2026):** fases 0, 1 y 2 hechas y desplegadas, sin efecto visible: la fase 2 deja
-> el código listo pero nadie lo llama todavía (`NochesExtraDeEstancia` no está enganchado). La
-> plantilla del aviso de la fase 5 (`aviso_choque_ota_interno`) está en revisión en Meta.
-> Siguiente: fases 3 + 4, en un solo despliegue.
+> **Estado (01/10/2026):** fases 0 a 4 hechas y desplegadas. **Ya no hay eventos hermanos**: la
+> noche extra sale de la casilla y su `black` es un link de la estancia. Ensayado entero sobre la
+> copia de producción (`tools/pruebas/ensayar-horario-extra.php`). Pendiente: la prueba contra
+> Beds24 real en la Casita 1 (02–05/02/2027), la fase 5 (aviso; la plantilla está en revisión en
+> Meta) y la limpieza de la fase 6.
 
 ## 1. Qué cambia y por qué
 
@@ -122,7 +123,7 @@ quejarse y el corte de una dejaría la otra viva.
 - Pruebas: `NocheExtraTest`, `NochesExtraDeEstanciaTest` y tres casos en
   `BookingsPushMappingStrategyTest` (OTA con sus fechas, desmarcada, en otra casita).
 
-### Fase 3 — La ocupación se calcula de la casilla (con la fase 4)
+### Fase 3 — La ocupación se calcula de la casilla (con la fase 4) ✅ 01/10/2026
 - `PmsDisponibilidadService::ocupacion()` / `unidadesOcupadas()`: el rango efectivo,
   `DATE(inicio) - INTERVAL entrada_temprana DAY` … `DATE(fin) + INTERVAL salida_tardia DAY`, sólo
   para estados vivos. `PmsOcupacionDto` gana `esNocheExtra` para que los mensajes digan «la entrada
@@ -133,7 +134,7 @@ quejarse y el corte de una dejaría la otra viva.
 - Calendario: la franja rayada sale de las casillas de la propia estancia (sin consulta aparte).
 - Disponibilidad del agente y del buscador: igual, por `ocupacion()`.
 
-### Fase 4 — El corte (UN despliegue, con la fase 3)
+### Fase 4 — El corte (UN despliegue, con la fase 3) ✅ 01/10/2026
 - Migración de datos, en SQL y sin listeners (para que no salga ningún DELETE a Beds24):
   1. Por cada extensión VIVA, sus links pasan a la estancia origen con su rol, **conservando el
      `beds24BookId`**: la misma `black` de Beds24 sigue siendo la que bloquea. Cero altas y cero
@@ -147,6 +148,28 @@ quejarse y el corte de una dejaría la otra viva.
 - Verificación en producción: las dos noches vivas siguen `black` en Beds24 con su mismo `bookId`;
   la casita de prueba: marcar, mover de día, mover de casita, desmarcar, cancelar — cada paso
   comprobado en Beds24.
+
+### Lo que se hizo en las fases 3 y 4
+
+- `ocupacion()` / `unidadesOcupadas()` con el rango efectivo (`DATE_SUB(DATE(inicio), INTERVAL
+  entrada_temprana DAY)`…); `PmsOcupacionDto::$nocheExtra`, `quienOcupa()`, `nochesOcupadas()`.
+  §8.c y §8.d de `PmsDisponibilidad.md`.
+- `PmsEventoCalendarioSolapeListener` reescrito: valida la estancia y sus noches extra en cada
+  cambio de fechas, casita, estado o casilla. Ya no mira `eventoOrigen`.
+- `PmsEspacioEstancia` cuenta las noches extra de los vecinos y gana `libre_la_noche_que_se_va`;
+  el agente lo dice en `ConsultarMiReservaSkill` y `PmsInstruccionesDominio`.
+- Calendario: `horariosExtra()` sale de las casillas.
+- Enganche: `PmsEventoCalendarioFactory` llama a `NochesExtraDeEstancia` después de los links de
+  estancia (al crear, al mover de casita, en el pull); `PmsInformacionFinancieraCoherenciaListener`
+  al cambiar una casilla o el estado, sin depender ya de que la reserva tenga finanzas.
+- Fuera: `PmsExtensionEstanciaService`, `assertFechasMoviblesConHorarioExtra()`, el congelado del
+  drawer (`diaBloqueadoPara()` y su aviso). Textos del agente (`EvaluarCambioHorarioSkill`,
+  `AplicarCambioHorarioSkill`) sin «evento de extensión».
+- Migración `Version20261001180000`: los links de las 2 extensiones vivas pasan a su estancia con
+  su rol y su `bookId` (M4E23R `extra_salida`, KXET9H `extra_entrada`; las dos ya pasadas); colas
+  pendientes de las demás canceladas; los 10 eventos `extension` borrados con sus links.
+- De paso: `PmsEventoCalendario::isSynced()` comparaba con `canceled` y la cola escribe
+  `cancelled`; una cola cancelada contaba como pendiente.
 
 ### Fase 5 — OTA que cambia fechas o habitación
 - Ya funciona por construcción: el pull actualiza la estancia, el listener de push encola todos sus

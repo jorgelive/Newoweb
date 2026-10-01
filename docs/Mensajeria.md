@@ -3061,7 +3061,7 @@ con qué responder, así que pedírsela a él sería confiar en lo que acaba de 
   buscar_estancias_de_reserva → evento_id, es_ota
   evaluar_cambio_horario    → permitido: salida tardía sí, mover fechas no si es OTA
   aplicar_cambio_horario    ✍️  «¿confirmas?» → sí → marca el flag
-        ↓ PmsExtensionEstanciaService crea la extensión y el push la manda como bloqueo
+        ↓ NochesExtraDeEstancia crea los links de la noche extra y el push la manda como `black`
   registrar_cargo           ✍️  «¿lo cobramos? 20 soles» → sí → cargo en la cuenta
 ```
 
@@ -7466,12 +7466,13 @@ también encaja en «está alojado» si se mira al revés):
 
 La fase dice en qué momento de SU estancia está. Lo que decide si cabe adelantar una entrada es
 otra cosa: **qué hay alrededor en la misma casita**. Lo calcula
-`PmsEspacioEstancia::alrededorDe()` y son cuatro hechos:
+`PmsEspacioEstancia::alrededorDe()` y son cinco hechos:
 
 | Dato | Para qué |
 |---|---|
 | `sale_alguien_el_dia_que_llega` (+ hora) | Si hay salida ese día, no hay margen: almacén y escalar |
-| `libre_la_vispera` | Si nadie ocupa la noche anterior, cabe pedir margen |
+| `libre_la_vispera` | Si nadie ocupa la noche anterior, cabe pedir margen. Cuenta la salida tardía del que se fue el día antes |
+| `libre_la_noche_que_se_va` | Si la entrada temprana del siguiente ya ocupa la noche de su salida, no cabe salida tardía (01/10/2026) |
 | `desde_cuando_libre` | Para decir «libre desde el 08» en vez de un «sí» seco |
 | `entra_alguien_el_dia_que_se_va` (+ hora) | Si entra otro, la salida es a su hora |
 

@@ -29,17 +29,25 @@ use DomainException;
  *
  * ### Qué cuenta como ocupado
  *
- * Las noches se cuentan como en la disponibilidad —`IMPIDEN_VENTA` y solape por `DATE()`, vía
- * {@see PmsDisponibilidadService::ocupacion()}—, pero NO todo lo que ocupa frena:
+ * Las noches se cuentan como en la disponibilidad —`IMPIDEN_VENTA`, solape por `DATE()` y el
+ * rango EFECTIVO de cada estancia, con su noche extra—, vía
+ * {@see PmsDisponibilidadService::ocupacion()}. Pero NO todo lo que ocupa frena:
  *
- * - **Una estancia de otro huésped**, siempre.
- * - **La noche de una entrada temprana o una salida tardía ya negociada**: un bloqueo o una
- *   extensión que cuelga de su estancia (`eventoOrigen`). Es un huésped, aunque no se vea.
- * - **Un bloqueo suelto, no.** Se usa para cerrar la casita en los canales y es normal crear
- *   una estancia directa encima: lo pidió Jorge el 28/09/2026.
+ * - **Una estancia de otro huésped**, siempre — también si lo que choca es sólo su entrada
+ *   temprana o su salida tardía. Es un huésped, aunque su barra no llegue a esa noche.
+ * - **Un bloqueo, no.** Se usa para cerrar la casita en los canales y es normal crear una estancia
+ *   directa encima: lo pidió Jorge el 28/09/2026.
  *
- * Lo de la MISMA reserva no cuenta, por la misma razón que en `margenesDe()`: son su propio
- * evento, sus extensiones o su otro tramo.
+ * Lo de la MISMA reserva no cuenta, por la misma razón que en `margenesDe()`: es su propia
+ * noche extra o su otro tramo.
+ *
+ * ### Y lo que se comprueba es la estancia ENTERA, con sus noches extra
+ *
+ * Desde el 01/10/2026 la noche extra no es un evento aparte: la deriva
+ * `PmsEventoCalendario::nocheExtra()` de la casilla. Así que mover una estancia con entrada
+ * temprana se puede —antes el día y la casita quedaban congelados— y se valida aquí con su
+ * víspera incluida, igual que marcar la casilla valida esa víspera. Ver
+ * docs/PlanHorarioExtraSinEventos.md.
  *
  * ### Sólo lo que decide una persona
  *
@@ -58,88 +66,57 @@ final class PmsEventoCalendarioSolapeListener
 
     public function prePersist(PmsEventoCalendario $evento, PrePersistEventArgs $args): void
     {
-        $this->comprobar($evento, $args->getObjectManager());
+        $this->comprobar($evento, $args->getObjectManager(), cambiaLaEstancia: true);
     }
 
     public function preUpdate(PmsEventoCalendario $evento, PreUpdateEventArgs $args): void
     {
-        $em = $args->getObjectManager();
-
+        $cambiaLaEstancia = false;
         foreach (['inicio', 'fin', 'pmsUnidad', 'estado'] as $campo) {
-            if ($args->hasChangedField($campo)) {
-                $this->comprobar($evento, $em);
-                break;
-            }
+            $cambiaLaEstancia = $cambiaLaEstancia || $args->hasChangedField($campo);
         }
 
-        // ⏰ La noche del horario extra se comprueba AQUÍ, al marcar la casilla, y no cuando nace
-        // su evento.
-        //
-        // Ese evento lo crea `PmsExtensionEstanciaService` en el `postFlush` de la estancia: para
-        // entonces la casilla YA está guardada. Frenarlo allí dejaba la estancia marcada con
-        // entrada temprana y sin noche bloqueada ni en el PMS ni en Beds24 — peor que el solape
-        // que se quería evitar, porque la marca dice que está protegida. Aquí el guardado entero
-        // se rechaza y no queda nada a medias.
-        $reactivada = $args->hasChangedField('estado');
-
-        if (($args->hasChangedField('entradaTemprana') || $reactivada) && $evento->isEntradaTemprana()) {
-            $this->comprobarNocheExtra($evento, $em, esEntrada: true);
-        }
-
-        if (($args->hasChangedField('salidaTardia') || $reactivada) && $evento->isSalidaTardia()) {
-            $this->comprobarNocheExtra($evento, $em, esEntrada: false);
+        if ($cambiaLaEstancia || $args->hasChangedField('entradaTemprana') || $args->hasChangedField('salidaTardia')) {
+            $this->comprobar($evento, $args->getObjectManager(), $cambiaLaEstancia);
         }
     }
 
-    private function comprobar(PmsEventoCalendario $evento, object $em): void
+    /**
+     * @param bool $cambiaLaEstancia Si sólo cambió una casilla, las noches de la estancia no se
+     *                               vuelven a mirar: no se han movido, y un solape que bajó del
+     *                               canal no tiene por qué impedir marcar un horario extra que
+     *                               no choca con nada.
+     */
+    private function comprobar(PmsEventoCalendario $evento, object $em, bool $cambiaLaEstancia): void
     {
-        // Una extensión no se comprueba por su cuenta: su noche se validó al marcar la casilla
-        // de su estancia (ver `preUpdate`). Hacerlo aquí sería hacerlo en `postFlush`, tarde.
-        if (!$this->syncContext->isUi() || !$em instanceof EntityManagerInterface || $evento->esExtension()) {
+        if (!$this->syncContext->isUi() || !$em instanceof EntityManagerInterface) {
             return;
         }
 
         $estado = $evento->getEstado()?->getId();
-        $unidad = $evento->getPmsUnidad();
         $inicio = $evento->getInicio();
         $fin = $evento->getFin();
 
         if ($estado === null || !in_array($estado, PmsEventoEstado::IMPIDEN_VENTA, true)
-            || $unidad === null || $inicio === null || $fin === null
+            || $evento->getPmsUnidad() === null || $inicio === null || $fin === null
             || $fin->format('Y-m-d') <= $inicio->format('Y-m-d')) {
             return;
         }
 
-        $this->frenarSiOcupada($evento, $em, $inicio, $fin, 'Libera esas noches o elige otra casita antes de guardar.');
-    }
-
-    /**
-     * La noche que bloquearía la entrada temprana (la víspera) o la salida tardía (la del día de
-     * salida): si ya es de otro huésped, la casilla no se puede marcar.
-     */
-    private function comprobarNocheExtra(PmsEventoCalendario $evento, object $em, bool $esEntrada): void
-    {
-        $estado = $evento->getEstado()?->getId();
-        $borde = $esEntrada ? $evento->getInicio() : $evento->getFin();
-
-        // Una estancia cancelada no bloquea nada: su extensión se retira, no se crea.
-        if (!$this->syncContext->isUi() || !$em instanceof EntityManagerInterface || $borde === null
-            || $evento->getPmsUnidad() === null || $estado === PmsEventoEstado::CODIGO_CANCELADA) {
-            return;
+        if ($cambiaLaEstancia) {
+            $this->frenarSiOcupada($evento, $inicio, $fin, 'Libera esas noches o elige otra casita antes de guardar.');
         }
 
-        $dia = \DateTimeImmutable::createFromInterface($borde)->setTime(0, 0);
-        [$desde, $hasta] = $esEntrada ? [$dia->modify('-1 day'), $dia] : [$dia, $dia->modify('+1 day')];
-
-        $this->frenarSiOcupada($evento, $em, $desde, $hasta, sprintf(
-            'No se puede marcar la %s: esa noche no está libre.',
-            $esEntrada ? 'entrada temprana' : 'salida tardía'
-        ));
+        foreach ($evento->nochesExtra() as $noche) {
+            $this->frenarSiOcupada($evento, $noche->desde, $noche->hasta, sprintf(
+                'La %s ocupa también esa noche: elige otra fecha o casita, o quita la casilla.',
+                mb_strtolower($noche->etiqueta())
+            ));
+        }
     }
 
     private function frenarSiOcupada(
         PmsEventoCalendario $evento,
-        EntityManagerInterface $em,
         \DateTimeInterface $desde,
         \DateTimeInterface $hasta,
         string $queHacer,
@@ -158,28 +135,19 @@ final class PmsEventoCalendarioSolapeListener
                 continue;
             }
 
-            if ($otro->esEstancia) {
-                $quien = $otro->huesped ?? 'otra estancia';
-            } else {
-                // Bloqueo o extensión: sólo frena si es el horario extra de una estancia.
-                $origen = $em->find(PmsEventoCalendario::class, $otro->eventoId)?->getEventoOrigen();
-
-                if ($origen === null) {
-                    continue;
-                }
-
-                $quien = sprintf(
-                    'la entrada temprana o salida tardía de %s',
-                    $origen->getTituloCache() ?? $otro->huesped ?? 'otro huésped'
-                );
+            // Un bloqueo no frena (ver la cabecera).
+            if (!$otro->esEstancia) {
+                continue;
             }
+
+            [$entra, $sale] = $otro->nochesOcupadas();
 
             throw new DomainException(sprintf(
                 '%s ya está ocupada del %s al %s por %s. %s',
                 $unidad->getNombre(),
-                (new \DateTimeImmutable($otro->entra))->format('d/m'),
-                (new \DateTimeImmutable($otro->sale))->format('d/m'),
-                $quien,
+                (new \DateTimeImmutable($entra))->format('d/m'),
+                (new \DateTimeImmutable($sale))->format('d/m'),
+                $otro->quienOcupa(),
                 $queHacer,
             ));
         }

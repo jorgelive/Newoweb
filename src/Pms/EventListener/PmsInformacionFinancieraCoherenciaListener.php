@@ -13,7 +13,7 @@ use App\Pms\Entity\PmsReserva;
 use App\Pms\Finanzas\PmsPrepagoEnlaceService;
 use App\Pms\Service\Finance\MonedaBaseRebaseContext;
 use App\Pms\Service\Finance\PmsCargosAutomaticosService;
-use App\Pms\Service\Reserva\PmsExtensionEstanciaService;
+use App\Pms\Service\Reserva\NochesExtraDeEstancia;
 use App\Pms\Service\Finance\PmsEstadoPagoEventosService;
 use App\Pms\Service\Finance\PmsPagoOtaAutomaticoService;
 use App\Pms\Service\Finance\PmsInformacionFinancieraRecalculoService;
@@ -93,7 +93,7 @@ final class PmsInformacionFinancieraCoherenciaListener
         private readonly PmsInformacionFinancieraRecalculoService $recalculoService,
         private readonly MonedaResolver $monedaResolver,
         private readonly PmsCargosAutomaticosService $cargosAutomaticos,
-        private readonly PmsExtensionEstanciaService $extensiones,
+        private readonly NochesExtraDeEstancia $nochesExtra,
         private readonly MonedaBaseRebaseContext $rebaseContext,
         private readonly PmsPagoOtaAutomaticoService $pagoOta,
         private readonly PmsEstadoPagoEventosService $estadoPagoService,
@@ -222,10 +222,10 @@ final class PmsInformacionFinancieraCoherenciaListener
 
             $cambios = $uow->getEntityChangeSet($entity);
 
-            // También al cambiar el ESTADO: cancelar una estancia tiene que llevarse
-            // su extensión —una estancia cancelada no ocupa nada—, y reactivarla, si
-            // la casilla sigue marcada, la devuelve. Mirando sólo las casillas, la
-            // noche bloqueada sobrevivía a la cancelación.
+            // También al cambiar el ESTADO: reactivar una estancia con la casilla
+            // marcada tiene que devolverle su noche extra. (Cancelarla no necesita
+            // nada aquí: la noche se deriva y el push manda su `black` como
+            // `cancelled` solo.)
             if (array_key_exists('salidaTardia', $cambios)
                 || array_key_exists('entradaTemprana', $cambios)
                 || array_key_exists('estado', $cambios)
@@ -593,26 +593,23 @@ final class PmsInformacionFinancieraCoherenciaListener
         $cabeceras = [];
 
         foreach ($eventos as $evento) {
+            // Las dos caras del horario extra. La noche bloqueada: los links extra que la llevan
+            // a Beds24 (ver `NochesExtraDeEstancia`). No depende de la reserva ni de sus finanzas,
+            // así que va antes de mirarlas.
+            $this->nochesExtra->sincronizar($evento);
+
+            // Y su cargo en 0.00.
             $reserva = $evento->getReserva();
-            if (!$reserva) {
-                continue;
+            $info = $reserva !== null
+                ? $em->getRepository(PmsInformacionFinanciera::class)->findOneBy(['reserva' => $reserva])
+                : null;
+            if ($info instanceof PmsInformacionFinanciera) {
+                $this->cargosAutomaticos->sincronizarExtras($evento, $info);
+                $cabeceras[] = (string) $info->getId();
             }
-
-            $info = $em->getRepository(PmsInformacionFinanciera::class)->findOneBy(['reserva' => $reserva]);
-            if (!$info instanceof PmsInformacionFinanciera) {
-                continue;
-            }
-
-            // Las dos caras del horario extra: la noche bloqueada (un evento
-            // hermano invisible) y su cargo en 0.00.
-            $this->extensiones->sincronizar($evento);
-            $this->cargosAutomaticos->sincronizarExtras($evento, $info);
-            $cabeceras[] = (string) $info->getId();
         }
 
-        if ($cabeceras !== []) {
-            $em->flush();
-        }
+        $em->flush();
 
         return $cabeceras;
     }

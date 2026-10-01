@@ -164,8 +164,9 @@ interface EventoEntry {
     channelId: string | null;
     form: EventoFormData;
     /**
-     * ¿La estancia llegó del servidor con horario extra marcado? Es lo que congela
-     * las fechas (ver `fechasBloqueadasPara`), y no la casilla actual.
+     * ¿La estancia llegó del servidor con horario extra marcado? Sirve para saber si el
+     * guardado TOCÓ el horario extra (y dejará un cargo que valorar). Ya no congela nada:
+     * desde el 01/10/2026 una estancia con horario extra se mueve como cualquier otra.
      */
     horarioExtraGuardado: boolean;
     /**
@@ -375,28 +376,6 @@ function pagoFuerzaConfirmada(entry: EventoEntry): boolean {
 
 function fechasUnidadBloqueadasPara(entry: EventoEntry): boolean {
     return entry.isOta;
-}
-
-/**
- * El DÍA se congela; la hora no.
- *
- * Vale tanto para las OTA (el día lo manda el canal) como para las estancias con
- * horario extra. La hora tiene que seguir siendo editable: pactar un late
- * check-out ES poner las 17:00 en el check-out, y con el campo entero
- * deshabilitado no había forma de hacerlo.
- *
- * Espejo de `PmsEventoCalendarioIntegrityListener::assertFechasMoviblesConHorarioExtra()`:
- * mover la estancia obliga a recolocar la noche que bloquea en Beds24, y esa noche
- * puede chocar con otra reserva. Hay que quitar la casilla, GUARDAR, y entonces
- * mover — en dos pasos, no en el mismo guardado. Si se toca este criterio, hay que
- * tocar los dos lados.
- *
- * Se compara con el valor GUARDADO (`entry.horarioExtraGuardado`), no con el de la
- * casilla: si mirase la casilla, desmarcarla desbloquearía los campos en el acto y
- * el backend rechazaría el guardado combinado.
- */
-function diaBloqueadoPara(entry: EventoEntry): boolean {
-    return fechasUnidadBloqueadasPara(entry) || entry.horarioExtraGuardado;
 }
 
 function nombreUnidad(entry: EventoEntry): string {
@@ -2248,7 +2227,7 @@ async function ejecutarBorrado(): Promise<void> {
                                                          onCambiarInicio leía el valor anterior. -->
                                                     <div class="mt-1">
                                                         <FechaHoraPicker :model-value="entry.form.inicio"
-                                                            :dia-bloqueado="diaBloqueadoPara(entry)"
+                                                            :dia-bloqueado="fechasUnidadBloqueadasPara(entry)"
                                                             :borrable="false"
                                                             @update:model-value="(v: string) => { entry.form.inicio = v; onCambiarInicio(entry); }" />
                                                     </div>
@@ -2278,7 +2257,7 @@ async function ejecutarBorrado(): Promise<void> {
                                                              con la hora dentro, cambiar el check-in movía el check-out. -->
                                                         <FechaHoraPicker v-model="entry.form.fin"
                                                             :min-date="soloDia(entry.form.inicio)"
-                                                            :dia-bloqueado="diaBloqueadoPara(entry)"
+                                                            :dia-bloqueado="fechasUnidadBloqueadasPara(entry)"
                                                             :borrable="false"
                                                             :invalido="!!errorFechas(entry)" />
                                                     </div>
@@ -2299,12 +2278,6 @@ async function ejecutarBorrado(): Promise<void> {
                                                 Las noches de la estancia no cambian.
                                             </p>
                                         </div>
-
-                                        <p v-if="entry.horarioExtraGuardado && !entry.isOta"
-                                            class="text-[11px] font-bold text-slate-500 flex items-start gap-2">
-                                            <i class="fas fa-lock mt-0.5 text-slate-400"></i>
-                                            <span>Con horario extra el DÍA y la CASITA quedan fijos (la hora no): para moverlos, quita la casilla, guarda, y entonces cámbialos.</span>
-                                        </p>
 
                                         <p v-if="errorFechas(entry)" class="text-[11px] font-bold text-rose-600">
                                             <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorFechas(entry) }}

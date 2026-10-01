@@ -177,9 +177,8 @@ huésped.
 y criterio de por medio—; ocupada sí es concluyente.
 
 ⚠️ **Lo de la misma reserva no cuenta como ocupación ajena.** Se compara por `reservaId` y no por
-id de evento: las extensiones son eventos aparte que cuelgan por `eventoOrigen`, y buscarlas una a
-una sería una consulta extra por noche. De paso cubre el caso de una reserva con dos tramos en la
-misma casita.
+id de evento: así quedan fuera su propia noche extra y, de paso, el caso de una reserva con dos
+tramos en la misma casita.
 
 Lo consume `EscalarAlEquipoSkill`, que lo mete en el WhatsApp que recibe el operador — **nunca en
 lo que ve el huésped** (§11 de `Mensajeria.md`).
@@ -188,30 +187,47 @@ lo que ve el huésped** (§11 de `Mensajeria.md`).
 
 Hasta el 28/09/2026 la disponibilidad **informaba** pero nada **impedía**: desde el calendario, el
 panel o el agente se podía crear una estancia encima de otra. Pasó en la casita 4, noche del
-27/09: la entrada temprana de Lizbeth bloqueaba esa noche desde el 10/09 (un `bloqueo` que cuelga
-de su estancia por `eventoOrigen`) y el 26/09 se creó encima la noche extra de José. El bloqueo de
+27/09: la entrada temprana de Lizbeth bloqueaba esa noche desde el 10/09 (entonces, un `bloqueo`
+que colgaba de su estancia por `eventoOrigen`) y el 26/09 se creó encima la noche extra de José. El bloqueo de
 una entrada temprana no se pinta como barra, es una marca pequeña en la estancia de al lado, y
 nadie lo vio. Beds24 lo habría rechazado por el canal, pero una reserva creada por API no pasa por
 esa comprobación.
 
-`PmsEventoCalendarioSolapeListener` (`prePersist` y `preUpdate` si cambian fechas, casita o
-estado) lanza `DomainException` —422 en la API, con el motivo— cuando lo que se guarda pisa:
+`PmsEventoCalendarioSolapeListener` (`prePersist`, y `preUpdate` si cambian fechas, casita, estado
+o una casilla de horario extra) lanza `DomainException` —422 en la API, con el motivo— cuando lo
+que se guarda pisa:
 
 | Pisa… | ¿Frena? | Por qué |
 |---|---|---|
 | Una estancia de otro huésped | **Sí** | Doble booking |
-| Un `bloqueo`/`extension` **con** `eventoOrigen` (entrada temprana, salida tardía) | **Sí** | Es un huésped aunque no se vea |
-| Un `bloqueo` **suelto** | No | Se usa para cerrar la casita en los canales y es normal crear una directa encima (Jorge, 28/09/2026) |
-| Algo de la misma reserva | No | Su propio tramo o sus extensiones, como en `margenesDe()` |
+| La entrada temprana o la salida tardía de otro huésped | **Sí** | Es un huésped aunque su barra no llegue a esa noche. El mensaje lo dice: «…ocupada del 08/02 al 09/02 por la entrada temprana de X» |
+| Un `bloqueo` | No | Se usa para cerrar la casita en los canales y es normal crear una directa encima (Jorge, 28/09/2026) |
+| Algo de la misma reserva | No | Su propio tramo o su propia noche extra, como en `margenesDe()` |
 
-Cuenta las noches con `ocupacion()`, así que hereda `IMPIDEN_VENTA` y el solape por `DATE()`.
+Cuenta las noches con `ocupacion()`, así que hereda `IMPIDEN_VENTA`, el solape por `DATE()` y el
+**rango efectivo** (§8.d).
 
-⚠️ **La noche de un horario extra se comprueba al MARCAR LA CASILLA, no al nacer su evento.** La
-extensión la crea `PmsExtensionEstanciaService` en el `postFlush` de la estancia, cuando la casilla
-ya está guardada: frenarla allí dejaba la estancia marcada con entrada temprana y sin noche
-bloqueada ni en el PMS ni en Beds24 — la marca diciendo que está protegida. Desde el 30/09/2026 el
-`preUpdate` de la ESTANCIA comprueba la víspera (entrada temprana) o la noche del día de salida
-(salida tardía) y rechaza el guardado entero; el candado se salta los eventos `esExtension()`.
+Lo que se comprueba es la estancia **con sus noches extra**: marcar la casilla valida la víspera o
+la noche de salida, y mover una estancia con horario extra valida la estancia y su noche extra en
+el sitio nuevo. Si sólo cambió una casilla, las noches de la estancia no se vuelven a mirar (no se
+han movido, y un solape bajado del canal no tiene por qué impedir marcarla).
+
+## 8.d La noche extra se cuenta desde la casilla (01/10/2026)
+
+Hasta el 01/10/2026 la noche de una entrada temprana o una salida tardía era un evento aparte
+(`extension`, colgado de la estancia por `eventoOrigen`). Desde entonces **no hay evento**: la
+noche se deriva de la casilla (`PmsEventoCalendario::nocheExtra()`), y `ocupacion()` y
+`unidadesOcupadas()` usan el rango efectivo de cada estancia viva:
+
+```sql
+DATE_SUB(DATE(e.inicio), INTERVAL e.entrada_temprana DAY) < :hasta
+AND DATE_ADD(DATE(e.fin), INTERVAL e.salida_tardia DAY)  > :desde
+```
+
+`PmsOcupacionDto::$nocheExtra` dice si lo ÚNICO que cae en el rango es esa noche
+(`entrada_temprana` / `salida_tardia`); `quienOcupa()` y `nochesOcupadas()` lo convierten en el
+texto y las fechas de los mensajes. `PmsEspacioEstancia` cuenta igual a los vecinos y gana
+`libre_la_noche_que_se_va`. Ver docs/PlanHorarioExtraSinEventos.md.
 
 ⚠️ **Sólo con `SyncContext` en UI.** Lo que baja de Beds24 es la verdad del canal: si llega un
 solape, ya ha pasado, y rechazarlo rompería la sincronización sin deshacerlo. El push tampoco,

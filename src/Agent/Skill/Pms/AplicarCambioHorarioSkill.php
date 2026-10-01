@@ -37,8 +37,8 @@ use App\Agent\Skill\EntradaDeSkill;
  *
  * ### Por qué marca un flag y no mueve `fin`
  *
- * `PmsExtensionEstanciaService` reacciona al flag creando un evento de extensión que bloquea
- * la noche y viaja al canal como `black`. Mover `fin` fue el primer intento del proyecto y se
+ * Con el flag la estancia ocupa también esa noche (`PmsEventoCalendario::nocheExtra()`) y una
+ * `black` nuestra la bloquea en el canal (`NochesExtraDeEstancia`). Mover `fin` fue el primer intento del proyecto y se
  * descartó por dos motivos (§7.1.b de PmsBeds24ReservasSync): no servía para las OTA —cuyas
  * fechas nunca se envían— y no protegía del propio PMS, que seguía vendiendo la noche.
  *
@@ -51,7 +51,7 @@ use App\Agent\Skill\EntradaDeSkill;
  *
  * - **Noche libre** → se PREGUNTA si bloquearla. Retirar de la venta una noche vendible no
  *   puede ser el efecto secundario de apuntar una hora.
- * - **Noche ya vendida** → NO se pregunta nada, porque no se puede bloquear: la extensión
+ * - **Noche ya vendida** → NO se pregunta nada, porque no se puede bloquear: la noche extra
  *   quedaría superpuesta a una estancia real. Se registra la hora y se avisa de que la
  *   limpieza tendrá menos margen esa mañana. Si hace falta refuerzo, eso lo ve el operador.
  *
@@ -223,8 +223,7 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
         }
 
         // 🔑 Ocupada = NO se puede bloquear, y no hay nada que preguntar. La noche ya está
-        // vendida a otra reserva; crear encima una extensión sería un evento superpuesto a una
-        // estancia real. Se registra la hora, se avisa de que la limpieza tendrá menos margen
+        // vendida a otra reserva; bloquearla encima sería superponerse a una estancia real. Se registra la hora, se avisa de que la limpieza tendrá menos margen
         // y se acabó — si hay que contratar refuerzo esa mañana, lo decide el operador.
         // ⚠️ NO se pisa `$bloquea`: son dos cosas distintas y confundirlas hace mentir al
         // mensaje final. `$bloquea` sigue significando «esta hora es horario extra»; lo que
@@ -316,8 +315,8 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
         }
 
         // Al hacer flush pasan tres cosas que esta skill NO orquesta, sólo dispara al marcar:
-        // PmsExtensionEstanciaService crea el evento de extensión, el push lo manda al canal
-        // como bloqueo, y PmsCargosAutomaticosService abre la línea de cargo a 0.00.
+        // NochesExtraDeEstancia crea los links de la noche extra, el push la manda al canal
+        // como `black`, y PmsCargosAutomaticosService abre la línea de cargo a 0.00.
         // Están enumeradas en consecuencias() para que la previsualización no mienta por
         // omisión.
         // La hora se registra SIEMPRE que se haya dicho, exceda o no: es el dato que el
@@ -342,11 +341,11 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
             'aplicado' => true,
             'que_ha_pasado' => $this->consecuencias($evento, $esSalida, $vaABloquear, $horaPedida),
             // El mensaje tiene que decir lo que PASÓ, no lo que suele pasar: con una hora
-            // dentro del horario no se marca nada ni se crea extensión, y anunciarlo sería
+            // dentro del horario no se marca nada ni se bloquea ninguna noche, y anunciarlo sería
             // hacerle creer al operador que bloqueó una noche que sigue vendible.
             'mensaje' => match (true) {
                 $vaABloquear => sprintf(
-                    '%sMarcada la %s. Se ha creado la extensión que bloquea esa noche.',
+                    '%sMarcada la %s. Esa noche queda bloqueada.',
                     $horaPedida !== '' ? sprintf('Registrada la hora %s. ', $horaPedida) : '',
                     $esSalida ? 'salida tardía' : 'entrada temprana'
                 ),
@@ -427,7 +426,7 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
             $esSalida ? 'salida tardía' : 'entrada temprana'
         );
         $lista[] = sprintf(
-            'Se crea un evento de extensión que ocupa %s en %s, así que %s deja de estar '
+            'La estancia ocupa también %s en %s, así que %s deja de estar '
             . 'disponible esa noche.',
             $noche,
             $casita,
@@ -436,7 +435,7 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
 
         $canal = $evento->getReserva()?->getChannel()?->getNombre();
         $lista[] = sprintf(
-            'La extensión viaja al canal como bloqueo, así que %s deja de venderse esa noche '
+            'Esa noche viaja al canal como bloqueo, así que %s deja de venderse esa noche '
             . 'en TODOS los portales%s. Deshacerlo exige desmarcarlo y esperar otro push.',
             $casita,
             $canal !== null ? ' (esta reserva vino de ' . $canal . ')' : ''

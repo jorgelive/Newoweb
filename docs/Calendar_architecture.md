@@ -273,13 +273,14 @@ segunda fila la ocupan pax, noches y saldo.
 
 #### La noche de un horario extra, como fondo rayado (`context: horario_extra`)
 
-Una entrada temprana o una salida tardía bloquean una noche entera en el canal con un evento
-aparte que cuelga de la estancia por `eventoOrigen`. `fetchEventos()` filtra esos eventos —no son
-estancias—, y hasta el 28/09/2026 **esa noche no se pintaba**: sólo un iconito dentro de la barra
-de la estancia. La celda parecía libre, y el 26/09 se creó encima la noche extra de José en la
+Una entrada temprana o una salida tardía bloquean una noche entera en el canal. Hasta el
+28/09/2026 **esa noche no se pintaba**: sólo un iconito dentro de la barra de la estancia. La celda parecía libre, y el 26/09 se creó encima la noche extra de José en la
 casita 4, sobre la entrada temprana de Lizbeth.
 
-`PmsEventosSpaCalendarProvider::horariosExtra()` los añade ahora como `display: 'background'`:
+`PmsEventosSpaCalendarProvider::horariosExtra()` la añade como `display: 'background'`. Desde el
+01/10/2026 sale de las **casillas** de cada estancia viva (`PmsEventoCalendario::nocheExtra()`), no
+de un evento aparte — que ya no existe (docs/PlanHorarioExtraSinEventos.md). Es la misma noche
+que cuenta la disponibilidad y que se bloquea en Beds24. Se pinta como
 franja rayada en ámbar rotulada con la marca del horario extra y el nombre de pila (el texto
 largo no cabía en la celda de una noche en el móvil; el completo va en el tooltip).
 

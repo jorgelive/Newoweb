@@ -13,8 +13,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Events;
-use DateTimeInterface;
-use DomainException;
 use LogicException;
 
 /**
@@ -63,13 +61,12 @@ final class PmsEventoCalendarioIntegrityListener
         // Optimización: Solo validamos si se tocaron las fechas.
         if ($args->hasChangedField('inicio') || $args->hasChangedField('fin')) {
             $this->validarFechas($evento);
-
-            // Solo si cambia el DÍA: ajustar la hora es justo lo que se hace al
-            // pactar un horario extra (poner las 17:00 en el check-out).
-            if ($this->cambiaDeDia($args, 'inicio') || $this->cambiaDeDia($args, 'fin')) {
-                $this->assertFechasMoviblesConHorarioExtra($evento, $args);
-            }
         }
+
+        // Una estancia con horario extra se mueve como cualquier otra (01/10/2026). Antes el día y
+        // la casita quedaban congelados porque la noche extra era un evento aparte que había que
+        // recolocar; ahora se deriva de la casilla y la valida `PmsEventoCalendarioSolapeListener`
+        // con el resto de la estancia. Ver docs/PlanHorarioExtraSinEventos.md.
 
         // Mismo estrechamiento que en prePersist: lo que sigue usa métodos de
         // `EntityManagerInterface`, no de `ObjectManager`.
@@ -79,15 +76,6 @@ final class PmsEventoCalendarioIntegrityListener
         // por delante la validación —que no necesita el manager para nada— y la reserva se
         // guardaría con fechas inválidas sin que nadie lo notara. Las redes de abajo sí lo
         // necesitan; la validación no.
-        // 🏠 Y la CASITA, por el mismo motivo que el día: la noche bloqueada vive en la casita
-        // vieja. `PmsExtensionEstanciaService` sólo se dispara al tocar las casillas o el estado,
-        // así que cambiar de casita dejaba la extensión atrás —bloqueando en Beds24 una noche de
-        // la casita que ya no es la suya— y la nueva sin proteger. Nadie lo había visto porque
-        // el aviso del drawer sólo hablaba del día.
-        if ($args->hasChangedField('pmsUnidad')) {
-            $this->assertFechasMoviblesConHorarioExtra($evento, $args);
-        }
-
         $em = $args->getObjectManager();
 
         if (!$em instanceof EntityManagerInterface) {
@@ -185,62 +173,6 @@ final class PmsEventoCalendarioIntegrityListener
      * Garantiza que Beds24 y el sistema local nunca reciban reservas con duración de cero o negativa.
      * * @throws LogicException Si la fecha de fin es menor o igual a la de inicio.
      */
-    /**
-     * Con horario extra marcado, el DÍA y la CASITA de la estancia quedan CONGELADOS.
-     *
-     * La HORA sigue siendo editable —quien llama ya filtró por `cambiaDeDia()`—
-     * porque pactar un late check-out ES poner las 17:00 en el check-out: si se
-     * bloqueara el campo entero, la casilla impediría justo lo que la acompaña.
-     *
-     * Mover una estancia con entrada temprana o salida tardía obliga a arrastrar
-     * detrás su extensión (la noche bloqueada), su cargo y el push de las dos a
-     * Beds24. `PmsExtensionEstanciaService` sabe recolocar la extensión, pero el
-     * resultado sigue siendo arriesgado: la noche nueva puede chocar con otra
-     * reserva y el operador no se entera hasta que el canal rebota. Se prefiere
-     * obligar a desmarcar, mover, y volver a marcar — tres pasos conscientes.
-     *
-     * Se mira el valor ANTERIOR de las casillas, no el final: desmarcar y mover en
-     * el mismo guardado también se rechaza. No es purismo — hacer las dos cosas a
-     * la vez deja a medias el borrado de la extensión y su reconstrucción dentro
-     * del mismo flush, y Doctrine revienta con un «new entity was found through
-     * the relationship PmsEventoBeds24Link#evento». Son dos guardados: desmarcar,
-     * guardar, mover.
-     *
-     * A las OTA no les aplica: sus fechas ya son inmutables desde el PMS (§9.4),
-     * las manda el canal.
-     */
-    private function assertFechasMoviblesConHorarioExtra(
-        PmsEventoCalendario $evento,
-        PreUpdateEventArgs $args,
-    ): void {
-        if ($evento->isOta() || $evento->esExtension()) {
-            return;
-        }
-
-        $tenia = static fn (string $campo, bool $actual): bool => $args->hasChangedField($campo)
-            ? (bool) $args->getOldValue($campo)
-            : $actual;
-
-        $marcadas = [];
-        if ($tenia('entradaTemprana', $evento->isEntradaTemprana())) {
-            $marcadas[] = 'entrada temprana';
-        }
-        if ($tenia('salidaTardia', $evento->isSalidaTardia())) {
-            $marcadas[] = 'salida tardía';
-        }
-
-        if ($marcadas === []) {
-            return;
-        }
-
-        throw new DomainException(sprintf(
-            'Esta estancia tiene %s: quita la casilla y GUARDA antes de mover el DÍA o la CASITA (la hora sí se puede ajustar). '
-            . 'Al cambiarlos hay que recolocar también la noche que bloquea en Beds24, '
-            . 'y esa noche puede chocar con otra reserva.',
-            implode(' y ', $marcadas)
-        ));
-    }
-
     private function validarFechas(PmsEventoCalendario $evento): void
     {
         $inicio = $evento->getInicio();
@@ -266,22 +198,5 @@ final class PmsEventoCalendarioIntegrityListener
                 ));
             }
         }
-    }
-
-    /** ¿El campo cambió de DÍA? Un cambio de sólo hora devuelve `false`. */
-    private function cambiaDeDia(PreUpdateEventArgs $args, string $campo): bool
-    {
-        if (!$args->hasChangedField($campo)) {
-            return false;
-        }
-
-        $viejo = $args->getOldValue($campo);
-        $nuevo = $args->getNewValue($campo);
-
-        if (!$viejo instanceof DateTimeInterface || !$nuevo instanceof DateTimeInterface) {
-            return true;
-        }
-
-        return $viejo->format('Y-m-d') !== $nuevo->format('Y-m-d');
     }
 }

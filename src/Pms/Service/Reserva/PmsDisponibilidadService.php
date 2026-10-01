@@ -182,14 +182,20 @@ final readonly class PmsDisponibilidadService
                    -- existe y es distinto). El de la reserva es el que ve el huésped: es el
                    -- que arma la URL de su guía. Devolver el del evento hacía que dos skills
                    -- dieran códigos distintos del mismo huésped.
-                   r.localizador                 AS localizador
+                   r.localizador                 AS localizador,
+                   -- Si lo único que cae en el rango es su noche extra, cuál: los mensajes dicen
+                   -- «la entrada temprana de X», no «X», que estaría en otras fechas.
+                   CASE WHEN DATE(e.inicio) < :hasta AND DATE(e.fin) > :desde THEN NULL
+                        WHEN e.entrada_temprana = 1 AND DATE(e.inicio) > :desde THEN 'entrada_temprana'
+                        ELSE 'salida_tardia'
+                   END                           AS noche_extra
             FROM pms_evento_calendario e
             JOIN pms_unidad u          ON u.id = e.pms_unidad_id
             LEFT JOIN pms_reserva r    ON r.id = e.reserva_id
             LEFT JOIN pms_establecimiento est ON est.id = u.establecimiento_id
             WHERE e.estado_id IN (:estados)
-              AND DATE(e.inicio) < :hasta
-              AND DATE(e.fin)    > :desde
+              AND DATE_SUB(DATE(e.inicio), INTERVAL e.entrada_temprana DAY) < :hasta
+              AND DATE_ADD(DATE(e.fin), INTERVAL e.salida_tardia DAY)       > :desde
               AND (:unidad IS NULL OR e.pms_unidad_id = UUID_TO_BIN(:unidad))
             ORDER BY u.nombre ASC, e.inicio ASC
         SQL;
@@ -200,7 +206,7 @@ final readonly class PmsDisponibilidadService
          * @var list<array{evento_id: string, reserva_id: ?string, casita_id: string, casita: ?string,
          *     establecimiento: ?string, huesped: ?string, entra: string, sale: string,
          *     hora_entrada: ?string, hora_salida: ?string, estado: string, es_ota: int|string|null,
-         *     localizador: ?string}> $filas
+         *     localizador: ?string, noche_extra: ?string}> $filas
          */
         $filas = $this->em->getConnection()->executeQuery(
             $sql,
@@ -230,6 +236,7 @@ final readonly class PmsDisponibilidadService
                 localizador:     ($f['localizador'] ?? '') !== '' ? (string) $f['localizador'] : null,
                 reservaId:       $f['reserva_id'] !== null ? (string) $f['reserva_id'] : null,
                 eventoId:        (string) $f['evento_id'],
+                nocheExtra:      $f['noche_extra'] !== null ? (string) $f['noche_extra'] : null,
             ),
             $filas
         );
@@ -244,6 +251,12 @@ final readonly class PmsDisponibilidadService
      * las 10:00 es `> 12T00:00`, así que parecería ocupar la noche del 12 cuando la
      * casita ya está libre. Comparando por DÍA el solape encaja con la semántica hotelera.
      *
+     * 🕐 **El rango es el EFECTIVO**: una entrada temprana suma la víspera y una salida tardía la
+     * noche del día de salida — un día por casilla, que es lo que suman los `INTERVAL`. Es la
+     * misma noche que `PmsEventoCalendario::nocheExtra()` y que la `black` que se manda a Beds24;
+     * los estados vivos ya los filtra `IMPIDEN_VENTA`. Hasta el 01/10/2026 esa noche era un evento
+     * aparte (`extension`); ver docs/PlanHorarioExtraSinEventos.md.
+     *
      * @return list<string> UUIDs canónicos
      */
     private function unidadesOcupadas(DateTimeImmutable $desde, DateTimeImmutable $hasta): array
@@ -253,8 +266,8 @@ final readonly class PmsDisponibilidadService
             FROM pms_evento_calendario e
             WHERE e.pms_unidad_id IS NOT NULL
               AND e.estado_id IN (:estados)
-              AND DATE(e.inicio) < :hasta
-              AND DATE(e.fin)    > :desde
+              AND DATE_SUB(DATE(e.inicio), INTERVAL e.entrada_temprana DAY) < :hasta
+              AND DATE_ADD(DATE(e.fin), INTERVAL e.salida_tardia DAY)       > :desde
         SQL;
 
         /** @var list<string> $filas `BIN_TO_UUID()` de una columna filtrada por NOT NULL. */
@@ -274,16 +287,16 @@ final readonly class PmsDisponibilidadService
      * ¿Está libre la casita justo ANTES de entrar y justo DESPUÉS de salir?
      *
      * Es lo que hay que mirar para decidir una entrada temprana o una salida tardía, y es la
-     * pregunta que el operador se hacía a mano abriendo el calendario. Un late check-out crea
-     * una extensión que **bloquea la noche del día de salida** (§7.1.b de
-     * `PmsBeds24ReservasSync.md`): si esa noche ya está vendida, no hay nada que conceder.
+     * pregunta que el operador se hacía a mano abriendo el calendario. Un late check-out
+     * **bloquea la noche del día de salida** (`PmsEventoCalendario::nocheExtra()`): si esa noche
+     * ya está vendida —o la ocupa la entrada temprana del siguiente—, no hay nada que conceder.
      *
      * ⚠️ **No decide, informa.** Que la noche esté libre no significa que se autorice —hay
      * precio, limpieza y criterio de por medio—; significa que la conversación con el huésped
      * puede seguir. Al revés sí es concluyente: ocupada es que no.
      *
-     * Se excluye el PROPIO evento y todo lo que cuelgue de él (sus extensiones), o una estancia
-     * se detectaría a sí misma como el motivo de su propia ocupación.
+     * Se excluye todo lo de la PROPIA reserva, o una estancia se detectaría a sí misma —con su
+     * propia noche extra— como el motivo de su propia ocupación.
      *
      * Misma regla que el resto del servicio —`IMPIDEN_VENTA` y solape por `DATE()`—, así que un
      * bloqueo por mantenimiento cuenta como ocupado: no es vendible aunque no haya huésped.
@@ -308,7 +321,7 @@ final readonly class PmsDisponibilidadService
 
         return [
             'antes' => $this->nocheDe($vispera, (string) $unidadId, $evento),
-            // La noche del día de salida: la que ocuparía la extensión del late check-out.
+            // La noche del día de salida: la que ocuparía el late check-out.
             'despues' => $this->nocheDe($salida, (string) $unidadId, $evento),
         ];
     }
@@ -327,16 +340,14 @@ final readonly class PmsDisponibilidadService
 
         foreach ($this->ocupacion($noche, $noche->modify('+1 day'), $unidadId) as $dto) {
             // Lo de la MISMA reserva no cuenta como ocupación ajena: es el propio evento, su
-            // extensión, o su otro tramo en la misma casita. Se compara por reserva y no por
-            // id de evento porque las extensiones son eventos aparte —cuelgan por
-            // `eventoOrigen`— y buscarlas una a una sería una consulta extra por noche.
+            // noche extra, o su otro tramo en la misma casita.
             if ($dto->reservaId !== null && $dto->reservaId === $reservaPropia) {
                 continue;
             }
 
             // Se queda con el primero: al operador le basta saber que hay algo y de quién,
             // no la lista completa de lo que solapa.
-            $ocupada = $dto->huesped ?: $dto->estado;
+            $ocupada = $dto->quienOcupa();
             break;
         }
 

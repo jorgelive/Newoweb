@@ -51,6 +51,7 @@ final readonly class PmsEspacioEstancia
     /**
      * @return array{
      *     libre_la_vispera: bool,
+     *     libre_la_noche_que_se_va: bool,
      *     sale_alguien_el_dia_que_llega: string|null,
      *     entra_alguien_el_dia_que_se_va: string|null,
      *     desde_cuando_libre: string|null
@@ -92,9 +93,11 @@ final readonly class PmsEspacioEstancia
             ->setParameter('unidad', $unidad->getId(), UuidType::NAME)
             ->setParameter('reserva', $reserva->getId(), UuidType::NAME)
             ->setParameter('ocupan', PmsEventoEstado::IMPIDEN_VENTA)
-            // Una noche por cada lado basta: sólo interesa quién pega con su estancia.
+            // Sólo interesa quién pega con su estancia: una noche por cada lado, más otra para
+            // alcanzar al vecino cuya noche extra es la que pega (el que entra al día siguiente
+            // con entrada temprana).
             ->setParameter('desde', (new DateTimeImmutable($inicio->format('Y-m-d')))->modify('-1 day'))
-            ->setParameter('hasta', (new DateTimeImmutable($fin->format('Y-m-d')))->modify('+1 day'))
+            ->setParameter('hasta', (new DateTimeImmutable($fin->format('Y-m-d')))->modify('+2 day'))
             ->getQuery()
             ->getResult();
 
@@ -104,30 +107,46 @@ final readonly class PmsEspacioEstancia
         $saleEseDia = null;
         $entraEseDia = null;
         $ocupadaLaVispera = false;
+        $ocupadaLaNocheQueSeVa = false;
 
         foreach ($vecinos as $vecino) {
             $vInicio = $vecino->getInicio();
             $vFin = $vecino->getFin();
 
-            if ($vFin !== null && $vFin->format('Y-m-d') === $diaLlegada) {
+            if ($vInicio === null || $vFin === null) {
+                continue;
+            }
+
+            if ($vFin->format('Y-m-d') === $diaLlegada) {
                 $saleEseDia = $vFin->format('H:i');
-                $ocupadaLaVispera = true;
             }
 
-            // Ocupa la víspera cualquiera que siga dentro esa noche, aunque se vaya más tarde.
-            if ($vInicio !== null && $vFin !== null
-                && $vInicio->format('Y-m-d') < $diaLlegada
-                && $vFin->format('Y-m-d') >= $diaLlegada) {
-                $ocupadaLaVispera = true;
-            }
-
-            if ($vInicio !== null && $vInicio->format('Y-m-d') === $diaSalida) {
+            if ($vInicio->format('Y-m-d') === $diaSalida) {
                 $entraEseDia = $vInicio->format('H:i');
+            }
+
+            // Las noches que ocupa DE VERDAD, con su horario extra: una salida tardía del que se
+            // va el día anterior a su llegada también le quita la víspera, y una entrada temprana
+            // del que llega al día siguiente de irse, la noche de su salida.
+            $desde = $vInicio->format('Y-m-d');
+            $hasta = $vFin->format('Y-m-d');
+            foreach ($vecino->nochesExtra() as $noche) {
+                $desde = min($desde, $noche->desde->format('Y-m-d'));
+                $hasta = max($hasta, $noche->hasta->format('Y-m-d'));
+            }
+
+            $vispera = (new DateTimeImmutable($diaLlegada))->modify('-1 day')->format('Y-m-d');
+            if ($desde <= $vispera && $hasta > $vispera) {
+                $ocupadaLaVispera = true;
+            }
+            if ($desde <= $diaSalida && $hasta > $diaSalida) {
+                $ocupadaLaNocheQueSeVa = true;
             }
         }
 
         return [
             'libre_la_vispera' => !$ocupadaLaVispera,
+            'libre_la_noche_que_se_va' => !$ocupadaLaNocheQueSeVa,
             'sale_alguien_el_dia_que_llega' => $saleEseDia,
             'entra_alguien_el_dia_que_se_va' => $entraEseDia,
             'desde_cuando_libre' => $ocupadaLaVispera ? null : $this->libreDesde($vecinos, $inicio),

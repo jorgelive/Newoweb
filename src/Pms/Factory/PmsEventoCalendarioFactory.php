@@ -8,6 +8,7 @@ use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsUnidad;
+use App\Pms\Service\Reserva\NochesExtraDeEstancia;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -27,7 +28,8 @@ class PmsEventoCalendarioFactory
 {
 
     public function __construct(
-        private readonly EntityManagerInterface $em
+        private readonly EntityManagerInterface $em,
+        private readonly NochesExtraDeEstancia $nochesExtra = new NochesExtraDeEstancia(),
     ) {}
     /**
      * Calcula la fecha exacta aplicando las horas de check-in/out del establecimiento.
@@ -116,9 +118,21 @@ class PmsEventoCalendarioFactory
     }
 
     /**
-     * Lógica central de hidratación (Smart Move).
+     * Todos los links del evento: los de la estancia y los de sus noches extra.
+     *
+     * Las dos piezas van juntas porque las dos dependen de la casita: al mover la estancia, la
+     * `black` de su entrada temprana tiene que irse con ella. Cada una toca sólo los suyos.
      */
     private function internalHydrate(PmsEventoCalendario $evento, ?string $externalBookId, ?int $externalRoomId): void
+    {
+        $this->hidratarLinksDeEstancia($evento, $externalBookId, $externalRoomId);
+        $this->nochesExtra->sincronizar($evento);
+    }
+
+    /**
+     * Lógica central de hidratación (Smart Move).
+     */
+    private function hidratarLinksDeEstancia(PmsEventoCalendario $evento, ?string $externalBookId, ?int $externalRoomId): void
     {
         $unidad = $evento->getPmsUnidad();
         if (!$unidad instanceof PmsUnidad) {

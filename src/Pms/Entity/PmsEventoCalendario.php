@@ -445,7 +445,9 @@ class PmsEventoCalendario
 
         foreach ($this->beds24Links as $link) {
             foreach ($link->getQueues() as $queue) {
-                if (!in_array($queue->getStatus(), ['success', 'canceled'], true)) return false;
+                // `cancelled` con dos eles, la constante de la cola: con `canceled` una cola
+                // cancelada contaba como pendiente para siempre.
+                if (!in_array($queue->getStatus(), [PmsBookingsPushQueue::STATUS_SUCCESS, PmsBookingsPushQueue::STATUS_CANCELLED], true)) return false;
             }
         }
 
