@@ -2,8 +2,15 @@
 
 > **Estado (01/10/2026): HECHO.** Las seis fases desplegadas; la 4 probada contra Beds24 real.
 > Ya no hay eventos hermanos, ni `evento_origen_id`, ni estado `extension`: la noche extra sale de
-> la casilla y su `black` es un link de la estancia. Queda fuera del código: que Meta apruebe las
-> dos plantillas del aviso (`aviso_choque_ota_interno` y `aviso_noche_extra_movida_interno`).
+> la casilla y su `black` es un link de la estancia. Además, ese mismo día: la hora pactada ya no
+> la pisa el pull (`horaConservada()`), el huésped puede dar su hora (`confirmar_hora`), la hora
+> firme se guarda (`llegada_confirmada_at` / `salida_confirmada_at`) y el equipo decide si se
+> bloquea la noche (`aplicar_cambio_horario`, parámetro `bloquear`). Ver §7.1.b y «La HORA
+> acordada» en `PmsBeds24ReservasSync.md`.
+>
+> Fuera del código sólo queda Meta: el francés de `aviso_choque_ota_interno` y la plantilla
+> `aviso_hora_confirmada_interno` (en revisión; Meta rechazó la primera versión, de cuatro
+> variables, por «demasiadas variables para su longitud»).
 
 ## 1. Qué cambia y por qué
 
