@@ -33,7 +33,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class MessageCrearAvisoHoraCommand extends Command
 {
-    private const string CUERPO = '🕐 *{{huesped}}* confirma que {{accion}} el {{fecha}} a las {{hora}}.';
+    /**
+     * ⚠️ Dos variables y no cuatro. La primera versión —«🕐 *{{huesped}}* confirma que {{accion}} el
+     * {{fecha}} a las {{hora}}.»— la rechazó Meta al subirla: «demasiadas variables para su
+     * longitud». Qué hace y cuándo viaja junto, en `{{detalle}}`.
+     */
+    private const string CUERPO = '🕐 *{{huesped}}* ha confirmado su horario: {{detalle}}. Ya queda anotado en su reserva.';
 
     /** Las cabeceras y pies de todas las internas, a mano: ver `MessageCrearAvisoTecnicoCommand::PIE`. */
     private const array CABECERA = [
@@ -59,9 +64,7 @@ final class MessageCrearAvisoHoraCommand extends Command
     /** Lo que Meta revisa en cada hueco: un caso real, no «Dato_Ejemplo». */
     private const array EJEMPLO = [
         'huesped' => 'Anna Müller (Casita 1, UV5XPW)',
-        'accion' => 'llega',
-        'fecha' => '02/02',
-        'hora' => '16:00',
+        'detalle' => 'llega el 02/02 a las 16:00',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

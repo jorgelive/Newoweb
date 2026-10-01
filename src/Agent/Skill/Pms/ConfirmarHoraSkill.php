@@ -60,8 +60,9 @@ use Throwable;
 final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioInterface
 {
     /**
-     * Para la confirmación: «🕐 {{huesped}} confirma…». Pendiente de aprobar el texto con Jorge;
-     * mientras no exista, fuera de la ventana de 24 h sale por push (`AvisoConRespaldo`).
+     * Para la confirmación: «🕐 {{huesped}} ha confirmado su horario: {{detalle}}…». La crea
+     * `msg:crear:aviso-hora`; mientras Meta no la apruebe, fuera de la ventana de 24 h el aviso
+     * sale por push (`AvisoConRespaldo`).
      */
     public const string PLANTILLA_CONFIRMADA = 'aviso_hora_confirmada_interno';
 
@@ -226,9 +227,8 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
 
         $this->avisar($evento, $actor, $texto, ConfirmarHoraSkill::PLANTILLA_CONFIRMADA, [
             'huesped' => $this->quien($evento),
-            'accion' => $esSalida ? 'sale' : 'llega',
-            'fecha' => ($esSalida ? $evento->getFin() : $evento->getInicio())?->format('d/m') ?? '',
-            'hora' => $hora,
+            'detalle' => sprintf('%s el %s a las %s', $esSalida ? 'sale' : 'llega',
+                ($esSalida ? $evento->getFin() : $evento->getInicio())?->format('d/m') ?? '', $hora),
         ]);
 
         return SkillResult::ok([
@@ -306,9 +306,7 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
 
         $this->avisar($evento, $actor, sprintf('🕐 %s: %s.', $this->quien($evento), $pedido), ConfirmarHoraSkill::PLANTILLA_CONFIRMADA, [
             'huesped' => $this->quien($evento),
-            'accion' => 'llega de madrugada',
-            'fecha' => $dia,
-            'hora' => $hora,
+            'detalle' => sprintf('llega de madrugada, el %s a las %s', $dia, $hora),
         ]);
 
         return SkillResult::ok([
