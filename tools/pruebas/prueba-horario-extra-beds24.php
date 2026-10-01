@@ -83,7 +83,10 @@ switch ($paso) {
     case 'mover-dia':
         $e = $evento($argv[2] ?? '');
         $salto = $argv[3] ?? '+1 day';
-        $e->setInicio($e->getInicio()?->modify($salto))->setFin($e->getFin()?->modify($salto));
+        // Objetos NUEVOS: la columna se hidrata como `DateTime` mutable, y `modify()` sobre el
+        // mismo objeto no lo ve Doctrine como cambio — se guardaba sin mover nada.
+        $mover = static fn (?DateTimeInterface $d): ?DateTimeImmutable => $d === null ? null : DateTimeImmutable::createFromInterface($d)->modify($salto);
+        $e->setInicio($mover($e->getInicio()))->setFin($mover($e->getFin()));
         $em->flush();
         $ver($e);
         break;
