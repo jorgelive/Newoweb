@@ -18,6 +18,7 @@ declare(strict_types=1);
  *   php tools/pruebas/prueba-horario-extra-beds24.php marcar        <evento>
  *   php tools/pruebas/prueba-horario-extra-beds24.php cancelar      <evento>
  *   php tools/pruebas/prueba-horario-extra-beds24.php ver           <evento>
+ *   php tools/pruebas/prueba-horario-extra-beds24.php borrar        <evento>   # cancelada antes
  *
  * Después de cada paso, `ver` enseña los links con su `bookId` y el estado de su última cola: el
  * push sale solo (worker), y hay que esperar a que pase a `success` antes de mirar Beds24.
@@ -114,10 +115,23 @@ switch ($paso) {
         $ver($e);
         break;
 
+    case 'borrar':
+        // Por el ORM, como el botón del panel: los links se van con su DELETE a Beds24, y el
+        // candado de borrado (`getMotivoNoBorrable()`) exige que esté cancelada y sincronizada.
+        $e = $evento($argv[2] ?? '');
+        $motivo = $e->getMotivoNoBorrable();
+        if ($motivo !== null) {
+            throw new RuntimeException($motivo);
+        }
+        $em->remove($e);
+        $em->flush();
+        echo "Borrada.\n";
+        break;
+
     case 'ver':
         $ver($evento($argv[2] ?? ''));
         break;
 
     default:
-        echo "Pasos: crear | mover-dia | mover-casita | desmarcar | marcar | cancelar | ver. Ver la cabecera.\n";
+        echo "Pasos: crear | mover-dia | mover-casita | desmarcar | marcar | cancelar | ver | borrar. Ver la cabecera.\n";
 }
