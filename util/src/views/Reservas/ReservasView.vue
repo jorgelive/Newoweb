@@ -1207,6 +1207,9 @@ const calendarOptions: CalendarOptions = {
             // se leía como salida.
             p.entradaTemprana ? `<span class="fc-reserva-dato fc-reserva-tarde" title="Entrada temprana">${marcaHorarioExtra('entrada')}</span>` : '',
             p.salidaTardia ? `<span class="fc-reserva-dato fc-reserva-tarde" title="Salida tardía">${marcaHorarioExtra('salida')}</span>` : '',
+            // Un canal dejó su noche extra encima de otra estancia (o ésta encima de la de otra).
+            // Rojo y delante de las cifras: hay que reubicar a alguien. Ver choquesDeNochesExtra().
+            p.choqueHorarioExtra ? `<span class="fc-reserva-dato fc-reserva-choque" title="${escaparHtml(p.choqueHorarioExtra)}"><i class="fas fa-triangle-exclamation"></i></span>` : '',
             p.pax ? `<span class="fc-reserva-dato fc-reserva-num"><i class="fas fa-user"></i>${escaparHtml(String(p.pax))}</span>` : '',
             p.noches ? `<span class="fc-reserva-dato fc-reserva-num"><i class="fas fa-moon"></i>${escaparHtml(String(p.noches))}</span>` : '',
             // ⚠️ `simboloTotal`, NO `simbolo`: el total puede venir en la moneda de los cargos y
@@ -1935,6 +1938,16 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 .fc-horario-extra.fc-bg-event {
     opacity: 1;
     background: repeating-linear-gradient(135deg, #fde68a 0 6px, #fef3c7 6px 12px);
+}
+
+/* La misma noche, pisada por otra estancia: lo deja así un canal, nunca el PMS. */
+.fc-horario-extra.fc-horario-extra-choque.fc-bg-event {
+    background: repeating-linear-gradient(135deg, #fecaca 0 6px, #fee2e2 6px 12px);
+}
+
+.fc-reserva-choque {
+    color: #fff;
+    background: #dc2626;
 }
 
 .fc-marca-extra {

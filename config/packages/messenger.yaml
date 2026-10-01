@@ -44,6 +44,10 @@ framework:
             # Asíncrona por obligación: la lanza un `postFlush`, y el handler necesita hacer flush.
             App\Pms\Dispatch\AnunciarConfirmacionAlCanalDispatch: async
 
+            # El aviso de que un canal movió una reserva sobre una noche extra. Lo lanza un
+            # `postFlush` del pull, y el aviso escribe un WhatsApp (flush): asíncrono por lo mismo.
+            App\Pms\Dispatch\RevisarChoqueDeNocheExtraDispatch: async
+
             # Sin esta ruta el dispatch se maneja SÍNCRONO, y como quien lo lanza es un
             # postPersist/postUpdate de Doctrine, el router del Agent acababa corriendo
             # DENTRO de un flush: flush anidado, persist de la respuesta dentro de un

@@ -994,6 +994,43 @@ class PmsEventoCalendario
         ]));
     }
 
+    /**
+     * La noche extra de ESTA estancia que `$otra` ocupa, o `null` si no la pisa.
+     *
+     * Pisa si es otra estancia viva (`OCUPAN_UNIDAD`: un bloqueo no cuenta, como en el candado de
+     * solape) de otra reserva, en la misma casita, y alguna de sus noches —las suyas o las de su
+     * propio horario extra— cae sobre la noche extra de ésta.
+     *
+     * No debería pasar nunca desde el PMS (lo frena `PmsEventoCalendarioSolapeListener`); pasa
+     * cuando un canal cambia una reserva sin preguntar. Lo usan el aviso al equipo
+     * (`ChoquesDeNocheExtra`) y la marca del calendario: una sola regla.
+     */
+    public function nocheExtraPisadaPor(self $otra): ?NocheExtra
+    {
+        if ($otra === $this || $otra->pmsUnidad === null || $otra->pmsUnidad !== $this->pmsUnidad
+            || ($this->reserva !== null && $otra->reserva === $this->reserva)
+            || !in_array($otra->estado?->getId(), PmsEventoEstado::OCUPAN_UNIDAD, true)
+            || $otra->inicio === null || $otra->fin === null
+        ) {
+            return null;
+        }
+
+        $desde = $otra->inicio->format('Y-m-d');
+        $hasta = $otra->fin->format('Y-m-d');
+        foreach ($otra->nochesExtra() as $suya) {
+            $desde = min($desde, $suya->desde->format('Y-m-d'));
+            $hasta = max($hasta, $suya->hasta->format('Y-m-d'));
+        }
+
+        foreach ($this->nochesExtra() as $noche) {
+            if ($desde < $noche->hasta->format('Y-m-d') && $hasta > $noche->desde->format('Y-m-d')) {
+                return $noche;
+            }
+        }
+
+        return null;
+    }
+
     public function setEntradaTemprana(bool $entradaTemprana): self
     {
         $this->entradaTemprana = $entradaTemprana;

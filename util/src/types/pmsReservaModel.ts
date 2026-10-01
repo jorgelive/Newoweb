@@ -246,6 +246,12 @@ export interface PmsEventoExtendedProps {
     context: 'reserva' | 'bloqueo' | 'horario_extra';
     /** Sólo en `horario_extra`: qué extremo de la estancia alarga. */
     extremo?: 'entrada' | 'salida';
+    /**
+     * Su noche extra choca con otra estancia, o esta estancia pisa la de otra: lo dejó así un
+     * canal. Trae el motivo para el `title`; `null` si no hay choque.
+     * (PmsEventosSpaCalendarProvider::choquesDeNochesExtra())
+     */
+    choqueHorarioExtra?: string | null;
     eventoId: string;
     reservaId: string | null;
     isOta: boolean;

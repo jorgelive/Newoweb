@@ -1,9 +1,10 @@
 # Plan — Horario extra sin eventos hermanos
 
-> **Estado (01/10/2026):** fases 0 a 4 hechas, desplegadas y **probadas contra Beds24 real**.
+> **Estado (01/10/2026):** fases 0 a 5 hechas y desplegadas; la 4 probada contra Beds24 real.
 > Ya no hay eventos hermanos: la noche extra sale de la casilla y su `black` es un link de la
-> estancia. Pendiente: la fase 5 (aviso; la plantilla está en revisión en Meta) y la limpieza de
-> la fase 6.
+> estancia. Pendiente: la aprobación de Meta de `aviso_choque_ota_interno`, una segunda plantilla
+> para el caso en que el canal mueve a la DUEÑA de la noche extra (texto por acordar), y la
+> limpieza de la fase 6.
 
 ## 1. Qué cambia y por qué
 
@@ -189,7 +190,27 @@ paso:
 Ningún evento ni reserva nació de rebote por webhook o pull. La estancia de prueba queda
 cancelada en el PMS y en Beds24.
 
-### Fase 5 — OTA que cambia fechas o habitación
+### Fase 5 — lo que se hizo ✅ 01/10/2026
+
+- La regla: `PmsEventoCalendario::nocheExtraPisadaPor($otra)` — otra estancia viva
+  (`OCUPAN_UNIDAD`), de otra reserva, en la misma casita, con alguna de sus noches (o las de su
+  propio horario extra) sobre la noche extra de ésta. La usan el aviso y el calendario.
+- `PmsChoqueNocheExtraListener`: en el pull (y el webhook), cada estancia creada o con fechas,
+  casita, estado o casillas cambiados se manda a revisar, asíncrono
+  (`RevisarChoqueDeNocheExtraDispatch`).
+- `ChoquesDeNocheExtra::de()` busca los choques en los dos sentidos: (1) el canal movió una
+  reserva sobre la noche extra de otra; (2) el canal movió a la DUEÑA y su noche extra cayó sobre
+  otra.
+- `RevisarChoqueDeNocheExtraDispatchHandler`: WhatsApp a `ROLE_CUSTOMER_SUPPORT` (plantilla
+  `aviso_choque_ota_interno` fuera de la ventana, sólo para el caso 1 — su texto dice «{{canal}}
+  acaba de mover ahí otra reserva», que en el caso 2 sería falso), push del panel si no llegó a
+  nadie, una vez al día por choque.
+- Calendario: `choquesDeNochesExtra()` marca en rojo las dos barras (⚠ con el motivo) y la franja.
+- Ensayado sobre la copia de producción en contexto de pull: los dos casos se detectan y se
+  despachan 3 revisiones (dos altas y un cambio de fechas), ninguna por los cambios hechos desde
+  el PMS.
+
+### Fase 5 — OTA que cambia fechas o habitación (el plan)
 - Ya funciona por construcción: el pull actualiza la estancia, el listener de push encola todos sus
   links y el extra sale con las fechas nuevas.
 - Lo que falta: si la noche nueva choca con otra estancia, **avisar al equipo** (no se puede
@@ -236,5 +257,7 @@ cancelada en el PMS y en Beds24.
 | Cambiar cuándo una `black` extra deja de bloquear | `PmsEventoBeds24Link` | `nocheQueBloquea()` |
 | Cambiar cuántos links extra tiene una estancia y cómo se mueven | `NochesExtraDeEstancia` | `sincronizar()` |
 | Cambiar qué se manda a Beds24 por esa noche | `BookingsPushMappingStrategy` | `buildExtraPayload()` |
-| Cambiar a quién se avisa si una OTA la pisa (fase 5) | `MessageCrearAvisoChoqueOtaCommand` | plantilla `aviso_choque_ota_interno`, rol `CUSTOMER_SUPPORT` |
+| Cambiar a quién se avisa si una OTA la pisa (fase 5) | `RevisarChoqueDeNocheExtraDispatchHandler` | rol `CUSTOMER_SUPPORT`; plantilla de `MessageCrearAvisoChoqueOtaCommand` |
+| Cambiar qué cuenta como pisar una noche extra | `PmsEventoCalendario` | `nocheExtraPisadaPor()` — aviso y calendario |
+| Cambiar cuándo se revisa (qué cambios del canal) | `PmsChoqueNocheExtraListener` | `CAMPOS` |
 | Cambiar cómo cuenta la ocupación | `PmsDisponibilidadService` | `ocupacion()` / `unidadesOcupadas()` |

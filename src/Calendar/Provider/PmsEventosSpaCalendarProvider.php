@@ -54,6 +54,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         $eventos = $this->fetchEventos($from, $to, $config);
         $finanzas = $this->fetchFinanzas($eventos);
         $conversaciones = $this->fetchConversaciones($eventos);
+        $choques = $this->choquesDeNochesExtra($eventos);
         $out = [];
 
         foreach ($eventos as $evento) {
@@ -82,6 +83,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
                     $reserva,
                     $finanzas[(string) $reserva?->getId()] ?? null,
                     $conversaciones[(string) $reserva?->getId()] ?? null,
+                    $choques['estancia:' . $evento->getId()] ?? null,
                 ),
             );
         }
@@ -90,12 +92,57 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         // de Tarifas pide únicamente estancias vendidas (`OCUPAN_UNIDAD`), y una noche de
         // horario extra no es una venta que tarifar.
         if ($config->filtros->estado->incluir === []) {
-            foreach ($this->horariosExtra($from, $to) as $franja) {
+            foreach ($this->horariosExtra($from, $to, $choques) as $franja) {
                 $out[] = $franja;
             }
         }
 
         return $out;
+    }
+
+    /**
+     * Las noches extra que otra estancia pisa, y las estancias que pisan una.
+     *
+     * No debería haber ninguna —el candado de solape lo impide desde el PMS—, pero un canal puede
+     * cambiar una reserva sin preguntar (fase 5 de docs/PlanHorarioExtraSinEventos.md). Mientras
+     * dure, las dos barras y la franja se marcan en rojo: es el respaldo del aviso por WhatsApp.
+     * La regla es `PmsEventoCalendario::nocheExtraPisadaPor()`, la misma del aviso.
+     *
+     * Sólo entre las estancias ya cargadas para el rango: una vecina que empiece justo fuera se
+     * ve al desplazar el calendario.
+     *
+     * @param array<mixed> $eventos
+     *
+     * @return array<string, string> `estancia:<id>` → motivo para su barra; `noche:<id>:<rol>` →
+     *                               motivo para la franja de esa noche.
+     */
+    private function choquesDeNochesExtra(array $eventos): array
+    {
+        $estancias = array_values(array_filter($eventos, static fn ($e): bool => $e instanceof PmsEventoCalendario));
+        $choques = [];
+
+        foreach ($estancias as $duenio) {
+            if ($duenio->nochesExtra() === []) {
+                continue;
+            }
+
+            foreach ($estancias as $otra) {
+                $noche = $duenio->nocheExtraPisadaPor($otra);
+                if ($noche === null) {
+                    continue;
+                }
+
+                $etiqueta = mb_strtolower($noche->etiqueta());
+                $suNombre = $duenio->getTituloCache() ?? 'otra estancia';
+                $otroNombre = $otra->getTituloCache() ?? 'otra estancia';
+
+                $choques['estancia:' . $duenio->getId()] = sprintf('Su %s choca con %s: hay que reubicar a una de las dos.', $etiqueta, $otroNombre);
+                $choques['estancia:' . $otra->getId()] ??= sprintf('Pisa la %s de %s: hay que reubicar a una de las dos.', $etiqueta, $suNombre);
+                $choques['noche:' . $duenio->getId() . ':' . $noche->rol] = sprintf('Choca con %s.', $otroNombre);
+            }
+        }
+
+        return $choques;
     }
 
     /**
@@ -114,9 +161,11 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
      * Va aparte de `fetchEventos()` y como `display: background` a propósito: no es una estancia
      * —no se abre, no se arrastra, no ocupa hueco en la fila—.
      *
+     * @param array<string, string> $choques Ver `choquesDeNochesExtra()`.
+     *
      * @return list<CalendarEventDto>
      */
-    private function horariosExtra(DateTimeInterface $from, DateTimeInterface $to): array
+    private function horariosExtra(DateTimeInterface $from, DateTimeInterface $to, array $choques): array
     {
         $em = $this->managerRegistry->getManagerForClass(PmsEventoCalendario::class);
         if (!$em instanceof EntityManagerInterface) {
@@ -155,6 +204,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
 
             foreach ($estancia->nochesExtra() as $noche) {
                 $titulo = sprintf('%s · %s', $noche->etiqueta(), $estancia->getTituloCache() ?? 'huésped');
+                $choque = $choques['noche:' . $estancia->getId() . ':' . $noche->rol] ?? null;
 
                 // Recortada contra la estancia: un fondo va DEBAJO de las barras, y con la hora
                 // real de entrada (Lizbeth, 07:00 del 28) la barra empezaba antes de que acabara la
@@ -173,8 +223,8 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
                     start: $inicio,
                     end: $fin,
                     resourceId: $unidad->getId(),
-                    classNames: ['fc-horario-extra'],
-                    tooltip: $titulo . ': esta noche está ocupada.',
+                    classNames: $choque !== null ? ['fc-horario-extra', 'fc-horario-extra-choque'] : ['fc-horario-extra'],
+                    tooltip: $titulo . ': esta noche está ocupada.' . ($choque !== null ? ' ⚠️ ' . $choque : ''),
                     // El rótulo se arma en el front con icono + nombre: el texto largo no cabía en
                     // la celda de una noche en el móvil. El título completo queda para el tooltip.
                     extendedProps: [
@@ -560,6 +610,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         ?PmsReserva $reserva,
         ?PmsInformacionFinanciera $finanzas,
         ?string $conversacionId = null,
+        ?string $choqueHorarioExtra = null,
     ): array {
         // Se calcula desde las colecciones y no leyendo `pms_finanzas_total_moneda`: el
         // calendario carga las cabeceras en lote con sus hijos, así que aquí ya están en memoria
@@ -616,6 +667,9 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             // se pinta aparte, como fondo (ver horariosExtra()).
             'entradaTemprana' => $evento->isEntradaTemprana(),
             'salidaTardia' => $evento->isSalidaTardia(),
+            // Su noche extra choca con otra estancia, o pisa la de otra: lo dejó así un canal
+            // (ver choquesDeNochesExtra()). La barra lo marca en rojo con este motivo.
+            'choqueHorarioExtra' => $choqueHorarioExtra,
 
             // Cifras de la RESERVA, no de la estancia: una reserva de dos casitas
             // repite el mismo total en sus dos barras. Es intencionado — el saldo
