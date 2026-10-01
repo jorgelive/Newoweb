@@ -151,8 +151,14 @@ class PmsEventoCalendarioFactory
         $rescuedLastSeenAt = null;
 
         // A. Buscar ID objetivo si no viene de fuera (UI)
+        // 🔥 Sólo los links de la ESTANCIA. Los de un horario extra (rol `extra_*`) no son ni
+        // principal ni espejo: si entraran aquí, el que no encontrara pareja acabaría en los
+        // sobrantes, y un sobrante se borra con su DELETE a Beds24 — la noche extra quedaría
+        // libre sin que nadie la hubiera desmarcado. Los gestiona su propio servicio.
+        $linksDeEstancia = $evento->getLinksDeEstancia();
+
         if ($targetBookId === null) {
-            foreach ($evento->getBeds24Links() as $link) {
+            foreach ($linksDeEstancia as $link) {
                 if ($link->getBeds24BookId() !== null) {
                     $targetBookId = $link->getBeds24BookId();
                     if ($link->isEsPrincipal()) break;
@@ -161,7 +167,7 @@ class PmsEventoCalendarioFactory
         }
 
         // B. Clasificar links existentes
-        foreach ($evento->getBeds24Links() as $link) {
+        foreach ($linksDeEstancia as $link) {
             // ¿Es este el link principal? Normalmente se identifica por llevar el ID
             // objetivo, pero una estancia recién creada todavía no tiene ninguno: hasta que
             // el Push la sella (§6.3) TODOS sus links valen `null`. Sin el segundo criterio

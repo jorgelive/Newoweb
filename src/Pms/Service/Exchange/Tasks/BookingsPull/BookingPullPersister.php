@@ -176,9 +176,10 @@ final class BookingPullPersister implements ResetInterface
         // Si existe link en BD → respetamos su valor.
         // Si es nuevo → custom2 es autoritativo (escrito por nosotros en el Push previo).
         // Fallback: true (si no hay custom2 es una reserva que nunca hemos procesado).
+        $marcaNuestra = in_array($booking->custom2, [BookingsPushMappingStrategy::MARCA_ESPEJO, BookingsPushMappingStrategy::MARCA_EXTRA], true);
         $isLinkPrincipal = $existingLink
             ? $existingLink->isEsPrincipal()
-            : ($booking->custom2 !== 'MIRROR');
+            : !$marcaNuestra;
 
         // 🔥 **UN ESPEJO QUE NADIE RECLAMA NO ESTRENA NADA.** (10/09/2026)
         //
@@ -207,7 +208,10 @@ final class BookingPullPersister implements ResetInterface
         // pierda su link entraría igual: su única señal es el `firstName: "(M) …"`, que es más
         // débil —lo escribimos nosotros, pero nada impide que un huésped se llame así— y por eso
         // no se usa para decidir, sino para avisar.
-        if (!$existingLink && $booking->custom2 === 'MIRROR') {
+        //
+        // Lo mismo vale para la `black` de un horario extra (`custom2 = EXTRA`): es nuestra, cuelga
+        // de un link `extra_*` de la estancia, y sin él no hay nada que estrenar.
+        if (!$existingLink && $marcaNuestra) {
             // ⚠️ **Un huérfano no significa siempre «link perdido».** El único que ha aparecido
             // (Scott, 14–17/10, `90846486`) era lo contrario: la estancia tenía su espejo bien
             // enlazado, y en Beds24 había un SEGUNDO espejo en la misma habitación y fechas,
@@ -218,7 +222,9 @@ final class BookingPullPersister implements ResetInterface
             // Y uno ya CANCELADO no bloquea nada: sólo queda como rastro. Este pull trae las
             // canceladas a propósito (ver `BookingsPullMappingStrategy`), así que sin esta
             // distinción el aviso se repetiría en cada pasada hasta que pasaran las fechas.
+            $queEs = $booking->custom2 === BookingsPushMappingStrategy::MARCA_EXTRA ? 'Noche extra huérfana' : 'Espejo huérfano';
             $contexto = [
+                'marca'          => $booking->custom2,
                 'beds24_book_id' => $bookingIdStr,
                 'room_id'        => $booking->roomId,
                 'llegada'        => $booking->arrival,
@@ -227,23 +233,27 @@ final class BookingPullPersister implements ResetInterface
                 'estado'         => $booking->status,
             ];
 
+            $queHacer = $booking->custom2 === BookingsPushMappingStrategy::MARCA_ESPEJO
+                ? 'Mira si la estancia real de esa casita y fechas ya tiene su espejo enlazado. '
+                    . 'Si lo tiene, éste es un DUPLICADO en Beds24 y hay que cancelarlo allí. '
+                    . 'Si no lo tiene, se perdió su link es_principal=0 y hay que reponerlo.'
+                : 'Mira la estancia de esa casita que entra al día siguiente (o sale ese día). '
+                    . 'Si tiene la casilla de horario extra y su link extra con otro bookId, éste es un DUPLICADO y hay que cancelarlo en Beds24. '
+                    . 'Si la casilla está apagada, sobra: cancélalo allí.';
+
             if ($booking->status === 'cancelled') {
-                $this->logger->info('Espejo huérfano ya cancelado en Beds24: no bloquea nada. No se crea nada.', $contexto);
+                $this->logger->info($queEs . ': en Beds24 ya está cancelled, no bloquea nada. No se crea nada.', $contexto);
             } else {
                 $this->logger->warning(
-                    'Espejo huérfano en el pull: llegó un espejo que ningún link reclama. No se crea nada.',
-                    $contexto + [
-                        'que_significa' => 'Mira si la estancia real de esa casita y fechas ya tiene su espejo enlazado. '
-                            . 'Si lo tiene, éste es un DUPLICADO en Beds24 y hay que cancelarlo allí. '
-                            . 'Si no lo tiene, se perdió su link es_principal=0 y hay que reponerlo.',
-                    ]
+                    $queEs . ' en el pull: llegó una reserva nuestra que ningún link reclama. No se crea nada.',
+                    $contexto + ['que_significa' => $queHacer]
                 );
             }
 
             return [
                 'status'  => 'skipped',
                 'action'  => 'ignored',
-                'message' => "Espejo huérfano (ID: $bookingIdStr): ningún link lo reclama. No se crea evento ni reserva.",
+                'message' => "$queEs (ID: $bookingIdStr): ningún link la reclama. No se crea evento ni reserva.",
             ];
         }
 
@@ -642,7 +652,12 @@ final class BookingPullPersister implements ResetInterface
             $unidadActual = $evento->getPmsUnidadOrFail();
             $unidadNueva  = $map->getPmsUnidadOrFail();
 
-            if ($unidadActual->getId() !== $unidadNueva->getId()) {
+            // 🔥 Una `black` de horario extra NO mueve la estancia. Va por detrás de ella: cuando
+            // una OTA cambia la habitación, el pull del principal mueve el evento y el push lleva
+            // la `black` a la casita nueva — pero si entre medias llega el pull de la `black`
+            // todavía en la vieja, sin esta guarda devolvería la estancia a la casita de antes y
+            // reconstruiría sus links tomando el bookId de la `black` como el de la reserva.
+            if ($existingLink->esDeEstancia() && $unidadActual->getId() !== $unidadNueva->getId()) {
                 $evento->setPmsUnidad($unidadNueva);
                 $this->eventoFactory->rebuildLinks(
                     evento: $evento,

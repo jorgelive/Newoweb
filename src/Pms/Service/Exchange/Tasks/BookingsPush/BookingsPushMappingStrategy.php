@@ -36,6 +36,14 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
     /** Prefijo de `custom3`: nuestro estado, para que el pull lo lea de vuelta sin adivinar. */
     public const string PREFIJO_ESTADO = 'ESTADO:';
 
+    /**
+     * `custom2`: de qué link sale la reserva. El pull lo lee para no estrenar evento con una
+     * reserva NUESTRA que ningún link reclama (un espejo o una `black` de horario extra).
+     */
+    public const string MARCA_PRINCIPAL = 'PRINCIPAL';
+    public const string MARCA_ESPEJO = 'MIRROR';
+    public const string MARCA_EXTRA = 'EXTRA';
+
 
     /**
      * Transforma el lote de la cola al formato de transporte HTTP.
@@ -203,6 +211,13 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
             throw new RuntimeException('Estructura de Link incompleta/corrupta.');
         }
 
+        // Un link de horario extra lleva sus propias fechas (la víspera o la noche de salida), no
+        // las del evento: con este payload saldría como un duplicado de la estancia. Su payload
+        // es la fase 2 de docs/PlanHorarioExtraSinEventos.md; hasta entonces no existe ninguno.
+        if (!$link->esDeEstancia()) {
+            throw new RuntimeException(sprintf('Link %s de rol «%s»: su payload aún no existe.', (string) $link->getId(), $link->getRol()));
+        }
+
         $evento = $link->getEvento();
         $map = $link->getUnidadBeds24Map();
         $isMirror = $link->isMirror();
@@ -289,7 +304,7 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
 
         // Identificadores PMS para deduplicación determinista en migraciones
         $payload['custom1'] = 'PMS:' . (string) $link->getId();
-        $payload['custom2'] = $isMirror ? 'MIRROR' : 'PRINCIPAL';
+        $payload['custom2'] = $isMirror ? self::MARCA_ESPEJO : self::MARCA_PRINCIPAL;
 
         // Nuestro estado, tal cual, para que el viaje de vuelta sea determinista.
         //

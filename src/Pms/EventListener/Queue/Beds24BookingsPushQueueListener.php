@@ -244,7 +244,7 @@ final class Beds24BookingsPushQueueListener
 
     /**
      * Analiza todos los links afectados y determina qué hacer con cada uno.
-     * @return array<int, array{link: PmsEventoBeds24Link, action: string}>
+     * @return list<array{link: PmsEventoBeds24Link, action: string}>
      */
     private function resolveTasks(UnitOfWork $uow): array
     {
@@ -284,7 +284,7 @@ final class Beds24BookingsPushQueueListener
         }
 
         $tasks = [];
-        $activeLinksByMap = [];
+        $activos = [];
 
         // FASE 1: Clasificación inicial
         foreach ($resolved as $link) {
@@ -299,34 +299,51 @@ final class Beds24BookingsPushQueueListener
                 continue;
             }
 
-            // 2) Activos: agrupar para deduplicación
+            // 2) Activos: al torneo
+            $activos[] = $link;
+        }
+
+        // FASE 2: Torneo
+        return array_merge($tasks, self::torneo($activos));
+    }
+
+    /**
+     * Un ganador por (evento, mapa, ROL), que se empuja; el resto se cancela.
+     *
+     * 🔥 El rol va en la clave. Una estancia con entrada temprana tiene, en el mismo mapa, su
+     * reserva y la `black` de la víspera: son dos reservas distintas en Beds24, no dos candidatos
+     * a la misma. Sin el rol, la `black` perdía el torneo contra el principal y su push se
+     * cancelaba — la noche extra no llegaba nunca al channel manager.
+     *
+     * @param list<PmsEventoBeds24Link> $activos Links que no se están borrando.
+     *
+     * @return list<array{link: PmsEventoBeds24Link, action: string}>
+     */
+    public static function torneo(array $activos): array
+    {
+        $tasks = [];
+        $grupos = [];
+        foreach ($activos as $link) {
             $evento = $link->getEvento();
             $map = $link->getUnidadBeds24Map();
 
-            if (!$evento || !$map) {
+            if ($evento === null || $map === null) {
                 // Activo pero huérfano -> cancelar pendientes (zombie)
                 $tasks[] = ['link' => $link, 'action' => 'CANCEL'];
                 continue;
             }
 
-            // Clave: Evento + Mapa
-            $key = spl_object_id($evento) . '|' . spl_object_id($map);
-            $activeLinksByMap[$key][] = $link;
+            $grupos[spl_object_id($evento) . '|' . spl_object_id($map) . '|' . $link->getRol()][] = $link;
         }
 
-        // FASE 2: Torneo de links por (evento,map)
-        foreach ($activeLinksByMap as $group) {
-            $winner = $group[0];
-            foreach ($group as $l) {
-                $winner = $this->pickBestLink($winner, $l);
+        foreach ($grupos as $grupo) {
+            $winner = $grupo[0];
+            foreach ($grupo as $l) {
+                $winner = self::pickBestLink($winner, $l);
             }
 
-            foreach ($group as $l) {
-                if ($l === $winner) {
-                    $tasks[] = ['link' => $l, 'action' => 'PUSH'];
-                } else {
-                    $tasks[] = ['link' => $l, 'action' => 'CANCEL'];
-                }
+            foreach ($grupo as $l) {
+                $tasks[] = ['link' => $l, 'action' => $l === $winner ? 'PUSH' : 'CANCEL'];
             }
         }
 
@@ -390,7 +407,7 @@ final class Beds24BookingsPushQueueListener
         return null;
     }
 
-    private function pickBestLink(PmsEventoBeds24Link $a, PmsEventoBeds24Link $b): PmsEventoBeds24Link
+    private static function pickBestLink(PmsEventoBeds24Link $a, PmsEventoBeds24Link $b): PmsEventoBeds24Link
     {
         if ($a->isEsPrincipal() !== $b->isEsPrincipal()) {
             return $a->isEsPrincipal() ? $a : $b;

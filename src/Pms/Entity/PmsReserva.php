@@ -377,7 +377,7 @@ class PmsReserva
         $bookId = $this->beds24MasterId ?: $this->beds24BookIdPrincipal;
         if (!$bookId) {
             foreach ($this->eventosCalendario as $evento) {
-                foreach ($evento->getBeds24Links() as $link) {
+                foreach ($evento->getLinksDeEstancia() as $link) {
                     if ($link->getBeds24BookId()) {
                         $bookId = (string) $link->getBeds24BookId();
                         break 2;

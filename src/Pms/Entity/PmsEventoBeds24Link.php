@@ -22,18 +22,13 @@ use Symfony\Component\Uid\Uuid;
  * Ahora es una estructura plana donde un link se marca como 'esPrincipal'.
  */
 #[ORM\Entity]
-#[ORM\Table(
-    name: 'pms_evento_beds24_link',
-    indexes: [
-        new ORM\Index(columns: ['evento_id'], name: 'idx_pms_evento_beds24_evento'),
-        new ORM\Index(columns: ['unidad_beds24_map_id'], name: 'idx_pms_evento_beds24_map'),
-        // Eliminado índice de origin_link
-    ],
-    uniqueConstraints: [
-        new ORM\UniqueConstraint(name: 'uniq_pms_evento_beds24_bookid', columns: ['beds24BookId']),
-        new ORM\UniqueConstraint(name: 'uniq_pms_evento_beds24_evento_map', columns: ['evento_id', 'unidad_beds24_map_id']),
-    ]
-)]
+// ⚠️ Los índices van como atributos de CLASE, no dentro de `#[ORM\Table(indexes: …)]`: este Doctrine
+// ignora esos argumentos anidados sin avisar. Aquí había declarado un único `(evento, mapa)` que
+// nunca llegó a la base, y `schema:validate` decía «in sync» porque compara contra lo que lee.
+// Los índices de `evento_id`, `unidad_beds24_map_id` y `channel_id` los pone Doctrine solo, por
+// ser claves foráneas, y el único de `beds24BookId` sale del `unique: true` de su columna.
+#[ORM\Table(name: 'pms_evento_beds24_link')]
+#[ORM\UniqueConstraint(name: 'uniq_link_evento_mapa_rol', columns: ['evento_id', 'unidad_beds24_map_id', 'rol'])]
 #[ORM\HasLifecycleCallbacks]
 class PmsEventoBeds24Link
 {
@@ -64,6 +59,24 @@ class PmsEventoBeds24Link
     public const STATUS_PENDING_DELETE = 'pending_delete';
     public const STATUS_SYNCED_DELETED = 'synced_deleted';
 
+    /**
+     * Qué representa en Beds24 la reserva de este link.
+     *
+     * - `estancia`      : la propia estancia — el principal (la reserva del canal o la directa)
+     *                     y sus espejos. Son los únicos que gestiona `PmsEventoCalendarioFactory`.
+     * - `extra_entrada` : la `black` que bloquea la víspera de una entrada temprana.
+     * - `extra_salida`  : la `black` que bloquea la noche del día de salida de una salida tardía.
+     *
+     * Un link extra es siempre NUESTRO y nunca principal: la reserva de la estancia sigue siendo
+     * la del link principal de rol `estancia`, que es la que buscan facturas, mensajes y pull.
+     * Ver docs/PlanHorarioExtraSinEventos.md.
+     */
+    public const ROL_ESTANCIA = 'estancia';
+    public const ROL_EXTRA_ENTRADA = 'extra_entrada';
+    public const ROL_EXTRA_SALIDA = 'extra_salida';
+
+    public const ROLES = [self::ROL_ESTANCIA, self::ROL_EXTRA_ENTRADA, self::ROL_EXTRA_SALIDA];
+
     #[ORM\ManyToOne(targetEntity: PmsEventoCalendario::class, inversedBy: 'beds24Links')]
     #[ORM\JoinColumn(
         name: 'evento_id',
@@ -91,6 +104,9 @@ class PmsEventoBeds24Link
      */
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $esPrincipal = false;
+
+    #[ORM\Column(type: 'string', length: 20, options: ['default' => self::ROL_ESTANCIA])]
+    private string $rol = self::ROL_ESTANCIA;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?DateTimeInterface $lastSeenAt = null;
@@ -169,19 +185,56 @@ class PmsEventoBeds24Link
 
     public function setEsPrincipal(bool $esPrincipal): self
     {
+        if ($esPrincipal) {
+            $this->exigirDeEstancia();
+        }
         $this->esPrincipal = $esPrincipal;
         return $this;
     }
 
     public function hacerPrincipal(): self
     {
-        $this->esPrincipal = true;
+        return $this->setEsPrincipal(true);
+    }
+
+    /**
+     * Espejo de la estancia en el otro establecimiento virtual. Un link extra tampoco es principal,
+     * pero no es un espejo: no repite la estancia, bloquea otra noche.
+     */
+    public function isMirror(): bool
+    {
+        return !$this->esPrincipal && $this->esDeEstancia();
+    }
+
+    // --- Rol ---
+
+    public function getRol(): string
+    {
+        return $this->rol;
+    }
+
+    public function setRol(string $rol): self
+    {
+        if (!in_array($rol, self::ROLES, true)) {
+            throw new \InvalidArgumentException(sprintf('Rol de link desconocido: «%s».', $rol));
+        }
+        if ($rol !== self::ROL_ESTANCIA && $this->esPrincipal) {
+            throw new \LogicException('Un link principal no puede pasar a extra: la estancia se quedaría sin su reserva.');
+        }
+        $this->rol = $rol;
         return $this;
     }
 
-    public function isMirror(): bool
+    public function esDeEstancia(): bool
     {
-        return !$this->esPrincipal;
+        return $this->rol === self::ROL_ESTANCIA;
+    }
+
+    private function exigirDeEstancia(): void
+    {
+        if (!$this->esDeEstancia()) {
+            throw new \LogicException(sprintf('Un link «%s» no puede ser principal: la reserva de la estancia es la del rol «estancia».', $this->rol));
+        }
     }
 
     // --- Estados ---
@@ -286,7 +339,7 @@ class PmsEventoBeds24Link
     {
         $id = $this->getId() ?? 'NEW';
         $bookId = $this->beds24BookId ?? '-';
-        $kind = $this->esPrincipal ? 'ROOT' : 'MIRROR';
+        $kind = $this->esPrincipal ? 'ROOT' : ($this->esDeEstancia() ? 'MIRROR' : strtoupper($this->rol));
         $status = $this->status ?? self::STATUS_ACTIVE;
 
         return sprintf('Link #%s [%s] • %s • bookId %s', (string)$id, $kind, $status, $bookId);

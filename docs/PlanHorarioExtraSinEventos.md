@@ -1,7 +1,8 @@
 # Plan — Horario extra sin eventos hermanos
 
-> **Estado:** propuesta, 01/10/2026. No hay nada implementado. Aprobado el diseño por Jorge; el
-> plan por pasos queda pendiente de su visto bueno.
+> **Estado (01/10/2026):** fases 0 y 1 hechas. Fase 1 desplegada sin efecto visible (columna
+> `rol`, único nuevo, hidratador/torneo/pull ya la respetan — §2.1 de `PmsBeds24ReservasSync.md`).
+> Siguiente: fase 2, que pide las decisiones del §5.
 
 ## 1. Qué cambia y por qué
 
@@ -41,7 +42,9 @@ el mismo motivo por el que hoy el hermano nace con canal directo e `isOta = fals
 
 1. **`uniq_pms_evento_beds24_evento_map (evento_id, unidad_beds24_map_id)`**: un evento sólo admite
    UN link por mapa. El link extra choca → hace falta una columna de **rol** en el link y que el
-   único sea `(evento, mapa, rol)`.
+   único sea `(evento, mapa, rol)`. *(Fase 0: ese único estaba declarado pero NUNCA existió en la
+   base — Doctrine ignora los índices anidados en `#[ORM\Table]`, §2.2 de
+   `PmsBeds24ReservasSync.md`. La fase 1 lo crea, ya con el rol.)*
 2. **El push agrupa por (evento, mapa)** (`Beds24BookingsPushQueueListener::resolveTasks()`): un
    ganador por grupo y CANCEL al resto. Hay que meter el rol en la clave.
 3. **`PmsEventoCalendarioFactory::internalHydrate()` se comería los links extra**: los que no
@@ -65,22 +68,33 @@ Cada fase se despliega sola salvo donde se dice. La regla: **nunca dos mecanismo
 misma noche a la vez** (el hermano viejo y el link nuevo) — Beds24 aceptaría las dos `black` sin
 quejarse y el corte de una dejaría la otra viva.
 
-### Fase 0 — Preparación (sin cambios en producción)
+### Fase 0 — Preparación (sin cambios en producción) ✅ 01/10/2026
 - Base local refrescada desde un volcado de producción: la local es de agosto, y la migración de
   la fase 4 se ensaya sobre datos reales.
 - Inventario de extensiones vivas y sus `beds24BookId` (hoy: 2 vivas, 8 canceladas; 10 en total,
-  todas de reservas directas).
+  todas de reservas directas). Vivas: M4E23R (casita 4, 05/08/2026, `90962710`/`90962711`) y
+  UV5XPW (casita 1, 27/09/2026, `93826892`/`93826893`), cada una con principal y espejo.
+- Copia local de producción: base `openperu_prod_20261001` (sin filas de `msg_meta_webhook_audit`
+  ni `messenger_messages`). 940 links, 470 eventos con link, 0 pares `(evento, mapa)` repetidos.
 - **Decisión de Jorge:** una casita y una fecha futura libre para las pruebas contra Beds24 real.
 
-### Fase 1 — El link sabe qué es (desplegable sola, sin efecto visible)
-- Migración: `pms_evento_beds24_link.rol` (`estancia` | `extra_entrada` | `extra_salida`), relleno
-  `estancia`, único pasa a `(evento_id, unidad_beds24_map_id, rol)`.
+### Fase 1 — El link sabe qué es (desplegable sola, sin efecto visible) ✅ 01/10/2026
+- Migración `Version20261001120000`: `pms_evento_beds24_link.rol` (`estancia` | `extra_entrada` |
+  `extra_salida`), relleno `estancia`, único NUEVO `(evento_id, unidad_beds24_map_id, rol)`.
 - `internalHydrate()` sólo toca links `estancia`.
 - `Beds24BookingsPushQueueListener::resolveTasks()`: clave `(evento, mapa, rol)`.
 - `isSynced()`, `getSyncStatus()`, `getMotivoNoBorrable()`: revisar que un link extra no los
   confunda.
-- Pull: un huérfano con `custom2 = EXTRA` se ignora, como `MIRROR`.
-- Pruebas unitarias de la clave del torneo y del hidratador.
+  *(Revisado: lo cuentan como uno más, y está bien — la noche extra es parte de la
+  sincronización de la estancia.)* Los que buscan «el principal» (facturas, mensajes, URL de
+  Beds24) no ven a los extra porque un extra **nunca** es principal: lo impide la entidad.
+- Pull: un huérfano con `custom2 = EXTRA` se ignora, como `MIRROR`. **Y un link extra enlazado no
+  mueve la estancia de casita** (encontrado al hacerla): tras un cambio de habitación de la OTA, el
+  pull de la `black` aún en la casita vieja la habría devuelto allí.
+- El push de un link extra se niega hasta la fase 2 (`buildUpsertPayload()`): con el payload de
+  hoy saldría con las fechas de la estancia.
+- Pruebas: `LinkConRolTest`, `TorneoDeLinksTest`, `HidratadorIgnoraLinksExtraTest` y dos casos más
+  en `BookingPullPersisterMarcadorTest`.
 
 ### Fase 2 — La noche extra se deriva (código listo, apagado hasta la fase 4)
 - `PmsEventoCalendario::nocheExtraEntrada()` / `nocheExtraSalida()`: el rango de cada noche, o

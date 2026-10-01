@@ -8,6 +8,8 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
 
 1. [Visión General](#1-visión-general)
 2. [Entidades Clave](#2-entidades-clave)
+    · [2.1 El rol del link](#21-el-rol-del-link-01102026)
+    · [2.2 Los índices dentro de `#[ORM\Table]` no existen](#22-️-gotcha-los-índices-dentro-de-ormtable-no-existen)
 3. [Camino A — Webhook (Tiempo Real)](#3-camino-a--webhook-tiempo-real)
 4. [Camino B — Pull por Cron (Sincronización Programada)](#4-camino-b--pull-por-cron-sincronización-programada)
     · [4.1.b La query se monta a mano (y por qué no llegaban las canceladas)](#41b--la-query-se-monta-a-mano-y-no-es-un-capricho)
@@ -118,12 +120,48 @@ PmsEventoCalendario  (Evento de calendario, hijo de PmsReserva)
   └── beds24Links   → colección de PmsEventoBeds24Link
 
 PmsEventoBeds24Link  (Puente técnico Evento ↔ Beds24)
-  ├── beds24BookId       → ID de la reserva en Beds24 (solo en el principal)
-  ├── esPrincipal        → true = link dueño del ID | false = espejo sin ID propio
+  ├── beds24BookId       → ID de la reserva en Beds24 (único en la tabla)
+  ├── esPrincipal        → true = la reserva de la estancia | false = espejo o extra
+  ├── rol                → estancia | extra_entrada | extra_salida   (§2.1)
   ├── unidadBeds24Map    → mapa que apunta al listing específico
-  ├── status             → active | detached | pending_delete | pending_move
+  ├── status             → active | pending_delete | synced_deleted
   └── lastSeenAt         → última vez que Beds24 confirmó este link
 ```
+
+### 2.1 El rol del link (01/10/2026)
+
+Un link es de la **estancia** (su principal o su espejo) o es la `black` **extra** que bloquea la
+víspera de una entrada temprana o la noche de salida de una salida tardía. Lo dice la columna
+`rol`; todos los links que había el 01/10/2026 son `estancia`. Los `extra_*` llegan con el plan de
+`docs/PlanHorarioExtraSinEventos.md` (fase 2): hasta entonces no se crea ninguno, y el push de uno
+se niega en `buildUpsertPayload()`.
+
+Lo que ya respeta el rol:
+
+| Pieza | Qué hace con un link extra |
+|---|---|
+| `PmsEventoBeds24Link` | nunca principal (`hacerPrincipal()` lanza), y `isMirror()` es falso: no repite la estancia |
+| `PmsEventoCalendario::getLinksDeEstancia()` | lo deja fuera — es «la reserva de esta estancia en Beds24» |
+| `PmsEventoCalendarioFactory::internalHydrate()` | no lo reparte ni lo suelta: si entrara, acabaría en los sobrantes y saldría un DELETE |
+| `Beds24BookingsPushQueueListener::torneo()` | un ganador por `(evento, mapa, rol)`: la `black` y la reserva del mismo mapa salen las dos |
+| `BookingPullPersister::upsert()` | uno huérfano (`custom2 = EXTRA`) no estrena nada, como un espejo; uno enlazado NO mueve la estancia de casita |
+| `isSynced()` / `getSyncStatus()` / `getMotivoNoBorrable()` | cuenta como uno más, a propósito: la noche extra es parte de la sincronización de la estancia |
+
+El único `uniq_link_evento_mapa_rol (evento_id, unidad_beds24_map_id, rol)` es NUEVO, no un
+cambio: el `(evento, mapa)` que declaraba la entidad nunca llegó a la base (§2.2).
+
+### 2.2 ⚠️ Gotcha: los índices dentro de `#[ORM\Table(...)]` no existen
+
+En este proyecto, los argumentos `indexes:` y `uniqueConstraints:` **anidados** en
+`#[ORM\Table(...)]` se ignoran sin aviso. Sólo cuentan los atributos de clase sueltos,
+`#[ORM\Index(...)]` y `#[ORM\UniqueConstraint(...)]` (así los declaran `ExchangeEndpoint` y
+`CotizacionVuelo`, y funcionan). `doctrine:schema:validate` dice «in sync» porque compara la base con
+lo que Doctrine LEE, no con lo que el archivo dice.
+
+Encontrado el 01/10/2026 en `PmsEventoBeds24Link`: su único `(evento, mapa)` nunca existió (no había
+duplicados: 0 de 940). Siguen así, con lo declarado sin efecto: `PmsUnidadBeds24Map` (el único
+`(unidad, virtual)` lo cubre sólo el `UniqueEntity` de formulario; 0 duplicados el 01/10/2026) y
+`CotizacionFile`. Para saber lo que de verdad hay: `SHOW INDEX FROM <tabla>`.
 
 ### Tablas de cola
 
@@ -6378,7 +6416,10 @@ contra la base local: mismos veredictos que antes.
 | Cambiar si el canal puede confirmar una estancia solo | `BookingPullPersister` | `resolveEstado()` — **lee §5.4 antes**: los que ya cobraron (Airbnb, VRBO) sí confirman; Booking no. El `(int)$status === 0` del final parece un bug y no lo es |
 | Añadir un parámetro multivaluado a cualquier GET de Beds24 | `BookingsPullMappingStrategy`, `Beds24InvoiceReceiveMappingStrategy` | montarlo en `fullUrl`; un array en el `payload` sale como `x[0]=` y Beds24 lo ignora |
 | Tocar cascadas del grafo evento/link/cola de push | `Beds24BookingsPushQueueCreator` | `enqueueForLink()` — **lee §12.11 antes** |
-| Qué hace el pull con un espejo que ningún link reclama | `BookingPullPersister` | `upsert()`, la guarda de `custom2 === 'MIRROR'` — §6.3.d |
+| Qué hace el pull con un espejo que ningún link reclama | `BookingPullPersister` | `upsert()`, la guarda de `$marcaNuestra` (`MIRROR` o `EXTRA`) — §6.3.d |
+| Qué sabe cada pieza del rol de un link (estancia / extra) | `PmsEventoBeds24Link` | `ROL_*`, `esDeEstancia()` — tabla de §2.1 |
+| Cambiar cuándo dos links compiten por la misma reserva en el push | `Beds24BookingsPushQueueListener` | `torneo()` — clave `(evento, mapa, rol)` |
+| Declarar un índice o un único en una entidad | la entidad | atributo de CLASE `#[ORM\UniqueConstraint]` — dentro de `#[ORM\Table]` se ignora (§2.2) |
 | Que el pull no le invente reserva a un evento que ya existe sin ella | `BookingPullPersister` | `upsert()`, rama madre/individual — §7.1.d |
 | Qué se hace con un precio de tarifa que no es número (§12.21) | `TarifaDailyPriceFlattener` | `decimal()` — hoy: el rango no cuenta |
 | Leer un argumento u opción de un comando | `App\Command\EntradaDeConsola` | `texto()`/`entero()`/`textos()` — falla con el nombre, no con un cero (§12.21) |

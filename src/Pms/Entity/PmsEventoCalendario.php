@@ -810,6 +810,20 @@ class PmsEventoCalendario
     /** @return Collection<int, PmsEventoBeds24Link> */
     public function getBeds24Links(): Collection { return $this->beds24Links; }
 
+    /**
+     * Los links de la propia estancia (principal y espejos), sin los extra de un horario extra.
+     * Es lo que hay que mirar para «la reserva de esta estancia en Beds24».
+     *
+     * @return list<PmsEventoBeds24Link>
+     */
+    public function getLinksDeEstancia(): array
+    {
+        return array_values(array_filter(
+            $this->beds24Links->toArray(),
+            static fn (PmsEventoBeds24Link $link): bool => $link->esDeEstancia()
+        ));
+    }
+
     public function addBeds24Link(PmsEventoBeds24Link $link): self
     {
         if (!$this->beds24Links->contains($link)) {

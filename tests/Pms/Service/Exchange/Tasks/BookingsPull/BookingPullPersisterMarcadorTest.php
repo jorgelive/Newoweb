@@ -74,6 +74,31 @@ final class BookingPullPersisterMarcadorTest extends TestCase
         );
     }
 
+    /**
+     * Una `black` de horario extra (`custom2 = EXTRA`) que ningún link reclama no estrena evento:
+     * es nuestra, como un espejo. Sin la guarda se adoptaría como reserva nueva — una estancia
+     * fantasma de una noche encima de la víspera de otra.
+     */
+    #[Test]
+    public function una_noche_extra_huerfana_no_estrena_nada(): void
+    {
+        $resultado = $this->persister(null, porBookId: null)
+            ->upsert($this->config(), $this->booking(93900001, 'EXTRA', 'confirmed'));
+
+        self::assertSame('skipped', $resultado['status']);
+        self::assertStringContainsString('Noche extra huérfana', $resultado['message']);
+    }
+
+    #[Test]
+    public function un_espejo_huerfano_tampoco(): void
+    {
+        $resultado = $this->persister(null, porBookId: null)
+            ->upsert($this->config(), $this->booking(93900002, 'MIRROR', 'confirmed'));
+
+        self::assertSame('skipped', $resultado['status']);
+        self::assertStringContainsString('Espejo huérfano', $resultado['message']);
+    }
+
     // ── Andamiaje ─────────────────────────────────────────────────────────────────────────
 
     private function link(string $bookId): PmsEventoBeds24Link
@@ -104,21 +129,21 @@ final class BookingPullPersisterMarcadorTest extends TestCase
         return (new Beds24Config())->addEstablecimiento($this->establecimiento());
     }
 
-    private function booking(int $id): Beds24BookingDto
+    private function booking(int $id, string $custom2 = 'PRINCIPAL', string $status = 'cancelled'): Beds24BookingDto
     {
         return Beds24BookingDto::fromArray([
             'id' => $id,
             'propertyId' => 303948,
             'roomId' => 633675,
-            'status' => 'cancelled',
+            'status' => $status,
             'arrival' => '2026-11-13',
             'departure' => '2026-11-15',
             'custom1' => 'PMS:' . self::LINK_UUID,
-            'custom2' => 'PRINCIPAL',
+            'custom2' => $custom2,
         ]);
     }
 
-    private function persister(PmsEventoBeds24Link $porMarcador, ?PmsEventoBeds24Link $porBookId): BookingPullPersister
+    private function persister(?PmsEventoBeds24Link $porMarcador, ?PmsEventoBeds24Link $porBookId): BookingPullPersister
     {
         $unidad = (new PmsUnidad())->setEstablecimiento($this->establecimiento());
 

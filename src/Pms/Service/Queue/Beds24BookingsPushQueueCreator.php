@@ -97,7 +97,7 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
         // 4. Snapshot de datos (Payload JSON)
         $payload = [
             'linkId'       => $linkId,
-            'isMirror'     => !$link->isEsPrincipal(),
+            'isMirror'     => $link->isMirror(),
             'eventoId'     => $evento?->getId() ? (string) $evento->getId() : null,
             'inicio'       => $evento?->getInicio()?->format('c'),
             'fin'          => $evento?->getFin()?->format('c'),
