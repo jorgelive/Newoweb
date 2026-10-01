@@ -999,6 +999,13 @@ llamaba como él.**
 
 ### 6.4 Sólo el link principal escribe los datos de la estancia
 
+> 🕐 **Y ni el principal escribe la HORA** (01/10/2026). Beds24 sólo guarda días; el pull montaba
+> la fecha con la hora por defecto (14:00 / 10:00) y la pisaba en cada pasada, así que una entrada
+> pactada a las 08:00 o una salida a las 17:00 volvían a la hora de siempre en cuanto el booking
+> pasaba por el pull o por un webhook (Lizbeth, KXET9H). Ahora `BookingPullPersister::horaConservada()`
+> conserva la hora —y el mismo objeto, para que Doctrine no vea cambio— si el día no cambió; si el
+> canal movió el día, va el día nuevo con la hora por defecto.
+
 Los links espejo cuelgan del **mismo** `PmsEventoCalendario` que el principal (§6.2), pero en
 Beds24 son reservas distintas. Y son huecas por diseño del Push (§7.2): llegan con `price: 0`,
 `commission: 0`, `firstName: "(M) …"` y `channel: "direct"`, porque esos campos nunca se les
@@ -6473,6 +6480,7 @@ contra la base local: mismos veredictos que antes.
 | Cambiar a qué número se llama (§12.10) | `PmsReserva` **y** `util/src/types/pmsReservaModel.ts` | `getTelefonoContacto()` / `telefonoContactoDe()` — son espejo, hay que tocar **los dos** |
 | Cambiar la auto-confirmación por pago (§9.5) | `PmsEventoCalendario` + `util/src/types/pmsReservaModel.ts` | `requiereAutoConfirmacionPorPago()` (hay que tocar **los dos**: son espejo) |
 | Añadir campo nuevo al Pull | `Beds24BookingDto` + `BookingPullPersister` | `fromArray()` + `upsertReservaFull()` |
+| Cambiar qué hace el pull con la hora de entrada/salida (§6.4) | `BookingPullPersister` | `horaConservada()` — el día lo manda Beds24, la hora es nuestra |
 | Cambiar qué campos puede escribir un espejo (§6.4) | `BookingPullPersister` | `upsertEvento()` → bloque `if ($isLinkPrincipal ...)` |
 | Cambiar qué se envía al espejo | `BookingsPushMappingStrategy` | `buildUpsertPayload()` bloque `$isMirror` |
 | Cambiar ventana de Pull Cron | `Beds24BookingsPullCronJob` | `arrivalFrom/To` |

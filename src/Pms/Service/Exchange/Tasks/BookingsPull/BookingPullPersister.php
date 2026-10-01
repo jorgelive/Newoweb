@@ -19,6 +19,7 @@ use App\Pms\Factory\PmsEventoCalendarioFactory;
 use App\Service\Nombre\NombreSanitizer;
 use App\Service\Phone\PhoneSanitizer;
 use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
 use Symfony\Contracts\Service\ResetInterface;
@@ -696,17 +697,18 @@ final class BookingPullPersister implements ResetInterface
         if ($isLinkPrincipal || $action === 'created') {
             $est = $evento->getPmsUnidadOrFail()->getEstablecimientoOrFail();
 
-            $evento->setInicio($this->eventoFactory->resolveFechaConHora(
+            // 🕐 El DÍA lo manda Beds24; la HORA es nuestra. Ver `horaConservada()`.
+            $evento->setInicio(self::horaConservada($evento->getInicio(), $this->eventoFactory->resolveFechaConHora(
                 fechaYmd: $booking->arrival,
                 establecimiento: $est,
                 isCheckIn: true
-            ));
+            )));
 
-            $evento->setFin($this->eventoFactory->resolveFechaConHora(
+            $evento->setFin(self::horaConservada($evento->getFin(), $this->eventoFactory->resolveFechaConHora(
                 fechaYmd: $booking->departure,
                 establecimiento: $est,
                 isCheckIn: false
-            ));
+            )));
 
             $evento->setEstadoBeds24($booking->status);
             $evento->setSubestadoBeds24($booking->subStatus);
@@ -883,6 +885,29 @@ final class BookingPullPersister implements ResetInterface
         }
 
         return self::elegirEstado($this->cacheEstados[$statusApi], $custom3, $actual);
+    }
+
+    /**
+     * La entrada o la salida que trae el canal, con NUESTRA hora si el día no cambió.
+     *
+     * 🔥 Beds24 sólo guarda días. El pull montaba la fecha con la hora por defecto del
+     * establecimiento (14:00 / 10:00) y la escribía encima en CADA pasada, así que la hora que había
+     * puesto el operador —una entrada a las 08:00 pactada, una salida a las 17:00— se borraba en
+     * cuanto el booking volvía a entrar por el pull o por un webhook. Lizbeth (KXET9H) entraba a las
+     * 08:00 y el 28/09 a las 17:35 volvió a las 14:00 (Jorge, 01/10/2026). Medido ese día: de las 42
+     * estancias vivas, la única con hora propia era la que se acababa de corregir a mano.
+     *
+     * Si el día es el mismo, se devuelve el objeto que ya tenía —el mismo, no uno igual—, así que
+     * Doctrine no ve ningún cambio. Si el canal movió el día, manda el día nuevo con la hora por
+     * defecto: la hora pactada era para el otro.
+     */
+    public static function horaConservada(?DateTimeInterface $actual, ?DateTimeInterface $delCanal): ?DateTimeInterface
+    {
+        if ($actual !== null && $delCanal !== null && $actual->format('Y-m-d') === $delCanal->format('Y-m-d')) {
+            return $actual;
+        }
+
+        return $delCanal;
     }
 
     /**
