@@ -686,6 +686,40 @@ molestar a una persona, y hubo 95 escalados en 30 días).
 
 ---
 
+## 5.7 Las fugas: lo que el agente decía sin que se lo preguntaran (02/10/2026)
+
+Franco (W2YRVK) pulsó «Necesito más tiempo» y oyó dos veces que guardar el equipaje es gratis. El
+texto decía «Es GRATIS para nuestros huéspedes: si pregunta el costo, díselo…»: **el dato suelto
+delante de la condición**. Se revisaron las cuatro superficies que lee el modelo (§5.6) buscando
+eso mismo, y había más.
+
+**La guía publicada no se toca.** Lo que lee el huésped dice la política entera —costo, depósito,
+cerrajero—, porque es lo que da claridad y respaldo (Jorge). Lo que se ajusta es lo que lee el
+AGENTE, que es quien la suaviza.
+
+Las tres formas en que se fugaba, y la que las sustituye:
+
+| se escribía | qué hace el modelo | se escribe |
+|---|---|---|
+| el dato y luego «si pregunta, díselo» | lo dice de entrada | «SI PREGUNTA X: dato», con el dato DENTRO de la condición |
+| «no le cuentes que hay otro huésped» con la hora al lado | lo cuenta | no se le manda el dato, sólo la conclusión |
+| «cuéntale lo que dice su guía» | repite la política entera, costo incluido | de qué se habla: «dile que lo consultas con el equipo; la conversación es de horas y disponibilidad» |
+
+Lo que cambió en el código ese día:
+
+| dónde | antes | ahora |
+|---|---|---|
+| `PmsInstruccionesDominio::huesped()` (cada turno) | «que diga "con coste" te deja contarle las condiciones» | «dile que lo consultas… SI PREGUNTA SI TIENE COSTO: sí…» |
+| `PmsInstruccionesDominio::espacioAlrededor()` | «sale otro huésped a las 17:00» + «NO le cuentes» | «la casita no está libre antes de las 17:00», «no cabe una salida tardía» |
+| `PmsProcedenciaComercial` (cada turno) | «y sí aplica el depósito de garantía» | puntero al tema «Pago» |
+| `escalar_al_equipo`, `confirmar_hora`, `consultar_guia` (`debes_escalar`) | «te deja contarle las condiciones», «lo que diga la política», «cuéntale lo que dice la guía» | «lo consultas con el equipo»; el costo, en su «SI PREGUNTA» |
+| `anotar_peticion` | «mira cuánto cuesta y cuéntaselo» | «SI PREGUNTA CUÁNTO CUESTA, dale el precio de su guía» |
+| `consultar_disponibilidad` | «úsalo como argumento de venta» (también en canal restringido, donde está prohibido) | «SI LA RESPUESTA TRAE servicio_en_otas: …» — el campo ya se quita en canal restringido |
+
+⚠️ **Al añadir texto para el agente, mira primero si el dato va DENTRO de su condición.** El
+«gratis» lo escribió una sesión que buscaba lo contrario —que ofreciera el almacén—, quitando el
+freno de la oferta y llevándose con él el del precio.
+
 ## 6. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |

@@ -731,9 +731,9 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
             // 🔔 La orden viaja PEGADA al texto que el modelo acaba de leer, no en una regla
             // general del prompt que tenga que recordar. Ver PmsGuiaItem::$agenteRequiereHumano.
             'debes_escalar' => $item->isAgenteRequiereHumano()
-                ? 'Cuéntale lo que dice la guía, pero NO se lo concedas: esto lo confirma una '
-                    . 'persona. Llama a escalar_al_equipo en este mismo turno y dile que ya '
-                    . 'avisaste, sin prometerle plazo.'
+                ? 'Esto lo confirma una persona: dile que lo consultas con el equipo, llama a '
+                    . 'escalar_al_equipo en este mismo turno y dile que ya avisaste, sin prometerle '
+                    . 'plazo.'
                 : null,
             'enlace' => $item->getUrlBoton(),
             'tiene_fotos' => $item->getTipo() === PmsGuiaItem::TIPO_ALBUM
@@ -873,8 +873,8 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
                     // se marca aquí es que el modelo no debe presentarlo como una instrucción.
                     'bloqueado' => $item->isBloqueado() ?: null,
                     'debes_escalar' => $item->isAgenteRequiereHumano()
-                        ? 'Cuéntale lo que dice la guía, pero NO se lo concedas: esto lo '
-                            . 'confirma una persona. Llama a escalar_al_equipo en este turno.'
+                        ? 'Esto lo confirma una persona: dile que lo consultas con el '
+                            . 'equipo y llama a escalar_al_equipo en este turno.'
                         : null,
                     'contenido' => $this->recortar($cuerpo),
                     'enlace' => $item->getUrlBoton(),

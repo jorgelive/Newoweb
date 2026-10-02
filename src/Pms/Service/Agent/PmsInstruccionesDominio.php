@@ -236,7 +236,7 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
 
         if ($espacio['sale_alguien_el_dia_que_llega'] !== null) {
             $lineas[] = sprintf(
-                'ANTES: ese día sale otro huésped a las %s, así que la casita NO está libre por la mañana.',
+                'ANTES: ese día la casita no está libre antes de las %s, y después hay que limpiarla.',
                 $espacio['sale_alguien_el_dia_que_llega']
             );
         } elseif ($espacio['libre_la_vispera']) {
@@ -245,31 +245,25 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
                 : 'ANTES: la casita está libre; nadie sale ese día.';
         } else {
             // La víspera la ocupa la salida tardía de quien se fue el día antes.
-            $lineas[] = 'ANTES: la noche anterior la casita está ocupada, así que NO está libre por la mañana.';
+            $lineas[] = 'ANTES: la casita NO está libre esa mañana.';
         }
 
         if ($espacio['entra_alguien_el_dia_que_se_va'] !== null) {
-            $lineas[] = sprintf(
-                'DESPUÉS: el día que se va entra otro huésped a las %s.',
-                $espacio['entra_alguien_el_dia_que_se_va']
-            );
+            $lineas[] = 'DESPUÉS: no cabe una salida tardía: ese día la casita hace falta a su hora.';
         } elseif (!$espacio['libre_la_noche_que_se_va']) {
             // La entrada temprana de quien llega al día siguiente ocupa la noche de su salida.
-            $lineas[] = 'DESPUÉS: la noche del día que se va ya está ocupada, así que no cabe una salida tardía.';
+            $lineas[] = 'DESPUÉS: no cabe una salida tardía.';
         }
 
-        // 🔒 El huésped no tiene por qué enterarse de los movimientos de otro.
+        // 🔒 El huésped no tiene por qué enterarse de los movimientos de otro, y por eso aquí no
+        // llegan: sólo la CONCLUSIÓN —desde qué hora está libre, si cabe una salida tardía—.
         //
-        // Esto es para DECIDIR, no para contar: la conclusión sí es suya («veo posible que
-        // entres a las 12», «esa mañana no va a poder ser»), el motivo no. Decirle «sale otro
-        // huésped a las 17:00» es contarle a quién tenemos dentro y a qué hora se va, que
-        // además es justo lo que no querríamos que supiera nadie de nuestra propia estancia.
-        //
-        // Va pegado a los datos y no como regla general del prompt por lo de siempre: la orden
-        // que viaja con el dato se cumple; la que hay que recordar, no.
+        // Antes llegaba «sale otro huésped a las 17:00» y detrás «NO le cuentes que hay otro
+        // huésped»: el dato y la orden de callarlo juntos, que es justo lo que el modelo no
+        // cumple (CLAUDE.md, «La supresión no funciona»). Revisión de fugas, 02/10/2026. Al
+        // equipo sí le llega quién y a qué hora, en el aviso de `confirmar_hora`.
         return "\n" . implode("\n", $lineas)
-            . "\nESTO ES INTERNO: úsalo para decidir qué le ofreces, pero NO le cuentes que hay"
-            . ' otro huésped ni sus horas. Dale la conclusión, nunca el motivo.';
+            . "\nEs para decidir qué le ofreces: dale la conclusión.";
     }
 
     private function prospecto(): string
@@ -416,9 +410,10 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
           consulta su reserva o su guía y dale el dato.
         - PEDIR es querer que PASE algo que depende de nosotros: salir más tarde, entrar antes,
           cambiar fechas, un servicio extra, una avería, un cobro que no cuadra, una queja.
-          Eso NO lo decides tú. Ni siquiera cuando su guía explique las condiciones: que diga
-          «sujeto a disponibilidad y con coste» te deja contarle las condiciones, pero nadie ha
-          mirado todavía si se puede. Cuéntale lo que dice su guía y AVISA AL EQUIPO.
+          Eso NO lo decides tú, ni siquiera cuando su guía explique las condiciones: nadie ha
+          mirado todavía si se puede. Dile que lo consultas con el equipo y AVISA AL EQUIPO.
+          Si es entrar antes o salir más tarde, la conversación es de horas y disponibilidad.
+          SI PREGUNTA SI TIENE COSTO: sí, hay un costo adicional y el equipo le confirma el detalle.
 
         ⚠️ SI YA SE LO EXPLICASTE Y VUELVE A INSISTIR, no repitas la explicación: mira el
         historial. Que diga otra vez «sigue sin funcionar» o «ya lo probé» significa que las

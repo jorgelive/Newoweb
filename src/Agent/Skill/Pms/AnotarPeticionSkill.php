@@ -77,8 +77,8 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
                 . 'NO es para lo que hay que resolver ahora —una avería, un cobro que no cuadra, '
                 . 'alguien en la puerta—: eso es «escalar_al_equipo». Ésta es para lo que se '
                 . 'prepara con tiempo. '
-                . 'Tampoco sustituye a responderle: mira primero en su guía si eso existe y '
-                . 'cuánto cuesta, cuéntaselo, y ADEMÁS anótalo.',
+                . 'Tampoco sustituye a responderle: mira primero en su guía si eso existe, '
+                . 'cuéntaselo, y ADEMÁS anótalo. SI PREGUNTA CUÁNTO CUESTA, dale el precio de su guía.',
             parametros: [
                 SkillParameter::texto('peticion', 'Qué pide, en una línea y con sus palabras: '
                     . '«plancha y tabla», «secador de pelo», «dos almohadas bajas». Lo va a leer '

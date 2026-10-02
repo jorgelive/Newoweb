@@ -56,10 +56,13 @@ final class PmsProcedenciaComercial
         return match (strtolower(trim((string) $origen))) {
             'airbnb' => 'Reservó por Airbnb: la plataforma ya cobró la estancia entera, así que no '
                 . 'paga nada al llegar y NO hay depósito de garantía.',
+            // El depósito NO va aquí: esta línea viaja en cada turno, hable de lo que hable, y el
+            // modelo lo soltaba sin venir a cuento. Está en el tema «Pago», dentro de su «SI
+            // PREGUNTA». Se deja el puntero para que no lo niegue. Revisión de fugas, 02/10/2026.
             'booking' => 'Reservó por Booking.com: la plataforma no cobra, el pago se abona aquí '
-                . '—al llegar o adelantado— y sí aplica el depósito de garantía.',
-            'directo' => 'Es una reserva directa: el pago se abona aquí —al llegar o adelantado— y '
-                . 'sí aplica el depósito de garantía.',
+                . '—al llegar o adelantado—. Las condiciones de pago, depósito incluido, están en el tema «Pago».',
+            'directo' => 'Es una reserva directa: el pago se abona aquí —al llegar o adelantado—. '
+                . 'Las condiciones de pago, depósito incluido, están en el tema «Pago».',
             default => null,
         };
     }
