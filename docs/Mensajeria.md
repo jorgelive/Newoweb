@@ -8807,6 +8807,30 @@ modelo, porque el botón ya dice la hora.
 ⚠️ `AutoResponderRule` no tenía `#[ORM\HasLifecycleCallbacks]`: su `PrePersist` de fechas no corría
 y una regla creada fuera del panel reventaba con «created_at cannot be null». Añadido.
 
+## 18.d ter La guía de llegada con botones para la hora (02/10/2026)
+
+`guia_llegada_botones` y `guia_llegada_booking_botones` sustituyen a `guia_llegada` y
+`guia_llegada_booking` (reglas «Guia de llegada» y «Guia de llegada Booking», 30 h antes de la
+entrada). Mismo texto; sólo la última línea pasa a pregunta directa, la misma forma que la del
+aviso de salida (Jorge): «🕑 El check-in es desde las 14:00. ¿A qué hora tienes planeado llegar?».
+
+| botón | payload | qué pasa |
+|---|---|---|
+| Después de las 14:00 | `CMD_LLEGADA_DESPUES` | `pasar_al_agente`: pregunta la hora y la apunta confirmada (`confirmar_hora`) |
+| Antes de las 14:00 | `CMD_LLEGADA_ANTES` | `pasar_al_agente`: pregunta la hora; depende de la disponibilidad, ofrece el equipaje y avisa al equipo con la ocupación de la noche anterior |
+| Ver mi guía | — (enlace, `guide_path`) | abre su guía |
+
+- **Las dos de respuesta, al agente**: hace falta la hora concreta, y con ella `confirmar_hora`
+  decide. No hay atajo como el «Salgo a las 10:00» del aviso de salida, porque «después de las
+  14:00» no es una hora.
+- **El enlace va el último**, como en `aviso_salida`, que ya aprobó Meta: no se arriesga otro orden.
+- **Por canal**, igual que el aviso de salida: Meta fuera de la ventana con los tres; dentro, el
+  texto largo con los dos de respuesta de verdad (el enlace ya está en el texto); por Beds24, el
+  texto largo con la pregunta abierta (sin opciones, ~6 min). Quien contesta con sus palabras va al
+  agente por cualquier canal.
+- **Se activa como el aviso de salida**: `msg:plantillas:guia-llegada-botones --activar` se niega
+  hasta que Meta apruebe las dos enteras, repunta las dos reglas y recoloca las guías ya en cola.
+
 ## 18.e Plantillas archivadas: sin canal, fuera del selector (17/09/2026)
 
 El selector «Elegir plantilla» del chat pedía `/platform/message/templates` —todas— y filtraba sólo
