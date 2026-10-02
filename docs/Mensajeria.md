@@ -292,6 +292,10 @@ POST /platform/client/pax/pms/pms_reserva/{localizador}/telefono   (PmsReservaTe
 - **Válido o nada** (422 `invalido`): al revés que `cleanPhoneNumber()`, aquí quien escribe está
   delante y se le pide que lo revise en vez de guardar dígitos a los que nunca llegará un WhatsApp.
   Sin prefijo, se interpreta con el país de la reserva.
+- **Si el número ya era de otra conversación**, queda en la reserva (semilla), NO pasa a su hilo
+  y salta la fusión sugerida con su aviso. Mientras nadie decide, la tarjeta **no se le vuelve a
+  pedir** (`telefonoPendienteDeUnir()`): su hilo sigue sin teléfono verificado, y sin esa
+  condición le volvía a salir en cada visita pidiéndole lo que ya dio.
 - ⚠️ **La tarjeta no sale sin sus textos** (`res_tel_titulo`, `pax:textos:telefono`): sin ellos
   saldría en español a todo el mundo. Así el código se despliega antes de aprobar el texto.
 

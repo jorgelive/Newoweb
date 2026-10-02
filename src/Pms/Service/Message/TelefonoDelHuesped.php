@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Message;
 
+use App\Message\Enum\IdentidadTipo;
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
+use App\Pms\Entity\PmsConversacionEnlace;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use App\Service\Phone\PhoneSanitizer;
@@ -34,15 +37,23 @@ final readonly class TelefonoDelHuesped
         private TelefonoDeContacto $contacto,
         private PhoneSanitizer $telefonos,
         private EntityManagerInterface $em,
+        private EnlacesDeConversacion $enlaces,
     ) {}
 
     /**
      * Se pide sólo con una estancia por delante (o en curso) y sin teléfono VERIFICADO en su
      * conversación —la semilla sola no cuenta: es justo el caso en que no le llega nada—.
+     *
+     * ⚠️ **Y no si ya lo dejó y está pendiente de unir.** Si el número que dejó ya era de otra
+     * conversación, no pasa a la suya —eso lo decide el equipo con la fusión sugerida—, así que su
+     * hilo sigue sin teléfono verificado. Sin esta condición la tarjeta le volvía a salir cada vez
+     * que entraba, pidiéndole algo que ya había dado. Visto el 02/10/2026 antes de probarlo.
      */
     public function hayQuePedirlo(PmsReserva $reserva): bool
     {
-        return $this->tieneEstanciaPorDelante($reserva) && !$this->contacto->vieneDeIdentidad($reserva);
+        return $this->tieneEstanciaPorDelante($reserva)
+            && !$this->contacto->vieneDeIdentidad($reserva)
+            && !$this->telefonoPendienteDeUnir($reserva);
     }
 
     /**
@@ -70,6 +81,14 @@ final readonly class TelefonoDelHuesped
         $this->em->flush();
 
         return self::GUARDADO;
+    }
+
+    private function telefonoPendienteDeUnir(PmsReserva $reserva): bool
+    {
+        $sugerida = $this->enlaces->hiloTitularDe(PmsConversacionEnlace::CONTEXT_TYPE, (string) $reserva->getId())
+            ?->fusionSugerida();
+
+        return $sugerida !== null && $sugerida->tipo === IdentidadTipo::TELEFONO->value;
     }
 
     private function tieneEstanciaPorDelante(PmsReserva $reserva): bool
