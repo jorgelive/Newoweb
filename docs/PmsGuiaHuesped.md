@@ -2484,6 +2484,14 @@ entrada, sale antes de irse de la ciudad, se va unos días—, y que es gratis s
 pregunta el costo (Version20261001240000). Lo contrario que el ingreso temprano / salida tarde, que
 SÍ cuesta: ahí la política se dice sólo si pregunta, y lo decide el equipo (Version20261001230000).
 
+⚠️ **Y el «gratis» tiene que ir como RESPUESTA, no como dato (02/10/2026).** La primera versión
+decía «Es GRATIS para nuestros huéspedes: si pregunta el costo, díselo…» pegado a la oferta, y el
+agente lo soltaba sin que preguntaran (Franco, W2YRVK: «espacio gratuito», dos veces). Era un dato
+suelto delante de la condición. Ahora van las dos ramas en positivo: al ofrecer, «la conversación
+es de cuándo y cuántas piezas»; y en bloque aparte, «SI PREGUNTA EL COSTO: es gratis…»
+(Version20261002214940). No es supresión —«dilo si pregunta» es una condición—. Si aun así lo
+suelta, el paso siguiente es partir el ítem, como el depósito de garantía.
+
 ## 💬 «Este chat» en una pantalla que no es un chat (31/08/2026)
 
 El aviso de «ya pagué» decía: *«Avísanos por **este chat** cuando lo hayas hecho… hazlo por
