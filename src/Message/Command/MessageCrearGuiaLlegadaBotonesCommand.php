@@ -24,13 +24,14 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * ── Qué cambia ──────────────────────────────────────────────────────────────
  * El texto es el mismo (`MessageCrearGuiaLlegadaCommand`); sólo la última línea pasa a ser una
- * pregunta directa —«¿A qué hora tienes planeado llegar?», como la del aviso de salida (Jorge,
- * 02/10/2026)— y se le añaden dos respuestas de un toque:
+ * pregunta directa con la hora de SU reserva —«Tu check-in es desde las {{checkin_time}}. ¿A qué hora
+ * tienes planeado llegar?», como la del aviso de salida (Jorge, 02/10/2026)— y se le añaden dos
+ * respuestas de un toque:
  *
  * | botón | payload | qué pasa |
  * |---|---|---|
- * | Después de las 14:00 | `CMD_LLEGADA_DESPUES` | `pasar_al_agente`: pregunta la hora y la apunta confirmada (`confirmar_hora`) |
- * | Antes de las 14:00 | `CMD_LLEGADA_ANTES` | `pasar_al_agente`: pregunta la hora; depende de la disponibilidad, ofrece el equipaje y avisa al equipo, que decide |
+ * | Llegaré más tarde | `CMD_LLEGADA_DESPUES` | `pasar_al_agente`: pregunta la hora y la apunta confirmada (`confirmar_hora`) |
+ * | Llegaré antes | `CMD_LLEGADA_ANTES` | `pasar_al_agente`: pregunta la hora; depende de la disponibilidad, ofrece el equipaje y avisa al equipo, que decide |
  *
  * El botón de enlace [Ver mi guía] se queda, el último: el aviso de salida —ya aprobado por
  * Meta— lleva las respuestas delante y el enlace detrás, y no se arriesga otro orden.
@@ -66,7 +67,18 @@ final class MessageCrearGuiaLlegadaBotonesCommand extends Command
     /** Lo único que separa las dos. Va detrás de la noticia, que es a lo que condiciona. */
     private const string FRASE_PREPAGO = ' Se muestran en cuanto recibimos el prepago de tu reserva.';
 
-    private const string PREGUNTA = '🕑 El check-in es desde las 14:00. ¿A qué hora tienes planeado llegar?';
+    /**
+     * La hora es la de la RESERVA (`checkin_time`), no un 14:00 escrito: la del alojamiento si
+     * nadie la cambió, la acordada si sí (Jorge, 02/10/2026). Por eso los botones no dicen hora:
+     * los de respuesta rápida no admiten variables.
+     */
+    private const string PREGUNTA = '🕑 Tu check-in es desde las {{checkin_time}}. ¿A qué hora tienes planeado llegar?';
+
+    /**
+     * El nombre en Meta. `_v1` llevaba «desde las 14:00» y los botones con la hora; se mandó a
+     * revisión y se rehízo antes de activarla. Queda en Meta sin dueño (el sincronizador sólo avisa).
+     */
+    private const string VERSION_META = '_v2';
 
     private const string CUERPO = <<<'TXT'
         ¡Hola {{guest_name}}! 👋
@@ -106,13 +118,13 @@ final class MessageCrearGuiaLlegadaBotonesCommand extends Command
      * @var array<string, array{0: string, 1: string, 2: string}> idioma => [después, antes, guía]
      */
     private const array BOTONES = [
-        'es' => ['Después de las 14:00', 'Antes de las 14:00', 'Ver mi guía'],
-        'en' => ['After 2:00 pm', 'Before 2:00 pm', 'View my guide'],
-        'pt' => ['Depois das 14:00', 'Antes das 14:00', 'Ver meu guia'],
-        'fr' => ['Après 14h00', 'Avant 14h00', 'Voir mon guide'],
-        'it' => ['Dopo le 14:00', 'Prima delle 14:00', 'Vedi la mia guida'],
-        'de' => ['Nach 14:00 Uhr', 'Vor 14:00 Uhr', 'Meinen Guide ansehen'],
-        'nl' => ['Na 14:00 uur', 'Voor 14:00 uur', 'Bekijk mijn gids'],
+        'es' => ['Llegaré más tarde', 'Llegaré antes', 'Ver mi guía'],
+        'en' => ['Arriving later', 'Arriving earlier', 'View my guide'],
+        'pt' => ['Chego mais tarde', 'Chego antes', 'Ver meu guia'],
+        'fr' => ["J'arrive plus tard", "J'arrive plus tôt", 'Voir mon guide'],
+        'it' => ['Arrivo più tardi', 'Arrivo prima', 'Vedi la mia guida'],
+        'de' => ['Ich komme später', 'Ich komme früher', 'Meinen Guide ansehen'],
+        'nl' => ['Ik kom later', 'Ik kom eerder', 'Bekijk mijn gids'],
     ];
 
     public function __construct(
@@ -126,6 +138,7 @@ final class MessageCrearGuiaLlegadaBotonesCommand extends Command
     {
         $this
             ->addOption('activar', null, InputOption::VALUE_NONE, 'Repunta las dos reglas. Sólo con las dos aprobadas en Meta.')
+            ->addOption('rehacer', null, InputOption::VALUE_NONE, 'Borra y vuelve a crear las dos, sólo si ninguna regla las usa todavía.')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Sólo dice qué haría');
     }
 
@@ -134,7 +147,15 @@ final class MessageCrearGuiaLlegadaBotonesCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $simular = (bool) $input->getOption('dry-run');
 
-        return $input->getOption('activar') ? $this->activar($io, $simular) : $this->crear($io, $simular);
+        if ($input->getOption('activar')) {
+            return $this->activar($io, $simular);
+        }
+
+        if ($input->getOption('rehacer') && $this->rehacer($io, $simular) === Command::FAILURE) {
+            return Command::FAILURE;
+        }
+
+        return $this->crear($io, $simular);
     }
 
     private function crear(SymfonyStyle $io, bool $simular): int
@@ -165,6 +186,45 @@ final class MessageCrearGuiaLlegadaBotonesCommand extends Command
         }
 
         $this->reglasDeBoton($io, $simular);
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * Quita las dos plantillas para volver a crearlas con el texto de ahora. Sólo mientras ninguna
+     * regla apunte a ellas: entonces no ha salido ni está programado nada con ellas, y borrar no
+     * quita historia. Con una regla encima, se rota como cualquier plantilla aprobada (`_v3`).
+     */
+    private function rehacer(SymfonyStyle $io, bool $simular): int
+    {
+        $plantillas = $this->em->getRepository(MessageTemplate::class);
+        $reglas = $this->em->getRepository(MessageRule::class)->findAll();
+
+        foreach ([self::CODIGO, self::CODIGO_BOOKING] as $codigo) {
+            $plantilla = $plantillas->findOneBy(['code' => $codigo]);
+
+            if (!$plantilla instanceof MessageTemplate) {
+                continue;
+            }
+
+            foreach ($reglas as $regla) {
+                if ($regla->getTemplate() === $plantilla) {
+                    $io->error(sprintf('La regla «%s» ya usa «%s»: no se rehace, se rota con otra versión.', $regla->getName(), $codigo));
+
+                    return Command::FAILURE;
+                }
+            }
+
+            $io->text(sprintf('Se rehace «%s».', $codigo));
+
+            if (!$simular) {
+                $this->em->remove($plantilla);
+            }
+        }
+
+        if (!$simular) {
+            $this->em->flush();
+        }
 
         return Command::SUCCESS;
     }
@@ -323,7 +383,7 @@ final class MessageCrearGuiaLlegadaBotonesCommand extends Command
             ->setWhatsappMetaTmpl([
                 'is_active' => true,
                 'category' => 'UTILITY',
-                'meta_template_name' => $codigo . '_v1',
+                'meta_template_name' => $codigo . self::VERSION_META,
                 'is_official_meta' => false,
                 'header' => [['format' => 'TEXT', 'language' => 'es', 'content' => self::CABECERA_META]],
                 'footer' => [],
@@ -333,7 +393,7 @@ final class MessageCrearGuiaLlegadaBotonesCommand extends Command
                     ['index' => 1, 'type' => 'quick_reply', 'content' => null, 'resolver_key' => self::CMD_ANTES, 'button_text' => [['language' => 'es', 'content' => $antes]]],
                     ['index' => 2, 'type' => 'url', 'content' => 'https://pax.openperu.pe/{{1}}', 'resolver_key' => 'guide_path', 'button_text' => [['language' => 'es', 'content' => $guia]]],
                 ],
-                'ejemplos' => array_map(static fn (): array => ['guest_name' => 'Anna'], self::BOTONES),
+                'ejemplos' => array_map(static fn (): array => ['guest_name' => 'Anna', 'checkin_time' => '14:00'], self::BOTONES),
             ])
             ->setEmailTmpl(['is_active' => false, 'subject' => [], 'body' => []]);
     }

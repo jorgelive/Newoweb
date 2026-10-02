@@ -8837,6 +8837,29 @@ aviso de salida (Jorge): «🕑 El check-in es desde las 14:00. ¿A qué hora ti
 - **Se activa como el aviso de salida**: `msg:plantillas:guia-llegada-botones --activar` se niega
   hasta que Meta apruebe las dos enteras, repunta las dos reglas y recoloca las guías ya en cola.
 
+## 18.d quater La hora de la RESERVA, no la del alojamiento (02/10/2026)
+
+Jorge: «la hora que figura allí debería ser la de la reserva, que en caso de no ser modificada
+coincide con el check-in / check-out». Dos variables nuevas en `PmsMessageDataResolver`:
+`checkin_time` y `checkout_time` (`horaDeLaReserva()`), la primera entrada y la última salida entre
+las estancias activas. Con varias casitas el mismo día cuenta la más temprana / la más tardía; sin
+estancias, la del alojamiento.
+
+| dónde | qué | cuándo vale |
+|---|---|---|
+| Beds24 de `aviso_salida`; Beds24 y enlace de `guia_llegada` / `guia_llegada_booking`; `salida_confirmada` | la frase fija → `{{checkout_time}}` / `{{checkin_time}}` | ya: no pasan por Meta (`msg:plantillas:hora-de-la-reserva`) |
+| `aviso_salida_v2` | Meta con la hora variable y el botón **«Salgo a esa hora»** (`CMD_SALIDA_A_SU_HORA`) | al aprobarla Meta, con `--activar` |
+| `guia_llegada_botones` / `guia_llegada_booking_botones` (`_v2` en Meta) | «Tu check-in es desde las {{checkin_time}}» y botones **«Llegaré más tarde» / «Llegaré antes»** | al aprobarlas, con su `--activar` |
+
+- **Los botones no dicen la hora** porque los de respuesta rápida no admiten variables.
+- **El texto de DENTRO de la ventana de `aviso_salida` (v1) no se cambió**: va con el botón «Salgo
+  a las 10:00», y una hora distinta encima de ese botón sería peor que esperar a la v2.
+- **Dos botones, dos horas.** `CMD_SALIDA_A_LA_HORA` (v1) apunta la del alojamiento, que es lo que
+  dice su botón; `CMD_SALIDA_A_SU_HORA` (v2) apunta la de la estancia (`hora: estancia` en
+  `ConfirmarHoraActionHandler`). Mientras convivan, cada botón apunta lo que dice.
+- **Las guías con botones `_v1` se rehicieron antes de activarse** (`--rehacer`, que se niega si
+  alguna regla ya las usa). Quedan en Meta sin dueño; el sincronizador sólo avisa.
+
 ## 18.e Plantillas archivadas: sin canal, fuera del selector (17/09/2026)
 
 El selector «Elegir plantilla» del chat pedía `/platform/message/templates` —todas— y filtraba sólo

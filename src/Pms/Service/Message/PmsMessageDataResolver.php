@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Message;
 
+use App\Pms\Service\Reserva\HoraDeLaEstancia;
 use App\Message\Contract\MessageDataResolverInterface;
 use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEventoBeds24Link;
@@ -264,6 +265,29 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             : (count($totales) === 0 ? (string) ($info?->getMoneda()?->getId() ?? '') : '');
     }
 
+    /**
+     * `HH:MM` de la primera entrada o de la última salida de la reserva, entre sus estancias
+     * activas. Con varias casitas el mismo día cuenta la más temprana (entrada) o la más tardía
+     * (salida): es la que el huésped vive. Sin estancias activas, la del alojamiento.
+     */
+    private function horaDeLaReserva(PmsReserva $reserva, bool $salida): string
+    {
+        $momentos = [];
+
+        foreach ($reserva->getEventosActivosGuia() as $evento) {
+            $momento = $salida ? $evento->getFin() : $evento->getInicio();
+            if ($momento !== null) {
+                $momentos[] = $momento->format('Y-m-d H:i');
+            }
+        }
+
+        if ($momentos === []) {
+            return $salida ? HoraDeLaEstancia::CHECK_OUT_POR_DEFECTO : HoraDeLaEstancia::CHECK_IN_POR_DEFECTO;
+        }
+
+        return substr($salida ? max($momentos) : min($momentos), 11, 5);
+    }
+
     private function getReserva(string $contextId): ?PmsReserva
     {
         return $this->entityManager->getRepository(PmsReserva::class)->find($contextId);
@@ -393,6 +417,11 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'locator'               => $localizador,
             'checkin_date'          => $reserva->getFechaLlegada()?->format('d/m/Y') ?? '',
             'checkout_date'         => $reserva->getFechaSalida()?->format('d/m/Y') ?? '',
+            // La HORA que figura en la reserva, no la del alojamiento: si nadie la tocó coinciden;
+            // si se acordó otra (entrada temprana, salida tardía, la que confirmó el huésped), es
+            // ésa. Jorge, 02/10/2026: «la hora que figura allí debería ser la de la reserva».
+            'checkin_time'          => $this->horaDeLaReserva($reserva, false),
+            'checkout_time'         => $this->horaDeLaReserva($reserva, true),
             'nights'                => $reserva->getNoches(),
             'pax_total'             => $reserva->getPaxTotal(),
             // 💱 IMPORTES AUTOCONTENIDOS, con su moneda dentro.
@@ -516,6 +545,8 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'locator'               => $dummyLocator,
             'checkin_date'          => $now->format('d/m/Y'),
             'checkout_date'         => $checkout->format('d/m/Y'),
+            'checkin_time'          => HoraDeLaEstancia::CHECK_IN_POR_DEFECTO,
+            'checkout_time'         => HoraDeLaEstancia::CHECK_OUT_POR_DEFECTO,
             'nights'                => 4,
             'pax_total'             => 2,
             'total_amount'          => '150.00',
