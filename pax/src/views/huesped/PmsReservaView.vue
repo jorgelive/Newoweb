@@ -809,7 +809,8 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
       <!-- Sin teléfono verificado: se lo pedimos (Booking ya no lo pasa). Sólo si ya existen sus
            textos traducidos; ver PedirTelefono. -->
       <PedirTelefono v-if="pmsStore.reserva.necesitaTelefono && maestroStore.t('res_tel_titulo')"
-                     :localizador="pmsStore.reserva.localizador ?? ''" @guardado="pmsStore.lastUpdate = 0" />
+                     :localizador="pmsStore.reserva.localizador ?? ''" :terminado-en="pmsStore.reserva.telefonoSinWhatsapp ?? null"
+                     @guardado="pmsStore.lastUpdate = 0" />
 
       <!-- ═══ ESTADO DE CUENTA ═══ Solo si el backend mandó el resumen (hay
            cabecera financiera con cargos). Presentación, sin lógica de negocio:

@@ -135,6 +135,14 @@ class PmsReserva
     #[Assert\Length(max: 30)]
     private ?string $telefono = null;
 
+    /**
+     * Cuándo dijo el huésped, en su página, que prefiere NO dejar su WhatsApp. Con esto la página
+     * deja de pedírselo y el reporte «Sin teléfono» lo dice, para que el equipo tampoco insista.
+     * Ver `TelefonoDelHuesped::rechazar()`.
+     */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $telefonoRechazadoAt = null;
+
 
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     #[Assert\Email(message: 'El formato del email no es válido.')]
@@ -471,6 +479,8 @@ class PmsReserva
     #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]
     public function getTelefono(): ?string { return $this->telefono; }
     public function setTelefono(?string $val): self { $this->telefono = $val; return $this; }
+    public function getTelefonoRechazadoAt(): ?DateTimeImmutable { return $this->telefonoRechazadoAt; }
+    public function setTelefonoRechazadoAt(?DateTimeImmutable $cuando): self { $this->telefonoRechazadoAt = $cuando; return $this; }
 
     #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]
     public function getEmailCliente(): ?string { return $this->emailCliente; }
@@ -705,6 +715,17 @@ class PmsReserva
     #[SerializedName('necesitaTelefono')]
     public function isNecesitaTelefonoCliente(): bool { return $this->necesitaTelefonoCliente; }
     public function setNecesitaTelefonoCliente(bool $necesita): self { $this->necesitaTelefonoCliente = $necesita; return $this; }
+
+    /**
+     * Si se le pide porque el número que tenemos NO tiene WhatsApp (vetado): sus tres últimas
+     * cifras, para que reconozca cuál era sin enseñar el número entero. Null en los demás casos.
+     */
+    private ?string $telefonoSinWhatsappCliente = null;
+
+    #[Groups(['pax_reserva:read'])]
+    #[SerializedName('telefonoSinWhatsapp')]
+    public function getTelefonoSinWhatsappCliente(): ?string { return $this->telefonoSinWhatsappCliente; }
+    public function setTelefonoSinWhatsappCliente(?string $terminadoEn): self { $this->telefonoSinWhatsappCliente = $terminadoEn; return $this; }
 
     public function getInformacionFinanciera(): ?PmsInformacionFinanciera { return $this->informacionFinanciera; }
 

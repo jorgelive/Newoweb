@@ -30500,6 +30500,11 @@ export interface components {
              * @default false
              */
             necesitaTelefono: boolean;
+            /**
+             * @description Si se le pide porque el número que tenemos NO tiene WhatsApp (vetado): sus tres últimas
+             *     cifras, para que reconozca cuál era sin enseñar el número entero. Null en los demás casos.
+             */
+            telefonoSinWhatsapp?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -30664,6 +30669,11 @@ export interface components {
              * @default false
              */
             necesitaTelefono: boolean;
+            /**
+             * @description Si se le pide porque el número que tenemos NO tiene WhatsApp (vetado): sus tres últimas
+             *     cifras, para que reconozca cuál era sin enseñar el número entero. Null en los demás casos.
+             */
+            telefonoSinWhatsapp?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -30773,6 +30783,11 @@ export interface components {
              * @default false
              */
             necesitaTelefono: boolean;
+            /**
+             * @description Si se le pide porque el número que tenemos NO tiene WhatsApp (vetado): sus tres últimas
+             *     cifras, para que reconozca cuál era sin enseñar el número entero. Null en los demás casos.
+             */
+            telefonoSinWhatsapp?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -30879,6 +30894,11 @@ export interface components {
              * @default false
              */
             necesitaTelefono: boolean;
+            /**
+             * @description Si se le pide porque el número que tenemos NO tiene WhatsApp (vetado): sus tres últimas
+             *     cifras, para que reconozca cuál era sin enseñar el número entero. Null en los demás casos.
+             */
+            telefonoSinWhatsapp?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;

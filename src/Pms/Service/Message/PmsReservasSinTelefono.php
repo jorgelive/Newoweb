@@ -30,7 +30,7 @@ final readonly class PmsReservasSinTelefono implements AsuntosSinTelefonoInterfa
     public function sinTelefono(DateTimeImmutable $hoy): array
     {
         $filas = $this->db->fetchAllAssociative(<<<'SQL'
-            SELECT r.id AS reserva_id, r.localizador, r.nombre_cliente, r.apellido_cliente, r.telefono,
+            SELECT r.id AS reserva_id, r.localizador, r.nombre_cliente, r.apellido_cliente, r.telefono, r.telefono_rechazado_at,
                    ch.nombre AS canal,
                    MIN(e.inicio) AS inicio, MAX(e.fin) AS fin,
                    GROUP_CONCAT(DISTINCT u.nombre ORDER BY u.nombre SEPARATOR ', ') AS unidades,
@@ -72,7 +72,10 @@ final readonly class PmsReservasSinTelefono implements AsuntosSinTelefonoInterfa
                 negocio: 'pms_reserva',
                 id: $reserva,
                 nombre: $nombre !== '' ? $nombre : 'Sin nombre',
+                // Lo dijo en su página (`TelefonoDelHuesped::rechazar()`): que el equipo lo sepa
+                // antes de insistir, y que lo pida de otra forma si de verdad hace falta.
                 detalle: implode(' · ', array_filter([
+                    Lee::texto($fila['telefono_rechazado_at'] ?? null) !== null ? 'Prefiere no dar su WhatsApp' : null,
                     Lee::texto($fila['canal'] ?? null),
                     Lee::texto($fila['unidades'] ?? null),
                     Lee::texto($fila['localizador'] ?? null),

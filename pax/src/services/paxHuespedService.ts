@@ -30,6 +30,21 @@ export const paxHuespedService = {
      * `resultado` del backend: `guardado`, `invalido`, `ya_tenemos`, `sin_estancia`,
      * `no_encontrada`; o `error` si ni siquiera respondió.
      */
+    /** «Prefiero no dejar mi WhatsApp», ya confirmado. Devuelve `rechazado` o el motivo. */
+    async rechazarTelefono(loc: string): Promise<string> {
+        try {
+            const res = await fetch(`${API_BASE}/platform/client/pax/pms/pms_reserva/${loc}/telefono/rechazar`, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' },
+            });
+            const data = await res.json().catch(() => null) as { resultado?: string } | null;
+
+            return data?.resultado ?? 'error';
+        } catch {
+            return 'error';
+        }
+    },
+
     async guardarTelefono(loc: string, telefono: string): Promise<string> {
         try {
             const res = await fetch(`${API_BASE}/platform/client/pax/pms/pms_reserva/${loc}/telefono`, {

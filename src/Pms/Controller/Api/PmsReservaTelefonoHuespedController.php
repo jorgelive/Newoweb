@@ -32,7 +32,7 @@ final class PmsReservaTelefonoHuespedController extends AbstractController
     ) {}
 
     #[Route('/platform/client/pax/pms/pms_reserva/{localizador}/telefono', name: 'pax_reserva_telefono', methods: ['POST'])]
-    public function __invoke(string $localizador, Request $request): JsonResponse
+    public function guardar(string $localizador, Request $request): JsonResponse
     {
         $this->throttle->asegurarPresupuesto();
 
@@ -52,8 +52,27 @@ final class PmsReservaTelefonoHuespedController extends AbstractController
 
         return new JsonResponse(['resultado' => $resultado], match ($resultado) {
             TelefonoDelHuesped::GUARDADO => Response::HTTP_OK,
-            TelefonoDelHuesped::INVALIDO => Response::HTTP_UNPROCESSABLE_ENTITY,
+            TelefonoDelHuesped::INVALIDO, TelefonoDelHuesped::ESE_NO_TIENE_WHATSAPP => Response::HTTP_UNPROCESSABLE_ENTITY,
             default => Response::HTTP_CONFLICT,
         });
+    }
+
+    /** «Prefiero no dejar mi WhatsApp», ya confirmado por el huésped. Ver `TelefonoDelHuesped::rechazar()`. */
+    #[Route('/platform/client/pax/pms/pms_reserva/{localizador}/telefono/rechazar', name: 'pax_reserva_telefono_rechazar', methods: ['POST'])]
+    public function rechazar(string $localizador): JsonResponse
+    {
+        $this->throttle->asegurarPresupuesto();
+
+        $reserva = $this->em->getRepository(PmsReserva::class)->findOneBy(['localizador' => $localizador]);
+
+        if ($reserva === null) {
+            $this->throttle->registrarFallo();
+
+            return new JsonResponse(['resultado' => 'no_encontrada'], Response::HTTP_NOT_FOUND);
+        }
+
+        $resultado = $this->telefono->rechazar($reserva);
+
+        return new JsonResponse(['resultado' => $resultado], $resultado === TelefonoDelHuesped::RECHAZADO ? Response::HTTP_OK : Response::HTTP_CONFLICT);
     }
 }

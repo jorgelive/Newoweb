@@ -71,7 +71,9 @@ final class PmsReservaPaxProvider implements ProviderInterface
         }
 
         // Antes de las finanzas, que salen pronto si no hay cargos.
-        $reserva->setNecesitaTelefonoCliente($this->telefonoDelHuesped->hayQuePedirlo($reserva));
+        $pedirlo = $this->telefonoDelHuesped->porQuePedirlo($reserva);
+        $reserva->setNecesitaTelefonoCliente($pedirlo !== null)
+            ->setTelefonoSinWhatsappCliente($pedirlo['terminadoEn'] ?? null);
 
         $finanzas = $this->em->getRepository(PmsInformacionFinanciera::class)
             ->findOneBy(['reserva' => $reserva]);

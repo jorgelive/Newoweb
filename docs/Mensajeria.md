@@ -296,11 +296,30 @@ POST /platform/client/pax/pms/pms_reserva/{localizador}/telefono   (PmsReservaTe
   y salta la fusión sugerida con su aviso. Mientras nadie decide, la tarjeta **no se le vuelve a
   pedir** (`telefonoPendienteDeUnir()`): su hilo sigue sin teléfono verificado, y sin esa
   condición le volvía a salir en cada visita pidiéndole lo que ya dio.
+- **También se pide cuando el número que hay no tiene WhatsApp** (vetado por Meta: mal escrito o
+  sin cuenta). `ContactoDelAsunto` sólo da por bueno un número vivo y sin vetar, así que cae solo
+  en «hay que pedirlo»; la página lo dice con otro texto y las **tres últimas cifras** del vetado
+  (`telefonoSinWhatsapp`), para que reconozca cuál era sin enseñarle el número entero. Si escribe
+  justo ese, 422 `ese_no_tiene_whatsapp`.
+- **El número nuevo se AÑADE a su conversación, no pisa la ficha.** La ficha
+  (`PmsReserva::$telefono`) es lo que dio al reservar y se conserva a propósito; sólo se rellena si
+  estaba vacía. Con conversación, `ResolutorDeHilo::vincular()` lo añade —o propone la unión si ya
+  es de otra persona— y `preferirTelefonoQueEscribe()` lo hace el número de envío **sólo si el
+  actual no sirve** (el caso de Or Cohen). Sin conversación, se siembra la ficha y el recálculo
+  hace el resto.
+- **«Prefiero no dejar mi WhatsApp»**, con confirmación (`POST …/telefono/rechazar`,
+  `TelefonoDelHuesped::rechazar()`): guarda `PmsReserva::$telefonoRechazadoAt` y no se le vuelve a
+  pedir. En la reserva y no en la persona: lo dijo en la página de ESA reserva. El reporte
+  «Sin teléfono» lo muestra («Prefiere no dar su WhatsApp») para que el equipo tampoco insista. Si
+  luego lo deja, la marca se borra: vale lo último que hizo.
 - ⚠️ **La tarjeta no sale sin sus textos** (`res_tel_titulo`, `pax:textos:telefono`): sin ellos
   saldría en español a todo el mundo. Así el código se despliega antes de aprobar el texto.
 
 Probado de punta a punta por el kernel sobre la copia de producción: inválido 422, localizador
 desconocido 404, válido → identidad + `guestPhone` + colas de WhatsApp, y un segundo intento 409.
+Y con un número vetado (simulado en la copia): la página lo pide con sus tres cifras, el mismo
+número da 422, uno nuevo pasa a ser el principal y levanta el veto del hilo sin tocar la ficha, y
+«prefiero no dejarlo» marca la reserva y la tarjeta deja de salir.
 
 ## Editar identidades ya no obliga a cargar el chat (08/09/2026)
 
