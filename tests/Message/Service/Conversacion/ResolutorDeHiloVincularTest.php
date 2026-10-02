@@ -55,6 +55,40 @@ final class ResolutorDeHiloVincularTest extends TestCase
     }
 
     #[Test]
+    public function el_choque_queda_apuntado_como_fusion_sugerida(): void
+    {
+        // El caso de Adrián (02/10/2026): una reserva directa nació sin teléfono, se le puso
+        // después y era el de su hilo de agosto. Sólo quedaba una línea en el log.
+        $ajeno = $this->hilo();
+        $ajeno->setGuestName('Adrián Tolaba');
+        $ocupado = new MessageIdentidad(IdentidadTipo::TELEFONO, '5493884040780');
+        $ajeno->addIdentidad($ocupado);
+
+        $nuevo = $this->hilo();
+        $this->resolutor($ocupado)->vincular($nuevo, IdentidadTipo::TELEFONO, '+54 9 3884 04-0780');
+
+        $sugerida = $nuevo->fusionSugerida();
+        self::assertNotNull($sugerida);
+        self::assertSame((string) $ajeno->getId(), $sugerida->con);
+        self::assertSame('Adrián Tolaba', $sugerida->nombre);
+        self::assertSame('5493884040780', $sugerida->valor);
+        self::assertNull($ajeno->getFusionSugerida(), 'Al dueño no se le apunta nada: no ha pasado nada en su hilo.');
+    }
+
+    #[Test]
+    public function con_un_hilo_del_equipo_no_se_sugiere_fusion(): void
+    {
+        $equipo = new MessageConversation('staff', 'u-' . uniqid());
+        $ocupado = new MessageIdentidad(IdentidadTipo::TELEFONO, '51984123456');
+        $equipo->addIdentidad($ocupado);
+
+        $nuevo = $this->hilo();
+        $this->resolutor($ocupado)->vincular($nuevo, IdentidadTipo::TELEFONO, '51984123456');
+
+        self::assertNull($nuevo->getFusionSugerida());
+    }
+
+    #[Test]
     public function el_identificador_propio_no_se_duplica(): void
     {
         $hilo = $this->hilo();

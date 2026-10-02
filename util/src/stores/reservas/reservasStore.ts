@@ -1,4 +1,5 @@
 // src/stores/reservas/reservasStore.ts
+import type { components } from '@dominio/api';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { apiClient } from '@/services/apiClient';
@@ -222,6 +223,29 @@ export const useReservasStore = defineStore('reservasStore', () => {
     };
 
     /**
+     * El hilo de la reserva y su fusión sugerida, si la hay: un teléfono que llegó para ella ya
+     * era de otra conversación. Lo pinta `FusionSugeridaAviso` en el cajón.
+     *
+     * Por `/por-asunto` y no por la colección, por lo mismo que {@see fetchConversacionId}.
+     */
+    const fetchFusionSugerida = async (reservaId: string): Promise<{
+        conversacionId: string;
+        sugerencia: NonNullable<components['schemas']['Conversation-conversation.read']['fusionSugerida']>;
+    } | null> => {
+        try {
+            const res = await apiClient.get('/platform/message/conversations/por-asunto', {
+                params: { contextType: 'pms_reserva', contextId: reservaId },
+            });
+            const hilo = res.data as components['schemas']['Conversation-conversation.read'] | undefined;
+
+            return hilo?.id && hilo.fusionSugerida ? { conversacionId: hilo.id, sugerencia: hilo.fusionSugerida } : null;
+        } catch {
+            // Sin banner es peor que con banner, pero no puede tumbar el cajón.
+            return null;
+        }
+    };
+
+    /**
      * El número al que se le escribe a esta reserva, y de dónde salió.
      *
      * ⚠️ **No está en la reserva.** El campo `telefono` es la SEMILLA con la que se creó; el
@@ -296,6 +320,7 @@ export const useReservasStore = defineStore('reservasStore', () => {
         createReservaCompleta,
         fetchConversacionId,
         fetchTelefonoContacto,
+        fetchFusionSugerida,
         fetchWhatsappLink,
         buscarReservas,
         clearActivo,

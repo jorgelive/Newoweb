@@ -7,6 +7,7 @@ namespace App\Message\Service\Conversacion;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageIdentidad;
 use App\Message\Enum\IdentidadTipo;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -151,18 +152,31 @@ final readonly class ResolutorDeHilo
         // intentaba fichar los dos identificadores ajenos. Resultado: **la reserva no se podía
         // guardar**, con un error de clave duplicada que no dice nada de lo que pasó.
         //
-        // Se salta y se deja rastro. El hilo nuevo se queda con lo que sí sea suyo, y si de
-        // verdad son la misma persona hay una herramienta que lo decide:
-        // `app:message:fusionar-hilos`.
+        // Se salta, y se APUNTA en el hilo como fusión sugerida: quién decide si son la misma
+        // persona es el equipo, desde el banner del chat o de la reserva.
+        //
+        // 🔥 Hasta el 02/10/2026 sólo quedaba esta línea en el log, y el log no lo lee nadie. Una
+        // reserva directa de Adrián nació sin teléfono; al ponérselo, el número ya era del hilo
+        // de sus reservas de agosto, no se movió, y su guía de llegada y su aviso de salida se
+        // quedaron en `sin_canal` sin que nadie se enterara. Es lo mismo que pasa cuando el
+        // huésped de una OTA añade su teléfono y el pull lo trae. Ver `docs/Mensajeria.md`, «El
+        // choque de identificadores que nadie veía».
         $existente = $this->buscar($tipo, $normalizado);
+        $suDueno = $existente?->getConversacion();
 
-        if ($existente !== null && $existente->getConversacion() !== $conversacion) {
+        if ($existente !== null && $suDueno !== $conversacion) {
             $this->logger->warning('Identificador que ya es de otro hilo: no se mueve.', [
                 'tipo' => $tipo->value,
                 'valor' => $normalizado,
                 'lo_pedia' => (string) $conversacion->getId(),
-                'es_de' => (string) $existente->getConversacion()?->getId(),
+                'es_de' => (string) $suDueno?->getId(),
             ]);
+
+            // Los del equipo no se fusionan (rompería el enfriamiento de la guardia, ver
+            // `FusionarHilosController::parejaDe()`), así que tampoco se sugiere.
+            if ($suDueno !== null && $suDueno->getContextType() !== 'staff' && $conversacion->getContextType() !== 'staff') {
+                $conversacion->sugerirFusion($suDueno, $tipo, $normalizado, new DateTimeImmutable());
+            }
 
             return;
         }

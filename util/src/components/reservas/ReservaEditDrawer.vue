@@ -7,6 +7,7 @@ import { useChatStore } from '@/stores/chat/chatStore.ts';
 import { uuidDe, miembrosHydra } from '@/services/hydra';
 import { getUrls, apiClient } from '@/services/apiClient';
 import { formatearTelefono, telefonoParaWhatsapp } from '@/utils/telefono';
+import FusionSugeridaAviso from '@/components/chat/FusionSugeridaAviso.vue';
 import { enfocarEnScroller } from '@/utils/scrollEnfoque';
 import ReservaFinanzasPanel from '@/components/reservas/ReservaFinanzasPanel.vue';
 import ReservaTelefonoIdentidad from '@/components/reservas/ReservaTelefonoIdentidad.vue';
@@ -957,10 +958,21 @@ async function cargarTelefonoContacto(): Promise<void> {
 
     if (!props.reservaId) return;
 
-    const resuelto = await reservasStore.fetchTelefonoContacto(props.reservaId);
+    const [resuelto, fusion] = await Promise.all([
+        reservasStore.fetchTelefonoContacto(props.reservaId),
+        reservasStore.fetchFusionSugerida(props.reservaId),
+    ]);
     telefonoContacto.value = resuelto?.telefono ?? null;
     telefonoOrigen.value = resuelto?.origen ?? null;
+    fusionSugerida.value = fusion;
 }
+
+/**
+ * El teléfono que llegó para esta reserva ya es de otra conversación. Se pinta junto al número
+ * porque es justo lo que explica el «sin verificar»: el número está en la reserva, pero no en su
+ * hilo, y por eso no le sale nada. Ver `FusionSugeridaAviso`.
+ */
+const fusionSugerida = ref<Awaited<ReturnType<typeof reservasStore.fetchFusionSugerida>>>(null);
 
 /** Conversación de WhatsApp con el huésped, al número resuelto. */
 const whatsappUrl = computed(() => {
@@ -2508,6 +2520,10 @@ async function ejecutarBorrado(): Promise<void> {
                                 :telefono="telefonoContacto" :origen="telefonoOrigen"
                                 :vcard-url="vcardUrl" :ocupado="abriendoChat" :error="errorTelefono"
                                 @editar="editarIdentificadores" />
+
+                            <FusionSugeridaAviso v-if="fusionSugerida" class="mt-2"
+                                :conversacion-id="fusionSugerida.conversacionId" :sugerencia="fusionSugerida.sugerencia"
+                                @fusionado="cargarTelefonoContacto" @descartado="cargarTelefonoContacto" />
                             <div class="col-span-2">
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Email</p>
                                 <p class="text-sm font-bold text-slate-800 mt-0.5">{{ clienteForm.emailCliente || '—' }}</p>

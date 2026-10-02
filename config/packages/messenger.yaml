@@ -65,6 +65,9 @@ framework:
             # flush, el cuerpo llevaría el resumen del turno anterior.
             App\Message\Dispatch\EnviarPushConversacionDispatch: async
 
+            # Avisar es red (WhatsApp o push) y lo pide un postFlush: ver FusionSugeridaListener.
+            App\Message\Dispatch\AvisarFusionSugeridaDispatch: async
+
 
             # Route your messages to the transports
             # 'App\Message\YourMessage': async

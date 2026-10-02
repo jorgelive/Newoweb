@@ -8,6 +8,7 @@ use App\Contract\VinculoComercial;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\ApiProperty;
 use App\Message\Filter\ConversacionConMensajeEnEsperaFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
@@ -22,6 +23,7 @@ use App\Entity\Trait\TimestampTrait;
 use App\Contract\ConversationMilestoneInterface;
 use App\Contract\MapaDeHitos;
 use App\Contract\MomentoDeHito;
+use App\Message\Dto\FusionSugerida;
 use App\Message\Enum\IdentidadTipo;
 use App\Message\Controller\Api\MarkConversationReadController;
 use App\Message\Controller\Api\AsuntosDeConversacionController;
@@ -346,6 +348,29 @@ class MessageConversation
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $contextData = [];
 
+    /**
+     * «Éste y aquel parecen la misma persona»: un identificador llegó por el dominio —el pull de
+     * Beds24, el recálculo de una reserva— y ya era de otro hilo. Ver {@see self::sugerirFusion()}.
+     *
+     * Columna propia y no una clave de `contextData`: ésa está en
+     * `MessageRuleEngineListener::CAMPOS_CRITICOS`, y apuntar una sospecha no tiene por qué
+     * recalcular las reglas del hilo.
+     *
+     * @var array<string, mixed>|null Forma de {@see FusionSugerida}; se lee siempre por ella.
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $fusionSugerida = null;
+
+    /**
+     * Los hilos con los que alguien dijo «no es la misma persona». Sin esto, el siguiente
+     * recálculo de la reserva —pasan varias veces al día— volvería a sugerir lo descartado y a
+     * avisar al equipo otra vez.
+     *
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $fusionesDescartadas = null;
+
     /** @var Collection<int, Message> */
     // 🔥 **`EXTRA_LAZY` NO es una optimización: es lo que hace verdad al `count()`.**
     //
@@ -630,6 +655,83 @@ class MessageConversation
             }
         }
         return $this;
+    }
+
+    // =========================================================================
+    // FUSIÓN SUGERIDA
+    // =========================================================================
+
+    /**
+     * Apunta que el identificador `$valor` ya es de `$otro`, y dice si es NUEVO.
+     *
+     * Devuelve `false` —y no toca nada— si ya estaba apuntado con ese mismo hilo o si alguien
+     * lo descartó: el recálculo de una reserva pasa por aquí muchas veces, y quien escucha el
+     * `true` avisa al equipo. Sólo el primer choque es noticia.
+     */
+    public function sugerirFusion(self $otro, IdentidadTipo $tipo, string $valor, DateTimeInterface $ahora): bool
+    {
+        $con = (string) $otro->getId();
+
+        if ($con === '' || $otro === $this || in_array($con, $this->fusionesDescartadas ?? [], true)) {
+            return false;
+        }
+
+        if ($this->fusionSugerida()?->con === $con) {
+            return false;
+        }
+
+        $this->fusionSugerida = (new FusionSugerida($con, $otro->getGuestName(), $tipo->value, $valor, $ahora->format(DATE_ATOM)))->aArray();
+
+        return true;
+    }
+
+    public function fusionSugerida(): ?FusionSugerida
+    {
+        return FusionSugerida::desde($this->fusionSugerida);
+    }
+
+    /**
+     * Lo que pinta el panel: el banner del chat y el de la reserva.
+     *
+     * @return array{con: string, nombre: string|null, tipo: string, valor: string, desde: string}|null
+     */
+    #[ApiProperty(openapiContext: [
+        'type' => 'object',
+        'nullable' => true,
+        'description' => 'Un identificador de este hilo ya es de otro: si son la misma persona, hay que unirlos. Null si no hay nada pendiente.',
+        'required' => ['con', 'nombre', 'tipo', 'valor', 'desde'],
+        'properties' => [
+            'con' => ['type' => 'string', 'example' => '019fd1bd-572a-7693-b535-cac8292f9adc'],
+            'nombre' => ['type' => 'string', 'nullable' => true, 'example' => 'Adrián Tolaba'],
+            'tipo' => ['type' => 'string', 'enum' => ['telefono', 'email']],
+            'valor' => ['type' => 'string', 'example' => '5493884040780'],
+            'desde' => ['type' => 'string', 'format' => 'date-time'],
+        ],
+    ])]
+    #[Groups(['conversation:read'])]
+    public function getFusionSugerida(): ?array
+    {
+        return $this->fusionSugerida()?->aArray();
+    }
+
+    /** «No es la misma persona»: se quita y no se vuelve a sugerir con ese hilo. */
+    public function descartarFusionSugerida(): void
+    {
+        $con = $this->fusionSugerida()?->con;
+
+        if ($con !== null && !in_array($con, $this->fusionesDescartadas ?? [], true)) {
+            $this->fusionesDescartadas = [...($this->fusionesDescartadas ?? []), $con];
+        }
+
+        $this->fusionSugerida = null;
+    }
+
+    /** Ya se unieron: la sugerencia que apuntaba a `$otro` deja de tener sentido. */
+    public function olvidarFusionCon(self $otro): void
+    {
+        if ($this->fusionSugerida()?->con === (string) $otro->getId()) {
+            $this->fusionSugerida = null;
+        }
     }
 
     // =========================================================================

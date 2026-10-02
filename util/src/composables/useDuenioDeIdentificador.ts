@@ -117,11 +117,13 @@ export function useDuenioDeIdentificador(
      * backend, no esta pantalla. Enseñar aquí una suposición y que el servidor hiciera otra cosa
      * sería peor que no enseñar nada.
      */
-    const previaDeFusion = async (miHiloId: string): Promise<{
+    const previaDeFusion = async (miHiloId: string, conHilo?: string): Promise<{
         superviviente: { id: string; nombre: string | null; mensajes: number; asuntos: number };
         absorbido: { id: string; nombre: string | null; mensajes: number; asuntos: number };
     } | null> => {
-        const otro = duenio.value?.conversacionId;
+        // `conHilo` lo pasa quien ya sabe con quién —el banner de la fusión sugerida—; si no, es
+        // el dueño que acaba de encontrar la comprobación.
+        const otro = conHilo ?? duenio.value?.conversacionId;
 
         if (!otro || !miHiloId) return null;
 
@@ -145,8 +147,8 @@ export function useDuenioDeIdentificador(
      * archivado y **sin identidades** —y dentro del chat, pudiendo escribirle a números que ya no
      * son suyos—.
      */
-    const fusionar = async (miHiloId: string): Promise<{ supervivienteId: string } | { error: string }> => {
-        const otro = duenio.value?.conversacionId;
+    const fusionar = async (miHiloId: string, conHilo?: string): Promise<{ supervivienteId: string } | { error: string }> => {
+        const otro = conHilo ?? duenio.value?.conversacionId;
 
         if (!otro || !miHiloId) return { error: 'No sé con qué hilo fusionar.' };
 

@@ -7,6 +7,7 @@ namespace App\Message\Controller\Api;
 use App\Dto\Lee;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\Conversacion\FusionadorDeHilos;
+use App\Message\Service\Queue\MessageRuleEngine;
 use App\Security\Roles;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -43,6 +44,7 @@ final class FusionarHilosController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly Connection $db,
         private readonly FusionadorDeHilos $fusionador,
+        private readonly MessageRuleEngine $motor,
     ) {
     }
 
@@ -83,10 +85,38 @@ final class FusionarHilosController extends AbstractController
 
         $movidos = $this->fusionador->unir($superviviente, $absorbido);
 
+        // 🔥 Lo que esperaba canal sale YA, no en el siguiente barrido. Los mensajes se mueven
+        // por SQL y la cabecera del superviviente casi nunca cambia en un campo crítico, así que
+        // `MessageRuleEngineListener` no lo despierta: la guía de llegada de Adrián (02/10/2026)
+        // se habría quedado en `sin_canal` hasta el `sync-rules --all` de cada cuarto de hora.
+        $this->motor->syncConversationRules($superviviente, MessageRuleEngine::TRIGGER_UPDATE);
+        $this->em->flush();
+
         return $this->json([
             'movidos' => $movidos,
             'supervivienteId' => (string) $superviviente->getId(),
         ]);
+    }
+
+    /**
+     * «No es la misma persona»: quita la fusión sugerida y no la vuelve a proponer con ese hilo.
+     * Ver {@see MessageConversation::descartarFusionSugerida()}.
+     */
+    #[Route('/{id}/fusion/descartar', name: 'descartar', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['POST'])]
+    public function descartar(string $id): JsonResponse
+    {
+        $this->denyAccessUnlessGranted(Roles::MENSAJES_WRITE, null, 'Acceso denegado a las conversaciones.');
+
+        $hilo = Uuid::isValid($id) ? $this->em->getRepository(MessageConversation::class)->find(Uuid::fromString($id)) : null;
+
+        if ($hilo === null) {
+            return $this->json(['error' => 'No encuentro la conversación.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $hilo->descartarFusionSugerida();
+        $this->em->flush();
+
+        return $this->json(['ok' => true]);
     }
 
     /**

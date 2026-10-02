@@ -4064,6 +4064,19 @@ export interface components {
             contextData?: {
                 [key: string]: string | null;
             } | null;
+            /** @description Un identificador de este hilo ya es de otro: si son la misma persona, hay que unirlos. Null si no hay nada pendiente. */
+            readonly fusionSugerida?: {
+                /** @example 019fd1bd-572a-7693-b535-cac8292f9adc */
+                con: string;
+                /** @example Adrián Tolaba */
+                nombre: string | null;
+                /** @enum {string} */
+                tipo: "telefono" | "email";
+                /** @example 5493884040780 */
+                valor: string;
+                /** Format: date-time */
+                desde: string;
+            } | null;
             messages?: string[];
             identidades?: components["schemas"]["MessageIdentidad"][];
             /** Format: uuid */
@@ -4145,6 +4158,19 @@ export interface components {
             whatsappSessionValidUntil?: string | null;
             /** @default 0 */
             unreadCount: number;
+            /** @description Un identificador de este hilo ya es de otro: si son la misma persona, hay que unirlos. Null si no hay nada pendiente. */
+            readonly fusionSugerida?: {
+                /** @example 019fd1bd-572a-7693-b535-cac8292f9adc */
+                con: string;
+                /** @example Adrián Tolaba */
+                nombre: string | null;
+                /** @enum {string} */
+                tipo: "telefono" | "email";
+                /** @example 5493884040780 */
+                valor: string;
+                /** Format: date-time */
+                desde: string;
+            } | null;
             identidades?: components["schemas"]["MessageIdentidad-conversation.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -4229,6 +4255,19 @@ export interface components {
             whatsappSessionValidUntil?: string | null;
             /** @default 0 */
             unreadCount: number;
+            /** @description Un identificador de este hilo ya es de otro: si son la misma persona, hay que unirlos. Null si no hay nada pendiente. */
+            readonly fusionSugerida?: {
+                /** @example 019fd1bd-572a-7693-b535-cac8292f9adc */
+                con: string;
+                /** @example Adrián Tolaba */
+                nombre: string | null;
+                /** @enum {string} */
+                tipo: "telefono" | "email";
+                /** @example 5493884040780 */
+                valor: string;
+                /** Format: date-time */
+                desde: string;
+            } | null;
             identidades?: components["schemas"]["MessageIdentidad.html-conversation.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -4301,6 +4340,19 @@ export interface components {
             /** @description Espejo del activo: hitos, ítems, financieros. Ver `docs/Mensajeria.md`. */
             contextData?: {
                 [key: string]: string | null;
+            } | null;
+            /** @description Un identificador de este hilo ya es de otro: si son la misma persona, hay que unirlos. Null si no hay nada pendiente. */
+            readonly fusionSugerida?: {
+                /** @example 019fd1bd-572a-7693-b535-cac8292f9adc */
+                con: string;
+                /** @example Adrián Tolaba */
+                nombre: string | null;
+                /** @enum {string} */
+                tipo: "telefono" | "email";
+                /** @example 5493884040780 */
+                valor: string;
+                /** Format: date-time */
+                desde: string;
             } | null;
             messages?: string[];
             identidades?: components["schemas"]["MessageIdentidad"][];
@@ -4383,6 +4435,19 @@ export interface components {
             whatsappSessionValidUntil?: string | null;
             /** @default 0 */
             unreadCount: number;
+            /** @description Un identificador de este hilo ya es de otro: si son la misma persona, hay que unirlos. Null si no hay nada pendiente. */
+            readonly fusionSugerida?: {
+                /** @example 019fd1bd-572a-7693-b535-cac8292f9adc */
+                con: string;
+                /** @example Adrián Tolaba */
+                nombre: string | null;
+                /** @enum {string} */
+                tipo: "telefono" | "email";
+                /** @example 5493884040780 */
+                valor: string;
+                /** Format: date-time */
+                desde: string;
+            } | null;
             identidades?: components["schemas"]["MessageIdentidad.jsonld-conversation.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -4447,6 +4512,19 @@ export interface components {
             whatsappSessionValidUntil?: string | null;
             /** @default 0 */
             unreadCount: number;
+            /** @description Un identificador de este hilo ya es de otro: si son la misma persona, hay que unirlos. Null si no hay nada pendiente. */
+            readonly fusionSugerida?: {
+                /** @example 019fd1bd-572a-7693-b535-cac8292f9adc */
+                con: string;
+                /** @example Adrián Tolaba */
+                nombre: string | null;
+                /** @enum {string} */
+                tipo: "telefono" | "email";
+                /** @example 5493884040780 */
+                valor: string;
+                /** Format: date-time */
+                desde: string;
+            } | null;
             identidades?: components["schemas"]["MessageIdentidad.multipart-conversation.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -29307,7 +29385,7 @@ export interface components {
             /** @default fa-info-circle */
             icono: string | null;
             /** @enum {string|null} */
-            tipo?: "ingreso" | "descriptivo" | "normas" | null;
+            tipo?: "ingreso" | "descriptivo" | "normas" | "salida" | null;
             items?: components["schemas"]["PmsGuiaItem-pax_guia.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -29322,7 +29400,7 @@ export interface components {
             /** @default fa-info-circle */
             icono: string | null;
             /** @enum {string|null} */
-            tipo?: "ingreso" | "descriptivo" | "normas" | null;
+            tipo?: "ingreso" | "descriptivo" | "normas" | "salida" | null;
             items?: components["schemas"]["PmsGuiaItem.html-pax_guia.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -29337,7 +29415,7 @@ export interface components {
             /** @default fa-info-circle */
             icono: string | null;
             /** @enum {string|null} */
-            tipo?: "ingreso" | "descriptivo" | "normas" | null;
+            tipo?: "ingreso" | "descriptivo" | "normas" | "salida" | null;
             items?: components["schemas"]["PmsGuiaItem.jsonld-pax_guia.read"][];
             /** Format: uuid */
             readonly id?: string | null;
@@ -29352,7 +29430,7 @@ export interface components {
             /** @default fa-info-circle */
             icono: string | null;
             /** @enum {string|null} */
-            tipo?: "ingreso" | "descriptivo" | "normas" | null;
+            tipo?: "ingreso" | "descriptivo" | "normas" | "salida" | null;
             items?: components["schemas"]["PmsGuiaItem.multipart-pax_guia.read"][];
             /** Format: uuid */
             readonly id?: string | null;

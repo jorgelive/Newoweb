@@ -7,6 +7,7 @@ import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import ConversacionVistaPrevia from '@/components/common/ConversacionVistaPrevia.vue';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import EditConversationModal from '@/components/chat/EditConversationModal.vue';
+import FusionSugeridaAviso from '@/components/chat/FusionSugeridaAviso.vue';
 import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useNoLeidosStore } from '@/stores/chat/noLeidosStore';
@@ -431,6 +432,25 @@ const isPreviewModalOpen = ref(false);
 const previewImageUrl = ref<string | null>(null);
 
 const isEditConversationModalOpen = ref(false);
+
+/**
+ * Unidos desde el banner. El superviviente lo decide la antigüedad, así que puede ser el OTRO: se
+ * va a él —quedarse aquí es mirar un hilo archivado y sin identidades— y se refresca la bandeja,
+ * donde el absorbido ya no tiene que salir.
+ */
+const alUnirHilos = async (supervivienteId: string): Promise<void> => {
+  if (supervivienteId !== store.currentConversation?.id) {
+    await router.push({ name: 'chat_conversation', params: { conversationId: supervivienteId } });
+  } else {
+    await store.refrescarConversacion(supervivienteId);
+  }
+
+  await store.fetchConversations();
+};
+
+const alDescartarFusion = async (): Promise<void> => {
+  if (store.currentConversation?.id) await store.refrescarConversacion(store.currentConversation.id);
+};
 
 // ============================================================================
 // FICHA DE LA RESERVA (drawer sobre el chat)
@@ -1558,6 +1578,13 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
               </a>
             </div>
           </header>
+
+          <!-- Un teléfono de este hilo ya es de otro: ¿la misma persona? Ver FusionSugeridaAviso. -->
+          <div v-if="store.currentConversation?.fusionSugerida && store.currentConversation.id" class="bg-white border-b border-slate-200 px-4 md:px-8 py-2">
+            <FusionSugeridaAviso :conversacion-id="store.currentConversation.id"
+                                 :sugerencia="store.currentConversation.fusionSugerida"
+                                 @fusionado="alUnirHilos" @descartado="alDescartarFusion" />
+          </div>
 
           <div v-if="store.totalProgramados > 0 || store.totalCancelados > 0" class="bg-slate-50 border-b border-slate-200 px-4 md:px-8 py-2 flex gap-6 text-xs font-black uppercase tracking-widest overflow-x-auto scrollbar-hide">
             <button @click="activeTab = 'history'" class="pb-1 transition-colors whitespace-nowrap" :class="activeTab === 'history' ? 'text-[#376875] border-b-2 border-[#376875]' : 'text-slate-400 hover:text-slate-600'">

@@ -167,6 +167,61 @@ chat, además, pudiendo escribirle a números que ya no son suyos.
 fusionar esos mensajes dejarían de encontrarse — el enfriamiento fallaría **abierto** y la guardia
 volvería a sonar entera, de noche y sin causa evidente.
 
+## 🔥 El choque de identificadores que nadie veía (02/10/2026)
+
+Cuando un teléfono o un correo llega **por el dominio** —el pull de Beds24 cuando el huésped de
+una OTA añade su número, el recálculo de una reserva a la que se le pone después— y ya es de otro
+hilo, `ResolutorDeHilo::vincular()` **no lo mueve**: unir historiales lo decide una persona. Bien.
+Lo malo es que lo único que quedaba era una línea en el log:
+
+> Identificador que ya es de otro hilo: no se mueve.
+
+Y el hilo de la reserva, sin teléfono. **Adrián Tolaba**, cliente recurrente: reserva directa
+MQUB8M nacida sin teléfono, con su guía de llegada y su aviso de salida en `sin_canal`. Al ponerle
+el número, era el de su hilo de agosto; no se movió, y los dos avisos se habrían quedado sin salir
+sin que nadie se enterase.
+
+⚠️ **El panel ya lo resolvía, el dominio no.** En una reserva que ya existe el teléfono no se
+edita en el cajón: «Editar» lleva al editor de identidades, que avisa mientras se teclea y ofrece
+«Fusionar los dos hilos». El hueco era sólo el camino SIN pantalla delante.
+
+**Ahora:**
+
+```
+vincular() choca ──► MessageConversation::sugerirFusion()   (columna fusion_sugerida)
+                         │ true sólo si es NUEVA (otro hilo, no descartado)
+                         ▼
+               FusionSugeridaListener (onFlush → postFlush)
+                         ▼ AvisarFusionSugeridaDispatch (async)
+               AvisarFusionSugeridaDispatchHandler ──► AvisoConRespaldo
+                   CUSTOMER_SUPPORT: WhatsApp (texto, o `aviso_fusion_sugerida_interno`
+                   fuera de ventana) y, si no llega a nadie, push. Cuenta los `sin_canal`.
+
+Panel: FusionSugeridaAviso — banner en el chat (bajo la cabecera) y en el cajón de la reserva
+       (junto al teléfono): «Es la misma persona: unir» (previa → unir) | «No es la misma persona»
+```
+
+- **Sólo el primer choque es noticia.** El recálculo pasa por el resolutor varias veces al día;
+  `sugerirFusion()` no toca nada si ya apuntaba a ese hilo, y el listener sólo despacha cuando
+  cambia el `con`. Probado sobre la copia de producción: un segundo recálculo, cero avisos.
+- **«No es la misma persona» se recuerda** en `fusiones_descartadas`: sin eso, el siguiente
+  recálculo volvería a sugerirlo y a avisar.
+- **Columna propia, no `contextData`**: ésa está en `MessageRuleEngineListener::CAMPOS_CRITICOS`,
+  y apuntar una sospecha no tiene por qué recalcular las reglas del hilo.
+- **Los hilos `staff` no se sugieren**: no se pueden fusionar (`FusionarHilosController::parejaDe()`).
+- **Unir limpia la sugerencia** (`FusionadorDeHilos::fusionar()` → `olvidarFusionCon()`), venga
+  del panel o del comando.
+
+⚠️ **Unir desde el panel ahora resincroniza el superviviente en el acto**
+(`FusionarHilosController::aplicar()`). Los mensajes se mueven por SQL y la cabecera del
+superviviente casi nunca cambia en un campo crítico, así que nadie despertaba sus `sin_canal`
+hasta el `sync-rules --all` del cuarto de hora siguiente.
+
+⚠️ **El getter del DTO se llama `fusionSugerida()`, sin `get`.** Con el prefijo, el serializador
+lo publicaba en el esquema sin grupo de `api.d.ts` (ver CLAUDE.md, «un campo SIN grupos»).
+
+Tests: `FusionSugeridaTest`, y dos casos nuevos en `ResolutorDeHiloVincularTest`.
+
 ## Editar identidades ya no obliga a cargar el chat (08/09/2026)
 
 `EditConversationModal` sólo vivía dentro de `ChatView`, y llegar hasta él pasaba por
@@ -7059,6 +7114,9 @@ de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar
 | Cambiar qué se escribe en el aviso de escalado | `EscalarAlEquipoSkill` | `redactar()` |
 | **Avisar al equipo de algo nuevo** (un cobro, una avería…) | `AvisoAlEquipoService::notificar()` | Compón un `AvisoAlEquipo` desde TU dominio: texto, plantilla para fuera de ventana, rol. El servicio no debe aprender qué es lo que avisas |
 | Cambiar a quién llegan los avisos | quien construye el `AvisoAlEquipo` | Es el campo `rol`. Reciben los que lo tengan **y** móvil registrado (`destinatarios()`) |
+| Cambiar cuándo se sugiere unir dos hilos o cuándo se avisa | `MessageConversation::sugerirFusion()` / `FusionSugeridaListener` | «El choque de identificadores que nadie veía» |
+| Cambiar el texto del aviso de fusión sugerida | `AvisarFusionSugeridaDispatchHandler` (dentro de ventana) / plantilla `aviso_fusion_sugerida_interno` (`msg:crear:aviso-fusion`) | En Meta, texto nuevo = versión nueva |
+| Cambiar el banner de «¿es la misma persona?» | `util/src/components/chat/FusionSugeridaAviso.vue` | Lo montan `ChatView` y `ReservaEditDrawer` |
 | Cambiar cómo se encuentra el hilo interno del operador | `AvisoAlEquipoService::conversacionStaff()` | Busca por TELÉFONO antes que por contexto: es lo que sobrevive a fusionar hilos |
 | Cambiar el aviso de escalado **fuera** de la ventana de 24 h | plantilla `aviso_escalado_interno` | El cuerpo se edita en el panel; los parámetros los pone `EscalarAlEquipoSkill::variablesDelAviso()`. Si añades uno, tiene que llegar SIEMPRE con valor o el envío revienta |
 | Que la plantilla del escalado empiece a salir de verdad | Meta + `app:whatsapp:sync-templates` | Está insertada como `PENDING`: hasta que Meta la apruebe, el encolador la rechaza |

@@ -89,6 +89,10 @@ final class FusionadorDeHilos
 
             $this->fusionarCabecera($superviviente, $absorbido);
 
+            // Ya están unidos: la sugerencia de unirlos —esté en cualquiera de los dos— sobra.
+            $superviviente->olvidarFusionCon($absorbido);
+            $absorbido->olvidarFusionCon($superviviente);
+
             $absorbido->setStatus(MessageConversation::STATUS_ARCHIVED);
             $datos = $absorbido->getContextData() ?? [];
             $datos['fusionado_en'] = $destino;
