@@ -7,6 +7,7 @@ import { isSessionExpired } from '@/services/sessionAuth';
 import { MODULOS_APP } from '@/types/modulosApp';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import ConversacionVistaPrevia from '@/components/common/ConversacionVistaPrevia.vue';
+import AsuntosSinTelefonoPanel from '@/components/common/AsuntosSinTelefonoPanel.vue';
 import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
 import { apiClient } from '@/services/apiClient';
 import { coleccionFeed, type CalendarEventoFeed } from '@/types/calendarFeedModel';
@@ -593,6 +594,10 @@ const cerrarVistaPrevia = () => { vistaPreviaConv.value = null; };
             </ul>
           </div>
         </section>
+
+        <!-- Lo vigente a lo que no le sale un WhatsApp (Booking ya no pasa el teléfono). Sólo con
+             sesión, como los paneles de arriba: sin ella el endpoint da 401. -->
+        <AsuntosSinTelefonoPanel v-if="isSessionActive" />
 
         <!-- Mosaico de piezas desiguales, estilo Windows: el módulo de uso diario
              es una pieza 2x2 en color pleno y los otros dos, piezas planas a su

@@ -1501,3 +1501,17 @@ el flex le deje.
 
 El padding de la tarjeta baja de `p-4` a `p-3`: con las etiquetas, los sellos, los avisos de giro y
 dos botones dentro, la ficha había crecido bastante desde que se diseñó.
+
+## `AsuntosSinTelefonoPanel` y `FusionSugeridaAviso` (02/10/2026)
+
+- **`common/AsuntosSinTelefonoPanel.vue`** — el panel «Sin teléfono» del portal. Es autónomo:
+  carga `GET /platform/message/asuntos-sin-telefono`, se refresca con el asistente
+  (`useRefrescoDelAsistente`) y navega solo; `HomeView` sólo lo monta con sesión. La regla de qué
+  entra y el contrato por dominio están en `docs/Mensajeria.md`, «Reservas y cotizaciones sin
+  teléfono».
+- **`chat/FusionSugeridaAviso.vue`** — el banner «¿es la misma persona?» con «unir» y «no es la
+  misma persona». Lo montan `ChatView` (bajo la cabecera) y `ReservaEditDrawer` (junto al
+  teléfono); la fusión pasa por `useDuenioDeIdentificador`, igual que el editor de identidades.
+
+⚠️ **Para abrir un hilo, `/chat?id=…`.** `/chat/:conversationId` redirige ahí; antes montaba
+`ChatView` con un parámetro que la vista no lee y dejaba en la bandeja sin abrir nada.

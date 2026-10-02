@@ -222,6 +222,43 @@ lo publicaba en el esquema sin grupo de `api.d.ts` (ver CLAUDE.md, «un campo SI
 
 Tests: `FusionSugeridaTest`, y dos casos nuevos en `ResolutorDeHiloVincularTest`.
 
+⚠️ **`/chat/:conversationId` no abría nada** y se descubrió aquí. ChatView abre un hilo por
+`?id=` (`route.query.id`), y esa ruta la montaba con un parámetro que la vista no leía: el salto al
+superviviente tras fusionar desde el editor de identidades, «Ver ese hilo» y el enlace del banner
+dejaban en la bandeja sin abrir nada. Ahora la ruta **redirige** a `/chat?id=…`
+(`util/src/router/index.ts`), y así valen todos los enlaces que la usen.
+
+## Reservas y cotizaciones sin teléfono (02/10/2026)
+
+Booking dejó de pasar el teléfono del huésped. A una reserva sin número sólo se le puede escribir
+por la mensajería de Beds24 —~6 minutos de vuelta, sin botones—, así que hay que pedirlo y
+apuntarlo. El portal (`HomeView`) tiene el panel **«Sin teléfono»** (`AsuntosSinTelefonoPanel`):
+lo vigente a lo que hoy no le sale un WhatsApp, con un clic a donde se arregla.
+
+```
+GET /platform/message/asuntos-sin-telefono   (AsuntosSinTelefonoController, MENSAJES_SHOW)
+      └─ cada dominio por AsuntosSinTelefonoInterface (tag app.message.asuntos_sin_telefono)
+           PmsReservasSinTelefono      estancia sin terminar en IDENTIFICAN_HUESPED → /reservas?evento=&reserva=
+           CotizacionFilesSinTelefono  expediente no archivado                     → file_detalle
+```
+
+**El criterio es el del envío, no el de la ficha** (`AsuntoSinTelefono::motivo()`): el hilo
+TITULAR sin `guestPhone`, o con WhatsApp vetado, o sin hilo. Es lo que mira
+`WhatsappMetaSendEnqueuer::disponiblePara()`. Por eso sale también la reserva con el número en la
+ficha y no en su conversación —«Número sin conectar»—, que es el caso de Adrián: mirando la ficha
+habría parecido que tenía teléfono, y no le llegaba nada. Si además hay fusión sugerida, la fila
+dice «¿Misma persona?» y la reserva abre con el banner de unir.
+
+| Motivo | Qué es | Dónde se arregla |
+|---|---|---|
+| `sin_conversacion` | nunca hubo dato de contacto para abrir hilo | la ficha (reserva o expediente) |
+| `sin_telefono` | hay hilo, ningún teléfono vivo | «Editar» del teléfono → editor de identidades |
+| `solo_en_la_ficha` | el número no llegó al hilo (casi siempre: ya era de otro) | banner «Es la misma persona: unir» |
+| `whatsapp_vetado` | tiene número, el hilo tiene el WhatsApp vetado | editor de identidades |
+
+Incorporar otro dominio es implementar `AsuntosSinTelefonoInterface`; el panel agrupa por
+`negocio` y sabe abrir `pms_reserva` y `cotizacion_file`.
+
 ## Editar identidades ya no obliga a cargar el chat (08/09/2026)
 
 `EditConversationModal` sólo vivía dentro de `ChatView`, y llegar hasta él pasaba por
@@ -7116,6 +7153,8 @@ de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar
 | Cambiar a quién llegan los avisos | quien construye el `AvisoAlEquipo` | Es el campo `rol`. Reciben los que lo tengan **y** móvil registrado (`destinatarios()`) |
 | Cambiar cuándo se sugiere unir dos hilos o cuándo se avisa | `MessageConversation::sugerirFusion()` / `FusionSugeridaListener` | «El choque de identificadores que nadie veía» |
 | Cambiar el texto del aviso de fusión sugerida | `AvisarFusionSugeridaDispatchHandler` (dentro de ventana) / plantilla `aviso_fusion_sugerida_interno` (`msg:crear:aviso-fusion`) | En Meta, texto nuevo = versión nueva |
+| Cambiar qué cuenta como «sin teléfono» en el reporte del portal | `AsuntoSinTelefono::motivo()` | Mira lo mismo que el envío; ver «Reservas y cotizaciones sin teléfono» |
+| Añadir un dominio al reporte «Sin teléfono» | implementar `AsuntosSinTelefonoInterface` | y enseñarle a abrirlo a `AsuntosSinTelefonoPanel::abrir()` |
 | Cambiar el banner de «¿es la misma persona?» | `util/src/components/chat/FusionSugeridaAviso.vue` | Lo montan `ChatView` y `ReservaEditDrawer` |
 | Cambiar cómo se encuentra el hilo interno del operador | `AvisoAlEquipoService::conversacionStaff()` | Busca por TELÉFONO antes que por contexto: es lo que sobrevive a fusionar hilos |
 | Cambiar el aviso de escalado **fuera** de la ventana de 24 h | plantilla `aviso_escalado_interno` | El cuerpo se edita en el panel; los parámetros los pone `EscalarAlEquipoSkill::variablesDelAviso()`. Si añades uno, tiene que llegar SIEMPRE con valor o el envío revienta |

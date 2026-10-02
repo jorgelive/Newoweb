@@ -14,11 +14,15 @@ const router = createRouter({
             name: 'chat_home',
             component: () => import('../views/ChatView.vue')
         },
+        // ⚠️ ChatView abre un hilo por `?id=`, NO por este parámetro: lo mira en `route.query.id`
+        // (y lo limpia al abrirlo). La ruta montaba la vista con `props: true` y ella no declaraba
+        // la prop, así que los cinco enlaces que la usaban —saltar al superviviente tras fusionar,
+        // «Ver ese hilo», el banner de fusión sugerida— dejaban en la bandeja sin abrir nada. Se
+        // vio el 02/10/2026. Redirigir aquí arregla todos los que existen y los que vengan.
         {
             path: '/chat/:conversationId',
             name: 'chat_conversation',
-            component: () => import('../views/ChatView.vue'),
-            props: true
+            redirect: to => ({ path: '/chat', query: { id: String(to.params.conversationId) } }),
         },
         // ============================================================================
         // MÓDULO DE COTIZACIONES
