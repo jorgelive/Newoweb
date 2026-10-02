@@ -121,8 +121,42 @@ final class FusionadorDeHilos
     public function recalcularBloqueos(): void
     {
         foreach ($this->supervivientes as $destino) {
+            $this->recalcularTelefono($destino);
             $this->recalcularBloqueo($destino);
         }
+    }
+
+    /**
+     * El número al que se escribe (`guestPhone`), con las identidades que el hilo tiene AHORA.
+     *
+     * 🔥 **Faltaba, y dejaba al superviviente sin WhatsApp.** Clémence (8YXYNK, 02/10/2026): el
+     * hilo de su reserva de Booking no tenía teléfono; el de WhatsApp desde el que escribió, sí.
+     * Al unirlos el número se movió por SQL, pero `guestPhone` —la copia que mira el envío— se
+     * quedó vacío, y ninguno de sus avisos ganó la cola de WhatsApp.
+     *
+     * Con la regla de la entidad (`recalcularTelefonoPrincipal()`), no con una copia en SQL. La
+     * colección en memoria no ve lo movido, así que se suelta y se vuelve a cargar: **quien siga
+     * usando el superviviente después tiene que volver a pedirlo** al EntityManager. Va antes del
+     * veto porque cambiar de número lo levanta, y el veto lo vuelve a poner si toca.
+     */
+    private function recalcularTelefono(string $conversacion): void
+    {
+        $repositorio = $this->em->getRepository(MessageConversation::class);
+        $enMemoria = $repositorio->find($conversacion);
+
+        if ($enMemoria === null) {
+            return;
+        }
+
+        $this->em->detach($enMemoria);
+        $fresco = $repositorio->find($conversacion);
+
+        if ($fresco === null) {
+            return;
+        }
+
+        $fresco->recalcularTelefonoPrincipal();
+        $this->em->flush();
     }
 
     private function recalcularBloqueo(string $conversacion): void

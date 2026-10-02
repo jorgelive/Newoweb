@@ -212,6 +212,14 @@ Panel: FusionSugeridaAviso — banner en el chat (bajo la cabecera) y en el caj�
 - **Unir limpia la sugerencia** (`FusionadorDeHilos::fusionar()` → `olvidarFusionCon()`), venga
   del panel o del comando.
 
+⚠️ **Y unir recalcula el teléfono del superviviente** (`FusionadorDeHilos::recalcularTelefono()`).
+Las identidades se mueven por SQL y `guestPhone` —la copia que mira el envío— no se enteraba: si
+el número lo traía el ABSORBIDO, el superviviente se quedaba sin él. Clémence (8YXYNK): su reserva
+de Booking sin teléfono, su número en el hilo de WhatsApp desde el que escribió; tras unirlos, ni
+un aviso por WhatsApp. Se recalcula con la regla de la entidad (`recalcularTelefonoPrincipal()`),
+recargando el hilo porque la colección en memoria no ve lo movido — quien siga usando el
+superviviente tiene que volver a pedirlo al EntityManager, y el controlador lo hace.
+
 ⚠️ **Unir desde el panel ahora resincroniza el superviviente en el acto**
 (`FusionarHilosController::aplicar()`). Los mensajes se mueven por SQL y la cabecera del
 superviviente casi nunca cambia en un campo crítico, así que nadie despertaba sus `sin_canal`
