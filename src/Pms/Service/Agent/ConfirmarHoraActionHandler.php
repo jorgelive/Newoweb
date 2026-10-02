@@ -73,31 +73,36 @@ final readonly class ConfirmarHoraActionHandler implements BotActionHandlerInter
             return;
         }
 
-        // 🔥 **Una por casita, todas las que entran o salen ese día.** Con varias casitas el
-        // botón se quedaba en un `warning` y el huésped sin respuesta: la skill, sin `casita`,
-        // pide preguntar de cuál habla, y un botón no puede preguntar. Pero «salgo a las 10:00»
-        // de una familia en dos casitas vale para las dos (Lizbeth, KXET9H, 02/10/2026).
+        // 🔥 **Todas las casitas que entran o salen ese día, con UN aviso.** Con varias, el botón
+        // se quedaba en un `warning` y el huésped sin respuesta: un botón no puede preguntar «¿de
+        // cuál?», y «salgo a las 10:00» de una familia en dos casitas vale para las dos (Lizbeth,
+        // KXET9H, 02/10/2026). Después se llamó una vez por casita y al equipo le llegaba un aviso
+        // por cada una; ahora va todo junto por `ConfirmarHoraSkill::confirmarEn()` (Jorge: «si
+        // salen el mismo día, júntalo»).
         //
         // La hora: `hora: estancia` es la que figura en la estancia —la del alojamiento si nadie
         // la cambió, la acordada si sí—, que es lo que dice el botón «Salgo a esa hora». Sin el
-        // parámetro, la del alojamiento: el botón viejo dice «Salgo a las 10:00» en el texto.
+        // parámetro, la del alojamiento: el botón viejo dice «Salgo a las 10:00» en el texto. Si
+        // dos casitas tuvieran horas distintas, va un aviso por hora: no se le apunta a nadie una
+        // hora que no es la suya.
         $actor = $this->actores->huesped('boton', 'pms_reserva', $conversacion->getContextId(), (string) $conversacion->getId());
-        $alguna = false;
+        $porHora = [];
 
         foreach ($estancias as $evento) {
             $momento = $esSalida ? $evento->getFin() : $evento->getInicio();
             $hora = $parametros->texto('hora') === 'estancia' && $momento !== null
                 ? $momento->format('H:i')
                 : $this->horas->limite($evento, $esSalida);
+            $porHora[$hora][] = $evento;
+        }
 
-            $resultado = $this->confirmarHora->ejecutar([
-                'extremo' => $esSalida ? 'salida' : 'llegada',
-                'hora' => $hora,
-                'casita' => count($estancias) > 1 ? (string) $evento->getPmsUnidad()?->getNombre() : '',
-            ], $actor);
+        $alguna = false;
+
+        foreach ($porHora as $hora => $grupo) {
+            $resultado = $this->confirmarHora->confirmarEn($grupo, (string) $hora, $esSalida, false, $actor);
 
             if ($resultado->esError()) {
-                $this->logger->warning('Bot: confirmar_hora no pudo apuntarla.', ['mensaje' => $mensajeEntranteId, 'evento' => (string) $evento->getId(), 'error' => $resultado->error]);
+                $this->logger->warning('Bot: confirmar_hora no pudo apuntarla.', ['mensaje' => $mensajeEntranteId, 'hora' => $hora, 'error' => $resultado->error]);
                 continue;
             }
 

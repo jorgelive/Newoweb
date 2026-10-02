@@ -150,10 +150,17 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
             return SkillResult::error('No encuentro esa reserva.');
         }
 
+        $esSalida = $extremo === 'salida';
         $eleccion = $this->estancias->resolver($reserva->getEventosActivosGuia(), trim($e->texto('casita')));
-        $evento = $eleccion['evento'];
 
-        if ($evento === null) {
+        // Varias casitas que entran (o salen) EL MISMO DÍA: la hora vale para todas, y preguntar
+        // «¿de cuál?» a una familia que llega junta no tiene sentido. Con días distintos —un
+        // cambio de casita a mitad de estancia— sí hay que preguntar.
+        $eventos = $eleccion['evento'] !== null
+            ? [$eleccion['evento']]
+            : $this->delMismoDia($eleccion['candidatas'], $esSalida);
+
+        if ($eventos === []) {
             $nombres = array_values(array_filter(array_map(
                 static fn ($c): ?string => $c->getPmsUnidad()?->getNombre(),
                 $eleccion['candidatas']
@@ -164,50 +171,103 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
                 'casitas' => $nombres,
                 'pregunta' => $nombres === []
                     ? 'Esta reserva no tiene ninguna estancia activa.'
-                    : 'Esta reserva tiene varias casitas. Pregúntale de cuál habla y vuelve a llamarme con «casita».',
+                    : 'Esta reserva tiene varias casitas que no entran o salen el mismo día. Pregúntale de cuál habla y vuelve a llamarme con «casita».',
             ]);
         }
 
-        $esSalida = $extremo === 'salida';
-        $borde = $esSalida ? $evento->getFin() : $evento->getInicio();
-        $hoy = (new DateTimeImmutable('today'))->format('Y-m-d');
-
-        if ($borde === null || $borde->format('Y-m-d') < $hoy) {
-            return SkillResult::error(sprintf('Su %s ya pasó: no hay hora que apuntar.', $esSalida ? 'salida' : 'llegada'));
-        }
-
-        $limite = $this->horas->limite($evento, $esSalida);
-        $fuera = $this->horas->excede($evento, $hora, $esSalida);
-        $pactado = $esSalida ? $evento->isSalidaTardia() : $evento->isEntradaTemprana();
-
-        if ($madrugada && !$esSalida) {
-            return $this->llegadaDeMadrugada($evento, $actor, $hora);
-        }
-
-        if (!$fuera || $pactado) {
-            return $this->apuntar($evento, $actor, $hora, $esSalida, $limite, $pactado);
-        }
-
-        return $this->pedirAlEquipo($evento, $actor, $hora, $esSalida, $limite);
+        return $this->confirmarEn($eventos, $hora, $esSalida, $madrugada, $actor);
     }
 
-    /** Dentro del horario, o dentro del horario extra ya pactado: se apunta y se avisa. */
+    /**
+     * La hora en esas estancias —una casita, o varias del mismo día— con UN solo aviso al equipo.
+     *
+     * La usa también el botón «Salgo a esa hora» (`ConfirmarHoraActionHandler`), que ya sabe qué
+     * casitas salen ese día. Antes se llamaba una vez por casita y al equipo le llegaba un aviso
+     * por cada una (revisión del 02/10/2026; Jorge: «si salen el mismo día, júntalo»).
+     *
+     * @param non-empty-list<PmsEventoCalendario> $eventos
+     */
+    public function confirmarEn(array $eventos, string $hora, bool $esSalida, bool $madrugada, ActorInterface $actor): SkillResult
+    {
+        $hoy = (new DateTimeImmutable('today'))->format('Y-m-d');
+
+        foreach ($eventos as $evento) {
+            $borde = $esSalida ? $evento->getFin() : $evento->getInicio();
+            if ($borde === null || $borde->format('Y-m-d') < $hoy) {
+                return SkillResult::error(sprintf('Su %s ya pasó: no hay hora que apuntar.', $esSalida ? 'salida' : 'llegada'));
+            }
+        }
+
+        if ($madrugada && !$esSalida) {
+            return $this->llegadaDeMadrugada($eventos, $actor, $hora);
+        }
+
+        $limite = $this->horas->limite($eventos[0], $esSalida);
+        $dentro = [];
+        $fuera = [];
+
+        foreach ($eventos as $evento) {
+            $pactado = $esSalida ? $evento->isSalidaTardia() : $evento->isEntradaTemprana();
+            if (!$this->horas->excede($evento, $hora, $esSalida) || $pactado) {
+                $dentro[] = $evento;
+            } else {
+                $fuera[] = $evento;
+            }
+        }
+
+        // Casi siempre van todas al mismo lado. Si no —una con horario extra pactado y otra sin—,
+        // se apunta lo que cabe y se pide lo que no, y manda la respuesta de lo pedido: ahí no hay
+        // nada que confirmarle todavía.
+        $apuntada = $dentro !== [] ? $this->apuntar($dentro, $actor, $hora, $esSalida, $limite) : null;
+
+        return $fuera !== [] ? $this->pedirAlEquipo($fuera, $actor, $hora, $esSalida, $limite) : ($apuntada ?? SkillResult::error('Nada que apuntar.'));
+    }
+
+    /**
+     * Las candidatas, si TODAS entran (o salen) el mismo día; si no, ninguna.
+     *
+     * @param array<int, PmsEventoCalendario> $candidatas
+     * @return list<PmsEventoCalendario>
+     */
+    private function delMismoDia(array $candidatas, bool $esSalida): array
+    {
+        $dias = [];
+        foreach ($candidatas as $evento) {
+            $dias[] = ($esSalida ? $evento->getFin() : $evento->getInicio())?->format('Y-m-d');
+        }
+
+        return count($candidatas) > 1 && count(array_unique($dias)) === 1 && $dias[0] !== null ? array_values($candidatas) : [];
+    }
+
+    /**
+     * Dentro del horario, o dentro del horario extra ya pactado: se apunta y se avisa.
+     *
+     * @param non-empty-list<PmsEventoCalendario> $eventos
+     */
     private function apuntar(
-        PmsEventoCalendario $evento,
+        array $eventos,
         ActorInterface $actor,
         string $hora,
         bool $esSalida,
         string $limite,
-        bool $pactado,
     ): SkillResult {
-        $antes = ($esSalida ? $evento->getFin() : $evento->getInicio())?->format('H:i');
+        $primera = $eventos[0];
+        $antes = ($esSalida ? $primera->getFin() : $primera->getInicio())?->format('H:i');
+        $pactado = false;
+        $sobra = false;
 
-        $this->horas->registrar($evento, $hora, $esSalida);
+        foreach ($eventos as $evento) {
+            $suyo = $esSalida ? $evento->isSalidaTardia() : $evento->isEntradaTemprana();
+            $pactado = $pactado || $suyo;
+            $sobra = $sobra || ($suyo && !$this->horas->excede($evento, $hora, $esSalida));
+            $this->horas->registrar($evento, $hora, $esSalida);
+        }
+
         $this->em->flush();
 
         $nota = match (true) {
             // Tenía horario extra y ahora cabe en el normal: la noche bloqueada quizá ya sobra.
-            $pactado && !$this->horas->excede($evento, $hora, $esSalida) => sprintf(
+            $sobra => sprintf(
                 ' Tenía %s pactada y esta hora cabe en el horario normal: la noche %s sigue bloqueada; desmárcala si ya no hace falta.',
                 $esSalida ? 'salida tardía' : 'entrada temprana',
                 $esSalida ? 'de su salida' : 'anterior'
@@ -216,20 +276,20 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
             default => '',
         };
 
+        $dia = ($esSalida ? $primera->getFin() : $primera->getInicio())?->format('d/m') ?? '';
         $texto = sprintf(
             "🕐 %s confirma que %s el %s a las %s%s.%s",
-            $this->quien($evento),
+            $this->quien($eventos),
             $esSalida ? 'sale' : 'llega',
-            ($esSalida ? $evento->getFin() : $evento->getInicio())?->format('d/m'),
+            $dia,
             $hora,
             $antes !== null && $antes !== $hora ? sprintf(' (antes: %s)', $antes) : '',
             $nota,
         );
 
-        $this->avisar($evento, $actor, $texto, ConfirmarHoraSkill::PLANTILLA_CONFIRMADA, [
-            'huesped' => $this->quien($evento),
-            'detalle' => sprintf('%s el %s a las %s', $esSalida ? 'sale' : 'llega',
-                ($esSalida ? $evento->getFin() : $evento->getInicio())?->format('d/m') ?? '', $hora),
+        $this->avisar($eventos, $actor, $texto, ConfirmarHoraSkill::PLANTILLA_CONFIRMADA, [
+            'huesped' => $this->quien($eventos),
+            'detalle' => sprintf('%s el %s a las %s', $esSalida ? 'sale' : 'llega', $dia, $hora),
         ]);
 
         return SkillResult::ok([
@@ -241,33 +301,45 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
         ]);
     }
 
-    /** Fuera del horario y sin nada pactado: no se toca la estancia; petición + aviso para decidir. */
+    /**
+     * Fuera del horario y sin nada pactado: no se toca la estancia; petición + aviso para decidir.
+     *
+     * @param non-empty-list<PmsEventoCalendario> $eventos
+     */
     private function pedirAlEquipo(
-        PmsEventoCalendario $evento,
+        array $eventos,
         ActorInterface $actor,
         string $hora,
         bool $esSalida,
         string $limite,
     ): SkillResult {
-        $fecha = ($esSalida ? $evento->getFin() : $evento->getInicio())?->format('d/m') ?? '';
+        $fecha = ($esSalida ? $eventos[0]->getFin() : $eventos[0]->getInicio())?->format('d/m') ?? '';
         $pedido = sprintf('Pide %s el %s a las %s (%s %s)', $esSalida ? 'salir' : 'entrar', $fecha, $hora,
             $esSalida ? 'check-out' : 'check-in', $limite);
 
-        $this->peticiones->dejar($evento, $pedido, $esSalida, $actor->conversacionId());
+        $noches = [];
+        foreach ($eventos as $evento) {
+            $this->peticiones->dejar($evento, $pedido, $esSalida, $actor->conversacionId());
+            $noche = $this->nocheDeAlLado($evento, $esSalida);
+            if ($noche !== null) {
+                // Con varias casitas, cada una con su noche: se dice de cuál es.
+                $noches[] = count($eventos) > 1 ? ($evento->getPmsUnidad()?->getNombre() ?? 'Casita') . ': ' . $noche : $noche;
+            }
+        }
         $this->em->flush();
 
-        $noche = $this->nocheDeAlLado($evento, $esSalida);
+        $noche = $noches !== [] ? implode(' ', $noches) : null;
         $texto = sprintf(
             "🕐 %s: %s.%s\n\nNo se ha apuntado: decide el equipo (aplicar_cambio_horario pregunta si se bloquea la noche).",
-            $this->quien($evento),
+            $this->quien($eventos),
             $pedido,
             $noche !== null ? ' ' . $noche : ''
         );
 
         // Fuera de ventana va con la plantilla del escalado, que ya está aprobada y dice lo que
         // pasa: el huésped espera una respuesta del equipo.
-        $this->avisar($evento, $actor, $texto, EscalarAlEquipoSkill::PLANTILLA_AVISO, [
-            'huesped' => $this->quien($evento),
+        $this->avisar($eventos, $actor, $texto, EscalarAlEquipoSkill::PLANTILLA_AVISO, [
+            'huesped' => $this->quien($eventos),
             'motivo' => $pedido . ($noche !== null ? '. ' . $noche : ''),
             'chat_path' => 'chat?id=' . ($actor->conversacionId() ?? ''),
         ]);
@@ -279,10 +351,9 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
             'aviso' => sprintf(
                 'NO se ha apuntado y NO le confirmes nada. Dile que el %s es a las %s y que lo '
                 . 'consultas con el equipo, que depende de la disponibilidad. Ofrécele mientras '
-                . 'guardar el equipaje (conocimiento «Guardar equipaje»). El costo, sólo si lo '
-                . 'pregunta: entonces sí, tiene un costo adicional y el equipo le confirma el '
-                . 'detalle. La petición queda pegada a su estancia y el equipo YA está avisado: no '
-                . 'hace falta escalar_al_equipo.',
+                . 'guardar el equipaje (conocimiento «Guardar equipaje»). SI PREGUNTA SI TIENE COSTO: '
+                . 'sí, tiene un costo adicional y el equipo le confirma el detalle. La petición queda '
+                . 'pegada a su estancia y el equipo YA está avisado: no hace falta escalar_al_equipo.',
                 $esSalida ? 'check-out' : 'check-in',
                 $limite
             ),
@@ -295,19 +366,23 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
      * La hora no cabe en `inicio` sin moverle el día —y el día no se toca—, así que se deja como
      * petición, la llegada queda CONFIRMADA y el equipo avisado: es la noche de la llave y la luz
      * del pasadizo, no una decisión.
+     *
+     * @param non-empty-list<PmsEventoCalendario> $eventos
      */
-    private function llegadaDeMadrugada(PmsEventoCalendario $evento, ActorInterface $actor, string $hora): SkillResult
+    private function llegadaDeMadrugada(array $eventos, ActorInterface $actor, string $hora): SkillResult
     {
-        $inicio = $evento->getInicio();
+        $inicio = $eventos[0]->getInicio();
         $dia = $inicio !== null ? DateTimeImmutable::createFromInterface($inicio)->modify('+1 day')->format('d/m') : '';
         $pedido = sprintf('Llega de madrugada: %s del %s (su entrada es el %s)', $hora, $dia, $inicio?->format('d/m') ?? '');
 
-        $this->peticiones->dejar($evento, $pedido, false, $actor->conversacionId());
-        $evento->setLlegadaConfirmadaAt(new DateTimeImmutable());
+        foreach ($eventos as $evento) {
+            $this->peticiones->dejar($evento, $pedido, false, $actor->conversacionId());
+            $evento->setLlegadaConfirmadaAt(new DateTimeImmutable());
+        }
         $this->em->flush();
 
-        $this->avisar($evento, $actor, sprintf('🕐 %s: %s.', $this->quien($evento), $pedido), ConfirmarHoraSkill::PLANTILLA_CONFIRMADA, [
-            'huesped' => $this->quien($evento),
+        $this->avisar($eventos, $actor, sprintf('🕐 %s: %s.', $this->quien($eventos), $pedido), ConfirmarHoraSkill::PLANTILLA_CONFIRMADA, [
+            'huesped' => $this->quien($eventos),
             'detalle' => sprintf('llega de madrugada, el %s a las %s', $dia, $hora),
         ]);
 
@@ -338,9 +413,10 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
     }
 
     /**
-     * @param array<string, string> $variables De la plantilla de respaldo; una línea cada una.
+     * @param non-empty-list<PmsEventoCalendario> $eventos
+     * @param array<string, string>               $variables De la plantilla de respaldo; una línea cada una.
      */
-    private function avisar(PmsEventoCalendario $evento, ActorInterface $actor, string $texto, string $plantilla, array $variables): void
+    private function avisar(array $eventos, ActorInterface $actor, string $texto, string $plantilla, array $variables): void
     {
         try {
             $this->avisos->notificar(new AvisoAlEquipo(
@@ -350,7 +426,7 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
                 variables: array_map(static fn (string $v): string => trim((string) preg_replace('/\s+/', ' ', $v)), $variables),
                 metadata: [
                     'aviso_hora_huesped' => true,
-                    'evento' => (string) $evento->getId(),
+                    'evento' => implode(',', array_map(static fn (PmsEventoCalendario $e): string => (string) $e->getId(), $eventos)),
                     'conversacion' => $actor->conversacionId(),
                 ],
             ), titulo: '🕐 Hora de un huésped', url: '/chat' . ($actor->conversacionId() !== null ? '?id=' . $actor->conversacionId() : ''));
@@ -360,16 +436,28 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
         }
     }
 
-    /** «Anna Müller (Casita 1, UV5XPW)». */
-    private function quien(PmsEventoCalendario $evento): string
+    /**
+     * «Anna Müller (Casita 1, UV5XPW)», o con varias «(Casita 1 y Casita 4, KXET9H)».
+     *
+     * @param non-empty-list<PmsEventoCalendario> $eventos
+     */
+    private function quien(array $eventos): string
     {
+        $evento = $eventos[0];
         $reserva = $evento->getReserva();
         $nombre = trim((string) $reserva?->getNombreCliente() . ' ' . (string) $reserva?->getApellidoCliente());
+
+        $casitas = array_values(array_unique(array_map(
+            static fn (PmsEventoCalendario $e): string => $e->getPmsUnidad()?->getNombre() ?? 'sin casita',
+            $eventos
+        )));
+        $ultima = array_pop($casitas);
+        $casita = $casitas === [] ? $ultima : implode(', ', $casitas) . ' y ' . $ultima;
 
         return sprintf(
             '%s (%s%s)',
             $nombre !== '' ? $nombre : ($evento->getTituloCache() ?? 'Un huésped'),
-            $evento->getPmsUnidad()?->getNombre() ?? 'sin casita',
+            $casita,
             $reserva?->getLocalizador() !== null ? ', ' . $reserva->getLocalizador() : ''
         );
     }

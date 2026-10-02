@@ -8828,7 +8828,10 @@ aviso de salida (Jorge): «🕑 El check-in es desde las 14:00. ¿A qué hora ti
 | Ver mi guía | — (enlace, `guide_path`) | abre su guía |
 
 - ⚠️ **El botón que confirma sin pasar por el agente (`ConfirmarHoraActionHandler`) apunta TODAS
-  las casitas que entran o salen ese día**, una llamada a `confirmar_hora` por casita. Con varias,
+  las casitas que entran o salen ese día, con UN solo aviso** (`ConfirmarHoraSkill::confirmarEn()`;
+  Jorge: «si salen el mismo día, júntalo»). Y la skill hace lo mismo cuando el huésped escribe la
+  hora: con varias casitas del mismo día ya no pregunta «¿de cuál?»; sólo pregunta si entran o
+  salen en días distintos. Antes era una llamada por casita y un aviso por cada una. Con varias,
   el botón se quedaba en un `warning` y el huésped sin respuesta: la skill sin `casita` pide
   preguntar de cuál habla, y un botón no puede preguntar. Lizbeth (KXET9H, Casitas 1 y 4) tenía su
   aviso de salida para ese mismo mediodía; se arregló antes de que saliera. Con
