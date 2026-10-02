@@ -216,9 +216,16 @@ Panel: FusionSugeridaAviso — banner en el chat (bajo la cabecera) y en el caj�
 Las identidades se mueven por SQL y `guestPhone` —la copia que mira el envío— no se enteraba: si
 el número lo traía el ABSORBIDO, el superviviente se quedaba sin él. Clémence (8YXYNK): su reserva
 de Booking sin teléfono, su número en el hilo de WhatsApp desde el que escribió; tras unirlos, ni
-un aviso por WhatsApp. Se recalcula con la regla de la entidad (`recalcularTelefonoPrincipal()`),
-recargando el hilo porque la colección en memoria no ve lo movido — quien siga usando el
-superviviente tiene que volver a pedirlo al EntityManager, y el controlador lo hace.
+un aviso por WhatsApp. Se recalcula con la regla de la entidad (`recalcularTelefonoPrincipal()` y
+`recalcularBloqueoWhatsapp()`), con un `refresh()` del superviviente para que `identidades` relea
+lo movido.
+
+⚠️ **`refresh()`, no `detach()` + `find()`.** La primera versión soltaba el hilo y lo volvía a
+cargar, y la fusión reventaba —«A new entity was found through the relationship
+PmsConversacionEnlace#conversacion»— con los mensajes ya movidos y sin transacción: el `postFlush`
+de la fusión había hidratado mensajes y enlaces apuntando al objeto soltado. Pasaba en el caso
+típico (hilo viejo cerrado + hilo nuevo abierto, que reabre el viejo y dispara el motor). Lo cazó
+la revisión del 02/10/2026 antes de que nadie fusionara y se reprodujo en la copia de producción.
 
 ⚠️ **Unir desde el panel ahora resincroniza el superviviente en el acto**
 (`FusionarHilosController::aplicar()`). Los mensajes se mueven por SQL y la cabecera del

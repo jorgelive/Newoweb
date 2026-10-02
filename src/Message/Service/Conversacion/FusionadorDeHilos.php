@@ -121,61 +121,40 @@ final class FusionadorDeHilos
     public function recalcularBloqueos(): void
     {
         foreach ($this->supervivientes as $destino) {
-            $this->recalcularTelefono($destino);
-            $this->recalcularBloqueo($destino);
+            $this->recalcularCabecera($destino);
         }
     }
 
     /**
-     * El número al que se escribe (`guestPhone`), con las identidades que el hilo tiene AHORA.
+     * El número al que se escribe (`guestPhone`) y el veto de WhatsApp, con las identidades que el
+     * hilo tiene AHORA. Las dos con la regla de la entidad, no con una copia en SQL.
      *
-     * 🔥 **Faltaba, y dejaba al superviviente sin WhatsApp.** Clémence (8YXYNK, 02/10/2026): el
-     * hilo de su reserva de Booking no tenía teléfono; el de WhatsApp desde el que escribió, sí.
-     * Al unirlos el número se movió por SQL, pero `guestPhone` —la copia que mira el envío— se
-     * quedó vacío, y ninguno de sus avisos ganó la cola de WhatsApp.
+     * 🔥 **Faltaba el teléfono, y dejaba al superviviente sin WhatsApp.** Clémence (8YXYNK,
+     * 02/10/2026): el hilo de su reserva de Booking no tenía teléfono; el de WhatsApp desde el que
+     * escribió, sí. Al unirlos el número se movió por SQL, pero `guestPhone` —la copia que mira el
+     * envío— se quedó vacío, y ninguno de sus avisos ganó la cola de WhatsApp.
      *
-     * Con la regla de la entidad (`recalcularTelefonoPrincipal()`), no con una copia en SQL. La
-     * colección en memoria no ve lo movido, así que se suelta y se vuelve a cargar: **quien siga
-     * usando el superviviente después tiene que volver a pedirlo** al EntityManager. Va antes del
-     * veto porque cambiar de número lo levanta, y el veto lo vuelve a poner si toca.
+     * ⚠️ **`refresh()`, NO `detach()` + `find()`.** La primera versión soltaba el hilo y lo volvía a
+     * cargar, y reventaba: el `postFlush` de la fusión ya había hidratado sus mensajes y enlaces
+     * apuntando al objeto viejo, y el flush siguiente los veía colgando de una entidad «nueva»
+     * (`A new entity was found through the relationship PmsConversacionEnlace#conversacion`) —con
+     * mensajes e identidades ya movidos y sin transacción—. Reproducido en la copia de producción
+     * con la revisión del 02/10/2026. `refresh()` relee las columnas del MISMO objeto y deja sus
+     * colecciones sin inicializar, así que `identidades` vuelve a leerse con lo movido.
+     *
+     * El teléfono va antes del veto: cambiar de número lo levanta, y el veto lo vuelve a poner si toca.
      */
-    private function recalcularTelefono(string $conversacion): void
+    private function recalcularCabecera(string $conversacion): void
     {
-        $repositorio = $this->em->getRepository(MessageConversation::class);
-        $enMemoria = $repositorio->find($conversacion);
+        $hilo = $this->em->getRepository(MessageConversation::class)->find($conversacion);
 
-        if ($enMemoria === null) {
+        if ($hilo === null) {
             return;
         }
 
-        $this->em->detach($enMemoria);
-        $fresco = $repositorio->find($conversacion);
-
-        if ($fresco === null) {
-            return;
-        }
-
-        $fresco->recalcularTelefonoPrincipal();
+        $this->em->refresh($hilo);
+        $hilo->recalcularTelefonoPrincipal()->recalcularBloqueoWhatsapp();
         $this->em->flush();
-    }
-
-    private function recalcularBloqueo(string $conversacion): void
-    {
-        $this->db->executeStatement(<<<'SQL'
-            UPDATE msg_conversation c
-               SET c.whatsapp_disabled = IF(
-                     (SELECT COUNT(*) FROM msg_identidad i
-                       WHERE i.conversacion_id = c.id AND i.tipo = 'telefono' AND i.retirado_en IS NULL) > 0
-                     AND (SELECT COUNT(*) FROM msg_identidad i
-                           WHERE i.conversacion_id = c.id AND i.tipo = 'telefono'
-                             AND i.retirado_en IS NULL AND i.bloqueado = 0) = 0,
-                     1, 0),
-                   c.whatsapp_disabled_reason = (
-                     SELECT i.bloqueado_motivo FROM msg_identidad i
-                      WHERE i.conversacion_id = c.id AND i.tipo = 'telefono'
-                        AND i.retirado_en IS NULL AND i.bloqueado = 1 LIMIT 1)
-             WHERE c.id = UNHEX(REPLACE(:id, '-', ''))
-        SQL, ['id' => $conversacion]);
     }
 
     /**

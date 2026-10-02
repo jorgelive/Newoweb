@@ -124,7 +124,10 @@ final readonly class TelefonoDelHuesped
             return self::ESE_NO_TIENE_WHATSAPP;
         }
 
-        if ($reserva->getTelefono() === null || $reserva->getTelefono() === '') {
+        // La ficha es lo que dio al reservar y no se pisa… salvo sin conversación: entonces la
+        // semilla que hubiera no llegó a nada, y es por la ficha por donde el recálculo creará el
+        // hilo. Sin esto se le decía «¡Gracias!» sin escribir nada (revisión del 02/10/2026).
+        if ($hilo === null || $reserva->getTelefono() === null || $reserva->getTelefono() === '') {
             $reserva->setTelefono($numero);
         }
 

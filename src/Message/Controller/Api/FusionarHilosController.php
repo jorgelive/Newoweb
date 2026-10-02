@@ -85,9 +85,6 @@ final class FusionarHilosController extends AbstractController
 
         $movidos = $this->fusionador->unir($superviviente, $absorbido);
 
-        // `unir()` recarga el superviviente para recalcular su teléfono: el objeto de antes ya no
-        // es el que gestiona Doctrine. Ver `FusionadorDeHilos::recalcularTelefono()`.
-        $superviviente = $this->em->getRepository(MessageConversation::class)->find((string) $superviviente->getId()) ?? $superviviente;
 
         // 🔥 Lo que esperaba canal sale YA, no en el siguiente barrido. Los mensajes se mueven
         // por SQL y la cabecera del superviviente casi nunca cambia en un campo crítico, así que

@@ -215,6 +215,13 @@ final class MessageCrearGuiaLlegadaBotonesCommand extends Command
                 }
             }
 
+            // Y ningún mensaje: el agente también puede mandarla a mano, sin regla de por medio.
+            if ($this->em->getRepository(Message::class)->count(['template' => $plantilla]) > 0) {
+                $io->error(sprintf('Ya hay mensajes con «%s»: no se rehace, se rota con otra versión.', $codigo));
+
+                return Command::FAILURE;
+            }
+
             $io->text(sprintf('Se rehace «%s».', $codigo));
 
             if (!$simular) {
