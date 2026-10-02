@@ -17,6 +17,7 @@ use App\Message\Entity\MessageConversation;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Message\Entity\MessageRule;
 use App\Contract\VinculoComercial;
+use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\Queue\MessageDispatcher;
 use App\Message\Service\Queue\MessageRuleEngine;
@@ -159,10 +160,10 @@ final class MessageRuleEngineTest extends TestCase
      * Con `$valido = false` es el canal que hoy no sirve —WhatsApp bloqueado, hilo sin
      * teléfono—: `syncPendingMessage()` lo descarta al validar.
      */
-    private function enqueuer(string $canalId = 'whatsapp_meta', bool $valido = true): ChannelEnqueuerInterface
+    private function enqueuer(string $canalId = 'whatsapp_meta', bool $valido = true, bool $yaEncolado = false): ChannelEnqueuerInterface
     {
-        return new class ($canalId, $valido) implements ChannelEnqueuerInterface {
-            public function __construct(private readonly string $canalId, private readonly bool $valido) {}
+        return new class ($canalId, $valido, $yaEncolado) implements ChannelEnqueuerInterface {
+            public function __construct(private readonly string $canalId, private readonly bool $valido, private readonly bool $yaEncolado) {}
 
             public function supports(MessageChannel $channel): bool { return $channel->getId() === $this->canalId; }
             public function isValid(Message $message): bool { return $this->valido; }
@@ -171,7 +172,7 @@ final class MessageRuleEngineTest extends TestCase
                 ?string $asuntoType = null,
                 ?string $asuntoId = null
             ): bool { return true; }
-            public function isAlreadyEnqueued(Message $message): bool { return false; }
+            public function isAlreadyEnqueued(Message $message): bool { return $this->yaEncolado; }
             public function createQueueEntity(
                 Message $message,
                 MessageChannel $channel,
@@ -841,6 +842,58 @@ final class MessageRuleEngineTest extends TestCase
         $vivas = array_filter($esperando->getAllQueues(), static fn ($q): bool => $q->getStatus() === 'pending');
         self::assertCount(1, $vivas, 'Revivir sin fabricar la cola es dejarlo como estaba: nadie lo enviaría.');
         self::assertSame($this->esperado($inicio, -1440), $esperando->getScheduledAt()?->getTimestamp());
+    }
+
+    /**
+     * Franco (W2YRVK, 02/10/2026): reserva de Booking sin teléfono, su aviso de salida en cola
+     * sólo por Beds24. Se le guardó el número y siguió sólo por Beds24: no era `sin_canal`, así
+     * que no revivía, y la cola del canal nuevo se dejaba a un `preUpdate` que Doctrine no inserta.
+     */
+    #[Test]
+    public function un_mensaje_en_cola_que_gana_un_canal_recibe_su_cola(): void
+    {
+        $inicio = $this->hito('+10 days noon');
+        $regla = $this->regla(canal: new MessageChannel()->setId('beds24'));
+        $regla->addTargetCommunicationChannel(new MessageChannel()->setId('whatsapp_meta'));
+
+        $reserva = new PmsReserva();
+        $conversacion = new MessageConversation('pms_reserva', (string) $reserva->getId());
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicio]), $reserva);
+
+        // En cola por Beds24, que era lo único que tenía antes de que se le guardara el número.
+        $enCola = $this->programado($conversacion, $regla, $reserva, Message::STATUS_QUEUED, '+9 days noon');
+        $porBeds24 = new Beds24SendQueue();
+        $porBeds24->setStatus('pending');
+        $enCola->addQueue($porBeds24);
+
+        $this->motor([$regla], [$this->enqueuer('beds24', yaEncolado: true), $this->enqueuer()])
+            ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
+
+        $canales = array_map(static fn ($q): string => $q->getChannelId(), array_values(array_filter($enCola->getAllQueues(), static fn ($q): bool => $q->getStatus() === 'pending')));
+        sort($canales);
+        self::assertSame(['beds24', 'whatsapp_meta'], $canales, 'El canal que acaba de valer tiene que tener su cola, y la de Beds24 no se duplica.');
+        self::assertSame(Message::STATUS_QUEUED, $enCola->getStatus());
+        self::assertCount(1, $this->mensajesDelSistema($conversacion), 'Es el mismo mensaje con una cola más, no otro.');
+    }
+
+    /** Un WhatsApp que falló no se vuelve a encolar en cada pasada del motor. */
+    #[Test]
+    public function un_canal_que_ya_fallo_no_se_reencola(): void
+    {
+        $inicio = $this->hito('+10 days noon');
+        $regla = $this->regla(canal: new MessageChannel()->setId('whatsapp_meta'));
+
+        $reserva = new PmsReserva();
+        $conversacion = new MessageConversation('pms_reserva', (string) $reserva->getId());
+        $this->enlace($conversacion, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicio]), $reserva);
+
+        $enCola = $this->programado($conversacion, $regla, $reserva, Message::STATUS_QUEUED, '+9 days noon');
+        $this->fabricarCola($enCola, 'failed');
+
+        $this->motor([$regla], [$this->enqueuer()])
+            ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
+
+        self::assertCount(1, $enCola->getAllQueues());
     }
 
     /**

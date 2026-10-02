@@ -869,7 +869,14 @@ final readonly class MessageRuleEngine
         // estado de las colas, y un `sin_canal` suele conservar la suya cancelada —la cortó
         // `quedarseSinCanal()`—: sin colas nuevas vería «todas canceladas» y lo CANCELARÍA, y
         // con eso volvería el bucle de crear y cancelar que el `sin_canal` vino a cerrar.
-        if ($revive) {
+        //
+        // 🔥 **Y las del que YA estaba vivo y gana un canal.** Franco (W2YRVK, 02/10/2026): reserva
+        // de Booking sin teléfono, su aviso de salida y su despedida en cola sólo por Beds24. Se
+        // le guardó el número y siguieron sólo por Beds24: no era `sin_canal`, así que no
+        // «revivía», y el canal nuevo se dejaba al `preUpdate` de `MessageEnqueuerEntityListener`,
+        // que persiste en mitad del flush y Doctrine no lo inserta — la deuda que §17.z.2 dejó
+        // escrita. `dispatch()` es idempotente por canal: sólo crea la cola que falta.
+        if ($revive || $this->faltaColaDeAlgunCanal($message, $validChannelIds, $newRunAt)) {
             foreach ($this->dispatcher->dispatch($message) as $queue) {
                 $message->addQueue($queue);
                 $this->em->persist($queue);
@@ -877,6 +884,34 @@ final readonly class MessageRuleEngine
         }
 
         $this->resolveMessageStatus($message);
+    }
+
+    /**
+     * ¿Hay un canal válido HOY para un mensaje vivo y por venir que todavía no tiene su cola?
+     *
+     * Cuenta cualquier cola que no esté cancelada —también las que ya salieron o fallaron—: un
+     * WhatsApp que falló no se vuelve a encolar en cada pasada del motor. Una cancelada sí deja
+     * hueco: es la que la poda cortó cuando el canal dejó de valer, y si vuelve a valer, vuelve.
+     * Sólo lo que no ha pasado, igual que al revivir: un recordatorio de ayer no sale hoy.
+     *
+     * @param list<string> $validChannelIds
+     */
+    private function faltaColaDeAlgunCanal(Message $message, array $validChannelIds, DateTimeImmutable $runAt): bool
+    {
+        if (!in_array($message->getStatus(), [Message::STATUS_QUEUED, Message::STATUS_PENDING], true)
+            || $runAt <= new DateTimeImmutable('now', new DateTimeZone(self::TZ))
+        ) {
+            return false;
+        }
+
+        $conCola = [];
+        foreach ($message->getAllQueues() as $queue) {
+            if ($queue->getStatus() !== 'cancelled') {
+                $conCola[] = $queue->getChannelId();
+            }
+        }
+
+        return array_diff($validChannelIds, $conCola) !== [];
     }
 
     /**

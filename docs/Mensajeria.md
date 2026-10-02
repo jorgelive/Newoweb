@@ -8483,9 +8483,16 @@ estado a partir de las colas. Un `sin_canal` suele conservar su cola vieja cance
 nuevas, esa línea vería «todas canceladas» y lo **cancelaría**, y el bucle volvería. El test
 `un_sin_canal_revive_cuando_vuelve_a_haber_canal` parte de ese caso y falla si se quita el bloque.
 
-⚠️ **Deuda que queda a la vista:** el paso 4 del `preUpdate` («fabricar colas por si apareció un
-canal nuevo») tiene la misma limitación para cualquier otro llamador. Lo que persiste no se
-inserta en ese flush; sólo entra si el mismo `EntityManager` vuelve a hacer flush después.
+⚠️ **Deuda saldada el 02/10/2026:** el paso 4 del `preUpdate` («fabricar colas por si apareció un
+canal nuevo») tenía la misma limitación, y mordió. Franco (W2YRVK, Booking) no tenía teléfono: su
+aviso de salida y su despedida quedaron en cola **sólo por Beds24**. Se le guardó el número y
+siguieron sólo por Beds24 — no eran `sin_canal`, así que no «revivían», y la cola de WhatsApp se
+dejaba a ese `preUpdate`. No era el único: 3 mensajes más en producción con teléfono y sin cola de
+WhatsApp. Ahora `syncPendingMessage()` pide colas también cuando un mensaje vivo y por venir tiene
+un canal válido sin cola (`faltaColaDeAlgunCanal()`); `dispatch()` es idempotente por canal y sólo
+crea la que falta. Una cola `failed` cuenta como «ya tiene»: un WhatsApp que falló no se reencola
+en cada pasada. Una `cancelled` no: la cortó la poda y, si el canal vuelve a valer, vuelve. Test
+`un_mensaje_en_cola_que_gana_un_canal_recibe_su_cola`, que falla sin el arreglo.
 
 **Quién lo despierta.** No hace falta nada nuevo: el motor ya pasa por el hilo cuando cambia
 `guestPhone` o `whatsappDisabled` (`MessageRuleEngineListener::CAMPOS_CRITICOS`), en cada
