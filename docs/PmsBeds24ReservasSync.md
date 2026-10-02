@@ -1287,6 +1287,12 @@ desbloquearía el día en el acto y el backend rechazaría el guardado. Y el PAT
 > (`hora_confirmada`). La plantilla de la confirmación (`aviso_hora_confirmada_interno`) está por
 > acordar; fuera de ventana, mientras tanto, sale por push. La de fuera de horario usa la del
 > escalado, ya aprobada.
+>
+> 💲 **El costo es POLÍTICA y se cuenta sólo si lo preguntan** (Jorge, 01/10/2026). Lo publicado
+> en la guía sigue diciendo «sujeto a disponibilidad y tiene un costo adicional»; el equipo decide
+> y suele flexibilizarlo. El agente no lo saca de entrada; si el huésped pregunta, sí, tiene costo
+> y el equipo confirma el detalle. Está en el `agente_contenido` de «Equipaje y horarios flexibles»
+> (`Version20261001230000`) y en el aviso que devuelve `confirmar_hora`.
 
 > ✅ **Hora FIRME (01/10/2026).** `llegada_confirmada_at` / `salida_confirmada_at` dicen si la hora
 > está confirmada, porque la hora sola no lo dice. Se confirman: (1) cuando una persona CAMBIA la

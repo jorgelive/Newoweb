@@ -278,9 +278,10 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
             'aviso' => sprintf(
                 'NO se ha apuntado y NO le confirmes nada. Dile que el %s es a las %s y que lo '
                 . 'consultas con el equipo, que depende de la disponibilidad. Ofrécele mientras '
-                . 'guardar el equipaje (conocimiento «Guardar equipaje»). NO hables de costes: si '
-                . 'hay algún cobro lo decide el equipo. La petición queda pegada a su estancia y el '
-                . 'equipo YA está avisado: no hace falta escalar_al_equipo.',
+                . 'guardar el equipaje (conocimiento «Guardar equipaje»). El costo, sólo si lo '
+                . 'pregunta: entonces sí, tiene un costo adicional y el equipo le confirma el '
+                . 'detalle. La petición queda pegada a su estancia y el equipo YA está avisado: no '
+                . 'hace falta escalar_al_equipo.',
                 $esSalida ? 'check-out' : 'check-in',
                 $limite
             ),
