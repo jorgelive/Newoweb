@@ -90,13 +90,17 @@ const abrir = (a: AsuntoSinTelefono): void => {
               <button type="button" @click="abrir(fila)"
                       class="w-full text-left flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors">
                 <span class="text-xs font-black text-slate-500 tabular-nums w-11 shrink-0">{{ fechaCorta(fila.fecha) }}</span>
+                <!-- La etiqueta va DEBAJO del nombre y no a su lado: en el móvil, al lado, se comía
+                     el ancho y el nombre se quedaba en «Ed…». -->
                 <span class="min-w-0 flex-1">
                   <span class="block text-sm font-bold text-slate-800 truncate">{{ fila.nombre }}</span>
-                  <span class="block text-[11px] font-bold text-slate-400 truncate">{{ fila.detalle }}</span>
-                </span>
-                <span class="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider"
-                      :class="fila.fusionSugerida ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500'">
-                  {{ fila.fusionSugerida ? '¿Misma persona?' : ETIQUETA_MOTIVO[fila.motivo] }}
+                  <span class="flex items-center gap-2 mt-0.5 min-w-0">
+                    <span class="shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider"
+                          :class="fila.fusionSugerida ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500'">
+                      {{ fila.fusionSugerida ? '¿Misma persona?' : ETIQUETA_MOTIVO[fila.motivo] }}
+                    </span>
+                    <span class="text-[11px] font-bold text-slate-400 truncate">{{ fila.detalle }}</span>
+                  </span>
                 </span>
                 <i class="fas fa-chevron-right text-[10px] text-slate-300 shrink-0" aria-hidden="true"></i>
               </button>
