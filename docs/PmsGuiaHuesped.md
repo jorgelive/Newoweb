@@ -1707,7 +1707,12 @@ lo que sólo hace falta cuando el caso lo pide.
 
 `PmsGuiaSeccionTipo::Salida` (`salida`): las instrucciones para dejar la casa —llaves, cocina,
 basura, luces, maletas—. Los mensajes la enlazan con `{{salida_url}}` / `{{salida_path}}`
-(`PmsMessageDataResolver`), que abren la guía con `?section=salida`. **`?section=` admite el id de
+(`PmsMessageDataResolver`), que abren `/huesped/reserva/<localizador>/guia?section=salida`.
+
+⚠️ **El `/guia` no sobra.** La primera versión colgaba el `?section=` de `/huesped/reserva/<loc>`,
+que es la ficha de la reserva —donde apunta `guide_url`—: abría, no daba error y la sección no
+aparecía nunca. La ruta corta sirve la primera estancia, y basta porque la sección es común a todas
+las casitas. **`?section=` admite el id de
 la sección o su TIPO** (`HuespedGuiaView::seccionActiva`): un mensaje no sabe qué id tiene la
 sección en la guía de cada casita. Si la guía no tiene sección de ese tipo, abre la portada.
 

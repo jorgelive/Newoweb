@@ -458,8 +458,8 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // Las instrucciones de salida: la guía abierta en su sección `salida` (01/10/2026).
             // Marcador propio por lo mismo que `account_url`: la plantilla no sabe navegar el pax.
             // El `_path`, sin dominio, para el botón `url` de Meta.
-            'salida_url'            => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador . '?section=salida',
-            'salida_path'           => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $localizador . '?section=salida',
+            'salida_url'            => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador . '/guia?section=salida',
+            'salida_path'           => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $localizador . '/guia?section=salida',
             'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
             'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
             // ── EL DINERO, YA REDACTADO ─────────────────────────────────────────────
@@ -547,8 +547,8 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // `guide_path`, que abre la guía sin el resumen de cuenta desplegado.
             'account_path'          => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $dummyLocator . '#resumen',
             'account_detail_url'    => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator . '#detalle',
-            'salida_url'            => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator . '?section=salida',
-            'salida_path'           => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $dummyLocator . '?section=salida',
+            'salida_url'            => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator . '/guia?section=salida',
+            'salida_path'           => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $dummyLocator . '/guia?section=salida',
             'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
             'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
         ] + $this->whatsappDelAlojamiento(null);
