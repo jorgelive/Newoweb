@@ -16,6 +16,7 @@ use App\Pms\Finanzas\PmsPrepagoEnlaceService;
 use App\Pms\Finanzas\PmsSituacionDeCobro;
 use App\Pms\Finanzas\PmsSituacionDeCobroResolver;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
+use App\Pms\Service\Message\TelefonoDelHuesped;
 use App\Pms\Service\Finance\TipoCambioDelDia;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -54,6 +55,7 @@ final class PmsReservaPaxProvider implements ProviderInterface
         private readonly PmsPrepagoCalculador $prepagoCalculador,
         private readonly PmsPrepagoEnlaceService $prepagoEnlaces,
         private readonly PmsSituacionDeCobroResolver $situacion,
+        private readonly TelefonoDelHuesped $telefonoDelHuesped,
     ) {
     }
 
@@ -67,6 +69,9 @@ final class PmsReservaPaxProvider implements ProviderInterface
         if (!$reserva instanceof PmsReserva) {
             return null;
         }
+
+        // Antes de las finanzas, que salen pronto si no hay cargos.
+        $reserva->setNecesitaTelefonoCliente($this->telefonoDelHuesped->hayQuePedirlo($reserva));
 
         $finanzas = $this->em->getRepository(PmsInformacionFinanciera::class)
             ->findOneBy(['reserva' => $reserva]);

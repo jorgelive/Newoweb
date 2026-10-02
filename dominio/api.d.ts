@@ -30493,6 +30493,13 @@ export interface components {
             resumenFinanciero?: {
                 [key: string]: string | null;
             } | null;
+            /**
+             * @description ¿Hay que pedirle el WhatsApp al huésped en su página? Lo decide `PmsReservaPaxProvider`:
+             *     estancia por venir y ningún teléfono verificado en su conversación. Booking dejó de pasar
+             *     el número (octubre de 2026); ver `docs/Mensajeria.md`, «Pedirle el teléfono al huésped».
+             * @default false
+             */
+            necesitaTelefono: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -30650,6 +30657,13 @@ export interface components {
             resumenFinanciero?: {
                 [key: string]: string | null;
             } | null;
+            /**
+             * @description ¿Hay que pedirle el WhatsApp al huésped en su página? Lo decide `PmsReservaPaxProvider`:
+             *     estancia por venir y ningún teléfono verificado en su conversación. Booking dejó de pasar
+             *     el número (octubre de 2026); ver `docs/Mensajeria.md`, «Pedirle el teléfono al huésped».
+             * @default false
+             */
+            necesitaTelefono: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -30752,6 +30766,13 @@ export interface components {
             resumenFinanciero?: {
                 [key: string]: string | null;
             } | null;
+            /**
+             * @description ¿Hay que pedirle el WhatsApp al huésped en su página? Lo decide `PmsReservaPaxProvider`:
+             *     estancia por venir y ningún teléfono verificado en su conversación. Booking dejó de pasar
+             *     el número (octubre de 2026); ver `docs/Mensajeria.md`, «Pedirle el teléfono al huésped».
+             * @default false
+             */
+            necesitaTelefono: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;
@@ -30851,6 +30872,13 @@ export interface components {
             resumenFinanciero?: {
                 [key: string]: string | null;
             } | null;
+            /**
+             * @description ¿Hay que pedirle el WhatsApp al huésped en su página? Lo decide `PmsReservaPaxProvider`:
+             *     estancia por venir y ningún teléfono verificado en su conversación. Booking dejó de pasar
+             *     el número (octubre de 2026); ver `docs/Mensajeria.md`, «Pedirle el teléfono al huésped».
+             * @default false
+             */
+            necesitaTelefono: boolean;
             /** Format: uuid */
             readonly id?: string | null;
             localizador?: string;

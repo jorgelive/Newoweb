@@ -267,6 +267,37 @@ dice «¿Misma persona?» y la reserva abre con el banner de unir.
 Incorporar otro dominio es implementar `AsuntosSinTelefonoInterface`; el panel agrupa por
 `negocio` y sabe abrir `pms_reserva` y `cotizacion_file`.
 
+### Pedirle el teléfono al huésped (02/10/2026)
+
+El reporte lo ve el equipo; esto ataca la causa. La página de la reserva en `pax`
+(`PmsReservaView`) enseña **«¿Nos dejas tu WhatsApp?»** (`PedirTelefono.vue`) cuando el provider
+marca `necesitaTelefono`: estancia por delante y **ningún teléfono verificado** en su conversación
+(`TelefonoDelHuesped::hayQuePedirlo()`; la semilla sola no cuenta). Lo que escribe va a SU reserva:
+entra por su localizador. Clémence lo habría dejado ahí —por ahí pagó—, en vez de escribir desde
+un número que no conocíamos y caer como prospecto.
+
+```
+POST /platform/client/pax/pms/pms_reserva/{localizador}/telefono   (PmsReservaTelefonoHuespedController)
+  PmsGuiaThrottle (el localizador es la credencial) → TelefonoDelHuesped::guardar()
+    PhoneSanitizer::validoONulo(tecleado, país de la reserva)  — válido o nada
+    PmsReserva::setTelefono() + flush → el recálculo de siempre: identidad, guestPhone,
+      colas de WhatsApp de sus avisos; o fusión sugerida + aviso si ya era de otro hilo
+```
+
+- **Guardar es sembrar la reserva, nada más.** El resto lo hace el mismo camino que cuando el
+  canal trae el número; no hay una segunda forma de dar de alta un teléfono.
+- ⚠️ **Sólo si no hay ya uno verificado** (409 `ya_tenemos`). La página no tiene más credencial que
+  el localizador: si sirviera para CAMBIAR el número, quien lo conociera podría desviarse los
+  mensajes del huésped, guía de llegada incluida. Corregir uno que existe es cosa del equipo.
+- **Válido o nada** (422 `invalido`): al revés que `cleanPhoneNumber()`, aquí quien escribe está
+  delante y se le pide que lo revise en vez de guardar dígitos a los que nunca llegará un WhatsApp.
+  Sin prefijo, se interpreta con el país de la reserva.
+- ⚠️ **La tarjeta no sale sin sus textos** (`res_tel_titulo`, `pax:textos:telefono`): sin ellos
+  saldría en español a todo el mundo. Así el código se despliega antes de aprobar el texto.
+
+Probado de punta a punta por el kernel sobre la copia de producción: inválido 422, localizador
+desconocido 404, válido → identidad + `guestPhone` + colas de WhatsApp, y un segundo intento 409.
+
 ## Editar identidades ya no obliga a cargar el chat (08/09/2026)
 
 `EditConversationModal` sólo vivía dentro de `ChatView`, y llegar hasta él pasaba por
@@ -7162,6 +7193,7 @@ de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar
 | Cambiar cuándo se sugiere unir dos hilos o cuándo se avisa | `MessageConversation::sugerirFusion()` / `FusionSugeridaListener` | «El choque de identificadores que nadie veía» |
 | Cambiar el texto del aviso de fusión sugerida | `AvisarFusionSugeridaDispatchHandler` (dentro de ventana) / plantilla `aviso_fusion_sugerida_interno` (`msg:crear:aviso-fusion`) | En Meta, texto nuevo = versión nueva |
 | Cambiar qué cuenta como «sin teléfono» en el reporte del portal | `AsuntoSinTelefono::motivo()` | Mira lo mismo que el envío; ver «Reservas y cotizaciones sin teléfono» |
+| Cambiar cuándo la página del huésped pide el WhatsApp, o qué acepta | `TelefonoDelHuesped` | `hayQuePedirlo()` / `guardar()` — y los textos en `pax:textos:telefono` |
 | Añadir un dominio al reporte «Sin teléfono» | implementar `AsuntosSinTelefonoInterface` | y enseñarle a abrirlo a `AsuntosSinTelefonoPanel::abrir()` |
 | Cambiar el banner de «¿es la misma persona?» | `util/src/components/chat/FusionSugeridaAviso.vue` | Lo montan `ChatView` y `ReservaEditDrawer` |
 | Cambiar cómo se encuentra el hilo interno del operador | `AvisoAlEquipoService::conversacionStaff()` | Busca por TELÉFONO antes que por contexto: es lo que sobrevive a fusionar hilos |

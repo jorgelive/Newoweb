@@ -65,6 +65,29 @@ final class PhoneSanitizer
     }
 
     /**
+     * El número en E.164 sin '+' SÓLO si es válido; si no, null.
+     *
+     * Para lo que teclea el propio huésped (su página, `PmsReservaTelefonoHuespedController`).
+     * Al revés que {@see cleanPhoneNumber()}, que guarda los dígitos aunque no validen porque un
+     * dato crudo de un canal es recuperable: aquí quien escribe está delante, y es mejor decirle
+     * «revísalo» que guardar un número al que nunca le llegará un WhatsApp.
+     *
+     * `$paisPorDefecto` sólo sirve para un número sin prefijo (el que se teclea «como en casa»).
+     */
+    public function validoONulo(string $rawPhone, ?string $paisPorDefecto): ?string
+    {
+        try {
+            $numero = $this->phoneUtil->parse(trim($rawPhone), $paisPorDefecto !== null ? strtoupper($paisPorDefecto) : null);
+        } catch (NumberParseException) {
+            return null;
+        }
+
+        return $this->phoneUtil->isValidNumber($numero)
+            ? ltrim($this->phoneUtil->format($numero, PhoneNumberFormat::E164), '+')
+            : null;
+    }
+
+    /**
      * Utiliza libphonenumber para formatear a estándar internacional E.164 (sin el +).
      *
      * Regla de oro: **nunca se inventa un prefijo**. Solo se antepone el 51 al móvil

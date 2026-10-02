@@ -223,6 +223,18 @@ que el número a secas no vale ahí. Desde el 14/09/2026 los botones también in
 - Las organizaciones internas (`OpenPeru Tickets`, `Transportes OpenPeru`) llevan su propio
   `telefono`, y es correcto que lo lleven: son datos de cada organización, no del alojamiento.
 
+## 5 ter. El número que teclea el propio huésped: válido o nada (02/10/2026)
+
+`PhoneSanitizer::validoONulo($tecleado, $paisPorDefecto)` devuelve E.164 sin `+` sólo si
+`isValidNumber()`; si no, `null`. Es para la página del huésped (`TelefonoDelHuesped`), donde quien
+escribe está delante: se le pide que lo revise. `cleanPhoneNumber()` sigue guardando los dígitos
+aunque no validen, porque lo que trae un canal es recuperable y un prefijo inventado no.
+
+El país por defecto (el de la reserva) sólo cuenta para un número sin prefijo: «06 52 30 74 93»
+con la reserva en Francia es +33. Sin prefijo y sin país, `null` — no se adivina. Tests en
+`PhoneSanitizerValidoTest`. El flujo completo está en `docs/Mensajeria.md`, «Pedirle el teléfono
+al huésped».
+
 ## 6. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |

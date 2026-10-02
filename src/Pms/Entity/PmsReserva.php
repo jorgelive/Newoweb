@@ -694,6 +694,18 @@ class PmsReserva
      */
     public function setResumenFinancieroCliente(?array $resumen): self { $this->resumenFinancieroCliente = $resumen; return $this; }
 
+    /**
+     * ¿Hay que pedirle el WhatsApp al huésped en su página? Lo decide `PmsReservaPaxProvider`:
+     * estancia por venir y ningún teléfono verificado en su conversación. Booking dejó de pasar
+     * el número (octubre de 2026); ver `docs/Mensajeria.md`, «Pedirle el teléfono al huésped».
+     */
+    private bool $necesitaTelefonoCliente = false;
+
+    #[Groups(['pax_reserva:read'])]
+    #[SerializedName('necesitaTelefono')]
+    public function isNecesitaTelefonoCliente(): bool { return $this->necesitaTelefonoCliente; }
+    public function setNecesitaTelefonoCliente(bool $necesita): self { $this->necesitaTelefonoCliente = $necesita; return $this; }
+
     public function getInformacionFinanciera(): ?PmsInformacionFinanciera { return $this->informacionFinanciera; }
 
     public function setInformacionFinanciera(?PmsInformacionFinanciera $info): self

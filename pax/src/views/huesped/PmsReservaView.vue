@@ -6,6 +6,7 @@ import { ref, computed, nextTick, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { usePmsReservaStore } from '@/stores/huesped/paxHuespedReservaStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
+import PedirTelefono from '@/components/huesped/PedirTelefono.vue';
 import { useConfigDelFront } from '@/composables/useConfigDelFront';
 import { totalConRecargo } from '@dominio/finanzas';
 import { fmtNaive, fmtNaiveDia } from '@dominio/fecha/index.ts';
@@ -804,6 +805,11 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
           </div>
         </div>
       </header>
+
+      <!-- Sin teléfono verificado: se lo pedimos (Booking ya no lo pasa). Sólo si ya existen sus
+           textos traducidos; ver PedirTelefono. -->
+      <PedirTelefono v-if="pmsStore.reserva.necesitaTelefono && maestroStore.t('res_tel_titulo')"
+                     :localizador="pmsStore.reserva.localizador ?? ''" @guardado="pmsStore.lastUpdate = 0" />
 
       <!-- ═══ ESTADO DE CUENTA ═══ Solo si el backend mandó el resumen (hay
            cabecera financiera con cargos). Presentación, sin lógica de negocio:
