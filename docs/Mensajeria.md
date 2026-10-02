@@ -8820,6 +8820,12 @@ aviso de salida (Jorge): «🕑 El check-in es desde las 14:00. ¿A qué hora ti
 | Antes de las 14:00 | `CMD_LLEGADA_ANTES` | `pasar_al_agente`: pregunta la hora; depende de la disponibilidad, ofrece el equipaje y avisa al equipo con la ocupación de la noche anterior |
 | Ver mi guía | — (enlace, `guide_path`) | abre su guía |
 
+- ⚠️ **El botón que confirma sin pasar por el agente (`ConfirmarHoraActionHandler`) apunta TODAS
+  las casitas que entran o salen ese día**, una llamada a `confirmar_hora` por casita. Con varias,
+  el botón se quedaba en un `warning` y el huésped sin respuesta: la skill sin `casita` pide
+  preguntar de cuál habla, y un botón no puede preguntar. Lizbeth (KXET9H, Casitas 1 y 4) tenía su
+  aviso de salida para ese mismo mediodía; se arregló antes de que saliera. Con
+  `hora: estancia`, la hora es la de cada estancia y no la del alojamiento.
 - **Las dos de respuesta, al agente**: hace falta la hora concreta, y con ella `confirmar_hora`
   decide. No hay atajo como el «Salgo a las 10:00» del aviso de salida, porque «después de las
   14:00» no es una hora.

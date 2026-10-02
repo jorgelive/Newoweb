@@ -12,7 +12,6 @@ use App\Message\Entity\Message;
 use App\Message\Service\Agent\SendTemplateActionHandler;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsReserva;
-use App\Pms\Guia\PmsGuiaEstanciaResolver;
 use App\Pms\Service\Reserva\HoraDeLaEstancia;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -38,7 +37,6 @@ final readonly class ConfirmarHoraActionHandler implements BotActionHandlerInter
         private EntityManagerInterface $em,
         private AgentActorFactory $actores,
         private ConfirmarHoraSkill $confirmarHora,
-        private PmsGuiaEstanciaResolver $estancias,
         private HoraDeLaEstancia $horas,
         private SendTemplateActionHandler $plantillas,
         private LoggerInterface $logger,
@@ -67,26 +65,46 @@ final readonly class ConfirmarHoraActionHandler implements BotActionHandlerInter
 
         $esSalida = $parametros->texto('extremo') !== 'llegada';
         $reserva = $this->em->getRepository(PmsReserva::class)->find($conversacion->getContextId());
-        $evento = $reserva instanceof PmsReserva
-            ? $this->estancias->resolver($reserva->getEventosActivosGuia())['evento']
-            : null;
+        $estancias = $reserva instanceof PmsReserva ? $this->estanciasDelDia($reserva->getEventosActivosGuia(), $esSalida) : [];
 
-        if (!$evento instanceof PmsEventoCalendario) {
-            // Varias casitas sin decir cuál, o ninguna activa: que lo pregunte el agente.
-            $this->logger->warning('Bot: confirmar_hora no sabe a qué estancia apuntarlo.', ['mensaje' => $mensajeEntranteId]);
+        if ($estancias === []) {
+            $this->logger->warning('Bot: confirmar_hora no encuentra ninguna estancia activa.', ['mensaje' => $mensajeEntranteId]);
 
             return;
         }
 
+        // 🔥 **Una por casita, todas las que entran o salen ese día.** Con varias casitas el
+        // botón se quedaba en un `warning` y el huésped sin respuesta: la skill, sin `casita`,
+        // pide preguntar de cuál habla, y un botón no puede preguntar. Pero «salgo a las 10:00»
+        // de una familia en dos casitas vale para las dos (Lizbeth, KXET9H, 02/10/2026).
+        //
+        // La hora: `hora: estancia` es la que figura en la estancia —la del alojamiento si nadie
+        // la cambió, la acordada si sí—, que es lo que dice el botón «Salgo a esa hora». Sin el
+        // parámetro, la del alojamiento: el botón viejo dice «Salgo a las 10:00» en el texto.
         $actor = $this->actores->huesped('boton', 'pms_reserva', $conversacion->getContextId(), (string) $conversacion->getId());
-        $resultado = $this->confirmarHora->ejecutar([
-            'extremo' => $esSalida ? 'salida' : 'llegada',
-            'hora' => $this->horas->limite($evento, $esSalida),
-        ], $actor);
+        $alguna = false;
 
-        if ($resultado->esError()) {
-            $this->logger->warning('Bot: confirmar_hora no pudo apuntarla.', ['mensaje' => $mensajeEntranteId, 'error' => $resultado->error]);
+        foreach ($estancias as $evento) {
+            $momento = $esSalida ? $evento->getFin() : $evento->getInicio();
+            $hora = $parametros->texto('hora') === 'estancia' && $momento !== null
+                ? $momento->format('H:i')
+                : $this->horas->limite($evento, $esSalida);
 
+            $resultado = $this->confirmarHora->ejecutar([
+                'extremo' => $esSalida ? 'salida' : 'llegada',
+                'hora' => $hora,
+                'casita' => count($estancias) > 1 ? (string) $evento->getPmsUnidad()?->getNombre() : '',
+            ], $actor);
+
+            if ($resultado->esError()) {
+                $this->logger->warning('Bot: confirmar_hora no pudo apuntarla.', ['mensaje' => $mensajeEntranteId, 'evento' => (string) $evento->getId(), 'error' => $resultado->error]);
+                continue;
+            }
+
+            $alguna = true;
+        }
+
+        if (!$alguna) {
             return;
         }
 
@@ -95,5 +113,27 @@ final readonly class ConfirmarHoraActionHandler implements BotActionHandlerInter
                 'template_code' => $parametros->texto('plantilla_respuesta'),
             ]));
         }
+    }
+
+    /**
+     * Las estancias que entran (o salen) el mismo día que la primera entrada (o la última salida)
+     * de la reserva: las que el botón está confirmando. Las de otros días —un cambio de casita a
+     * mitad de estancia— no se tocan.
+     *
+     * @param array<int, PmsEventoCalendario> $activas
+     * @return list<PmsEventoCalendario>
+     */
+    private function estanciasDelDia(array $activas, bool $esSalida): array
+    {
+        $dia = static fn (PmsEventoCalendario $e): ?string => ($esSalida ? $e->getFin() : $e->getInicio())?->format('Y-m-d');
+        $dias = array_filter(array_map($dia, array_values($activas)));
+
+        if ($dias === []) {
+            return [];
+        }
+
+        $elDia = $esSalida ? max($dias) : min($dias);
+
+        return array_values(array_filter($activas, static fn (PmsEventoCalendario $e): bool => $dia($e) === $elDia));
     }
 }
