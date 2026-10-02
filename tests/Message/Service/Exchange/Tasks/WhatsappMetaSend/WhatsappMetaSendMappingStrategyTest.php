@@ -83,6 +83,74 @@ final class WhatsappMetaSendMappingStrategyTest extends TestCase
         self::assertFalse($resultados['cola-C']->success);
     }
 
+    /**
+     * Botones de verdad dentro de la ventana (01/10/2026): los de respuesta de la plantilla, con el
+     * mismo id que su payload, mientras quepan en un mensaje interactivo de Meta.
+     */
+    public function testLosBotonesDeRespuestaSalenComoBotonesDeVerdad(): void
+    {
+        $botones = [
+            $this->boton('quick_reply', 'CMD_SALGO_10', ['es' => 'Salgo a las 10:00']),
+            $this->boton('quick_reply', 'CMD_SALGO_ANTES', ['es' => 'Saldré antes']),
+            $this->boton('url', 'guide_path', ['es' => 'Instrucciones de salida']),
+        ];
+
+        self::assertSame([
+            ['type' => 'reply', 'reply' => ['id' => 'CMD_SALGO_10', 'title' => 'Salgo a las 10:00']],
+            ['type' => 'reply', 'reply' => ['id' => 'CMD_SALGO_ANTES', 'title' => 'Saldré antes']],
+        ], $this->privado('botonesReales', $botones, 'es'));
+    }
+
+    /** Si no caben, `null`: vuelve la botonera numerada. Nunca se recorta un texto. */
+    public function testSiNoCabenVuelveLaBotoneraNumerada(): void
+    {
+        $largo = [$this->boton('quick_reply', 'CMD_X', ['es' => 'Necesito un poco más de tiempo'])];
+        $cuatro = array_map(fn (int $i) => $this->boton('quick_reply', 'CMD_' . $i, ['es' => 'Opción ' . $i]), [1, 2, 3, 4]);
+        $sinTraduccion = [$this->boton('quick_reply', 'CMD_X', ['en' => 'Leave at 10'])];
+        $soloEnlaces = [$this->boton('url', 'guide_path', ['es' => 'Ver mi guía'])];
+
+        self::assertNull($this->privado('botonesReales', $largo, 'es'), 'más de 20 caracteres');
+        self::assertNull($this->privado('botonesReales', $cuatro, 'es'), 'más de 3');
+        self::assertNull($this->privado('botonesReales', $sinTraduccion, 'es'), 'sin texto en su idioma');
+        self::assertNull($this->privado('botonesReales', $soloEnlaces, 'es'), 'sólo enlaces: no hay botones que pulsar');
+    }
+
+    /** El enlace va en el texto, y sólo si el texto no lo trae ya. */
+    public function testElEnlaceVaEnElTextoSinRepetirse(): void
+    {
+        $botones = [$this->boton('url', 'guide_path', ['es' => 'Ver mi guía'])];
+        $variables = ['guide_url' => 'https://pax.openperu.pe/g/ABC'];
+
+        self::assertSame(
+            "¿A qué hora sales?\n\n🔗 *Ver mi guía*:\nhttps://pax.openperu.pe/g/ABC",
+            $this->privado('conEnlacesQueFalten', '¿A qué hora sales?', $botones, $variables, 'es')
+        );
+        self::assertSame(
+            'Tu guía: https://pax.openperu.pe/g/ABC',
+            $this->privado('conEnlacesQueFalten', 'Tu guía: https://pax.openperu.pe/g/ABC', $botones, $variables, 'es')
+        );
+    }
+
+    /**
+     * @param array<string, string> $textos idioma => texto
+     *
+     * @return array<string, mixed>
+     */
+    private function boton(string $tipo, string $clave, array $textos): array
+    {
+        $traducciones = [];
+        foreach ($textos as $idioma => $texto) {
+            $traducciones[] = ['language' => $idioma, 'content' => $texto];
+        }
+
+        return ['type' => $tipo, 'resolver_key' => $clave, 'button_text' => $traducciones];
+    }
+
+    private function privado(string $metodo, mixed ...$argumentos): mixed
+    {
+        return (new \ReflectionMethod(WhatsappMetaSendMappingStrategy::class, $metodo))->invoke($this->estrategia(), ...$argumentos);
+    }
+
     private function estrategia(): WhatsappMetaSendMappingStrategy
     {
         // `parseResponse()` no usa ninguna dependencia: las del constructor son para `map()`.

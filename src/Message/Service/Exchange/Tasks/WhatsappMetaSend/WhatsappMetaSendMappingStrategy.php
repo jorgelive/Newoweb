@@ -32,9 +32,16 @@ use Vich\UploaderBundle\Storage\StorageInterface;
  * 1. Idiomas: Normaliza códigos genéricos ('pt' -> 'pt_BR') para evitar rechazos de la API.
  * 2. Enrutamiento: Adopta el estándar de sufijos (_path para botones nativos, _url para texto libre).
  * 3. Fallbacks: Emula botones en texto libre resolviendo dinámicamente las URLs absolutas.
+ *
+ * @phpstan-import-type BotonDeMenu from \App\Message\Entity\MessageTemplate
  */
 final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyInterface
 {
+    /** Topes de Meta para un mensaje interactivo de botones (dentro de la ventana de 24 h). */
+    private const int MAX_BOTONES_INTERACTIVOS = 3;
+    private const int MAX_TITULO_BOTON = 20;
+    private const int MAX_CUERPO_INTERACTIVO = 1024;
+
     public function __construct(
         private MessageDataResolverRegistry $resolverRegistry,
         private StorageInterface $vichStorage,
@@ -418,7 +425,27 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     // querer la botonera, y adivinárselo sería quitársela sin decir nada.
                     $ocultarBotones = $desdeElRico && $template?->isWhatsappLinkMetaButtonsDisabled() === true;
 
-                    if (!$ocultarBotones && !empty($metaJson['buttons_map'])) {
+                    // 🔘 BOTONES DE VERDAD, si caben (01/10/2026). Dentro de la ventana WhatsApp deja
+                    // mandar un mensaje interactivo con hasta 3 botones de respuesta, sin plantilla ni
+                    // aprobación. Al pulsarlo vuelve `interactive.button_reply` con el mismo id que el
+                    // payload de la plantilla, y el persister ya lo trata igual. Si no caben —más de 3,
+                    // un texto de más de 20 caracteres, un adjunto, un cuerpo de más de 1024— se queda
+                    // la botonera numerada de siempre: nunca se recorta nada.
+                    $botonesReales = !$ocultarBotones && !$attachment
+                        ? $this->botonesReales($metaJson['buttons_map'] ?? [], $metaLang)
+                        : null;
+                    $interactivo = false;
+
+                    if ($botonesReales !== null) {
+                        $conEnlaces = $this->conEnlacesQueFalten($finalContent, $metaJson['buttons_map'] ?? [], $variables, $metaLang);
+
+                        if (mb_strlen($conEnlaces) <= self::MAX_CUERPO_INTERACTIVO) {
+                            $finalContent = $conEnlaces;
+                            $interactivo = true;
+                        }
+                    }
+
+                    if (!$interactivo && !$ocultarBotones && !empty($metaJson['buttons_map'])) {
 
                         // 1. Detección Inteligente: ¿Hay opciones para interactuar o son puros links?
                         $hasQuickReplies = false;
@@ -456,7 +483,8 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                                 $fallbackKey = str_ends_with($resolverKey, '_path') ? str_replace('_path', '_url', $resolverKey) : $resolverKey;
                                 $urlValue = (string) ($variables[$fallbackKey] ?? $variables[$resolverKey] ?? '');
 
-                                if ($urlValue !== '') {
+                                // Si el texto ya trae ese enlace, no se repite debajo.
+                                if ($urlValue !== '' && !str_contains($finalContent, $urlValue)) {
                                     $finalContent .= "🔗 *" . trim($btnText) . "*:\n" . $urlValue . "\n\n";
                                 }
                             } elseif ($btnType === 'quick_reply') {
@@ -482,6 +510,13 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                         if (!empty(trim($finalContent)) && in_array($mediaType, ['image', 'video', 'document'])) {
                             $messagePayload[$mediaType]['caption'] = $finalContent;
                         }
+                    } elseif ($interactivo && $botonesReales !== null) {
+                        $messagePayload['type'] = 'interactive';
+                        $messagePayload['interactive'] = [
+                            'type' => 'button',
+                            'body' => ['text' => trim($finalContent)],
+                            'action' => ['buttons' => $botonesReales],
+                        ];
                     } else {
                         $messagePayload['type'] = 'text';
                         $messagePayload['text'] = ['preview_url' => true, 'body' => trim($finalContent)];
@@ -505,6 +540,81 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
         }
 
         return new MappingResult($method, $fullUrl, $payload, $config, $correlation, ['saltados' => $saltados]);
+    }
+
+    /**
+     * Los botones de respuesta de la plantilla, listos para un mensaje interactivo, o `null` si no
+     * caben en uno: ninguno, más de 3, sin `resolver_key`, o con un texto vacío o de más de 20
+     * caracteres en este idioma (el tope de Meta para el título de un botón interactivo; el de las
+     * plantillas es 25). Con `null`, el que llama vuelve a la botonera numerada.
+     *
+     * @param list<BotonDeMenu> $botones `buttons_map` de la plantilla.
+     *
+     * @return list<array{type: string, reply: array{id: string, title: string}}>|null
+     */
+    private function botonesReales(array $botones, string $metaLang): ?array
+    {
+        $reales = [];
+
+        foreach ($botones as $btn) {
+            if (strtolower((string) ($btn['type'] ?? '')) !== 'quick_reply') {
+                continue;
+            }
+
+            $id = (string) ($btn['resolver_key'] ?? '');
+            $titulo = '';
+            foreach ($btn['button_text'] ?? [] as $tr) {
+                if ($this->normalizeLanguageForMeta(strtolower((string) ($tr['language'] ?? ''))) === $metaLang) {
+                    $titulo = trim((string) ($tr['content'] ?? ''));
+                    break;
+                }
+            }
+
+            if ($id === '' || $titulo === '' || mb_strlen($titulo) > self::MAX_TITULO_BOTON) {
+                return null;
+            }
+
+            $reales[] = ['type' => 'reply', 'reply' => ['id' => $id, 'title' => $titulo]];
+        }
+
+        return $reales === [] || count($reales) > self::MAX_BOTONES_INTERACTIVOS ? null : $reales;
+    }
+
+    /**
+     * El texto con los botones de ENLACE que falten, escritos al final. Un mensaje interactivo de
+     * botones no admite enlaces como botón, así que van en el texto — y sólo los que el texto no
+     * traiga ya: los cuerpos de WhatsApp se escriben con sus enlaces dentro.
+     *
+     * @param list<BotonDeMenu>          $botones
+     * @param array<string, scalar|null> $variables
+     */
+    private function conEnlacesQueFalten(string $texto, array $botones, array $variables, string $metaLang): string
+    {
+        foreach ($botones as $btn) {
+            if (strtolower((string) ($btn['type'] ?? '')) !== 'url') {
+                continue;
+            }
+
+            $resolverKey = (string) ($btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', (string) ($btn['content'] ?? '')));
+            $fallbackKey = str_ends_with($resolverKey, '_path') ? str_replace('_path', '_url', $resolverKey) : $resolverKey;
+            $url = (string) ($variables[$fallbackKey] ?? $variables[$resolverKey] ?? '');
+
+            if ($url === '' || str_contains($texto, $url)) {
+                continue;
+            }
+
+            $etiqueta = '';
+            foreach ($btn['button_text'] ?? [] as $tr) {
+                if ($this->normalizeLanguageForMeta(strtolower((string) ($tr['language'] ?? ''))) === $metaLang) {
+                    $etiqueta = trim((string) ($tr['content'] ?? ''));
+                    break;
+                }
+            }
+
+            $texto = rtrim($texto) . "\n\n🔗 " . ($etiqueta !== '' ? '*' . $etiqueta . "*:\n" : '') . $url;
+        }
+
+        return $texto;
     }
 
     /**
@@ -583,7 +693,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
     /**
      * Interpola variables dinámicas en el texto libre usando Regex.
      *
-     * @param array<string, mixed> $variables
+     * @param array<string, scalar|null> $variables
      */
     private function hydrateVariables(string $content, array $variables): string
     {

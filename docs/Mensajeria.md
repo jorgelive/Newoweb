@@ -7843,6 +7843,19 @@ una plantilla de Meta— no tenía cuerpo que mandar por ahí. Salía vacía.
 `wa.me`. Mismo destino, mismo formato, sin el corsé de la aprobación. Ahora se prefiere, y el de
 Meta queda de respaldo para las plantillas que sólo tengan ése.
 
+#### 🔘 Dentro de la ventana, botones DE VERDAD si caben (01/10/2026)
+
+Con la casilla «Ocultar botones interactivos» DESMARCADA, los botones de respuesta de la plantilla
+salen como **mensaje interactivo** de Meta (`type: interactive`, `button`): pulsables, sin
+plantilla ni aprobación, con el mismo id que el payload de la plantilla, así que la vuelta
+(`interactive.button_reply`) la trata el persister igual que un botón de plantilla. Si no caben
+—más de 3, un título de más de 20 caracteres en ese idioma, un adjunto, o el cuerpo pasa de 1024—
+sale la botonera numerada de antes; nunca se recorta. Los botones de ENLACE no caben en ese
+mensaje: van escritos al final del texto, y sólo si el texto no trae ya ese enlace (lo mismo vale
+ahora para la botonera numerada, que antes lo repetía). `botonesReales()` y
+`conEnlacesQueFalten()` en `WhatsappMetaSendMappingStrategy`. El enlace manual `wa.me` no cambia:
+nunca llevó botones.
+
 #### Lo que el panel decía mal, y ya no
 
 Al pasar `whatsapp_link_tmpl` a ser el cuerpo principal dentro de la ventana, dos cosas del panel
