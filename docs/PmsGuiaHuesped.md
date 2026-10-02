@@ -1711,6 +1711,20 @@ basura, luces, maletas—. Los mensajes la enlazan con `{{salida_url}}` / `{{sal
 la sección o su TIPO** (`HuespedGuiaView::seccionActiva`): un mensaje no sabe qué id tiene la
 sección en la guía de cada casita. Si la guía no tiene sección de ese tipo, abre la portada.
 
+**El contenido es UNA sección común, «Salida (general)», enlazada a las siete guías** en el orden 6,
+detrás de «Pagos y Reglamento». Un solo ítem, «Instrucciones de salida (general)»: hora tope, llaves
+(la numerada a la caja fuerte donde se recogió, la otra dentro del departamento), cocina, basura,
+antes de salir y equipaje. Salió del `check_out` de Booking, que lo contaba todo en el WhatsApp y
+enterraba la pregunta de la hora; el `aviso_salida` nuevo es corto y remite aquí. Lo cargó
+`app:pms:guia:crear-salida` (archivado, idempotente).
+
+⚠️ **Los títulos cortos se traducen mal y van a mano.** Sin contexto, «Check-out» salió «Kasse»,
+«Vérifier» y «Confira»; «Salida», la salida de una autopista; y en neerlandés el ítem acabó en
+«salir de la tienda». El comando los fija por idioma tras el primer `flush` **conservando el
+`origenHash`**, que es lo que le dice al traductor que esa fila está al día. Y la primera línea del
+cuerpo también se reescribió dos veces: «Tu salida es hasta las…» y «Deja el departamento hasta
+las…» daban «until» en inglés; «a más tardar a las» sale bien en los siete.
+
 ## 8. Dónde tocar para cambiar X
 
 | Necesito… | Archivo | Símbolo |
@@ -2457,6 +2471,13 @@ al llegar podía acabar oyendo que no hay dónde dejarlas. Por eso se reparte ta
 `agenteContenido`, y el de la ficha de horarios termina con un «NO le digas que no se puede».
 
 Lo hizo `app:pms:guia:equipaje` (archivado).
+
+**Equipaje se OFRECE; lo gratis se dice si preguntan (01/10/2026).** El `agenteContenido` decía a la
+vez «ofrécelo con confianza» y «no lo ofrezcas de entrada», y el agente se quedaba con lo segundo
+justo cuando el aviso de salida lo ofrecía. Ahora: se ofrece siempre que ayude —llega antes de la
+entrada, sale antes de irse de la ciudad, se va unos días—, y que es gratis se cuenta cuando
+pregunta el costo (Version20261001240000). Lo contrario que el ingreso temprano / salida tarde, que
+SÍ cuesta: ahí la política se dice sólo si pregunta, y lo decide el equipo (Version20261001230000).
 
 ## 💬 «Este chat» en una pantalla que no es un chat (31/08/2026)
 
