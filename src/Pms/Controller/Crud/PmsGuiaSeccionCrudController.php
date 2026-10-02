@@ -87,6 +87,7 @@ class PmsGuiaSeccionCrudController extends BaseCrudController
                 'Ingreso a la casa'    => PmsGuiaSeccionTipo::Ingreso,
                 'Descriptivo / Fotos'  => PmsGuiaSeccionTipo::Descriptivo,
                 'Normas de la casa'    => PmsGuiaSeccionTipo::Normas,
+                'Salida (check-out)'   => PmsGuiaSeccionTipo::Salida,
             ])
             ->renderExpanded(false)   // dropdown en vez de radios
             ->setRequired(false)      // opcional → deja el "vacío"

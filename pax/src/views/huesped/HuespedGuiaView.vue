@@ -90,6 +90,7 @@ const TIPO_COLOR: Record<string, SeccionColor> = {
   ingreso:     { color: '#376875', bg: '#376875' },
   descriptivo: { color: '#854F0B', bg: '#FAEEDA' },
   normas:      { color: '#3C3489', bg: '#EEEDFE' },
+  salida:      { color: '#993C1D', bg: '#FAECE7' },
 };
 
 const PALETA_FALLBACK: SeccionColor[] = [
@@ -146,9 +147,11 @@ const itemsOcultosCount = computed(() => Math.max(0, itemsDestacadaTodos.value.l
  * El nivel vive en la query, no en el componente: así el «atrás» del
  * navegador (y el gesto del móvil) retrocede un nivel en vez de salir.
  * ───────────────────────────────────────────────────────────── */
+// `?section=` admite el id de la sección o su TIPO: los mensajes enlazan «la de salida» con
+// `?section=salida` (marcador `salida_url`), sin saber qué id tiene en la guía de cada casita.
 const seccionActiva = computed<GuiaSeccion | null>(() => {
   const id = route.query.section as string;
-  return id ? (secciones.value.find(s => s.id === id) ?? null) : null;
+  return id ? (secciones.value.find(s => s.id === id) ?? secciones.value.find(s => s.tipo === id) ?? null) : null;
 });
 
 const itemsSeccionActiva = computed<GuiaItem[]>(() => seccionActiva.value?.items ?? []);

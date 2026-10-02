@@ -46,7 +46,7 @@ export interface CatalogoSeccion {
     '@id'?: string;
     id: string;
     icono?: string | null;
-    tipo?: 'ingreso' | 'descriptivo' | 'normas' | null;
+    tipo?: 'ingreso' | 'descriptivo' | 'normas' | 'salida' | null;
     titulo: PmsContenidoTraducible[];
     subtitulo: PmsContenidoTraducible[];
     /** Solo los ítems públicos; las secciones sin ninguno no llegan a viajar. */

@@ -163,7 +163,7 @@ class PmsGuiaSeccion
     #[SerializedName('tipo')]
     public function getTipo(): ?string
     {
-        return $this->tipo?->value;   // Expone "ingreso" | "descriptivo" | "normas" | null
+        return $this->tipo?->value;   // Expone "ingreso" | "descriptivo" | "normas" | "salida" | null
     }
 
     public function getTipoEnum(): ?PmsGuiaSeccionTipo   // Para uso interno/admin
