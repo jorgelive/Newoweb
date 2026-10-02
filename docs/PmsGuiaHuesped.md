@@ -1703,6 +1703,14 @@ porqué, los casos raros, los avisos de OTA— es lo que baja.
 Es el mismo reparto que la escalera de `agentePasos`: arriba lo que sirve a quien pregunta, abajo
 lo que sólo hace falta cuando el caso lo pide.
 
+## 7 bis. La sección de salida y el enlace directo a una sección (01/10/2026)
+
+`PmsGuiaSeccionTipo::Salida` (`salida`): las instrucciones para dejar la casa —llaves, cocina,
+basura, luces, maletas—. Los mensajes la enlazan con `{{salida_url}}` / `{{salida_path}}`
+(`PmsMessageDataResolver`), que abren la guía con `?section=salida`. **`?section=` admite el id de
+la sección o su TIPO** (`HuespedGuiaView::seccionActiva`): un mensaje no sabe qué id tiene la
+sección en la guía de cada casita. Si la guía no tiene sección de ese tipo, abre la portada.
+
 ## 8. Dónde tocar para cambiar X
 
 | Necesito… | Archivo | Símbolo |

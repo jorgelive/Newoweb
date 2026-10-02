@@ -8609,6 +8609,37 @@ muerto»: es la que sale.
 
 ---
 
+## 18.d bis El aviso de salida con botones (01/10/2026)
+
+`aviso_salida` sustituye a `check_out` (regla «Check Out», 22 h antes de la salida). Texto corto
+de Jorge con la pregunta de la hora; las instrucciones viven en la guía, sección `salida`, y se
+enlazan con `{{salida_url}}` (botón de Meta: `{{salida_path}}`). Lo crea
+`msg:plantillas:aviso-salida`; `--activar` repunta la regla cuando Meta la apruebe entera.
+
+| botón | payload | regla (`agent_autoresponder_rule`) | qué pasa |
+|---|---|---|---|
+| Salgo a las 10:00 | `CMD_SALIDA_A_LA_HORA` | `confirmar_hora` (`extremo: salida`, `plantilla_respuesta: salida_confirmada`) | se apunta CONFIRMADA con `confirmar_hora` (aviso al equipo) y contesta «¡Perfecto…!» |
+| Saldré antes | `CMD_SALIDA_ANTES` | `pasar_al_agente` | el agente pregunta la hora y la apunta |
+| Necesito más tiempo | `CMD_SALIDA_MAS_TARDE` | `pasar_al_agente` | el agente pregunta; fuera del horario, petición + aviso al equipo, que decide |
+
+Por canal:
+
+| canal | cómo sale |
+|---|---|
+| WhatsApp, ventana cerrada | plantilla de Meta con sus 3 botones y el de enlace |
+| WhatsApp, ventana abierta | el texto de WhatsApp con **botones de verdad** (casilla «Ocultar botones» desmarcada; ver «Dentro de la ventana, botones DE VERDAD») |
+| Envío a mano `wa.me` (Susan) | el mismo texto, con el enlace; nunca lleva botones |
+| Beds24 (Booking, Airbnb) | el texto plano con la pregunta abierta y el enlace, sin opciones (~6 min de ida y vuelta) |
+
+⚠️ **Un botón sin regla no hace NADA.** El `IntentRouter` cierra una intención determinista sin
+regla como `sin_regla`: no la pasa al agente. Por eso existe la acción `pasar_al_agente`
+(`PasarAlAgenteActionHandler`), para los botones cuya respuesta es una conversación, y
+`confirmar_hora` (`ConfirmarHoraActionHandler`) para el que tiene respuesta fija — sin pasar por el
+modelo, porque el botón ya dice la hora.
+
+⚠️ `AutoResponderRule` no tenía `#[ORM\HasLifecycleCallbacks]`: su `PrePersist` de fechas no corría
+y una regla creada fuera del panel reventaba con «created_at cannot be null». Añadido.
+
 ## 18.e Plantillas archivadas: sin canal, fuera del selector (17/09/2026)
 
 El selector «Elegir plantilla» del chat pedía `/platform/message/templates` —todas— y filtraba sólo

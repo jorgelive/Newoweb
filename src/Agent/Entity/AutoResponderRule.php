@@ -18,6 +18,9 @@ use Symfony\Component\Uid\UuidV7;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'agent_autoresponder_rule')]
+// Sin esto el `#[ORM\PrePersist]` del TimestampTrait no corre: una regla creada fuera del panel
+// (`msg:plantillas:aviso-salida`) reventaba con «created_at cannot be null».
+#[ORM\HasLifecycleCallbacks]
 class AutoResponderRule
 {
     use IdTrait;
