@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Command;
 
+use App\Entity\Maestro\MaestroMoneda;
+use App\Finanzas\Entity\FinEnlacePago;
 use App\Message\Entity\MessageTemplate;
 use App\Pms\Service\Message\PagoRecibido;
 use Doctrine\ORM\EntityManagerInterface;
@@ -20,9 +22,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * Oficial de Meta porque el pago llega a cualquier hora y la ventana de 24 h casi nunca está
  * abierta: se paga desde un enlace que se le mandó días antes. Por Beds24, el mismo texto con el
- * enlace escrito (en Booking ya no hay teléfono). `{{importe_abonado}}` y `{{comision_pasarela}}`
- * los pone el mensaje, no la reserva: código de moneda y cifra, sin palabras, para que valgan en los
- * siete idiomas. Neto + comisión = lo cobrado a la tarjeta: cuadra con su cuenta y con su banco.
+ * enlace escrito (en Booking ya no hay teléfono). `{{detalle_pago}}` lo pone el mensaje, no la
+ * reserva, ya en el idioma del huésped: «USD 51.32 + USD 2.82 de comisión de la pasarela de pago».
+ * Ver `PagoRecibido::detalle()`.
  *
  *   php bin/console msg:plantillas:pago-recibido --dry-run
  *   php bin/console msg:plantillas:pago-recibido
@@ -35,10 +37,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class MessageCrearPagoRecibidoCommand extends Command
 {
-    private const string CUERPO = "✅ ¡Hola {{guest_name}}! Hemos recibido tu pago de {{importe_abonado}} + {{comision_pasarela}} de comisión de la pasarela de pago. ¡Muchas gracias!\n\n"
+    private const string CUERPO = "✅ ¡Hola {{guest_name}}! Hemos recibido tu pago de {{detalle_pago}}. ¡Muchas gracias!\n\n"
         . 'Puedes ver tu estado de cuenta actualizado aquí: {{account_url}}';
 
-    private const string CUERPO_META = "✅ ¡Hola {{guest_name}}! Hemos recibido tu pago de {{importe_abonado}} + {{comision_pasarela}} de comisión de la pasarela de pago. ¡Muchas gracias!\n\n"
+    private const string CUERPO_META = "✅ ¡Hola {{guest_name}}! Hemos recibido tu pago de {{detalle_pago}}. ¡Muchas gracias!\n\n"
         . 'Puedes ver tu estado de cuenta actualizado con el botón de abajo.';
 
     /** Los del botón, a mano: el traductor los pisa al guardar. Tope de Meta: 25. */
@@ -82,7 +84,7 @@ final class MessageCrearPagoRecibidoCommand extends Command
         $cuerpo = [['language' => 'es', 'content' => self::CUERPO]];
         $ejemplos = [];
         foreach (array_keys(self::BOTON) as $idioma) {
-            $ejemplos[$idioma] = ['guest_name' => 'Anna', 'importe_abonado' => 'USD 51.32', 'comision_pasarela' => 'USD 2.82'];
+            $ejemplos[$idioma] = ['guest_name' => 'Anna', 'detalle_pago' => PagoRecibido::detalle($this->enlaceDeEjemplo(), $idioma)];
         }
 
         $plantilla = (new MessageTemplate())
@@ -124,6 +126,13 @@ final class MessageCrearPagoRecibidoCommand extends Command
         $io->success(sprintf('«%s» creada. Revisa las traducciones y súbela con: msg:meta:push %s --todos', $codigo, $codigo));
 
         return Command::SUCCESS;
+    }
+
+    /** El cobro de Clémence (8YXYNK, 02/10/2026): lo que Meta revisa en cada idioma es un caso real. */
+    private function enlaceDeEjemplo(): FinEnlacePago
+    {
+        return (new \ReflectionClass(FinEnlacePago::class))->newInstanceWithoutConstructor()
+            ->setMontoNeto('51.32')->setMontoTotal('54.14')->setMoneda($this->em->getReference(MaestroMoneda::class, 'USD'));
     }
 
     /** El botón en cada idioma, conservando el `origenHash` que le dejó el traductor. */

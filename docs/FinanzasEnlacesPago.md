@@ -2019,9 +2019,13 @@ y reserva, y esto es un **hecho** que se repite —el adelanto y el saldo son do
 
 - **Neto + comisión, las dos cifras** (Jorge, 03/10/2026): el neto es lo que ve abonado en su
   estado de cuenta (§6) y la suma es lo que ve en su banco. Con una sola, una de las dos no
-  cuadraba. Con recargo cero sale «+ USD 0.00», que es cierto.
-- **Van en `variables_plantilla`**, porque son del cobro y no de la reserva. Código de moneda y
-  cifra, sin palabras, para que valga en los siete idiomas.
+  cuadraba. Sin recargo, sólo el neto.
+- **Una sola variable, `detalle_pago`, ya en su idioma**: «USD 51.32 + USD 2.82 de comisión de
+  la pasarela de pago». Meta no traduce variables, así que la frase vive escrita en los siete en
+  `PagoRecibido::COMISION`, y el idioma se elige con la MISMA regla que las estrategias de envío
+  (`$templateLang`): si allí cambia, en `PagoRecibido::idiomaDePlantilla()` también.
+- **El mensaje lleva la reserva estampada** (`setAsunto()`): en un hilo con varias reservas, el
+  enlace a la cuenta saldría si no con la del contexto de la conversación.
 - Por Beds24 la estrategia no leía `variables_plantilla` (WhatsApp y correo sí): ahora las tres.
 
 ---

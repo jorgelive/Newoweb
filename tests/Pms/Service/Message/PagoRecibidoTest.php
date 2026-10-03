@@ -13,14 +13,29 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(PagoRecibido::class)]
 final class PagoRecibidoTest extends TestCase
 {
-    public function testElNetoMasLaComisionDanLoCobradoALaTarjeta(): void
+    public function testElNetoMasLaComisionEnElIdiomaDelHuesped(): void
+    {
+        self::assertSame('USD 51.32 + USD 2.82 de comisión de la pasarela de pago', PagoRecibido::detalle($this->enlace('51.32', '54.14'), 'es'));
+        self::assertSame('USD 51.32 + USD 2.82 de frais de plateforme de paiement', PagoRecibido::detalle($this->enlace('51.32', '54.14'), 'fr'));
+    }
+
+    public function testSinRecargoSoloElNeto(): void
+    {
+        self::assertSame('USD 120.00', PagoRecibido::detalle($this->enlace('120.00', '120.00'), 'es'));
+    }
+
+    public function testUnIdiomaQueNoTraducimosSaleEnIngles(): void
+    {
+        self::assertSame('USD 51.32 + a USD 2.82 payment gateway fee', PagoRecibido::detalle($this->enlace('51.32', '54.14'), 'ja'));
+    }
+
+    private function enlace(string $neto, string $total): FinEnlacePago
     {
         $enlace = $this->createStub(FinEnlacePago::class);
         $enlace->method('getMonedaCodigo')->willReturn('USD');
-        $enlace->method('getMontoNeto')->willReturn('51.32');
-        $enlace->method('getMontoTotal')->willReturn('54.14');
+        $enlace->method('getMontoNeto')->willReturn($neto);
+        $enlace->method('getMontoTotal')->willReturn($total);
 
-        self::assertSame('USD 51.32', PagoRecibido::abonado($enlace));
-        self::assertSame('USD 2.82', PagoRecibido::comision($enlace));
+        return $enlace;
     }
 }
