@@ -20,8 +20,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * Oficial de Meta porque el pago llega a cualquier hora y la ventana de 24 h casi nunca está
  * abierta: se paga desde un enlace que se le mandó días antes. Por Beds24, el mismo texto con el
- * enlace escrito (en Booking ya no hay teléfono). `{{importe_pagado}}` lo pone el mensaje, no la
- * reserva: código de moneda y cifra, sin palabras, para que valga en los siete idiomas.
+ * enlace escrito (en Booking ya no hay teléfono). `{{importe_abonado}}` y `{{comision_pasarela}}`
+ * los pone el mensaje, no la reserva: código de moneda y cifra, sin palabras, para que valgan en los
+ * siete idiomas. Neto + comisión = lo cobrado a la tarjeta: cuadra con su cuenta y con su banco.
  *
  *   php bin/console msg:plantillas:pago-recibido --dry-run
  *   php bin/console msg:plantillas:pago-recibido
@@ -34,10 +35,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class MessageCrearPagoRecibidoCommand extends Command
 {
-    private const string CUERPO = "✅ ¡Hola {{guest_name}}! Hemos recibido tu pago de {{importe_pagado}} con tarjeta. ¡Muchas gracias!\n\n"
+    private const string CUERPO = "✅ ¡Hola {{guest_name}}! Hemos recibido tu pago de {{importe_abonado}} + {{comision_pasarela}} de comisión de la pasarela de pago. ¡Muchas gracias!\n\n"
         . 'Puedes ver tu estado de cuenta actualizado aquí: {{account_url}}';
 
-    private const string CUERPO_META = "✅ ¡Hola {{guest_name}}! Hemos recibido tu pago de {{importe_pagado}} con tarjeta. ¡Muchas gracias!\n\n"
+    private const string CUERPO_META = "✅ ¡Hola {{guest_name}}! Hemos recibido tu pago de {{importe_abonado}} + {{comision_pasarela}} de comisión de la pasarela de pago. ¡Muchas gracias!\n\n"
         . 'Puedes ver tu estado de cuenta actualizado con el botón de abajo.';
 
     /** Los del botón, a mano: el traductor los pisa al guardar. Tope de Meta: 25. */
@@ -81,7 +82,7 @@ final class MessageCrearPagoRecibidoCommand extends Command
         $cuerpo = [['language' => 'es', 'content' => self::CUERPO]];
         $ejemplos = [];
         foreach (array_keys(self::BOTON) as $idioma) {
-            $ejemplos[$idioma] = ['guest_name' => 'Anna', 'importe_pagado' => 'USD 30.75'];
+            $ejemplos[$idioma] = ['guest_name' => 'Anna', 'importe_abonado' => 'USD 51.32', 'comision_pasarela' => 'USD 2.82'];
         }
 
         $plantilla = (new MessageTemplate())

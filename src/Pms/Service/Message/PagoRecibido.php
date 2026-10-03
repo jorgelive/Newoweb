@@ -21,7 +21,7 @@ use Psr\Log\LoggerInterface;
  * es una regla del motor —que cuelga mensajes de hitos y deja uno por regla y reserva, y el
  * adelanto y el saldo son dos pagos de la misma reserva—.
  *
- * El importe va en `variables_plantilla` porque depende del cobro y no de la reserva; el enlace a
+ * Los importes van en `variables_plantilla` porque dependen del cobro y no de la reserva; el enlace a
  * la cuenta (`account_url` / `account_path`) lo pone el resolver de la reserva como en el resto
  * de plantillas. Los canales los decide la plantilla, como siempre: WhatsApp si hay un número que
  * funcione, Beds24 en las de OTA.
@@ -59,7 +59,10 @@ final readonly class PagoRecibido
         $mensaje->setStatus(Message::STATUS_PENDING);
         $mensaje->setTemplate($plantilla);
         $mensaje->setLanguageCode($hilo->getIdioma()->getId() ?? 'es');
-        $mensaje->setVariablesPlantilla(['importe_pagado' => self::importe($enlace)]);
+        $mensaje->setVariablesPlantilla([
+            'importe_abonado' => self::abonado($enlace),
+            'comision_pasarela' => self::comision($enlace),
+        ]);
 
         $hilo->addMessage($mensaje);
         $this->em->persist($mensaje);
@@ -67,11 +70,23 @@ final readonly class PagoRecibido
     }
 
     /**
-     * Lo que se cobró a la tarjeta, recargo incluido: es la cifra que el huésped verá en su banco.
+     * Lo que abona la reserva —el neto, la cifra que verá en su estado de cuenta—. Con la comisión
+     * suman lo que se cobró a la tarjeta, que es lo que verá en su banco: así cuadra con los dos.
      * Sin palabras, sólo código y número, para que valga igual en los siete idiomas.
      */
-    public static function importe(FinEnlacePago $enlace): string
+    public static function abonado(FinEnlacePago $enlace): string
     {
-        return trim(sprintf('%s %s', $enlace->getMonedaCodigo() ?? '', $enlace->getMontoTotal()));
+        return self::conMoneda($enlace, $enlace->getMontoNeto());
+    }
+
+    /** El recargo de la pasarela: total menos neto. Con recargo cero sale «USD 0.00», que es cierto. */
+    public static function comision(FinEnlacePago $enlace): string
+    {
+        return self::conMoneda($enlace, bcsub($enlace->getMontoTotal(), $enlace->getMontoNeto(), 2));
+    }
+
+    private static function conMoneda(FinEnlacePago $enlace, string $monto): string
+    {
+        return trim(sprintf('%s %s', $enlace->getMonedaCodigo() ?? '', $monto));
     }
 }

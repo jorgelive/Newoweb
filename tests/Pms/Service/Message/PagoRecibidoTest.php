@@ -9,17 +9,18 @@ use App\Pms\Service\Message\PagoRecibido;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/** El importe de la confirmación: el TOTAL cobrado a la tarjeta, no el neto que abona la reserva. */
+/** Neto (lo que ve en su cuenta) + comisión = lo cobrado a la tarjeta (lo que ve en su banco). */
 #[CoversClass(PagoRecibido::class)]
 final class PagoRecibidoTest extends TestCase
 {
-    public function testElImporteEsLoQueSeCobroALaTarjeta(): void
+    public function testElNetoMasLaComisionDanLoCobradoALaTarjeta(): void
     {
         $enlace = $this->createStub(FinEnlacePago::class);
         $enlace->method('getMonedaCodigo')->willReturn('USD');
         $enlace->method('getMontoNeto')->willReturn('51.32');
         $enlace->method('getMontoTotal')->willReturn('54.14');
 
-        self::assertSame('USD 54.14', PagoRecibido::importe($enlace));
+        self::assertSame('USD 51.32', PagoRecibido::abonado($enlace));
+        self::assertSame('USD 2.82', PagoRecibido::comision($enlace));
     }
 }
