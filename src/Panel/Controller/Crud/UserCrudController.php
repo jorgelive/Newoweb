@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Panel\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Entity\User;
@@ -37,7 +38,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  *
  * @extends BaseCrudController<User>
  */
-class UserCrudController extends BaseCrudController
+class UserCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,

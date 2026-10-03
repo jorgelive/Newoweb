@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\Beds24InvoiceReceiveQueue;
 use App\Security\Roles;
@@ -25,7 +26,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
  *
  * @extends BaseCrudController<Beds24InvoiceReceiveQueue>
  */
-class Beds24InvoiceReceiveQueueCrudController extends BaseCrudController
+class Beds24InvoiceReceiveQueueCrudController extends BaseCrudController implements SoloAdministradores
 {
     public static function getEntityFqcn(): string
     {

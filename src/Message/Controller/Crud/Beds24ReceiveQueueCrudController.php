@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Message\Entity\Beds24ReceiveQueue;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
@@ -25,7 +26,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * @extends BaseCrudController<Beds24ReceiveQueue>
  */
-class Beds24ReceiveQueueCrudController extends BaseCrudController
+class Beds24ReceiveQueueCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,

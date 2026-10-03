@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Panel\Helper\ValorDeCampo;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Enum\ConnectivityProvider;
@@ -29,7 +30,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @extends BaseCrudController<ExchangeEndpoint>
  */
-class ExchangeEndpointCrudController extends BaseCrudController
+class ExchangeEndpointCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use Symfony\Component\Uid\Uuid;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
@@ -35,7 +36,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * @extends BaseCrudController<Message>
  */
-class MessageCrudController extends BaseCrudController
+class MessageCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,

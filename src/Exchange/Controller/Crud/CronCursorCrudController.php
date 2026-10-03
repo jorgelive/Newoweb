@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Exchange\Controller\Crud;
 
 // ✅ Restauramos la herencia de tu BaseCrudController
+use App\Panel\Contract\SoloAdministradores;
 use App\Exchange\Entity\ExchangeCronCursor;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
@@ -29,7 +30,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * @extends BaseCrudController<ExchangeCronCursor>
  */
-class CronCursorCrudController extends BaseCrudController
+class CronCursorCrudController extends BaseCrudController implements SoloAdministradores
 {
     /**
      * Mantenemos el constructor inyectando dependencias base.

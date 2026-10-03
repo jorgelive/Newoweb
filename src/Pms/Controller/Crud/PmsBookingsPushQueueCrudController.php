@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Crud;
 
 // ✅ Jerarquía de herencia restaurada
+use App\Panel\Contract\SoloAdministradores;
 use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsBookingsPushQueue;
@@ -29,7 +30,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @extends BaseCrudController<PmsBookingsPushQueue>
  */
-final class PmsBookingsPushQueueCrudController extends BaseCrudController
+final class PmsBookingsPushQueueCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsRatesPushQueue;
@@ -29,7 +30,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @extends BaseCrudController<PmsRatesPushQueue>
  */
-final class PmsRatesPushQueueCrudController extends BaseCrudController
+final class PmsRatesPushQueueCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,

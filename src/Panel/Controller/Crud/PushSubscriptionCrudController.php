@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Panel\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Entity\PushSubscription;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
@@ -26,7 +27,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @extends BaseCrudController<PushSubscription>
  */
-class PushSubscriptionCrudController extends BaseCrudController
+class PushSubscriptionCrudController extends BaseCrudController implements SoloAdministradores
 {
     /**
      * Inyección de dependencias estricta alineada con el constructor de BaseCrudController.

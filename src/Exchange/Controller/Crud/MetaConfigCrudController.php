@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Form\Type\MetaCredentialsType;
 use App\Panel\Controller\Crud\BaseCrudController;
@@ -28,7 +29,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @extends BaseCrudController<MetaConfig>
  */
-class MetaConfigCrudController extends BaseCrudController
+class MetaConfigCrudController extends BaseCrudController implements SoloAdministradores
 {
     /**
      * @param AdminUrlGenerator $adminUrlGenerator Generador de URLs de EasyAdmin.

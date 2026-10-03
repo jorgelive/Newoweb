@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsUnidadBeds24Map;
@@ -26,7 +27,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @extends BaseCrudController<PmsUnidadBeds24Map>
  */
-final class PmsUnidadBeds24MapCrudController extends BaseCrudController
+final class PmsUnidadBeds24MapCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,

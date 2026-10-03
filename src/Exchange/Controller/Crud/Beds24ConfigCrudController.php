@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Panel\Helper\ValorDeCampo;
 use App\Exchange\Entity\Beds24Config;
 use App\Panel\Controller\Crud\BaseCrudController;
@@ -28,7 +29,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @extends BaseCrudController<Beds24Config>
  */
-class Beds24ConfigCrudController extends BaseCrudController
+class Beds24ConfigCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,

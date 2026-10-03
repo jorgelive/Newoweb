@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exchange\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Exchange\Entity\EmailConfig;
 use App\Panel\Controller\Crud\BaseCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -28,7 +29,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @extends BaseCrudController<EmailConfig>
  */
-class EmailConfigCrudController extends BaseCrudController
+class EmailConfigCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,

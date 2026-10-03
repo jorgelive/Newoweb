@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Message\Entity\MessageAttachment;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Field\LiipImageField;
@@ -20,7 +21,7 @@ use Vich\UploaderBundle\Form\Type\VichFileType;
 /**
  * @extends BaseCrudController<MessageAttachment>
  */
-class MessageAttachmentCrudController extends BaseCrudController
+class MessageAttachmentCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,

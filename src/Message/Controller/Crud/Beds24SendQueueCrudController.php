@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Message\Entity\Beds24SendQueue;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
@@ -33,7 +34,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @extends BaseCrudController<Beds24SendQueue>
  */
-class Beds24SendQueueCrudController extends BaseCrudController
+class Beds24SendQueueCrudController extends BaseCrudController implements SoloAdministradores
 {
     /**
      * Constructor de la clase Beds24SendQueueCrudController.

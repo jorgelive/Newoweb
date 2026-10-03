@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Panel\Helper\ValorDeCampo;
 use App\Message\Entity\MetaWebhookAudit;
 use App\Message\Service\Meta\Webhook\WhatsappMetaWebhookMessageFastTrackService;
@@ -34,7 +35,7 @@ use App\Message\Dto\Meta\MetaWebhookSobre;
  *
  * @extends BaseCrudController<MetaWebhookAudit>
  */
-final class MetaWebhookAuditCrudController extends BaseCrudController
+final class MetaWebhookAuditCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,

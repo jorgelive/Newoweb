@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Dispatch\ProcessBeds24WebhookDispatch;
@@ -34,7 +35,7 @@ use App\Dto\Lee;
  *
  * @extends BaseCrudController<PmsBeds24WebhookAudit>
  */
-final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
+final class PmsBeds24WebhookAuditCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,

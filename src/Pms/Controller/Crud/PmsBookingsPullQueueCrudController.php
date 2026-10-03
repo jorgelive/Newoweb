@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Panel\Helper\ValorDeCampo;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsBookingsPullQueue;
@@ -30,7 +31,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @extends BaseCrudController<PmsBookingsPullQueue>
  */
-final class PmsBookingsPullQueueCrudController extends BaseCrudController
+final class PmsBookingsPullQueueCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         private readonly PmsBookingsPullQueueFactory $pullQueueFactory,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Panel\Helper\ValorDeCampo;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
@@ -39,7 +40,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * @extends BaseCrudController<MessageConversation>
  */
-class MessageConversationCrudController extends BaseCrudController
+class MessageConversationCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         private readonly MessageFactory $messageFactory,

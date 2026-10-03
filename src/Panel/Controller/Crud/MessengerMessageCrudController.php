@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Panel\Controller\Crud;
 
+use App\Panel\Contract\SoloAdministradores;
 use App\Panel\Helper\ValorDeCampo;
 use App\Entity\MessengerMessage;
 use App\Panel\Controller\Crud\BaseCrudController;
@@ -27,7 +28,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @extends BaseCrudController<MessengerMessage>
  */
-class MessengerMessageCrudController extends BaseCrudController
+class MessengerMessageCrudController extends BaseCrudController implements SoloAdministradores
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,
