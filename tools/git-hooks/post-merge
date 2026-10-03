@@ -3,25 +3,38 @@ set -e
 cd "$(git rev-parse --show-toplevel)"
 
 # Versionado en tools/git-hooks/ y activo por `git config core.hooksPath tools/git-hooks` en el
-# servidor: lo que se cambie aquí entra con el propio pull. Se lanza desde `bin/desplegar`, con el
-# candado de despliegue ya tomado (ver allí y tools/cron/www-data.crontab).
+# servidor. `bin/desplegar` NO deja que git lo lance: hace el pull sin hooks y lo llama él, con el
+# candado tomado y `DESPLEGAR_DESDE` apuntando al commit anterior, porque **git ignora el código
+# de salida de un post-merge** — un `cache:clear` fallido daba el despliegue por bueno (revisión
+# del 03/10/2026). Un `git pull` a mano sigue lanzándolo, pero sin candado y sin ver su fallo.
+DESDE=${DESPLEGAR_DESDE:-'HEAD@{1}'}
 
 # ⚠️ Los workers se PARAN antes de limpiar la caché, no se reinician después. `cache:clear` borra
 # el directorio del contenedor viejo, y un worker vivo carga sus servicios de ahí a demanda: entre
 # la limpieza y el reinicio morían con «Failed opening required var/cache/prod/Container…»
-# (messenger-worker-error.log, 03/10/2026). Parados, los mensajes esperan en la cola.
+# (messenger-worker-error.log, 03/10/2026). Parados, los mensajes esperan en la cola. supervisord
+# les da `stopwaitsecs=90` para acabar el mensaje en curso (una respuesta del agente tarda 20-60 s).
 echo '[post-merge] Stopping messenger workers...'
-sudo supervisorctl stop messenger-worker:*
-# Con `set -e`, un `cache:clear` que falle cortaría aquí y los dejaría parados: nada de la cola
-# saldría hasta que alguien lo notara. El trap los arranca pase lo que pase.
+sudo supervisorctl stop 'messenger-worker:*'
+# Con `set -e`, un fallo de aquí a su arranque cortaría el hook y los dejaría parados: nada de la
+# cola saldría hasta que alguien lo notara. El trap los arranca pase lo que pase.
 trap "sudo supervisorctl start 'messenger-worker:*'" EXIT
 
 echo '[post-merge] Clearing prod cache...'
 php bin/console cache:clear --env=prod --no-debug
 
+# Migrar ANTES de arrancar los workers: si no, corren el código nuevo contra el esquema viejo —
+# la guía del huésped dio 500 a todos así el 13/08/2026—. Aquí y no en `bin/desplegar` para que
+# un `git pull` a mano tampoco se lo salte.
+echo '[post-merge] Running migrations...'
+sudo -u www-data php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration --env=prod
+
 echo '[post-merge] Starting messenger workers...'
 trap - EXIT
-sudo supervisorctl start messenger-worker:*
+# Si alguno no arranca se sigue con el front y se falla AL FINAL: cortar aquí dejaba el front sin
+# construir por un problema que no es suyo.
+FALLO=0
+sudo supervisorctl start 'messenger-worker:*' || { echo '[post-merge] ⚠️ Algún worker no arrancó: revisa supervisorctl status'; FALLO=1; }
 
 # ── Construir el front que haya cambiado ────────────────────────────────────
 #
@@ -36,7 +49,7 @@ sudo supervisorctl start messenger-worker:*
 # solos y el script verifica que SW, shell y bundles se correspondan. No hay un paso aparte.
 #
 # ⚠️ node vive en nvm y NO está en el PATH de un hook de git: hay que cargarlo a mano.
-CAMBIADOS="$(git diff --name-only HEAD@{1} HEAD 2>/dev/null || true)"
+CAMBIADOS="$(git diff --name-only "$DESDE" HEAD 2>/dev/null || true)"
 
 for APP in util pax; do
     if echo "$CAMBIADOS" | grep -q "^$APP/"; then
@@ -49,3 +62,5 @@ for APP in util pax; do
         )
     fi
 done
+
+exit $FALLO

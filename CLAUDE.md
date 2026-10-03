@@ -739,18 +739,29 @@ nadie lo comprueba.
 
 ## Despliegue
 
-`push` → **`ssh openperu /var/www/openperu.pe/bin/desplegar`**. Ese script hace el pull, regenera el
-autoload si se movieron o borraron clases y migra, todo con el **candado de despliegue** tomado; el
-hook `post-merge` (caché, workers, build del front) corre dentro.
+`push` → **`ssh openperu /var/www/openperu.pe/bin/desplegar`**. Con el **candado de despliegue**
+tomado: pull sin hooks → `composer dump-autoload` si se borraron o renombraron clases en `src/` →
+el hook `tools/git-hooks/post-merge` lanzado a mano, que para los workers, limpia la caché,
+**migra**, los arranca y construye el front que haya cambiado. Cualquier fallo sale con código ≠ 0.
 
-🔒 **El candado (03/10/2026).** Las 24 tareas de cron llevan `flock -s` sobre `var/deploy.lock`
-(`tools/cron/www-data.crontab`, que es el original: se instala con `sudo -u www-data crontab
-tools/cron/www-data.crontab`) y `bin/desplegar` lo toma en exclusiva. Antes se esquivaba
-esperando al minuto 1 de cada cinco, y no bastaba: una tarea que arrancaba durante el pull mezclaba
-código viejo y nuevo, y los workers morían entre `cache:clear` y su reinicio con «Failed opening
-required var/cache/prod/Container…». Ahora el hook los **para antes** de limpiar la caché. El hook
-se versiona en `tools/git-hooks/` y está activo por `core.hooksPath` en el servidor. **Una tarea de
-cron nueva lleva el mismo prefijo**, o vuelve la carrera.
+🔒 **El candado (03/10/2026, revisado por Fable).** Las 24 tareas de cron pasan por
+`tools/cron/con-candado <segundos>`, que toma `var/deploy.lock` compartido (120 s las frecuentes,
+1800 las horarias y diarias; un salto queda escrito en su log). `bin/desplegar` lo toma en
+exclusiva. El crontab es `tools/cron/www-data.crontab` y se instala con `sudo -u www-data crontab
+tools/cron/www-data.crontab`: **una tarea nueva lleva el mismo envoltorio**, o vuelve la carrera.
+Antes se esquivaba esperando al minuto 1 de cada cinco, y no bastaba: una tarea que arrancaba
+durante el pull mezclaba código viejo y nuevo, y los workers morían entre `cache:clear` y su
+reinicio («Failed opening required var/cache/prod/Container…»).
+
+- **El hook lo lanza `bin/desplegar`, no git**, porque git ignora el código de salida de un
+  `post-merge`: un `cache:clear` fallido daba el despliegue por bueno. Un `git pull` a mano lo
+  sigue lanzando (está activo por `core.hooksPath`), pero sin candado y sin ver su fallo.
+- **Los workers se paran ANTES de limpiar la caché** y supervisord les da `stopwaitsecs=90` para
+  acabar el mensaje en curso (`/etc/supervisor/conf.d/messenger-worker.conf`; con los 10 s por
+  defecto mataba a media respuesta del agente).
+- **Se migra antes de arrancarlos**, para que no corran código nuevo contra el esquema viejo.
+- **No borres `var/deploy.lock`** con algo corriendo: el que lo tenga abierto se queda con el inodo
+  viejo y despliegue y cron dejan de excluirse.
 
 ⚠️ **El paso de migraciones no es opcional y falla en silencio.** El 13/08/2026 se desplegó código
 con una columna nueva sin migrar: la entidad pedía `agente_pasos`, la columna no existía, y **la

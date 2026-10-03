@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
 #
-# Despliegue en producción: pull, autoload si hace falta y migraciones, con el candado tomado.
+# Despliegue en producción, con el candado de despliegue tomado.
 #
 #   ssh openperu /var/www/openperu.pe/bin/desplegar
 #
-# ⚠️ EL CANDADO. Las tareas de cron (tools/cron/www-data.crontab) corren cada una con
-# `flock -s` sobre var/deploy.lock; aquí se toma en exclusiva. Así el despliegue espera a que
-# terminen las que están en marcha y las que arrancan durante el pull o el `cache:clear` del
-# hook esperan a que acabe. Antes se esquivaba esperando al minuto 1 de cada cinco, y no
-# bastaba: hay tareas cada 3 minutos y otras largas (03/10/2026). Ver CLAUDE.md, «Despliegue».
+# Orden: pull SIN hooks → autoload si se movieron clases → el hook a mano (para los workers,
+# limpia la caché, migra, los arranca y construye el front que haya cambiado). El hook se lanza
+# aquí y no desde git porque git ignora su código de salida: un `cache:clear` fallido daba el
+# despliegue por bueno. Así cualquier fallo sale con código ≠ 0.
 #
-# El hook `post-merge` (tools/git-hooks/) corre dentro de este mismo candado: caché, workers y
-# el build del front que haya cambiado.
+# ⚠️ EL CANDADO. Las tareas de cron (tools/cron/www-data.crontab) pasan por `tools/cron/con-candado`,
+# que toma var/deploy.lock compartido; aquí se toma en exclusiva. El despliegue espera a que
+# terminen las que están en marcha, y las que arrancan mientras tanto esperan a que acabe. Antes
+# se esquivaba esperando al minuto 1 de cada cinco, y no bastaba (03/10/2026). Ver CLAUDE.md.
+#
+# ⚠️ No borres var/deploy.lock con algo corriendo: quien lo tenga abierto se queda con el inodo
+# viejo, y el despliegue y el cron dejarían de excluirse hasta que todos lo reabran.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -22,23 +26,36 @@ if [ ! -e "$CANDADO" ]; then
     chmod 666 "$CANDADO"   # lo abren ubuntu (este script) y www-data (el cron)
 fi
 
-# ⚠️ `exec` y el cuerpo entre comillas, no a continuación: bash lee un script a trozos mientras lo
-# ejecuta, y el `git pull` de abajo puede reescribir ESTE archivo a mitad de lectura.
-exec /usr/bin/flock -x -w 600 "$CANDADO" bash -euo pipefail -c '
+# El cuerpo va entero en el `bash -c`: lo que está a partir del pull ya es del commit nuevo.
+# `-o`: los hijos (composer, vite, sudo) no heredan el candado; si uno se quedara vivo, el cron se
+# saltaría todas sus vueltas mientras viviera.
+set +e
+/usr/bin/flock -x -o -w 600 -E 75 "$CANDADO" bash -euo pipefail -c '
     ANTES=$(git rev-parse HEAD)
-    git pull --ff-only
+    git -c core.hooksPath=/dev/null pull --ff-only
 
-    # Clases movidas o borradas en src/: el classmap optimizado seguiría apuntando a los archivos
-    # viejos (el include fallido del 19/08/2026). Sólo entonces, que cuesta.
-    if git diff --name-status "$ANTES" HEAD -- src | grep -qE "^(D|R)"; then
-        echo "[desplegar] Clases movidas o borradas: regenerando el autoload"
-        composer dump-autoload --no-dev --optimize --quiet
-        sudo supervisorctl restart "messenger-worker:*"
+    if [ "$(git rev-parse HEAD)" = "$ANTES" ]; then
+        echo "[desplegar] Nada nuevo que desplegar."
+        exit 0
     fi
 
-    # Dentro del candado también: una tarea que arrancara entre el pull y la migración vería el
-    # código nuevo contra el esquema viejo — la guía del huésped dio 500 a todos así (13/08/2026).
-    sudo -u www-data php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration --env=prod
+    # Clases borradas o renombradas en src/: el classmap optimizado seguiría apuntando a los
+    # archivos viejos (el include fallido del 19/08/2026). Antes del hook, que es quien arranca
+    # los workers. Con `$(…)` y no `| grep -q`: con pipefail, el SIGPIPE de git al cortar grep
+    # hacía falso el `if` justo en los refactors grandes.
+    if [ -n "$(git diff --name-only --diff-filter=DR "$ANTES" HEAD -- src)" ]; then
+        echo "[desplegar] Clases movidas o borradas: regenerando el autoload"
+        composer dump-autoload --no-dev --optimize --quiet
+    fi
+
+    DESPLEGAR_DESDE="$ANTES" ./tools/git-hooks/post-merge
 
     git log --oneline -1
 '
+CODIGO=$?
+if [ "$CODIGO" -eq 75 ]; then
+    echo "[desplegar] ⚠️ No se tomó el candado en 600 s: alguna tarea de cron sigue corriendo. No se ha desplegado nada." >&2
+elif [ "$CODIGO" -ne 0 ]; then
+    echo "[desplegar] ⚠️ El despliegue FALLÓ (código $CODIGO). Revisa la salida de arriba." >&2
+fi
+exit "$CODIGO"

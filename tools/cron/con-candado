@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#
+# con-candado <segundos> <orden…>: corre la orden con el candado de despliegue COMPARTIDO.
+#
+# Las tareas corren a la vez entre sí; `bin/desplegar` toma el candado en exclusiva y espera a
+# que acaben. Si un despliegue dura más de <segundos>, la tarea no corre y lo DICE en su log —con
+# `flock -w` a secas el salto era mudo—. A las frecuentes les basta esperar poco (la siguiente
+# vuelta llega pronto); a las de una vez al día, mucho: saltarse `tipo-cambio:sincronizar` es un día
+# sin el aviso que existe para dar (revisión del 03/10/2026).
+
+espera="$1"
+shift
+
+/usr/bin/flock -s -w "$espera" -E 75 /var/www/openperu.pe/var/deploy.lock "$@"
+codigo=$?
+
+if [ "$codigo" -eq 75 ]; then
+    echo "[$(date -u +%FT%TZ)] [con-candado] Saltada: un despliegue tuvo el candado más de ${espera}s."
+fi
+
+exit "$codigo"
