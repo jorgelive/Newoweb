@@ -26,16 +26,12 @@ use InvalidArgumentException;
  * IDs: UUID para negocio, String(3) para Moneda.
  */
 #[ORM\Entity(repositoryClass: PmsRatesPushQueueRepository::class)]
-#[ORM\Table(
-    name: 'pms_rates_push_queue',
-    indexes: [
-        new ORM\Index(columns: ['unidad_id'], name: 'idx_rpq_unidad'),
-        new ORM\Index(columns: ['pms_unidad_beds24_map_id'], name: 'idx_rpq_map'),
-        new ORM\Index(columns: ['fechaInicio', 'fechaFin'], name: 'idx_rpq_fechas'),
-        new ORM\Index(columns: ['status'], name: 'idx_rpq_status'),
-        new ORM\Index(columns: ['run_at'], name: 'idx_rpq_run_at'),
-    ]
-)]
+// Los índices van como atributos de CLASE: este Doctrine ignora `#[ORM\Table(indexes: …)]` sin avisar
+// (ver `PmsEventoBeds24Link`).
+// El del worker es el de todas las colas (`claimRunnable` filtra por `status` y ordena por `run_at`);
+// los de `unidad_id` y del mapa los pone Doctrine solo, por ser claves foráneas.
+#[ORM\Table(name: 'pms_rates_push_queue')]
+#[ORM\Index(columns: ['status', 'run_at'], name: 'idx_rpq_worker')]
 #[ORM\HasLifecycleCallbacks]
 class PmsRatesPushQueue implements ExchangeQueueItemInterface, MemoryCleanableInterface
 {

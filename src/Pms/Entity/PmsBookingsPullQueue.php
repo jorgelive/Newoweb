@@ -28,6 +28,7 @@ use InvalidArgumentException;
 #[ORM\Entity(repositoryClass: PmsBookingsPullQueueRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Table(name: 'pms_bookings_pull_queue')]
+#[ORM\Index(columns: ['status', 'run_at'], name: 'idx_pms_pull_queue_worker')]
 class PmsBookingsPullQueue implements ExchangeQueueItemInterface, MemoryCleanableInterface
 {
     /**

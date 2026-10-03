@@ -16,14 +16,11 @@ use Symfony\Component\Uid\Uuid;
  * Utiliza UUID para identificación única y persistente.
  */
 #[ORM\Entity]
-#[ORM\Table(
-    name: 'pms_beds24_webhook_audit',
-    indexes: [
-        new ORM\Index(columns: ['received_at'], name: 'idx_beds24_wh_received_at'),
-        new ORM\Index(columns: ['event_type'], name: 'idx_beds24_wh_event_type'),
-        new ORM\Index(columns: ['status'], name: 'idx_beds24_wh_status'),
-    ]
-)]
+// Los índices van como atributos de CLASE: este Doctrine ignora `#[ORM\Table(indexes: …)]` sin avisar
+// (ver `PmsEventoBeds24Link`).
+// Sólo el de `received_at`: es el orden del listado en el panel.
+#[ORM\Table(name: 'pms_beds24_webhook_audit')]
+#[ORM\Index(columns: ['received_at'], name: 'idx_beds24_wh_received_at')]
 #[ORM\HasLifecycleCallbacks]
 class PmsBeds24WebhookAudit
 {

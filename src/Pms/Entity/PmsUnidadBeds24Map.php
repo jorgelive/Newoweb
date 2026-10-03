@@ -19,19 +19,12 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Mapea una unidad física del PMS con los identificadores técnicos de Beds24.
  */
 #[ORM\Entity(repositoryClass: PmsUnidadBeds24MapRepository::class)]
-#[ORM\Table(
-    name: 'pms_unidad_beds24_map',
-    indexes: [
-        new ORM\Index(columns: ['beds24RoomId', 'beds24UnitId'], name: 'idx_beds24_room_unit'),
-        new ORM\Index(columns: ['beds24PropertyId'], name: 'idx_beds24_property')
-    ],
-    uniqueConstraints: [
-        new ORM\UniqueConstraint(
-            name: 'uniq_unidad_virtual',
-            columns: ['pms_unidad_id', 'virtual_establecimiento_id']
-        ),
-    ]
-)]
+// Los índices van como atributos de CLASE: este Doctrine ignora `#[ORM\Table(indexes: …)]` sin avisar
+// (ver `PmsEventoBeds24Link`).
+// Aquí había además dos índices por ids de Beds24 que nunca llegaron: con una fila por casita no
+// hacen falta. El único sí: es lo que respalda al `UniqueEntity` de abajo.
+#[ORM\Table(name: 'pms_unidad_beds24_map')]
+#[ORM\UniqueConstraint(name: 'uniq_unidad_virtual', columns: ['pms_unidad_id', 'virtual_establecimiento_id'])]
 #[UniqueEntity(
     fields: ['pmsUnidad', 'virtualEstablecimiento'],
     message: 'Esta unidad física ya tiene asignado este Listing. No puedes repetirlo.',
