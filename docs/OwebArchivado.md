@@ -50,11 +50,19 @@ y ese parámetro sólo lo usa una ruta **sin** host generada **sin petición**. 
 son las miniaturas de Liip y el login, y no se generan desde consola ni desde workers. Comprobado
 con `debug:router` y buscando `ABSOLUTE_URL`/`getBrowserPath` en `src/`.
 
-## 3. Qué se quedó, a propósito
+## 3. Qué se quedó, a propósito… y cómo dejó de quedarse
 
-**Todas las tablas de Oweb, con sus datos.** No se borra: se marca. Doctrine ya no las mapea, y sin
-`--complete` `schema:validate` no las toca. ⚠️ **Con `--complete` propondría `DROP TABLE` de todas**:
-no lo ejecutes a ciegas. Borrarlas es una decisión aparte.
+Al archivar (17/09) **se quedaron todas las tablas de Oweb, con sus datos**: no se borra, se marca.
+Doctrine ya no las mapeaba.
+
+🔥 **El 21/09/2026 se borraron de rebote.** La migración de `pms_peticion`
+(`Version20260921230404`) se generó con `make:migration`, que comparó el mapeo —ya sin Oweb— con la
+base y metió **126 `DROP TABLE`** en el mismo archivo: todas las de Oweb (`com_*`, `cot_*`, `res_*`,
+`mae_*`, `ser_*`, `tra_*`, `fit_*`, `use_*`, `ext_*`, `fos_user_group`), las `energia_*` vacías y el
+respaldo `pms_evento_calendario_backup_20260808`. Se ejecutó en producción sin leer el SQL; lo
+destapó una revisión cuatro días después. Jorge tenía un volcado previo y el 25/09 dio por buena
+la limpieza: **Oweb está retirado del todo**, código y datos. La lección está en CLAUDE.md: una
+migración generada se lee entera antes de ejecutarla.
 
 Lo único que se perdió es la dependencia y el área de 5 usuarios, que sin Oweb no significan nada.
 Hay volcado completo de producción del mismo día, antes del cambio.
@@ -135,7 +143,7 @@ Antes: **volcado de la base** y quitar la importación iCal en la extranet de Bo
 | Necesidad | Dónde |
 |---|---|
 | Consultar cómo hacía algo el panel viejo | `git show oweb-final:src/Oweb/...` |
-| Recuperar datos de una tabla de Oweb | siguen en la base, sin mapear: SQL directo |
+| Recuperar datos de una tabla de Oweb | ya no están en la base (borradas el 21/09/2026, §3): del volcado previo de Jorge |
 | Volver a poner las columnas de `user` | `Version20260917120000::down()` — recupera la estructura; los datos, del volcado |
 | El subdominio `oweb.openperu.pe` (410) | nginx del servidor, `/etc/nginx/sites-enabled/openperu`: su propio `server` (sección 4.1) |
 | Un feed iCal para un canal | escribirlo sobre `PmsEventoCalendario` en `src/Pms/` (ver sección 4) |

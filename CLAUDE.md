@@ -24,11 +24,14 @@
   (`#[ORM\Index(name: …)]`). Si no, el diff pide renombrarlo al `IDX_<hash>` que genera Doctrine,
   y hacerle caso cambia un nombre legible por uno que no dice nada.
 
-  ⚠️ **Ojo con `--complete`: saca `DROP TABLE` de todo lo que el mapeo no conozca.** Hoy son tres
-  tablas de un módulo que no existe (`energia_*`, vacías) y un respaldo con 19 filas
-  (`pms_evento_calendario_backup_20260808`). Eso **no** es el desajuste que hay que arreglar, y
-  ejecutarlo a ciegas borra el respaldo que alguien guardó a propósito. Sin `--complete`, el diff
-  es aditivo y es el que se lee.
+  ⚠️ **Ojo con `--complete` y con `make:migration`: sacan `DROP TABLE` de todo lo que el mapeo no
+  conozca.** Y pasó: el 21/09/2026 la migración de `pms_peticion` (`Version20260921230404`) se
+  generó con `make:migration` y llevaba dentro **126 `DROP TABLE`** —las de Oweb, recién
+  archivado, las `energia_*` y el respaldo `pms_evento_calendario_backup_20260808`—. Se ejecutó en
+  producción sin leer el SQL y lo destapó una revisión cuatro días después. Jorge tenía volcado
+  previo y dio por buena la limpieza, pero fue suerte. **Una migración generada se lee entera antes
+  de ejecutarla**, y un `DROP` que no pediste es motivo para pararlo todo. Desde entonces no queda
+  ninguna tabla sin mapear, así que un `DROP` en un diff nuevo es casi seguro un error.
 
   **Análisis estático:** PHPStan **nivel 10** (el máximo) sobre `src/` entero —`src/Oweb/`, el panel Sonata
   heredado que se excluía, se archivó el 17/09/2026 (ver `docs/OwebArchivado.md` y la etiqueta git
@@ -269,7 +272,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `config/packages/security.yaml`, `src/Controller/SecurityController.php`, login y «Recordarme» en `util/` | `docs/Autenticacion.md` — y la regla de cuándo vale `IS_AUTHENTICATED_FULLY` |
 | `src/Panel/Controller/DashboardController.php` (menú lateral), acciones personalizadas de cualquier `*CrudController` (`linkToCrudAction()`) | `docs/PanelEasyAdmin.md` — por qué una acción sin `#[AdminRoute]` no resalta su entrada del menú |
 | `src/Dto/Lee.php`, cualquier `src/<Modulo>/Dto/` que lea un JSON de fuera (webhooks, APIs, skills) | `docs/TiposDeFrontera.md` — la regla, el lector y la prueba contra datos reales antes de cambiar una frontera |
-| Algo del panel Sonata viejo (`Oweb`, archivado), sus tablas `res_*`/`use_*`, o un feed iCal para un canal | `docs/OwebArchivado.md` — qué se quitó, qué se quedó y quién leía sus iCal |
+| Algo del panel Sonata viejo (`Oweb`, archivado; sus tablas `res_*`/`use_*` ya no existen desde el 21/09/2026), o un feed iCal para un canal | `docs/OwebArchivado.md` — qué se quitó, qué se quedó y quién leía sus iCal |
 
 Si el módulo que tocas no tiene doc (`src/Pax/`…), **créalo**
 siguiendo el formato de los existentes y agrégalo a esta tabla.

@@ -1066,7 +1066,7 @@ si el maestro se queda atrás. El detalle en `docs/PmsBeds24ReservasSync.md` §1
 |---|---|
 | Re-sellar lo ya escrito | 49 cargos, 20 pagos y 18 fichas del 27/08 al 10/09 llevan 3.350. `pms:finanzas:completar-tipo-cambio` sólo rellena los `null`, no corrige los sellados: haría falta un modo aparte |
 | Comprobar el estado | `php bin/console app:test-tipocambio <fecha>` |
-| El `TipocambioManager` de `src/Oweb/` | Sigue apuntando al proveedor muerto. Es legado en retirada y sólo lo usan los comprobantes viejos, así que **no se tocó**: duplicar el arreglo en código que se va a borrar. Si esos comprobantes siguen emitiéndose, hay que decidirlo |
+| ~~El `TipocambioManager` de `src/Oweb/`~~ | **Resuelto solo**: Oweb se archivó el 17/09/2026 y sus tablas se fueron el 21/09 (`docs/OwebArchivado.md`). Ya no hay comprobantes viejos que lo usen |
 
 ⚠️ Y de paso: `pms:finanzas:completar-tipo-cambio` **sólo repasa cargos y pagos**, no fichas
 (`findBy(['tipoCambio' => null])` sobre `PmsCargoFinanciero` y `PmsPagoFinanciero`). Hoy hay 3
