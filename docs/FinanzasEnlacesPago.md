@@ -2001,6 +2001,28 @@ suelta sin origen, y sin nombre de cliente) y comprueba las dos reglas que Meta 
 revientan el envío: **ninguna variable vacía ni multilínea**. ⚠️ Ese guion **no envía nada** a
 propósito: hacerlo haría sonar el móvil de toda la guardia (ver `docs/Mensajeria.md` §16.7).
 
+### La confirmación al huésped (03/10/2026)
+
+Junto al aviso al equipo, el huésped recibe `pago_recibido`: «Hemos recibido tu pago de USD 54.14
+con tarjeta» y el enlace a su estado de cuenta (`account_url`, o el botón a `account_path` en la
+oficial de Meta). Sale del mismo embudo y por las mismas razones —después del flush, una vez por
+enlace— y tampoco puede volverse contra el cobro: `confirmarPago()` recoge lo que falle y lo deja
+en el log.
+
+**Finanzas no sabe escribirle a nadie**, así que es un método más del contrato,
+`FinOrigenCobroResolverInterface::confirmarAlCliente()`: el PMS lo implementa con
+`PagoRecibido`, que deja el mensaje en el chat de la reserva. Un cobro manual no tiene documento
+ni chat, y el registry lo calla como calla `registrarCobro()`.
+
+No es una regla del motor de mensajes: el motor cuelga mensajes de **fechas** y deja uno por regla
+y reserva, y esto es un **hecho** que se repite —el adelanto y el saldo son dos pagos—.
+
+- **El importe es el TOTAL**, recargo incluido: la cifra que verá en el extracto de su banco. La
+  cuenta de la reserva abona el neto (§6).
+- **Va en `variables_plantilla`**, porque es del cobro y no de la reserva. Código de moneda y
+  cifra, sin palabras, para que valga en los siete idiomas.
+- Por Beds24 la estrategia no leía `variables_plantilla` (WhatsApp y correo sí): ahora las tres.
+
 ---
 
 ## 11 quater. Devoluciones: deshacer un cobro que ya pasó (28/08/2026)

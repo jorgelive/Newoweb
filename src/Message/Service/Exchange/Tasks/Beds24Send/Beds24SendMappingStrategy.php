@@ -119,6 +119,10 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
 
             // Extraemos las variables una sola vez para usarlas en texto y botones
             $variables = $resolver !== null ? $resolver->getMessageVariables($asuntoId, $templateLang) : [];
+            // Las del propio mensaje pisan a las del resolver, como en WhatsApp y correo: aquí
+            // faltaba, y no se notó mientras sólo las usaban los avisos internos, que no salen por
+            // Beds24. `pago_recibido` sí: su importe es del cobro, no de la reserva.
+            $variables = $msg->getVariablesPlantilla() + $variables;
 
             // ⚠️ **Las marcas de formato se quitan de los VALORES, aunque venga de plantilla.**
             //

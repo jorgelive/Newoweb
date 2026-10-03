@@ -12,6 +12,7 @@ use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsMedioPago;
 use App\Pms\Repository\PmsReservaRepository;
+use App\Pms\Service\Message\PagoRecibido;
 use App\Pms\Service\Message\TelefonoDeContacto;
 use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use DateTimeImmutable;
@@ -35,6 +36,7 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
         private readonly TelefonoDeContacto $telefonos,
         private readonly EntityManagerInterface $em,
         private readonly LoggerInterface $logger,
+        private readonly PagoRecibido $pagoRecibido,
     ) {}
 
     public function soporta(): FinOrigenCobro
@@ -262,6 +264,16 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
      * por `movimientoGeneradoId` del enlace: es la misma relación, pero indexada y del lado
      * del PMS, que es quien tiene que encontrarla.
      */
+    /** El chat de la reserva recibe `pago_recibido`: ver {@see PagoRecibido}. */
+    public function confirmarAlCliente(FinEnlacePago $enlace): void
+    {
+        $reserva = $this->reservas->find($enlace->getOrigenId());
+
+        if ($reserva instanceof PmsReserva) {
+            $this->pagoRecibido->confirmar($reserva, $enlace);
+        }
+    }
+
     private function pagoDelEnlace(FinEnlacePago $enlace): ?PmsPagoFinanciero
     {
         return $this->em->getRepository(PmsPagoFinanciero::class)

@@ -82,4 +82,17 @@ interface FinOrigenCobroResolverInterface
      * A la pasarela no viaja: allí `reason` es un enum cerrado de tres valores.
      */
     public function registrarDevolucion(FinEnlacePago $enlace, string $motivo): void;
+
+    /**
+     * Le cuenta al cliente que su pago entró, por donde el módulo hable con él.
+     *
+     * Finanzas sabe que hubo un cobro, pero no quién es el cliente ni por dónde se le escribe:
+     * eso es del módulo. El PMS le manda `pago_recibido` al chat de la reserva.
+     *
+     * Se llama desde `FinEnlacePagoService::confirmarPago()` **después del flush**, una vez por
+     * enlace: la guarda de idempotencia de allí ya frena el IPN repetido. Puede lanzar —quien
+     * llama lo recoge y lo deja en el log—, porque el cliente ya pagó y un fallo al contárselo
+     * no puede deshacer el cobro.
+     */
+    public function confirmarAlCliente(FinEnlacePago $enlace): void;
 }

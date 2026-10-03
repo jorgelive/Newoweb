@@ -363,6 +363,18 @@ final class FinEnlacePagoService
         // idempotencia de arriba ya devolvió antes si el enlace estaba pagado — así que un IPN
         // repetido no vuelve a hacer sonar los teléfonos.
         $this->avisoDeCobro->notificar($enlace);
+
+        // 🧾 Y al cliente, su confirmación: que el pago entró y dónde ver su cuenta al día. Mismo
+        // sitio y mismas dos razones que el aviso al equipo —después del flush, y una sola vez
+        // por la guarda de arriba—. Lo que falle se queda en el log: el cobro ya está hecho.
+        try {
+            $this->registry->confirmarAlCliente($enlace);
+        } catch (Throwable $e) {
+            $this->logger->error('[finanzas] no se pudo confirmar el pago al cliente', [
+                'enlace' => (string) $enlace->getId(),
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

@@ -101,6 +101,24 @@ final class FinOrigenCobroRegistry
     }
 
     /**
+     * Le cuenta al cliente del módulo dueño que su pago entró. Sólo lo llama
+     * `FinEnlacePagoService`, y sólo con el cobro ya persistido.
+     *
+     * Un cobro manual no tiene documento ni, por tanto, a quién escribirle: silencio, igual
+     * que en `registrarCobro()`.
+     */
+    public function confirmarAlCliente(FinEnlacePago $enlace): void
+    {
+        $tipo = $enlace->getOrigenTipo();
+
+        if ($tipo === null || $enlace->getOrigenId() === null) {
+            return;
+        }
+
+        $this->para($tipo)->confirmarAlCliente($enlace);
+    }
+
+    /**
      * Orígenes que HOY pueden cobrarse (los que tienen resolver).
      *
      * La SPA pinta este catálogo y no `FinOrigenCobro::cases()`: el enum declara el
