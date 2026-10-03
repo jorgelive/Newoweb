@@ -261,6 +261,9 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
             $pactado = $pactado || $suyo;
             $sobra = $sobra || ($suyo && !$this->horas->excede($evento, $hora, $esSalida));
             $this->horas->registrar($evento, $hora, $esSalida);
+            // Si quedaba una petición —«Pide salir más tarde, sin hora todavía» del botón, o una de
+            // fuera de horario que ahora cabe—, ya está resuelta: la hora está apuntada.
+            $this->peticiones->cerrar($evento, $esSalida);
         }
 
         $this->em->flush();

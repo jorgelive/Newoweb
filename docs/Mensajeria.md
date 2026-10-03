@@ -8847,6 +8847,39 @@ aviso de salida (Jorge): «🕑 El check-in es desde las 14:00. ¿A qué hora ti
 - **Se activa como el aviso de salida**: `msg:plantillas:guia-llegada-botones --activar` se niega
   hasta que Meta apruebe las dos enteras, repunta las dos reglas y recoloca las guías ya en cola.
 
+## 18.d quinquies Los botones que piden una hora: pregunta fija, un aviso, y el aviso si no contesta (02/10/2026)
+
+Los botones de hora que no la traen —**«Necesito salir tarde»**, «Saldré antes», **«Necesito llegar
+antes»**, «Llegaré más tarde»— dejaron de pasar al agente (`pasar_al_agente`). Con Franco (W2YRVK)
+el modelo escaló ANTES de saber la hora y volvió a avisar cuando la supo: dos avisos por la misma
+petición. Ahora van a `pedir_hora` (`PedirHoraActionHandler`, reglas y respuestas en
+`msg:plantillas:pedir-hora`):
+
+```
+botón ──► respuesta fija que pregunta la hora (pedir_hora_*)
+      ──► petición en la estancia «Pide salir más tarde…, sin hora todavía» (visible, sin aviso)
+      ──► (salir tarde / llegar antes) aviso diferido a 2 h  ─┐
+huésped dice la hora ──► el agente: confirmar_hora ──► UN aviso (dentro de horario, o fuera con la
+                                                       noche de al lado); cierra la petición
+2 h después, si NO escribió el huésped NI contestó el equipo ──► un aviso «pidió… y no dijo a qué hora»
+```
+
+- **Sólo avisan sin respuesta los que necesitan decisión** (salir tarde, llegar antes). Salir antes
+  o llegar después no molestan a nadie: quedan anotados en la reserva y punto.
+- **El aviso diferido se descarta** si después del botón hubo un mensaje del huésped o del equipo
+  (`AvisarHoraSinRespuestaDispatchHandler`, `DelayStamp` de 2 h). ⚠️ Esa consulta compara la
+  conversación por su id con tipo `uuid`: con la entidad a secas daba cero filas y avisaba siempre
+  —el mismo fallo escondía el recuento de `sin_canal` del aviso de fusión—.
+- **`confirmar_hora` cierra la petición** al apuntar una hora dentro del horario: si no, el «sin hora
+  todavía» quedaba colgado.
+- **Los textos de los botones** (Jorge): «Necesito más tiempo» no decía para qué; «Saldré más tarde» y
+  «Llegaré antes» sonaban a que lo decide el huésped. ⚠️ «Necesito llegar antes» tiene 21
+  caracteres: cabe en Meta (25), pero dentro de la ventana un botón interactivo admite 20 y sale el
+  menú numerado. Aceptado: la guía sale 30 h antes y casi siempre va por la plantilla.
+- **En Meta se rehicieron antes de activarse**: `aviso_salida_v3` (el `code` local sigue siendo
+  `aviso_salida_v2`) y `guia_llegada_*_botones_v3`, con `--rehacer`, que se niega si alguna regla o
+  algún mensaje ya las usa.
+
 ## 18.d quater La hora de la RESERVA, no la del alojamiento (02/10/2026)
 
 Jorge: «la hora que figura allí debería ser la de la reserva, que en caso de no ser modificada

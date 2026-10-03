@@ -89,7 +89,9 @@ final readonly class AvisarFusionSugeridaDispatchHandler
             ->from(Message::class, 'm')
             ->where('m.conversation = :hilo')
             ->andWhere('m.status = :sinCanal')
-            ->setParameter('hilo', $hilo)
+            // ⚠️ El id con su tipo: la entidad a secas se compara como texto contra binary(16) y
+            // devolvía cero —el aviso nunca decía cuántos esperaban canal— (revisión del 02/10/2026).
+            ->setParameter('hilo', $hilo->getId(), 'uuid')
             ->setParameter('sinCanal', Message::STATUS_SIN_CANAL)
             ->getQuery()
             ->getSingleScalarResult();

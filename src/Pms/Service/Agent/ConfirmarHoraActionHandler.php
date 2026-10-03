@@ -12,6 +12,7 @@ use App\Message\Entity\Message;
 use App\Message\Service\Agent\SendTemplateActionHandler;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Service\Reserva\EstanciasDelBorde;
 use App\Pms\Service\Reserva\HoraDeLaEstancia;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -65,7 +66,7 @@ final readonly class ConfirmarHoraActionHandler implements BotActionHandlerInter
 
         $esSalida = $parametros->texto('extremo') !== 'llegada';
         $reserva = $this->em->getRepository(PmsReserva::class)->find($conversacion->getContextId());
-        $estancias = $reserva instanceof PmsReserva ? $this->estanciasDelDia($reserva->getEventosActivosGuia(), $esSalida) : [];
+        $estancias = $reserva instanceof PmsReserva ? EstanciasDelBorde::de($reserva->getEventosActivosGuia(), $esSalida) : [];
 
         if ($estancias === []) {
             $this->logger->warning('Bot: confirmar_hora no encuentra ninguna estancia activa.', ['mensaje' => $mensajeEntranteId]);
@@ -118,27 +119,5 @@ final readonly class ConfirmarHoraActionHandler implements BotActionHandlerInter
                 'template_code' => $parametros->texto('plantilla_respuesta'),
             ]));
         }
-    }
-
-    /**
-     * Las estancias que entran (o salen) el mismo día que la primera entrada (o la última salida)
-     * de la reserva: las que el botón está confirmando. Las de otros días —un cambio de casita a
-     * mitad de estancia— no se tocan.
-     *
-     * @param array<int, PmsEventoCalendario> $activas
-     * @return list<PmsEventoCalendario>
-     */
-    private function estanciasDelDia(array $activas, bool $esSalida): array
-    {
-        $dia = static fn (PmsEventoCalendario $e): ?string => ($esSalida ? $e->getFin() : $e->getInicio())?->format('Y-m-d');
-        $dias = array_filter(array_map($dia, array_values($activas)));
-
-        if ($dias === []) {
-            return [];
-        }
-
-        $elDia = $esSalida ? max($dias) : min($dias);
-
-        return array_values(array_filter($activas, static fn (PmsEventoCalendario $e): bool => $dia($e) === $elDia));
     }
 }

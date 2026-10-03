@@ -54,6 +54,13 @@ final class MessageHoraDeLaReservaCommand extends Command
     private const string CODIGO_V1 = 'aviso_salida';
     public const string CMD_A_SU_HORA = 'CMD_SALIDA_A_SU_HORA';
 
+    /**
+     * El nombre en Meta. `aviso_salida_v2` llevaba «Necesito más tiempo», que no dice para qué
+     * —¿para decidir?, ¿para quedarse?—; se rehízo con «Necesito salir tarde» antes de activarla
+     * (Jorge, 02/10/2026). La `_v2` queda en Meta sin dueño. El `code` local sigue siendo `_v2`.
+     */
+    private const string META = 'aviso_salida_v3';
+
     /** [plantilla, campo, lo que dice ahora, lo que pasa a decir] — sólo en la fila «es». */
     private const array TEXTOS_LOCALES = [
         ['aviso_salida', 'beds24', 'a las 10:00 am.', 'a las {{checkout_time}}.'],
@@ -82,13 +89,13 @@ final class MessageHoraDeLaReservaCommand extends Command
 
     /** @var array<string, array{0: string, 1: string, 2: string, 3: string}> idioma => [a esa hora, antes, más tiempo, instrucciones] */
     private const array BOTONES = [
-        'es' => ['Salgo a esa hora', 'Saldré antes', 'Necesito más tiempo', 'Instrucciones de salida'],
-        'en' => ['Leaving at that time', 'Leaving earlier', 'Need more time', 'Check-out guide'],
-        'pt' => ['Saio nesse horário', 'Vou sair antes', 'Preciso mais tempo', 'Instruções de saída'],
-        'fr' => ["Je pars à l'heure", 'Je pars plus tôt', 'Un peu plus de temps', 'Consignes de départ'],
-        'it' => ["Esco a quell'ora", 'Esco prima', 'Mi serve più tempo', 'Istruzioni uscita'],
-        'de' => ['Ich reise dann ab', 'Ich reise früher ab', 'Brauche mehr Zeit', 'Hinweise Abreise'],
-        'nl' => ['Ik vertrek dan', 'Ik vertrek eerder', 'Meer tijd nodig', 'Vertrekinstructies'],
+        'es' => ['Salgo a esa hora', 'Saldré antes', 'Necesito salir tarde', 'Instrucciones de salida'],
+        'en' => ['Leaving at that time', 'Leaving earlier', 'I need to leave late', 'Check-out guide'],
+        'pt' => ['Saio nesse horário', 'Vou sair antes', 'Preciso sair tarde', 'Instruções de saída'],
+        'fr' => ["Je pars à l'heure", 'Je pars plus tôt', 'Je dois partir tard', 'Consignes de départ'],
+        'it' => ["Esco a quell'ora", 'Esco prima', 'Devo uscire tardi', 'Istruzioni uscita'],
+        'de' => ['Ich reise dann ab', 'Ich reise früher ab', 'Muss später abreisen', 'Hinweise Abreise'],
+        'nl' => ['Ik vertrek dan', 'Ik vertrek eerder', 'Ik moet later weg', 'Vertrekinstructies'],
     ];
 
     public function __construct(
@@ -102,6 +109,7 @@ final class MessageHoraDeLaReservaCommand extends Command
     {
         $this
             ->addOption('activar', null, InputOption::VALUE_NONE, 'Repunta «Check Out» a aviso_salida_v2. Sólo con Meta aprobada entera.')
+            ->addOption('rehacer', null, InputOption::VALUE_NONE, 'Borra y vuelve a crear aviso_salida_v2, sólo si no la usa ninguna regla ni ningún mensaje.')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Sólo dice qué haría');
     }
 
@@ -112,6 +120,10 @@ final class MessageHoraDeLaReservaCommand extends Command
 
         if ($input->getOption('activar')) {
             return $this->activar($io, $simular);
+        }
+
+        if ($input->getOption('rehacer') && !$this->rehacer($io, $simular)) {
+            return Command::FAILURE;
         }
 
         $this->textosLocales($io, $simular);
@@ -200,6 +212,39 @@ final class MessageHoraDeLaReservaCommand extends Command
         }
 
         return false;
+    }
+
+    /** Quita la v2 para crearla otra vez, sólo si ni una regla ni un mensaje la han usado. */
+    private function rehacer(SymfonyStyle $io, bool $simular): bool
+    {
+        $plantilla = $this->em->getRepository(MessageTemplate::class)->findOneBy(['code' => self::CODIGO]);
+
+        if (!$plantilla instanceof MessageTemplate) {
+            return true;
+        }
+
+        foreach ($this->em->getRepository(MessageRule::class)->findAll() as $regla) {
+            if ($regla->getTemplate() === $plantilla) {
+                $io->error(sprintf('La regla «%s» ya usa «%s»: no se rehace.', $regla->getName(), self::CODIGO));
+
+                return false;
+            }
+        }
+
+        if ($this->em->getRepository(Message::class)->count(['template' => $plantilla]) > 0) {
+            $io->error(sprintf('Ya hay mensajes con «%s»: no se rehace.', self::CODIGO));
+
+            return false;
+        }
+
+        $io->text(sprintf('Se rehace «%s».', self::CODIGO));
+
+        if (!$simular) {
+            $this->em->remove($plantilla);
+            $this->em->flush();
+        }
+
+        return true;
     }
 
     private function crearV2(SymfonyStyle $io, bool $simular): void
@@ -365,7 +410,7 @@ final class MessageHoraDeLaReservaCommand extends Command
             ->setWhatsappMetaTmpl([
                 'is_active' => true,
                 'category' => 'UTILITY',
-                'meta_template_name' => self::CODIGO,
+                'meta_template_name' => self::META,
                 'is_official_meta' => false,
                 'header' => [],
                 'footer' => [],

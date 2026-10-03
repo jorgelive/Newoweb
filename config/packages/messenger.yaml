@@ -68,6 +68,9 @@ framework:
             # Avisar es red (WhatsApp o push) y lo pide un postFlush: ver FusionSugeridaListener.
             App\Message\Dispatch\AvisarFusionSugeridaDispatch: async
 
+            # Con DelayStamp de 2 h: ver PedirHoraActionHandler.
+            App\Pms\Dispatch\AvisarHoraSinRespuestaDispatch: async
+
 
             # Route your messages to the transports
             # 'App\Message\YourMessage': async

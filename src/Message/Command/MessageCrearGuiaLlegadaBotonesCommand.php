@@ -30,8 +30,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * | botón | payload | qué pasa |
  * |---|---|---|
- * | Llegaré más tarde | `CMD_LLEGADA_DESPUES` | `pasar_al_agente`: pregunta la hora y la apunta confirmada (`confirmar_hora`) |
- * | Llegaré antes | `CMD_LLEGADA_ANTES` | `pasar_al_agente`: pregunta la hora; depende de la disponibilidad, ofrece el equipaje y avisa al equipo, que decide |
+ * | Llegaré más tarde | `CMD_LLEGADA_DESPUES` | `pedir_hora`: pregunta la hora; al decirla, `confirmar_hora` la apunta |
+ * | Necesito llegar antes | `CMD_LLEGADA_ANTES` | `pedir_hora`: pregunta la hora y ofrece el equipaje; al decirla, `confirmar_hora` avisa al equipo, que decide; si no la dice en 2 h, un aviso |
  *
  * El botón de enlace [Ver mi guía] se queda, el último: el aviso de salida —ya aprobado por
  * Meta— lleva las respuestas delante y el enlace detrás, y no se arriesga otro orden.
@@ -75,10 +75,15 @@ final class MessageCrearGuiaLlegadaBotonesCommand extends Command
     private const string PREGUNTA = '🕑 Tu check-in es desde las {{checkin_time}}. ¿A qué hora tienes planeado llegar?';
 
     /**
-     * El nombre en Meta. `_v1` llevaba «desde las 14:00» y los botones con la hora; se mandó a
-     * revisión y se rehízo antes de activarla. Queda en Meta sin dueño (el sincronizador sólo avisa).
+     * El nombre en Meta. `_v1` llevaba «desde las 14:00» y los botones con la hora; `_v2`, «Llegaré
+     * antes», que sonaba a que lo decide el huésped. Se rehicieron antes de activarlas y quedan en
+     * Meta sin dueño (el sincronizador sólo avisa).
+     *
+     * ⚠️ «Necesito llegar antes» tiene 21 caracteres: cabe en Meta (25), pero dentro de la ventana
+     * un botón interactivo admite 20, así que ahí sale el menú numerado. Aceptado por Jorge: la
+     * guía sale 30 h antes y casi siempre va por la plantilla.
      */
-    private const string VERSION_META = '_v2';
+    private const string VERSION_META = '_v3';
 
     private const string CUERPO = <<<'TXT'
         ¡Hola {{guest_name}}! 👋
@@ -118,13 +123,13 @@ final class MessageCrearGuiaLlegadaBotonesCommand extends Command
      * @var array<string, array{0: string, 1: string, 2: string}> idioma => [después, antes, guía]
      */
     private const array BOTONES = [
-        'es' => ['Llegaré más tarde', 'Llegaré antes', 'Ver mi guía'],
-        'en' => ['Arriving later', 'Arriving earlier', 'View my guide'],
-        'pt' => ['Chego mais tarde', 'Chego antes', 'Ver meu guia'],
-        'fr' => ["J'arrive plus tard", "J'arrive plus tôt", 'Voir mon guide'],
-        'it' => ['Arrivo più tardi', 'Arrivo prima', 'Vedi la mia guida'],
-        'de' => ['Ich komme später', 'Ich komme früher', 'Meinen Guide ansehen'],
-        'nl' => ['Ik kom later', 'Ik kom eerder', 'Bekijk mijn gids'],
+        'es' => ['Llegaré más tarde', 'Necesito llegar antes', 'Ver mi guía'],
+        'en' => ['Arriving later', 'I need to arrive early', 'View my guide'],
+        'pt' => ['Chego mais tarde', 'Preciso chegar antes', 'Ver meu guia'],
+        'fr' => ["J'arrive plus tard", 'Je dois arriver plus tôt', 'Voir mon guide'],
+        'it' => ['Arrivo più tardi', 'Devo arrivare prima', 'Vedi la mia guida'],
+        'de' => ['Ich komme später', 'Ich muss früher ankommen', 'Meinen Guide ansehen'],
+        'nl' => ['Ik kom later', 'Ik moet eerder aankomen', 'Bekijk mijn gids'],
     ];
 
     public function __construct(
