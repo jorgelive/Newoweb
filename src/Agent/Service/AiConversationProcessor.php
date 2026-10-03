@@ -1454,6 +1454,9 @@ final readonly class AiConversationProcessor
             // es viejo. Se le da hecho en vez de pedírselo, que es la lección de esta noche.
             $cuando = $m->getCreatedAt();
 
+            $quien = self::quienHabla($m);
+            $texto = $quien !== null ? sprintf('(%s) %s', $quien, $texto) : $texto;
+
             $turnos[] = [
                 'rol' => $m->getDirection() === Message::DIRECTION_INCOMING ? 'usuario' : 'asistente',
                 'texto' => $cuando !== null
@@ -1463,6 +1466,30 @@ final readonly class AiConversationProcessor
         }
 
         return array_slice($turnos, -self::HISTORIAL_MAX);
+    }
+
+    /**
+     * Quién escribió un saliente, para que el modelo no tome por suyo lo que dijo otro.
+     *
+     * 🔥 Todo lo que sale del alojamiento es `asistente` para el motor, y sin esto el modelo leía
+     * como propio lo que había escrito una persona del equipo. Eduardo (03/10/2026): el agente
+     * escaló el pago de los tours, Jorge le escribió ofreciéndole efectivo, Yape o transferencia, y
+     * al contestar «En efectivo mañana» el agente volvió a escalar lo que el equipo ya había
+     * resuelto — no sabía que esa oferta la había hecho el equipo.
+     *
+     * Lo suyo va sin marca: es lo que ya entiende por `asistente`.
+     */
+    private static function quienHabla(Message $m): ?string
+    {
+        $etiqueta = $m->getAutorEtiqueta();
+
+        return match (true) {
+            $etiqueta === null, $etiqueta === 'Agente' => null,
+            $etiqueta === 'Automático', $etiqueta === 'Sistema' => 'mensaje automático',
+            $etiqueta === 'Equipo' => 'el equipo',
+            str_starts_with($etiqueta, 'Escrito en ') => 'el equipo, ' . lcfirst($etiqueta),
+            default => $etiqueta . ', del equipo',
+        };
     }
 
     /**

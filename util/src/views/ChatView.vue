@@ -1729,6 +1729,9 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
 
                       <span>{{ formatTime(msg.effectiveDateTime || msg.createdAt) }}</span>
 
+                      <!-- Quién habló: la persona del equipo, «Escrito en Booking», «Agente» o «Automático». Ver Message::getAutorEtiqueta(). -->
+                      <span v-if="msg.autorEtiqueta" class="normal-case tracking-normal font-semibold opacity-80">{{ msg.autorEtiqueta }}</span>
+
                       <template v-if="msg.direction === 'outgoing'">
 
                         <template v-if="msg.channel">

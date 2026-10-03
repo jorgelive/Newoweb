@@ -11,6 +11,33 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 ---
 
 
+## Quién escribió cada mensaje (03/10/2026)
+
+Un mensaje del alojamiento sólo decía `host`: no se sabía si era de Jorge, de Susan o escrito en
+la app de Booking. Ahora `msg_message.autor_id` → `user`, que rellena `AutorDelMensajeListener`
+con quien esté conectado al guardar un `SENDER_HOST` o una nota interna —el chat, el asistente
+del panel, los botones de Operaciones: todos pasan por el `prePersist`—. Sin sesión (workers,
+cron, el agente) no firma nada.
+
+`Message::getAutorEtiqueta()` lo pone en palabras para el chat y para el agente:
+
+| qué | etiqueta |
+|---|---|
+| una persona del equipo, desde el sistema | su nombre («Web Admin» también: es un usuario) |
+| `host` con canal: llegó de Beds24, escrito fuera | «Escrito en Booking» / «Airbnb» / «Beds24» |
+| `host` sin autor (lo anterior a hoy) | «Equipo» |
+| `generado_por: ia` | «Agente» |
+| plantilla | «Automático» |
+
+Beds24 sólo distingue `guest` y `host`: lo que se escribe en la extranet o la app de una OTA no
+dice qué persona fue, y no hay de dónde sacarlo.
+
+🔥 **El agente leía como suyo lo que escribía el equipo.** Su historial marcaba todo lo saliente
+como `asistente`. Eduardo (03/10): el agente escaló el pago de los tours, Jorge le ofreció
+efectivo, Yape o transferencia, y al contestar «En efectivo mañana» el agente volvió a escalar lo
+ya resuelto. Ahora cada turno ajeno va con su autor —`(Jorge Gomez, del equipo)`, `(el equipo,
+escrito en Booking)`, `(mensaje automático)`— en `AiConversationProcessor::quienHabla()`.
+
 ## 🔥 El acuse de lectura marcaba `failed` el mensaje del HUÉSPED (10/09/2026)
 
 `MarkConversationReadController` fabrica el recibo hacia la OTA con un patrón proactivo: marca el

@@ -20250,6 +20250,11 @@ export interface components {
             readonly metadata?: {
                 [key: string]: string | null;
             };
+            /**
+             * @description Quién habla en un saliente, en palabras: lo que pinta el chat bajo la burbuja y lo que lee
+             *     el agente en su historial. `null` en lo que escribe el huésped, que ya se sabe quién es.
+             */
+            readonly autorEtiqueta?: string | null;
         };
         /**
          * @description Entidad que representa un mensaje individual dentro de una conversación.
@@ -20341,6 +20346,11 @@ export interface components {
             readonly metadata?: {
                 [key: string]: string | null;
             };
+            /**
+             * @description Quién habla en un saliente, en palabras: lo que pinta el chat bajo la burbuja y lo que lee
+             *     el agente en su historial. `null` en lo que escribe el huésped, que ya se sabe quién es.
+             */
+            readonly autorEtiqueta?: string | null;
         };
         /**
          * @description Entidad que representa un mensaje individual dentro de una conversación.
@@ -20391,6 +20401,11 @@ export interface components {
             readonly metadata?: {
                 [key: string]: string | null;
             };
+            /**
+             * @description Quién habla en un saliente, en palabras: lo que pinta el chat bajo la burbuja y lo que lee
+             *     el agente en su historial. `null` en lo que escribe el huésped, que ya se sabe quién es.
+             */
+            readonly autorEtiqueta?: string | null;
         };
         /**
          * @description Entidad que representa un mensaje individual dentro de una conversación.
@@ -20441,6 +20456,11 @@ export interface components {
             readonly metadata?: {
                 [key: string]: string | null;
             };
+            /**
+             * @description Quién habla en un saliente, en palabras: lo que pinta el chat bajo la burbuja y lo que lee
+             *     el agente en su historial. `null` en lo que escribe el huésped, que ya se sabe quién es.
+             */
+            readonly autorEtiqueta?: string | null;
         };
         "MessageAttachment-message.read": {
             fileName?: string | null;

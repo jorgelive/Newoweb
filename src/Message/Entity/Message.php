@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use App\Entity\Trait\IdTrait;
+use App\Entity\User;
 use App\Entity\Trait\TimestampTrait;
 use App\Message\ApiPlatform\State\MessageMultipartProcessor;
 use App\Message\Filter\MessageVistaDelHiloExtension;
@@ -384,6 +385,21 @@ class Message
     #[ORM\Column(length: 30, options: ['default' => self::SENDER_HOST])]
     #[Groups(['message:read', 'message:write'])]
     private string $senderType = self::SENDER_HOST;
+
+    /**
+     * La persona del equipo que lo escribió, si lo escribió una persona desde el sistema.
+     *
+     * Lo pone `AutorDelMensajeListener` al guardar, con quien esté conectado: cubre el chat, el
+     * asistente del panel y los botones de Operaciones sin tocar ninguno. Vacío en lo automático,
+     * en lo del agente, en lo que entra escrito desde Booking/Airbnb —Beds24 sólo dice `host`— y
+     * en lo anterior al 03/10/2026, que no lo guardaba. Ver {@see self::getAutorEtiqueta()}.
+     *
+     * Relación y no texto: el nombre se cambia en un sitio y vale para todos sus mensajes. Si se
+     * borra el usuario, sus mensajes pasan a «Equipo» en vez de impedir el borrado.
+     */
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(name: 'autor_id', nullable: true, onDelete: 'SET NULL')]
+    private ?User $autor = null;
 
     /** @var array<string, string>|null Identificador del mensaje en cada canal: `['beds24' => '…']`. */
     #[ORM\Column(type: 'json', nullable: true)]
@@ -1006,6 +1022,57 @@ class Message
     {
         $this->status = $status;
         return $this;
+    }
+
+    public function getAutor(): ?User { return $this->autor; }
+    public function setAutor(?User $autor): self { $this->autor = $autor; return $this; }
+
+    /**
+     * Quién habla en un saliente, en palabras: lo que pinta el chat bajo la burbuja y lo que lee
+     * el agente en su historial. `null` en lo que escribe el huésped, que ya se sabe quién es.
+     *
+     * | qué | etiqueta |
+     * |---|---|
+     * | lo escribió una persona del equipo en el sistema | su nombre |
+     * | `host` con canal: entró por sincronización, escrito fuera | «Escrito en Booking» / «Airbnb»… |
+     * | `host` sin autor: del equipo, de antes de guardar el autor | «Equipo» |
+     * | lo redactó el agente (`generado_por: ia`) | «Agente» |
+     * | plantilla automática | «Automático» |
+     *
+     * Lo del canal es la convención que ya usa el chat (icono de nube, «sincronizado
+     * externamente»): un saliente nuestro no lleva canal; lo lleva el que llega de Beds24.
+     */
+    #[Groups(['message:read'])]
+    public function getAutorEtiqueta(): ?string
+    {
+        if ($this->direction === self::DIRECTION_INCOMING) {
+            return null;
+        }
+
+        if ($this->autor !== null) {
+            return $this->autor->getFullname() !== '' ? $this->autor->getFullname() : $this->autor->getUserIdentifier();
+        }
+
+        if ($this->senderType === self::SENDER_HOST || $this->senderType === self::SENDER_INTERNAL) {
+            $canal = $this->channel?->getId();
+
+            if ($this->senderType === self::SENDER_HOST && $canal !== null) {
+                return 'Escrito en ' . match ($canal === 'beds24' ? $this->conversation?->getContextOrigin() : $canal) {
+                    'booking' => 'Booking',
+                    'airbnb' => 'Airbnb',
+                    'whatsapp_meta' => 'WhatsApp',
+                    default => 'Beds24',
+                };
+            }
+
+            return 'Equipo';
+        }
+
+        if (($this->metadata['generado_por'] ?? null) === 'ia') {
+            return 'Agente';
+        }
+
+        return $this->template !== null ? 'Automático' : 'Sistema';
     }
 
     public function getSenderType(): string { return $this->senderType; }
