@@ -1,0 +1,51 @@
+#!/bin/bash
+set -e
+cd "$(git rev-parse --show-toplevel)"
+
+# Versionado en tools/git-hooks/ y activo por `git config core.hooksPath tools/git-hooks` en el
+# servidor: lo que se cambie aquí entra con el propio pull. Se lanza desde `bin/desplegar`, con el
+# candado de despliegue ya tomado (ver allí y tools/cron/www-data.crontab).
+
+# ⚠️ Los workers se PARAN antes de limpiar la caché, no se reinician después. `cache:clear` borra
+# el directorio del contenedor viejo, y un worker vivo carga sus servicios de ahí a demanda: entre
+# la limpieza y el reinicio morían con «Failed opening required var/cache/prod/Container…»
+# (messenger-worker-error.log, 03/10/2026). Parados, los mensajes esperan en la cola.
+echo '[post-merge] Stopping messenger workers...'
+sudo supervisorctl stop messenger-worker:*
+# Con `set -e`, un `cache:clear` que falle cortaría aquí y los dejaría parados: nada de la cola
+# saldría hasta que alguien lo notara. El trap los arranca pase lo que pase.
+trap "sudo supervisorctl start 'messenger-worker:*'" EXIT
+
+echo '[post-merge] Clearing prod cache...'
+php bin/console cache:clear --env=prod --no-debug
+
+echo '[post-merge] Starting messenger workers...'
+trap - EXIT
+sudo supervisorctl start messenger-worker:*
+
+# ── Construir el front que haya cambiado ────────────────────────────────────
+#
+# ⚠️ Esto faltaba, y era un agujero MUDO: `git pull` salía limpio, el `git log` decía que estaba
+# desplegado, y los usuarios seguían viendo el bundle anterior. Nadie se entera hasta que alguien
+# pregunta «¿y esto dónde está?». Misma familia que el `composer dump-autoload` del 19/08/2026.
+#
+# Sólo la app que cambió: construir las dos en cada despliegue encarece los que no lo necesitan,
+# que es el argumento por el que el dump-autoload se dejó fuera del hook.
+#
+# `npm run build` incluye `pwa-postbuild.mjs`, así que el SERVICE WORKER y el shell se regeneran
+# solos y el script verifica que SW, shell y bundles se correspondan. No hay un paso aparte.
+#
+# ⚠️ node vive en nvm y NO está en el PATH de un hook de git: hay que cargarlo a mano.
+CAMBIADOS="$(git diff --name-only HEAD@{1} HEAD 2>/dev/null || true)"
+
+for APP in util pax; do
+    if echo "$CAMBIADOS" | grep -q "^$APP/"; then
+        echo "[post-merge] Building $APP..."
+        (
+            export NVM_DIR="$HOME/.nvm"
+            # shellcheck disable=SC1091
+            . "$NVM_DIR/nvm.sh"
+            cd "$APP" && npm run build
+        )
+    fi
+done

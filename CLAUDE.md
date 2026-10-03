@@ -739,7 +739,18 @@ nadie lo comprueba.
 
 ## Despliegue
 
-`push` → `pull` en el servidor → build → **`doctrine:migrations:migrate`**.
+`push` → **`ssh openperu /var/www/openperu.pe/bin/desplegar`**. Ese script hace el pull, regenera el
+autoload si se movieron o borraron clases y migra, todo con el **candado de despliegue** tomado; el
+hook `post-merge` (caché, workers, build del front) corre dentro.
+
+🔒 **El candado (03/10/2026).** Las 24 tareas de cron llevan `flock -s` sobre `var/deploy.lock`
+(`tools/cron/www-data.crontab`, que es el original: se instala con `sudo -u www-data crontab
+tools/cron/www-data.crontab`) y `bin/desplegar` lo toma en exclusiva. Antes se esquivaba
+esperando al minuto 1 de cada cinco, y no bastaba: una tarea que arrancaba durante el pull mezclaba
+código viejo y nuevo, y los workers morían entre `cache:clear` y su reinicio con «Failed opening
+required var/cache/prod/Container…». Ahora el hook los **para antes** de limpiar la caché. El hook
+se versiona en `tools/git-hooks/` y está activo por `core.hooksPath` en el servidor. **Una tarea de
+cron nueva lleva el mismo prefijo**, o vuelve la carrera.
 
 ⚠️ **El paso de migraciones no es opcional y falla en silencio.** El 13/08/2026 se desplegó código
 con una columna nueva sin migrar: la entidad pedía `agente_pasos`, la columna no existía, y **la
@@ -787,12 +798,9 @@ apuntando a los archivos viejos hasta que se regenera. El 19/08/2026, renombrand
 `Warning: include(): Failed opening …ProveedorVivoResolver.php` en `error.log`.
 
 No está en el hook `post-merge` a propósito —encarecer todos los despliegues por algo que pasa
-una vez al año no compensa—, así que **va a mano y encadenado al `pull`**, no después de las
-migraciones:
-
-```bash
-git pull --ff-only && composer dump-autoload --no-dev --optimize && php bin/console doctrine:migrations:migrate --no-interaction
-```
+una vez al año no compensa—. Lo hace `bin/desplegar` **sólo cuando el pull trae clases borradas o
+renombradas en `src/`** (`git diff --name-status` con `D`/`R`), justo después del pull y antes de
+migrar.
 
 Node vive en nvm y no está en el PATH de una sesión ssh no interactiva; los errores se buscan en
 `var/log/error.log`.

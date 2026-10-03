@@ -1,0 +1,118 @@
+# Crontab de www-data en producción. ESTE es el original: se instala con
+#
+#   sudo -u www-data crontab /var/www/openperu.pe/tools/cron/www-data.crontab
+#
+# y lo que se edite a mano en el servidor se pierde en la siguiente instalación.
+#
+# ⚠️ CADA TAREA VA POR EL CANDADO DE DESPLIEGUE (`flock -s … var/deploy.lock`), en modo compartido:
+# las tareas siguen corriendo a la vez entre sí, pero `bin/desplegar` lo toma en exclusiva y
+# espera a que terminen las que están en marcha. Sin esto, una tarea que arrancaba durante el
+# `git pull` mezclaba código viejo y nuevo, y la que estaba a medias durante `cache:clear` moría
+# con «Failed opening required var/cache/prod/Container…» (03/10/2026). Si el despliegue tarda
+# más de 2 minutos, la tarea se salta esa vuelta y corre en la siguiente. Una tarea nueva lleva
+# el mismo prefijo, o vuelve la carrera.
+
+# ==========================================
+# 1. CRON LEGACY
+# ==========================================
+# DESHABILITADO 2026-08-09 (legacy, reemplazado por exchange:run bookings_pull): */5 * * * * /usr/bin/php /var/www/openperu.pe/bin/console app:obtener-reservas >> /var/www/openperu.pe/var/log/obtenerreservascron.log 2>/dev/null
+# DESHABILITADO 2026-08-09 (legacy): 0 2 * * * /usr/bin/php /var/www/openperu.pe/bin/console app:enviar-resumen >> /var/www/openperu.pe/var/log/enviarresumen.log 2>/dev/null
+
+# ==========================================
+# 2. CRON EXCHANGE PMS (Sincronización Beds24)
+# ==========================================
+# Pull de Reservas (Cada 5 minutos: 0, 5, 10...)
+*/5 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:run bookings_pull --env=prod >> /var/www/openperu.pe/var/log/pms_bookings_pull.log 2>&1
+
+# Push de Reservas (Cada 5 minutos desfasado: 2, 7, 12...)
+2-59/5 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:run bookings_push --env=prod >> /var/www/openperu.pe/var/log/pms_bookings_push.log 2>&1
+
+# Push de Tarifas (Cada 15 minutos)
+*/15 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:run rates_push --env=prod >> /var/www/openperu.pe/var/log/pms_rates_push.log 2>&1
+
+# Pull de Mensajes Beds24 (Cada 5 minutos)
+*/5 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:run beds24_message_receive --env=prod >> /var/www/openperu.pe/var/log/exchange_beds24_message_receive.log 2>&1
+
+# Push de Mensajes Beds24 (Cada 5 minutos)
+*/5 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:run beds24_message_send --env=prod >> /var/www/openperu.pe/var/log/exchange_beds24_message_send.log 2>&1
+
+# Pull de Facturas Beds24 (Cada 10 minutos: 3, 13, 23... justo tras cada sweeper)
+3-59/10 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:run beds24_invoice_receive --env=prod >> /var/www/openperu.pe/var/log/exchange_beds24_invoice_receive.log 2>&1
+
+# Envío WhatsApp Meta (Cada 3 minutos)
+*/3 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:run whatsapp_meta_message_send --env=prod >> /var/www/openperu.pe/var/log/exchange_whatsapp_meta_message_send.log 2>&1
+
+# ==========================================
+# 3. CRON EXCHANGE SWEEPERS (Línea de Tiempo)
+# ==========================================
+# Sweeper Tarifas (Minutos 8 y 38)
+8,38 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:timeline:enqueue beds24_rates_push --env=prod >> /var/www/openperu.pe/var/log/pms_timeline_rates.log 2>&1
+
+# Sweeper Facturas Beds24 (Minutos 11 y 41)
+11,41 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:timeline:enqueue beds24_invoice_receive --env=prod >> /var/www/openperu.pe/var/log/pms_timeline_invoices.log 2>&1
+
+# Sweeper Pull de Reservas (Minutos 14, 34 y 54)
+14,34,54 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:timeline:enqueue beds24_bookings_pull_arrival --env=prod >> /var/www/openperu.pe/var/log/pms_timeline_bookings_pull.log 2>&1
+
+# Sweeper Pull de Mensajes (Minutos 19, 39 y 59)
+19,39,59 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:timeline:enqueue beds24_message_receive --env=prod >> /var/www/openperu.pe/var/log/message_timeline_beds24_messages_receive.log 2>&1
+
+# Sweeper Push de Reservas (Minutos 28 y 58)
+28,58 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:timeline:enqueue beds24_bookings_push --env=prod >> /var/www/openperu.pe/var/log/pms_timeline_bookings_push.log 2>&1
+
+# ==========================================
+# 4. CRON MENSAJERÍA INTERNA (Motor de Reglas y Sanidad)
+# ==========================================
+# Sincronizador de Reglas Automáticas (Evalúa y encola plantillas)
+# Cada 15 minutos (0, 15, 30, 45)
+*/15 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console app:message:sync-rules --all --env=prod >> /var/www/openperu.pe/var/log/message_sync_rules.log 2>&1
+
+# Reconstrucción de Contexto (Repara cronologías y archiva/cierra chats antiguos)
+# Todos los días a las 3:00 AM (Madrugada)
+0 3 * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console app:message:rebuild-context --env=prod >> /var/www/openperu.pe/var/log/message_rebuild_context.log 2>&1
+
+# Sincronización de Plantillas de WhatsApp con Meta Cloud API
+# Todos los días a las 3:15 AM (Asegura que las nuevas aprobaciones estén en el PMS)
+15 3 * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console app:whatsapp:sync-templates --env=prod >> /var/www/openperu.pe/var/log/whatsapp_sync_templates.log 2>&1
+
+# ==========================================
+# 5. CRON DOMOTICA (Enchufes inteligentes Tuya)
+# ==========================================
+# Vigilancia: avisa de los aparatos que llevan horas sin registrar consumo.
+# Mira el RELOJ, no el contador de fallos: es la unica senal que sobrevive a
+# que se muera el muestreo entero. Ver docs/Domotica.md seccion 10.
+# Minuto 35 para no pisar al muestreo cuando exista (ira en el minuto 5).
+# Muestreo: estado de los 28 aparatos y consumo de los 3 que miden. Dos llamadas
+# para el parque entero mas una por cada aparato con contometro. Ver docs/Domotica.md 14.2.
+5 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console app:domotica:muestrear --env=prod >> /var/www/openperu.pe/var/log/domotica_muestrear.log 2>&1
+
+35 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console app:domotica:vigilar --env=prod >> /var/www/openperu.pe/var/log/domotica_vigilar.log 2>&1
+
+# Vigila colas y auditorias atascadas. Ver src/Exchange/Service/VigilanteDeColas.php:
+# el 15/08/2026 tres cancelaciones se perdieron y el rastro estuvo 12h sin que nadie lo mirara.
+25 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console app:exchange:vigilar-colas --env=prod >> /var/www/openperu.pe/var/log/vigilar_colas.log 2>&1
+*/3 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console exchange:run email_message_send --env=prod >> /var/www/openperu.pe/var/log/exchange_email_message_send.log 2>&1
+20 3 * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console app:cotizacion:revisar-coherencia --reparar --env=prod >> /var/www/openperu.pe/var/log/cotizacion_coherencia.log 2>&1
+
+# ==========================================
+# Recalentado de hilos que el agente calló por «humano atendiendo».
+# El agente sólo reacciona a mensajes entrantes: lo que descarta por esa razón no lo
+# vuelve a mirar nadie cuando la ventana de 15 min expira. De 34 descartes desde julio,
+# una pregunta comercial esperó 112 minutos —y sólo porque el huésped insistió— y otra
+# no se contestó jamás. Ver docs/Mensajeria.md y AgentRecalentarHilosCommand.
+# Cada 5 minutos en el minuto 4 del tramo, para no apilarse con los exchange:run.
+# flock -n: una pasada con varios candidatos puede durar más de 5 minutos (20-60 s de modelo
+# cada uno), y sin cerrojo la siguiente arrancaría encima, vería los mismos candidatos y
+# generaria una SEGUNDA respuesta al mismo huesped. Cada proceso PHP tiene su propia unidad de
+# trabajo, asi que los guardias del otro no la ven.
+4-59/5 * * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/flock -n /tmp/agent_recalentar_hilos.lock /usr/bin/php /var/www/openperu.pe/bin/console agent:recalentar-hilos --env=prod >> /var/www/openperu.pe/var/log/agent_recalentar_hilos.log 2>&1
+
+# Releva el enlace de adelanto por uno del saldo en las reservas que ya llegaron.
+# 05:05 UTC = 00:05 de Lima: la regla queSePide() cambia a medianoche en la zona de PHP.
+5 5 * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console app:pms:prepago:revisar-llegadas --env=prod >> /var/www/openperu.pe/var/log/pms_prepago_llegadas.log 2>&1
+10 4 * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console app:cotizacion:purgar-archivos --env=prod >> /var/www/openperu.pe/var/log/cotizacion_purga.log 2>&1
+
+# Tipo de cambio: 08:00 de Lima (el servidor va en UTC). Trae la cotizacion del dia y, sobre todo,
+# FALLA y avisa si el maestro se queda atras: entre el 26/08 y el 10/09/2026 el proveedor devolvio
+# 404 quince dias seguidos y el respaldo lo tapo. Ver docs/PmsBeds24ReservasSync.md 12.18.
+40 13 * * * /usr/bin/flock -s -w 120 /var/www/openperu.pe/var/deploy.lock /usr/bin/php /var/www/openperu.pe/bin/console app:pms:tipo-cambio:sincronizar --dias 3 --env=prod >> /var/www/openperu.pe/var/log/tipo_cambio.log 2>&1

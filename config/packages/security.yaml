@@ -121,20 +121,9 @@ security:
         - { path: '^/login$',  roles: PUBLIC_ACCESS }
         - { path: '^/logout$', roles: PUBLIC_ACCESS }
 
-        # APIs públicas específicas (las tuyas)
-        - { path: '^/app/cotizacioncotservicio/ical$',                 roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: '^/app/reservareserva/ical$',                        roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: '^/app/reservareserva/\d+/resumen/[A-Za-z0-9]+$',    roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: '^/app/reservaunit/\d+/ical$',                       roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: '^/app/reservaunit/\d+/ical\.ics$',                  roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: '^/app/reservaunitnexo/\d+/ical$',                   roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: '^/app/reservaunitnexo/\d+/ical\.ics$',              roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: '^/app/reservaunit/\d+/inventario$',                 roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: '^/app/reservaunit/\d+/resumen$',                    roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: '^/app/cotizacioncotizacion/\d+/resumen/[A-Za-z0-9]+$',  roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: '^/app/cotizacioncotizacion/\d+/operaciones/[A-Za-z0-9]+$', roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: '^/app/cotizacionfile/\d+/resumen/[A-Za-z0-9]+$',    roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: '^/app/fitdieta/\d+/resumen/[A-Za-z0-9]+$',          roles: PUBLIC_ACCESS, methods: [GET] }
+        # Aquí había 13 rutas públicas de oweb (`/app/reservaunit/{id}/ical.ics`, los resúmenes por
+        # token…). Ese código se archivó el 17/09/2026 y ninguna ruta las sirve; ni nginx las vio
+        # pedir en los 14 días de log (03/10/2026). Ver docs/OwebArchivado.md.
 
         - { path: '^/locale', roles: PUBLIC_ACCESS }
 

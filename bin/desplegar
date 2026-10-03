@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+#
+# Despliegue en producción: pull, autoload si hace falta y migraciones, con el candado tomado.
+#
+#   ssh openperu /var/www/openperu.pe/bin/desplegar
+#
+# ⚠️ EL CANDADO. Las tareas de cron (tools/cron/www-data.crontab) corren cada una con
+# `flock -s` sobre var/deploy.lock; aquí se toma en exclusiva. Así el despliegue espera a que
+# terminen las que están en marcha y las que arrancan durante el pull o el `cache:clear` del
+# hook esperan a que acabe. Antes se esquivaba esperando al minuto 1 de cada cinco, y no
+# bastaba: hay tareas cada 3 minutos y otras largas (03/10/2026). Ver CLAUDE.md, «Despliegue».
+#
+# El hook `post-merge` (tools/git-hooks/) corre dentro de este mismo candado: caché, workers y
+# el build del front que haya cambiado.
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+CANDADO="$PWD/var/deploy.lock"
+if [ ! -e "$CANDADO" ]; then
+    touch "$CANDADO"
+    chmod 666 "$CANDADO"   # lo abren ubuntu (este script) y www-data (el cron)
+fi
+
+# ⚠️ `exec` y el cuerpo entre comillas, no a continuación: bash lee un script a trozos mientras lo
+# ejecuta, y el `git pull` de abajo puede reescribir ESTE archivo a mitad de lectura.
+exec /usr/bin/flock -x -w 600 "$CANDADO" bash -euo pipefail -c '
+    ANTES=$(git rev-parse HEAD)
+    git pull --ff-only
+
+    # Clases movidas o borradas en src/: el classmap optimizado seguiría apuntando a los archivos
+    # viejos (el include fallido del 19/08/2026). Sólo entonces, que cuesta.
+    if git diff --name-status "$ANTES" HEAD -- src | grep -qE "^(D|R)"; then
+        echo "[desplegar] Clases movidas o borradas: regenerando el autoload"
+        composer dump-autoload --no-dev --optimize --quiet
+        sudo supervisorctl restart "messenger-worker:*"
+    fi
+
+    # Dentro del candado también: una tarea que arrancara entre el pull y la migración vería el
+    # código nuevo contra el esquema viejo — la guía del huésped dio 500 a todos así (13/08/2026).
+    sudo -u www-data php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration --env=prod
+
+    git log --oneline -1
+'
