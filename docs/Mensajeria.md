@@ -39,6 +39,24 @@ mensaje es contarlo en el sitio de otro.
 Sin él, las dos pruebas del entrante pasarían igual con un despachador que no marcara nada: dirían
 «no se tocó» cuando lo cierto sería «no se evaluó».
 
+### 🔥 …y desde ese arreglo el acuse de WhatsApp le DEVOLVÍA al huésped su mensaje (03/10/2026)
+
+`WhatsappMetaSendMappingStrategy` reconocía el recibo por tres cosas: endpoint
+`MARK_WHATSAPP_MESSAGE_READ`, mensaje entrante **y estado `queued`**. Ese `queued` se lo ponía el
+despachador al entrante, justo lo que el arreglo de arriba dejó de hacer. Desde entonces el
+entrante llegaba `read`, no casaba, y caía al envío normal: **125 mensajes devueltos a sus autores**
+entre el 11/09 y el 03/10 —traducidos al idioma del huésped, o el vídeo otra vez— cada vez que el
+equipo abría su chat, y ningún acuse de verdad. Beds24 no tenía el problema: su estrategia mira
+sólo la dirección.
+
+Ahora un entrante **sólo puede salir como acuse**: si llega en otra cola, o sin wamid, se aparta
+con su motivo y no sale nada. El estado del mensaje ya no entra en la decisión. Lo fijan
+`WhatsappMetaSendMappingStrategyTest::testDeUnEntranteLeidoSaleSuAcuseYNoSuTexto` y
+`testUnEntranteEnUnaColaDeEnvioNoSaleNunca`.
+
+De paso: `sent_at` se escribía con la hora de Lima y una `Z` de UTC, cinco horas por detrás del
+`delivered_at` de Meta. Ahora `gmdate()` en los cuatro sitios.
+
 ## El aviso de envío fallido cubre ahora al AGENTE (10/09/2026)
 
 `AvisoEnvioFallidoListener` exigía `SENDER_HOST`, con un motivo escrito y bueno: avisar de cada

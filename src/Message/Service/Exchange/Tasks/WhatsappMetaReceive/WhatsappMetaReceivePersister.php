@@ -422,7 +422,7 @@ readonly class WhatsappMetaReceivePersister
 
         $isoDate = $timestamp
             ? new DateTimeImmutable("@$timestamp")->format('Y-m-d\TH:i:s\Z')
-            : new DateTimeImmutable()->format('Y-m-d\TH:i:s\Z');
+            : gmdate('Y-m-d\TH:i:s\Z');
 
         $metaDataToMerge = [];
         $newStatus = null;

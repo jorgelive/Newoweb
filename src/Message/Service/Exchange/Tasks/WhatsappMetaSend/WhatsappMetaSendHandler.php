@@ -44,7 +44,9 @@ final readonly class WhatsappMetaSendHandler implements ExchangeHandlerInterface
 
         if ($msg) {
             // 1. Operación Atómica PRIMERO
-            $isoDate = new DateTimeImmutable()->format('Y-m-d\TH:i:s\Z');
+            // `gmdate()`: la `Z` dice UTC. Con `new DateTimeImmutable()` salía la hora de Lima con
+            // esa `Z`, cinco horas por detrás del `delivered_at` que pone Meta.
+            $isoDate = gmdate('Y-m-d\TH:i:s\Z');
 
             $this->merger->merge(
                 $msg,

@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Message\Service\Exchange\Tasks\WhatsappMetaSend;
 
+use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Entity\MetaConfig;
+use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\MappingResult;
+use App\Message\Entity\Message;
+use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\Exchange\Tasks\WhatsappMetaSend\WhatsappMetaSendMappingStrategy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -18,6 +22,26 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(WhatsappMetaSendMappingStrategy::class)]
 final class WhatsappMetaSendMappingStrategyTest extends TestCase
 {
+    /**
+     * El entrante ya está `read` cuando se encola su acuse: lo marca así `MarkConversationReadController`
+     * y el despacho no le escribe estado. Con la condición vieja (`queued`) caía al envío y se le
+     * devolvía al huésped su propio mensaje: 125 entre el 11/09 y el 03/10/2026.
+     */
+    public function testDeUnEntranteLeidoSaleSuAcuseYNoSuTexto(): void
+    {
+        $mapeo = $this->estrategia()->map($this->lote('MARK_WHATSAPP_MESSAGE_READ', $this->entrante('wamid.X')));
+
+        self::assertSame([0 => ['messaging_product' => 'whatsapp', 'status' => 'read', 'message_id' => 'wamid.X']], $mapeo->payload);
+    }
+
+    public function testUnEntranteEnUnaColaDeEnvioNoSaleNunca(): void
+    {
+        $mapeo = $this->estrategia()->map($this->lote('SEND_WHATSAPP_MESSAGE', $this->entrante('wamid.X')));
+
+        self::assertSame([], $mapeo->payload);
+        self::assertCount(1, (array) $mapeo->metadata['saltados']);
+    }
+
     public function testUnRechazoDeMetaEsUnFalloConSuCodigo(): void
     {
         $resultados = $this->estrategia()->parseResponse(
@@ -144,6 +168,23 @@ final class WhatsappMetaSendMappingStrategyTest extends TestCase
         }
 
         return ['type' => $tipo, 'resolver_key' => $clave, 'button_text' => $traducciones];
+    }
+
+    private function entrante(string $wamid): Message
+    {
+        $mensaje = (new Message())->setDirection(Message::DIRECTION_INCOMING)->setContentLocal('A las 12 pm');
+        $mensaje->setStatus(Message::STATUS_READ);
+        $mensaje->setWhatsappMetaExternalId($wamid);
+
+        return $mensaje;
+    }
+
+    private function lote(string $accion, Message $mensaje): HomogeneousBatch
+    {
+        $config = (new MetaConfig())->setBaseUrl('https://graph.facebook.com/v22.0')->setCredentials(['phoneId' => '1']);
+        $endpoint = (new ExchangeEndpoint())->setAccion($accion)->setEndpoint('{phoneId}/messages')->setMetodo('POST');
+
+        return new HomogeneousBatch($config, $endpoint, [(new WhatsappMetaSendQueue())->setMessage($mensaje)]);
     }
 
     private function privado(string $metodo, mixed ...$argumentos): mixed

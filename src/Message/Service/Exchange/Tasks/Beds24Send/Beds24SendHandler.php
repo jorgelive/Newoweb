@@ -45,7 +45,7 @@ final readonly class Beds24SendHandler implements ExchangeHandlerInterface
 
         if ($msg) {
             // 1. Operación Atómica de JSON PRIMERO
-            $isoDate = new DateTimeImmutable()->format('Y-m-d\TH:i:s\Z');
+            $isoDate = gmdate('Y-m-d\TH:i:s\Z');
             $this->merger->merge(
                 $msg,
                 'beds24',

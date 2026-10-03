@@ -116,21 +116,32 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 }
 
                 // 🔥 ESCENARIO A: RECIBO DE LECTURA
-                if ($endpoint->getAccion() === 'MARK_WHATSAPP_MESSAGE_READ'
-                    && $msg->getDirection() === Message::DIRECTION_INCOMING
-                    && $msg->getStatus() === Message::STATUS_QUEUED
-                ) {
+                //
+                // ⚠️ Un mensaje ENTRANTE nunca se envía: es lo que escribió el huésped. Lo único
+                // que puede salir de él es su acuse. Antes el recibo se reconocía además por el
+                // estado `queued`, que el despacho le escribía al entrante; desde que dejó de
+                // escribírselo (10/09/2026, `MessageDispatcher::anotarDesenlace()`) el entrante
+                // llegaba aquí `read`, no casaba, y caía al ESCENARIO B: entre el 11/09 y el
+                // 03/10 se le devolvieron 125 mensajes a sus autores —traducidos, o el vídeo otra
+                // vez— cada vez que el equipo abría su chat.
+                if ($msg->getDirection() === Message::DIRECTION_INCOMING) {
                     $remoteIdToRead = $msg->getWhatsappMetaExternalId();
 
-                    if ($remoteIdToRead) {
-                        // Con la clave del LOTE, no `[]`: ver el aviso de abajo.
-                        $payload[$index] = [
-                            'messaging_product' => 'whatsapp',
-                            'status'            => 'read',
-                            'message_id'        => $remoteIdToRead,
-                        ];
-                        $correlation[$index] = (string) $item->getId();
+                    if ($endpoint->getAccion() !== 'MARK_WHATSAPP_MESSAGE_READ' || !$remoteIdToRead) {
+                        throw new RuntimeException(sprintf(
+                            'Mensaje entrante #%s en una cola de envío (%s): de un entrante sólo sale su acuse de lectura.',
+                            $msg->getId(),
+                            $endpoint->getAccion(),
+                        ));
                     }
+
+                    // Con la clave del LOTE, no `[]`: ver el aviso de abajo.
+                    $payload[$index] = [
+                        'messaging_product' => 'whatsapp',
+                        'status'            => 'read',
+                        'message_id'        => $remoteIdToRead,
+                    ];
+                    $correlation[$index] = (string) $item->getId();
 
                     continue;
                 }
