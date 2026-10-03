@@ -82,7 +82,17 @@ final readonly class PagoRecibido
     /** El recargo de la pasarela: total menos neto. Con recargo cero sale «USD 0.00», que es cierto. */
     public static function comision(FinEnlacePago $enlace): string
     {
-        return self::conMoneda($enlace, bcsub($enlace->getMontoTotal(), $enlace->getMontoNeto(), 2));
+        $total = $enlace->getMontoTotal();
+        $neto = $enlace->getMontoNeto();
+
+        // Las columnas son `decimal` y siempre traen dígitos, pero el tipo sólo dice `string` y
+        // `bcsub()` lanza con otra cosa. Se lanza con los dos valores: `confirmarPago()` lo deja en
+        // el log, y una comisión inventada sería una cifra plausible y falsa delante del huésped.
+        if (!is_numeric($total) || !is_numeric($neto)) {
+            throw new \LogicException(sprintf('Enlace %s con importes que no son números (total «%s», neto «%s»).', $enlace->getId(), $total, $neto));
+        }
+
+        return self::conMoneda($enlace, bcsub($total, $neto, 2));
     }
 
     private static function conMoneda(FinEnlacePago $enlace, string $monto): string
