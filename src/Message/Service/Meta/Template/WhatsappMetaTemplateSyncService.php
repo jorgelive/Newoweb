@@ -188,7 +188,11 @@ final readonly class WhatsappMetaTemplateSyncService
 
         $metaTmpl = $targetTemplate->getWhatsappMetaTmpl() ?? [];
 
-        $metaTmpl['is_active'] = true;
+        // ⚠️ Una ARCHIVADA no se enciende: sigue en Meta, pero aquí está retirada. Encenderla sin
+        // mirar la devolvía a circulación cada noche (04/10/2026).
+        if (!$targetTemplate->isArchivada()) {
+            $metaTmpl['is_active'] = true;
+        }
         // MARCADO CRÍTICO: Todo lo que viene de la API es oficial de Meta.
         $metaTmpl['is_official_meta'] = true;
         $metaTmpl['meta_template_name'] = $metaName;

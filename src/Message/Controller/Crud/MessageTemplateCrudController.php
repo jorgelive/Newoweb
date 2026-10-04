@@ -24,6 +24,13 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
+use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
@@ -56,6 +63,27 @@ class MessageTemplateCrudController extends BaseCrudController
     public static function getEntityFqcn(): string
     {
         return MessageTemplate::class;
+    }
+
+    /** El filtro de archivo. Sin aplicarlo, el listado enseña sólo las que están en circulación. */
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters->add(BooleanFilter::new('archivada', 'Archivada'));
+    }
+
+    /**
+     * Las archivadas fuera del listado por defecto: son generaciones viejas y plantillas retiradas
+     * que sólo estorban al buscar. Con el filtro «Archivada» se ven (sí o no).
+     */
+    public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
+    {
+        $qb = parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters);
+
+        if (!array_key_exists('archivada', $searchDto->getAppliedFilters() ?? [])) {
+            $qb->andWhere($qb->getRootAliases()[0] . '.archivada = false');
+        }
+
+        return $qb;
     }
 
     public function configureCrud(Crud $crud): Crud
@@ -219,6 +247,15 @@ class MessageTemplateCrudController extends BaseCrudController
         yield TextField::new('name', 'Nombre Comercial')
             ->setColumns(12)
             ->setHelp('Nombre descriptivo y amigable para el equipo.');
+
+        // Se ve en el formulario, pero se cambia con los botones «Archivar» y «Devolver a
+        // circulación»: archivar lleva una guarda (no si la usa una regla activa) que una casilla
+        // suelta se saltaría. Ver `ArchivadorDePlantillas`.
+        yield BooleanField::new('archivada', 'Archivada')
+            ->renderAsSwitch(false)
+            ->setFormTypeOption('disabled', true)
+            ->setHelp('Retirada: no se ofrece en ningún sitio aunque tenga canales. Se cambia con los botones <b>Archivar</b> / <b>Devolver a circulación</b>.')
+            ->setColumns(12);
 
         // Canales: en cuáles está redactada y en cuáles está encendida.
         //

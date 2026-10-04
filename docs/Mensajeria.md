@@ -9041,14 +9041,23 @@ tecleadas— junto a su sustituta, y «Guia de llegada», que era `recordatorio_
 canales ya apagados. El agente tenía el mismo agujero: `disponibleParaAgente()` sólo miraba que
 hubiera `agenteUso` escrito.
 
-**Archivar es no tener ningún canal encendido** (`MessageTemplate::estaEnCirculacion()`). No hay
-columna: una plantilla sin canal no puede enviarse, y una bandera aparte podría decir «activa» con
-todo apagado. Una archivada:
+**Archivar es marcarla `archivada` y apagar sus canales** (`MessageTemplate::estaEnCirculacion()`).
+
+⚠️ Hasta el 04/10/2026 era SÓLO apagar los canales —«una bandera aparte podría decir activa con todo
+apagado»— y falló al revés: `WhatsappMetaTemplateSyncService` enciende `is_active` en toda plantilla
+que Meta devuelve, así que una archivada que seguía en Meta **volvía a circular cada noche** (probado
+con `aviso_salida`: archivada, sincronizada, otra vez `true`). La marca no la toca la sincronización
+ni la casilla de un canal: sólo `ArchivadorDePlantillas`. En el panel se ve en el formulario
+(bloqueada), hay filtro «Archivada» y **el listado esconde las archivadas por defecto**
+(`createIndexQueryBuilder()`), que con generaciones viejas estorbaban al buscar.
+
+Una archivada:
 
 - no sale en el selector del chat: `PlantillasEnCirculacionProvider`, sin paginar;
 - no sale en el catálogo del agente, y si aun así acierta el código, la skill le dice que está
   archivada;
-- **sigue en el panel**, editable, y encender un canal la devuelve.
+- **sigue en el panel**, editable; vuelve con «Devolver a circulación» (encender un canal ya no
+  basta: la marca manda).
 
 Se archiva desde el panel con el botón **«Archivar»**, y vuelve con **«Devolver a circulación»**,
 que enciende sólo los canales **que tienen texto escrito** —encenderlos todos ofrecería la plantilla

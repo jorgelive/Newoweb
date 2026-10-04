@@ -176,6 +176,17 @@ class MessageTemplate
     #[Groups(['template:read'])]
     private bool $envioManual = true;
 
+    /**
+     * Retirada: no está en circulación aunque algún canal diga «activo».
+     *
+     * Archivar era sólo apagar los canales, y no aguantaba una noche: la sincronización con Meta
+     * pone `is_active` a `true` en toda plantilla que Meta devuelve, así que una archivada que
+     * siguiera en Meta volvía a ofrecerse (probado el 04/10/2026 con `aviso_salida`). La marca no
+     * la toca nadie más que `ArchivadorDePlantillas`: el botón del panel y `msg:plantilla:archivar`.
+     */
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $archivada = false;
+
     /** @var list<string>|null Códigos de canal: `booking`, `airbnb`, `directo`… */
     #[ORM\Column(type: 'json', nullable: true)]
     #[Assert\Type(type: 'array')]
@@ -251,6 +262,10 @@ class MessageTemplate
         return $this->id;
     }
 
+    public function isArchivada(): bool { return $this->archivada; }
+    /** Sólo `ArchivadorDePlantillas`: archivar lleva una guarda (reglas activas) que esto no ve. */
+    public function setArchivada(bool $archivada): self { $this->archivada = $archivada; return $this; }
+
     public function isEnvioManual(): bool { return $this->envioManual; }
     public function setEnvioManual(bool $envioManual): self { $this->envioManual = $envioManual; return $this; }
 
@@ -313,7 +328,8 @@ class MessageTemplate
 
     public function estaEnCirculacion(): bool
     {
-        return $this->isBeds24Active() || $this->isWhatsappMetaActive() || $this->isEmailActive();
+        return !$this->archivada
+            && ($this->isBeds24Active() || $this->isWhatsappMetaActive() || $this->isEmailActive());
     }
 
     /**

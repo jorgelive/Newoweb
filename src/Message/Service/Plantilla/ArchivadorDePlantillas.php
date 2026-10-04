@@ -13,10 +13,14 @@ use RuntimeException;
  * Archivar y devolver a circulación una plantilla: el interruptor de sus canales.
  *
  * ── Qué es archivar ─────────────────────────────────────────────────────────
- * Apagar todos sus canales, y nada más ({@see MessageTemplate::estaEnCirculacion()}). No hay
- * columna «archivada»: una plantilla sin canal no puede enviarse, y una bandera aparte podría
- * decir «activa» con todo apagado. Archivada, deja de ofrecerse en el selector del chat y en el
- * catálogo del agente; **sigue en el panel, editable, y con su texto intacto**.
+ * Marcarla `archivada` y apagar sus canales ({@see MessageTemplate::estaEnCirculacion()}).
+ * Archivada, deja de ofrecerse en el selector del chat y en el catálogo del agente; **sigue en el
+ * panel, editable, y con su texto intacto**.
+ *
+ * ⚠️ Hasta el 04/10/2026 era SÓLO apagar los canales, «para que una bandera aparte no pudiera
+ * decir activa con todo apagado». Falló al revés: la sincronización con Meta enciende
+ * `is_active` en toda plantilla que Meta devuelve, y una archivada que seguía en Meta volvía a
+ * circular esa noche. La marca es lo que no toca nadie más.
  *
  * **No se borra nunca**: los mensajes ya enviados la referencian —`welcome_booking` tiene 46—, y
  * borrarla dejaría el historial contando una versión incompleta.
@@ -51,6 +55,7 @@ final readonly class ArchivadorDePlantillas
         }
 
         $plantilla
+            ->setArchivada(true)
             ->setBeds24Tmpl(['is_active' => false] + ($plantilla->getBeds24Tmpl() ?? []))
             ->setWhatsappMetaTmpl(['is_active' => false] + ($plantilla->getWhatsappMetaTmpl() ?? []))
             ->setEmailTmpl(['is_active' => false] + ($plantilla->getEmailTmpl() ?? []));
@@ -70,6 +75,7 @@ final readonly class ArchivadorDePlantillas
      */
     public function devolverACirculacion(MessageTemplate $plantilla): array
     {
+        $plantilla->setArchivada(false);
         $encendidos = [];
 
         if ($this->tieneCuerpo($plantilla->getBeds24Tmpl())) {
