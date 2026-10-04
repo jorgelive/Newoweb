@@ -29,6 +29,16 @@ mano y que el agente lo leyera.
 | **Acompañante** | `POST /conversations/{id}/asuntos` → `AperturaDeHilo::enlazarAcompanante()` → `MessageConversationFactory::enlazarAcompanante()` |
 | **Es el titular** | La misma persona con otro número: se UNE con su hilo (la fusión de siempre, con previa) |
 
+**El agente pregunta; el panel ordena (04/10/2026).** Carla abrió con «les escribo sobre mi
+reserva» y el agente, con el hilo `manual`, la trató de prospecto. La línea del prospecto
+(`PerfilConversacion::enUnaLinea()`) dice ahora lo que de verdad se sabe —este chat no tiene
+reserva— y, en positivo, **SI DICE QUE YA TIENE UNA RESERVA: pregúntale a nombre de quién está**
+(el nombre de quien reservó, no la dirección: Carla contestó con la calle, y en Saphy 877 hay
+varias casitas). El código no se pide: casi nadie lo sabe (Jorge). Lo que conteste lo usa
+`PmsCandidatosDeAsunto`: la reserva cuyo titular **nombra en el chat** sube primera, con motivo «la
+nombra en el chat», por delante del prefijo. No enlaza sola —un nombre no prueba quién es— ni
+avisa a nadie: la ve quien abre el chat.
+
 ⚠️ **El chat no sabe qué es una reserva.** Ni la pantalla ni el endpoint nombran `pms_reserva`:
 pintan la etiqueta del dominio y devuelven el par `contextType`/`contextId`. Travel aparece ahí
 implementando `CandidatosDeAsuntoInterface`, sin tocar el chat.

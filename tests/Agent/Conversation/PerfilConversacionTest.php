@@ -75,6 +75,8 @@ final class PerfilConversacionTest extends TestCase
         self::assertSame('', PerfilConversacion::Huesped->enUnaLinea());
         self::assertStringContainsString('SIN', PerfilConversacion::Interesado->enUnaLinea());
         self::assertStringContainsString('reservado nada', PerfilConversacion::Prospecto->enUnaLinea());
+        // Y si dice que sí la tiene, se le pregunta a nombre de quién (Carla, 12/09/2026).
+        self::assertStringContainsString('a nombre de quién', PerfilConversacion::Prospecto->enUnaLinea());
     }
 
     /**

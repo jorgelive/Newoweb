@@ -138,8 +138,18 @@ enum PerfilConversacion: string
     {
         return match ($this) {
             self::Huesped => '',
-            self::Prospecto => 'OJO: quien escribe NO es huésped todavía —pregunta precios y no '
-                . 'ha reservado nada—. No le hables de «tu reserva» ni de «tu estancia».',
+            // ⚠️ «No es huésped» era falso a veces: Carla escribió «les escribo sobre mi reserva»
+            // desde su número —acompañante de Bruna (12/09/2026)— y el agente la atendió como a una
+            // desconocida y prometió coordinar tres veces sin saber de qué estancia hablaba. Lo que
+            // de verdad se sabe es que este chat no tiene reserva; por eso la condición, en positivo.
+            // Lo que conteste lo pinta el panel en «¿De qué asunto es?» (la reserva que nombre, primero).
+            self::Prospecto => 'OJO: este chat NO tiene ninguna reserva asociada: suele ser alguien '
+                . 'que pregunta precios y no ha reservado nada, y entonces no le hables de «tu '
+                . 'reserva» ni de «tu estancia». SI DICE QUE YA TIENE UNA RESERVA CON NOSOTROS (o '
+                . 'habla de su estancia, su alojamiento o su llegada): pregúntale a nombre de quién '
+                . 'está la reserva —el nombre de la persona que reservó, no la dirección—. Mientras '
+                . 'tanto contesta lo general; lo que dependa de su estancia (servicios, horarios de su '
+                . 'alojamiento) dile que se lo confirmas en cuanto sepamos cuál es.',
             self::Interesado => 'OJO: quien escribe TIENE una solicitud a su nombre pero SIN '
                 . 'CONFIRMAR: está decidiendo si reserva. No le hables de «tu reserva» ni de '
                 . '«tu estancia» como si ya fuera suya, y no le des nada que dependa de estar '

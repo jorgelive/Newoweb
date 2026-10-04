@@ -6,6 +6,7 @@ namespace App\Pms\Service\Message;
 
 use App\Message\Contract\CandidatosDeAsuntoInterface;
 use App\Message\Dto\CandidatoDeAsunto;
+use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Pms\Entity\PmsConversacionEnlace;
@@ -13,6 +14,7 @@ use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Service\Reserva\BuscadorDeEstancias;
 use DateTimeImmutable;
+use Symfony\Component\String\UnicodeString;
 
 /**
  * Las reservas que podrían ser las de un hilo.
@@ -61,24 +63,65 @@ final readonly class PmsCandidatosDeAsunto implements CandidatosDeAsuntoInterfac
         }
 
         $telefono = preg_replace('/\D/', '', (string) $hilo->getGuestPhone()) ?? '';
-        $candidatos = [];
+        $chat = $busqueda === '' ? self::normalizar($this->loQueHaEscrito($hilo)) : '';
+        $puntuados = [];
 
         foreach ($porReserva as $id => $tramos) {
             $reserva = $tramos[0]->getReserva();
-            $mismoPrefijo = $busqueda === '' && $this->prefijoComun($telefono, (string) $reserva?->getTelefono()) >= 4;
+            $motivo = match (true) {
+                $chat !== '' && self::laNombra($chat, $reserva?->getNombreCliente(), $reserva?->getApellidoCliente()) => 'la nombra en el chat',
+                $busqueda === '' && $this->prefijoComun($telefono, (string) $reserva?->getTelefono()) >= 4 => 'mismo prefijo',
+                default => null,
+            };
 
-            $candidatos[] = new CandidatoDeAsunto(
-                PmsConversacionEnlace::CONTEXT_TYPE,
-                $id,
-                $this->etiqueta($tramos),
-                $mismoPrefijo ? 'mismo prefijo' : null,
-            );
+            $puntuados[] = [
+                new CandidatoDeAsunto(PmsConversacionEnlace::CONTEXT_TYPE, $id, $this->etiqueta($tramos), $motivo),
+                match ($motivo) { 'la nombra en el chat' => 2, 'mismo prefijo' => 1, default => 0 },
+            ];
         }
 
-        // Los que tienen motivo, primero; el resto conserva el orden del buscador.
-        usort($candidatos, static fn (CandidatoDeAsunto $a, CandidatoDeAsunto $b): int => ($b->motivo !== null) <=> ($a->motivo !== null));
+        // Lo que la persona dijo pesa más que el prefijo; a igualdad, el orden del buscador.
+        usort($puntuados, static fn (array $a, array $b): int => $b[1] <=> $a[1]);
 
-        return array_slice($candidatos, 0, self::LIMITE);
+        return array_slice(array_map(static fn (array $p): CandidatoDeAsunto => $p[0], $puntuados), 0, self::LIMITE);
+    }
+
+    /**
+     * ¿Aparece en lo que escribió el nombre o el apellido de quien reservó?
+     *
+     * Es la respuesta a la pregunta del agente —«¿a nombre de quién está la reserva?»—: si
+     * contesta «Bruna», la reserva de Bruna Coelho sube arriba. Palabra entera y sin acentos, y
+     * sólo palabras de 3 letras o más: «Ana» casa, una «de» del apellido no. No enlaza nada: un
+     * nombre no prueba quién es, lo decide una persona con un toque.
+     */
+    public static function laNombra(string $chatNormalizado, ?string $nombre, ?string $apellido): bool
+    {
+        foreach (preg_split('/\s+/', self::normalizar(trim($nombre . ' ' . $apellido)), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $palabra) {
+            if (mb_strlen($palabra) >= 3 && preg_match('/\b' . preg_quote($palabra, '/') . '\b/', $chatNormalizado) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Lo último que escribió quien está en este hilo: es ahí donde contesta de quién es la reserva. */
+    private function loQueHaEscrito(MessageConversation $hilo): string
+    {
+        $textos = [];
+
+        foreach ($hilo->getMessages() as $mensaje) {
+            if ($mensaje->getDirection() === Message::DIRECTION_INCOMING) {
+                $textos[] = $mensaje->getTextoEntrante() . ' ' . $mensaje->getContentLocal();
+            }
+        }
+
+        return implode(' ', array_slice($textos, -30));
+    }
+
+    public static function normalizar(string $texto): string
+    {
+        return trim((string) preg_replace('/\s+/', ' ', (new UnicodeString($texto))->ascii()->lower()->toString()));
     }
 
     /** @param non-empty-list<PmsEventoCalendario> $tramos */
