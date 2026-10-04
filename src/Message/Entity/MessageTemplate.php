@@ -163,6 +163,19 @@ class MessageTemplate
     #[Groups(['template:read'])]
     private bool $autoenvioHabilitada = false;
 
+    /**
+     * ¿La puede mandar una PERSONA desde los menús de plantillas (el de la reserva, el del chat)?
+     *
+     * Hay plantillas que sólo dispara el sistema —la respuesta a un botón de hora, el aviso de un
+     * mensaje en espera, la confirmación de un pago— y otras que quedaron de generaciones
+     * anteriores. Salían todas en el menú «Elegir plantilla» (Jorge, 04/10/2026: «yo no le voy a
+     * enviar Respuesta: necesita salir más tarde»). No afecta a ningún envío automático: sólo a
+     * lo que se ofrece a mano. Por defecto sí; las del sistema nacen con no.
+     */
+    #[ORM\Column(name: 'envio_manual', type: 'boolean', options: ['default' => true])]
+    #[Groups(['template:read'])]
+    private bool $envioManual = true;
+
     /** @var list<string>|null Códigos de canal: `booking`, `airbnb`, `directo`… */
     #[ORM\Column(type: 'json', nullable: true)]
     #[Assert\Type(type: 'array')]
@@ -237,6 +250,9 @@ class MessageTemplate
     {
         return $this->id;
     }
+
+    public function isEnvioManual(): bool { return $this->envioManual; }
+    public function setEnvioManual(bool $envioManual): self { $this->envioManual = $envioManual; return $this; }
 
     public function getAgenteUso(): ?string { return $this->agenteUso; }
     public function setAgenteUso(?string $agenteUso): self { $this->agenteUso = $agenteUso; return $this; }

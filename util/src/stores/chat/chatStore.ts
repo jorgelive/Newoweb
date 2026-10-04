@@ -392,7 +392,9 @@ export const useChatStore = defineStore('chatStore', () => {
         if (!currentConversation.value) return [];
         const chat = currentConversation.value;
         const origin = chat.contextOrigin || 'manual';
-        return templates.value.filter(t => (!t.contextType || t.contextType === chat.contextType) && (!t.allowedSources?.length || t.allowedSources.includes(origin)));
+        // `envioManual`: las que manda sólo el sistema (respuestas a botones, avisos) no se ofrecen
+        // para mandar a mano. Mismo criterio que `WhatsappPlantillasLista`.
+        return templates.value.filter(t => t.envioManual !== false && (!t.contextType || t.contextType === chat.contextType) && (!t.allowedSources?.length || t.allowedSources.includes(origin)));
     });
 
     /**

@@ -128,6 +128,8 @@ final class MessageCrearMensajePendienteCommand extends Command
             ->setContextType(null)
             ->setAllowedSources([])
             ->setAutoenvioHabilitada(false)
+            // La manda sólo el sistema: no se ofrece en los menús de plantillas.
+            ->setEnvioManual(false)
             ->setAgenteUso(self::AGENTE_USO)
             ->setBeds24Tmpl(['is_active' => false, 'body' => []])
             ->setWhatsappLinkTmpl(['disable_meta_buttons' => true, 'body' => $cuerpo])

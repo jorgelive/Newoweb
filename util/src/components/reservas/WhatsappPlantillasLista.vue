@@ -47,7 +47,7 @@ const reservasStore = useReservasStore();
 const cargando = ref(false);
 
 /**
- * Qué plantillas salen. Tres criterios, y hasta el 29/08/2026 sólo estaba el primero.
+ * Qué plantillas salen. Cuatro criterios, y hasta el 29/08/2026 sólo estaba el primero.
  *
  * 1. **Cuerpo de enlace.** Una plantilla de Beds24 o de la API de Meta no tiene
  *    `whatsappLinkTmpl` y aquí no significa nada — este menú abre wa.me, no encola un envío.
@@ -66,6 +66,8 @@ const plantillas = computed(() => {
 
     return (chatStore.templates as ApiTemplateWA[]).filter(t =>
         t.whatsappLinkContent
+        // 4. Las que manda sólo el sistema no se ofrecen a mano (`MessageTemplate::$envioManual`).
+        && t.envioManual !== false
         && (!t.contextType || t.contextType === 'pms_reserva')
         && (!origen || !t.allowedSources?.length || t.allowedSources.includes(origen))
     );

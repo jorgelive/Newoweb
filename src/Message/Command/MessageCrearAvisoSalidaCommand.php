@@ -337,6 +337,8 @@ final class MessageCrearAvisoSalidaCommand extends Command
             ->setContextType('pms_reserva')
             ->setAllowedSources([])
             ->setAutoenvioHabilitada(false)
+            // La manda sólo el botón del aviso: no se ofrece en los menús de plantillas.
+            ->setEnvioManual(false)
             ->setAgenteUso('Interna: la manda SOLA el botón «Salgo a las 10:00» del aviso de salida. No la envíes tú.')
             ->setBeds24Tmpl(['is_active' => false, 'body' => []])
             ->setWhatsappLinkTmpl(['disable_meta_buttons' => true, 'body' => $cuerpo])

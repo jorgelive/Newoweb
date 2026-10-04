@@ -32897,6 +32897,11 @@ export interface components {
              * @default false
              */
             autoenvioHabilitada: boolean;
+            /**
+             * @description ¿La puede mandar una PERSONA desde los menús de plantillas (el de la reserva, el del chat)?
+             * @default true
+             */
+            envioManual: boolean;
             /** @description Códigos de canal: `booking`, `airbnb`, `directo`… */
             allowedSources?: string[] | null;
             /** @description Identificadores de agencia mayorista. */
@@ -32948,6 +32953,11 @@ export interface components {
              * @default false
              */
             autoenvioHabilitada: boolean;
+            /**
+             * @description ¿La puede mandar una PERSONA desde los menús de plantillas (el de la reserva, el del chat)?
+             * @default true
+             */
+            envioManual: boolean;
             /** @description Códigos de canal: `booking`, `airbnb`, `directo`… */
             allowedSources?: string[] | null;
             /** @description Identificadores de agencia mayorista. */
@@ -32999,6 +33009,11 @@ export interface components {
              * @default false
              */
             autoenvioHabilitada: boolean;
+            /**
+             * @description ¿La puede mandar una PERSONA desde los menús de plantillas (el de la reserva, el del chat)?
+             * @default true
+             */
+            envioManual: boolean;
             /** @description Códigos de canal: `booking`, `airbnb`, `directo`… */
             allowedSources?: string[] | null;
             /** @description Identificadores de agencia mayorista. */
@@ -33050,6 +33065,11 @@ export interface components {
              * @default false
              */
             autoenvioHabilitada: boolean;
+            /**
+             * @description ¿La puede mandar una PERSONA desde los menús de plantillas (el de la reserva, el del chat)?
+             * @default true
+             */
+            envioManual: boolean;
             /** @description Códigos de canal: `booking`, `airbnb`, `directo`… */
             allowedSources?: string[] | null;
             /** @description Identificadores de agencia mayorista. */

@@ -143,6 +143,8 @@ final class MessageCrearPedirHoraCommand extends Command
             ->setContextType('pms_reserva')
             ->setAllowedSources([])
             ->setAutoenvioHabilitada(false)
+            // La manda sólo el sistema: no se ofrece en los menús de plantillas.
+            ->setEnvioManual(false)
             ->setAgenteUso('Interna: la manda SOLA un botón de hora (aviso de salida / guía de llegada). No la envíes tú.')
             ->setBeds24Tmpl(['is_active' => false, 'body' => []])
             ->setWhatsappLinkTmpl(['disable_meta_buttons' => true, 'body' => $cuerpo])

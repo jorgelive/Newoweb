@@ -11,6 +11,24 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 ---
 
 
+## Plantillas que se ofrecen a mano: `envio_manual` (04/10/2026)
+
+El menú «Elegir plantilla» de la reserva y el selector del chat ofrecían **toda** plantilla con
+cuerpo de WhatsApp, y ese cuerpo lo tienen también las que sólo dispara el sistema —las
+respuestas a los botones de hora, el aviso de mensaje en espera, la confirmación de pago— y las
+generaciones viejas sin regla. Jorge: «yo no le voy a enviar *Respuesta: necesita salir más
+tarde*».
+
+`MessageTemplate::$envioManual` («Se envía a mano», en el panel; sí por defecto) decide si se
+ofrece. Los comandos que crean plantillas del sistema la ponen en no, y
+`Version20261004150000` apagó las 14 que había (8 del sistema, 6 viejas). **No cambia ningún
+envío automático**: sólo lo que se ofrece a mano. Lo leen `WhatsappPlantillasLista` y
+`chatStore.validTemplates`.
+
+Las «con botones» sí se ofrecen: por el enlace de WhatsApp los botones no salen, pero su cuerpo
+de enlace no los menciona y acaba en pregunta abierta, así que se lee completo y el huésped
+contesta escribiendo.
+
 ## Acompañantes: varios hilos para la misma reserva (03/10/2026)
 
 Carla escribió «les escribo sobre mi reserva» desde su número, sin decir de quién (12/09). El hilo
