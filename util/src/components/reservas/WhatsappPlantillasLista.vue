@@ -88,6 +88,15 @@ const plantillas = computed(() => {
 /** templateId -> URL de WhatsApp ya resuelta. Vacío mientras carga o si falló. */
 const links = ref<Record<string, string>>({});
 
+/**
+ * Por qué ninguna fila tiene enlace, dicho DENTRO del menú.
+ *
+ * Sólo se emitía `error`, que el padre pinta como aviso flotante, y quedaba detrás del propio
+ * menú: con una reserva de Booking sin teléfono —desde finales de septiembre no lo mandan— se
+ * veían quince plantillas en gris sin una palabra (Soledad Armendáriz, 04/10/2026).
+ */
+const motivoSinEnlace = ref<string | null>(null);
+
 async function cargar(): Promise<void> {
     cargando.value = true;
     try {
@@ -106,9 +115,11 @@ async function cargar(): Promise<void> {
         });
         links.value = mapa;
 
+        motivoSinEnlace.value = null;
         if (plantillas.value.length && !Object.keys(mapa).length) {
             const primero = resueltos.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
-            emit('error', extractApiErrorMessage(primero?.reason, 'No se pudo generar el mensaje de WhatsApp.'));
+            motivoSinEnlace.value = extractApiErrorMessage(primero?.reason, 'No se pudo generar el mensaje de WhatsApp.');
+            emit('error', motivoSinEnlace.value);
         }
     } catch {
         emit('error', 'No se pudieron cargar las plantillas de WhatsApp.');
@@ -129,6 +140,10 @@ onMounted(cargar);
 
     <p v-else-if="!plantillas.length" class="px-4 py-2.5 text-xs font-bold text-slate-400">
         No hay plantillas de WhatsApp configuradas.
+    </p>
+
+    <p v-else-if="motivoSinEnlace" class="mx-3 my-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-800 leading-snug">
+        <i class="fas fa-circle-exclamation mr-1"></i>{{ motivoSinEnlace }}
     </p>
 
     <!-- <a> real con el enlace ya resuelto: el toque del usuario navega sin window.open(),

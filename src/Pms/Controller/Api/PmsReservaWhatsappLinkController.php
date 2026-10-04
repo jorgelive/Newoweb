@@ -85,7 +85,11 @@ final class PmsReservaWhatsappLinkController extends AbstractController
 
         $telefonoLimpio = preg_replace('/[^0-9]/', '', $this->telefonos->para($reserva) ?? '');
         if (empty($telefonoLimpio)) {
-            throw new UnprocessableEntityHttpException('Esta reserva no tiene un número de teléfono válido.');
+            // Lo lee quien abre el menú de plantillas: que diga qué hacer, no sólo qué falta. Booking
+            // dejó de mandar el teléfono a finales de septiembre y esto pasa a diario.
+            throw new UnprocessableEntityHttpException(
+                'Esta reserva no tiene teléfono. Añádelo en la ficha de la reserva; si el huésped entra a su página, allí se le pide su WhatsApp.'
+            );
         }
 
         return new JsonResponse([
