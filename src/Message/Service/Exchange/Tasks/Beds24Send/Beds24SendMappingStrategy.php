@@ -89,7 +89,7 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             $idiomaEntity = $conversation->getIdioma();
             $internalLang = strtolower((string) $idiomaEntity->getId());
             // NUEVO: Bifurcación de idiomas. El texto libre usa $internalLang, pero las plantillas usan $templateLang.
-            $templateLang = ($idiomaEntity->getPrioridad() > 0) ? $internalLang : 'en';
+            $templateLang = $idiomaEntity->idiomaDePlantilla();
 
             // 1. EXTRACCIÓN DE CONTENIDO Y PLANTILLA
             $content = '';

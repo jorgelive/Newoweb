@@ -252,6 +252,17 @@ readonly class Beds24ReceivePersister
                 $message->setDirection(Message::DIRECTION_OUTGOING);
                 $message->setStatus(Message::STATUS_SENT);
                 $message->setLanguageCode($currentConversationLang);
+                // Lo escribió alguien del alojamiento FUERA del sistema —la app o la extranet de la
+                // plataforma—: se deja dicho dónde con el nombre del canal de la reserva, para que
+                // el chat y el agente no tengan que traducir `booking` a nada. Ver
+                // `Message::getAutorDelMensaje()`.
+                // Una reserva DIRECTA no tiene plataforma: se escribió en el propio Beds24, y eso ya lo
+                // dice el canal del mensaje. «Escrito en Directo» no significa nada.
+                $canalDeLaReserva = $reserva->getChannel();
+                $donde = $canalDeLaReserva !== null && !$canalDeLaReserva->getEsDirecto() ? $canalDeLaReserva->getNombre() : null;
+                if ($donde !== null && $donde !== '') {
+                    $message->addMetadata('escrito_en', $donde);
+                }
             }
 
             // 🔥 **El `time` de un mensaje SÍ viene en UTC, y lo dice con una `Z`.** (10/09/2026)

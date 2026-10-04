@@ -154,6 +154,7 @@ final class OrdenDeAsuntosTest extends TestCase
             public function correoEsExclusivo(): bool { return false; }
             public function esTitular(): bool { return true; }
             public function marcarTitular(bool $esTitular): self { return $this; }
+            public function canalesDelAsunto(): array { return []; }
             public function canalesPosibles(): array { return []; }
             public function comoFrente(): Frente { return new Frente('prueba', MomentoDeFrente::Venta, $this->etiqueta); }
         };

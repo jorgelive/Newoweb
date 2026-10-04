@@ -197,6 +197,12 @@ class CotizacionConversacionEnlace implements ConversacionEnlaceInterface
         return ['whatsapp_meta', 'email'];
     }
 
+    /** Un expediente no tiene chat propio: sus canales son los de la persona. */
+    public function canalesDelAsunto(): array
+    {
+        return [];
+    }
+
     public function esTitular(): bool { return $this->esTitular; }
     public function setEsTitular(bool $v): self { $this->esTitular = $v; return $this; }
 

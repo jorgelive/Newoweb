@@ -390,6 +390,16 @@ readonly class MessageDispatcher
             $message->getAsuntoId(),
         );
 
+        // Lo del titular fuera, con o sin acotar: un mensaje a un acompañante no sale por el chat
+        // de la plataforma del titular. Ver `EnlacesDeConversacion::canalesVetados()`.
+        $vetados = $this->enlaces->canalesVetados($conversacion, $message->getAsuntoType(), $message->getAsuntoId());
+        if ($vetados !== []) {
+            $canales = array_values(array_filter(
+                $canales,
+                static fn (MessageChannel $c): bool => !in_array($c->getId(), $vetados, true)
+            ));
+        }
+
         // Sin acotar, o un hilo sin ningún asunto colgado: no se toca nada.
         if ($posibles === []) {
             return $canales;

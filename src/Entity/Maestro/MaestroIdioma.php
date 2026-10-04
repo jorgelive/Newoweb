@@ -186,6 +186,19 @@ class MaestroIdioma
      *
      * @return int El valor numérico de la prioridad (valores mayores implican más prioridad).
      */
+    /**
+     * En qué idioma sale una PLANTILLA para quien habla este: el suyo si es de los que traducimos
+     * (prioridad > 0), y si no inglés.
+     *
+     * Estaba copiada en siete sitios —las tres estrategias de envío, el aviso en espera, la
+     * confirmación de pago y dos controladores del PMS— y cada copia era una regla que podía
+     * cambiar sola. Una frase compuesta en un idioma y una plantilla en otro salen mezcladas.
+     */
+    public function idiomaDePlantilla(): string
+    {
+        return $this->getPrioridad() > 0 ? strtolower((string) $this->getId()) : 'en';
+    }
+
     public function getPrioridad(): int
     {
         return $this->prioridad;

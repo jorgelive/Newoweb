@@ -65,7 +65,7 @@ export interface CanalDisponible {
     id: string;
     nombre: string;
     disponible: boolean;
-    motivo: 'no_existe_para_el_asunto' | 'sin_datos_o_vetado' | null;
+    motivo: 'no_existe_para_el_asunto' | 'sin_datos_o_vetado' | 'es_del_titular' | null;
 }
 
 type BaseApiConversation = components['schemas']['Conversation-conversation.read'];

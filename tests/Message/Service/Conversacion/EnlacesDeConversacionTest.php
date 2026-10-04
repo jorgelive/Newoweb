@@ -270,6 +270,7 @@ final class EnlacesDeConversacionTest extends TestCase
             public function correoEsExclusivo(): bool { return false; }
             public function esTitular(): bool { return $this->titular; }
             public function marcarTitular(bool $esTitular): self { $this->titular = $esTitular; return $this; }
+            public function canalesDelAsunto(): array { return []; }
             public function canalesPosibles(): array { return $this->canales; }
             public function getVinculo(): VinculoComercial { return VinculoComercial::Ninguno; }
             public function getMomento(): MomentoDeFrente { return MomentoDeFrente::Venta; }

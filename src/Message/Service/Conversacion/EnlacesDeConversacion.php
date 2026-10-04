@@ -115,6 +115,42 @@ final readonly class EnlacesDeConversacion
         return array_keys($union);
     }
 
+    /**
+     * Los canales que este hilo NO puede usar porque son del titular del asunto.
+     *
+     * Con asunto, los de ese asunto si este hilo es su acompañante. Sin asunto, sólo si TODO lo
+     * que cuelga del hilo es de acompañante: con un asunto titular al lado —Carla con una reserva
+     * suya en Booking—, ese canal sí es suyo y no se le quita a ciegas.
+     *
+     * @return list<string>
+     */
+    public function canalesVetados(
+        MessageConversation $conversacion,
+        ?string $asuntoType = null,
+        ?string $asuntoId = null,
+    ): array {
+        $vetados = [];
+
+        foreach ($this->de($conversacion) as $enlace) {
+            $esDelAsunto = $asuntoType !== null && $asuntoId !== null
+                && $enlace->getContextType() === $asuntoType && $enlace->getContextId() === $asuntoId;
+
+            if ($asuntoType !== null && $asuntoId !== null && !$esDelAsunto) {
+                continue;
+            }
+
+            if ($enlace->esTitular()) {
+                return [];
+            }
+
+            foreach ($enlace->canalesDelAsunto() as $canal) {
+                $vetados[$canal] = true;
+            }
+        }
+
+        return array_keys($vetados);
+    }
+
     /** El enlace de UN asunto en UN hilo, titular o no, de quien lo reconozca. */
     public function enlaceDe(MessageConversation $hilo, string $contextType, string $contextId): ?ConversacionEnlaceInterface
     {

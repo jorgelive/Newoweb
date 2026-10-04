@@ -183,6 +183,21 @@ use Symfony\Component\Uid\Uuid;
         //
         // Es la decisión de a cuál de los dos hilos se le programan los envíos cuando una
         // reserva la atienden dos personas desde números distintos.
+        // GET: los asuntos que podrían ser los de este hilo, de todos los dominios. Lo pide el
+        // chat para «¿De qué asunto es esta persona?»; cada dominio propone los suyos.
+        new Get(
+            uriTemplate: '/conversations/{id}/asuntos/candidatos',
+            controller: AsuntosDeConversacionController::class . '::candidatos',
+            openapi: new Operation(
+                summary: 'Asuntos candidatos para este hilo',
+                description: 'Los que cada dominio propone —sin búsqueda, los de estos días y primero los más probables; con `q`, lo que case—. Para enlazarlos como acompañante o unir con el titular.'
+            ),
+            security: "is_granted('" . Roles::MENSAJES_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar la conversación.',
+            deserialize: false,
+            output: false
+        ),
+
         // POST: cuelga un asunto de este hilo como ACOMPAÑANTE (la persona que escribe desde su
         // número por la reserva de otro). Sin agenda y sin las identidades del asunto.
         new Post(

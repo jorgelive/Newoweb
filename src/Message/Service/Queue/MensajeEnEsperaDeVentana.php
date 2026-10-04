@@ -396,9 +396,7 @@ final readonly class MensajeEnEsperaDeVentana
      */
     private function idiomaDePlantilla(MessageConversation $hilo): string
     {
-        $idioma = $hilo->getIdioma();
-
-        return $idioma->getPrioridad() > 0 ? strtolower((string) $idioma->getId()) : 'en';
+        return $hilo->getIdioma()->idiomaDePlantilla();
     }
 
     /**

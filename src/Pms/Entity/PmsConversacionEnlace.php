@@ -530,8 +530,7 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
     }
 
     /**
-     * Titular, sin acotar: una reserva puede alcanzarse por los tres canales. Acompañante, sólo
-     * por los suyos (ver dentro).
+     * Sin acotar: una reserva puede alcanzarse por los tres canales.
      *
      * Cuál sirve para UNA reserva concreta es otra pregunta —depende de que tenga
      * `beds24_book_id` y de que no sea directa— y la contesta `Beds24SendEnqueuer` con los
@@ -542,11 +541,13 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
      */
     public function canalesPosibles(): array
     {
-        // ⚠️ Un ACOMPAÑANTE no se alcanza por Beds24: ese chat es el de la OTA, o sea el del
-        // TITULAR. Con la cabecera de su hilo apuntando a la reserva, un mensaje del equipo a
-        // Carla salía por el Beds24 de la reserva y aterrizaba en la bandeja de Booking de Bruna.
-        // Lo suyo es su número y su correo.
-        return $this->esTitular ? [] : ['whatsapp_meta', 'email'];
+        return [];
+    }
+
+    /** El chat de la OTA, en Beds24, es de la reserva: lo usa sólo su titular. Ver el contrato. */
+    public function canalesDelAsunto(): array
+    {
+        return ['beds24'];
     }
 
     public function esTitular(): bool { return $this->esTitular; }

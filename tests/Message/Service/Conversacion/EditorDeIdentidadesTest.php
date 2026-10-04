@@ -248,6 +248,7 @@ final class EditorDeIdentidadesTest extends TestCase
                 public function correoEsExclusivo(): bool { return $this->exclusivo; }
                 public function esTitular(): bool { return true; }
                 public function marcarTitular(bool $v): self { return $this; }
+                public function canalesDelAsunto(): array { return []; }
                 public function canalesPosibles(): array { return []; }
                 public function comoFrente(): Frente { return new Frente('prueba', MomentoDeFrente::Venta, 'x'); }
             },

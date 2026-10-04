@@ -6,7 +6,6 @@ namespace App\Pms\Service\Message;
 
 use App\Finanzas\Entity\FinEnlacePago;
 use App\Message\Entity\Message;
-use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageTemplate;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Pms\Entity\PmsConversacionEnlace;
@@ -74,7 +73,7 @@ final readonly class PagoRecibido
         $mensaje->setStatus(Message::STATUS_PENDING);
         $mensaje->setTemplate($plantilla);
         $mensaje->setLanguageCode($hilo->getIdioma()->getId() ?? 'es');
-        $mensaje->setVariablesPlantilla(['detalle_pago' => self::detalle($enlace, self::idiomaDePlantilla($hilo))]);
+        $mensaje->setVariablesPlantilla(['detalle_pago' => self::detalle($enlace, $hilo->getIdioma()->idiomaDePlantilla())]);
 
         $hilo->addMessage($mensaje);
         $this->em->persist($mensaje);
@@ -109,19 +108,6 @@ final readonly class PagoRecibido
         }
 
         return sprintf(self::COMISION[$idioma] ?? self::COMISION['en'], $abonado, self::conMoneda($enlace, $comision));
-    }
-
-    /**
-     * El idioma en que saldrá la plantilla: el del hilo si es de los que traducimos, y si no
-     * inglés. ⚠️ Espejo de la regla de `WhatsappMetaSendMappingStrategy` y
-     * `Beds24SendMappingStrategy` (`$templateLang`): si allí cambia, aquí también, o la frase saldría
-     * en un idioma distinto del resto del mensaje.
-     */
-    private static function idiomaDePlantilla(MessageConversation $hilo): string
-    {
-        $idioma = $hilo->getIdioma();
-
-        return $idioma->getPrioridad() > 0 ? strtolower((string) $idioma->getId()) : 'en';
     }
 
     private static function conMoneda(FinEnlacePago $enlace, string $monto): string

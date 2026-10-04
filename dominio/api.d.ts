@@ -212,6 +212,26 @@ export interface paths {
         patch: operations["api_messageconversations_idasuntos_patch"];
         trace?: never;
     };
+    "/platform/message/conversations/{id}/asuntos/candidatos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Asuntos candidatos para este hilo
+         * @description Los que cada dominio propone —sin búsqueda, los de estos días y primero los más probables; con `q`, lo que case—. Para enlazarlos como acompañante o unir con el titular.
+         */
+        get: operations["api_messageconversations_idasuntoscandidatos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/message/conversations/{id}/canales": {
         parameters: {
             query?: never;
@@ -19184,7 +19204,7 @@ export interface components {
             /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
             /**
-             * @description Obtiene el nivel de prioridad del idioma.
+             * @description Establece el nivel de prioridad del idioma.
              * @default 0
              */
             prioridad: number;
@@ -19209,7 +19229,7 @@ export interface components {
             /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
             /**
-             * @description Obtiene el nivel de prioridad del idioma.
+             * @description Establece el nivel de prioridad del idioma.
              * @default 0
              */
             prioridad: number;
@@ -19234,7 +19254,7 @@ export interface components {
             /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
             /**
-             * @description Obtiene el nivel de prioridad del idioma.
+             * @description Establece el nivel de prioridad del idioma.
              * @default 0
              */
             prioridad: number;
@@ -19259,7 +19279,7 @@ export interface components {
             /** @description Obtiene la bandera o emoji representativo del idioma. */
             bandera?: string | null;
             /**
-             * @description Obtiene el nivel de prioridad del idioma.
+             * @description Establece el nivel de prioridad del idioma.
              * @default 0
              */
             prioridad: number;
@@ -20254,10 +20274,7 @@ export interface components {
             readonly metadata?: {
                 [key: string]: string | null;
             };
-            /**
-             * @description Quién habla en un saliente, en palabras: lo que pinta el chat bajo la burbuja y lo que lee
-             *     el agente en su historial. `null` en lo que escribe el huésped, que ya se sabe quién es.
-             */
+            /** @description Lo que pinta el chat. La decisión se toma con {@see self::getAutorDelMensaje()}, no con esto. */
             readonly autorEtiqueta?: string | null;
         };
         /**
@@ -20350,10 +20367,7 @@ export interface components {
             readonly metadata?: {
                 [key: string]: string | null;
             };
-            /**
-             * @description Quién habla en un saliente, en palabras: lo que pinta el chat bajo la burbuja y lo que lee
-             *     el agente en su historial. `null` en lo que escribe el huésped, que ya se sabe quién es.
-             */
+            /** @description Lo que pinta el chat. La decisión se toma con {@see self::getAutorDelMensaje()}, no con esto. */
             readonly autorEtiqueta?: string | null;
         };
         /**
@@ -20405,10 +20419,7 @@ export interface components {
             readonly metadata?: {
                 [key: string]: string | null;
             };
-            /**
-             * @description Quién habla en un saliente, en palabras: lo que pinta el chat bajo la burbuja y lo que lee
-             *     el agente en su historial. `null` en lo que escribe el huésped, que ya se sabe quién es.
-             */
+            /** @description Lo que pinta el chat. La decisión se toma con {@see self::getAutorDelMensaje()}, no con esto. */
             readonly autorEtiqueta?: string | null;
         };
         /**
@@ -20460,10 +20471,7 @@ export interface components {
             readonly metadata?: {
                 [key: string]: string | null;
             };
-            /**
-             * @description Quién habla en un saliente, en palabras: lo que pinta el chat bajo la burbuja y lo que lee
-             *     el agente en su historial. `null` en lo que escribe el huésped, que ya se sabe quién es.
-             */
+            /** @description Lo que pinta el chat. La decisión se toma con {@see self::getAutorDelMensaje()}, no con esto. */
             readonly autorEtiqueta?: string | null;
         };
         "MessageAttachment-message.read": {
@@ -35995,6 +36003,49 @@ export interface operations {
                     "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
                     "application/problem+json": components["schemas"]["ConstraintViolation"];
                     "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_messageconversations_idasuntoscandidatos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Conversation identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversation resource */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };

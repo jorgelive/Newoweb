@@ -160,6 +160,7 @@ final class ContactoDelAsuntoTest extends TestCase
                     public function correoEsExclusivo(): bool { return false; }
                     public function esTitular(): bool { return true; }
                     public function marcarTitular(bool $v): self { return $this; }
+                    public function canalesDelAsunto(): array { return []; }
                     public function canalesPosibles(): array { return []; }
                     public function comoFrente(): \App\Contract\Frente { return new \App\Contract\Frente('prueba', \App\Contract\MomentoDeFrente::Venta, 'x'); }
                 };

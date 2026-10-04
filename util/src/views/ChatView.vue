@@ -8,7 +8,7 @@ import ConversacionVistaPrevia from '@/components/common/ConversacionVistaPrevia
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import EditConversationModal from '@/components/chat/EditConversationModal.vue';
 import FusionSugeridaAviso from '@/components/chat/FusionSugeridaAviso.vue';
-import EnlazarAReserva from '@/components/chat/EnlazarAReserva.vue';
+import EnlazarAAsunto from '@/components/chat/EnlazarAAsunto.vue';
 import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useNoLeidosStore } from '@/stores/chat/noLeidosStore';
@@ -454,10 +454,10 @@ const alDescartarFusion = async (): Promise<void> => {
 };
 
 // ============================================================================
-// ¿DE QUÉ RESERVA ES? (EnlazarAReserva)
+// ¿DE QUÉ ASUNTO ES? (EnlazarAAsunto)
 //
 // Abierto solo en un hilo «manual» —alguien escribió desde un número que no casa con nada—, y a
-// demanda desde la cabecera en cualquier otro, para colgarle otra reserva. Se cierra al cambiar
+// demanda desde la cabecera en cualquier otro, para colgarle otro asunto. Se cierra al cambiar
 // de conversación: la pregunta es de ESTE hilo.
 // ============================================================================
 const enlazarAbierto = ref(false);
@@ -466,7 +466,7 @@ watch(() => store.currentConversation?.id, () => { enlazarAbierto.value = false;
 const mostrarEnlazar = computed((): boolean =>
   enlazarAbierto.value || store.currentConversation?.contextType === 'manual');
 
-const alEnlazarReserva = async (): Promise<void> => {
+const alEnlazarAsunto = async (): Promise<void> => {
   enlazarAbierto.value = false;
   await store.fetchConversations();
 };
@@ -741,6 +741,8 @@ const canalHabilitado = (id: string): boolean =>
 const motivoCanal = (id: string): string | null => {
   const canal = store.canalesDelChat.find(c => c.id === id);
   if (!canal || canal.disponible) return null;
+
+  if (canal.motivo === 'es_del_titular') return 'Ese chat es del titular de la reserva: a esta persona se le escribe por los suyos.';
 
   return canal.motivo === 'no_existe_para_el_asunto'
     ? 'Este asunto no se atiende por este canal.'
@@ -1588,9 +1590,9 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                 costaba la conversación. Al cerrar el drawer sigue donde estaba, con el
                 borrador intacto.
               -->
-              <!-- Colgarle a este hilo (otra) reserva: el acompañante que escribe por la reserva de otro. -->
+              <!-- Colgarle a este hilo otro asunto: el acompañante que escribe por la reserva de otro. -->
               <button v-if="store.currentConversation?.contextType !== 'manual'" @click="enlazarAbierto = !enlazarAbierto"
-                      title="Enlazar a una reserva (acompañante o titular)"
+                      title="Enlazar a un asunto (acompañante o titular)"
                       class="w-9 h-9 flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-700 transition-colors"
                       :class="enlazarAbierto ? 'bg-sky-50 border-sky-200 text-sky-700' : ''">
                 <i class="fas fa-link text-xs"></i>
@@ -1605,12 +1607,11 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
             </div>
           </header>
 
-          <!-- ¿De qué reserva es? En los «manual» siempre; en el resto, a demanda. Ver EnlazarAReserva. -->
+          <!-- ¿De qué asunto es? En los «manual» siempre; en el resto, a demanda. Ver EnlazarAAsunto. -->
           <div v-if="mostrarEnlazar && store.currentConversation?.id" class="bg-white border-b border-slate-200 px-4 md:px-8 py-2">
-            <EnlazarAReserva :key="store.currentConversation.id"
-                             :conversacion-id="store.currentConversation.id"
-                             :telefono="store.currentConversation.guestPhone ?? null"
-                             @enlazado="alEnlazarReserva" @fusionado="alUnirHilos" />
+            <EnlazarAAsunto :key="store.currentConversation.id"
+                            :conversacion-id="store.currentConversation.id"
+                            @enlazado="alEnlazarAsunto" @fusionado="alUnirHilos" />
           </div>
 
           <!-- Un teléfono de este hilo ya es de otro: ¿la misma persona? Ver FusionSugeridaAviso. -->

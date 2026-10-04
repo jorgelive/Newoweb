@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Message\Entity;
 
 use App\Entity\User;
+use App\Message\Dto\AutorDelMensaje;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
-use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageTemplate;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -23,13 +23,20 @@ final class MessageAutorEtiquetaTest extends TestCase
         self::assertSame('Susan Acuña', $this->saliente(Message::SENDER_HOST)->setAutor($susan)->getAutorEtiqueta());
     }
 
-    public function testLoQueEntraPorBeds24SeEscribioEnLaOtaDeLaReserva(): void
+    public function testLoQueEntraPorUnaIntegracionDiceDondeSeEscribio(): void
     {
-        $hilo = new MessageConversation('pms_reserva', 'x');
-        $hilo->setContextOrigin('booking');
-        $mensaje = $this->saliente(Message::SENDER_HOST)->setConversation($hilo)->setChannel($this->canal('beds24'));
+        $mensaje = $this->saliente(Message::SENDER_HOST)->setChannel($this->canal('beds24'))->setMetadata(['escrito_en' => 'Booking.com']);
 
-        self::assertSame('Escrito en Booking', $mensaje->getAutorEtiqueta());
+        self::assertSame('Escrito en Booking.com', $mensaje->getAutorEtiqueta());
+        self::assertSame(AutorDelMensaje::EXTERNO, $mensaje->getAutorDelMensaje()?->tipo);
+    }
+
+    /** Sin `escrito_en` cae al nombre del canal: el núcleo no traduce `booking` a nada. */
+    public function testSinDecirDondeCaeAlCanal(): void
+    {
+        $canal = $this->canal('beds24')->setName('Beds24');
+
+        self::assertSame('Escrito en Beds24', $this->saliente(Message::SENDER_HOST)->setChannel($canal)->getAutorEtiqueta());
     }
 
     public function testDelEquipoSinAutorEsLoDeAntes(): void

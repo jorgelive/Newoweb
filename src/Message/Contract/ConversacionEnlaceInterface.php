@@ -246,6 +246,19 @@ interface ConversacionEnlaceInterface
      */
     public function canalesPosibles(): array;
 
+    /**
+     * Los canales que llegan al ASUNTO y no a la persona: sólo los usa su titular.
+     *
+     * Una reserva de OTA tiene su chat en la plataforma —Beds24—, y ese chat es del titular. Un
+     * acompañante (otro hilo colgado del mismo asunto, `esTitular()` falso) no se alcanza por
+     * ahí: un mensaje a Carla habría aterrizado en la bandeja de Booking de Bruna. El núcleo se
+     * los quita a los acompañantes sin saber qué son ({@see \App\Message\Service\Conversacion\EnlacesDeConversacion::canalesVetados()}).
+     *
+     * @return list<string> Ids de {@see \App\Message\Entity\MessageChannel}; vacío si todos los
+     *                      canales del asunto son de la persona.
+     */
+    public function canalesDelAsunto(): array;
+
     /** El asunto en la forma que consume el triaje. */
     public function comoFrente(): Frente;
 }

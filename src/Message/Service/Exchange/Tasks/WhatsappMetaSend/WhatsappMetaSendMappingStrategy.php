@@ -208,8 +208,8 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // -------------------------------------------------------------------------
                 $idiomaEntity = $conversation->getIdioma();
                 $internalLang = strtolower((string) $idiomaEntity->getId());
-                // NUEVO: Bifurcación. Si la prioridad es 0, las plantillas y menús caen en inglés.
-                $templateLang = ($idiomaEntity->getPrioridad() > 0) ? $internalLang : 'en';
+                // Si la prioridad es 0, las plantillas y menús caen en inglés.
+                $templateLang = $idiomaEntity->idiomaDePlantilla();
 
                 $metaLang = $this->normalizeLanguageForMeta($templateLang);
 

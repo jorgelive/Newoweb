@@ -310,9 +310,7 @@ final class PmsReservaCrudController extends BaseCrudController
         $templateLang = 'es'; // Fallback por defecto absoluto
 
         if ($idiomaEntity !== null) {
-            $internalLang = strtolower((string) $idiomaEntity->getId());
-            // Si el idioma de la reserva no tiene plantillas (prioridad 0), forzamos inglés
-            $templateLang = ($idiomaEntity->getPrioridad() > 0) ? $internalLang : 'en';
+            $templateLang = $idiomaEntity->idiomaDePlantilla();
         }
 
         $cuerpoPlantilla = $template->getWhatsappLinkBody($templateLang);

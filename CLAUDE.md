@@ -543,8 +543,13 @@ más: ni un `match`, ni un `if` por `context_type`, ni tocar el registro.
   es él quien redacta el texto; el núcleo lo concatena.
 - **Antes de añadir campo o servicio, mirar si el contrato ya existe.**
   `ConversacionEnlaceInterface` ya exponía `getOrigen()`/`getAgencia()` y sólo faltaba la frase.
-  `InstruccionesDeDominioInterface`, `IndiceDeTemasInterface`, `SkillDominioInterface` y
-  `FrentesPorDominioInterface` cubren buena parte de los ejes.
+  `InstruccionesDeDominioInterface`, `IndiceDeTemasInterface`, `SkillDominioInterface`,
+  `FrentesPorDominioInterface` y `CandidatosDeAsuntoInterface` cubren buena parte de los ejes.
+- **Un identificador de dominio tampoco se traduce a TEXTO en el núcleo.** `Message` llegó a
+  convertir `booking` en «Booking»; el nombre lo deja quien lo sabe (la integración, en
+  `metadata.escrito_en`) y el núcleo lo pinta. Y una frase del prompt que habla de casitas o de
+  estados de cuenta va en `InstruccionesDeDominioInterface::contextoVolatil()`, no en
+  `AiConversationProcessor`.
 - **Lo que pertenece al ASUNTO va en el enlace, no en la conversación.** Una persona puede tener
   una estancia de Booking y un tour directo en el mismo hilo: cualquier dato «de la conversación»
   que en realidad sea del asunto es falso en cuanto haya dos.

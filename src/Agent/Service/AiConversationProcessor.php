@@ -23,6 +23,7 @@ use App\Agent\Skill\SkillRegistry;
 use App\Agent\Triage\DecisionDeTriaje;
 use App\Agent\Triage\TipoDeMensaje;
 use App\Agent\Triage\Triaje;
+use App\Message\Dto\AutorDelMensaje;
 use App\Message\Entity\Message;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Message\Entity\MessageConversation;
@@ -1241,7 +1242,6 @@ final readonly class AiConversationProcessor
         // Sin ello, el triaje resolvía una charla de un compañero del equipo con la voz del
         // huésped: «¿en qué te puedo ayudar con tu reserva?». Visto en producción.
         $quien = PerfilConversacion::deActor($actor)->enUnaLinea();
-        $quien .= $actor->esAcompanante() ? ($quien === '' ? '' : "\n") . $this->lineaDeAcompanante($conversacion) : '';
         $quien = $quien === '' ? '' : "\n" . $quien;
 
         // 🚧 Qué NO puede salir por este tubo. Va también en lo volátil y por el mismo motivo:
@@ -1485,25 +1485,6 @@ final readonly class AiConversationProcessor
     }
 
     /**
-     * Con quién habla, en positivo y con el dato dentro de cada condición: lo de la estancia se
-     * contesta como a cualquier huésped, y lo del titular se nombra. La cuenta, además, la cierra
-     * `consultar_cuenta` por código.
-     */
-    private function lineaDeAcompanante(MessageConversation $conversacion): string
-    {
-        $titular = $this->enlaces->hiloTitularDe($conversacion->getContextType(), $conversacion->getContextId())?->getGuestName();
-        $titular = $titular !== null && $titular !== '' ? $titular : 'el titular de la reserva';
-
-        return sprintf(
-            'OJO: quien escribe es ACOMPAÑANTE en la reserva de %1$s, desde su propio número. SI '
-            . 'PREGUNTA POR LA ESTANCIA (casita, guía, horarios, servicios, cómo llegar): contéstale '
-            . 'como a un huésped más. SI PREGUNTA POR PAGOS, EL ESTADO DE CUENTA O CAMBIOS DE FECHAS: '
-            . 'eso lo gestiona %1$s, díselo así.',
-            $titular,
-        );
-    }
-
-    /**
      * Quién escribió un saliente, para que el modelo no tome por suyo lo que dijo otro.
      *
      * 🔥 Todo lo que sale del alojamiento es `asistente` para el motor, y sin esto el modelo leía
@@ -1516,14 +1497,17 @@ final readonly class AiConversationProcessor
      */
     private static function quienHabla(Message $m): ?string
     {
-        $etiqueta = $m->getAutorEtiqueta();
+        $autor = $m->getAutorDelMensaje();
 
-        return match (true) {
-            $etiqueta === null, $etiqueta === 'Agente' => null,
-            $etiqueta === 'Automático', $etiqueta === 'Sistema' => 'mensaje automático',
-            $etiqueta === 'Equipo' => 'el equipo',
-            str_starts_with($etiqueta, 'Escrito en ') => 'el equipo, ' . lcfirst($etiqueta),
-            default => $etiqueta . ', del equipo',
+        if ($autor === null || $autor->tipo === AutorDelMensaje::AGENTE) {
+            return null;
+        }
+
+        return match ($autor->tipo) {
+            AutorDelMensaje::PERSONA => $autor->nombre . ', del equipo',
+            AutorDelMensaje::EXTERNO => 'el equipo, ' . lcfirst($autor->etiqueta()),
+            AutorDelMensaje::EQUIPO => 'el equipo',
+            default => 'mensaje automático',
         };
     }
 

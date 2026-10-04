@@ -84,6 +84,7 @@ final readonly class CanalesDisponibles
         ?string $asuntoId = null
     ): array {
         $posibles = $this->enlaces->canalesPosibles($conversacion, $asuntoType, $asuntoId);
+        $vetados = $this->enlaces->canalesVetados($conversacion, $asuntoType, $asuntoId);
 
         /** @var list<MessageChannel> $canales */
         $canales = $this->em->getRepository(MessageChannel::class)->findBy(['isActive' => true], ['id' => 'ASC']);
@@ -99,6 +100,8 @@ final readonly class CanalesDisponibles
             $motivo = match (true) {
                 // Lista vacía = sin acotar. Ver `canalesPosibles()`.
                 $posibles !== [] && !in_array($id, $posibles, true) => 'no_existe_para_el_asunto',
+                // El chat del asunto es del titular: este hilo es su acompañante.
+                in_array($id, $vetados, true) => 'es_del_titular',
                 !$this->encoladorDe($canal)?->disponiblePara($conversacion, $asuntoType, $asuntoId) => 'sin_datos_o_vetado',
                 default => null,
             };

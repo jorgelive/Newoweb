@@ -116,7 +116,34 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
     {
         $fase = $this->faseDeLaEstancia($hitos);
 
-        return $fase . $this->espacioAlrededor($actor, $fase);
+        return $this->acompanante($actor) . $fase . $this->espacioAlrededor($actor, $fase);
+    }
+
+    /**
+     * Con quién habla, si escribe por la reserva de OTRA persona desde su número.
+     *
+     * Aquí y no en el núcleo del agente: qué es «lo de la estancia» y qué «lo del titular» lo
+     * sabe el alojamiento —la casita, el estado de cuenta—, y un acompañante de un tour tendrá su
+     * propia frase. En positivo y con el dato dentro de cada condición; la cuenta, además, la
+     * cierra `consultar_cuenta` por código.
+     */
+    private function acompanante(ActorInterface $actor): string
+    {
+        if (!$actor->esAcompanante()) {
+            return '';
+        }
+
+        $reservaId = $actor->contextoId();
+        $titular = $reservaId !== null ? $this->em->getRepository(PmsReserva::class)->find($reservaId)?->getNombreApellido() : null;
+        $titular = $titular !== null && $titular !== '' ? $titular : 'el titular de la reserva';
+
+        return sprintf(
+            "\nOJO: quien escribe es ACOMPAÑANTE en la reserva de %1\$s, desde su propio número. SI "
+            . 'PREGUNTA POR LA ESTANCIA (casita, guía, horarios, servicios, cómo llegar): contéstale '
+            . 'como a un huésped más. SI PREGUNTA POR PAGOS, EL ESTADO DE CUENTA O CAMBIOS DE FECHAS: '
+            . 'eso lo gestiona %1$s, díselo así.',
+            $titular,
+        );
     }
 
     /**

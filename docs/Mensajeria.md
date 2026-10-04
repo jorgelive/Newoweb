@@ -24,9 +24,14 @@ mano y que el agente lo leyera.
 
 | Pieza | Qué hace |
 |---|---|
-| `EnlazarAReserva.vue` | En un hilo `manual`, banner «¿De qué reserva es?»; en cualquier otro, botón 🔗 en la cabecera. Candidatas: alojadas o llegando en ±2 días, primero las del mismo país y zona (`PmsReservaBuscarController::candidatas()`), y el buscador de siempre |
+| `EnlazarAAsunto.vue` | En un hilo `manual`, banner «¿De qué asunto es esta persona?»; en cualquier otro, botón 🔗 en la cabecera |
+| `CandidatosDeAsuntoInterface` | Cada dominio propone sus asuntos con su etiqueta y su motivo; `GET /conversations/{id}/asuntos/candidatos?q=` los reúne. El PMS (`PmsCandidatosDeAsunto`): alojadas o llegando en ±2 días, una fila por reserva, primero las del mismo prefijo de país y zona; con `q`, el buscador del calendario (`BuscadorDeEstancias`, compartido) |
 | **Acompañante** | `POST /conversations/{id}/asuntos` → `AperturaDeHilo::enlazarAcompanante()` → `MessageConversationFactory::enlazarAcompanante()` |
 | **Es el titular** | La misma persona con otro número: se UNE con su hilo (la fusión de siempre, con previa) |
+
+⚠️ **El chat no sabe qué es una reserva.** Ni la pantalla ni el endpoint nombran `pms_reserva`:
+pintan la etiqueta del dominio y devuelven el par `contextType`/`contextId`. Travel aparece ahí
+implementando `CandidatosDeAsuntoInterface`, sin tocar el chat.
 
 `enlazarAcompanante()` sube la cabecera desde `manual` y escribe la foto del `contextData`, pero
 **no siembra las identidades del asunto**: con el teléfono o el `bookId` de Bruna en el hilo de
@@ -38,12 +43,15 @@ Lo que cambia para el hilo del acompañante:
 - **Sin agenda.** El motor sólo programa al titular (`MessageRuleEngine`, ya era así).
 - **Foto al día.** `upsertFromContext()` refresca también a los acompañantes del asunto (paso 7):
   el recálculo resuelve al titular, y sin esto se quedaban con las fechas del día del enlace.
-- **Sin Beds24.** `PmsConversacionEnlace::canalesPosibles()` le da sólo `whatsapp_meta` y `email`:
-  el chat de la OTA es el del titular, y un mensaje a Carla habría aterrizado en la bandeja de
-  Booking de Bruna.
-- **El agente lo sabe.** `AgentActor::esAcompanante()`; el prompt dice «ACOMPAÑANTE en la reserva
-  de Bruna Coelho» con lo de la estancia y lo del titular en positivo, y `consultar_cuenta` se
-  niega por código (la cuenta es del titular: una supresión en el prompt no basta).
+- **Sin el chat del titular.** Cada enlace declara sus `canalesDelAsunto()` —el PMS, `beds24`: el
+  chat de la OTA es de la reserva— y `EnlacesDeConversacion::canalesVetados()` se los quita al
+  hilo acompañante; los restan el dispatcher y el panel (motivo `es_del_titular`). Un mensaje a
+  Carla habría aterrizado en la bandeja de Booking de Bruna. Si el hilo tiene además un asunto
+  suyo como titular y el mensaje no lleva asunto, no se le quita nada a ciegas.
+- **El agente lo sabe.** `AgentActor::esAcompanante()` lo marca el núcleo; la FRASE la redacta el
+  dominio en `PmsInstruccionesDominio::contextoVolatil()` («ACOMPAÑANTE en la reserva de Bruna
+  Coelho», con lo de la estancia y lo del titular en positivo), y `consultar_cuenta` se niega por
+  código (la cuenta es del titular: una supresión en el prompt no basta).
 
 ## Quién escribió cada mensaje (03/10/2026)
 
@@ -53,15 +61,23 @@ con quien esté conectado al guardar un `SENDER_HOST` o una nota interna —el c
 del panel, los botones de Operaciones: todos pasan por el `prePersist`—. Sin sesión (workers,
 cron, el agente) no firma nada.
 
-`Message::getAutorEtiqueta()` lo pone en palabras para el chat y para el agente:
+`Message::getAutorDelMensaje()` devuelve un `AutorDelMensaje` **tipado** —el agente decide por el
+tipo; `getAutorEtiqueta()` es sólo lo que pinta el chat—:
 
-| qué | etiqueta |
-|---|---|
-| una persona del equipo, desde el sistema | su nombre («Web Admin» también: es un usuario) |
-| `host` con canal: llegó de Beds24, escrito fuera | «Escrito en Booking» / «Airbnb» / «Beds24» |
-| `host` sin autor (lo anterior a hoy) | «Equipo» |
-| `generado_por: ia` | «Agente» |
-| plantilla | «Automático» |
+| qué | tipo | etiqueta |
+|---|---|---|
+| una persona del equipo, desde el sistema | `persona` | su nombre («Web Admin» también: es un usuario) |
+| `host` con canal: llegó de una integración, escrito fuera | `externo` | «Escrito en Booking.com», con `metadata.escrito_en`; si falta, el nombre del canal |
+| `host` sin autor (lo anterior al 03/10) | `equipo` | «Equipo» |
+| `generado_por: ia` | `agente` | «Agente» |
+| plantilla | `automatico` | «Automático» |
+
+⚠️ **El núcleo no traduce identificadores de dominio.** La primera versión convertía `booking` en
+«Booking» dentro de `Message`; ahora DÓNDE se escribió lo deja la integración al crear el mensaje
+(`Beds24ReceivePersister`, con el nombre del canal de la reserva; nada en las directas, que se
+escriben en el propio Beds24) y el núcleo lo transporta. Lo anterior lo rellenó
+`Version20261003230000` — y 1.502 de esos mensajes tenían la metadata como **array vacío** `[]`,
+sobre el que `JSON_SET('$.clave')` no hace nada y no avisa.
 
 Beds24 sólo distingue `guest` y `host`: lo que se escribe en la extranet o la app de una OTA no
 dice qué persona fue, y no hay de dónde sacarlo.
@@ -70,7 +86,8 @@ dice qué persona fue, y no hay de dónde sacarlo.
 como `asistente`. Eduardo (03/10): el agente escaló el pago de los tours, Jorge le ofreció
 efectivo, Yape o transferencia, y al contestar «En efectivo mañana» el agente volvió a escalar lo
 ya resuelto. Ahora cada turno ajeno va con su autor —`(Jorge Gomez, del equipo)`, `(el equipo,
-escrito en Booking)`, `(mensaje automático)`— en `AiConversationProcessor::quienHabla()`.
+escrito en Booking.com)`, `(mensaje automático)`— en `AiConversationProcessor::quienHabla()`, que
+decide por el TIPO del autor y no por la etiqueta: cambiar una palabra no le quita la distinción.
 
 ## 🔥 El acuse de lectura marcaba `failed` el mensaje del HUÉSPED (10/09/2026)
 

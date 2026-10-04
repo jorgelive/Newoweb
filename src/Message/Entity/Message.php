@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use App\Entity\Trait\IdTrait;
 use App\Entity\User;
+use App\Message\Dto\AutorDelMensaje;
 use App\Entity\Trait\TimestampTrait;
 use App\Message\ApiPlatform\State\MessageMultipartProcessor;
 use App\Message\Filter\MessageVistaDelHiloExtension;
@@ -1028,51 +1029,53 @@ class Message
     public function setAutor(?User $autor): self { $this->autor = $autor; return $this; }
 
     /**
-     * Quién habla en un saliente, en palabras: lo que pinta el chat bajo la burbuja y lo que lee
-     * el agente en su historial. `null` en lo que escribe el huésped, que ya se sabe quién es.
+     * Quién habla en un saliente. `null` en lo que escribe el huésped: ya se sabe quién es.
      *
-     * | qué | etiqueta |
+     * | qué | tipo |
      * |---|---|
-     * | lo escribió una persona del equipo en el sistema | su nombre |
-     * | `host` con canal: entró por sincronización, escrito fuera | «Escrito en Booking» / «Airbnb»… |
-     * | `host` sin autor: del equipo, de antes de guardar el autor | «Equipo» |
-     * | lo redactó el agente (`generado_por: ia`) | «Agente» |
-     * | plantilla automática | «Automático» |
+     * | una persona del equipo, desde el sistema | `persona`, con su nombre («Web Admin» también: es un usuario) |
+     * | `host` con canal: llegó de una integración, escrito fuera | `externo`, con `escrito_en` de la metadata o el canal |
+     * | `host` sin autor (lo anterior al 03/10/2026) | `equipo` |
+     * | `generado_por: ia` | `agente` |
+     * | plantilla | `automatico` |
      *
      * Lo del canal es la convención que ya usa el chat (icono de nube, «sincronizado
-     * externamente»): un saliente nuestro no lleva canal; lo lleva el que llega de Beds24.
+     * externamente»): un saliente nuestro no lleva canal; lo lleva el que trae una integración.
+     * DÓNDE se escribió lo dice esa integración (`escrito_en`): el núcleo no traduce `booking` a
+     * «Booking», que sería interpretar un identificador de dominio.
      */
-    #[Groups(['message:read'])]
-    public function getAutorEtiqueta(): ?string
+    public function getAutorDelMensaje(): ?AutorDelMensaje
     {
         if ($this->direction === self::DIRECTION_INCOMING) {
             return null;
         }
 
         if ($this->autor !== null) {
-            return $this->autor->getFullname() !== '' ? $this->autor->getFullname() : $this->autor->getUserIdentifier();
+            return AutorDelMensaje::persona($this->autor->getFullname() !== '' ? $this->autor->getFullname() : $this->autor->getUserIdentifier());
+        }
+
+        if ($this->senderType === self::SENDER_HOST && $this->channel !== null) {
+            $donde = $this->metadata['escrito_en'] ?? null;
+
+            return AutorDelMensaje::externo(is_string($donde) && $donde !== '' ? $donde : $this->channel->getName());
         }
 
         if ($this->senderType === self::SENDER_HOST || $this->senderType === self::SENDER_INTERNAL) {
-            $canal = $this->channel?->getId();
-
-            if ($this->senderType === self::SENDER_HOST && $canal !== null) {
-                return 'Escrito en ' . match ($canal === 'beds24' ? $this->conversation?->getContextOrigin() : $canal) {
-                    'booking' => 'Booking',
-                    'airbnb' => 'Airbnb',
-                    'whatsapp_meta' => 'WhatsApp',
-                    default => 'Beds24',
-                };
-            }
-
-            return 'Equipo';
+            return AutorDelMensaje::equipo();
         }
 
         if (($this->metadata['generado_por'] ?? null) === 'ia') {
-            return 'Agente';
+            return AutorDelMensaje::agente();
         }
 
-        return $this->template !== null ? 'Automático' : 'Sistema';
+        return $this->template !== null ? AutorDelMensaje::automatico() : AutorDelMensaje::sistema();
+    }
+
+    /** Lo que pinta el chat. La decisión se toma con {@see self::getAutorDelMensaje()}, no con esto. */
+    #[Groups(['message:read'])]
+    public function getAutorEtiqueta(): ?string
+    {
+        return $this->getAutorDelMensaje()?->etiqueta();
     }
 
     public function getSenderType(): string { return $this->senderType; }

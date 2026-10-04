@@ -19,6 +19,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Message\Service\Conversacion\AperturaDeHilo;
+use App\Message\Contract\CandidatosDeAsuntoInterface;
+use App\Message\Dto\CandidatoDeAsunto;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use RuntimeException;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 
@@ -49,7 +52,32 @@ final class AsuntosDeConversacionController extends AbstractController
         private readonly EnlacesDeConversacion $enlaces,
         private readonly EntityManagerInterface $em,
         private readonly AperturaDeHilo $apertura,
+        /** @var iterable<CandidatosDeAsuntoInterface> */
+        #[AutowireIterator('app.message.candidatos_asunto')]
+        private readonly iterable $candidatos,
     ) {}
+
+    /**
+     * GET — los asuntos que podrían ser los de este hilo, de todos los dominios.
+     *
+     * El chat no sabe qué es una reserva ni un viaje: pinta la etiqueta que redacta cada dominio y
+     * devuelve el par `contextType`/`contextId` al enlazar. Los que traen motivo van primero.
+     */
+    public function candidatos(MessageConversation $data, Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted(Roles::MENSAJES_WRITE, null, 'No tienes permiso para editar la conversación.');
+
+        $busqueda = $request->query->get('q');
+        $todos = [];
+
+        foreach ($this->candidatos as $proveedor) {
+            array_push($todos, ...$proveedor->candidatos($data, is_string($busqueda) ? $busqueda : null));
+        }
+
+        usort($todos, static fn (CandidatoDeAsunto $a, CandidatoDeAsunto $b): int => ($b->motivo !== null) <=> ($a->motivo !== null));
+
+        return new JsonResponse(['candidatos' => array_map(static fn (CandidatoDeAsunto $c): array => $c->comoArray(), $todos)]);
+    }
 
     /** GET — los asuntos del hilo. */
     public function listar(MessageConversation $data): JsonResponse

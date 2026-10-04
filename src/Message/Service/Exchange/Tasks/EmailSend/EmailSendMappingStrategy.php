@@ -101,7 +101,7 @@ final readonly class EmailSendMappingStrategy implements MappingStrategyInterfac
             return 'es';
         }
 
-        return $idioma->getPrioridad() > 0 ? strtolower((string) $idioma->getId()) : 'en';
+        return $idioma->idiomaDePlantilla();
     }
 
     /**
