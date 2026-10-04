@@ -380,6 +380,12 @@ dice «¿Misma persona?» y la reserva abre con el banner de unir.
 Incorporar otro dominio es implementar `AsuntosSinTelefonoInterface`; el panel agrupa por
 `negocio` y sabe abrir `pms_reserva` y `cotizacion_file`.
 
+⚠️ **El menú «Elegir plantilla» del calendario de reservas abre wa.me, y sin teléfono no tiene a
+dónde.** Con una reserva así salían las quince plantillas en gris sin una palabra —el motivo iba en
+un aviso flotante que quedaba detrás del menú (Soledad Armendáriz, Booking, 04/10/2026)—.
+`WhatsappPlantillasLista` lo pinta ahora dentro del menú, con lo que dice
+`PmsReservaWhatsappLinkController`: añadirlo en la ficha, o que se le pide en su página.
+
 ### Pedirle el teléfono al huésped (02/10/2026)
 
 El reporte lo ve el equipo; esto ataca la causa. La página de la reserva en `pax`
