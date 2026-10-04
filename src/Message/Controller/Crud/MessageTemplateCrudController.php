@@ -367,6 +367,11 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setRequired(false)
             ->setColumns(4);
 
+        yield BooleanField::new('envioManual', 'Se envía a mano')
+            ->setHelp('Si sale en los menús de plantillas de la reserva y del chat. Desmárcalo en las que '
+                . 'sólo manda el sistema (respuestas a botones, avisos automáticos): no cambia ningún envío automático.')
+            ->setColumns(4);
+
         // --- ASISTENTE DE IA ---
         // El asistente puede mandar cualquier plantilla CON «Cuándo usarla» escrito (el
         // operador confirma y la correspondencia de OTA guarda). El interruptor controla lo
@@ -385,10 +390,6 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setHelp('Sólo surte efecto si además rellenas «Cuándo usarla».')
             ->setColumns(4);
 
-        yield BooleanField::new('envioManual', 'Se envía a mano')
-            ->setHelp('Si sale en los menús de plantillas de la reserva y del chat. Desmárcalo en las que '
-                . 'sólo manda el sistema (respuestas a botones, avisos automáticos): no cambia ningún envío automático.')
-            ->setColumns(4);
 
         yield TextareaField::new('agenteUso', 'Cuándo usarla (para la IA)')
             ->setRequired(false)
