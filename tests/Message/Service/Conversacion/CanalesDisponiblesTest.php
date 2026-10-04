@@ -166,6 +166,9 @@ final class CanalesDisponiblesTest extends TestCase
             public function paraConversacion(MessageConversation $conversacion): array { return [$this->enlace]; }
             public function titularDeAsunto(string $contextType, string $contextId): ?ConversacionEnlaceInterface { return null; }
 
+            /** @return list<ConversacionEnlaceInterface> */
+            public function acompanantesDeAsunto(string $contextType, string $contextId): array { return []; }
+
             public function enlaceDeAsunto(
                 MessageConversation $conversacion,
                 string $contextType,

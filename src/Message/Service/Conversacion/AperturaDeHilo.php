@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Conversacion;
 
+use App\Message\Contract\MessageContextInterface;
 use App\Message\Contract\ProveedorDeContextoInterface;
 use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageConversationFactory;
+use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
@@ -43,6 +45,7 @@ final readonly class AperturaDeHilo
     public function __construct(
         private MessageConversationFactory $factory,
         private LoggerInterface $logger,
+        private EntityManagerInterface $em,
         #[AutowireIterator('app.message.proveedor_contexto')]
         private iterable $proveedores,
     ) {
@@ -55,22 +58,7 @@ final readonly class AperturaDeHilo
      */
     public function abrir(string $contextType, string $contextId): MessageConversation
     {
-        $contexto = null;
-
-        foreach ($this->proveedores as $proveedor) {
-            if ($proveedor->supports($contextType)) {
-                $contexto = $proveedor->para($contextId);
-                break;
-            }
-        }
-
-        if ($contexto === null) {
-            // Se distinguen los dos motivos: que el dominio no sepa abrir hilos es cosa nuestra
-            // —falta implementar el contrato— y que el asunto no exista es cosa de quien pidió.
-            throw new RuntimeException($this->soportado($contextType)
-                ? 'Ese asunto ya no existe, así que no hay a quién escribirle.'
-                : sprintf('Todavía no se pueden abrir conversaciones de «%s».', $contextType));
-        }
+        $contexto = $this->contextoDe($contextType, $contextId);
 
         if ($contexto->getIdentificadores() === []) {
             throw new RuntimeException(
@@ -88,6 +76,53 @@ final readonly class AperturaDeHilo
         ]);
 
         return $hilo;
+    }
+
+    /**
+     * Cuelga el asunto de un hilo que ya existe, como ACOMPAÑANTE: la persona que escribe desde
+     * su número por la reserva de otro. Ver {@see MessageConversationFactory::enlazarAcompanante()}.
+     *
+     * @throws RuntimeException con el motivo, para que el panel pueda enseñarlo tal cual
+     */
+    public function enlazarAcompanante(MessageConversation $hilo, string $contextType, string $contextId): void
+    {
+        $contexto = $this->contextoDe($contextType, $contextId);
+
+        try {
+            $this->factory->enlazarAcompanante($hilo, $contexto);
+        } catch (\DomainException $e) {
+            throw new RuntimeException($e->getMessage(), 0, $e);
+        }
+
+        $this->em->flush();
+
+        $this->logger->info('Hilo enlazado como acompañante desde el panel.', [
+            'contextType' => $contextType,
+            'contextId' => $contextId,
+            'conversacion' => (string) $hilo->getId(),
+        ]);
+    }
+
+    /** @throws RuntimeException si el dominio no sabe de ese asunto o ya no existe */
+    private function contextoDe(string $contextType, string $contextId): MessageContextInterface
+    {
+        foreach ($this->proveedores as $proveedor) {
+            if ($proveedor->supports($contextType)) {
+                $contexto = $proveedor->para($contextId);
+
+                if ($contexto !== null) {
+                    return $contexto;
+                }
+
+                break;
+            }
+        }
+
+        // Se distinguen los dos motivos: que el dominio no sepa abrir hilos es cosa nuestra
+        // —falta implementar el contrato— y que el asunto no exista es cosa de quien pidió.
+        throw new RuntimeException($this->soportado($contextType)
+            ? 'Ese asunto ya no existe, así que no hay a quién escribirle.'
+            : sprintf('Todavía no se pueden abrir conversaciones de «%s».', $contextType));
     }
 
     private function soportado(string $contextType): bool

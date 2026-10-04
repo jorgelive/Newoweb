@@ -219,6 +219,9 @@ final class EnlacesDeConversacionTest extends TestCase
                 return null;
             }
 
+            /** @return list<ConversacionEnlaceInterface> */
+            public function acompanantesDeAsunto(string $contextType, string $contextId): array { return []; }
+
             public function enlaceDeAsunto(
                 MessageConversation $conversacion,
                 string $contextType,

@@ -119,6 +119,26 @@ final readonly class CotizacionProveedorDeEnlaces implements ProveedorDeEnlacesI
         return $enlace;
     }
 
+    /** @return list<CotizacionConversacionEnlace> Ver el contrato. */
+    public function acompanantesDeAsunto(string $contextType, string $contextId): array
+    {
+        if ($contextType !== CotizacionConversacionEnlace::CONTEXT_TYPE || !Uuid::isValid($contextId)) {
+            return [];
+        }
+
+        /** @var list<CotizacionConversacionEnlace> $enlaces */
+        $enlaces = $this->em->getRepository(CotizacionConversacionEnlace::class)
+            ->createQueryBuilder('e')
+            ->join('e.file', 'a')
+            ->where('a.id = :id')
+            ->andWhere('e.esTitular = false')
+            ->setParameter('id', Uuid::fromString($contextId), 'uuid')
+            ->getQuery()
+            ->getResult();
+
+        return $enlaces;
+    }
+
     public function enlaceDeAsunto(
         MessageConversation $conversacion,
         string $contextType,

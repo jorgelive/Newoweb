@@ -145,13 +145,7 @@ readonly class MessageConversationFactory
         }
 
         // 4. Llenado estricto del JSON (Agnóstico)
-        $conversation->setContextOrigin($context->getOrigin());
-        $conversation->setContextAgency($context->getAgencyId());
-        $conversation->setContextStatusTag($context->getStatusTag());
-        $conversation->setContextVinculo($context->getVinculo());
-        $conversation->setContextMilestones($context->getMilestones());
-        $conversation->setContextItems($context->getItems());
-        $conversation->setContextFinancials($context->getFinancialTotal(), $context->isFinancialCleared());
+        $this->aplicarFoto($conversation, $context);
 
         // 5. AUTO-ARCHIVADO y REACTIVACIÓN
         //
@@ -199,12 +193,12 @@ readonly class MessageConversationFactory
         // Sin sincronizador para este `context_type` no pasa nada: el asunto se queda sin enlace
         // y todo sigue por el camino de siempre, que es el fallo seguro mientras los negocios se
         // van enchufando uno a uno.
-        foreach ($this->sincronizadores as $sincronizador) {
-            if ($sincronizador->supports($context->getContextType())) {
-                $sincronizador->sincronizar($conversation, $context);
-                break;
-            }
-        }
+        $this->sincronizarEnlace($conversation, $context);
+
+        // 7. Y la foto de los ACOMPAÑANTES del asunto, en el mismo movimiento. Su hilo no pasa por
+        //    aquí —el recálculo resuelve al titular—, y sin esto el agente les contestaría con las
+        //    fechas y el vínculo del día en que se enlazaron.
+        $this->refrescarAcompanantes($conversation, $context);
 
         // La copia denormalizada, al día con las identidades. Va DESPUÉS de `vincular()` para
         // que una identidad recién sembrada ya cuente.
@@ -215,6 +209,95 @@ readonly class MessageConversationFactory
         }
 
         return $conversation;
+    }
+
+    /**
+     * Cuelga un asunto de un hilo como ACOMPAÑANTE: el de Carla, que escribe desde su número
+     * por la reserva de Bruna (12/09/2026).
+     *
+     * Dos personas, dos hilos: fundirlos mezclaría quién dijo qué. El acompañante recibe el
+     * asunto para que el agente sepa de qué estancia le hablan, pero **no** la agenda —el motor
+     * sólo programa al titular— ni las identidades del asunto: sembrarle el teléfono o el
+     * `bookId` de la reserva haría que lo que escriba el titular acabara en este hilo.
+     *
+     * La cabecera sube desde `manual` como en el walk-in (el agente aún decide por ella) y la
+     * foto del `contextData` sólo se escribe si la cabecera es de ESTE asunto: un hilo que ya es
+     * de otra reserva suya no se pisa, el asunto entra como un enlace más.
+     *
+     * @throws \DomainException si el hilo ya es el titular de ese asunto
+     */
+    public function enlazarAcompanante(MessageConversation $hilo, MessageContextInterface $context): void
+    {
+        $titular = $this->enlaces->hiloTitularDe($context->getContextType(), $context->getContextId());
+
+        if ($titular === $hilo) {
+            throw new \DomainException('Esta conversación ya es la titular de esa reserva.');
+        }
+
+        $hilo->promoverDesdeManual($context->getContextType(), $context->getContextId());
+
+        if ($this->cabeceraEsDe($hilo, $context)) {
+            $this->aplicarFoto($hilo, $context);
+        }
+
+        // El sincronizador crea el enlace como nacen todos, titular; se degrada antes del flush.
+        // Sin titular previo —un asunto que todavía no tiene hilo— este SÍ se queda de titular:
+        // alguien tiene que recibir la agenda, y es la única persona que escribió.
+        $this->sincronizarEnlace($hilo, $context);
+
+        if ($titular !== null) {
+            $this->enlaces->enlaceDe($hilo, $context->getContextType(), $context->getContextId())?->marcarTitular(false);
+        }
+    }
+
+    /** Ver el paso 7 de {@see self::upsertFromContext()}. */
+    private function refrescarAcompanantes(MessageConversation $titular, MessageContextInterface $context): void
+    {
+        foreach ($this->enlaces->acompanantesDe($context->getContextType(), $context->getContextId()) as $enlace) {
+            $hilo = $enlace->getConversacion();
+
+            if ($hilo === null || $hilo === $titular) {
+                continue;
+            }
+
+            if ($this->cabeceraEsDe($hilo, $context)) {
+                $this->aplicarFoto($hilo, $context);
+            }
+
+            $this->sincronizarEnlace($hilo, $context);
+        }
+    }
+
+    private function cabeceraEsDe(MessageConversation $hilo, MessageContextInterface $context): bool
+    {
+        return $hilo->getContextType() === $context->getContextType()
+            && $hilo->getContextId() === $context->getContextId();
+    }
+
+    /** La foto del asunto en el JSON de la cabecera: lo que lee el agente para saber con quién habla. */
+    private function aplicarFoto(MessageConversation $conversation, MessageContextInterface $context): void
+    {
+        $conversation->setContextOrigin($context->getOrigin());
+        $conversation->setContextAgency($context->getAgencyId());
+        $conversation->setContextStatusTag($context->getStatusTag());
+        $conversation->setContextVinculo($context->getVinculo());
+        $conversation->setContextMilestones($context->getMilestones());
+        $conversation->setContextItems($context->getItems());
+        $conversation->setContextFinancials($context->getFinancialTotal(), $context->isFinancialCleared());
+    }
+
+    /**
+     * El enlace del asunto, al día. Sin sincronizador para este `context_type` no pasa nada: el
+     * asunto se queda sin enlace y todo sigue por el camino de siempre.
+     */
+    private function sincronizarEnlace(MessageConversation $conversation, MessageContextInterface $context): void
+    {
+        foreach ($this->sincronizadores as $sincronizador) {
+            if ($sincronizador->supports($context->getContextType())) {
+                $sincronizador->sincronizar($conversation, $context);
+                break;
+            }
+        }
     }
 
     /**

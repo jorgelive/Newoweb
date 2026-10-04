@@ -100,6 +100,26 @@ final readonly class PmsProveedorDeEnlaces implements ProveedorDeEnlacesInterfac
         return $enlace;
     }
 
+    /** @return list<PmsConversacionEnlace> Ver el contrato. */
+    public function acompanantesDeAsunto(string $contextType, string $contextId): array
+    {
+        if ($contextType !== PmsConversacionEnlace::CONTEXT_TYPE || !Uuid::isValid($contextId)) {
+            return [];
+        }
+
+        /** @var list<PmsConversacionEnlace> $enlaces */
+        $enlaces = $this->em->getRepository(PmsConversacionEnlace::class)
+            ->createQueryBuilder('e')
+            ->join('e.reserva', 'a')
+            ->where('a.id = :id')
+            ->andWhere('e.esTitular = false')
+            ->setParameter('id', Uuid::fromString($contextId), 'uuid')
+            ->getQuery()
+            ->getResult();
+
+        return $enlaces;
+    }
+
     public function enlaceDeAsunto(
         MessageConversation $conversacion,
         string $contextType,

@@ -269,6 +269,7 @@ final class LineasDeConsumoTest extends TestCase
                 public function dominios(): array { return []; }
                 public function esDelEquipo(): bool { return true; }
                 public function esProspecto(): bool { return false; }
+                public function esAcompanante(): bool { return false; }
                 public function usuario(): ?User { return null; }
                 public function etiqueta(): string { return 'doble'; }
                 public function tieneRol(string $rol): bool { return false; }

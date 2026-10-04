@@ -115,6 +115,36 @@ final readonly class EnlacesDeConversacion
         return array_keys($union);
     }
 
+    /** El enlace de UN asunto en UN hilo, titular o no, de quien lo reconozca. */
+    public function enlaceDe(MessageConversation $hilo, string $contextType, string $contextId): ?ConversacionEnlaceInterface
+    {
+        foreach ($this->proveedores as $proveedor) {
+            $enlace = $proveedor->enlaceDeAsunto($hilo, $contextType, $contextId);
+
+            if ($enlace !== null) {
+                return $enlace;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Los enlaces de acompañante de un asunto, en todos los hilos.
+     *
+     * @return list<ConversacionEnlaceInterface>
+     */
+    public function acompanantesDe(string $contextType, string $contextId): array
+    {
+        $todos = [];
+
+        foreach ($this->proveedores as $proveedor) {
+            array_push($todos, ...$proveedor->acompanantesDeAsunto($contextType, $contextId));
+        }
+
+        return $todos;
+    }
+
     /**
      * Mueve el papel de TITULAR de un asunto a este hilo.
      *

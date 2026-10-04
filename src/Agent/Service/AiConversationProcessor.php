@@ -24,6 +24,7 @@ use App\Agent\Triage\DecisionDeTriaje;
 use App\Agent\Triage\TipoDeMensaje;
 use App\Agent\Triage\Triaje;
 use App\Message\Entity\Message;
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Message\Entity\MessageConversation;
 use App\Repository\UserRepository;
 use App\Service\Phone\PhoneSanitizer;
@@ -144,6 +145,7 @@ final readonly class AiConversationProcessor
         private EscaleraDeTemas $escalera,
         private ConocimientoGenerico $conocimiento,
         private VigilanteDelMotor $vigilante,
+        private EnlacesDeConversacion $enlaces,
         private bool $habilitado,
     ) {}
 
@@ -625,7 +627,7 @@ final readonly class AiConversationProcessor
         $actor = match (true) {
             $delEquipo !== null => $this->actores->delEquipoPorChat($delEquipo, $origen, $conversacion->getContextType(), $conversacion->getContextId(), tambienHuesped: true, conversacionId: $conversacionId),
             $esProspecto => $this->actores->prospecto($origen, $conversacionId),
-            default => $this->actores->huesped($origen, $conversacion->getContextType(), $conversacion->getContextId(), $conversacionId, $vinculo, $restriccion),
+            default => $this->actores->huesped($origen, $conversacion->getContextType(), $conversacion->getContextId(), $conversacionId, $vinculo, $restriccion, $this->esAcompanante($conversacion)),
         };
 
         if (!$esProspecto && $delEquipo === null && VinculoComercial::Cliente !== $vinculo) {
@@ -1239,6 +1241,7 @@ final readonly class AiConversationProcessor
         // Sin ello, el triaje resolvía una charla de un compañero del equipo con la voz del
         // huésped: «¿en qué te puedo ayudar con tu reserva?». Visto en producción.
         $quien = PerfilConversacion::deActor($actor)->enUnaLinea();
+        $quien .= $actor->esAcompanante() ? ($quien === '' ? '' : "\n") . $this->lineaDeAcompanante($conversacion) : '';
         $quien = $quien === '' ? '' : "\n" . $quien;
 
         // 🚧 Qué NO puede salir por este tubo. Va también en lo volátil y por el mismo motivo:
@@ -1466,6 +1469,38 @@ final readonly class AiConversationProcessor
         }
 
         return array_slice($turnos, -self::HISTORIAL_MAX);
+    }
+
+    /**
+     * ¿Este hilo cuelga del asunto de su cabecera como ACOMPAÑANTE y no como titular?
+     *
+     * Lo marca el panel al enlazar el hilo de quien escribe desde su número por la reserva de
+     * otro. Sin enlace —los hilos de siempre— es titular por definición.
+     */
+    private function esAcompanante(MessageConversation $conversacion): bool
+    {
+        $enlace = $this->enlaces->enlaceDe($conversacion, $conversacion->getContextType(), $conversacion->getContextId());
+
+        return $enlace !== null && !$enlace->esTitular();
+    }
+
+    /**
+     * Con quién habla, en positivo y con el dato dentro de cada condición: lo de la estancia se
+     * contesta como a cualquier huésped, y lo del titular se nombra. La cuenta, además, la cierra
+     * `consultar_cuenta` por código.
+     */
+    private function lineaDeAcompanante(MessageConversation $conversacion): string
+    {
+        $titular = $this->enlaces->hiloTitularDe($conversacion->getContextType(), $conversacion->getContextId())?->getGuestName();
+        $titular = $titular !== null && $titular !== '' ? $titular : 'el titular de la reserva';
+
+        return sprintf(
+            'OJO: quien escribe es ACOMPAÑANTE en la reserva de %1$s, desde su propio número. SI '
+            . 'PREGUNTA POR LA ESTANCIA (casita, guía, horarios, servicios, cómo llegar): contéstale '
+            . 'como a un huésped más. SI PREGUNTA POR PAGOS, EL ESTADO DE CUENTA O CAMBIOS DE FECHAS: '
+            . 'eso lo gestiona %1$s, díselo así.',
+            $titular,
+        );
     }
 
     /**

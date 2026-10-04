@@ -107,6 +107,15 @@ interface ActorInterface
     public function esProspecto(): bool;
 
     /**
+     * ¿Escribe por la reserva de OTRA persona, desde su propio número?
+     *
+     * Su hilo cuelga del asunto como acompañante (`ConversacionEnlaceInterface::esTitular()`
+     * falso): sabe de qué estancia le hablan, pero lo que es del titular —su cuenta, sus pagos—
+     * no se le da. Carla, por la reserva de Bruna (12/09/2026).
+     */
+    public function esAcompanante(): bool;
+
+    /**
      * El usuario del equipo que está detrás, o `null` si quien pregunta es un huésped.
      *
      * Lo necesitan las skills que registran QUIÉN hizo algo, no sólo qué se hizo:

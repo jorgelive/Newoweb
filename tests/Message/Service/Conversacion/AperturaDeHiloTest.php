@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Message\Service\Conversacion;
 
+use Doctrine\ORM\EntityManagerInterface;
 use App\Contract\MapaDeHitos;
 use App\Contract\VinculoComercial;
 use App\Message\Contract\MessageContextInterface;
@@ -72,7 +73,7 @@ final class AperturaDeHiloTest extends TestCase
             ->with($contexto, true)   // flush: la abre alguien que está esperando delante
             ->willReturn($esperado);
 
-        $apertura = new AperturaDeHilo($factoria, new NullLogger(), [$this->proveedor('pms_reserva', $contexto)]);
+        $apertura = new AperturaDeHilo($factoria, new NullLogger(), $this->createStub(EntityManagerInterface::class), [$this->proveedor('pms_reserva', $contexto)]);
 
         self::assertSame($esperado, $apertura->abrir('pms_reserva', 'r-1'));
     }
@@ -87,7 +88,7 @@ final class AperturaDeHiloTest extends TestCase
         $factoria = $this->createStub(MessageConversationFactory::class);
         $factoria->method('upsertFromContext')->willReturn(new MessageConversation('travel_organizacion', 'org-1'));
 
-        $apertura = new AperturaDeHilo($factoria, new NullLogger(), [
+        $apertura = new AperturaDeHilo($factoria, new NullLogger(), $this->createStub(EntityManagerInterface::class), [
             $this->proveedor('pms_reserva', $this->contexto([])),          // no soporta: si lo eligiera, lanzaría
             $this->proveedor('travel_organizacion', $contexto),
         ]);
@@ -103,6 +104,7 @@ final class AperturaDeHiloTest extends TestCase
         return new AperturaDeHilo(
             $this->createStub(MessageConversationFactory::class),
             new NullLogger(),
+            $this->createStub(EntityManagerInterface::class),
             $proveedores
         );
     }

@@ -11,6 +11,40 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 ---
 
 
+## Acompañantes: varios hilos para la misma reserva (03/10/2026)
+
+Carla escribió «les escribo sobre mi reserva» desde su número, sin decir de quién (12/09). El hilo
+nació `manual`, el agente la trató como desconocida —lavandería a $1/kg, «ya avisé al equipo» tres
+veces— y Jorge tuvo que adivinar que era del grupo de **Bruna** porque era la única huésped
+brasileña alojada, y las dos eran +55 85.
+
+**No se funde con el hilo del titular: son dos personas.** El modelo ya lo admitía —una reserva
+puede colgar de varios hilos, uno titular (`es_titular`)—; lo que faltaba era crear el enlace a
+mano y que el agente lo leyera.
+
+| Pieza | Qué hace |
+|---|---|
+| `EnlazarAReserva.vue` | En un hilo `manual`, banner «¿De qué reserva es?»; en cualquier otro, botón 🔗 en la cabecera. Candidatas: alojadas o llegando en ±2 días, primero las del mismo país y zona (`PmsReservaBuscarController::candidatas()`), y el buscador de siempre |
+| **Acompañante** | `POST /conversations/{id}/asuntos` → `AperturaDeHilo::enlazarAcompanante()` → `MessageConversationFactory::enlazarAcompanante()` |
+| **Es el titular** | La misma persona con otro número: se UNE con su hilo (la fusión de siempre, con previa) |
+
+`enlazarAcompanante()` sube la cabecera desde `manual` y escribe la foto del `contextData`, pero
+**no siembra las identidades del asunto**: con el teléfono o el `bookId` de Bruna en el hilo de
+Carla, lo que escribiera Bruna acabaría ahí. Si la reserva aún no tenía hilo, éste se queda de
+titular: alguien tiene que recibir la agenda.
+
+Lo que cambia para el hilo del acompañante:
+
+- **Sin agenda.** El motor sólo programa al titular (`MessageRuleEngine`, ya era así).
+- **Foto al día.** `upsertFromContext()` refresca también a los acompañantes del asunto (paso 7):
+  el recálculo resuelve al titular, y sin esto se quedaban con las fechas del día del enlace.
+- **Sin Beds24.** `PmsConversacionEnlace::canalesPosibles()` le da sólo `whatsapp_meta` y `email`:
+  el chat de la OTA es el del titular, y un mensaje a Carla habría aterrizado en la bandeja de
+  Booking de Bruna.
+- **El agente lo sabe.** `AgentActor::esAcompanante()`; el prompt dice «ACOMPAÑANTE en la reserva
+  de Bruna Coelho» con lo de la estancia y lo del titular en positivo, y `consultar_cuenta` se
+  niega por código (la cuenta es del titular: una supresión en el prompt no basta).
+
 ## Quién escribió cada mensaje (03/10/2026)
 
 Un mensaje del alojamiento sólo decía `host`: no se sabía si era de Jorge, de Susan o escrito en

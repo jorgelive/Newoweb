@@ -134,6 +134,9 @@ final class ContactoDelAsuntoTest extends TestCase
 
             public function getNegocio(): string { return 'prueba'; }
             public function paraConversacion(MessageConversation $c): array { return []; }
+            /** @return list<ConversacionEnlaceInterface> */
+            public function acompanantesDeAsunto(string $contextType, string $contextId): array { return []; }
+
             public function enlaceDeAsunto(MessageConversation $c, string $t, string $i): ?ConversacionEnlaceInterface { return null; }
 
             public function titularDeAsunto(string $t, string $i): ?ConversacionEnlaceInterface

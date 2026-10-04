@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Api;
 
 use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Entity\PmsEventoEstado;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -50,6 +51,74 @@ final class PmsReservaBuscarController extends AbstractController
             $this->serializar(...),
             $this->buscar($q),
         ));
+    }
+
+    /**
+     * Las estancias de estos días, primero las de quien comparte prefijo con un teléfono.
+     *
+     * Para enlazar al hilo de un número desconocido la reserva de la que habla. Carla escribió
+     * «les escribo sobre mi reserva» desde un +55 85 sin decir de quién era (12/09/2026), y Jorge
+     * dio con ella porque la única huésped brasileña alojada, Bruna, era también +55 85. Eso es
+     * lo que se ordena aquí: alojadas o llegando en ±2 días, y arriba las del mismo país y zona.
+     * El buscador de texto de arriba sigue sirviendo para lo que no salga.
+     */
+    #[Route('/candidatas', name: 'app_pms_reserva_candidatas', methods: ['GET'])]
+    public function candidatas(Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted(Roles::RESERVAS_SHOW);
+
+        $telefono = preg_replace('/\D/', '', (string) $request->query->get('telefono', '')) ?? '';
+        $hoy = new \DateTimeImmutable('today');
+
+        /** @var list<PmsEventoCalendario> $estancias */
+        $estancias = $this->entityManager->createQueryBuilder()
+            ->select('e, u, r, es, ep, c')
+            ->from(PmsEventoCalendario::class, 'e')
+            ->innerJoin('e.reserva', 'r')
+            ->leftJoin('e.pmsUnidad', 'u')
+            ->leftJoin('e.estado', 'es')
+            ->leftJoin('e.estadoPago', 'ep')
+            ->leftJoin('e.channel', 'c')
+            ->where('e.inicio <= :hasta')
+            ->andWhere('e.fin >= :desde')
+            ->andWhere('es.id NOT IN (:fuera)')
+            ->setParameter('hasta', $hoy->modify('+3 days'))
+            ->setParameter('desde', $hoy->modify('-1 day'))
+            ->setParameter('fuera', [PmsEventoEstado::CODIGO_CANCELADA, PmsEventoEstado::CODIGO_BLOQUEO])
+            ->getQuery()
+            ->getResult();
+
+        $puntuadas = array_map(
+            fn (PmsEventoCalendario $e): array => [$e, $this->prefijoComun($telefono, (string) $e->getReserva()?->getTelefono())],
+            $estancias,
+        );
+
+        // Más prefijo en común primero; a igualdad, la que más cerca está de hoy.
+        usort($puntuadas, static function (array $a, array $b) use ($hoy): int {
+            return [$b[1], abs((int) $a[0]->getInicio()?->diff($hoy)->format('%r%a'))]
+                <=> [$a[1], abs((int) $b[0]->getInicio()?->diff($hoy)->format('%r%a'))];
+        });
+
+        return new JsonResponse(array_map(
+            fn (array $p): array => $this->serializar($p[0]) + ['mismoPrefijo' => $p[1] >= 4],
+            array_slice($puntuadas, 0, 8),
+        ));
+    }
+
+    /**
+     * Dígitos iniciales en común entre dos teléfonos, hasta 4: el código de país y el de zona
+     * (+55 85 Fortaleza, +51 98 móvil peruano). Más allá ya es casualidad.
+     */
+    private function prefijoComun(string $a, string $b): int
+    {
+        $b = preg_replace('/\D/', '', $b) ?? '';
+        $n = 0;
+
+        while ($n < 4 && isset($a[$n], $b[$n]) && $a[$n] === $b[$n]) {
+            ++$n;
+        }
+
+        return $n;
     }
 
     /**

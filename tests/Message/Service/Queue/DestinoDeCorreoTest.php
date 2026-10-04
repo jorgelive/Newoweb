@@ -228,6 +228,9 @@ final class DestinoDeCorreoTest extends TestCase
             public function getNegocio(): string { return 'prueba'; }
             public function paraConversacion(MessageConversation $c): array { return $this->enlaces; }
             public function titularDeAsunto(string $t, string $i): ?ConversacionEnlaceInterface { return null; }
+            /** @return list<ConversacionEnlaceInterface> */
+            public function acompanantesDeAsunto(string $contextType, string $contextId): array { return []; }
+
             public function enlaceDeAsunto(MessageConversation $c, string $t, string $i): ?ConversacionEnlaceInterface { return null; }
         };
 

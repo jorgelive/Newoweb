@@ -36,6 +36,7 @@ final readonly class AgentActor implements ActorInterface
         private RestriccionCanal $restriccion = RestriccionCanal::Ninguna,
         /** @var list<string> Los dominios que el actor puede tocar. Vacío ⇒ sin acotar. */
         private array $dominios = [],
+        private bool $acompanante = false,
     ) {}
 
     /**
@@ -115,7 +116,8 @@ final readonly class AgentActor implements ActorInterface
         ?string $conversacionId = null,
         VinculoComercial $vinculo = VinculoComercial::Cliente,
         RestriccionCanal $restriccion = RestriccionCanal::Ninguna,
-        array $dominios = []
+        array $dominios = [],
+        bool $acompanante = false,
     ): self {
         return new self(
             null,
@@ -126,7 +128,8 @@ final readonly class AgentActor implements ActorInterface
             $conversacionId,
             $vinculo,
             $restriccion,
-            $dominios
+            $dominios,
+            $acompanante,
         );
     }
 
@@ -270,6 +273,11 @@ final readonly class AgentActor implements ActorInterface
     }
 
     /** ¿Pregunta sin ser todavía cliente de nada? */
+    public function esAcompanante(): bool
+    {
+        return $this->acompanante;
+    }
+
     public function esProspecto(): bool
     {
         return $this->usuario === null && $this->tieneRol(Roles::PROSPECTO);

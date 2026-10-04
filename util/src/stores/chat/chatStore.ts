@@ -1151,6 +1151,38 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     /**
+     * Cuelga una reserva de ESTE hilo como ACOMPAÑANTE: la persona escribe desde su número por
+     * la reserva de otro (Carla por la de Bruna, 12/09/2026).
+     *
+     * Su hilo pasa a saber de qué estancia le hablan —el agente le contesta como a un huésped
+     * más— pero no recibe la agenda automática ni lo que es del titular. No se funde con el hilo
+     * del titular: son dos personas. Ver `AsuntosDeConversacionController::enlazarAcompanante()`.
+     *
+     * @returns {Promise<string | null>} `null` si fue bien; el motivo si no.
+     */
+    const enlazarComoAcompanante = async (contextType: string, contextId: string): Promise<string | null> => {
+        const id = uuidOf(currentConversation.value);
+        if (!id) return 'No hay ninguna conversación abierta.';
+
+        try {
+            const { data } = await apiClient.post(`/platform/message/conversations/${id}/asuntos`, {
+                contextType,
+                contextId,
+            });
+
+            if (uuidOf(currentConversation.value) === id) {
+                asuntosDelChat.value = (data?.asuntos ?? []) as AsuntoDelHilo[];
+                // La cabecera del hilo cambió (de «manual» a la reserva): el resto del chat la lee.
+                await refrescarConversacion(id);
+            }
+
+            return null;
+        } catch (e: unknown) {
+            return mensajeDeError(e) ?? 'No se pudo enlazar la reserva.';
+        }
+    };
+
+    /**
      * El asunto del último mensaje entrante del hilo, si lo lleva estampado.
      *
      * Es la misma idea que preseleccionar WhatsApp al contestar un WhatsApp: se responde a lo
@@ -1506,6 +1538,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, totalProgramados, totalCancelados, templates, validTemplates, filterStatus, busqueda, soloEnEspera, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, cargarMasDePestana, hayMasProgramados, hayMasCancelados, cargandoMasPestana, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation, cargarCabecera, refrescarConversacion
+        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, enlazarComoAcompanante, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, totalProgramados, totalCancelados, templates, validTemplates, filterStatus, busqueda, soloEnEspera, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, cargarMasDePestana, hayMasProgramados, hayMasCancelados, cargandoMasPestana, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation, cargarCabecera, refrescarConversacion
     };
 });

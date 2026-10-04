@@ -67,6 +67,7 @@ final class GuardiaDeSkillsTest extends TestCase
             public function dominios(): array { return []; }
             public function esDelEquipo(): bool { return true; }
             public function esProspecto(): bool { return false; }
+            public function esAcompanante(): bool { return false; }
             public function usuario(): ?User { return null; }
             public function tieneRol(string $rol): bool { return in_array($rol, $this->roles, true); }
             public function tieneAlguno(array $roles): bool

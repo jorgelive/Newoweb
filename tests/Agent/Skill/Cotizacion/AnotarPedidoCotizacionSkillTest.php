@@ -78,6 +78,7 @@ final class AnotarPedidoCotizacionSkillTest extends TestCase
             public function dominios(): array { return []; }
             public function esDelEquipo(): bool { return false; }
             public function esProspecto(): bool { return false; }
+            public function esAcompanante(): bool { return false; }
             public function usuario(): ?User { return null; }
             public function tieneRol(string $rol): bool { return false; }
             public function tieneAlguno(array $roles): bool { return $roles === []; }

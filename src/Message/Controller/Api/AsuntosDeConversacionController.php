@@ -18,6 +18,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use App\Message\Service\Conversacion\AperturaDeHilo;
+use RuntimeException;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 
 /**
@@ -46,6 +48,7 @@ final class AsuntosDeConversacionController extends AbstractController
     public function __construct(
         private readonly EnlacesDeConversacion $enlaces,
         private readonly EntityManagerInterface $em,
+        private readonly AperturaDeHilo $apertura,
     ) {}
 
     /** GET — los asuntos del hilo. */
@@ -146,6 +149,33 @@ final class AsuntosDeConversacionController extends AbstractController
             // Un hito con formato roto no puede tumbar el listado entero: cuenta como sin fecha.
             return null;
         }
+    }
+
+    /**
+     * POST — cuelga un asunto de este hilo como ACOMPAÑANTE.
+     *
+     * Carla escribía desde su número por la reserva de Bruna (12/09/2026) y el hilo se quedó
+     * «manual»: el agente la trató como una desconocida y el equipo tuvo que adivinar de quién
+     * era. Fundir los dos hilos mezclaría a dos personas; esto le da a su hilo la reserva sin
+     * darle la agenda. Ver {@see AperturaDeHilo::enlazarAcompanante()}.
+     */
+    public function enlazarAcompanante(MessageConversation $data, Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted(Roles::MENSAJES_WRITE, null, 'No tienes permiso para editar la conversación.');
+
+        $asunto = AsuntoPedido::fromArray(Lee::mapa(json_decode($request->getContent() ?: '{}', true)));
+
+        if ($asunto->estaIncompleto()) {
+            return new JsonResponse(['error' => 'Falta el asunto.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        try {
+            $this->apertura->enlazarAcompanante($data, $asunto->tipo, $asunto->id);
+        } catch (RuntimeException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return new JsonResponse(['asuntos' => $this->comoLista($data)]);
     }
 
     /**

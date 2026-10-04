@@ -80,4 +80,16 @@ interface ProveedorDeEnlacesInterface
         string $contextType,
         string $contextId
     ): ?ConversacionEnlaceInterface;
+
+    /**
+     * Los enlaces NO titulares de un asunto: los hilos de sus acompañantes.
+     *
+     * El recálculo del asunto sólo pasa por el hilo titular; esto deja que la fábrica refresque
+     * también la foto de los acompañantes, que si no se quedaría con las fechas y el vínculo del
+     * día en que se enlazaron. Sólo lo guardado: un acompañante no nace en la misma unidad de
+     * trabajo que el recálculo.
+     *
+     * @return list<ConversacionEnlaceInterface>
+     */
+    public function acompanantesDeAsunto(string $contextType, string $contextId): array;
 }

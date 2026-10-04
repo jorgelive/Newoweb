@@ -197,7 +197,11 @@ export interface paths {
          */
         get: operations["api_messageconversations_idasuntos_get"];
         put?: never;
-        post?: never;
+        /**
+         * Enlaza un asunto a este hilo como acompañante
+         * @description El hilo sabe de qué reserva le hablan, pero no recibe la agenda automática: ésa es del titular.
+         */
+        post: operations["api_messageconversations_idasuntos_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -35859,6 +35863,68 @@ export interface operations {
                     "application/ld+json": components["schemas"]["Error.jsonld"];
                     "application/problem+json": components["schemas"]["Error"];
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_messageconversations_idasuntos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Conversation identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new Conversation resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Conversation"];
+                "application/json": components["schemas"]["Conversation"];
+                "text/html": components["schemas"]["Conversation"];
+                "multipart/form-data": components["schemas"]["Conversation"];
+            };
+        };
+        responses: {
+            /** @description Conversation resource created */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
                 };
             };
         };

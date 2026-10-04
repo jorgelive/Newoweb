@@ -183,6 +183,22 @@ use Symfony\Component\Uid\Uuid;
         //
         // Es la decisión de a cuál de los dos hilos se le programan los envíos cuando una
         // reserva la atienden dos personas desde números distintos.
+        // POST: cuelga un asunto de este hilo como ACOMPAÑANTE (la persona que escribe desde su
+        // número por la reserva de otro). Sin agenda y sin las identidades del asunto.
+        new Post(
+            uriTemplate: '/conversations/{id}/asuntos',
+            controller: AsuntosDeConversacionController::class . '::enlazarAcompanante',
+            openapi: new Operation(
+                summary: 'Enlaza un asunto a este hilo como acompañante',
+                description: 'El hilo sabe de qué reserva le hablan, pero no recibe la agenda automática: ésa es del titular.'
+            ),
+            security: "is_granted('" . Roles::MENSAJES_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar la conversación.',
+            read: false,
+            deserialize: false,
+            output: false
+        ),
+
         new Patch(
             uriTemplate: '/conversations/{id}/asuntos',
             controller: AsuntosDeConversacionController::class . '::cambiarTitular',

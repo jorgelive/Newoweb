@@ -144,7 +144,8 @@ final readonly class AgentActorFactory
         ?string $contextoId,
         ?string $conversacionId = null,
         VinculoComercial $vinculo = VinculoComercial::Cliente,
-        RestriccionCanal $restriccion = RestriccionCanal::Ninguna
+        RestriccionCanal $restriccion = RestriccionCanal::Ninguna,
+        bool $acompanante = false,
     ): AgentActor {
         return AgentActor::huesped(
             $origen,
@@ -153,7 +154,8 @@ final readonly class AgentActorFactory
             $conversacionId,
             $vinculo,
             $restriccion,
-            $this->frentes->dominiosPara($contextoTipo)
+            $this->frentes->dominiosPara($contextoTipo),
+            $acompanante,
         );
     }
 

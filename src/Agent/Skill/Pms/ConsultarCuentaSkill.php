@@ -144,6 +144,19 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        // La cuenta es del TITULAR. Un acompañante —escribe desde su número por la reserva de
+        // otro— sabe de qué estancia le hablan, pero no ve lo que se debe ni lo que se pagó. Es
+        // código y no una línea del prompt: «no le des la cuenta» es una supresión, y ésas el
+        // modelo las incumple (CLAUDE.md, «El agente: lo que el modelo obedece y lo que no»).
+        if ($actor->esAcompanante()) {
+            return SkillResult::ok([
+                'es_acompanante' => true,
+                'mensaje' => 'Quien escribe es acompañante, no el titular: el estado de cuenta, los '
+                    . 'pagos y los cambios de la reserva los gestiona el titular. Díselo y ofrécele '
+                    . 'lo de la estancia.',
+            ]);
+        }
+
         $e = new EntradaDeSkill($entrada);
         $reservaId = $this->reservaDelContexto($actor)
             ?? trim($e->texto('reserva_id'));

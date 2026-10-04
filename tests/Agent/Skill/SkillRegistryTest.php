@@ -86,6 +86,7 @@ final class SkillRegistryTest extends TestCase
             public function dominios(): array { return $this->dominios; }
             public function esDelEquipo(): bool { return $this->equipo; }
             public function esProspecto(): bool { return false; }
+            public function esAcompanante(): bool { return false; }
             public function usuario(): ?User { return null; }
             public function etiqueta(): string { return 'doble'; }
 
