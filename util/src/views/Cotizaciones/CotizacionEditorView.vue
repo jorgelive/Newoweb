@@ -4524,7 +4524,7 @@ store.$onAction(({ name, args }) => {
                 <!-- req 1: el rol sólo aplica cuando el componente está "Incluido"; en los
                      demás modos manda el modo, así que las tarifas "Alternativa" ya pasaron
                      a "Estándar" apenas el componente dejó de estar incluido. -->
-                <div v-if="store.tarifaActiva.rolSnapshot !== 'operativo' && (store.componenteActualDeTarifa?.modo || 'incluido') !== 'incluido'"
+                <div v-if="store.modalidadDeTarifa(store.tarifaActiva) !== 'operativa' && (store.componenteActualDeTarifa?.modo || 'incluido') !== 'incluido'"
                      class="mb-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 flex items-start gap-2">
                   <i class="fas fa-triangle-exclamation text-amber-500 mt-0.5"></i>
                   <span class="text-[10px] font-bold text-amber-700 leading-tight">
@@ -4542,14 +4542,14 @@ store.$onAction(({ name, args }) => {
                      Ahora se pone y se QUITA desde aquí. Abrir la entrada sin la salida habría
                      convertido un rol escondido en una trampa: «Estándar» exige grupo y una
                      operativa no tiene. -->
-                <div v-if="store.tarifaActiva.rolSnapshot === 'operativo'" class="mb-3 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2.5">
+                <div v-if="store.modalidadDeTarifa(store.tarifaActiva) === 'operativa'" class="mb-3 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2.5">
                   <div class="flex items-start gap-2">
                     <i class="fas fa-lock text-slate-400 mt-0.5"></i>
                     <span class="text-[10px] font-bold text-slate-500 leading-tight">
-                      Rol Operativo — suma al costo y <b>el cliente no ve esta línea</b>. Sin comisión y sin grupo: no compite con ninguna otra opción.
+                      Cálculo <b>operativo</b> — suma al costo y <b>el cliente no ve esta línea</b>. Sin comisión y sin grupo: no compite con ninguna otra opción. Se cambia arriba, en «Modalidad de Cálculo».
                     </span>
                   </div>
-                  <button @click="store.tarifaActiva && store.quitarRolOperativo(store.tarifaActiva.id)"
+                  <button @click="store.tarifaActiva && store.cambiarModalidadTarifa(store.tarifaActiva.id, 'individual')"
                           class="mt-2 w-full py-1.5 rounded-lg border border-slate-300 bg-white text-[10px] font-black uppercase text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-colors">
                     <i class="fas fa-rotate-left mr-1"></i> Volver a visible (grupo 1, estándar)
                   </button>
@@ -4579,13 +4579,11 @@ store.$onAction(({ name, args }) => {
                         <i class="fas fa-right-left mr-1"></i> Alternativa
                       </button>
 
-                      <!-- Operativa NO depende del modo comercial, al revés que alternativa: una
-                           alternativa es un upgrade que se le ofrece al cliente y sólo tiene
-                           sentido en `incluido`; esto es un COSTO que el cliente nunca ve. -->
-                      <button @click="store.tarifaActiva && store.marcarTarifaComoOperativa(store.tarifaActiva.id)"
-                              class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-200 hover:text-slate-700">
-                        <i class="fas fa-lock mr-1"></i> Operativa
-                      </button>
+                      <!-- ⚠️ Aquí hubo un botón «Operativa» (05/10/2026, por la mañana). Se quitó
+                           el mismo día: operativa no es un rol COMERCIAL —no compite con ninguna
+                           otra línea— sino una modalidad de CÁLCULO, y tenerla en los dos sitios
+                           invitaba a marcarla dos veces con resultados distintos. Vive arriba,
+                           en «Modalidad de Cálculo». Ver docs/PlanModalidadDeTarifa.md fase 5. -->
                     </div>
                   </div>
 
@@ -4596,7 +4594,7 @@ store.$onAction(({ name, args }) => {
                   </div>
                 </div>
 
-                <p v-if="store.tarifaActiva.rolSnapshot !== 'operativo' && store.tarifaActiva.grupoTarifa == null" class="text-[9px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-3">
+                <p v-if="store.modalidadDeTarifa(store.tarifaActiva) !== 'operativa' && store.tarifaActiva.grupoTarifa == null" class="text-[9px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-3">
                   <i class="fas fa-exclamation-triangle mr-1"></i> Sin grupo asignado — no se puede marcar como estándar hasta definir un grupo.
                 </p>
 

@@ -7,53 +7,49 @@ namespace App\Tests\Travel\Enum;
 use App\Cotizacion\Entity\CotizacionCottarifa;
 use App\Travel\Entity\TravelTarifa;
 use App\Travel\Enum\TarifaCalculoEnum;
-use App\Travel\Enum\TarifaRolEnum;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Fase 2 del plan: la columna nueva es una COPIA DERIVADA que no puede divergir.
+ * Fase 5 del plan: **el cálculo MANDA y el booleano es la copia**.
  *
- * ⚠️ Lo que se vigila no es la traducción —eso es un `match` de tres líneas— sino que se rehaga
- * **desde los dos setters**, en cualquier orden. Si uno de ellos se olvidara, el campo nuevo se
- * quedaría diciendo lo anterior; y como en esta fase **nadie lo lee todavía**, el error viviría
- * tranquilo hasta la fase 3, donde ya sería un precio mal calculado.
+ * La dirección se invirtió —en la fase 2 era al revés— y lo que se vigila es lo mismo de siempre:
+ * que no puedan decir cosas distintas. Lo que cambia es quién gana si lo intentaran.
+ *
+ * ⚠️ El caso que más fácil se rompe es `setEsGrupal(false)` sobre una operativa: también es «no
+ * grupal», así que una traducción ingenua la convertiría en individual —multiplicaría igual pero
+ * dejaría de repartirse, y volvería a verse en el itinerario del cliente— sin que nadie lo pidiera.
  */
 final class CalculoDerivadoTest extends TestCase
 {
     #[Test]
-    public function el_maestro_deriva_los_tres_casos(): void
+    public function el_calculo_manda_y_el_booleano_lo_sigue(): void
     {
-        $individual = (new TravelTarifa())->setCostoPorGrupo(false);
-        $grupal = (new TravelTarifa())->setCostoPorGrupo(true);
-        $operativa = (new TravelTarifa())->setRol(TarifaRolEnum::OPERATIVO);
+        $grupal = (new TravelTarifa())->setCalculo(TarifaCalculoEnum::GRUPAL);
+        $operativa = (new TravelTarifa())->setCalculo(TarifaCalculoEnum::OPERATIVA);
 
-        self::assertSame(TarifaCalculoEnum::INDIVIDUAL, $individual->getCalculo());
-        self::assertSame(TarifaCalculoEnum::GRUPAL, $grupal->getCalculo());
-        self::assertSame(TarifaCalculoEnum::OPERATIVA, $operativa->getCalculo());
+        self::assertTrue($grupal->isCostoPorGrupo(), 'La copia tiene que seguir al cálculo.');
+        // Una operativa NO es grupal: multiplica por cantidad, y el booleano lo dice.
+        self::assertFalse($operativa->isCostoPorGrupo());
     }
 
     #[Test]
-    public function operativo_gana_sobre_grupal_en_cualquier_orden(): void
+    public function el_camino_viejo_traduce_en_vez_de_romper(): void
     {
-        // Las 22 del catálogo son operativo + grupal. Da igual cuál se escriba antes: el resultado
-        // tiene que ser el mismo, o el dato dependería del orden del formulario.
-        $a = (new TravelTarifa())->setCostoPorGrupo(true)->setRol(TarifaRolEnum::OPERATIVO);
-        $b = (new TravelTarifa())->setRol(TarifaRolEnum::OPERATIVO)->setCostoPorGrupo(true);
-
-        self::assertSame(TarifaCalculoEnum::OPERATIVA, $a->getCalculo());
-        self::assertSame(TarifaCalculoEnum::OPERATIVA, $b->getCalculo());
+        // El panel y los cargadores siguen llamando a setCostoPorGrupo().
+        self::assertSame(TarifaCalculoEnum::GRUPAL, (new TravelTarifa())->setCostoPorGrupo(true)->getCalculo());
+        self::assertSame(TarifaCalculoEnum::INDIVIDUAL, (new TravelTarifa())->setCostoPorGrupo(false)->getCalculo());
     }
 
     #[Test]
-    public function quitar_el_rol_operativo_devuelve_el_calculo_al_booleano(): void
+    public function un_false_del_camino_viejo_NO_pisa_una_operativa(): void
     {
-        $t = (new TravelTarifa())->setCostoPorGrupo(true)->setRol(TarifaRolEnum::OPERATIVO);
+        // 🔑 Una operativa también es «no grupal». Si `setCostoPorGrupo(false)` la tradujera a
+        // individual, dejaría de repartirse y volvería a verse en el itinerario del cliente — por
+        // un campo que el formulario manda siempre, lo toque alguien o no.
+        $t = (new TravelTarifa())->setCalculo(TarifaCalculoEnum::OPERATIVA)->setCostoPorGrupo(false);
+
         self::assertSame(TarifaCalculoEnum::OPERATIVA, $t->getCalculo());
-
-        // La copia tiene que seguir al cambio, no quedarse con lo de antes.
-        $t->setRol(TarifaRolEnum::ESTANDAR);
-        self::assertSame(TarifaCalculoEnum::GRUPAL, $t->getCalculo());
     }
 
     #[Test]
@@ -66,28 +62,31 @@ final class CalculoDerivadoTest extends TestCase
     }
 
     #[Test]
-    public function el_snapshot_deriva_igual_que_el_maestro(): void
+    public function el_snapshot_se_comporta_igual(): void
     {
-        $individual = (new CotizacionCottarifa())->setEsGrupal(false);
-        $grupal = (new CotizacionCottarifa())->setEsGrupal(true);
-        $operativa = (new CotizacionCottarifa())->setRolSnapshot('operativo');
+        self::assertSame('grupal', (new CotizacionCottarifa())->setEsGrupal(true)->getCalculoSnapshot());
+        self::assertSame('individual', (new CotizacionCottarifa())->setEsGrupal(false)->getCalculoSnapshot());
+        self::assertSame('operativa', (new CotizacionCottarifa())->setCalculo('operativa')->getCalculoSnapshot());
 
-        self::assertSame('individual', $individual->getCalculoSnapshot());
-        self::assertSame('grupal', $grupal->getCalculoSnapshot());
-        self::assertSame('operativa', $operativa->getCalculoSnapshot());
+        $op = (new CotizacionCottarifa())->setCalculo('operativa')->setEsGrupal(false);
+        self::assertSame('operativa', $op->getCalculoSnapshot(), 'Un false no puede pisar la operativa.');
     }
 
     #[Test]
-    public function el_snapshot_tambien_sigue_al_cambio(): void
+    public function un_payload_viejo_con_rol_operativo_se_traduce(): void
     {
-        $t = (new CotizacionCottarifa())->setEsGrupal(true)->setRolSnapshot('operativo');
+        // ⚠️ `operativo` dejó de ser un rol. Un cliente desactualizado que todavía lo mande no es
+        // un error: se traduce. Rechazarlo rompería el guardado entero por un campo.
+        $t = (new CotizacionCottarifa())->setRolSnapshot('operativo');
+
         self::assertSame('operativa', $t->getCalculoSnapshot());
+        self::assertSame('estandar', $t->getRolSnapshot(), 'El rol queda en el valor que sí existe.');
+    }
 
-        $t->setRolSnapshot('estandar');
-        self::assertSame('grupal', $t->getCalculoSnapshot());
-
-        $t->setEsGrupal(false);
-        self::assertSame('individual', $t->getCalculoSnapshot());
+    #[Test]
+    public function un_calculo_desconocido_cae_a_individual(): void
+    {
+        self::assertSame('individual', (new CotizacionCottarifa())->setCalculo('marciano')->getCalculoSnapshot());
     }
 
     #[Test]

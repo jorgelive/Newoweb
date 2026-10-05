@@ -1,4 +1,6 @@
 import { components } from '@dominio/api';
+import type { CalculoTarifa } from '@dominio/cotizacion/index.ts';
+import { comoCalculo, visibleParaCliente } from '@dominio/cotizacion/index.ts';
 import type { LugarOpcion } from '@/types/organizacionModel';
 
 export enum Language {
@@ -504,7 +506,14 @@ export interface TarifaSnapshot {
     cantidad: number;
     moneda: string;
     montoCosto: number | string;
+    /**
+     * ⚠️ **Copia derivada desde la fase 5**: quien manda es `calculoSnapshot`. Sobrevive porque
+     * todavía lo leen varios sitios, incluido el detalle que viaja al cliente. Su borrado es la
+     * fase 6b de `docs/PlanModalidadDeTarifa.md` y no cambia comportamiento.
+     */
     esGrupal: boolean;
+    /** Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Manda sobre `esGrupal`. */
+    calculoSnapshot?: CalculoTarifa | null;
     rolSnapshot: TarifaRolValue;
     grupoTarifa: number | null;
     comisionOverrideSnapshot: number | string | null;
@@ -688,9 +697,13 @@ export interface DetalleOperativoBloque {
 
 export type TarifaRolValue = TarifaBase['rol'];
 
+/**
+ * ⚠️ Tuvo una tercera entrada, `operativo`, que se fue con el valor del enum (fase 5 de
+ * `docs/PlanModalidadDeTarifa.md`). Lo que se pinta de una operativa ahora sale de
+ * `ETIQUETAS_CALCULO`, porque es una modalidad de cálculo y no un rol comercial.
+ */
 export const ROL_TARIFA_CONFIG: Record<TarifaRolValue, EstadoUIConfig> = {
     estandar:    { label: 'Estándar',    bg: 'bg-blue-50',   text: 'text-blue-700',   border: 'border-blue-200',  icon: 'fa-star' },
-    operativo:   { label: 'Operativo',   bg: 'bg-slate-100', text: 'text-slate-500',  border: 'border-slate-200', icon: 'fa-wrench' },
     alternativa: { label: 'Alternativa', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', icon: 'fa-right-left' },
 };
 
@@ -791,7 +804,7 @@ export interface EtiquetaGrupoTarifa {
 export const esOpcionalParaElCliente = (comp: {
     modo?: string | null;
     tituloSnapshot?: unknown[] | null;
-    cottarifas?: { rolSnapshot?: string | null }[] | null;
+    cottarifas?: { rolSnapshot?: string | null; calculoSnapshot?: string | null }[] | null;
 }): boolean => {
     if ((comp.modo || 'incluido').toLowerCase() !== 'incluido') {
         return false;
@@ -809,7 +822,11 @@ export const esOpcionalParaElCliente = (comp: {
     const tarifas = comp.cottarifas || [];
     const rol = (t: { rolSnapshot?: string | null }) => (t.rolSnapshot || 'estandar');
 
-    return !tarifas.some(t => rol(t) === 'estandar') && tarifas.some(t => rol(t) !== 'operativo');
+    // Una operativa no cuenta como tarifa publicable: el cliente no la ve.
+    const publicable = (t: { rolSnapshot?: string | null; calculoSnapshot?: string | null }) =>
+        visibleParaCliente(comoCalculo(t.calculoSnapshot ?? (t.rolSnapshot === 'operativo' ? 'operativa' : null)));
+
+    return !tarifas.some(t => rol(t) === 'estandar') && tarifas.some(publicable);
 };
 
 export const etiquetaGrupoTarifa = (
@@ -887,6 +904,20 @@ export interface LineaDetalleClaseCliente {
 }
 
 export interface LineaDetalleClaseInterna extends LineaDetalleClaseCliente {
+    /**
+     * Cómo se cuenta el dinero de esta línea. **Decide si sale publicada**: una `operativa` se
+     * filtra en `expurgarParaCliente()`.
+     *
+     * ⚠️ Antes eso lo decidía `rol === 'operativo'`, y `operativo` dejó de ser un rol en la fase 5
+     * de `docs/PlanModalidadDeTarifa.md`. Si el filtro se hubiera quedado mirando el rol, las
+     * líneas operativas —el guía, los liberados— habrían **empezado a publicarse al cliente** sin
+     * que nada fallara.
+     *
+     * Va en ESTA interfaz y no en la base por lo que dice `montoCosto` justo abajo: la base es el
+     * contrato del cliente, así que lo que se declare ahí se publica.
+     */
+    calculo: CalculoTarifa;
+
     /**
      * Lo que le cuesta al negocio esta línea. **Interno.**
      *
@@ -1154,7 +1185,10 @@ export function expurgarParaCliente(fin: ClasificacionFinancieraInterna): Clasif
             edadMin: c.edadMin,
             edadMax: c.edadMax,
             detalle: c.detalle
-                .filter((d) => d.rol !== 'operativo')
+                // ⚠️ Lo que esconde una línea es el CÁLCULO, no el rol. Ver `calculo` en
+                // `LineaDetalleClaseInterna`: mirando el rol, las operativas se habrían
+                // publicado en silencio.
+                .filter((d) => visibleParaCliente(d.calculo))
                 .map((d): LineaDetalleClaseCliente => ({
                     // `montoCosto` NO se copia: es el costo de proveedor. Ver la interfaz.
                     moneda: d.moneda,

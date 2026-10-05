@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useCotizacionEditorStore } from './cotizacionEditorStore';
+import { expurgarParaCliente } from '@/types/cotizacionEditorModel';
 
 /**
  * Cómo reparte el clasificador el dinero de cada **modalidad de cálculo**.
@@ -128,18 +129,37 @@ describe('cómo reparte el clasificador cada modalidad', () => {
         // cantidad: 80 × 5 = 400 sobre los 10 pax, encima de sus 10 000.
         const clases = costoPorClase(10, [
             tarifa(1000, 10),
-            tarifa(80, 5, { rolSnapshot: 'operativo' }),
+            tarifa(80, 5, { calculoSnapshot: 'operativa' }),
         ]);
 
         expect(clases).toHaveLength(1);
         expect(clases).toEqual([10400]);
     });
 
+    it('una operativa NUNCA se publica al cliente', () => {
+        // 🔥 Lo más peligroso de la fase 5. El filtro del expurgador miraba `rol === 'operativo'`,
+        // y «operativo» dejó de ser un rol: si se hubiera quedado mirando el rol, el guía, su
+        // viático y los liberados habrían **empezado a aparecer en la propuesta del huésped** sin
+        // que nada fallara ni nadie lo notara.
+        const store = useCotizacionEditorStore();
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = cotizacionCon(10, [
+            tarifa(1000, 10),
+            tarifa(80, 5, { calculoSnapshot: 'operativa', rolSnapshot: 'estandar' }),
+        ]);
+
+        const paraElCliente = expurgarParaCliente(store.resumenFinanciero!);
+        const lineas = paraElCliente.clasesPasajeros.flatMap((c) => c.detalle);
+
+        expect(lineas).toHaveLength(1);
+        expect(lineas.every((l) => l.cantidad !== 5)).toBe(true);
+    });
+
     it('una operativa NO deja pasajeros «sin cubrir»', () => {
         // El otro efecto del reparto: no viaja nadie en esa línea, son cinco vuelos.
         expect(avisosDeCobertura(10, [
             tarifa(1000, 10),
-            tarifa(80, 5, { rolSnapshot: 'operativo' }),
+            tarifa(80, 5, { calculoSnapshot: 'operativa' }),
         ])).toEqual([]);
     });
 });

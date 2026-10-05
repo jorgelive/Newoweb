@@ -462,7 +462,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         // del catálogo la oculta del cliente y le pone comisión 0, y en el desplegable «Viático
         // Guía» se leía igual que cualquier otra. Una consecuencia invisible en el momento de
         // decidir es la que nadie revisa después.
-        const indicadorRol = getRolTarifa(cat) === 'operativo' ? ' 🔒' : '';
+        const indicadorRol = ('calculo' in cat && cat.calculo === 'operativa') ? ' 🔒' : '';
 
         return `${nombre}${edadStr}${indicadorMatematica}${indicadorProcedencia}${indicadorRol} (${moneda} ${monto})`;
     };
@@ -627,7 +627,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         const grupos = new Map<number, { pax: number; grupal: boolean }>();
         for (const t of tarifas) {
-            if (t.rolSnapshot === 'operativo' || t.grupoTarifa == null) continue;
+            if (modalidadDeTarifa(t) === 'operativa' || t.grupoTarifa == null) continue;
             const acc = grupos.get(t.grupoTarifa) || { pax: 0, grupal: false };
             if (resolverGrupal(t)) acc.grupal = true;
             else acc.pax += unidadesDe(t.cantidad, 0);
@@ -1013,15 +1013,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     // si no lo trae —una fila anterior al relleno, o una que el editor acaba de
                     // crear en memoria— se deriva igual que en el backend.
                     //
-                    // ⚠️ **El respaldo tiene que mirar el ROL, no sólo el booleano.** Espejo exacto
-                    // de `CotizacionCottarifa::calculoDerivado()`: si aquí cayera a «individual»
-                    // por no mirarlo, una operativa recién marcada se repartiría mal hasta
-                    // recargar la página, que es la clase de diferencia que nadie atribuye al
-                    // código.
-                    const calculo = comoCalculo(
-                        t.calculoSnapshot
-                        ?? (rolCrudo === 'operativo' ? 'operativa' : (esGrupal ? 'grupal' : 'individual')),
-                    );
+                    // ⚠️ El respaldo ya NO mira el rol: desde la fase 5 `operativo` no es un valor
+                    // posible —el tipo generado lo dice, `"estandar" | "alternativa"`— y lo que
+                    // llegue con él por un cliente viejo lo traduce el backend al guardar
+                    // (`CotizacionCottarifa::setRolSnapshot()`).
+                    const calculo = comoCalculo(t.calculoSnapshot ?? (esGrupal ? 'grupal' : 'individual'));
                     const tCant = unidadesDe(t.cantidad);
                     const montoBase = parseFloat(String(t.montoCosto)) || 0;
                     const moneda = String(t.moneda || 'USD').toUpperCase();
@@ -1075,6 +1071,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         rutaOrigen: `${servicioLabel} ➔ ${compLabel} (${getI18nText(t.tituloSnapshot, idiomaEdicion) || t.nombreInternoSnapshot || 'Tarifa'})`,
                         base: {
                             montoCosto: String(t.montoCosto || '0'),
+                            // El `base` ES la línea de detalle: su cálculo decide si se publica.
+                            calculo,
                             moneda,
                             esGrupal,
                             cantidad: tCant,
@@ -1124,13 +1122,21 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 if (modoFin === 'incluido' && paxEstandar === numPaxGlobal) {
                     let score = 0;
                     lineas.forEach((l) => {
-                        if (l.esGrupal || l.base.rol !== 'estandar') return;
+                        // Las líneas que definen CUÁNTOS pasajeros hay son sólo las
+                        // individuales: una grupal es un precio cerrado y una operativa cuenta
+                        // unidades. Ver abajo, en `maestroLineas`.
+                        if (l.calculo !== 'individual' || l.base.rol !== 'estandar') return;
                         if (l.tipoPaxId !== '0') score += 100;
                         score += (120 - (l.edadMax - l.edadMin));
                     });
                     if (score > mejorPuntaje) {
                         mejorPuntaje = score;
-                        maestroLineas = lineas.filter((l) => !l.esGrupal && l.base.rol === 'estandar');
+                        // ⚠️ **De aquí sale la CAPACIDAD de cada clase de pasajero**, así que
+                        // sólo pueden entrar las líneas que de verdad son gente. Con `!esGrupal`
+                        // entraba también una operativa —cuyo `cupos` es `numPax`— y la clase se
+                        // inflaba al doble: 10 pax se volvían 20, el costo se multiplicaba por la
+                        // clase inflada y encima saltaba «no cubre a todos los pasajeros».
+                        maestroLineas = lineas.filter((l) => l.calculo === 'individual' && l.base.rol === 'estandar');
                     }
                 }
 
@@ -1689,7 +1695,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         // Sus grupos de tarifas se muestran como "Opcional" etiquetados
                         // "Opción N" (blindaje req 4: grupoTarifa nulo → 0).
                         const opcionables = (componente.cottarifas || []).filter(
-                            (t: TarifaSnapshot) => (t.rolSnapshot || 'estandar') !== 'operativo'
+                            (t: TarifaSnapshot) => modalidadDeTarifa(t) !== 'operativa'
                         );
                         // Un componente marcado INCLUIDO sin tarifa estándar es una
                         // contradicción: está en el paquete pero no tiene precio base. El
@@ -3566,7 +3572,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const tarifas = componente.cottarifas || [];
 
         const agrupables = tarifas.filter(
-            (t: TarifaSnapshot) => t.rolSnapshot !== 'operativo' && t.grupoTarifa != null
+            (t: TarifaSnapshot) => modalidadDeTarifa(t) !== 'operativa' && t.grupoTarifa != null
         );
 
         const grupoActual = agrupables.length
@@ -3769,6 +3775,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         // El servicio del proveedor (tipo de habitación) ya no cuelga de la tarifa: es del
         // componente, y lo siembra onTarifaMaestraChange(). Aquí sólo se mapea la línea.
         const rol = getRolTarifa(tarifa);
+        // Qué marca una operativa es el CÁLCULO del maestro, no el rol (fase 5).
+        const esOperativa = comoCalculo(
+            ('calculo' in tarifa ? (tarifa.calculo as string | null) : null)
+            ?? (getEsGrupalTarifa(tarifa) ? 'grupal' : 'individual'),
+        ) === 'operativa';
 
         return {
             id: crypto.randomUUID(),
@@ -3779,8 +3790,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             moneda: getMonedaTarifa(tarifa),
             montoCosto: getMontoCostoTarifa(tarifa),
             rolSnapshot: rol,
-            grupoTarifa: rol === 'operativo' ? null : 1,
-            comisionOverrideSnapshot: rol === 'operativo' ? '0.00' : getComisionOverrideTarifa(tarifa),
+            grupoTarifa: esOperativa ? null : 1,
+            comisionOverrideSnapshot: esOperativa ? '0.00' : getComisionOverrideTarifa(tarifa),
             notaRol: [],
             esGrupal,
             modalidadSnapshot: getModalidadTarifa(tarifa),
@@ -3941,7 +3952,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         const grupoObjetivo = tarifa.grupoTarifa;
         componente.cottarifas.forEach((t: TarifaSnapshot) => {
-            if (t.rolSnapshot === 'operativo' || t.grupoTarifa == null) return;
+            if (modalidadDeTarifa(t) === 'operativa' || t.grupoTarifa == null) return;
             t.rolSnapshot = (t.grupoTarifa === grupoObjetivo) ? 'estandar' : 'alternativa';
         });
     };
@@ -3985,11 +3996,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * Las 22 operativas del catálogo son grupales con cantidad 1, así que leerlas como
      * «× cantidad» da **el mismo número**: el colapso no cambia ni un sol de lo que ya existe.
      */
-    const modalidadDeTarifa = (t: Pick<TarifaSnapshot, 'esGrupal' | 'rolSnapshot'>): 'individual' | 'grupal' | 'operativa' => {
-        if (t.rolSnapshot === 'operativo') return 'operativa';
-
-        return t.esGrupal ? 'grupal' : 'individual';
-    };
+    const modalidadDeTarifa = (t: Pick<TarifaSnapshot, 'esGrupal' | 'rolSnapshot' | 'calculoSnapshot'>): CalculoTarifa =>
+        comoCalculo(t.calculoSnapshot ?? (t.esGrupal ? 'grupal' : 'individual'));
 
     /**
      * Cambia la modalidad. Escribe los dos campos a la vez **porque una modalidad a medias no
@@ -4011,10 +4019,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             return;
         }
 
-        if (tarifa.rolSnapshot === 'operativo') {
+        if (tarifa.calculoSnapshot === 'operativa') {
             quitarRolOperativo(tarifaId);
         }
 
+        tarifa.calculoSnapshot = modalidad;
         tarifa.esGrupal = modalidad === 'grupal';
 
         // Grupal es un precio cerrado: la cantidad deja de multiplicar, así que dejarla en otro
@@ -4030,7 +4039,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         if (!tarifa) return;
 
-        tarifa.rolSnapshot = 'operativo';
+        // Fase 5: `operativo` dejó de ser un rol. Lo que marca una operativa es el CÁLCULO.
+        tarifa.calculoSnapshot = 'operativa';
+        tarifa.esGrupal = false;          // multiplica por cantidad: cinco vuelos son cinco
+        tarifa.rolSnapshot = 'estandar';  // no compite con ninguna otra línea
         tarifa.comisionOverrideSnapshot = '0.00';
         tarifa.grupoTarifa = null;
     };
@@ -4051,8 +4063,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const componente = encontrarComponentePorTarifaId(tarifaId);
         const tarifa = componente?.cottarifas?.find(t => t.id === tarifaId);
 
-        if (!tarifa || tarifa.rolSnapshot !== 'operativo') return;
+        if (!tarifa || tarifa.calculoSnapshot !== 'operativa') return;
 
+        tarifa.calculoSnapshot = 'individual';
         tarifa.grupoTarifa = 1;
         tarifa.rolSnapshot = 'estandar';
     };
@@ -4927,9 +4940,17 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             tarifa.montoCosto = parseFloat(maestro.monto || '0');
 
 
+            // El cálculo viene del maestro; el rol ya no puede traer «operativo» (fase 5).
+            const calculoMaestro = comoCalculo(
+                ('calculo' in maestro ? (maestro.calculo as string | null) : null)
+                ?? (getEsGrupalTarifa(maestro) ? 'grupal' : 'individual'),
+            );
+            const esOperativa = calculoMaestro === 'operativa';
+
+            tarifa.calculoSnapshot = calculoMaestro;
             tarifa.rolSnapshot = rol;
-            tarifa.comisionOverrideSnapshot = rol === 'operativo' ? '0.00' : getComisionOverrideTarifa(maestro);
-            tarifa.grupoTarifa = rol === 'operativo' ? null : (tarifa.grupoTarifa ?? 1);
+            tarifa.comisionOverrideSnapshot = esOperativa ? '0.00' : getComisionOverrideTarifa(maestro);
+            tarifa.grupoTarifa = esOperativa ? null : (tarifa.grupoTarifa ?? 1);
 
             tarifa.modalidadSnapshot = maestro.modalidad || null;
             tarifa.categoriaSnapshot = maestro.categoria || null;

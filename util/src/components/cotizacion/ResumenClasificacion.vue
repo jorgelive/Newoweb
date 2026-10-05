@@ -16,6 +16,7 @@
 //  · Avisos: colapsado por defecto, tono informativo (no "no publicable").
 // ============================================================================
 import { ref, computed } from 'vue';
+import { ETIQUETAS_CALCULO } from '@dominio/cotizacion/index.ts';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
 import { fmtNaive } from '@/utils/naiveDate';
 import {
@@ -288,7 +289,7 @@ const totalesInclusiones = computed(() => {
             <div class="p-2.5 sm:p-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
             <article v-for="(d, i) in dia.lineas" :key="i"
                      class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm tabular-nums"
-                     :class="d.rol === 'operativo' ? 'opacity-60' : ''">
+                     :class="d.calculo === 'operativa' ? 'opacity-60' : ''">
 
               <!-- Servicio + venta/pax: lo primero que se busca, arriba y en los extremos -->
               <div class="flex items-start justify-between gap-3">
@@ -341,10 +342,10 @@ const totalesInclusiones = computed(() => {
                   {{ MODO_UI[d.modo].label }}
                 </span>
                 <span class="text-[8px] font-black px-1.5 py-0.5 rounded border uppercase bg-slate-50 text-slate-500 border-slate-200"
-                      :title="d.esGrupal ? 'Prorrateado (costo por grupo)' : 'Unitario (costo por pax)'">
-                  {{ d.esGrupal ? 'Prorrateado' : 'Unitario' }}
+                      :title="ETIQUETAS_CALCULO[d.calculo]">
+                  {{ ETIQUETAS_CALCULO[d.calculo] }}
                 </span>
-                <span v-if="d.rol === 'operativo'" class="text-[8px] font-black px-1.5 py-0.5 rounded border uppercase bg-slate-100 text-slate-400 border-slate-200">
+                <span v-if="d.calculo === 'operativa'" class="text-[8px] font-black px-1.5 py-0.5 rounded border uppercase bg-slate-100 text-slate-400 border-slate-200">
                   <i class="fas fa-wrench"></i> Op
                 </span>
                 <span class="ml-auto text-[12px] font-black text-slate-700">

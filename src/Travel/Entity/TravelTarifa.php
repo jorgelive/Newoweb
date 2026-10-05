@@ -134,13 +134,16 @@ class TravelTarifa
      * Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
      * `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
      *
-     * ⚠️ **Fase 2 de `docs/PlanModalidadDeTarifa.md`: aquí todavía NO manda.** Es una copia
-     * derivada de los dos campos viejos, mantenida al día por {@see self::sincronizarCalculo()},
-     * que corre desde los dos setters. Mientras dure la convivencia la verdad sigue siendo el
-     * booleano; esto existe para poder migrar a los consumidores de uno en uno.
+     * ⚠️ **Desde la fase 5 (05/10/2026) MANDA ESTE CAMPO.** `costoPorGrupo` sobrevive como copia
+     * derivada —`grupal` ⇒ `true`— para los consumidores que aún lo leen, incluido el detalle que
+     * viaja al cliente; su borrado físico es la fase 6b y no cambia comportamiento.
      *
-     * Nulable sólo durante la convivencia: una fila escrita por SQL antes del relleno no la tiene,
-     * y {@see self::getCalculo()} la deriva al vuelo en vez de devolver null.
+     * La dirección se invirtió: antes esto se derivaba del booleano, ahora el booleano se deriva de
+     * esto. Lo que **no** cambió es que haya una sola fuente — tenerlas a la vez escribibles es
+     * como se acaban contradiciendo.
+     *
+     * Nulable por compatibilidad con filas anteriores al relleno; {@see self::getCalculo()} las
+     * deriva al vuelo en vez de devolver null.
      */
     #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'string', length: 20, nullable: true, enumType: TarifaCalculoEnum::class)]
@@ -421,11 +424,21 @@ class TravelTarifa
         return $this->costoPorGrupo;
     }
 
+    /**
+     * ⚠️ **Camino viejo, conservado por los escritores que no se han migrado** (el panel, los
+     * cargadores). Traduce al cálculo, que es quien manda: `true` ⇒ grupal, y `false` deja
+     * individual **salvo que ya fuera operativa**, porque una operativa también es «no grupal» y
+     * perderla aquí la convertiría en individual sin que nadie lo pidiera.
+     */
     public function setCostoPorGrupo(bool $costoPorGrupo): self
     {
-        $this->costoPorGrupo = $costoPorGrupo;
+        if ($costoPorGrupo) {
+            return $this->setCalculo(TarifaCalculoEnum::GRUPAL);
+        }
 
-        return $this->sincronizarCalculo();
+        return $this->getCalculo() === TarifaCalculoEnum::GRUPAL
+            ? $this->setCalculo(TarifaCalculoEnum::INDIVIDUAL)
+            : $this;
     }
 
     public function getRol(): TarifaRolEnum
@@ -437,7 +450,16 @@ class TravelTarifa
     {
         $this->rol = $rol;
 
-        return $this->sincronizarCalculo();
+        return $this;
+    }
+
+    /** Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
+    public function setCalculo(TarifaCalculoEnum $calculo): self
+    {
+        $this->calculo = $calculo;
+        $this->costoPorGrupo = $calculo === TarifaCalculoEnum::GRUPAL;
+
+        return $this;
     }
 
     /**
@@ -452,34 +474,9 @@ class TravelTarifa
         return $this->calculo ?? $this->calculoDerivado();
     }
 
-    /**
-     * Mantiene la copia al día desde los dos setters viejos.
-     *
-     * ⚠️ **No hay `setCalculo()` público, y es deliberado.** Mientras manden el booleano y el rol,
-     * un setter propio abriría la puerta a que los tres campos digan cosas distintas — y el que
-     * perdería sería el nuevo, porque es el que nadie lee todavía. Se vuelve escribible en la
-     * fase 6, cuando los viejos desaparezcan.
-     */
-    private function sincronizarCalculo(): self
-    {
-        $this->calculo = $this->calculoDerivado();
-
-        return $this;
-    }
-
-    /**
-     * La traducción de los dos campos viejos al nuevo, **en un solo sitio**.
-     *
-     * `operativo` gana sobre `costoPorGrupo` porque en el modelo nuevo una operativa multiplica por
-     * cantidad, y las 22 del catálogo son grupales con cantidad 1: leerlas como «× cantidad» da el
-     * mismo número. Ver §3 del plan.
-     */
+    /** Para las filas anteriores al relleno: el booleano es lo único que hay. */
     private function calculoDerivado(): TarifaCalculoEnum
     {
-        if ($this->rol === TarifaRolEnum::OPERATIVO) {
-            return TarifaCalculoEnum::OPERATIVA;
-        }
-
         return $this->costoPorGrupo ? TarifaCalculoEnum::GRUPAL : TarifaCalculoEnum::INDIVIDUAL;
     }
 

@@ -171,9 +171,9 @@ class CotizacionCottarifa
      * Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
      * `TravelTarifa::$calculo`.
      *
-     * ⚠️ **Fase 2 de `docs/PlanModalidadDeTarifa.md`: aquí todavía NO manda.** Es una copia
-     * derivada de `esGrupal` + `rolSnapshot`, al día por {@see self::sincronizarCalculo()}. La
-     * verdad sigue siendo el booleano mientras dure la convivencia.
+     * ⚠️ **Desde la fase 5 (05/10/2026) MANDA ESTE CAMPO.** `esGrupal` sobrevive como copia
+     * derivada para los consumidores que aún lo leen —incluido el detalle que viaja al cliente—;
+     * su borrado físico es la fase 6b y no cambia comportamiento.
      *
      * Texto y no enum, como sus hermanos `rolSnapshot` y `procedenciaSnapshot`: un snapshot guarda
      * lo que decía el catálogo ese día, y un enum lo haría ilegible el día que el catálogo cambie
@@ -343,19 +343,44 @@ class CotizacionCottarifa
     public function setCapacidadMaximaSnapshot(?int $capacidadMaximaSnapshot): self { $this->capacidadMaximaSnapshot = $capacidadMaximaSnapshot; return $this; }
 
     public function isEsGrupal(): bool { return $this->esGrupal; }
+    /**
+     * ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+     * también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+     */
     public function setEsGrupal(bool $esGrupal): self
     {
-        $this->esGrupal = $esGrupal;
+        if ($esGrupal) {
+            return $this->setCalculo('grupal');
+        }
 
-        return $this->sincronizarCalculo();
+        return $this->getCalculoSnapshot() === 'grupal' ? $this->setCalculo('individual') : $this;
     }
 
     public function getRolSnapshot(): ?string { return $this->rolSnapshot; }
     public function setRolSnapshot(?string $rolSnapshot): self
     {
+        // ⚠️ `operativo` dejó de ser un rol (fase 5). Un payload viejo que todavía lo mande se
+        // traduce en vez de rechazarse: es un cliente desactualizado, no un error, y rechazarlo
+        // rompería el guardado entero por un campo.
+        if ($rolSnapshot === 'operativo') {
+            $this->rolSnapshot = 'estandar';
+
+            return $this->setCalculo('operativa');
+        }
+
         $this->rolSnapshot = $rolSnapshot;
 
-        return $this->sincronizarCalculo();
+        return $this;
+    }
+
+    /** Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
+    #[Groups(['cotizacion:write'])]
+    public function setCalculo(string $calculo): self
+    {
+        $this->calculoSnapshot = (TarifaCalculoEnum::tryFrom($calculo) ?? TarifaCalculoEnum::INDIVIDUAL)->value;
+        $this->esGrupal = $this->calculoSnapshot === 'grupal';
+
+        return $this;
     }
 
     /** El cálculo, derivándolo si la columna aún no está escrita. Nunca devuelve null. */
@@ -380,25 +405,9 @@ class CotizacionCottarifa
         return TarifaCalculoEnum::tryFrom($this->getCalculoSnapshot()) ?? TarifaCalculoEnum::INDIVIDUAL;
     }
 
-    /**
-     * ⚠️ **Sin setter público mientras dure la convivencia**, por lo mismo que en el maestro: un
-     * tercer campo escribible junto a los dos que mandan acabaría diciendo otra cosa, y el que
-     * perdería sería el nuevo porque es el que nadie lee todavía.
-     */
-    private function sincronizarCalculo(): self
-    {
-        $this->calculoSnapshot = $this->calculoDerivado();
-
-        return $this;
-    }
-
-    /** La traducción de los dos campos viejos, en un solo sitio. Ver §3 del plan. */
+    /** Para las filas anteriores al relleno: el booleano es lo único que hay. */
     private function calculoDerivado(): string
     {
-        if ($this->rolSnapshot === 'operativo') {
-            return 'operativa';
-        }
-
         return $this->esGrupal ? 'grupal' : 'individual';
     }
 

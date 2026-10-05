@@ -10041,7 +10041,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10071,6 +10075,13 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
+            calculo?: string;
+            /**
+             * @description El mismo dato **como enum**, que es lo que saben responder los predicados.
+             * @enum {string}
+             */
+            readonly calculoDeTarifa?: "individual" | "grupal" | "operativa";
             /**
              * Format: uuid
              * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
@@ -10107,7 +10118,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10166,7 +10181,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10186,6 +10205,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
+            calculo?: string;
         };
         "CotizacionCottarifa-operacion.item.read_timestamp.read": {
             /** Format: date-time */
@@ -10210,7 +10231,11 @@ export interface components {
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10234,7 +10259,11 @@ export interface components {
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10286,7 +10315,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10316,6 +10349,13 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
+            calculo?: string;
+            /**
+             * @description El mismo dato **como enum**, que es lo que saben responder los predicados.
+             * @enum {string}
+             */
+            readonly calculoDeTarifa?: "individual" | "grupal" | "operativa";
             /**
              * Format: uuid
              * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
@@ -10352,7 +10392,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10400,7 +10444,11 @@ export interface components {
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10424,7 +10472,11 @@ export interface components {
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10476,7 +10528,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10506,6 +10562,13 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
+            calculo?: string;
+            /**
+             * @description El mismo dato **como enum**, que es lo que saben responder los predicados.
+             * @enum {string}
+             */
+            readonly calculoDeTarifa?: "individual" | "grupal" | "operativa";
             /**
              * Format: uuid
              * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
@@ -10542,7 +10605,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10590,7 +10657,11 @@ export interface components {
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10614,7 +10685,11 @@ export interface components {
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10666,7 +10741,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10696,6 +10775,13 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
+            calculo?: string;
+            /**
+             * @description El mismo dato **como enum**, que es lo que saben responder los predicados.
+             * @enum {string}
+             */
+            readonly calculoDeTarifa?: "individual" | "grupal" | "operativa";
             /**
              * Format: uuid
              * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
@@ -10732,7 +10818,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10780,7 +10870,11 @@ export interface components {
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -10804,7 +10898,11 @@ export interface components {
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
+             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
+             * @default false
+             */
             esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
@@ -32858,19 +32956,25 @@ export interface components {
             edadMaxima?: number | null;
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ **Camino viejo, conservado por los escritores que no se han migrado** (el panel, los
+             *     cargadores). Traduce al cálculo, que es quien manda: `true` ⇒ grupal, y `false` deja
+             *     individual **salvo que ya fuera operativa**, porque una operativa también es «no grupal» y
+             *     perderla aquí la convertiría en individual sin que nadie lo pidiera.
+             * @default false
+             */
             costoPorGrupo: boolean;
             /**
              * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
              *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
              * @enum {string|null}
              */
-            readonly calculo?: "individual" | "grupal" | "operativa" | null;
+            calculo?: "individual" | "grupal" | "operativa" | null;
             /**
              * @default estandar
              * @enum {string}
              */
-            rol: "estandar" | "operativo" | "alternativa";
+            rol: "estandar" | "alternativa";
             comisionOverride?: string | null;
             nombreParaPrestador?: string | null;
             /**
@@ -32925,19 +33029,25 @@ export interface components {
             edadMaxima?: number | null;
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ **Camino viejo, conservado por los escritores que no se han migrado** (el panel, los
+             *     cargadores). Traduce al cálculo, que es quien manda: `true` ⇒ grupal, y `false` deja
+             *     individual **salvo que ya fuera operativa**, porque una operativa también es «no grupal» y
+             *     perderla aquí la convertiría en individual sin que nadie lo pidiera.
+             * @default false
+             */
             costoPorGrupo: boolean;
             /**
              * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
              *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
              * @enum {string|null}
              */
-            readonly calculo?: "individual" | "grupal" | "operativa" | null;
+            calculo?: "individual" | "grupal" | "operativa" | null;
             /**
              * @default estandar
              * @enum {string}
              */
-            rol: "estandar" | "operativo" | "alternativa";
+            rol: "estandar" | "alternativa";
             comisionOverride?: string | null;
             nombreParaPrestador?: string | null;
             /**
@@ -32980,19 +33090,25 @@ export interface components {
             edadMaxima?: number | null;
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ **Camino viejo, conservado por los escritores que no se han migrado** (el panel, los
+             *     cargadores). Traduce al cálculo, que es quien manda: `true` ⇒ grupal, y `false` deja
+             *     individual **salvo que ya fuera operativa**, porque una operativa también es «no grupal» y
+             *     perderla aquí la convertiría en individual sin que nadie lo pidiera.
+             * @default false
+             */
             costoPorGrupo: boolean;
             /**
              * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
              *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
              * @enum {string|null}
              */
-            readonly calculo?: "individual" | "grupal" | "operativa" | null;
+            calculo?: "individual" | "grupal" | "operativa" | null;
             /**
              * @default estandar
              * @enum {string}
              */
-            rol: "estandar" | "operativo" | "alternativa";
+            rol: "estandar" | "alternativa";
             comisionOverride?: string | null;
             nombreParaPrestador?: string | null;
             /**
@@ -33043,19 +33159,25 @@ export interface components {
             edadMaxima?: number | null;
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ **Camino viejo, conservado por los escritores que no se han migrado** (el panel, los
+             *     cargadores). Traduce al cálculo, que es quien manda: `true` ⇒ grupal, y `false` deja
+             *     individual **salvo que ya fuera operativa**, porque una operativa también es «no grupal» y
+             *     perderla aquí la convertiría en individual sin que nadie lo pidiera.
+             * @default false
+             */
             costoPorGrupo: boolean;
             /**
              * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
              *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
              * @enum {string|null}
              */
-            readonly calculo?: "individual" | "grupal" | "operativa" | null;
+            calculo?: "individual" | "grupal" | "operativa" | null;
             /**
              * @default estandar
              * @enum {string}
              */
-            rol: "estandar" | "operativo" | "alternativa";
+            rol: "estandar" | "alternativa";
             comisionOverride?: string | null;
             nombreParaPrestador?: string | null;
             /**
@@ -33106,19 +33228,25 @@ export interface components {
             edadMaxima?: number | null;
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
-            /** @default false */
+            /**
+             * @description ⚠️ **Camino viejo, conservado por los escritores que no se han migrado** (el panel, los
+             *     cargadores). Traduce al cálculo, que es quien manda: `true` ⇒ grupal, y `false` deja
+             *     individual **salvo que ya fuera operativa**, porque una operativa también es «no grupal» y
+             *     perderla aquí la convertiría en individual sin que nadie lo pidiera.
+             * @default false
+             */
             costoPorGrupo: boolean;
             /**
              * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
              *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
              * @enum {string|null}
              */
-            readonly calculo?: "individual" | "grupal" | "operativa" | null;
+            calculo?: "individual" | "grupal" | "operativa" | null;
             /**
              * @default estandar
              * @enum {string}
              */
-            rol: "estandar" | "operativo" | "alternativa";
+            rol: "estandar" | "alternativa";
             comisionOverride?: string | null;
             nombreParaPrestador?: string | null;
             /**
