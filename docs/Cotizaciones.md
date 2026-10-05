@@ -12054,3 +12054,62 @@ pero el guarda se queda en los dos sitios:
 En la tarjeta, el rol **ya no se enseña** cuando la tarifa es operativa, y el número del grupo se
 dice con palabras porque significa otra cosa: «Sólo con la Opción 1» cuando está atada, «Costo del
 viaje · suma siempre» cuando está suelta.
+
+---
+
+## Lo que encontró la revisión independiente de los upgrades (05/10/2026)
+
+Un agente externo revisó el camino del dinero de las opciones con el encargo de **encontrar
+fallos, no confirmarlos**. Encontró tres que importan, y uno de ellos era mío y reciente.
+
+### 1. 🔥 Dinero que se evaporaba, y mi test lo daba por bueno
+
+La operativa atada se sacaba de la base con sólo tener grupo, **sin comprobar que ese grupo
+exista como opción**. Si no existe, nadie la recoge abajo —`grupos` se construye desde las
+alternativas— y el costo **no está en ningún sitio**. Tres formas de llegar:
+
+- atarla a un grupo que no tiene alternativa;
+- atarla bien y **borrar la alternativa después**;
+- mover el componente a **cortesía** o **no incluido**, donde el bloque de upgrades ni corre.
+
+⚠️ **Y el test que escribí para esto usaba justo el primer caso**: fixture sin alternativa,
+`expect(totalCostoNeto).toBeCloseTo(1000)`. Verde, y fijando como correcto que 160 dólares
+desaparecieran. Es el mismo fallo que el test de «grupal» de esa misma mañana —un fixture que no
+reproduce el caso que el nombre promete— cometido otra vez con la lección delante.
+
+Ahora la operativa **sólo se desvía si hay a dónde**: grupo con alternativa visible y componente
+incluido. Si no, vuelve a sumar al viaje **y se dice**, porque atarla a un grupo muerto es un
+error del operador que si no, no se ve.
+
+### 2. 🔥 La CUARTA copia de «¿hay estándar visible?», y era la fuga de verdad
+
+`opcionesUpgrade` estaba limpio. La puerta era `construirInclusiones()`, cuyo filtro llevaba
+escrito en el comentario «tarifa estándar **visible**» y miraba **sólo el rol**.
+
+Consecuencia en Coco Bongo: el componente contaba como «tiene estándar», se publicaba en
+**incluidos** con el **título de la operativa** dentro, y a la vez salía como «Opción 1» en los
+upgrades. **El cliente leía las dos cosas en la misma propuesta**, y el aviso de
+`esOpcionalParaElCliente()` no saltaba porque ésa sí miraba la visibilidad.
+
+Las otras tres copias ya se habían unificado en `esEstandarVisible()` ese mismo día. Faltaba ésta
+— y era la que publicaba.
+
+### 3. Lo que queda abierto, medido y no urgente
+
+| Hallazgo | Estado |
+|---|---|
+| Con **varios perfiles** (adulto/niño) en un grupo, `deltaVentaPorPax` compara contra el promedio `basePP` mientras `deltasPorPerfil` usa el espejo exacto: un niño que paga +36 puede salir como «Descuento 4». Y `deltaVentaTotal` multiplica los liberados en **cada** tarjeta | **preexistente**, agravado por los liberados. Medido en producción: **0 de 3** componentes con alternativas tienen más de un perfil. Latente |
+| Una alternativa con `cantidad = 0` da `0/0 = NaN` en todos los deltas → `null` → `pax` pinta «+$ 0,00» | preexistente, menor |
+| Una operativa atada al **grupo 1** cuando hay estándar visible se cuelga de la tarjeta etiquetada «Estándar» | rareza de etiqueta, sin efecto en el dinero |
+| `deltaCostoPorPax` divide `basePP` por la comisión **global**, ignorando overrides por línea | no lo lee nadie hoy |
+
+### La lección, que es la de todo el día
+
+**La misma pregunta contestada en varios sitios es el patrón de fallo de este módulo.** Cinco
+deltas calculados en paralelo —y sumé los liberados al único que no pinta nadie—. Cuatro copias de
+«¿hay estándar visible?» —y la cuarta era la que publicaba—. Un test con un fixture que no
+reproduce su propio nombre, dos veces en el mismo día.
+
+Y la otra: **una revisión que busca confirmar no sirve**. El encargo fue «encuentra fallos», con
+permiso para escribir tests temporales, y de ahí salieron los números exactos: 1000 donde debían
+ser 1160, 1500 donde debían ser 1660.

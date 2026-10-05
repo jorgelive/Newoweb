@@ -47,7 +47,7 @@ const tarifa = (monto: number, cantidad: number, extra: Record<string, unknown> 
 });
 
 /** Una cotización de un servicio y un componente, con las tarifas que se le pasen. */
-const cotizacionCon = (numPax: number, tarifas: ReturnType<typeof tarifa>[]) => ({
+const cotizacionCon = (numPax: number, tarifas: ReturnType<typeof tarifa>[], modo = 'incluido') => ({
     id: 'cot-1',
     numPax,
     comision: '0',
@@ -63,7 +63,7 @@ const cotizacionCon = (numPax: number, tarifas: ReturnType<typeof tarifa>[]) => 
         cotsegmentos: [],
         cotcomponentes: [{
             id: 'c-1',
-            modo: 'incluido',
+            modo,
             estado: 'confirmado',
             cantidad: 1,
             tituloSnapshot: [{ language: 'es', content: 'Vuelo' }],
@@ -305,11 +305,13 @@ describe('un upgrade cuyo único estándar es una operativa', () => {
 describe('una operativa atada a un grupo', () => {
     beforeEach(() => setActivePinia(createPinia()));
 
-    const resumen = (extraOperativa: Record<string, unknown>) => {
+    /** Con una alternativa en el grupo 2, que es lo que hace que el grupo EXISTA. */
+    const resumen = (extraOperativa: Record<string, unknown>, conAlternativa = true) => {
         const store = useCotizacionEditorStore();
         // @ts-expect-error — fixture mínimo.
         store.cotizacion = cotizacionCon(10, [
             tarifa(100, 10),                                                     // la base visible
+            ...(conAlternativa ? [tarifa(50, 10, { rolSnapshot: 'alternativa', grupoTarifa: 2 })] : []),
             tarifa(80, 2, { calculoSnapshot: 'operativa', grupoTarifa: null, ...extraOperativa }),  // 2 liberados
         ]);
 
@@ -324,6 +326,40 @@ describe('una operativa atada a un grupo', () => {
     it('CON grupo no suma a la base', () => {
         // Los 160 salen del costo del viaje: dependen de que se contrate la opción.
         expect(resumen({ grupoTarifa: 2 })?.totalCostoNeto).toBeCloseTo(1000, 2);
+    });
+
+    /**
+     * 🔥 **Este test nació de un fallo del test anterior.**
+     *
+     * El fixture de `CON grupo no suma a la base` no tenía alternativa: ataba la operativa al
+     * grupo 2 y ese grupo no existía. El costo salía de la base, nadie lo recogía abajo —`grupos`
+     * se construye desde las alternativas— y los 160 **no estaban en ningún sitio**. El test
+     * aseguraba 1000 y pasaba: fijaba como correcto que el dinero se evaporara.
+     *
+     * Lo encontró una revisión independiente. Es el mismo fallo que el test de «grupal» de la
+     * mañana —un fixture que no reproduce el caso que el nombre promete— y por eso ahora el
+     * ayudante construye el grupo de verdad, y estos tres vigilan los caminos sin salida.
+     */
+    it('atada a un grupo que NO existe, vuelve a sumar a la base', () => {
+        expect(resumen({ grupoTarifa: 2 }, false)?.totalCostoNeto).toBeCloseTo(1160, 2);
+    });
+
+    it('y lo dice, porque atarla a un grupo muerto es un error que si no, no se ve', () => {
+        const avisos = resumen({ grupoTarifa: 2 }, false)?.informativas ?? [];
+        expect(avisos.some((a) => a.includes('no tiene ninguna opción'))).toBe(true);
+    });
+
+    it('en un componente que no está INCLUIDO tampoco se desvía', () => {
+        // En cortesía y en no incluido el bloque de upgrades ni corre: nadie recogería el costo.
+        const store = useCotizacionEditorStore();
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = cotizacionCon(10, [
+            tarifa(100, 10),
+            tarifa(50, 10, { rolSnapshot: 'alternativa', grupoTarifa: 2 }),
+            tarifa(80, 2, { calculoSnapshot: 'operativa', grupoTarifa: 2 }),
+        ], 'cortesia');
+
+        expect(store.resumenFinanciero?.totalCostoNeto).toBeCloseTo(1660, 2);
     });
 
     const conUpgradeYLiberados = () => {
@@ -395,5 +431,46 @@ describe('cómo se numera un grupo', () => {
 
     it('y el rol «operativo» de antes de la fase 5 tampoco', () => {
         expect(esEstandarVisible({ rolSnapshot: 'operativo' })).toBe(false);
+    });
+});
+
+
+/**
+ * El título de una operativa NO puede llegar a la propuesta del cliente.
+ *
+ * 🔥 Lo encontró una revisión independiente, y la puerta no era la que yo había cerrado.
+ * `opcionesUpgrade` estaba limpio; la fuga era `construirInclusiones()`, cuyo filtro de
+ * «tarifa estándar **visible**» decía eso en el comentario y miraba **sólo el rol**.
+ *
+ * Consecuencia en el caso real de Coco Bongo: el componente contaba como «tiene estándar», se
+ * publicaba en **incluidos** con el título de la operativa dentro, y a la vez salía como
+ * «Opción 1» en los upgrades. El cliente leía las dos cosas en la misma propuesta.
+ *
+ * Era la CUARTA copia de la pregunta «¿hay estándar visible?» — las otras tres ya la hacían bien.
+ */
+describe('la operativa y lo que se publica como incluido', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    const inclusiones = () => {
+        const store = useCotizacionEditorStore();
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = cotizacionCon(10, [
+            tarifa(50, 10, { rolSnapshot: 'alternativa', grupoTarifa: 1 }),
+            tarifa(80, 2, { calculoSnapshot: 'operativa', grupoTarifa: 1, tituloSnapshot: [{ language: 'es', content: 'LIBERADOS' }] }),
+        ]);
+
+        return (store.resumenFinanciero?.inclusiones ?? []).flatMap((s) => [
+            ...s.incluidos.map((l) => ({ donde: 'incluido', linea: l })),
+            ...s.opcionales.map((l) => ({ donde: 'opcional', linea: l })),
+        ]);
+    };
+
+    it('un componente cuya única estándar es operativa NO se publica como incluido', () => {
+        expect(inclusiones().every((x) => x.donde === 'opcional')).toBe(true);
+    });
+
+    it('y su título no aparece por ningún lado', () => {
+        const todo = JSON.stringify(inclusiones());
+        expect(todo).not.toContain('LIBERADOS');
     });
 });

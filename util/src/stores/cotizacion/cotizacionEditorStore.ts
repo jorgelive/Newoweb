@@ -996,6 +996,19 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const lineas: LineaVoter[] = [];
                 let paxEstandar = 0;
 
+                // Los grupos que de verdad existen como opción en este componente: con una
+                // alternativa visible y sólo si el componente está incluido (en cortesía y en no
+                // incluido no hay upgrades, el bloque de abajo ni corre).
+                const gruposConOpcion = new Set<number>();
+                if (modoFin === 'incluido') {
+                    (componente.cottarifas || []).forEach((t: TarifaSnapshot) => {
+                        if (t.rolSnapshot === 'alternativa' && t.grupoTarifa != null
+                            && visibleParaCliente(resolverCalculo(t))) {
+                            gruposConOpcion.add(t.grupoTarifa);
+                        }
+                    });
+                }
+
                 (componente.cottarifas || []).forEach((t: TarifaSnapshot) => {
                     // req 1: el rol sólo aplica bajo modo 'incluido'. En cualquier otro
                     // modo manda el modo del componente y la 'alternativa' se trata como
@@ -1018,7 +1031,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     // siempre aquí, salvo que esté atada a un grupo —y entonces la recoge el
                     // delta de ese grupo—; cualquier otra alternativa se va a `opcionesUpgrade`.
                     if (calculoDeLaLinea === 'operativa') {
-                        if (t.grupoTarifa != null) return;
+                        // ⚠️ **Sólo se desvía si hay A DÓNDE.** Antes bastaba con tener grupo, y
+                        // el costo se evaporaba en tres casos: un grupo sin alternativa, una
+                        // alternativa borrada después de atarla, y el componente movido a
+                        // cortesía o no incluido —donde el bloque de upgrades ni corre—. Ni
+                        // sumaba aquí ni lo recogía nadie: 160 dólares que no estaban en ningún
+                        // sitio, sin un aviso.
+                        //
+                        // Si el grupo no existe como opción, la operativa vuelve a ser lo que era
+                        // —costo del viaje— y se dice, porque atarla a un grupo muerto es un
+                        // error del operador que si no, no se ve.
+                        if (t.grupoTarifa != null && gruposConOpcion.has(t.grupoTarifa)) return;
+
+                        if (t.grupoTarifa != null) {
+                            informativas.push(
+                                `"${servicioLabel} ➔ ${compLabel}": la operativa `
+                                + `"${getI18nText(t.tituloSnapshot, idiomaEdicion) || t.nombreInternoSnapshot || 'sin nombre'}" `
+                                + `está atada a un grupo que no tiene ninguna opción, así que suma al costo del viaje.`
+                            );
+                        }
                     } else if (rol === 'alternativa') {
                         return;   // → opcionesUpgrade
                     }
@@ -1841,9 +1872,17 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 }
 
                 // Tarifa estándar visible (fuente de herencia para items y línea propia)
-                const estandares = (componente.cottarifas || []).filter(
-                    (t: TarifaSnapshot) => (t.rolSnapshot || 'estandar') === 'estandar'
-                );
+                //
+                // ⚠️ **Decía «visible» y no lo miraba.** Filtraba sólo por rol, y una operativa es
+                // estándar de rol: así que un componente cuya única estándar es una operativa
+                // salía como INCLUIDO —no como opcional— y se publicaba con el título de la
+                // operativa dentro. En Coco Bongo el cliente leía «Incluye: Coco Bongo» y
+                // «Opción 1: Coco Bongo +109,91» en la misma propuesta, y el aviso de
+                // `esOpcionalParaElCliente()` no saltaba porque ésa sí miraba la visibilidad.
+                //
+                // Era la CUARTA copia de la misma pregunta. Ahora todas pasan por
+                // `esEstandarVisible()`.
+                const estandares = (componente.cottarifas || []).filter(esEstandarVisible);
                 const hayEstandar = estandares.length > 0;
                 const tarifaRef = estandares[0] || null;
 
