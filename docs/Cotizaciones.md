@@ -11648,11 +11648,45 @@ del catálogo describe lo que había, no lo que puede haber.
 La comisión 0 se deja **a la vista** al volver a visible, en vez de inventar un valor: recuperar
 margen es una decisión comercial y el campo está justo al lado.
 
+### La modalidad de cálculo son TRES casos, no un booleano
+
+El conmutador «Unitario / Grupal» pasó a tener tres opciones, porque las dos no podían expresar lo
+que hacía falta:
+
+```
+individual   × cantidad   visible   el precio ya es por pax
+grupal       × 1          visible   el monto es el total del grupo
+operativa    × cantidad   OCULTA    se reparte entre todos sin salir como línea
+```
+
+⚠️ **Es una proyección de los dos campos que ya existen, no una columna nueva.** `esGrupal` dice
+cómo se multiplica y `rolSnapshot` si el cliente lo ve; son ortogonales en la base, pero **sólo
+tres de sus combinaciones significan algo** y son éstas. Medido antes de escribirlo:
+
+| Combinación | En producción |
+|---|---|
+| estándar + individual | 553 maestras, la mayoría de los snapshots |
+| estándar + grupal | 277 maestras, 65 snapshots — **todos con `cantidad = 1`** |
+| operativo + grupal | 22 maestras, 0 snapshots |
+| **operativo + individual** | **no existía en ninguna parte** — y es la que hacía falta |
+
+Las 22 operativas son grupales con cantidad 1, así que leerlas como «× cantidad» da **el mismo
+número**: el colapso no cambia ni un sol de lo que ya existe.
+
+⚠️ **Y por eso «operativa» NO se bloquea por catálogo**, al revés que las otras dos: su caso es
+precisamente el que no está en el tarifario. Obligar a dar de alta una tarifa maestra por cada
+liberado ensucia el catálogo con datos de un viaje.
+
+En operativa la **cantidad vuelve a estar editable** —grupal la esconde— y el campo avisa de lo que
+significa ahí: «5» son cinco vuelos liberados, no cinco pasajeros. Se dice porque la etiqueta del
+campo es «Pax».
+
 ### Dónde tocar
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
-| Cambiar qué hace marcar operativa | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `marcarTarifaComoOperativa()` — espejo de la rama operativa de `onTarifaMaestraChange()` |
+| Cambiar las tres modalidades | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `modalidadDeTarifa()` / `cambiarModalidadTarifa()` |
+| Cambiar qué hace marcar operativa | idem | `marcarTarifaComoOperativa()` — espejo de la rama operativa de `onTarifaMaestraChange()` |
 | Cambiar la vuelta atrás | idem | `quitarRolOperativo()` |
 | Cambiar qué se ve en el desplegable | idem | `getTarifaLabel()` |
 | Entender qué hace el rol en el cálculo | `src/Travel/Enum/TarifaRolEnum.php` | `sumaRamaPrincipal()`, `esVisibleParaCliente()` |

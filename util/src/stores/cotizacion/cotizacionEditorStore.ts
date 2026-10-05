@@ -3940,6 +3940,62 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * los grupos son las opciones que compiten entre sí de cara al cliente y ésta no compite:
      * suma siempre.
      */
+    /**
+     * Las tres modalidades de cálculo, tal y como las decide el operador.
+     *
+     * ⚠️ **Es una proyección de DOS campos, no un campo nuevo.** `esGrupal` dice cómo se
+     * multiplica y `rolSnapshot` si el cliente lo ve, y son ortogonales en la base — pero sólo
+     * tres de sus combinaciones significan algo, y son éstas. Medido antes de escribirlo: en
+     * producción existen `individual` (estándar no grupal), `grupal` (65, **todas con
+     * cantidad 1**) y `operativa` (22 en el catálogo, grupales con cantidad 1); la cuarta
+     * —operativa individual— no existía en ninguna parte, y es justo la que hacía falta.
+     *
+     *     individual   × cantidad   visible      el precio ya es por pax
+     *     grupal       × 1          visible      el monto es el total del grupo
+     *     operativa    × cantidad   OCULTA       se reparte entre todos sin salir como línea
+     *
+     * Las 22 operativas del catálogo son grupales con cantidad 1, así que leerlas como
+     * «× cantidad» da **el mismo número**: el colapso no cambia ni un sol de lo que ya existe.
+     */
+    const modalidadDeTarifa = (t: Pick<TarifaSnapshot, 'esGrupal' | 'rolSnapshot'>): 'individual' | 'grupal' | 'operativa' => {
+        if (t.rolSnapshot === 'operativo') return 'operativa';
+
+        return t.esGrupal ? 'grupal' : 'individual';
+    };
+
+    /**
+     * Cambia la modalidad. Escribe los dos campos a la vez **porque una modalidad a medias no
+     * significa nada**: una operativa que siguiera grupal no dejaría poner cantidad, que es lo
+     * único que la hace servir para cinco vuelos liberados.
+     */
+    const cambiarModalidadTarifa = (tarifaId: string, modalidad: 'individual' | 'grupal' | 'operativa'): void => {
+        const componente = encontrarComponentePorTarifaId(tarifaId);
+        const tarifa = componente?.cottarifas?.find(t => t.id === tarifaId);
+
+        if (!tarifa) return;
+
+        if (modalidad === 'operativa') {
+            marcarTarifaComoOperativa(tarifaId);
+            // Individual en la matemática: su gracia es multiplicar por cantidad —cinco vuelos—
+            // y por eso NO se queda grupal, que escondería el campo.
+            tarifa.esGrupal = false;
+
+            return;
+        }
+
+        if (tarifa.rolSnapshot === 'operativo') {
+            quitarRolOperativo(tarifaId);
+        }
+
+        tarifa.esGrupal = modalidad === 'grupal';
+
+        // Grupal es un precio cerrado: la cantidad deja de multiplicar, así que dejarla en otro
+        // número sería guardar un dato que la fórmula ignora y la ficha enseña.
+        if (tarifa.esGrupal) {
+            tarifa.cantidad = 1;
+        }
+    };
+
     const marcarTarifaComoOperativa = (tarifaId: string): void => {
         const componente = encontrarComponentePorTarifaId(tarifaId);
         const tarifa = componente?.cottarifas?.find(t => t.id === tarifaId);
@@ -5233,7 +5289,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         onTipoManualChange, marcarComponenteManual, idSegmentoDeComponente, segmentoDeComponente,
         actualizarInicioManteniendoRango, agregarDetalleOperativo, eliminarDetalleOperativo, alternarAudienciaDetalle,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
-        marcarTarifaComoOperativa, quitarRolOperativo,
+        marcarTarifaComoOperativa, quitarRolOperativo, modalidadDeTarifa, cambiarModalidadTarifa,
         componenteActualDeTarifa, componenteEnEdicion, tarifasHermanas, irATarifaAdyacente,
         servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion,
         buscarServiciosAsincrono, buscarProveedoresAsincrono,

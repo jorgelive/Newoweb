@@ -4360,6 +4360,11 @@ store.$onAction(({ name, args }) => {
                   <i class="fas fa-users text-xs"></i> 1 grupo
                 </div>
                 <p v-if="store.tarifaActiva.esGrupal" class="text-[9px] text-orange-500 mt-1 ml-1">Precio por grupo fijo: no se multiplica por pax.</p>
+                <!-- En operativa la cantidad es el dato que la hace servir: «5» son cinco vuelos
+                     liberados, no cinco pasajeros. Se dice, porque el campo se llama «Pax». -->
+                <p v-if="store.modalidadDeTarifa(store.tarifaActiva) === 'operativa'" class="text-[9px] text-slate-500 mt-1 ml-1">
+                  Aquí la cantidad son <b>unidades que paga el grupo</b> (ej. 5 vuelos liberados), no pasajeros.
+                </p>
 
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1 mt-3">Comisión Propia (%)</label>
                 <input v-model.number="store.tarifaActiva.comisionOverrideSnapshot" type="number" step="0.1" placeholder="Usa la global"
@@ -4428,32 +4433,50 @@ store.$onAction(({ name, args }) => {
                     <i class="fas fa-calculator text-emerald-500"></i> Modalidad de Cálculo
                   </p>
                   <p class="text-[10px] text-slate-500 mt-1">
-                    {{ store.tarifaActiva.tarifaMaestraId ? 'Bloqueado por Catálogo Maestro' : 'Define si el costo es por persona o por el total' }}
+                    {{ store.tarifaActiva.tarifaMaestraId ? 'Individual y Grupal los fija el Catálogo Maestro' : 'Cómo se multiplica el costo, y si el cliente lo ve' }}
                   </p>
                 </div>
 
-                <div class="flex gap-4 mt-4">
+                <!-- TRES modalidades, no un booleano más un rol escondido. Las tres son las
+                     únicas combinaciones de `esGrupal` + `rolSnapshot` que significan algo, y la
+                     tercera —operativa— es la que faltaba: cinco vuelos liberados que el grupo
+                     paga entre todos y el cliente no ve como línea.
+
+                     ⚠️ Operativa NO se bloquea por catálogo, al revés que las otras dos: su caso
+                     es precisamente el que NO está en el tarifario. Obligar a dar de alta una
+                     tarifa maestra por cada liberado ensucia el catálogo con datos de un viaje. -->
+                <div class="flex gap-3 mt-4">
                   <button type="button"
-                          @click="!store.tarifaActiva.tarifaMaestraId && (store.tarifaActiva.esGrupal = false)"
+                          @click="!store.tarifaActiva.tarifaMaestraId && store.cambiarModalidadTarifa(store.tarifaActiva.id, 'individual')"
                           :disabled="!!store.tarifaActiva.tarifaMaestraId"
                           :class="[
-                          !store.tarifaActiva.esGrupal ? 'bg-orange-50 border-orange-300 text-orange-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
+                          store.modalidadDeTarifa(store.tarifaActiva) === 'individual' ? 'bg-orange-50 border-orange-300 text-orange-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
                           store.tarifaActiva.tarifaMaestraId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-orange-300'
                       ]"
                           class="flex-1 text-center p-2 rounded-xl border transition-all">
                     <i class="fas fa-user text-xs mb-1"></i>
-                    <span class="text-[8px] font-black uppercase">Unitario (Pax)</span>
+                    <span class="text-[8px] font-black uppercase block">Individual</span>
+                    <span class="text-[7px] text-slate-400 block leading-tight">× cantidad</span>
                   </button>
                   <button type="button"
-                          @click="!store.tarifaActiva.tarifaMaestraId && (store.tarifaActiva.esGrupal = true)"
+                          @click="!store.tarifaActiva.tarifaMaestraId && store.cambiarModalidadTarifa(store.tarifaActiva.id, 'grupal')"
                           :disabled="!!store.tarifaActiva.tarifaMaestraId"
                           :class="[
-                          store.tarifaActiva.esGrupal ? 'bg-orange-50 border-orange-300 text-orange-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
+                          store.modalidadDeTarifa(store.tarifaActiva) === 'grupal' ? 'bg-orange-50 border-orange-300 text-orange-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
                           store.tarifaActiva.tarifaMaestraId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-orange-300'
                       ]"
                           class="flex-1 text-center p-2 rounded-xl border transition-all">
                     <i class="fas fa-users text-xs mb-1"></i>
-                    <span class="text-[8px] font-black uppercase">Grupal (Flat)</span>
+                    <span class="text-[8px] font-black uppercase block">Grupal</span>
+                    <span class="text-[7px] text-slate-400 block leading-tight">precio cerrado</span>
+                  </button>
+                  <button type="button"
+                          @click="store.cambiarModalidadTarifa(store.tarifaActiva.id, 'operativa')"
+                          :class="store.modalidadDeTarifa(store.tarifaActiva) === 'operativa' ? 'bg-slate-700 border-slate-700 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-400'"
+                          class="flex-1 text-center p-2 rounded-xl border transition-all cursor-pointer">
+                    <i class="fas fa-lock text-xs mb-1"></i>
+                    <span class="text-[8px] font-black uppercase block">Operativa</span>
+                    <span class="text-[7px] opacity-70 block leading-tight">× cantidad, oculta</span>
                   </button>
                 </div>
               </div>
