@@ -350,10 +350,10 @@ class CotizacionCottarifa
     public function setEsGrupal(bool $esGrupal): self
     {
         if ($esGrupal) {
-            return $this->setCalculo('grupal');
+            return $this->setCalculoSnapshot('grupal');
         }
 
-        return $this->getCalculoSnapshot() === 'grupal' ? $this->setCalculo('individual') : $this;
+        return $this->getCalculoSnapshot() === 'grupal' ? $this->setCalculoSnapshot('individual') : $this;
     }
 
     public function getRolSnapshot(): ?string { return $this->rolSnapshot; }
@@ -365,7 +365,7 @@ class CotizacionCottarifa
         if ($rolSnapshot === 'operativo') {
             $this->rolSnapshot = 'estandar';
 
-            return $this->setCalculo('operativa');
+            return $this->setCalculoSnapshot('operativa');
         }
 
         $this->rolSnapshot = $rolSnapshot;
@@ -373,9 +373,18 @@ class CotizacionCottarifa
         return $this;
     }
 
-    /** Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
+    /**
+     * Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar.
+     *
+     * ⚠️ **Se llama `setCalculoSnapshot` y no `setCalculo`, y la diferencia costó un despliegue.**
+     * El serializer empareja el setter con la propiedad por el nombre: con `setCalculo()` la clave
+     * escribible era `calculo`, mientras el editor mandaba `calculoSnapshot` —el nombre real del
+     * campo— que quedaba `readonly`. **Una operativa marcada en el editor no se guardaba**: volvía
+     * como `individual`, con su cantidad leída como pasajeros, visible al cliente y disparando
+     * «⚠️ CONFLICTO». Y el costo total no cambiaba, así que nada lo delataba.
+     */
     #[Groups(['cotizacion:write'])]
-    public function setCalculo(string $calculo): self
+    public function setCalculoSnapshot(string $calculo): self
     {
         $this->calculoSnapshot = (TarifaCalculoEnum::tryFrom($calculo) ?? TarifaCalculoEnum::INDIVIDUAL)->value;
         $this->esGrupal = $this->calculoSnapshot === 'grupal';

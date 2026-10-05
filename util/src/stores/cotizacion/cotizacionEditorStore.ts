@@ -3793,6 +3793,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             grupoTarifa: esOperativa ? null : 1,
             comisionOverrideSnapshot: esOperativa ? '0.00' : getComisionOverrideTarifa(tarifa),
             notaRol: [],
+            // ⚠️ Sin esto, una tarifa del catálogo inyectada al crear el componente entraba SIN
+            // cálculo y el clasificador caía al respaldo del booleano: una operativa del maestro
+            // —que tiene `costo_por_grupo = 1`— se persistía como GRUPAL. Ninguno de los dos
+            // caminos la conservaba.
+            calculoSnapshot: esOperativa ? 'operativa' : (esGrupal ? 'grupal' : 'individual'),
             esGrupal,
             modalidadSnapshot: getModalidadTarifa(tarifa),
             categoriaSnapshot: getCategoriaTarifa(tarifa),

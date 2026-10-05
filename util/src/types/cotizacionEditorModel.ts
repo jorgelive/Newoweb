@@ -826,7 +826,10 @@ export const esOpcionalParaElCliente = (comp: {
     const publicable = (t: { rolSnapshot?: string | null; calculoSnapshot?: string | null }) =>
         visibleParaCliente(comoCalculo(t.calculoSnapshot ?? (t.rolSnapshot === 'operativo' ? 'operativa' : null)));
 
-    return !tarifas.some(t => rol(t) === 'estandar') && tarifas.some(publicable);
+    // ⚠️ El «hay estándar» también tiene que descontar las operativas: desde la fase 5 su rol ES
+    // estándar, así que un opcional al que se le añade un liberado dejaba de ser opcional en la
+    // propuesta —y pasaba a publicarse como incluido.
+    return !tarifas.some(t => rol(t) === 'estandar' && publicable(t)) && tarifas.some(publicable);
 };
 
 export const etiquetaGrupoTarifa = (

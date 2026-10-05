@@ -491,7 +491,7 @@ const tituloDeComponente = (
  * justo el motivo de que mande el segmento. La **tarifa** sí: hay una por parte, ya viaja en
  * `pax_cotizacion:read`, y es donde se escribe con qué se compró — «Sky Airline», «Arajet».
  *
- * ⚠️ **Se calla la que repite el título** y la de rol operativo: una coletilla que dice lo mismo
+ * ⚠️ **Se calla la que repite el título** y la de cálculo operativo: una coletilla que dice lo mismo
  * que la línea de al lado sólo estorba.
  *
  * ⚠️ **Si el título trae corchetes, el sello es lo de dentro.** Es la convención que ya usaba el
@@ -539,7 +539,11 @@ const selloDeComponente = (
   const titulo = tituloDeComponente(c, segmento, hablanLosComponentes).trim().toLowerCase();
 
   for (const t of c.cottarifas ?? []) {
-    if ((t.rolSnapshot ?? 'estandar') === 'operativo') {
+    // ⚠️ Esto preguntaba por `rolSnapshot === 'operativo'`, que **ya no existe**: desde el
+    // 05/10/2026 operativo es una modalidad de CÁLCULO, no un rol. El filtro quedó muerto y el
+    // nombre interno de compra de una operativa —«LIBERADOS GUIA»— podía acabar de sello en la
+    // fila del itinerario que lee el huésped.
+    if ((t.calculoSnapshot ?? 'individual') === 'operativa') {
       continue;
     }
 

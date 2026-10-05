@@ -10051,7 +10051,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10075,8 +10075,6 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
-            calculo?: string;
             /**
              * @description El mismo dato **como enum**, que es lo que saben responder los predicados.
              * @enum {string}
@@ -10128,7 +10126,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10191,7 +10189,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10205,8 +10203,6 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
-            calculo?: string;
         };
         "CotizacionCottarifa-operacion.item.read_timestamp.read": {
             /** Format: date-time */
@@ -10241,7 +10237,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10269,7 +10265,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10325,7 +10321,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10349,8 +10345,6 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
-            calculo?: string;
             /**
              * @description El mismo dato **como enum**, que es lo que saben responder los predicados.
              * @enum {string}
@@ -10402,7 +10396,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10454,7 +10448,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10482,7 +10476,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10538,7 +10532,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10562,8 +10556,6 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
-            calculo?: string;
             /**
              * @description El mismo dato **como enum**, que es lo que saben responder los predicados.
              * @enum {string}
@@ -10615,7 +10607,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10667,7 +10659,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10695,7 +10687,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10751,7 +10743,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10775,8 +10767,6 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
-            calculo?: string;
             /**
              * @description El mismo dato **como enum**, que es lo que saben responder los predicados.
              * @enum {string}
@@ -10828,7 +10818,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10880,7 +10870,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10908,7 +10898,7 @@ export interface components {
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
-            readonly calculoSnapshot?: string | null;
+            calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;

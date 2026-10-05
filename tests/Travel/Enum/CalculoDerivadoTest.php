@@ -66,9 +66,9 @@ final class CalculoDerivadoTest extends TestCase
     {
         self::assertSame('grupal', (new CotizacionCottarifa())->setEsGrupal(true)->getCalculoSnapshot());
         self::assertSame('individual', (new CotizacionCottarifa())->setEsGrupal(false)->getCalculoSnapshot());
-        self::assertSame('operativa', (new CotizacionCottarifa())->setCalculo('operativa')->getCalculoSnapshot());
+        self::assertSame('operativa', (new CotizacionCottarifa())->setCalculoSnapshot('operativa')->getCalculoSnapshot());
 
-        $op = (new CotizacionCottarifa())->setCalculo('operativa')->setEsGrupal(false);
+        $op = (new CotizacionCottarifa())->setCalculoSnapshot('operativa')->setEsGrupal(false);
         self::assertSame('operativa', $op->getCalculoSnapshot(), 'Un false no puede pisar la operativa.');
     }
 
@@ -86,7 +86,7 @@ final class CalculoDerivadoTest extends TestCase
     #[Test]
     public function un_calculo_desconocido_cae_a_individual(): void
     {
-        self::assertSame('individual', (new CotizacionCottarifa())->setCalculo('marciano')->getCalculoSnapshot());
+        self::assertSame('individual', (new CotizacionCottarifa())->setCalculoSnapshot('marciano')->getCalculoSnapshot());
     }
 
     #[Test]
