@@ -18,6 +18,7 @@ entidades que lo usan.
 7. [Los marcadores](#7-los-marcadores)
 8. [Sellar el contenido existente](#8-sellar-el-contenido-existente)
 9. [Gotchas](#9-gotchas)
+11. [Traducciones que hablan de otra cosa](#11-traducciones-que-hablan-de-otra-cosa-05102026) — el clon, el auditor y la tanda que falla en silencio
 10. [Dónde tocar para cambiar X](#10-dónde-tocar-para-cambiar-x)
 
 ---
@@ -318,6 +319,89 @@ texto o `null`, que es lo que promete su tipo. Conserva el resto de claves de la
 esta traducción). Medido en producción el 26/09/2026 sobre los nueve campos que pasan por él (3 585
 entradas de idioma): **ninguna** lanzaría ni cambiaría.
 
+## 11. Traducciones que hablan de otra cosa (05/10/2026)
+
+### El fallo
+
+`TravelComponente::__clone()` —y sus hermanos— copian el campo i18n **entero**. Quien clona una
+ficha y reescribe el español se queda con seis traducciones hablando de otra cosa. Dos casos
+reales, encontrados el mismo día:
+
+```
+«Boleto de ingreso al Glaciar de Quelccaya»   →  en: Entrance ticket to the Rainbow Mountain
+«Alojamiento en Resort en Punta Cana»         →  en: Accommodation in Playa del Carmen
+```
+
+⚠️ **Y el `origenHash` no podía cazarlo**: llegó el 31/08/2026 (`18466bab`) y esas fichas se
+crearon antes. Sin huella, el listener no tenía con qué notar el desfase. Peor: al sellarlas
+quedan declaradas correctas para siempre — ver el aviso de §8, que es exactamente esto.
+
+### El detector, y las tres mediciones que costó
+
+`app:traduccion:auditar`. La idea de partida —«misma traducción, distinto español»— es exacta pero
+insuficiente, y sólo los datos reales lo dicen:
+
+| Regla | Señaladas | Qué salía |
+|---|---|---|
+| igualdad del texto traducido | 223 | «Dormitorio 2» y «Sala 2» → «Quarto 2». **Correcto**: el portugués no distingue eso |
+| + «no comparten palabra larga» | 10 577 | «Casa #1» → «House #1». Acertaba 1 de cada 1 000 — **retirada** |
+| + frase de ≥4 palabras | 83 | ya sólo frases |
+| + español comparado aplanado | **64** | sin tildes ni mayúsculas: «Excursion»/«Excursión» es el mismo texto |
+
+Las dos reglas que quedan:
+
+- **Una etiqueta corta colapsa al traducirse, y eso es traducir bien.** Sólo una *frase* repetida
+  carácter a carácter delata un clon: dos oraciones distintas no coinciden por casualidad.
+- **El español se compara sin tildes ni mayúsculas**, o una errata de tecleo finge ser un clon.
+
+⚠️ **El detector descartado se retiró entero, no se escondió tras un flag.** Uno que acierta 1 de
+cada 1 000 enseña a no mirar la lista, que es el mismo fallo que este proyecto ya se quitó de otros
+sitios.
+
+⚠️ **`--clase` acota lo que se CORRIGE, nunca lo que se escanea.** Un clon se detecta por su
+gemelo, y el gemelo de un `TravelComponente` puede ser una `Cotizacion`: filtrar el escaneo hacía
+desaparecer el par y el clon quedaba sin señalar, en silencio.
+
+### Corregir no es desellar
+
+Desellar deja la ficha «pendiente de retraducir la próxima vez que alguien la guarde», y nadie va a
+entrar una por una. `--corregir` enciende `sobreescribirTraduccion` en las señaladas y las rehace
+**en esa ejecución**.
+
+### ⚠️ Una tanda puede fallar y parecer que fue bien
+
+El `catch` de `translateAndCloneRows()` registra y continúa —correcto: una traducción caída no
+puede tumbar el guardado— pero el comando se despedía con `[OK] 34 entidades retraducidas`
+teniendo dentro un `NOT_FOUND` de Google en `es → pt`. El error estaba en `error.log` y la consola
+decía que todo había ido bien.
+
+**Y lo que falla conserva el texto ANTERIOR**, que es justo el que se quería cambiar: dar la pasada
+por buena deja el clon vivo y a nadie mirándolo.
+
+Por eso el servicio acumula sus fallos (`fallos()` / `olvidarFallos()`) y el comando los enumera y
+sale con código ≠ 0. **Es la misma familia que el `catch` mudo que se arregló antes, un escalón más
+arriba**: entonces el fallo no se escribía en ningún sitio; después se escribía donde nadie lo
+miraba.
+
+⚠️ `app:travel:auto-traducir` **sigue sin contarlo**: traduce el catálogo entero y no mira
+`fallos()`. Está pendiente.
+
+### Lo que el auditor encuentra que NO es un clon
+
+Duplicados del catálogo con erratas, que traducen igual porque **son lo mismo**:
+
+```
+«Tren PeruRail Vistadome Observatory - Tarifa niño»
+«Tren PeruRail Vistadome Observatory- Tarifa niño»    ← falta un espacio
+«1 persona por cuatrimoto» / «1 personas por cuatrimoto»
+«Transporte Ica ↔ Lima» / «Transporte de Ica a Lima»  ← el ↔ no sobrevive a la traducción
+```
+
+Eso es limpieza de catálogo, no de traductor. Y el `↔` es un aviso aparte: la traducción de un
+tramo bidireccional pierde la bidireccionalidad y nadie lo nota.
+
+---
+
 ## 10. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método / clave |
@@ -330,5 +414,7 @@ entradas de idioma): **ninguna** lanzaría ni cambiaría.
 | Añadir o quitar un idioma | `maestro_idioma` | `prioridad > 0`. Bajarlo a 0 ya **no** borra nada, pero exige reiniciar los workers |
 | Evitar que un comando traduzca | el comando | `setEjecutarTraduccion(false)` antes del flush |
 | Sellar contenido sin traducirlo | — | `app:traduccion:sellar-hash --dry-run --clase=` |
+| **Encontrar traducciones que no se corresponden con su español** | — | `app:traduccion:auditar` — §11 |
+| Saber si una tanda de traducción falló | `AutoTranslationService` | `olvidarFallos()` antes, `fallos()` después — el log solo no basta (§11) |
 | Que un `{{ marcador }}` sobreviva | `ProtectorDeMarcadores` | `enmascarar()` / `estaIntacto()` |
 | Sacar la traducción de la transacción | `AutoTranslationEventListener` | **Sin hacer.** Ver la nota de §1: hoy `preUpdate` traduce con los locks abiertos |

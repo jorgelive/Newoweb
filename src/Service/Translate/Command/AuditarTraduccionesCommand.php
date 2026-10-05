@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service\Translate\Command;
 
 use App\Attribute\AutoTranslate;
+use App\Service\Translate\AutoTranslationService;
 use Doctrine\ORM\EntityManagerInterface;
 use ReflectionClass;
 use ReflectionProperty;
@@ -54,8 +55,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class AuditarTraduccionesCommand extends Command
 {
-    public function __construct(private readonly EntityManagerInterface $em)
-    {
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly AutoTranslationService $traductor,
+    ) {
         parent::__construct();
     }
 
@@ -193,10 +196,34 @@ final class AuditarTraduccionesCommand extends Command
             }
         }
 
+        // El recuento es de ESTA tanda, no de lo que llevara el proceso encima.
+        $this->traductor->olvidarFallos();
         $this->em->flush();
-        $io->success(sprintf('%d entidad(es) retraducidas.', \count($aRehacer)));
+        $fallos = $this->traductor->fallos();
 
-        return Command::SUCCESS;
+        if ($fallos === []) {
+            $io->success(sprintf('%d entidad(es) retraducidas.', \count($aRehacer)));
+
+            return Command::SUCCESS;
+        }
+
+        // ⚠️ Sin esto el comando se despedía con «[OK] 34 retraducidas» teniendo un NOT_FOUND de
+        // Google dentro: el error quedaba en error.log y la consola decía que todo fue bien.
+        // Un idioma que no se tradujo conserva el texto ANTERIOR, que es justo el que se quería
+        // cambiar — así que dar la pasada por buena deja el clon vivo y a nadie mirándolo.
+        $io->warning(sprintf(
+            '%d entidad(es) procesadas, pero %d traducción(es) FALLARON y conservan el texto anterior.',
+            \count($aRehacer),
+            \count($fallos)
+        ));
+
+        foreach ($fallos as $fallo) {
+            $io->text('  · ' . $fallo);
+        }
+
+        $io->text('Vuelve a correr el comando cuando esté resuelto: sólo tocará lo que siga señalado.');
+
+        return Command::FAILURE;
     }
 
     /**

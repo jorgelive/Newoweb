@@ -40,6 +40,27 @@ class AutoTranslationService
     private const string OVERWRITE_FLAG_KEY = 'sobreescribirTraduccion';
 
     /**
+     * Lo que falló desde el último {@see self::olvidarFallos()}, para que **quien llama pueda
+     * decirlo**.
+     *
+     * ⚠️ Existe porque el log no basta. El `catch` de abajo registra el fallo y sigue —correcto,
+     * una traducción caída no puede tumbar el guardado— pero el comando que llamaba terminaba
+     * con un `[OK] 34 entidades retraducidas` que incluía las que NO se tradujeron. Pasó el
+     * 05/10/2026 con un `NOT_FOUND` de Google en `es → pt`: el error estaba en `error.log` y la
+     * consola decía que todo había ido bien.
+     *
+     * Es la misma familia que el `catch` mudo de abajo, un escalón más arriba: entonces el fallo
+     * no se escribía en ningún sitio; ahora se escribe donde nadie lo está mirando.
+     *
+     * Acotada a propósito: esto vive en un servicio compartido que en un worker dura días.
+     *
+     * @var list<string>
+     */
+    private array $fallos = [];
+
+    private const int MAX_FALLOS = 50;
+
+    /**
      * La clave que cada fila traducida lleva dentro del JSON con la huella del texto del que
      * salió. Es lo que permite saber si una traducción quedó desfasada **sin** preguntarle nada
      * al changeset de Doctrine.
@@ -72,6 +93,19 @@ class AutoTranslationService
         private readonly ProtectorDeMarcadores $marcadores = new ProtectorDeMarcadores(),
         private readonly ?LoggerInterface $logger = null
     ) {}
+
+    /** Lo que falló desde el último olvido. Vacío = todo lo que se intentó, salió. */
+    /** @return list<string> */
+    public function fallos(): array
+    {
+        return $this->fallos;
+    }
+
+    /** Se llama ANTES de una tanda, para que el recuento sea de esa tanda y no del worker. */
+    public function olvidarFallos(): void
+    {
+        $this->fallos = [];
+    }
 
     /**
      * Procesa una entidad buscando atributos #[AutoTranslate] y traduce sus contenidos.
@@ -491,13 +525,21 @@ class AutoTranslationService
                 // caído: credenciales caducadas, cuota agotada o red cortada dejaban las siete
                 // traducciones sin hacer y la entidad se guardaba tan contenta con sólo el
                 // español. Ni un error, ni una línea de log — el fallo que no se ve.
-                $this->logger?->error(sprintf(
-                    '[AutoTranslate] %s → %s: falló la traducción (%s): %s',
+                $resumen = sprintf(
+                    '%s → %s: %s (%s)',
                     $sourceLangNorm,
                     $targetCode,
-                    $e::class,
-                    $e->getMessage()
-                ));
+                    $e->getMessage(),
+                    $e::class
+                );
+
+                $this->logger?->error('[AutoTranslate] ' . $resumen);
+
+                // Y además se guarda, para que el comando que llamó pueda contarlo en vez de
+                // despedirse con un «OK» que incluye lo que no se tradujo.
+                if (\count($this->fallos) < self::MAX_FALLOS) {
+                    $this->fallos[] = $resumen;
+                }
 
                 continue;
             }
