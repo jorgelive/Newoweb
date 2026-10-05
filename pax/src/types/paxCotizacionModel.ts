@@ -203,8 +203,28 @@ export interface PaxTarifaFinanciera {
     moneda: string | null; // null en la versión cliente
     notaRol: I18n;
     cantidad: number;
-    /** `individual` | `grupal` | `operativa`. Sustituyó al booleano `esGrupal` el 05/10/2026. */
-    calculo: string;
+    /**
+     * `individual` | `grupal` | `operativa`. Sustituyó al booleano `esGrupal` el 05/10/2026.
+     *
+     * ⚠️ **Opcional porque esto es un documento GUARDADO, y los de antes no lo traen.** Las 15
+     * clasificaciones que hay en producción —7 publicadas— se escribieron antes del cambio y
+     * llevan `esGrupal`, no `calculo`: declararlo requerido era prometer un campo que **ninguna
+     * fila tiene**, y `vue-tsc` no puede desmentirlo porque sólo sabe lo que dice el tipo. Se
+     * rellena sola la próxima vez que el editor guarde esa cotización.
+     *
+     * Para leerlo hay que mirar los dos:
+     *
+     * ```ts
+     * const calculo = t.calculo ?? (t.esGrupal ? 'grupal' : 'individual');
+     * ```
+     *
+     * Un documento viejo no puede decir `operativa` —el booleano no sabía expresarlo— y eso es
+     * correcto: cuando se guardó, una operativa no se podía publicar.
+     */
+    calculo?: string;
+
+    /** @deprecated Lo que traen los documentos guardados antes del 05/10/2026. Sólo para leerlos. */
+    esGrupal?: boolean;
     categoria: string | null;
     modalidad: string | null;
     procedencia?: string | null;
@@ -281,8 +301,16 @@ export interface PaxClasePasajeroDetalle {
     fecha: string;
     moneda: string;
     cantidad: number;
-    /** `individual` | `grupal` | `operativa`. Sustituyó al booleano `esGrupal` el 05/10/2026. */
-    calculo: string;
+    /**
+     * `individual` | `grupal` | `operativa`. Sustituyó al booleano `esGrupal` el 05/10/2026.
+     *
+     * ⚠️ Opcional por lo mismo que en `PaxTarifaFinanciera.calculo`: documento guardado, y los
+     * de antes traen `esGrupal`. Se leen los dos.
+     */
+    calculo?: string;
+
+    /** @deprecated Lo que traen los documentos guardados antes del 05/10/2026. Sólo para leerlos. */
+    esGrupal?: boolean;
     categoria: string | null;
     modalidad: string | null;
     servicioId: string;

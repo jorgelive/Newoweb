@@ -529,6 +529,41 @@ viejo) y, cuando un test compara modalidades, el caso de prueba tiene que ser un
 den **números distintos** — si da lo mismo en los dos, el test no prueba la modalidad, prueba la
 aritmética.
 
+#### 🔥 Y un segundo tipo que prometía lo que ningún dato tiene
+
+`clasificacionFinancieraCliente` es un documento **guardado**: el editor lo escribe al publicar y
+`Cotizacion::getClasificacionFinancieraParaCliente()` lo sirve a `pax` tal cual. La fase 6b cambió
+lo que el editor **escribe** —`esGrupal` → `calculo`— y de paso los tipos anclados de `pax`
+pasaron a declarar `calculo: string` **requerido**.
+
+Medido en producción: de 15 clasificaciones guardadas, **15 traen `esGrupal` y 0 traen `calculo`**;
+7 de ellas están publicadas. O sea que el tipo prometía un campo que **no tiene ni una sola fila**.
+
+```
+con esGrupal y SIN calculo: 15 | con calculo: 0 | publicadas con esGrupal: 7
+```
+
+No rompió nada porque hoy `pax` no lee ese campo —sólo lo declara—, y por eso no lo vio nadie:
+`vue-tsc` sólo sabe lo que dice el tipo, y el tipo decía que estaba. Es exactamente la regla de
+`docs/TiposDeFrontera.md`: **antes de cambiar una frontera con datos guardados se compara la
+lectura vieja con la nueva sobre los datos REALES**, y aquí se cambió la ESCRITURA sin mirar lo
+escrito.
+
+Corregido en `pax/src/types/paxCotizacionModel.ts`: `calculo?: string` y `esGrupal?: boolean`
+marcado `@deprecated` para poder leer los documentos viejos —
+
+```ts
+const calculo = t.calculo ?? (t.esGrupal ? 'grupal' : 'individual');
+```
+
+— y un documento de antes **no puede decir `operativa`**, que es correcto: cuando se guardó, una
+operativa no se podía publicar. Los 15 se rellenan solos la próxima vez que el editor guarde.
+
+⚠️ **`util` no tenía el problema**, y vale la pena ver por qué: allí los tipos del cliente los
+**produce** `expurgarParaCliente()` desde los snapshots vivos, y el lector de publicabilidad ya
+mira los dos (`calculoSnapshot ?? rolSnapshot === 'operativo' ? 'operativa'`). Un tipo que describe
+lo que tú acabas de construir puede ser estricto; uno que describe lo que te llega de la base, no.
+
 ---
 
 ## 6. Riesgos, y cuál vigila cada uno
