@@ -12,6 +12,8 @@ use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Patch;
 use App\Attribute\AutoTranslate;
+use DateInterval;
+use DateTimeImmutable;
 use App\Cotizacion\ApiPlatform\Dto\InformeCoherencia;
 use App\Cotizacion\ApiPlatform\State\CloneCotizacionProcessor;
 use App\Cotizacion\ApiPlatform\State\RevisarCoherenciaProcessor;
@@ -483,6 +485,82 @@ class Cotizacion
         }
 
         return $copia;
+    }
+
+    /**
+     * Mueve el viaje entero para que el PRIMER servicio caiga en `$nuevoInicio`.
+     *
+     * ⚠️ **Se desplaza, no se reasigna: todos los días se mueven el MISMO delta.** Es lo que
+     * significa «conservar la correlatividad» — si el city tour era el día 1 y Machu Picchu el 4,
+     * siguen separados por tres días. Anclar cada servicio por su cuenta rompería el itinerario
+     * en silencio, y un viaje con los días barajados se lee perfectamente plausible.
+     *
+     * El delta se mide en **días de calendario** sobre el primer servicio con fecha. Un servicio
+     * sin fecha se queda sin fecha: no se le inventa una a partir del vecino, porque «todavía no
+     * tiene día» es un dato y rellenarlo lo borraría.
+     *
+     * ⚠️ **Y la HORA de los componentes se conserva.** El desplazamiento es por días, así que un
+     * recojo a las 04:00 sigue a las 04:00. Sumar horas movería los recojos de madrugada al día
+     * anterior cruzando el cambio de día, que es exactamente el error que nadie revisa.
+     *
+     * Devuelve los días desplazados, o `null` si no había ninguna fecha que mover.
+     */
+    public function desplazarA(DateTimeImmutable $nuevoInicio): ?int
+    {
+        $primera = null;
+
+        foreach ($this->cotservicios as $servicio) {
+            $fecha = $servicio->getFechaInicioAbsoluta();
+
+            if ($fecha !== null && ($primera === null || $fecha < $primera)) {
+                $primera = $fecha;
+            }
+        }
+
+        if ($primera === null) {
+            return null;
+        }
+
+        // Sólo la parte de fecha: una hora residual en el ancla daría un delta de 0 días cuando
+        // debería ser 1, o al revés, según la hora a la que se guardó.
+        $desde = $primera->setTime(0, 0);
+        $hasta = $nuevoInicio->setTime(0, 0);
+        $dias = (int) $desde->diff($hasta)->format('%r%a');
+
+        if ($dias === 0) {
+            return 0;
+        }
+
+        $salto = new DateInterval('P' . abs($dias) . 'D');
+
+        foreach ($this->cotservicios as $servicio) {
+            $fecha = $servicio->getFechaInicioAbsoluta();
+
+            if ($fecha !== null) {
+                $servicio->setFechaInicioAbsoluta($this->mover($fecha, $salto, $dias));
+            }
+
+            foreach ($servicio->getCotcomponentes() as $componente) {
+                $inicio = $componente->getFechaHoraInicio();
+                $fin = $componente->getFechaHoraFin();
+
+                if ($inicio !== null) {
+                    $componente->setFechaHoraInicio($this->mover($inicio, $salto, $dias));
+                }
+
+                if ($fin !== null) {
+                    $componente->setFechaHoraFin($this->mover($fin, $salto, $dias));
+                }
+            }
+        }
+
+        return $dias;
+    }
+
+    /** Suma o resta el salto según el signo. `DateInterval` no lleva signo propio. */
+    private function mover(DateTimeImmutable $fecha, DateInterval $salto, int $dias): DateTimeImmutable
+    {
+        return $dias > 0 ? $fecha->add($salto) : $fecha->sub($salto);
     }
 
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'file:item:read'])]

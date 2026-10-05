@@ -11470,3 +11470,70 @@ IRI: `idDeExpediente()` en la vista le quita la ruta para armar el enlace a la f
 | La pantalla del área de Cotizaciones | `util/src/views/Cotizaciones/PendientesView.vue` | — |
 | Traer/cerrar pedidos desde `util` | `util/src/stores/cotizacion/pedidosStore.ts` | `fetchPedidos()` / `marcarHecho()` |
 | El tipo anclado al esquema generado | `util/src/types/cotizacionPedidoModel.ts` | `ApiCotizacionPedido` |
+
+---
+
+## Clonar una cotización a OTRO expediente, moviendo las fechas (05/10/2026)
+
+### Para qué
+
+El viaje de promoción de un colegio **es** el viaje del colegio siguiente con otras fechas: los
+mismos 18 servicios, el mismo orden, los mismos proveedores. Rearmarlo a mano son horas, y el
+error que importa no es olvidar un servicio —eso se ve— sino **barajar los días**, porque un
+itinerario con los días cambiados se lee perfectamente plausible y nadie lo revisa.
+
+### El endpoint es el que ya había
+
+```
+POST /client/cotizacion/{id}/clonar
+  {}                                                 ← clona en el mismo padre, como siempre
+  { "file": "<uuid|iri>", "fechaInicio": "2027-07-15" } ← a otro expediente y a otra fecha
+```
+
+⚠️ **Un cuerpo vacío tiene que seguir significando «clona como siempre»**, porque es lo que manda
+la UI hoy (`apiClient.post(..., {})` en `fileStore.ts`). Sin esa garantía, añadir destino y fecha
+habría roto el botón de clonar que ya existe. La operación lleva `deserialize: false`, así que el
+cuerpo se lee a mano con `CuerpoDeClonacion::fromArray()` — un DTO de frontera, por la regla de
+`docs/TiposDeFrontera.md`.
+
+`file` acepta el UUID o el IRI, porque el front maneja IRIs y la consola maneja ids. Y una fecha
+ilegible es `false`, no `null`: **«no la entiendo» (400) y «no la mandaste» (no tocar) no son lo
+mismo**, y confundirlas clonaría el viaje entero en las fechas del original sin avisar. El formato
+es `Y-m-d` estricto: aceptar formatos sueltos invita a que «03/04» sea marzo en un sitio y abril en
+otro, y aquí mueve un viaje.
+
+### 🔑 Se desplaza por DELTA, no se reasigna
+
+La regla vive en `Cotizacion::desplazarA()` y es una sola frase: **todos los días se mueven el
+mismo número de días**, calculado sobre el servicio más temprano. Si el city tour era el día 1 y
+Machu Picchu el 4, siguen separados por tres días.
+
+Cuatro decisiones que el test fija (`CotizacionDesplazarFechasTest`):
+
+| | Por qué |
+|---|---|
+| El ancla es el servicio **más temprano**, no el primero de la colección | la colección no está ordenada por fecha; anclar al primero movería el viaje a otro sitio sin que ninguna fecha pareciera rara |
+| La **hora** del componente no se toca | el salto es en días: un recojo a las 04:00 sigue a las 04:00. En horas, los recojos de madrugada saltarían al día anterior al cruzar el cambio de día |
+| Un servicio **sin fecha se queda sin fecha** | «todavía no tiene día» es un dato; rellenarlo desde el vecino lo borraría |
+| El salto es en **días**, no en meses | del 28/02/2027 al 28/02/2028 el 1 de marzo tiene que caer el 29 de febrero, no al revés |
+
+Sin ningún servicio con fecha, `desplazarA()` devuelve `null` y el procesador lo convierte en
+error: decir que movió un viaje que no movió es peor que no mover nada.
+
+### Lo que la copia NO se lleva
+
+El **estado** —nace `PENDIENTE`, una copia no está aprobada de nada— y las **operaciones**. La
+Biblia y las órdenes cuelgan de la original, y armar la operación de la copia es una decisión
+aparte con su botón (`docs/Operacion.md` §2.bis).
+
+Al mandarla a otro expediente se suelta el `catalogo`: con los dos puestos la copia colgaría de dos
+padres. Y la `propuesta` se renumera contra el padre DESTINO, no contra el origen.
+
+### Dónde tocar
+
+| Necesito… | Archivo | Símbolo |
+|---|---|---|
+| Cambiar cómo se mueven las fechas | `src/Cotizacion/Entity/Cotizacion.php` | `desplazarA()` — y sus tests, que fijan los cuatro bordes |
+| Cambiar qué acepta el cuerpo | `src/Cotizacion/Dto/CuerpoDeClonacion.php` | `fromArray()` |
+| Cambiar qué se lleva la copia | `src/Cotizacion/ApiPlatform/State/CloneCotizacionProcessor.php` | `process()` |
+| Cambiar qué se duplica del árbol | `src/Cotizacion/Entity/Cotizacion.php` | `duplicar()` — ⚠️ apaga la traducción a propósito |
