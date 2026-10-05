@@ -80,6 +80,7 @@ final class AuditarTraduccionesCommand extends Command
         $porTraduccion = [];
         $revisados = 0;
         $colapsos = 0;
+        $variantes = 0;
 
         foreach ($this->em->getMetadataFactory()->getAllMetadata() as $meta) {
             $clase = $meta->getName();
@@ -133,9 +134,14 @@ final class AuditarTraduccionesCommand extends Command
         $clones = [];
 
         foreach ($porTraduccion as $clave => $filas) {
-            $espanoles = array_unique(array_column($filas, 'es'));
+            // ⚠️ El español se compara APLANADO. Tercera medición contra producción: de 83
+            // señaladas, casi todas eran el mismo texto escrito de dos maneras —«Excursion» y
+            // «Excursión», «Noche y actividades» y «Noche y Actividades»—, que por supuesto
+            // traducen igual. Comparar en crudo convierte una errata de tecleo en un falso clon.
+            $espanoles = array_unique(array_map(fn (array $f): string => $this->plano($f['es']), $filas));
 
             if (\count($espanoles) < 2) {
+                ++$variantes;
                 continue;
             }
 
@@ -158,8 +164,8 @@ final class AuditarTraduccionesCommand extends Command
 
         $io->newLine();
         $io->table(
-            ['campos revisados', 'entidades señaladas', sprintf('colapsos (< %d palabras, correctos)', $minimo)],
-            [[$revisados, \count($clones), $colapsos]]
+            ['campos revisados', 'señaladas', sprintf('colapsos (< %d palabras)', $minimo), 'mismo español, otra grafía'],
+            [[$revisados, \count($clones), $colapsos, $variantes]]
         );
 
         if (!$corregir) {
@@ -219,6 +225,15 @@ final class AuditarTraduccionesCommand extends Command
         }
 
         return '';
+    }
+
+    /** Minúsculas, sin tildes y con los espacios colapsados. */
+    private function plano(string $texto): string
+    {
+        $limpio = mb_strtolower(trim($texto));
+        $limpio = strtr($limpio, ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n']);
+
+        return (string) preg_replace('/\s+/', ' ', $limpio);
     }
 
     /** Palabras de la traducción: el umbral que separa una frase de una etiqueta. */
