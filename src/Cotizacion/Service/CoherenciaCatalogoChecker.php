@@ -216,6 +216,35 @@ final class CoherenciaCatalogoChecker
                 'deCotizacion' => 'HEX(s.id) IN (SELECT UPPER(REPLACE(k.prestador_servicio_maestro_id, "-", "")) FROM cotizacion_cotcomponente k
                                                   JOIN cotizacion_cotservicio sv ON k.cotservicio_id = sv.id WHERE sv.cotizacion_id = :cot)',
             ],
+            // ── Que las tarifas cubran a la gente que viaja ────────────────────────────
+            //
+            // El cálculo financiero multiplica por la `cantidad` de CADA TARIFA, no por `numPax`.
+            // Así que un componente cuyas tarifas por persona no sumen los pax cotizados está
+            // cobrando por otra cantidad de gente — y el total se lee perfectamente plausible.
+            //
+            // ⚠️ Nace de clonar una cotización a otro expediente con otros pax (05/10/2026):
+            // `Cotizacion::ajustarPax()` arrastra las tarifas que cubrían al grupo entero y
+            // **respeta los repartos deliberados** —«2 Peruano + 1 Cusqueño + 1 No necesario»—
+            // porque reescribirlos multiplicaría el grupo por el número de líneas. Esos hay que
+            // repartirlos a mano, y hasta hoy nada lo recordaba.
+            //
+            // Se excluye el 0 (componentes sólo con tarifa grupal, o de referencia sin tarifa) y
+            // las `alternativa`, que son venta opcional y no tienen por qué cubrir a nadie.
+            //
+            // Verificado en producción el día que se escribió: 0 filas. Nace en verde, que es
+            // como tiene que nacer un vigilante — si naciera en rojo, nadie lo miraría.
+            'tarifas-no-cubren-pax' => [
+                'titulo'  => 'Componentes cuyas tarifas no suman los pasajeros cotizados',
+                'detalle' => 'El precio se calcula por la cantidad de cada tarifa, no por los pax: esto cobra por otra cantidad de gente. Se reparte a mano en el editor.',
+                'desde'   => 'cotizacion_cotcomponente k
+                              JOIN cotizacion_cotservicio sv ON sv.id = k.cotservicio_id
+                              JOIN cotizacion_cotizacion co ON co.id = sv.cotizacion_id',
+                'donde'   => '(SELECT COALESCE(SUM(t.cantidad), 0) FROM cotizacion_cottarifa t
+                                WHERE t.cotcomponente_id = k.id AND t.es_grupal = 0
+                                  AND COALESCE(t.rol_snapshot, "") <> "alternativa") NOT IN (0, co.num_pax)',
+                'set'     => null,
+                'deCotizacion' => 'co.id = :cot',
+            ],
             'visibilidad-desfasada' => [
                 'titulo'  => 'Prestadores ocultos cuyo catálogo ya permite nombrarlos',
                 'detalle' => 'Puede ser deliberado: la cotización manda. Se arrastra reasignando el prestador.',

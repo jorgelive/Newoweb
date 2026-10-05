@@ -11536,7 +11536,16 @@ exactamente la de los pax anteriores — las que cubrían al grupo entero. Se de
 | **Repartos deliberados** («2 Peruano + 1 Cusqueño + 1 No necesario») | reescribir cada línea al total **multiplicaría** el grupo por el número de líneas, y eso sale como un precio alto, no como un fallo |
 
 El método devuelve `{ajustadas, respetadas}`: lo respetado es justamente lo que necesita mano
-humana, y contarlo evita que se quede invisible.
+humana.
+
+⚠️ **Y contarlo no basta, porque la API tira ese número.** Lo que recuerda el pendiente es un
+chequeo nuevo del revisor de coherencia, `tarifas-no-cubren-pax`: señala el componente cuyas
+tarifas por persona no suman los pax cotizados. Se pone rojo exactamente cuando una copia —o una
+edición a mano— deja un reparto atrás.
+
+Medido el día que se escribió: **0 filas en toda la base**. Un vigilante tiene que nacer en verde;
+si naciera en rojo, nadie lo miraría — la misma razón por la que este proyecto se quitó la alarma
+del importe y la de la divergencia de órdenes.
 
 ### Lo que la copia NO se lleva
 
