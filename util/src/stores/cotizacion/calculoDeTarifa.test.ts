@@ -474,3 +474,76 @@ describe('la operativa y lo que se publica como incluido', () => {
         expect(todo).not.toContain('LIBERADOS');
     });
 });
+
+
+/**
+ * Varios rangos en el mismo grupo: el monto operativo se reparte proporcionalmente.
+ *
+ * El caso: adultos y niños con precios distintos, una opción para cada uno en el mismo grupo, y
+ * 2 liberados de 80 que el grupo entero paga.
+ *
+ * ```
+ * estándar   adulto 100 × 8     niño 50 × 2
+ * opción g2  adulto 150 × 8     niño 70 × 2
+ * operativa  80 × 2 atada al g2 → 160 entre los 10 = 16 por pasajero
+ * ```
+ *
+ * Dos cosas tenían que arreglarse para que cuadre:
+ *
+ * 1. El delta se comparaba contra el PROMEDIO (`basePP` = 90) en vez de contra el espejo de su
+ *    propio rango. El niño pagaba +36 y la pantalla decía «Descuento 4».
+ * 2. El total multiplicaba por TODOS los pasajeros, así que los 160 de liberados entraban enteros
+ *    en la tarjeta del adulto y otra vez en la del niño.
+ *
+ * La comprobación que lo ata todo: los dos totales tienen que sumar exactamente lo que de verdad
+ * cuesta la opción — la diferencia de las tarifas más los liberados, **una vez**.
+ */
+describe('varios rangos en un grupo, con liberados', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    const upgrades = () => {
+        const store = useCotizacionEditorStore();
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = cotizacionCon(10, [
+            tarifa(100, 8, { edadMinimaSnapshot: 12 }),
+            tarifa(50, 2, { edadMaximaSnapshot: 11 }),
+            tarifa(150, 8, { rolSnapshot: 'alternativa', grupoTarifa: 2, edadMinimaSnapshot: 12 }),
+            tarifa(70, 2, { rolSnapshot: 'alternativa', grupoTarifa: 2, edadMaximaSnapshot: 11 }),
+            tarifa(80, 2, { calculoSnapshot: 'operativa', grupoTarifa: 2 }),
+        ]);
+
+        const ups = store.resumenFinanciero?.opcionesUpgrade ?? [];
+
+        return {
+            adulto: ups.find((u) => u.edadMin === 12),
+            nino: ups.find((u) => u.edadMax === 11),
+        };
+    };
+
+    it('cada rango se compara con SU estándar, no con el promedio', () => {
+        // adulto 150 − 100 + 16 = 66 · niño 70 − 50 + 16 = 36. Con el promedio (90) el niño daba −4.
+        expect(upgrades().adulto?.deltaVentaPorPax).toBeCloseTo(66, 2);
+        expect(upgrades().nino?.deltaVentaPorPax).toBeCloseTo(36, 2);
+    });
+
+    it('el total de cada tarjeta va por SUS pasajeros', () => {
+        expect(upgrades().adulto?.deltaVentaTotal).toBeCloseTo(66 * 8, 2);   // 528
+        expect(upgrades().nino?.deltaVentaTotal).toBeCloseTo(36 * 2, 2);     //  72
+    });
+
+    it('y los dos totales suman lo que de verdad cuesta la opción, con los liberados UNA vez', () => {
+        const { adulto, nino } = upgrades();
+
+        // (150×8 + 70×2) − (100×8 + 50×2) + 160 = 1340 − 900 + 160 = 600
+        expect((adulto?.deltaVentaTotal ?? 0) + (nino?.deltaVentaTotal ?? 0)).toBeCloseTo(600, 2);
+    });
+
+    it('la flecha «std → alt» del panel sigue llegando al delta de al lado', () => {
+        const { adulto, nino } = upgrades();
+
+        for (const up of [adulto, nino]) {
+            expect((up?.ventaPorPaxAlternativa ?? 0) - (up?.ventaPorPaxEstandar ?? 0))
+                .toBeCloseTo(up?.deltaVentaPorPax ?? 0, 2);
+        }
+    });
+});

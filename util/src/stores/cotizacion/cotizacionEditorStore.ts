@@ -1380,9 +1380,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 //
                                 // La lección, que es la de siempre aquí: al cambiar una cifra hay
                                 // que preguntar **quién la pinta**, no dónde parece que vive.
-                                deltaVentaPorPax: altPP - basePP + liberadosPP, // Diferencia general vs promedio
+                                // ⚠️ **Contra SU espejo, no contra el promedio.** `stdPP` ya es
+                                // «el espejo si existe, el promedio si no»; esta línea se saltaba
+                                // ese respaldo y restaba `basePP` siempre. Con un solo perfil da
+                                // igual —el promedio ES el espejo—, pero con adulto y niño en el
+                                // mismo grupo el niño que paga +36 salía como «Descuento 4»: se
+                                // le comparaba con el promedio de los dos.
+                                //
+                                // Queda idéntica a `deltasPorPerfil[0]`, que llevaba razón desde
+                                // el principio y no lo pinta nadie.
+                                deltaVentaPorPax: altPP - stdPP + liberadosPP,
                                 deltasPorPerfil,
-                                deltaVentaTotal: (altPP - basePP + liberadosPP) * numPaxGlobal,
+                                // ⚠️ **Por los pasajeros de ESTA tarjeta, no por todos.** Con
+                                // varios rangos, multiplicar por `numPaxGlobal` metía los
+                                // liberados enteros en cada tarjeta: 160 en la del adulto y otros
+                                // 160 en la del niño. `entreCuantos()` da los suyos —8 y 2— así
+                                // que el monto operativo se reparte proporcionalmente y suma 160
+                                // una sola vez. En grupal devuelve `numPaxGlobal`, que ahí sí es
+                                // lo correcto.
+                                deltaVentaTotal: (altPP - stdPP + liberadosPP) * entreCuantos(t),
                                 tarifaMaestraId: t.tarifaMaestraId ? extractIdStr(t.tarifaMaestraId) : null,
                                 ventaPorPaxEstandar: stdPP,
                                 // Con los liberados dentro, porque el panel interno pinta

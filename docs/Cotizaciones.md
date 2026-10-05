@@ -12098,7 +12098,7 @@ Las otras tres copias ya se habían unificado en `esEstandarVisible()` ese mismo
 
 | Hallazgo | Estado |
 |---|---|
-| Con **varios perfiles** (adulto/niño) en un grupo, `deltaVentaPorPax` compara contra el promedio `basePP` mientras `deltasPorPerfil` usa el espejo exacto: un niño que paga +36 puede salir como «Descuento 4». Y `deltaVentaTotal` multiplica los liberados en **cada** tarjeta | **preexistente**, agravado por los liberados. Medido en producción: **0 de 3** componentes con alternativas tienen más de un perfil. Latente |
+| Varios perfiles en un grupo: delta contra el promedio y liberados duplicados por tarjeta | **cerrado** — ver abajo |
 | Una alternativa con `cantidad = 0` da `0/0 = NaN` en todos los deltas → `null` → `pax` pinta «+$ 0,00» | preexistente, menor |
 | Una operativa atada al **grupo 1** cuando hay estándar visible se cuelga de la tarjeta etiquetada «Estándar» | rareza de etiqueta, sin efecto en el dinero |
 | `deltaCostoPorPax` divide `basePP` por la comisión **global**, ignorando overrides por línea | no lo lee nadie hoy |
@@ -12113,3 +12113,50 @@ reproduce su propio nombre, dos veces en el mismo día.
 Y la otra: **una revisión que busca confirmar no sirve**. El encargo fue «encuentra fallos», con
 permiso para escribir tests temporales, y de ahí salieron los números exactos: 1000 donde debían
 ser 1160, 1500 donde debían ser 1660.
+
+---
+
+## Varios rangos en un grupo: el monto operativo se reparte proporcionalmente (05/10/2026)
+
+El caso, que es el que cierra el hallazgo abierto de la revisión:
+
+```
+estándar    adulto 100 × 8     niño 50 × 2
+opción g2   adulto 150 × 8     niño 70 × 2
+operativa   80 × 2 atada al g2 → 160 entre los 10 = 16 por pasajero
+```
+
+Fallaban dos cosas a la vez, y las dos sólo se notan con **más de un rango**:
+
+### 1. El delta se comparaba con el PROMEDIO, no con su propio espejo
+
+`stdPP` ya es «el espejo si existe, el promedio si no». El `deltaVentaPorPax` de primer nivel
+—**el que se pinta**— se saltaba ese respaldo y restaba `basePP` siempre:
+
+| | lo que pagaba | lo que decía la pantalla |
+|---|---|---|
+| adulto | 150 − 100 + 16 = **+66** | 150 − 90 + 16 = +76 |
+| niño | 70 − 50 + 16 = **+36** | 70 − 90 + 16 = **−4 «Descuento»** |
+
+Con un solo rango da igual: el promedio **es** el espejo. Con dos, al niño se le comparaba contra
+la media de los dos y la propuesta le ofrecía un descuento por pagar 36 más.
+
+Queda idéntico a `deltasPorPerfil[0]`, que llevaba razón desde el principio y no lo pinta nadie.
+
+### 2. Los liberados entraban enteros en CADA tarjeta
+
+`deltaVentaTotal` multiplicaba por `numPaxGlobal`, así que los 160 iban completos en la tarjeta
+del adulto y otra vez en la del niño. Ahora multiplica por `entreCuantos(t)` —los pasajeros de esa
+tarjeta— y el monto operativo se reparte solo:
+
+```
+adulto  66 × 8 = 528      niño  36 × 2 = 72      suma 600
+(150×8 + 70×2) − (100×8 + 50×2) + 160 = 1340 − 900 + 160 = 600 ✅
+```
+
+**La comprobación que lo ata**: los totales de todas las tarjetas de un grupo tienen que sumar lo
+que de verdad cuesta la opción, con los liberados **una sola vez**. Hay un test que lo exige, y
+otro que obliga a que la flecha «std → alt» del panel siga acabando en el delta de al lado.
+
+⚠️ En `grupal` `entreCuantos()` devuelve `numPaxGlobal`, que ahí sí es lo correcto: el monto ya es
+el total del grupo.
