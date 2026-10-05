@@ -81,6 +81,10 @@ final class AuditarTraduccionesCommand extends Command
 
         /** @var array<string, list<array{entidad: object, es: string, texto: string}>> $porTraduccion */
         $porTraduccion = [];
+        /** @var array<int, object> $desfasadas */
+        $desfasadas = [];
+        /** @var list<string> $detalleDesfase */
+        $detalleDesfase = [];
         $revisados = 0;
         $colapsos = 0;
         $variantes = 0;
@@ -104,7 +108,7 @@ final class AuditarTraduccionesCommand extends Command
             }
 
             foreach ($this->em->getRepository($clase)->findAll() as $entidad) {
-                foreach ($propiedades as $prop) {
+                foreach ($propiedades as [$prop, $attr]) {
                     $valor = $prop->getValue($entidad);
 
                     if (!\is_array($valor)) {
@@ -133,6 +137,29 @@ final class AuditarTraduccionesCommand extends Command
                         $porTraduccion[$prop->getName() . '|' . $idioma . '|' . $texto][] = [
                             'entidad' => $entidad, 'es' => $es, 'texto' => $texto,
                         ];
+
+                        // ── Detector 2: la HUELLA no cuadra con su español ──
+                        //
+                        // Exacto, no heurístico: es el mismo criterio que usa el servicio para
+                        // decidir que una fila está desfasada. Caza lo que el detector de
+                        // duplicados NO puede ver —el clon cuyo gemelo ya cambió, que se queda
+                        // huérfano y por tanto único—, y fue así como apareció el snapshot de
+                        // «Ingreso a Quelccaya» con el texto de Vinicunca dentro.
+                        //
+                        // 'manual' se respeta: es el blindaje documentado en §10 para una
+                        // traducción escrita a mano que nadie debe rehacer.
+                        $huella = $fila['origenHash'] ?? null;
+
+                        if ($huella !== null && $huella !== 'manual'
+                            && $huella !== $this->huellaDe($es, $attr->getFormat())) {
+                            $desfasadas[spl_object_id($entidad)] = $entidad;
+                            $detalleDesfase[] = sprintf(
+                                '%-30s %-3s %s',
+                                $this->nombre($entidad),
+                                $idioma,
+                                mb_substr($es, 0, 44)
+                            );
+                        }
                     }
                 }
             }
@@ -186,10 +213,20 @@ final class AuditarTraduccionesCommand extends Command
             }
         }
 
+        if ($desfasadas !== []) {
+            $io->section(sprintf('%d entidad(es) con la huella desfasada de su español', \count($desfasadas)));
+            foreach (\array_slice($detalleDesfase, 0, 30) as $linea) {
+                $io->text('  ' . $linea);
+            }
+            if (\count($detalleDesfase) > 30) {
+                $io->text(sprintf('  … y %d línea(s) más', \count($detalleDesfase) - 30));
+            }
+        }
+
         $io->newLine();
         $io->table(
-            ['revisados', 'señaladas', sprintf('colapsos (<%d palabras)', $minimo), 'otra grafía', 'reformulado'],
-            [[$revisados, \count($clones), $colapsos, $variantes, $reformulaciones]]
+            ['revisados', 'duplicadas', 'huella desfasada', sprintf('colapsos (<%d pal.)', $minimo), 'otra grafía', 'reformulado'],
+            [[$revisados, \count($clones), \count($desfasadas), $colapsos, $variantes, $reformulaciones]]
         );
 
         if (!$corregir) {
@@ -198,13 +235,15 @@ final class AuditarTraduccionesCommand extends Command
             return Command::SUCCESS;
         }
 
+        $candidatas = $clones + $desfasadas;
+
         $aRehacer = $filtro === null
-            ? $clones
-            : array_filter($clones, static fn (object $e): bool => str_contains($e::class, $filtro));
+            ? $candidatas
+            : array_filter($candidatas, static fn (object $e): bool => str_contains($e::class, $filtro));
 
         if ($filtro !== null) {
             $io->note(sprintf('Se detectó sobre todo el catálogo; se corrigen %d de %d por --clase=%s.',
-                \count($aRehacer), \count($clones), $filtro));
+                \count($aRehacer), \count($candidatas), $filtro));
         }
 
         foreach ($aRehacer as $entidad) {
@@ -252,7 +291,7 @@ final class AuditarTraduccionesCommand extends Command
      *
      * @param ReflectionClass<object> $rc
      *
-     * @return list<ReflectionProperty>
+     * @return list<array{ReflectionProperty, AutoTranslate}>
      */
     private function propiedadesTraducibles(ReflectionClass $rc): array
     {
@@ -260,9 +299,11 @@ final class AuditarTraduccionesCommand extends Command
 
         foreach ($rc->getProperties() as $prop) {
             foreach ($prop->getAttributes(AutoTranslate::class) as $attr) {
-                if ($attr->newInstance()->nestedFields === []) {
+                $instancia = $attr->newInstance();
+
+                if ($instancia->nestedFields === []) {
                     $prop->setAccessible(true);
-                    $salida[] = $prop;
+                    $salida[] = [$prop, $instancia];
                 }
             }
         }
@@ -327,6 +368,15 @@ final class AuditarTraduccionesCommand extends Command
         preg_match_all('/[\p{L}\p{N}]{4,}/u', $limpio, $m);
 
         return array_values(array_unique($m[0]));
+    }
+
+    /**
+     * La huella del texto de origen. **Espejo de `AutoTranslationService::hashDeOrigen()`** — si
+     * cambia allí, cambia aquí, o este detector señalaría el catálogo entero.
+     */
+    private function huellaDe(string $texto, string $mime): string
+    {
+        return sha1($mime . '|' . trim((string) preg_replace('/\s+/u', ' ', $texto)));
     }
 
     /** Minúsculas, sin tildes y con los espacios colapsados. */
