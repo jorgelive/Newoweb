@@ -346,13 +346,24 @@ insuficiente, y sólo los datos reales lo dicen:
 | igualdad del texto traducido | 223 | «Dormitorio 2» y «Sala 2» → «Quarto 2». **Correcto**: el portugués no distingue eso |
 | + «no comparten palabra larga» | 10 577 | «Casa #1» → «House #1». Acertaba 1 de cada 1 000 — **retirada** |
 | + frase de ≥4 palabras | 83 | ya sólo frases |
-| + español comparado aplanado | **64** | sin tildes ni mayúsculas: «Excursion»/«Excursión» es el mismo texto |
+| + español comparado aplanado | 64 | sin tildes ni mayúsculas: «Excursion»/«Excursión» es el mismo texto |
+| + algún par con vocabulario ajeno | **0** | lo que quedaba era largo vs. corto: «Vuelo desde la ciudad de Cusco a la ciudad de Lima» y «Vuelo de Cusco a Lima» |
+
+Resultado final tras corregir: **0 señaladas sobre 4 747 campos.** Los tres clones reales
+encontrados y arreglados fueron el boleto de Quelccaya (decía Vinicunca), el alojamiento de Punta
+Cana (decía Playa del Carmen) y un segmento de cotización cuyo español habla de una degustación de
+Pisco Sour y cuyos seis idiomas describían el Convento de San Francisco.
 
 Las dos reglas que quedan:
 
 - **Una etiqueta corta colapsa al traducirse, y eso es traducir bien.** Sólo una *frase* repetida
   carácter a carácter delata un clon: dos oraciones distintas no coinciden por casualidad.
 - **El español se compara sin tildes ni mayúsculas**, o una errata de tecleo finge ser un clon.
+- **Un clon no se parece a su gemelo; una reformulación sí.** Dos redacciones del mismo servicio
+  comparten casi todo el vocabulario largo —el idioma destino no arrastra la verbosidad del
+  español— y un clon no comparte nada. Se exige que algún par comparta menos de la mitad del
+  vocabulario del más corto, **sin etiquetas HTML**: parte del contenido viene en `<p>` con
+  atributos, y comparar el marcado hace que dos párrafos cualesquiera se parezcan.
 
 ⚠️ **El detector descartado se retiró entero, no se escondió tras un flag.** Uno que acierta 1 de
 cada 1 000 enseña a no mirar la lista, que es el mismo fallo que este proyecto ya se quitó de otros
