@@ -4606,8 +4606,30 @@ store.$onAction(({ name, args }) => {
                   <div class="flex items-start gap-2">
                     <i class="fas fa-lock text-slate-400 mt-0.5"></i>
                     <span class="text-[10px] font-bold text-slate-500 leading-tight">
-                      Cálculo <b>operativo</b> — suma al costo y <b>el cliente no ve esta línea</b>. Sin comisión y sin grupo: no compite con ninguna otra opción. Se cambia arriba, en «Modalidad de Cálculo».
+                      Cálculo <b>operativo</b> — suma al costo y <b>el cliente no ve esta línea</b>. Sin comisión: no compite con ninguna otra opción. Se cambia arriba, en «Modalidad de Cálculo».
                     </span>
+                  </div>
+
+                  <!-- ⚠️ **A qué costo pertenece.** Suelta suma a la base siempre —los 6 liberados
+                       del vuelo se pagan vaya como vaya el viaje—. Atada a una opción sólo cuesta
+                       si se contrata esa opción: las 6 entradas liberadas a Coco Bongo no existen
+                       si el grupo no compra Coco Bongo, y cobrarlas en la base eran 8,50 por
+                       cabeza a los 60 por una fiesta que podían no contratar.
+
+                       Sólo aparece cuando hay opciones a las que atarse. -->
+                  <div v-if="store.tarifaActiva && store.gruposOpcionalesDe(store.tarifaActiva.id).length" class="mt-2.5 pt-2.5 border-t border-slate-200">
+                    <label class="block text-[9px] font-black text-slate-500 uppercase mb-1.5 ml-0.5">¿De qué costo forma parte?</label>
+                    <select :value="store.tarifaActiva.grupoTarifa ?? ''"
+                            @change="e => store.tarifaActiva && store.atarOperativaAGrupo(store.tarifaActiva.id, (e.target as HTMLSelectElement).value === '' ? null : Number((e.target as HTMLSelectElement).value))"
+                            class="w-full bg-white border border-slate-300 text-slate-700 rounded-lg px-2.5 py-2 text-[11px] font-bold outline-none focus:border-violet-400">
+                      <option value="">Del viaje — suma siempre</option>
+                      <option v-for="g in store.gruposOpcionalesDe(store.tarifaActiva.id)" :key="g" :value="g">
+                        Sólo si se toma la Opción {{ g }}
+                      </option>
+                    </select>
+                    <p v-if="store.tarifaActiva.grupoTarifa != null" class="text-[9px] text-violet-600 font-bold mt-1 ml-0.5">
+                      <i class="fas fa-link mr-0.5"></i> No suma al costo base: se cobra dentro del adicional de esa opción.
+                    </p>
                   </div>
                   <!-- Vuelve a lo que diga el CATÁLOGO si la tarifa está enlazada, y a individual
                        si es suelta. Se oculta cuando el maestro ES operativa: no hay a dónde

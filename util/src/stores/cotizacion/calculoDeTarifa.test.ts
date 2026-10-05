@@ -134,7 +134,7 @@ describe('cómo reparte el clasificador cada modalidad', () => {
         // cantidad: 80 × 5 = 400 sobre los 10 pax, encima de sus 10 000.
         const clases = costoPorClase(10, [
             tarifa(1000, 10),
-            tarifa(80, 5, { calculoSnapshot: 'operativa' }),
+            tarifa(80, 5, { calculoSnapshot: 'operativa', grupoTarifa: null }),
         ]);
 
         expect(clases).toHaveLength(1);
@@ -150,7 +150,7 @@ describe('cómo reparte el clasificador cada modalidad', () => {
         // @ts-expect-error — fixture mínimo.
         store.cotizacion = cotizacionCon(10, [
             tarifa(1000, 10),
-            tarifa(80, 5, { calculoSnapshot: 'operativa', rolSnapshot: 'estandar' }),
+            tarifa(80, 5, { calculoSnapshot: 'operativa', rolSnapshot: 'estandar', grupoTarifa: null }),
         ]);
 
         const paraElCliente = expurgarParaCliente(store.resumenFinanciero!);
@@ -164,7 +164,7 @@ describe('cómo reparte el clasificador cada modalidad', () => {
         // El otro efecto del reparto: no viaja nadie en esa línea, son cinco vuelos.
         expect(avisosDeCobertura(10, [
             tarifa(1000, 10),
-            tarifa(80, 5, { calculoSnapshot: 'operativa' }),
+            tarifa(80, 5, { calculoSnapshot: 'operativa', grupoTarifa: null }),
         ])).toEqual([]);
     });
 });
@@ -270,7 +270,7 @@ describe('un upgrade cuyo único estándar es una operativa', () => {
         const store = useCotizacionEditorStore();
         // @ts-expect-error — fixture mínimo.
         store.cotizacion = cotizacionCon(60, [
-            tarifa(85, 6, { calculoSnapshot: 'operativa' }),
+            tarifa(85, 6, { calculoSnapshot: 'operativa', grupoTarifa: null }),
             tarifa(85, 60, { calculoSnapshot: 'individual', rolSnapshot: 'alternativa', grupoTarifa: 1 }),
         ]);
 
@@ -286,5 +286,59 @@ describe('un upgrade cuyo único estándar es una operativa', () => {
         // Sin estándar visible no hay nada que alternar. Con el fallo, `pax` reconstruía la
         // etiqueta como «Alternativa 0» — grupo 1 menos 1 — que no significa nada.
         expect(conOperativaYAlternativa()?.esOpcion).toBe(true);
+    });
+});
+
+
+/**
+ * Una operativa ATADA A UN GRUPO sólo cuesta si se toma esa opción.
+ *
+ * 🔥 El caso que lo pidió: Coco Bongo en Santa Rosa. El componente es **opcional** —no tiene
+ * estándar visible— y llevaba dentro una operativa de 6 entradas liberadas. Como las operativas
+ * no tenían grupo, esos 510 entraban en el costo BASE de los 60: 8,50 por cabeza por una fiesta
+ * que el grupo podía no contratar, en un componente que el propio editor marcaba «OPCIONAL».
+ *
+ * ⚠️ **Lo que NO cambia es el caso normal.** De las 16 operativas de esa cotización, 15 no tienen
+ * grupo —los liberados del vuelo, del hotel, del seguro, de las comidas— y ésas son costo del
+ * viaje: suman a la base siempre. Por eso el grupo es opt-in y no al revés.
+ */
+describe('una operativa atada a un grupo', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    const resumen = (extraOperativa: Record<string, unknown>) => {
+        const store = useCotizacionEditorStore();
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = cotizacionCon(10, [
+            tarifa(100, 10),                                                     // la base visible
+            tarifa(80, 2, { calculoSnapshot: 'operativa', grupoTarifa: null, ...extraOperativa }),  // 2 liberados
+        ]);
+
+        return store.resumenFinanciero;
+    };
+
+    it('SIN grupo suma a la base, como siempre', () => {
+        // 100 × 10 = 1000 de la estándar + 80 × 2 = 160 de los liberados.
+        expect(resumen({})?.totalCostoNeto).toBeCloseTo(1160, 2);
+    });
+
+    it('CON grupo no suma a la base', () => {
+        // Los 160 salen del costo del viaje: dependen de que se contrate la opción.
+        expect(resumen({ grupoTarifa: 2 })?.totalCostoNeto).toBeCloseTo(1000, 2);
+    });
+
+    it('CON grupo se cobra en el adicional de esa opción, repartido entre todos', () => {
+        const store = useCotizacionEditorStore();
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = cotizacionCon(10, [
+            tarifa(100, 10),
+            tarifa(50, 10, { rolSnapshot: 'alternativa', grupoTarifa: 2 }),
+            tarifa(80, 2, { calculoSnapshot: 'operativa', grupoTarifa: 2 }),
+        ]);
+
+        const upgrade = (store.resumenFinanciero?.opcionesUpgrade ?? [])[0];
+
+        // La alternativa vale 50/pax y la estándar 100/pax → −50. Y los liberados son
+        // 80 × 2 = 160 repartidos entre 10 → +16. Total −34.
+        expect(upgrade?.deltasPorPerfil?.[0]?.deltaVentaPorPax).toBeCloseTo(-34, 2);
     });
 });

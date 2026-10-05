@@ -11911,3 +11911,72 @@ definición de `operativa`. Restarlo del upgrade era contarlo dos veces a favor 
 | Mover las fechas de una cotización | `src/Cotizacion/Entity/Cotizacion.php` | `desplazarA()` — servicios, **segmentos** y componentes |
 | Cambiar qué cuenta como estándar de un upgrade | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `estandares` dentro de `resumenFinanciero` — rol **y** visibilidad |
 | Entender la etiqueta «Opción N» vs «Alternativa N» | `util/src/types/cotizacionEditorModel.ts` | `etiquetaGrupoTarifa()` — y `pax` la reconstruye con `esOpcion` |
+
+---
+
+## Una operativa puede atarse a una opción (05/10/2026)
+
+### De dónde sale el badge «OPCIONAL», y qué NO significa
+
+No es un modo que se marque: `ComponenteModoEnum` **no tiene** `opcional`. Es un **resultado**, y
+lo decide `esOpcionalParaElCliente()`:
+
+```ts
+return !tarifas.some(t => rol(t) === 'estandar' && publicable(t)) && tarifas.some(publicable);
+```
+
+Un componente `incluido`, con título público, **sin ninguna tarifa estándar que el cliente pueda
+ver** y con al menos una que sí. Entonces todas sus tarifas se publican como «Opción N» con su
+diferencia por persona. Una operativa no cuenta como estándar publicable — el cliente no la ve.
+
+⚠️ **Y aquí estaba el malentendido: el badge habla de lo que se PUBLICA, no de lo que se COBRA.**
+Dice «al cliente esto se le ofrece como opcional». No decía nada del dinero, y el dinero hacía lo
+contrario: la operativa de dentro sumaba al costo base **tomaran o no la opción**.
+
+### Lo que hay ahora: el grupo manda
+
+| Operativa | Qué significa | Dónde suma |
+|---|---|---|
+| **suelta** (`grupoTarifa: null`) | costo del viaje | a la base, siempre, prorrateada |
+| **atada** (`grupoTarifa: N`) | costo de esa opción | al **adicional** de la opción N, prorrateado |
+
+Suelta por defecto, y eso está medido: de las **16 operativas** de la promoción de Santa Rosa,
+**15 son costo del viaje** —los 6 liberados del vuelo, del hotel, del seguro, de las comidas, de
+los traslados— y **una sola** colgaba de un componente opcional:
+
+```
+Vuelo Lima ↔ Punta Cana  325 × 6 = 1 950   ✅ parte fija
+Alojamiento en resort     75 × 6 = 1 800   ✅
+Coco Bongo (fiesta blanca) 85 × 6 =   510   ⚠️ su componente SÍ tiene alternativa
+                                  ───────
+                           total   8 076   → 134,60 por pasajero
+```
+
+Se ata desde el cajón de la tarifa, en «Rol y Agrupamiento», y el selector **sólo aparece cuando
+el componente tiene alguna alternativa**: sin opciones no hay nada condicional a lo que
+engancharse.
+
+### 🔥 Y al probarlo salió que `ventaPPde()` perdía la cantidad
+
+El test del adicional daba −42 donde la aritmética dice −34. La causa:
+
+```ts
+const nativo = monto * cCant * (1 + markup);   // ← sin × cantidad
+```
+
+Sale bien en las otras dos **por casualidad aritmética**: en `individual` el monto ya es por cabeza
+y la cantidad son los pasajeros que cubre; en `grupal` el monto ya es el total. En `operativa` las
+dos cosas son ciertas a la vez —multiplica por cantidad **y** reparte— y el factor desaparecía:
+**dos entradas liberadas costaban lo que una**.
+
+No mordía porque hasta hoy ninguna operativa llegaba a ese cálculo. Habría mordido el mismo día
+que se atara la primera. Ahora las dos funciones (`ventaPPde` y `costoPPde`) salen de un
+`totalDe()` único que pregunta `multiplicaPorCantidad()`.
+
+### Dónde tocar
+
+| Necesito… | Archivo | Símbolo |
+|---|---|---|
+| Cambiar qué hace una operativa atada | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | el `return` temprano por `grupoTarifa` y `liberadosPP` |
+| Cambiar a qué grupos se puede atar | idem | `gruposOpcionalesDe()` — hoy, los que tienen alternativa |
+| Cambiar cuándo un componente sale «Opcional» | `util/src/types/cotizacionEditorModel.ts` | `esOpcionalParaElCliente()` — una definición para el badge y para el aviso |

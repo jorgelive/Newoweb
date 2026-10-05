@@ -1014,6 +1014,23 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     // llegue con él por un cliente viejo lo traduce el backend al guardar
                     // (`CotizacionCottarifa::setRolSnapshot()`).
                     const calculo = resolverCalculo(t);
+
+                    // ⚠️ **Una operativa CON grupo es condicional, igual que una alternativa.**
+                    //
+                    // Sin grupo —el caso normal, 15 de las 16 de una promoción escolar— es un
+                    // costo del viaje: los 6 liberados del vuelo, del hotel, del seguro. Suma a
+                    // la base y se reparte, siempre.
+                    //
+                    // Con grupo es un costo que **sólo existe si se toma esa opción**: las 6
+                    // entradas liberadas a Coco Bongo no se compran si el grupo no compra Coco
+                    // Bongo. Sumarlas a la base cobraba 8,50 por cabeza a los 60 por una fiesta
+                    // que podían no contratar — y el componente llevaba el badge «OPCIONAL»
+                    // diciendo lo contrario.
+                    //
+                    // Se aparta aquí y se recoge abajo, en el delta de su grupo, como hace la
+                    // alternativa que la arrastra.
+                    if (calculo === 'operativa' && t.grupoTarifa != null) return;
+
                     const tCant = unidadesDe(t.cantidad);
                     const montoBase = parseFloat(String(t.montoCosto)) || 0;
                     const moneda = String(t.moneda || 'USD').toUpperCase();
@@ -1160,17 +1177,41 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     );
                     const hayEstandar = estandares.length > 0;
 
-                    const ventaPPde = (t: TarifaSnapshot): number => {
+                    /**
+                     * El total de una tarifa: lo que cuesta antes de repartirlo.
+                     *
+                     * ⚠️ **Faltaba la cantidad, y sólo se notaba en la operativa.** Las dos
+                     * funciones de abajo calculaban `monto × unidadesComponente` sin el factor, y
+                     * sale bien en las otras dos por casualidad aritmética: en `individual` el
+                     * monto YA es por cabeza y la cantidad son los pasajeros que cubre; en
+                     * `grupal` el monto ya es el total del grupo. En `operativa` las dos cosas son
+                     * ciertas a la vez —multiplica por cantidad **y** reparte— y el factor
+                     * desaparecía: **dos entradas liberadas costaban lo que una**.
+                     *
+                     * Es la misma pregunta de `TarifaCalculoEnum::multiplicaPorCantidad()`.
+                     */
+                    const totalDe = (t: TarifaSnapshot): number => {
                         const monto = parseFloat(String(t.montoCosto)) || 0;
-                        const nativo = monto * cCant * (1 + (markupDeLinea(t)));
-                        const usd = String(t.moneda || 'USD').toUpperCase() === 'PEN' ? nativo / tc : nativo;
-                        // Se reparte o no; cuando no, el monto YA es por pax.
-                        return seProrratea(resolverCalculo(t)) ? usd / numPaxGlobal : usd;
+
+                        return monto * cCant * (multiplicaPorCantidad(resolverCalculo(t)) ? unidadesDe(t.cantidad) : 1);
                     };
+
+                    /** Entre cuántos se divide: los pasajeros si se reparte, los suyos si no. */
+                    const entreCuantos = (t: TarifaSnapshot): number =>
+                        seProrratea(resolverCalculo(t)) ? numPaxGlobal : unidadesDe(t.cantidad);
+
+                    const ventaPPde = (t: TarifaSnapshot): number => {
+                        const nativo = totalDe(t) * (1 + (markupDeLinea(t)));
+                        const usd = String(t.moneda || 'USD').toUpperCase() === 'PEN' ? nativo / tc : nativo;
+
+                        return usd / entreCuantos(t);
+                    };
+
                     const costoPPde = (t: TarifaSnapshot): number => {
-                        const monto = parseFloat(String(t.montoCosto)) || 0;
-                        const usd = String(t.moneda || 'USD').toUpperCase() === 'PEN' ? (monto * cCant) / tc : monto * cCant;
-                        return seProrratea(resolverCalculo(t)) ? usd / numPaxGlobal : usd;
+                        const nativo = totalDe(t);
+                        const usd = String(t.moneda || 'USD').toUpperCase() === 'PEN' ? nativo / tc : nativo;
+
+                        return usd / entreCuantos(t);
                     };
 
                     // Base ponderada (cifra única) por si la alternativa no tiene un espejo exacto
@@ -1185,6 +1226,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     const firma = (t: TarifaSnapshot) =>
                         `${t.procedenciaSnapshot || '0'}|${t.edadMinimaSnapshot ?? 0}|${t.edadMaximaSnapshot ?? 120}`;
                     const estandarPorFirma = new Map(estandares.map(t => [firma(t), t]));
+
+                    // Las operativas atadas a un grupo: su costo viaja con la opción, no con la
+                    // base. Se recogen por grupo para sumarlas al adicional de abajo.
+                    const operativasPorGrupo = new Map<number, TarifaSnapshot[]>();
+                    (componente.cottarifas || []).forEach((t) => {
+                        if (resolverCalculo(t) !== 'operativa' || t.grupoTarifa == null) return;
+                        const g = t.grupoTarifa;
+                        if (!operativasPorGrupo.has(g)) operativasPorGrupo.set(g, []);
+                        operativasPorGrupo.get(g)!.push(t);
+                    });
 
                     const grupos = new Map<number, TarifaSnapshot[]>();
                     alternativas.forEach((t) => {
@@ -1215,6 +1266,15 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             );
                         }
 
+                        // Lo que cuestan los liberados de ESTA opción, por pasajero. `ventaPPde()`
+                        // ya reparte las operativas entre todos (`seProrratea`), así que esto es
+                        // directamente lo que le toca a cada uno si el grupo la contrata.
+                        //
+                        // Va a TODAS las alternativas del grupo: si hay dos opciones excluyentes,
+                        // los liberados se compran igual se elija la que se elija.
+                        const liberadosPP = (operativasPorGrupo.get(grupo) ?? [])
+                            .reduce((acc, op) => acc + ventaPPde(op), 0);
+
                         tarifasGrupo.forEach((t) => {
                             const std = estandarPorFirma.get(firma(t));
                             const altPP = ventaPPde(t);
@@ -1225,8 +1285,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 procedencia: t.procedenciaSnapshot || null,
                                 edadMin: t.edadMinimaSnapshot ?? 0,
                                 edadMax: t.edadMaximaSnapshot ?? 120,
-                                // Delta financiero confiable incluso si no hubo match de firma
-                                deltaVentaPorPax: altPP - stdPP
+                                // Delta financiero confiable incluso si no hubo match de firma,
+                                // más los liberados que esta opción arrastra consigo.
+                                deltaVentaPorPax: altPP - stdPP + liberadosPP
                             }];
 
                             const etiquetaGrupo = etiquetaGrupoTarifa(grupo, hayEstandar);
@@ -4191,6 +4252,43 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
+    /**
+     * Los grupos de opción a los que se puede atar una operativa, en su propio componente.
+     *
+     * Son los grupos que tienen alternativa: si no hay ninguna, no hay nada condicional a lo que
+     * engancharse y la operativa sólo puede sumar siempre.
+     */
+    const gruposOpcionalesDe = (tarifaId: string): number[] => {
+        const componente = encontrarComponentePorTarifaId(tarifaId);
+        const grupos = new Set<number>();
+
+        (componente?.cottarifas || []).forEach((t) => {
+            if (t.rolSnapshot === 'alternativa' && t.grupoTarifa != null) grupos.add(t.grupoTarifa);
+        });
+
+        return [...grupos].sort((a, b) => a - b);
+    };
+
+    /**
+     * Ata una operativa a una opción, o la suelta para que sume siempre.
+     *
+     * ⚠️ **Es la diferencia entre un costo del viaje y un costo de una opción.** Los 6 liberados
+     * del vuelo se pagan vaya como vaya el viaje: van sueltos. Las 6 entradas liberadas a Coco
+     * Bongo sólo existen si el grupo contrata Coco Bongo: van atadas a su grupo, y entonces NO
+     * suman a la base — suman al adicional de esa opción, repartidas entre todos.
+     *
+     * Suelta por defecto, que es el caso normal: de 16 operativas de una promoción escolar, 15
+     * son costo del viaje.
+     */
+    const atarOperativaAGrupo = (tarifaId: string, grupo: number | null): void => {
+        const componente = encontrarComponentePorTarifaId(tarifaId);
+        const tarifa = componente?.cottarifas?.find(t => t.id === tarifaId);
+
+        if (!tarifa || modalidadDeTarifa(tarifa) !== 'operativa') return;
+
+        tarifa.grupoTarifa = grupo;
+    };
+
     const marcarTarifaComoOperativa = (tarifaId: string): void => {
         const componente = encontrarComponentePorTarifaId(tarifaId);
         const tarifa = componente?.cottarifas?.find(t => t.id === tarifaId);
@@ -5494,6 +5592,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         actualizarInicioManteniendoRango, agregarDetalleOperativo, eliminarDetalleOperativo, alternarAudienciaDetalle,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         marcarTarifaComoOperativa, quitarRolOperativo, modalidadDeTarifa, cambiarModalidadTarifa,
+        gruposOpcionalesDe, atarOperativaAGrupo,
         modalidadesDisponibles,
         componenteActualDeTarifa, componenteEnEdicion, tarifasHermanas, irATarifaAdyacente,
         servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion,
