@@ -3621,14 +3621,19 @@ onMounted(async () => {
                             </span>
                         </div>
 
-                        <!-- CAMBIO MENOR: el proveedor confirmó la hora. No obliga a reemitir
-                             —es el final normal del flujo, no un descuido— así que va en azul y
-                             con su propio botón: darle el mismo que a reemitir invitaría a usar
-                             el destructivo por costumbre. -->
+                        <!-- CAMBIO MENOR: lo que completa el documento sin rehacerlo. No obliga
+                             a reemitir, así que va en azul y con su propio botón: darle el mismo
+                             que a reemitir invitaría a usar el destructivo por costumbre.
+
+                             ⚠️ El encabezado decía «Confirmación del proveedor», y dejó de ser
+                             cierto el 04/10/2026: ahora también entra por aquí la tarifa que el
+                             documento nunca llegó a decir, que no la confirma nadie. Un título que
+                             describe sólo la mitad de lo que lista se lee como si describiera
+                             todo. -->
                         <div v-if="orden.cambiosMenores?.length" class="px-3 py-2 bg-sky-50 border-b border-sky-200">
                             <p class="text-[10px] font-black text-sky-800 uppercase tracking-wider flex items-center gap-1.5">
                                 <i class="fas fa-circle-info"></i>
-                                Confirmación del proveedor
+                                Se puede completar sin reemitir
                             </p>
                             <ul class="mt-1 space-y-0.5">
                                 <li v-for="(d, i) in orden.cambiosMenores" :key="i" class="text-[10px] text-sky-700 leading-snug">· {{ d }}</li>
@@ -3638,10 +3643,19 @@ onMounted(async () => {
                                 @click="aplicarMenores(orden)"
                                 class="mt-1.5 px-2 py-1 text-[10px] font-black text-sky-900 bg-sky-100 hover:bg-sky-200 border border-sky-300 rounded-lg transition-colors"
                             >
-                                Actualizar y avisar
+                                Actualizar la orden
                             </button>
+                            <!-- ⚠️ Decía «Se confirma la hora al cliente y al proveedor», en
+                                 presente, y NO se confirma a nadie: `AplicarCambiosMenoresProcessor`
+                                 actualiza, hace flush y escribe una línea en el log. El aviso es un
+                                 punto de enganche que nunca se implementó.
+
+                                 Un botón que promete avisar deja al operador convencido de que el
+                                 proveedor ya lo sabe, y eso no da ningún error: es exactamente la
+                                 familia de fallo que este proyecto persigue. Hasta que el envío
+                                 exista, la pantalla dice lo que de verdad hace. -->
                             <p class="mt-1 text-[9px] text-sky-600 leading-snug">
-                                La orden sigue vigente. Se confirma la hora al cliente y al proveedor.
+                                La orden sigue vigente y no hay que reemitirla. <b>No se manda ningún aviso:</b> si hace falta, avísale tú.
                             </p>
                         </div>
 

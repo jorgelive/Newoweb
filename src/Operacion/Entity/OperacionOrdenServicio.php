@@ -985,14 +985,23 @@ class OperacionOrdenServicio
     /**
      * Lo que se resuelve **actualizando la orden**, sin reemitir.
      *
-     * De momento sólo la hora de recojo que aparece por primera vez, y es el caso más común
-     * de todos: cuando le pides un servicio a un proveedor, **la hora te la dice él al
-     * confirmar**. Que aparezca es el final normal del flujo, no un descuido — tratarlo como
-     * cambio sucio obligaría a reemitir cada orden que sale bien.
+     * Dos casos. La hora de recojo que aparece por primera vez, que es el más común de todos:
+     * cuando le pides un servicio a un proveedor, **la hora te la dice él al confirmar**. Que
+     * aparezca es el final normal del flujo, no un descuido — tratarlo como cambio sucio
+     * obligaría a reemitir cada orden que sale bien.
      *
-     * Lo que sí hay que hacer es **confirmarla a las dos partes**: al cliente, para su
-     * programa, y al proveedor, como acuse. Pero es una confirmación, no una modificación, y
-     * el aviso que se manda no es el mismo.
+     * Y desde el 04/10/2026 la TARIFA y su PROCEDENCIA que el documento nunca llegó a decir. Ése
+     * no lo confirma nadie: es completar un hueco que abrió un campo nuevo. Por eso el encabezado
+     * de la vista dejó de llamarse «Confirmación del proveedor» — describía la mitad de lo que
+     * lista, y un título así se lee como si describiera todo.
+     *
+     * Lo que sí habría que hacer es **confirmarla a las dos partes**: al cliente, para su
+     * programa, y al proveedor, como acuse — y sería una confirmación, no una modificación, así
+     * que el aviso no podría ser el mismo.
+     *
+     * ⚠️ **Pero hoy no se manda ninguno**: `AplicarCambiosMenoresProcessor` actualiza y escribe
+     * una línea de log. Esta frase estaba en presente y la vista se la creyó, con un botón que
+     * prometía avisar. Está en condicional a propósito hasta que el envío exista.
      *
      * @return list<string>
      */

@@ -16,16 +16,25 @@ use Symfony\Component\Uid\Uuid;
 /**
  * Aplica a la Orden lo que **no** obliga a reemitir.
  *
- * Hoy es un solo caso, y es el más común de todos: el proveedor confirma la hora de recojo. Que
- * aparezca no es un descuido de nadie —es él quien la dice al confirmar— así que la orden sigue
- * siendo válida: se actualiza el documento y se avisa.
+ * Dos casos hoy. El proveedor confirma la hora de recojo —no es descuido de nadie, es él quien la
+ * dice al confirmar— y la tarifa que el documento nunca llegó a decir, desde el 04/10/2026. En los
+ * dos la orden sigue siendo válida: se actualiza el documento y ya está.
  *
- * ⚠️ **El aviso NO es el mismo que el de una modificación.** Al cliente se le confirma la hora
- * para su programa y al proveedor se le acusa recibo; nadie está corrigiendo nada. Mandar un
- * «cambio de horario» donde hubo una confirmación siembra dudas sobre un servicio que va bien.
+ * ⚠️ **ESTO NO AVISA A NADIE, y la pantalla llegó a decir que sí.** El botón se llamaba
+ * «Actualizar y avisar» y debajo ponía «Se confirma la hora al cliente y al proveedor», en
+ * presente. Lo único que ocurre es el `flush()` y la línea de log de abajo. Un operador que lo
+ * pulsara se quedaba convencido de que el proveedor ya lo sabía — sin un solo error por ningún
+ * lado, que es la familia de fallo que este proyecto persigue. Corregido en la vista el
+ * 04/10/2026: ahora dice «Actualizar la orden» y «No se manda ningún aviso».
  *
- * De aquí cuelgan esas acciones. Hoy queda registrado en el log: el envío va aparte y en
- * asíncrono, porque una caída del correo no puede deshacer una actualización ya aplicada.
+ * **Si algún día se implementa el envío, el aviso NO puede ser el mismo que el de una
+ * modificación.** Al cliente se le confirma la hora para su programa y al proveedor se le acusa
+ * recibo; nadie está corrigiendo nada. Mandar un «cambio de horario» donde hubo una confirmación
+ * siembra dudas sobre un servicio que va bien. Y va aparte y en asíncrono, porque una caída del
+ * correo no puede deshacer una actualización ya aplicada.
+ *
+ * ⚠️ Y al hacerlo hay que mirar el texto de la vista en el mismo cambio, o quedará diciendo que no
+ * avisa cuando ya avise — el mismo fallo girado del revés.
  */
 /**
  * ⚠️ Genérico en `mixed`: API Platform le pasa lo que sea y esto delega lo que no reconoce.

@@ -4338,6 +4338,19 @@ Así que `desdeServicioVivo()` iguala los dos campos **sólo cuando el congelado
 
 Y `aplicarCambiosMenores()` los rellena con el criterio de siempre: **rellena, nunca pisa**.
 
+⚠️ **Y «Actualizar y avisar» no avisaba a nadie** (corregido el mismo día). El botón de los cambios
+menores prometía eso y debajo ponía «Se confirma la hora al cliente y al proveedor», en presente.
+`AplicarCambiosMenoresProcessor` actualiza, hace `flush()` y escribe una línea en `info.log`: el
+envío es un punto de enganche que nunca se implementó. Un operador que lo pulsara se quedaba
+convencido de que el proveedor ya lo sabía, **sin un solo error por ningún lado**.
+
+Ahora dice «Actualizar la orden» y «No se manda ningún aviso: si hace falta, avísale tú». Y el
+encabezado pasó de «Confirmación del proveedor» a «Se puede completar sin reemitir», porque con la
+tarifa dentro describía la mitad de lo que lista — y un título así se lee como si describiera todo.
+
+El día que se implemente el envío hay que tocar el texto de la vista en el mismo cambio, o dirá que
+no avisa cuando ya avise: el mismo fallo girado del revés.
+
 Para rellenarlas en bloque desde consola —el botón «aplicar menores» las resuelve de una en una—
 está `app:operacion:refrescar-ordenes-emitidas`, con dos cambios del mismo día:
 
