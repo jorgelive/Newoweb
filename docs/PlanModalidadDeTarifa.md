@@ -564,6 +564,43 @@ operativa no se podía publicar. Los 15 se rellenan solos la próxima vez que el
 mira los dos (`calculoSnapshot ?? rolSnapshot === 'operativo' ? 'operativa'`). Un tipo que describe
 lo que tú acabas de construir puede ser estricto; uno que describe lo que te llega de la base, no.
 
+#### Y el cierre: los documentos guardados se normalizaron (`Version20261006001500`)
+
+Dejarlo «se rellena solo al siguiente guardado» era correcto y no bastaba: quedaban **7
+documentos publicados** describiendo una forma que el código ya no escribe, y eso es una trampa
+con fecha. El tipo opcional contenía el riesgo; no lo eliminaba.
+
+```
+antes   clasificacion_financiera          581 esGrupal (134 true + 447 false) / 0 calculo
+        clasificacion_financiera_cliente  581 esGrupal (134 true + 447 false) / 0 calculo
+después 0 esGrupal
+```
+
+**⚠️ Recorriendo el JSON, no con `REPLACE` de texto.** El reemplazo textual habría funcionado hoy
+—se midió que las dos únicas formas son `"esGrupal": true` y `"esGrupal": false`, con el espacio
+que pone MySQL al convertir el JSON binario a texto— y es exactamente por eso que no se usó:
+**depende de cómo MySQL renderice el JSON**, que no es parte de ningún contrato. Un cambio de
+versión, otra ordenación de claves o un `null` inesperado, y el reemplazo pasa de largo dejando la
+clave vieja **en silencio y a medias**. Decodificando, el recorrido encuentra la clave a cualquier
+profundidad y `json_encode` no puede producir JSON inválido.
+
+Y verifica: la migración **lanza** si queda una sola ocurrencia. Probada en local con el `down()`
+incluido — 992 claves en los dos sentidos, round trip exacto.
+
+⚠️ **Doctrine avisa «did not result in any SQL statements» y es mentira**: el aviso sale cuando no
+se usó `addSql()`, y aquí el trabajo va por `$this->connection`. La señal buena es la línea que
+imprime la propia migración y la verificación que lanza. Queda escrito en su docblock para que
+nadie lea el log del despliegue y concluya que no hizo nada.
+
+#### Lo que esto NO tocó, porque no hacía falta
+
+**Operación no guarda la modalidad.** Se comprobó sobre el esquema: ni `operacion_servicio` ni
+`operacion_orden_servicio_item` tienen columna de modo, y las 19 claves de `snapshot_origen` no
+incluyen ni `esGrupal` ni `calculo` — llevan `costoCotizado`, el resultado. La Biblia recalcula
+desde la tarifa viva (`getCalculoDeTarifa()->multiplicaPorCantidad()`), verificado: grupal 40,00
+×2 → 40,00, no 80,00. El detalle completo, incluida una orden emitida que lleva congelado el
+número doblado de antes del 27/08/2026 y por qué es inerte, está en `docs/Operacion.md` §19.
+
 ---
 
 ## 6. Riesgos, y cuál vigila cada uno

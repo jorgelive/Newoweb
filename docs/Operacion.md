@@ -4654,3 +4654,84 @@ y el título de la página pública.
 número (`OS-…`), y los mensajes de error que lee el operador siguen diciendo «orden». Renombrarlo
 por dentro sería tocar cien sitios para decir lo mismo, y el número seguiría delatándolo. Lo que
 cambia es **cómo se presenta**, que es lo único que el proveedor ve.
+
+---
+
+## 19. Cómo llega la modalidad de cálculo a La Biblia y a la orden (05/10/2026)
+
+**Respuesta corta: no llega.** Ni La Biblia ni la orden guardan la modalidad. Lo que viaja es el
+**número que la modalidad produjo**.
+
+Comprobado sobre el esquema real: `operacion_servicio` y `operacion_orden_servicio_item` no tienen
+ninguna columna de modo, y el JSON de `snapshot_origen` tiene 19 claves y **ninguna** se llama
+`esGrupal` ni `calculo` — lleva `costoCotizado`, el resultado.
+
+### Quién aplica la regla, y desde dónde
+
+Dos sitios, los dos leyendo la tarifa **viva** de la cotización:
+
+| Dónde | Qué produce |
+|---|---|
+| `BibliaSnapshotService::calcularCostoCotizado()` | el `costo_cotizado` que se guarda en La Biblia |
+| `OperacionServicio::getDesgloseCotizado()` | el desglose que se muestra, calculado al vuelo |
+
+Los dos preguntan lo mismo: `$tarifa->getCalculoDeTarifa()->multiplicaPorCantidad()`, que lee
+`calculo_snapshot` del snapshot de tarifa. Los dos tienen que seguir estando de acuerdo: si el
+desglose no aplicara la regla, explicaría un número distinto del que suma, que es peor que no
+explicarlo.
+
+Verificado con datos de producción — tarifa grupal de 40,00 con `cantidad = 2`:
+
+```
+tarifa grupal 40.00 x2 u1  →  La Biblia dice 40.00     (si multiplicara: 80.00)
+```
+
+### ⚠️ Una orden EMITIDA puede llevar el número viejo, y es inerte a propósito
+
+`OS-20260825-159` tiene dos ítems congelados con **80,00** donde la tarifa dice 40,00: es el
+importe doblado de antes del arreglo del 27/08/2026, congelado al emitir. `OS-20260826-166`, con
+los mismos dos servicios, lleva 40,00.
+
+Arreglar la regla **no alcanza a un documento ya congelado**, y eso no se corrige porque no hace
+daño:
+
+- **El documento del proveedor no lleva importes.** Lo dice la cabecera de
+  `orden_publica.html.twig` y no hay una sola referencia a `importe` en la plantilla. Ni el
+  mensaje, ni la página pública, ni el PDF.
+- **El total interno no se queda viejo.** `getTotalesPorMoneda()` recorre
+  `$this->operacionServicios` —las filas **vivas** de La Biblia— y suma su `costoCotizado`, los
+  40,00. El `importe` congelado del ítem no se suma en ningún sitio.
+
+Y por eso el importe **no se vigila** como divergencia (§14): vigilarlo sería una alarma que sólo
+puede ser falsa, y obligaría a reemitir una orden confirmada para producir un documento idéntico
+al que ya se mandó.
+
+### 🔥 El `operacion_servicio_id` del ítem es varchar(36), no binary(16)
+
+Es un **soft-link deliberado**: la orden congelada tiene que sobrevivir a que su fila de La Biblia
+se borre y se recree, así que guarda el id como texto y sin clave ajena.
+
+⚠️ **Y por eso un join ingenuo entre las dos tablas devuelve CERO filas, sin un solo error:**
+
+```sql
+-- MAL: compara 36 caracteres contra 16 bytes → vacío, y parece que no hay datos
+JOIN operacion_servicio s ON s.id = i.operacion_servicio_id
+
+-- BIEN
+JOIN operacion_servicio s ON s.id = UNHEX(REPLACE(i.operacion_servicio_id, '-', ''))
+```
+
+Con el primero, los 54 ítems de orden salieron como «huérfanos» y durante un minuto pareció un
+fallo de integridad grave. Con el segundo: 54 de 54 enlazan, 54 de 54 tienen su componente vivo.
+Es la trampa del UUID de `CLAUDE.md` —«fallan hacia el lado que no se ve», el de «aquí no hay
+nada»— y aquí muerde más fuerte porque **la mitad binaria y la mitad textual conviven en la misma
+tabla**: `orden_id` es `binary(16)` y `operacion_servicio_id` es `varchar(36)`.
+
+### Dónde tocar
+
+| Necesito… | Archivo | Símbolo |
+|---|---|---|
+| Cambiar cómo se calcula el costo que guarda La Biblia | `src/Operacion/Service/BibliaSnapshotService.php` | `calcularCostoCotizado()` — y **el desglose en el mismo cambio** |
+| Cambiar el desglose que se muestra | `src/Operacion/Entity/OperacionServicio.php` | `getDesgloseCotizado()` — espejo del anterior |
+| Entender qué responde cada predicado | `src/Travel/Enum/TarifaCalculoEnum.php` | `multiplicaPorCantidad()` es la única que mira Operación |
+| Cruzar un ítem de orden con su fila de La Biblia | — | `UNHEX(REPLACE(…, '-', ''))`, nunca comparación directa |
