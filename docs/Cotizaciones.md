@@ -11693,3 +11693,73 @@ campo es «Pax».
 | Cambiar la vuelta atrás | idem | `quitarRolOperativo()` |
 | Cambiar qué se ve en el desplegable | idem | `getTarifaLabel()` |
 | Entender qué hace el rol en el cálculo | `src/Travel/Enum/TarifaRolEnum.php` | `sumaRamaPrincipal()`, `esVisibleParaCliente()` |
+
+---
+
+## Una tarifa suelta nace SIN nombre (05/10/2026)
+
+### El olvido que no se veía
+
+Añadir una tarifa a mano la creaba con el nombre **ya puesto**: `nombreInternoSnapshot: 'Nueva
+Tarifa'` y el título de cliente igual. Suena inofensivo y no lo es, porque a partir de ahí nada
+distingue una tarifa sin rellenar de una rellenada:
+
+```
+el editor la crea  →  «Nueva Tarifa»
+AutoTranslate      →  «New Tariff», «Nouveau Tarif», «Neuer Tarif»… 7 idiomas
+expurgarParaCliente→  entra en clasificacionFinancieraCliente
+publicar           →  el cliente lee «Nueva Tarifa» en su propuesta
+La Biblia          →  tarifa_nombre = «Nueva Tarifa», listo para la orden del proveedor
+```
+
+Encontradas **5 en producción**: el boleto aéreo Cusco → Lima (90,00) y el traslado aeropuerto
+↔ Miraflores (0,00), en la cotización de La Salle y en su clon de Santa Rosa. Una de las tres de
+La Salle estaba **publicada**. Dos llegaron a La Biblia; ninguna a una orden emitida, y por los
+pelos: el documento del proveedor nombra el servicio con el nombre del **componente**
+—prioridad 2 de `BibliaSnapshotService`— que sí estaba bien escrito. El `tarifa_nombre` es lo que
+habría salido como la línea de precio.
+
+**No era un bug, era un olvido** — y eso es lo que lo hace interesante: el sistema cogió el olvido
+y lo vistió de dato, con siete traducciones y un documento publicado.
+
+### Lo que hay ahora
+
+- **Nace vacía** (`tituloSnapshot: []`, `nombreInternoSnapshot: ''`). Los respaldos de aguas abajo
+  ya hacen lo correcto solos: La Biblia cae al nombre del componente.
+- **Se ve que falta**: la tarjeta pone «⚠️ Sin nombre» donde antes decía «Tarifa Manual» —que suena
+  a tipo de tarifa, no a campo vacío— y la cabecera del cajón, «Tarifa sin nombre».
+- **Publicar pregunta**, listando las que van sin nombre. No bloquea.
+
+### ⚠️ Por qué avisa y no bloquea, y por qué sólo el nombre INTERNO
+
+Dos decisiones, las dos contra el instinto.
+
+**Avisa, no bloquea.** Un nombre que falta no descuadra ni un céntimo. Bloquear habría dejado la
+cotizadora en solo-lectura a mitad de armar un grupo, que es el fallo que ya costó caro con
+«⚠️ CONFLICTO». Va por `informativas` —que se ve en el panel y no vota sobre `publicable`— más una
+pregunta al **empezar a publicarse**. No en cada guardado: mientras se arma el grupo las tarifas
+nacen sin nombre a propósito, y preguntarlo siempre es el camino corto a pulsar «Sí» sin leer.
+
+**Sólo el nombre interno**, y está medido contra producción:
+
+```
+300 tarifas | sin nombre interno 0 | sin título de cliente 21 | sin ninguno 0
+```
+
+Las 21 vienen **todas del catálogo maestro** y se llaman «Peruano», «Extranjero», «Junela»,
+«Orientour»: nombres de procedencia o de prestador que no tienen por qué salirle al cliente —él ve
+el título del componente— y que ya tienen su respaldo. Avisar de las 21 habría sido **cierto e
+inútil**, que es la ola de falsas alarmas de las divergencias otra vez: un aviso que sale siempre
+no lo lee nadie, y entonces tampoco se lee el día que dice algo.
+
+Al interno no le falta a **ninguna de las 300**, así que su ausencia no tiene excepciones que la
+vuelvan ruido — y es el que viaja a la orden de servicio del proveedor.
+
+### Dónde tocar
+
+| Necesito… | Archivo | Símbolo |
+|---|---|---|
+| Cambiar qué cuenta como «sin nombre» | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `tarifasSinNombre` — lee la medición de arriba antes de ampliarla |
+| Cambiar el aviso al publicar | idem | el `confirm()` de `guardarCotizacion()`, junto al guarda de conflictos |
+| Cambiar con qué nace una tarifa nueva | idem | `agregarTarifa()` |
+| Cambiar el respaldo del nombre en el documento del proveedor | `src/Operacion/Service/BibliaSnapshotService.php` | las prioridades de `resolverDescripcion()` |

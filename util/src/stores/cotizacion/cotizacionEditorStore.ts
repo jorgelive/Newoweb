@@ -776,6 +776,24 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return false;
     };
 
+    /**
+     * El nombre visible de un componente, con su respaldo al segmento que lo contiene.
+     *
+     * Vivía dentro de `resumenFinanciero` y salió de ahí al necesitarla también
+     * `tarifasSinNombre` (05/10/2026). La regla del respaldo —un componente contenedor sin título
+     * propio se llama como su segmento— es una y tiene que estar en un sitio: copiarla habría
+     * dejado dos paneles nombrando el mismo componente de dos maneras el día que una cambie.
+     */
+    const nombreDeComponente = (componente: ComponenteCompleto): I18nContent[] => {
+        if (componente.tituloSnapshot?.length) return componente.tituloSnapshot;
+        // Caso 1 (contenedor sin nombre): fallback al segmento
+        const seg = componente.cotsegmento;
+        if (seg && typeof seg === 'object' && Array.isArray((seg as CotSegmento).tituloSnapshot)) {
+            return (seg as CotSegmento).tituloSnapshot as I18nContent[];
+        }
+        return [];
+    };
+
     // ============================================================================
     // 🔥 CLASIFICADOR FINANCIERO EXACTO CON RASTREADOR DE CONFLICTOS
     // ============================================================================
@@ -848,16 +866,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         };
 
         const resolverCalculo = (t: TarifaSnapshot): CalculoTarifa => modalidadDeTarifa(t);
-
-        const nombreDeComponente = (componente: ComponenteCompleto): I18nContent[] => {
-            if (componente.tituloSnapshot?.length) return componente.tituloSnapshot;
-            // Caso 1 (contenedor sin nombre): fallback al segmento
-            const seg = componente.cotsegmento;
-            if (seg && typeof seg === 'object' && Array.isArray((seg as CotSegmento).tituloSnapshot)) {
-                return (seg as CotSegmento).tituloSnapshot as I18nContent[];
-            }
-            return [];
-        };
 
         // Nombre INTERNO del componente (siempre presente): sale del componente
         // maestro. El tituloSnapshot es sólo el título público (opcional, para el
@@ -1427,9 +1435,76 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             opcionesUpgrade,
             inclusiones,
             advertencias,
-            informativas,
+            // Las tarifas sin nombre van por `informativas`, NO por `advertencias`: avisan y no
+            // bloquean. Un nombre que falta no descuadra ni un céntimo, y bloquear por eso dejaría
+            // la cotizadora en solo-lectura a mitad de armar un grupo — el fallo que ya costó
+            // caro con «⚠️ CONFLICTO». Al publicar se pregunta, que es donde importa.
+            informativas: [...informativas, ...tarifasSinNombre.value],
             publicable: !tieneConflictos && advertencias.length === 0
         };
+    });
+
+
+    /**
+     * Las tarifas que siguen sin nombre INTERNO, con su servicio y componente para encontrarlas.
+     *
+     * ⚠️ **Sólo el interno, y eso está medido.** La primera versión pedía los dos nombres —interno
+     * y título de cliente— con un argumento que sonaba bien: sirven a dos públicos y ninguno cubre
+     * al otro. Contra los datos reales de producción se cae:
+     *
+     * ```
+     * 300 tarifas | sin nombre interno 0 | sin título de cliente 21 | sin ninguno 0
+     * ```
+     *
+     * Las 21 vienen **todas del catálogo maestro** y se llaman «Peruano», «Extranjero», «Junela»,
+     * «Orientour»: un nombre de procedencia o de prestador que no tiene por qué salirle al cliente
+     * —él ve el título del COMPONENTE— y que ya tiene su respaldo documentado. Avisar de las 21
+     * habría sido cierto y habría sido inútil, que es exactamente la ola de falsas alarmas de las
+     * divergencias: un aviso que sale siempre no lo lee nadie, y entonces tampoco se lee el día
+     * que dice algo.
+     *
+     * El interno, en cambio, **no le falta a ninguna de las 300**. Que falte es señal de recién
+     * creada y sin rellenar, sin excepciones que lo vuelvan ruido. Y es el que más cuesta: es el
+     * que viaja a la orden de servicio del proveedor.
+     *
+     * ⚠️ **Incluye las alternativas.** `resumenFinanciero` las aparta antes de mirar nada
+     * —`if (rol === 'alternativa') return`— y una alternativa sin nombre es justo la que peor se
+     * ve: aparece en «opciones de upgrade», que es lo que el cliente lee para decidir.
+     */
+    const tarifasSinNombre = computed<string[]>(() => {
+        if (!cotizacion.value) return [];
+
+        const idioma = cotizacion.value.idiomaEdicion || 'es';
+        const sueltas: string[] = [];
+
+        cotizacion.value.cotservicios?.forEach((servicio: CotServicio) => {
+            const servicioLabel = getI18nText(
+                servicio.tituloSnapshot?.length ? servicio.tituloSnapshot : (servicio.nombreInternoSnapshot || []),
+                idioma
+            ) || 'Servicio';
+
+            servicio.cotcomponentes?.forEach((componente: ComponenteCompleto) => {
+                if ((componente.estado || '').toLowerCase() === 'cancelado') return;
+                if ((componente.modo || '').toLowerCase() === 'reemplazado') return;
+
+                const compLabel = getI18nText(nombreDeComponente(componente), idioma) || 'Componente';
+
+                (componente.cottarifas || []).forEach((t: TarifaSnapshot) => {
+                    if ((t.nombreInternoSnapshot || '').trim() !== '') return;
+
+                    // El título de cliente se nombra sólo si TAMPOCO está: así el aviso dice qué
+                    // falta de verdad en vez de mandar a mirar un campo que ya está relleno.
+                    const tambienElDelCliente = getI18nText(t.tituloSnapshot, idioma).trim() === '';
+
+                    sueltas.push(
+                        `"${servicioLabel} ➔ ${compLabel}": hay una tarifa sin nombre interno`
+                        + (tambienElDelCliente ? ' ni nombre para el cliente.' : '.')
+                    );
+                });
+            });
+        });
+
+        return sueltas;
     });
 
 
@@ -2674,6 +2749,27 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 }
             }
 
+            // Y el aviso de las tarifas sin nombre, que no es un conflicto financiero: no
+            // descuadra nada, pero lo que se publica lo LEE alguien.
+            //
+            // ⚠️ Pregunta sólo al empezar a publicarse, igual que el guarda de arriba. Mientras
+            // se arma el grupo las tarifas nacen sin nombre a propósito y preguntarlo en cada
+            // guardado sería el camino más corto a que se pulse «Sí» sin leer — y entonces el
+            // aviso no sirve para nada. Se ve en el panel todo el rato; aquí se decide.
+            if (empiezaAPublicarse && tarifasSinNombre.value.length) {
+                const seguir = confirm(
+                    'Estas tarifas se van a publicar sin nombre:\n\n'
+                    + tarifasSinNombre.value.map(t => `• ${t}`).join('\n')
+                    + '\n\nEl nombre interno es el que ve el proveedor en su orden de servicio, y '
+                    + 'el de cliente es el que sale en la propuesta y se traduce a 7 idiomas.\n\n'
+                    + '¿Publicar igual?'
+                );
+
+                if (!seguir) {
+                    return false;
+                }
+            }
+
             // Inyección de la estructura financiera al payload
             payload.totalCosto = String(fin?.totalCostoNeto ?? '0');
             payload.totalVenta = String(fin?.totalVentaBruta ?? '0');
@@ -3588,8 +3684,18 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const nuevaTarifa = {
             id: crypto.randomUUID(),
             tarifaMaestraId: null,
-            tituloSnapshot: [{ language: 'es', content: 'Nueva Tarifa' }],
-            nombreInternoSnapshot: 'Nueva Tarifa',
+            // ⚠️ **Nace SIN nombre, y es a propósito** (05/10/2026). Traía «Nueva Tarifa» puesto
+            // de fábrica, así que una tarifa sin rellenar era indistinguible de una rellenada: el
+            // listener de traducción le hacía sus 7 idiomas —«New Tariff», «Nouveau Tarif»…—, el
+            // `expurgarParaCliente()` la metía en `clasificacionFinancieraCliente` y acabó en una
+            // propuesta PUBLICADA con ese nombre. Cinco así en producción, dos de ellas ya en La
+            // Biblia a punto de salir a un proveedor.
+            //
+            // Vacío, el olvido se ve: la tarjeta pone «⚠️ Sin nombre» y publicar avisa. Y los
+            // respaldos de aguas abajo hacen lo correcto solos — La Biblia cae al nombre del
+            // COMPONENTE (prioridad 2 de `BibliaSnapshotService`), que es el que está bien escrito.
+            tituloSnapshot: [],
+            nombreInternoSnapshot: '',
             cantidad: cantidadInicial,
             moneda: cotizacion.value.monedaGlobal,
             montoCosto: '0.00',

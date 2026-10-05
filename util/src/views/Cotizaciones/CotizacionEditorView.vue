@@ -3211,7 +3211,7 @@ store.$onAction(({ name, args }) => {
                       <div class="flex flex-col min-w-0 pr-2">
                         <!-- 🔥 CAMBIO: Renderizar el nombre interno o el título público -->
                         <span class="text-[10px] font-black text-slate-700 uppercase truncate leading-none mb-1">
-                          {{ tarifa.nombreInternoSnapshot || store.getI18nText(tarifa.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Tarifa Manual' }}
+                          {{ tarifa.nombreInternoSnapshot || store.getI18nText(tarifa.tituloSnapshot, store.cotizacion.idiomaEdicion) || '⚠️ Sin nombre' }}
                         </span>
 
                         <span class="text-[9px] font-bold text-slate-400 flex items-center gap-1 leading-none">
@@ -4059,7 +4059,7 @@ store.$onAction(({ name, args }) => {
                   <div class="flex justify-between items-start pr-8">
                     <div>
                       <span class="text-[10px] font-black text-slate-500 uppercase mb-0.5 block">
-                        {{ tarifa.nombreInternoSnapshot || 'Tarifa Manual' }}
+                        {{ tarifa.nombreInternoSnapshot || '⚠️ Sin nombre' }}
                       </span>
                       <div class="flex gap-2 mt-1 flex-wrap">
                         <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
@@ -4231,7 +4231,10 @@ store.$onAction(({ name, args }) => {
               <p class="text-[11px] font-black text-orange-400 uppercase tracking-widest truncate flex items-center gap-1">
                 <i class="fas fa-box-open"></i> {{ getNombreMaestroRef(store.componenteActualDeTarifa) }}
               </p>
-              <h2 class="text-sm font-black text-slate-800 truncate">{{ store.getI18nText(store.tarifaActiva?.tituloSnapshot, store.cotizacion.idiomaEdicion) }}</h2>
+              <!-- Decía «Tarifa Manual» cuando no había nombre, que suena a tipo de tarifa y no
+                   a campo vacío. Una tarifa nueva nace sin nombre desde el 05/10/2026, así que
+                   este texto es lo primero que dice que falta rellenarlo. -->
+              <h2 class="text-sm font-black text-slate-800 truncate">{{ store.getI18nText(store.tarifaActiva?.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Tarifa sin nombre' }}</h2>
               <p v-if="store.tarifasHermanas.length > 1" class="text-[11px] font-bold text-slate-400 mt-0.5">
                 Tarifa {{ store.tarifasHermanas.findIndex(t => t.id === store.tarifaActiva?.id) + 1 }} de {{ store.tarifasHermanas.length }}
               </p>
