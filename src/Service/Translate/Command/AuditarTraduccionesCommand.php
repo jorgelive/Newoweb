@@ -85,7 +85,11 @@ final class AuditarTraduccionesCommand extends Command
         foreach ($this->em->getMetadataFactory()->getAllMetadata() as $meta) {
             $clase = $meta->getName();
 
-            if ($meta->isMappedSuperclass || ($filtro !== null && !str_contains($clase, $filtro))) {
+            // ⚠️ El filtro NO se aplica aquí: siempre se escanea TODO. Un clon se detecta por
+            // su gemelo, y filtrar el escaneo haría desaparecer los pares cruzados —el gemelo de
+            // un `TravelComponente` puede ser una `Cotizacion`— sin decir nada. `--clase` acota
+            // lo que se CORRIGE, que es lo que se quiere acotar.
+            if ($meta->isMappedSuperclass) {
                 continue;
             }
 
@@ -174,7 +178,14 @@ final class AuditarTraduccionesCommand extends Command
             return Command::SUCCESS;
         }
 
-        $aRehacer = $clones;
+        $aRehacer = $filtro === null
+            ? $clones
+            : array_filter($clones, static fn (object $e): bool => str_contains($e::class, $filtro));
+
+        if ($filtro !== null) {
+            $io->note(sprintf('Se detectó sobre todo el catálogo; se corrigen %d de %d por --clase=%s.',
+                \count($aRehacer), \count($clones), $filtro));
+        }
 
         foreach ($aRehacer as $entidad) {
             if (method_exists($entidad, 'setSobreescribirTraduccion')) {
