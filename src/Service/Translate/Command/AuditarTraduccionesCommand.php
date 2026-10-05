@@ -84,6 +84,7 @@ final class AuditarTraduccionesCommand extends Command
         $revisados = 0;
         $colapsos = 0;
         $variantes = 0;
+        $reformulaciones = 0;
 
         foreach ($this->em->getMetadataFactory()->getAllMetadata() as $meta) {
             $clase = $meta->getName();
@@ -145,10 +146,26 @@ final class AuditarTraduccionesCommand extends Command
             // señaladas, casi todas eran el mismo texto escrito de dos maneras —«Excursion» y
             // «Excursión», «Noche y actividades» y «Noche y Actividades»—, que por supuesto
             // traducen igual. Comparar en crudo convierte una errata de tecleo en un falso clon.
-            $espanoles = array_unique(array_map(fn (array $f): string => $this->plano($f['es']), $filas));
+            $espanoles = array_values(array_unique(array_map(
+                fn (array $f): string => $this->plano($f['es']),
+                $filas
+            )));
 
             if (\count($espanoles) < 2) {
                 ++$variantes;
+                continue;
+            }
+
+            // ⚠️ Cuarta medición: los que quedaban eran el mismo texto dicho LARGO y CORTO
+            // —«Vuelo desde la ciudad de Cusco a la ciudad de Lima» y «Vuelo de Cusco a Lima»—,
+            // que por supuesto dan el mismo neerlandés. Eso no es un clon: es que el idioma
+            // destino no arrastra la verbosidad del español.
+            //
+            // Un clon se delata porque su español no se parece a nada: «Convento de San
+            // Francisco» contra «degustación de Pisco Sour», compartiendo el mismo neerlandés.
+            // Así que sólo cuenta si ALGÚN par comparte poco vocabulario.
+            if (!$this->algunParEsAjeno($espanoles)) {
+                ++$reformulaciones;
                 continue;
             }
 
@@ -171,8 +188,8 @@ final class AuditarTraduccionesCommand extends Command
 
         $io->newLine();
         $io->table(
-            ['campos revisados', 'señaladas', sprintf('colapsos (< %d palabras)', $minimo), 'mismo español, otra grafía'],
-            [[$revisados, \count($clones), $colapsos, $variantes]]
+            ['revisados', 'señaladas', sprintf('colapsos (<%d palabras)', $minimo), 'otra grafía', 'reformulado'],
+            [[$revisados, \count($clones), $colapsos, $variantes, $reformulaciones]]
         );
 
         if (!$corregir) {
@@ -263,6 +280,53 @@ final class AuditarTraduccionesCommand extends Command
         }
 
         return '';
+    }
+
+    /**
+     * ¿Hay algún par de españoles que no se parezcan en nada?
+     *
+     * Dos redacciones del mismo servicio comparten casi todo el vocabulario largo; un clon no
+     * comparte nada. El umbral es la mitad del texto más corto: por debajo, hablan de cosas
+     * distintas y comparten traducción, que es imposible salvo que una esté copiada.
+     *
+     * @param list<string> $espanoles
+     */
+    private function algunParEsAjeno(array $espanoles): bool
+    {
+        $vocabularios = array_map(fn (string $t): array => $this->vocabulario($t), $espanoles);
+        $n = \count($vocabularios);
+
+        for ($i = 0; $i < $n; ++$i) {
+            for ($j = $i + 1; $j < $n; ++$j) {
+                $menor = min(\count($vocabularios[$i]), \count($vocabularios[$j]));
+
+                if ($menor === 0) {
+                    continue;
+                }
+
+                $comunes = \count(array_intersect($vocabularios[$i], $vocabularios[$j]));
+
+                if ($comunes / $menor < 0.5) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Las palabras de 4+ letras, sin etiquetas HTML: parte del contenido viene en `<p>` con
+     * atributos, y comparar el marcado haría que dos párrafos cualesquiera se parecieran.
+     *
+     * @return list<string>
+     */
+    private function vocabulario(string $texto): array
+    {
+        $limpio = $this->plano(strip_tags($texto));
+        preg_match_all('/[\p{L}\p{N}]{4,}/u', $limpio, $m);
+
+        return array_values(array_unique($m[0]));
     }
 
     /** Minúsculas, sin tildes y con los espacios colapsados. */
