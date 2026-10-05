@@ -1003,7 +1003,24 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     const rol = (modoFin !== 'incluido' && rolCrudo === 'alternativa')
                         ? 'estandar'
                         : rolCrudo;
-                    if (rol === 'alternativa') return;   // → opcionesUpgrade
+
+                    const calculoDeLaLinea = resolverCalculo(t);
+
+                    // ⚠️ **Una operativa no es una opción del cliente, diga lo que diga su ROL.**
+                    // Hoy no hay ninguna con rol `alternativa` —medido: 0 en el maestro y 0 en los
+                    // snapshots— y el editor no deja ponérselo. Pero si una apareciera, con el
+                    // orden anterior se iba por el `return` de arriba y **desaparecía del costo**:
+                    // ni sumaba aquí ni la recogía nadie, porque abajo se filtra por visibilidad.
+                    // Un costo que se evapora en silencio es peor que uno mal colocado.
+                    //
+                    // Los dos caminos son exhaustivos y excluyentes: la operativa se contabiliza
+                    // siempre aquí, salvo que esté atada a un grupo —y entonces la recoge el
+                    // delta de ese grupo—; cualquier otra alternativa se va a `opcionesUpgrade`.
+                    if (calculoDeLaLinea === 'operativa') {
+                        if (t.grupoTarifa != null) return;
+                    } else if (rol === 'alternativa') {
+                        return;   // → opcionesUpgrade
+                    }
 
                     // Fase 4 de `docs/PlanModalidadDeTarifa.md`. El snapshot ya trae el cálculo;
                     // si no lo trae —una fila anterior al relleno, o una que el editor acaba de
@@ -1013,7 +1030,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     // posible —el tipo generado lo dice, `"estandar" | "alternativa"`— y lo que
                     // llegue con él por un cliente viejo lo traduce el backend al guardar
                     // (`CotizacionCottarifa::setRolSnapshot()`).
-                    const calculo = resolverCalculo(t);
+                    const calculo = calculoDeLaLinea;
 
                     // ⚠️ **Una operativa CON grupo es condicional, igual que una alternativa.**
                     //
@@ -1029,8 +1046,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     //
                     // Se aparta aquí y se recoge abajo, en el delta de su grupo, como hace la
                     // alternativa que la arrastra.
-                    if (calculo === 'operativa' && t.grupoTarifa != null) return;
-
                     const tCant = unidadesDe(t.cantidad);
                     const montoBase = parseFloat(String(t.montoCosto)) || 0;
                     const moneda = String(t.moneda || 'USD').toUpperCase();
@@ -1153,7 +1168,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 // ── Upgrades: alternativas por componente (solo incluidos) ──
                 if (modoFin === 'incluido') {
-                    const alternativas = (componente.cottarifas || []).filter((t) => t.rolSnapshot === 'alternativa');
+                    // La visibilidad, además del rol: `opcionesUpgrade` viaja al cliente SIN
+                    // filtrar (`expurgarParaCliente` lo mapea entero), así que una operativa aquí
+                    // dentro se publicaría con su título. Es la misma puerta por la que ya se
+                    // coló el espejo del upgrade.
+                    const alternativas = (componente.cottarifas || []).filter(
+                        (t) => t.rolSnapshot === 'alternativa' && visibleParaCliente(resolverCalculo(t))
+                    );
                     if (alternativas.length === 0) return;
 
                     // ⚠️ **El espejo de un upgrade tiene que ser algo que el cliente PUEDA VER.**

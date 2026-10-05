@@ -4114,13 +4114,34 @@ store.$onAction(({ name, args }) => {
                               class="text-[9px] font-black bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded border border-violet-200 uppercase flex items-center gap-1">
                           <i class="fas fa-eye-slash"></i> Operativa · no la ve el cliente
                         </span>
-                        <span class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase flex items-center gap-1"
+
+                        <span v-if="pintarModalidad(tarifa).operativa && tarifa.grupoTarifa == null"
+                              class="text-[9px] font-bold bg-slate-50 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+                          <i class="fas fa-infinity text-slate-400"></i> Costo del viaje · suma siempre
+                        </span>
+                        <!-- ⚠️ **El rol no se enseña en una operativa, porque ahí no significa
+                             nada.** Una operativa no compite con ninguna línea —no es algo entre
+                             lo que el cliente elija—, así que su rol es `estandar` por obligación
+                             técnica y no por decisión. Enseñar «ESTÁNDAR» junto a «OPERATIVA ·
+                             NO LA VE EL CLIENTE» invitaba a la pregunta «¿y por qué no
+                             alternativa?», que es exactamente la confusión que la fase 5 vino a
+                             quitar al sacar `operativo` del enum de roles. -->
+                        <span v-if="!pintarModalidad(tarifa).operativa"
+                              class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase flex items-center gap-1"
                               :class="[getRolTarifaUI(tarifa.rolSnapshot).bg, getRolTarifaUI(tarifa.rolSnapshot).text, getRolTarifaUI(tarifa.rolSnapshot).border]">
                           <i class="fas" :class="getRolTarifaUI(tarifa.rolSnapshot).icon"></i>
                           {{ getRolTarifaUI(tarifa.rolSnapshot).label }}
                         </span>
 
-                        <span v-if="tarifa.grupoTarifa != null" class="text-[9px] font-black bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100 uppercase">
+                        <!-- El mismo número quiere decir dos cosas distintas: en una tarifa normal
+                             es el grupo en el que COMPITE; en una operativa es la opción de la que
+                             DEPENDE. Se dice con palabras para no hacer adivinar. -->
+                        <span v-if="tarifa.grupoTarifa != null && pintarModalidad(tarifa).operativa"
+                              class="text-[9px] font-black bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded border border-violet-200 uppercase flex items-center gap-1">
+                          <i class="fas fa-link"></i> Sólo con la Opción {{ tarifa.grupoTarifa }}
+                        </span>
+
+                        <span v-else-if="tarifa.grupoTarifa != null" class="text-[9px] font-black bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100 uppercase">
                           Grupo {{ tarifa.grupoTarifa }}
                         </span>
 

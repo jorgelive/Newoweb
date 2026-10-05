@@ -11980,3 +11980,35 @@ que se atara la primera. Ahora las dos funciones (`ventaPPde` y `costoPPde`) sal
 | Cambiar qué hace una operativa atada | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | el `return` temprano por `grupoTarifa` y `liberadosPP` |
 | Cambiar a qué grupos se puede atar | idem | `gruposOpcionalesDe()` — hoy, los que tienen alternativa |
 | Cambiar cuándo un componente sale «Opcional» | `util/src/types/cotizacionEditorModel.ts` | `esOpcionalParaElCliente()` — una definición para el badge y para el aviso |
+
+### ⛔ Por qué una operativa sigue siendo rol «estándar» aunque esté atada a un grupo
+
+Es la pregunta que salta al verla con «GRUPO 1», y la respuesta es que **rol y cálculo contestan
+cosas distintas** — por eso la fase 5 sacó `operativo` del enum de roles:
+
+```
+rol      ¿compite con otra línea?     estandar = la que se vende · alternativa = opción
+cálculo  ¿cómo se cuenta su dinero    individual · grupal · operativa
+         y lo ve el cliente?
+```
+
+Una operativa **no compite con nada**: no es algo entre lo que el cliente elija, es un costo que
+viaja escondido. Su rol es `estandar` por obligación técnica, no por decisión.
+
+⚠️ **Y ponerle `alternativa` la publicaría.** `opcionesUpgrade` se arma filtrando por rol y
+`expurgarParaCliente()` lo mapea **entero, sin filtrar**: una operativa ahí dentro saldría en la
+propuesta con su título y su precio. El grupo es lo que la ata a una opción; el rol no tiene nada
+que decir.
+
+Hoy no hay ninguna —medido: 0 en el maestro y 0 en los snapshots— y el editor no deja ponérselo,
+pero el guarda se queda en los dos sitios:
+
+- `alternativas` filtra además por `visibleParaCliente()`.
+- El bucle de costos trata la operativa **antes** que el rol. Con el orden anterior, una operativa
+  con rol `alternativa` se iba por el `return` de las alternativas y **desaparecía del costo**: ni
+  sumaba arriba ni la recogía nadie abajo. Un costo que se evapora en silencio es peor que uno mal
+  colocado.
+
+En la tarjeta, el rol **ya no se enseña** cuando la tarifa es operativa, y el número del grupo se
+dice con palabras porque significa otra cosa: «Sólo con la Opción 1» cuando está atada, «Costo del
+viaje · suma siempre» cuando está suelta.
