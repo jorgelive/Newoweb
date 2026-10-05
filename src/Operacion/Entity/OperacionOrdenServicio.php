@@ -958,6 +958,25 @@ class OperacionOrdenServicio
             ->setHoraRecojoConfirmada($congelado->getHoraRecojoConfirmada())
             ->setNotasPrestador($congelado->getNotasPrestador());
 
+        // La TARIFA y su PROCEDENCIA, con la misma asimetría y por una razón que se vio en
+        // producción: nacieron el 04/10/2026, así que **todas** las órdenes vivas las tenían
+        // nulas en el congelado y rellenas en La Biblia. Sin esto, las 10 encendían el aviso a la
+        // vez —cada línea de cada orden— por un cambio de esquema, no por un cambio de encargo.
+        //
+        // ⚠️ Y un aviso que es cierto en TODAS las órdenes no distingue ninguna: es la alarma que
+        // sólo puede ser falsa que este archivo ya se quitó para el importe, y la que entrena a no
+        // mirar el recuadro el día que de verdad cambie un prestador.
+        //
+        // Sólo se igualan cuando el congelado está VACÍO. Si decía «Peruano» y hoy dice
+        // «Extranjero», eso es cambiarle la tarifa al proveedor y tiene que saltar.
+        if ($congelado->getTarifaNombre() === null) {
+            $vivo->setTarifaNombre(null);
+        }
+
+        if ($congelado->getTarifaProcedencia() === null) {
+            $vivo->setTarifaProcedencia(null);
+        }
+
         // El comprador se le pasa: el ítem transitorio no tiene orden de la que leerlo, y sin él
         // la línea viva imprimiría un «opera X» que la congelada nunca tuvo.
         return $vivo->lineaParaProveedor(null, false, $this->compradorNombre);
@@ -995,6 +1014,31 @@ class OperacionOrdenServicio
 
             if (($hora = $servicio->getHoraRecojo()) !== null) {
                 $avisos[] = sprintf('«%s»: el proveedor confirmó el recojo a las %s', $this->etiqueta($item), $hora);
+            }
+        }
+
+        // La tarifa que el documento nunca llegó a decir. Completar lo que falta, no reemitir.
+        foreach ($this->items as $item) {
+            $servicio = $this->vivoDe($item);
+
+            if ($servicio === null) {
+                continue;
+            }
+
+            if ($item->getTarifaNombre() === null && $servicio->getTarifaNombre() !== null) {
+                $avisos[] = sprintf(
+                    '«%s»: se puede añadir la tarifa (%s)',
+                    $this->etiqueta($item),
+                    $servicio->getTarifaNombre()
+                );
+            }
+
+            if ($item->getTarifaProcedencia() === null && $servicio->getTarifaProcedencia() !== null) {
+                $avisos[] = sprintf(
+                    '«%s»: se puede añadir la procedencia (%s)',
+                    $this->etiqueta($item),
+                    $servicio->getTarifaProcedencia()
+                );
             }
         }
 
@@ -1090,6 +1134,16 @@ class OperacionOrdenServicio
 
             if ($item->getNotasPrestador() === []) {
                 $item->setNotasPrestador($servicio->getNotasPrestadorEfectivas());
+            }
+
+            // Mismo criterio: sólo si está vacío. Una tarifa congelada que diga otra cosa es una
+            // divergencia y se resuelve reemitiendo, no rellenando por detrás.
+            if ($item->getTarifaNombre() === null) {
+                $item->setTarifaNombre($servicio->getTarifaNombre());
+            }
+
+            if ($item->getTarifaProcedencia() === null) {
+                $item->setTarifaProcedencia($servicio->getTarifaProcedencia());
             }
         }
 

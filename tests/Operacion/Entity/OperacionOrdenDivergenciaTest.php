@@ -174,6 +174,71 @@ final class OperacionOrdenDivergenciaTest extends TestCase
         self::assertStringContainsString('confirmó el recojo a las 07:45', $orden->getCambiosMenores()[0]);
     }
 
+    /**
+     * La TARIFA que aparece por primera vez tampoco ensucia. **Y esto se pagó en producción.**
+     *
+     * `tarifaNombre` y `tarifaProcedencia` nacieron el 04/10/2026, así que todas las órdenes
+     * vivas las tenían nulas en el congelado y rellenas en La Biblia. La primera versión las
+     * metió en el diff de bloque y las 10 órdenes encendieron «ya no coincide con La Biblia» a la
+     * vez, cada línea de cada una, por un cambio de ESQUEMA y no de encargo.
+     *
+     * ⚠️ Un aviso cierto en todas las órdenes no distingue ninguna: es la alarma que sólo puede
+     * ser falsa que este módulo ya se quitó para el importe, y la que entrena a no mirar el
+     * recuadro el día que de verdad cambie un prestador.
+     */
+    #[Test]
+    public function laTarifaQueAparecePorPrimeraVezEsUnCambioMenor(): void
+    {
+        $servicio = $this->servicio('Ingreso a Vinicunca', '2026-10-07', 4, '80.00');
+        $orden = $this->ordenCon($servicio);
+        $this->emision()->emitir($orden);
+
+        // Lo que pasó al desplegar: La Biblia los tiene, el documento emitido no.
+        $servicio->setTarifaNombre('Peruano')->setTarifaProcedencia('nacional');
+
+        self::assertFalse($orden->isSucia(), 'Un campo que nace no es un cambio de encargo.');
+        self::assertTrue($orden->hasCambiosMenores());
+
+        $avisos = implode(' | ', $orden->getCambiosMenores());
+        self::assertStringContainsString('se puede añadir la tarifa (Peruano)', $avisos);
+        self::assertStringContainsString('se puede añadir la procedencia (nacional)', $avisos);
+    }
+
+    /** Y aplicarlos rellena el hueco sin pisar nada, como la hora y los puntos. */
+    #[Test]
+    public function aplicarLosMenoresRellenaLaTarifa(): void
+    {
+        $servicio = $this->servicio('Ingreso a Vinicunca', '2026-10-07', 4, '80.00');
+        $orden = $this->ordenCon($servicio);
+        $this->emision()->emitir($orden);
+        $servicio->setTarifaNombre('Peruano')->setTarifaProcedencia('nacional');
+
+        $orden->aplicarCambiosMenores();
+
+        $item = $orden->getItems()->first();
+        self::assertNotFalse($item);
+        self::assertSame('Peruano', $item->getTarifaNombre());
+        self::assertSame('Nacional', $item->getProcedenciaParaProveedor());
+        self::assertFalse($orden->hasCambiosMenores(), 'Aplicado una vez, no vuelve a pedirse.');
+    }
+
+    /**
+     * Pero CAMBIAR una tarifa ya congelada sí ensucia: «Peruano» → «Extranjero» es cambiarle al
+     * proveedor qué entrada se le compra, y eso cuesta dinero distinto.
+     */
+    #[Test]
+    public function cambiarLaTarifaYaCongeladaSiEnsucia(): void
+    {
+        $servicio = $this->servicio('Ingreso a Vinicunca', '2026-10-07', 4, '80.00')
+            ->setTarifaNombre('Peruano')->setTarifaProcedencia('nacional');
+        $orden = $this->ordenCon($servicio);
+        $this->emision()->emitir($orden);
+
+        $servicio->setTarifaNombre('Extranjero')->setTarifaProcedencia('extranjero');
+
+        self::assertTrue($orden->isSucia(), 'Cambiar la tarifa vendida sí hay que reemitirlo.');
+    }
+
     /** Y cambiarla DESPUÉS de confirmada sí es una modificación: hay que reemitir y avisar. */
     #[Test]
     public function cambiarLaHoraYaConfirmadaSiEnsucia(): void

@@ -4314,12 +4314,32 @@ que el proveedor leería como un dato.
 ### Consecuencia en las órdenes ya emitidas
 
 La vigilancia compara **la línea impresa** (§14), así que al añadir ranuras las 10 órdenes vivas
-—2 emitidas y 8 completadas— empiezan a decir «lo que se le mandó ya no dice lo mismo que La
-Biblia». **El aviso es verdadero**: su documento no lleva la procedencia y el de hoy sí. No se
-silenció por eso, que es justo la regla de §14.
+—2 emitidas y 8 completadas— encendieron «ya no coincide con La Biblia» **todas a la vez, en cada
+línea de cada una**, el mismo día del despliegue.
 
-Para rellenarlas sin reemitir está `app:operacion:refrescar-ordenes-emitidas`, con dos cambios
-del mismo día:
+⚠️ **Se razonó que el aviso era aceptable porque era VERDADERO, y eso estaba mal.** Es verdadero y
+sin valor: un aviso cierto en todas las órdenes no distingue ninguna. Es exactamente la «alarma que
+sólo puede ser falsa» que este módulo ya se quitó para el importe, y la que entrena a no mirar el
+recuadro el día que de verdad cambie un prestador — el caso «Tunupa Cusco → Tunupa Valle» que
+motivó §14.
+
+**La regla correcta ya existía en el archivo y no se aplicó**: que un dato aparezca por PRIMERA VEZ
+es completar el documento (cambio menor, `getCambiosMenores()`); que CAMBIE es modificarle el
+encargo (divergencia, reemitir). Es la misma asimetría que la hora de recojo y los puntos, con su
+test desde entonces (`laHoraQueAparecePorPrimeraVezEsUnCambioMenor`).
+
+Así que `desdeServicioVivo()` iguala los dos campos **sólo cuando el congelado está vacío**:
+
+| Congelado | Vivo | Qué es |
+|---|---|---|
+| `null` | `Peruano` | **cambio menor** — se ofrece rellenar, sin reemitir |
+| `Peruano` | `Extranjero` | **divergencia** — se le cambió la entrada al proveedor, se reemite |
+| `Peruano` | `Peruano` | nada |
+
+Y `aplicarCambiosMenores()` los rellena con el criterio de siempre: **rellena, nunca pisa**.
+
+Para rellenarlas en bloque desde consola —el botón «aplicar menores» las resuelve de una en una—
+está `app:operacion:refrescar-ordenes-emitidas`, con dos cambios del mismo día:
 
 - **`--orden=OS-…`** para una sola, en vez de arrastrar las ocho completadas de hace un mes.
 - 🔒 **Se niega a tocar una orden con mensajes enviados.** La condición que lo hacía legítimo
