@@ -11997,6 +11997,24 @@ que lo ata.
 Verificar sobre el documento guardado no basta — el documento tenía el número bueno y la pantalla
 el malo al mismo tiempo.
 
+### ⚠️ El número del grupo NO es el número de la etiqueta
+
+Lo destapó una pregunta de una línea: «¿la Opción 1 es el grupo 1?».
+
+```
+sin estándar visible   grupo 1 → «Opción 1»        mismo número
+con estándar visible   grupo 1 → «Estándar»
+                       grupo 2 → «Alternativa 1»   número − 1
+```
+
+Hoy coinciden en Coco Bongo porque ese componente no tiene estándar visible. Pero el selector
+«¿de qué costo forma parte?» escribía `Opción ${grupo}` **a mano**, así que en un componente con
+estándar habría mandado a atar el liberado a una opción que el operador ve con otro nombre.
+
+**Nadie escribe la etiqueta a mano**: sale de `etiquetaGrupoTarifa()`. Y el «¿hay estándar
+visible?» del que depende estaba escrito **tres veces** —el badge «OPCIONAL», el espejo del
+upgrade y este selector— y la tercera se escribió mal. Ahora es uno: `esEstandarVisible()`.
+
 ### Dónde tocar
 
 | Necesito… | Archivo | Símbolo |

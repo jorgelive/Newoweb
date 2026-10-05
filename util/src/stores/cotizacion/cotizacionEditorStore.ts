@@ -28,6 +28,7 @@ import {
     DetalleOperativoBloque,
     AudienciaDetalle,
     etiquetaGrupoTarifa,
+    esEstandarVisible,
     expurgarParaCliente,
     formatRangoEdad,
     getProcedenciaUI,
@@ -1192,10 +1193,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     //
                     // Sin estándar VISIBLE no hay nada que alternar: es una **opción** que se
                     // añade, y su adicional es su precio entero. Que es justo lo que es.
-                    const estandares = (componente.cottarifas || []).filter(
-                        (t) => (t.rolSnapshot || 'estandar') === 'estandar'
-                            && visibleParaCliente(resolverCalculo(t))
-                    );
+                    const estandares = (componente.cottarifas || []).filter(esEstandarVisible);
                     const hayEstandar = estandares.length > 0;
 
                     /**
@@ -4295,7 +4293,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * Son los grupos que tienen alternativa: si no hay ninguna, no hay nada condicional a lo que
      * engancharse y la operativa sólo puede sumar siempre.
      */
-    const gruposOpcionalesDe = (tarifaId: string): number[] => {
+    const gruposOpcionalesDe = (tarifaId: string): { grupo: number; etiqueta: string }[] => {
         const componente = encontrarComponentePorTarifaId(tarifaId);
         const grupos = new Set<number>();
 
@@ -4303,7 +4301,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (t.rolSnapshot === 'alternativa' && t.grupoTarifa != null) grupos.add(t.grupoTarifa);
         });
 
-        return [...grupos].sort((a, b) => a - b);
+        // ⚠️ **La etiqueta NO es «Opción ${grupo}».** Sin estándar visible sí coinciden —grupo 1 es
+        // «Opción 1»—, pero con un estándar delante el grupo 2 se llama «Alternativa 1» en todas
+        // las demás pantallas. Este selector lo escribía a mano con el número crudo y habría
+        // mandado a atar el liberado a una opción que el operador ve con otro nombre.
+        const hayEstandar = (componente?.cottarifas || []).some(esEstandarVisible);
+
+        return [...grupos]
+            .sort((a, b) => a - b)
+            .map((grupo) => ({ grupo, etiqueta: etiquetaGrupoTarifa(grupo, hayEstandar).label }));
+    };
+
+    /** La etiqueta de la opción a la que está atada una operativa, para pintarla en su tarjeta. */
+    const etiquetaDelGrupoDe = (tarifa: TarifaSnapshot): string => {
+        if (tarifa.grupoTarifa == null) return '';
+
+        const componente = encontrarComponentePorTarifaId(tarifa.id);
+        const hayEstandar = (componente?.cottarifas || []).some(esEstandarVisible);
+
+        return etiquetaGrupoTarifa(tarifa.grupoTarifa, hayEstandar).label;
     };
 
     /**
@@ -5629,7 +5645,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         actualizarInicioManteniendoRango, agregarDetalleOperativo, eliminarDetalleOperativo, alternarAudienciaDetalle,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         marcarTarifaComoOperativa, quitarRolOperativo, modalidadDeTarifa, cambiarModalidadTarifa,
-        gruposOpcionalesDe, atarOperativaAGrupo,
+        gruposOpcionalesDe, atarOperativaAGrupo, etiquetaDelGrupoDe,
         modalidadesDisponibles,
         componenteActualDeTarifa, componenteEnEdicion, tarifasHermanas, irATarifaAdyacente,
         servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion,

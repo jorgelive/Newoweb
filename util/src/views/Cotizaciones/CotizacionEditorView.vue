@@ -4138,7 +4138,7 @@ store.$onAction(({ name, args }) => {
                              DEPENDE. Se dice con palabras para no hacer adivinar. -->
                         <span v-if="tarifa.grupoTarifa != null && pintarModalidad(tarifa).operativa"
                               class="text-[9px] font-black bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded border border-violet-200 uppercase flex items-center gap-1">
-                          <i class="fas fa-link"></i> Sólo con la Opción {{ tarifa.grupoTarifa }}
+                          <i class="fas fa-link"></i> Sólo con «{{ store.etiquetaDelGrupoDe(tarifa) }}»
                         </span>
 
                         <span v-else-if="tarifa.grupoTarifa != null" class="text-[9px] font-black bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100 uppercase">
@@ -4644,8 +4644,8 @@ store.$onAction(({ name, args }) => {
                             @change="e => store.tarifaActiva && store.atarOperativaAGrupo(store.tarifaActiva.id, (e.target as HTMLSelectElement).value === '' ? null : Number((e.target as HTMLSelectElement).value))"
                             class="w-full bg-white border border-slate-300 text-slate-700 rounded-lg px-2.5 py-2 text-[11px] font-bold outline-none focus:border-violet-400">
                       <option value="">Del viaje — suma siempre</option>
-                      <option v-for="g in store.gruposOpcionalesDe(store.tarifaActiva.id)" :key="g" :value="g">
-                        Sólo si se toma la Opción {{ g }}
+                      <option v-for="g in store.gruposOpcionalesDe(store.tarifaActiva.id)" :key="g.grupo" :value="g.grupo">
+                        Sólo si se toma «{{ g.etiqueta }}»
                       </option>
                     </select>
                     <p v-if="store.tarifaActiva.grupoTarifa != null" class="text-[9px] text-violet-600 font-bold mt-1 ml-0.5">

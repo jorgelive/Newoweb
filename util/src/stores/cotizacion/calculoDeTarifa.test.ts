@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useCotizacionEditorStore } from './cotizacionEditorStore';
-import { expurgarParaCliente } from '@/types/cotizacionEditorModel';
+import { expurgarParaCliente, etiquetaGrupoTarifa, esEstandarVisible } from '@/types/cotizacionEditorModel';
 
 /**
  * Cómo reparte el clasificador el dinero de cada **modalidad de cálculo**.
@@ -364,5 +364,36 @@ describe('una operativa atada a un grupo', () => {
         // Si la flecha no acaba donde dice el delta, el operador no sabe cuál creer.
         expect((up?.ventaPorPaxAlternativa ?? 0) - (up?.ventaPorPaxEstandar ?? 0))
             .toBeCloseTo(up?.deltaVentaPorPax ?? 0, 2);
+    });
+});
+
+
+/**
+ * El número del grupo NO es el número de la etiqueta, y por eso nadie lo escribe a mano.
+ *
+ * 🔥 Lo destapó una pregunta de una sola línea: «¿la Opción 1 es el grupo 1?». Hoy sí —ese
+ * componente no tiene estándar visible— y el selector que acababa de escribir ponía
+ * «Opción ${grupo}» con el número crudo. Con un estándar visible delante, el grupo 2 se llama
+ * «Alternativa 1» en todas las demás pantallas, así que el selector habría mandado a atar el
+ * liberado a una opción que el operador ve con otro nombre.
+ */
+describe('cómo se numera un grupo', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    it('sin estándar visible, el grupo 1 ES la Opción 1', () => {
+        expect(etiquetaGrupoTarifa(1, false).label).toBe('Opción 1');
+    });
+
+    it('con estándar visible, el grupo 2 es la Alternativa 1 — uno menos', () => {
+        expect(etiquetaGrupoTarifa(2, true).label).toBe('Alternativa 1');
+    });
+
+    it('una operativa NO cuenta como estándar visible', () => {
+        expect(esEstandarVisible({ rolSnapshot: 'estandar', calculoSnapshot: 'operativa' })).toBe(false);
+        expect(esEstandarVisible({ rolSnapshot: 'estandar', calculoSnapshot: 'individual' })).toBe(true);
+    });
+
+    it('y el rol «operativo» de antes de la fase 5 tampoco', () => {
+        expect(esEstandarVisible({ rolSnapshot: 'operativo' })).toBe(false);
     });
 });

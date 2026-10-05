@@ -819,7 +819,6 @@ export const esOpcionalParaElCliente = (comp: {
     }
 
     const tarifas = comp.cottarifas || [];
-    const rol = (t: { rolSnapshot?: string | null }) => (t.rolSnapshot || 'estandar');
 
     // Una operativa no cuenta como tarifa publicable: el cliente no la ve.
     const publicable = (t: { rolSnapshot?: string | null; calculoSnapshot?: string | null }) =>
@@ -828,9 +827,39 @@ export const esOpcionalParaElCliente = (comp: {
     // ⚠️ El «hay estándar» también tiene que descontar las operativas: desde la fase 5 su rol ES
     // estándar, así que un opcional al que se le añade un liberado dejaba de ser opcional en la
     // propuesta —y pasaba a publicarse como incluido.
-    return !tarifas.some(t => rol(t) === 'estandar' && publicable(t)) && tarifas.some(publicable);
+    return !tarifas.some(esEstandarVisible) && tarifas.some(publicable);
 };
 
+/**
+ * ¿Esta tarifa es un estándar que el cliente PUEDE VER?
+ *
+ * Es la pregunta de la que cuelgan tres cosas que tienen que decir lo mismo: si el componente sale
+ * «OPCIONAL», si un upgrade tiene espejo al que reemplazar, y **cómo se numeran los grupos**
+ * ({@see etiquetaGrupoTarifa}). Estaba escrita tres veces —una por sitio— y la tercera se escribió
+ * mal: el selector de «¿de qué costo forma parte?» numeraba con el grupo crudo.
+ *
+ * ⚠️ El respaldo por `rolSnapshot === 'operativo'` es para snapshots anteriores a la fase 5, cuando
+ * «operativo» era un rol.
+ */
+export const esEstandarVisible = (t: {
+    rolSnapshot?: string | null;
+    calculoSnapshot?: string | null;
+}): boolean =>
+    (t.rolSnapshot || 'estandar') === 'estandar'
+    && visibleParaCliente(comoCalculo(t.calculoSnapshot ?? (t.rolSnapshot === 'operativo' ? 'operativa' : null)));
+
+/**
+ * Cómo se llama un grupo de tarifas, y **el número NO siempre es el mismo**.
+ *
+ * ```
+ * sin estándar visible   grupo 1 → «Opción 1»        mismo número
+ * con estándar visible   grupo 1 → «Estándar»
+ *                        grupo 2 → «Alternativa 1»   número − 1
+ * ```
+ *
+ * Por eso nadie debe escribir «Opción ${grupo}» a mano: con un estándar visible delante, ese texto
+ * nombra una opción que en el resto de la pantalla se llama de otra forma.
+ */
 export const etiquetaGrupoTarifa = (
     grupo: number | null | undefined,
     hayEstandar: boolean
