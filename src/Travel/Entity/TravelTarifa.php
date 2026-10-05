@@ -253,12 +253,7 @@ class TravelTarifa
      */
     private function getProcedenciaIcono(): string
     {
-        return match ($this->procedencia) {
-            TarifaProcedenciaEnum::NACIONAL => '🇵🇪',
-            TarifaProcedenciaEnum::EXTRANJERO => '🌎',
-            TarifaProcedenciaEnum::COMUNIDAD_ANDINA => '🤝 CAN',
-            default => '',
-        };
+        return $this->procedencia?->icono() ?? '';
     }
 
     public function getMonto(): string

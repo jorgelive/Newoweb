@@ -29,6 +29,7 @@ Alcance: `src/Operacion/` (entidades, enums, servicio, listener, comando), los e
 9.bis [Contar en noches o en días](#9bis-contar-en-noches-o-en-días)
 10. [Dónde tocar para cambiar X](#10-dónde-tocar-para-cambiar-x)
 13. [Lo que se le dice al proveedor](#13-lo-que-se-le-dice-al-proveedor-22082026)
+13.bis [Qué tarifa se compró, y de quién es el precio](#13bis-qué-tarifa-se-compró-y-de-quién-es-el-precio-04102026)
 
 ---
 
@@ -3343,6 +3344,10 @@ pondrá «4 noches». Ni una cifra, ni un importe, ni una fecha. Lo corre
 | Leer el `{id}` de la ruta en un processor | `src/Api/VariableDeRuta.php` | `texto()` — API Platform lo entrega ya convertido (un `Uuid`); lo que no puede venir de una ruta es texto vacío, no «Array» |
 | **Cambiar en qué se cuenta una fila (noches/días)** | `src/Travel/Entity/TravelComponente.php` | `$unidadDeConteo` — lo declara el CATÁLOGO; el tipo sólo da el defecto |
 | Cambiar cómo se rotula la cantidad al proveedor | `src/Operacion/Entity/OperacionOrdenServicioItem.php` | `getCantidadParaProveedor()` — la redacción vive aquí, no en el Twig |
+| **Cambiar cuándo se le dice QUÉ TARIFA se compró** | `src/Operacion/Entity/OperacionOrdenServicioItem.php` | `getTarifaParaProveedor()` — se calla si repite título, variante, secundario **o prestador** (§13.bis) |
+| **Cambiar cómo se nombra la procedencia** | `src/Travel/Enum/TarifaProcedenciaEnum.php` | `etiqueta()` — ⚠️ espejo de `PROCEDENCIA_CONFIG` en `util/src/types/cotizacionEditorModel.ts`, se tocan LOS DOS |
+| Entender por qué `descripcion` nunca trae el nombre de la tarifa | `src/Operacion/Service/BibliaSnapshotService.php` | `resolverDescripcion()` — la prioridad 3 es inalcanzable; el porqué y la medición, en §13.bis |
+| Rellenar la tarifa en una orden ya emitida | `src/Operacion/Command/RefrescarOrdenesEmitidasCommand.php` | `--orden=OS-…`; se **niega** si la orden ya tiene mensajes enviados |
 | Cambiar cuándo sale «hasta el…» | `src/Operacion/Entity/OperacionOrdenServicioItem.php` | `getHastaParaProveedor()` — se calla si acaba el mismo día o si no dura |
 | Cambiar qué sabe el proveedor de QUIÉN viaja | `src/Operacion/Service/OperacionOrdenEmision.php` | `congelarGrupos()` + `OperacionOrdenServicio::$gruposSnapshot` |
 | Cambiar el teléfono de emergencia del pie | `.env` | `OPERACIONES_TELEFONO_EMERGENCIA` — vacío = no sale |
@@ -4169,6 +4174,162 @@ la marca a dos sale más barato que ponérsela a quince**, y entre marcarla y qu
 lea sigue estando la emisión de la orden, que la ve una persona.
 
 A partir de ahí es una decisión por componente, en el editor de la cotización.
+
+---
+
+## 13.bis Qué tarifa se compró, y de quién es el precio (04/10/2026)
+
+### El caso
+
+La OS-20261004-445 pedía a Junela un «Ingreso a Vinicunca · 4 pax · PEN 80.00». Lo que no decía,
+en ninguna de sus tres superficies, es que la tarifa comprada era la de **nacional** —PEN 20 por
+persona— y no la de extranjero, que son PEN 30. En un `ticket_variable` **la procedencia ES el
+precio**: el proveedor recibía el encargo sin el dato que lo determina, y el único rastro de la
+respuesta era el importe.
+
+### Por qué no salía, que no se ve leyendo el código
+
+Son dos capas, y la segunda es la que engaña.
+
+**1. La orden no tenía dónde guardarlo.** `operacion_orden_servicio_item` no tenía ninguna columna
+de tarifa. La tenía `operacion_servicio` (`tarifa_nombre`) y La Biblia la pintaba; el ítem
+congelado, no. La única ranura parecida que viajaba era `descripcion`.
+
+**2. Y `descripcion` tampoco podía traerlo.** Sale de `BibliaSnapshotService::resolverDescripcion()`,
+una cascada de cinco prioridades:
+
+| # | De dónde | ¿Puede ganar? |
+|---|---|---|
+| 0 | `prestadorServicio.nombre` | sí |
+| 1 | `tarifa.nombreParaProveedor` | sí — 186 de 263 tarifas lo tienen |
+| 2 | `componente.nombreInterno` | **siempre que llegue aquí** |
+| 3 | `tarifa.nombreInterno` | ❌ **nunca** |
+| 4 | título i18n del componente | ❌ nunca |
+
+La prioridad 2 está rellena en **281 de 281** filas de producción, porque el editor copia el
+nombre interno del maestro al snapshot. Así que la 3 es inalcanzable y **ninguna orden de servicio
+había mostrado jamás el nombre interno de una tarifa**. No era un caso raro de Vinicunca.
+
+⚠️ **La prioridad 2 entró el 23/08/2026 (`7c3b4bf3`, modo MANUAL) con una premisa falsa**, que
+sigue escrita en el comentario: «sólo lo tienen los componentes manuales: los de catálogo sacan su
+nombre interno del maestro, que ya viene por las prioridades de arriba». Las dos mitades son
+falsas —hay 279 componentes de catálogo y los 279 lo tienen; y las prioridades de arriba son de la
+tarifa, no del componente, así que nada lo cubría—. Se añadió para servir a 2 filas y gobierna las
+281.
+
+### Por qué NO se arregló reordenando la cascada
+
+Fue lo primero que se intentó, y **la medición lo tumbó**. Subir el nombre de la tarifa por encima
+del componente, sobre las 85 filas reales de La Biblia, cambiaba 28 rótulos:
+
+| Cambio | Veredicto |
+|---|---|
+| `Ingreso a Vinicunca` → `Peruano` | ✅ lo que se buscaba (3 filas) |
+| `Pool Paracas y Huacachina` → `Cultur (Base 1, 2 pax)` | ✅ |
+| `Transporte urbano en Punta Cana` → `Auto` | ❌ **pero no por ser basura** — ver abajo |
+| `Transporte Aeropuerto Lima ↔ Miraflores` → `Nueva Tarifa` | ❌ default de fábrica sin renombrar |
+| `Pool Vinicunca` → `Junela` · `Pool Valle Sagrado` → `Orientour` | ❌ es el prestador |
+| `Desayuno buffet en resort` → `Occidental Caribe · Desayuno buffet…` | ❌ ruido |
+
+5 a mejor y 23 a peor. `Nueva Tarifa` y `Auto` son **literalmente** los dos casos que el docblock
+de `lineaParaProveedor()` cita como el fallo que había que evitar: el instinto de `7c3b4bf3` era
+correcto aunque su premisa no lo fuera.
+
+⚠️ **Y «Auto» NO es un nombre de relleno: es la variante de VEHÍCULO**, que es el dato por el que
+cambia el precio del transporte. En el catálogo son tarifas hermanas del mismo componente,
+ordenadas por monto — `Transporte Cusco ↔ Valle Sagrado` tiene `Auto | Van | Sprinter | Bus`— y hay
+121 así (47 Van, 29 Auto, 23 Bus, 22 Sprinter, 2 Minibús).
+
+Lo cual **refuerza** la conclusión en vez de debilitarla, porque la diferencia está en el papel que
+se le da, no en el nombre:
+
+| | Qué recibe el proveedor |
+|---|---|
+| sustituyendo | `*Auto*` — el vehículo sin el viaje: el fallo del docblock |
+| **añadiendo** | `*Transporte urbano en Punta Cana* · Auto` — el encargo **y** el vehículo |
+
+Las 29 filas de «Auto» pasan de invisibles a informativas por el mismo cambio que impide que
+tapen el encargo.
+
+El único resto real es `Nueva Tarifa`, y **no está en el catálogo**: son 3 tarifas creadas a mano
+en el editor de cotizaciones y nunca renombradas (dos a coste 0,00 en un transporte y una de 90,00
+en un vuelo). Se arregla nombrándolas, no en el código.
+
+🔑 **La asimetría que lo decide: como etiqueta AÑADIDA un nombre basura es ruido; como SUSTITUTO
+del título es una mentira.** La Biblia ya había elegido añadir —enseña los dos— y por eso ahí
+`Nueva Tarifa` sólo molesta en pequeño. Reordenar habría hecho la orden peor que La Biblia.
+
+### Lo que se hizo: dos ranuras que se callan solas
+
+```
+CotizacionCottarifa.nombreInternoSnapshot   «Peruano»      ─┐
+CotizacionCottarifa.procedenciaSnapshot     «nacional»     ─┤  ya existían, congelados
+                                                            │
+OperacionServicio.tarifaNombre                             ◄┘  ya existía
+OperacionServicio.tarifaProcedencia                        ◄── NUEVO
+   │  OperacionOrdenServicioItem::desdeServicio()
+   ▼
+OperacionOrdenServicioItem.tarifaNombre        CONGELADO ── NUEVO
+OperacionOrdenServicioItem.tarifaProcedencia   CONGELADO ── NUEVO
+```
+
+La línea del proveedor pasa de cuatro ranuras a seis, todas con la misma regla acumulativa de
+`calladoSiRepite()` — **cada una se calla si repite alguna de las que ya salieron**:
+
+```
+*Ingreso a Vinicunca* · Peruano · Nacional · 4 pax
+ título                 tarifa    procedencia
+```
+
+Dos detalles que no son obvios:
+
+- **`getTarifaParaProveedor()` compara también contra el PRESTADOR**, que es la única de las seis
+  que lo hace. Hay nombres internos de tarifa que son el nombre de quien presta —«Junela» presta
+  el «Pool Vinicunca»— y mandarle a Junela una línea que dice «Junela» gasta la ranura en no decir
+  nada. Eso mata exactamente los cuatro casos malos de la tabla de arriba.
+- **La cascada que pidió operaciones —«el nombre para el proveedor si está, y si no el interno»—
+  se cumple sin escribirla.** La primera mitad ya la hace `descripcion` (prioridad 1 → sale por
+  `getVarianteParaProveedor()`); lo único que faltaba era la segunda. Y cuando están los dos salen
+  **los dos**, que es lo que el campo pide: «Del Origen Al Presente de Lima» es lo que él entiende
+  y «Pool City Lima CT002 (Base 1-4)» lo que tú buscas en el tarifario cuando te pregunta por qué
+  le pagas eso.
+
+### La procedencia es un enum, no un nombre
+
+`tarifaProcedencia` no se deduce de `tarifaNombre`, y ahí está su valor: «Peruano» es la convención
+de quien escribió la tarifa y la convención no se cumple sola —852 tarifas maestras, 102
+clasificadas y 750 sin clasificar, con nombres como «Nueva Tarifa» o el del propio prestador—.
+`TarifaProcedenciaEnum` es cerrado y dice lo mismo en todas.
+
+La etiqueta vive en `TarifaProcedenciaEnum::etiqueta()`, **espejo de `PROCEDENCIA_CONFIG`** en
+`util/src/types/cotizacionEditorModel.ts`. Vive en el enum porque ya había una copia enterrada en
+un método privado de `TravelTarifa` (`getProcedenciaIcono()`), que ahora delega: la orden habría
+sido la tercera.
+
+⚠️ **Nulo significa «sin restricción», no «falta el dato».** Es el caso de 750 de 852 tarifas y es
+lo correcto: una tarifa de pool no depende de la nacionalidad. Misma regla que en todo el proyecto
+—lista vacía = sin acotar—, así que la ranura **se calla** en vez de escribir un «sin especificar»
+que el proveedor leería como un dato.
+
+### Consecuencia en las órdenes ya emitidas
+
+La vigilancia compara **la línea impresa** (§14), así que al añadir ranuras las 10 órdenes vivas
+—2 emitidas y 8 completadas— empiezan a decir «lo que se le mandó ya no dice lo mismo que La
+Biblia». **El aviso es verdadero**: su documento no lleva la procedencia y el de hoy sí. No se
+silenció por eso, que es justo la regla de §14.
+
+Para rellenarlas sin reemitir está `app:operacion:refrescar-ordenes-emitidas`, con dos cambios
+del mismo día:
+
+- **`--orden=OS-…`** para una sola, en vez de arrastrar las ocho completadas de hace un mes.
+- 🔒 **Se niega a tocar una orden con mensajes enviados.** La condición que lo hacía legítimo
+  —«ninguna había salido»— dejó de cumplirse: la OS-20260909-981 ya tiene 2 mensajes. Era la única
+  salvaguarda del archivo que vivía sólo en un comentario, **y un comentario no se ejecuta**. Si la
+  orden salió, el proveedor tiene un papel sin la procedencia y rellenarla por detrás haría que el
+  sistema afirmara que se le dijo: eso se anula y se reemite, que deja rastro.
+
+Los tests están en `tests/Operacion/Entity/OperacionOrdenTarifaTest.php` y fijan sobre todo la
+regla de silencio, que es donde está el riesgo.
 
 ---
 

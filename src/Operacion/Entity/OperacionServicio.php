@@ -405,6 +405,31 @@ class OperacionServicio
     private ?string $tarifaNombre = null;
 
     /**
+     * De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.**
+     *
+     * Es el espejo congelado de `CotizacionCottarifa::$procedenciaSnapshot`, que a su vez copia
+     * `TravelTarifa::$procedencia` ({@see \App\Travel\Enum\TarifaProcedenciaEnum}).
+     *
+     * ⚠️ **No se deduce de `tarifaNombre`, y por eso existe.** En una entrada con tarifa doble el
+     * nombre interno de la tarifa es «Peruano» o «Extranjero» por convención de quien la escribió,
+     * y la convención no se cumple sola: hay 102 tarifas maestras clasificadas y 750 sin
+     * clasificar, con nombres como «Nueva Tarifa» o el del propio prestador. El enum es cerrado y
+     * dice lo mismo en todas.
+     *
+     * Importa porque en un `ticket_variable` **la procedencia ES el precio**: el ingreso a
+     * Vinicunca son PEN 20 para el nacional y PEN 30 para el extranjero, y la orden que no lo dice
+     * le pide al proveedor una entrada sin decirle cuál.
+     *
+     * ⚠️ **Nulo significa «sin restricción», no «falta el dato»** — es el caso de la mayoría, y lo
+     * correcto: una tarifa de pool no depende de la nacionalidad. Misma regla que en el resto del
+     * proyecto: lista vacía = sin acotar, así que la ranura se calla cuando está nula en vez de
+     * inventarse un «sin especificar».
+     */
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
+    private ?string $tarifaProcedencia = null;
+
+    /**
      * Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español.
      *
      * Se denormaliza en vez de serializar el cotservicio embebido porque su nombre vive en
@@ -1100,6 +1125,9 @@ class OperacionServicio
 
     public function getTarifaNombre(): ?string { return $this->tarifaNombre; }
     public function setTarifaNombre(?string $tarifaNombre): self { $this->tarifaNombre = $tarifaNombre; return $this; }
+
+    public function getTarifaProcedencia(): ?string { return $this->tarifaProcedencia; }
+    public function setTarifaProcedencia(?string $tarifaProcedencia): self { $this->tarifaProcedencia = $tarifaProcedencia; return $this; }
 
     public function getContextoServicio(): ?string { return $this->contextoServicio; }
     public function setContextoServicio(?string $contextoServicio): self { $this->contextoServicio = $contextoServicio; return $this; }

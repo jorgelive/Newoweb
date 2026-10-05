@@ -22370,6 +22370,13 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"] | null;
+            /** @description El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)». */
+            tarifaNombre?: string | null;
+            /**
+             * @description De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+             *     nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+             */
+            tarifaProcedencia?: string | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -22388,6 +22395,10 @@ export interface components {
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
+            /** @description CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)». */
+            readonly tarifaParaProveedor?: string | null;
+            /** @description La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina». */
+            readonly procedenciaParaProveedor?: string | null;
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
@@ -22443,6 +22454,13 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** @description El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)». */
+            tarifaNombre?: string | null;
+            /**
+             * @description De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+             *     nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+             */
+            tarifaProcedencia?: string | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -22461,6 +22479,10 @@ export interface components {
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
+            /** @description CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)». */
+            readonly tarifaParaProveedor?: string | null;
+            /** @description La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina». */
+            readonly procedenciaParaProveedor?: string | null;
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
@@ -22516,6 +22538,13 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
+            /** @description El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)». */
+            tarifaNombre?: string | null;
+            /**
+             * @description De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+             *     nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+             */
+            tarifaProcedencia?: string | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -22534,6 +22563,10 @@ export interface components {
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
+            /** @description CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)». */
+            readonly tarifaParaProveedor?: string | null;
+            /** @description La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina». */
+            readonly procedenciaParaProveedor?: string | null;
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
@@ -22589,6 +22622,13 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"] | null;
+            /** @description El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)». */
+            tarifaNombre?: string | null;
+            /**
+             * @description De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+             *     nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+             */
+            tarifaProcedencia?: string | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -22607,6 +22647,10 @@ export interface components {
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
+            /** @description CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)». */
+            readonly tarifaParaProveedor?: string | null;
+            /** @description La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina». */
+            readonly procedenciaParaProveedor?: string | null;
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
@@ -22662,6 +22706,13 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** @description El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)». */
+            tarifaNombre?: string | null;
+            /**
+             * @description De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+             *     nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+             */
+            tarifaProcedencia?: string | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -22680,6 +22731,10 @@ export interface components {
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
+            /** @description CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)». */
+            readonly tarifaParaProveedor?: string | null;
+            /** @description La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina». */
+            readonly procedenciaParaProveedor?: string | null;
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
@@ -22735,6 +22790,13 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
+            /** @description El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)». */
+            tarifaNombre?: string | null;
+            /**
+             * @description De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+             *     nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+             */
+            tarifaProcedencia?: string | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -22753,6 +22815,10 @@ export interface components {
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
+            /** @description CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)». */
+            readonly tarifaParaProveedor?: string | null;
+            /** @description La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina». */
+            readonly procedenciaParaProveedor?: string | null;
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
@@ -22808,6 +22874,13 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"] | null;
+            /** @description El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)». */
+            tarifaNombre?: string | null;
+            /**
+             * @description De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+             *     nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+             */
+            tarifaProcedencia?: string | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -22826,6 +22899,10 @@ export interface components {
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
+            /** @description CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)». */
+            readonly tarifaParaProveedor?: string | null;
+            /** @description La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina». */
+            readonly procedenciaParaProveedor?: string | null;
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
@@ -22881,6 +22958,13 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** @description El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)». */
+            tarifaNombre?: string | null;
+            /**
+             * @description De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+             *     nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+             */
+            tarifaProcedencia?: string | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -22899,6 +22983,10 @@ export interface components {
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
+            /** @description CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)». */
+            readonly tarifaParaProveedor?: string | null;
+            /** @description La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina». */
+            readonly procedenciaParaProveedor?: string | null;
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
@@ -22954,6 +23042,13 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
+            /** @description El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)». */
+            tarifaNombre?: string | null;
+            /**
+             * @description De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+             *     nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+             */
+            tarifaProcedencia?: string | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -22972,6 +23067,10 @@ export interface components {
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
+            /** @description CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)». */
+            readonly tarifaParaProveedor?: string | null;
+            /** @description La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina». */
+            readonly procedenciaParaProveedor?: string | null;
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
@@ -23027,6 +23126,13 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"] | null;
+            /** @description El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)». */
+            tarifaNombre?: string | null;
+            /**
+             * @description De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+             *     nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+             */
+            tarifaProcedencia?: string | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -23045,6 +23151,10 @@ export interface components {
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
+            /** @description CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)». */
+            readonly tarifaParaProveedor?: string | null;
+            /** @description La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina». */
+            readonly procedenciaParaProveedor?: string | null;
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
@@ -23100,6 +23210,13 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read_operacion.pasajeros.read"] | null;
+            /** @description El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)». */
+            tarifaNombre?: string | null;
+            /**
+             * @description De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+             *     nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+             */
+            tarifaProcedencia?: string | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -23118,6 +23235,10 @@ export interface components {
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
+            /** @description CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)». */
+            readonly tarifaParaProveedor?: string | null;
+            /** @description La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina». */
+            readonly procedenciaParaProveedor?: string | null;
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
@@ -23173,6 +23294,13 @@ export interface components {
             /** @default 0.00 */
             importe: string;
             moneda?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;
+            /** @description El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)». */
+            tarifaNombre?: string | null;
+            /**
+             * @description De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+             *     nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+             */
+            tarifaProcedencia?: string | null;
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
@@ -23191,6 +23319,10 @@ export interface components {
             /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
             readonly tituloParaProveedor?: string;
             readonly varianteParaProveedor?: string | null;
+            /** @description CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)». */
+            readonly tarifaParaProveedor?: string | null;
+            /** @description La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina». */
+            readonly procedenciaParaProveedor?: string | null;
             /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
             readonly diaParaProveedor?: string | null;
         };
@@ -23362,6 +23494,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -23507,6 +23641,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -23625,6 +23761,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -23742,6 +23880,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -23837,6 +23977,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -23940,6 +24082,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -24085,6 +24229,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -24203,6 +24349,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -24328,6 +24476,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -24473,6 +24623,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -24591,6 +24743,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -24716,6 +24870,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -24861,6 +25017,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
@@ -24979,6 +25137,8 @@ export interface components {
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
             tarifaNombre?: string | null;
+            /** @description De quién es el precio: `nacional`, `extranjero` o `can`. **El hecho, no el nombre.** */
+            tarifaProcedencia?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */

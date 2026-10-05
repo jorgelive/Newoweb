@@ -177,7 +177,10 @@ export const enumOptions = <T extends string>(
 export const PROCEDENCIA_CONFIG: Record<TarifaProcedenciaValue, ProcedenciaUIConfig> = {
     nacional: { icon: '🇵🇪', label: 'Nacional' },
     extranjero: { icon: '🌎', label: 'Extranjero' },
-    can: { icon: '🤝', label: 'CAN' },
+    // «Comunidad Andina» y no «CAN»: es lo que dicen los nombres de las tarifas reales
+    // («Adulto comunidad», «Estudiante latinoamericano» — ninguna dice CAN) y lo que entiende un
+    // proveedor leyendo una orden. ⚠️ Espejo de `TarifaProcedenciaEnum::etiqueta()`.
+    can: { icon: '🤝', label: 'Comunidad Andina' },
 };
 
 export const getProcedenciaUI = (procedencia?: string | null): ProcedenciaUIConfig =>

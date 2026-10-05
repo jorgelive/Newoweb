@@ -27,6 +27,15 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * esto otra vez hay que comprobar que sigue siendo cierta; si una sola orden salió, lo correcto
  * es anular y reemitir, no reescribir.
  *
+ * ⚠️ **Y dejó de cumplirse: el 04/10/2026 la OS-20260909-981 ya tenía mensajes enviados.** Así
+ * que la comprobación a mano pasó a ser código — `saltadas` más abajo —: el comando **se niega**
+ * a tocar una orden con mensajes, en vez de confiar en que alguien se acuerde de mirar. Era la
+ * única salvaguarda del archivo que vivía sólo en este comentario, y un comentario no se ejecuta.
+ *
+ * Con `--orden=OS-…` se limita a una. Lo pide el caso que lo estrenó: añadir la tarifa y la
+ * procedencia a una orden emitida y **no enviada**, sin arrastrar las ocho completadas de hace un
+ * mes a las que ya no les sirve.
+ *
  * El orden importa: primero `app:cotizacion:refrescar-nombres-maestros`, luego
  * `operacion:resincronizar --todas` —que recalcula La Biblia— y sólo entonces esto, que copia de
  * ella. Al revés se copiarían los nombres viejos.
@@ -45,6 +54,7 @@ final class RefrescarOrdenesEmitidasCommand extends Command
     protected function configure(): void
     {
         $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'Enseña qué cambiaría sin escribir.');
+        $this->addOption('orden', null, InputOption::VALUE_REQUIRED, 'Sólo esta orden, por su número (OS-…).');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -54,11 +64,35 @@ final class RefrescarOrdenesEmitidasCommand extends Command
 
         $io->warning('Reescribe documentos emitidos. Sólo es legítimo si NINGUNA orden se ha enviado todavía.');
 
+        $soloEsta = $input->getOption('orden');
+        $soloEsta = \is_string($soloEsta) && trim($soloEsta) !== '' ? trim($soloEsta) : null;
+
         $repoBiblia = $this->em->getRepository(OperacionServicio::class);
         $tocadas = 0;
         $huerfanas = 0;
+        $saltadas = 0;
 
         foreach ($this->em->getRepository(OperacionOrdenServicioItem::class)->findAll() as $item) {
+            $orden = $item->getOrden();
+
+            if ($soloEsta !== null && $orden?->getNumeroOs() !== $soloEsta) {
+                continue;
+            }
+
+            // 🔒 La guarda que antes era una frase en el docblock. Un mensaje enviado significa
+            // que alguien tiene el documento en la mano: reescribirlo aquí haría que el sistema
+            // afirmara que se le dijo algo que su papel no dice. Eso se arregla anulando y
+            // reemitiendo, que deja rastro, no editando el congelado por detrás.
+            if ($orden !== null && \count($orden->getMensajes()) > 0) {
+                ++$saltadas;
+                $io->text(sprintf(
+                    '  <fg=red>enviada</> · %s — %s ya salió al proveedor: anular y reemitir, no reescribir',
+                    $orden->getNumeroOs(),
+                    $item->getTituloParaProveedor()
+                ));
+                continue;
+            }
+
             $id = $item->getOperacionServicioId();
             $biblia = $id !== null ? $repoBiblia->find($id) : null;
 
@@ -79,6 +113,14 @@ final class RefrescarOrdenesEmitidasCommand extends Command
                 // tipo diga que manda el segmento. Ver ComponenteTipoEnum::mandaElSegmento().
                 'tipoComponente' => [$item->getTipoComponente(), $biblia->getTipoComponente()],
                 'ordenItinerario' => [$item->getOrdenItinerario(), $biblia->getOrdenItinerario()],
+                // Los dos de la tarifa, desde el 04/10/2026. Son los únicos de esta lista que
+                // NO estaban en el documento que se mandó —las columnas no existían—, así que
+                // aquí no corrigen un texto viejo: **añaden** lo que la orden nunca dijo. Por eso
+                // importa más que nunca la condición de arriba: si la orden salió, el proveedor
+                // tiene un papel sin la procedencia y rellenarla aquí haría que el sistema
+                // afirmara que se le dijo. En ese caso se anula y se reemite.
+                'tarifaNombre' => [$item->getTarifaNombre(), $biblia->getTarifaNombre()],
+                'tarifaProcedencia' => [$item->getTarifaProcedencia(), $biblia->getTarifaProcedencia()],
             ] as $campo => [$antes, $ahora]) {
                 // Un vacío en La Biblia no borra lo que la orden ya dice: sería perder texto por
                 // un recálculo incompleto, que es peor que quedarse con el nombre viejo.
@@ -115,6 +157,8 @@ final class RefrescarOrdenesEmitidasCommand extends Command
                     'descripcion' => $item->setDescripcion((string) $ahora),
                     'tipoComponente' => $item->setTipoComponente((string) $ahora),
                     'ordenItinerario' => $item->setOrdenItinerario((int) $ahora),
+                    'tarifaNombre' => $item->setTarifaNombre((string) $ahora),
+                    'tarifaProcedencia' => $item->setTarifaProcedencia((string) $ahora),
                 };
             }
         }
@@ -124,7 +168,10 @@ final class RefrescarOrdenesEmitidasCommand extends Command
         }
 
         $io->newLine();
-        $io->table(['líneas actualizadas', 'huérfanas'], [[$tocadas, $huerfanas]]);
+        $io->table(
+            ['líneas actualizadas', 'huérfanas', 'saltadas por enviadas'],
+            [[$tocadas, $huerfanas, $saltadas]]
+        );
 
         if ($simula) {
             $io->note('Ensayo: no se escribió nada. Quita --dry-run para aplicarlo.');

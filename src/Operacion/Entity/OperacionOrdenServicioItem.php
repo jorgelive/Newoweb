@@ -11,6 +11,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use App\Operacion\Enum\VisibilidadPuntoEnum;
 use App\Travel\Enum\ComponenteTipoEnum;
+use App\Travel\Enum\TarifaProcedenciaEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
@@ -259,6 +260,53 @@ class OperacionOrdenServicioItem
     #[ORM\JoinColumn(nullable: true)]
     private ?MaestroMoneda $moneda = null;
 
+    /**
+     * El nombre INTERNO de la tarifa, congelado. «Peruano», «Cultur (Base 1, 2 pax)».
+     *
+     * ⚠️ **Existe porque `descripcion` no puede traerlo, y no por descuido.** `descripcion` sale
+     * de `BibliaSnapshotService::resolverDescripcion()`, una cascada de cinco prioridades en la
+     * que el nombre interno de la tarifa es la **cuarta**, detrás del nombre interno del
+     * COMPONENTE — que en producción está relleno en 281 de 281 filas, porque el editor lo copia
+     * del maestro. O sea: esa prioridad no puede ganar nunca, y hasta hoy **ninguna orden de
+     * servicio había mostrado jamás el nombre interno de una tarifa**.
+     *
+     * ⚠️ **Y por eso va en ranura PROPIA en vez de arreglarse reordenando la cascada**, que fue
+     * lo primero que se intentó. Medido sobre las 85 filas reales de La Biblia, subir el nombre
+     * de la tarifa por encima del componente cambiaba 28 rótulos: 5 a mejor («Ingreso a
+     * Vinicunca» → «Peruano») y el resto a peor, porque muchos nombres internos de tarifa son el
+     * nombre del prestador («Junela», «Orientour») o el default de fábrica sin renombrar («Nueva
+     * Tarifa») — y otros, como «Auto», que SÍ dicen algo (es la variante de vehículo, hermana de
+     * «Van», «Sprinter» y «Bus») pero no bastan para identificar el encargo: «Auto» a secas es
+     * literalmente el caso que el docblock de {@see self::lineaParaProveedor()} cita como el fallo
+     * que había que evitar.
+     *
+     * Añadir en vez de sustituir resuelve las dos familias a la vez: el nombre basura queda en
+     * pequeño y el que informa —el vehículo— se suma al encargo en lugar de taparlo.
+     *
+     * La asimetría que lo decide: **como etiqueta añadida un nombre basura es ruido, como
+     * sustituto del título es una mentira**. La Biblia ya eligió añadir —enseña los dos— y esto
+     * copia esa decisión en vez de contradecirla.
+     *
+     * Se calla si repite algo ya dicho en la línea, incluido el prestador: ver
+     * {@see self::getTarifaParaProveedor()}.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $tarifaNombre = null;
+
+    /**
+     * De quién es el precio: `nacional`, `extranjero`, `can`. Congelado, y **el hecho, no el
+     * nombre** — ver {@see OperacionServicio::$tarifaProcedencia} para el porqué de los dos.
+     *
+     * Es el dato que de verdad faltaba: en un `ticket_variable` la procedencia ES el precio, y la
+     * orden que no la dice le pide al proveedor una entrada sin decirle cuál.
+     *
+     * Nulo = sin restricción, que es el caso de la mayoría. La ranura se calla.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
+    private ?string $tarifaProcedencia = null;
+
     /** Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
     #[Groups(['operacion:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
@@ -494,6 +542,12 @@ class OperacionOrdenServicioItem
     public function getMoneda(): ?MaestroMoneda { return $this->moneda; }
     public function setMoneda(?MaestroMoneda $v): self { $this->moneda = $v; return $this; }
 
+    public function getTarifaNombre(): ?string { return $this->tarifaNombre; }
+    public function setTarifaNombre(?string $v): self { $this->tarifaNombre = ($v === '' ? null : $v); return $this; }
+
+    public function getTarifaProcedencia(): ?string { return $this->tarifaProcedencia; }
+    public function setTarifaProcedencia(?string $v): self { $this->tarifaProcedencia = ($v === '' ? null : $v); return $this; }
+
     public function getPrestadorNombre(): ?string { return $this->prestadorNombre; }
     public function setPrestadorNombre(?string $v): self { $this->prestadorNombre = $v; return $this; }
 
@@ -676,6 +730,45 @@ class OperacionOrdenServicioItem
     }
 
     /**
+     * CUÁL de las tarifas del componente se compró: «Peruano», «Cultur (Base 1, 2 pax)».
+     *
+     * Es la quinta ranura, y la regla es la misma que las otras cuatro —se calla si repite algo
+     * ya dicho— con **el prestador añadido a la lista**: hay nombres internos de tarifa que son
+     * literalmente el nombre de quien presta («Junela» presta el «Pool Vinicunca»), y mandarle a
+     * Junela una línea que dice «Junela» es gastar la ranura en no decir nada.
+     *
+     * El orden de la cascada es el que pidió operaciones: **el nombre para el proveedor si está
+     * ingresado, y si no el interno**. No hace falta escribirlo aquí porque la primera mitad ya
+     * la cumple `descripcion` —`resolverDescripcion()` pone `nombreParaProveedor` en la prioridad
+     * 1, y de ahí sale {@see self::getVarianteParaProveedor()}—, así que lo único que faltaba era
+     * la segunda. Cuando están los dos salen los dos, que es lo que el campo pide: «Del Origen Al
+     * Presente de Lima» es lo que él entiende y «Pool City Lima CT002» lo que tú buscas en el
+     * tarifario cuando te pregunta por qué le pagas eso.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getTarifaParaProveedor(): ?string
+    {
+        return $this->calladoSiRepite($this->tarifaNombre, [
+            $this->getTituloParaProveedor(),
+            $this->getVarianteParaProveedor(),
+            $this->getSecundarioParaProveedor(),
+            $this->prestadorNombre,
+        ]);
+    }
+
+    /**
+     * La procedencia, ya redactada: «Nacional», «Extranjero», «Comunidad Andina».
+     *
+     * No se calla nunca por repetición —es el único dato de la línea que no es un nombre, así que
+     * no puede duplicar nada— pero sí cuando está nula, que significa «sin restricción».
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getProcedenciaParaProveedor(): ?string
+    {
+        return TarifaProcedenciaEnum::tryFrom((string) $this->tarifaProcedencia)?->etiqueta();
+    }
+
+    /**
      * El DÍA del itinerario, o null si repite algo de lo ya dicho.
      *
      * Existe para que el documento y el twig no tengan que repetir la comparación cada uno por su
@@ -747,6 +840,20 @@ class OperacionOrdenServicioItem
 
         if (($variante = $this->getVarianteParaProveedor()) !== null) {
             $partes[] = $variante;
+        }
+
+        // CUÁL de las tarifas, y de quién es el precio. Van juntas y detrás de la variante
+        // porque las dos la califican: «Ingreso a Vinicunca · Peruano · Nacional».
+        //
+        // ⚠️ La procedencia es la que de verdad hacía falta: en un ticket variable el ingreso a
+        // Vinicunca son PEN 20 para el nacional y PEN 30 para el extranjero, y la orden pedía
+        // «una entrada» sin decir cuál — el único rastro de la respuesta era el importe.
+        if (($tarifa = $this->getTarifaParaProveedor()) !== null) {
+            $partes[] = $tarifa;
+        }
+
+        if (($procedencia = $this->getProcedenciaParaProveedor()) !== null) {
+            $partes[] = $procedencia;
         }
 
         // QUÉ exactamente se le contrata: la habitación, la clase de tren. Va después de la
@@ -869,6 +976,11 @@ class OperacionOrdenServicioItem
             // Los DOS, siempre: qué es y dónde encaja. `descripcion` sola es la
             // variante de tarifa, y sola le decía «Auto» al que hace el traslado.
             ->setDescripcion($servicio->getDescripcionServicio())
+            // CUÁL de las tarifas, que `descripcion` no puede decir: su prioridad en la
+            // cascada está detrás del nombre del componente, que siempre está relleno.
+            ->setTarifaNombre($servicio->getTarifaNombre())
+            // Y de quién es ese precio. En un ticket variable es el precio mismo.
+            ->setTarifaProcedencia($servicio->getTarifaProcedencia())
             ->setNombreComponente($servicio->getNombreComponente())
             // El MOMENTO: sin él, el componente tiene que cargar con la ruta en su
             // nombre, y eso es lo que multiplicó las tarifas por destino.

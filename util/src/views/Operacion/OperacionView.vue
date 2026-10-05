@@ -44,6 +44,10 @@ import {
 import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
 import { useCapasEnHistorial } from '@/composables/useCapasEnHistorial';
 import { getArchivoLabel } from '@/types/fileDetalleModel';
+// La procedencia de una tarifa ya tenía su etiqueta aquí, puesta para el editor de cotizaciones.
+// Se importa en vez de duplicarla: es espejo de `TarifaProcedenciaEnum::etiqueta()` y una cuarta
+// copia es exactamente lo que este proyecto paga cada vez que la escribe otra vez.
+import { getProcedenciaUI, type ProcedenciaUIConfig } from '@/types/cotizacionEditorModel';
 
 const operacionStore = useOperacionStore();
 const router = useRouter();
@@ -860,6 +864,17 @@ const direccionDe = (s: OperacionServicio): string | null => operacionStore.cont
 const nombreSegmentoDe = (s: OperacionServicio): string | null => operacionStore.nombreSegmentoDeServicio(s);
 // Nombre interno del componente (Guía, Transporte…): identifica la fila dentro de un servicio.
 const nombreComponenteDe = (s: OperacionServicio): string | null => operacionStore.nombreComponenteDeServicio(s);
+
+/**
+ * La procedencia de la tarifa, ya con su etiqueta. **Espejo de
+ * `TarifaProcedenciaEnum::etiqueta()`** vía `PROCEDENCIA_CONFIG`, que es la copia que ya existía
+ * en el editor de cotizaciones — se reutiliza en vez de escribir la cuarta.
+ *
+ * Nula cuando la tarifa no restringe, que es el caso de la mayoría: `getProcedenciaUI` devuelve
+ * «Sin restricción» para un vacío y eso aquí no se pinta, porque no es un dato que falte.
+ */
+const procedenciaDe = (s: OperacionServicio): ProcedenciaUIConfig | null =>
+    s.tarifaProcedencia ? getProcedenciaUI(s.tarifaProcedencia) : null;
 
 /**
  * Título y variante de una fila. **Espejo de `OperacionOrdenServicioItem::getTituloParaProveedor()`
@@ -3767,6 +3782,13 @@ onMounted(async () => {
                                                     {{ it.tituloParaProveedor }}
                                                     <span v-if="it.varianteParaProveedor"
                                                           class="font-bold text-slate-400">· {{ it.varianteParaProveedor }}</span>
+                                                    <!-- CUÁL de las tarifas y de quién es el precio. Resueltos
+                                                         en el backend como los de arriba: las reglas de
+                                                         silencio viven en la entidad, no se recomponen aquí. -->
+                                                    <span v-if="it.tarifaParaProveedor"
+                                                          class="font-bold text-slate-400">· {{ it.tarifaParaProveedor }}</span>
+                                                    <span v-if="it.procedenciaParaProveedor"
+                                                          class="font-bold text-slate-500 border border-slate-200 rounded px-1 ml-1">{{ it.procedenciaParaProveedor }}</span>
                                                 </p>
                                                 <p v-if="it.diaParaProveedor"
                                                    class="text-[10px] text-slate-400 leading-snug">
@@ -3866,6 +3888,15 @@ onMounted(async () => {
                                                class="text-[10px] font-bold text-slate-500 leading-snug"
                                                title="Nombre interno de la tarifa: con éste la buscas en el tarifario">
                                                 <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ s.tarifaNombre }}
+                                            </p>
+                                            <!-- La PROCEDENCIA, que no se deduce del nombre: «Peruano»
+                                                 es convención de quien escribió la tarifa, esto es enum.
+                                                 En un ticket variable decide el precio. Nula = sin
+                                                 restricción, el caso de la mayoría, y entonces se calla. -->
+                                            <p v-if="procedenciaDe(s)"
+                                               class="text-[10px] font-bold text-slate-500 leading-snug"
+                                               title="De quién es el precio: decide cuánto se paga en las tarifas dobles">
+                                                {{ procedenciaDe(s)?.icon }} {{ procedenciaDe(s)?.label }}
                                             </p>
                                             <p v-if="s.contextoServicio" class="text-[10px] text-slate-400 leading-snug">
                                                 {{ s.contextoServicio }}
@@ -4939,6 +4970,10 @@ onMounted(async () => {
               <p v-if="servicioFicha.tarifaNombre && servicioFicha.tarifaNombre !== servicioFicha.descripcionServicio"
                  class="text-[11px] font-bold text-slate-400 truncate" title="Nombre interno de la tarifa">
                 <i class="fas fa-tag w-4 text-slate-300"></i>{{ servicioFicha.tarifaNombre }}
+              </p>
+              <p v-if="procedenciaDe(servicioFicha)"
+                 class="text-[11px] font-bold text-slate-500 flex items-center">
+                <i class="fas fa-passport w-4 text-slate-300"></i>{{ procedenciaDe(servicioFicha)?.icon }} {{ procedenciaDe(servicioFicha)?.label }}
               </p>
             </div>
 

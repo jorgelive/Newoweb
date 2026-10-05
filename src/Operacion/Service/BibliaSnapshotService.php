@@ -220,6 +220,9 @@ class BibliaSnapshotService
             // El nombre interno, aparte y sin resolver: `descripcionServicio` lo tapa en
             // cuanto la tarifa tiene `nombreParaProveedor`, y los dos hacen falta a la vez.
             'tarifaNombre'          => trim($tarifa?->getNombreInternoSnapshot() ?? '') ?: null,
+            // El HECHO de quién es el precio, aparte del nombre: el nombre es convención
+            // («Peruano»), esto es enum. Nulo = sin restricción, que es el caso normal.
+            'tarifaProcedencia'     => trim($tarifa?->getProcedenciaSnapshot() ?? '') ?: null,
             'contextoServicio'      => $this->textoEspanol($cotservicio->getNombreInternoSnapshot()),
             // QUÉ es la fila, aparte del itinerario donde encaja. Los dos a la vez y sin
             // desempatar: uno grande y otro pequeño. Ver `resolverNombreComponente()`.
@@ -298,6 +301,9 @@ class BibliaSnapshotService
         }
         if ($aplica('tarifaNombre')) {
             $ops->setTarifaNombre($this->comoTexto($valores['tarifaNombre']));
+        }
+        if ($aplica('tarifaProcedencia')) {
+            $ops->setTarifaProcedencia($this->comoTexto($valores['tarifaProcedencia']));
         }
         if ($aplica('descripcionServicio')) {
             $ops->setDescripcionServicio((string) $valores['descripcionServicio']);
