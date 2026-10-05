@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Travel\Enum\TarifaCalculoEnum;
 use App\Travel\Entity\TravelTarifa;
 use App\Travel\Enum\ComponenteTipoEnum;
 use App\Travel\Enum\TarifaModalidadEnum;
@@ -96,7 +97,7 @@ final class NormalizarCapacidadesVehiculoCommand extends Command
             }
 
             // «Alquilo el vehículo entero» es lo único donde la capacidad es la del vehículo.
-            if ($tarifa->getModalidad() !== TarifaModalidadEnum::PRIVADO || !$tarifa->isCostoPorGrupo()) {
+            if ($tarifa->getModalidad() !== TarifaModalidadEnum::PRIVADO || $tarifa->getCalculo() !== TarifaCalculoEnum::GRUPAL) {
                 $fuera['(compartido o por pax) ' . $vehiculo] = ($fuera['(compartido o por pax) ' . $vehiculo] ?? 0) + 1;
                 continue;
             }

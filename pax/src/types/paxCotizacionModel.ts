@@ -105,7 +105,7 @@ export type PaxCotSegmento = Omit<
 // --- Tarifa (solo campos expuestos al cliente) --------------------------------
 
 export type PaxCottarifa = Omit<CottarifaBase, 'tituloSnapshot' | 'notaRol'> & {
-    // Motivo 1. El resto —modalidad, categoría, edades, esGrupal— se toma del esquema.
+    // Motivo 1. El resto —modalidad, categoría, edades, cálculo— se toma del esquema.
     tituloSnapshot: I18n;
     notaRol?: I18n;
     id: string;   // Motivo 3.
@@ -203,7 +203,8 @@ export interface PaxTarifaFinanciera {
     moneda: string | null; // null en la versión cliente
     notaRol: I18n;
     cantidad: number;
-    esGrupal: boolean;
+    /** `individual` | `grupal` | `operativa`. Sustituyó al booleano `esGrupal` el 05/10/2026. */
+    calculo: string;
     categoria: string | null;
     modalidad: string | null;
     procedencia?: string | null;
@@ -280,7 +281,8 @@ export interface PaxClasePasajeroDetalle {
     fecha: string;
     moneda: string;
     cantidad: number;
-    esGrupal: boolean;
+    /** `individual` | `grupal` | `operativa`. Sustituyó al booleano `esGrupal` el 05/10/2026. */
+    calculo: string;
     categoria: string | null;
     modalidad: string | null;
     servicioId: string;

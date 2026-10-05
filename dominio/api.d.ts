@@ -10042,12 +10042,6 @@ export interface components {
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
             /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
-            /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
@@ -10117,12 +10111,6 @@ export interface components {
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
             /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
-            /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
@@ -10180,12 +10168,6 @@ export interface components {
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
             /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
-            /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
@@ -10228,12 +10210,6 @@ export interface components {
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
             /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
-            /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
@@ -10255,12 +10231,6 @@ export interface components {
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
-            /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
@@ -10311,12 +10281,6 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
-            /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
@@ -10387,12 +10351,6 @@ export interface components {
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
             /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
-            /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
@@ -10439,12 +10397,6 @@ export interface components {
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
             /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
-            /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
@@ -10466,12 +10418,6 @@ export interface components {
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
-            /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
@@ -10522,12 +10468,6 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
-            /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
@@ -10598,12 +10538,6 @@ export interface components {
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
             /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
-            /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
@@ -10650,12 +10584,6 @@ export interface components {
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
             /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
-            /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
@@ -10677,12 +10605,6 @@ export interface components {
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
-            /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
@@ -10733,12 +10655,6 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
-            /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
@@ -10809,12 +10725,6 @@ export interface components {
             capacidadMinimaSnapshot?: number | null;
             capacidadMaximaSnapshot?: number | null;
             /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
-            /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
@@ -10861,12 +10771,6 @@ export interface components {
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
             /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
-            /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
              */
@@ -10888,12 +10792,6 @@ export interface components {
             procedenciaSnapshot?: string | null;
             edadMinimaSnapshot?: number | null;
             edadMaximaSnapshot?: number | null;
-            /**
-             * @description ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-             *     también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-             * @default false
-             */
-            esGrupal: boolean;
             /**
              * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
              *     `TravelTarifa::$calculo`.
@@ -32947,14 +32845,6 @@ export interface components {
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
             /**
-             * @description ⚠️ **Camino viejo, conservado por los escritores que no se han migrado** (el panel, los
-             *     cargadores). Traduce al cálculo, que es quien manda: `true` ⇒ grupal, y `false` deja
-             *     individual **salvo que ya fuera operativa**, porque una operativa también es «no grupal» y
-             *     perderla aquí la convertiría en individual sin que nadie lo pidiera.
-             * @default false
-             */
-            costoPorGrupo: boolean;
-            /**
              * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
              *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
              * @enum {string|null}
@@ -33020,14 +32910,6 @@ export interface components {
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
             /**
-             * @description ⚠️ **Camino viejo, conservado por los escritores que no se han migrado** (el panel, los
-             *     cargadores). Traduce al cálculo, que es quien manda: `true` ⇒ grupal, y `false` deja
-             *     individual **salvo que ya fuera operativa**, porque una operativa también es «no grupal» y
-             *     perderla aquí la convertiría en individual sin que nadie lo pidiera.
-             * @default false
-             */
-            costoPorGrupo: boolean;
-            /**
              * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
              *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
              * @enum {string|null}
@@ -33080,14 +32962,6 @@ export interface components {
             edadMaxima?: number | null;
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
-            /**
-             * @description ⚠️ **Camino viejo, conservado por los escritores que no se han migrado** (el panel, los
-             *     cargadores). Traduce al cálculo, que es quien manda: `true` ⇒ grupal, y `false` deja
-             *     individual **salvo que ya fuera operativa**, porque una operativa también es «no grupal» y
-             *     perderla aquí la convertiría en individual sin que nadie lo pidiera.
-             * @default false
-             */
-            costoPorGrupo: boolean;
             /**
              * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
              *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
@@ -33150,14 +33024,6 @@ export interface components {
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
             /**
-             * @description ⚠️ **Camino viejo, conservado por los escritores que no se han migrado** (el panel, los
-             *     cargadores). Traduce al cálculo, que es quien manda: `true` ⇒ grupal, y `false` deja
-             *     individual **salvo que ya fuera operativa**, porque una operativa también es «no grupal» y
-             *     perderla aquí la convertiría en individual sin que nadie lo pidiera.
-             * @default false
-             */
-            costoPorGrupo: boolean;
-            /**
              * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
              *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
              * @enum {string|null}
@@ -33218,14 +33084,6 @@ export interface components {
             edadMaxima?: number | null;
             capacidadMinima?: number | null;
             capacidadMaxima?: number | null;
-            /**
-             * @description ⚠️ **Camino viejo, conservado por los escritores que no se han migrado** (el panel, los
-             *     cargadores). Traduce al cálculo, que es quien manda: `true` ⇒ grupal, y `false` deja
-             *     individual **salvo que ya fuera operativa**, porque una operativa también es «no grupal» y
-             *     perderla aquí la convertiría en individual sin que nadie lo pidiera.
-             * @default false
-             */
-            costoPorGrupo: boolean;
             /**
              * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
              *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**

@@ -861,7 +861,7 @@ const cottarifasOrdenadas = computed<TarifaSnapshot[]>(() => {
 });
 
 const calcularVentaTarifa = (tarifa: TarifaSnapshot): number => {
-  const costoTotal = (parseFloat(String(tarifa.montoCosto)) || 0) * (tarifa.esGrupal ? 1 : (tarifa.cantidad || 1));
+  const costoTotal = (parseFloat(String(tarifa.montoCosto)) || 0) * (store.modalidadDeTarifa(tarifa) === 'grupal' ? 1 : (tarifa.cantidad || 1));
   const tieneOverride = tarifa.comisionOverrideSnapshot != null && tarifa.comisionOverrideSnapshot !== '';
   const comisionPct = tieneOverride
       ? parseFloat(String(tarifa.comisionOverrideSnapshot))
@@ -3215,8 +3215,8 @@ store.$onAction(({ name, args }) => {
                         </span>
 
                         <span class="text-[9px] font-bold text-slate-400 flex items-center gap-1 leading-none">
-                          <i :class="tarifa.esGrupal ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
-                          {{ tarifa.esGrupal ? '1 GRUPO' : `${tarifa.cantidad} Pax` }}
+                          <i :class="store.modalidadDeTarifa(tarifa) === 'grupal' ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
+                          {{ store.modalidadDeTarifa(tarifa) === 'grupal' ? '1 GRUPO' : `${tarifa.cantidad} Pax` }}
                         </span>
 
                         <!--
@@ -3243,7 +3243,7 @@ store.$onAction(({ name, args }) => {
                       </div>
                       <div class="text-right shrink-0">
                         <span class="text-[11px] font-black" :class="comp.modo === 'no_incluido' ? 'text-slate-400 line-through' : 'text-orange-600'">
-                          {{ formatMoneda(Number(tarifa.montoCosto) * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}
+                          {{ formatMoneda(Number(tarifa.montoCosto) * (store.modalidadDeTarifa(tarifa) === 'grupal' ? 1 : tarifa.cantidad), tarifa.moneda) }}
                         </span>
                       </div>
                     </div>
@@ -4063,8 +4063,8 @@ store.$onAction(({ name, args }) => {
                       </span>
                       <div class="flex gap-2 mt-1 flex-wrap">
                         <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
-                           <i :class="tarifa.esGrupal ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
-                           {{ tarifa.esGrupal ? 'Costo Grupal (Fijo)' : `${tarifa.cantidad} Pax` }}
+                           <i :class="store.modalidadDeTarifa(tarifa) === 'grupal' ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
+                           {{ store.modalidadDeTarifa(tarifa) === 'grupal' ? 'Costo Grupal (Fijo)' : `${tarifa.cantidad} Pax` }}
                         </span>
                         <span class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase flex items-center gap-1"
                               :class="[getRolTarifaUI(tarifa.rolSnapshot).bg, getRolTarifaUI(tarifa.rolSnapshot).text, getRolTarifaUI(tarifa.rolSnapshot).border]">
@@ -4079,7 +4079,7 @@ store.$onAction(({ name, args }) => {
                       </div>
                     </div>
                     <div class="text-right shrink-0">
-                      <span class="font-black text-orange-600 text-base block">{{ formatMoneda(Number(tarifa.montoCosto) * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}</span>
+                      <span class="font-black text-orange-600 text-base block">{{ formatMoneda(Number(tarifa.montoCosto) * (store.modalidadDeTarifa(tarifa) === 'grupal' ? 1 : tarifa.cantidad), tarifa.moneda) }}</span>
                       <p class="text-xs font-black text-emerald-600 mt-0.5 flex items-center justify-end gap-1">
                         <i class="fas fa-tag text-[9px]"></i>
                         {{ formatMoneda(calcularVentaTarifa(tarifa), tarifa.moneda) }}
@@ -4351,7 +4351,7 @@ store.$onAction(({ name, args }) => {
                      enseñarlo mientras no se usa es lo que hacía parecer que algo fallaba: el
                      campo decía 2, el subtotal ya no lo multiplicaba, y no había forma de saber
                      cuál de los dos mentía. -->
-                <input v-if="!store.tarifaActiva.esGrupal"
+                <input v-if="store.modalidadDeTarifa(store.tarifaActiva) !== 'grupal'"
                        v-model="store.tarifaActiva.cantidad"
                        type="number"
                        class="w-full rounded-xl px-4 py-2 text-sm font-bold text-center outline-none shadow-sm border bg-white text-slate-800 border-slate-300 focus:ring-2 focus:ring-orange-500">
@@ -4359,7 +4359,7 @@ store.$onAction(({ name, args }) => {
                      class="w-full rounded-xl px-4 py-2 text-sm font-black text-center shadow-sm border bg-orange-50 border-orange-200 text-orange-600 flex items-center justify-center gap-1.5">
                   <i class="fas fa-users text-xs"></i> 1 grupo
                 </div>
-                <p v-if="store.tarifaActiva.esGrupal" class="text-[9px] text-orange-500 mt-1 ml-1">Precio por grupo fijo: no se multiplica por pax.</p>
+                <p v-if="store.modalidadDeTarifa(store.tarifaActiva) === 'grupal'" class="text-[9px] text-orange-500 mt-1 ml-1">Precio por grupo fijo: no se multiplica por pax.</p>
                 <!-- En operativa la cantidad es el dato que la hace servir: «5» son cinco vuelos
                      liberados, no cinco pasajeros. Se dice, porque el campo se llama «Pax». -->
                 <p v-if="store.modalidadDeTarifa(store.tarifaActiva) === 'operativa'" class="text-[9px] text-slate-500 mt-1 ml-1">
@@ -4392,7 +4392,7 @@ store.$onAction(({ name, args }) => {
                 <div class="flex justify-end items-baseline gap-1.5 mt-3 pt-3 border-t border-slate-100">
                   <span class="text-[9px] text-slate-500 font-bold uppercase">Subtotal Neto:</span>
                   <span class="text-orange-600 text-sm font-black">
-                    {{ formatMoneda(Number(store.tarifaActiva.montoCosto) * (store.tarifaActiva.esGrupal ? 1 : store.tarifaActiva.cantidad), store.tarifaActiva.moneda) }}
+                    {{ formatMoneda(Number(store.tarifaActiva.montoCosto) * (store.modalidadDeTarifa(store.tarifaActiva) === 'grupal' ? 1 : store.tarifaActiva.cantidad), store.tarifaActiva.moneda) }}
                   </span>
                 </div>
               </div>

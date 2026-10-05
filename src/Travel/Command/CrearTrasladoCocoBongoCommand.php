@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Travel\Enum\TarifaCalculoEnum;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelSegmento;
 use App\Travel\Entity\TravelSegmentoComponente;
@@ -186,7 +187,7 @@ final class CrearTrasladoCocoBongoCommand extends Command
             // Entra a 0.00 para que se negocie, no heredando un precio que sería mentira.
             $tarifa->setMonto('0.00');
             $tarifa->setModalidad($modelo->getModalidad());
-            $tarifa->setCostoPorGrupo($modelo->isCostoPorGrupo());
+            $tarifa->setCalculo($modelo->getCalculo());
             $tarifa->setCapacidadMaxima($modelo->getCapacidadMaxima());
             $this->em->persist($tarifa);
             $flota[] = $tarifa;

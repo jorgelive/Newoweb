@@ -125,25 +125,14 @@ class TravelTarifa
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $capacidadMaxima = null;
 
-    #[Groups(['componente:item:read', 'componente:write'])]
-    #[Assert\Type(type: 'bool', message: 'El valor de costo por grupo debe ser booleano.')]
-    #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    private bool $costoPorGrupo = false;
 
     /**
      * Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
      * `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
      *
-     * ⚠️ **Desde la fase 5 (05/10/2026) MANDA ESTE CAMPO.** `costoPorGrupo` sobrevive como copia
-     * derivada —`grupal` ⇒ `true`— para los consumidores que aún lo leen, incluido el detalle que
-     * viaja al cliente; su borrado físico es la fase 6b y no cambia comportamiento.
-     *
-     * La dirección se invirtió: antes esto se derivaba del booleano, ahora el booleano se deriva de
-     * esto. Lo que **no** cambió es que haya una sola fuente — tenerlas a la vez escribibles es
-     * como se acaban contradiciendo.
-     *
-     * Nulable por compatibilidad con filas anteriores al relleno; {@see self::getCalculo()} las
-     * deriva al vuelo en vez de devolver null.
+     * ⚠️ **Sustituyó al booleano `costoPorGrupo`, borrado el 05/10/2026** (fase 6b del plan). Aquél
+     * sólo sabía decir dos de los tres casos, y gobernaba a la vez «× 1 vs × cantidad» y «se
+     * reparte o no» — que van juntos en individual y grupal, y que `operativa` separa.
      */
     #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'string', length: 20, nullable: true, enumType: TarifaCalculoEnum::class)]
@@ -250,7 +239,7 @@ class TravelTarifa
         $montoStr = $this->monto;
         $etiqueta = sprintf('🏷️ %s | %s %s', $this->nombreInterno, $monedaStr, $montoStr);
 
-        $etiqueta .= $this->costoPorGrupo ? ' 👥' : ' 👤';
+        $etiqueta .= $this->getCalculo() === TarifaCalculoEnum::GRUPAL ? ' 👥' : ' 👤';
 
         if ($this->procedencia !== null) {
             $etiqueta .= ' ' . $this->getProcedenciaIcono();
@@ -419,28 +408,6 @@ class TravelTarifa
         $this->capacidadMaxima = $capacidadMaxima;
     }
 
-    public function isCostoPorGrupo(): bool
-    {
-        return $this->costoPorGrupo;
-    }
-
-    /**
-     * ⚠️ **Camino viejo, conservado por los escritores que no se han migrado** (el panel, los
-     * cargadores). Traduce al cálculo, que es quien manda: `true` ⇒ grupal, y `false` deja
-     * individual **salvo que ya fuera operativa**, porque una operativa también es «no grupal» y
-     * perderla aquí la convertiría en individual sin que nadie lo pidiera.
-     */
-    public function setCostoPorGrupo(bool $costoPorGrupo): self
-    {
-        if ($costoPorGrupo) {
-            return $this->setCalculo(TarifaCalculoEnum::GRUPAL);
-        }
-
-        return $this->getCalculo() === TarifaCalculoEnum::GRUPAL
-            ? $this->setCalculo(TarifaCalculoEnum::INDIVIDUAL)
-            : $this;
-    }
-
     public function getRol(): TarifaRolEnum
     {
         return $this->rol;
@@ -453,11 +420,9 @@ class TravelTarifa
         return $this;
     }
 
-    /** Fija el cálculo y mantiene al día la copia que aún leen los consumidores sin migrar. */
     public function setCalculo(TarifaCalculoEnum $calculo): self
     {
         $this->calculo = $calculo;
-        $this->costoPorGrupo = $calculo === TarifaCalculoEnum::GRUPAL;
 
         return $this;
     }
@@ -471,13 +436,9 @@ class TravelTarifa
      */
     public function getCalculo(): TarifaCalculoEnum
     {
-        return $this->calculo ?? $this->calculoDerivado();
-    }
-
-    /** Para las filas anteriores al relleno: el booleano es lo único que hay. */
-    private function calculoDerivado(): TarifaCalculoEnum
-    {
-        return $this->costoPorGrupo ? TarifaCalculoEnum::GRUPAL : TarifaCalculoEnum::INDIVIDUAL;
+        // Nulable sólo por las filas anteriores al relleno de `Version20261005120000`; en la base
+        // no queda ninguna. `INDIVIDUAL` es el respaldo que no cambia ningún número por sí solo.
+        return $this->calculo ?? TarifaCalculoEnum::INDIVIDUAL;
     }
 
     public function getComisionOverride(): ?string

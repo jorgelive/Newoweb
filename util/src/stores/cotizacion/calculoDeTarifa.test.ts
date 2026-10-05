@@ -33,7 +33,6 @@ const tarifa = (monto: number, cantidad: number, extra: Record<string, unknown> 
     montoCosto: String(monto),
     moneda: 'USD',
     cantidad,
-    esGrupal: false,
     rolSnapshot: 'estandar',
     grupoTarifa: 1,
     tituloSnapshot: [],
@@ -220,7 +219,6 @@ describe('qué modalidades admite una tarifa', () => {
         // Aunque se pida «individual», vuelve a grupal: lo dice el catálogo.
         store.cambiarModalidadTarifa(laTarifa().id, 'individual');
         expect(laTarifa().calculoSnapshot).toBe('grupal');
-        expect(laTarifa().esGrupal).toBe(true);
     });
 
     it('una suelta sí vuelve a lo que se le pida', () => {

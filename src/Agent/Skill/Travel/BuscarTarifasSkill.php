@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Skill\Travel;
 
+use App\Travel\Enum\TarifaCalculoEnum;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
@@ -251,7 +252,11 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
             'nombre' => $t->getNombreInterno(),
             'precio' => $t->getMonto(),
             'moneda' => $t->getMoneda()?->getId(),
-            'por_grupo' => $t->isCostoPorGrupo() ? 'sí: el importe es del grupo entero, no por persona' : null,
+            'calculo' => $t->getCalculo()->etiqueta() . match ($t->getCalculo()) {
+                TarifaCalculoEnum::GRUPAL => ': el importe es del grupo entero, no por persona',
+                TarifaCalculoEnum::OPERATIVA => ': se reparte entre el grupo y el cliente no la ve',
+                TarifaCalculoEnum::INDIVIDUAL => ': el importe es por persona',
+            },
             'modalidad' => $t->getModalidad()?->value,
             'categoria' => $t->getCategoria()?->value,
             'procedencia' => $t->getProcedencia()->value ?? 'cualquiera',

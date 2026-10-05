@@ -1,6 +1,11 @@
 # Plan — `esGrupal` pasa a ser un enum de tres casos
 
-> **Estado (05/10/2026): FASES 1 a 5 HECHAS, revisadas y corregidas; queda la 6b.** `operativo` ya
+> **Estado (05/10/2026): PLAN COMPLETO.** Las seis fases desplegadas y verificadas. `esGrupal` y
+> `costoPorGrupo` ya no existen: `calculo` es el único campo, con sus tres casos y sus tres
+> predicados. Las 15 cotizaciones de producción dan **exactamente los mismos números** que antes de
+> empezar.
+>
+> **Estado anterior (05/10/2026): FASES 1 a 5 HECHAS, revisadas y corregidas; queda la 6b.** `operativo` ya
 > no es un rol y `calculo` manda; el booleano sobrevive como copia derivada. Una revisión posterior
 > de los cálculos financieros encontró **seis fallos**, cinco introducidos por la fase 5 — todos
 > corregidos y anotados abajo. Sólo falta el borrado físico del booleano (6b), que **no cambia
@@ -456,7 +461,28 @@ guarde. Lo que lee el cliente sale de ahí, así que una copia enviada antes de 
 números del viaje de otro colegio. `duplicar()` copia el campo con el resto del árbol; lo honesto
 sería **vaciarlo en la copia**, para que nazca sin clasificación en vez de con una falsa.
 
-### Fase 6b — Borrar el booleano (PENDIENTE)
+### Fase 6b — Borrar el booleano ✅ HECHA
+
+`Version20261005220000` tira las dos columnas. Antes hubo que migrar ~90 usos, y el camino lo fue
+marcando el compilador: cada campo quitado del tipo señalaba a quién lo leía.
+
+Lo que cambió de forma visible, aunque no en los números:
+
+| | Antes | Ahora |
+|---|---|---|
+| Panel del maestro | casilla «¿Costo Fijo (Grupal)?» | selector de tres con su explicación |
+| Lo que viaja al cliente | `esGrupal: boolean` | `calculo: 'individual' \| 'grupal'` — la `operativa` nunca llega |
+| Etiqueta del monto | `(P)` / `(U)` | `(P)` / `(U)` / `(O)` |
+| Skill del agente | `por_grupo: sí/no` | `calculo` con su frase |
+
+⚠️ **El `down()` no es gratis y lo dice.** Devuelve los booleanos rellenos desde `calculo`
+—`grupal ⇒ 1`— pero una `operativa` vuelve como `0` y **pierde su carácter oculto**: el booleano
+nunca supo expresarlo. Volver atrás degrada el dato.
+
+#### Lo que NO se tocó, a propósito
+
+`TarifaModalidadEnum` (`privado`/`compartido`) no tiene nada que ver y sigue igual, con el aviso en
+los dos enums de no confundirlos. Es el nombre que costó un susto al empezar.
 
 `esGrupal` / `costoPorGrupo` siguen como copia derivada, y quitarlos **no cambia comportamiento**:
 el modelo ya es correcto. Lo que falta tiene dos aristas:

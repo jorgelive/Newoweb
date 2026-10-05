@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Travel\Enum\TarifaCalculoEnum;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelPunto;
@@ -313,7 +314,7 @@ final class CrearTrasladosPuntaCanaCommand extends Command
             $tarifa->setMoneda($moneda);
             $tarifa->setMonto('0.00');
             $tarifa->setModalidad(TarifaModalidadEnum::PRIVADO);
-            $tarifa->setCostoPorGrupo(true);
+            $tarifa->setCalculo(TarifaCalculoEnum::GRUPAL);
             $tarifa->setCapacidadMaxima($capacidad);
             $this->em->persist($tarifa);
 

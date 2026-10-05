@@ -446,7 +446,7 @@ const totalesInclusiones = computed(() => {
                             :class="badgeClase(b.type)">
                         {{ b.icon }} {{ b.label }}
                       </span>
-                      <span v-if="!t.esGrupal && t.cantidad > 1" class="text-[10px] font-bold text-slate-400">x {{ t.cantidad }}</span>
+                      <span v-if="t.calculo !== 'grupal' && t.cantidad > 1" class="text-[10px] font-bold text-slate-400">x {{ t.cantidad }}</span>
                       <span v-if="t.notaRol.length" class="w-full text-[11px] text-slate-400 italic mt-0.5">
                         {{ store.getI18nText(t.notaRol, lang) }}
                       </span>

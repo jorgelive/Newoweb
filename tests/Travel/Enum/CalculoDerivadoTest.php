@@ -11,47 +11,13 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Fase 5 del plan: **el cálculo MANDA y el booleano es la copia**.
+ * El cálculo es ahora el ÚNICO campo: el booleano `esGrupal`/`costoPorGrupo` se borró en la fase 6b.
  *
- * La dirección se invirtió —en la fase 2 era al revés— y lo que se vigila es lo mismo de siempre:
- * que no puedan decir cosas distintas. Lo que cambia es quién gana si lo intentaran.
- *
- * ⚠️ El caso que más fácil se rompe es `setEsGrupal(false)` sobre una operativa: también es «no
- * grupal», así que una traducción ingenua la convertiría en individual —multiplicaría igual pero
- * dejaría de repartirse, y volvería a verse en el itinerario del cliente— sin que nadie lo pidiera.
+ * Lo que queda por fijar es lo poco que hay: que el vocabulario sea el mismo a los dos lados —el
+ * maestro guarda enum y el snapshot texto— y que un valor desconocido no se convierta en null.
  */
 final class CalculoDerivadoTest extends TestCase
 {
-    #[Test]
-    public function el_calculo_manda_y_el_booleano_lo_sigue(): void
-    {
-        $grupal = (new TravelTarifa())->setCalculo(TarifaCalculoEnum::GRUPAL);
-        $operativa = (new TravelTarifa())->setCalculo(TarifaCalculoEnum::OPERATIVA);
-
-        self::assertTrue($grupal->isCostoPorGrupo(), 'La copia tiene que seguir al cálculo.');
-        // Una operativa NO es grupal: multiplica por cantidad, y el booleano lo dice.
-        self::assertFalse($operativa->isCostoPorGrupo());
-    }
-
-    #[Test]
-    public function el_camino_viejo_traduce_en_vez_de_romper(): void
-    {
-        // El panel y los cargadores siguen llamando a setCostoPorGrupo().
-        self::assertSame(TarifaCalculoEnum::GRUPAL, (new TravelTarifa())->setCostoPorGrupo(true)->getCalculo());
-        self::assertSame(TarifaCalculoEnum::INDIVIDUAL, (new TravelTarifa())->setCostoPorGrupo(false)->getCalculo());
-    }
-
-    #[Test]
-    public function un_false_del_camino_viejo_NO_pisa_una_operativa(): void
-    {
-        // 🔑 Una operativa también es «no grupal». Si `setCostoPorGrupo(false)` la tradujera a
-        // individual, dejaría de repartirse y volvería a verse en el itinerario del cliente — por
-        // un campo que el formulario manda siempre, lo toque alguien o no.
-        $t = (new TravelTarifa())->setCalculo(TarifaCalculoEnum::OPERATIVA)->setCostoPorGrupo(false);
-
-        self::assertSame(TarifaCalculoEnum::OPERATIVA, $t->getCalculo());
-    }
-
     #[Test]
     public function sin_haber_tocado_nada_tambien_responde(): void
     {
@@ -64,12 +30,9 @@ final class CalculoDerivadoTest extends TestCase
     #[Test]
     public function el_snapshot_se_comporta_igual(): void
     {
-        self::assertSame('grupal', (new CotizacionCottarifa())->setEsGrupal(true)->getCalculoSnapshot());
-        self::assertSame('individual', (new CotizacionCottarifa())->setEsGrupal(false)->getCalculoSnapshot());
+        self::assertSame('grupal', (new CotizacionCottarifa())->setCalculoSnapshot('grupal')->getCalculoSnapshot());
+        self::assertSame('individual', (new CotizacionCottarifa())->setCalculoSnapshot('individual')->getCalculoSnapshot());
         self::assertSame('operativa', (new CotizacionCottarifa())->setCalculoSnapshot('operativa')->getCalculoSnapshot());
-
-        $op = (new CotizacionCottarifa())->setCalculoSnapshot('operativa')->setEsGrupal(false);
-        self::assertSame('operativa', $op->getCalculoSnapshot(), 'Un false no puede pisar la operativa.');
     }
 
     #[Test]

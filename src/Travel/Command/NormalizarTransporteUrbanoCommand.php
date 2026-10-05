@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Travel\Enum\TarifaCalculoEnum;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Entity\CotizacionCottarifa;
 use App\Travel\Entity\TravelComponente;
@@ -301,7 +302,7 @@ final class NormalizarTransporteUrbanoCommand extends Command
                     $nueva->setMoneda($existentes === [] ? $this->monedaDe($componente) : $existentes[0]->getMoneda());
                     $nueva->setMonto($valores['monto']);
                     $nueva->setModalidad(TarifaModalidadEnum::PRIVADO);
-                    $nueva->setCostoPorGrupo(true);
+                    $nueva->setCalculo(TarifaCalculoEnum::GRUPAL);
                     $nueva->setCapacidadMaxima($valores['cap']);
                     $this->em->persist($nueva);
                 }

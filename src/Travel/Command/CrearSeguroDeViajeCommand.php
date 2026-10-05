@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Travel\Enum\TarifaCalculoEnum;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelOrganizacion;
@@ -238,7 +239,7 @@ final class CrearSeguroDeViajeCommand extends Command
                 $tarifa->setTitulo([['language' => 'es', 'content' => self::TARIFA_NOMBRE]]);
                 $tarifa->setMoneda($moneda);
                 $tarifa->setMonto(self::MONTO);
-                $tarifa->setCostoPorGrupo(false);
+                $tarifa->setCalculo(TarifaCalculoEnum::INDIVIDUAL);
                 $tarifa->setPrestador($org);
 
                 // `addTarifa()` mantiene las dos puntas; `setComponente()` a secas deja la

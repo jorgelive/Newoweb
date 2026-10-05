@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class CotizacionAjustarPaxTest extends TestCase
 {
-    /** @param list<array{int, bool}> $tarifas  [cantidad, esGrupal] */
+    /** @param list<array{int, bool}> $tarifas  [cantidad, ¿es grupal?] */
     private function cotizacion(int $pax, array $tarifas): Cotizacion
     {
         $cotizacion = new Cotizacion();
@@ -32,7 +32,7 @@ final class CotizacionAjustarPaxTest extends TestCase
         foreach ($tarifas as [$cantidad, $grupal]) {
             $tarifa = new CotizacionCottarifa();
             $tarifa->setCantidad($cantidad);
-            $tarifa->setEsGrupal($grupal);
+            $tarifa->setCalculoSnapshot($grupal ? 'grupal' : 'individual');
             $componente->addCottarifa($tarifa);
         }
 

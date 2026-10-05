@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Travel\Enum\TarifaCalculoEnum;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Entity\CotizacionCottarifa;
 use App\Travel\Entity\TravelComponente;
@@ -136,7 +137,7 @@ final class ConsolidarTransporteAeropuertoLimaCommand extends Command
                     $tarifa->setMoneda($moneda);
                     $tarifa->setMonto($fila['monto']);
                     $tarifa->setModalidad(TarifaModalidadEnum::PRIVADO);
-                    $tarifa->setCostoPorGrupo(true);
+                    $tarifa->setCalculo(TarifaCalculoEnum::GRUPAL);
                     $tarifa->setCapacidadMaxima($fila['cap']);
                     $this->em->persist($tarifa);
                 }

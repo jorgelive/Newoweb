@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Travel\Enum\TarifaCalculoEnum;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelTarifa;
@@ -148,7 +149,7 @@ final class CrearTarifaBusPorPersonaCommand extends Command
                 $tarifa->setMoneda($moneda);
                 $tarifa->setMonto($monto);
                 $tarifa->setModalidad(TarifaModalidadEnum::PRIVADO);
-                $tarifa->setCostoPorGrupo(false);
+                $tarifa->setCalculo(TarifaCalculoEnum::INDIVIDUAL);
                 $tarifa->setCapacidadMaxima(self::PLAZAS);
                 $tarifa->setNombreParaPrestador($def['prestador'] . ' · ' . $nombreTarifa);
 

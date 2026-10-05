@@ -507,12 +507,11 @@ export interface TarifaSnapshot {
     moneda: string;
     montoCosto: number | string;
     /**
-     * ⚠️ **Copia derivada desde la fase 5**: quien manda es `calculoSnapshot`. Sobrevive porque
-     * todavía lo leen varios sitios, incluido el detalle que viaja al cliente. Su borrado es la
-     * fase 6b de `docs/PlanModalidadDeTarifa.md` y no cambia comportamiento.
+     * Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`.
+     *
+     * ⚠️ Sustituyó al booleano `esGrupal`, borrado el 05/10/2026 (fase 6b del plan). Aquél sólo
+     * sabía decir dos de los tres casos.
      */
-    esGrupal: boolean;
-    /** Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Manda sobre `esGrupal`. */
     calculoSnapshot?: CalculoTarifa | null;
     rolSnapshot: TarifaRolValue;
     grupoTarifa: number | null;
@@ -883,7 +882,7 @@ export interface LineaDetalleClaseCliente {
     // huésped, y el costo de proveedor es exactamente lo que no puede ver. Si algún día hace
     // falta un importe por línea aquí, será una VENTA —ya están `ventaSoles` y `ventaDolares`—.
     moneda: string;
-    esGrupal: boolean;
+    calculo: CalculoTarifa;
     cantidad: number;
     cantidadComponente: number;
     /** Cómo se llama la unidad en singular («día», «desayuno»); '' si no aplica. */
@@ -907,19 +906,6 @@ export interface LineaDetalleClaseCliente {
 }
 
 export interface LineaDetalleClaseInterna extends LineaDetalleClaseCliente {
-    /**
-     * Cómo se cuenta el dinero de esta línea. **Decide si sale publicada**: una `operativa` se
-     * filtra en `expurgarParaCliente()`.
-     *
-     * ⚠️ Antes eso lo decidía `rol === 'operativo'`, y `operativo` dejó de ser un rol en la fase 5
-     * de `docs/PlanModalidadDeTarifa.md`. Si el filtro se hubiera quedado mirando el rol, las
-     * líneas operativas —el guía, los liberados— habrían **empezado a publicarse al cliente** sin
-     * que nada fallara.
-     *
-     * Va en ESTA interfaz y no en la base por lo que dice `montoCosto` justo abajo: la base es el
-     * contrato del cliente, así que lo que se declare ahí se publica.
-     */
-    calculo: CalculoTarifa;
 
     /**
      * Lo que le cuesta al negocio esta línea. **Interno.**
@@ -1057,7 +1043,7 @@ export interface OpcionUpgradeInterna extends OpcionUpgradeCliente {
 export interface InclusionTarifa {
     tarifaTitulo: I18nContent[];
     cantidad: number;
-    esGrupal: boolean;
+    calculo: CalculoTarifa;
     modalidad: TarifaModalidadValue | null;
     categoria: TarifaCategoriaValue | null;
     procedencia: TarifaProcedenciaValue | null;
@@ -1195,7 +1181,9 @@ export function expurgarParaCliente(fin: ClasificacionFinancieraInterna): Clasif
                 .map((d): LineaDetalleClaseCliente => ({
                     // `montoCosto` NO se copia: es el costo de proveedor. Ver la interfaz.
                     moneda: d.moneda,
-                    esGrupal: d.esGrupal,
+                    // Sustituye al `esGrupal` que viajaba antes: misma información, tres casos en
+                    // vez de dos. La `operativa` nunca llega aquí — la filtra la línea de arriba.
+                    calculo: d.calculo,
                     cantidad: d.cantidad,
                     cantidadComponente: d.cantidadComponente,
                     modo: d.modo,
@@ -1264,10 +1252,13 @@ const limpiarMontoInclusion = (l: InclusionLinea): InclusionLinea => ({
     tarifas: l.tarifas.map(t => ({ ...t, montoCotizado: null, moneda: null }))
 });
 
-export const formatMontoCotizado = (l: { montoCosto: string; moneda: string; esGrupal: boolean; cantidadComponente: number }): string => {
+export const formatMontoCotizado = (l: { montoCosto: string; moneda: string; calculo: CalculoTarifa; cantidadComponente: number }): string => {
     const prefijo = l.cantidadComponente > 1 ? `${l.cantidadComponente} x ` : '';
     const monedaLabel = l.moneda === 'PEN' ? 'Soles' : 'Dolares';
-    return `${prefijo}${parseFloat(l.montoCosto).toFixed(2)} ${monedaLabel} (${l.esGrupal ? 'P' : 'U'})`;
+    // P = precio cerrado por grupo · U = unitario · O = operativa (se reparte y no se ve)
+    const sello = { grupal: 'P', individual: 'U', operativa: 'O' }[l.calculo];
+
+    return `${prefijo}${parseFloat(l.montoCosto).toFixed(2)} ${monedaLabel} (${sello})`;
 };
 
 export const filasResumenGeneral = (fin: ClasificacionFinancieraInterna) => ([

@@ -163,17 +163,12 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $capacidadMaximaSnapshot = null;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    private bool $esGrupal = false;
 
     /**
      * Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
      * `TravelTarifa::$calculo`.
      *
-     * ⚠️ **Desde la fase 5 (05/10/2026) MANDA ESTE CAMPO.** `esGrupal` sobrevive como copia
-     * derivada para los consumidores que aún lo leen —incluido el detalle que viaja al cliente—;
-     * su borrado físico es la fase 6b y no cambia comportamiento.
+     * ⚠️ **Sustituyó al booleano `esGrupal`, borrado el 05/10/2026** (fase 6b del plan).
      *
      * Texto y no enum, como sus hermanos `rolSnapshot` y `procedenciaSnapshot`: un snapshot guarda
      * lo que decía el catálogo ese día, y un enum lo haría ilegible el día que el catálogo cambie
@@ -342,20 +337,6 @@ class CotizacionCottarifa
     public function getCapacidadMaximaSnapshot(): ?int { return $this->capacidadMaximaSnapshot; }
     public function setCapacidadMaximaSnapshot(?int $capacidadMaximaSnapshot): self { $this->capacidadMaximaSnapshot = $capacidadMaximaSnapshot; return $this; }
 
-    public function isEsGrupal(): bool { return $this->esGrupal; }
-    /**
-     * ⚠️ Camino viejo. Traduce al cálculo, que es quien manda. Un `false` no pisa una operativa:
-     * también es «no grupal», y perderla aquí la volvería individual sin que nadie lo pidiera.
-     */
-    public function setEsGrupal(bool $esGrupal): self
-    {
-        if ($esGrupal) {
-            return $this->setCalculoSnapshot('grupal');
-        }
-
-        return $this->getCalculoSnapshot() === 'grupal' ? $this->setCalculoSnapshot('individual') : $this;
-    }
-
     public function getRolSnapshot(): ?string { return $this->rolSnapshot; }
     public function setRolSnapshot(?string $rolSnapshot): self
     {
@@ -387,15 +368,14 @@ class CotizacionCottarifa
     public function setCalculoSnapshot(string $calculo): self
     {
         $this->calculoSnapshot = (TarifaCalculoEnum::tryFrom($calculo) ?? TarifaCalculoEnum::INDIVIDUAL)->value;
-        $this->esGrupal = $this->calculoSnapshot === 'grupal';
 
         return $this;
     }
 
-    /** El cálculo, derivándolo si la columna aún no está escrita. Nunca devuelve null. */
+    /** Nunca devuelve null: sin columna escrita responde `individual`, el respaldo neutro. */
     public function getCalculoSnapshot(): string
     {
-        return $this->calculoSnapshot ?? $this->calculoDerivado();
+        return $this->calculoSnapshot ?? 'individual';
     }
 
     /**
@@ -412,12 +392,6 @@ class CotizacionCottarifa
     public function getCalculoDeTarifa(): TarifaCalculoEnum
     {
         return TarifaCalculoEnum::tryFrom($this->getCalculoSnapshot()) ?? TarifaCalculoEnum::INDIVIDUAL;
-    }
-
-    /** Para las filas anteriores al relleno: el booleano es lo único que hay. */
-    private function calculoDerivado(): string
-    {
-        return $this->esGrupal ? 'grupal' : 'individual';
     }
 
     public function getGrupoTarifa(): ?int { return $this->grupoTarifa; }

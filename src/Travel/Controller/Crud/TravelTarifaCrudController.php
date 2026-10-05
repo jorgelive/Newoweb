@@ -13,6 +13,7 @@ use App\Travel\Entity\TravelTarifa;
 use App\Travel\Enum\TarifaCategoriaEnum;
 use App\Travel\Enum\TarifaModalidadEnum;
 use App\Travel\Enum\TarifaProcedenciaEnum;
+use App\Travel\Enum\TarifaCalculoEnum;
 use App\Travel\Enum\TarifaRolEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -192,14 +193,17 @@ class TravelTarifaCrudController extends BaseCrudController
 
         yield TextField::new('virtualCostoPorGrupo', '¿Costo Fijo (Grupal)?')
             ->hideOnForm()
-            ->formatValue(static fn(mixed $value, TravelTarifa $entity) => $entity->isCostoPorGrupo()
+            ->formatValue(static fn(mixed $value, TravelTarifa $entity) => $entity->getCalculo() === TarifaCalculoEnum::GRUPAL
                 ? '<span class="badge bg-primary text-white"><i class="fas fa-users"></i> Grupal Fijo</span>'
                 : '<span class="badge bg-light text-dark border"><i class="fas fa-user text-muted"></i> Por Pasajero</span>')
             ->renderAsHtml();
 
-        yield BooleanField::new('costoPorGrupo', '¿Costo Fijo (Grupal)?')
+        yield ChoiceField::new('calculo', 'Modalidad de Cálculo')
+            ->setChoices(array_reduce(TarifaCalculoEnum::cases(), static fn ($c, $e) => $c + [$e->etiqueta() => $e], []))
+            ->setRequired(true)
             ->onlyOnForms()
-            ->setHelp('Activa esto si el costo NO se debe multiplicar por la cantidad de pasajeros (Ej. Un bus completo).')
+            ->setHelp('Individual: el monto se multiplica por la cantidad. Grupal: precio cerrado, no se multiplica. '
+                . 'Operativa: se multiplica, se reparte entre el grupo y el cliente NO la ve (guía, liberados).')
             ->setColumns(6);
 
         /* ====================================================================
