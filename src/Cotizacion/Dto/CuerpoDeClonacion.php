@@ -17,6 +17,9 @@ use DateTimeImmutable;
  * - `file`: a qué expediente va la copia. Acepta el UUID o el IRI (`/platform/.../files/{id}`),
  *   porque el front maneja IRIs y un comando de consola maneja ids. Vacío = el mismo padre.
  * - `fechaInicio`: a qué día se ancla el PRIMER servicio. Vacío = no se mueve nada.
+ * - `numPax`: pasajeros de la copia. Vacío = los mismos. Arrastra las tarifas que cubrían al
+ *   grupo entero — ver {@see \App\Cotizacion\Entity\Cotizacion::ajustarPax()}, porque cambiar
+ *   el número a secas no cambia ni un sol del precio.
  *
  * Una fecha ilegible es `false`, no `null`: «no la entiendo» (400) y «no la mandaste» (no tocar)
  * no son lo mismo, y confundirlas clonaría un viaje entero en las fechas del original sin avisar.
@@ -28,6 +31,8 @@ final readonly class CuerpoDeClonacion
         public ?string $fileId,
         /** `false` = no se entiende; `null` = no desplazar. */
         public DateTimeImmutable|false|null $fechaInicio,
+        /** Pasajeros de la copia. Null = los mismos que el original. */
+        public ?int $numPax,
     ) {}
 
     /** @param array<mixed> $datos */
@@ -56,6 +61,8 @@ final readonly class CuerpoDeClonacion
             }
         }
 
-        return new self($file, $fecha);
+        $pax = Lee::entero($datos['numPax'] ?? null);
+
+        return new self($file, $fecha, ($pax !== null && $pax > 0) ? $pax : null);
     }
 }

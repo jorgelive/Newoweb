@@ -11520,6 +11520,24 @@ Cuatro decisiones que el test fija (`CotizacionDesplazarFechasTest`):
 Sin ningún servicio con fecha, `desplazarA()` devuelve `null` y el procesador lo convierte en
 error: decir que movió un viaje que no movió es peor que no mover nada.
 
+### ⚠️ Cambiar los pax NO cambia el precio por sí solo
+
+`numPax` no interviene en el cálculo financiero: éste multiplica por la `cantidad` de **cada
+tarifa**. Una copia «para 60» con las tarifas en 100 sigue costando lo de 100, sin que nada se
+queje y con un total que se lee perfectamente plausible.
+
+Por eso `numPax` en el cuerpo arrastra las tarifas, con una regla **estrecha a propósito**
+(`Cotizacion::ajustarPax()`): sólo se reescriben las tarifas por persona cuya cantidad sea
+exactamente la de los pax anteriores — las que cubrían al grupo entero. Se dejan en paz:
+
+| Caso | Por qué |
+|---|---|
+| **Grupales** (`esGrupal`) | el precio es por grupo, no por cabeza; que el grupo sea menor es una renegociación, no una división |
+| **Repartos deliberados** («2 Peruano + 1 Cusqueño + 1 No necesario») | reescribir cada línea al total **multiplicaría** el grupo por el número de líneas, y eso sale como un precio alto, no como un fallo |
+
+El método devuelve `{ajustadas, respetadas}`: lo respetado es justamente lo que necesita mano
+humana, y contarlo evita que se quede invisible.
+
 ### Lo que la copia NO se lleva
 
 El **estado** —nace `PENDIENTE`, una copia no está aprobada de nada— y las **operaciones**. La

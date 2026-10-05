@@ -97,6 +97,12 @@ final class CloneCotizacionProcessor implements ProcessorInterface
             throw new DomainException('Esta cotización no tiene ningún servicio con fecha: no hay nada que desplazar.');
         }
 
+        // Los pax, DESPUÉS de las fechas: no dependen entre sí, pero así el orden del código es
+        // el mismo que el de la frase que lo pide («a otro expediente, en otra fecha, para N»).
+        if ($cuerpo->numPax !== null) {
+            $clon->ajustarPax($cuerpo->numPax);
+        }
+
         $clon->setEstado(CotizacionEstadoEnum::PENDIENTE);
 
         $this->entityManager->persist($clon);

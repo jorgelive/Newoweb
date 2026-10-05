@@ -557,6 +557,56 @@ class Cotizacion
         return $dias;
     }
 
+    /**
+     * Cambia el número de pasajeros **y arrastra las tarifas que cubren a todos**.
+     *
+     * ⚠️ **Cambiar `numPax` a secas no cambia ni un sol del precio.** El cálculo financiero
+     * multiplica por la `cantidad` de cada tarifa, no por `numPax`, así que una copia «para 60»
+     * con las tarifas en 100 sigue costando lo de 100 — sin que nada se queje, y con un total que
+     * se lee perfectamente plausible.
+     *
+     * ## La regla, que es estrecha a propósito
+     *
+     * Sólo se reescriben las tarifas **por persona** cuya cantidad sea exactamente la de los pax
+     * anteriores, es decir, las que cubrían al grupo entero. Se dejan en paz:
+     *
+     * - **Las grupales** (`esGrupal`): su precio es por grupo, no por cabeza. Que el grupo sea más
+     *   pequeño es una renegociación con el proveedor, no una multiplicación.
+     * - **Los repartos deliberados**: un componente con «2 Peruano + 1 Cusqueño + 1 No necesario»
+     *   reparte los pax entre tarifas distintas. Reescribir cada línea al total **multiplicaría**
+     *   el grupo por el número de líneas, y el error saldría como un precio alto, no como un
+     *   fallo. Esas líneas las tiene que repartir una persona.
+     *
+     * @return array{ajustadas: int, respetadas: int} lo movido y lo que exige mano humana
+     */
+    public function ajustarPax(int $nuevoPax): array
+    {
+        $anterior = $this->numPax;
+        $this->numPax = $nuevoPax;
+
+        $ajustadas = 0;
+        $respetadas = 0;
+
+        foreach ($this->cotservicios as $servicio) {
+            foreach ($servicio->getCotcomponentes() as $componente) {
+                foreach ($componente->getCottarifas() as $tarifa) {
+                    if ($tarifa->isEsGrupal()) {
+                        continue;
+                    }
+
+                    if ($tarifa->getCantidad() === $anterior) {
+                        $tarifa->setCantidad($nuevoPax);
+                        ++$ajustadas;
+                    } else {
+                        ++$respetadas;
+                    }
+                }
+            }
+        }
+
+        return ['ajustadas' => $ajustadas, 'respetadas' => $respetadas];
+    }
+
     /** Suma o resta el salto según el signo. `DateInterval` no lleva signo propio. */
     private function mover(DateTimeImmutable $fecha, DateInterval $salto, int $dias): DateTimeImmutable
     {
