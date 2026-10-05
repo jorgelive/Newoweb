@@ -1,6 +1,10 @@
 # Plan — `esGrupal` pasa a ser un enum de tres casos
 
-> **Estado (05/10/2026): FASES 1, 2 y 3 HECHAS.** El enum, las dos columnas derivadas y los
+> **Estado (05/10/2026): FASES 1 a 4 HECHAS.** El clasificador ya reparte las tres modalidades.
+> **Y destapó que la operativa no era sólo un redondeo: caía en la clase «⚠️ CONFLICTO» y bloqueaba
+> publicar la cotización.** Quedan la 5 (sacar `operativo` del rol) y la 6 (borrar el booleano).
+>
+> **Estado anterior (05/10/2026): FASES 1, 2 y 3 HECHAS.** El enum, las dos columnas derivadas y los
 > consumidores de PHP preguntando al predicado. **Verificado contra producción: 318 costos y 85
 > desgloses idénticos byte a byte, suma clavada en 482 136,92.** Siguiente: fase 4, el clasificador
 > —la única que sí cambia números.
@@ -122,6 +126,10 @@ Tres consecuencias:
 ### El clasificador, punto por punto
 
 Es la parte cara. Diez decisiones en `cotizacionEditorStore.ts`:
+
+> ⚠️ Esta tabla se escribió **antes** de leer el código con cuidado y tiene mal los sitios: 1125 y
+> 1131 son el camino de los upgrades, no el reparto principal. Se deja como está porque el error es
+> parte de lo aprendido — la lista buena está arriba.
 
 | Línea | Hoy | Debe preguntar |
 |---|---|---|
@@ -247,7 +255,59 @@ predicados sobre individual y grupal dan exactamente lo de antes. Es el momento 
 una sonda que recalcule los costos de las cotizaciones vivas **antes y después** y exija que no se
 mueva ni un céntimo.
 
-### Fase 4 — El clasificador
+### Fase 4 — El clasificador ✅ HECHA
+
+⚠️ **El plan tenía mal el sitio.** §4 decía que lo que cambiaba eran las líneas 1125/1131
+(`ventaPPde` / `costoPPde`), y ésas son el camino de los **upgrades**. El prorrateo de verdad está
+en el reparto por clase de pasajero:
+
+```js
+if (l.esGrupal) { clases.forEach(c => registrar(c, l, c.cantidad)); }  // entre TODOS
+else            { asignar(l, l.cantidad); }                            // por cantidad
+```
+
+Cinco sitios, y cada uno pregunta lo suyo:
+
+| Sitio | Pregunta |
+|---|---|
+| `costoTotal` | `multiplicaPorCantidad()` |
+| **`cupos`** | **`seProrratea()`** — es «entre cuántos se divide», no «cómo se multiplica» |
+| `paxEstandar` | `calculo === 'individual'` |
+| el reparto por clase | `seProrratea()` |
+| `tuvoLineasPorPax` | `calculo === 'individual'` |
+
+#### 🔥 Lo que destapó el test
+
+Antes de esto, una operativa de cantidad 5 en un grupo de 10 **ya cubierto** producía:
+
+```
+Cualquier Nacionalidad         10 pax   10 000
+⚠️ CONFLICTO: Cualquier Nac.    5 pax      400
+```
+
+Los cinco vuelos se leían como **cinco pasajeros más que nadie cubre**, y la clase de conflicto
+**bloquea publicar** (`publicable = false`). No era una cifra mal redondeada: era **no poder vender
+el viaje por haber cotizado bien los liberados**. Eso explica, mejor que ninguna otra cosa, por qué
+el rol operativo llevaba 22 fichas en el catálogo y cero usos.
+
+#### El respaldo tiene que mirar el ROL
+
+`comoCalculo(t.calculoSnapshot ?? …)` cae, cuando el snapshot no trae el campo, a la misma
+derivación que `CotizacionCottarifa::calculoDerivado()` — **incluido el rol**. Si cayera sólo al
+booleano, una operativa recién marcada se repartiría mal hasta recargar la página: la clase de
+diferencia que nadie atribuye al código.
+
+#### El test, y por qué el primero no servía
+
+`util/src/stores/cotizacion/calculoDeTarifa.test.ts`. La primera versión medía el total del bucket
+y **pasaba antes del cambio** — o sea no probaba nada: el bucket ya multiplicaba bien. Lo que la
+fase mueve es **a cuántos pasajeros se reparte cada línea**, y eso sólo se ve en el detalle por
+clase.
+
+Los de `individual` y `grupal` pasaban antes y siguen pasando: son el 100 % de los datos de hoy y
+no pueden moverse.
+
+#### Fase 4 — notas de la redacción original
 
 La fase cara, y la que de verdad cambia algo: las líneas 1125 y 1131 pasan de `esGrupal` a
 `seProrratea()`, y ahí es donde la operativa empieza a prorratearse.

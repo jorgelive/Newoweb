@@ -1,6 +1,8 @@
 import { extractIdStr } from '@/utils/recurso';
 import { mandaElSegmento } from '@/utils/componenteTipo';
 import { posicionDeServicio, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
+import { comoCalculo, multiplicaPorCantidad, seProrratea } from '@dominio/cotizacion/index.ts';
+import type { CalculoTarifa } from '@dominio/cotizacion/index.ts';
 import {defineStore} from 'pinia';
 import { extractApiErrorMessage } from '@/services/apiError';
 import {computed, ref, toRaw, type Ref} from 'vue';
@@ -916,6 +918,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         // ── Estructuras internas del voter ──────────────────────────────────────
         interface LineaVoter {
             esGrupal: boolean;
+            /** Fase 4 del plan: lo que de verdad decide el reparto. `esGrupal` sigue por los
+             *  consumidores que aún no migraron y se va en la fase 6. */
+            calculo: CalculoTarifa;
             cantidad: number;                       // cupos (grupal => numPax)
             modo: ModoFinanciero;
             costoPP: Bimoneda;                      // por pax
@@ -1004,6 +1009,19 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     if (rol === 'alternativa') return;   // → opcionesUpgrade
 
                     const esGrupal = resolverGrupal(t);
+                    // Fase 4 de `docs/PlanModalidadDeTarifa.md`. El snapshot ya trae el cálculo;
+                    // si no lo trae —una fila anterior al relleno, o una que el editor acaba de
+                    // crear en memoria— se deriva igual que en el backend.
+                    //
+                    // ⚠️ **El respaldo tiene que mirar el ROL, no sólo el booleano.** Espejo exacto
+                    // de `CotizacionCottarifa::calculoDerivado()`: si aquí cayera a «individual»
+                    // por no mirarlo, una operativa recién marcada se repartiría mal hasta
+                    // recargar la página, que es la clase de diferencia que nadie atribuye al
+                    // código.
+                    const calculo = comoCalculo(
+                        t.calculoSnapshot
+                        ?? (rolCrudo === 'operativo' ? 'operativa' : (esGrupal ? 'grupal' : 'individual')),
+                    );
                     const tCant = unidadesDe(t.cantidad);
                     const montoBase = parseFloat(String(t.montoCosto)) || 0;
                     const moneda = String(t.moneda || 'USD').toUpperCase();
@@ -1017,7 +1035,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     // 80 en vez de 40 pero el por-pax daba 40 igual (80/2), que es lo que enseña
                     // la ficha. O sea que la pantalla cuadraba y el COSTO NETO del viaje iba
                     // doblado. Con 3 pax ni el por-pax habría cuadrado.
-                    const costoTotal = aBimoneda(montoBase * (esGrupal ? 1 : tCant) * cCant, moneda);
+                    const costoTotal = aBimoneda(montoBase * (multiplicaPorCantidad(calculo) ? tCant : 1) * cCant, moneda);
                     const markup = modoFin === 'incluido' ? markupDeLinea(t) : 0;
                     // cortesía: venta 0 (el costo lo absorbe el file); no_incluido: venta = costo
                     const ventaTotal: Bimoneda = modoFin === 'cortesia'
@@ -1030,8 +1048,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     b.costoSoles += costoTotal.soles;   b.costoDolares += costoTotal.dolares;
                     b.ventaSoles += ventaTotal.soles;   b.ventaDolares += ventaTotal.dolares;
 
-                    const cupos = esGrupal ? numPaxGlobal : tCant;
-                    if (!esGrupal && modoFin === 'incluido' && rol === 'estandar') paxEstandar += tCant;
+                    // ⚠️ `cupos` es «entre cuántos se divide», y por eso lo decide el PRORRATEO y
+                    // no la multiplicación. En una operativa son las dos cosas: 5 vuelos × 80
+                    // repartidos entre los 10 pax. Antes `cupos` era 5 y la línea se asignaba a
+                    // cinco pasajeros — que no existen: son vuelos.
+                    const cupos = seProrratea(calculo) ? numPaxGlobal : tCant;
+
+                    // Y la cobertura cuenta sólo lo que de verdad son pasajeros.
+                    if (calculo === 'individual' && modoFin === 'incluido' && rol === 'estandar') paxEstandar += tCant;
 
                     const procedencia = t.procedenciaSnapshot || '0';
                     const edadMin = t.edadMinimaSnapshot ?? 0;
@@ -1039,6 +1063,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                     lineas.push({
                         esGrupal,
+                        calculo,
                         cantidad: cupos,
                         modo: modoFin,
                         costoPP: { soles: costoTotal.soles / cupos, dolares: costoTotal.dolares / cupos },
@@ -1322,7 +1347,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         componentesProcesados.forEach((lineas) => {
             lineas.forEach((l) => {
-                if (l.esGrupal) {
+                // Lo que se PRORRATEA se registra contra todas las clases; lo que cuenta
+                // pasajeros se asigna por cantidad. Una operativa va por el primer camino aunque
+                // haya multiplicado por cantidad: sus unidades no son gente.
+                if (seProrratea(l.calculo)) {
                     clases.forEach((c) => { if (c.isReal) registrar(c, l, c.cantidad); });
                 } else {
                     asignar(l, l.cantidad);
@@ -1337,7 +1365,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // silencio con el total de los pax viejos. Cobrar de menos no se descubre nunca: no
             // hay cliente que reclame por pagar poco.
             const sinCubrir = clases.filter((c) => c.isReal && c.cantidadRestante > 0);
-            const tuvoLineasPorPax = lineas.some((l) => !l.esGrupal);
+            const tuvoLineasPorPax = lineas.some((l) => l.calculo === 'individual');
 
             if (tuvoLineasPorPax && sinCubrir.length > 0) {
                 const nombreComp = lineas[0]?.base.componenteNombre ?? '';
