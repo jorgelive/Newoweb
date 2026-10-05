@@ -2463,7 +2463,7 @@ superficies y necesita comando.
 
 ## 11.septies Los extras van en UN contenedor, no en un servicio cada uno (05/10/2026)
 
-Kit de viaje, álbum fotográfico y coordinación son servicios de catálogo como cualquier otro
+Kit de viaje y álbum fotográfico son servicios de catálogo como cualquier otro
 —servicio → segmento → componente → tarifa— pero **comparten un solo `TravelServicio`**:
 `EXTRAS`, «Extras del programa», sin plantilla.
 
@@ -2503,28 +2503,53 @@ que habría que volver a decidir.
 ### El `calculo` de cada uno es la decisión de verdad
 
 ```
-Kit de viaje    EXTRAS          individual   por cabeza: 60 pax son 60 kits
-Álbum           EXTRAS          grupal       precio global: una cobertura del viaje, no 60
-Coordinación    PERSONAL_EXTRA  grupal       un coordinador con su vuelo y sus viáticos
+Kit de viaje    EXTRAS   individual   por cabeza: 60 pax son 60 kits
+Álbum           EXTRAS   grupal       precio global: una cobertura del viaje, no 60
 ```
 
-⚠️ Una tabla de venta engaña aquí. En la del cliente todo sale **por cabeza** —15, 20, 100— porque
-es lo que él lee; el catálogo guarda **cómo lo compras** y el clasificador hace la división. En
+⚠️ Una tabla de venta engaña aquí. En la del cliente todo sale **por cabeza** —15, 20— porque es
+lo que él lee; el catálogo guarda **cómo lo compras** y el clasificador hace la división. En
 `grupal` el monto YA es el total del grupo: ponerlo `individual` escribe el mismo número en la
 ficha y una factura distinta, que es el fallo que dobló los traslados hasta el 27/08/2026.
 
-Y si la coordinación tiene que repartirse **sin que el cliente la vea como línea**, eso es
-`operativa` y se marca al cotizar — ver `docs/PlanModalidadDeTarifa.md`.
+### ⛔ La coordinación NO es un extra, y es la decisión más interesante de todo esto
 
-⚠️ **`PERSONAL_EXTRA` estrena uso aquí.** El tipo existía con cero componentes y sin docblock. Su
-`value` se congela en los snapshots (`CotizacionCotcomponente::$tipo` es un string), así que
-renombrarlo después obliga a migrar datos.
+Estuvo aquí —`PERSONAL_EXTRA` con tarifa grupal— y se quitó el mismo día, porque **no es un
+producto**. Lo que cuesta un coordinador no es «una coordinación»: es **su asiento en el vuelo, su
+cama en el hotel y sus comidas**, plazas reales de servicios que ya están en la cotización.
+
+O sea que es un **liberado**: una unidad más de un componente que ya existe, que el grupo paga
+entre todos y que el cliente no ve como línea aparte. Eso ya tiene mecanismo y es
+`TarifaCalculoEnum::OPERATIVA` —multiplica por cantidad **y** se reparte, y se oculta al cliente—,
+que es exactamente para lo que se creó (`docs/PlanModalidadDeTarifa.md`).
+
+Modelarlo como extra de catálogo lo habría roto por dos lados a la vez:
+
+- **Habría duplicado el costo.** El vuelo del coordinador se cotiza como vuelo —con su ruta, su
+  tarifa y su equipaje— y además como «coordinación». Dos sitios donde escribir el mismo dinero, y
+  la garantía de que un día digan cosas distintas.
+- **Habría congelado un total que no es fijo.** Un coordinador en 3 días a Cusco y otro en 7 a
+  Punta Cana no cuestan lo mismo, y el catálogo no sabe cuál es cuál. Como operativa, el costo sale
+  solo de los servicios que el grupo ya tiene.
+
+**La regla que deja:** antes de crear un extra, pregúntate si lo que cuesta son **plazas de algo
+que ya está cotizado**. Si lo es, no es un extra: es una cantidad más con `operativa`.
+
+⚠️ **Y por eso `PERSONAL_EXTRA` sigue sin estrenarse**, con cero componentes. Si algún día se usa,
+que sea para personal que se **compra aparte** —un guía extra, un enfermero— y no para quien
+ocupa una plaza de lo que ya se compró. Su `value` se congela en los snapshots
+(`CotizacionCotcomponente::$tipo` es un string), así que renombrarlo después obliga a migrar.
 
 ### Lo que el cargador NO inventa: el dinero
 
 `app:travel:crear-extras-programa` lleva dentro la estructura y el texto —decisión del catálogo— y
-pide el costo por opción (`--kit-costo`). **Un extra sin su costo no se carga y lo dice.** No hay
-valor por defecto posible: un costo inventado se guarda sin protestar y sale en una cotización.
+el costo entra por opción (`--kit-costo`), que **puede no entrar**: la tarifa nace en `0.00` y el
+comando lo marca en la línea (`⚠ SIN PRECIO`) y **lo repite al final con el nombre de cada una**,
+porque un aviso enterrado entre las líneas de cada sección es el que nadie lee.
+
+Nace a cero y no a un número de ejemplo a propósito: **un costo inventado se guarda sin protestar y
+sale en una cotización pareciendo un precio**. Un 0,00 también sale —se cotiza gratis, sin error—
+pero se lee como lo que es, un hueco, y el operador lo ve en la ficha al añadir el extra.
 
 ⚠️ Y es el **costo**, no la venta: `TravelTarifa::$monto` es lo que se paga al proveedor; el precio
 del cliente sale de la comisión de la cotización.

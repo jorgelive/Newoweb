@@ -61,17 +61,35 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * deduce dónde duerme el pasajero, así que colgar un extra de ahí envenena los puntos de recojo de
  * todo lo demás.
  *
- * La coordinación va en `PERSONAL_EXTRA`, que es lo que es: personal extra que acompaña. Se
- * comporta igual que `EXTRAS` —`sinHorario`, `NINGUNO`— pero lo dice. ⚠️ **Es su primer uso**: el
- * tipo existía con cero componentes y sin docblock. Y su `value` se congela en los snapshots
- * (`CotizacionCotcomponente::$tipo` es un string), así que renombrarlo después obliga a migrar.
+ * ## ⛔ La coordinación NO está aquí, y es la decisión más interesante del cargador
+ *
+ * Estuvo, como `PERSONAL_EXTRA` con tarifa grupal, y se quitó el 05/10/2026 porque **no es un
+ * producto**. Lo que cuesta un coordinador no es «una coordinación»: es **su asiento en el vuelo,
+ * su cama en el hotel y sus comidas** — plazas reales de servicios que ya están en la cotización.
+ *
+ * O sea que es un **liberado**: una unidad más de un componente existente, que el grupo paga entre
+ * todos y que el cliente no ve como línea aparte. Eso ya tiene su mecanismo y es
+ * {@see TarifaCalculoEnum::OPERATIVA} —multiplica por cantidad **y** se reparte, y se oculta al
+ * cliente—, que es exactamente para lo que se creó (ver `docs/PlanModalidadDeTarifa.md`).
+ *
+ * Modelarlo como extra de catálogo lo habría roto por dos lados a la vez:
+ *
+ * - **Habría duplicado el costo.** El vuelo del coordinador se cotiza como vuelo —con su tarifa,
+ *   su ruta y su equipaje— y además como «coordinación». Dos sitios donde escribir el mismo
+ *   dinero, y la garantía de que un día digan cosas distintas.
+ * - **Habría congelado un total que no es fijo.** Un coordinador en un viaje de 3 días a Cusco y
+ *   otro de 7 a Punta Cana no cuestan lo mismo, y el catálogo no sabe cuál es cuál. Como
+ *   operativa, el costo sale solo de los servicios que el grupo ya tiene.
+ *
+ * ⚠️ **Y por eso `PERSONAL_EXTRA` sigue sin estrenarse**, con cero componentes. Si algún día se
+ * usa, que sea para personal que se COMPRA aparte —un guía extra, un enfermero— y no para quien
+ * simplemente ocupa una plaza de lo que ya se compró.
  *
  * ## El `calculo` de cada uno, que es la decisión de verdad
  *
  * ```
- * Kit de viaje    individual   15 por cabeza de verdad: 60 pax son 60 kits
- * Álbum           grupal       precio global: se contrata una cobertura, no 60
- * Coordinación    grupal       no compras 60 coordinaciones: compras un coordinador
+ * Kit de viaje    individual   por cabeza de verdad: 60 pax son 60 kits
+ * Álbum           grupal       precio global: se contrata una cobertura del viaje, no 60
  * ```
  *
  * ⚠️ **En `grupal` el monto YA es el total del grupo** y el clasificador lo reparte entre los
@@ -89,15 +107,19 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * componente**. Estos tres no se cuentan por días —un kit es uno por persona para todo el viaje,
  * el álbum es uno por viaje—, así que su cantidad es 1 y ahí se queda.
  *
- * ## Por qué el costo entra por opción y no como constante
+ * ## El costo entra por opción, y puede no entrar
  *
  * La estructura y el texto son decisión del catálogo y van escritos aquí. **El dinero es decisión
- * comercial**, cambia, y no puede inventarse un valor por defecto: un costo inventado se guarda
- * sin protestar y sale en una cotización. Un extra sin `--*-costo` **no se carga**, y lo dice.
+ * comercial** y se ajusta en el panel, así que `--*-costo` es opcional: sin él la tarifa nace en
+ * `0.00` y el comando **lo dice y lo repite al final**, con el nombre de lo que hay que rellenar.
  *
- * ⚠️ Ojo con lo que NO son estos números: `TravelTarifa::$monto` es el **costo**. El precio que
- * lee el cliente sale de la comisión de la cotización. Los 15 / 20 / 100 de una tabla de venta no
- * se cargan aquí tal cual.
+ * Nace a cero y no a un número de ejemplo a propósito: **un costo inventado se guarda sin
+ * protestar y sale en una cotización** pareciendo un precio. Un 0,00 también sale, pero se lee
+ * como lo que es —un hueco— y el operador lo ve en la ficha al añadir el extra.
+ *
+ * ⚠️ Ojo con lo que NO es este número: `TravelTarifa::$monto` es el **costo**, lo que se le paga
+ * al proveedor. El precio que lee el cliente sale de la comisión de la cotización. Los 15 y 20 de
+ * una tabla de venta no se cargan aquí tal cual.
  *
  * ## El prestador puede faltar, y tiene consecuencia
  *
@@ -111,13 +133,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * ```
  * bin/console app:travel:crear-extras-programa --dry-run \
  *     --kit-costo=9.50 --kit-prestador="Publicidad XYZ" \
- *     --album-costo=1200 --album-prestador="Estudio ABC" \
- *     --coordinacion-costo=850
+ *     --album-costo=1200 --album-prestador="Estudio ABC"
  * ```
  */
 #[AsCommand(
     name: 'app:travel:crear-extras-programa',
-    description: 'Crea el contenedor «Extras del programa» con el kit, el álbum y la coordinación.'
+    description: 'Crea el contenedor «Extras del programa» con el kit de viaje y el álbum fotográfico.'
 )]
 final class CrearExtrasDelProgramaCommand extends Command
 {
@@ -157,14 +178,6 @@ final class CrearExtrasDelProgramaCommand extends Command
             // Precio global: se contrata una cobertura del viaje, no una por pasajero.
             'calculo' => TarifaCalculoEnum::GRUPAL,
         ],
-        'coordinacion' => [
-            'slug' => 'coordinacion',
-            'nombre' => 'Coordinación',
-            'contenido' => '<p>Un coordinador de la agencia acompaña al grupo durante todo el '
-                . 'programa, desde la salida hasta el retorno.</p>',
-            'tipo' => ComponenteTipoEnum::PERSONAL_EXTRA,
-            'calculo' => TarifaCalculoEnum::GRUPAL,
-        ],
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
@@ -181,7 +194,7 @@ final class CrearExtrasDelProgramaCommand extends Command
                 $clave . '-costo',
                 null,
                 InputOption::VALUE_REQUIRED,
-                sprintf('COSTO de «%s» (no el precio de venta). Sin esto, no se carga.', self::EXTRAS[$clave]['nombre'])
+                sprintf('COSTO de «%s» (no el precio de venta). Sin esto nace en 0,00 y se rellena en el panel.', self::EXTRAS[$clave]['nombre'])
             );
             $this->addOption(
                 $clave . '-prestador',
@@ -210,11 +223,14 @@ final class CrearExtrasDelProgramaCommand extends Command
         $servicio = $this->resolverServicio($io, $simula);
         $cargados = 0;
 
-        foreach (self::EXTRAS as $clave => $extra) {
-            $costo = $this->leerCosto($input, $io, $clave);
+        /** @var list<string> $sinPrecio */
+        $sinPrecio = [];
 
-            if ($costo === null) {
-                continue;
+        foreach (self::EXTRAS as $clave => $extra) {
+            $costo = $this->leerCosto($input, $clave);
+
+            if ($costo === '0.00') {
+                $sinPrecio[] = $extra['nombre'];
             }
 
             $io->section($extra['nombre']);
@@ -230,41 +246,46 @@ final class CrearExtrasDelProgramaCommand extends Command
             ++$cargados;
         }
 
-        if ($cargados === 0) {
-            $io->warning('Ningún extra traía su `--*-costo`: no se cargó nada. Ver `--help`.');
-
-            return Command::SUCCESS;
+        if (!$simula) {
+            $this->em->flush();
         }
 
-        if ($simula) {
-            $io->success(sprintf('Simulación de %d extra(s): no se escribió nada.', $cargados));
-
-            return Command::SUCCESS;
+        // Lo que queda a cero se repite al final con nombre y apellido. Enterrado entre las líneas
+        // de cada sección es exactamente el aviso que nadie lee, y un extra a 0,00 en una
+        // cotización no da ningún error: se vende gratis.
+        if ($sinPrecio !== []) {
+            $io->warning(sprintf(
+                "Queda(n) a 0,00 y hay que poner su COSTO en el panel:\n  · %s\n\n"
+                . 'Un extra a 0,00 no falla: se cotiza gratis.',
+                implode("\n  · ", $sinPrecio)
+            ));
         }
 
-        $this->em->flush();
-        $io->success(sprintf('%d extra(s) en el catálogo.', $cargados));
+        $io->success($simula
+            ? sprintf('Simulación de %d extra(s): no se escribió nada.', $cargados)
+            : sprintf('%d extra(s) en el catálogo.', $cargados));
 
         return Command::SUCCESS;
     }
 
-    /** El costo, o `null` si no se pasó — que es la señal de «este no se carga». */
-    private function leerCosto(InputInterface $input, SymfonyStyle $io, string $clave): ?string
+    /** El costo, o `'0.00'` si no se pasó — la tarifa nace vacía y se rellena en el panel. */
+    private function leerCosto(InputInterface $input, string $clave): string
     {
         $crudo = $input->getOption($clave . '-costo');
 
         if ($crudo === null) {
-            $io->text(sprintf('  omitido · %s (sin --%s-costo)', self::EXTRAS[$clave]['nombre'], $clave));
-
-            return null;
+            return '0.00';
         }
 
         if (!is_string($crudo) || preg_match('/^\d+(\.\d{1,2})?$/', $crudo) !== 1) {
-            // El mismo formato que exige `TravelTarifa::$monto`: mejor parar aquí que guardar
-            // «1,200» y descubrirlo como 1.00 en una cotización.
-            $io->error(sprintf('El costo de «%s» no es un decimal válido: %s', $clave, get_debug_type($crudo)));
-
-            throw new \InvalidArgumentException(sprintf('Costo inválido para «%s».', $clave));
+            // El mismo formato que exige `TravelTarifa::$monto`. Lanza en vez de avisar y seguir:
+            // un «1,200» escrito con coma se guardaría como 1.00 —no es un error de formato para
+            // nadie, es una cotización con un álbum de un dólar— y a cero al menos se ve el hueco.
+            throw new \InvalidArgumentException(sprintf(
+                'El costo de «%s» no es un decimal válido (usa punto, no coma): %s',
+                $clave,
+                is_scalar($crudo) ? (string) $crudo : get_debug_type($crudo)
+            ));
         }
 
         return $crudo;
@@ -408,7 +429,9 @@ final class CrearExtrasDelProgramaCommand extends Command
                 $tarifaNombre,
                 self::MONEDA,
                 $costo,
-                $extra['calculo'] === TarifaCalculoEnum::GRUPAL ? 'TOTAL del grupo' : 'por pasajero',
+                $costo === '0.00'
+                    ? '⚠ SIN PRECIO'
+                    : ($extra['calculo'] === TarifaCalculoEnum::GRUPAL ? 'TOTAL del grupo' : 'por pasajero'),
                 $nombrePrestador === null ? ' · ⚠ interna, no genera orden de servicio' : ''
             ));
 
