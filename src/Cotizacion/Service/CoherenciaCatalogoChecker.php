@@ -235,6 +235,10 @@ final class CoherenciaCatalogoChecker
             // - `operativo`: el guía, su viático, su alojamiento. **No viaja nadie en esa línea**,
             //   así que sumarla haría que el componente pareciera cubrir de más.
             //
+            // ⚠️ Desde la fase 3 del plan los dos se preguntan de una vez: sólo cuenta el cálculo
+            // `individual`, que es exactamente «su cantidad son pasajeros». Grupal es un precio
+            // cerrado y operativa cuenta unidades —cinco vuelos—, no gente.
+            //
             // ⚠️ `operativo` faltaba en la primera versión de este chequeo, y el error era invisible
             // porque las 22 tarifas operativas del catálogo son TODAS grupales —`es_grupal = 0` ya
             // las descartaba— y ninguna ha entrado nunca en una cotización. La primera operativa
@@ -252,8 +256,9 @@ final class CoherenciaCatalogoChecker
                               JOIN cotizacion_cotservicio sv ON sv.id = k.cotservicio_id
                               JOIN cotizacion_cotizacion co ON co.id = sv.cotizacion_id',
                 'donde'   => '(SELECT COALESCE(SUM(t.cantidad), 0) FROM cotizacion_cottarifa t
-                                WHERE t.cotcomponente_id = k.id AND t.es_grupal = 0
-                                  AND COALESCE(t.rol_snapshot, "estandar") NOT IN ("alternativa", "operativo")) NOT IN (0, co.num_pax)',
+                                WHERE t.cotcomponente_id = k.id
+                                  AND COALESCE(t.calculo_snapshot, "individual") = "individual"
+                                  AND COALESCE(t.rol_snapshot, "estandar") <> "alternativa") NOT IN (0, co.num_pax)',
                 'set'     => null,
                 'deCotizacion' => 'co.id = :cot',
             ],

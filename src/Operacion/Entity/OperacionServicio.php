@@ -1104,7 +1104,9 @@ class OperacionServicio
             // Misma regla que `BibliaSnapshotService::calcularCostoCotizado()`: en grupal el
             // monto YA es el total del grupo. Si este desglose no la aplicara, explicaría un
             // número distinto del que suma — que es peor que no explicarlo.
-            $cantidad = $tarifa->isEsGrupal() ? 1 : max(1, $tarifa->getCantidad());
+            $cantidad = $tarifa->getCalculoDeTarifa()->multiplicaPorCantidad()
+                ? max(1, $tarifa->getCantidad())
+                : 1;
             $subtotal = (float) $tarifa->getMontoCosto() * $cantidad * $unidades;
 
             $lineas[] = [

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use App\Travel\Enum\TarifaCalculoEnum;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use App\Attribute\AutoTranslate;
@@ -361,6 +362,22 @@ class CotizacionCottarifa
     public function getCalculoSnapshot(): string
     {
         return $this->calculoSnapshot ?? $this->calculoDerivado();
+    }
+
+    /**
+     * El mismo dato **como enum**, que es lo que saben responder los predicados.
+     *
+     * ⚠️ Existe porque la columna guarda TEXTO a propósito —un snapshot conserva el vocabulario
+     * del día en que se vendió— pero las reglas no se escriben comparando cadenas: quien decide
+     * si se multiplica o se prorratea es {@see TarifaCalculoEnum}, en un solo sitio.
+     *
+     * Un valor que el enum no conozca cae a `INDIVIDUAL`: es el caso de 553 de 852 tarifas y el
+     * único que no cambia ningún número por sí solo —multiplica por cantidad, igual que haría un
+     * `esGrupal` ausente leído como `false`—. Mismo respaldo que `comoCalculo()` en `dominio/`.
+     */
+    public function getCalculoDeTarifa(): TarifaCalculoEnum
+    {
+        return TarifaCalculoEnum::tryFrom($this->getCalculoSnapshot()) ?? TarifaCalculoEnum::INDIVIDUAL;
     }
 
     /**

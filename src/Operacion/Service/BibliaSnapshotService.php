@@ -460,7 +460,12 @@ class BibliaSnapshotService
             // salía doblado en cada tarifa grupal con cantidad > 1, sin que nada lo delatara —
             // la ficha del editor sí aplicaba la regla y enseñaba 40, así que los dos números
             // convivían en pantallas distintas y cuadraba el que uno mirase primero.
-            $factorTarifa = $tarifa->isEsGrupal() ? 1 : max(1, $tarifa->getCantidad());
+            // Fase 3 de `docs/PlanModalidadDeTarifa.md`: la pregunta es «¿multiplico?», y ahora
+            // la responde el cálculo en vez del booleano. Hoy da lo mismo —no hay operativas en
+            // ninguna cotización— y por eso esta fase se verifica exigiendo que NO cambie nada.
+            $factorTarifa = $tarifa->getCalculoDeTarifa()->multiplicaPorCantidad()
+                ? max(1, $tarifa->getCantidad())
+                : 1;
 
             $total += (float) $tarifa->getMontoCosto()
                 * $factorTarifa

@@ -590,7 +590,12 @@ class Cotizacion
         foreach ($this->cotservicios as $servicio) {
             foreach ($servicio->getCotcomponentes() as $componente) {
                 foreach ($componente->getCottarifas() as $tarifa) {
-                    if ($tarifa->isEsGrupal()) {
+                    // La pregunta aquí es «¿su cantidad significa pasajeros?», y sólo la multiplica
+                    // quien cuenta por persona. Una grupal es un precio cerrado; una operativa
+                    // cuenta UNIDADES —cinco vuelos liberados— que no son cinco pax, así que
+                    // tampoco sigue al grupo.
+                    if (!$tarifa->getCalculoDeTarifa()->multiplicaPorCantidad()
+                        || !$tarifa->getCalculoDeTarifa()->visibleParaCliente()) {
                         continue;
                     }
 
