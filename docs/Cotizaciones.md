@@ -11659,6 +11659,9 @@ grupal       × 1          visible   el monto es el total del grupo
 operativa    × cantidad   OCULTA    se reparte entre todos sin salir como línea
 ```
 
+📋 **Es provisional**: el plan para convertirlo en un enum de verdad —y sacar `operativo` del enum
+de rol— está en `docs/PlanModalidadDeTarifa.md`.
+
 ⚠️ **Es una proyección de los dos campos que ya existen, no una columna nueva.** `esGrupal` dice
 cómo se multiplica y `rolSnapshot` si el cliente lo ve; son ortogonales en la base, pero **sólo
 tres de sus combinaciones significan algo** y son éstas. Medido antes de escribirlo:
