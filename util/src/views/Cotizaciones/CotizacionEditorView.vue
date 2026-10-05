@@ -4433,7 +4433,11 @@ store.$onAction(({ name, args }) => {
                     <i class="fas fa-calculator text-emerald-500"></i> Modalidad de Cálculo
                   </p>
                   <p class="text-[10px] text-slate-500 mt-1">
-                    {{ store.tarifaActiva.tarifaMaestraId ? 'Individual y Grupal los fija el Catálogo Maestro' : 'Cómo se multiplica el costo, y si el cliente lo ve' }}
+                    {{ store.modalidadesDisponibles(store.tarifaActiva).length === 0
+                        ? 'Fija: el Catálogo Maestro la define como operativa'
+                        : (store.tarifaActiva.tarifaMaestraId
+                            ? 'Individual y Grupal los fija el Catálogo; Operativa es decisión de esta venta'
+                            : 'Cómo se multiplica el costo, y si el cliente lo ve') }}
                   </p>
                 </div>
 
@@ -4447,11 +4451,11 @@ store.$onAction(({ name, args }) => {
                      tarifa maestra por cada liberado ensucia el catálogo con datos de un viaje. -->
                 <div class="flex gap-3 mt-4">
                   <button type="button"
-                          @click="!store.tarifaActiva.tarifaMaestraId && store.cambiarModalidadTarifa(store.tarifaActiva.id, 'individual')"
-                          :disabled="!!store.tarifaActiva.tarifaMaestraId"
+                          @click="store.modalidadesDisponibles(store.tarifaActiva).includes('individual') && store.cambiarModalidadTarifa(store.tarifaActiva.id, 'individual')"
+                          :disabled="!store.modalidadesDisponibles(store.tarifaActiva).includes('individual')"
                           :class="[
                           store.modalidadDeTarifa(store.tarifaActiva) === 'individual' ? 'bg-orange-50 border-orange-300 text-orange-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
-                          store.tarifaActiva.tarifaMaestraId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-orange-300'
+                          store.modalidadesDisponibles(store.tarifaActiva).includes(store.modalidadDeTarifa(store.tarifaActiva)) || !store.tarifaActiva.tarifaMaestraId ? 'cursor-pointer hover:border-orange-300' : 'cursor-not-allowed opacity-60'
                       ]"
                           class="flex-1 text-center p-2 rounded-xl border transition-all">
                     <i class="fas fa-user text-xs mb-1"></i>
@@ -4459,11 +4463,11 @@ store.$onAction(({ name, args }) => {
                     <span class="text-[7px] text-slate-400 block leading-tight">× cantidad</span>
                   </button>
                   <button type="button"
-                          @click="!store.tarifaActiva.tarifaMaestraId && store.cambiarModalidadTarifa(store.tarifaActiva.id, 'grupal')"
-                          :disabled="!!store.tarifaActiva.tarifaMaestraId"
+                          @click="store.modalidadesDisponibles(store.tarifaActiva).includes('grupal') && store.cambiarModalidadTarifa(store.tarifaActiva.id, 'grupal')"
+                          :disabled="!store.modalidadesDisponibles(store.tarifaActiva).includes('grupal')"
                           :class="[
                           store.modalidadDeTarifa(store.tarifaActiva) === 'grupal' ? 'bg-orange-50 border-orange-300 text-orange-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
-                          store.tarifaActiva.tarifaMaestraId ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-orange-300'
+                          store.modalidadesDisponibles(store.tarifaActiva).includes(store.modalidadDeTarifa(store.tarifaActiva)) || !store.tarifaActiva.tarifaMaestraId ? 'cursor-pointer hover:border-orange-300' : 'cursor-not-allowed opacity-60'
                       ]"
                           class="flex-1 text-center p-2 rounded-xl border transition-all">
                     <i class="fas fa-users text-xs mb-1"></i>
@@ -4471,9 +4475,13 @@ store.$onAction(({ name, args }) => {
                     <span class="text-[7px] text-slate-400 block leading-tight">precio cerrado</span>
                   </button>
                   <button type="button"
-                          @click="store.cambiarModalidadTarifa(store.tarifaActiva.id, 'operativa')"
-                          :class="store.modalidadDeTarifa(store.tarifaActiva) === 'operativa' ? 'bg-slate-700 border-slate-700 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-400'"
-                          class="flex-1 text-center p-2 rounded-xl border transition-all cursor-pointer">
+                          @click="store.modalidadesDisponibles(store.tarifaActiva).includes('operativa') && store.cambiarModalidadTarifa(store.tarifaActiva.id, 'operativa')"
+                          :disabled="!store.modalidadesDisponibles(store.tarifaActiva).includes('operativa')"
+                          :class="[
+                          store.modalidadDeTarifa(store.tarifaActiva) === 'operativa' ? 'bg-slate-700 border-slate-700 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400',
+                          store.modalidadesDisponibles(store.tarifaActiva).includes('operativa') ? 'cursor-pointer hover:border-slate-400' : 'cursor-not-allowed opacity-60'
+                      ]"
+                          class="flex-1 text-center p-2 rounded-xl border transition-all">
                     <i class="fas fa-lock text-xs mb-1"></i>
                     <span class="text-[8px] font-black uppercase block">Operativa</span>
                     <span class="text-[7px] opacity-70 block leading-tight">× cantidad, oculta</span>
@@ -4549,9 +4557,13 @@ store.$onAction(({ name, args }) => {
                       Cálculo <b>operativo</b> — suma al costo y <b>el cliente no ve esta línea</b>. Sin comisión y sin grupo: no compite con ninguna otra opción. Se cambia arriba, en «Modalidad de Cálculo».
                     </span>
                   </div>
-                  <button @click="store.tarifaActiva && store.cambiarModalidadTarifa(store.tarifaActiva.id, 'individual')"
+                  <!-- Vuelve a lo que diga el CATÁLOGO si la tarifa está enlazada, y a individual
+                       si es suelta. Se oculta cuando el maestro ES operativa: no hay a dónde
+                       volver, la tarifa es operativa por definición. -->
+                  <button v-if="store.modalidadesDisponibles(store.tarifaActiva).length > 0"
+                          @click="store.tarifaActiva && store.cambiarModalidadTarifa(store.tarifaActiva.id, 'individual')"
                           class="mt-2 w-full py-1.5 rounded-lg border border-slate-300 bg-white text-[10px] font-black uppercase text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-colors">
-                    <i class="fas fa-rotate-left mr-1"></i> Volver a visible (grupo 1, estándar)
+                    <i class="fas fa-rotate-left mr-1"></i> Volver a visible
                   </button>
                 </div>
 

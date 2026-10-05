@@ -400,6 +400,29 @@ que ya tendrán `modalidad = 'operativa'` desde la fase 2.
 
 Y de paso: quitar `alternativa` del formulario del maestro, donde nunca significó nada.
 
+### La regla de quién puede cambiar de modalidad (05/10/2026)
+
+| | Individual | Grupal | Operativa |
+|---|---|---|---|
+| Tarifa **suelta** | libre | libre | libre |
+| Tarifa **del catálogo** | la que diga el maestro | ídem | **libre** |
+| Del catálogo y **el maestro es operativa** | — | — | fija |
+
+**Individual y grupal describen cómo cotiza el PROVEEDOR**, y eso lo fija el tarifario: cambiarlo
+dentro de una cotización sería contradecir al catálogo. **Operativa no dice cómo cotiza el
+proveedor sino cómo lo asumes tú** —ese gasto se reparte y no se enseña—, y eso es una decisión de
+esa venta: por eso queda libre aunque la tarifa venga del catálogo. Es justo el caso de los
+liberados, que no se van a dar de alta en el maestro.
+
+Si el maestro ya es operativa, **queda fija**: no hay a dónde volver, la tarifa lo es por
+definición.
+
+⚠️ **Y la vuelta devuelve a la modalidad DEL CATÁLOGO, no a individual.** La primera versión caía
+siempre a individual, así que una grupal del tarifario marcada operativa y devuelta pasaba de
+`× 1` a `× cantidad` **en silencio**. Hoy no mordería —las 277 grupales del maestro tienen
+`cantidad = 1`— pero es la misma trampa de poner sin poder quitar bien que ya apareció dos veces
+en este plan. Lo fija `modalidadesDisponibles()` y su test.
+
 ### Fase 6b — Borrar el booleano (PENDIENTE)
 
 `esGrupal` / `costoPorGrupo` siguen como copia derivada, y quitarlos **no cambia comportamiento**:

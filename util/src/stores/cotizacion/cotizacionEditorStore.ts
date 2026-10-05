@@ -4009,6 +4009,45 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * significa nada**: una operativa que siguiera grupal no dejaría poner cantidad, que es lo
      * único que la hace servir para cinco vuelos liberados.
      */
+    /**
+     * La modalidad que dice el CATÁLOGO para una tarifa enlazada, o `null` si es suelta.
+     *
+     * Es el sitio al que se vuelve al quitar una operativa: individual y grupal describen **cómo
+     * cotiza el proveedor**, y eso lo fija el tarifario. Caer a `individual` por costumbre le
+     * cambiaría la aritmética a una grupal —de `× 1` a `× cantidad`— en silencio.
+     */
+    const calculoDelMaestroDe = (t: TarifaSnapshot): CalculoTarifa | null => {
+        if (!t.tarifaMaestraId) return null;
+
+        const maestro = todasLasTarifasMaestras.value.find(
+            (cat) => extractIdStr(cat.tarifaId || (cat as Record<string, unknown>)['@id']) === extractIdStr(t.tarifaMaestraId),
+        );
+
+        if (!maestro) return null;
+
+        return comoCalculo(
+            ('calculo' in maestro ? (maestro.calculo as string | null) : null)
+            ?? (getEsGrupalTarifa(maestro) ? 'grupal' : 'individual'),
+        );
+    };
+
+    /**
+     * ¿Se puede cambiar la modalidad de esta tarifa, y a cuáles?
+     *
+     * - **Suelta**: las tres, libremente. No hay catálogo que contradecir.
+     * - **Del catálogo**: individual y grupal las fija el tarifario; operativa queda libre, porque
+     *   no dice cómo cotiza el proveedor sino **cómo lo asumes tú** — y eso es de esta venta.
+     * - **Del catálogo y ya operativa en el maestro**: fija. No hay a dónde volver: *es* operativa.
+     */
+    const modalidadesDisponibles = (t: TarifaSnapshot): CalculoTarifa[] => {
+        const delMaestro = calculoDelMaestroDe(t);
+
+        if (delMaestro === null) return ['individual', 'grupal', 'operativa'];
+        if (delMaestro === 'operativa') return [];
+
+        return [delMaestro, 'operativa'];
+    };
+
     const cambiarModalidadTarifa = (tarifaId: string, modalidad: 'individual' | 'grupal' | 'operativa'): void => {
         const componente = encontrarComponentePorTarifaId(tarifaId);
         const tarifa = componente?.cottarifas?.find(t => t.id === tarifaId);
@@ -4028,8 +4067,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             quitarRolOperativo(tarifaId);
         }
 
-        tarifa.calculoSnapshot = modalidad;
-        tarifa.esGrupal = modalidad === 'grupal';
+        // ⚠️ **Al salir de operativa se vuelve a lo que dice el CATÁLOGO**, no a individual.
+        // Una tarifa grupal del tarifario marcada operativa y devuelta a individual cambiaría de
+        // `× 1` a `× cantidad` sin que nadie lo pidiera. Hoy no mordería —las 277 grupales del
+        // maestro tienen cantidad 1— pero es la misma trampa de poner sin poder quitar bien.
+        const destino = calculoDelMaestroDe(tarifa) ?? modalidad;
+
+        tarifa.calculoSnapshot = destino;
+        tarifa.esGrupal = destino === 'grupal';
 
         // Grupal es un precio cerrado: la cantidad deja de multiplicar, así que dejarla en otro
         // número sería guardar un dato que la fórmula ignora y la ficha enseña.
@@ -5344,6 +5389,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         actualizarInicioManteniendoRango, agregarDetalleOperativo, eliminarDetalleOperativo, alternarAudienciaDetalle,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         marcarTarifaComoOperativa, quitarRolOperativo, modalidadDeTarifa, cambiarModalidadTarifa,
+        modalidadesDisponibles,
         componenteActualDeTarifa, componenteEnEdicion, tarifasHermanas, irATarifaAdyacente,
         servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion,
         buscarServiciosAsincrono, buscarProveedoresAsincrono,

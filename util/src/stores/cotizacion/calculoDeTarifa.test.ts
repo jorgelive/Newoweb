@@ -163,3 +163,77 @@ describe('cómo reparte el clasificador cada modalidad', () => {
         ])).toEqual([]);
     });
 });
+
+/**
+ * Quién puede cambiar de modalidad, y a dónde se vuelve.
+ *
+ * ⚠️ Lo que se protege es la VUELTA. Marcar una operativa siempre se pudo; lo que faltaba era
+ * volver sin estropear nada: una tarifa **grupal del catálogo** devuelta a «individual» pasaría de
+ * `× 1` a `× cantidad` en silencio. Hoy no mordería —las 277 grupales del maestro tienen
+ * `cantidad = 1`— pero es la misma trampa de poner sin poder quitar bien.
+ */
+describe('qué modalidades admite una tarifa', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    /** Registra una tarifa maestra y devuelve el snapshot enlazado a ella. */
+    const conMaestro = (calculoMaestro: string) => {
+        const store = useCotizacionEditorStore();
+        // @ts-expect-error — fixture mínimo del catálogo.
+        store.todasLasTarifasMaestras = [{ tarifaId: 'm-1', calculo: calculoMaestro, costoPorGrupo: calculoMaestro === 'grupal' }];
+
+        return { store, t: tarifa(100, 4, { tarifaMaestraId: 'm-1' }) };
+    };
+
+    it('una tarifa suelta admite las tres', () => {
+        const store = useCotizacionEditorStore();
+
+        // @ts-expect-error — fixture mínimo.
+        expect(store.modalidadesDisponibles(tarifa(100, 4))).toEqual(['individual', 'grupal', 'operativa']);
+    });
+
+    it('una del catálogo admite la suya y operativa, no la otra', () => {
+        const { store, t } = conMaestro('grupal');
+
+        // @ts-expect-error — fixture mínimo.
+        expect(store.modalidadesDisponibles(t)).toEqual(['grupal', 'operativa']);
+    });
+
+    it('si el maestro ES operativa, queda fija', () => {
+        // No hay a dónde volver: la tarifa es operativa por definición del catálogo.
+        const { store, t } = conMaestro('operativa');
+
+        // @ts-expect-error — fixture mínimo.
+        expect(store.modalidadesDisponibles(t)).toEqual([]);
+    });
+
+    it('🔑 salir de operativa devuelve a la modalidad DEL CATÁLOGO, no a individual', () => {
+        const { store, t } = conMaestro('grupal');
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = cotizacionCon(4, [t]);
+
+        // `cotcomponentes` es opcional en el tipo; el fixture siempre lo trae.
+        const laTarifa = () => store.cotizacion!.cotservicios[0]!.cotcomponentes![0]!.cottarifas[0]!;
+
+        store.cambiarModalidadTarifa(laTarifa().id, 'operativa');
+        expect(laTarifa().calculoSnapshot).toBe('operativa');
+
+        // Aunque se pida «individual», vuelve a grupal: lo dice el catálogo.
+        store.cambiarModalidadTarifa(laTarifa().id, 'individual');
+        expect(laTarifa().calculoSnapshot).toBe('grupal');
+        expect(laTarifa().esGrupal).toBe(true);
+    });
+
+    it('una suelta sí vuelve a lo que se le pida', () => {
+        const store = useCotizacionEditorStore();
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = cotizacionCon(4, [tarifa(100, 4)]);
+
+        // `cotcomponentes` es opcional en el tipo; el fixture siempre lo trae.
+        const laTarifa = () => store.cotizacion!.cotservicios[0]!.cotcomponentes![0]!.cottarifas[0]!;
+
+        store.cambiarModalidadTarifa(laTarifa().id, 'operativa');
+        store.cambiarModalidadTarifa(laTarifa().id, 'grupal');
+
+        expect(laTarifa().calculoSnapshot).toBe('grupal');
+    });
+});
