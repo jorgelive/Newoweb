@@ -2389,6 +2389,78 @@ migración: `titulo` y `contenido` llevan `#[AutoTranslate]`.
 > de las autotraducciones y las trampas que ya mordieron— está en
 > `docs/TravelCargaDeCatalogo.md`. Este documento explica el porqué; ése, el cómo.
 
+## 11.sexies El equipaje de un vuelo se llama «cabina», no «mano» (05/10/2026)
+
+Las opciones de equipaje de un vuelo son cuatro y se venden por separado — 17 rutas × 4 = 68
+tarifas en el maestro:
+
+```
+Articulo personal            la mochila que va bajo el asiento
+Equipaje de mano             → renombrada a «Equipaje de cabina»
+Equipaje de bodega           el facturado
+Equipaje de mano y bodega    → «Equipaje de cabina y bodega»
+```
+
+**«Equipaje de mano» y «artículo personal» son las dos cosas que el pasajero lleva consigo**, así
+que el nombre no distinguía lo que se estaba comprando: quien lee la orden no sabe si el vuelo
+lleva el bulto de cabina o sólo el de debajo del asiento. «Cabina» sí lo dice, y es además la
+palabra que usan las aerolíneas.
+
+### ⚠️ El cliente ya lo leía bien — eran las otras dos superficies las desacompasadas
+
+Lo que hace interesante este caso es dónde estaba el desajuste. El `titulo` del maestro, el que ve
+el cliente y el que se traduce a 7 idiomas, **ya decía «equipaje de cabina»**:
+
+| Superficie | Decía | Quién la lee |
+|---|---|---|
+| `titulo` (con `#[AutoTranslate]`) | «con articulo personal y **equipaje de cabina**» | el cliente, en 7 idiomas |
+| `nombreInterno` | «Equipaje de **mano**» | el operador, al armar la cotización |
+| `nombreParaPrestador` | «Vuelo Lima ↔ Cusco · Equipaje de **mano**» | el proveedor, en su orden |
+
+Cada una coherente consigo misma, y las tres diciendo cosas distintas entre ellas: es exactamente
+la trampa de las siete duchas —la app decía «derecha» y el agente «izquierda»— que `CLAUDE.md`
+describe para la guía del huésped. **Al corregir un dato de tarifa hay que mirar las tres.**
+
+### Lo que NO se renombró, y por qué
+
+Cuatro ocurrencias viven en el CONTENIDO de un segmento (`travel_segmento.contenido` y sus 3
+copias en la cotización) y dicen:
+
+> «Aprovecha este tiempo para acomodar tu equipaje de mano con tranquilidad…»
+
+Eso es prosa dirigida al viajero sobre **su propio bulto**, no la categoría de tarifa. «Acomodar
+tu equipaje de cabina» suena a formulario. Y llevan `#[AutoTranslate]`: el día que se toquen, van
+por comando.
+
+### Por qué migración y no comando, por una vez
+
+Ninguna de las ocho columnas renombradas lleva `#[AutoTranslate]`, y la que sí —`titulo`— **no se
+toca porque ya está bien**. No hay traducción que rehacer ni listener que deba correr. El caso
+contrario es `Version20261005010000` (Quelccaya), donde el `titulo` sí cambiaba y por eso hubo
+comando además de migración.
+
+### 🔑 La mayúscula es lo que hace seguro el `REPLACE`
+
+El nombre de tarifa aparece **siempre capitalizado** («Equipaje de mano») y la prosa **siempre en
+minúscula** («tu equipaje de mano»). Medido antes de escribir la migración: **0 ocurrencias en
+minúscula** en las ocho columnas objetivo. Como `REPLACE()` de MySQL distingue mayúsculas, el
+reemplazo **no puede alcanzar la prosa aunque algún día entre en una de esas columnas**. No es
+suerte: es la razón de usar `LIKE BINARY` en el `WHERE` y de dejarlo escrito.
+
+El barrido previo fue de las **269** columnas de texto de `travel_*`, `cotizacion_*`,
+`operacion_*`, `pms_guia*` y `message*`: 110 filas en 10 columnas, 106 renombradas y 4 de prosa
+intactas. **Ninguna en una orden emitida**, así que no se reescribió ningún documento que un
+proveedor ya tuviera ni se disparó una ola de divergencias.
+
+### Pendiente menor
+
+«Articulo personal» va **sin tilde** en las 17 filas del maestro. No se tocó porque no se pidió y
+porque arrastra las mismas ocho columnas; si se corrige, va igual que ésta — y ojo, ahí el
+`titulo` del cliente también la lleva sin tilde, así que esa sí es una corrección de las tres
+superficies y necesita comando.
+
+---
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
@@ -2436,3 +2508,4 @@ migración: `titulo` y `contenido` llevan `#[AutoTranslate]`.
 | Renombrar una plantilla con título traducido | `src/Travel/Command/TravelRenombrarValleVipPrivadaCommand.php` | **`setSobreescribirTraduccion(true)` antes de tocar el título**, y verificar después |
 | Afinar los textos del contacto (7 idiomas) | `src/Travel/Command/TravelAjustarTextosContactoCommand.php` | activa `sobreescribirTraduccion` y **compara contra lo anterior**, no contra una palabra testigo |
 | Añadir el contacto con el pasajero a una plantilla | `src/Travel/Command/TravelCrearContactoMachupicchuCommand.php` | `PLANTILLAS` — **la tarifa de 0 es lo que lo hace pedible** |
+| Renombrar una categoría de tarifa en todas sus copias | `migrations/Version20261005234500.php` | `CAMPOS` — las ocho columnas; **mira antes si el `titulo` también cambia**, porque entonces hace falta comando |
