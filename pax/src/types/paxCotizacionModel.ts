@@ -206,25 +206,22 @@ export interface PaxTarifaFinanciera {
     /**
      * `individual` | `grupal` | `operativa`. Sustituyó al booleano `esGrupal` el 05/10/2026.
      *
-     * ⚠️ **Opcional porque esto es un documento GUARDADO, y los de antes no lo traen.** Las 15
-     * clasificaciones que hay en producción —7 publicadas— se escribieron antes del cambio y
-     * llevan `esGrupal`, no `calculo`: declararlo requerido era prometer un campo que **ninguna
-     * fila tiene**, y `vue-tsc` no puede desmentirlo porque sólo sabe lo que dice el tipo. Se
-     * rellena sola la próxima vez que el editor guarde esa cotización.
+     * ⚠️ **Sigue opcional, y no por los datos: porque esto es un documento GUARDADO.** Los 15
+     * que hay en producción ya traen `calculo` —los normalizó `Version20261006001500`, 1162
+     * claves, 0 `esGrupal` restantes—, así que hoy está en todos. Se queda opcional porque un
+     * tipo que describe lo que te llega de la BASE no puede ser tan estricto como uno que
+     * describe lo que acabas de construir: el día que se lea un documento de un respaldo viejo o
+     * de una versión futura, el compilador tiene que obligar a tratar la ausencia en vez de
+     * dejar pasar un `undefined` que el respaldo leerá como `individual`.
      *
-     * Para leerlo hay que mirar los dos:
+     * Ésa es la diferencia con `util`, donde el tipo equivalente SÍ es requerido: allí lo
+     * **produce** `expurgarParaCliente()`.
      *
-     * ```ts
-     * const calculo = t.calculo ?? (t.esGrupal ? 'grupal' : 'individual');
-     * ```
-     *
-     * Un documento viejo no puede decir `operativa` —el booleano no sabía expresarlo— y eso es
-     * correcto: cuando se guardó, una operativa no se podía publicar.
+     * ⚠️ Llevó un `esGrupal?: boolean` marcado `@deprecated` durante unas horas, para poder leer
+     * los documentos de antes. Se quitó al normalizarlos: un campo deprecado que no describe
+     * **ninguna** fila es la misma mentira que esto vino a arreglar, sólo del revés.
      */
     calculo?: string;
-
-    /** @deprecated Lo que traen los documentos guardados antes del 05/10/2026. Sólo para leerlos. */
-    esGrupal?: boolean;
     categoria: string | null;
     modalidad: string | null;
     procedencia?: string | null;
@@ -304,13 +301,10 @@ export interface PaxClasePasajeroDetalle {
     /**
      * `individual` | `grupal` | `operativa`. Sustituyó al booleano `esGrupal` el 05/10/2026.
      *
-     * ⚠️ Opcional por lo mismo que en `PaxTarifaFinanciera.calculo`: documento guardado, y los
-     * de antes traen `esGrupal`. Se leen los dos.
+     * ⚠️ Opcional por lo mismo que en `PaxTarifaFinanciera.calculo`: es un documento guardado, y
+     * un tipo sobre datos de la base no puede ser tan estricto como uno sobre datos propios.
      */
     calculo?: string;
-
-    /** @deprecated Lo que traen los documentos guardados antes del 05/10/2026. Sólo para leerlos. */
-    esGrupal?: boolean;
     categoria: string | null;
     modalidad: string | null;
     servicioId: string;

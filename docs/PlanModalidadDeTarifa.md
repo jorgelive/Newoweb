@@ -592,6 +592,20 @@ se usó `addSql()`, y aquí el trabajo va por `$this->connection`. La señal bue
 imprime la propia migración y la verificación que lanza. Queda escrito en su docblock para que
 nadie lea el log del despliegue y concluya que no hizo nada.
 
+En producción: **1162 claves renombradas** (581 × 2, exactamente lo medido), **0 `esGrupal`
+restantes**, 134 `grupal` + 447 `individual` en cada columna —idénticos a los `true`/`false` de
+antes— y los 15 JSON válidos.
+
+Y con eso **murió el campo deprecado**: `esGrupal?: boolean` estuvo unas horas en los tipos de
+`pax` para poder leer los documentos viejos, y se quitó al normalizarlos. Un campo `@deprecated`
+que no describe **ninguna** fila es la misma mentira que esto vino a arreglar, girada del revés.
+
+⚠️ **`calculo` se queda opcional, y no por los datos.** Hoy está en los 15. Sigue opcional porque
+un tipo que describe lo que llega de la BASE no puede ser tan estricto como uno que describe lo que
+acabas de construir — por eso en `util`, donde lo **produce** `expurgarParaCliente()`, sí es
+requerido. El día que se lea un respaldo viejo, el compilador tiene que obligar a tratar la
+ausencia en vez de dejar pasar un `undefined` que el respaldo leerá como `individual`.
+
 #### Lo que esto NO tocó, porque no hacía falta
 
 **Operación no guarda la modalidad.** Se comprobó sobre el esquema: ni `operacion_servicio` ni
