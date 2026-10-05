@@ -11556,10 +11556,36 @@ aparte con su botón (`docs/Operacion.md` §2.bis).
 Al mandarla a otro expediente se suelta el `catalogo`: con los dos puestos la copia colgaría de dos
 padres. Y la `propuesta` se renumera contra el padre DESTINO, no contra el origen.
 
+### Desde `util`
+
+El botón vive en `FileDetalle.vue`, **al lado del de clonar**, en la fila de acciones de cada
+versión: es el mismo acto con otro destino, y separarlos haría buscarlo en dos sitios. El icono los
+distingue — copiar «ahí dentro» frente a copiar «hacia fuera».
+
+Abre `ClonarAExpedienteModal.vue`, que pide tres cosas: expediente destino (buscador), primer día y
+pasajeros. Los dos últimos son opcionales.
+
+⚠️ **Las reglas NO están en el modal.** El desplazamiento por delta y el arrastre de tarifas los
+decide el backend; el componente recoge tres datos y los manda. Reimplementar «mover fechas» en el
+navegador habría creado una segunda versión de la regla — exactamente lo que este proyecto paga
+cada vez que lo hace.
+
+Dos detalles del componente que no son decoración:
+
+- **Se limpia al abrirse con otra cotización.** Dejar el destino anterior puesto es la forma más
+  fácil de mandar una copia al expediente equivocado sin notarlo.
+- **`fileStore.buscarExpedientes()` no reutiliza `fetchFiles`** aunque peguen al mismo endpoint:
+  aquél escribe en `files`, que es la lista del escritorio, y buscar un destino dentro de un modal
+  dejaría el escritorio filtrado por detrás al cerrarlo.
+
+Y al volver se recarga el expediente, aunque la copia vaya a otro sitio: sin recargar, el único
+rastro de que funcionó sería la ausencia de error, que se lee igual que si no hubiera pasado nada.
+
 ### Dónde tocar
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
+| Cambiar el formulario de la copia | `util/src/components/cotizacion/ClonarAExpedienteModal.vue` | — las reglas no están aquí |
 | Cambiar cómo se mueven las fechas | `src/Cotizacion/Entity/Cotizacion.php` | `desplazarA()` — y sus tests, que fijan los cuatro bordes |
 | Cambiar qué acepta el cuerpo | `src/Cotizacion/Dto/CuerpoDeClonacion.php` | `fromArray()` |
 | Cambiar qué se lleva la copia | `src/Cotizacion/ApiPlatform/State/CloneCotizacionProcessor.php` | `process()` |

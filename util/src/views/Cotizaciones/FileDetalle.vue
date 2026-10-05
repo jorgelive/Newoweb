@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {ref, onMounted, onUnmounted, watch, computed, nextTick} from 'vue';
 import { hoyNaive } from '@/utils/naiveDate.ts';
+import ClonarAExpedienteModal from '@/components/cotizacion/ClonarAExpedienteModal.vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useVolverAtras } from '@/composables/useVolverAtras';
 // El gesto «atrás» del móvil cierra la capa de arriba en vez de sacarte de la pantalla.
@@ -465,6 +466,24 @@ const guardarHistorico = async (cot: ApiCotizacionVersion) => {
   }
 
   guardandoHistorico.value = null;
+};
+
+// ── Copiar a otro expediente ────────────────────────────────────────────────
+//
+// Las reglas —mover fechas por delta, arrastrar tarifas— viven en el backend. Aquí sólo se abre
+// el panel con la cotización de la que se parte.
+const clonandoAExpediente = ref<string | null>(null);
+const tituloDelClon = ref<string>('');
+
+const abrirClonarAExpediente = (cot: ApiCotizacionVersion): void => {
+  const idStr = extractIdStr(cot.id || cot['@id']);
+
+  if (!idStr) {
+    return;
+  }
+
+  tituloDelClon.value = `Propuesta ${cot.propuesta}`;
+  clonandoAExpediente.value = idStr;
 };
 
 const clonarVersion = async (cot: ApiCotizacionVersion) => {
@@ -5805,6 +5824,15 @@ const eliminarDocumento = async (iri?: string) => {
                     <i class="fas fa-copy text-xs" v-else></i>
                   </button>
 
+                  <!-- Copiar a OTRO expediente vive al lado de clonar porque es el mismo acto con
+                       otro destino, y separarlos haría buscar en dos sitios. El icono las
+                       distingue: copiar «ahí dentro» frente a copiar «hacia fuera». -->
+                  <button v-tooltip-tactil @click="abrirClonarAExpediente(cot)"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 hover:bg-indigo-50 transition-colors"
+                          title="Copiar a otro expediente, con otras fechas y pasajeros">
+                    <i class="fas fa-arrow-right-from-bracket text-xs"></i>
+                  </button>
+
                   <button v-tooltip-tactil @click="eliminarVersion(cot)" :disabled="eliminandoItem === (cot['@id'] || cot.id)"
                           title="Eliminar esta propuesta"
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50">
@@ -7061,6 +7089,16 @@ const eliminarDocumento = async (iri?: string) => {
     </div>
   </div>
 
+
+  <!-- Copiar a otro expediente. Se recarga el file al volver porque la copia va a OTRO sitio y
+       esta vista no cambia: sin recargar, el único rastro de que funcionó sería que no hubo
+       error, y eso se lee igual que si no hubiera pasado nada. -->
+  <ClonarAExpedienteModal
+    :cotizacion-id="clonandoAExpediente"
+    :titulo="tituloDelClon"
+    @cerrar="clonandoAExpediente = null"
+    @clonada="cargarFile()"
+  />
 </template>
 
 <style scoped>

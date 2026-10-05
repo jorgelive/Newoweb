@@ -2,6 +2,22 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { extractApiErrorMessage, esErrorSilencioso } from '@/services/apiError';
+import { extractIdStr } from '@/utils/recurso';
+
+/**
+ * A dónde va una copia de cotización. **Espejo de `App\Cotizacion\Dto\CuerpoDeClonacion`.**
+ *
+ * Los tres son opcionales y mandar `undefined` significa «clona donde siempre»: es lo que hace el
+ * botón de clonar de toda la vida, y por eso añadir esto no lo tocó.
+ */
+export interface DestinoDeClon {
+    /** UUID del expediente destino. Sin él, la copia se queda en el mismo. */
+    file?: string;
+    /** `AAAA-MM-DD` del primer servicio. Desplaza el viaje ENTERO ese mismo delta. */
+    fechaInicio?: string;
+    /** Pasajeros de la copia. Arrastra las tarifas que cubrían al grupo entero. */
+    numPax?: number;
+}
 import {ApiCotizacionFile, ApiCotizacionFilearchivo, ApiCotizacionFilepasajero, ApiCotizacionFileWrite, I18nContent, PlanCargaZip} from '@/types/fileDetalleModel.ts';
 import type { PlanReconciliacion, AplicarPlanPayload, ResultadoAplicacion, InformeCoherencia } from '@/types/operacionModel';
 import type { EstadoFile } from '@/types/cotizacionEditorModel';
@@ -204,6 +220,41 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * Carga los idiomas activos (prioridad > 0) ordenados por prioridad desc.
      * Usado para el selector de idioma que revisa el contenido AutoTranslate.
      */
+    /**
+     * Busca expedientes para el selector de destino del clon.
+     *
+     * ⚠️ **No reutiliza `fetchFiles`** aunque pegue al mismo endpoint: aquél escribe en
+     * `files`, que es la lista del escritorio, y buscar un destino dentro de un modal dejaría
+     * el escritorio filtrado por detrás al cerrarlo. Esto no toca ningún estado compartido.
+     */
+    const buscarExpedientes = async (texto: string): Promise<{ id: string; nombre: string }[]> => {
+        const limpio = texto.trim();
+
+        if (limpio.length < 2) {
+            return [];
+        }
+
+        try {
+            const { data } = await apiClient.get(
+                `/platform/sales/cotizacion_files?itemsPerPage=20&nombre=${encodeURIComponent(limpio)}`
+            );
+            const filas: unknown[] = data['hydra:member'] || data['member'] || [];
+
+            return filas.flatMap((f) => {
+                const fila = f as { id?: string; '@id'?: string; nombreGrupo?: string };
+                const id = extractIdStr(fila.id || fila['@id']);
+
+                return id ? [{ id, nombre: fila.nombreGrupo || '(sin nombre)' }] : [];
+            });
+        } catch (err: unknown) {
+            if (!esErrorSilencioso(err)) {
+                error.value = extractApiErrorMessage(err, 'No se pudieron buscar expedientes.');
+            }
+
+            return [];
+        }
+    };
+
     const fetchIdiomas = async (): Promise<void> => {
         try {
             const response = await apiClient.get('/platform/maestro/idiomas?prioridad[gt]=0&order[prioridad]=desc');
@@ -220,14 +271,18 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * @param iriOrId El UUID o IRI de la cotización a clonar.
      * @returns {Promise<boolean>} true si se clonó con éxito, false en caso de error.
      */
-    const cloneCotizacion = async (iriOrId: string): Promise<boolean> => {
+    const cloneCotizacion = async (iriOrId: string, destino?: DestinoDeClon): Promise<boolean> => {
         error.value = null;
         const id = String(iriOrId).includes('/') ? String(iriOrId).split('/').pop() : iriOrId;
 
         try {
-            // Se envía un body vacío {}. El interceptor pondrá application/ld+json
-            // pero Symfony lo ignorará de forma segura gracias a 'deserialize: false'.
-            await apiClient.post(`/platform/sales/client/cotizacion/${id}/clonar`, {});
+            // ⚠️ Sin `destino` se manda `{}`, que es lo que este método mandaba SIEMPRE antes de
+            // existir el clon a otro expediente. El backend lo lee como «clona donde siempre», así
+            // que el botón de toda la vida sigue haciendo exactamente lo mismo.
+            //
+            // El interceptor pondrá application/ld+json; Symfony lo ignora con seguridad gracias
+            // a 'deserialize: false' y lee el cuerpo a mano con CuerpoDeClonacion.
+            await apiClient.post(`/platform/sales/client/cotizacion/${id}/clonar`, destino ?? {});
             return true;
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'Error al clonar la versión de la cotización.');
@@ -1211,6 +1266,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         validarEtickets,
         confirmarIdentificacion,
         cloneCotizacion,
+        buscarExpedientes,
         guardarHistorico,
         abrirOperativa,
         generarOperacion,
