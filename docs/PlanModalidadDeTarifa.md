@@ -1,6 +1,11 @@
 # Plan — `esGrupal` pasa a ser un enum de tres casos
 
-> **Estado (05/10/2026): FASES 1 y 2 HECHAS.** El enum existe y las dos columnas también,
+> **Estado (05/10/2026): FASES 1, 2 y 3 HECHAS.** El enum, las dos columnas derivadas y los
+> consumidores de PHP preguntando al predicado. **Verificado contra producción: 318 costos y 85
+> desgloses idénticos byte a byte, suma clavada en 482 136,92.** Siguiente: fase 4, el clasificador
+> —la única que sí cambia números.
+>
+> **Estado anterior (05/10/2026): FASES 1 y 2 HECHAS.** El enum existe y las dos columnas también,
 > **derivadas y sin mandar**: `calculo` en `travel_tarifa` y `calculo_snapshot` en
 > `cotizacion_cottarifa`, al día desde los setters viejos y sin setter propio. Siguiente: fase 3,
 > los cinco consumidores de PHP.
@@ -193,7 +198,46 @@ escriben los dos campos** mientras dure la convivencia: un dato a medias es peor
 
 ⚠️ Al añadir campo mapeado: `rm -rf var/cache/dev` antes de sondear nada, y regenerar `api.d.ts`.
 
-### Fase 3 — Los consumidores de PHP, de uno en uno
+### Fase 3 — Los consumidores de PHP, de uno en uno ✅ HECHA
+
+| Sitio | Pregunta ahora |
+|---|---|
+| `calcularCostoCotizado()` | `multiplicaPorCantidad()` |
+| `getDesgloseCotizado()` | `multiplicaPorCantidad()` |
+| `ajustarPax()` | `multiplicaPorCantidad()` **y** `visibleParaCliente()` |
+| `tarifas-no-cubren-pax` | `calculo = 'individual'` — los dos de una vez |
+
+🔑 **`ajustarPax()` es el que enseña por qué no era un reemplazo mecánico.** Su pregunta no es «¿es
+grupal?» sino «¿su cantidad significa pasajeros?». Una grupal es un precio cerrado y una operativa
+cuenta **unidades** —cinco vuelos liberados— que no son cinco pax: las dos se quedan fuera, por
+razones distintas. Con un enum comparado contra `'grupal'` la operativa habría seguido al grupo y
+cinco vuelos se habrían convertido en sesenta.
+
+Y el chequeo de coherencia **se simplifica**: donde miraba `es_grupal` y excluía dos roles, ahora
+pregunta una sola cosa.
+
+#### El puente: `getCalculoDeTarifa()`
+
+La columna guarda **texto** a propósito —un snapshot conserva el vocabulario del día en que se
+vendió— pero las reglas no se escriben comparando cadenas. Un valor que el enum no conozca cae a
+`INDIVIDUAL`, el único respaldo que no cambia ningún número por sí solo.
+
+#### La verificación, que es el punto de la fase
+
+Una sonda recorrió **las 318 componentes y las 85 filas de La Biblia de producción** antes y
+después del despliegue:
+
+```
+COSTOS QUE CAMBIARON:     0
+DESGLOSES QUE CAMBIARON:  0
+suma antes 482 136,92  ·  suma después 482 136,92
+```
+
+Era lo esperado —no hay operativas en ninguna cotización, así que los predicados sobre individual y
+grupal dan lo de antes— pero **esperarlo no es comprobarlo**, y la fase 4 va a cambiar números de
+verdad: conviene llegar sabiendo que hasta aquí no se movió nada.
+
+#### Fase 3 — notas de la redacción original
 
 Cinco sitios reales (`calcularCostoCotizado`, `getDesgloseCosto`, `ajustarPax`,
 `CoherenciaCatalogoChecker`, el CRUD). Cada uno pasa a preguntar al predicado que le toca.
