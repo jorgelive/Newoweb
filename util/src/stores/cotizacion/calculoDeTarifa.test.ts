@@ -326,7 +326,7 @@ describe('una operativa atada a un grupo', () => {
         expect(resumen({ grupoTarifa: 2 })?.totalCostoNeto).toBeCloseTo(1000, 2);
     });
 
-    it('CON grupo se cobra en el adicional de esa opción, repartido entre todos', () => {
+    const conUpgradeYLiberados = () => {
         const store = useCotizacionEditorStore();
         // @ts-expect-error — fixture mínimo.
         store.cotizacion = cotizacionCon(10, [
@@ -335,10 +335,34 @@ describe('una operativa atada a un grupo', () => {
             tarifa(80, 2, { calculoSnapshot: 'operativa', grupoTarifa: 2 }),
         ]);
 
-        const upgrade = (store.resumenFinanciero?.opcionesUpgrade ?? [])[0];
+        return (store.resumenFinanciero?.opcionesUpgrade ?? [])[0];
+    };
 
+    /**
+     * ⚠️ **Éste es el campo que se PINTA, y por eso existe este test.**
+     *
+     * La primera versión sumó los liberados sólo a `deltasPorPerfil`, que **no lo lee nadie**: lo
+     * declara el tipo y ni `pax` ni el panel del operador lo tocan. El documento guardado decía
+     * 109,91 y la pantalla del cliente seguía diciendo 101,41 — y la verificación que hice miraba
+     * el JSON, no la pantalla, así que la dio por buena.
+     *
+     * Al cambiar una cifra, la pregunta es **quién la pinta**, no dónde parece que vive.
+     */
+    it('CON grupo se cobra en el adicional que SE MUESTRA, repartido entre todos', () => {
         // La alternativa vale 50/pax y la estándar 100/pax → −50. Y los liberados son
         // 80 × 2 = 160 repartidos entre 10 → +16. Total −34.
-        expect(upgrade?.deltasPorPerfil?.[0]?.deltaVentaPorPax).toBeCloseTo(-34, 2);
+        expect(conUpgradeYLiberados()?.deltaVentaPorPax).toBeCloseTo(-34, 2);
+    });
+
+    it('y el total de la opción es ese adicional por todos los pasajeros', () => {
+        expect(conUpgradeYLiberados()?.deltaVentaTotal).toBeCloseTo(-340, 2);
+    });
+
+    it('el «std → alt» del panel llega al mismo número que el delta de al lado', () => {
+        const up = conUpgradeYLiberados();
+
+        // Si la flecha no acaba donde dice el delta, el operador no sabe cuál creer.
+        expect((up?.ventaPorPaxAlternativa ?? 0) - (up?.ventaPorPaxEstandar ?? 0))
+            .toBeCloseTo(up?.deltaVentaPorPax ?? 0, 2);
     });
 });

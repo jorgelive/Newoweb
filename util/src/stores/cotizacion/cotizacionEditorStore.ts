@@ -1296,6 +1296,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         const liberadosPP = (operativasPorGrupo.get(grupo) ?? [])
                             .reduce((acc, op) => acc + ventaPPde(op), 0);
 
+                        const liberadosCostoPP = (operativasPorGrupo.get(grupo) ?? [])
+                            .reduce((acc, op) => acc + costoPPde(op), 0);
+
                         tarifasGrupo.forEach((t) => {
                             const std = estandarPorFirma.get(firma(t));
                             const altPP = ventaPPde(t);
@@ -1339,13 +1342,26 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 procedencia: t.procedenciaSnapshot || null,
                                 edadMin: t.edadMinimaSnapshot ?? null,
                                 edadMax: t.edadMaximaSnapshot ?? null,
-                                deltaVentaPorPax: altPP - basePP, // Diferencia general vs promedio
+                                // ⚠️ **Los liberados van en TODOS los deltas, no en uno.** La
+                                // primera versión los sumó sólo a `deltasPorPerfil`, que resulta
+                                // que **no lo pinta nadie**: el tipo lo declara y ni `pax` ni el
+                                // panel lo leen. Lo que se ve es este `deltaVentaPorPax` de primer
+                                // nivel, así que la pantalla del cliente seguía diciendo 101,41
+                                // cuando el documento guardado ya decía 109,91.
+                                //
+                                // La lección, que es la de siempre aquí: al cambiar una cifra hay
+                                // que preguntar **quién la pinta**, no dónde parece que vive.
+                                deltaVentaPorPax: altPP - basePP + liberadosPP, // Diferencia general vs promedio
                                 deltasPorPerfil,
-                                deltaVentaTotal: (altPP - basePP) * numPaxGlobal,
+                                deltaVentaTotal: (altPP - basePP + liberadosPP) * numPaxGlobal,
                                 tarifaMaestraId: t.tarifaMaestraId ? extractIdStr(t.tarifaMaestraId) : null,
                                 ventaPorPaxEstandar: stdPP,
-                                ventaPorPaxAlternativa: altPP,
-                                deltaCostoPorPax: costoPPde(t) - (std ? costoPPde(std) : basePP / (1 + globalMarkup)),
+                                // Con los liberados dentro, porque el panel interno pinta
+                                // «std → alt» JUNTO al delta: si la flecha no llega al número de
+                                // al lado, el operador no sabe cuál de los dos creer.
+                                ventaPorPaxAlternativa: altPP + liberadosPP,
+                                deltaCostoPorPax: costoPPde(t) + liberadosCostoPP
+                                    - (std ? costoPPde(std) : basePP / (1 + globalMarkup)),
                                 comisionAplicada: markupDeLinea(t) * 100,
                                 comisionOverride: (t.comisionOverrideSnapshot === '' || t.comisionOverrideSnapshot == null)
                                     ? null : String(t.comisionOverrideSnapshot)

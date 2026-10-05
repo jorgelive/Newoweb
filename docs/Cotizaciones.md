@@ -11973,6 +11973,30 @@ No mordía porque hasta hoy ninguna operativa llegaba a ese cálculo. Habría mo
 que se atara la primera. Ahora las dos funciones (`ventaPPde` y `costoPPde`) salen de un
 `totalDe()` único que pregunta `multiplicaPorCantidad()`.
 
+### 🔥 Los liberados van en TODOS los deltas, y la primera versión los puso en el que nadie pinta
+
+La corrección se escribió en `deltasPorPerfil[].deltaVentaPorPax` y se verificó **leyendo el JSON
+guardado**: decía 109,91, correcto. Pero la pantalla del cliente seguía diciendo **101,41** —los
+8,50 de los liberados, exactos, de diferencia—, porque `deltasPorPerfil` **no lo lee nadie**: lo
+declara el tipo y ni `pax` ni el panel del operador lo tocan.
+
+Lo que se pinta es el `deltaVentaPorPax` de **primer nivel**. Y con él, otros tres:
+
+| Campo | Quién lo pinta |
+|---|---|
+| `deltaVentaPorPax` | **la vista del huésped**, el panel del operador y el editor |
+| `deltaVentaTotal` | la vista del huésped («Total») |
+| `ventaPorPaxAlternativa` | el panel, como «std $X → alt $Y» **al lado del delta** |
+| `deltaCostoPorPax` | nadie hoy — pero viaja en el documento guardado |
+
+`ventaPorPaxAlternativa` lleva los liberados dentro a propósito: el panel pinta la flecha **junto**
+al delta, y si no acaba en el mismo número el operador no sabe cuál de los dos creer. Hay un test
+que lo ata.
+
+⚠️ **La lección: al cambiar una cifra, la pregunta es QUIÉN LA PINTA, no dónde parece que vive.**
+Verificar sobre el documento guardado no basta — el documento tenía el número bueno y la pantalla
+el malo al mismo tiempo.
+
 ### Dónde tocar
 
 | Necesito… | Archivo | Símbolo |
