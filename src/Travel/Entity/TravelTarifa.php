@@ -16,6 +16,7 @@ use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
+use App\Travel\Enum\TarifaCalculoEnum;
 use App\Travel\Enum\TarifaCategoriaEnum;
 use App\Travel\Enum\TarifaModalidadEnum;
 use App\Travel\Enum\TarifaProcedenciaEnum;
@@ -128,6 +129,22 @@ class TravelTarifa
     #[Assert\Type(type: 'bool', message: 'El valor de costo por grupo debe ser booleano.')]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $costoPorGrupo = false;
+
+    /**
+     * Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
+     * `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
+     *
+     * ⚠️ **Fase 2 de `docs/PlanModalidadDeTarifa.md`: aquí todavía NO manda.** Es una copia
+     * derivada de los dos campos viejos, mantenida al día por {@see self::sincronizarCalculo()},
+     * que corre desde los dos setters. Mientras dure la convivencia la verdad sigue siendo el
+     * booleano; esto existe para poder migrar a los consumidores de uno en uno.
+     *
+     * Nulable sólo durante la convivencia: una fila escrita por SQL antes del relleno no la tiene,
+     * y {@see self::getCalculo()} la deriva al vuelo en vez de devolver null.
+     */
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ORM\Column(type: 'string', length: 20, nullable: true, enumType: TarifaCalculoEnum::class)]
+    private ?TarifaCalculoEnum $calculo = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
     #[Assert\NotNull(message: 'El rol de la tarifa es obligatorio.')]
@@ -407,7 +424,8 @@ class TravelTarifa
     public function setCostoPorGrupo(bool $costoPorGrupo): self
     {
         $this->costoPorGrupo = $costoPorGrupo;
-        return $this;
+
+        return $this->sincronizarCalculo();
     }
 
     public function getRol(): TarifaRolEnum
@@ -418,7 +436,51 @@ class TravelTarifa
     public function setRol(TarifaRolEnum $rol): self
     {
         $this->rol = $rol;
+
+        return $this->sincronizarCalculo();
+    }
+
+    /**
+     * El cálculo, derivándolo si la columna aún no está escrita.
+     *
+     * No devuelve null nunca: durante la convivencia una fila puede no tenerlo —la escribió un SQL
+     * anterior al relleno— y un null obligaría a cada consumidor a decidir qué hacer, que es
+     * exactamente como se reparten las reglas por el código.
+     */
+    public function getCalculo(): TarifaCalculoEnum
+    {
+        return $this->calculo ?? $this->calculoDerivado();
+    }
+
+    /**
+     * Mantiene la copia al día desde los dos setters viejos.
+     *
+     * ⚠️ **No hay `setCalculo()` público, y es deliberado.** Mientras manden el booleano y el rol,
+     * un setter propio abriría la puerta a que los tres campos digan cosas distintas — y el que
+     * perdería sería el nuevo, porque es el que nadie lee todavía. Se vuelve escribible en la
+     * fase 6, cuando los viejos desaparezcan.
+     */
+    private function sincronizarCalculo(): self
+    {
+        $this->calculo = $this->calculoDerivado();
+
         return $this;
+    }
+
+    /**
+     * La traducción de los dos campos viejos al nuevo, **en un solo sitio**.
+     *
+     * `operativo` gana sobre `costoPorGrupo` porque en el modelo nuevo una operativa multiplica por
+     * cantidad, y las 22 del catálogo son grupales con cantidad 1: leerlas como «× cantidad» da el
+     * mismo número. Ver §3 del plan.
+     */
+    private function calculoDerivado(): TarifaCalculoEnum
+    {
+        if ($this->rol === TarifaRolEnum::OPERATIVO) {
+            return TarifaCalculoEnum::OPERATIVA;
+        }
+
+        return $this->costoPorGrupo ? TarifaCalculoEnum::GRUPAL : TarifaCalculoEnum::INDIVIDUAL;
     }
 
     public function getComisionOverride(): ?string

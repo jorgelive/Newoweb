@@ -166,6 +166,22 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $esGrupal = false;
 
+    /**
+     * Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+     * `TravelTarifa::$calculo`.
+     *
+     * ⚠️ **Fase 2 de `docs/PlanModalidadDeTarifa.md`: aquí todavía NO manda.** Es una copia
+     * derivada de `esGrupal` + `rolSnapshot`, al día por {@see self::sincronizarCalculo()}. La
+     * verdad sigue siendo el booleano mientras dure la convivencia.
+     *
+     * Texto y no enum, como sus hermanos `rolSnapshot` y `procedenciaSnapshot`: un snapshot guarda
+     * lo que decía el catálogo ese día, y un enum lo haría ilegible el día que el catálogo cambie
+     * de vocabulario.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 20, nullable: true)]
+    private ?string $calculoSnapshot = null;
+
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 20, nullable: true)]
     private ?string $rolSnapshot = null;
@@ -326,10 +342,48 @@ class CotizacionCottarifa
     public function setCapacidadMaximaSnapshot(?int $capacidadMaximaSnapshot): self { $this->capacidadMaximaSnapshot = $capacidadMaximaSnapshot; return $this; }
 
     public function isEsGrupal(): bool { return $this->esGrupal; }
-    public function setEsGrupal(bool $esGrupal): self { $this->esGrupal = $esGrupal; return $this; }
+    public function setEsGrupal(bool $esGrupal): self
+    {
+        $this->esGrupal = $esGrupal;
+
+        return $this->sincronizarCalculo();
+    }
 
     public function getRolSnapshot(): ?string { return $this->rolSnapshot; }
-    public function setRolSnapshot(?string $rolSnapshot): self { $this->rolSnapshot = $rolSnapshot; return $this; }
+    public function setRolSnapshot(?string $rolSnapshot): self
+    {
+        $this->rolSnapshot = $rolSnapshot;
+
+        return $this->sincronizarCalculo();
+    }
+
+    /** El cálculo, derivándolo si la columna aún no está escrita. Nunca devuelve null. */
+    public function getCalculoSnapshot(): string
+    {
+        return $this->calculoSnapshot ?? $this->calculoDerivado();
+    }
+
+    /**
+     * ⚠️ **Sin setter público mientras dure la convivencia**, por lo mismo que en el maestro: un
+     * tercer campo escribible junto a los dos que mandan acabaría diciendo otra cosa, y el que
+     * perdería sería el nuevo porque es el que nadie lee todavía.
+     */
+    private function sincronizarCalculo(): self
+    {
+        $this->calculoSnapshot = $this->calculoDerivado();
+
+        return $this;
+    }
+
+    /** La traducción de los dos campos viejos, en un solo sitio. Ver §3 del plan. */
+    private function calculoDerivado(): string
+    {
+        if ($this->rolSnapshot === 'operativo') {
+            return 'operativa';
+        }
+
+        return $this->esGrupal ? 'grupal' : 'individual';
+    }
 
     public function getGrupoTarifa(): ?int { return $this->grupoTarifa; }
     public function setGrupoTarifa(?int $grupoTarifa): self { $this->grupoTarifa = $grupoTarifa; return $this; }

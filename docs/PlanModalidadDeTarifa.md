@@ -1,6 +1,11 @@
 # Plan — `esGrupal` pasa a ser un enum de tres casos
 
-> **Estado (05/10/2026): FASE 1 HECHA.** `TarifaCalculoEnum` y su espejo `dominio/cotizacion/
+> **Estado (05/10/2026): FASES 1 y 2 HECHAS.** El enum existe y las dos columnas también,
+> **derivadas y sin mandar**: `calculo` en `travel_tarifa` y `calculo_snapshot` en
+> `cotizacion_cottarifa`, al día desde los setters viejos y sin setter propio. Siguiente: fase 3,
+> los cinco consumidores de PHP.
+>
+> **Estado anterior (05/10/2026): FASE 1 HECHA.** `TarifaCalculoEnum` y su espejo `dominio/cotizacion/
 > calculoTarifa.ts` existen, con los tres predicados y 12 tests por los dos lados. **Nada los usa
 > todavía**, que es justo lo que hace la fase desplegable sola. Siguiente: fase 2, la columna.
 >
@@ -153,7 +158,26 @@ aquí se llaman distinto y cada uno lleva el aviso de no confundirse con el otro
 El espejo de TS tiene además un test que ningún predicado por separado daría: **que las dos primeras
 preguntas no sean la misma**. Si alguien las volviera a colapsar en un booleano, se cae.
 
-### Fase 2 — La columna, conviviendo con el booleano
+### Fase 2 — La columna, conviviendo con el booleano ✅ HECHA
+
+`Version20261005120000`. Las dos columnas nulables, rellenadas con la traducción de §3, y la copia
+mantenida al día por `sincronizarCalculo()`, que corre desde **los dos** setters viejos.
+
+⚠️ **Sin setter público, a propósito.** Un tercer campo escribible junto a los dos que mandan
+acabaría diciendo otra cosa, y el que perdería sería el nuevo porque es el que nadie lee todavía.
+Se vuelve escribible en la fase 6. Como efecto, API Platform lo publica `readonly` — se ve en
+`api.d.ts`, y el maestro sale ya como unión cerrada `"individual" | "grupal" | "operativa"`.
+
+Y `getCalculo()` **nunca devuelve null**: si la columna no está escrita, la deriva. Un null
+obligaría a cada consumidor de la fase 3 a decidir qué hacer, que es como se reparten las reglas
+por el código.
+
+Lo que fija el test (`CalculoDerivadoTest`) no es la traducción —es un `match` de tres líneas— sino
+que se rehaga **desde los dos setters y en cualquier orden**. Si uno se olvidara, el campo se
+quedaría con lo anterior; y como en esta fase nadie lo lee, el error viviría tranquilo hasta la
+fase 3, donde ya sería un precio mal calculado.
+
+#### Fase 2 — notas de la redacción original
 
 Migración: `travel_tarifa.modalidad` y `cotizacion_cottarifa.modalidad_snapshot`, **nulables**, y
 relleno desde lo que ya hay:

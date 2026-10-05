@@ -10043,6 +10043,11 @@ export interface components {
             capacidadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10104,6 +10109,11 @@ export interface components {
             capacidadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10158,6 +10168,11 @@ export interface components {
             capacidadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10197,6 +10212,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10216,6 +10236,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10263,6 +10288,11 @@ export interface components {
             capacidadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10324,6 +10354,11 @@ export interface components {
             capacidadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10367,6 +10402,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10386,6 +10426,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10433,6 +10478,11 @@ export interface components {
             capacidadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10494,6 +10544,11 @@ export interface components {
             capacidadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10537,6 +10592,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10556,6 +10616,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10603,6 +10668,11 @@ export interface components {
             capacidadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10664,6 +10734,11 @@ export interface components {
             capacidadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             grupoTarifa?: number | null;
             comisionOverrideSnapshot?: string | null;
@@ -10707,6 +10782,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -10726,6 +10806,11 @@ export interface components {
             edadMaximaSnapshot?: number | null;
             /** @default false */
             esGrupal: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: `individual`, `grupal` u `operativa`. Espejo congelado de
+             *     `TravelTarifa::$calculo`.
+             */
+            readonly calculoSnapshot?: string | null;
             rolSnapshot?: string | null;
             notaRol?: {
                 [key: string]: string | null;
@@ -32776,6 +32861,12 @@ export interface components {
             /** @default false */
             costoPorGrupo: boolean;
             /**
+             * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
+             *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
+             * @enum {string|null}
+             */
+            readonly calculo?: "individual" | "grupal" | "operativa" | null;
+            /**
              * @default estandar
              * @enum {string}
              */
@@ -32837,6 +32928,12 @@ export interface components {
             /** @default false */
             costoPorGrupo: boolean;
             /**
+             * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
+             *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
+             * @enum {string|null}
+             */
+            readonly calculo?: "individual" | "grupal" | "operativa" | null;
+            /**
              * @default estandar
              * @enum {string}
              */
@@ -32885,6 +32982,12 @@ export interface components {
             capacidadMaxima?: number | null;
             /** @default false */
             costoPorGrupo: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
+             *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
+             * @enum {string|null}
+             */
+            readonly calculo?: "individual" | "grupal" | "operativa" | null;
             /**
              * @default estandar
              * @enum {string}
@@ -32943,6 +33046,12 @@ export interface components {
             /** @default false */
             costoPorGrupo: boolean;
             /**
+             * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
+             *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
+             * @enum {string|null}
+             */
+            readonly calculo?: "individual" | "grupal" | "operativa" | null;
+            /**
              * @default estandar
              * @enum {string}
              */
@@ -32999,6 +33108,12 @@ export interface components {
             capacidadMaxima?: number | null;
             /** @default false */
             costoPorGrupo: boolean;
+            /**
+             * @description Cómo se cuenta el dinero: individual, grupal u operativa. **Sustituye a `costoPorGrupo` y a
+             *     `rol = operativo`, que entre los dos sólo sabían decir tres de los casos y ninguno entero.**
+             * @enum {string|null}
+             */
+            readonly calculo?: "individual" | "grupal" | "operativa" | null;
             /**
              * @default estandar
              * @enum {string}
