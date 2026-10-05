@@ -1,6 +1,13 @@
 # Plan — `esGrupal` pasa a ser un enum de tres casos
 
-> **Estado (05/10/2026): DISEÑADO, sin empezar.** Hoy existe una proyección de tres opciones en el
+> **Estado (05/10/2026): FASE 1 HECHA.** `TarifaCalculoEnum` y su espejo `dominio/cotizacion/
+> calculoTarifa.ts` existen, con los tres predicados y 12 tests por los dos lados. **Nada los usa
+> todavía**, que es justo lo que hace la fase desplegable sola. Siguiente: fase 2, la columna.
+>
+> ⚠️ **El enum NO se llama `TarifaModalidadEnum`**, aunque el panel diga «Modalidad de Cálculo»:
+> ese nombre ya estaba cogido por `privado`/`compartido`. Ver §5 fase 1.
+>
+> **Estado anterior (05/10/2026): DISEÑADO, sin empezar.** Hoy existe una proyección de tres opciones en el
 > editor (`modalidadDeTarifa()` / `cambiarModalidadTarifa()`), que escribe los dos campos viejos.
 > Funciona y desbloquea el caso de los liberados, pero el modelo de datos sigue siendo un booleano
 > más un rol. Esto es el plan para cerrarlo de verdad.
@@ -127,13 +134,24 @@ enum **antes** de que el snapshot deje de tener el booleano.
 
 Cada una se despliega sola y deja el sistema funcionando.
 
-### Fase 1 — El enum y sus tres predicados. Sin cambiar nada.
+### Fase 1 — El enum y sus tres predicados. Sin cambiar nada. ✅ HECHA
 
-Crear `App\Travel\Enum\TarifaModalidadEnum` con `individual` / `grupal` / `operativa` y los tres
-predicados de §2. Su espejo en `dominio/` —no en `util/`— porque lo necesitan las dos apps y la
-regla es la misma. Tests unitarios de los predicados: nueve asserts, cero dependencias.
+`App\Travel\Enum\TarifaCalculoEnum` y su espejo `dominio/cotizacion/calculoTarifa.ts`, con los
+tres predicados de §2 y sus tests a los dos lados (6 + 6). **Nada lo usa todavía**, que es lo que
+hace la fase desplegable sola.
 
-**Nada lo usa todavía.** Verificable: PHPStan, PHPUnit, `npm test` en `dominio/`.
+⚠️ **El nombre NO es `TarifaModalidadEnum`, y conviene saber por qué.** Ese archivo ya existía —es
+`privado`/`compartido`, el nivel de exclusividad del servicio— y el primer intento lo **sobrescribió
+entero**: el enum se escribió con `cat >` sobre una ruta que nadie comprobó. Lo destapó PHPStan en
+la misma pasada (`TarifaModalidadEnum::PRIVADO` dejó de existir, 11 errores) y se restauró desde
+git sin que llegara a ningún commit.
+
+La trampa es el vocabulario: el panel llama **«Modalidad»** a `privado`/`compartido` y **«Modalidad
+de Cálculo»** a esto. Dos cosas con el mismo nombre de pila invitan exactamente a ese error, así que
+aquí se llaman distinto y cada uno lleva el aviso de no confundirse con el otro.
+
+El espejo de TS tiene además un test que ningún predicado por separado daría: **que las dos primeras
+preguntas no sean la misma**. Si alguien las volviera a colapsar en un booleano, se cae.
 
 ### Fase 2 — La columna, conviviendo con el booleano
 
@@ -210,7 +228,8 @@ del catálogo son grupales porque describen lo que había, no lo que puede haber
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
-| Añadir un cuarto caso | `src/Travel/Enum/TarifaModalidadEnum.php` + su espejo en `dominio/` | el enum y sus tres predicados |
+| Añadir un cuarto caso | `src/Travel/Enum/TarifaCalculoEnum.php` + `dominio/cotizacion/calculoTarifa.ts` | el enum y sus tres predicados — se tocan LOS DOS |
+| No confundir los dos «modalidad» | `src/Travel/Enum/TarifaModalidadEnum.php` | ése es `privado`/`compartido`, nada que ver |
 | Entender por qué no es un reemplazo | este documento | §2 |
 | Saber qué consumidores quedan | este documento | §4 |
 | La proyección provisional de hoy | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `modalidadDeTarifa()` — se borra en la fase 6 |

@@ -20,6 +20,16 @@ export {
 export { mandaElSegmento } from './componenteTipo.ts';
 
 export {
+    CALCULOS_TARIFA,
+    ETIQUETAS_CALCULO,
+    comoCalculo,
+    multiplicaPorCantidad,
+    seProrratea,
+    visibleParaCliente,
+} from './calculoTarifa.ts';
+export type { CalculoTarifa } from './calculoTarifa.ts';
+
+export {
     unidadesEntre,
     etiquetaDeUnidades,
     sustantivoDeUnidad,
