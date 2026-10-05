@@ -11600,3 +11600,59 @@ rastro de que funcionó sería la ausencia de error, que se lee igual que si no 
 | Cambiar qué acepta el cuerpo | `src/Cotizacion/Dto/CuerpoDeClonacion.php` | `fromArray()` |
 | Cambiar qué se lleva la copia | `src/Cotizacion/ApiPlatform/State/CloneCotizacionProcessor.php` | `process()` |
 | Cambiar qué se duplica del árbol | `src/Cotizacion/Entity/Cotizacion.php` | `duplicar()` — ⚠️ apaga la traducción a propósito |
+
+---
+
+## El rol operativo se pone a mano (05/10/2026)
+
+### El muro
+
+El rol `operativo` —cuesta dinero, suma al neto y **el cliente no ve la línea**— sólo podía
+heredarse del catálogo. El editor lo decía con un candado: «heredado del catálogo maestro. No se
+elige a mano».
+
+Eso deja fuera el caso que lo pidió: en un grupo hay **liberados** —5 vuelos que el grupo paga
+entre todos— cuyo costo se reparte sin que aparezca como línea. Esos vuelos son de **una venta
+concreta**, no del catálogo, y dar de alta una tarifa maestra por cada uno sólo para poder marcarla
+ensucia el tarifario con datos de un viaje.
+
+⚠️ **Y explicaba un cero que llamaba la atención: 22 tarifas operativas en el catálogo, ninguna
+usada jamás.** No estaba rota la mecánica — estaba escondida la entrada. El selector tampoco
+ayudaba: `getTarifaLabel()` pintaba nombre, edad, 👥/👤, procedencia y precio, y el rol no. En el
+desplegable «Viático Guía» se leía igual que cualquier otra, aunque elegirla oculte la línea y
+ponga la comisión a 0.
+
+### Lo que hay ahora
+
+| | |
+|---|---|
+| Tercer botón **Operativa** en el conmutador de rol | pone `rol`, comisión `0.00` y `grupoTarifa = null` — **idéntico a lo que hace el catálogo**, para que una puesta a mano y una heredada sean el mismo dato |
+| Botón **«Volver a visible»** dentro del cartel | devuelve al grupo 1 como estándar |
+| 🔒 en la etiqueta del selector | distingue las operativas del catálogo antes de elegirlas |
+
+⚠️ **La salida es tan importante como la entrada.** «Estándar» exige grupo (`:disabled` si
+`grupoTarifa == null`) y una operativa no tiene, así que antes quien la marcaba por error sólo
+podía salir eligiendo otra tarifa maestra. Abrir la puerta de entrada sin la de salida habría
+convertido un rol escondido en una trampa.
+
+Y **operativa no depende del modo comercial**, al revés que alternativa: una alternativa es un
+upgrade que se le ofrece al cliente y sólo tiene sentido en `incluido`; esto es un costo que el
+cliente nunca ve.
+
+### ⛔ Por qué NO se valida «operativa ⇒ grupal»
+
+Se propuso —las 22 del catálogo son grupales, 22 de 22— y **habría bloqueado el caso que motivó
+todo esto**: 5 vuelos liberados son una operativa **unitaria** con `cantidad = 5`. La convención
+del catálogo describe lo que había, no lo que puede haber.
+
+La comisión 0 se deja **a la vista** al volver a visible, en vez de inventar un valor: recuperar
+margen es una decisión comercial y el campo está justo al lado.
+
+### Dónde tocar
+
+| Necesito… | Archivo | Símbolo |
+|---|---|---|
+| Cambiar qué hace marcar operativa | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `marcarTarifaComoOperativa()` — espejo de la rama operativa de `onTarifaMaestraChange()` |
+| Cambiar la vuelta atrás | idem | `quitarRolOperativo()` |
+| Cambiar qué se ve en el desplegable | idem | `getTarifaLabel()` |
+| Entender qué hace el rol en el cálculo | `src/Travel/Enum/TarifaRolEnum.php` | `sumaRamaPrincipal()`, `esVisibleParaCliente()` |

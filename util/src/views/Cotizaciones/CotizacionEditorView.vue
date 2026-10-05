@@ -4510,9 +4510,26 @@ store.$onAction(({ name, args }) => {
                   </span>
                 </div>
 
-                <div v-if="store.tarifaActiva.rolSnapshot === 'operativo'" class="mb-3 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2.5 flex items-start gap-2">
-                  <i class="fas fa-lock text-slate-400 mt-0.5"></i>
-                  <span class="text-[10px] font-bold text-slate-500 leading-tight">Rol Operativo — heredado del catálogo maestro. No se elige a mano ni participa del selector de opciones del cliente.</span>
+                <!-- ⚠️ Esto decía «heredado del catálogo maestro. No se elige a mano», y era un
+                     muro: un liberado de grupo —5 vuelos que el grupo paga entre todos— es de una
+                     venta concreta, no del catálogo, y dar de alta una tarifa maestra por cada uno
+                     sólo para marcarla ensucia el tarifario. Explicaba también el cero: 22
+                     operativas en el catálogo y ninguna usada jamás, porque la entrada no se veía.
+
+                     Ahora se pone y se QUITA desde aquí. Abrir la entrada sin la salida habría
+                     convertido un rol escondido en una trampa: «Estándar» exige grupo y una
+                     operativa no tiene. -->
+                <div v-if="store.tarifaActiva.rolSnapshot === 'operativo'" class="mb-3 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2.5">
+                  <div class="flex items-start gap-2">
+                    <i class="fas fa-lock text-slate-400 mt-0.5"></i>
+                    <span class="text-[10px] font-bold text-slate-500 leading-tight">
+                      Rol Operativo — suma al costo y <b>el cliente no ve esta línea</b>. Sin comisión y sin grupo: no compite con ninguna otra opción.
+                    </span>
+                  </div>
+                  <button @click="store.tarifaActiva && store.quitarRolOperativo(store.tarifaActiva.id)"
+                          class="mt-2 w-full py-1.5 rounded-lg border border-slate-300 bg-white text-[10px] font-black uppercase text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-colors">
+                    <i class="fas fa-rotate-left mr-1"></i> Volver a visible (grupo 1, estándar)
+                  </button>
                 </div>
 
                 <div v-else class="flex gap-2 mb-3 items-end"
@@ -4537,6 +4554,14 @@ store.$onAction(({ name, args }) => {
                           ]"
                               class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors">
                         <i class="fas fa-right-left mr-1"></i> Alternativa
+                      </button>
+
+                      <!-- Operativa NO depende del modo comercial, al revés que alternativa: una
+                           alternativa es un upgrade que se le ofrece al cliente y sólo tiene
+                           sentido en `incluido`; esto es un COSTO que el cliente nunca ve. -->
+                      <button @click="store.tarifaActiva && store.marcarTarifaComoOperativa(store.tarifaActiva.id)"
+                              class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase transition-colors bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-200 hover:text-slate-700">
+                        <i class="fas fa-lock mr-1"></i> Operativa
                       </button>
                     </div>
                   </div>

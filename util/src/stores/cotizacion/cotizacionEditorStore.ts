@@ -456,7 +456,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const indicadorMatematica = esGrupal ? ' 👥' : ' 👤';
         const indicadorProcedencia = procedencia ? ` ${getProcedenciaUI(procedencia).icon}` : '';
 
-        return `${nombre}${edadStr}${indicadorMatematica}${indicadorProcedencia} (${moneda} ${monto})`;
+        // ⚠️ El ROL faltaba, y era la otra mitad del mismo problema: elegir una tarifa operativa
+        // del catálogo la oculta del cliente y le pone comisión 0, y en el desplegable «Viático
+        // Guía» se leía igual que cualquier otra. Una consecuencia invisible en el momento de
+        // decidir es la que nadie revisa después.
+        const indicadorRol = getRolTarifa(cat) === 'operativo' ? ' 🔒' : '';
+
+        return `${nombre}${edadStr}${indicadorMatematica}${indicadorProcedencia}${indicadorRol} (${moneda} ${monto})`;
     };
 
     /**
@@ -3912,6 +3918,61 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         });
     };
 
+    /**
+     * Marca una tarifa como OPERATIVA desde la cotización, sin pasar por el catálogo.
+     *
+     * ## Por qué hacía falta (05/10/2026)
+     *
+     * El rol operativo sólo se heredaba del maestro, y el editor lo decía con un candado: «no se
+     * elige a mano». Eso deja fuera el caso que lo pidió: en un grupo hay **liberados** —5 vuelos
+     * que el grupo paga entre todos— y el costo tiene que repartirse sin que el cliente vea la
+     * línea. Esos vuelos son de una venta concreta, no del catálogo, y dar de alta una tarifa
+     * maestra por cada uno sólo para poder marcarla es ensuciar el tarifario con datos de un
+     * viaje.
+     *
+     * ⚠️ Y explica el cero de antes: 22 tarifas operativas en el catálogo, **ninguna usada jamás**.
+     * No estaba rota la mecánica — estaba escondida la entrada.
+     *
+     * ## Los dos efectos, idénticos a los del catálogo
+     *
+     * Se copian de `onTarifaMaestraChange()` a propósito, para que una operativa puesta a mano y
+     * una heredada sean **el mismo dato**: comisión 0 —no se le vende a nadie— y sin grupo, porque
+     * los grupos son las opciones que compiten entre sí de cara al cliente y ésta no compite:
+     * suma siempre.
+     */
+    const marcarTarifaComoOperativa = (tarifaId: string): void => {
+        const componente = encontrarComponentePorTarifaId(tarifaId);
+        const tarifa = componente?.cottarifas?.find(t => t.id === tarifaId);
+
+        if (!tarifa) return;
+
+        tarifa.rolSnapshot = 'operativo';
+        tarifa.comisionOverrideSnapshot = '0.00';
+        tarifa.grupoTarifa = null;
+    };
+
+    /**
+     * Devuelve una operativa al mundo visible.
+     *
+     * ⚠️ **Sin esto no había marcha atrás.** El botón «Estándar» exige grupo y una operativa no
+     * tiene, así que quien la marcaba por error —o heredaba una del catálogo sin querer— sólo
+     * podía salir eligiendo otra tarifa maestra. Abrir la puerta de entrada sin abrir la de salida
+     * habría convertido un rol escondido en una trampa.
+     *
+     * Vuelve al grupo 1 como estándar, que es el caso normal. La comisión se queda en 0 **a la
+     * vista**: recuperar margen es una decisión comercial y el campo está justo al lado, así que
+     * se deja donde se ve en vez de inventar un valor.
+     */
+    const quitarRolOperativo = (tarifaId: string): void => {
+        const componente = encontrarComponentePorTarifaId(tarifaId);
+        const tarifa = componente?.cottarifas?.find(t => t.id === tarifaId);
+
+        if (!tarifa || tarifa.rolSnapshot !== 'operativo') return;
+
+        tarifa.grupoTarifa = 1;
+        tarifa.rolSnapshot = 'estandar';
+    };
+
     const inyectarComponentesDeSegmento = async (
         segmentoMaestro: SegmentoMaestro,
         diaDelSegmento: number = 1,
@@ -5172,6 +5233,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         onTipoManualChange, marcarComponenteManual, idSegmentoDeComponente, segmentoDeComponente,
         actualizarInicioManteniendoRango, agregarDetalleOperativo, eliminarDetalleOperativo, alternarAudienciaDetalle,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
+        marcarTarifaComoOperativa, quitarRolOperativo,
         componenteActualDeTarifa, componenteEnEdicion, tarifasHermanas, irATarifaAdyacente,
         servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion,
         buscarServiciosAsincrono, buscarProveedoresAsincrono,
