@@ -1,6 +1,12 @@
 # Plan — `esGrupal` pasa a ser un enum de tres casos
 
-> **Estado (05/10/2026): FASES 1 a 4 HECHAS.** El clasificador ya reparte las tres modalidades.
+> **Estado (05/10/2026): FASES 1 a 5 HECHAS, revisadas y corregidas; queda la 6b.** `operativo` ya
+> no es un rol y `calculo` manda; el booleano sobrevive como copia derivada. Una revisión posterior
+> de los cálculos financieros encontró **seis fallos**, cinco introducidos por la fase 5 — todos
+> corregidos y anotados abajo. Sólo falta el borrado físico del booleano (6b), que **no cambia
+> comportamiento**.
+>
+> **Estado anterior (05/10/2026): FASES 1 a 4 HECHAS.** El clasificador ya reparte las tres modalidades.
 > **Y destapó que la operativa no era sólo un redondeo: caía en la clase «⚠️ CONFLICTO» y bloqueaba
 > publicar la cotización.** Quedan la 5 (sacar `operativo` del rol) y la 6 (borrar el booleano).
 >
@@ -316,7 +322,74 @@ La fase cara, y la que de verdad cambia algo: las líneas 1125 y 1131 pasan de `
 material que `dominio/` ya sabe probar (`__snapshots__`), y un snapshot que cambie se lee y se
 decide, no se actualiza con `-u`.
 
-### Fase 5 — Sacar `operativo` del rol
+### Fase 5 — Sacar `operativo` del rol ✅ HECHA (con la 6a dentro)
+
+⚠️ **La 5 y la 6 estaban entrelazadas y este plan no lo vio.** Sacar `operativo` del rol obliga a
+que `calculo` sea escribible, que era trabajo de la 6. Se invirtió la derivación —`calculo` manda,
+`esGrupal` es la copia— y el borrado físico quedó aparte como **6b**.
+
+#### 🔥 Lo que el tipo generado destapó
+
+Al regenerar `api.d.ts`, `rol` se estrechó a `"estandar" | "alternativa"` y `vue-tsc` señaló **ocho
+sitios** que seguían comparando contra `'operativo'`. Uno era el filtro que esconde las operativas
+del cliente (`expurgarParaCliente`): mirando el rol, el guía y los liberados habrían **empezado a
+publicarse en la propuesta del huésped** sin que nada fallara.
+
+#### 🔥 Y un fallo que sólo salió corriendo el test
+
+La capacidad de cada clase de pasajero sale de `maestroLineas`, que filtraba `!esGrupal`. Una
+operativa no es grupal, así que entraba — y su `cupos` es `numPax`:
+
+```
+10 pax reales + una operativa de cupos 10  →  clase de 20 pax
+                                              10 800 en vez de 10 400
+                                              y «no cubre a todos los pasajeros»
+```
+
+Las líneas que definen **cuántos pasajeros hay** son sólo las `individual`.
+
+#### 🔥 La revisión posterior: seis fallos más
+
+Terminadas las fases, un agente revisor leyó **todos** los cálculos financieros. El peor no era de
+patrón:
+
+```
+el editor manda   calculoSnapshot      ← el nombre real del campo
+el setter era     setCalculo()         → la clave escribible era `calculo`
+api.d.ts decía    readonly calculoSnapshot
+```
+
+**Una operativa marcada en el editor NO se guardaba.** Volvía como `individual`, su cantidad se
+leía como pasajeros, aparecía en la propuesta y disparaba «⚠️ CONFLICTO», que bloquea publicar. Y
+**el costo total no cambiaba** —× cantidad en los dos casos—, así que nada lo delataba.
+
+⚠️ **La lección: el serializer empareja el setter con la propiedad POR EL NOMBRE.** Un setter
+«bonito» sobre un campo con sufijo crea una propiedad virtual y deja la real en sólo lectura, sin
+que nada falle. El `readonly` en `api.d.ts` lo estaba diciendo y se leyó como intencional.
+
+Los otros cinco son el mismo patrón: donde el código apartaba las operativas filtrando **por rol**,
+el rol dejó de distinguirlas.
+
+| Sitio | Qué se escapaba |
+|---|---|
+| `construirInclusiones()` | su título salía en «qué incluye» del huésped |
+| bloque de upgrades | promediaba su precio en la base → **delta de upgrade falso**, y su nombre interno podía ser el «espejo» tachado |
+| `esOpcionalParaElCliente()` | un opcional con un liberado dejaba de serlo y pasaba a publicarse |
+| `selloDeComponente()` en `pax` | filtro muerto: nombre interno de compra como sello del itinerario |
+| `mapearATarifaSnapshot()` | no copiaba el cálculo: una operativa del catálogo se persistía como **grupal** |
+
+La revisión confirmó correctos la aritmética central del clasificador, `expurgarParaCliente()`
+sobre el detalle, los tres consumidores de PHP, el chequeo de coherencia y `src/Finanzas/` entero.
+
+#### Lo demás de la fase
+
+- `setRolSnapshot('operativo')` **traduce en vez de rechazar**: un cliente desactualizado no es un
+  error, y rechazarlo rompería el guardado entero por un campo.
+- `setCostoPorGrupo(false)` **no pisa una operativa**: también es «no grupal».
+- El botón «Operativa» del conmutador de rol, puesto esa misma mañana, **se quitó**: vive en
+  «Modalidad de Cálculo».
+
+#### Redacción original de la fase 5
 
 `TarifaRolEnum` se queda con `estandar` y `alternativa`. Hay que revisar sus tres métodos:
 `esVisibleParaCliente()` y `comisionEditablePorDefecto()` pierden su única rama falsa y pasan a la
@@ -327,9 +400,16 @@ que ya tendrán `modalidad = 'operativa'` desde la fase 2.
 
 Y de paso: quitar `alternativa` del formulario del maestro, donde nunca significó nada.
 
-### Fase 6 — Borrar el booleano
+### Fase 6b — Borrar el booleano (PENDIENTE)
 
-`costoPorGrupo`, `esGrupal`, la proyección provisional del editor
+`esGrupal` / `costoPorGrupo` siguen como copia derivada, y quitarlos **no cambia comportamiento**:
+el modelo ya es correcto. Lo que falta tiene dos aristas:
+
+- `esGrupal` **viaja al cliente** (`LineaDetalleClaseCliente`), así que quitarlo cambia el contrato
+  público y los tipos anclados a mano de `pax`.
+- ~40 lecturas en `util` que aún lo usan para etiquetas y agrupaciones.
+
+Redacción original: `costoPorGrupo`, `esGrupal`, la proyección provisional del editor
 (`modalidadDeTarifa` / `cambiarModalidadTarifa`) y los `esGrupal` anclados a mano en `pax`.
 Regenerar `api.d.ts` y comprobar que `pax` compila: su typecheck es la única comprobación
 automática de esa frontera.
