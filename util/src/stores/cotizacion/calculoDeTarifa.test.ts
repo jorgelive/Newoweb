@@ -113,7 +113,13 @@ describe('cómo reparte el clasificador cada modalidad', () => {
 
     it('grupal: precio cerrado, repartido entre todos', () => {
         // 400 para 4 pax. Si multiplicara por cantidad saldrían 1600 — el fallo de agosto.
-        expect(costoPorClase(4, [tarifa(400, 1, { esGrupal: true })])).toEqual([400]);
+        //
+        // ⚠️ Esta línea decía `{ esGrupal: true }` con `cantidad = 1`, y pasaba sin probar nada:
+        // la clave murió en la fase 6b, así que el clasificador leía `calculoSnapshot` ausente y
+        // caía en `individual` — que con cantidad 1 da los mismos 400. El test verde seguía
+        // llamándose «grupal». Va con la clave viva y con `cantidad = 4`, que es lo único que
+        // distingue las dos modalidades: grupal 400, individual 1600.
+        expect(costoPorClase(4, [tarifa(400, 4, { calculoSnapshot: 'grupal' })])).toEqual([400]);
     });
 
     it('operativa: su cantidad son UNIDADES, no pasajeros', () => {
@@ -178,7 +184,7 @@ describe('qué modalidades admite una tarifa', () => {
     const conMaestro = (calculoMaestro: string) => {
         const store = useCotizacionEditorStore();
         // @ts-expect-error — fixture mínimo del catálogo.
-        store.todasLasTarifasMaestras = [{ tarifaId: 'm-1', calculo: calculoMaestro, costoPorGrupo: calculoMaestro === 'grupal' }];
+        store.todasLasTarifasMaestras = [{ tarifaId: 'm-1', calculo: calculoMaestro }];
 
         return { store, t: tarifa(100, 4, { tarifaMaestraId: 'm-1' }) };
     };

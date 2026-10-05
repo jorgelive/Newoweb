@@ -496,6 +496,39 @@ Redacción original: `costoPorGrupo`, `esGrupal`, la proyección provisional del
 Regenerar `api.d.ts` y comprobar que `pax` compila: su typecheck es la única comprobación
 automática de esa frontera.
 
+#### 🔥 Lo que destapó la limpieza: un test verde que no probaba nada
+
+Al barrer las últimas menciones del booleano apareció **el test de `grupal` mintiendo**, en el
+mismo archivo escrito para blindar esta fase (`util/src/stores/cotizacion/calculoDeTarifa.test.ts`):
+
+```ts
+expect(costoPorClase(4, [tarifa(400, 1, { esGrupal: true })])).toEqual([400]);   // ← verde, y vacío
+```
+
+Dos fallos superpuestos, y cada uno tapaba al otro:
+
+1. **La clave murió en la 6b.** El clasificador lee `calculoSnapshot`; `esGrupal` ya no se mira, así
+   que el fixture entraba sin modalidad y `comoCalculo(undefined)` caía en `individual`.
+2. **`cantidad = 1` hace indistinguibles las dos modalidades.** `× 1` y `× cantidad` dan lo mismo,
+   así que el 400 esperado salía igual estando mal. El test llevaba el nombre «grupal» y medía
+   individual.
+
+⚠️ **El ayudante del fixture acepta `extra: Record<string, unknown>`**, y ahí está el agujero: una
+clave muerta en un objeto así **no la caza `vue-tsc`** —no hay comprobación de propiedades de más
+contra un índice abierto— ni la caza ESLint ni el propio test, porque el test sigue en verde. Es la
+familia de fallo de este proyecto: nadie echa de menos lo que no sabía que existía.
+
+Corregido a `tarifa(400, 4, { calculoSnapshot: 'grupal' })`, que es lo único que **discrimina**:
+grupal 400, individual 1600. Comprobado quitando la clave a propósito →
+`AssertionError: expected [ 1600 ] to deeply equal [ 400 ]`, justo el fallo de agosto que el
+comentario de ese test nombra.
+
+**La regla que deja:** un fixture con `Record<string, unknown>` es cómodo y es ciego. Al renombrar
+o borrar un campo, los fixtures **no salen en el compilador**: se buscan a mano (`grep` del nombre
+viejo) y, cuando un test compara modalidades, el caso de prueba tiene que ser uno donde las dos
+den **números distintos** — si da lo mismo en los dos, el test no prueba la modalidad, prueba la
+aritmética.
+
 ---
 
 ## 6. Riesgos, y cuál vigila cada uno
@@ -522,4 +555,6 @@ del catálogo son grupales porque describen lo que había, no lo que puede haber
 | No confundir los dos «modalidad» | `src/Travel/Enum/TarifaModalidadEnum.php` | ése es `privado`/`compartido`, nada que ver |
 | Entender por qué no es un reemplazo | este documento | §2 |
 | Saber qué consumidores quedan | este documento | §4 |
-| La proyección provisional de hoy | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `modalidadDeTarifa()` — se borra en la fase 6 |
+| Leer la modalidad de un snapshot en el front | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `modalidadDeTarifa()` — **no se borró en la 6**: era la proyección provisional y quedó como el lector único de `calculoSnapshot` |
+| Cambiar la modalidad de una tarifa cotizada | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `cambiarModalidadTarifa()` / `modalidadesDisponibles()` — la regla está en §«quién puede cambiar» |
+| Tocar un test de modalidades | `util/src/stores/cotizacion/calculoDeTarifa.test.ts` | el caso tiene que dar **números distintos** en individual y grupal, o no prueba nada — ver §«un test verde que no probaba nada» |

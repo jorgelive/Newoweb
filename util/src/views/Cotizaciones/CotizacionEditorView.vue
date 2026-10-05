@@ -4386,7 +4386,7 @@ store.$onAction(({ name, args }) => {
                   </div>
                 </div>
                 <!-- ⚠️ En GRUPAL el costo NO se multiplica por los pax: el monto ya es el total.
-                     Aquí faltaba el `esGrupal` y la ficha decía S/ 160 (80 × 2) mientras la tarjeta
+                     Aquí no se miraba la modalidad y la ficha decía S/ 160 (80 × 2) mientras la tarjeta
                      de la lista y el cálculo que se guarda decían S/ 80 —los dos sí lo tienen en
                      cuenta—. Se guardaba bien, pero mientras editabas leías un número que no era. -->
                 <div class="flex justify-end items-baseline gap-1.5 mt-3 pt-3 border-t border-slate-100">
@@ -4441,10 +4441,11 @@ store.$onAction(({ name, args }) => {
                   </p>
                 </div>
 
-                <!-- TRES modalidades, no un booleano más un rol escondido. Las tres son las
-                     únicas combinaciones de `esGrupal` + `rolSnapshot` que significan algo, y la
-                     tercera —operativa— es la que faltaba: cinco vuelos liberados que el grupo
-                     paga entre todos y el cliente no ve como línea.
+                <!-- TRES modalidades, no un booleano más un rol escondido. Son las únicas
+                     combinaciones que significaban algo del `esGrupal` + `rolSnapshot` que esto
+                     sustituyó —el booleano se borró en la fase 6b—, y la tercera —operativa— es
+                     la que no cabía allí: cinco vuelos liberados que el grupo paga entre todos y
+                     el cliente no ve como línea.
 
                      ⚠️ Operativa NO se bloquea por catálogo, al revés que las otras dos: su caso
                      es precisamente el que NO está en el tarifario. Obligar a dar de alta una
