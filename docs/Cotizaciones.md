@@ -11836,3 +11836,78 @@ toca, esto es lo primero que hay que volver a comprobar a mano.
 | Cambiar el costo que se enseña | idem | `costoMostradoDe()` — pregunta `multiplicaPorCantidad()`, no `=== 'grupal'` |
 | Cambiar con qué cantidad nace una tarifa del catálogo | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `mapearATarifaSnapshot()` |
 | Cambiar el indicador del desplegable del maestro | idem | `indicadorMatematica` — 👤 / 👥 / 🙈 |
+
+---
+
+## El clon dejó los segmentos un año atrás, y el upgrade se reemplazaba a sí mismo (05/10/2026)
+
+Dos fallos distintos que se veían en la misma pantalla del huésped, en la cotización clonada de
+Santa Rosa.
+
+### 1. «389 días, 386 noches» para un viaje de siete
+
+`Cotizacion::desplazarA()` mueve la cotización a una fecha nueva **por delta**, y recorría
+servicios y componentes. Los segmentos tienen su propia `fecha_absoluta` y **no estaban en el
+recorrido**:
+
+```
+servicios     2027-10-04 → 2027-10-10   ✅
+componentes   2027-10-04 → 2027-10-10   ✅
+segmentos     2026-09-17 → 2027-10-10   ❌  40 de 44 se quedaron en el original
+```
+
+⚠️ **No falló nada.** Cada tabla era coherente consigo misma y la cotización se publicó. Lo único
+visible era la cabecera: los días son del CALENDARIO —`resumenDeDuracion()` toma el `numeroDia` del
+último bloque— y el primero estaba un año antes que el último.
+
+**La regla que deja:** la fecha de una cotización vive en **tres** tablas, no en dos. Cualquier
+cosa que mueva fechas las toca las tres, o deja una contando otra historia.
+
+#### Por qué la reparación suma el delta y no recalcula
+
+La tentación es imponer `fecha_absoluta = servicio + (dia - 1)`, que se cumple en el 97% del
+catálogo. **Se midió y no es absoluto**: hay seis segmentos legítimamente desviados entre −3 y +5
+días en cuatro cotizaciones distintas — ajustes a mano del operador. Recalcular los aplastaría.
+
+```
+−382 días × 39 segmentos  ← el clon           Santa Rosa
+−377 días ×  1 segmento   ← el clon           Santa Rosa
+  −3 … +5 ×  6 segmentos  ← ajustes a mano    otras cuatro cotizaciones
+```
+
+Sumar el delta preserva lo que el original tuviera: ese segmento a −377 vuelve al **+5** que su
+original ya tenía. `Version20261006030000` se acota a la banda −300/−400, donde no hay nada más.
+
+### 2. «Noche en Coco Bongo REEMPLAZA Noche en Coco Bongo»
+
+El componente tenía dos tarifas con el mismo título: una **`operativa` de rol estándar** (6
+entradas liberadas, 85 × 6) y una `alternativa` individual (85 × 60). El espejo del upgrade se
+elegía mirando **sólo el rol**, así que la operativa entraba como referencia — y una operativa es
+invisible para el cliente por definición.
+
+Tres síntomas, un solo fallo:
+
+| Lo que se veía | Por qué |
+|---|---|
+| «REEMPLAZA <el mismo título>» | el espejo era la operativa, que se llamaba igual |
+| «ALTERNATIVA 0» | con `hayEstandar` en true y grupo 1 el tipo salía `estandar`, y `pax` reconstruye la etiqueta como `Alternativa ${grupo - 1}` |
+| el «adicional» de más | `basePP` promediaba la operativa dentro de la referencia |
+
+⚠️ **Lo grave no es el absurdo, es la fuga.** Aquí las dos se llamaban igual y quedaba ridículo;
+con nombres distintos habría enseñado al cliente **el título de una línea oculta** sin que nada
+chirriara.
+
+Ahora el espejo se filtra por `visibleParaCliente()`. Sin estándar visible no hay nada que
+alternar: es una **opción** que se añade, y su adicional es su precio entero.
+
+⚠️ **Y por eso el «adicional» sube.** Antes restaba la parte prorrateada de la operativa, que es
+un descuento que no existe: el costo de los liberados **ya está dentro del precio base** por
+definición de `operativa`. Restarlo del upgrade era contarlo dos veces a favor del cliente.
+
+### Dónde tocar
+
+| Necesito… | Archivo | Símbolo |
+|---|---|---|
+| Mover las fechas de una cotización | `src/Cotizacion/Entity/Cotizacion.php` | `desplazarA()` — servicios, **segmentos** y componentes |
+| Cambiar qué cuenta como estándar de un upgrade | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `estandares` dentro de `resumenFinanciero` — rol **y** visibilidad |
+| Entender la etiqueta «Opción N» vs «Alternativa N» | `util/src/types/cotizacionEditorModel.ts` | `etiquetaGrupoTarifa()` — y `pax` la reconstruye con `esOpcion` |

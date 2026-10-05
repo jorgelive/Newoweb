@@ -1,7 +1,7 @@
 import { extractIdStr } from '@/utils/recurso';
 import { mandaElSegmento } from '@/utils/componenteTipo';
 import { posicionDeServicio, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
-import { comoCalculo, multiplicaPorCantidad, seProrratea } from '@dominio/cotizacion/index.ts';
+import { comoCalculo, multiplicaPorCantidad, seProrratea, visibleParaCliente } from '@dominio/cotizacion/index.ts';
 import type { CalculoTarifa } from '@dominio/cotizacion/index.ts';
 import {defineStore} from 'pinia';
 import { extractApiErrorMessage } from '@/services/apiError';
@@ -1139,7 +1139,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     const alternativas = (componente.cottarifas || []).filter((t) => t.rolSnapshot === 'alternativa');
                     if (alternativas.length === 0) return;
 
-                    const estandares = (componente.cottarifas || []).filter((t) => (t.rolSnapshot || 'estandar') === 'estandar');
+                    // ⚠️ **El espejo de un upgrade tiene que ser algo que el cliente PUEDA VER.**
+                    // Esto filtraba sólo por rol, así que una tarifa `operativa` —que es estándar
+                    // de rol y es invisible para el cliente por definición— entraba como referencia
+                    // y se asomaba a la vista del huésped por tres sitios a la vez:
+                    //
+                    //   · «REEMPLAZA <el título de la operativa>», o sea el nombre de una línea
+                    //     que no se le enseña. En Coco Bongo las dos se llamaban igual, así que
+                    //     leía «Noche en Coco Bongo reemplaza Noche en Coco Bongo».
+                    //   · La etiqueta. Con `hayEstandar` en true y grupo 1, el tipo salía
+                    //     `estandar` y `pax` lo reconstruía como «Alternativa 0» — un número que
+                    //     no significa nada.
+                    //   · El «adicional». `basePP` promediaba la operativa dentro de la referencia.
+                    //
+                    // Sin estándar VISIBLE no hay nada que alternar: es una **opción** que se
+                    // añade, y su adicional es su precio entero. Que es justo lo que es.
+                    const estandares = (componente.cottarifas || []).filter(
+                        (t) => (t.rolSnapshot || 'estandar') === 'estandar'
+                            && visibleParaCliente(resolverCalculo(t))
+                    );
                     const hayEstandar = estandares.length > 0;
 
                     const ventaPPde = (t: TarifaSnapshot): number => {

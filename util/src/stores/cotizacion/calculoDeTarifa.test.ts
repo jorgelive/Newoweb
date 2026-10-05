@@ -241,3 +241,50 @@ describe('qué modalidades admite una tarifa', () => {
         expect(laTarifa().calculoSnapshot).toBe('grupal');
     });
 });
+
+
+/**
+ * Qué ve el CLIENTE cuando el único «estándar» de un componente es una operativa.
+ *
+ * 🔥 El caso real: Coco Bongo en la cotización de Santa Rosa (05/10/2026). El componente tenía
+ * dos tarifas con el mismo título — una `operativa` de rol estándar (6 entradas liberadas, 85 × 6)
+ * y una `alternativa` individual (85 × 60)— y la vista del huésped mostraba:
+ *
+ * ```
+ * ALTERNATIVA 0
+ * Noche en Coco Bongo · Fiesta Blanca
+ * REEMPLAZA  N̶o̶c̶h̶e̶ ̶e̶n̶ ̶C̶o̶c̶o̶ ̶B̶o̶n̶g̶o̶ ̶·̶ ̶F̶i̶e̶s̶t̶a̶ ̶B̶l̶a̶n̶c̶a̶
+ * ```
+ *
+ * Se reemplazaba a sí misma. Y los tres síntomas eran el mismo fallo: la operativa entraba como
+ * estándar de referencia porque el filtro miraba el ROL y no si el cliente puede verla.
+ *
+ * ⚠️ **Lo que de verdad se protege es que el nombre de una operativa NO LLEGUE AL CLIENTE.** Aquí
+ * se notó porque las dos se llamaban igual y quedaba absurdo; con nombres distintos habría
+ * enseñado el título de una línea oculta sin que nada chirriara.
+ */
+describe('un upgrade cuyo único estándar es una operativa', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    const conOperativaYAlternativa = () => {
+        const store = useCotizacionEditorStore();
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = cotizacionCon(60, [
+            tarifa(85, 6, { calculoSnapshot: 'operativa' }),
+            tarifa(85, 60, { calculoSnapshot: 'individual', rolSnapshot: 'alternativa', grupoTarifa: 1 }),
+        ]);
+
+        return (store.resumenFinanciero?.opcionesUpgrade ?? [])[0];
+    };
+
+    it('no dice que reemplaza a nadie', () => {
+        // Antes: `tieneEstandarEspejo` true y `estandarTitulo` = el título de la operativa.
+        expect(conOperativaYAlternativa()?.tieneEstandarEspejo).toBe(false);
+    });
+
+    it('es una OPCIÓN que se añade, no una alternativa que sustituye', () => {
+        // Sin estándar visible no hay nada que alternar. Con el fallo, `pax` reconstruía la
+        // etiqueta como «Alternativa 0» — grupo 1 menos 1 — que no significa nada.
+        expect(conOperativaYAlternativa()?.esOpcion).toBe(true);
+    });
+});

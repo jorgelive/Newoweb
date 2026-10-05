@@ -540,6 +540,23 @@ class Cotizacion
                 $servicio->setFechaInicioAbsoluta($this->mover($fecha, $salto, $dias));
             }
 
+            // ⚠️ **Los SEGMENTOS también tienen fecha propia, y se quedaban atrás.** Pasó en el
+            // primer clon real (Santa Rosa, 05/10/2026): servicios y componentes se movieron al
+            // 2027 y **40 de 44 segmentos se quedaron en septiembre de 2026**. Nada falló —cada
+            // tabla era coherente consigo misma— y el itinerario del cliente anunciaba
+            // «389 días, 386 noches», porque los días son del CALENDARIO y el primer bloque
+            // estaba un año antes que el último.
+            //
+            // Es la familia de fallo de este proyecto: tres tablas con la misma fecha y un
+            // recorrido que sólo conocía dos.
+            foreach ($servicio->getCotsegmentos() as $segmento) {
+                $fechaSeg = $segmento->getFechaAbsoluta();
+
+                if ($fechaSeg !== null) {
+                    $segmento->setFechaAbsoluta($this->mover($fechaSeg, $salto, $dias));
+                }
+            }
+
             foreach ($servicio->getCotcomponentes() as $componente) {
                 $inicio = $componente->getFechaHoraInicio();
                 $fin = $componente->getFechaHoraFin();
