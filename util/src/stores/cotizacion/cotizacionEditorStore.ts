@@ -455,7 +455,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         const edadStr = rangoEdad ? ` [${rangoEdad}]` : '';
 
-        const indicadorMatematica = calculoCat === 'grupal' ? ' 👥' : ' 👤';
+        // Tres casos, no dos: con el ternario binario las 22 tarifas operativas del maestro
+        // salían con el 👤 de una individual, que es justo la que NO son — se reparten y el
+        // cliente no las ve. Espejo del `__toString()` de `TravelTarifa`.
+        const indicadorMatematica = { grupal: ' 👥', operativa: ' 🙈', individual: ' 👤' }[calculoCat] ?? ' 👤';
         const indicadorProcedencia = procedencia ? ` ${getProcedenciaUI(procedencia).icon}` : '';
 
         // ⚠️ El ROL faltaba, y era la otra mitad del mismo problema: elegir una tarifa operativa
@@ -3865,7 +3868,18 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             tarifaMaestraId: getIdMaestroTarifa(tarifa),
             tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(tarifa))),
             nombreInternoSnapshot: 'nombreInterno' in tarifa ? tarifa.nombreInterno || null : null,
-            cantidad: calculoMaestro === 'grupal' ? 1 : numPax,
+            // ⚠️ Una operativa arranca en 1, NO en `numPax`. Su cantidad son unidades —asientos
+            // liberados, camas del coordinador—, no pasajeros: con el respaldo anterior, añadir
+            // una operativa del catálogo a un grupo de 60 cotizaba **60 liberados** y el costo se
+            // repartía entre todos sin que nada lo delatara. 1 es el único valor que no miente, y
+            // el operador lo sube al número real.
+            // ⚠️ Sólo la INDIVIDUAL arranca con los pasajeros. Escrito en positivo a propósito:
+            // la grupal vale 1 porque su monto ya es el total, y la operativa vale 1 porque su
+            // cantidad son unidades —asientos liberados, camas del coordinador—, no pasajeros.
+            // Con el respaldo anterior, añadir una operativa del catálogo a un grupo de 60
+            // cotizaba **60 liberados** y el costo se repartía entre todos sin que nada lo
+            // delatara. 1 es el único valor que no miente, y el operador lo sube al real.
+            cantidad: calculoMaestro === 'individual' ? numPax : 1,
             moneda: getMonedaTarifa(tarifa),
             montoCosto: getMontoCostoTarifa(tarifa),
             rolSnapshot: rol,

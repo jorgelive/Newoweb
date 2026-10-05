@@ -4,7 +4,7 @@ import { fmtNaive } from '@/utils/naiveDate.ts';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useVolverAtras } from '@/composables/useVolverAtras';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
-import { etiquetaDeUnidades, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
+import { etiquetaDeUnidades, sustantivoDeUnidad, multiplicaPorCantidad } from '@dominio/cotizacion/index.ts';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import type { InformeCoherencia } from '@/types/operacionModel';
 import { getUrls } from '@/services/apiClient';
@@ -860,8 +860,44 @@ const cottarifasOrdenadas = computed<TarifaSnapshot[]>(() => {
   return [...cottarifas].sort((a, b) => (a.grupoTarifa ?? Infinity) - (b.grupoTarifa ?? Infinity));
 });
 
+/**
+ * Cómo se pinta la modalidad de una tarifa: icono, color y qué significa su cantidad.
+ *
+ * ⚠️ **Existe porque la tarjeta preguntaba en binario y `operativa` salía disfrazada de
+ * `individual`.** El ternario era `=== 'grupal' ? … : …`, así que una operativa caía en el `else`
+ * y se pintaba con el icono de una persona y «3 Pax» — idéntica a una individual, cuando es lo
+ * contrario: su cantidad son **unidades** (tres asientos liberados, no tres pasajeros) y **el
+ * cliente no la ve**. Dos tarifas del mismo vuelo se veían iguales siendo cosas distintas.
+ *
+ * Es el resto de la fase 6b: el store y los tipos pasaron a tres casos y esta vista se quedó
+ * preguntando por dos. Por eso vive aquí y no repetido en cada tarjeta.
+ */
+const pintarModalidad = (tarifa: TarifaSnapshot): { icono: string; texto: string; operativa: boolean } => {
+  const calculo = store.modalidadDeTarifa(tarifa);
+  const cantidad = tarifa.cantidad || 1;
+
+  if (calculo === 'grupal') {
+    return { icono: 'fas fa-users text-orange-400', texto: 'Costo Grupal (Fijo)', operativa: false };
+  }
+
+  if (calculo === 'operativa') {
+    return {
+      icono: 'fas fa-eye-slash text-violet-500',
+      texto: `${cantidad} ${cantidad === 1 ? 'unidad' : 'unidades'}`,
+      operativa: true,
+    };
+  }
+
+  return { icono: 'fas fa-user text-sky-400', texto: `${cantidad} Pax`, operativa: false };
+};
+
+/** El costo que se enseña. La pregunta es «¿multiplica?», y la responde el predicado compartido. */
+const costoMostradoDe = (tarifa: TarifaSnapshot): number =>
+  (parseFloat(String(tarifa.montoCosto)) || 0)
+    * (multiplicaPorCantidad(store.modalidadDeTarifa(tarifa)) ? (tarifa.cantidad || 1) : 1);
+
 const calcularVentaTarifa = (tarifa: TarifaSnapshot): number => {
-  const costoTotal = (parseFloat(String(tarifa.montoCosto)) || 0) * (store.modalidadDeTarifa(tarifa) === 'grupal' ? 1 : (tarifa.cantidad || 1));
+  const costoTotal = costoMostradoDe(tarifa);
   const tieneOverride = tarifa.comisionOverrideSnapshot != null && tarifa.comisionOverrideSnapshot !== '';
   const comisionPct = tieneOverride
       ? parseFloat(String(tarifa.comisionOverrideSnapshot))
@@ -3214,9 +3250,10 @@ store.$onAction(({ name, args }) => {
                           {{ tarifa.nombreInternoSnapshot || store.getI18nText(tarifa.tituloSnapshot, store.cotizacion.idiomaEdicion) || '⚠️ Sin nombre' }}
                         </span>
 
-                        <span class="text-[9px] font-bold text-slate-400 flex items-center gap-1 leading-none">
-                          <i :class="store.modalidadDeTarifa(tarifa) === 'grupal' ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
-                          {{ store.modalidadDeTarifa(tarifa) === 'grupal' ? '1 GRUPO' : `${tarifa.cantidad} Pax` }}
+                        <span class="text-[9px] font-bold flex items-center gap-1 leading-none"
+                              :class="pintarModalidad(tarifa).operativa ? 'text-violet-500' : 'text-slate-400'">
+                          <i :class="pintarModalidad(tarifa).icono"></i>
+                          {{ pintarModalidad(tarifa).operativa ? pintarModalidad(tarifa).texto + ' · OPERATIVA' : pintarModalidad(tarifa).texto }}
                         </span>
 
                         <!--
@@ -3243,7 +3280,7 @@ store.$onAction(({ name, args }) => {
                       </div>
                       <div class="text-right shrink-0">
                         <span class="text-[11px] font-black" :class="comp.modo === 'no_incluido' ? 'text-slate-400 line-through' : 'text-orange-600'">
-                          {{ formatMoneda(Number(tarifa.montoCosto) * (store.modalidadDeTarifa(tarifa) === 'grupal' ? 1 : tarifa.cantidad), tarifa.moneda) }}
+                          {{ formatMoneda(costoMostradoDe(tarifa), tarifa.moneda) }}
                         </span>
                       </div>
                     </div>
@@ -4062,9 +4099,20 @@ store.$onAction(({ name, args }) => {
                         {{ tarifa.nombreInternoSnapshot || '⚠️ Sin nombre' }}
                       </span>
                       <div class="flex gap-2 mt-1 flex-wrap">
-                        <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
-                           <i :class="store.modalidadDeTarifa(tarifa) === 'grupal' ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
-                           {{ store.modalidadDeTarifa(tarifa) === 'grupal' ? 'Costo Grupal (Fijo)' : `${tarifa.cantidad} Pax` }}
+                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border flex items-center gap-1"
+                              :class="pintarModalidad(tarifa).operativa
+                                ? 'bg-violet-50 text-violet-600 border-violet-200'
+                                : 'bg-slate-100 text-slate-500 border-slate-200'">
+                           <i :class="pintarModalidad(tarifa).icono"></i>
+                           {{ pintarModalidad(tarifa).texto }}
+                        </span>
+
+                        <!-- Sólo la operativa lleva distintivo: es la excepción —se reparte entre
+                             todos y el cliente NO la ve— y marcar también las otras dos llenaría
+                             la tarjeta de insignias para decir lo normal. -->
+                        <span v-if="pintarModalidad(tarifa).operativa"
+                              class="text-[9px] font-black bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded border border-violet-200 uppercase flex items-center gap-1">
+                          <i class="fas fa-eye-slash"></i> Operativa · no la ve el cliente
                         </span>
                         <span class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase flex items-center gap-1"
                               :class="[getRolTarifaUI(tarifa.rolSnapshot).bg, getRolTarifaUI(tarifa.rolSnapshot).text, getRolTarifaUI(tarifa.rolSnapshot).border]">
@@ -4079,7 +4127,7 @@ store.$onAction(({ name, args }) => {
                       </div>
                     </div>
                     <div class="text-right shrink-0">
-                      <span class="font-black text-orange-600 text-base block">{{ formatMoneda(Number(tarifa.montoCosto) * (store.modalidadDeTarifa(tarifa) === 'grupal' ? 1 : tarifa.cantidad), tarifa.moneda) }}</span>
+                      <span class="font-black text-orange-600 text-base block">{{ formatMoneda(costoMostradoDe(tarifa), tarifa.moneda) }}</span>
                       <p class="text-xs font-black text-emerald-600 mt-0.5 flex items-center justify-end gap-1">
                         <i class="fas fa-tag text-[9px]"></i>
                         {{ formatMoneda(calcularVentaTarifa(tarifa), tarifa.moneda) }}
@@ -4395,7 +4443,7 @@ store.$onAction(({ name, args }) => {
                 <div class="flex justify-end items-baseline gap-1.5 mt-3 pt-3 border-t border-slate-100">
                   <span class="text-[9px] text-slate-500 font-bold uppercase">Subtotal Neto:</span>
                   <span class="text-orange-600 text-sm font-black">
-                    {{ formatMoneda(Number(store.tarifaActiva.montoCosto) * (store.modalidadDeTarifa(store.tarifaActiva) === 'grupal' ? 1 : store.tarifaActiva.cantidad), store.tarifaActiva.moneda) }}
+                    {{ formatMoneda(costoMostradoDe(store.tarifaActiva), store.tarifaActiva.moneda) }}
                   </span>
                 </div>
               </div>

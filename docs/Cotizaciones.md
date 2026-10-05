@@ -11763,3 +11763,76 @@ vuelvan ruido — y es el que viaja a la orden de servicio del proveedor.
 | Cambiar el aviso al publicar | idem | el `confirm()` de `guardarCotizacion()`, junto al guarda de conflictos |
 | Cambiar con qué nace una tarifa nueva | idem | `agregarTarifa()` |
 | Cambiar el respaldo del nombre en el documento del proveedor | `src/Operacion/Service/BibliaSnapshotService.php` | las prioridades de `resolverDescripcion()` |
+
+---
+
+## La tarjeta preguntaba en binario y la operativa salía disfrazada (05/10/2026)
+
+Dos tarifas del mismo vuelo, en la cotización de Santa Rosa:
+
+```
+EQUIPAJE DE CABINA   $4800.00   60 Pax   ESTÁNDAR   GRUPO 1     ← individual, 80 × 60
+EQUIPAJE DE CABINA   $240.00     3 Pax   ESTÁNDAR               ← OPERATIVA, 80 × 3
+```
+
+**Se veían iguales**, y no era un detalle estético: la segunda se reparte entre todos y **el
+cliente no la ve**, que es lo contrario de la primera. El operador no tenía cómo distinguirlas sin
+abrir cada una.
+
+### La causa: un ternario que sólo sabía dos casos
+
+```ts
+modalidadDeTarifa(tarifa) === 'grupal' ? 'Costo Grupal (Fijo)' : `${tarifa.cantidad} Pax`
+```
+
+`operativa` caía en el `else` y se pintaba con el icono de una persona y «3 Pax». **Doblemente
+falso**: ni es individual, ni esos 3 son pasajeros — son tres asientos liberados.
+
+Es el resto de la fase 6b (`docs/PlanModalidadDeTarifa.md`): el store y los tipos pasaron a tres
+casos y **esta vista se quedó preguntando por dos**. El compilador no podía verlo porque
+`=== 'grupal'` sigue siendo válido sobre una unión de tres.
+
+### Lo que hay ahora
+
+| Modalidad | Cómo se pinta |
+|---|---|
+| `individual` | 👤 sky · «N Pax» |
+| `grupal` | 👥 naranja · «Costo Grupal (Fijo)» |
+| `operativa` | 🚫👁 violeta · «N unidades» + insignia **«Operativa · no la ve el cliente»** |
+
+Sólo la operativa lleva insignia: es la excepción, y marcar también las otras dos llenaría la
+tarjeta de insignias para decir lo normal.
+
+Y los **cuatro** sitios que calculaban `monto × (grupal ? 1 : cantidad)` pasan por
+`costoMostradoDe()`, que pregunta `multiplicaPorCantidad()` —el predicado compartido de
+`dominio/cotizacion/calculoTarifa.ts`, espejo del de PHP—. Daban el número correcto; lo que se
+quita es la pregunta binaria, que es por donde volvería a entrar el fallo.
+
+### 🔥 Y de paso, el que sí costaba dinero
+
+`mapearATarifaSnapshot()` arrancaba la cantidad así:
+
+```ts
+cantidad: calculoMaestro === 'grupal' ? 1 : numPax
+```
+
+O sea que **añadir una tarifa operativa del catálogo a un grupo de 60 cotizaba 60 liberados**
+—80 × 60 = 4 800 repartidos entre todos— sin que nada lo delatara: la cifra es plausible y la
+cantidad editable. Hay 22 tarifas operativas en el maestro esperando ese respaldo.
+
+Ahora es `calculoMaestro === 'individual' ? numPax : 1`, escrito en positivo: la grupal vale 1
+porque su monto ya es el total y la operativa vale 1 porque su cantidad son **unidades**. 1 es el
+único valor que no miente, y el operador lo sube al real.
+
+⚠️ **Sin test.** `mapearATarifaSnapshot()` no está expuesta y vive dentro del flujo de inyección
+desde el catálogo, que necesitaría un fixture del maestro entero. Queda anotado: si ese flujo se
+toca, esto es lo primero que hay que volver a comprobar a mano.
+
+### Dónde tocar
+
+| Necesito… | Archivo | Símbolo |
+|---|---|---|
+| Cambiar cómo se pinta una modalidad | `util/src/views/Cotizaciones/CotizacionEditorView.vue` | `pintarModalidad()` — un sitio, lo usan las dos tarjetas |
+| Cambiar el costo que se enseña | idem | `costoMostradoDe()` — pregunta `multiplicaPorCantidad()`, no `=== 'grupal'` |
+| Cambiar con qué cantidad nace una tarifa del catálogo | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `mapearATarifaSnapshot()` |
+| Cambiar el indicador del desplegable del maestro | idem | `indicadorMatematica` — 👤 / 👥 / 🙈 |
