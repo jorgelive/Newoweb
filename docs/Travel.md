@@ -2461,6 +2461,86 @@ superficies y necesita comando.
 
 ---
 
+## 11.septies Los extras van en UN contenedor, no en un servicio cada uno (05/10/2026)
+
+Kit de viaje, álbum fotográfico y coordinación son servicios de catálogo como cualquier otro
+—servicio → segmento → componente → tarifa— pero **comparten un solo `TravelServicio`**:
+`EXTRAS`, «Extras del programa», sin plantilla.
+
+### Por qué un contenedor
+
+Es la forma dominante del catálogo, no una excepción. Medido el 05/10/2026 sobre los 26 servicios:
+
+```
+CONTENEDORES   VUELO 32 segmentos · ALO 19 · ACT_RESORT 14 · TRF_CUZ 8 · VAR_APT_LIM 3
+EXCEPCIÓN      SEGURO  1 segmento · 1 componente  ← un servicio entero para una cosa
+```
+
+Nadie compra «el catálogo de vuelos», compra dos vuelos. **«Lo que se compra junto» (§2 del doc de
+carga) significa el repertorio del que eliges, no un paquete cerrado** — y por eso `VUELO` vive
+bien con 32 segmentos dentro. Montar kit, álbum y coordinación como `SEGURO` daría cuatro
+servicios de un segmento y el operador buscándolos de uno en uno.
+
+Lo que lo permite, verificado antes de decidirlo:
+
+| Hecho del modelo | Consecuencia |
+|---|---|
+| El prestador cuelga de la **tarifa** — `TravelServicio` no lo tiene | un contenedor mezcla al que fabrica los kits con el fotógrafo |
+| `TravelSegmento ↔ TravelServicio` es **ManyToMany** | no es una cárcel: un segmento puede estar en varios servicios |
+| `EXTRAS` **no** está en `ocultaElSegmento()` | el segmento ES el bloque que lee el cliente → uno por extra |
+
+### 🔑 Slugs SIN el código del contenedor
+
+`kit-de-viaje`, no `KIT-EXTRAS`. El doc de carga tiene la cicatriz: el desayuno del aeropuerto se
+llamaba `DES-WALK_MIR-AEROPUERTO` y al mudarlo hubo que renombrarlo, porque **el slug afirmaba una
+pertenencia que dejó de ser cierta**.
+
+Con slugs neutros, partir «Extras» el día que crezca —entregables / personal / coberturas— es
+añadir filas en el pool del servicio nuevo y nada más. Por eso **un contenedor ahora y partirlo
+sólo si pasa de ~15 segmentos**: `VUELO` aguanta 32, y partir antes es inventarse una taxonomía
+que habría que volver a decidir.
+
+### El `calculo` de cada uno es la decisión de verdad
+
+```
+Kit de viaje    EXTRAS          individual   por cabeza: 60 pax son 60 kits
+Álbum           EXTRAS          grupal       precio global: una cobertura del viaje, no 60
+Coordinación    PERSONAL_EXTRA  grupal       un coordinador con su vuelo y sus viáticos
+```
+
+⚠️ Una tabla de venta engaña aquí. En la del cliente todo sale **por cabeza** —15, 20, 100— porque
+es lo que él lee; el catálogo guarda **cómo lo compras** y el clasificador hace la división. En
+`grupal` el monto YA es el total del grupo: ponerlo `individual` escribe el mismo número en la
+ficha y una factura distinta, que es el fallo que dobló los traslados hasta el 27/08/2026.
+
+Y si la coordinación tiene que repartirse **sin que el cliente la vea como línea**, eso es
+`operativa` y se marca al cotizar — ver `docs/PlanModalidadDeTarifa.md`.
+
+⚠️ **`PERSONAL_EXTRA` estrena uso aquí.** El tipo existía con cero componentes y sin docblock. Su
+`value` se congela en los snapshots (`CotizacionCotcomponente::$tipo` es un string), así que
+renombrarlo después obliga a migrar datos.
+
+### Lo que el cargador NO inventa: el dinero
+
+`app:travel:crear-extras-programa` lleva dentro la estructura y el texto —decisión del catálogo— y
+pide el costo por opción (`--kit-costo`). **Un extra sin su costo no se carga y lo dice.** No hay
+valor por defecto posible: un costo inventado se guarda sin protestar y sale en una cotización.
+
+⚠️ Y es el **costo**, no la venta: `TravelTarifa::$monto` es lo que se paga al proveedor; el precio
+del cliente sale de la comisión de la cotización.
+
+⚠️ **Un extra sin prestador no genera orden de servicio** —`TravelTarifa::$prestador` es nulable y
+sin él no hay a quién mandarle nada—. Está bien para un kit que arma la agencia; conviene que sea
+a propósito. El cargador lo avisa en cada tarifa que queda interna.
+
+### El decimal que se guarda mal sin protestar
+
+El cargador valida el costo con el mismo patrón que exige la entidad (`/^\d+(\.\d{1,2})?$/`) y
+**para** si no casa. Sin eso, un `--album-costo=1,200` escrito con coma se guarda como `1.00`: no
+es un error de formato para nadie, es una cotización con un álbum de un dólar.
+
+---
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
@@ -2509,3 +2589,4 @@ superficies y necesita comando.
 | Afinar los textos del contacto (7 idiomas) | `src/Travel/Command/TravelAjustarTextosContactoCommand.php` | activa `sobreescribirTraduccion` y **compara contra lo anterior**, no contra una palabra testigo |
 | Añadir el contacto con el pasajero a una plantilla | `src/Travel/Command/TravelCrearContactoMachupicchuCommand.php` | `PLANTILLAS` — **la tarifa de 0 es lo que lo hace pedible** |
 | Renombrar una categoría de tarifa en todas sus copias | `migrations/Version20261005234500.php` | `CAMPOS` — las ocho columnas; **mira antes si el `titulo` también cambia**, porque entonces hace falta comando |
+| Añadir un extra al contenedor (kit, álbum, coordinación…) | `src/Travel/Command/CrearExtrasDelProgramaCommand.php` | `EXTRAS` — una entrada más; el costo entra por opción, **nunca como constante** |
