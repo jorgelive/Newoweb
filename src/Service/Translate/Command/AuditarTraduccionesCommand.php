@@ -64,7 +64,7 @@ final class AuditarTraduccionesCommand extends Command
         $this
             ->addOption('clase', null, InputOption::VALUE_REQUIRED, 'Sólo las entidades cuyo nombre contenga este texto.')
             ->addOption('corregir', null, InputOption::VALUE_NONE, 'Rehace las traducciones de las señaladas. Sin esto, sólo informa.')
-            ->addOption('incluir-sospechosas', null, InputOption::VALUE_NONE, 'Corrige también las del segundo detector, el de pistas.');
+            ->addOption('minimo-palabras', null, InputOption::VALUE_REQUIRED, 'Palabras mínimas de la traducción para considerarla sospechosa.', '4');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -73,13 +73,13 @@ final class AuditarTraduccionesCommand extends Command
         $filtro = $input->getOption('clase');
         $filtro = \is_string($filtro) ? $filtro : null;
         $corregir = (bool) $input->getOption('corregir');
-        $tambienSospechosas = (bool) $input->getOption('incluir-sospechosas');
+        $crudo = $input->getOption('minimo-palabras');
+        $minimo = max(1, \is_numeric($crudo) ? (int) $crudo : 4);
 
         /** @var array<string, list<array{entidad: object, es: string, texto: string}>> $porTraduccion */
         $porTraduccion = [];
-        /** @var list<array{entidad: object, campo: string, es: string, idioma: string, texto: string}> $sospechosas */
-        $sospechosas = [];
         $revisados = 0;
+        $colapsos = 0;
 
         foreach ($this->em->getMetadataFactory()->getAllMetadata() as $meta) {
             $clase = $meta->getName();
@@ -124,13 +124,6 @@ final class AuditarTraduccionesCommand extends Command
                         $porTraduccion[$prop->getName() . '|' . $idioma . '|' . $texto][] = [
                             'entidad' => $entidad, 'es' => $es, 'texto' => $texto,
                         ];
-
-                        if (!$this->compartenAlgo($es, $texto)) {
-                            $sospechosas[] = [
-                                'entidad' => $entidad, 'campo' => $prop->getName(),
-                                'es' => $es, 'idioma' => $idioma, 'texto' => $texto,
-                            ];
-                        }
                     }
                 }
             }
@@ -146,6 +139,13 @@ final class AuditarTraduccionesCommand extends Command
                 continue;
             }
 
+            // Una etiqueta corta colapsa al traducirse y eso es correcto. Sólo una FRASE
+            // repetida carácter a carácter delata un clon. Ver el docblock.
+            if ($this->palabras($filas[0]['texto']) < $minimo) {
+                ++$colapsos;
+                continue;
+            }
+
             [$campo, $idioma] = explode('|', $clave);
             $io->section(sprintf('%s · %s — misma traducción, %d españoles distintos', $campo, $idioma, \count($espanoles)));
             $io->text(sprintf('  «%s»', $filas[0]['texto']));
@@ -158,19 +158,9 @@ final class AuditarTraduccionesCommand extends Command
 
         $io->newLine();
         $io->table(
-            ['campos revisados', 'entidades con traducción duplicada', 'sospechosas (pista)'],
-            [[$revisados, \count($clones), \count($sospechosas)]]
+            ['campos revisados', 'entidades señaladas', sprintf('colapsos (< %d palabras, correctos)', $minimo)],
+            [[$revisados, \count($clones), $colapsos]]
         );
-
-        if ($sospechosas !== []) {
-            $io->section('Pista: el español y la traducción no comparten ni una palabra larga ni un número');
-            foreach (\array_slice($sospechosas, 0, 25) as $s) {
-                $io->text(sprintf('  %-26s %-3s %-42s │ %s', $this->nombre($s['entidad']), $s['idioma'], $s['es'], $s['texto']));
-            }
-            if (\count($sospechosas) > 25) {
-                $io->text(sprintf('  … y %d más', \count($sospechosas) - 25));
-            }
-        }
 
         if (!$corregir) {
             $io->note('Sólo informe. Con --corregir se rehacen las traducciones de las señaladas.');
@@ -179,12 +169,6 @@ final class AuditarTraduccionesCommand extends Command
         }
 
         $aRehacer = $clones;
-
-        if ($tambienSospechosas) {
-            foreach ($sospechosas as $s) {
-                $aRehacer[spl_object_id($s['entidad'])] = $s['entidad'];
-            }
-        }
 
         foreach ($aRehacer as $entidad) {
             if (method_exists($entidad, 'setSobreescribirTraduccion')) {
@@ -237,21 +221,10 @@ final class AuditarTraduccionesCommand extends Command
         return '';
     }
 
-    /**
-     * ¿Comparten un número o una palabra de 4+ letras? Es la pista, no la prueba: los nombres
-     * propios y las cifras sobreviven a cualquier traducción, así que no compartir ninguno es
-     * raro — pero un título corto bien traducido tampoco comparte nada.
-     */
-    private function compartenAlgo(string $a, string $b): bool
+    /** Palabras de la traducción: el umbral que separa una frase de una etiqueta. */
+    private function palabras(string $texto): int
     {
-        $tokens = static function (string $t): array {
-            $t = mb_strtolower($t);
-            preg_match_all('/[\p{L}\p{N}]{4,}/u', $t, $m);
-
-            return array_unique($m[0]);
-        };
-
-        return array_intersect($tokens($a), $tokens($b)) !== [];
+        return preg_match_all('/[\p{L}\p{N}]+/u', $texto) ?: 0;
     }
 
     /** El id puede ser un Uuid, un int o null: aquí sólo se quiere algo que se lea. */
