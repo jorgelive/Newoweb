@@ -11543,6 +11543,16 @@ chequeo nuevo del revisor de coherencia, `tarifas-no-cubren-pax`: señala el com
 tarifas por persona no suman los pax cotizados. Se pone rojo exactamente cuando una copia —o una
 edición a mano— deja un reparto atrás.
 
+El chequeo salta las `alternativa` (venta opcional) y las **`operativo`** —el guía, su viático, su
+alojamiento—, porque **no viaja nadie en esa línea** y sumarla haría que el componente pareciera
+cubrir de más.
+
+⚠️ `operativo` faltaba en la primera versión y el error era invisible: las 22 tarifas operativas
+del catálogo son todas grupales, así que el filtro de `es_grupal` ya las descartaba, y ninguna ha
+entrado nunca en una cotización. **La primera operativa unitaria habría puesto el aviso en rojo sin
+que nada estuviera mal.** Es espejo del recuento de cupos de `cotizacionEditorStore.ts`, que las
+salta por lo mismo.
+
 Medido el día que se escribió: **0 filas en toda la base**. Un vigilante tiene que nacer en verde;
 si naciera en rojo, nadie lo miraría — la misma razón por la que este proyecto se quitó la alarma
 del importe y la de la divergencia de órdenes.

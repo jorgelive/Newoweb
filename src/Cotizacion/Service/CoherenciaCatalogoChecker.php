@@ -229,7 +229,19 @@ final class CoherenciaCatalogoChecker
             // repartirlos a mano, y hasta hoy nada lo recordaba.
             //
             // Se excluye el 0 (componentes sólo con tarifa grupal, o de referencia sin tarifa) y
-            // las `alternativa`, que son venta opcional y no tienen por qué cubrir a nadie.
+            // dos roles:
+            //
+            // - `alternativa`: venta opcional, no tiene por qué cubrir a nadie.
+            // - `operativo`: el guía, su viático, su alojamiento. **No viaja nadie en esa línea**,
+            //   así que sumarla haría que el componente pareciera cubrir de más.
+            //
+            // ⚠️ `operativo` faltaba en la primera versión de este chequeo, y el error era invisible
+            // porque las 22 tarifas operativas del catálogo son TODAS grupales —`es_grupal = 0` ya
+            // las descartaba— y ninguna ha entrado nunca en una cotización. La primera operativa
+            // unitaria habría puesto este aviso en rojo sin que nada estuviera mal.
+            //
+            // Es espejo de `cotizacionEditorStore.ts` (el recuento de cupos, que salta las
+            // operativas por lo mismo): si cambia allí, cambia aquí.
             //
             // Verificado en producción el día que se escribió: 0 filas. Nace en verde, que es
             // como tiene que nacer un vigilante — si naciera en rojo, nadie lo miraría.
@@ -241,7 +253,7 @@ final class CoherenciaCatalogoChecker
                               JOIN cotizacion_cotizacion co ON co.id = sv.cotizacion_id',
                 'donde'   => '(SELECT COALESCE(SUM(t.cantidad), 0) FROM cotizacion_cottarifa t
                                 WHERE t.cotcomponente_id = k.id AND t.es_grupal = 0
-                                  AND COALESCE(t.rol_snapshot, "") <> "alternativa") NOT IN (0, co.num_pax)',
+                                  AND COALESCE(t.rol_snapshot, "estandar") NOT IN ("alternativa", "operativo")) NOT IN (0, co.num_pax)',
                 'set'     => null,
                 'deCotizacion' => 'co.id = :cot',
             ],
