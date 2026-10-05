@@ -86,6 +86,67 @@ final class OperacionOrdenTarifaTest extends TestCase
     }
 
     #[Test]
+    public function se_calla_cuando_el_prestador_solo_la_CONTIENE(): void
+    {
+        // ⚠️ El caso real de la OS-20261004-304, el mismo día del despliegue: la igualdad exacta
+        // se quedó corta por un prefijo y a Machupicchu Perú Extreme le llegó una línea que decía
+        // «Machupicchu Perú Extreme».
+        $item = $this->item([
+            'descripcion' => 'Pool Quelccaya',
+            'nombreComponente' => 'Pool Quelcaya',
+            'tipoComponente' => 'pool',
+            'prestadorNombre' => 'Qelccaya Machupicchu Perú Extreme',
+            'tarifaNombre' => 'Machupicchu Perú Extreme',
+        ]);
+
+        self::assertNull($item->getTarifaParaProveedor());
+        // Y el nombre para el proveedor sí sale: es lo que distingue este caso de un borrado.
+        self::assertSame('Pool Quelccaya', $item->getVarianteParaProveedor());
+    }
+
+    #[Test]
+    public function compara_sin_tildes_ni_mayusculas(): void
+    {
+        $item = $this->item(['prestadorNombre' => 'TUNUPA CUSCO', 'tarifaNombre' => 'Tunupá']);
+
+        self::assertNull($item->getTarifaParaProveedor());
+    }
+
+    #[Test]
+    public function pero_al_reves_NO_se_calla_porque_lo_que_sobra_informa(): void
+    {
+        // «Buffet Tunupa Valle Niño» contiene al prestador y añade «Niño», que es la tarifa de
+        // menor: callarlo escondería por qué el precio es otro. La contención sólo vale en un
+        // sentido, y ésa es la mitad del arreglo.
+        $item = $this->item([
+            'descripcion' => 'Almuerzo en el Valle',
+            'nombreComponente' => 'Almuerzo en el Valle',
+            'tipoComponente' => 'alimentacion_fijo',
+            'prestadorNombre' => 'Tunupa Valle',
+            'tarifaNombre' => 'Buffet Tunupa Valle Niño',
+        ]);
+
+        self::assertSame('Buffet Tunupa Valle Niño', $item->getTarifaParaProveedor());
+    }
+
+    #[Test]
+    public function una_variante_de_vehiculo_no_se_calla_por_contencion(): void
+    {
+        // «Auto» es la variante de vehículo, hermana de «Van» y «Bus»: es el dato por el que
+        // cambia el precio del transporte. Ningún prestador real la contiene —medido—, pero si
+        // alguno se llamara «Transportes Auto Sur» esto lo fijaría.
+        $item = $this->item([
+            'descripcion' => 'Transporte urbano en Punta Cana',
+            'nombreComponente' => 'Transporte urbano en Punta Cana',
+            'tipoComponente' => 'transporte',
+            'prestadorNombre' => 'Dominican Shuttle',
+            'tarifaNombre' => 'Auto',
+        ]);
+
+        self::assertSame('Auto', $item->getTarifaParaProveedor());
+    }
+
+    #[Test]
     public function se_calla_cuando_repite_el_titulo_o_la_variante(): void
     {
         self::assertNull($this->item(['tarifaNombre' => 'Ingreso a Vinicunca'])->getTarifaParaProveedor());

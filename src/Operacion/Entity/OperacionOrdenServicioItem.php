@@ -748,12 +748,56 @@ class OperacionOrdenServicioItem
     #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getTarifaParaProveedor(): ?string
     {
+        // ⚠️ El PRESTADOR se compara aparte y por CONTENCIÓN, no por igualdad. La igualdad se
+        // quedó corta el 04/10/2026, en producción y el mismo día: la tarifa se llamaba
+        // «Machupicchu Perú Extreme» y el prestador «Qelccaya Machupicchu Perú Extreme». Un
+        // prefijo de diferencia, y a Machupicchu Perú Extreme le llegó una línea que decía
+        // «Machupicchu Perú Extreme».
+        //
+        // **Sólo en ese sentido**, y la asimetría es el hallazgo: que el nombre de la tarifa esté
+        // DENTRO del prestador significa que no añade nada; al revés —«Buffet Tunupa Valle Niño»
+        // sobre el prestador «Tunupa Valle»— lo que sobra ES la información, y ahí hay que
+        // callarse la boca y dejarlo salir.
+        //
+        // Medido sobre las 852 del catálogo antes de escribirlo: se callan 2 —«Tunupa» de «Tunupa
+        // Cusco» y «Seguros La Positiva»—, las dos correctas, y **ninguna** variante de vehículo
+        // («Auto», «Van»…) ni de procedencia («Peruano»), que son las que sí informan.
+        if ($this->estaDentroDelPrestador($this->tarifaNombre)) {
+            return null;
+        }
+
         return $this->calladoSiRepite($this->tarifaNombre, [
             $this->getTituloParaProveedor(),
             $this->getVarianteParaProveedor(),
             $this->getSecundarioParaProveedor(),
             $this->prestadorNombre,
         ]);
+    }
+
+    /**
+     * ¿Ese texto ya está contenido en el nombre del prestador?
+     *
+     * Compara sin mayúsculas, sin tildes y sin espacios de más, porque el nombre de la tarifa lo
+     * teclea una persona y el del prestador viene del catálogo: «Tunupa» y «TUNUPA » son el mismo
+     * dato con distinta suerte.
+     */
+    private function estaDentroDelPrestador(?string $texto): bool
+    {
+        $aguja = $this->plano($texto);
+        $pajar = $this->plano($this->prestadorNombre);
+
+        return $aguja !== '' && $pajar !== '' && str_contains($pajar, $aguja);
+    }
+
+    /** Minúsculas, sin tildes y con los espacios colapsados. */
+    private function plano(?string $texto): string
+    {
+        $limpio = mb_strtolower(trim((string) $texto));
+        $limpio = strtr($limpio, [
+            'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n',
+        ]);
+
+        return (string) preg_replace('/\s+/', ' ', $limpio);
     }
 
     /**

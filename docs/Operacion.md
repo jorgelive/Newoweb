@@ -4287,6 +4287,29 @@ Dos detalles que no son obvios:
   que lo hace. Hay nombres internos de tarifa que son el nombre de quien presta —«Junela» presta
   el «Pool Vinicunca»— y mandarle a Junela una línea que dice «Junela» gasta la ranura en no decir
   nada. Eso mata exactamente los cuatro casos malos de la tabla de arriba.
+
+  ⚠️ **Y por CONTENCIÓN, no por igualdad** — la igualdad se quedó corta el mismo día del
+  despliegue, en producción: la tarifa se llamaba «Machupicchu Perú Extreme» y el prestador
+  «Qelccaya Machupicchu Perú Extreme». Un prefijo de diferencia y la línea salió diciéndole su
+  propio nombre.
+
+  **Sólo en un sentido, y la asimetría es el hallazgo:**
+
+  | Relación | Qué significa | Qué se hace |
+  |---|---|---|
+  | tarifa **⊆** prestador | «Tunupa» de «Tunupa Cusco» — no añade nada | **callar** |
+  | prestador **⊆** tarifa | «Buffet **Tunupa Valle** Niño» — lo que sobra ES el dato | mantener |
+
+  Medido sobre las 852 del catálogo antes de escribirlo: se callan **2** —«Tunupa» y «Seguros La
+  Positiva»—, las dos correctas, y **ninguna** variante de vehículo ni de procedencia, que son
+  justo las que informan. Se compara sin mayúsculas, sin tildes y sin espacios de más, porque el
+  nombre de la tarifa lo teclea una persona y el del prestador viene del catálogo.
+
+  ⚠️ **Lo que esto NO arregla: una errata en el nombre del componente.** En esa misma orden el
+  componente del catálogo es «Pool Quelcaya» (una «c») y el nombre para el proveedor «Pool
+  Quelccaya» (dos), así que la línea **parece** repetir el mismo texto y ninguna regla de silencio
+  puede verlo: para una comparación son dos cadenas distintas. Eso se arregla en el dato, no en el
+  código, y conviene mirarlo cuando una línea se lea duplicada.
 - **La cascada que pidió operaciones —«el nombre para el proveedor si está, y si no el interno»—
   se cumple sin escribirla.** La primera mitad ya la hace `descripcion` (prioridad 1 → sale por
   `getVarianteParaProveedor()`); lo único que faltaba era la segunda. Y cuando están los dos salen
