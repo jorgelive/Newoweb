@@ -423,6 +423,39 @@ siempre a individual, así que una grupal del tarifario marcada operativa y devu
 `cantidad = 1`— pero es la misma trampa de poner sin poder quitar bien que ya apareció dos veces
 en este plan. Lo fija `modalidadesDisponibles()` y su test.
 
+### La verificación contra las cotizaciones reales (05/10/2026)
+
+Terminado todo, se recalcularon **las 15 cotizaciones de producción** con el código nuevo y con el
+de antes de empezar (un `git worktree` sobre el commit anterior a la fase 1), alimentando el
+clasificador con el árbol real exportado por SQL.
+
+```
+cotizaciones comparadas:   15
+DIFERENCIAS viejo vs nuevo: 0
+suma viejo 457 048,49  ·  suma nuevo 457 048,49
+```
+
+⚠️ **Y las tres diferencias que sí aparecieron contra la clasificación GUARDADA no eran del
+cambio.** Vale la pena anotarlas porque se parecen mucho a una regresión:
+
+| Qué se vio | Qué era |
+|---|---|
+| `publicable: true → false` en 10 | **artefacto del arnés**: el export por SQL no trae `snapshotItems`, así que saltaba «no tiene título público ni ítems» |
+| −54 018,77 en la copia de Santa Rosa | su `clasificacionFinanciera` **la heredó del original de 100 pax**; recalculada con sus 60 da lo correcto |
+| +0,50 en la confirmada de La Salle | el **código viejo da exactamente el mismo número**: la clasificación guardada estaba vieja |
+
+🔑 **De ahí el método**: comparar contra el valor guardado dice «algo cambió desde el último
+guardado», que no es la pregunta. La pregunta es «¿cambió por mi culpa?», y eso sólo lo responde
+correr **el código viejo sobre los mismos datos**.
+
+#### Lo que esto deja ver, y es un hallazgo aparte
+
+**Una cotización clonada arrastra la `clasificacionFinanciera` del original.** La de Santa Rosa
+dice 135 047,67 y 100 pax mientras sus datos dicen 81 028,90 y 60 — hasta que alguien la abra y la
+guarde. Lo que lee el cliente sale de ahí, así que una copia enviada antes de abrirla enseñaría los
+números del viaje de otro colegio. `duplicar()` copia el campo con el resto del árbol; lo honesto
+sería **vaciarlo en la copia**, para que nazca sin clasificación en vez de con una falsa.
+
 ### Fase 6b — Borrar el booleano (PENDIENTE)
 
 `esGrupal` / `costoPorGrupo` siguen como copia derivada, y quitarlos **no cambia comportamiento**:
