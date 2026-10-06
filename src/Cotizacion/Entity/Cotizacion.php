@@ -379,64 +379,65 @@ class Cotizacion
     private ?array $imagenPortada = null;
 
     /**
-     * El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-     * se está vendiendo.
+     * Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+     * verdad se está vendiendo.
      *
-     * ## Guarda un puntero, no contenido — y es la decisión entera
+     * ## Guarda PUNTEROS, no contenido — y es la decisión entera
      *
-     * La tentación es un campo de texto y unas fotos aquí. Sería el **cuarto** sitio donde vive la
+     * La tentación es un campo de texto con fotos aquí. Sería el **cuarto** sitio donde vive la
      * descripción del Occidental Caribe —la organización del catálogo, el contenido del segmento y
      * esta copia— envejeciendo por separado en cada cotización: corriges una errata en una y las
      * otras catorce siguen diciendo lo viejo. Es el patrón que ya costó cinco deltas
      * desincronizados y cuatro copias de «¿hay estándar visible?» en un solo día.
      *
      * Apuntando, el hotel se escribe **una vez** en el catálogo y lo heredan todas las propuestas
-     * que lo usen. `pax` ya recibe lo necesario —`prestadorDescripcion`, `prestadorImagenes`,
-     * `contenidoSnapshot`, `imagenesSnapshot`— así que aquí no se añade ni un serializador.
+     * que lo usen. `pax` ya recibe lo necesario, así que aquí no se añade ni un serializador.
      *
-     * ## Por qué el COMPONENTE y no el segmento
+     * ## La cabecera enseña FOTOS, y el texto sale del resumen
+     *
+     * ```
+     * fotos  ->  la galería de cada bloque destacado, concatenada y sin repetir
+     * texto  ->  Cotizacion::$resumen, si lo hay
+     * ```
+     *
+     * ⚠️ **El texto NO sale de los bloques, y eso se probó al revés.** La primera versión sacaba
+     * la descripción del prestador —o la del segmento— y repetía en la cabecera lo que el cliente
+     * leía tres pantallas más abajo, en el día. La cabecera vende; el día cuenta. El `resumen` ya
+     * existía para exactamente eso, se escribe por propuesta y hoy lo tienen 5 de 15.
+     *
+     * Y simplifica de paso: con sólo fotos, la pregunta de si el prestador se publica deja de
+     * hacer falta aquí. Las suyas no llegan si está oculto —el normalizador no las inyecta— así
+     * que el gate sigue puesto sin que esto tenga que saberlo.
+     *
+     * ## Por qué COMPONENTES y no segmentos
      *
      * Es el único nivel que identifica a un prestador sin ambigüedad —un segmento puede llevar
-     * varios componentes de empresas distintas— y su segmento se alcanza desde él. El bloque sale
-     * del componente; al revés no.
+     * varios componentes de empresas distintas— y su bloque se alcanza desde él. Al revés no.
      *
-     * ## De dónde sale cada cosa, y por qué NO lo elige el operador
+     * ## Varios, y por qué no estaba así desde el principio
      *
-     * ```
-     * fotos  ->  las del segmento si las tiene, si no las del prestador   (regla que ya existe)
-     * texto  ->  la descripción del prestador si la línea lo PUBLICA,
-     *            y si no el contenido del segmento
-     * ```
+     * Nació con uno: «la experiencia que se vende» sonaba a una cosa. Es falso en cuanto el viaje
+     * tiene dos protagonistas —el resort **y** la excursión a Saona—, que es el caso normal de una
+     * promoción escolar. Ampliar a lista fue barato porque el campo guardaba un puntero y no
+     * contenido; si hubiera guardado texto y fotos, pasar a varios habría sido multiplicar el
+     * problema de la copia por N.
      *
-     * ⚠️ **Es excluyente, y lo decide `CotizacionCotcomponente::isPrestadorVisible()`**, no un
-     * selector. Medido el 05/10/2026: de 122 componentes con prestador asignado sólo **47** se
-     * publican. El hotel sí —el resort es la marca que se vende— y la Isla Saona no, porque al
-     * cliente no se le dice qué agencia le lleva; su texto es el del segmento, que además es el
-     * específico. Los dos casos salen bien sin preguntar nada.
+     * ⚠️ **El orden de la lista es el orden en que se enseñan**, así que mover un destacado es
+     * reordenar aquí, no un campo aparte.
      *
-     * Y no es frágil: aunque mañana se le escriba una descripción a una agencia oculta, el gate del
-     * normalizador la corta antes de inyectarla. Lo que el operador sí decide —con criterio, porque
-     * no hay regla que lo deduzca— es **qué** destacar.
+     * ## Enlaces blandos, a propósito
      *
-     * ⚠️ **El contenido del segmento de un alojamiento es GENÉRICO a propósito** («regresamos a la
-     * habitación, frigobar a disposición»): es lo que permite que un resort nuevo no cueste
-     * segmentos nuevos. Por eso, si se destaca un hotel cuyo prestador se publica pero **no tiene
-     * descripción escrita**, la cabecera enseña título y fotos **sin texto** en vez de caer a esa
-     * narración: un hueco se ve y se arregla; un texto que no habla del hotel, no.
+     * Son ids en texto y sin clave ajena, como `OperacionOrdenServicioItem::$operacionServicioId`.
+     * Si un componente se borra al editar, su puntero queda colgando y simplemente no aporta
+     * fotos — degradación buscada. Una FK obligaría a elegir entre bloquear el borrado o perder el
+     * dato sin avisar.
      *
-     * ## Enlace blando, a propósito
-     *
-     * Es el id en texto y sin clave ajena, como `OperacionOrdenServicioItem::$operacionServicioId`.
-     * Si el componente se borra al editar, el puntero queda colgando y la cabecera simplemente no
-     * destaca nada — que es la degradación que se quiere. Una FK obligaría a elegir entre bloquear
-     * el borrado o perder el dato sin avisar.
-     *
-     * @see CotizacionCotcomponente::isPrestadorVisible()
+     * @var list<string>
      */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
-    #[Assert\Uuid(message: 'El componente destacado tiene que ser un identificador válido.')]
-    #[ORM\Column(type: 'string', length: 36, nullable: true)]
-    private ?string $destacadoComponenteId = null;
+    #[Assert\All([new Assert\Uuid(message: 'Cada componente destacado tiene que ser un identificador válido.')])]
+    #[ORM\Column(type: 'json')]
+    private array $destacadosComponenteIds = [];
 
     /**
      * Portada efectiva del tour para pintar su tarjeta: el override editorial
@@ -841,11 +842,19 @@ class Cotizacion
     public function getTipoCambio(): string { return $this->tipoCambio; }
     public function setTipoCambio(string $tipoCambio): self { $this->tipoCambio = $tipoCambio; return $this; }
 
-    public function getDestacadoComponenteId(): ?string { return $this->destacadoComponenteId; }
+    /** @return list<string> */
+    public function getDestacadosComponenteIds(): array { return $this->destacadosComponenteIds; }
 
-    public function setDestacadoComponenteId(?string $destacadoComponenteId): self
+    /**
+     * ⚠️ Reindexa a lista: un `array_filter` o un `unset` desde el cliente dejarían huecos en las
+     * claves y `json_encode` los guardaría como **objeto**, no como array. El tipo dice `list` y
+     * entonces dejaría de serlo, en silencio y sólo para esa fila.
+     *
+     * @param list<string> $ids
+     */
+    public function setDestacadosComponenteIds(array $ids): self
     {
-        $this->destacadoComponenteId = $destacadoComponenteId;
+        $this->destacadosComponenteIds = array_values(array_unique($ids));
 
         return $this;
     }

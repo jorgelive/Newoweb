@@ -4397,30 +4397,30 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         tarifa.grupoTarifa = grupo;
     };
 
-    /** ¿Es éste el componente que la propuesta destaca en su cabecera? */
+    /** ¿Está este componente entre los que la propuesta destaca en su cabecera? */
     const esComponenteDestacado = (componenteId: string): boolean =>
-        !!componenteId && cotizacion.value?.destacadoComponenteId === componenteId;
+        !!componenteId && (cotizacion.value?.destacadosComponenteIds ?? []).includes(componenteId);
 
     /**
-     * Destaca un componente en la cabecera, o lo quita si ya lo estaba.
+     * Añade un componente a los destacados de la cabecera, o lo quita si ya estaba.
      *
-     * **Uno solo por propuesta, a propósito.** «La experiencia que se vende» es una cosa: el
-     * resort, o la isla. Admitir varios convierte la cabecera en un segundo itinerario y obliga a
-     * decidir orden y cuántos caben. Ampliar a lista después es barato; volver de una lista a uno
-     * no lo es.
+     * ⚠️ **No hay regla que deduzca cuáles son.** Ni el más caro ni el de más noches: en un viaje
+     * de promoción se vende el resort, y en otro la excursión a Saona aunque cueste diez veces
+     * menos. Lo elige el operador con criterio, y por eso es un botón y no un cálculo.
      *
-     * ⚠️ **No hay regla que deduzca cuál es.** Ni el más caro ni el de más noches: en un viaje de
-     * promoción lo que se vende es el resort, y en otro la excursión a Saona aunque cueste diez
-     * veces menos. Lo elige el operador con criterio, y por eso es un botón y no un cálculo.
+     * **El orden de la lista es el orden en que se enseñan**, así que uno nuevo entra al final.
      *
-     * Lo que NO decide el operador es de dónde sale el texto: eso ya lo dice
-     * `prestadorVisible` de esa línea. Ver `Cotizacion::$destacadoComponenteId`.
+     * La cabecera sólo saca FOTOS de ellos: el texto es el `resumen` de la propuesta. Ver
+     * `Cotizacion::$destacadosComponenteIds`.
      */
     const destacarComponente = (componenteId: string): void => {
         if (!cotizacion.value || !componenteId) return;
 
-        cotizacion.value.destacadoComponenteId =
-            cotizacion.value.destacadoComponenteId === componenteId ? null : componenteId;
+        const actuales = cotizacion.value.destacadosComponenteIds ?? [];
+
+        cotizacion.value.destacadosComponenteIds = actuales.includes(componenteId)
+            ? actuales.filter((id) => id !== componenteId)
+            : [...actuales, componenteId];
     };
 
     const marcarTarifaComoOperativa = (tarifaId: string): void => {

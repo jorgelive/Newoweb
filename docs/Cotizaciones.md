@@ -12170,7 +12170,7 @@ La cabecera lo enseña: fotos y descripción de ese bloque, antes del precio.
 
 ### Guarda un PUNTERO, no contenido — y ésa es la decisión entera
 
-`Cotizacion::$destacadoComponenteId` es un id y nada más. La tentación era un campo de texto y
+`Cotizacion::$destacadosComponenteIds` es una lista de ids y nada más. La tentación era un campo de texto y
 unas fotos en la cotización; habría sido el **cuarto** sitio donde vive la descripción del
 Occidental Caribe —la organización del catálogo, el contenido del segmento y esa copia—
 envejeciendo por separado en cada propuesta. Es el patrón que en un solo día costó cinco deltas
@@ -12180,49 +12180,52 @@ Apuntando, el hotel se escribe **una vez** y lo heredan las propuestas que lo us
 recibía todo lo necesario, así que **no se añadió ni un serializador**: cero superficie nueva por
 donde se escape algo.
 
-### De dónde sale cada cosa, y por qué el operador no lo elige
+### Sólo FOTOS, y el texto sale del resumen
 
 ```
-fotos  →  galeriaDe(bloque): las del segmento si las tiene, si no las del prestador   (ya existía)
-texto  →  la descripción del prestador si la propuesta lo PUBLICA, si no la del segmento
+fotos  →  la galería de cada bloque destacado, concatenada y sin repetir   (galeriaDe, ya existía)
+texto  →  Cotizacion::$resumen, si lo hay
 ```
 
-**Es excluyente, y lo decide `isPrestadorVisible()` de esa línea.** Medido: de 122 componentes con
-prestador asignado, sólo **47** se publican.
+⚠️ **La primera versión sacaba también la descripción del bloque, y era repetitiva**: la cabecera
+decía lo mismo que el cliente lee tres pantallas más abajo, en el día. **La cabecera vende; el día
+cuenta.** El `resumen` ya existía para eso, se escribe por propuesta —hoy lo tienen 5 de 15— y no
+se pinta en ningún otro punto de la guía: sólo en la portada del expediente, así que tampoco
+duplica ahí.
 
-| | prestador | se publica | texto |
-|---|---|---|---|
-| Hotel | Occidental Caribe | **sí** — el resort es la marca | su descripción |
-| Isla Saona | Solarena Tours | **no** — al cliente no se le dice qué agencia le lleva | el del segmento |
-
-Los dos salen bien sin preguntar nada. Y no es frágil: aunque mañana se le escriba una descripción
-a una agencia oculta, el gate del normalizador la corta antes de inyectarla.
+Y simplifica de paso: **con sólo fotos, la pregunta de si el prestador se publica deja de hacer
+falta en el cliente.** Sus imágenes no llegan cuando está oculto —el normalizador no las inyecta,
+y se verificó: el gate es `if ($object->isPrestadorVisible())` envolviendo título, descripción,
+url **e imágenes**— así que la regla se respeta sin que `pax` tenga que conocerla. Medido: de 122
+componentes con prestador asignado sólo **47** se publican.
 
 Lo que el operador **sí** decide, con criterio y por eso con un botón y no con un cálculo, es
 **qué** destacar: no hay regla que lo deduzca — ni el más caro ni el de más noches.
 
-### 🔑 Cómo sabe `pax` si el prestador se publica, si la bandera no viaja
+### Varios, y por qué no estaba así desde el principio
 
-No viaja, y no hace falta. El normalizador **no inyecta nada** de un prestador oculto, así que:
+Nació con uno: «la experiencia que se vende» sonaba a una cosa. Es falso en cuanto el viaje tiene
+dos protagonistas —el resort **y** la excursión a Saona—, que es el caso normal de una promoción
+escolar.
 
-```
-prestadorTitulo presente  ⟺  la propuesta decidió nombrarlo
-```
+⚠️ **Ampliar a lista fue barato porque la columna guardaba un puntero y no contenido.** Si hubiera
+guardado el texto y las fotos del hotel, pasar a varios habría sido multiplicar por N el problema
+de la copia que el diseño vino a evitar. El orden de la lista es el orden en que se enseñan.
 
-Preguntar por el título es preguntar por el permiso, sin un campo más y sin que puedan
-desincronizarse. Es la mejor propiedad del diseño: la regla del cliente **no puede** contradecir
-la del servidor porque es la misma.
+⚠️ Y la migración conserva el que ya estaba marcado —1 de 15—: un `ADD` + `DROP` sin el `UPDATE`
+de en medio lo habría perdido sin decir nada, y una columna que nace vacía se ve igual que una que
+nunca se llenó.
 
-### ⚠️ Publicado pero sin descripción: se queda sin texto, a propósito
+### ⚠️ Y la trampa del `JSON NOT NULL`, que mordió al escribirla
 
-El contenido del segmento de un alojamiento es **genérico por diseño** —«regresamos a la
-habitación, frigobar a disposición»—, que es lo que permite que un resort nuevo no cueste
-segmentos nuevos. Caer ahí encabezaría la venta de un resort con una narración que no habla de él.
+La primera versión de la migración ponía `ADD … JSON NOT NULL DEFAULT (JSON_ARRAY())` y
+`schema:validate` se puso en rojo: Doctrine mapea `JSON NOT NULL` a secas, así que el `DEFAULT`
+dejaba el esquema fuera de sync **para siempre** — justo lo que entrena a no mirar la única
+herramienta que compara las dos mitades.
 
-La cabecera enseña título y fotos **sin texto**: un hueco se ve y se arregla; un texto que no es
-del hotel, no.
-
-⚠️ Y hoy hace falta: **0 de 110 organizaciones tienen descripción** y sólo 5 tienen imágenes.
+Y sin el `DEFAULT`, un `JSON NOT NULL` añadido a una tabla con filas se rellena con el literal JSON
+`null`, que satisface el `NOT NULL`, no lo caza un `WHERE … IS NULL` y revienta **al leer**. La
+receta del manual, aplicada: **nulable, rellenar todas las filas, y sólo entonces `NOT NULL`.**
 
 ### Enlace blando, a propósito
 
@@ -12236,6 +12239,7 @@ avisar.
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
 | Cambiar qué se destaca | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `destacarComponente()` / `esComponenteDestacado()` |
-| Cambiar de dónde sale el texto o las fotos | `pax/src/views/cotizacion/PaxCotizacionGuiaView.vue` | `destacado` — y `galeriaPorBloque()` para las fotos |
+| Cambiar de dónde salen las fotos | `pax/src/views/cotizacion/PaxCotizacionGuiaView.vue` | `fotosDestacadas` — y `galeriaPorBloque()` para la regla de cada bloque |
+| Cambiar el texto de la cabecera | el `resumen` de la propuesta, en el panel «Cabecera» | — |
 | Entender el gate del prestador | `src/Cotizacion/Serializer/CotizacionCotcomponentePrestadorPublicNormalizer.php` | el `if ($object->isPrestadorVisible())` |
-| Permitir varios destacados | el campo pasa a lista — hoy es uno a propósito | `Cotizacion::$destacadoComponenteId` |
+| Cambiar cuántos o en qué orden | el orden de la lista es el orden en que se enseñan | `Cotizacion::$destacadosComponenteIds` |

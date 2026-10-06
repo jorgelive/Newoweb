@@ -357,7 +357,14 @@ export type PaxCotizacion = Omit<
 > & {
     // Motivo 1: columnas JSON.
     titulo?: I18n;
-    resumen: unknown[];
+    /**
+     * El pitch comercial de la propuesta, en HTML por idioma.
+     *
+     * Estaba sin estrechar (`unknown[]`) porque nada lo leía aquí: se pintaba sólo en la portada
+     * del expediente. Desde el 06/10/2026 es el texto de la cabecera de la guía —ver
+     * `fotosDestacadas`— así que se estrecha, que es el motivo 1 de este archivo.
+     */
+    resumen: I18n;
     clasificacionFinancieraCliente?: PaxClasificacionFinancieraCliente | null;
     cotservicios: PaxCotServicio[];
     '@id'?: string;

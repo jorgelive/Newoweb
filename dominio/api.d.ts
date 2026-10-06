@@ -4642,11 +4642,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /**
              * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
              *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
@@ -4751,11 +4750,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: {
@@ -4873,11 +4871,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: {
@@ -4975,11 +4972,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: {
@@ -5063,11 +5059,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
@@ -5150,11 +5145,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
@@ -5232,11 +5226,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             cotservicios?: components["schemas"]["CotizacionCotservicio-pax_catalogo.read_pax_cotizacion.read"][];
             /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
@@ -5309,11 +5302,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             cotservicios?: components["schemas"]["CotizacionCotservicio-pax_file.read_pax_cotizacion.read"][];
             /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
@@ -5487,11 +5479,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /**
              * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
              *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
@@ -5596,11 +5587,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: {
@@ -5704,11 +5694,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
@@ -5791,11 +5780,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
@@ -5873,11 +5861,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             cotservicios?: components["schemas"]["CotizacionCotservicio.html-pax_catalogo.read_pax_cotizacion.read"][];
             /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
@@ -5950,11 +5937,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             cotservicios?: components["schemas"]["CotizacionCotservicio.html-pax_file.read_pax_cotizacion.read"][];
             /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
@@ -6036,11 +6022,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /**
              * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
              *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
@@ -6145,11 +6130,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: {
@@ -6253,11 +6237,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
@@ -6340,11 +6323,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
@@ -6422,11 +6404,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             cotservicios?: components["schemas"]["CotizacionCotservicio.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
             /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
@@ -6499,11 +6480,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             cotservicios?: components["schemas"]["CotizacionCotservicio.jsonld-pax_file.read_pax_cotizacion.read"][];
             /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
@@ -6585,11 +6565,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /**
              * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
              *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
@@ -6694,11 +6673,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: {
@@ -6802,11 +6780,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
@@ -6889,11 +6866,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             /** @default 1.0000 */
             tipoCambio: string;
             /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
@@ -6971,11 +6947,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             cotservicios?: components["schemas"]["CotizacionCotservicio.multipart-pax_catalogo.read_pax_cotizacion.read"][];
             /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
@@ -7048,11 +7023,10 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * Format: uuid
-             * @description El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
-             *     se está vendiendo.
+             * @description Los componentes que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de
+             *     verdad se está vendiendo.
              */
-            destacadoComponenteId?: string | null;
+            destacadosComponenteIds?: string[];
             cotservicios?: components["schemas"]["CotizacionCotservicio.multipart-pax_file.read_pax_cotizacion.read"][];
             /** @description El bloque financiero que ve el cliente: los números de la confirmada, las inclusiones MÍAS. */
             readonly clasificacionFinancieraCliente?: {
