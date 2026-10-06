@@ -4397,6 +4397,32 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         tarifa.grupoTarifa = grupo;
     };
 
+    /** ¿Es éste el componente que la propuesta destaca en su cabecera? */
+    const esComponenteDestacado = (componenteId: string): boolean =>
+        !!componenteId && cotizacion.value?.destacadoComponenteId === componenteId;
+
+    /**
+     * Destaca un componente en la cabecera, o lo quita si ya lo estaba.
+     *
+     * **Uno solo por propuesta, a propósito.** «La experiencia que se vende» es una cosa: el
+     * resort, o la isla. Admitir varios convierte la cabecera en un segundo itinerario y obliga a
+     * decidir orden y cuántos caben. Ampliar a lista después es barato; volver de una lista a uno
+     * no lo es.
+     *
+     * ⚠️ **No hay regla que deduzca cuál es.** Ni el más caro ni el de más noches: en un viaje de
+     * promoción lo que se vende es el resort, y en otro la excursión a Saona aunque cueste diez
+     * veces menos. Lo elige el operador con criterio, y por eso es un botón y no un cálculo.
+     *
+     * Lo que NO decide el operador es de dónde sale el texto: eso ya lo dice
+     * `prestadorVisible` de esa línea. Ver `Cotizacion::$destacadoComponenteId`.
+     */
+    const destacarComponente = (componenteId: string): void => {
+        if (!cotizacion.value || !componenteId) return;
+
+        cotizacion.value.destacadoComponenteId =
+            cotizacion.value.destacadoComponenteId === componenteId ? null : componenteId;
+    };
+
     const marcarTarifaComoOperativa = (tarifaId: string): void => {
         const componente = encontrarComponentePorTarifaId(tarifaId);
         const tarifa = componente?.cottarifas?.find(t => t.id === tarifaId);
@@ -5701,6 +5727,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         marcarTarifaComoOperativa, quitarRolOperativo, modalidadDeTarifa, cambiarModalidadTarifa,
         gruposOpcionalesDe, atarOperativaAGrupo, etiquetaDelGrupoDe,
+        esComponenteDestacado, destacarComponente,
         modalidadesDisponibles,
         componenteActualDeTarifa, componenteEnEdicion, tarifasHermanas, irATarifaAdyacente,
         servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion,

@@ -12160,3 +12160,82 @@ otro que obliga a que la flecha «std → alt» del panel siga acabando en el de
 
 ⚠️ En `grupal` `entreCuantos()` devuelve `numPaxGlobal`, que ahí sí es lo correcto: el monto ya es
 el total del grupo.
+
+---
+
+## La propuesta destaca un bloque en su cabecera (06/10/2026)
+
+Lo que de verdad se vende en un viaje de promoción es el **resort**, y en otro la **excursión**.
+La cabecera lo enseña: fotos y descripción de ese bloque, antes del precio.
+
+### Guarda un PUNTERO, no contenido — y ésa es la decisión entera
+
+`Cotizacion::$destacadoComponenteId` es un id y nada más. La tentación era un campo de texto y
+unas fotos en la cotización; habría sido el **cuarto** sitio donde vive la descripción del
+Occidental Caribe —la organización del catálogo, el contenido del segmento y esa copia—
+envejeciendo por separado en cada propuesta. Es el patrón que en un solo día costó cinco deltas
+desincronizados y cuatro copias de «¿hay estándar visible?».
+
+Apuntando, el hotel se escribe **una vez** y lo heredan las propuestas que lo usen. Y `pax` ya
+recibía todo lo necesario, así que **no se añadió ni un serializador**: cero superficie nueva por
+donde se escape algo.
+
+### De dónde sale cada cosa, y por qué el operador no lo elige
+
+```
+fotos  →  galeriaDe(bloque): las del segmento si las tiene, si no las del prestador   (ya existía)
+texto  →  la descripción del prestador si la propuesta lo PUBLICA, si no la del segmento
+```
+
+**Es excluyente, y lo decide `isPrestadorVisible()` de esa línea.** Medido: de 122 componentes con
+prestador asignado, sólo **47** se publican.
+
+| | prestador | se publica | texto |
+|---|---|---|---|
+| Hotel | Occidental Caribe | **sí** — el resort es la marca | su descripción |
+| Isla Saona | Solarena Tours | **no** — al cliente no se le dice qué agencia le lleva | el del segmento |
+
+Los dos salen bien sin preguntar nada. Y no es frágil: aunque mañana se le escriba una descripción
+a una agencia oculta, el gate del normalizador la corta antes de inyectarla.
+
+Lo que el operador **sí** decide, con criterio y por eso con un botón y no con un cálculo, es
+**qué** destacar: no hay regla que lo deduzca — ni el más caro ni el de más noches.
+
+### 🔑 Cómo sabe `pax` si el prestador se publica, si la bandera no viaja
+
+No viaja, y no hace falta. El normalizador **no inyecta nada** de un prestador oculto, así que:
+
+```
+prestadorTitulo presente  ⟺  la propuesta decidió nombrarlo
+```
+
+Preguntar por el título es preguntar por el permiso, sin un campo más y sin que puedan
+desincronizarse. Es la mejor propiedad del diseño: la regla del cliente **no puede** contradecir
+la del servidor porque es la misma.
+
+### ⚠️ Publicado pero sin descripción: se queda sin texto, a propósito
+
+El contenido del segmento de un alojamiento es **genérico por diseño** —«regresamos a la
+habitación, frigobar a disposición»—, que es lo que permite que un resort nuevo no cueste
+segmentos nuevos. Caer ahí encabezaría la venta de un resort con una narración que no habla de él.
+
+La cabecera enseña título y fotos **sin texto**: un hueco se ve y se arregla; un texto que no es
+del hotel, no.
+
+⚠️ Y hoy hace falta: **0 de 110 organizaciones tienen descripción** y sólo 5 tienen imágenes.
+
+### Enlace blando, a propósito
+
+Es el id en texto y sin clave ajena, como `operacion_orden_servicio_item.operacion_servicio_id`.
+Si el componente se borra al editar, el puntero queda colgando, la cabecera no destaca nada y la
+página queda como antes. Una FK obligaría a elegir entre bloquear el borrado o perder el dato sin
+avisar.
+
+### Dónde tocar
+
+| Necesito… | Archivo | Símbolo |
+|---|---|---|
+| Cambiar qué se destaca | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `destacarComponente()` / `esComponenteDestacado()` |
+| Cambiar de dónde sale el texto o las fotos | `pax/src/views/cotizacion/PaxCotizacionGuiaView.vue` | `destacado` — y `galeriaPorBloque()` para las fotos |
+| Entender el gate del prestador | `src/Cotizacion/Serializer/CotizacionCotcomponentePrestadorPublicNormalizer.php` | el `if ($object->isPrestadorVisible())` |
+| Permitir varios destacados | el campo pasa a lista — hoy es uno a propósito | `Cotizacion::$destacadoComponenteId` |

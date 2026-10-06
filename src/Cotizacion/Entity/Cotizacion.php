@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Patch;
 use App\Attribute\AutoTranslate;
+use Symfony\Component\Validator\Constraints as Assert;
 use DateInterval;
 use DateTimeImmutable;
 use App\Cotizacion\ApiPlatform\Dto\InformeCoherencia;
@@ -376,6 +377,66 @@ class Cotizacion
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $imagenPortada = null;
+
+    /**
+     * El componente que la propuesta DESTACA en su cabecera: el hotel, la isla, lo que de verdad
+     * se está vendiendo.
+     *
+     * ## Guarda un puntero, no contenido — y es la decisión entera
+     *
+     * La tentación es un campo de texto y unas fotos aquí. Sería el **cuarto** sitio donde vive la
+     * descripción del Occidental Caribe —la organización del catálogo, el contenido del segmento y
+     * esta copia— envejeciendo por separado en cada cotización: corriges una errata en una y las
+     * otras catorce siguen diciendo lo viejo. Es el patrón que ya costó cinco deltas
+     * desincronizados y cuatro copias de «¿hay estándar visible?» en un solo día.
+     *
+     * Apuntando, el hotel se escribe **una vez** en el catálogo y lo heredan todas las propuestas
+     * que lo usen. `pax` ya recibe lo necesario —`prestadorDescripcion`, `prestadorImagenes`,
+     * `contenidoSnapshot`, `imagenesSnapshot`— así que aquí no se añade ni un serializador.
+     *
+     * ## Por qué el COMPONENTE y no el segmento
+     *
+     * Es el único nivel que identifica a un prestador sin ambigüedad —un segmento puede llevar
+     * varios componentes de empresas distintas— y su segmento se alcanza desde él. El bloque sale
+     * del componente; al revés no.
+     *
+     * ## De dónde sale cada cosa, y por qué NO lo elige el operador
+     *
+     * ```
+     * fotos  ->  las del segmento si las tiene, si no las del prestador   (regla que ya existe)
+     * texto  ->  la descripción del prestador si la línea lo PUBLICA,
+     *            y si no el contenido del segmento
+     * ```
+     *
+     * ⚠️ **Es excluyente, y lo decide `CotizacionCotcomponente::isPrestadorVisible()`**, no un
+     * selector. Medido el 05/10/2026: de 122 componentes con prestador asignado sólo **47** se
+     * publican. El hotel sí —el resort es la marca que se vende— y la Isla Saona no, porque al
+     * cliente no se le dice qué agencia le lleva; su texto es el del segmento, que además es el
+     * específico. Los dos casos salen bien sin preguntar nada.
+     *
+     * Y no es frágil: aunque mañana se le escriba una descripción a una agencia oculta, el gate del
+     * normalizador la corta antes de inyectarla. Lo que el operador sí decide —con criterio, porque
+     * no hay regla que lo deduzca— es **qué** destacar.
+     *
+     * ⚠️ **El contenido del segmento de un alojamiento es GENÉRICO a propósito** («regresamos a la
+     * habitación, frigobar a disposición»): es lo que permite que un resort nuevo no cueste
+     * segmentos nuevos. Por eso, si se destaca un hotel cuyo prestador se publica pero **no tiene
+     * descripción escrita**, la cabecera enseña título y fotos **sin texto** en vez de caer a esa
+     * narración: un hueco se ve y se arregla; un texto que no habla del hotel, no.
+     *
+     * ## Enlace blando, a propósito
+     *
+     * Es el id en texto y sin clave ajena, como `OperacionOrdenServicioItem::$operacionServicioId`.
+     * Si el componente se borra al editar, el puntero queda colgando y la cabecera simplemente no
+     * destaca nada — que es la degradación que se quiere. Una FK obligaría a elegir entre bloquear
+     * el borrado o perder el dato sin avisar.
+     *
+     * @see CotizacionCotcomponente::isPrestadorVisible()
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
+    #[Assert\Uuid(message: 'El componente destacado tiene que ser un identificador válido.')]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $destacadoComponenteId = null;
 
     /**
      * Portada efectiva del tour para pintar su tarjeta: el override editorial
@@ -779,6 +840,15 @@ class Cotizacion
 
     public function getTipoCambio(): string { return $this->tipoCambio; }
     public function setTipoCambio(string $tipoCambio): self { $this->tipoCambio = $tipoCambio; return $this; }
+
+    public function getDestacadoComponenteId(): ?string { return $this->destacadoComponenteId; }
+
+    public function setDestacadoComponenteId(?string $destacadoComponenteId): self
+    {
+        $this->destacadoComponenteId = $destacadoComponenteId;
+
+        return $this;
+    }
 
     /**
      * @return array<string, mixed>

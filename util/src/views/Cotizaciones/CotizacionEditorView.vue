@@ -3155,6 +3155,33 @@ store.$onAction(({ name, args }) => {
                     </span>
                   </div>
 
+                  <!-- ══ DESTACADO EN LA CABECERA ═══════════════════════════
+                       La propuesta destaca UN componente: el resort, la isla — lo que de verdad
+                       se está vendiendo. La cabecera saca de él su descripción y sus fotos **del
+                       catálogo**, así que no hay nada que escribir aquí.
+
+                       ⚠️ No hay regla que deduzca cuál es: ni el más caro ni el de más noches. En
+                       un viaje de promoción se vende el resort, y en otro la excursión a Saona
+                       aunque cueste diez veces menos. Lo elige el operador, y por eso es un botón.
+
+                       De dónde sale el texto NO se elige aquí: lo dice `prestadorVisible` de esta
+                       línea. Con el prestador publicado manda su descripción —el hotel es la
+                       marca—; oculto, manda el contenido del segmento, que es lo correcto para una
+                       excursión donde al cliente no se le dice qué agencia le lleva. -->
+                  <div class="mb-3">
+                    <button type="button" @click.stop="store.destacarComponente(comp.id)"
+                            class="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-lg border transition-colors"
+                            :class="store.esComponenteDestacado(comp.id)
+                              ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200'
+                              : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                            :title="store.esComponenteDestacado(comp.id)
+                              ? 'Es lo que destaca la cabecera de esta propuesta. Toca para quitarlo.'
+                              : 'Destacar en la cabecera: su descripción y sus fotos del catálogo encabezan la propuesta.'">
+                      <i class="text-[8px]" :class="store.esComponenteDestacado(comp.id) ? 'fas fa-star' : 'far fa-star'"></i>
+                      {{ store.esComponenteDestacado(comp.id) ? 'Destacado en la cabecera' : 'Destacar' }}
+                    </button>
+                  </div>
+
                   <!-- ══ A QUIÉN APLICA, EN LA PROPIA TARJETA ═══════════════
                        Desde la lista no se veía si un componente ya estaba acotado: había que
                        abrirlo para saberlo, y con cinco partes eso es abrir cinco. Colapsado

@@ -685,6 +685,56 @@ const galeriaPorBloque = computed<Map<string, { imageUrl: string }[]>>(() => {
 const galeriaDe = (bloque: BloqueVista): { imageUrl: string }[] =>
     galeriaPorBloque.value.get(bloque.key) ?? [];
 
+/**
+ * Lo que la propuesta DESTACA en su cabecera: el resort, la isla — lo que de verdad se vende.
+ *
+ * La cotización guarda sólo un puntero (`destacadoComponenteId`); todo lo que se pinta sale de
+ * datos que esta vista **ya recibía**. Por eso no hay serializador nuevo ni superficie nueva por
+ * donde se pueda escapar algo.
+ *
+ * ## De dónde sale cada cosa, y por qué no hay que preguntar
+ *
+ * ```
+ * fotos  ->  galeriaDe(bloque): las del segmento si las tiene, si no las del prestador
+ * texto  ->  la descripción del prestador si la propuesta lo PUBLICA, si no la del segmento
+ * ```
+ *
+ * ⚠️ **Cómo se sabe si lo publica, si la bandera no viaja.** No viaja —lo dice el tipo— pero no
+ * hace falta: el normalizador del servidor **no inyecta nada** de un prestador oculto, así que
+ * `prestadorTitulo` presente ⟺ la propuesta decidió nombrarlo. Preguntar por el título es
+ * preguntar por el permiso, sin un campo más y sin poder desincronizarse de él.
+ *
+ * Los dos casos reales salen bien sin elegir: el hotel publica a Occidental Caribe —el resort es
+ * la marca que se vende— y la Isla Saona oculta a Solarena Tours, así que su texto es el del
+ * segmento, que además es el específico.
+ *
+ * ⚠️ **Si lo publica pero no tiene descripción escrita, se queda SIN texto**, y es deliberado: el
+ * contenido del segmento de un alojamiento es genérico a propósito («regresamos a la habitación,
+ * frigobar a disposición») y caer ahí sería encabezar la venta de un resort con una narración que
+ * no habla de él. Un hueco se ve y se arregla; un texto que no es del hotel, no.
+ */
+const destacado = computed<{ titulo: I18n; texto: I18n; fotos: { imageUrl: string }[] } | null>(() => {
+  const id = store.cotizacion?.destacadoComponenteId;
+  if (!id) return null;
+
+  for (const dia of itinerarioVista.value) {
+    for (const bloque of dia.bloques) {
+      const comp = bloque.componentes.find((c) => c.id === id);
+      if (!comp) continue;
+
+      const loPublica = (comp.prestadorTitulo ?? []).length > 0;
+
+      return {
+        titulo: loPublica ? (comp.prestadorTitulo ?? []) : (bloque.segmento.tituloSnapshot ?? []),
+        texto: loPublica ? (comp.prestadorDescripcion ?? []) : (bloque.segmento.contenidoSnapshot ?? []),
+        fotos: galeriaDe(bloque),
+      };
+    }
+  }
+
+  return null;
+});
+
 const desplazarGaleria = (ev: Event, dir: number) => {
   const wrap = (ev.currentTarget as HTMLElement).closest('[data-galeria]');
   const track = wrap?.querySelector('.galeria-track') as HTMLElement | null;
@@ -1870,6 +1920,59 @@ const adelantoVista = computed(() => {
           <div v-if="hayPanelPrecio" class="h-8 md:h-10"></div>
         </div>
       </header>
+
+      <!-- ══ LO QUE SE VENDE ════════════════════════════════════════════════════
+           El resort, la isla — lo que la propuesta decidió destacar. Va antes del precio a
+           propósito: primero qué compras, después cuánto cuesta.
+
+           Todo sale de `destacado`, que compone desde datos que esta vista ya recibía. Si la
+           propuesta no destaca nada, o el componente se borró al editar, esto no existe y la
+           página queda exactamente como antes. ══ -->
+      <section v-if="destacado" class="relative z-20 max-w-3xl mx-auto px-4 mt-6 no-imprimir">
+        <div class="bg-white rounded-3xl border border-slate-100 shadow-[0_12px_40px_rgb(55,104,117,0.10)] overflow-hidden">
+
+          <!-- Las fotos primero: es lo que convence. Mismo carrusel que los bloques del día. -->
+          <div v-if="destacado.fotos.length" class="relative" data-galeria>
+            <div class="galeria-track flex overflow-x-auto snap-x snap-mandatory scroll-smooth">
+              <img
+                  v-for="(img, i) in destacado.fotos"
+                  :key="img.imageUrl"
+                  :src="img.imageUrl"
+                  :alt="store.traducir(destacado.titulo)"
+                  :loading="i === 0 ? 'eager' : 'lazy'"
+                  class="w-full shrink-0 snap-center object-cover h-52 md:h-72"
+              >
+            </div>
+            <button
+                v-if="destacado.fotos.length > 1"
+                @click="desplazarGaleria($event, -1)"
+                class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/85 text-slate-600 shadow flex items-center justify-center"
+                :aria-label="maestroStore.t('cot_anterior') || 'Anterior'"
+            ><i class="fas fa-chevron-left text-xs"></i></button>
+            <button
+                v-if="destacado.fotos.length > 1"
+                @click="desplazarGaleria($event, 1)"
+                class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/85 text-slate-600 shadow flex items-center justify-center"
+                :aria-label="maestroStore.t('cot_siguiente') || 'Siguiente'"
+            ><i class="fas fa-chevron-right text-xs"></i></button>
+          </div>
+
+          <div class="px-5 py-4">
+            <h2 class="text-lg md:text-xl font-black text-[#376875] leading-tight">
+              {{ store.traducir(destacado.titulo) }}
+            </h2>
+
+            <!-- Sin texto no se pinta el hueco: ver el porqué en `destacado`. -->
+            <!-- eslint-disable vue/no-v-html -- Contenido del catálogo maestro, redactado por el equipo. HTML a propósito. -->
+            <div
+                v-if="store.traducir(destacado.texto)"
+                class="prose prose-sm max-w-none mt-2 text-slate-600"
+                v-html="store.traducir(destacado.texto)"
+            ></div>
+            <!-- eslint-enable vue/no-v-html -->
+          </div>
+        </div>
+      </section>
 
       <!-- ══ TARJETA DE PRECIO ══════════════════════════════════════════════════
            Un solo control, dos estados: colapsada muestra el agregado (precio por
