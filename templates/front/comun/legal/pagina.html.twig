@@ -1,0 +1,15 @@
+{% extends layout %}
+
+{% block titulo %}{{ titulo|trans({}, 'front') }} · {{ front.marca }}{% endblock %}
+
+{% block cuerpo %}
+<div class="pagina-texto">
+    <nav class="migas" aria-label="{{ 'nav.migas'|trans({}, 'front') }}" style="padding-top:0;margin-bottom:12px">
+        <a href="{{ block('url_inicio') }}">{{ 'nav.inicio'|trans({}, 'front') }}</a> › {{ titulo|trans({}, 'front') }}
+    </nav>
+    <h1>{{ titulo|trans({}, 'front') }}</h1>
+    <div class="contenido-rico">
+        {% include cuerpo %}
+    </div>
+</div>
+{% endblock %}

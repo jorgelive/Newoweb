@@ -2,6 +2,12 @@
 framework:
     secret: '%env(APP_SECRET)%'
     #csrf_protection: true
+    # Formularios de la web pública SIN sesión: el token se valida por Origin/Referer (y cookie
+    # de doble envío si hay JS). Con sesión, la cookie lleva `cookie_domain` = .openperu.pe y en
+    # centrocuscointi.com el navegador la rechazaría: el formulario fallaría siempre por CSRF.
+    # Además, sin sesión las páginas se pueden cachear. Ver docs/WebPublica.md §5.
+    csrf_protection:
+        stateless_token_ids: ['front_libro_reclamacion']
     http_method_override: false
     translator: { fallbacks: ['%locale%'] }
 

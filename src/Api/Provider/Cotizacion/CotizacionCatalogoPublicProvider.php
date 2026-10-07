@@ -9,10 +9,8 @@ use ApiPlatform\State\ProviderInterface;
 use ApiPlatform\Metadata\Operation;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionCatalogo;
-use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Cotizacion\Service\TourTarjetaResolver;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Bundle\SecurityBundle\Security;
 
 /**
@@ -60,73 +58,43 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
         $previsualiza = $this->security->isGranted('ROLE_USER');
 
 
-        // ── 1. Cards para la portada: un solo query escalar ──────────────────
-        // Mismas formas que en `CotizacionFilePublicProvider`: columnas por su tipo, `MIN()`/`MAX()`
-        // en texto, y un JSON `NOT NULL` que puede traer el literal `null`.
-        /**
-         * @var list<array{id: \Symfony\Component\Uid\Uuid, imagenPortada: array<mixed>|null, propuesta: int,
-         *     estado: CotizacionEstadoEnum|string, publicado: bool, numPax: int, titulo: array<mixed>|null,
-         *     resumen: array<mixed>|null, idiomaCliente: string, monedaGlobal: string, precioOculto: bool,
-         *     totalVenta: string, preciosDesde: array<mixed>|null, orden: int,
-         *     fechaMin: ?string, fechaMax: ?string}> $filas
-         */
-        $filas = $this->em->createQuery(<<<'DQL'
-            SELECT c.id, c.imagenPortada, c.propuesta, c.estado, c.publicado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
-                   c.monedaGlobal, c.precioOculto, c.totalVenta,
-                   c.preciosDesde, c.orden,
-                   MIN(s.fechaInicioAbsoluta) AS fechaMin, MAX(s.fechaInicioAbsoluta) AS fechaMax
-            FROM App\Cotizacion\Entity\Cotizacion c
-            LEFT JOIN c.cotservicios s
-            WHERE c.catalogo = :catalogo
-              AND (c.publicado = true OR :previsualiza = true)
-            GROUP BY c.id
-            ORDER BY c.orden ASC, c.propuesta ASC
-        DQL)
-            ->setParameter('catalogo', $catalogo->getId(), UuidType::NAME)
-            ->setParameter('previsualiza', $previsualiza)
-            ->getArrayResult();
+        // ── 1. Cards para la portada: las arma `TourTarjetaResolver::tarjetas()` ──────
+        // (un query escalar; portada y precio oculto ya resueltos allí, que es la fuente única
+        // también para la web pública).
+        $tarjetas = $this->tarjetas->tarjetas($catalogo, $previsualiza);
 
         // Sin ningún tour público vigente, el catálogo no es visible
-        if ($filas === []) {
+        if ($tarjetas === []) {
             return null;
         }
-
-        // Portadas automáticas: imágenes de los segmentos en orden de itinerario
-        $portadas = $this->tarjetas->portadasDerivadas(array_column($filas, 'id'));
 
         // 🔥 **El catálogo también deja pasar al operador, y no lo decía.** Previsualizar un tour
         // sin publicar es útil y deliberado; que no se distinga de uno vivo, no. Ver
         // `CotizacionCatalogo::$saltosDeOperador` y el cartel `AvisoVistaDeOperador` de `pax`.
         if ($previsualiza) {
-            $hayBorradores = array_filter($filas, static fn (array $f): bool => !$f['publicado']);
+            $hayBorradores = array_filter($tarjetas, static fn (array $t): bool => !$t['publicado']);
             $catalogo->setSaltosDeOperador($hayBorradores !== [] ? ['sin_publicar'] : []);
         }
 
-        $catalogo->setToursParaCliente(array_map(static function (array $f) use ($portadas, $previsualiza): array {
-            $oculto = (bool) $f['precioOculto'];
-            $estado = $f['estado'] instanceof CotizacionEstadoEnum ? $f['estado']->value : $f['estado'];
-
-            return [
-                'propuesta'           => $f['propuesta'],
-                // Cuál de ellos, no sólo que hay alguno: con varios tours en la parrilla, el
-                // cartel de arriba no basta para saber cuál se puede enseñar. Nulo para el
-                // cliente, que ni siquiera consulta los no publicados.
-                'sinPublicar'       => $previsualiza ? !$f['publicado'] : null,
-                'estado'            => $estado,
-                'numPax'            => $f['numPax'],
-                'titulo'            => $f['titulo'] ?? [],         // I18nContent[] (texto)
-                'resumen'           => $f['resumen'] ?? [],        // I18nContent[] (HTML)
-                'idiomaCliente'     => $f['idiomaCliente'],
-                'monedaGlobal'      => $f['monedaGlobal'],
-                'precioOculto'      => $oculto,
-                'orden'             => $f['orden'],
-                // Rangos comerciales de exhibición ("Desde X" por perfil); el financiero real no se expone
-                'preciosDesde'      => $oculto ? [] : ($f['preciosDesde'] ?? []),
-                // Override editorial primero; si no, la derivada del itinerario
-                'imagenPortada'     => $f['imagenPortada'] ?? $portadas[TourTarjetaResolver::clave($f['id'])] ?? null,
-                'numDias'           => TourTarjetaResolver::numDias($f['fechaMin'], $f['fechaMax']),
-            ];
-        }, $filas));
+        $catalogo->setToursParaCliente(array_map(static fn (array $t): array => [
+            'propuesta'     => $t['propuesta'],
+            // Cuál de ellos, no sólo que hay alguno: con varios tours en la parrilla, el
+            // cartel de arriba no basta para saber cuál se puede enseñar. Nulo para el
+            // cliente, que ni siquiera consulta los no publicados.
+            'sinPublicar'   => $previsualiza ? !$t['publicado'] : null,
+            'estado'        => $t['estado'],
+            'numPax'        => $t['numPax'],
+            'titulo'        => $t['titulo'],         // I18nContent[] (texto)
+            'resumen'       => $t['resumen'],        // I18nContent[] (HTML)
+            'idiomaCliente' => $t['idiomaCliente'],
+            'monedaGlobal'  => $t['monedaGlobal'],
+            'precioOculto'  => $t['precioOculto'],
+            'orden'         => $t['orden'],
+            // Rangos comerciales de exhibición ("Desde X" por perfil); el financiero real no se expone
+            'preciosDesde'  => $t['preciosDesde'],
+            'imagenPortada' => $t['imagenPortada'],
+            'numDias'       => $t['numDias'],
+        ], $tarjetas));
 
         // ── 2. Detalle: cargar SOLO el tour solicitado ────────────────────────
         if (isset($uriVariables['propuesta'])) {

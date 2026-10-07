@@ -1,0 +1,35 @@
+# openperu.pe (tours) strings. See front_tours.es.yaml.
+nav:
+    tours: Tours
+    alojamiento: Accommodation
+portada:
+    meta_titulo: '%marca% · Tours and deals in Cusco'
+    meta_descripcion: 'Discounted tours around Cusco and the Sacred Valley. Check availability and book on WhatsApp.'
+    etiqueta: 'Special offers'
+    heroe_titulo: 'Discover Cusco with our special offers'
+    heroe_texto: 'Day tours and Andean programs at promotional prices, with direct support on WhatsApp.'
+    ver_tours: 'See tours'
+    escribenos: 'Message us'
+    whatsapp_mensaje: "Hi, I'd like information about your tour deals."
+    sin_tours_titulo: 'New deals coming soon'
+    sin_tours_texto: "Message us and we'll tell you which departures are available."
+    alojamiento_titulo: 'Looking for a place to stay in Cusco?'
+    alojamiento_texto: "%nombre%: holiday apartments in Cusco's historic centre, a few minutes from the Plaza de Armas."
+    alojamiento_boton: 'See apartments'
+catalogo:
+    ver_todos: 'See all'
+tour:
+    dia: day
+    dias: days
+    desde: From
+    ver: 'See tour'
+    precio_general: Rate
+    consultar: 'Check availability'
+    reservar: Booking
+    whatsapp_mensaje: 'Hi, I''m interested in the tour "%tour%": %url%'
+    itinerario: 'See full itinerary'
+    galeria: Gallery
+    otros: 'Other tours you may like'
+    nota_precio: 'Indicative "from" prices. We''ll confirm availability and the final price for your date on WhatsApp.'
+pie:
+    lema: 'Tours and deals in Cusco.'

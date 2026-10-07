@@ -1,0 +1,28 @@
+{% extends 'front/tours/layout.html.twig' %}
+
+{% block titulo %}{{ catalogo.titulo }} · {{ front.marca }}{% endblock %}
+{% block descripcion %}{{ (catalogo.descripcionHtml ? catalogo.descripcionHtml|striptags|trim : 'portada.meta_descripcion'|trans({}, 'front_tours'))|front_recorte }}{% endblock %}
+{% block imagen_social %}{% if catalogo.imagenUrl %}{{ catalogo.imagenUrl|trim('/', 'left')|imagine_filter('travel_cliente') }}{% endif %}{% endblock %}
+
+{% block cuerpo %}
+<div class="envoltura">
+    <nav class="migas" aria-label="{{ 'nav.migas'|trans({}, 'front') }}">
+        <a href="{{ path('front_portada') }}">{{ 'nav.inicio'|trans({}, 'front') }}</a> › {{ catalogo.titulo }}
+    </nav>
+</div>
+<section class="seccion" style="padding-top:24px">
+    <div class="envoltura">
+        <div class="seccion-cabecera">
+            <div>
+                <h1>{{ catalogo.titulo }}</h1>
+                {% if catalogo.descripcionHtml %}<div class="entradilla">{{ catalogo.descripcionHtml|raw }}</div>{% endif %}
+            </div>
+        </div>
+        <div class="rejilla">
+            {% for tour in catalogo.tours %}
+                {% include 'front/tours/_tarjeta_tour.html.twig' %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

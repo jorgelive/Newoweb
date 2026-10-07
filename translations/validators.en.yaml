@@ -1,0 +1,5 @@
+# See validators.es.yaml.
+libro.error.obligatorio: This field is required.
+libro.error.email: This email address doesn't look valid.
+libro.error.apoderado: If you are under 18, enter the name of your parent or legal guardian.
+libro.error.acepto: You must declare that the information is true.

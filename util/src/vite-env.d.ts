@@ -13,6 +13,8 @@ interface Window {
         apiUrl: string;
         panelUrl: string;
         paxUrl: string;
+        /** La web pública (openperu.pe), desde FRONT_HOST. */
+        webUrl?: string;
     };
 }
 

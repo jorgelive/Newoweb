@@ -1,0 +1,24 @@
+{# Tarjeta de un tour. Recibe `tour` (TourTarjetaWeb) y `catalogo` (CatalogoWeb). #}
+<a class="tarjeta" href="{{ path('front_tour', {'catalogo': catalogo.slug, 'tour': tour.propuesta ~ '-' ~ tour.slug}) }}">
+    <div class="tarjeta-foto">
+        {% if tour.imagenUrl %}
+            <img src="{{ tour.imagenUrl|trim('/', 'left')|imagine_filter('travel_cliente') }}" alt="{{ tour.titulo }}" loading="lazy" width="800" height="600">
+        {% endif %}
+        {% if tour.numDias %}
+            <span class="chip">{{ tour.numDias }} {{ (tour.numDias == 1 ? 'tour.dia' : 'tour.dias')|trans({}, 'front_tours') }}</span>
+        {% endif %}
+    </div>
+    <div class="tarjeta-cuerpo">
+        <h3>{{ tour.titulo }}</h3>
+        {% if tour.resumenPlano %}<p class="tarjeta-resumen">{{ tour.resumenPlano }}</p>{% endif %}
+        <div class="tarjeta-pie">
+            {% set precio = tour.precioPrincipal %}
+            {% if precio %}
+                <div class="precio-desde"><small>{{ 'tour.desde'|trans({}, 'front_tours') }}</small><strong>{{ precio.formateado }}</strong></div>
+            {% else %}
+                <span></span>
+            {% endif %}
+            <span class="flecha">{{ 'tour.ver'|trans({}, 'front_tours') }} →</span>
+        </div>
+    </div>
+</a>

@@ -272,6 +272,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `config/packages/security.yaml`, `src/Controller/SecurityController.php`, login y «Recordarme» en `util/` | `docs/Autenticacion.md` — y la regla de cuándo vale `IS_AUTHENTICATED_FULLY` |
 | `src/Panel/Controller/DashboardController.php` (menú lateral), acciones personalizadas de cualquier `*CrudController` (`linkToCrudAction()`) | `docs/PanelEasyAdmin.md` — por qué una acción sin `#[AdminRoute]` no resalta su entrada del menú |
 | `src/Dto/Lee.php`, cualquier `src/<Modulo>/Dto/` que lea un JSON de fuera (webhooks, APIs, skills) | `docs/TiposDeFrontera.md` — la regla, el lector y la prueba contra datos reales antes de cambiar una frontera |
+| `src/Front/` (`Comun/`, `Tours/`, y `Alojamiento/` cuando exista), `templates/front/`, `translations/front*.yaml`, `public/front/` (las webs públicas: openperu.pe y centrocuscointi.com) | `docs/WebPublica.md` — y el plan por fases en `docs/PlanWebPublica.md` |
 | Algo del panel Sonata viejo (`Oweb`, archivado; sus tablas `res_*`/`use_*` ya no existen desde el 21/09/2026), o un feed iCal para un canal | `docs/OwebArchivado.md` — qué se quitó, qué se quedó y quién leía sus iCal |
 
 Si el módulo que tocas no tiene doc (`src/Pax/`…), **créalo**

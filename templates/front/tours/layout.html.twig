@@ -1,0 +1,20 @@
+{#
+  Layout de openperu.pe (tours). Lo extienden las páginas de tours y, vía SitioWeb::layout(), las
+  comunes (Libro de Reclamaciones, legales) cuando se piden desde este dominio.
+#}
+{% extends 'front/comun/base.html.twig' %}
+
+{% block url_inicio %}{{ path('front_portada', {'_locale': app.request.locale}) }}{% endblock %}
+
+{% block descripcion %}{{ 'portada.meta_descripcion'|trans({}, 'front_tours') }}{% endblock %}
+
+{% block nav %}
+    <a href="{{ path('front_portada', {'_locale': app.request.locale}) }}#tours">{{ 'nav.tours'|trans({}, 'front_tours') }}</a>
+    {# Mientras no exista centrocuscointi.com, la sección de alojamiento vive en la portada. #}
+    <a class="nav-secundario" href="{{ path('front_portada', {'_locale': app.request.locale}) }}#alojamiento">{{ 'nav.alojamiento'|trans({}, 'front_tours') }}</a>
+    <a class="nav-secundario" href="{{ front_whatsapp() }}" target="_blank" rel="noopener">{{ 'nav.contacto'|trans({}, 'front') }}</a>
+{% endblock %}
+
+{% block pie_lema %}{{ 'pie.lema'|trans({}, 'front_tours') }}{% endblock %}
+
+{% block whatsapp_flotante %}{{ front_whatsapp('portada.whatsapp_mensaje'|trans({}, 'front_tours')) }}{% endblock %}

@@ -1,0 +1,6 @@
+# Mensajes de validación con clave propia (los de Symfony ya vienen traducidos).
+# Hoy sólo los usa el Libro de Reclamaciones de la web pública (App\Front\Entity\LibroReclamacion).
+libro.error.obligatorio: Este campo es obligatorio.
+libro.error.email: El correo electrónico no parece válido.
+libro.error.apoderado: Si eres menor de edad, indica el nombre de tu padre, madre o apoderado.
+libro.error.acepto: Debes declarar que los datos son verdaderos.

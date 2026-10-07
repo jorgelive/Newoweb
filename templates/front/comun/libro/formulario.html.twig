@@ -1,0 +1,75 @@
+{% extends layout %}
+
+{% block titulo %}{{ 'libro.titulo'|trans({}, 'front') }} · {{ front.marca }}{% endblock %}
+{% block descripcion %}{{ 'libro.descripcion'|trans({}, 'front') }}{% endblock %}
+
+{% macro campo(f, ancho) %}
+    <div class="campo{{ ancho ? ' ancho' : '' }}">
+        {{ form_label(f) }}
+        {{ form_widget(f) }}
+        {{ form_errors(f) }}
+    </div>
+{% endmacro %}
+
+{% block cuerpo %}
+{% import _self as m %}
+<div class="pagina-texto">
+    <h1>{{ 'libro.titulo'|trans({}, 'front') }}</h1>
+    <p>{{ 'libro.intro'|trans({}, 'front') }}</p>
+
+    <div class="titular-legal">
+        <strong>{{ front.razon_social }}</strong> · RUC {{ front.ruc }}<br>
+        {{ 'libro.nombre_comercial'|trans({}, 'front') }}: {{ front.nombre_comercial }} — {{ front.marca }}<br>
+        {{ front.direccion }}<br>
+        {{ 'libro.fecha'|trans({}, 'front') }}: {{ 'now'|date('d/m/Y') }}
+    </div>
+
+    {% if not form.vars.valid %}
+        <div class="errores-form">{{ 'libro.error.revisa'|trans({}, 'front') }}{{ form_errors(form) }}</div>
+    {% endif %}
+
+    {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+        <section class="bloque">
+            <h2>1. {{ 'libro.bloque.consumidor'|trans({}, 'front') }}</h2>
+            <div class="campos">
+                {{ m.campo(form.consumidorNombre, true) }}
+                {{ m.campo(form.consumidorDocumentoTipo) }}
+                {{ m.campo(form.consumidorDocumentoNumero) }}
+                {{ m.campo(form.consumidorDomicilio, true) }}
+                {{ m.campo(form.consumidorTelefono) }}
+                {{ m.campo(form.consumidorEmail) }}
+                <div class="campo ancho casilla">{{ form_widget(form.consumidorEsMenor) }} {{ form_label(form.consumidorEsMenor) }}{{ form_errors(form.consumidorEsMenor) }}</div>
+                {{ m.campo(form.apoderadoNombre, true) }}
+            </div>
+        </section>
+
+        <section class="bloque">
+            <h2>2. {{ 'libro.bloque.bien'|trans({}, 'front') }}</h2>
+            <div class="campos">
+                <div class="campo ancho">{{ form_label(form.bienTipo) }}<div class="opciones">{{ form_widget(form.bienTipo) }}</div>{{ form_errors(form.bienTipo) }}</div>
+                {{ m.campo(form.bienMonto) }}
+                {{ m.campo(form.bienDescripcion, true) }}
+            </div>
+        </section>
+
+        <section class="bloque">
+            <h2>3. {{ 'libro.bloque.detalle'|trans({}, 'front') }}</h2>
+            <div class="campos">
+                <div class="campo ancho">{{ form_label(form.tipo) }}<div class="opciones">{{ form_widget(form.tipo) }}</div>{{ form_errors(form.tipo) }}
+                    <p class="nota" style="margin-top:6px">{{ 'libro.tipo_ayuda'|trans({}, 'front') }}</p>
+                </div>
+                {{ m.campo(form.detalle, true) }}
+                {{ m.campo(form.pedido, true) }}
+            </div>
+        </section>
+
+        <div class="trampa" aria-hidden="true">{{ form_widget(form.sitioWeb, {'attr': {'tabindex': '-1', 'autocomplete': 'off'}}) }}</div>
+
+        <section class="bloque">
+            <div class="campo casilla">{{ form_widget(form.acepto) }} {{ form_label(form.acepto) }}{{ form_errors(form.acepto) }}</div>
+            <p class="nota" style="margin-top:10px">{{ 'libro.plazo'|trans({}, 'front') }}</p>
+            <p style="margin:16px 0 0"><button type="submit" class="boton boton-primario">{{ 'libro.enviar'|trans({}, 'front') }}</button></p>
+        </section>
+    {{ form_end(form) }}
+</div>
+{% endblock %}

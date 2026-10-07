@@ -47,7 +47,7 @@ desmintió —en `KEYWORDS` sale con `RESERVED = 0`, y un `UPDATE` sin comillas 
 se deshizo. La consulta a `KEYWORDS` en las dos versiones es la fuente; las listas de memoria, no.
 
 **Mismos dominios y mismo puerto que con MAMP**, así que no se tocó ningún `.env` ni la config de
-Vite: `https://{newapi,newoweb,panel,util,pax}.openperu.test:8890` (y `:8888` redirige a HTTPS).
+Vite: `https://{newapi,panel,util,pax,front}.openperu.test:8890` y `https://centrocuscointi.test:8890` (y `:8888` redirige a HTTPS).
 
 ## Instalar desde cero
 
@@ -86,7 +86,7 @@ mkcert -install
 ```
 
 ```bash
-echo "127.0.0.1 newapi.openperu.test newoweb.openperu.test panel.openperu.test pax.openperu.test util.openperu.test" | sudo tee -a /etc/hosts
+echo "127.0.0.1 newapi.openperu.test panel.openperu.test pax.openperu.test util.openperu.test front.openperu.test centrocuscointi.test" | sudo tee -a /etc/hosts
 ```
 
 ## La base de datos
@@ -192,7 +192,7 @@ Doctrine avisa de que en DBAL 4 cambia cómo la interpreta. Ya pasaba con `8.0`.
 
 | Necesidad | Archivo |
 |---|---|
-| Añadir un dominio local | `nginx-newoweb.conf` (`server_name` ×2), el `mkcert` de `instalar.sh`, y `/etc/hosts` |
+| Añadir un dominio local | `nginx-newoweb.conf` (`server_name` ×2), `DOMINIOS` de `instalar.sh` (regenera el certificado solo si falta alguno) y `/etc/hosts` |
 | Cambiar una regla de nginx | `nginx-newoweb.conf` y luego `instalar.sh` — **nunca** la copia instalada en `/opt/homebrew/etc/nginx/servers/` |
 | Límites de PHP | `/opt/homebrew/etc/php/8.4/conf.d/99-newoweb.ini` (fuera del repo) |
 | Logs de nginx | `/opt/homebrew/var/log/nginx/newoweb_error.log` |

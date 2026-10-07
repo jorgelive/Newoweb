@@ -1,0 +1,100 @@
+{% extends 'front/tours/layout.html.twig' %}
+
+{% set tour = ficha.tour %}
+{% set catalogo = ficha.catalogo %}
+{% set url_tour = alternos[app.request.locale]|default(app.request.uri) %}
+{% set mensaje_wa = 'tour.whatsapp_mensaje'|trans({'%tour%': tour.titulo, '%url%': url_tour}, 'front_tours') %}
+
+{% block titulo %}{{ tour.titulo }} · {{ front.marca }}{% endblock %}
+{% block descripcion %}{{ (tour.resumenPlano ?? tour.titulo)|front_recorte }}{% endblock %}
+{% block imagen_social %}{% if tour.imagenUrl %}{{ tour.imagenUrl|trim('/', 'left')|imagine_filter('travel_cliente') }}{% endif %}{% endblock %}
+{% block whatsapp_flotante %}{{ front_whatsapp(mensaje_wa) }}{% endblock %}
+
+{% block datos_estructurados %}
+    {# schema.org TouristTrip: lo que un buscador lee para enseñar precio y foto en el resultado. #}
+    {% set precio = tour.precioPrincipal %}
+    {% set ld = {
+        '@context': 'https://schema.org',
+        '@type': 'TouristTrip',
+        'name': tour.titulo,
+        'description': tour.resumenPlano ?? tour.titulo,
+        'url': url_tour,
+        'provider': {'@type': 'TravelAgency', 'name': front.marca, 'telephone': front.telefono_visible, 'email': front.correo},
+    } %}
+    {% if tour.imagenUrl %}{% set ld = ld|merge({'image': tour.imagenUrl|trim('/', 'left')|imagine_filter('travel_cliente')}) %}{% endif %}
+    {% if precio %}{% set ld = ld|merge({'offers': {'@type': 'Offer', 'price': precio.valor, 'priceCurrency': precio.moneda, 'availability': 'https://schema.org/InStock', 'url': url_tour}}) %}{% endif %}
+    <script type="application/ld+json">{{ ld|json_encode(constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES'))|raw }}</script>
+{% endblock %}
+
+{% block cuerpo %}
+<div class="envoltura">
+    <nav class="migas" aria-label="{{ 'nav.migas'|trans({}, 'front') }}">
+        <a href="{{ path('front_portada') }}">{{ 'nav.inicio'|trans({}, 'front') }}</a> ›
+        <a href="{{ path('front_catalogo', {'catalogo': catalogo.slug}) }}">{{ catalogo.titulo }}</a> ›
+        {{ tour.titulo }}
+    </nav>
+
+    <article class="ficha">
+        <div>
+            <div class="ficha-foto">
+                {% if tour.imagenUrl %}
+                    <img src="{{ tour.imagenUrl|trim('/', 'left')|imagine_filter('travel_cliente') }}" alt="{{ tour.titulo }}" fetchpriority="high" width="1600" height="900">
+                {% endif %}
+            </div>
+            <h1 style="margin-top:20px">{{ tour.titulo }}</h1>
+            <div class="ficha-datos">
+                {% if tour.numDias %}<span class="dato">{{ tour.numDias }} {{ (tour.numDias == 1 ? 'tour.dia' : 'tour.dias')|trans({}, 'front_tours') }}</span>{% endif %}
+            </div>
+
+            {% if tour.resumenHtml %}
+                {# HTML del editor de cotizaciones (y su traducción automática): lo escribe el equipo, no el público. #}
+                <div class="contenido-rico">{{ tour.resumenHtml|raw }}</div>
+            {% endif %}
+
+            <p><a class="boton boton-borde" href="{{ itinerario_url }}" target="_blank" rel="noopener">{{ 'tour.itinerario'|trans({}, 'front_tours') }}</a></p>
+
+            {% if ficha.galeria|length > 1 %}
+                <h2 style="margin-top:32px">{{ 'tour.galeria'|trans({}, 'front_tours') }}</h2>
+                <div class="galeria">
+                    {% for img in ficha.galeria|slice(0, 12) %}
+                        {% set grande = img|trim('/', 'left')|imagine_filter('travel_cliente') %}
+                        <a href="{{ grande }}" target="_blank" rel="noopener"><img src="{{ grande }}" alt="{{ tour.titulo }} — {{ loop.index }}" loading="lazy" width="480" height="360"></a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <aside class="caja-reserva" aria-label="{{ 'tour.reservar'|trans({}, 'front_tours') }}">
+            {% if tour.precios is not empty %}
+                <div>
+                    <small style="text-transform:uppercase;letter-spacing:.06em;color:var(--suave);font-size:.75rem">{{ 'tour.desde'|trans({}, 'front_tours') }}</small>
+                    <ul class="lista-precios">
+                        {% for p in tour.precios %}
+                            <li><span>{{ p.etiqueta ?? 'tour.precio_general'|trans({}, 'front_tours') }}</span><strong>{{ p.formateado }}</strong></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            <a class="boton boton-wa" href="{{ front_whatsapp(mensaje_wa) }}" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.05 2.6a9.4 9.4 0 0 0-8.1 14.2L2.6 21.4l4.7-1.3A9.4 9.4 0 1 0 12.05 2.6Z"/></svg>
+                {{ 'tour.consultar'|trans({}, 'front_tours') }}
+            </a>
+            <p class="nota">{{ 'tour.nota_precio'|trans({}, 'front_tours') }}</p>
+        </aside>
+    </article>
+</div>
+
+{% set otros = ficha.otrosTours %}
+{% if otros is not empty %}
+    <section class="seccion" style="padding-top:0">
+        <div class="envoltura">
+            <div class="seccion-cabecera"><h2>{{ 'tour.otros'|trans({}, 'front_tours') }}</h2></div>
+            <div class="rejilla">
+                {% for tour in otros|slice(0, 3) %}
+                    {% include 'front/tours/_tarjeta_tour.html.twig' %}
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,118 @@
+{#
+  Plantilla base COMÚN de las webs públicas. No se extiende directamente: cada web tiene su
+  `templates/front/{sitio}/layout.html.twig`, que rellena marca, menú, lema e inicio. Ver
+  docs/WebPublica.md §3 y §8.
+
+  Bloques del layout: url_inicio, descripcion (por defecto), nav, pie_lema, whatsapp_flotante.
+  Bloques de cada página: titulo, descripcion, imagen_social (URL absoluta), canonica, cuerpo,
+  datos_estructurados.
+  `alternos` (opcional): {es: url, en: url} para el selector de idioma y los hreflang; si no llega,
+  se calcula con la ruta canónica y los mismos parámetros.
+#}
+{%- set idioma = app.request.locale -%}
+{#- `_route` llega con el nombre canónico («front_catalogo», sin «.es»): el matcher quita el sufijo. -#}
+{%- set ruta = app.request.attributes.get('_route')|default('') -%}
+{%- set params = app.request.attributes.get('_route_params')|default({}) -%}
+{%- if alternos is not defined or alternos is empty -%}
+    {%- set alternos = ruta starts with 'front_' and params._locale is defined
+        ? {'es': url(ruta, params|merge({'_locale': 'es'})), 'en': url(ruta, params|merge({'_locale': 'en'}))}
+        : {} -%}
+{%- endif -%}
+<!DOCTYPE html>
+<html lang="{{ idioma }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titulo %}{{ front.marca }}{% endblock %}</title>
+    <meta name="description" content="{% block descripcion %}{% endblock %}">
+    {% set canonica %}{% block canonica %}{{ alternos[idioma]|default(app.request.uri) }}{% endblock %}{% endset %}
+    <link rel="canonical" href="{{ canonica|trim }}">
+    {% for l, u in alternos %}
+        <link rel="alternate" hreflang="{{ l }}" href="{{ u }}">
+    {% endfor %}
+    {% if alternos.es is defined %}<link rel="alternate" hreflang="x-default" href="{{ alternos.es }}">{% endif %}
+
+    {# Lo que pinta WhatsApp, Facebook o Telegram al pegar el enlace: la razón de que esto sea Twig y no una SPA. #}
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="{{ front.marca }}">
+    <meta property="og:title" content="{{ block('titulo')|trim }}">
+    <meta property="og:description" content="{{ block('descripcion')|trim }}">
+    <meta property="og:url" content="{{ canonica|trim }}">
+    <meta property="og:locale" content="{{ idioma == 'en' ? 'en_US' : 'es_PE' }}">
+    {% set imagen_social %}{% block imagen_social %}{% endblock %}{% endset %}
+    {% if imagen_social|trim %}
+        <meta property="og:image" content="{{ imagen_social|trim }}">
+        <meta name="twitter:card" content="summary_large_image">
+    {% endif %}
+
+    <link rel="icon" type="image/svg+xml" href="{{ front_asset('front/favicon.svg') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+    <link rel="stylesheet" href="{{ front_asset('front/web.css') }}">
+    {% block datos_estructurados %}{% endblock %}
+</head>
+<body>
+<header class="cabecera">
+    <div class="envoltura">
+        <a class="marca" href="{% block url_inicio %}/{% endblock %}">{% set partes = front.marca|split(' ', 2) %}{{ partes[0] }}{% if partes[1] is defined %} <span>{{ partes[1] }}</span>{% endif %}</a>
+        <nav class="nav" aria-label="{{ 'nav.principal'|trans({}, 'front') }}">
+            {% block nav %}{% endblock %}
+        </nav>
+        {% if alternos|length > 1 %}
+            <div class="idiomas" role="navigation" aria-label="{{ 'nav.idioma'|trans({}, 'front') }}">
+                {% for l, u in alternos %}
+                    <a href="{{ u }}" hreflang="{{ l }}" lang="{{ l }}" aria-current="{{ l == idioma ? 'true' : 'false' }}">{{ l }}</a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</header>
+
+<main>
+    {% block cuerpo %}{% endblock %}
+</main>
+
+<footer class="pie">
+    <div class="envoltura">
+        <div class="pie-columnas">
+            <div>
+                <h3>{{ front.marca }}</h3>
+                <p style="margin:0 0 12px">{% block pie_lema %}{% endblock %}</p>
+                <ul>
+                    <li><a href="{{ front_whatsapp() }}" target="_blank" rel="noopener">WhatsApp {{ front.telefono_visible }}</a></li>
+                    <li><a href="mailto:{{ front.correo }}">{{ front.correo }}</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3>{{ 'pie.informacion'|trans({}, 'front') }}</h3>
+                <ul>
+                    <li><a href="{{ path('front_legal', {'pagina': 'terminos-y-condiciones', '_locale': idioma}) }}">{{ 'legal.terminos'|trans({}, 'front') }}</a></li>
+                    <li><a href="{{ path('front_legal', {'pagina': 'politica-de-cambios-y-devoluciones', '_locale': idioma}) }}">{{ 'legal.devoluciones'|trans({}, 'front') }}</a></li>
+                    <li><a href="{{ path('front_legal', {'pagina': 'privacidad', '_locale': idioma}) }}">{{ 'legal.privacidad'|trans({}, 'front') }}</a></li>
+                    <li><a href="{{ path('front_legal', {'pagina': 'cookies', '_locale': idioma}) }}">{{ 'legal.cookies'|trans({}, 'front') }}</a></li>
+                    <li><a href="{{ path('front_legal', {'pagina': 'programa-esnna', '_locale': idioma}) }}">{{ 'legal.esnna'|trans({}, 'front') }}</a></li>
+                    <li><a href="{{ path('front_legal', {'pagina': 'preguntas-frecuentes', '_locale': idioma}) }}">{{ 'legal.faq'|trans({}, 'front') }}</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3>{{ 'pie.atencion'|trans({}, 'front') }}</h3>
+                {# INDECOPI exige que el acceso al libro sea visible en la página de inicio. #}
+                <a class="libro-enlace" href="{{ path('front_libro', {'_locale': idioma}) }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5v-17Z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M9 7h7M9 10.5h5"/></svg>
+                    {{ 'libro.titulo'|trans({}, 'front') }}
+                </a>
+            </div>
+        </div>
+        <div class="pie-legal">
+            {{ front.nombre_comercial }} · {{ front.razon_social }} · RUC {{ front.ruc }} · {{ front.direccion }}<br>
+            © {{ 'now'|date('Y') }} {{ front.marca }}
+        </div>
+    </div>
+</footer>
+
+<a class="wa-flotante" href="{% block whatsapp_flotante %}{{ front_whatsapp() }}{% endblock %}" target="_blank" rel="noopener" aria-label="WhatsApp">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.66.15-.2.3-.76.96-.93 1.16-.17.2-.34.22-.64.07-.3-.15-1.25-.46-2.38-1.47-.88-.79-1.47-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.44-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.66-1.6-.91-2.19-.24-.58-.48-.5-.66-.5h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.06 2.88 1.21 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.75-.72 2-1.41.25-.69.25-1.28.17-1.41-.07-.12-.27-.2-.57-.35ZM12.05 21.5h-.01a9.46 9.46 0 0 1-4.82-1.32l-.35-.2-3.58.94.96-3.49-.23-.36a9.45 9.45 0 0 1-1.45-5.03c0-5.23 4.26-9.49 9.5-9.49a9.43 9.43 0 0 1 6.7 2.79 9.43 9.43 0 0 1 2.78 6.71c0 5.23-4.26 9.48-9.5 9.48Zm8.08-17.56A11.36 11.36 0 0 0 12.05.6C5.75.6.62 5.73.62 12.03c0 2.01.53 3.98 1.53 5.71L.53 23.67l6.07-1.59a11.4 11.4 0 0 0 5.45 1.39h.01c6.3 0 11.43-5.13 11.43-11.43 0-3.05-1.19-5.92-3.36-8.1Z"/></svg>
+</a>
+</body>
+</html>

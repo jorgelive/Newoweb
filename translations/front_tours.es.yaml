@@ -1,0 +1,37 @@
+# Cadenas de openperu.pe (tours): templates/front/tours/. Los CONTENIDOS (tours, catálogos)
+# vienen traducidos de la base; esto es sólo el armazón. Añadir un idioma = copiar este
+# archivo y front.es.yaml, y sumar el prefijo en las rutas y en SeoController::IDIOMAS.
+nav:
+    tours: Tours
+    alojamiento: Alojamiento
+portada:
+    meta_titulo: '%marca% · Tours y promociones en Cusco'
+    meta_descripcion: 'Tours en promoción por Cusco y el Valle Sagrado. Consulta disponibilidad y reserva por WhatsApp.'
+    etiqueta: Promociones
+    heroe_titulo: 'Descubre Cusco con nuestras promociones'
+    heroe_texto: 'Tours de un día y programas por los Andes, con precios de promoción y atención directa por WhatsApp.'
+    ver_tours: 'Ver tours'
+    escribenos: Escríbenos
+    whatsapp_mensaje: 'Hola, quisiera información sobre sus tours en promoción.'
+    sin_tours_titulo: 'Estamos preparando nuevas promociones'
+    sin_tours_texto: 'Escríbenos y te contamos qué salidas tenemos disponibles.'
+    alojamiento_titulo: '¿Buscas dónde quedarte en Cusco?'
+    alojamiento_texto: '%nombre%: departamentos turísticos en el centro histórico de Cusco, a pocos minutos de la Plaza de Armas.'
+    alojamiento_boton: 'Ver departamentos'
+catalogo:
+    ver_todos: 'Ver todos'
+tour:
+    dia: día
+    dias: días
+    desde: Desde
+    ver: 'Ver tour'
+    precio_general: Tarifa
+    consultar: 'Consultar disponibilidad'
+    reservar: Reserva
+    whatsapp_mensaje: 'Hola, me interesa el tour «%tour%»: %url%'
+    itinerario: 'Ver itinerario completo'
+    galeria: Galería
+    otros: 'Otros tours que te pueden gustar'
+    nota_precio: 'Precios referenciales «desde». Te confirmamos disponibilidad y precio final para tu fecha por WhatsApp.'
+pie:
+    lema: 'Tours y promociones en Cusco.'

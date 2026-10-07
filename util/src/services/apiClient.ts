@@ -18,6 +18,7 @@ export const getUrls = () => {
         api: config.apiUrl || import.meta.env.VITE_API_URL || 'https://api.openperu.pe',
         panel: config.panelUrl || import.meta.env.VITE_PANEL_URL || 'https://panel.openperu.pe',
         pax: config.paxUrl || import.meta.env.VITE_PAX_URL || 'https://pax.openperu.pe',
+        web: config.webUrl || 'https://openperu.pe',
     };
 };
 

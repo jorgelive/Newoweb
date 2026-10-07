@@ -1,0 +1,68 @@
+{% extends 'front/tours/layout.html.twig' %}
+
+{% block titulo %}{{ 'portada.meta_titulo'|trans({'%marca%': front.marca}, 'front_tours') }}{% endblock %}
+
+{% set heroe = null %}
+{% for c in catalogos %}{% if heroe is null and c.imagenUrl %}{% set heroe = c.imagenUrl %}{% endif %}{% endfor %}
+
+{% block imagen_social %}{% if heroe %}{{ heroe|trim('/', 'left')|imagine_filter('travel_cliente') }}{% endif %}{% endblock %}
+
+{% block cuerpo %}
+<section class="heroe">
+    {% if heroe %}
+        <img class="heroe-fondo" src="{{ heroe|trim('/', 'left')|imagine_filter('travel_cliente') }}" alt="" fetchpriority="high">
+    {% endif %}
+    <div class="envoltura">
+        <span class="etiqueta-heroe">{{ 'portada.etiqueta'|trans({}, 'front_tours') }}</span>
+        <h1>{{ 'portada.heroe_titulo'|trans({}, 'front_tours') }}</h1>
+        <p>{{ 'portada.heroe_texto'|trans({}, 'front_tours') }}</p>
+        <div class="acciones">
+            <a class="boton boton-primario" href="#tours">{{ 'portada.ver_tours'|trans({}, 'front_tours') }}</a>
+            <a class="boton boton-claro" href="{{ front_whatsapp('portada.whatsapp_mensaje'|trans({}, 'front_tours')) }}" target="_blank" rel="noopener">{{ 'portada.escribenos'|trans({}, 'front_tours') }}</a>
+        </div>
+    </div>
+</section>
+
+<div id="tours">
+    {% for catalogo in catalogos %}
+        <section class="seccion">
+            <div class="envoltura">
+                <div class="seccion-cabecera">
+                    <div>
+                        <h2>{{ catalogo.titulo }}</h2>
+                        {% if catalogo.descripcionHtml %}<div class="entradilla">{{ catalogo.descripcionHtml|raw }}</div>{% endif %}
+                    </div>
+                    {% if catalogos|length > 1 %}
+                        <a class="ver-todos" href="{{ path('front_catalogo', {'catalogo': catalogo.slug}) }}">{{ 'catalogo.ver_todos'|trans({}, 'front_tours') }} →</a>
+                    {% endif %}
+                </div>
+                <div class="rejilla">
+                    {% for tour in catalogo.tours %}
+                        {% include 'front/tours/_tarjeta_tour.html.twig' %}
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    {% else %}
+        <section class="seccion">
+            <div class="envoltura">
+                <h2>{{ 'portada.sin_tours_titulo'|trans({}, 'front_tours') }}</h2>
+                <p>{{ 'portada.sin_tours_texto'|trans({}, 'front_tours') }}</p>
+                <a class="boton boton-wa" href="{{ front_whatsapp('portada.whatsapp_mensaje'|trans({}, 'front_tours')) }}" target="_blank" rel="noopener">WhatsApp</a>
+            </div>
+        </section>
+    {% endfor %}
+</div>
+
+<section class="seccion" id="alojamiento" style="padding-top:0">
+    <div class="envoltura">
+        <div class="banda">
+            <div>
+                <h2>{{ 'portada.alojamiento_titulo'|trans({}, 'front_tours') }}</h2>
+                <p>{{ 'portada.alojamiento_texto'|trans({'%nombre%': front.nombre_comercial}, 'front_tours') }}</p>
+            </div>
+            <a class="boton boton-primario" href="{{ front.alojamiento_url }}" target="_blank" rel="noopener">{{ 'portada.alojamiento_boton'|trans({}, 'front_tours') }}</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

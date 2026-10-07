@@ -1,0 +1,63 @@
+# Cadenas COMUNES a las webs públicas (templates/front/comun/ y el armazón de la base):
+# navegación genérica, pie, legales y Libro de Reclamaciones. Lo propio de cada web va en
+# front_{sitio}.*.yaml. Ver docs/WebPublica.md §3.
+nav:
+    principal: 'Navegación principal'
+    contacto: Contacto
+    idioma: Idioma
+    inicio: Inicio
+    migas: 'Estás aquí'
+pie:
+    informacion: Información
+    atencion: 'Atención al cliente'
+legal:
+    terminos: 'Términos y condiciones'
+    devoluciones: 'Política de cambios y devoluciones'
+    privacidad: 'Protección de datos personales'
+    cookies: 'Política de cookies'
+    esnna: 'Programa ESNNA'
+    faq: 'Preguntas frecuentes'
+libro:
+    titulo: 'Libro de Reclamaciones'
+    descripcion: 'Libro de Reclamaciones virtual conforme al Código de Protección y Defensa del Consumidor.'
+    intro: 'Conforme a lo establecido en el Código de Protección y Defensa del Consumidor, contamos con un Libro de Reclamaciones a tu disposición.'
+    nombre_comercial: 'Nombre comercial'
+    fecha: Fecha
+    bloque:
+        consumidor: 'Identificación del consumidor reclamante'
+        bien: 'Identificación del bien contratado'
+        detalle: 'Detalle de la reclamación y pedido del consumidor'
+    campo:
+        nombre: 'Nombre completo'
+        doc_tipo: 'Tipo de documento'
+        doc_numero: 'Número de documento'
+        domicilio: Domicilio
+        telefono: Teléfono
+        email: 'Correo electrónico'
+        menor: 'Soy menor de edad'
+        apoderado: 'Nombre del padre, madre o apoderado'
+        bien_tipo: 'Tipo de bien'
+        bien_descripcion: 'Descripción del producto o servicio'
+        monto: 'Monto reclamado (opcional)'
+        tipo: Tipo
+        detalle: Detalle
+        pedido: Pedido
+        acepto: 'Declaro que los datos consignados son verdaderos.'
+    doc:
+        ce: 'Carné de extranjería'
+        pasaporte: Pasaporte
+    bien:
+        producto: Producto
+        servicio: Servicio
+    tipo:
+        reclamo: Reclamo
+        queja: Queja
+    tipo_ayuda: 'Reclamo: disconformidad relacionada con los productos o servicios. Queja: disconformidad no relacionada con los productos o servicios, o malestar respecto a la atención al público.'
+    plazo: 'El proveedor deberá dar respuesta al reclamo en un plazo no mayor a quince (15) días hábiles. La formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el INDECOPI.'
+    enviar: 'Enviar hoja de reclamación'
+    imprimir: Imprimir
+    hoja_titulo: 'Hoja de reclamación N.º %n%'
+    ok_titulo: 'Tu hoja quedó registrada.'
+    ok_texto: 'Te enviamos una copia a %email%. Te responderemos como máximo el %fecha%.'
+    error:
+        revisa: 'Revisa los campos marcados.'

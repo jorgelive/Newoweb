@@ -1,0 +1,168 @@
+/*
+ * Web pública (openperu.pe). Hoja estática, sin compilar: public/ la sirve nginx directamente y la
+ * plantilla base le pone ?v=<mtime> para invalidar caché. Ver docs/WebPublica.md §3.
+ */
+:root {
+    --tinta: #1d2a2f;
+    --suave: #5d6b70;
+    --linea: #e4ddd2;
+    --fondo: #faf7f2;
+    --papel: #ffffff;
+    --primario: #1f4e5a;
+    --primario-osc: #163a43;
+    --acento: #c85f27;
+    --acento-osc: #a94c1c;
+    --verde-wa: #1f9d55;
+    --radio: 14px;
+    --sombra: 0 1px 2px rgba(29, 42, 47, .06), 0 8px 24px rgba(29, 42, 47, .08);
+    --ancho: 1160px;
+    --titulos: "Fraunces", Georgia, "Times New Roman", serif;
+    --texto: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+    margin: 0;
+    background: var(--fondo);
+    color: var(--tinta);
+    font: 16px/1.6 var(--texto);
+}
+img { max-width: 100%; display: block; }
+a { color: var(--primario); }
+h1, h2, h3 { font-family: var(--titulos); font-weight: 600; line-height: 1.2; letter-spacing: -.01em; margin: 0 0 .5em; }
+h1 { font-size: clamp(1.9rem, 4.5vw, 3.1rem); }
+h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); }
+h3 { font-size: 1.2rem; }
+.envoltura { max-width: var(--ancho); margin: 0 auto; padding: 0 16px; }
+.solo-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ── Cabecera ─────────────────────────────────────────────────────────── */
+.cabecera { background: var(--papel); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 20; }
+.cabecera .envoltura { display: flex; align-items: center; gap: 16px; min-height: 64px; }
+.marca { font-family: var(--titulos); font-weight: 700; font-size: 1.35rem; color: var(--primario); text-decoration: none; margin-right: auto; white-space: nowrap; }
+.marca span { color: var(--acento); }
+.nav { display: flex; gap: 4px; align-items: center; }
+.nav a { text-decoration: none; color: var(--tinta); padding: 8px 10px; border-radius: 8px; font-size: .95rem; }
+.nav a:hover { background: var(--fondo); }
+.idiomas { display: flex; gap: 2px; font-size: .8rem; }
+.idiomas a { text-decoration: none; padding: 4px 7px; border-radius: 6px; color: var(--suave); text-transform: uppercase; font-weight: 600; }
+.idiomas a[aria-current="true"] { background: var(--primario); color: #fff; }
+@media (max-width: 640px) {
+    .nav a.nav-secundario { display: none; }
+}
+@media (max-width: 380px) {
+    .cabecera .envoltura { gap: 8px; }
+    .marca { font-size: 1.15rem; }
+    .nav a { padding: 8px 6px; }
+}
+
+/* ── Botones ──────────────────────────────────────────────────────────── */
+.boton { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border-radius: 999px; font-weight: 600; text-decoration: none; border: 0; cursor: pointer; font-size: 1rem; line-height: 1.2; }
+.boton-primario { background: var(--acento); color: #fff; }
+.boton-primario:hover { background: var(--acento-osc); }
+.boton-wa { background: var(--verde-wa); color: #fff; }
+.boton-wa:hover { filter: brightness(.93); }
+.boton-claro { background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.45); }
+.boton-borde { background: transparent; color: var(--primario); border: 1.5px solid var(--primario); }
+.boton svg { width: 20px; height: 20px; flex: none; }
+
+/* ── Portada ──────────────────────────────────────────────────────────── */
+.heroe { position: relative; color: #fff; background: var(--primario-osc); overflow: hidden; }
+.heroe img.heroe-fondo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55; }
+.heroe::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(22,58,67,.25) 0%, rgba(22,58,67,.85) 100%); }
+.heroe .envoltura { position: relative; z-index: 1; padding-top: clamp(64px, 12vw, 140px); padding-bottom: clamp(48px, 8vw, 96px); }
+.heroe p { font-size: clamp(1.05rem, 2vw, 1.3rem); max-width: 40rem; opacity: .95; }
+.heroe .acciones { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.etiqueta-heroe { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; background: var(--acento); padding: 5px 12px; border-radius: 999px; margin-bottom: 16px; }
+
+.seccion { padding: clamp(40px, 7vw, 80px) 0; }
+.seccion-cabecera { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
+.seccion-cabecera p { color: var(--suave); margin: 0; max-width: 42rem; }
+.seccion-cabecera .entradilla p { margin: 0 0 .4em; }
+.ver-todos { font-weight: 600; text-decoration: none; white-space: nowrap; }
+
+/* ── Tarjetas de tour ─────────────────────────────────────────────────── */
+.rejilla { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); }
+.tarjeta { background: var(--papel); border-radius: var(--radio); overflow: hidden; box-shadow: var(--sombra); display: flex; flex-direction: column; text-decoration: none; color: inherit; transition: transform .15s ease, box-shadow .15s ease; }
+.tarjeta:hover { transform: translateY(-3px); box-shadow: 0 2px 4px rgba(29,42,47,.08), 0 14px 32px rgba(29,42,47,.12); }
+.tarjeta-foto { position: relative; aspect-ratio: 4 / 3; background: #d9d2c5; }
+.tarjeta-foto img { width: 100%; height: 100%; object-fit: cover; }
+.chip { position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,.95); color: var(--primario); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; }
+.tarjeta-cuerpo { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.tarjeta-cuerpo h3 { margin: 0; }
+.tarjeta-resumen { color: var(--suave); font-size: .93rem; margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.tarjeta-pie { margin-top: auto; display: flex; align-items: end; justify-content: space-between; gap: 8px; padding-top: 8px; }
+.precio-desde { line-height: 1.15; }
+.precio-desde small { display: block; color: var(--suave); font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; }
+.precio-desde strong { font-size: 1.45rem; color: var(--acento); font-family: var(--titulos); }
+.flecha { font-weight: 600; color: var(--primario); font-size: .93rem; }
+
+/* ── Alojamiento (banda) ──────────────────────────────────────────────── */
+.banda { background: var(--primario); color: #fff; border-radius: calc(var(--radio) + 6px); padding: clamp(28px, 5vw, 48px); display: grid; gap: 20px; }
+.banda p { margin: 0; opacity: .92; max-width: 40rem; }
+@media (min-width: 800px) { .banda { grid-template-columns: 1fr auto; align-items: center; } }
+
+/* ── Ficha de tour ────────────────────────────────────────────────────── */
+.migas { font-size: .85rem; color: var(--suave); padding: 16px 0 0; }
+.migas a { color: var(--suave); }
+.ficha { display: grid; gap: 28px; padding: 16px 0 56px; }
+@media (min-width: 960px) { .ficha { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; } }
+.ficha-foto { border-radius: var(--radio); overflow: hidden; aspect-ratio: 16 / 9; background: #d9d2c5; }
+.ficha-foto img { width: 100%; height: 100%; object-fit: cover; }
+.ficha-datos { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.dato { background: var(--papel); border: 1px solid var(--linea); padding: 6px 12px; border-radius: 999px; font-size: .85rem; font-weight: 600; color: var(--primario); }
+.contenido-rico { font-size: 1.04rem; }
+.contenido-rico img { border-radius: 10px; margin: 12px 0; }
+.contenido-rico ul { padding-left: 1.2em; }
+.galeria { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); margin-top: 12px; }
+.galeria a { display: block; aspect-ratio: 4 / 3; border-radius: 10px; overflow: hidden; background: #d9d2c5; }
+.galeria img { width: 100%; height: 100%; object-fit: cover; transition: transform .2s ease; }
+.galeria a:hover img { transform: scale(1.04); }
+.caja-reserva { background: var(--papel); border-radius: var(--radio); box-shadow: var(--sombra); padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+@media (min-width: 960px) { .caja-reserva { position: sticky; top: 84px; } }
+.lista-precios { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.lista-precios li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px dashed var(--linea); padding-bottom: 8px; }
+.lista-precios li:last-child { border-bottom: 0; }
+.lista-precios strong { font-family: var(--titulos); font-size: 1.35rem; color: var(--acento); white-space: nowrap; }
+.nota { font-size: .82rem; color: var(--suave); margin: 0; }
+
+/* ── Páginas de texto (legales, libro) ────────────────────────────────── */
+.pagina-texto { max-width: 820px; margin: 0 auto; padding: 32px 16px 64px; }
+.pagina-texto .contenido-rico { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: clamp(18px, 4vw, 36px); }
+
+/* ── Formulario del libro ─────────────────────────────────────────────── */
+.titular-legal { font-size: .88rem; color: var(--suave); background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 16px 18px; margin-bottom: 20px; line-height: 1.8; }
+.titular-legal strong { color: var(--tinta); }
+.bloque { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 20px; margin-bottom: 18px; }
+.bloque h2 { font-family: var(--texto); font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; }
+.campos { display: grid; gap: 14px; }
+@media (min-width: 700px) { .campos { grid-template-columns: 1fr 1fr; } .campos .ancho { grid-column: 1 / -1; } }
+.campo label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 4px; }
+.campo input[type=text], .campo input[type=email], .campo select, .campo textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid #cfc7ba; border-radius: 10px; background: #fff; }
+.campo textarea { min-height: 110px; resize: vertical; }
+.campo input:focus, .campo select:focus, .campo textarea:focus { outline: 2px solid var(--primario); outline-offset: 1px; border-color: var(--primario); }
+.opciones { display: flex; flex-wrap: wrap; gap: 16px; }
+.opciones label, .casilla label { font-weight: 400; display: inline-flex; gap: 6px; align-items: center; }
+.campo ul, .errores-form ul { margin: 6px 0 0; padding: 0; list-style: none; color: #a32222; font-size: .85rem; }
+.errores-form { background: #fdf1f1; border: 1px solid #f0c9c9; color: #a32222; border-radius: var(--radio); padding: 12px 16px; margin-bottom: 16px; }
+.trampa { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.aviso-ok { background: #eef7f2; border: 1px solid #c6e3d2; color: #1c6b45; border-radius: var(--radio); padding: 18px 20px; margin-bottom: 18px; }
+.hoja dl { display: grid; grid-template-columns: minmax(120px, 34%) 1fr; gap: 6px 14px; margin: 0; }
+.hoja dt { color: var(--suave); font-size: .88rem; }
+.hoja dd { margin: 0; white-space: pre-wrap; }
+
+/* ── Pie ──────────────────────────────────────────────────────────────── */
+.pie { background: var(--primario-osc); color: rgba(255,255,255,.85); padding: 48px 0 24px; font-size: .92rem; }
+.pie a { color: #fff; text-decoration: none; }
+.pie a:hover { text-decoration: underline; }
+.pie-columnas { display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.pie h3 { font-family: var(--texto); font-size: .8rem; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.6); margin-bottom: 12px; }
+.pie ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.libro-enlace { display: inline-flex; align-items: center; gap: 10px; background: #fff; color: var(--tinta) !important; padding: 10px 14px; border-radius: 10px; font-weight: 600; }
+.libro-enlace svg { width: 28px; height: 28px; color: var(--acento); }
+.pie-legal { border-top: 1px solid rgba(255,255,255,.15); margin-top: 32px; padding-top: 18px; font-size: .8rem; color: rgba(255,255,255,.6); }
+
+/* ── WhatsApp flotante ────────────────────────────────────────────────── */
+.wa-flotante { position: fixed; right: 16px; bottom: 16px; z-index: 30; width: 56px; height: 56px; border-radius: 50%; background: var(--verde-wa); color: #fff; display: grid; place-items: center; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+.wa-flotante svg { width: 30px; height: 30px; }

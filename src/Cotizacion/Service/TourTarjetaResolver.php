@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Service;
 
+use App\Cotizacion\Entity\CotizacionCatalogo;
+use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\AbstractUid;
 use Symfony\Component\Uid\Uuid;
 
@@ -18,14 +21,128 @@ use Symfony\Component\Uid\Uuid;
  * escalares en lote: recorrer `$cotizacion->getCotservicios()` para cada tour
  * hidrataría el árbol entero de cada uno (N+1 caro y evitable).
  *
- * Fuente única de la regla para los dos consumidores:
- *   - vista pública   → CotizacionCatalogoPublicProvider
+ * Fuente única de la regla para sus consumidores:
+ *   - vista pública   → CotizacionCatalogoPublicProvider (pax, por localizador)
+ *   - web pública     → App\Front\Tours\Service\CatalogoWebLector (openperu.pe)
  *   - panel interno   → CotizacionCatalogoAdminProvider (CatalogoDashboard.vue)
+ *
+ * @phpstan-type TarjetaDeTour array{
+ *     id: string, propuesta: int, publicado: bool, estado: string, numPax: int,
+ *     titulo: array<mixed>, resumen: array<mixed>, idiomaCliente: string, monedaGlobal: string,
+ *     precioOculto: bool, orden: int, preciosDesde: array<mixed>, imagenPortada: array<mixed>|null,
+ *     numDias: int|null
+ * }
  */
 final class TourTarjetaResolver
 {
     public function __construct(private readonly EntityManagerInterface $em)
     {
+    }
+
+    /**
+     * Las tarjetas de los tours de un catálogo, en su orden de exhibición, con las dos reglas de
+     * la tarjeta ya aplicadas:
+     *
+     *   - **portada**: el override editorial (`imagenPortada`) manda; si no, la derivada.
+     *   - **precio oculto**: sin `preciosDesde`. El financiero real nunca sale de aquí.
+     *
+     * Un solo query escalar más dos en lote (portadas): la colección del catálogo no se hidrata.
+     *
+     * ⚠️ `$incluirBorradores` es para el OPERADOR en `pax` (previsualizar antes de publicar). La
+     * web pública lo pasa siempre a `false`: es la cara pública y una caché no sabe quién miraba.
+     *
+     * @return list<TarjetaDeTour>
+     */
+    public function tarjetas(CotizacionCatalogo $catalogo, bool $incluirBorradores): array
+    {
+        // Mismas formas que en `CotizacionFilePublicProvider`: columnas por su tipo, `MIN()`/`MAX()`
+        // en texto, y un JSON `NOT NULL` que puede traer el literal `null`.
+        /**
+         * @var list<array{id: Uuid, imagenPortada: array<mixed>|null, propuesta: int,
+         *     estado: CotizacionEstadoEnum|string, publicado: bool, numPax: int, titulo: array<mixed>|null,
+         *     resumen: array<mixed>|null, idiomaCliente: string, monedaGlobal: string, precioOculto: bool,
+         *     preciosDesde: array<mixed>|null, orden: int,
+         *     fechaMin: ?string, fechaMax: ?string}> $filas
+         */
+        $filas = $this->em->createQuery(<<<'DQL'
+            SELECT c.id, c.imagenPortada, c.propuesta, c.estado, c.publicado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
+                   c.monedaGlobal, c.precioOculto,
+                   c.preciosDesde, c.orden,
+                   MIN(s.fechaInicioAbsoluta) AS fechaMin, MAX(s.fechaInicioAbsoluta) AS fechaMax
+            FROM App\Cotizacion\Entity\Cotizacion c
+            LEFT JOIN c.cotservicios s
+            WHERE c.catalogo = :catalogo
+              AND (c.publicado = true OR :borradores = true)
+            GROUP BY c.id
+            ORDER BY c.orden ASC, c.propuesta ASC
+        DQL)
+            ->setParameter('catalogo', $catalogo->getId(), UuidType::NAME)
+            ->setParameter('borradores', $incluirBorradores)
+            ->getArrayResult();
+
+        if ($filas === []) {
+            return [];
+        }
+
+        $portadas = $this->portadasDerivadas(array_column($filas, 'id'));
+
+        return array_map(static function (array $f) use ($portadas): array {
+            $oculto = (bool) $f['precioOculto'];
+
+            return [
+                'id'            => self::clave($f['id']),
+                'propuesta'     => $f['propuesta'],
+                'publicado'     => (bool) $f['publicado'],
+                'estado'        => $f['estado'] instanceof CotizacionEstadoEnum ? $f['estado']->value : $f['estado'],
+                'numPax'        => $f['numPax'],
+                'titulo'        => $f['titulo'] ?? [],
+                'resumen'       => $f['resumen'] ?? [],
+                'idiomaCliente' => $f['idiomaCliente'],
+                'monedaGlobal'  => $f['monedaGlobal'],
+                'precioOculto'  => $oculto,
+                'orden'         => $f['orden'],
+                'preciosDesde'  => $oculto ? [] : ($f['preciosDesde'] ?? []),
+                'imagenPortada' => $f['imagenPortada'] ?? $portadas[self::clave($f['id'])] ?? null,
+                'numDias'       => self::numDias($f['fechaMin'], $f['fechaMax']),
+            ];
+        }, $filas);
+    }
+
+    /**
+     * Todas las fotos de un tour, en orden de itinerario y sin repetir: la galería de su ficha
+     * pública. Sólo las del propio segmento (`imagenesSnapshot`), las mismas que ve el cliente.
+     *
+     * @return list<string> URLs tal como están guardadas (relativas: `/carga/...`)
+     */
+    public function imagenesDeTour(AbstractUid|string $cotId): array
+    {
+        /** @var list<array{imagenesSnapshot: array<mixed>|null}> $filas */
+        $filas = $this->em->createQuery(<<<'DQL'
+            SELECT seg.imagenesSnapshot
+            FROM App\Cotizacion\Entity\CotizacionSegmento seg
+            JOIN seg.cotservicio s
+            WHERE s.cotizacion = :id
+            ORDER BY s.fechaInicioAbsoluta ASC, seg.orden ASC
+        DQL)
+            ->setParameter('id', self::binarios([$cotId])[0], 'binary')
+            ->getArrayResult();
+
+        $urls = [];
+        foreach ($filas as $fila) {
+            $imagenes = $fila['imagenesSnapshot'] ?? [];
+            // El snapshot guarda el orden del editor en `orden`, no en la posición del array.
+            usort($imagenes, static fn (mixed $a, mixed $b): int =>
+                (is_array($a) && is_int($a['orden'] ?? null) ? $a['orden'] : 0)
+                <=> (is_array($b) && is_int($b['orden'] ?? null) ? $b['orden'] : 0));
+            foreach ($imagenes as $img) {
+                $url = is_array($img) && is_string($img['imageUrl'] ?? null) ? $img['imageUrl'] : '';
+                if ($url !== '' && !in_array($url, $urls, true)) {
+                    $urls[] = $url;
+                }
+            }
+        }
+
+        return $urls;
     }
 
     /**

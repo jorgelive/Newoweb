@@ -1,0 +1,61 @@
+# Common strings of the public websites. See front.es.yaml.
+nav:
+    principal: 'Main navigation'
+    contacto: Contact
+    idioma: Language
+    inicio: Home
+    migas: 'You are here'
+pie:
+    informacion: Information
+    atencion: 'Customer service'
+legal:
+    terminos: 'Terms and conditions'
+    devoluciones: 'Cancellation and refund policy'
+    privacidad: 'Data protection'
+    cookies: 'Cookie policy'
+    esnna: 'ESNNA program'
+    faq: FAQ
+libro:
+    titulo: 'Complaints Book'
+    descripcion: "Online Complaints Book under Peru's Consumer Protection and Defense Code."
+    intro: "In accordance with Peru's Consumer Protection and Defense Code, a Complaints Book is available to you."
+    nombre_comercial: 'Trade name'
+    fecha: Date
+    bloque:
+        consumidor: 'Consumer details'
+        bien: 'Product or service purchased'
+        detalle: "Details of the complaint and the consumer's request"
+    campo:
+        nombre: 'Full name'
+        doc_tipo: 'Document type'
+        doc_numero: 'Document number'
+        domicilio: Address
+        telefono: Phone
+        email: Email
+        menor: 'I am under 18'
+        apoderado: 'Name of parent or legal guardian'
+        bien_tipo: Type
+        bien_descripcion: 'Description of the product or service'
+        monto: 'Amount claimed (optional)'
+        tipo: Type
+        detalle: Details
+        pedido: Request
+        acepto: 'I declare that the information provided is true.'
+    doc:
+        ce: 'Foreigner ID card'
+        pasaporte: Passport
+    bien:
+        producto: Product
+        servicio: Service
+    tipo:
+        reclamo: Claim
+        queja: Complaint
+    tipo_ayuda: 'Claim: disagreement related to the products or services. Complaint: disagreement not related to the products or services, or dissatisfaction with customer service.'
+    plazo: 'The provider must respond within fifteen (15) business days. Filing a claim does not prevent you from using other dispute resolution channels, nor is it a prerequisite for filing a complaint with INDECOPI.'
+    enviar: 'Submit complaint'
+    imprimir: Print
+    hoja_titulo: 'Complaint sheet No. %n%'
+    ok_titulo: 'Your complaint has been registered.'
+    ok_texto: 'We sent a copy to %email%. We will reply no later than %fecha%.'
+    error:
+        revisa: 'Please check the highlighted fields.'

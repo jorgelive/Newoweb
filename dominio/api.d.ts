@@ -7046,59 +7046,6 @@ export interface components {
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
          *     o paquetes multi-día) dirigidas a un segmento de cliente (lujo, económico).
          */
-        CotizacionCatalogo: {
-            nombre?: string;
-            /**
-             * @default economico
-             * @enum {string}
-             */
-            tipoCliente: "economico" | "estandar" | "superior" | "lujo";
-            /** @default es */
-            idiomaCliente: string;
-            /**
-             * @description Un catálogo inactivo deja de ser visible en la vista pública.
-             * @default true
-             */
-            activo: boolean;
-            /**
-             * @description Orden de exhibición del catálogo en el listado.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
-             *     usa queries escalares); el editor la usa con catalogo:item:read.
-             */
-            cotizaciones?: string[];
-            /** @description Cards livianas de los tours públicos vigentes (portada del catálogo). */
-            toursParaCliente?: {
-                [key: string]: string | null;
-            }[];
-            /**
-             * Format: iri-reference
-             * @description Cotización completa del tour solicitado en la URL (solo detalle).
-             * @example https://example.com/
-             */
-            cotizacionParaCliente?: string | null;
-            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
-            saltosDeOperador?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            readonly localizador?: string | null;
-            /**
-             * Format: uuid
-             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
-             */
-            readonly idOrFail?: string;
-        };
-        /**
-         * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
-         *     o paquetes multi-día) dirigidas a un segmento de cliente (lujo, económico).
-         */
         "CotizacionCatalogo-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
             nombre?: string;
             /**
@@ -7118,6 +7065,26 @@ export interface components {
              * @default 0
              */
             orden: number;
+            /**
+             * @description Sale en la web pública. **No es `activo`**: `activo` deja vivo el enlace privado por
+             *     localizador; esto lo LISTA en openperu.pe. Un catálogo para una agencia se manda por
+             *     enlace y no debe aparecer en la web, así que son dos interruptores a propósito.
+             * @default false
+             */
+            publicadoWeb: boolean;
+            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            slug?: string | null;
+            /**
+             * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
+             *     falta, la web cae al nombre, que es mejor que una sección sin título.
+             */
+            tituloWeb?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Entradilla de la sección del catálogo en la web (HTML corto). */
+            descripcionWeb?: {
+                [key: string]: string | null;
+            }[];
             cotizaciones?: components["schemas"]["Cotizacion-catalogo.read_catalogo.item.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
@@ -7148,6 +7115,26 @@ export interface components {
              * @default 0
              */
             orden: number;
+            /**
+             * @description Sale en la web pública. **No es `activo`**: `activo` deja vivo el enlace privado por
+             *     localizador; esto lo LISTA en openperu.pe. Un catálogo para una agencia se manda por
+             *     enlace y no debe aparecer en la web, así que son dos interruptores a propósito.
+             * @default false
+             */
+            publicadoWeb: boolean;
+            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            slug?: string | null;
+            /**
+             * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
+             *     falta, la web cae al nombre, que es mejor que una sección sin título.
+             */
+            tituloWeb?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Entradilla de la sección del catálogo en la web (HTML corto). */
+            descripcionWeb?: {
+                [key: string]: string | null;
+            }[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -7177,6 +7164,26 @@ export interface components {
              * @default 0
              */
             orden: number;
+            /**
+             * @description Sale en la web pública. **No es `activo`**: `activo` deja vivo el enlace privado por
+             *     localizador; esto lo LISTA en openperu.pe. Un catálogo para una agencia se manda por
+             *     enlace y no debe aparecer en la web, así que son dos interruptores a propósito.
+             * @default false
+             */
+            publicadoWeb: boolean;
+            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            slug?: string | null;
+            /**
+             * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
+             *     falta, la web cae al nombre, que es mejor que una sección sin título.
+             */
+            tituloWeb?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Entradilla de la sección del catálogo en la web (HTML corto). */
+            descripcionWeb?: {
+                [key: string]: string | null;
+            }[];
         };
         /**
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
@@ -7201,6 +7208,26 @@ export interface components {
              * @default 0
              */
             orden: number;
+            /**
+             * @description Sale en la web pública. **No es `activo`**: `activo` deja vivo el enlace privado por
+             *     localizador; esto lo LISTA en openperu.pe. Un catálogo para una agencia se manda por
+             *     enlace y no debe aparecer en la web, así que son dos interruptores a propósito.
+             * @default false
+             */
+            publicadoWeb: boolean;
+            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            slug?: string | null;
+            /**
+             * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
+             *     falta, la web cae al nombre, que es mejor que una sección sin título.
+             */
+            tituloWeb?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Entradilla de la sección del catálogo en la web (HTML corto). */
+            descripcionWeb?: {
+                [key: string]: string | null;
+            }[];
         };
         "CotizacionCatalogo-cotizacion.read_timestamp.read": {
             /** Format: date-time */
@@ -7245,59 +7272,6 @@ export interface components {
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
          *     o paquetes multi-día) dirigidas a un segmento de cliente (lujo, económico).
          */
-        "CotizacionCatalogo.html": {
-            nombre?: string;
-            /**
-             * @default economico
-             * @enum {string}
-             */
-            tipoCliente: "economico" | "estandar" | "superior" | "lujo";
-            /** @default es */
-            idiomaCliente: string;
-            /**
-             * @description Un catálogo inactivo deja de ser visible en la vista pública.
-             * @default true
-             */
-            activo: boolean;
-            /**
-             * @description Orden de exhibición del catálogo en el listado.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
-             *     usa queries escalares); el editor la usa con catalogo:item:read.
-             */
-            cotizaciones?: string[];
-            /** @description Cards livianas de los tours públicos vigentes (portada del catálogo). */
-            toursParaCliente?: {
-                [key: string]: string | null;
-            }[];
-            /**
-             * Format: iri-reference
-             * @description Cotización completa del tour solicitado en la URL (solo detalle).
-             * @example https://example.com/
-             */
-            cotizacionParaCliente?: string | null;
-            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
-            saltosDeOperador?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            readonly localizador?: string | null;
-            /**
-             * Format: uuid
-             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
-             */
-            readonly idOrFail?: string;
-        };
-        /**
-         * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
-         *     o paquetes multi-día) dirigidas a un segmento de cliente (lujo, económico).
-         */
         "CotizacionCatalogo.html-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
             nombre?: string;
             /**
@@ -7317,6 +7291,26 @@ export interface components {
              * @default 0
              */
             orden: number;
+            /**
+             * @description Sale en la web pública. **No es `activo`**: `activo` deja vivo el enlace privado por
+             *     localizador; esto lo LISTA en openperu.pe. Un catálogo para una agencia se manda por
+             *     enlace y no debe aparecer en la web, así que son dos interruptores a propósito.
+             * @default false
+             */
+            publicadoWeb: boolean;
+            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            slug?: string | null;
+            /**
+             * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
+             *     falta, la web cae al nombre, que es mejor que una sección sin título.
+             */
+            tituloWeb?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Entradilla de la sección del catálogo en la web (HTML corto). */
+            descripcionWeb?: {
+                [key: string]: string | null;
+            }[];
             cotizaciones?: components["schemas"]["Cotizacion.html-catalogo.read_catalogo.item.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
@@ -7347,6 +7341,26 @@ export interface components {
              * @default 0
              */
             orden: number;
+            /**
+             * @description Sale en la web pública. **No es `activo`**: `activo` deja vivo el enlace privado por
+             *     localizador; esto lo LISTA en openperu.pe. Un catálogo para una agencia se manda por
+             *     enlace y no debe aparecer en la web, así que son dos interruptores a propósito.
+             * @default false
+             */
+            publicadoWeb: boolean;
+            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            slug?: string | null;
+            /**
+             * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
+             *     falta, la web cae al nombre, que es mejor que una sección sin título.
+             */
+            tituloWeb?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Entradilla de la sección del catálogo en la web (HTML corto). */
+            descripcionWeb?: {
+                [key: string]: string | null;
+            }[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -7396,59 +7410,6 @@ export interface components {
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
          *     o paquetes multi-día) dirigidas a un segmento de cliente (lujo, económico).
          */
-        "CotizacionCatalogo.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            nombre?: string;
-            /**
-             * @default economico
-             * @enum {string}
-             */
-            tipoCliente: "economico" | "estandar" | "superior" | "lujo";
-            /** @default es */
-            idiomaCliente: string;
-            /**
-             * @description Un catálogo inactivo deja de ser visible en la vista pública.
-             * @default true
-             */
-            activo: boolean;
-            /**
-             * @description Orden de exhibición del catálogo en el listado.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
-             *     usa queries escalares); el editor la usa con catalogo:item:read.
-             */
-            cotizaciones?: string[];
-            /** @description Cards livianas de los tours públicos vigentes (portada del catálogo). */
-            toursParaCliente?: {
-                [key: string]: string | null;
-            }[];
-            /**
-             * Format: iri-reference
-             * @description Cotización completa del tour solicitado en la URL (solo detalle).
-             * @example https://example.com/
-             */
-            cotizacionParaCliente?: string | null;
-            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
-            saltosDeOperador?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            readonly localizador?: string | null;
-            /**
-             * Format: uuid
-             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
-             */
-            readonly idOrFail?: string;
-        };
-        /**
-         * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
-         *     o paquetes multi-día) dirigidas a un segmento de cliente (lujo, económico).
-         */
         "CotizacionCatalogo.jsonld-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             /**
@@ -7468,6 +7429,26 @@ export interface components {
              * @default 0
              */
             orden: number;
+            /**
+             * @description Sale en la web pública. **No es `activo`**: `activo` deja vivo el enlace privado por
+             *     localizador; esto lo LISTA en openperu.pe. Un catálogo para una agencia se manda por
+             *     enlace y no debe aparecer en la web, así que son dos interruptores a propósito.
+             * @default false
+             */
+            publicadoWeb: boolean;
+            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            slug?: string | null;
+            /**
+             * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
+             *     falta, la web cae al nombre, que es mejor que una sección sin título.
+             */
+            tituloWeb?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Entradilla de la sección del catálogo en la web (HTML corto). */
+            descripcionWeb?: {
+                [key: string]: string | null;
+            }[];
             cotizaciones?: components["schemas"]["Cotizacion.jsonld-catalogo.read_catalogo.item.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
@@ -7498,6 +7479,26 @@ export interface components {
              * @default 0
              */
             orden: number;
+            /**
+             * @description Sale en la web pública. **No es `activo`**: `activo` deja vivo el enlace privado por
+             *     localizador; esto lo LISTA en openperu.pe. Un catálogo para una agencia se manda por
+             *     enlace y no debe aparecer en la web, así que son dos interruptores a propósito.
+             * @default false
+             */
+            publicadoWeb: boolean;
+            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            slug?: string | null;
+            /**
+             * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
+             *     falta, la web cae al nombre, que es mejor que una sección sin título.
+             */
+            tituloWeb?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Entradilla de la sección del catálogo en la web (HTML corto). */
+            descripcionWeb?: {
+                [key: string]: string | null;
+            }[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -7551,59 +7552,6 @@ export interface components {
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
          *     o paquetes multi-día) dirigidas a un segmento de cliente (lujo, económico).
          */
-        "CotizacionCatalogo.multipart": {
-            nombre?: string;
-            /**
-             * @default economico
-             * @enum {string}
-             */
-            tipoCliente: "economico" | "estandar" | "superior" | "lujo";
-            /** @default es */
-            idiomaCliente: string;
-            /**
-             * @description Un catálogo inactivo deja de ser visible en la vista pública.
-             * @default true
-             */
-            activo: boolean;
-            /**
-             * @description Orden de exhibición del catálogo en el listado.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
-             *     usa queries escalares); el editor la usa con catalogo:item:read.
-             */
-            cotizaciones?: string[];
-            /** @description Cards livianas de los tours públicos vigentes (portada del catálogo). */
-            toursParaCliente?: {
-                [key: string]: string | null;
-            }[];
-            /**
-             * Format: iri-reference
-             * @description Cotización completa del tour solicitado en la URL (solo detalle).
-             * @example https://example.com/
-             */
-            cotizacionParaCliente?: string | null;
-            /** @description Las puertas que la sesión del operador se saltó en ESTA petición. Vacío para el cliente. */
-            saltosDeOperador?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            readonly localizador?: string | null;
-            /**
-             * Format: uuid
-             * @description El id de una entidad ya GUARDADA (o con `initializeId()`), que siempre lo tiene.
-             */
-            readonly idOrFail?: string;
-        };
-        /**
-         * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
-         *     o paquetes multi-día) dirigidas a un segmento de cliente (lujo, económico).
-         */
         "CotizacionCatalogo.multipart-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
             nombre?: string;
             /**
@@ -7623,6 +7571,26 @@ export interface components {
              * @default 0
              */
             orden: number;
+            /**
+             * @description Sale en la web pública. **No es `activo`**: `activo` deja vivo el enlace privado por
+             *     localizador; esto lo LISTA en openperu.pe. Un catálogo para una agencia se manda por
+             *     enlace y no debe aparecer en la web, así que son dos interruptores a propósito.
+             * @default false
+             */
+            publicadoWeb: boolean;
+            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            slug?: string | null;
+            /**
+             * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
+             *     falta, la web cae al nombre, que es mejor que una sección sin título.
+             */
+            tituloWeb?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Entradilla de la sección del catálogo en la web (HTML corto). */
+            descripcionWeb?: {
+                [key: string]: string | null;
+            }[];
             cotizaciones?: components["schemas"]["Cotizacion.multipart-catalogo.read_catalogo.item.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
@@ -7653,6 +7621,26 @@ export interface components {
              * @default 0
              */
             orden: number;
+            /**
+             * @description Sale en la web pública. **No es `activo`**: `activo` deja vivo el enlace privado por
+             *     localizador; esto lo LISTA en openperu.pe. Un catálogo para una agencia se manda por
+             *     enlace y no debe aparecer en la web, así que son dos interruptores a propósito.
+             * @default false
+             */
+            publicadoWeb: boolean;
+            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            slug?: string | null;
+            /**
+             * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
+             *     falta, la web cae al nombre, que es mejor que una sección sin título.
+             */
+            tituloWeb?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Entradilla de la sección del catálogo en la web (HTML corto). */
+            descripcionWeb?: {
+                [key: string]: string | null;
+            }[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -37683,10 +37671,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionCatalogo.jsonld"];
-                    "application/json": components["schemas"]["CotizacionCatalogo"];
-                    "text/html": components["schemas"]["CotizacionCatalogo.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionCatalogo.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionCatalogo.jsonld-catalogo.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionCatalogo-catalogo.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionCatalogo.html-catalogo.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionCatalogo.multipart-catalogo.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */
@@ -37787,10 +37775,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionCatalogo.jsonld"];
-                    "application/json": components["schemas"]["CotizacionCatalogo"];
-                    "text/html": components["schemas"]["CotizacionCatalogo.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionCatalogo.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionCatalogo.jsonld-catalogo.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionCatalogo-catalogo.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionCatalogo.html-catalogo.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionCatalogo.multipart-catalogo.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */
@@ -37905,10 +37893,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionCatalogo.jsonld"];
-                    "application/json": components["schemas"]["CotizacionCatalogo"];
-                    "text/html": components["schemas"]["CotizacionCatalogo.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionCatalogo.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionCatalogo.jsonld-catalogo.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionCatalogo-catalogo.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionCatalogo.html-catalogo.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionCatalogo.multipart-catalogo.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */

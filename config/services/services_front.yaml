@@ -6,13 +6,16 @@ services:
         autoconfigure: true
 
     # =========================
-    # controllers del módulo Pms
-    # (fuera de src/Controller/)
+    # Controladores de las webs públicas (docs/WebPublica.md §8): uno por web más lo común.
+    # El resto de src/Front/ (servicios, DTOs, Twig) lo registra App\ de services_core.yaml.
     # =========================
-    App\Front\Controller\:
-        resource: '../../src/Front/Controller/'
-        autowire: true
-        autoconfigure: true
+    App\Front\Tours\Controller\:
+        resource: '../../src/Front/Tours/Controller/'
+        tags:
+            - 'controller.service_arguments'
+
+    App\Front\Comun\Controller\:
+        resource: '../../src/Front/Comun/Controller/'
         tags:
             - 'controller.service_arguments'
 

@@ -8,6 +8,19 @@ twig:
 
 
         numero_default: "%numero_default%"
+
+        # Web pública (templates/front/). Ver docs/WebPublica.md.
+        front_host: '%app.host.front%'
+        front:
+            marca: '%front.marca%'
+            razon_social: '%front.razon_social%'
+            nombre_comercial: '%front.nombre_comercial%'
+            ruc: '%front.ruc%'
+            direccion: '%front.direccion%'
+            correo: '%front.correo%'
+            whatsapp: '%front.whatsapp%'
+            telefono_visible: '%front.telefono_visible%'
+            alojamiento_url: '%front.alojamiento_url%'
         colores:
             lila: "#954e8d"
             azul_acero: "#016c8d"

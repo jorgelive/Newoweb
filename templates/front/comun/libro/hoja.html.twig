@@ -1,0 +1,34 @@
+{% extends layout %}
+
+{% block titulo %}{{ 'libro.hoja_titulo'|trans({'%n%': hoja.correlativo}, 'front') }} · {{ front.marca }}{% endblock %}
+
+{% block cuerpo %}
+<div class="pagina-texto hoja">
+    <div class="aviso-ok">
+        <strong>{{ 'libro.ok_titulo'|trans({}, 'front') }}</strong><br>
+        {{ 'libro.ok_texto'|trans({'%email%': hoja.consumidorEmail, '%fecha%': hoja.venceRespuesta|date('d/m/Y')}, 'front') }}
+    </div>
+    <h1>{{ 'libro.hoja_titulo'|trans({'%n%': hoja.correlativo}, 'front') }}</h1>
+    <div class="titular-legal">
+        <strong>{{ front.razon_social }}</strong> · RUC {{ front.ruc }} · {{ front.direccion }}<br>
+        {{ 'libro.fecha'|trans({}, 'front') }}: {{ hoja.fecha|date('d/m/Y H:i') }}
+    </div>
+    <section class="bloque">
+        <dl>
+            <dt>{{ 'libro.campo.nombre'|trans({}, 'front') }}</dt><dd>{{ hoja.consumidorNombre }}</dd>
+            <dt>{{ 'libro.campo.doc_numero'|trans({}, 'front') }}</dt><dd>{{ hoja.consumidorDocumentoTipo }} {{ hoja.consumidorDocumentoNumero }}</dd>
+            <dt>{{ 'libro.campo.domicilio'|trans({}, 'front') }}</dt><dd>{{ hoja.consumidorDomicilio }}</dd>
+            {% if hoja.consumidorTelefono %}<dt>{{ 'libro.campo.telefono'|trans({}, 'front') }}</dt><dd>{{ hoja.consumidorTelefono }}</dd>{% endif %}
+            <dt>{{ 'libro.campo.email'|trans({}, 'front') }}</dt><dd>{{ hoja.consumidorEmail }}</dd>
+            {% if hoja.consumidorEsMenor %}<dt>{{ 'libro.campo.apoderado'|trans({}, 'front') }}</dt><dd>{{ hoja.apoderadoNombre }}</dd>{% endif %}
+            <dt>{{ 'libro.campo.bien_tipo'|trans({}, 'front') }}</dt><dd>{{ ('libro.bien.' ~ hoja.bienTipo.value)|trans({}, 'front') }}</dd>
+            {% if hoja.bienMonto %}<dt>{{ 'libro.campo.monto'|trans({}, 'front') }}</dt><dd>{{ hoja.bienMonto }}</dd>{% endif %}
+            <dt>{{ 'libro.campo.bien_descripcion'|trans({}, 'front') }}</dt><dd>{{ hoja.bienDescripcion }}</dd>
+            <dt>{{ 'libro.campo.tipo'|trans({}, 'front') }}</dt><dd>{{ ('libro.tipo.' ~ hoja.tipo.value)|trans({}, 'front') }}</dd>
+            <dt>{{ 'libro.campo.detalle'|trans({}, 'front') }}</dt><dd>{{ hoja.detalle }}</dd>
+            <dt>{{ 'libro.campo.pedido'|trans({}, 'front') }}</dt><dd>{{ hoja.pedido }}</dd>
+        </dl>
+    </section>
+    <p><button class="boton boton-borde" onclick="window.print()">{{ 'libro.imprimir'|trans({}, 'front') }}</button></p>
+</div>
+{% endblock %}

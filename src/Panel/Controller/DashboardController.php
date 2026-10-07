@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Panel\Controller;
 
+use App\Front\Comun\Crud\LibroReclamacionCrudController;
 use App\Security\Roles;
 use App\Travel\Controller\Crud\TravelSegmentoImagenCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
@@ -205,6 +206,10 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkTo(TravelItemDiccionarioCrudController::class, 'Diccionario Multiidioma', 'fa fa-language'),
             ])
             ->setPermission(Roles::MAESTROS_WRITE);
+
+        // Las hojas que llegan desde la web pública (openperu.pe). Plazo legal: 15 días hábiles.
+        yield MenuItem::linkTo(LibroReclamacionCrudController::class, 'Libro de Reclamaciones', 'fa fa-book')
+            ->setPermission(Roles::RESERVAS_SHOW);
 
         // =========================================================================
         // SECCIÓN 2: EXPERIENCIA DEL HUÉSPED

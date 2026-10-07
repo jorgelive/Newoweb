@@ -1,0 +1,40 @@
+{# Correo de una hoja del Libro de Reclamaciones. `hoja` es un array de textos (LibroReclamacionesService::datosParaCorreo),
+   no la entidad: el correo viaja serializado por la cola de Messenger. Va en español: es el idioma del formato oficial. #}
+<div style="font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#1d2a2f;max-width:640px">
+    {% if para_operador %}
+        <p style="background:#fdf3f1;border:1px solid #f0d0c6;padding:12px 14px;border-radius:8px">
+            <strong>Nueva {{ hoja.tipo }} en el Libro de Reclamaciones ({{ hoja.sitio }}).</strong><br>
+            Plazo legal de respuesta: <strong>{{ hoja.vence }}</strong> (15 días hábiles). Se responde desde el panel → Libro de Reclamaciones.
+            Al responder a este correo le escribes directamente al consumidor.
+        </p>
+    {% else %}
+        <p>Hola {{ hoja.nombre }}:</p>
+        <p>Hemos registrado tu hoja del Libro de Reclamaciones. Esta es tu copia. Te responderemos a este correo
+            como máximo el <strong>{{ hoja.vence }}</strong>.</p>
+    {% endif %}
+
+    <h2 style="font-size:18px;margin:20px 0 6px">Hoja de reclamación N.º {{ hoja.correlativo }}</h2>
+    <p style="font-size:13px;color:#5d6b70;margin:0 0 14px">
+        {{ front.razon_social }} · RUC {{ front.ruc }} · {{ front.nombre_comercial }}<br>
+        {{ front.direccion }}<br>
+        Fecha: {{ hoja.fecha }}
+    </p>
+    <table cellpadding="6" style="border-collapse:collapse;font-size:14px;width:100%">
+        <tr><td style="color:#5d6b70;width:38%">Consumidor</td><td>{{ hoja.nombre }}</td></tr>
+        <tr><td style="color:#5d6b70">Documento</td><td>{{ hoja.documento }}</td></tr>
+        <tr><td style="color:#5d6b70">Domicilio</td><td>{{ hoja.domicilio }}</td></tr>
+        {% if hoja.telefono %}<tr><td style="color:#5d6b70">Teléfono</td><td>{{ hoja.telefono }}</td></tr>{% endif %}
+        <tr><td style="color:#5d6b70">Correo</td><td>{{ hoja.email }}</td></tr>
+        {% if hoja.menor %}<tr><td style="color:#5d6b70">Padre, madre o apoderado</td><td>{{ hoja.apoderado }}</td></tr>{% endif %}
+        <tr><td style="color:#5d6b70">Bien contratado</td><td>{{ hoja.bien_tipo == 'producto' ? 'Producto' : 'Servicio' }}{% if hoja.monto %} · Monto: {{ hoja.monto }}{% endif %}</td></tr>
+        <tr><td style="color:#5d6b70;vertical-align:top">Descripción</td><td style="white-space:pre-wrap">{{ hoja.bien_descripcion }}</td></tr>
+        <tr><td style="color:#5d6b70">Tipo</td><td>{{ hoja.tipo == 'reclamo' ? 'Reclamo' : 'Queja' }}</td></tr>
+        <tr><td style="color:#5d6b70;vertical-align:top">Detalle</td><td style="white-space:pre-wrap">{{ hoja.detalle }}</td></tr>
+        <tr><td style="color:#5d6b70;vertical-align:top">Pedido</td><td style="white-space:pre-wrap">{{ hoja.pedido }}</td></tr>
+    </table>
+    <p style="font-size:12px;color:#5d6b70;margin-top:18px">
+        Reclamo: disconformidad relacionada con los productos o servicios. Queja: disconformidad no relacionada con los
+        productos o servicios, o malestar respecto a la atención al público. La formulación del reclamo no impide acudir a
+        otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el INDECOPI.
+    </p>
+</div>

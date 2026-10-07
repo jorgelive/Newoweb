@@ -62,6 +62,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Exchange/Entity'
                 prefix: 'App\Exchange\Entity'
                 alias: exchange
+            Front:
+                is_bundle: false
+                type: attribute
+                dir: '%kernel.project_dir%/src/Front/Comun/Entity'
+                prefix: 'App\Front\Comun\Entity'
+                alias: front
             Finanzas:
                 is_bundle: false
                 type: attribute

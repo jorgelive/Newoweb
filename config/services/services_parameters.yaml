@@ -31,6 +31,21 @@ parameters:
     app.host.util: '%env(UTIL_HOST)%'
 
     pax_host_url: '%env(PAX_HOST_URL)%'
+
+    # Identidad de la web pública (openperu.pe). Una sola fuente: la usan el pie, las páginas
+    # legales, el Libro de Reclamaciones y los correos. ⚠️ El titular legal es el del RUC con el
+    # que se factura: si los tours pasan a venderse con otra razón social, se cambia AQUÍ y en
+    # los textos de templates/front/legal/. Ver docs/PlanWebPublica.md §4.
+    front.marca: 'Open Perú'
+    front.razon_social: 'Susan Acuña Romero'
+    front.nombre_comercial: 'Centro Cusco Inti'
+    front.ruc: '10249916001'
+    front.direccion: 'Cal. Saphy 877A, Centro Histórico, Cusco, Perú'
+    front.correo: 'reservas@openperu.pe'
+    front.whatsapp: '51961281953'
+    front.telefono_visible: '+51 961 281 953'
+    # La sección de alojamiento enlaza a la vitrina de pax hasta que exista centrocuscointi.com.
+    front.alojamiento_url: '%pax_host_url%/centro-cusco-inti/centro-cusco-inti-casita-1'
     util_host_url: '%env(UTIL_HOST_URL)%'
     panel_host_url: '%env(PANEL_HOST_URL)%'
     api_host_url: '%env(API_HOST_URL)%'

@@ -7,11 +7,19 @@ security_global:
     resource: ../src/Controller/SecurityController.php
     type: attribute
 
-# FRONT (web / CMS)
-front_controllers:
-    resource: ../src/Front/Controller/
+# FRONT — webs públicas, un host por web (docs/WebPublica.md §8).
+# openperu.pe (tours): lo suyo y lo común (Libro de Reclamaciones, legales).
+front_tours_controllers:
+    resource: ../src/Front/Tours/Controller/
     type: attribute
     host: '%app.host.front%'
+
+front_comun_controllers:
+    resource: ../src/Front/Comun/Controller/
+    type: attribute
+    host: '%app.host.front%'
+# centrocuscointi.com (alojamiento) entrará aquí con su host cuando exista src/Front/Alojamiento/:
+# una carpeta de rutas que no existe tumba el arranque, por eso no se declara antes.
 
 # PAX
 pax_controllers:
