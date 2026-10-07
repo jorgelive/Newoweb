@@ -2831,10 +2831,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 ? `/platform/sales/cotizacions/${cotizacion.value.id}`
                 : `/platform/sales/cotizacions`;
 
+            // 🔥 El padre se lee ANTES de limpiar la hipermedia. Si la API lo manda incrustado
+            // (`{ '@id', createdAt, … }`), `stripHypermedia` le borra el `@id` y después no queda de
+            // dónde sacar el enlace: el catálogo viajaba como `null` y el tour se quedaba huérfano
+            // (07/10/2026). El backend ya lo manda como IRI (`readableLink: false`) y además ignora
+            // el null; esto es la tercera red.
+            const padreOriginal = cotizacion.value as { file?: unknown; catalogo?: unknown };
+            const iriDePadre = (rel: unknown): string | null =>
+                typeof rel === 'string' ? rel
+                    : (rel && typeof rel === 'object') ? extractIriDeRelacion(rel as { '@id'?: string; id?: string })
+                    : null;
+            const fileIri = iriDePadre(padreOriginal.file);
+            const catalogoIri = iriDePadre(padreOriginal.catalogo);
+
             // 🔥 Clonado + limpieza de hipermedia (evita que @id resuelva a
             // referencias de Doctrine sin constructor → colección sin inicializar).
             // El clon arranca como Cotizacion y se va aplanando a payload de escritura.
             const payload = stripHypermedia(JSON.parse(JSON.stringify(cotizacion.value))) as CotizacionPayload;
+            if (fileIri) payload.file = fileIri;
+            if (catalogoIri) payload.catalogo = catalogoIri;
 
             // Campos derivados / gestionados por el backend: no deben viajar.
             delete payload.ganancia;

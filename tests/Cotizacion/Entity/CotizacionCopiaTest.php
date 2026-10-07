@@ -191,6 +191,18 @@ final class CotizacionCopiaTest extends TestCase
     }
 
     #[Test]
+    public function un_null_no_suelta_el_catalogo_de_un_tour(): void
+    {
+        // Lo que mandaba el editor al guardar un tour con el catálogo incrustado (07/10/2026).
+        $catalogo = new CotizacionCatalogo();
+        $tour = (new Cotizacion())->setCatalogo($catalogo);
+
+        $tour->setCatalogo(null);
+
+        self::assertSame($catalogo, $tour->getCatalogo(), 'Quitar el padre no es una intención del editor.');
+    }
+
+    #[Test]
     public function el_cuerpo_acepta_catalogo_como_iri_o_uuid(): void
     {
         $uuid = '01a10c57-3ff7-7783-9380-badd2877e025';

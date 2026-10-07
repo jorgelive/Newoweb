@@ -4682,7 +4682,12 @@ export interface components {
         };
         "Cotizacion-cotizacion.read_timestamp.read": {
             file?: components["schemas"]["CotizacionFile-cotizacion.read_timestamp.read"] | null;
-            catalogo?: components["schemas"]["CotizacionCatalogo-cotizacion.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description Padre catálogo de tours. Excluyente con $file.
+             * @example https://example.com/
+             */
+            catalogo?: string | null;
             /**
              * @description ¿Puede verla el cliente ahora mismo?
              * @default false
@@ -5519,7 +5524,12 @@ export interface components {
         };
         "Cotizacion.html-cotizacion.read_timestamp.read": {
             file?: components["schemas"]["CotizacionFile.html-cotizacion.read_timestamp.read"] | null;
-            catalogo?: components["schemas"]["CotizacionCatalogo.html-cotizacion.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description Padre catálogo de tours. Excluyente con $file.
+             * @example https://example.com/
+             */
+            catalogo?: string | null;
             /**
              * @description ¿Puede verla el cliente ahora mismo?
              * @default false
@@ -6062,7 +6072,12 @@ export interface components {
         };
         "Cotizacion.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             file?: components["schemas"]["CotizacionFile.jsonld-cotizacion.read_timestamp.read"] | null;
-            catalogo?: components["schemas"]["CotizacionCatalogo.jsonld-cotizacion.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description Padre catálogo de tours. Excluyente con $file.
+             * @example https://example.com/
+             */
+            catalogo?: string | null;
             /**
              * @description ¿Puede verla el cliente ahora mismo?
              * @default false
@@ -6605,7 +6620,12 @@ export interface components {
         };
         "Cotizacion.multipart-cotizacion.read_timestamp.read": {
             file?: components["schemas"]["CotizacionFile.multipart-cotizacion.read_timestamp.read"] | null;
-            catalogo?: components["schemas"]["CotizacionCatalogo.multipart-cotizacion.read_timestamp.read"] | null;
+            /**
+             * Format: iri-reference
+             * @description Padre catálogo de tours. Excluyente con $file.
+             * @example https://example.com/
+             */
+            catalogo?: string | null;
             /**
              * @description ¿Puede verla el cliente ahora mismo?
              * @default false
@@ -7229,12 +7249,6 @@ export interface components {
                 [key: string]: string | null;
             }[];
         };
-        "CotizacionCatalogo-cotizacion.read_timestamp.read": {
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
         /**
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
          *     o paquetes multi-día) dirigidas a un segmento de cliente (lujo, económico).
@@ -7366,12 +7380,6 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
-        };
-        "CotizacionCatalogo.html-cotizacion.read_timestamp.read": {
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
         };
         /**
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
@@ -7509,16 +7517,6 @@ export interface components {
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
          *     o paquetes multi-día) dirigidas a un segmento de cliente (lujo, económico).
          */
-        "CotizacionCatalogo.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        /**
-         * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples
-         *     o paquetes multi-día) dirigidas a un segmento de cliente (lujo, económico).
-         */
         "CotizacionCatalogo.jsonld-pax_catalogo.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             /** @default es */
@@ -7646,12 +7644,6 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
-        };
-        "CotizacionCatalogo.multipart-cotizacion.read_timestamp.read": {
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
         };
         /**
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples

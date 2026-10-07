@@ -11596,6 +11596,35 @@ El reapunte de ids es **por posición**, que es como `duplicar()` construye la c
 no coinciden no se reapunta nada (destacados vacíos): un mapa a medias ataría cosas al componente
 equivocado. Lo fija `CotizacionCopiaTest`.
 
+### 🔥 Guardar un tour desde el editor lo dejaba sin catálogo (07/10/2026)
+
+La primera copia real a «Viajes de Promoción» nació bien y **un minuto después estaba huérfana**:
+ni expediente ni catálogo. No fue el clonado: fueron los dos «Guardar» del editor.
+
+```
+GET  cotizacions/{id}  → catalogo: { "@id": …, "createdAt": …, "updatedAt": … }   ← incrustado
+editor: stripHypermedia() borra TODOS los @id → extractIriDeRelacion({createdAt,…}) → null
+PUT  { catalogo: null } → setCatalogo(null) → el tour sale de su catálogo, sin error
+```
+
+Se incrustaba porque `CotizacionCatalogo` usa `TimestampTrait` (`timestamp:read`, grupo de lectura
+de `Cotizacion`): basta una propiedad del destino en un grupo activo. **Ya pasaba antes** de la
+web pública; no se veía porque nadie había guardado un tour desde el editor desde el 04/10. El
+expediente se salvaba por la guarda de `setFile(null)` (14/08/2026); el catálogo no la tenía.
+
+Tres redes, una por capa:
+
+- `Cotizacion::$catalogo` con `#[ApiProperty(readableLink: false)]`: sale como IRI (el `api.d.ts`
+  lo tipa ya como `string`).
+- `setCatalogo(null)` se ignora si ya tiene catálogo, como `setFile()`. Cambiar de padre es
+  `reubicarEn…()`, que escribe la propiedad.
+- El editor lee el padre **antes** de `stripHypermedia()` (`guardarCotizacion()`).
+
+⚠️ La regla general, ya vista con `CotizacionCotcomponente::$grupos`: **una relación que el
+editor devuelve al guardar tiene que salir como IRI**. Si una entidad destino gana un `Groups`
+que coincide con un grupo de lectura del padre, la relación pasa a incrustarse sin que nada lo
+avise.
+
 ### Cambiar de padre: `reubicarEnExpediente()` / `reubicarEnCatalogo()`
 
 Un tour de catálogo es una **propuesta genérica** (fechas nominales, «pax base», precios «desde»);

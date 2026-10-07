@@ -472,6 +472,18 @@ En `ReservaEditDrawer` el helper es `soloDia()`. La regla hermana vive en `onCam
 **sólo un cambio de DÍA arrastra el check-out**, medido con `diasEntre()`, que ignora la hora;
 si sólo cambió la hora se sale antes incluso de la red de seguridad del rango.
 
+## 3.a ⚠️ El `body` no hace scroll: cada vista lleva el suyo (07/10/2026)
+
+`util/src/assets/main.css` pone `overflow: hidden` en el `body`, a propósito: el chat gestiona su
+propio desplazamiento. La consecuencia es que **una vista con `min-h-screen` no se puede
+desplazar**: en escritorio a veces cabe y no se nota; en el móvil el contenido de abajo queda
+inalcanzable. Le pasó a `CatalogoDashboard.vue`: al abrir un catálogo sus tours quedaban fuera de
+pantalla y parecía vacío.
+
+El patrón es el de `DashboardView.vue`: raíz con altura fija y `flex flex-col overflow-hidden`,
+cabecera `shrink-0`, y un `main` con `flex-1 overflow-y-auto`. Mejor `h-dvh` que `h-screen`: en el
+navegador del móvil `100vh` incluye la barra de direcciones y corta el final.
+
 ## 3.b Enfocar lo que se acaba de abrir — `utils/scrollEnfoque.ts`
 
 **Archivo:** `util/src/utils/scrollEnfoque.ts`

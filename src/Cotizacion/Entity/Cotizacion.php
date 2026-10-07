@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Get;
@@ -193,7 +194,19 @@ class Cotizacion
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?CotizacionFile $file = null;
 
-    /** Padre catálogo de tours. Excluyente con $file. */
+    /**
+     * Padre catálogo de tours. Excluyente con $file.
+     *
+     * 🔥 **`readableLink: false`: sale como IRI, no incrustado** (07/10/2026). `CotizacionCatalogo`
+     * usa `TimestampTrait`, cuyos `createdAt`/`updatedAt` llevan `timestamp:read`, que es grupo de
+     * lectura de esta entidad: basta UNA propiedad del destino en un grupo activo para que API
+     * Platform incruste el objeto. El editor borra los `@id` del payload antes de leer el padre
+     * (`stripHypermedia`), así que del objeto incrustado no sacaba nada y mandaba
+     * `catalogo: null` — **todo tour guardado desde el editor se quedaba huérfano**. Lo destapó la
+     * primera copia a «Viajes de Promoción», sin catálogo un minuto después de nacer. Mismo
+     * gotcha que `CotizacionCotcomponente::$grupos`.
+     */
+    #[ApiProperty(readableLink: false)]
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\ManyToOne(targetEntity: CotizacionCatalogo::class, inversedBy: 'cotizaciones')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
@@ -975,7 +988,26 @@ class Cotizacion
     }
 
     public function getCatalogo(): ?CotizacionCatalogo { return $this->catalogo; }
-    public function setCatalogo(?CotizacionCatalogo $catalogo): self { $this->catalogo = $catalogo; return $this; }
+    /**
+     * Mismo criterio que {@see self::setFile()}: un `null` sobre una cotización que ya cuelga de
+     * un catálogo se IGNORA. Quitar el padre no es nunca una intención del editor, y un payload que
+     * no lo trae —o que lo pierde, como el del 07/10/2026— dejaba el tour huérfano y fuera de su
+     * catálogo sin un error. Mover a otro padre es `reubicarEnExpediente()`/`reubicarEnCatalogo()`,
+     * que escriben la propiedad directamente.
+     *
+     * ⚠️ `CotizacionCatalogo::removeCotizacion()` pasa por aquí con null y ya no suelta el vínculo;
+     * no importa porque la colección lleva `orphanRemoval`: sacarla de ella la borra.
+     */
+    public function setCatalogo(?CotizacionCatalogo $catalogo): self
+    {
+        if ($catalogo === null && $this->catalogo !== null) {
+            return $this;
+        }
+
+        $this->catalogo = $catalogo;
+
+        return $this;
+    }
 
     /**
      * @return list<array{valor?: string, moneda?: string, titulo?: list<array{language?: string, content?: string|null}>}>

@@ -381,9 +381,14 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#F8FAFC] font-sans">
+  <!-- ⚠️ Altura fija + `main` con su propio scroll, como DashboardView: `main.css` pone
+       `overflow: hidden` en el body (el chat gestiona el suyo), así que con `min-h-screen`
+       esta vista NO podía desplazarse en el móvil y los tours de un catálogo abierto quedaban
+       fuera de pantalla (07/10/2026). `h-dvh` y no `h-screen`: en el navegador del móvil
+       100vh incluye la barra de direcciones y corta el final. -->
+  <div class="h-dvh bg-[#F8FAFC] font-sans flex flex-col overflow-hidden">
 
-    <header class="bg-slate-900 text-white px-4 md:px-8 py-4 flex items-center justify-between shadow-md">
+    <header class="shrink-0 bg-slate-900 text-white px-4 md:px-8 py-4 flex items-center justify-between shadow-md">
       <div class="flex items-center gap-3">
         <AppSwitcher />
         <div>
@@ -420,7 +425,7 @@ onMounted(() => {
       </div>
     </header>
 
-    <main class="max-w-6xl mx-auto p-4 md:p-8">
+    <main class="flex-1 overflow-y-auto w-full"><div class="max-w-6xl mx-auto p-4 md:p-8">
 
       <div v-if="isLoading" class="text-center py-20 text-slate-400">
         <i class="fas fa-spinner fa-spin text-3xl mb-3 text-[#376875]"></i>
@@ -664,7 +669,7 @@ onMounted(() => {
           </div>
         </div>
       </div>
-    </main>
+    </div></main>
 
     <!-- Modal crear catálogo -->
     <div v-if="showCreateModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
