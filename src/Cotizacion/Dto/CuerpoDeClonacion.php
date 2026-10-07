@@ -16,6 +16,8 @@ use DateTimeImmutable;
  *
  * - `file`: a qué expediente va la copia. Acepta el UUID o el IRI (`/platform/.../files/{id}`),
  *   porque el front maneja IRIs y un comando de consola maneja ids. Vacío = el mismo padre.
+ * - `catalogo`: a qué catálogo de tours va la copia (07/10/2026), con la misma forma. Excluye a
+ *   `file`: con los dos, el procesador responde 422.
  * - `fechaInicio`: a qué día se ancla el PRIMER servicio. Vacío = no se mueve nada.
  * - `numPax`: pasajeros de la copia. Vacío = los mismos. Arrastra las tarifas que cubrían al
  *   grupo entero — ver {@see \App\Cotizacion\Entity\Cotizacion::ajustarPax()}, porque cambiar
@@ -29,6 +31,8 @@ final readonly class CuerpoDeClonacion
     private function __construct(
         /** UUID del expediente destino, ya sin el IRI. Null = el mismo padre que el original. */
         public ?string $fileId,
+        /** UUID del catálogo destino, ya sin el IRI. Null = no va a un catálogo. */
+        public ?string $catalogoId,
         /** `false` = no se entiende; `null` = no desplazar. */
         public DateTimeImmutable|false|null $fechaInicio,
         /** Pasajeros de la copia. Null = los mismos que el original. */
@@ -38,13 +42,8 @@ final readonly class CuerpoDeClonacion
     /** @param array<mixed> $datos */
     public static function fromArray(array $datos): self
     {
-        $file = Lee::textoLimpio($datos['file'] ?? null);
-
-        // El IRI llega como `/platform/sales/client/files/{uuid}`: nos quedamos con el último
-        // tramo. Un UUID pelado pasa igual, que es lo que manda la consola.
-        if ($file !== null && str_contains($file, '/')) {
-            $file = substr($file, strrpos($file, '/') + 1) ?: null;
-        }
+        $file = self::idDe($datos['file'] ?? null);
+        $catalogo = self::idDe($datos['catalogo'] ?? null);
 
         $crudaFecha = $datos['fechaInicio'] ?? null;
         $fecha = null;
@@ -63,6 +62,21 @@ final readonly class CuerpoDeClonacion
 
         $pax = Lee::entero($datos['numPax'] ?? null);
 
-        return new self($file, $fecha, ($pax !== null && $pax > 0) ? $pax : null);
+        return new self($file, $catalogo, $fecha, ($pax !== null && $pax > 0) ? $pax : null);
+    }
+
+    /**
+     * El IRI llega como `/platform/sales/cotizacion_files/{uuid}`: nos quedamos con el último
+     * tramo. Un UUID pelado pasa igual, que es lo que manda la consola.
+     */
+    private static function idDe(mixed $crudo): ?string
+    {
+        $id = Lee::textoLimpio($crudo);
+
+        if ($id !== null && str_contains($id, '/')) {
+            $id = substr($id, strrpos($id, '/') + 1) ?: null;
+        }
+
+        return $id;
     }
 }

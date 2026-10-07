@@ -546,7 +546,137 @@ class Cotizacion
             $copia->cotservicios->add($copiaServicio);
         }
 
+        // ── Lo que TODA copia arregla, la pida quien la pida (07/10/2026) ──────────
+        // Nueva propuesta, otro expediente, catálogo, histórico, operativa: las cinco pasan por
+        // aquí. Cada regla estuvo antes en un solo procesador —o en ninguno— y las demás puertas
+        // se quedaban con el fallo.
+
+        // 🔥 **Nace sin publicar.** El `clone` arrastraba `publicado`: una copia a otro expediente
+        // —o una propuesta nueva en el mismo— aparecía en el enlace del cliente antes de tocarla,
+        // y hacia un catálogo saldría en la web pública. La invariante «una publicada por
+        // propuesta» no lo frena porque la copia lleva otro número. Ya lo forzaban a mano el
+        // histórico y la operativa; ahora es la regla y no la excepción.
+        $copia->publicado = false;
+
+        // ⚠️ **Fecha de creación propia.** `TimestampTrait` sólo la pone si es nula, y el clon la
+        // traía del original: en 2KVBMX la P1, su histórico y la P2 decían las tres 11/07/2026
+        // 15:33:30. Los históricos se ordenan por `createdAt`, así que con dos fotos de la misma
+        // cotización el orden salía al azar.
+        $copia->resetTimestamps();
+
+        // 🔥 **Los ids que apuntan DENTRO del árbol, reapuntados al árbol nuevo.** La copia tiene
+        // ids nuevos; los destacados de la cabecera y las líneas de «Incluye / No incluye» seguían
+        // señalando a los del original, y `pax` no casaba ni uno: cabecera sin destacados y panel
+        // de inclusiones vacío, sin un error. Lo arreglaba sólo la operativa
+        // (`AbrirOperativaProcessor`), y sólo las inclusiones.
+        $mapa = self::mapaDeIds($this, $copia);
+        if ($mapa !== null) {
+            $copia->destacadosComponenteIds = array_values(array_filter(
+                array_map(static fn (string $id): ?string => $mapa[$id] ?? null, $this->destacadosComponenteIds),
+                static fn (?string $id): bool => $id !== null,
+            ));
+            $copia->clasificacionFinancieraCliente = self::remapearInclusiones($this->clasificacionFinancieraCliente, $mapa);
+        } else {
+            // Formas distintas: un mapa a medias ataría cosas al componente equivocado, que es peor
+            // que nada. Sin destacados se ve y se corrige; las inclusiones las rehace el editor.
+            $copia->destacadosComponenteIds = [];
+        }
+
         return $copia;
+    }
+
+    /**
+     * Ids viejos → nuevos de servicios y componentes, **por posición**: es como `duplicar()`
+     * construye la copia (recorre y va añadiendo), así que justo después de duplicar la posición i
+     * de la copia ES la i del original. Si las formas no coinciden, `null`: no hay mapa fiable.
+     *
+     * @return array<string, string>|null
+     */
+    private static function mapaDeIds(self $origen, self $copia): ?array
+    {
+        $serviciosOrigen = $origen->cotservicios->getValues();
+        $serviciosCopia = $copia->cotservicios->getValues();
+
+        if (count($serviciosOrigen) !== count($serviciosCopia)) {
+            return null;
+        }
+
+        $mapa = [];
+        foreach ($serviciosOrigen as $i => $servicio) {
+            $gemelo = $serviciosCopia[$i];
+            $viejo = $servicio->getId()?->toRfc4122();
+            $nuevo = $gemelo->getId()?->toRfc4122();
+            if ($viejo !== null && $nuevo !== null) {
+                $mapa[$viejo] = $nuevo;
+            }
+
+            $compsOrigen = $servicio->getCotcomponentes()->getValues();
+            $compsCopia = $gemelo->getCotcomponentes()->getValues();
+            if (count($compsOrigen) !== count($compsCopia)) {
+                return null;
+            }
+
+            foreach ($compsOrigen as $j => $componente) {
+                $viejoC = $componente->getId()?->toRfc4122();
+                $nuevoC = $compsCopia[$j]->getId()?->toRfc4122();
+                if ($viejoC !== null && $nuevoC !== null) {
+                    $mapa[$viejoC] = $nuevoC;
+                }
+            }
+        }
+
+        return $mapa;
+    }
+
+    /**
+     * El financiero del cliente con los `servicioId`/`componenteId` de sus inclusiones traducidos.
+     * El resto del blob se hereda tal cual. Movido aquí desde `AbrirOperativaProcessor` (donde
+     * sólo lo usaba la operativa) para que lo tenga toda copia.
+     *
+     * @param array<string, mixed>|null $bloque
+     * @param array<string, string> $mapa
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function remapearInclusiones(?array $bloque, array $mapa): ?array
+    {
+        if ($bloque === null || !is_array($bloque['inclusiones'] ?? null)) {
+            return $bloque;
+        }
+
+        $traducir = static fn (mixed $id): mixed => is_string($id) ? ($mapa[$id] ?? $id) : $id;
+
+        $inclusiones = [];
+        foreach ($bloque['inclusiones'] as $servicio) {
+            if (!is_array($servicio)) {
+                continue;
+            }
+
+            $servicio['servicioId'] = $traducir($servicio['servicioId'] ?? null);
+
+            foreach (['incluidos', 'noIncluidos', 'cortesias', 'opcionales'] as $seccion) {
+                if (!is_array($servicio[$seccion] ?? null)) {
+                    continue;
+                }
+
+                $servicio[$seccion] = array_map(
+                    static function (mixed $linea) use ($traducir): mixed {
+                        if (is_array($linea) && isset($linea['componenteId'])) {
+                            $linea['componenteId'] = $traducir($linea['componenteId']);
+                        }
+
+                        return $linea;
+                    },
+                    $servicio[$seccion],
+                );
+            }
+
+            $inclusiones[] = $servicio;
+        }
+
+        $bloque['inclusiones'] = $inclusiones;
+
+        return $bloque;
     }
 
     /**
@@ -689,6 +819,67 @@ class Cotizacion
         }
 
         return ['ajustadas' => $ajustadas, 'respetadas' => $respetadas];
+    }
+
+    /**
+     * Cuelga la cotización (normalmente una copia recién hecha) de un **expediente**.
+     *
+     * - Si el expediente es OTRO, se vacían los subgrupos de los componentes: son del expediente
+     *   de origen —sus PNR, sus vuelos— y en el nuevo no significan nada. En el mismo se quedan.
+     * - Si venía de un **catálogo**, se quita lo que sólo tiene sentido allí: el total oculto (un
+     *   expediente es un grupo concreto y su total SÍ se vende), los precios «desde» y el orden.
+     *
+     * Las fechas no se tocan aquí: un tour de catálogo tiene fechas nominales y quien lo mueve
+     * tiene que decir a qué día (`CloneCotizacionProcessor` lo exige).
+     */
+    public function reubicarEnExpediente(CotizacionFile $destino): void
+    {
+        $otroExpediente = $this->file === null || $this->file->getId()?->toRfc4122() !== $destino->getId()?->toRfc4122();
+        $veniaDeCatalogo = $this->catalogo !== null;
+
+        $this->catalogo = null;
+        $this->file = $destino;
+
+        if ($otroExpediente) {
+            $this->vaciarSubgrupos();
+        }
+
+        if ($veniaDeCatalogo) {
+            $this->totalesOcultos = false;
+            $this->preciosDesde = [];
+            $this->orden = 0;
+        }
+    }
+
+    /**
+     * Cuelga la cotización de un **catálogo**: pasa a ser una propuesta genérica, no un viaje.
+     *
+     * - Sin expediente (directo a la propiedad: `setFile(null)` se ignora a propósito, ver allí).
+     * - Sin subgrupos: no hay grupo ni pasajeros.
+     * - Total oculto: `numPax` pasa a ser «pax base» y el total de ese grupo no es vendible.
+     * - Sin fecha de expiración: es la validez de una oferta a un cliente, no de un producto.
+     * - Al final del catálogo (`$orden`, lo calcula quien conoce a las hermanas).
+     *
+     * Los precios «desde» NO se derivan del total del grupo (liberados, clases de pasajero): los
+     * pone el operador. Las fechas las mueve `desplazarA()` a la base nominal.
+     */
+    public function reubicarEnCatalogo(CotizacionCatalogo $destino, int $orden): void
+    {
+        $this->file = null;
+        $this->catalogo = $destino;
+        $this->vaciarSubgrupos();
+        $this->totalesOcultos = true;
+        $this->fechaExpiracion = null;
+        $this->orden = $orden;
+    }
+
+    private function vaciarSubgrupos(): void
+    {
+        foreach ($this->cotservicios as $servicio) {
+            foreach ($servicio->getCotcomponentes() as $componente) {
+                $componente->getGrupos()->clear();
+            }
+        }
     }
 
     /** Suma o resta el salto según el signo. `DateInterval` no lleva signo propio. */

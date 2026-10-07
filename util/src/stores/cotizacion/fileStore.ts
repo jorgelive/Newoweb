@@ -13,6 +13,12 @@ import { extractIdStr } from '@/utils/recurso';
 export interface DestinoDeClon {
     /** UUID del expediente destino. Sin él, la copia se queda en el mismo. */
     file?: string;
+    /**
+     * UUID del catálogo destino: la copia pasa a ser una propuesta genérica (fechas nominales,
+     * total oculto, sin subgrupos, sin publicar). Excluye a `file`. Las reglas viven en
+     * `Cotizacion::reubicarEnCatalogo()`; ver docs/Cotizaciones.md, «Copiar una cotización».
+     */
+    catalogo?: string;
     /** `AAAA-MM-DD` del primer servicio. Desplaza el viaje ENTERO ese mismo delta. */
     fechaInicio?: string;
     /** Pasajeros de la copia. Arrastra las tarifas que cubrían al grupo entero. */
@@ -269,9 +275,10 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * Utiliza el endpoint custom de API Platform que ejecuta la lógica en base de datos.
      *
      * @param iriOrId El UUID o IRI de la cotización a clonar.
-     * @returns {Promise<boolean>} true si se clonó con éxito, false en caso de error.
+     * @returns El UUID de la copia, o `null` si falló. Sirve como booleano para quien sólo quiere
+     *          saber si funcionó, y da el id a quien tiene que abrirla (la copia a un catálogo).
      */
-    const cloneCotizacion = async (iriOrId: string, destino?: DestinoDeClon): Promise<boolean> => {
+    const cloneCotizacion = async (iriOrId: string, destino?: DestinoDeClon): Promise<string | null> => {
         error.value = null;
         const id = String(iriOrId).includes('/') ? String(iriOrId).split('/').pop() : iriOrId;
 
@@ -282,11 +289,12 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
             //
             // El interceptor pondrá application/ld+json; Symfony lo ignora con seguridad gracias
             // a 'deserialize: false' y lee el cuerpo a mano con CuerpoDeClonacion.
-            await apiClient.post(`/platform/sales/client/cotizacion/${id}/clonar`, destino ?? {});
-            return true;
+            const res = await apiClient.post<{ id?: string; '@id'?: string }>(`/platform/sales/client/cotizacion/${id}/clonar`, destino ?? {});
+            const nuevo = res.data.id ?? res.data['@id'] ?? '';
+            return String(nuevo).split('/').pop() || '';
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'Error al clonar la versión de la cotización.');
-            return false;
+            return null;
         }
     };
 

@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import { apiClient, getUrls } from '@/services/apiClient';
 import { thumbUrl } from '@/services/imageThumb';
+import type { components } from '@dominio/api';
+import ClonarAExpedienteModal from '@/components/cotizacion/ClonarAExpedienteModal.vue';
 import {
   ESTADO_COTIZACION_CONFIG,
   type Cotizacion,
@@ -23,7 +25,16 @@ type TourCatalogo = Cotizacion & {
   numDias?: number | null;
 };
 
-interface CatalogoResumen {
+/**
+ * Los campos de la web pública (openperu.pe), anclados al esquema generado. `tituloWeb` y
+ * `descripcionWeb` se estrechan: el export los tipa como diccionario abierto y la forma real es
+ * `I18nContent[]` (mismo caso que `titulo` en la cotización). Ver docs/WebPublica.md §2.
+ */
+type CatalogoWebCampos =
+  Pick<components['schemas']['CotizacionCatalogo-catalogo.read_timestamp.read'], 'publicadoWeb' | 'slug'>
+  & { tituloWeb?: I18nContent[]; descripcionWeb?: I18nContent[] };
+
+interface CatalogoResumen extends Partial<CatalogoWebCampos> {
   id?: string;
   '@id'?: string;
   localizador?: string;
@@ -68,6 +79,32 @@ const formatDate = (dateStr?: string): string => {
 
 const linkPublico = (cat: CatalogoResumen): string =>
   `${getUrls().pax}/catalogo/${cat.localizador}`;
+
+/** URL en la web pública, sólo si está publicado y tiene dirección (`TourController::catalogo`). */
+const linkWeb = (cat: CatalogoResumen): string | null =>
+  cat.publicadoWeb && cat.slug ? `${getUrls().web}/tours/${cat.slug}` : null;
+
+/** «Oferta Cusco 2026» → «oferta-cusco-2026»: la sugerencia de dirección al publicar. */
+const sugerirSlug = (texto: string): string =>
+  texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+
+/** El texto en español de un i18n (el origen que traduce `#[AutoTranslate]`). */
+const textoEs = (arr?: I18nContent[] | null): string =>
+  (arr || []).find(i => i.language === 'es')?.content || '';
+
+/**
+ * Cambia SÓLO el español y conserva los demás idiomas: si el texto no cambió, su hash sigue
+ * cuadrando y no se vuelve a pagar la traducción; si cambió, el listener rehace las otras.
+ * Vaciarlo vacía todos: dejar las traducciones de un texto borrado haría que la web en inglés
+ * siguiera diciendo lo que en español ya no dice.
+ */
+const conEspanol = (arr: I18nContent[] | undefined, texto: string): I18nContent[] => {
+  if (!texto.trim()) return [];
+  const original = textoEs(arr);
+  const resto = (arr || []).filter(i => i.language !== 'es');
+  return [{ language: 'es', content: texto.trim() }, ...(original === texto.trim() ? resto : [])];
+};
 
 const toursOrdenados = computed(() =>
   [...(seleccionado.value?.cotizaciones || [])].sort(
@@ -176,36 +213,64 @@ const moverTour = async (idx: number, dir: -1 | 1) => {
   }
 };
 
-// Edición de catálogo (nombre y modalidad)
-const editCatalogo = ref<{ id: string; nombre: string; tipoCliente: string } | null>(null);
+// Edición de catálogo (nombre, modalidad y web pública)
+const editCatalogo = ref<{
+  id: string; nombre: string; tipoCliente: string;
+  publicadoWeb: boolean; slug: string; tituloWeb: string; descripcionWeb: string;
+} | null>(null);
+const errorEdicion = ref('');
 
 const abrirEdicion = (cat: CatalogoResumen) => {
+  errorEdicion.value = '';
   editCatalogo.value = {
     id: extractId(cat),
     nombre: cat.nombre || '',
     tipoCliente: cat.tipoCliente || 'economico',
+    publicadoWeb: !!cat.publicadoWeb,
+    slug: cat.slug || '',
+    tituloWeb: textoEs(cat.tituloWeb),
+    descripcionWeb: textoEs(cat.descripcionWeb),
   };
+};
+
+/** Al encender «publicar» sin dirección, se sugiere una a partir del título o del nombre. */
+const alternarWeb = () => {
+  if (!editCatalogo.value) return;
+  editCatalogo.value.publicadoWeb = !editCatalogo.value.publicadoWeb;
+  if (editCatalogo.value.publicadoWeb && !editCatalogo.value.slug.trim()) {
+    editCatalogo.value.slug = sugerirSlug(editCatalogo.value.tituloWeb || editCatalogo.value.nombre);
+  }
 };
 
 const cerrarEdicion = () => { editCatalogo.value = null; };
 
 const handleEditSave = async () => {
   if (!editCatalogo.value || !editCatalogo.value.nombre.trim()) return;
+  const e = editCatalogo.value;
+  const cat = catalogos.value.find(c => extractId(c) === e.id);
+  const cambios: Partial<CatalogoResumen> = {
+    nombre: e.nombre.trim(),
+    tipoCliente: e.tipoCliente,
+    publicadoWeb: e.publicadoWeb,
+    slug: e.slug.trim() || null,
+    tituloWeb: conEspanol(cat?.tituloWeb, e.tituloWeb),
+    descripcionWeb: conEspanol(cat?.descripcionWeb, e.descripcionWeb),
+  };
+  errorEdicion.value = '';
   try {
-    await apiClient.patch(`/platform/sales/cotizacion_catalogos/${editCatalogo.value.id}`, {
-      nombre: editCatalogo.value.nombre.trim(),
-      tipoCliente: editCatalogo.value.tipoCliente,
-    });
-    const cat = catalogos.value.find(c => extractId(c) === editCatalogo.value!.id);
-    if (cat) { cat.nombre = editCatalogo.value.nombre.trim(); cat.tipoCliente = editCatalogo.value.tipoCliente; }
-    if (seleccionado.value && extractId(seleccionado.value) === editCatalogo.value.id) {
-      seleccionado.value.nombre = editCatalogo.value.nombre.trim();
-      seleccionado.value.tipoCliente = editCatalogo.value.tipoCliente;
+    const res = await apiClient.patch(`/platform/sales/cotizacion_catalogos/${e.id}`, cambios);
+    // La respuesta trae los textos ya traducidos: se toma de ahí y no de lo enviado.
+    const guardado: CatalogoResumen = { ...cambios, ...res.data };
+    if (cat) Object.assign(cat, guardado);
+    if (seleccionado.value && extractId(seleccionado.value) === e.id) {
+      Object.assign(seleccionado.value, guardado);
     }
     editCatalogo.value = null;
-  } catch (e) {
-    console.error('Error editando catálogo', e);
-    alert('No se pudo guardar el catálogo.');
+  } catch (err: unknown) {
+    console.error('Error editando catálogo', err);
+    // Las violaciones del validador (slug repetido, publicar sin dirección) se enseñan tal cual.
+    const data = (err as { response?: { data?: { violations?: { message: string }[]; detail?: string } } }).response?.data;
+    errorEdicion.value = data?.violations?.map(v => v.message).join(' ') || data?.detail || 'No se pudo guardar el catálogo.';
   }
 };
 
@@ -280,6 +345,18 @@ const copiarLink = async (cat: CatalogoResumen) => {
   } catch (e) {
     console.error('No se pudo copiar el enlace', e);
   }
+};
+
+// ── Crear un expediente desde un tour ─────────────────────────────────────────
+// Las reglas (fecha obligatoria, total visible, sin precios «desde») viven en el backend:
+// `CloneCotizacionProcessor` y `Cotizacion::reubicarEnExpediente()`.
+const tourACopiar = ref<string | null>(null);
+const tituloTourACopiar = ref('');
+
+const abrirCrearExpediente = (tour: TourCatalogo): void => {
+  if (!tour.id) return;
+  tituloTourACopiar.value = `${t18(tour.titulo) || 'Tour'} (T${tour.propuesta ?? 1})`;
+  tourACopiar.value = tour.id;
 };
 
 const abrirTour = (cotizacionId?: string | null) => {
@@ -389,6 +466,11 @@ onMounted(() => {
                     {{ getTipoUI(cat.tipoCliente).label }}
                   </span>
                   <span class="text-[10px] font-bold text-slate-400">{{ formatDate(cat.createdAt) }}</span>
+                  <a v-if="linkWeb(cat)" :href="linkWeb(cat) ?? undefined" target="_blank" rel="noopener" @click.stop
+                     class="text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-widest bg-orange-50 text-[#E07845] border-orange-200 hover:bg-orange-100"
+                     :title="`Publicado en la web: ${linkWeb(cat)}`">
+                    <i class="fas fa-globe mr-1"></i>En la web
+                  </a>
                 </div>
               </div>
             </div>
@@ -398,7 +480,7 @@ onMounted(() => {
             <div class="flex flex-wrap items-center justify-end gap-2 shrink-0 ml-auto" @click.stop>
               <button @click="abrirEdicion(cat)"
                       class="w-9 h-9 flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-500 transition-colors shadow-sm"
-                      title="Editar nombre y modalidad">
+                      title="Editar nombre, modalidad y publicación en la web">
                 <i class="fas fa-pen text-xs"></i>
               </button>
               <button @click="copiarLink(cat)"
@@ -553,10 +635,19 @@ onMounted(() => {
                       <p v-else class="text-[13px] font-black text-slate-300 leading-none mt-0.5">Sin rangos</p>
                     </div>
 
-                    <button @click="abrirTour(tour.id)"
-                            class="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-[#376875] border border-slate-200 hover:border-[#376875] text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-white transition-colors">
-                      Abrir <i class="fas fa-arrow-right text-[9px] group-hover:translate-x-0.5 transition-transform"></i>
-                    </button>
+                    <div class="shrink-0 flex items-center gap-1.5">
+                      <!-- El camino inverso de «Copiar al catálogo»: el producto se vende a un grupo.
+                           Pide fecha porque el tour vive en fechas nominales. -->
+                      <button @click.stop="abrirCrearExpediente(tour)"
+                              class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-slate-400 hover:text-indigo-500 transition-colors"
+                              title="Crear un expediente desde este tour (con fecha y pasajeros)">
+                        <i class="fas fa-arrow-right-from-bracket text-xs"></i>
+                      </button>
+                      <button @click="abrirTour(tour.id)"
+                              class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-[#376875] border border-slate-200 hover:border-[#376875] text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-white transition-colors">
+                        Abrir <i class="fas fa-arrow-right text-[9px] group-hover:translate-x-0.5 transition-transform"></i>
+                      </button>
+                    </div>
                   </div>
 
                   <!-- Resto de rangos por perfil -->
@@ -617,14 +708,14 @@ onMounted(() => {
 
     <!-- Modal editar catálogo -->
     <div v-if="editCatalogo" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
-        <header class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
+      <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+        <header class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shrink-0">
           <h2 class="font-black text-base"><i class="fas fa-pen mr-2 text-[#E07845]"></i> Editar Catálogo</h2>
           <button @click="cerrarEdicion" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors">
             <i class="fas fa-times"></i>
           </button>
         </header>
-        <div class="p-6 space-y-5">
+        <div class="p-6 space-y-5 overflow-y-auto">
           <div>
             <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre del Catálogo *</label>
             <input v-model="editCatalogo.nombre" type="text"
@@ -645,6 +736,43 @@ onMounted(() => {
               </button>
             </div>
           </div>
+          <!-- Web pública: publicar es distinto de «visible» (el enlace por localizador). Ver docs/WebPublica.md §2. -->
+          <div class="border-t border-slate-100 pt-5 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-[10px] font-black text-slate-500 uppercase ml-1">Publicar en la web</p>
+                <p class="text-[11px] text-slate-400 ml-1">Lo lista en {{ getUrls().web.replace('https://', '') }}. Sólo salen sus tours publicados.</p>
+              </div>
+              <button type="button" @click="alternarWeb"
+                      :class="['relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors', editCatalogo.publicadoWeb ? 'bg-[#E07845]' : 'bg-slate-300']"
+                      :aria-pressed="editCatalogo.publicadoWeb" title="Publicar en la web pública">
+                <span :class="editCatalogo.publicadoWeb ? 'translate-x-6' : 'translate-x-1'"
+                      class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
+              </button>
+            </div>
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Dirección web</label>
+              <div class="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[#376875] shadow-sm">
+                <span class="pl-3 text-xs text-slate-400 whitespace-nowrap">/tours/</span>
+                <input v-model="editCatalogo.slug" type="text" placeholder="ofertas-cusco"
+                       @blur="editCatalogo.slug = sugerirSlug(editCatalogo.slug)"
+                       class="w-full px-1 py-3 text-sm font-bold outline-none">
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1 ml-1">Cambiarla rompe los enlaces del catálogo ya compartidos.</p>
+            </div>
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Título público (español)</label>
+              <input v-model="editCatalogo.tituloWeb" type="text" :placeholder="editCatalogo.nombre"
+                     class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875] shadow-sm">
+              <p class="text-[10px] text-slate-400 mt-1 ml-1">Vacío: se usa el nombre. Se traduce solo al guardar.</p>
+            </div>
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Entradilla (español)</label>
+              <textarea v-model="editCatalogo.descripcionWeb" rows="3"
+                        class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"></textarea>
+            </div>
+          </div>
+          <p v-if="errorEdicion" class="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{{ errorEdicion }}</p>
           <button @click="handleEditSave"
                   :disabled="!editCatalogo.nombre.trim()"
                   :class="!editCatalogo.nombre.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#c96636]'"
@@ -654,6 +782,14 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <ClonarAExpedienteModal
+      :cotizacion-id="tourACopiar"
+      :titulo="tituloTourACopiar"
+      origen="catalogo"
+      @cerrar="tourACopiar = null"
+      @clonada="(copia) => copia.file && router.push(`/cotizacion/${copia.file}`)"
+    />
   </div>
 </template>
 

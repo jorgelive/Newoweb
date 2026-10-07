@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Cotizacion\Dto\CuerpoDeClonacion;
 use App\Cotizacion\Entity\Cotizacion;
+use App\Cotizacion\Entity\CotizacionCatalogo;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Dto\Lee;
@@ -18,7 +19,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Clona una cotización: en su mismo expediente, o **en otro y con otras fechas**.
+ * Clona una cotización: en su mismo padre, **en otro expediente y con otras fechas**, o **en un
+ * catálogo de tours** como propuesta genérica (07/10/2026).
  *
  * ## Por qué los dos casos viven en el mismo endpoint
  *
@@ -41,7 +43,20 @@ use Symfony\Component\Uid\Uuid;
  *
  * El estado (nace `PENDIENTE`: una copia no está aprobada de nada) y las operaciones. La Biblia y
  * las órdenes cuelgan de la cotización original y armar la operación de la copia es una decisión
- * aparte, con su botón — ver `docs/Operacion.md` §2.bis.
+ * aparte, con su botón — ver `docs/Operacion.md` §2.bis. Tampoco `publicado`, la fecha de
+ * creación ni los ids internos del original: eso lo resuelve `Cotizacion::duplicar()` para toda
+ * copia.
+ *
+ * ## Cambiar de padre
+ *
+ * Las reglas de cada dirección viven en la entidad (`reubicarEnExpediente()`,
+ * `reubicarEnCatalogo()`); aquí sólo se decide el destino y la fecha:
+ *
+ * | Destino | Fecha | Si no llega |
+ * |---|---|---|
+ * | mismo padre (`{}`) | opcional | no se mueve |
+ * | otro expediente | opcional | no se mueve — salvo que venga de un catálogo: 422 |
+ * | catálogo | opcional | la base nominal (`CotizacionCatalogo::FECHA_BASE_NOMINAL`) |
  *
  * @implements ProcessorInterface<Cotizacion, Cotizacion|null>
  */
@@ -64,13 +79,38 @@ final class CloneCotizacionProcessor implements ProcessorInterface
         // $data es la Cotizacion leída por el provider (gracias a read: true)
         $clon = $data->duplicar();
 
+        if ($cuerpo->fileId !== null && $cuerpo->catalogoId !== null) {
+            throw new DomainException('Elige un destino para la copia: un expediente o un catálogo, no los dos.');
+        }
+
+        if ($cuerpo->fechaInicio === false) {
+            throw new DomainException('La fecha de inicio tiene que venir como AAAA-MM-DD.');
+        }
+
+        $fechaInicio = $cuerpo->fechaInicio;
+        // La base nominal no la pidió nadie: si el original no tiene fechas, no hay nada que mover
+        // y no es un error (sí lo es si el operador pidió una fecha concreta).
+        $fechaPedida = $fechaInicio !== null;
+
         $destino = $this->resolverDestino($cuerpo->fileId);
+        $catalogo = $this->resolverCatalogo($cuerpo->catalogoId);
 
         if ($destino !== null) {
-            // A otro expediente: el catálogo del original no viaja, o la copia colgaría de dos
-            // sitios. `setFile()` manda y el catálogo se suelta.
-            $clon->setCatalogo(null);
-            $clon->setFile($destino);
+            // Un tour de catálogo vive en 2030 («Día N»): llevarlo a un expediente sin decir a qué
+            // día dejaría un viaje real con fechas de mentira, que se leen perfectamente plausibles.
+            if ($data->getCatalogo() !== null && $fechaInicio === null) {
+                throw new DomainException('Un tour de catálogo tiene fechas nominales: para pasarlo a un expediente indica la fecha de inicio.');
+            }
+            $clon->reubicarEnExpediente($destino);
+        }
+
+        if ($catalogo !== null) {
+            $orden = 0;
+            foreach ($catalogo->getCotizaciones() as $c) {
+                $orden = max($orden, $c->getOrden() + 1);
+            }
+            $clon->reubicarEnCatalogo($catalogo, $orden);
+            $fechaInicio ??= new \DateTimeImmutable(CotizacionCatalogo::FECHA_BASE_NOMINAL);
         }
 
         // El padre puede ser un expediente o un catálogo de tours
@@ -87,11 +127,7 @@ final class CloneCotizacionProcessor implements ProcessorInterface
             $clon->setPropuesta($data->getPropuesta() + 1);
         }
 
-        if ($cuerpo->fechaInicio === false) {
-            throw new DomainException('La fecha de inicio tiene que venir como AAAA-MM-DD.');
-        }
-
-        if ($cuerpo->fechaInicio !== null && $clon->desplazarA($cuerpo->fechaInicio) === null) {
+        if ($fechaInicio !== null && $clon->desplazarA($fechaInicio) === null && $fechaPedida) {
             // Ni un servicio con fecha: desplazar no significa nada y callarlo haría creer que el
             // viaje se movió. Es el caso de una plantilla sin fechas puestas todavía.
             throw new DomainException('Esta cotización no tiene ningún servicio con fecha: no hay nada que desplazar.');
@@ -136,6 +172,26 @@ final class CloneCotizacionProcessor implements ProcessorInterface
         }
 
         return Lee::mapa(json_decode($crudo, true));
+    }
+
+    /** El catálogo destino, o null si la copia no va a un catálogo. */
+    private function resolverCatalogo(?string $catalogoId): ?CotizacionCatalogo
+    {
+        if ($catalogoId === null) {
+            return null;
+        }
+
+        if (!Uuid::isValid($catalogoId)) {
+            throw new DomainException('El catálogo destino no es un identificador válido.');
+        }
+
+        $catalogo = $this->entityManager->find(CotizacionCatalogo::class, Uuid::fromString($catalogoId));
+
+        if (!$catalogo instanceof CotizacionCatalogo) {
+            throw new DomainException('El catálogo destino no existe.');
+        }
+
+        return $catalogo;
     }
 
     /** El expediente destino, o null si no se pidió mover la copia. */

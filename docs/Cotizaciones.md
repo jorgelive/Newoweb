@@ -3950,12 +3950,24 @@ Ni la portada ni los días son columnas de `Cotizacion`:
 
 Ambas reglas viven **solo** en `src/Cotizacion/Service/TourTarjetaResolver.php`, que las
 resuelve **en lote con queries escalares** — recorrer `getCotservicios()` por tour hidrataría
-el árbol completo de cada uno. Dos consumidores:
+el árbol completo de cada uno. Tres consumidores:
 
-| Consumidor | Provider | Cómo llega al front |
+| Consumidor | Provider / lector | Cómo llega al front |
 |---|---|---|
 | Catálogo público (pax) | `CotizacionCatalogoPublicProvider` | `toursParaCliente[].imagenPortada` / `.numDias` |
+| Web pública (openperu.pe) | `App\Front\Tours\Service\CatalogoWebLector` | Twig en el servidor, ver `docs/WebPublica.md` |
 | Panel interno (`CatalogoDashboard.vue`) | `CotizacionCatalogoAdminProvider` | props **virtuales** `Cotizacion::$imagenTarjeta` / `$numDias`, grupo `catalogo:item:read` |
+
+**La tarjeta pública entera se arma en `TourTarjetaResolver::tarjetas()`** (07/10/2026): el
+query de tours del catálogo, la portada (override → derivada) y el vaciado de `preciosDesde`
+cuando `precioOculto`. Antes vivía dentro del provider de pax; se movió al aparecer la web,
+para que «precio oculto» no tuviera que escribirse dos veces. La salida de la API de pax se
+comparó byte a byte antes y después del cambio: idéntica. `imagenesDeTour()` da la galería de
+la ficha web (fotos de los segmentos, en orden de itinerario, sin repetir).
+
+Un catálogo sale en la web sólo con `activo` **y** `publicadoWeb` **y** `slug`; `activo` solo
+sigue controlando el enlace privado por localizador. Se editan en el modal de
+`CatalogoDashboard.vue` (sección «Publicar en la web»).
 
 El panel pinta las tarjetas con el mismo lenguaje visual que el cliente (foto, chip de días,
 título flotante, "Desde") para revisar el producto sin abrir el enlace público; encima añade
@@ -5237,7 +5249,8 @@ las otras tres.
 blob tal cual, con los `servicioId` de la confirmada; se arreglaba al primer guardado desde el
 editor, pero abrir y publicar desde el ojo del expediente no pasa por ahí — y es el camino corto.
 Ahora `remapearInclusiones()` traduce los ids al clon: **18 de 18 servicios y 36 de 36
-componentes** en la prueba.
+componentes** en la prueba. Desde el 07/10/2026 vive en `Cotizacion::duplicar()` y lo tiene
+**toda** copia, no sólo la operativa — ver «Lo que TODA copia arregla».
 
 ⚠️ **La correspondencia se toma por POSICIÓN**, que es como `duplicar()` construye la copia. Si las
 formas no coinciden no se remapea **nada**: un mapa a medias ataría líneas al componente
@@ -9163,7 +9176,8 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Lo que se imprime del itinerario (el «PDF»)** → los dos bloques `@media print` al final de `PaxCotizacionGuiaView.vue` + la función `imprimir()`. **Contenido** que sobre en papel se quita en el modo Resumen, no en el CSS (§6.u).
 - **Una cadena de UI de la guía que sale en castellano estando en otro idioma** → falta la clave en `pax_ui_i18n`; se crea por comando (`pax:textos:itinerario`), nunca por SQL — lleva `#[AutoTranslate]` (§6.u).
 - **Serialización pública / ocultar precio o proveedor** → `src/Cotizacion/Serializer/CotizacionPublicNormalizer.php` + grupos `pax_cotizacion:read` en las entidades.
-- **Portada o duración de un tour de catálogo (en el panel o en pax)** → `TourTarjetaResolver` (§6.b). Nunca reimplementar la derivación en la entidad ni en el front.
+- **Portada, duración o precio oculto de un tour de catálogo (en el panel, en pax o en la web pública)** → `TourTarjetaResolver` (§6.b; la tarjeta entera en `tarjetas()`). Nunca reimplementar la derivación en la entidad ni en el front.
+- **Que un catálogo salga en openperu.pe** → `CotizacionCatalogo::$publicadoWeb` + `$slug` (modal de `CatalogoDashboard.vue`); el resto en `docs/WebPublica.md`.
 - **La tarjeta de precio de la guía (colapsada/expandida, textos del pie)** → sección "TARJETA DE PRECIO" de `PaxCotizacionGuiaView.vue` + `finanzasAbiertas` / `hayPanelPrecio`. Ojo con el vocabulario: §6.
 - **Lo que dice el disparador de esa tarjeta** → `etiquetaDisparador` en `PaxCotizacionGuiaView.vue`. Se calcula de `clasesPasajeros` y `opcionesPlanas`: si el panel gana una sección, la etiqueta se queda corta y se toca ahí.
 - **Cuántos opcionales se ven con la tarjeta cerrada** → `OPCIONES_EN_ADELANTO` en `PaxCotizacionGuiaView.vue`.
@@ -11473,7 +11487,7 @@ IRI: `idDeExpediente()` en la vista le quita la ruta para armar el enlace a la f
 
 ---
 
-## Clonar una cotización a OTRO expediente, moviendo las fechas (05/10/2026)
+## Clonar una cotización a OTRO expediente o a un CATÁLOGO, moviendo las fechas (05/10/2026, catálogo 07/10/2026)
 
 ### Para qué
 
@@ -11561,10 +11575,54 @@ del importe y la de la divergencia de órdenes.
 
 El **estado** —nace `PENDIENTE`, una copia no está aprobada de nada— y las **operaciones**. La
 Biblia y las órdenes cuelgan de la original, y armar la operación de la copia es una decisión
-aparte con su botón (`docs/Operacion.md` §2.bis).
+aparte con su botón (`docs/Operacion.md` §2.bis). La `propuesta` se renumera contra el padre
+DESTINO, no contra el origen.
 
-Al mandarla a otro expediente se suelta el `catalogo`: con los dos puestos la copia colgaría de dos
-padres. Y la `propuesta` se renumera contra el padre DESTINO, no contra el origen.
+### 🔥 Lo que TODA copia arregla: `Cotizacion::duplicar()` (07/10/2026)
+
+Nueva propuesta, otro expediente, catálogo, histórico y operativa pasan por `duplicar()`. Revisando
+cómo llevar una cotización a un catálogo salieron cinco fallos; **los cuatro primeros ya estaban en
+el clonado entre expedientes**, y cada arreglo vivía —si vivía— en un solo procesador:
+
+| | Qué pasaba | Ahora |
+|---|---|---|
+| `publicado` | El `clone` lo arrastraba: una copia aparecía en el enlace del cliente antes de tocarla (la invariante «una por propuesta» no lo frena: otro número). Sólo histórico y operativa lo bajaban a mano | toda copia nace **sin publicar** |
+| `destacadosComponenteIds` | Seguía con los ids del original: cabecera de la copia sin destacados | reapuntados al árbol nuevo, en su orden; un id ajeno se descarta |
+| Inclusiones del financiero del cliente | Con los `servicioId`/`componenteId` del original: panel «Incluye» vacío hasta re-guardar. Sólo la operativa lo arreglaba (`remapearInclusiones()`, movido aquí) | reapuntadas en toda copia |
+| `createdAt` | Heredado (`TimestampTrait` sólo lo pone si es nulo): en 2KVBMX la P1, su histórico y la P2 decían 11/07/2026 15:33:30, y los históricos se ordenan por esa fecha | `resetTimestamps()`: fecha propia |
+| Subgrupos de componentes | Viajaban a otro expediente: la copia quedaba acotada a los PNR del grupo de origen. No pasó (los 74 enlaces de 5SRAJV son suyos), pero clonar La Salle lo habría provocado | se vacían al cambiar de expediente o ir a un catálogo (`reubicarEn…()`) |
+
+El reapunte de ids es **por posición**, que es como `duplicar()` construye la copia; si las formas
+no coinciden no se reapunta nada (destacados vacíos): un mapa a medias ataría cosas al componente
+equivocado. Lo fija `CotizacionCopiaTest`.
+
+### Cambiar de padre: `reubicarEnExpediente()` / `reubicarEnCatalogo()`
+
+Un tour de catálogo es una **propuesta genérica** (fechas nominales, «pax base», precios «desde»);
+una cotización de expediente es **un viaje real para un grupo**. Las reglas de pasar de uno a otro
+viven en la entidad, una por dirección; el procesador sólo elige destino y fecha:
+
+| Destino (`CuerpoDeClonacion`) | Qué cambia | Fecha |
+|---|---|---|
+| `{}` mismo padre | nada | opcional |
+| `file` otro expediente | se vacían los subgrupos (son del otro grupo) | opcional; **obligatoria si viene de un catálogo** (422): sus fechas son de 2030 |
+| `file` desde un catálogo | además: total visible, sin `preciosDesde`, `orden = 0` | ídem |
+| `catalogo` | sin expediente, sin subgrupos, `totalesOcultos = true`, sin `fechaExpiracion`, al final del catálogo | si no llega, `CotizacionCatalogo::FECHA_BASE_NOMINAL` (05/01/2030) |
+| `file` + `catalogo` | — | 422: «elige un destino» |
+
+- Los **precios «desde» no se derivan** del total del grupo (liberados, clases de pasajero): los
+  pone el operador al revisar el tour.
+- **Revisar que los textos no nombren al cliente** antes de publicar. La de Punta Cana de
+  `X5ZXF4` no lo hace (revisado el 07/10/2026: título, resumen y 44 segmentos).
+- ⚠️ `setFile(null)` se ignora a propósito (el editor no puede desenganchar el expediente), por eso
+  `reubicarEnCatalogo()` escribe la propiedad directamente.
+- ⚠️ La fecha nominal es un **espejo PHP ↔ TS**: `CotizacionCatalogo::FECHA_BASE_NOMINAL` y
+  `FECHA_BASE_NOMINAL` de `cotizacionEditorStore.ts`. Se citan mutuamente; cambian los dos.
+
+Probado el 07/10/2026 copiando la cotización real de 5SRAJV (17 servicios, 39 segmentos, 36
+componentes) a un catálogo y a otro expediente, en transacción con rollback: árbol completo,
+fechas 05–11/01/2030 sin segmentos fuera de rango, sin publicar, total oculto, fecha de creación
+propia, y los dos 422.
 
 ### Desde `util`
 
@@ -11572,8 +11630,13 @@ El botón vive en `FileDetalle.vue`, **al lado del de clonar**, en la fila de ac
 versión: es el mismo acto con otro destino, y separarlos haría buscarlo en dos sitios. El icono los
 distingue — copiar «ahí dentro» frente a copiar «hacia fuera».
 
-Abre `ClonarAExpedienteModal.vue`, que pide tres cosas: expediente destino (buscador), primer día y
-pasajeros. Los dos últimos son opcionales.
+Abre `ClonarAExpedienteModal.vue`, con dos destinos: **otro expediente** (buscador, primer día y
+pasajeros, los dos últimos opcionales) o **catálogo de tours** (catálogo y pax base; la fecha la
+pone el backend). Copiado a un catálogo, **abre la copia** en el editor de tours: le falta el
+precio «desde» y la revisión de textos, y es ahí donde se hace.
+
+El mismo modal con `origen="catalogo"` es el botón «Crear expediente desde este tour» de cada tarjeta
+en `CatalogoDashboard.vue`: sólo ofrece expediente y exige la fecha. Al terminar abre el expediente.
 
 ⚠️ **Las reglas NO están en el modal.** El desplazamiento por delta y el arrastre de tarifas los
 decide el backend; el componente recoge tres datos y los manda. Reimplementar «mover fechas» en el
@@ -11598,8 +11661,10 @@ rastro de que funcionó sería la ausencia de error, que se lee igual que si no 
 | Cambiar el formulario de la copia | `util/src/components/cotizacion/ClonarAExpedienteModal.vue` | — las reglas no están aquí |
 | Cambiar cómo se mueven las fechas | `src/Cotizacion/Entity/Cotizacion.php` | `desplazarA()` — y sus tests, que fijan los cuatro bordes |
 | Cambiar qué acepta el cuerpo | `src/Cotizacion/Dto/CuerpoDeClonacion.php` | `fromArray()` |
-| Cambiar qué se lleva la copia | `src/Cotizacion/ApiPlatform/State/CloneCotizacionProcessor.php` | `process()` |
-| Cambiar qué se duplica del árbol | `src/Cotizacion/Entity/Cotizacion.php` | `duplicar()` — ⚠️ apaga la traducción a propósito |
+| Cambiar qué destino se acepta o qué fecha se exige | `src/Cotizacion/ApiPlatform/State/CloneCotizacionProcessor.php` | `process()` |
+| Cambiar qué se duplica del árbol, o lo que arregla toda copia | `src/Cotizacion/Entity/Cotizacion.php` | `duplicar()` — ⚠️ apaga la traducción a propósito; `mapaDeIds()`, `remapearInclusiones()` |
+| Cambiar qué cambia al pasar a otro expediente o a un catálogo | `src/Cotizacion/Entity/Cotizacion.php` | `reubicarEnExpediente()`, `reubicarEnCatalogo()` — y `CotizacionCopiaTest` |
+| El día 1 de los tours de catálogo | `CotizacionCatalogo::FECHA_BASE_NOMINAL` + espejo en `cotizacionEditorStore.ts` | — |
 
 ---
 

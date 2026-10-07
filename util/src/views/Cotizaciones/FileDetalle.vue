@@ -5829,7 +5829,7 @@ const eliminarDocumento = async (iri?: string) => {
                        distingue: copiar «ahí dentro» frente a copiar «hacia fuera». -->
                   <button v-tooltip-tactil @click="abrirClonarAExpediente(cot)"
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 hover:bg-indigo-50 transition-colors"
-                          title="Copiar a otro expediente, con otras fechas y pasajeros">
+                          title="Copiar a otro expediente (otras fechas y pasajeros) o a un catálogo de tours">
                     <i class="fas fa-arrow-right-from-bracket text-xs"></i>
                   </button>
 
@@ -7090,14 +7090,15 @@ const eliminarDocumento = async (iri?: string) => {
   </div>
 
 
-  <!-- Copiar a otro expediente. Se recarga el file al volver porque la copia va a OTRO sitio y
-       esta vista no cambia: sin recargar, el único rastro de que funcionó sería que no hubo
-       error, y eso se lee igual que si no hubiera pasado nada. -->
+  <!-- Copiar a otro expediente o a un catálogo. A otro expediente se recarga el file al volver
+       porque la copia va a OTRO sitio y esta vista no cambia: sin recargar, el único rastro de
+       que funcionó sería que no hubo error. A un catálogo se ABRE la copia: le falta el precio
+       «desde» y la revisión de textos antes de publicarla, y es ahí donde se hace. -->
   <ClonarAExpedienteModal
     :cotizacion-id="clonandoAExpediente"
     :titulo="tituloDelClon"
     @cerrar="clonandoAExpediente = null"
-    @clonada="cargarFile()"
+    @clonada="(copia) => copia.catalogo ? router.push(`/catalogo/${copia.catalogo}/version/${copia.id}`) : cargarFile()"
   />
 </template>
 

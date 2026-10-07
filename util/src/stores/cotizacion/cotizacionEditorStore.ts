@@ -185,6 +185,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     // File. Los tours usan fechas base nominales (solo se muestra "Día N")
     // y exponen un precio comercial "Desde X" además del cálculo real.
     const modoCatalogo = ref(false);
+    // ⚠️ ESPEJO de `CotizacionCatalogo::FECHA_BASE_NOMINAL` (PHP), que la usa al copiar una
+    // cotización de expediente a un catálogo. Si cambia, cambian los dos.
     const FECHA_BASE_NOMINAL = '2030-01-05';
 
     /**
