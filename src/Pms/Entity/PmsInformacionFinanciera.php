@@ -56,8 +56,7 @@ use Symfony\Component\Uid\Uuid;
             security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
             provider: PmsInformacionFinancieraPorReservaProvider::class,
         ),
-        // Sólo para que el operador reactive/anule los cargos de una reserva cancelada
-        // en la OTA que en realidad sigue adelante como directa (§12.7).
+        // El tipo de cambio de la ficha. (Hasta el 08/10/2026 también `activa`, que ya se calcula.)
         new Patch(
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar la información financiera.',
@@ -164,26 +163,6 @@ class PmsInformacionFinanciera
     #[ORM\Column(name: 'total_pagos', type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
     #[Groups(['pms_finanzas:read'])]
     private string $totalPagos = '0.00';
-
-    /**
-     * ¿Los cargos de la estancia siguen contando para el saldo?
-     *
-     * Se separa a propósito del estado de la reserva en Beds24, porque no siempre coinciden:
-     * un huésped que negocia pasar a **reserva directa** cancela en la OTA, y Beds24 manda
-     * `status: cancelled` con `price: 0` — pero la estancia SÍ ocurre y hay que cobrarla.
-     *
-     * - `true`  → suman todos los cargos (caso normal, y también el de la directa negociada).
-     * - `false` → sólo suma la PENALIZACIÓN (el "Cancel Fee"): es lo que de verdad se debe
-     *   tras una cancelación real. Los cargos de la estancia **no se borran**, siguen en la
-     *   BD y visibles en el panel; simplemente dejan de computar.
-     *
-     * Lo baja automáticamente `PmsInformacionFinancieraCoherenciaListener` al detectar la
-     * TRANSICIÓN a cancelada, pero el operador puede volver a subirlo y su decisión se
-     * respeta: los webhooks repetidos no vuelven a tocarlo (ver §12.7).
-     */
-    #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    #[Groups(['pms_finanzas:read', 'pms_finanzas:write'])]
-    private bool $activa = true;
 
     #[ORM\Column(name: 'last_synced_at', type: 'datetime', nullable: true)]
     #[Groups(['pms_finanzas:read'])]
@@ -601,8 +580,38 @@ class PmsInformacionFinanciera
     #[Groups(['pms_finanzas:read'])]
     public function getTotalServicio(): string { return $this->getTotalPorTipo(PmsTipoCargo::SERVICIO); }
 
-    public function isActiva(): bool { return $this->activa; }
-    public function setActiva(bool $activa): self { $this->activa = $activa; return $this; }
+    /**
+     * ¿Sigue en pie la reserva? `false` sólo si tiene estancias y TODAS están canceladas.
+     *
+     * 🔥 **Se calcula, ya no se guarda (08/10/2026).** Era una columna que el listener de coherencia
+     * apagaba cuando la última estancia pasaba a cancelada, y que nada volvía a encender: el botón
+     * «Reactivar cobro» se fue el 08/09. Así B5X9HB —Booking cancelada y el arreglo nuevo como
+     * estancia directa confirmada en la MISMA reserva— seguía con el panel en «ANULADA» y el aviso
+     * de «mueve los cargos». Una casilla que copia un hecho derivable acaba desfasada; ésta lo
+     * estaba en todas las reservas que se pasaron a directa.
+     *
+     * No decide dinero —eso lo hace el estado de cada estancia desde el 08/09, ver
+     * `PmsTotalesPorMoneda`—: sólo el aviso del panel y el del agente al registrar un cargo.
+     *
+     * Sin estancias cuenta como activa: es una reserva a medio nacer, no una cancelación.
+     */
+    #[Groups(['pms_finanzas:read'])]
+    public function isActiva(): bool
+    {
+        $estancias = $this->reserva?->getEventosCalendario() ?? [];
+
+        if (count($estancias) === 0) {
+            return true;
+        }
+
+        foreach ($estancias as $estancia) {
+            if ($estancia->getEstado()?->getId() !== PmsEventoEstado::CODIGO_CANCELADA) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public function getLastSyncedAt(): ?DateTimeInterface { return $this->lastSyncedAt; }
     public function setLastSyncedAt(?DateTimeInterface $at): self { $this->lastSyncedAt = $at; return $this; }

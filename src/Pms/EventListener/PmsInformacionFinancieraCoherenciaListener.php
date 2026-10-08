@@ -6,7 +6,6 @@ namespace App\Pms\EventListener;
 
 use App\Pms\Entity\PmsCargoFinanciero;
 use App\Pms\Entity\PmsEventoCalendario;
-use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
@@ -46,11 +45,9 @@ use Psr\Log\LoggerInterface;
  * 3. CARGOS DE BEDS24 NO BORRABLES: sólo se pueden eliminar los cargos manuales. Borrar uno
  *    sincronizado no serviría (el siguiente pull lo recrearía) y dejaría el saldo desfasado
  *    mientras tanto.
- * 4. ANULACIÓN POR CANCELACIÓN: cuando TODAS las estancias de una reserva pasan a canceladas,
- *    la cabecera se marca `activa = false` y sus cargos dejan de sumar (sólo cuenta la
- *    PENALIZACIÓN). Actúa sólo en la transición, para que el operador pueda reactivarla
- *    —caso del huésped que cancela en la OTA y se pasa a directa— sin que la siguiente
- *    sincronización le pise la decisión (§12.7).
+ * 4. (Retirado el 08/10/2026.) Aquí se apagaba `activa` cuando la última estancia pasaba a
+ *    cancelada, y nada la volvía a encender. Ahora `PmsInformacionFinanciera::isActiva()` se
+ *    calcula de las estancias: no hay casilla que mantener. Ver §12.7 de PmsBeds24ReservasSync.
  * 5. RECÁLCULO: cualquier alta/edición/baja de un cargo o pago, o un cambio de moneda en la
  *    propia cabecera, dispara el recálculo de `total_cargos`/`total_pagos` (en la moneda de
  *    la cabecera) vía PmsInformacionFinancieraRecalculoService.
@@ -172,46 +169,6 @@ final class PmsInformacionFinancieraCoherenciaListener
             }
         }
 
-        // 4. CANCELACIÓN — al pasar una estancia a cancelada, se anula su cabecera.
-        foreach ($uow->getScheduledEntityUpdates() as $entity) {
-            if ($entity instanceof PmsEventoCalendario) {
-                $this->aplicarCancelacion($entity, $uow->getEntityChangeSet($entity), $em);
-            }
-        }
-
-        // 4 bis. Y la estancia que NACE cancelada (06/09/2026).
-        //
-        // La de arriba mira el changeSet, o sea sólo la TRANSICIÓN. Una reserva que llega de
-        // Beds24 ya cancelada se inserta con el estado puesto y no hay «anterior» que comparar:
-        // la cabecera se quedaba **activa** con todas sus estancias muertas. En producción
-        // había **nueve** así, todas de julio, y con cargos a cero no dieron la cara — pero con
-        // importes, `emitirPorCambioDeCargos()` no ve su guarda de `isActiva()` y llegaría a
-        // emitir un enlace de cobro sobre una reserva cancelada.
-        //
-        // Se reusa el mismo método pasándole un cambio `[null, estado]`: su primera guarda
-        // —«sólo la transición HACIA cancelada»— da por bueno un `null` como estado anterior,
-        // que es exactamente lo que es una inserción.
-        //
-        // ⚠️ **Sólo si la reserva ENTERA nace en este flush**, y esa guarda no es opcional. Que
-        // esto mire la transición y no el estado es deliberado (§12.7 de PmsBeds24ReservasSync):
-        // protege al operador que REACTIVÓ el cobro de una estancia que la OTA da por cancelada
-        // —el huésped que se pasa a directa para ahorrarse la comisión—. Sin este filtro, una
-        // estancia nueva insertada como cancelada sobre esa reserva volvería a apagarle la
-        // cabecera y le quitaría al operador una decisión que ya había tomado.
-        foreach ($uow->getScheduledEntityInsertions() as $entity) {
-            if (!$entity instanceof PmsEventoCalendario) {
-                continue;
-            }
-
-            foreach ($entity->getReserva()?->getEventosCalendario() ?? [] as $otro) {
-                if (!$uow->isScheduledForInsert($otro)) {
-                    continue 2;
-                }
-            }
-
-            $this->aplicarCancelacion($entity, ['estado' => [null, $entity->getEstado()]], $em);
-        }
-
         // 5. HORARIO EXTRA (entrada temprana / salida tardía) — las casillas se marcan
         //    EDITANDO una estancia que ya existe. Se anota y se resuelve en postFlush,
         //    en los dos sentidos: al marcar nace el cargo, al desmarcar se retira.
@@ -263,66 +220,6 @@ final class PmsInformacionFinancieraCoherenciaListener
 
         $em->persist($info);
         $em->getUnitOfWork()->computeChangeSet(
-            $em->getClassMetadata(PmsInformacionFinanciera::class),
-            $info
-        );
-    }
-
-    /**
-     * Anula la cabecera cuando una estancia PASA a cancelada.
-     *
-     * Se dispara sólo en la TRANSICIÓN (el changeSet trae `estado`), nunca ante un webhook
-     * que repite el mismo estado cancelado. Eso es lo que permite que el operador vuelva a
-     * marcar la reserva como activa —el caso del huésped que cancela en la OTA para pasarse
-     * a directa— sin que la siguiente sincronización le pise la decisión (§12.7).
-     *
-     * Sólo se anula si TODAS las estancias de la reserva están canceladas: en un grupo, que
-     * caiga una casita no anula el cobro de las demás.
-     *
-     * @param array<string, array{0: mixed, 1: mixed}|\Doctrine\ORM\PersistentCollection<int, mixed>> $changeSet
-     */
-    private function aplicarCancelacion(PmsEventoCalendario $evento, array $changeSet, EntityManagerInterface $em): void
-    {
-        if (!array_key_exists('estado', $changeSet)) {
-            return;
-        }
-
-        $cambio = $changeSet['estado'];
-
-        // Campo escalar: si Doctrine lo trajera como colección no habría «anterior» que
-        // comparar, y desestructurarla daría un valor sin sentido y sin error.
-        if (!is_array($cambio)) {
-            return;
-        }
-
-        [$old, $new] = $cambio;
-        $esCancelada = static fn (mixed $e): bool => $e instanceof PmsEventoEstado && $e->getId() === PmsEventoEstado::CODIGO_CANCELADA;
-
-        // Sólo la transición hacia cancelada.
-        if ($esCancelada($old) || !$esCancelada($new)) {
-            return;
-        }
-
-        $reserva = $evento->getReserva();
-        if (!$reserva) {
-            return;
-        }
-
-        foreach ($reserva->getEventosCalendario() as $otro) {
-            // El evento en curso ya sabemos que queda cancelado; miramos si alguno sobrevive.
-            $estado = $otro === $evento ? $new : $otro->getEstado();
-            if (!$esCancelada($estado)) {
-                return;
-            }
-        }
-
-        $info = $em->getRepository(PmsInformacionFinanciera::class)->findOneBy(['reserva' => $reserva]);
-        if (!$info instanceof PmsInformacionFinanciera || !$info->isActiva()) {
-            return;
-        }
-
-        $info->setActiva(false);
-        $em->getUnitOfWork()->recomputeSingleEntityChangeSet(
             $em->getClassMetadata(PmsInformacionFinanciera::class),
             $info
         );

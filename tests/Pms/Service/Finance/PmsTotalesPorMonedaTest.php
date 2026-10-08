@@ -109,36 +109,6 @@ final class PmsTotalesPorMonedaTest extends TestCase
     // ── La ficha anulada ─────────────────────────────────────────────────────
 
     /**
-     * ⚠️ Este test decía lo CONTRARIO hasta el 31/08/2026 —«en una ficha anulada sólo cuenta la
-     * penalización»— y hacía bien: era la regla. La regla cambió.
-     *
-     * La excepción se escribió dando por hecho que una cancelación se puede cobrar, y bajo las
-     * condiciones actuales de las OTA no se puede: no hay acceso a la tarjeta del huésped. Una
-     * penalización de una cancelada era saldo vivo que nadie iba a reclamar, sobre una reserva
-     * que además desaparece del panel y que por tanto nadie vuelve a mirar.
-     *
-     * El cargo NO se borra: sigue en la tabla con su importe. Sólo deja de sumar.
-     */
-    public function testLaBanderaACTIVAYaNoDecideDINERO(): void
-    {
-        // 🔥 Este test decía lo CONTRARIO hasta el 08/09/2026 —«en una ficha anulada no cuenta
-        // nada»— y era la regla. Cambió porque `activa` es de la RESERVA ENTERA y no tenía
-        // posición correcta: abajo no contaba ni el precio nuevo tecleado a mano tras pasar el
-        // huésped a directa; arriba revivían los cargos del canal de la estancia muerta.
-        //
-        // Ahora lo decide el estado de cada ESTANCIA. Medido el día del cambio: de 138 fichas con
-        // la bandera abajo, en 137 no cambiaba ni un céntimo.
-        $info = $this->ficha(activa: false);
-        $this->cargo($info, '300.00', $this->usd, PmsTipoCargo::ALOJAMIENTO);
-
-        self::assertSame(
-            '300.00',
-            PmsTotalesPorMoneda::de($info)->porMoneda['USD']['cargos'],
-            'la bandera de la cabecera ya no apaga un cargo que no cuelga de una estancia cancelada',
-        );
-    }
-
-    /**
      * 🔥 **El caso que no tenía solución antes del 08/09/2026.**
      *
      * `activa` es de la RESERVA ENTERA, y el huésped que cancela en la OTA y sigue como directa
@@ -152,7 +122,7 @@ final class PmsTotalesPorMonedaTest extends TestCase
      */
     public function testUnaEstanciaCanceladaNoCobraAunqueLaFichaEsteACTIVA(): void
     {
-        $info = $this->ficha(activa: true);
+        $info = $this->ficha();
 
         $muerta = $this->cargo($info, '290.31', $this->usd, PmsTipoCargo::ALOJAMIENTO);
         $muerta->setEvento($this->estancia(PmsEventoEstado::CODIGO_CANCELADA));
@@ -168,7 +138,7 @@ final class PmsTotalesPorMonedaTest extends TestCase
     /** Y una estancia VIVA sigue cobrando: la regla mira el estado, no la existencia de estancia. */
     public function testUnaEstanciaVIVASigueCobrando(): void
     {
-        $info = $this->ficha(activa: true);
+        $info = $this->ficha();
 
         $cargo = $this->cargo($info, '150.00', $this->usd, PmsTipoCargo::ALOJAMIENTO);
         $cargo->setEvento($this->estancia(PmsEventoEstado::CODIGO_CONFIRMADA));
@@ -182,7 +152,7 @@ final class PmsTotalesPorMonedaTest extends TestCase
         // igual y ocultarlo sería mentir. Antes el neteo lo escondía; ahora sale como saldo
         // negativo, y está bien que se vea. Lo que NO puede pasar es que «ninguna moneda debe» se
         // lea como «pagada» — de eso se ocupa `hayCargos()`.
-        $info = $this->ficha(activa: false);
+        $info = $this->ficha();
 
         // El cargo cuelga de una estancia CANCELADA: eso es lo que hoy lo apaga, no la bandera.
         $muerto = $this->cargo($info, '300.00', $this->usd, PmsTipoCargo::ALOJAMIENTO);
@@ -463,10 +433,9 @@ final class PmsTotalesPorMonedaTest extends TestCase
         return new MaestroMoneda($id, $id === 'PEN' ? 'Soles' : 'Dólares', $id === 'PEN' ? 'S/.' : 'US$');
     }
 
-    private function ficha(bool $activa = true, ?MaestroMoneda $base = null, ?string $tipoCambio = '3.400'): PmsInformacionFinanciera
+    private function ficha(?MaestroMoneda $base = null, ?string $tipoCambio = '3.400'): PmsInformacionFinanciera
     {
         $info = new PmsInformacionFinanciera();
-        $info->setActiva($activa);
         $info->setMoneda($base ?? $this->usd);
         $info->setTipoCambio($tipoCambio);
 

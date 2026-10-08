@@ -968,7 +968,7 @@ Qué comprueba y qué hace, en su docblock. Lo esencial:
   rechaza**, porque ese hilo es de alguien.
 - Las **cáscaras de fusión** —hilos vacíos con `fusionado_en` que conservan la cabecera vieja— se
   van con el fantasma: `fusionado_en` sólo lo leen la fusión y su barrido; nadie redirige por él.
-- Va por **SQL, no por ORM**, al revés que `app:pms:cabeceras:huerfanas`: aquí los listeners son el
+- Va por **SQL, no por ORM**, al revés que el retirado `app:pms:cabeceras:huerfanas`: aquí los listeners son el
   problema. `Beds24BookingsPushQueueListener` encolaría un DELETE a Beds24 por cada link (§12.12.2)
   y `PmsReservaDeleteListener` vetaría las confirmadas. Son fechas pasadas: en Beds24 no hay nada que
   ganar.
@@ -4987,6 +4987,26 @@ tanto sin verse.
 
 Lo leen: la ficha de `pax` (`getNumeroNoches`), la variable `{{ nights }}` de las plantillas, el
 mensaje de prepago y **el cálculo del adelanto**.
+
+### 🔥 12.7.00 `activa` ya no es una columna: se calcula de las estancias (08/10/2026)
+
+Léelo antes que todo §12.7, que describe una casilla que ya no existe.
+
+`PmsInformacionFinanciera::isActiva()` es `false` **sólo si la reserva tiene estancias y todas
+están canceladas**. La columna `pms_informacion_financiera.activa` se retiró
+(`Version20261008200000`), junto con `aplicarCancelacion()` del listener de coherencia y el
+comando `app:pms:cabeceras:huerfanas`, que existía para corregir sus desfases.
+
+**Por qué.** La casilla la apagaba el listener cuando la última estancia pasaba a cancelada, y la
+encendía a mano el botón «Reactivar cobro» — que se fue el 08/09, cuando el dinero pasó a decidirse
+por estancia. Desde entonces nada la encendía: el huésped que cancela en la OTA y sigue como
+estancia directa **en la misma reserva** dejaba el panel en «ANULADA» con el aviso de «mueve los
+cargos», aunque el arreglo nuevo ya estuviera en pie y cobrando. Al retirarla eran tres:
+B5X9HB, U9V8HV y 29ZY2P, las tres OTA cancelada + directa confirmada.
+
+**Qué sigue leyéndola**, y ninguna decide dinero (eso es `PmsTotalesPorMoneda`, por estancia): el
+aviso ámbar y el recordatorio de penalización del panel (`ReservaFinanzasPanel`), y el aviso del
+agente en `RegistrarCargoSkill`. El prepago ya preguntaba a la reserva desde el 08/09.
 
 ### ⚠️ 12.7.0 La penalización DEJÓ de contar (31/08/2026) — léelo antes que el resto
 

@@ -170,22 +170,6 @@ export const useFinanzasStore = defineStore('finanzasStore', () => {
     };
 
     /**
-     * Activa/anula los cargos de la reserva (§12.7). Se usa cuando una reserva cancelada
-     * en la OTA sigue adelante como directa: al reactivarla vuelven a contar sus cargos.
-     */
-    const setActiva = async (activa: boolean): Promise<void> => {
-        const id = info.value?.id;
-        if (!id) return;
-        isSaving.value = true;
-        try {
-            await apiClient.patch(`/platform/pms/pms_informacion_financieras/${id}`, { activa });
-            await recargar();
-        } finally {
-            isSaving.value = false;
-        }
-    };
-
-    /**
      * Cambia la MONEDA BASE (contable) de la reserva.
      *
      * No es un PATCH sobre `moneda`: el backend reescribe los cargos en la moneda nueva
@@ -268,7 +252,6 @@ export const useFinanzasStore = defineStore('finanzasStore', () => {
         patchCargo,
         createCargo,
         deleteCargo,
-        setActiva,
         cambiarMonedaBase,
         createPago,
         patchPago,
