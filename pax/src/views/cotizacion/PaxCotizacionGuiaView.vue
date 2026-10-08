@@ -169,7 +169,22 @@ const cambiarIdioma = (event: Event) => {
 
 // ── Moneda ───────────────────────────────────────────────────────────────────
 const monedaVista = ref<'PEN' | 'USD'>('USD');
-watch(() => store.cotizacion?.monedaGlobal, (m) => { if (m === 'PEN') monedaVista.value = 'PEN'; }, { immediate: true });
+/**
+ * La vista abre en la moneda de la cotización, y la vuelve a tomar al cambiar de programa.
+ *
+ * 🔥 **Antes sólo sabía pasar a soles, nunca volver a dólares** (08/10/2026). `pax` guarda en el
+ * navegador la última cotización vista: al abrir Punta Cana (USD) habiendo visto antes un tour de
+ * Cusco (PEN), la vista arrancaba con lo guardado, pasaba a soles, y al llegar los datos nuevos se
+ * quedaba en soles. Lo mismo al saltar de un tour a otro sin recargar.
+ *
+ * La clave incluye la ruta para que el botón del cliente mande DENTRO del mismo programa: un
+ * refresco de los mismos datos no le deshace la elección.
+ */
+watch(
+  () => [route.path, store.cotizacion?.monedaGlobal] as const,
+  ([, m]) => { if (m) monedaVista.value = m === 'PEN' ? 'PEN' : 'USD'; },
+  { immediate: true },
+);
 
 const n2 = (v: number) => (Math.round(v * 100) / 100).toLocaleString(maestroStore.idiomaActual, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtPEN = (v: number) => maestroStore.idiomaActual === 'es'

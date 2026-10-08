@@ -15,7 +15,7 @@
 //    por conveniencia operativa varios segmentos comparten componentes.
 //  · Avisos: colapsado por defecto, tono informativo (no "no publicable").
 // ============================================================================
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { ETIQUETAS_CALCULO } from '@dominio/cotizacion/index.ts';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
 import { fmtNaive } from '@/utils/naiveDate';
@@ -96,6 +96,17 @@ const porDia = (detalle: LineaDetalleClaseInterna[]): { fecha: string; etiqueta:
 };
 
 const monedaVista = ref<'PEN' | 'USD'>('USD');
+/**
+ * Abre en la moneda de la cotización (`monedaGlobal`) y la vuelve a tomar al abrir otra o al
+ * cambiarla; el switch manda mientras tanto. Antes arrancaba siempre en dólares, y un tour en soles
+ * se revisaba en una moneda que no era la suya. Mismo criterio que la guía de `pax`
+ * (`PaxCotizacionGuiaView.vue`, `monedaVista`).
+ */
+watch(
+  () => [store.cotizacion?.id, store.cotizacion?.monedaGlobal] as const,
+  ([, m]) => { if (m) monedaVista.value = m === 'PEN' ? 'PEN' : 'USD'; },
+  { immediate: true },
+);
 const n2 = (v: number) => (Math.round(v * 100) / 100).toFixed(2);
 /** Elige soles o dólares según el switch y formatea */
 const mv = (soles: number, dolares: number) =>

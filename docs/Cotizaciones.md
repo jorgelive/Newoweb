@@ -9148,6 +9148,16 @@ Reglas al tocar esta zona:
 
 **Gotcha #2 — localStorage del pax**: el pax cachea `detalle` en localStorage (30s). Puede enmascarar un cambio recién guardado hasta que refresque o se limpie (DevTools → Application → Local Storage). Fue la causa de "no veo el cambio" en la sesión que originó estas mejoras.
 
+**Gotcha #3 — lo cacheado es OTRA cotización mientras llega la nueva (08/10/2026).** Al abrir un
+programa, la guía arranca un instante con el `detalle` guardado del anterior. Cualquier estado que se
+inicialice «una vez» desde la cotización hereda el del programa viejo: el selector de moneda de
+`PaxCotizacionGuiaView.vue` sólo sabía pasar a soles, así que Punta Cana (USD) abría en soles si antes
+se había visto un tour de Cusco (PEN). Ahora `monedaVista` se vuelve a tomar de `monedaGlobal` cada
+vez que cambian la ruta o la moneda; el botón del cliente manda dentro del mismo programa. El resumen de
+clasificación del editor de `util` (`ResumenClasificacion.vue`) arrancaba **siempre** en dólares; ahora
+también abre en la `monedaGlobal` de la cotización. **Regla:
+un estado de vista que depende de la cotización se recalcula cuando ésta cambia, no sólo al montar.**
+
 **Gotcha #3 — service worker (PWA)**: puede servir assets/precache viejos. Unregister si hace falta.
 
 **Gotcha #4 — dev vs build**: si abres el editor desde la app PHP en modo prod (`is_dev` false) usa el bundle de `public/app_util` (hay que `npm run build`). En dev usa el Vite server (fuente + HMR).
