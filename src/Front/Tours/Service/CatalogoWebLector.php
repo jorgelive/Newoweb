@@ -105,18 +105,10 @@ final class CatalogoWebLector
             $resumenHtml = TextoI18n::en($t['resumen'], $idioma);
 
             $precios = [];
-            foreach (Lee::listaDeMapas($t['preciosDesde']) as $p) {
-                $valor = Lee::texto($p['valor'] ?? null);
-                if ($valor === null || !is_numeric($valor)) {
-                    // Un precio que no es número no se enseña: un «Desde S/ » vacío o un
-                    // «Desde S/ 0» venden algo que no existe.
-                    continue;
-                }
-                $precios[] = new PrecioDesdeWeb(
-                    TextoI18n::en($p['titulo'] ?? null, $idioma),
-                    $valor,
-                    Lee::texto($p['moneda'] ?? null) ?? $t['monedaGlobal'],
-                );
+            // Ya vienen EFECTIVOS (override o calculado): ver TourTarjetaResolver::preciosDesdeEfectivos().
+            // El resolver ya descartó los valores no numéricos: un «Desde S/ » vacío vende algo que no existe.
+            foreach ($t['preciosDesde'] as $p) {
+                $precios[] = new PrecioDesdeWeb(TextoI18n::en($p['titulo'], $idioma), $p['valor'], $p['moneda']);
             }
 
             $tours[] = new TourTarjetaWeb(
@@ -129,6 +121,7 @@ final class CatalogoWebLector
                 numDias: $t['numDias'],
                 precios: $precios,
                 imagenUrl: Lee::texto(Lee::mapa($t['imagenPortada'])['imageUrl'] ?? null),
+                paxBaseGrupo: $t['paxBaseGrupo'],
             );
         }
 

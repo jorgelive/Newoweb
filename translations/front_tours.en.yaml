@@ -23,7 +23,9 @@ tour:
     dias: days
     desde: From
     ver: 'See tour'
-    precio_general: Rate
+    por_persona: 'Per person'
+    base_pax: 'calculated for %n% travellers'
+    base_pax_nota: 'Per-person price calculated for a group of %n% travellers: it may vary with a different group size.'
     consultar: 'Check availability'
     reservar: Booking
     whatsapp_mensaje: 'Hi, I''m interested in the tour "%tour%": %url%'

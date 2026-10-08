@@ -31,7 +31,8 @@ import {
   MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE,
   AudienciaDetalle, AUDIENCIA_DETALLE_CONFIG, type SubgrupoOpcion,
   ESTADOS_ELEGIBLES, esEstadoDeProceso, type EstadoUIConfig, type CotizacionEstadoValue,
-  type TarifaModalidadValue, type TarifaCategoriaValue, esOpcionalParaElCliente
+  type TarifaModalidadValue, type TarifaCategoriaValue, esOpcionalParaElCliente,
+  preciosDesdeCalculados, type PrecioDesdeRango
 } from '@/types/cotizacionEditorModel';
 import { GRUPO_TIPO_LABELS } from '@/types/fileDetalleModel';
 // La etiqueta legible de cada Categoría Operativa vive con La Biblia, que es donde más se
@@ -1977,8 +1978,51 @@ const seleccionarPortada = (img: ImagenSnapshot) => {
 const agregarRangoPrecio = () => {
   if (!store.cotizacion) return;
   if (!store.cotizacion.preciosDesde) store.cotizacion.preciosDesde = [];
-  store.cotizacion.preciosDesde.push({ titulo: [], moneda: 'USD', valor: '' });
+  store.cotizacion.preciosDesde.push({ titulo: [], moneda: store.cotizacion.monedaGlobal || 'USD', valor: '' });
 };
+
+// ── Precio «desde»: automático (calculado) u override ───────────────────────
+// El cliente ve lo que resuelve `TourTarjetaResolver::preciosDesdeEfectivos()` (PHP): el override
+// si lo hay; si no, el calculado del financiero que se guarda con la cotización. Aquí se enseña el
+// calculado EN VIVO (espejo `preciosDesdeCalculados()`) para comparar antes de guardar.
+const desdeCalculado = computed<PrecioDesdeRango[]>(() =>
+  store.resumenFinanciero && store.cotizacion
+    ? preciosDesdeCalculados(store.resumenFinanciero.clasesPasajeros, store.cotizacion.monedaGlobal || 'USD')
+    : []);
+
+const desdeAutomatico = computed(() => !store.cotizacion?.preciosDesde?.length);
+
+/** Base de pasajeros del precio cuando depende del grupo: espejo de `TourTarjetaResolver::paxBaseGrupo()`. */
+const desdeBaseGrupo = computed<number | null>(() =>
+  store.cotizacion?.totalesOcultos && (store.cotizacion.numPax || 0) > 1 ? store.cotizacion.numPax : null);
+
+/** Pasar a override partiendo del calculado: se edita sobre lo que hay, no sobre el vacío. */
+const personalizarDesde = () => {
+  if (!store.cotizacion) return;
+  store.cotizacion.preciosDesde = desdeCalculado.value.length
+    ? desdeCalculado.value.map((r) => ({ ...r, titulo: r.titulo.length ? r.titulo : [{ language: 'es', content: 'Por persona' }] }))
+    : [{ titulo: [], moneda: store.cotizacion.monedaGlobal || 'USD', valor: '' }];
+};
+
+const volverADesdeAutomatico = () => {
+  if (store.cotizacion) store.cotizacion.preciosDesde = [];
+};
+
+/**
+ * El caso que creaba la inconsistencia: el override anuncia MENOS que el calculado, y el cliente
+ * ve otra cifra, mayor, al abrir el itinerario. Sólo compara en la misma moneda.
+ */
+const avisoDesde = computed<string | null>(() => {
+  const override = (store.cotizacion?.preciosDesde || []).filter((r) => r.valor !== '' && Number(r.valor) > 0);
+  const calc = desdeCalculado.value[0];
+  if (!override.length || !calc) return null;
+  const mismos = override.filter((r) => r.moneda === calc.moneda).map((r) => Number(r.valor));
+  if (!mismos.length) return `Moneda distinta a la del cálculo (${calc.moneda}): revisa que equivalgan.`;
+  const min = Math.min(...mismos);
+  return min < Number(calc.valor)
+    ? `Anuncias ${calc.moneda} ${min}, pero el itinerario enseñará ${calc.moneda} ${calc.valor} por persona.`
+    : null;
+});
 
 // Miller-columns navigation: 'cabecera' → 'servicios' → 'detalle'
 const nivelEditor = ref<'cabecera' | 'servicios' | 'detalle'>('cabecera');
@@ -2385,38 +2429,74 @@ store.$onAction(({ name, args }) => {
             </div>
 
             <div v-if="store.modoCatalogo" class="order-2 shrink-0 bg-orange-50 border border-orange-200 rounded-2xl p-4 shadow-sm">
-              <div class="flex items-center justify-between mb-1">
-                <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest"><i class="fas fa-tags mr-1"></i> Precios de Exhibición (Desde)</h3>
-                <button @click="agregarRangoPrecio"
-                        class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition-colors">+ Rango</button>
-              </div>
-              <p class="text-[9px] text-orange-400 font-medium mb-3 leading-tight">Rangos comerciales por perfil (Peruano, Extranjero, Niño...). El título es traducible; el cálculo financiero real se conserva para producto.</p>
-
-              <div v-if="!store.cotizacion.preciosDesde?.length" class="text-center py-3 border border-dashed border-orange-200 rounded-xl">
-                <span class="text-[9px] font-black text-orange-300 uppercase tracking-widest">Sin rangos — agrega el primero</span>
-              </div>
-
-              <div v-else class="space-y-2">
-                <div v-for="(rango, idx) in store.cotizacion.preciosDesde" :key="idx"
-                     class="bg-white border border-orange-100 rounded-xl p-2.5 flex gap-2 items-center shadow-sm">
-                  <input :value="store.getI18nText(rango.titulo, store.cotizacion.idiomaEdicion)"
-                         @input="e => store.setI18nText(rango.titulo, store.cotizacion!.idiomaEdicion, (e.target as HTMLInputElement).value)"
-                         type="text" placeholder="Perfil (ej: Peruano)"
-                         class="flex-1 min-w-0 bg-transparent text-xs font-bold text-slate-700 outline-none border-b border-slate-200 focus:border-orange-400 pb-1">
-                  <select v-model="rango.moneda"
-                          class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] font-black text-slate-600 outline-none shrink-0">
-                    <option v-for="m in store.catalogos.monedas" :key="m.id" :value="m.id">{{ m.id }}</option>
-                  </select>
-                  <input :value="rango.valor"
-                         @input="e => rango.valor = (e.target as HTMLInputElement).value"
-                         type="number" step="0.01" placeholder="0.00"
-                         class="w-20 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-black text-right text-orange-600 outline-none focus:ring-1 focus:ring-orange-400 shrink-0">
-                  <button @click="store.cotizacion.preciosDesde.splice(idx, 1)"
-                          class="text-slate-300 hover:text-red-500 transition-colors px-1 shrink-0">
-                    <i class="fas fa-times text-sm"></i>
-                  </button>
+              <div class="flex items-center justify-between mb-2 gap-2">
+                <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest"><i class="fas fa-tags mr-1"></i> Precio «desde»</h3>
+                <div class="flex p-0.5 bg-white border border-orange-200 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                  <button type="button" @click="volverADesdeAutomatico"
+                          :class="desdeAutomatico ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-slate-600'"
+                          class="px-2 py-1 rounded-md transition-colors"><i class="fas fa-calculator mr-1"></i>Automático</button>
+                  <button type="button" @click="desdeAutomatico && personalizarDesde()"
+                          :class="!desdeAutomatico ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-slate-600'"
+                          class="px-2 py-1 rounded-md transition-colors"><i class="fas fa-pen mr-1"></i>Personalizado</button>
                 </div>
               </div>
+
+              <!-- Automático: lo calculado de las tarifas, que es lo mismo que enseña el itinerario. -->
+              <template v-if="desdeAutomatico">
+                <p class="text-[9px] text-orange-400 font-medium mb-2 leading-tight">
+                  Precio por pasajero calculado de las tarifas, redondeado hacia arriba. Se actualiza solo y coincide con el itinerario.
+                </p>
+                <div v-if="!desdeCalculado.length" class="text-center py-3 border border-dashed border-orange-200 rounded-xl">
+                  <span class="text-[9px] font-black text-orange-300 uppercase tracking-widest">Sin precio calculado todavía</span>
+                </div>
+                <div v-else class="space-y-1.5">
+                  <div v-for="(r, idx) in desdeCalculado" :key="idx"
+                       class="bg-white border border-orange-100 rounded-xl px-3 py-2 flex items-center justify-between shadow-sm">
+                    <span class="text-xs font-bold text-slate-600">{{ store.getI18nText(r.titulo, 'es') || 'Por persona' }}</span>
+                    <span class="text-sm font-black text-orange-600 tabular-nums">{{ r.moneda }} {{ r.valor }}</span>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Personalizado: override por perfil, con el calculado a la vista para no contradecirlo. -->
+              <template v-else>
+                <div class="flex items-center justify-between mb-2">
+                  <p class="text-[9px] text-orange-400 font-medium leading-tight">
+                    Rangos por perfil escritos a mano (traducibles).
+                    <template v-if="desdeCalculado.length">Calculado: <b class="text-orange-600">{{ desdeCalculado[0].moneda }} {{ desdeCalculado[0].valor }}</b>.</template>
+                  </p>
+                  <button @click="agregarRangoPrecio"
+                          class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition-colors shrink-0">+ Rango</button>
+                </div>
+                <div class="space-y-2">
+                  <div v-for="(rango, idx) in store.cotizacion.preciosDesde" :key="idx"
+                       class="bg-white border border-orange-100 rounded-xl p-2.5 flex gap-2 items-center shadow-sm">
+                    <input :value="store.getI18nText(rango.titulo, store.cotizacion.idiomaEdicion)"
+                           @input="e => store.setI18nText(rango.titulo, store.cotizacion!.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                           type="text" placeholder="Perfil (ej: Peruano)"
+                           class="flex-1 min-w-0 bg-transparent text-xs font-bold text-slate-700 outline-none border-b border-slate-200 focus:border-orange-400 pb-1">
+                    <select v-model="rango.moneda"
+                            class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] font-black text-slate-600 outline-none shrink-0">
+                      <option v-for="m in store.catalogos.monedas" :key="m.id" :value="m.id">{{ m.id }}</option>
+                    </select>
+                    <input :value="rango.valor"
+                           @input="e => rango.valor = (e.target as HTMLInputElement).value"
+                           type="number" step="0.01" placeholder="0.00"
+                           class="w-20 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-black text-right text-orange-600 outline-none focus:ring-1 focus:ring-orange-400 shrink-0">
+                    <button @click="store.cotizacion.preciosDesde?.splice(idx, 1)"
+                            class="text-slate-300 hover:text-red-500 transition-colors px-1 shrink-0">
+                      <i class="fas fa-times text-sm"></i>
+                    </button>
+                  </div>
+                </div>
+                <p v-if="avisoDesde" class="mt-2 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 leading-snug">
+                  <i class="fas fa-triangle-exclamation mr-1"></i>{{ avisoDesde }}
+                </p>
+              </template>
+
+              <p v-if="desdeBaseGrupo" class="mt-2 text-[9px] text-slate-500 leading-snug">
+                <i class="fas fa-users mr-1"></i>El cliente leerá «por persona · calculado para {{ desdeBaseGrupo }} pasajeros» (total oculto, base &gt; 1).
+              </p>
             </div>
 
             <!-- ⚠️ Estuvo detrás de `v-if="modoCatalogo"` y era una condición de más: el precio

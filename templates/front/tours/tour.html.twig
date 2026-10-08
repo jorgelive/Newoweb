@@ -72,9 +72,10 @@
                     <small style="text-transform:uppercase;letter-spacing:.06em;color:var(--suave);font-size:.75rem">{{ 'tour.desde'|trans({}, 'front_tours') }}</small>
                     <ul class="lista-precios">
                         {% for p in tour.precios %}
-                            <li><span>{{ p.etiqueta ?? 'tour.precio_general'|trans({}, 'front_tours') }}</span><strong>{{ p.formateado }}</strong></li>
+                            <li><span>{{ p.etiqueta ?? 'tour.por_persona'|trans({}, 'front_tours') }}</span><strong>{{ p.formateado }}</strong></li>
                         {% endfor %}
                     </ul>
+                    {% if tour.paxBaseGrupo %}<p class="nota" style="margin-top:8px">{{ 'tour.base_pax_nota'|trans({'%n%': tour.paxBaseGrupo}, 'front_tours') }}</p>{% endif %}
                 </div>
             {% endif %}
             <a class="boton boton-wa" href="{{ front_whatsapp(mensaje_wa) }}" target="_blank" rel="noopener">

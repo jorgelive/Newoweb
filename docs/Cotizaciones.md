@@ -3998,15 +3998,51 @@ y no como imágenes rotas.
 > y liga el `IN` con `ArrayParameterType::BINARY`. Cualquier query nueva sobre ids de cotización
 > debe hacer lo mismo.
 
-### Dos precios que no son el mismo (no confundirlos)
+### El precio «desde»: automático, u override (07/10/2026)
 
-En modo catálogo conviven dos cosas que suenan igual y viven en cajas distintas del editor:
+Antes había dos precios que no se hablaban: la **tarjeta** (escaparate de `pax`, web) enseñaba
+`preciosDesde`, escrito a mano, y la **guía** enseñaba el precio **calculado** por pasajero. En
+cuanto cambiaba una tarifa, la tarjeta decía una cosa y el itinerario otra. Y los cuatro tours de
+Cusco tenían escrito a mano exactamente lo que el cálculo ya decía (69/119/75/75 = 69/119/75/75).
 
-| | `preciosDesde[]` — "Precios de Exhibición (Desde)" | `totalesOcultos` — "Ocultar Total de Grupo" |
-|---|---|---|
-| Qué es | **Dato**: rangos comerciales escritos a mano (perfil + moneda + valor). | **Flag de render**: no crea ningún precio. |
-| Dónde se pinta | Sólo el escaparate: `PaxCatalogoPortadaView.vue` y `CatalogoDashboard.vue`. **No** entra en la guía. | Sólo la guía: `PaxCotizacionGuiaView.vue`. |
-| Efecto | Muestra "desde $X" por perfil. | Suprime el `2X` del perfil, el `× N pax · total` y la barra "Precio total del viaje". El precio **por pasajero** sigue visible. |
+**La regla ahora es una** — `TourTarjetaResolver::preciosDesdeEfectivos()`, para el escaparate de
+`pax` (`toursParaCliente[].preciosDesde`), la web (tarjeta y ficha) y el panel
+(`Cotizacion::$preciosDesdeEfectivos`, virtual):
+
+```
+precioOculto                 → ningún precio
+preciosDesde con valores     → ése (OVERRIDE)                        origen = manual
+si no                        → el CALCULADO                          origen = calculado
+                               clasificacionFinancieraCliente.clasesPasajeros[].resumenPorModo.normal
+                               en la moneda del tour (PEN → ventaSoles, resto → ventaDolares),
+                               redondeado HACIA ARRIBA al entero, sin clases gratis, de menor a mayor
+```
+
+- **No recalcula**: lee el resultado del cálculo financiero (TypeScript) que el editor guarda con la
+  cotización. Tour nunca guardado desde el editor → sin calculado → sin precio.
+- **Con una sola clase el título va vacío** y la web y `pax` dicen «por persona» (traducido:
+  `front_tours` `tour.por_persona`, `pax_ui_i18n` `cat_por_persona`). Con varias, el nombre de la
+  clase, que el snapshot guarda **sólo en español** (pendiente: guardar su i18n en el cálculo).
+- **Precio que depende del grupo**: con el total oculto y base > 1
+  (`TourTarjetaResolver::paxBaseGrupo()`), la tarjeta añade «calculado para N pasajeros»
+  (`cat_base_pax`, `tour.base_pax`) y la ficha web una nota. Punta Cana: los liberados y el bus se
+  reparten entre 60, y quien viaja solo leería un precio que no le corresponde. Es mecánico: si un
+  tour con base 2 no depende de ella (Valle Sagrado), se baja la base a 1.
+- **Override**: sólo para lo que el cálculo no distingue (perfiles «Peruano / Extranjero» que no son
+  clases) o un precio de campaña. En el editor, el interruptor «Automático / Personalizado» de la
+  caja «Precio desde»; «Personalizado» parte del calculado, lo enseña al lado y **avisa en rojo si
+  el override es MENOR** que el calculado — el cliente vería otra cifra, mayor, al abrir el
+  itinerario, que es justo la inconsistencia de antes.
+- ⚠️ **Espejo PHP ↔ TS**: `TourTarjetaResolver::preciosDesdeCalculados()` (decide lo que ve el
+  cliente) y `preciosDesdeCalculados()` de `util/src/types/cotizacionEditorModel.ts` (sólo para
+  enseñarlo en el editor). Se citan mutuamente; si cambia la regla, cambian los dos. Lo fija
+  `PrecioDesdeEfectivoTest`.
+- Los overrides iguales al calculado se vacían con
+  `app:cotizacion:catalogo:precios-desde-automaticos` (`--dry-run`; por ORM y sin traducir).
+
+`totalesOcultos` es otra cosa: **flag de render** de la guía (`PaxCotizacionGuiaView.vue`), no crea
+ningún precio. Suprime el `2X` del perfil, el `× N pax · total` y la barra «Precio total del
+viaje»; el precio **por pasajero** sigue visible.
 
 **El flag no está hardcodeado por `esCatalogo`.** En pax, `esCatalogo` (`route.meta`) sólo gobierna
 identidad y fechas — "Día N" en vez de fecha absoluta (`formatearFecha()`, `fechaChip()`), chips de
@@ -9180,6 +9216,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Lo que se imprime del itinerario (el «PDF»)** → los dos bloques `@media print` al final de `PaxCotizacionGuiaView.vue` + la función `imprimir()`. **Contenido** que sobre en papel se quita en el modo Resumen, no en el CSS (§6.u).
 - **Una cadena de UI de la guía que sale en castellano estando en otro idioma** → falta la clave en `pax_ui_i18n`; se crea por comando (`pax:textos:itinerario`), nunca por SQL — lleva `#[AutoTranslate]` (§6.u).
 - **Serialización pública / ocultar precio o proveedor** → `src/Cotizacion/Serializer/CotizacionPublicNormalizer.php` + grupos `pax_cotizacion:read` en las entidades.
+- **El precio «desde» de un tour (automático u override)** → `TourTarjetaResolver::preciosDesdeEfectivos()` (§6.b) + espejo `preciosDesdeCalculados()` en `cotizacionEditorModel.ts`; caja «Precio desde» del editor.
 - **Portada, duración o precio oculto de un tour de catálogo (en el panel, en pax o en la web pública)** → `TourTarjetaResolver` (§6.b; la tarjeta entera en `tarjetas()`). Nunca reimplementar la derivación en la entidad ni en el front.
 - **Que un catálogo salga en openperu.pe** → `CotizacionCatalogo::$publicadoWeb` + `$slug` (modal de `CatalogoDashboard.vue`); el resto en `docs/WebPublica.md`.
 - **La tarjeta de precio de la guía (colapsada/expandida, textos del pie)** → sección "TARJETA DE PRECIO" de `PaxCotizacionGuiaView.vue` + `finanzasAbiertas` / `hayPanelPrecio`. Ojo con el vocabulario: §6.

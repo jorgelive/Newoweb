@@ -115,6 +115,34 @@ export interface PrecioDesdeRango {
 }
 
 /**
+ * El «desde» CALCULADO: el precio por pasajero de cada clase, en la moneda del tour, redondeado
+ * HACIA ARRIBA al entero, sin las clases gratis, de menor a mayor. Con varias clases lleva el
+ * nombre de cada una; con una sola, título vacío (la tarjeta dice «por persona»).
+ *
+ * ⚠️ **ESPEJO de `TourTarjetaResolver::preciosDesdeCalculados()` (PHP)**, que es quien decide lo
+ * que ve el cliente (lee el mismo cálculo, ya guardado en `clasificacionFinancieraCliente`). Éste
+ * sólo sirve para enseñarlo en el editor junto al override. Si cambia la regla (moneda, redondeo,
+ * qué clases cuentan), cambian los dos. Ver docs/Cotizaciones.md §6.b, «El precio desde».
+ */
+export const preciosDesdeCalculados = (
+    clases: { tipoPaxNombre: string; resumenPorModo: { normal: TotalesVenta } }[],
+    moneda: string,
+): PrecioDesdeRango[] => {
+    const enSoles = moneda.toUpperCase() === 'PEN';
+    const porClase = clases
+        .map((c) => ({ nombre: c.tipoPaxNombre, valor: enSoles ? c.resumenPorModo.normal.ventaSoles : c.resumenPorModo.normal.ventaDolares }))
+        .filter((c) => Number.isFinite(c.valor) && c.valor > 0)
+        .map((c) => ({ ...c, valor: Math.ceil(Math.round(c.valor * 100) / 100) }))
+        .sort((a, b) => a.valor - b.valor);
+    const varias = porClase.length > 1;
+    return porClase.map((c) => ({
+        titulo: varias && c.nombre ? [{ language: 'es', content: c.nombre }] : [],
+        moneda: moneda.toUpperCase(),
+        valor: String(c.valor),
+    }));
+};
+
+/**
  * Los campos del `Omit` son los que el schema autogenerado tipa mal (i18n y los
  * JSON estructurados llegan como `string[]`) o de forma incompleta. Tienen que
  * ir en el `Omit`, no solo redeclararse debajo: una intersección `string[] & X`

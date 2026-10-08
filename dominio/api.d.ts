@@ -4660,6 +4660,21 @@ export interface components {
              *     $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
              */
             numDias?: number | null;
+            /**
+             * @description El «desde» que se enseña, ya resuelto: override o calculado por pasajero
+             *     (`TourTarjetaResolver::preciosDesdeEfectivos()`). Virtual, mismo origen que $numDias: el panel
+             *     enseña lo mismo que verá el cliente, no el `preciosDesde` crudo (vacío cuando es automático).
+             */
+            readonly preciosDesdeEfectivos?: {
+                titulo?: Record<string, never>[];
+                moneda?: string;
+                valor?: string;
+            }[];
+            /**
+             * @description `manual`, `calculado` o null (precio oculto / sin datos). Virtual, ver $preciosDesdeEfectivos.
+             * @enum {string|null}
+             */
+            readonly precioDesdeOrigen?: "manual" | "calculado" | null;
             /** @default 1.0000 */
             tipoCambio: string;
             /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
@@ -5502,6 +5517,21 @@ export interface components {
              *     $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
              */
             numDias?: number | null;
+            /**
+             * @description El «desde» que se enseña, ya resuelto: override o calculado por pasajero
+             *     (`TourTarjetaResolver::preciosDesdeEfectivos()`). Virtual, mismo origen que $numDias: el panel
+             *     enseña lo mismo que verá el cliente, no el `preciosDesde` crudo (vacío cuando es automático).
+             */
+            readonly preciosDesdeEfectivos?: {
+                titulo?: Record<string, never>[];
+                moneda?: string;
+                valor?: string;
+            }[];
+            /**
+             * @description `manual`, `calculado` o null (precio oculto / sin datos). Virtual, ver $preciosDesdeEfectivos.
+             * @enum {string|null}
+             */
+            readonly precioDesdeOrigen?: "manual" | "calculado" | null;
             /** @default 1.0000 */
             tipoCambio: string;
             /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
@@ -6050,6 +6080,21 @@ export interface components {
              *     $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
              */
             numDias?: number | null;
+            /**
+             * @description El «desde» que se enseña, ya resuelto: override o calculado por pasajero
+             *     (`TourTarjetaResolver::preciosDesdeEfectivos()`). Virtual, mismo origen que $numDias: el panel
+             *     enseña lo mismo que verá el cliente, no el `preciosDesde` crudo (vacío cuando es automático).
+             */
+            readonly preciosDesdeEfectivos?: {
+                titulo?: Record<string, never>[];
+                moneda?: string;
+                valor?: string;
+            }[];
+            /**
+             * @description `manual`, `calculado` o null (precio oculto / sin datos). Virtual, ver $preciosDesdeEfectivos.
+             * @enum {string|null}
+             */
+            readonly precioDesdeOrigen?: "manual" | "calculado" | null;
             /** @default 1.0000 */
             tipoCambio: string;
             /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */
@@ -6598,6 +6643,21 @@ export interface components {
              *     $imagenTarjeta; equivale al `numDias` que ve el cliente en la portada.
              */
             numDias?: number | null;
+            /**
+             * @description El «desde» que se enseña, ya resuelto: override o calculado por pasajero
+             *     (`TourTarjetaResolver::preciosDesdeEfectivos()`). Virtual, mismo origen que $numDias: el panel
+             *     enseña lo mismo que verá el cliente, no el `preciosDesde` crudo (vacío cuando es automático).
+             */
+            readonly preciosDesdeEfectivos?: {
+                titulo?: Record<string, never>[];
+                moneda?: string;
+                valor?: string;
+            }[];
+            /**
+             * @description `manual`, `calculado` o null (precio oculto / sin datos). Virtual, ver $preciosDesdeEfectivos.
+             * @enum {string|null}
+             */
+            readonly precioDesdeOrigen?: "manual" | "calculado" | null;
             /** @default 1.0000 */
             tipoCambio: string;
             /** @description Cuántas filas de operación ACTIVAS cuelgan de esta propuesta. */

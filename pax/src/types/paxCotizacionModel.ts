@@ -485,7 +485,17 @@ export interface PaxTourResumen {
     monedaGlobal: string;
     precioOculto: boolean;
     orden: number;
+    /**
+     * El «desde» EFECTIVO: el override escrito a mano o, si no hay, el precio calculado por
+     * pasajero de cada clase (redondeado hacia arriba). De menor a mayor en el calculado. Lo
+     * resuelve `TourTarjetaResolver::preciosDesdeEfectivos()` (PHP). Título vacío = una sola
+     * clase → se pinta «por persona».
+     */
     preciosDesde: PaxPrecioDesdeRango[];
+    /** De dónde sale el «desde»: escrito a mano, calculado, o ninguno (precio oculto / sin datos). */
+    precioDesdeOrigen?: 'manual' | 'calculado' | null;
+    /** Base de pasajeros del precio por persona cuando depende del grupo (`paxBaseGrupo()`); null si no. */
+    paxBaseGrupo?: number | null;
     /** Snapshot de la imagen de portada (override o derivada); null si el tour no tiene fotos */
     imagenPortada?: { imageUrl?: string; imageName?: string; isPortada?: boolean } | null;
     /** Duración del programa en días (span del itinerario nominal) */

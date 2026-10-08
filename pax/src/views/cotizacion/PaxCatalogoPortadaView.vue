@@ -46,6 +46,19 @@ const formatMonto = (valor: string): string => {
 const rangoPrincipal = (tour: PaxTourResumen) => tour.preciosDesde?.[0] ?? null;
 
 /**
+ * La línea bajo el precio: de quién es («por persona», o el perfil si hay varios) y, si el precio
+ * depende del tamaño del grupo, sobre cuántos está calculado. Ver `PaxTourResumen.paxBaseGrupo`.
+ */
+const notaPrecio = (tour: PaxTourResumen): string => {
+  const rango = rangoPrincipal(tour);
+  if (!rango) return '';
+  const perfil = store.traducir(rango.titulo) || maestroStore.t('cat_por_persona') || 'por persona';
+  if (!tour.paxBaseGrupo) return perfil;
+  const n = String(tour.paxBaseGrupo);
+  return `${perfil} · ${maestroStore.t('cat_base_pax', { n }) || `calculado para ${n} pasajeros`}`;
+};
+
+/**
  * Tinte del marcador cuando el tour no tiene foto. Rota por posición para que
  * una lista sin imágenes no parezca una pila de cajas rotas: cada tarjeta se
  * lee como distinta aunque ninguna tenga portada todavía.
@@ -188,6 +201,7 @@ const resumenPlano = (tour: PaxTourResumen): string =>
                 {{ rangoPrincipal(tour)!.moneda }} {{ formatMonto(rangoPrincipal(tour)!.valor) }}
                 <i class="fas fa-arrow-right text-base group-hover:translate-x-1 transition-transform"></i>
               </span>
+              <span class="block text-[10px] font-bold text-slate-400 mt-0.5">{{ notaPrecio(tour) }}</span>
             </span>
 
             <!-- Sin precio visible: la flecha sigue marcando que la tarjeta lleva a algún sitio -->

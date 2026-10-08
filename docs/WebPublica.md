@@ -78,7 +78,10 @@ La portada pinta **una sección por catálogo publicado**, en su `orden`. Las re
 idioma (`TextoI18n::en()`: idioma → español → el primero con texto) y da forma a los DTOs de
 `src/Front/Tours/Dto/`.
 
-Un precio «desde» que no es número no se enseña (un «Desde S/ 0» vende algo que no existe).
+El «desde» es el **efectivo**: el override escrito a mano o, si no hay, el precio calculado por
+pasajero (redondeado hacia arriba), el mismo que enseña el itinerario. Con una sola clase la web dice
+«por persona»; si el precio depende del tamaño del grupo, «calculado para N pasajeros». La regla y su
+porqué están en `docs/Cotizaciones.md` §6.b, «El precio desde».
 
 ## 3. Plantillas, estilos e idiomas
 
@@ -285,18 +288,36 @@ desapareció del entorno en el mismo cambio.
 Las fotos salen de `public/carga/` (ignorado): en local sólo están las que se hayan traído de
 producción.
 
-### Producción (pendiente, pide confirmación)
+### Producción: en vivo desde el 08/10/2026
 
-- En `/etc/nginx/sites-enabled/openperu`, el bloque `openperu.pe www.openperu.pe` pasa de
-  `root /var/www/phptravels` + PHP 7.4 al mismo `root /var/www/openperu.pe/public` + PHP 8.4
-  que el resto, con `www` → 301 al dominio desnudo. El bloque de Symfony redeclara cabeceras
-  (CSP `frame-ancestors`…): copiar las que apliquen. Después, retirar PHP 7.4 y
-  `/var/www/phptravels` (dejando volcado de `phptravels_legacy`).
-- La migración `Version20261007010000` va en el despliegue (columnas web del catálogo + tabla
-  del libro).
-- `centrocuscointi.com`: registrar, registro A al servidor, `certbot --expand` con el dominio,
-  `server_name` en nginx y `FRONT_ALOJAMIENTO_HOST` (con `%env(default:…)%`, ver
-  `docs/PlanWebPublica.md` §2.8).
+`openperu.pe` lo sirve Symfony. En `/etc/nginx/sites-enabled/openperu`:
+
+- `openperu.pe` se añadió al `server_name` de los bloques de Symfony (80 y 443), junto a `api`,
+  `pax`, `util`…: mismo `root /var/www/openperu.pe/public`, mismo PHP 8.4, mismas cabeceras (CSP
+  `frame-ancestors`, HSTS). El router separa por host (`FRONT_HOST=openperu.pe`, §9).
+- `www.openperu.pe` tiene su propio bloque que sólo hace **301 a `https://openperu.pe`** (80 y
+  443), y conserva el `acme-challenge` en el 80 porque el certificado lo incluye.
+- El bloque del PHPTravels desapareció. Copia de la configuración anterior en
+  `/etc/nginx/openperu.bak-20261008-antes-de-front` (fuera de `sites-enabled` a propósito: allí
+  nginx la cargaría). **Volver atrás**: copiarla encima, `sudo nginx -t` y
+  `sudo systemctl reload nginx`.
+- Ese día se publicó «Oferta Cusco» en la web (`publicado_web = 1`, `slug = ofertas-cusco`):
+  sin ningún catálogo publicado, la portada habría salido con «Estamos preparando nuevas
+  promociones». «Viajes de Promoción» sigue sin publicar hasta que su tour tenga precio.
+- Comprobado desde fuera: portada, catálogo, ficha (301 a la canónica), libro, legales,
+  `robots.txt`, `sitemap.xml`, fotos por Liip; `www`/`http` → 301; URLs del legacy → 301;
+  `wp-login.php` y demás sondas → 404 de Symfony (antes las ejecutaba PHP 7.4).
+
+**Pendiente:** retirar `/var/www/phptravels` y PHP 7.4 tras volcar `phptravels_legacy` (ya
+nadie los sirve); `/favicon.ico` en la raíz da 404 —las páginas declaran el suyo en
+`/front/`, pero los robots lo piden igual—.
+
+La migración `Version20261007010000` (columnas web del catálogo + tabla del libro) y
+`Version20261008010000` (marca del catálogo) ya están aplicadas.
+
+`centrocuscointi.com`: registrar, registro A al servidor, `certbot --expand` con el dominio,
+`server_name` en nginx y `FRONT_ALOJAMIENTO_HOST` (con `%env(default:…)%`, ver
+`docs/PlanWebPublica.md` §2.8).
 
 ## 10. Gotchas
 

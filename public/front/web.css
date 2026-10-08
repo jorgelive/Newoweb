@@ -103,6 +103,7 @@ h3 { font-size: 1.2rem; }
 .precio-desde { line-height: 1.15; }
 .precio-desde small { display: block; color: var(--suave); font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; }
 .precio-desde strong { font-size: 1.45rem; color: var(--acento); font-family: var(--titulos); }
+.precio-nota { display: block; font-size: .72rem; color: var(--suave); margin-top: 2px; }
 .flecha { font-weight: 600; color: var(--primario); font-size: .93rem; }
 
 /* ── Alojamiento (banda) ──────────────────────────────────────────────── */

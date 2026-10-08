@@ -473,6 +473,26 @@ class Cotizacion
     #[Groups(['catalogo:item:read'])]
     private ?int $numDias = null;
 
+    /**
+     * El «desde» que se enseña, ya resuelto: override o calculado por pasajero
+     * (`TourTarjetaResolver::preciosDesdeEfectivos()`). Virtual, mismo origen que $numDias: el panel
+     * enseña lo mismo que verá el cliente, no el `preciosDesde` crudo (vacío cuando es automático).
+     *
+     * @var list<array{titulo: array<mixed>, moneda: string, valor: string}>
+     */
+    #[ApiProperty(openapiContext: ['type' => 'array', 'items' => ['type' => 'object', 'properties' => [
+        'titulo' => ['type' => 'array', 'items' => ['type' => 'object']],
+        'moneda' => ['type' => 'string'],
+        'valor' => ['type' => 'string'],
+    ]]])]
+    #[Groups(['catalogo:item:read'])]
+    private array $preciosDesdeEfectivos = [];
+
+    /** `manual`, `calculado` o null (precio oculto / sin datos). Virtual, ver $preciosDesdeEfectivos. */
+    #[ApiProperty(openapiContext: ['type' => 'string', 'enum' => ['manual', 'calculado'], 'nullable' => true])]
+    #[Groups(['catalogo:item:read'])]
+    private ?string $precioDesdeOrigen = null;
+
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read'])]
     #[ORM\Column(type: 'decimal', precision: 10, scale: 4, options: ['default' => '1.0000'])]
     private string $tipoCambio = '1.0000';
@@ -1043,6 +1063,17 @@ class Cotizacion
     public function setImagenTarjeta(?array $imagenTarjeta): self { $this->imagenTarjeta = $imagenTarjeta; return $this; }
     public function getNumDias(): ?int { return $this->numDias; }
     public function setNumDias(?int $numDias): self { $this->numDias = $numDias; return $this; }
+
+    /** @return list<array{titulo: array<mixed>, moneda: string, valor: string}> */
+    public function getPreciosDesdeEfectivos(): array { return $this->preciosDesdeEfectivos; }
+    /** @param list<array{titulo: array<mixed>, moneda: string, valor: string}> $precios */
+    public function setPreciosDesdeEfectivos(array $precios, ?string $origen): self
+    {
+        $this->preciosDesdeEfectivos = $precios;
+        $this->precioDesdeOrigen = $origen;
+        return $this;
+    }
+    public function getPrecioDesdeOrigen(): ?string { return $this->precioDesdeOrigen; }
 
     public function getPropuesta(): int { return $this->propuesta; }
     public function setPropuesta(int $propuesta): self { $this->propuesta = $propuesta; return $this; }

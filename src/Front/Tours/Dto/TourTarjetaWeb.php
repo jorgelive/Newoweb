@@ -25,6 +25,8 @@ final readonly class TourTarjetaWeb
         public ?int $numDias,
         public array $precios,
         public ?string $imagenUrl,
+        /** Base de pasajeros del precio por persona, si depende del grupo («base de 60»). */
+        public ?int $paxBaseGrupo = null,
     ) {
     }
 

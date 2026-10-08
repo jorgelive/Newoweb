@@ -25,7 +25,9 @@ tour:
     dias: días
     desde: Desde
     ver: 'Ver tour'
-    precio_general: Tarifa
+    por_persona: 'Por persona'
+    base_pax: 'calculado para %n% pasajeros'
+    base_pax_nota: 'Precio por persona calculado con una base de %n% pasajeros: con otro tamaño de grupo puede variar.'
     consultar: 'Consultar disponibilidad'
     reservar: Reserva
     whatsapp_mensaje: 'Hola, me interesa el tour «%tour%»: %url%'

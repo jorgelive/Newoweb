@@ -14,7 +14,12 @@
         <div class="tarjeta-pie">
             {% set precio = tour.precioPrincipal %}
             {% if precio %}
-                <div class="precio-desde"><small>{{ 'tour.desde'|trans({}, 'front_tours') }}</small><strong>{{ precio.formateado }}</strong></div>
+                <div class="precio-desde">
+                    <small>{{ 'tour.desde'|trans({}, 'front_tours') }}</small><strong>{{ precio.formateado }}</strong>
+                    {# Con una sola clase el precio no lleva perfil: es «por persona». Si depende del tamaño
+                       del grupo, se dice sobre cuántos (TourTarjetaResolver::paxBaseGrupo()). #}
+                    <span class="precio-nota">{{ (precio.etiqueta ?? 'tour.por_persona'|trans({}, 'front_tours'))|lower }}{% if tour.paxBaseGrupo %} · {{ 'tour.base_pax'|trans({'%n%': tour.paxBaseGrupo}, 'front_tours') }}{% endif %}</span>
+                </div>
             {% else %}
                 <span></span>
             {% endif %}

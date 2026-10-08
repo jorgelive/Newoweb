@@ -60,6 +60,14 @@ final class CotizacionCatalogoAdminProvider implements ProviderInterface
             $derivada = isset($portadas[$id]) ? Lee::objeto($portadas[$id]) : null;
             $tour->setImagenTarjeta($tour->getImagenPortada() ?? $derivada);
             $tour->setNumDias($dias[$id] ?? null);
+            // Lo mismo que verá el cliente: override o calculado. Ver TourTarjetaResolver.
+            $efectivos = TourTarjetaResolver::preciosDesdeEfectivos(
+                $tour->getPreciosDesde(),
+                $tour->getClasificacionFinancieraCliente(),
+                $tour->getMonedaGlobal(),
+                $tour->isPrecioOculto(),
+            );
+            $tour->setPreciosDesdeEfectivos($efectivos['precios'], $efectivos['origen']);
         }
 
         return $catalogo;

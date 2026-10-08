@@ -23,6 +23,9 @@ import {
 type TourCatalogo = Cotizacion & {
   imagenTarjeta?: ImagenSnapshot | null;
   numDias?: number | null;
+  /** El «desde» que verá el cliente: override o calculado (`TourTarjetaResolver::preciosDesdeEfectivos()`). */
+  preciosDesdeEfectivos?: PrecioDesdeRango[];
+  precioDesdeOrigen?: 'manual' | 'calculado' | null;
 };
 
 /**
@@ -153,7 +156,9 @@ const resumenPreview = (arr?: I18nContent[] | null): string =>
  *  el pax por rango no está definido, así que lo informativo es el precio de
  *  cada rango (extranjero/peruano, adulto/niño), no un `totalVenta` de grupo. */
 const rangosDesde = (tour: TourCatalogo): { titulo: string; moneda: string; valor: string }[] =>
-  (tour.preciosDesde || []).map((r: PrecioDesdeRango) => ({
+  // El EFECTIVO, no el crudo: con el «desde» automático `preciosDesde` va vacío y el panel decía
+  // «Sin rangos» de un tour que el cliente ve con precio.
+  (tour.preciosDesdeEfectivos ?? tour.preciosDesde ?? []).map((r: PrecioDesdeRango) => ({
     titulo: t18(r.titulo),
     moneda: r.moneda,
     valor: r.valor,
@@ -648,7 +653,13 @@ onMounted(() => {
                           {{ rangosDesde(tour)[0].titulo }}
                         </p>
                       </template>
-                      <p v-else class="text-[13px] font-black text-slate-300 leading-none mt-0.5">Sin rangos</p>
+                      <p v-else class="text-[13px] font-black text-slate-300 leading-none mt-0.5">Sin precio</p>
+                      <p v-if="tour.precioDesdeOrigen" class="text-[8px] font-black uppercase tracking-widest mt-1"
+                         :class="tour.precioDesdeOrigen === 'calculado' ? 'text-teal-600' : 'text-orange-500'"
+                         :title="tour.precioDesdeOrigen === 'calculado' ? 'Precio por pasajero calculado de las tarifas' : 'Precio escrito a mano (override)'">
+                        <i class="fas mr-0.5" :class="tour.precioDesdeOrigen === 'calculado' ? 'fa-calculator' : 'fa-pen'"></i>
+                        {{ tour.precioDesdeOrigen === 'calculado' ? 'Automático' : 'Personalizado' }}
+                      </p>
                     </div>
 
                     <div class="shrink-0 flex items-center gap-1.5">

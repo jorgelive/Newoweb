@@ -140,9 +140,9 @@ Hecho el 07/10/2026 (en local; funcionamiento en `docs/WebPublica.md`):
 - [x] Páginas legales traídas del legacy (tal cual: falta reescribirlas para tours, §4).
 - [x] `robots.txt`, `sitemap.xml`, redirecciones 301 de las URLs viejas.
 - [ ] Reescribir términos y devoluciones para tours (depende de §4).
-- [ ] **Despliegue** (pide confirmación): migrar; nginx de `openperu.pe`/`www` → Symfony,
-      `www` → 301 al dominio desnudo; publicar el catálogo desde `util`; retirar el bloque de
-      PHPTravels y PHP 7.4 tras volcar `phptravels_legacy`.
+- [x] **Despliegue** (08/10/2026): migrado; nginx de `openperu.pe` → Symfony, `www` → 301 al
+      dominio desnudo; «Oferta Cusco» publicado en la web. Ver `docs/WebPublica.md` §9.
+- [ ] Retirar `/var/www/phptravels` y PHP 7.4 tras volcar `phptravels_legacy`.
 
 ### Fase 2 — Copiar una cotización de expediente al catálogo
 

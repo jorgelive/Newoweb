@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Cotizacion\Service;
 
 use App\Cotizacion\Entity\CotizacionCatalogo;
+use App\Dto\Lee;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,9 +30,10 @@ use Symfony\Component\Uid\Uuid;
  * @phpstan-type TarjetaDeTour array{
  *     id: string, propuesta: int, publicado: bool, estado: string, numPax: int,
  *     titulo: array<mixed>, resumen: array<mixed>, idiomaCliente: string, monedaGlobal: string,
- *     precioOculto: bool, orden: int, preciosDesde: array<mixed>, imagenPortada: array<mixed>|null,
- *     numDias: int|null
+ *     precioOculto: bool, orden: int, preciosDesde: list<PrecioDesde>, imagenPortada: array<mixed>|null,
+ *     numDias: int|null, precioDesdeOrigen: 'manual'|'calculado'|null, paxBaseGrupo: int|null
  * }
+ * @phpstan-type PrecioDesde array{titulo: list<array{language: string, content: string}>|array<mixed>, moneda: string, valor: string}
  */
 final class TourTarjetaResolver
 {
@@ -61,13 +63,13 @@ final class TourTarjetaResolver
          * @var list<array{id: Uuid, imagenPortada: array<mixed>|null, propuesta: int,
          *     estado: CotizacionEstadoEnum|string, publicado: bool, numPax: int, titulo: array<mixed>|null,
          *     resumen: array<mixed>|null, idiomaCliente: string, monedaGlobal: string, precioOculto: bool,
-         *     preciosDesde: array<mixed>|null, orden: int,
+         *     preciosDesde: array<mixed>|null, orden: int, totalesOcultos: bool, clasificacionFinancieraCliente: array<mixed>|null,
          *     fechaMin: ?string, fechaMax: ?string}> $filas
          */
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT c.id, c.imagenPortada, c.propuesta, c.estado, c.publicado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
                    c.monedaGlobal, c.precioOculto,
-                   c.preciosDesde, c.orden,
+                   c.preciosDesde, c.orden, c.totalesOcultos, c.clasificacionFinancieraCliente,
                    MIN(s.fechaInicioAbsoluta) AS fechaMin, MAX(s.fechaInicioAbsoluta) AS fechaMax
             FROM App\Cotizacion\Entity\Cotizacion c
             LEFT JOIN c.cotservicios s
@@ -88,6 +90,7 @@ final class TourTarjetaResolver
 
         return array_map(static function (array $f) use ($portadas): array {
             $oculto = (bool) $f['precioOculto'];
+            $precios = self::preciosDesdeEfectivos($f['preciosDesde'] ?? [], $f['clasificacionFinancieraCliente'], $f['monedaGlobal'], $oculto);
 
             return [
                 'id'            => self::clave($f['id']),
@@ -101,11 +104,108 @@ final class TourTarjetaResolver
                 'monedaGlobal'  => $f['monedaGlobal'],
                 'precioOculto'  => $oculto,
                 'orden'         => $f['orden'],
-                'preciosDesde'  => $oculto ? [] : ($f['preciosDesde'] ?? []),
+                'preciosDesde'  => $precios['precios'],
+                'precioDesdeOrigen' => $precios['origen'],
+                'paxBaseGrupo'  => self::paxBaseGrupo((bool) $f['totalesOcultos'], $f['numPax']),
                 'imagenPortada' => $f['imagenPortada'] ?? $portadas[self::clave($f['id'])] ?? null,
                 'numDias'       => self::numDias($f['fechaMin'], $f['fechaMax']),
             ];
         }, $filas);
+    }
+
+    /**
+     * El «desde» que se ENSEÑA de un tour (07/10/2026). Una sola regla para la tarjeta de `pax`, la
+     * de la web y su ficha:
+     *
+     *   1. `precioOculto` → ningún precio.
+     *   2. `preciosDesde` escrito a mano → ése (es un OVERRIDE: rangos por perfil que el cálculo no
+     *      distingue, o un precio de campaña).
+     *   3. Si no, el CALCULADO: el precio por pasajero de cada clase, leído del financiero del
+     *      cliente que guarda el editor (`clasesPasajeros[].resumenPorModo.normal`), en la moneda
+     *      del tour y redondeado HACIA ARRIBA al entero — nunca se anuncia menos de lo real.
+     *
+     * Antes sólo existía el 2, escrito a mano, y el itinerario enseñaba el 3: dos cifras que se
+     * separaban en cuanto cambiaba una tarifa. Los cuatro tours de Cusco tenían el override
+     * idéntico al calculado: se escribía a mano lo que el sistema ya sabía.
+     *
+     * ⚠️ **No recalcula nada**: lee el resultado del cálculo financiero (TypeScript, en el
+     * editor). Si el snapshot falta —tour nunca guardado desde el editor— no hay calculado.
+     *
+     * ⚠️ **Espejo TypeScript** (para enseñar el calculado al lado del override en el editor):
+     * `preciosDesdeCalculados()` de `util/src/types/cotizacionEditorModel.ts`. Si cambia la regla
+     * (moneda, redondeo, qué clases cuentan), cambian los dos.
+     *
+     * Con una sola clase el título va vacío: la web y `pax` dicen «por persona», traducido. Con
+     * varias, el nombre de la clase, que el snapshot guarda sólo en español.
+     *
+     * @return array{precios: list<PrecioDesde>, origen: 'manual'|'calculado'|null}
+     */
+    public static function preciosDesdeEfectivos(mixed $preciosDesde, mixed $clasificacionCliente, string $moneda, bool $oculto): array
+    {
+        if ($oculto) {
+            return ['precios' => [], 'origen' => null];
+        }
+
+        $manual = [];
+        foreach (Lee::listaDeMapas($preciosDesde) as $rango) {
+            $valor = Lee::texto($rango['valor'] ?? null);
+            if ($valor === null || !is_numeric($valor)) {
+                continue;
+            }
+            $manual[] = [
+                'titulo' => Lee::mapa($rango['titulo'] ?? null),
+                'moneda' => Lee::texto($rango['moneda'] ?? null) ?? $moneda,
+                'valor' => $valor,
+            ];
+        }
+        if ($manual !== []) {
+            return ['precios' => $manual, 'origen' => 'manual'];
+        }
+
+        $calculado = self::preciosDesdeCalculados($clasificacionCliente, $moneda);
+
+        return ['precios' => $calculado, 'origen' => $calculado === [] ? null : 'calculado'];
+    }
+
+    /**
+     * El precio por pasajero de cada clase, del financiero del cliente. Lo usa también el comando
+     * que pasa a automático los overrides que ya eran iguales al calculado.
+     *
+     * @return list<PrecioDesde> de menor a mayor: el primero es el «desde»
+     */
+    public static function preciosDesdeCalculados(mixed $clasificacionCliente, string $moneda): array
+    {
+        $campo = strtoupper($moneda) === 'PEN' ? 'ventaSoles' : 'ventaDolares';
+
+        $porClase = [];
+        foreach (Lee::listaDeMapas(Lee::mapa($clasificacionCliente)['clasesPasajeros'] ?? null) as $clase) {
+            $normal = Lee::mapa(Lee::mapa($clase['resumenPorModo'] ?? null)['normal'] ?? null);
+            $valor = Lee::decimal($normal[$campo] ?? null);
+            // Una clase gratis (infante) no es un «desde»: anunciaría «desde S/ 0».
+            if ($valor === null || $valor <= 0) {
+                continue;
+            }
+            $porClase[] = ['nombre' => Lee::textoLimpio($clase['tipoPaxNombre'] ?? null), 'valor' => (int) ceil(round($valor, 2))];
+        }
+
+        usort($porClase, static fn (array $a, array $b): int => $a['valor'] <=> $b['valor']);
+        $varias = count($porClase) > 1;
+
+        return array_map(static fn (array $c): array => [
+            'titulo' => $varias && $c['nombre'] !== null ? [['language' => 'es', 'content' => $c['nombre']]] : [],
+            'moneda' => strtoupper($moneda),
+            'valor' => (string) $c['valor'],
+        ], $porClase);
+    }
+
+    /**
+     * Si el precio por persona depende del TAMAÑO del grupo: total oculto (no es un grupo real) y
+     * base de más de uno. Punta Cana: los liberados y el bus se reparten entre 60, y quien viaja
+     * solo leería un precio que no le corresponde. La web y `pax` lo dicen: «grupo de 60».
+     */
+    public static function paxBaseGrupo(bool $totalesOcultos, int $numPax): ?int
+    {
+        return $totalesOcultos && $numPax > 1 ? $numPax : null;
     }
 
     /**

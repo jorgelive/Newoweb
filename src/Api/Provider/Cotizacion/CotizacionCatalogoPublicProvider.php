@@ -90,8 +90,12 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
             'monedaGlobal'  => $t['monedaGlobal'],
             'precioOculto'  => $t['precioOculto'],
             'orden'         => $t['orden'],
-            // Rangos comerciales de exhibición ("Desde X" por perfil); el financiero real no se expone
+            // El «desde» EFECTIVO: override si lo hay, si no el calculado por pasajero
+            // (`TourTarjetaResolver::preciosDesdeEfectivos()`). El financiero real no se expone.
             'preciosDesde'  => $t['preciosDesde'],
+            'precioDesdeOrigen' => $t['precioDesdeOrigen'],
+            // Base de pasajeros del precio, cuando depende del tamaño del grupo (null si no).
+            'paxBaseGrupo'  => $t['paxBaseGrupo'],
             'imagenPortada' => $t['imagenPortada'],
             'numDias'       => $t['numDias'],
         ], $tarjetas));
