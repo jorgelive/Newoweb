@@ -531,6 +531,21 @@ revés. **Sumar las dos cifras no significa nada**, y por eso nunca se pintan ju
 El filtro de cobros va por fecha de **creación** a propósito: filtrando por fecha de pago
 desaparecerían justo los que nadie pagó, que son el motivo de mirar esta pantalla.
 
+### Tarjetas, no tablas (08/10/2026)
+
+Las dos pestañas eran tablas, de ocho y cinco columnas. No cabían: en el teléfono se cortaban
+justo el cliente, el concepto y el importe, y el nombre iba en gris debajo del localizador.
+Ahora cada fila es una tarjeta (una columna en móvil, dos en tableta, tres en escritorio)
+ordenada por lo que se busca:
+
+- **Cobros:** arriba el **cliente** y el **importe total** (con neto y comisión si la hay), con
+  el concepto debajo. Luego estado, módulo y pasarela. Después la fecha que importa según el
+  estado —«Pagado …» con la tarjeta (`medioDetalle`), o «Vence …» si sigue vigente— y quién lo
+  emitió. Al pie, el documento y las acciones (devolver / copiar / anular). Pulsar la tarjeta
+  abre la ficha, como antes la fila.
+- **Caja:** arriba `origenDescripcion` —el huésped y su casita— y el importe neto; luego el
+  medio, `auto` y la fecha; la referencia si la hay; al pie, el documento y quién cobró.
+
 ### La barra de filtros se pliega (05/09/2026)
 
 Desplegada son cinco controles en dos o tres renglones y, con los totales debajo, en un

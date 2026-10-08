@@ -354,12 +354,12 @@ onMounted(cargar);
 // ============================================================================
 // FICHA DE UN COBRO
 //
-// La tabla contesta «qué pasó con mis enlaces»; para «qué es EXACTAMENTE este cobro» no
+// La lista contesta «qué pasó con mis enlaces»; para «qué es EXACTAMENTE este cobro» no
 // había nada. En un cobro MANUAL, además, lo que se tecleó al crearlo —email, teléfono,
 // referencia, notas— se guardaba y no se volvía a ver nunca.
 //
-// Va en panel lateral y no en fila desplegable porque la tabla ya no cabe en un móvil: en
-// pantalla estrecha se cortan Concepto, Documento e Importe, que es justo lo que se busca.
+// Va en panel lateral y no en tarjeta desplegable: la tarjeta enseña lo que identifica el
+// cobro; la ficha, todo lo demás, sin alargar la lista.
 // ============================================================================
 const fichaAbierta = ref(false);
 const fichaCargando = ref(false);
@@ -724,7 +724,7 @@ function fechaLarga(iso?: string | null): string {
                     Hay más registros de los que caben. Estrecha el rango de fechas para verlos todos.
                 </p>
                 <p v-if="store.error" class="mt-2 text-[11px] font-bold text-rose-600">{{ store.error }}</p>
-                <!-- El fallo al anular se pinta AQUÍ además de en la ficha: desde la tabla no
+                <!-- El fallo al anular se pinta AQUÍ además de en la ficha: desde la lista no
                      hay ficha abierta donde enseñarlo, y un botón que no hace nada sin decir
                      por qué es lo que hace repetir la acción. -->
                 <p v-if="errorAnular" class="mt-2 text-[11px] font-bold text-rose-600">
@@ -741,94 +741,102 @@ function fechaLarga(iso?: string | null): string {
                     No hay cobros emitidos en este rango.
                 </p>
 
-                <div v-else class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <table class="w-full text-xs">
-                        <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            <tr>
-                                <th class="text-left px-3 py-2">Emitido</th>
-                                <th class="text-left px-3 py-2">Estado</th>
-                                <!-- Con dos pasarelas en paralelo (§11 del doc), saber por
-                                     cuál entró cada cobro es lo primero que se necesita
-                                     para cuadrarlo contra el extracto correcto. -->
-                                <th class="text-left px-3 py-2">Pasarela</th>
-                                <!-- A qué negocio pertenece el cobro. «Manual» = suelto. -->
-                                <th class="text-left px-3 py-2">Módulo</th>
-                                <th class="text-left px-3 py-2">Concepto</th>
-                                <th class="text-left px-3 py-2">Documento</th>
-                                <th class="text-right px-3 py-2">Importe</th>
-                                <th class="px-3 py-2"></th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr v-for="c in store.cobros" :key="c.id"
-                                @click="abrirFicha(c)"
-                                class="hover:bg-slate-50 cursor-pointer">
-                                <td class="px-3 py-2 whitespace-nowrap text-slate-500">{{ fechaCorta(c.createdAt) }}</td>
-                                <td class="px-3 py-2">
-                                    <span class="px-2 py-0.5 rounded border text-[10px] font-black uppercase"
-                                        :class="clasesEstadoEnlace(c.estado)">{{ c.estadoEtiqueta }}</span>
-                                </td>
-                                <td class="px-3 py-2 whitespace-nowrap text-slate-500">{{ c.pasarelaEtiqueta }}</td>
-                                <td class="px-3 py-2 whitespace-nowrap">
-                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-black uppercase"
-                                        :class="c.esManual ? 'bg-slate-100 text-slate-500' : 'bg-[#376875]/10 text-[#376875]'">
-                                        {{ c.moduloEtiqueta }}
-                                    </span>
-                                </td>
-                                <td class="px-3 py-2 max-w-[18rem] truncate" :title="c.concepto">{{ c.concepto }}</td>
-                                <td class="px-3 py-2 whitespace-nowrap">
-                                    <button type="button" @click.stop="irAlOrigen(c.origenTipo, c.origenId)"
-                                        class="font-black text-[#376875] hover:underline">
-                                        {{ c.origenReferencia || '—' }}
+                <!-- Tarjetas, no tabla (08/10/2026). Con ocho columnas la tabla no cabía: en el
+                     teléfono se cortaban justo el cliente, el concepto y el importe, que es lo que
+                     se viene a buscar. Cada tarjeta empieza por QUIÉN paga y CUÁNTO; debajo, el
+                     estado y lo que hace falta para cuadrarlo. -->
+                <div v-else class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    <article v-for="c in store.cobros" :key="c.id"
+                        @click="abrirFicha(c)"
+                        class="bg-white rounded-xl border border-slate-200 p-3 flex flex-col gap-2 cursor-pointer
+                               hover:border-[#376875]/40 hover:shadow-sm transition">
+
+                        <!-- Quién y cuánto: lo que se mira primero. -->
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="text-sm font-black text-slate-800 leading-tight break-words">
+                                    {{ nombreCompleto(c.clienteNombre, c.clienteApellido) || 'Sin nombre' }}
+                                </p>
+                                <p class="mt-0.5 text-[11px] text-slate-500 leading-snug line-clamp-2" :title="c.concepto">
+                                    {{ c.concepto || '—' }}
+                                </p>
+                            </div>
+                            <div class="shrink-0 text-right">
+                                <p class="text-sm font-black text-slate-900 whitespace-nowrap">{{ c.monedaSimbolo }} {{ c.montoTotal }}</p>
+                                <p v-if="Number(c.montoRecargo) > 0.005" class="text-[10px] text-slate-400 whitespace-nowrap">
+                                    neto {{ c.montoNeto }} · com. {{ c.montoRecargo }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Estado, pasarela y módulo: con dos pasarelas en paralelo (§11 del doc),
+                             saber por cuál entró es lo primero para cuadrarlo contra su extracto. -->
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="px-2 py-0.5 rounded border text-[10px] font-black uppercase"
+                                :class="clasesEstadoEnlace(c.estado)">{{ c.estadoEtiqueta }}</span>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-black uppercase"
+                                :class="c.esManual ? 'bg-slate-100 text-slate-500' : 'bg-[#376875]/10 text-[#376875]'">
+                                {{ c.moduloEtiqueta }}
+                            </span>
+                            <span class="text-[10px] font-bold text-slate-400">{{ c.pasarelaEtiqueta }}</span>
+                        </div>
+
+                        <!-- El dato de fecha que importa según el estado: cuándo entró el dinero
+                             (y con qué tarjeta), o hasta cuándo se puede pagar. -->
+                        <div class="text-[11px] text-slate-500 leading-snug">
+                            <p v-if="c.pagadoEn">
+                                <i class="fas fa-circle-check text-emerald-500 mr-1"></i>Pagado {{ fechaLarga(c.pagadoEn) }}
+                                <span v-if="c.medioDetalle" class="text-slate-400"> · {{ c.medioDetalle }}</span>
+                            </p>
+                            <p v-else-if="c.vigente && c.expiraEn">
+                                <i class="fas fa-hourglass-half text-amber-500 mr-1"></i>Vence {{ fechaLarga(c.expiraEn) }}
+                            </p>
+                            <p class="text-slate-400">
+                                Emitido {{ fechaCorta(c.createdAt) }}<span v-if="c.creadoPorNombre"> por {{ c.creadoPorNombre }}</span>
+                            </p>
+                        </div>
+
+                        <!-- Pie: el documento a la izquierda; las acciones, a la derecha.
+                             `@click.stop` en todo, o la tarjeta abriría además la ficha. -->
+                        <div class="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <button v-if="c.origenReferencia" type="button" @click.stop="irAlOrigen(c.origenTipo, c.origenId)"
+                                class="text-[11px] font-black text-[#376875] hover:underline truncate">
+                                <i class="fas fa-file-lines mr-1"></i>{{ c.origenReferencia }}
+                            </button>
+                            <span v-else class="text-[11px] text-slate-300">Sin documento</span>
+
+                            <div class="flex items-center gap-1 shrink-0">
+                                <!-- Devolver: sólo sobre un cobro PAGADO, y por eso nunca convive
+                                     con copiar/anular —que son de los vigentes—. Ámbar, no rojo:
+                                     es una operación legítima que mueve dinero. -->
+                                <button v-if="c.estado === 'pagado'" type="button"
+                                    @click.stop="devolverCobro(c)"
+                                    :disabled="devolviendoId !== null"
+                                    title="Devolver el dinero al cliente por la pasarela"
+                                    class="px-2 py-1 border border-amber-200 rounded text-[10px] font-black
+                                           text-amber-700 hover:bg-amber-50
+                                           disabled:opacity-40 disabled:cursor-not-allowed">
+                                    <i class="fas" :class="devolviendoId === c.id ? 'fa-circle-notch fa-spin' : 'fa-rotate-left'"></i>
+                                    Devolver
+                                </button>
+                                <template v-if="c.vigente">
+                                    <button type="button" @click.stop="copiar(c)"
+                                        title="Copiar el enlace de pago"
+                                        class="px-2 py-1 border border-slate-200 rounded text-[10px] font-black text-slate-500 hover:text-[#376875]">
+                                        <i class="fas fa-copy"></i>
                                     </button>
-                                    <span v-if="c.clienteNombre" class="block text-[10px] text-slate-400 truncate max-w-[12rem]">
-                                        {{ nombreCompleto(c.clienteNombre, c.clienteApellido) }}
-                                    </span>
-                                </td>
-                                <td class="px-3 py-2 text-right whitespace-nowrap">
-                                    <span class="font-black">{{ c.monedaSimbolo }} {{ c.montoTotal }}</span>
-                                    <span v-if="Number(c.montoRecargo) > 0.005" class="block text-[10px] text-slate-400">
-                                        neto {{ c.montoNeto }} · com. {{ c.montoRecargo }}
-                                    </span>
-                                </td>
-                                <!-- Las dos acciones sólo sobre un cobro VIGENTE: sobre uno
-                                     pagado, expirado o ya anulado no hay nada que copiar ni
-                                     que cerrar. `@click.stop` en las dos, o la fila abriría
-                                     además la ficha. -->
-                                <td class="px-3 py-2 text-right whitespace-nowrap">
-                                    <!-- Devolver: sólo sobre un cobro PAGADO, y por eso nunca
-                                         convive con copiar/anular —que son de los vigentes—.
-                                         Ámbar, no rojo: no es destructivo ni un error, es una
-                                         operación legítima que mueve dinero. -->
-                                    <button v-if="c.estado === 'pagado'" type="button"
-                                        @click.stop="devolverCobro(c)"
-                                        :disabled="devolviendoId !== null"
-                                        title="Devolver el dinero al cliente por la pasarela"
-                                        class="px-2 py-1 border border-amber-200 rounded text-[10px] font-black
-                                               text-amber-700 hover:bg-amber-50
+                                    <button type="button" @click.stop="anularCobro(c)"
+                                        :disabled="anulandoId !== null"
+                                        title="Anular: el cliente ya no podrá pagar con él"
+                                        class="px-2 py-1 border border-slate-200 rounded text-[10px] font-black
+                                               text-slate-500 hover:text-rose-600 hover:border-rose-200
                                                disabled:opacity-40 disabled:cursor-not-allowed">
-                                        <i class="fas" :class="devolviendoId === c.id ? 'fa-circle-notch fa-spin' : 'fa-rotate-left'"></i>
-                                        Devolver
+                                        <i class="fas" :class="anulandoId === c.id ? 'fa-circle-notch fa-spin' : 'fa-ban'"></i>
                                     </button>
-                                    <span v-if="c.vigente" class="inline-flex items-center gap-1">
-                                        <button type="button" @click.stop="copiar(c)"
-                                            title="Copiar el enlace de pago"
-                                            class="px-2 py-1 border border-slate-200 rounded text-[10px] font-black text-slate-500 hover:text-[#376875]">
-                                            <i class="fas fa-copy"></i>
-                                        </button>
-                                        <button type="button" @click.stop="anularCobro(c)"
-                                            :disabled="anulandoId !== null"
-                                            title="Anular: el cliente ya no podrá pagar con él"
-                                            class="px-2 py-1 border border-slate-200 rounded text-[10px] font-black
-                                                   text-slate-500 hover:text-rose-600 hover:border-rose-200
-                                                   disabled:opacity-40 disabled:cursor-not-allowed">
-                                            <i class="fas" :class="anulandoId === c.id ? 'fa-circle-notch fa-spin' : 'fa-ban'"></i>
-                                        </button>
-                                    </span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                </template>
+                            </div>
+                        </div>
+                    </article>
                 </div>
             </section>
 
@@ -838,45 +846,48 @@ function fechaLarga(iso?: string | null): string {
                     No entró dinero en este rango.
                 </p>
 
-                <div v-else class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <table class="w-full text-xs">
-                        <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            <tr>
-                                <th class="text-left px-3 py-2">Fecha</th>
-                                <th class="text-left px-3 py-2">Medio</th>
-                                <th class="text-left px-3 py-2">Documento</th>
-                                <th class="text-left px-3 py-2">Cobró</th>
-                                <th class="text-right px-3 py-2">Importe</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr v-for="m in store.movimientos" :key="m.id" class="hover:bg-slate-50">
-                                <td class="px-3 py-2 whitespace-nowrap text-slate-500">{{ fechaCorta(m.fecha) }}</td>
-                                <td class="px-3 py-2 whitespace-nowrap">
-                                    <i class="fas mr-1 text-slate-400" :class="iconoMedio(m)"></i>
-                                    {{ m.medioEtiqueta }}
-                                    <!-- Distinguir lo automático importa al cuadrar: nadie
-                                         tuvo ese dinero en la mano. -->
-                                    <span v-if="m.esAutomatico"
-                                        class="ml-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-black uppercase">auto</span>
-                                </td>
-                                <td class="px-3 py-2">
-                                    <button type="button" @click="irAlOrigen(m.origenTipo, m.origenId)"
-                                        class="font-black text-[#376875] hover:underline">
-                                        {{ m.origenReferencia || '—' }}
-                                    </button>
-                                    <span class="block text-[10px] text-slate-400 truncate max-w-[16rem]">
-                                        {{ m.origenDescripcion }}
-                                    </span>
-                                </td>
-                                <td class="px-3 py-2 text-slate-500 whitespace-nowrap">{{ m.cobradorNombre || '—' }}</td>
-                                <td class="px-3 py-2 text-right whitespace-nowrap">
-                                    <span class="font-black text-emerald-700">{{ m.moneda }} {{ m.monto }}</span>
-                                    <span v-if="m.tipoCambio" class="block text-[10px] text-slate-400">TC {{ m.tipoCambio }}</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Tarjetas, igual que Cobros: la descripción del documento —el huésped y su
+                     casita— es lo que identifica el movimiento, y en la tabla quedaba en gris y
+                     cortada a media palabra. -->
+                <div v-else class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    <article v-for="m in store.movimientos" :key="m.id"
+                        class="bg-white rounded-xl border border-slate-200 p-3 flex flex-col gap-2">
+
+                        <div class="flex items-start justify-between gap-3">
+                            <p class="min-w-0 text-sm font-black text-slate-800 leading-tight break-words">
+                                {{ m.origenDescripcion }}
+                            </p>
+                            <div class="shrink-0 text-right">
+                                <p class="text-sm font-black text-emerald-700 whitespace-nowrap">{{ m.moneda }} {{ m.monto }}</p>
+                                <p v-if="m.tipoCambio" class="text-[10px] text-slate-400">TC {{ m.tipoCambio }}</p>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-50 border border-slate-200 font-bold">
+                                <i class="fas text-slate-400" :class="iconoMedio(m)"></i>{{ m.medioEtiqueta }}
+                            </span>
+                            <!-- Distinguir lo automático importa al cuadrar: nadie tuvo ese
+                                 dinero en la mano. -->
+                            <span v-if="m.esAutomatico"
+                                class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-black uppercase">auto</span>
+                            <span class="text-slate-400">{{ fechaCorta(m.fecha) }}</span>
+                        </div>
+
+                        <p v-if="m.referencia" class="text-[11px] text-slate-500 break-words">
+                            <i class="fas fa-hashtag text-slate-300 mr-1"></i>{{ m.referencia }}
+                        </p>
+
+                        <div class="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px]">
+                            <button type="button" @click="irAlOrigen(m.origenTipo, m.origenId)"
+                                class="font-black text-[#376875] hover:underline truncate">
+                                <i class="fas fa-file-lines mr-1"></i>{{ m.origenReferencia || '—' }}
+                            </button>
+                            <span class="text-slate-500 truncate">
+                                <i class="fas fa-user text-slate-300 mr-1"></i>{{ m.cobradorNombre || 'Sin cobrador' }}
+                            </span>
+                        </div>
+                    </article>
                 </div>
             </section>
         </main>
