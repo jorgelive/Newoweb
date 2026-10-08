@@ -11760,7 +11760,19 @@ normal es que identidad y semilla coincidan —aquélla se sembró de ésta—, 
 
 En el cajón de la reserva el campo queda de **sólo lectura**, con la marca «sin verificar»
 cuando lo que se ve es la semilla, y un botón **Editar** que abre el editor de identificadores
-(`/chat?id=…&editar=identidades`).
+**encima de la ficha**, sin salir de ella: `EditConversationModal` con sólo la cabecera del hilo
+(`chatStore.cargarCabecera`), como `ContactoDeIdentidad` en las cotizaciones. Al cerrarlo, el
+teléfono se relee.
+
+🔥 **Hasta el 08/10/2026 navegaba al chat** (`/chat?id=…&editar=identidades`): cerraba la ficha,
+cargaba el hilo con todo su historial y después abría el editor. El atajo `?editar=identidades`
+de ChatView se quitó con él: no lo usaba nadie más.
+
+⚠️ **«Guardar Cambios» del editor también añade lo tecleado en «Añadir identificador».** Antes
+sólo lo añadía el botón de al lado (un `+` a secas): quien escribía el número y pulsaba Guardar
+veía cerrarse el modal y el número perdido, sin aviso. Ahora, si hay algo escrito, Guardar lo
+añade primero; si no se puede (formato, ya es de otro hilo), el modal no se cierra y enseña el
+motivo. El botón dice «Añadir».
 
 ⚠️ **Al EDITAR una reserva que ya existe, el teléfono y el correo ni se pintan.** Sólo aparecen
 al CREAR, que es cuando son la semilla. Editarlos en una reserva viva no cambiaría a dónde salen

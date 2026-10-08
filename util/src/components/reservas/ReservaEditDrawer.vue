@@ -3,7 +3,8 @@ import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, type Compon
 import { useRouter } from 'vue-router';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useMaestroStore } from '@/stores/maestroStore';
-import { useChatStore } from '@/stores/chat/chatStore.ts';
+import { useChatStore, type ApiConversation } from '@/stores/chat/chatStore.ts';
+import EditConversationModal from '@/components/chat/EditConversationModal.vue';
 import { uuidDe, miembrosHydra } from '@/services/hydra';
 import { getUrls, apiClient } from '@/services/apiClient';
 import { formatearTelefono, telefonoParaWhatsapp } from '@/utils/telefono';
@@ -1062,7 +1063,12 @@ async function abrirChatInterno(): Promise<void> {
 }
 
 /**
- * Lleva al editor de identificadores de esta persona.
+ * Abre el editor de identificadores de esta persona AQUÍ, encima de la ficha.
+ *
+ * 🔥 **Antes navegaba al chat** (`/chat?editar=identidades`): cerraba la ficha, cargaba el hilo
+ * con todo su historial y sólo después abría el editor. Para añadir un teléfono. Es lo mismo que
+ * ya hacía `ContactoDeIdentidad` en las cotizaciones desde el 08/09: el editor sólo necesita la
+ * cabecera del hilo (`cargarCabecera`), y al cerrarlo se vuelve a la ficha con el número al día.
  *
  * ⚠️ **El error se guarda aparte de `localError` a propósito.** Ése se pinta en el pie, junto a
  * Guardar (antes, arriba del todo del scroll), y este botón está en medio, en «Datos del titular»:
@@ -1086,15 +1092,21 @@ async function editarIdentificadores(): Promise<void> {
 
         if (!convId) return;
 
-        // Igual que `abrirChatInterno`: cerrar ANTES de navegar, porque ReservasView cancela la
-        // salida de ruta mientras haya un cajón abierto.
-        emit('close');
-        await router.push({ path: '/chat', query: { id: convId, editar: 'identidades' } });
+        hiloParaEditar.value = await chatStore.cargarCabecera(convId);
+        if (hiloParaEditar.value === null) errorTelefono.value = 'No se pudo abrir el editor de identificadores.';
     } catch {
         errorTelefono.value = 'No se pudo abrir el editor de identificadores.';
     } finally {
         abriendoChat.value = false;
     }
+}
+
+const hiloParaEditar = ref<ApiConversation | null>(null);
+
+/** Al cerrar el editor, el teléfono de la ficha se relee: puede haber cambiado. */
+function cerrarEditorIdentificadores(): void {
+    hiloParaEditar.value = null;
+    void cargarTelefonoContacto();
 }
 
 // ══ A QUIÉN PERTENECEN LOS DATOS QUE SE TECLEAN (sólo al crear) ═══════════
@@ -2762,7 +2774,10 @@ async function ejecutarBorrado(): Promise<void> {
                 </div>
             </footer>
         </div>
-    </div>
+        <!-- El editor de identificadores, sin salir de la ficha. Se teletransporta a `body` con
+         z-[1000], así que queda encima del cajón. -->
+    <EditConversationModal v-if="hiloParaEditar" :conversation="hiloParaEditar" @close="cerrarEditorIdentificadores" />
+</div>
 </template>
 
 <style scoped>

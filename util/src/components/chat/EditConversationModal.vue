@@ -263,6 +263,18 @@ const handleSave = async () => {
   saving.value = true;
   errorMsg.value = '';
 
+  // 🔥 **Lo tecleado en «Añadir identificador» también se guarda.** Antes sólo lo añadía el botón
+  // de al lado: quien escribía el número y pulsaba «Guardar Cambios» —que es lo que el panel
+  // invita a hacer— veía cerrarse el modal y el número perdido, sin ningún aviso. Si no se puede
+  // añadir (formato, ya es de otro hilo), el modal se queda abierto con el motivo a la vista.
+  if (nuevoValor.value.trim()) {
+    await anadir();
+    if (errorIdent.value) {
+      saving.value = false;
+      return;
+    }
+  }
+
   const idiomaObj = maestroStore.idiomas.find((i) => i.id === form.value.idiomaId);
 
   const payload: Record<string, unknown> = {
@@ -511,7 +523,7 @@ const formatDateTime = (iso?: string | null) => {
                      class="flex-1 min-w-0 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[#376875]">
               <button @click="anadir" :disabled="ocupado || !nuevoValor.trim()"
                       class="px-3 py-2 bg-[#376875] text-white rounded-xl text-xs font-black disabled:opacity-40">
-                <i class="fas fa-plus"></i>
+                <i class="fas fa-plus mr-1"></i>Añadir
               </button>
             </div>
 

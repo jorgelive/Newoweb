@@ -29,7 +29,7 @@ defineProps<{
     origen: 'identidad' | 'semilla' | null;
     /** Descarga del contacto. `null` mientras no haya reserva persistida. */
     vcardUrl: string | null;
-    /** El botón de editar lleva al chat, y eso tarda: se bloquea mientras abre. */
+    /** El botón de editar abre el hilo si no existe y trae su cabecera: se bloquea mientras tanto. */
     ocupado?: boolean;
     error?: string | null;
 }>();
