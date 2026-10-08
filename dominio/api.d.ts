@@ -29963,11 +29963,6 @@ export interface components {
              * @default 0.00
              */
             totalPagos: string;
-            /**
-             * @description ¿Los cargos de la estancia siguen contando para el saldo?
-             * @default true
-             */
-            activa: boolean;
             /** Format: date-time */
             lastSyncedAt?: string | null;
             cargos?: components["schemas"]["PmsCargoFinanciero-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
@@ -29997,6 +29992,8 @@ export interface components {
             readonly totalAlojamiento?: string;
             readonly totalLimpieza?: string;
             readonly totalServicio?: string;
+            /** @description ¿Sigue en pie la reserva? `false` sólo si tiene estancias y TODAS están canceladas. */
+            readonly activa?: boolean;
             /** @description Estancias de la reserva indexadas por su ID de booking en Beds24. */
             readonly estancias?: {
                 [key: string]: {
@@ -30039,21 +30036,11 @@ export interface components {
         "PmsInformacionFinanciera-pms_finanzas.write": {
             /** @description Tipo de cambio con el que se **cuadra** esta reserva. No es contabilidad: es el cierre. */
             tipoCambio?: string | null;
-            /**
-             * @description ¿Los cargos de la estancia siguen contando para el saldo?
-             * @default true
-             */
-            activa: boolean;
         };
         /** @description Cabecera financiera de una reserva (espejo de App\Message\Entity\MessageConversation). */
         "PmsInformacionFinanciera-pms_finanzas.write.jsonMergePatch": {
             /** @description Tipo de cambio con el que se **cuadra** esta reserva. No es contabilidad: es el cierre. */
             tipoCambio?: string | null;
-            /**
-             * @description ¿Los cargos de la estancia siguen contando para el saldo?
-             * @default true
-             */
-            activa: boolean;
         };
         /** @description Cabecera financiera de una reserva (espejo de App\Message\Entity\MessageConversation). */
         "PmsInformacionFinanciera.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
@@ -30070,11 +30057,6 @@ export interface components {
              * @default 0.00
              */
             totalPagos: string;
-            /**
-             * @description ¿Los cargos de la estancia siguen contando para el saldo?
-             * @default true
-             */
-            activa: boolean;
             /** Format: date-time */
             lastSyncedAt?: string | null;
             cargos?: components["schemas"]["PmsCargoFinanciero.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
@@ -30104,6 +30086,8 @@ export interface components {
             readonly totalAlojamiento?: string;
             readonly totalLimpieza?: string;
             readonly totalServicio?: string;
+            /** @description ¿Sigue en pie la reserva? `false` sólo si tiene estancias y TODAS están canceladas. */
+            readonly activa?: boolean;
             /** @description Estancias de la reserva indexadas por su ID de booking en Beds24. */
             readonly estancias?: {
                 [key: string]: {
@@ -30157,11 +30141,6 @@ export interface components {
              * @default 0.00
              */
             totalPagos: string;
-            /**
-             * @description ¿Los cargos de la estancia siguen contando para el saldo?
-             * @default true
-             */
-            activa: boolean;
             /** Format: date-time */
             lastSyncedAt?: string | null;
             cargos?: components["schemas"]["PmsCargoFinanciero.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
@@ -30191,6 +30170,8 @@ export interface components {
             readonly totalAlojamiento?: string;
             readonly totalLimpieza?: string;
             readonly totalServicio?: string;
+            /** @description ¿Sigue en pie la reserva? `false` sólo si tiene estancias y TODAS están canceladas. */
+            readonly activa?: boolean;
             /** @description Estancias de la reserva indexadas por su ID de booking en Beds24. */
             readonly estancias?: {
                 [key: string]: {
@@ -30244,11 +30225,6 @@ export interface components {
              * @default 0.00
              */
             totalPagos: string;
-            /**
-             * @description ¿Los cargos de la estancia siguen contando para el saldo?
-             * @default true
-             */
-            activa: boolean;
             /** Format: date-time */
             lastSyncedAt?: string | null;
             cargos?: components["schemas"]["PmsCargoFinanciero.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read"][];
@@ -30278,6 +30254,8 @@ export interface components {
             readonly totalAlojamiento?: string;
             readonly totalLimpieza?: string;
             readonly totalServicio?: string;
+            /** @description ¿Sigue en pie la reserva? `false` sólo si tiene estancias y TODAS están canceladas. */
+            readonly activa?: boolean;
             /** @description Estancias de la reserva indexadas por su ID de booking en Beds24. */
             readonly estancias?: {
                 [key: string]: {
