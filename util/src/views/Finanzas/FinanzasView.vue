@@ -18,9 +18,11 @@
  * `FinMovimientoRegistry`, así que el día que exista el módulo de tours sus pagos
  * aparecen aquí sin tocar esta vista. Ver docs/FinanzasEnlacesPago.md.
  */
-import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
+import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
+import { useCapasEnHistorial } from '@/composables/useCapasEnHistorial';
 import { useCajaStore } from '@/stores/finanzas/cajaStore';
 import {
     clasesEstadoEnlace,
@@ -35,9 +37,22 @@ import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
 import { useConfigDelFront } from '@/composables/useConfigDelFront';
 
 const router = useRouter();
+const route = useRoute();
 const store = useCajaStore();
 
-const activeTab = ref<'cobros' | 'caja'>('cobros');
+/**
+ * «Atrás» cierra lo que hay encima —la ficha, el cobro manual, la reserva— en vez de sacarte de
+ * Finanzas. Antes eran `ref` sueltos: con la ficha abierta, el gesto atrás te llevaba a la
+ * pantalla anterior a Finanzas.
+ */
+const capas = useCapasEnHistorial();
+
+/**
+ * La pestaña vive en la URL (`?tab=caja`), igual que en OperacionView: cambiar de pestaña es
+ * navegar, así que «atrás» desde Caja vuelve a Cobros en vez de salir de la vista. Cobros es el
+ * defecto y va sin parámetro.
+ */
+const activeTab = computed<'cobros' | 'caja'>(() => (route.query.tab === 'caja' ? 'caja' : 'cobros'));
 
 /** `YYYY-MM-DD` de hoy desplazado N días. Local, no UTC: `toISOString` restaba un día. */
 function fechaISO(diasAtras = 0): string {
@@ -201,6 +216,10 @@ const resumenFiltros = computed<string>(() => {
 // aunque ese módulo aún no sepa cobrar.
 // ============================================================================
 const formAbierto = ref(false);
+
+function cerrarFormManual(): void {
+    capas.cerrar('emitir');
+}
 const guardando = ref(false);
 const errorForm = ref<string | null>(null);
 /** Enlace recién emitido: se muestra su URL para copiarla sin buscarla en la tabla. */
@@ -235,6 +254,15 @@ const avisoTope = computed(() =>
 
 
 function abrirFormManual(): void {
+    reiniciarFormManual();
+    if (!formAbierto.value) {
+        formAbierto.value = true;
+        capas.abrir('emitir', () => { formAbierto.value = false; });
+    }
+}
+
+/** Formulario en blanco. Aparte de abrir: «Emitir otro» reinicia sin apilar otra capa. */
+function reiniciarFormManual(): void {
     errorForm.value = null;
     recienCreado.value = null;
     formManual.value = {
@@ -242,7 +270,6 @@ function abrirFormManual(): void {
         conRecargo: true, vigenciaDias: 7,
         clienteNombre: '', clienteApellido: '', clienteEmail: '', clienteTelefono: '', referencia: '',
     };
-    formAbierto.value = true;
 }
 
 async function guardarManual(): Promise<void> {
@@ -285,10 +312,17 @@ const cargar = async (): Promise<void> => {
 // refresco, el saldo de arriba contradice al movimiento que el asistente acaba de apuntar.
 useRefrescoDelAsistente(() => { void cargar(); });
 
+/** `push`, no `replace`: es lo que deja la entrada a la que vuelve «atrás». */
 const cambiarTab = async (tab: 'cobros' | 'caja'): Promise<void> => {
-    activeTab.value = tab;
-    await cargar();
+    if (tab === activeTab.value) return;
+
+    const { tab: _descartado, ...resto } = route.query;
+    const query: LocationQueryRaw = tab === 'cobros' ? resto : { ...resto, tab };
+    await router.push({ query });
 };
+
+// El estado sigue a la URL: venga del botón o del gesto atrás, la pestaña nueva se carga aquí.
+watch(activeTab, () => { void cargar(); });
 
 /**
  * Buscar desde el botón (o con Enter): carga y, en móvil, pliega la barra.
@@ -307,17 +341,37 @@ const limpiarFiltros = async (): Promise<void> => {
     await cargar();
 };
 
-/**
- * Salta a la reserva del cobro.
- *
- * Sólo para `pms_reserva`: cuando existan los tours, cada origen tendrá su ruta y esto
- * será un `match`. Se deja explícito en vez de construir la URL a ciegas para que un
- * origen nuevo no mande al operador a una pantalla en blanco.
- */
-const irAlOrigen = (origenTipo: string | null, origenId: string | null): void => {
-    // Un cobro manual no tiene documento al que ir, aunque lleve etiqueta de módulo.
-    if (origenTipo !== 'pms_reserva' || !origenId) return;
-    void router.push({ path: '/reservas', query: { reserva: origenId } });
+// ============================================================================
+// LA FICHA DEL DOCUMENTO, ENCIMA DE FINANZAS
+//
+// Antes el localizador navegaba al calendario de reservas: se perdía el listado, sus filtros y
+// el sitio, y la ficha ni se abría (ReservasView sólo la abre con `?evento=`). Ahora se monta
+// el MISMO `ReservaEditDrawer` que usa el chat, en modo lectura y sin calendario, y «atrás» lo
+// cierra devolviéndote a la tarjeta o a la ficha del cobro desde la que se abrió.
+//
+// Sólo `pms_reserva`: las cotizaciones aún no tienen resolver de origen (`FinOrigenCobro`) y
+// ningún cobro lleva su id. Cuando lo tengan, su panel entra aquí como otro caso.
+// ============================================================================
+const reservaAbierta = ref<string | null>(null);
+
+const puedeAbrirDocumento = (origenTipo: string | null, origenId: string | null): boolean =>
+    origenTipo === 'pms_reserva' && !!origenId;
+
+const abrirDocumento = (origenTipo: string | null, origenId: string | null): void => {
+    if (!puedeAbrirDocumento(origenTipo, origenId) || reservaAbierta.value) return;
+
+    reservaAbierta.value = origenId;
+    capas.abrir('reserva', () => { reservaAbierta.value = null; });
+};
+
+const cerrarDocumento = (): void => capas.cerrar('reserva');
+
+/** Desde la ficha se puede registrar un pago o anular: el listado tiene que enterarse. */
+const alCambiarFinanzasDelDocumento = (): void => { void cargar(); };
+
+const alBorrarDocumento = (): void => {
+    cerrarDocumento();
+    void cargar();
 };
 
 const fechaCorta = (iso: string | null): string => {
@@ -376,6 +430,8 @@ let peticionFicha = 0;
 async function abrirFicha(cobro: FinEnlacePago): Promise<void> {
     const mia = ++peticionFicha;
 
+    if (!fichaAbierta.value) capas.abrir('cobro', soltarFicha);
+
     // Se pinta YA lo que la fila ya tenía; el viaje sólo añade el origen y los datos del
     // cliente. Así la ficha nunca aparece vacía.
     fichaCobro.value = cobro;
@@ -399,7 +455,12 @@ async function abrirFicha(cobro: FinEnlacePago): Promise<void> {
     }
 }
 
+/** Lo pulsa la ✕ o el fondo: retrocede, y el cierre real lo hace `soltarFicha`. */
 function cerrarFicha(): void {
+    capas.cerrar('cobro');
+}
+
+function soltarFicha(): void {
     fichaAbierta.value = false;
     peticionFicha++;
     fichaCobro.value = null;
@@ -630,7 +691,9 @@ function fechaLarga(iso?: string | null): string {
                                  `FinEnlacePagoEstado` en TypeScript y al añadir «Reembolsado»
                                  el desplegable se quedó corto sin que nada fallara. Mismo
                                  criterio que el catálogo de medios de la otra pestaña. -->
-                            <option value="">Todos</option>
+                            <!-- Sin estado, el backend deja fuera los anulados
+                                 (`FinEnlacePagoEstado::delListadoPorDefecto()`). -->
+                            <option value="">Todos menos anulados</option>
                             <option v-for="e in store.estadosCobro" :key="e.value" :value="e.value">
                                 {{ e.label }}
                             </option>
@@ -799,10 +862,16 @@ function fechaLarga(iso?: string | null): string {
                         <!-- Pie: el documento a la izquierda; las acciones, a la derecha.
                              `@click.stop` en todo, o la tarjeta abriría además la ficha. -->
                         <div class="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                            <button v-if="c.origenReferencia" type="button" @click.stop="irAlOrigen(c.origenTipo, c.origenId)"
-                                class="text-[11px] font-black text-[#376875] hover:underline truncate">
-                                <i class="fas fa-file-lines mr-1"></i>{{ c.origenReferencia }}
+                            <button v-if="puedeAbrirDocumento(c.origenTipo, c.origenId)" type="button"
+                                @click.stop="abrirDocumento(c.origenTipo, c.origenId)"
+                                title="Abrir la ficha de la reserva"
+                                class="px-2 py-1 rounded border border-[#376875]/30 text-[11px] font-black text-[#376875]
+                                       hover:bg-[#376875]/5 truncate">
+                                <i class="fas fa-bed mr-1"></i>{{ c.origenReferencia || 'Ver reserva' }}
                             </button>
+                            <span v-else-if="c.origenReferencia" class="text-[11px] font-bold text-slate-500 truncate">
+                                {{ c.origenReferencia }}
+                            </span>
                             <span v-else class="text-[11px] text-slate-300">Sin documento</span>
 
                             <div class="flex items-center gap-1 shrink-0">
@@ -879,10 +948,14 @@ function fechaLarga(iso?: string | null): string {
                         </p>
 
                         <div class="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px]">
-                            <button type="button" @click="irAlOrigen(m.origenTipo, m.origenId)"
-                                class="font-black text-[#376875] hover:underline truncate">
-                                <i class="fas fa-file-lines mr-1"></i>{{ m.origenReferencia || '—' }}
+                            <button v-if="puedeAbrirDocumento(m.origenTipo, m.origenId)" type="button"
+                                @click="abrirDocumento(m.origenTipo, m.origenId)"
+                                title="Abrir la ficha de la reserva"
+                                class="px-2 py-1 rounded border border-[#376875]/30 font-black text-[#376875]
+                                       hover:bg-[#376875]/5 truncate">
+                                <i class="fas fa-bed mr-1"></i>{{ m.origenReferencia || 'Ver reserva' }}
                             </button>
+                            <span v-else class="font-bold text-slate-500 truncate">{{ m.origenReferencia || '—' }}</span>
                             <span class="text-slate-500 truncate">
                                 <i class="fas fa-user text-slate-300 mr-1"></i>{{ m.cobradorNombre || 'Sin cobrador' }}
                             </span>
@@ -900,7 +973,7 @@ function fechaLarga(iso?: string | null): string {
              que se abre encima, se resuelve y se cierra— así que no hay vocabulario nuevo que
              aprender. Hoja completa en móvil, lateral en escritorio, scroll propio y el botón
              de emitir clavado abajo. -->
-        <div v-if="formAbierto" class="fixed inset-0 z-40 bg-slate-900/40" @click="formAbierto = false"></div>
+        <div v-if="formAbierto" class="fixed inset-0 z-40 bg-slate-900/40" @click="cerrarFormManual"></div>
 
         <aside v-if="formAbierto"
             class="fixed inset-y-0 right-0 z-50 w-full sm:w-[26rem] bg-white shadow-2xl flex flex-col">
@@ -910,7 +983,7 @@ function fechaLarga(iso?: string | null): string {
                     <p class="text-[10px] font-black uppercase tracking-widest text-white/60">Nuevo</p>
                     <p class="text-sm font-black truncate">Cobro manual</p>
                 </div>
-                <button type="button" @click="formAbierto = false"
+                <button type="button" @click="cerrarFormManual"
                     class="shrink-0 w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center">
                     <i class="fas fa-times"></i>
                 </button>
@@ -933,7 +1006,7 @@ function fechaLarga(iso?: string | null): string {
                             class="flex-1 px-2 py-1.5 bg-white border border-emerald-200 rounded text-[11px] font-black text-emerald-800">
                             <i class="fas fa-copy mr-1"></i> Copiar
                         </button>
-                        <button type="button" @click="abrirFormManual"
+                        <button type="button" @click="reiniciarFormManual"
                             class="px-2 py-1.5 text-[11px] font-black text-emerald-700 underline decoration-dotted">
                             Emitir otro
                         </button>
@@ -1110,10 +1183,14 @@ function fechaLarga(iso?: string | null): string {
                     </p>
 
                     <div v-else-if="fichaOrigen" class="rounded-xl border border-slate-200 p-3 flex flex-col gap-2">
-                        <button type="button" @click="irAlOrigen(fichaCobro.origenTipo, fichaCobro.origenId)"
-                            class="text-left font-black text-[#376875] hover:underline">
-                            {{ fichaOrigen.referencia }} <i class="fas fa-arrow-up-right-from-square text-[9px]"></i>
-                        </button>
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-black text-slate-800">{{ fichaOrigen.referencia }}</span>
+                            <button v-if="puedeAbrirDocumento(fichaCobro.origenTipo, fichaCobro.origenId)" type="button"
+                                @click="abrirDocumento(fichaCobro.origenTipo, fichaCobro.origenId)"
+                                class="shrink-0 px-2 py-1 rounded-lg bg-[#376875] text-white text-[10px] font-black hover:bg-[#2c5560]">
+                                <i class="fas fa-bed mr-1"></i>Ver reserva
+                            </button>
+                        </div>
                         <p class="text-slate-600 leading-snug">{{ fichaOrigen.descripcion }}</p>
                         <!-- Lo que debe HOY, no lo que debía al emitir el enlace. Es el dato
                              por el que se abre esta ficha después de cobrar. -->
@@ -1269,5 +1346,18 @@ function fechaLarga(iso?: string | null): string {
                 </p>
             </footer>
         </aside>
+
+        <!-- La ficha de la reserva, sola: sin calendario. Envuelta en z-[60] porque el drawer
+             trae su propio z-40 y se abre también desde la ficha del cobro (z-50). -->
+        <div v-if="reservaAbierta" class="relative z-[60]">
+            <ReservaEditDrawer
+                :key="reservaAbierta"
+                :reserva-id="reservaAbierta"
+                start-read-only
+                @close="cerrarDocumento"
+                @saved="alCambiarFinanzasDelDocumento"
+                @finanzas-cambiadas="alCambiarFinanzasDelDocumento"
+                @deleted="alBorrarDocumento" />
+        </div>
     </div>
 </template>

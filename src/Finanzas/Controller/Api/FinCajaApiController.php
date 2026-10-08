@@ -60,6 +60,8 @@ final class FinCajaApiController extends AbstractController
 
     /**
      * Pestaña COBROS. `?estado=pendiente,pagado&desde=&hasta=&q=`
+     *
+     * Sin `estado`, todos menos los anulados: ver `FinEnlacePagoEstado::delListadoPorDefecto()`.
      */
     #[Route('/cobros', name: 'cobros', methods: ['GET'])]
     #[IsGranted(Roles::RESERVAS_SHOW, message: 'No tienes permiso para ver los cobros.')]
@@ -69,7 +71,7 @@ final class FinCajaApiController extends AbstractController
         $this->servicio->marcarCaducados();
 
         $enlaces = $this->enlaces->buscar(
-            estados: $this->estadosDesde($request->query->get('estado')),
+            estados: $this->estadosDesde($request->query->get('estado')) ?: FinEnlacePagoEstado::delListadoPorDefecto(),
             desde: $this->fechaDesde($request->query->get('desde')),
             hasta: $this->fechaDesde($request->query->get('hasta'), finDelDia: true),
             texto: $request->query->get('q'),

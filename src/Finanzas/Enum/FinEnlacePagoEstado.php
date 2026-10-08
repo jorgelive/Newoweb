@@ -67,6 +67,23 @@ enum FinEnlacePagoEstado: string
         };
     }
 
+    /**
+     * Lo que enseña el listado de Finanzas cuando no se elige estado: todo menos los anulados.
+     *
+     * Un anulado es un enlace que se emitió por error o se reemplazó —60 de 103 en octubre de
+     * 2026—: no movió dinero ni hay que perseguirlo, y mezclado con los demás tapaba los
+     * pendientes. Siguen a un clic, eligiendo «Anulado» en el filtro.
+     *
+     * @return list<string>
+     */
+    public static function delListadoPorDefecto(): array
+    {
+        return array_values(array_map(
+            static fn (self $caso): string => $caso->value,
+            array_filter(self::cases(), static fn (self $caso): bool => $caso !== self::ANULADO),
+        ));
+    }
+
     /** @return array<int, array{value: string, label: string}> */
     public static function opciones(): array
     {

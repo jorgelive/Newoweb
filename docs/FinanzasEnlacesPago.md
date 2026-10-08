@@ -546,6 +546,24 @@ ordenada por lo que se busca:
 - **Caja:** arriba `origenDescripcion` —el huésped y su casita— y el importe neto; luego el
   medio, `auto` y la fecha; la referencia si la hay; al pie, el documento y quién cobró.
 
+### Sin anulados por defecto, «atrás» que cierra, y la reserva encima (08/10/2026)
+
+- **Los anulados no salen si no se piden.** Sin `estado`, `/finanzas/caja/cobros` filtra por
+  `FinEnlacePagoEstado::delListadoPorDefecto()` —todos menos `anulado`—. Eran 60 de 103
+  enlaces: emitidos por error o reemplazados, sin dinero detrás, y tapaban los pendientes. El
+  desplegable dice «Todos menos anulados» y «Anulado» sigue siendo una opción. Los totales se
+  calculan sobre lo listado, así que tampoco cuentan los anulados salvo que se filtren.
+- **«Atrás» cierra lo de encima, no sale de Finanzas.** La ficha del cobro, el panel del cobro
+  manual y la ficha de la reserva son capas de `useCapasEnHistorial` (`?capa=cobro.reserva`), y
+  la pestaña va en la URL (`?tab=caja`), como en OperacionView. Antes eran `ref` sueltos: con
+  la ficha abierta, el gesto atrás te sacaba a la pantalla anterior.
+- **El localizador abre la ficha de la reserva aquí mismo.** Antes navegaba a `/reservas`, que
+  sin `?evento=` ni abría la ficha: aterrizabas en el calendario y perdías el listado. Ahora es
+  un botón (en la tarjeta, en Caja y en la ficha del cobro) que monta el mismo
+  `ReservaEditDrawer` que usa el chat, en lectura y sin calendario. Si desde ahí se registra un
+  pago, el listado se recarga. Sólo para `pms_reserva`: las cotizaciones aún no tienen resolver
+  de origen y ningún cobro lleva su id; su panel entrará como otro caso de `abrirDocumento()`.
+
 ### La barra de filtros se pliega (05/09/2026)
 
 Desplegada son cinco controles en dos o tres renglones y, con los totales debajo, en un
