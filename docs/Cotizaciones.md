@@ -4020,6 +4020,13 @@ si no                        → el CALCULADO                          origen = 
 
 - **No recalcula**: lee el resultado del cálculo financiero (TypeScript) que el editor guarda con la
   cotización. Tour nunca guardado desde el editor → sin calculado → sin precio.
+- 🔥 **El JSON se lee aparte y recortado** (`TourTarjetaResolver::clasesParaElDesde()`, con
+  `JSON_EXTRACT` de sólo nombre y precio por clase), **nunca** en la consulta de tarjetas: ésa
+  agrupa y ordena, y el `clasificacion_financiera_cliente` de Punta Cana pesa **207 KB** contra un
+  `sort_buffer_size` de 256 KB. El primer despliegue lo llevaba dentro y el comando de limpieza
+  cayó con «Out of sort memory» (08/10/2026); la portada habría caído igual al publicar ese tour.
+  Del JSON hacen falta ~50 bytes. Misma familia que los históricos `EXTRA_LAZY`: **no se ordenan
+  filas con JSON grandes**.
 - **Con una sola clase el título va vacío** y la web y `pax` dicen «por persona» (traducido:
   `front_tours` `tour.por_persona`, `pax_ui_i18n` `cat_por_persona`). Con varias, el nombre de la
   clase, que el snapshot guarda **sólo en español** (pendiente: guardar su i18n en el cálculo).

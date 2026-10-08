@@ -52,10 +52,14 @@ final class CatalogoPreciosDesdeAutomaticosCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $simular = (bool) $input->getOption('dry-run');
 
+        // Sin ORDER BY: ordenar filas enteras de cotización (JSON de cientos de KB) revienta el
+        // sort buffer de MySQL — «Out of sort memory», visto en producción el 08/10/2026. Se ordena
+        // en PHP.
         /** @var list<Cotizacion> $tours */
         $tours = $this->em->createQuery(
-            'SELECT c FROM App\Cotizacion\Entity\Cotizacion c WHERE c.catalogo IS NOT NULL ORDER BY c.propuesta ASC'
+            'SELECT c FROM App\Cotizacion\Entity\Cotizacion c WHERE c.catalogo IS NOT NULL'
         )->getResult();
+        usort($tours, static fn (Cotizacion $a, Cotizacion $b): int => $a->getPropuesta() <=> $b->getPropuesta());
 
         $filas = [];
         $cambiados = 0;

@@ -63,13 +63,13 @@ final class TourTarjetaResolver
          * @var list<array{id: Uuid, imagenPortada: array<mixed>|null, propuesta: int,
          *     estado: CotizacionEstadoEnum|string, publicado: bool, numPax: int, titulo: array<mixed>|null,
          *     resumen: array<mixed>|null, idiomaCliente: string, monedaGlobal: string, precioOculto: bool,
-         *     preciosDesde: array<mixed>|null, orden: int, totalesOcultos: bool, clasificacionFinancieraCliente: array<mixed>|null,
+         *     preciosDesde: array<mixed>|null, orden: int, totalesOcultos: bool,
          *     fechaMin: ?string, fechaMax: ?string}> $filas
          */
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT c.id, c.imagenPortada, c.propuesta, c.estado, c.publicado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
                    c.monedaGlobal, c.precioOculto,
-                   c.preciosDesde, c.orden, c.totalesOcultos, c.clasificacionFinancieraCliente,
+                   c.preciosDesde, c.orden, c.totalesOcultos,
                    MIN(s.fechaInicioAbsoluta) AS fechaMin, MAX(s.fechaInicioAbsoluta) AS fechaMax
             FROM App\Cotizacion\Entity\Cotizacion c
             LEFT JOIN c.cotservicios s
@@ -87,10 +87,11 @@ final class TourTarjetaResolver
         }
 
         $portadas = $this->portadasDerivadas(array_column($filas, 'id'));
+        $clases = $this->clasesParaElDesde(array_column($filas, 'id'));
 
-        return array_map(static function (array $f) use ($portadas): array {
+        return array_map(static function (array $f) use ($portadas, $clases): array {
             $oculto = (bool) $f['precioOculto'];
-            $precios = self::preciosDesdeEfectivos($f['preciosDesde'] ?? [], $f['clasificacionFinancieraCliente'], $f['monedaGlobal'], $oculto);
+            $precios = self::preciosDesdeEfectivos($f['preciosDesde'] ?? [], $clases[self::clave($f['id'])] ?? null, $f['monedaGlobal'], $oculto);
 
             return [
                 'id'            => self::clave($f['id']),
@@ -111,6 +112,52 @@ final class TourTarjetaResolver
                 'numDias'       => self::numDias($f['fechaMin'], $f['fechaMax']),
             ];
         }, $filas);
+    }
+
+    /**
+     * De cada tour, SÓLO lo que el «desde» calculado necesita del financiero del cliente: el
+     * nombre y el precio por pasajero de cada clase. Con la forma que espera
+     * `preciosDesdeEfectivos()`.
+     *
+     * 🔥 **Aparte y con `JSON_EXTRACT`, no en la consulta de las tarjetas.** Esa consulta agrupa y
+     * ordena, y `clasificacion_financiera_cliente` de Punta Cana pesa **207 KB** contra un
+     * `sort_buffer_size` de 256 KB: con ese tour publicado la portada habría caído con «Out of sort
+     * memory» —la misma trampa que obligó a hacer `EXTRA_LAZY` los históricos—. De todo ese JSON
+     * hacen falta ~50 bytes. Medido el 08/10/2026, antes de publicarlo.
+     *
+     * @param list<AbstractUid|string> $cotIds
+     *
+     * @return array<string, array{clasesPasajeros: list<array{tipoPaxNombre: mixed, resumenPorModo: array{normal: mixed}}>}>
+     */
+    public function clasesParaElDesde(array $cotIds): array
+    {
+        if ($cotIds === []) {
+            return [];
+        }
+
+        $filas = $this->em->getConnection()->fetchAllAssociative(
+            "SELECT id,
+                    JSON_EXTRACT(clasificacion_financiera_cliente, '$.clasesPasajeros[*].tipoPaxNombre') AS nombres,
+                    JSON_EXTRACT(clasificacion_financiera_cliente, '$.clasesPasajeros[*].resumenPorModo.normal') AS normales
+             FROM cotizacion_cotizacion WHERE id IN (?)",
+            [self::binarios($cotIds)],
+            [ArrayParameterType::BINARY],
+        );
+
+        $porTour = [];
+        foreach ($filas as $fila) {
+            // Los dos JSON_EXTRACT recorren el mismo array: el índice i es la misma clase. Se leen
+            // CRUDOS a propósito: `Lee::listaDe…()` descarta lo raro y descuadraría los índices.
+            $nombres = Lee::mapa(is_string($fila['nombres']) ? json_decode($fila['nombres'], true) : null);
+            $normales = Lee::mapa(is_string($fila['normales']) ? json_decode($fila['normales'], true) : null);
+            $clases = [];
+            foreach ($normales as $i => $normal) {
+                $clases[] = ['tipoPaxNombre' => $nombres[$i] ?? null, 'resumenPorModo' => ['normal' => $normal]];
+            }
+            $porTour[self::clave($fila['id'])] = ['clasesPasajeros' => $clases];
+        }
+
+        return $porTour;
     }
 
     /**
