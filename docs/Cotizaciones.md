@@ -3965,6 +3965,10 @@ para que «precio oculto» no tuviera que escribirse dos veces. La salida de la 
 comparó byte a byte antes y después del cambio: idéntica. `imagenesDeTour()` da la galería de
 la ficha web (fotos de los segmentos, en orden de itinerario, sin repetir).
 
+Cada catálogo elige además su **marca** en la web (`marcaWeb`: OpenPeru Travel u Open World
+Travel, la división Caribe): cambia logo y paleta de su sección y sus páginas — ver
+`docs/WebPublica.md` §3.1.
+
 Un catálogo sale en la web sólo con `activo` **y** `publicadoWeb` **y** `slug`; `activo` solo
 sigue controlando el enlace privado por localizador. Se editan en el modal de
 `CatalogoDashboard.vue` (sección «Publicar en la web»).

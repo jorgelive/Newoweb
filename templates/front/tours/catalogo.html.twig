@@ -4,6 +4,8 @@
 {% block descripcion %}{{ (catalogo.descripcionHtml ? catalogo.descripcionHtml|striptags|trim : 'portada.meta_descripcion'|trans({}, 'front_tours'))|front_recorte }}{% endblock %}
 {% block imagen_social %}{% if catalogo.imagenUrl %}{{ catalogo.imagenUrl|trim('/', 'left')|imagine_filter('travel_cliente') }}{% endif %}{% endblock %}
 
+{% block clase_body %}{{ catalogo.marca.claseCss }}{% endblock %}
+
 {% block cuerpo %}
 <div class="envoltura">
     <nav class="migas" aria-label="{{ 'nav.migas'|trans({}, 'front') }}">
@@ -14,6 +16,7 @@
     <div class="envoltura">
         <div class="seccion-cabecera">
             <div>
+                {% include 'front/tours/_sello_marca.html.twig' with {'marca': catalogo.marca} %}
                 <h1>{{ catalogo.titulo }}</h1>
                 {% if catalogo.descripcionHtml %}<div class="entradilla">{{ catalogo.descripcionHtml|raw }}</div>{% endif %}
             </div>

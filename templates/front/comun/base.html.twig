@@ -3,7 +3,7 @@
   `templates/front/{sitio}/layout.html.twig`, que rellena marca, menú, lema e inicio. Ver
   docs/WebPublica.md §3 y §8.
 
-  Bloques del layout: url_inicio, descripcion (por defecto), nav, pie_lema, whatsapp_flotante.
+  Bloques del layout: logo, url_inicio, descripcion (por defecto), nav, pie_lema, whatsapp_flotante.
   Bloques de cada página: titulo, descripcion, imagen_social (URL absoluta), canonica, cuerpo,
   datos_estructurados.
   `alternos` (opcional): {es: url, en: url} para el selector de idioma y los hreflang; si no llega,
@@ -45,17 +45,20 @@
         <meta name="twitter:card" content="summary_large_image">
     {% endif %}
 
-    <link rel="icon" type="image/svg+xml" href="{{ front_asset('front/favicon.svg') }}">
+    {# Del isotipo de OpenPeru (sol y montañas), recortado de su logo horizontal. #}
+    <link rel="icon" href="{{ front_asset('front/favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" href="{{ front_asset('front/favicon-32.png') }}" sizes="32x32">
+    <link rel="apple-touch-icon" href="{{ front_asset('front/apple-touch-icon.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
     <link rel="stylesheet" href="{{ front_asset('front/web.css') }}">
     {% block datos_estructurados %}{% endblock %}
 </head>
-<body>
+<body class="{% block clase_body %}{% endblock %}">
 <header class="cabecera">
     <div class="envoltura">
-        <a class="marca" href="{% block url_inicio %}/{% endblock %}">{% set partes = front.marca|split(' ', 2) %}{{ partes[0] }}{% if partes[1] is defined %} <span>{{ partes[1] }}</span>{% endif %}</a>
+        <a class="marca" href="{% block url_inicio %}/{% endblock %}" aria-label="{{ front.marca }}">{% block logo %}{{ front.marca }}{% endblock %}</a>
         <nav class="nav" aria-label="{{ 'nav.principal'|trans({}, 'front') }}">
             {% block nav %}{% endblock %}
         </nav>

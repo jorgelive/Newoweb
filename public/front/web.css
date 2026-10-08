@@ -8,10 +8,15 @@
     --linea: #e4ddd2;
     --fondo: #faf7f2;
     --papel: #ffffff;
-    --primario: #1f4e5a;
-    --primario-osc: #163a43;
-    --acento: #c85f27;
-    --acento-osc: #a94c1c;
+    /* Colores de los logos (07/10/2026). El naranja de marca (#ec6a2e) no aguanta texto blanco
+       (contraste 3,2): se usa en precios grandes y adornos; los botones van en --acento-boton,
+       el mismo naranja quemado hasta pasar 4,5. Medido, no a ojo. */
+    --primario: #15707e;
+    --primario-osc: #0e4f59;
+    --acento: #ec6a2e;
+    --acento-boton: #c04e1b;
+    --acento-osc: #a5431a;
+    --sol: #ef951f;
     --verde-wa: #1f9d55;
     --radio: 14px;
     --sombra: 0 1px 2px rgba(29, 42, 47, .06), 0 8px 24px rgba(29, 42, 47, .08);
@@ -39,9 +44,11 @@ h3 { font-size: 1.2rem; }
 
 /* ── Cabecera ─────────────────────────────────────────────────────────── */
 .cabecera { background: var(--papel); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 20; }
-.cabecera .envoltura { display: flex; align-items: center; gap: 16px; min-height: 64px; }
-.marca { font-family: var(--titulos); font-weight: 700; font-size: 1.35rem; color: var(--primario); text-decoration: none; margin-right: auto; white-space: nowrap; }
-.marca span { color: var(--acento); }
+.cabecera .envoltura { display: flex; align-items: center; gap: 16px; min-height: 70px; }
+.marca { font-family: var(--titulos); font-weight: 700; font-size: 1.35rem; color: var(--primario); text-decoration: none; margin-right: auto; white-space: nowrap; display: flex; align-items: center; }
+.logo-sitio { height: 50px; width: auto; }
+@media (max-width: 640px) { .logo-sitio { height: 42px; } }
+@media (max-width: 380px) { .logo-sitio { height: 36px; } }
 .nav { display: flex; gap: 4px; align-items: center; }
 .nav a { text-decoration: none; color: var(--tinta); padding: 8px 10px; border-radius: 8px; font-size: .95rem; }
 .nav a:hover { background: var(--fondo); }
@@ -59,7 +66,7 @@ h3 { font-size: 1.2rem; }
 
 /* ── Botones ──────────────────────────────────────────────────────────── */
 .boton { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border-radius: 999px; font-weight: 600; text-decoration: none; border: 0; cursor: pointer; font-size: 1rem; line-height: 1.2; }
-.boton-primario { background: var(--acento); color: #fff; }
+.boton-primario { background: var(--acento-boton); color: #fff; }
 .boton-primario:hover { background: var(--acento-osc); }
 .boton-wa { background: var(--verde-wa); color: #fff; }
 .boton-wa:hover { filter: brightness(.93); }
@@ -70,11 +77,11 @@ h3 { font-size: 1.2rem; }
 /* ── Portada ──────────────────────────────────────────────────────────── */
 .heroe { position: relative; color: #fff; background: var(--primario-osc); overflow: hidden; }
 .heroe img.heroe-fondo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55; }
-.heroe::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(22,58,67,.25) 0%, rgba(22,58,67,.85) 100%); }
+.heroe::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14,79,89,.25) 0%, rgba(14,79,89,.85) 100%); }
 .heroe .envoltura { position: relative; z-index: 1; padding-top: clamp(64px, 12vw, 140px); padding-bottom: clamp(48px, 8vw, 96px); }
 .heroe p { font-size: clamp(1.05rem, 2vw, 1.3rem); max-width: 40rem; opacity: .95; }
 .heroe .acciones { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
-.etiqueta-heroe { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; background: var(--acento); padding: 5px 12px; border-radius: 999px; margin-bottom: 16px; }
+.etiqueta-heroe { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; background: var(--acento-boton); padding: 5px 12px; border-radius: 999px; margin-bottom: 16px; }
 
 .seccion { padding: clamp(40px, 7vw, 80px) 0; }
 .seccion-cabecera { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
@@ -120,7 +127,7 @@ h3 { font-size: 1.2rem; }
 .galeria img { width: 100%; height: 100%; object-fit: cover; transition: transform .2s ease; }
 .galeria a:hover img { transform: scale(1.04); }
 .caja-reserva { background: var(--papel); border-radius: var(--radio); box-shadow: var(--sombra); padding: 22px; display: flex; flex-direction: column; gap: 14px; }
-@media (min-width: 960px) { .caja-reserva { position: sticky; top: 84px; } }
+@media (min-width: 960px) { .caja-reserva { position: sticky; top: 90px; } }
 .lista-precios { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .lista-precios li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px dashed var(--linea); padding-bottom: 8px; }
 .lista-precios li:last-child { border-bottom: 0; }
@@ -166,3 +173,20 @@ h3 { font-size: 1.2rem; }
 /* ── WhatsApp flotante ────────────────────────────────────────────────── */
 .wa-flotante { position: fixed; right: 16px; bottom: 16px; z-index: 30; width: 56px; height: 56px; border-radius: 50%; background: var(--verde-wa); color: #fff; display: grid; place-items: center; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
 .wa-flotante svg { width: 30px; height: 30px; }
+
+/* ── Marcas por catálogo (CatalogoMarcaEnum → MarcaWeb) ───────────────────
+   La clase va en la sección de la portada o en el <body> de las páginas del catálogo y del tour:
+   redefine los tokens y todo lo de dentro (botones, precios, cabeceras) cambia solo. */
+.marca-open-world {
+    /* Open World Travel «by OpenPeru», división Caribe: el teal del titular de su logo (4,7 con
+       blanco). El teal claro de las palmeras (#39a7bb) y el sol (#ef951f) no aguantan texto
+       blanco: quedan para adornos. El naranja de «TRAVEL» es el mismo de la casa. */
+    --primario: #2e7d92;
+    --primario-osc: #1f5f70;
+    --sol: #ef951f;
+}
+.marca-open-world .chip { color: var(--primario-osc); }
+.marca-open-world .etiqueta-heroe { background: var(--primario); }
+section.marca-open-world { background: linear-gradient(180deg, #eef7f9 0%, var(--fondo) 100%); }
+.sello-marca { display: block; height: 76px; width: auto; margin-bottom: 14px; }
+@media (max-width: 640px) { .sello-marca { height: 58px; } }

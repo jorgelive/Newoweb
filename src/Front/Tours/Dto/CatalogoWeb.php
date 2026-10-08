@@ -17,6 +17,7 @@ final readonly class CatalogoWeb
         public string $titulo,
         public ?string $descripcionHtml,
         public array $tours,
+        public MarcaWeb $marca,
     ) {
     }
 

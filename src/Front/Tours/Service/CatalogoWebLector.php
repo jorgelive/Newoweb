@@ -8,6 +8,7 @@ use App\Cotizacion\Entity\CotizacionCatalogo;
 use App\Cotizacion\Service\TourTarjetaResolver;
 use App\Dto\Lee;
 use App\Front\Tours\Dto\CatalogoWeb;
+use App\Front\Tours\Dto\MarcaWeb;
 use App\Front\Tours\Dto\PrecioDesdeWeb;
 use App\Front\Tours\Dto\TourFichaWeb;
 use App\Front\Tours\Dto\TourTarjetaWeb;
@@ -141,6 +142,7 @@ final class CatalogoWebLector
             titulo: TextoI18n::en($catalogo->getTituloWeb(), $idioma) ?? ($catalogo->getNombre() ?? 'Tours'),
             descripcionHtml: TextoI18n::en($catalogo->getDescripcionWeb(), $idioma),
             tours: $tours,
+            marca: MarcaWeb::de($catalogo->getMarcaWeb()),
         );
     }
 

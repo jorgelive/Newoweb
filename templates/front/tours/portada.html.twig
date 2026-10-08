@@ -25,10 +25,12 @@
 
 <div id="tours">
     {% for catalogo in catalogos %}
-        <section class="seccion">
+        {# La clase de marca cambia la paleta de toda la sección (tokens de web.css). #}
+        <section class="seccion {{ catalogo.marca.claseCss }}">
             <div class="envoltura">
                 <div class="seccion-cabecera">
                     <div>
+                        {% include 'front/tours/_sello_marca.html.twig' with {'marca': catalogo.marca} %}
                         <h2>{{ catalogo.titulo }}</h2>
                         {% if catalogo.descripcionHtml %}<div class="entradilla">{{ catalogo.descripcionHtml|raw }}</div>{% endif %}
                     </div>

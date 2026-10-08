@@ -5,7 +5,8 @@
 {% set url_tour = alternos[app.request.locale]|default(app.request.uri) %}
 {% set mensaje_wa = 'tour.whatsapp_mensaje'|trans({'%tour%': tour.titulo, '%url%': url_tour}, 'front_tours') %}
 
-{% block titulo %}{{ tour.titulo }} · {{ front.marca }}{% endblock %}
+{% block titulo %}{{ tour.titulo }} · {{ catalogo.marca.esLaDeLaCasa ? front.marca : catalogo.marca.nombre ~ ' · ' ~ front.marca }}{% endblock %}
+{% block clase_body %}{{ catalogo.marca.claseCss }}{% endblock %}
 {% block descripcion %}{{ (tour.resumenPlano ?? tour.titulo)|front_recorte }}{% endblock %}
 {% block imagen_social %}{% if tour.imagenUrl %}{{ tour.imagenUrl|trim('/', 'left')|imagine_filter('travel_cliente') }}{% endif %}{% endblock %}
 {% block whatsapp_flotante %}{{ front_whatsapp(mensaje_wa) }}{% endblock %}
@@ -41,7 +42,8 @@
                     <img src="{{ tour.imagenUrl|trim('/', 'left')|imagine_filter('travel_cliente') }}" alt="{{ tour.titulo }}" fetchpriority="high" width="1600" height="900">
                 {% endif %}
             </div>
-            <h1 style="margin-top:20px">{{ tour.titulo }}</h1>
+            <div style="margin-top:20px">{% include 'front/tours/_sello_marca.html.twig' with {'marca': catalogo.marca} %}</div>
+            <h1>{{ tour.titulo }}</h1>
             <div class="ficha-datos">
                 {% if tour.numDias %}<span class="dato">{{ tour.numDias }} {{ (tour.numDias == 1 ? 'tour.dia' : 'tour.dias')|trans({}, 'front_tours') }}</span>{% endif %}
             </div>

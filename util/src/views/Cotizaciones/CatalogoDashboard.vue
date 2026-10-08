@@ -31,8 +31,16 @@ type TourCatalogo = Cotizacion & {
  * `I18nContent[]` (mismo caso que `titulo` en la cotización). Ver docs/WebPublica.md §2.
  */
 type CatalogoWebCampos =
-  Pick<components['schemas']['CotizacionCatalogo-catalogo.read_timestamp.read'], 'publicadoWeb' | 'slug'>
+  Pick<components['schemas']['CotizacionCatalogo-catalogo.read_timestamp.read'], 'publicadoWeb' | 'slug' | 'marcaWeb'>
   & { tituloWeb?: I18nContent[]; descripcionWeb?: I18nContent[] };
+
+type MarcaWeb = NonNullable<CatalogoWebCampos['marcaWeb']>;
+
+/** Las marcas de la web, con su logo. Espejo de `CatalogoMarcaEnum` (PHP): el esquema da las claves. */
+const MARCAS_WEB: { valor: MarcaWeb; nombre: string; logo: string }[] = [
+  { valor: 'openperu', nombre: 'OpenPeru Travel', logo: '/front/marcas/openperu-travel.webp' },
+  { valor: 'open_world', nombre: 'Open World Travel', logo: '/front/marcas/open-world-travel.webp' },
+];
 
 interface CatalogoResumen extends Partial<CatalogoWebCampos> {
   id?: string;
@@ -217,6 +225,7 @@ const moverTour = async (idx: number, dir: -1 | 1) => {
 const editCatalogo = ref<{
   id: string; nombre: string; tipoCliente: string;
   publicadoWeb: boolean; slug: string; tituloWeb: string; descripcionWeb: string;
+  marcaWeb: MarcaWeb;
 } | null>(null);
 const errorEdicion = ref('');
 
@@ -227,6 +236,7 @@ const abrirEdicion = (cat: CatalogoResumen) => {
     nombre: cat.nombre || '',
     tipoCliente: cat.tipoCliente || 'economico',
     publicadoWeb: !!cat.publicadoWeb,
+    marcaWeb: cat.marcaWeb ?? 'openperu',
     slug: cat.slug || '',
     tituloWeb: textoEs(cat.tituloWeb),
     descripcionWeb: textoEs(cat.descripcionWeb),
@@ -252,6 +262,7 @@ const handleEditSave = async () => {
     nombre: e.nombre.trim(),
     tipoCliente: e.tipoCliente,
     publicadoWeb: e.publicadoWeb,
+    marcaWeb: e.marcaWeb,
     slug: e.slug.trim() || null,
     tituloWeb: conEspanol(cat?.tituloWeb, e.tituloWeb),
     descripcionWeb: conEspanol(cat?.descripcionWeb, e.descripcionWeb),
@@ -754,6 +765,20 @@ onMounted(() => {
                 <span :class="editCatalogo.publicadoWeb ? 'translate-x-6' : 'translate-x-1'"
                       class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
               </button>
+            </div>
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Marca</label>
+              <div class="grid grid-cols-2 gap-2">
+                <button v-for="m in MARCAS_WEB" :key="m.valor" type="button" @click="editCatalogo.marcaWeb = m.valor"
+                        :class="editCatalogo.marcaWeb === m.valor ? 'border-[#376875] ring-2 ring-[#376875]/20 bg-white' : 'border-slate-200 bg-slate-50 opacity-70 hover:opacity-100'"
+                        class="flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all">
+                  <!-- Ruta relativa a propósito: `public/front/` lo sirve el mismo nginx en todos los
+                       hosts de Symfony, y openperu.pe aún apunta al PHPTravels. -->
+                  <img :src="m.logo" :alt="m.nombre" class="h-8 w-auto object-contain">
+                  <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">{{ m.nombre }}</span>
+                </button>
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1 ml-1">Logo y colores de su sección y sus páginas en la web.</p>
             </div>
             <div>
               <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Dirección web</label>

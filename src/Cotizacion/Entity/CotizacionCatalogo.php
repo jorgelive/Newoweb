@@ -16,6 +16,7 @@ use ApiPlatform\Metadata\Patch;
 use App\Api\Provider\Cotizacion\CotizacionCatalogoAdminProvider;
 use App\Api\Provider\Cotizacion\CotizacionCatalogoPublicProvider;
 use App\Attribute\AutoTranslate;
+use App\Cotizacion\Enum\CatalogoMarcaEnum;
 use App\Cotizacion\Enum\CatalogoTipoClienteEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
@@ -177,6 +178,15 @@ class CotizacionCatalogo
     #[Assert\Regex(pattern: '/^[a-z0-9]+(?:-[a-z0-9]+)*$/', message: 'Sólo minúsculas, números y guiones (ej.: ofertas-cusco).')]
     #[ORM\Column(type: 'string', length: 80, nullable: true)]
     private ?string $slug = null;
+
+    /**
+     * Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
+     * destinos internacionales, el Caribe). Cambia logo y paleta de su sección y de sus páginas;
+     * el dominio es el mismo. Ver `CatalogoMarcaEnum`.
+     */
+    #[Groups(['catalogo:read', 'catalogo:item:read', 'catalogo:write'])]
+    #[ORM\Column(type: 'string', length: 20, enumType: CatalogoMarcaEnum::class, options: ['default' => 'openperu'])]
+    private CatalogoMarcaEnum $marcaWeb = CatalogoMarcaEnum::OPENPERU;
 
     /**
      * Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
@@ -348,6 +358,9 @@ class CotizacionCatalogo
 
     public function isPublicadoWeb(): bool { return $this->publicadoWeb; }
     public function setPublicadoWeb(bool $publicadoWeb): self { $this->publicadoWeb = $publicadoWeb; return $this; }
+
+    public function getMarcaWeb(): CatalogoMarcaEnum { return $this->marcaWeb; }
+    public function setMarcaWeb(CatalogoMarcaEnum $marcaWeb): self { $this->marcaWeb = $marcaWeb; return $this; }
 
     public function getSlug(): ?string { return $this->slug; }
     public function setSlug(?string $slug): self

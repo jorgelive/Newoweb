@@ -91,6 +91,41 @@ Un precio «desde» que no es número no se enseña (un «Desde S/ 0» vende alg
 - La identidad (marca, razón social, RUC, dirección, correo, WhatsApp) son **parámetros
   `front.*`** en `config/services/services_parameters.yaml`, expuestos a Twig como `front`.
   Cambiar de marca o de RUC es tocar ahí (y los textos legales, §6).
+
+### 3.1 Marcas: OpenPeru Travel y Open World Travel (07/10/2026)
+
+El sitio es **OpenPeru Travel** (`front.marca`): su logo horizontal va en la cabecera
+(`public/front/marcas/openperu-travel.webp`) y el favicon sale de su isotipo —el sol y las
+montañas— (`favicon.ico`, `favicon-32.png`, `apple-touch-icon.png`, y `marcas/isotipo-512.png`
+como fuente). **Open World Travel «by OpenPeru»** es la división de destinos internacionales (el
+Caribe: los viajes de promoción a Punta Cana). **No tiene dominio propio** (decisión de Jorge,
+07/10/2026): es una marca **por catálogo** dentro de openperu.pe.
+
+```
+CotizacionCatalogo::$marcaWeb (CatalogoMarcaEnum: openperu | open_world)   ← se elige en util, modal del catálogo
+        │
+MarcaWeb::de()  → nombre, logo, tamaño, clase CSS (.marca-open-world)      ← src/Front/Tours/Dto/MarcaWeb.php
+        │
+portada: <section class="seccion marca-…">  ·  catálogo y ficha: <body class="marca-…">
+         + _sello_marca.html.twig (el logo, sólo si no es la de la casa)
+```
+
+- La clase **redefine los tokens** de `web.css` (`--primario`, `--primario-osc`…), así que botones,
+  precios y cabeceras de dentro cambian solos. La cabecera del sitio es siempre la de OpenPeru.
+- **Colores medidos, no a ojo** (contraste WCAG con texto blanco): teal OpenPeru `#15707e` 5,75 ·
+  teal Open World `#2e7d92` 4,7 · naranja del logo `#ec6a2e` **3,15** → no vale para botones con
+  texto blanco; va en precios grandes y adornos, y los botones usan `--acento-boton` `#c04e1b`.
+  El teal claro de las palmeras (`#39a7bb`, 2,8) y el sol (`#ef951f`, 2,3) tampoco aguantan
+  texto: sólo decoración.
+- **Los logos se sirven reducidos**: los originales (2487 px y 9115 px, el de Caribe 497 KB) se
+  pasaron a WebP de 480 y 600 px (12 y 22 KB) con ImageMagick. Si llegan en vector, se cambian
+  por SVG. En `util` se ven por **ruta relativa** (`/front/marcas/…`): `public/front/` lo sirve el
+  mismo nginx en todos los hosts de Symfony, y openperu.pe todavía apunta al PHPTravels.
+- «Viajes de Promoción» (TWWSCJ) entró ya como Open World en la migración
+  `Version20261008010000`.
+- Marca nueva: un caso en `CatalogoMarcaEnum`, una rama en `MarcaWeb::de()`, su logo en
+  `public/front/marcas/`, su bloque `.marca-…` en `web.css` y su entrada en `MARCAS_WEB` de
+  `CatalogoDashboard.vue` (espejo del enum para pintar los logos).
 - **CSS sin compilar**: `public/front/web.css`, servido por nginx tal cual. `front_asset()` le
   pone `?v=<mtime>` para que un despliegue no se quede detrás de la caché del navegador. No usa
   AssetMapper porque en producción no se compila (`public/assets/` está ignorado y el
@@ -295,6 +330,9 @@ producción.
 | Qué web es un dominio | `src/Front/Comun/Service/SitioWeb.php` | `de()` |
 | Textos de la interfaz | `translations/front_tours.{es,en}.yaml` (tours) · `front.{es,en}.yaml` (común) | — |
 | Marca, RUC, dirección, WhatsApp, correo | `config/services/services_parameters.yaml` | `front.*` |
+| Con qué marca sale un catálogo (OpenPeru / Open World) | `util` → modal del catálogo · `CotizacionCatalogo::$marcaWeb` | `CatalogoMarcaEnum` |
+| Logo, nombre o colores de una marca | `src/Front/Tours/Dto/MarcaWeb.php` + `public/front/marcas/` + `.marca-*` en `web.css` | `MarcaWeb::de()` |
+| Logo de la cabecera o favicon | `templates/front/tours/layout.html.twig` (bloque `logo`) · `templates/front/comun/base.html.twig` | — |
 | Enlace de la sección de alojamiento | ídem | `front.alojamiento_url` |
 | Estilos | `public/front/web.css` | — |
 | Términos, devoluciones, privacidad… | `templates/front/{sitio}/legal/{pagina}.{idioma}.html.twig` | `LegalController::PAGINAS` |

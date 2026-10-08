@@ -7095,6 +7095,14 @@ export interface components {
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
+             * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
+             *     destinos internacionales, el Caribe). Cambia logo y paleta de su sección y de sus páginas;
+             *     el dominio es el mismo. Ver `CatalogoMarcaEnum`.
+             * @default openperu
+             * @enum {string}
+             */
+            marcaWeb: "openperu" | "open_world";
+            /**
              * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
              *     falta, la web cae al nombre, que es mejor que una sección sin título.
              */
@@ -7145,6 +7153,14 @@ export interface components {
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
+             * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
+             *     destinos internacionales, el Caribe). Cambia logo y paleta de su sección y de sus páginas;
+             *     el dominio es el mismo. Ver `CatalogoMarcaEnum`.
+             * @default openperu
+             * @enum {string}
+             */
+            marcaWeb: "openperu" | "open_world";
+            /**
              * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
              *     falta, la web cae al nombre, que es mejor que una sección sin título.
              */
@@ -7194,6 +7210,14 @@ export interface components {
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
+             * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
+             *     destinos internacionales, el Caribe). Cambia logo y paleta de su sección y de sus páginas;
+             *     el dominio es el mismo. Ver `CatalogoMarcaEnum`.
+             * @default openperu
+             * @enum {string}
+             */
+            marcaWeb: "openperu" | "open_world";
+            /**
              * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
              *     falta, la web cae al nombre, que es mejor que una sección sin título.
              */
@@ -7237,6 +7261,14 @@ export interface components {
             publicadoWeb: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
+            /**
+             * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
+             *     destinos internacionales, el Caribe). Cambia logo y paleta de su sección y de sus páginas;
+             *     el dominio es el mismo. Ver `CatalogoMarcaEnum`.
+             * @default openperu
+             * @enum {string}
+             */
+            marcaWeb: "openperu" | "open_world";
             /**
              * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
              *     falta, la web cae al nombre, que es mejor que una sección sin título.
@@ -7315,6 +7347,14 @@ export interface components {
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
+             * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
+             *     destinos internacionales, el Caribe). Cambia logo y paleta de su sección y de sus páginas;
+             *     el dominio es el mismo. Ver `CatalogoMarcaEnum`.
+             * @default openperu
+             * @enum {string}
+             */
+            marcaWeb: "openperu" | "open_world";
+            /**
              * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
              *     falta, la web cae al nombre, que es mejor que una sección sin título.
              */
@@ -7364,6 +7404,14 @@ export interface components {
             publicadoWeb: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
+            /**
+             * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
+             *     destinos internacionales, el Caribe). Cambia logo y paleta de su sección y de sus páginas;
+             *     el dominio es el mismo. Ver `CatalogoMarcaEnum`.
+             * @default openperu
+             * @enum {string}
+             */
+            marcaWeb: "openperu" | "open_world";
             /**
              * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
              *     falta, la web cae al nombre, que es mejor que una sección sin título.
@@ -7447,6 +7495,14 @@ export interface components {
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
+             * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
+             *     destinos internacionales, el Caribe). Cambia logo y paleta de su sección y de sus páginas;
+             *     el dominio es el mismo. Ver `CatalogoMarcaEnum`.
+             * @default openperu
+             * @enum {string}
+             */
+            marcaWeb: "openperu" | "open_world";
+            /**
              * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
              *     falta, la web cae al nombre, que es mejor que una sección sin título.
              */
@@ -7496,6 +7552,14 @@ export interface components {
             publicadoWeb: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
+            /**
+             * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
+             *     destinos internacionales, el Caribe). Cambia logo y paleta de su sección y de sus páginas;
+             *     el dominio es el mismo. Ver `CatalogoMarcaEnum`.
+             * @default openperu
+             * @enum {string}
+             */
+            marcaWeb: "openperu" | "open_world";
             /**
              * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
              *     falta, la web cae al nombre, que es mejor que una sección sin título.
@@ -7579,6 +7643,14 @@ export interface components {
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
+             * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
+             *     destinos internacionales, el Caribe). Cambia logo y paleta de su sección y de sus páginas;
+             *     el dominio es el mismo. Ver `CatalogoMarcaEnum`.
+             * @default openperu
+             * @enum {string}
+             */
+            marcaWeb: "openperu" | "open_world";
+            /**
              * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
              *     falta, la web cae al nombre, que es mejor que una sección sin título.
              */
@@ -7628,6 +7700,14 @@ export interface components {
             publicadoWeb: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
+            /**
+             * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
+             *     destinos internacionales, el Caribe). Cambia logo y paleta de su sección y de sus páginas;
+             *     el dominio es el mismo. Ver `CatalogoMarcaEnum`.
+             * @default openperu
+             * @enum {string}
+             */
+            marcaWeb: "openperu" | "open_world";
             /**
              * @description Título que ve el público. El `nombre` es interno («Oferta Cusco económico 2026»); si éste
              *     falta, la web cae al nombre, que es mejor que una sección sin título.

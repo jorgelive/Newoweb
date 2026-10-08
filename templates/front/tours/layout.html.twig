@@ -4,6 +4,10 @@
 #}
 {% extends 'front/comun/base.html.twig' %}
 
+{# El logo horizontal de la casa. Las secciones y páginas de un catálogo de otra marca (Open World
+   Travel) lo acompañan con el suyo; la cabecera es siempre la del sitio. #}
+{% block logo %}<img class="logo-sitio" src="{{ front_asset('front/marcas/openperu-travel.webp') }}" alt="{{ front.marca }}" width="480" height="143">{% endblock %}
+
 {% block url_inicio %}{{ path('front_portada', {'_locale': app.request.locale}) }}{% endblock %}
 
 {% block descripcion %}{{ 'portada.meta_descripcion'|trans({}, 'front_tours') }}{% endblock %}

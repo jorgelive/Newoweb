@@ -1,0 +1,4 @@
+{# Logo de la marca de un catálogo cuando NO es la de la casa (Open World Travel). Recibe `marca` (MarcaWeb). #}
+{% if not marca.esLaDeLaCasa %}
+    <img class="sello-marca" src="{{ front_asset(marca.logo) }}" alt="{{ marca.nombre }}" width="{{ marca.logoAncho }}" height="{{ marca.logoAlto }}" loading="lazy">
+{% endif %}

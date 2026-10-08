@@ -36,7 +36,7 @@ parameters:
     # legales, el Libro de Reclamaciones y los correos. ⚠️ El titular legal es el del RUC con el
     # que se factura: si los tours pasan a venderse con otra razón social, se cambia AQUÍ y en
     # los textos de templates/front/legal/. Ver docs/PlanWebPublica.md §4.
-    front.marca: 'Open Perú'
+    front.marca: 'OpenPeru Travel'
     front.razon_social: 'Susan Acuña Romero'
     front.nombre_comercial: 'Centro Cusco Inti'
     front.ruc: '10249916001'
