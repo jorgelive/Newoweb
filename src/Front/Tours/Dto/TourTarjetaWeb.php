@@ -14,6 +14,7 @@ final readonly class TourTarjetaWeb
 {
     /**
      * @param list<PrecioDesdeWeb> $precios
+     * @param list<string> $destacados
      */
     public function __construct(
         public string $id,
@@ -27,6 +28,8 @@ final readonly class TourTarjetaWeb
         public ?string $imagenUrl,
         /** Base de pasajeros del precio por persona, si depende del grupo («base de 60»). */
         public ?int $paxBaseGrupo = null,
+        /** Componentes destacados (la estrella del editor): sus fotos abren la galería. */
+        public array $destacados = [],
     ) {
     }
 

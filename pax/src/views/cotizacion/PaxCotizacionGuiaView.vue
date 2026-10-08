@@ -651,6 +651,9 @@ const imagenesDe = (segmento: PaxCotSegmento): { imageUrl: string }[] =>
  *     tiene fotos PROPIAS, ésas sí aparecen: la deduplicación es **por foto, no por posición**,
  *     así que lo repetido se calla y lo distinto siempre se enseña.
  *
+ * ⚠️ **ESPEJO en PHP**: `TourTarjetaResolver::imagenesDeTour()` aplica estas tres reglas a la galería
+ * de la ficha pública de openperu.pe (08/10/2026). Si cambian aquí, cambian allí.
+ *
  * Se calcula de una vez sobre `itinerarioVista` —que ya viene ordenado por día— porque «la primera
  * vez que aparece» sólo tiene sentido recorriendo el itinerario entero en orden. Hacerlo dentro
  * del `v-for` daría un resultado distinto según qué día estuviera abierto.

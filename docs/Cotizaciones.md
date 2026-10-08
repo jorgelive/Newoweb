@@ -12344,6 +12344,18 @@ componentes con prestador asignado sólo **47** se publican.
 Lo que el operador **sí** decide, con criterio y por eso con un botón y no con un cálculo, es
 **qué** destacar: no hay regla que lo deduzca — ni el más caro ni el de más noches.
 
+**La web pública también lo lee (08/10/2026):** la galería de la ficha de un tour
+(`TourTarjetaResolver::imagenesDeTour()`) abre con las fotos de los bloques destacados, en el orden
+de la lista, y sigue con el resto en orden de itinerario. Punta Cana abría con la cena en el
+aeropuerto de Lima porque el itinerario empieza ahí; con Saona destacado, abre en la isla.
+
+Cada bloque aporta sus fotos con la **misma regla que `galeriaPorBloque` de `pax`**: las propias del
+segmento si las tiene; si no, las del proveedor de sus componentes (servicio contratado y luego
+empresa, vía `PrestadorVivoResolver`, que firma las URLs por el ORM), **sólo con `prestadorVisible`**;
+y ninguna foto repetida. Así el resort —segmentos genéricos sin fotos, la cara la pone el hotel
+contratado— también sale. ⚠️ **Espejo PHP ↔ TS**: la regla vive en `galeriaPorBloque`
+(`PaxCotizacionGuiaView.vue`) y en `TourTarjetaResolver::imagenesDeTour()`; si cambia una, la otra.
+
 ### Varios, y por qué no estaba así desde el principio
 
 Nació con uno: «la experiencia que se vende» sonaba a una cosa. Es falso en cuanto el viaje tiene
@@ -12385,3 +12397,4 @@ avisar.
 | Cambiar el texto de la cabecera | el `resumen` de la propuesta, en el panel «Cabecera» | — |
 | Entender el gate del prestador | `src/Cotizacion/Serializer/CotizacionCotcomponentePrestadorPublicNormalizer.php` | el `if ($object->isPrestadorVisible())` |
 | Cambiar cuántos o en qué orden | el orden de la lista es el orden en que se enseñan | `Cotizacion::$destacadosComponenteIds` |
+| Cambiar el orden de la galería de la ficha web | `src/Cotizacion/Service/TourTarjetaResolver.php` | `imagenesDeTour()` |

@@ -78,6 +78,10 @@ La portada pinta **una sección por catálogo publicado**, en su `orden`. Las re
 idioma (`TextoI18n::en()`: idioma → español → el primero con texto) y da forma a los DTOs de
 `src/Front/Tours/Dto/`.
 
+La **galería de la ficha** abre con las fotos de los bloques destacados (la estrella del editor,
+`destacadosComponenteIds`) y sigue en orden de itinerario: ver `docs/Cotizaciones.md`, «La propuesta
+destaca un bloque en su cabecera».
+
 El «desde» es el **efectivo**: el override escrito a mano o, si no hay, el precio calculado por
 pasajero (redondeado hacia arriba), el mismo que enseña el itinerario. Con una sola clase la web dice
 «por persona»; si el precio depende del tamaño del grupo, «calculado para N pasajeros». La regla y su

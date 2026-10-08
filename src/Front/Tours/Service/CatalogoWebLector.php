@@ -79,7 +79,7 @@ final class CatalogoWebLector
             return null;
         }
 
-        return new TourFichaWeb($catalogo, $tour, $this->tarjetas->imagenesDeTour($tour->id));
+        return new TourFichaWeb($catalogo, $tour, $this->tarjetas->imagenesDeTour($tour->id, $tour->destacados));
     }
 
     /**
@@ -122,6 +122,7 @@ final class CatalogoWebLector
                 precios: $precios,
                 imagenUrl: Lee::texto(Lee::mapa($t['imagenPortada'])['imageUrl'] ?? null),
                 paxBaseGrupo: $t['paxBaseGrupo'],
+                destacados: $t['destacados'],
             );
         }
 

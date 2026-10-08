@@ -31,14 +31,17 @@ use Symfony\Component\Uid\Uuid;
  *     id: string, propuesta: int, publicado: bool, estado: string, numPax: int,
  *     titulo: array<mixed>, resumen: array<mixed>, idiomaCliente: string, monedaGlobal: string,
  *     precioOculto: bool, orden: int, preciosDesde: list<PrecioDesde>, imagenPortada: array<mixed>|null,
- *     numDias: int|null, precioDesdeOrigen: 'manual'|'calculado'|null, paxBaseGrupo: int|null
+ *     numDias: int|null, precioDesdeOrigen: 'manual'|'calculado'|null, paxBaseGrupo: int|null,
+ *     destacados: list<string>
  * }
  * @phpstan-type PrecioDesde array{titulo: list<array{language: string, content: string}>|array<mixed>, moneda: string, valor: string}
  */
 final class TourTarjetaResolver
 {
-    public function __construct(private readonly EntityManagerInterface $em)
-    {
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly PrestadorVivoResolver $prestadores,
+    ) {
     }
 
     /**
@@ -63,13 +66,13 @@ final class TourTarjetaResolver
          * @var list<array{id: Uuid, imagenPortada: array<mixed>|null, propuesta: int,
          *     estado: CotizacionEstadoEnum|string, publicado: bool, numPax: int, titulo: array<mixed>|null,
          *     resumen: array<mixed>|null, idiomaCliente: string, monedaGlobal: string, precioOculto: bool,
-         *     preciosDesde: array<mixed>|null, orden: int, totalesOcultos: bool,
+         *     preciosDesde: array<mixed>|null, orden: int, totalesOcultos: bool, destacadosComponenteIds: array<mixed>|null,
          *     fechaMin: ?string, fechaMax: ?string}> $filas
          */
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT c.id, c.imagenPortada, c.propuesta, c.estado, c.publicado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
                    c.monedaGlobal, c.precioOculto,
-                   c.preciosDesde, c.orden, c.totalesOcultos,
+                   c.preciosDesde, c.orden, c.totalesOcultos, c.destacadosComponenteIds,
                    MIN(s.fechaInicioAbsoluta) AS fechaMin, MAX(s.fechaInicioAbsoluta) AS fechaMax
             FROM App\Cotizacion\Entity\Cotizacion c
             LEFT JOIN c.cotservicios s
@@ -108,6 +111,7 @@ final class TourTarjetaResolver
                 'preciosDesde'  => $precios['precios'],
                 'precioDesdeOrigen' => $precios['origen'],
                 'paxBaseGrupo'  => self::paxBaseGrupo((bool) $f['totalesOcultos'], $f['numPax']),
+                'destacados'    => Lee::listaDeTextos($f['destacadosComponenteIds'] ?? null),
                 'imagenPortada' => $f['imagenPortada'] ?? $portadas[self::clave($f['id'])] ?? null,
                 'numDias'       => self::numDias($f['fechaMin'], $f['fechaMax']),
             ];
@@ -256,40 +260,147 @@ final class TourTarjetaResolver
     }
 
     /**
-     * Todas las fotos de un tour, en orden de itinerario y sin repetir: la galería de su ficha
-     * pública. Sólo las del propio segmento (`imagenesSnapshot`), las mismas que ve el cliente.
+     * Todas las fotos de un tour, sin repetir: la galería de su ficha pública.
+     *
+     * **De dónde sale cada bloque** — la misma regla que `galeriaPorBloque` del itinerario de
+     * `pax` (`PaxCotizacionGuiaView.vue`), escrita allí en TypeScript (08/10/2026):
+     *
+     *   1. el segmento trae fotos propias (`imagenesSnapshot`) → ésas;
+     *   2. si no, las del PROVEEDOR de sus componentes: primero las del servicio contratado (la
+     *      habitación, la actividad) y después las de la empresa — **sólo si el componente publica
+     *      su prestador** (`prestadorVisible`, el mismo interruptor que el normalizador público);
+     *   3. ninguna foto se repite en toda la galería.
+     *
+     * Sin el 2, el resort de Punta Cana no salía nunca: sus segmentos son genéricos («Piscina y
+     * playa») y la cara la pone el hotel contratado, que tiene sus fotos en el catálogo maestro.
+     * ⚠️ Si cambia la regla en `pax`, cambia aquí también.
+     *
+     * **Primero las de los bloques DESTACADOS**, en el orden de la lista
+     * (`Cotizacion::$destacadosComponenteIds`, la estrella del editor —la misma que manda en la
+     * cabecera del itinerario de `pax`—), y después el resto en orden de itinerario (08/10/2026).
+     * Sin eso, Punta Cana abría con la cena en el aeropuerto de Lima: el itinerario empieza ahí,
+     * pero lo que se vende es la isla Saona.
+     *
+     * Un destacado es un COMPONENTE; sus fotos son las del segmento al que pertenece. Uno que ya no
+     * existe (enlace blando) simplemente no aporta nada.
+     *
+     * @param list<string> $destacados ids de componente, en el orden en que se enseñan
      *
      * @return list<string> URLs tal como están guardadas (relativas: `/carga/...`)
      */
-    public function imagenesDeTour(AbstractUid|string $cotId): array
+    public function imagenesDeTour(AbstractUid|string $cotId, array $destacados = []): array
     {
-        /** @var list<array{imagenesSnapshot: array<mixed>|null}> $filas */
+        $binId = self::binarios([$cotId])[0];
+
+        /** @var list<array{segId: \Symfony\Component\Uid\Uuid, imagenesSnapshot: array<mixed>|null}> $filas */
         $filas = $this->em->createQuery(<<<'DQL'
-            SELECT seg.imagenesSnapshot
+            SELECT seg.id AS segId, seg.imagenesSnapshot
             FROM App\Cotizacion\Entity\CotizacionSegmento seg
             JOIN seg.cotservicio s
             WHERE s.cotizacion = :id
             ORDER BY s.fechaInicioAbsoluta ASC, seg.orden ASC
         DQL)
-            ->setParameter('id', self::binarios([$cotId])[0], 'binary')
+            ->setParameter('id', $binId, 'binary')
             ->getArrayResult();
 
-        $urls = [];
+        /** @var array<string, array{propias: list<string>, proveedor: list<string>}> $porSegmento */
+        $porSegmento = [];
         foreach ($filas as $fila) {
             $imagenes = $fila['imagenesSnapshot'] ?? [];
             // El snapshot guarda el orden del editor en `orden`, no en la posición del array.
             usort($imagenes, static fn (mixed $a, mixed $b): int =>
                 (is_array($a) && is_int($a['orden'] ?? null) ? $a['orden'] : 0)
                 <=> (is_array($b) && is_int($b['orden'] ?? null) ? $b['orden'] : 0));
-            foreach ($imagenes as $img) {
-                $url = is_array($img) && is_string($img['imageUrl'] ?? null) ? $img['imageUrl'] : '';
-                if ($url !== '' && !in_array($url, $urls, true)) {
+            $porSegmento[self::clave($fila['segId'])] = ['propias' => array_values(array_filter(array_map(
+                static fn (mixed $img): string => is_array($img) && is_string($img['imageUrl'] ?? null) ? $img['imageUrl'] : '',
+                $imagenes,
+            ), static fn (string $u): bool => $u !== '')), 'proveedor' => []];
+        }
+
+        // Fotos del proveedor por segmento, para los que no traen propias (regla 2). Columnas
+        // escalares: sin los JSON del componente, el ORDER BY no carga nada pesado.
+        /** @var list<array{segId: string|null, visible: bool, empresa: string|null, servicio: string|null}> $comps */
+        $comps = $this->em->createQuery(<<<'DQL'
+            SELECT IDENTITY(k.cotsegmento) AS segId, k.prestadorVisible AS visible,
+                   k.prestadorMaestroId AS empresa, k.prestadorServicioMaestroId AS servicio
+            FROM App\Cotizacion\Entity\CotizacionCotcomponente k
+            JOIN k.cotservicio s
+            WHERE s.cotizacion = :id
+            ORDER BY k.fechaHoraInicio ASC
+        DQL)
+            ->setParameter('id', $binId, 'binary')
+            ->getArrayResult();
+
+        $visibles = array_values(array_filter($comps, static fn (array $c): bool => $c['visible'] && $c['segId'] !== null));
+        if ($visibles !== []) {
+            $this->prestadores->precargar(array_column($visibles, 'empresa'), array_column($visibles, 'servicio'));
+        }
+        foreach ($visibles as $c) {
+            $seg = self::clave($c['segId']);
+            if (!array_key_exists($seg, $porSegmento) || self::tienePropias($porSegmento[$seg])) {
+                continue;
+            }
+            $servicio = $this->prestadores->servicio($c['servicio']);
+            $empresa = $this->prestadores->proveedor($c['empresa']);
+            $delProveedor = [
+                ...($servicio !== null ? $this->prestadores->imagenesDeServicio($servicio) : []),
+                ...($empresa !== null ? $this->prestadores->imagenesDe($empresa) : []),
+            ];
+            foreach ($delProveedor as $img) {
+                $url = Lee::texto($img['imageUrl'] ?? null);
+                if ($url !== null && $url !== '') {
+                    $porSegmento[$seg]['proveedor'][] = $url;
+                }
+            }
+        }
+
+        // Segmento de cada componente destacado, respetando el orden de la lista.
+        $segmentosDestacados = [];
+        $validos = array_values(array_filter($destacados, static fn (string $id): bool => Uuid::isValid($id)));
+        if ($validos !== []) {
+            /** @var list<array{compId: \Symfony\Component\Uid\Uuid, segId: string|null}> $comps */
+            $comps = $this->em->createQuery(<<<'DQL'
+                SELECT k.id AS compId, IDENTITY(k.cotsegmento) AS segId
+                FROM App\Cotizacion\Entity\CotizacionCotcomponente k
+                JOIN k.cotservicio s
+                WHERE s.cotizacion = :id AND k.id IN (:ids)
+            DQL)
+                ->setParameter('id', $binId, 'binary')
+                ->setParameter('ids', self::binarios($validos), ArrayParameterType::BINARY)
+                ->getArrayResult();
+
+            $segDe = [];
+            foreach ($comps as $c) {
+                if ($c['segId'] !== null) {
+                    $segDe[self::clave($c['compId'])] = self::clave($c['segId']);
+                }
+            }
+            foreach ($validos as $id) {
+                $seg = $segDe[strtolower($id)] ?? null;
+                if ($seg !== null && !in_array($seg, $segmentosDestacados, true)) {
+                    $segmentosDestacados[] = $seg;
+                }
+            }
+        }
+
+        $urls = [];
+        $orden = [...$segmentosDestacados, ...array_keys($porSegmento)];
+        foreach ($orden as $seg) {
+            $bloque = $porSegmento[$seg] ?? ['propias' => [], 'proveedor' => []];
+            foreach (self::tienePropias($bloque) ? $bloque['propias'] : $bloque['proveedor'] as $url) {
+                if (!in_array($url, $urls, true)) {
                     $urls[] = $url;
                 }
             }
         }
 
         return $urls;
+    }
+
+    /** @param array{propias: list<string>, proveedor: list<string>} $bloque */
+    private static function tienePropias(array $bloque): bool
+    {
+        return $bloque['propias'] !== [];
     }
 
     /**
