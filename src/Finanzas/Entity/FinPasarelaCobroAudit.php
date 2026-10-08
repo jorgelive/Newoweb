@@ -69,6 +69,31 @@ class FinPasarelaCobroAudit
     /** No se pudo ni hablar con la pasarela: red, tiempo agotado, llaves. */
     public const DESENLACE_ERROR = 'error';
 
+    /*
+     * Lo que pasa en el NAVEGADOR durante el reto 3DS, contado por el propio navegador.
+     *
+     * Entre `reto_3ds` y el segundo cobro con los parámetros hay un tramo que el servidor no ve:
+     * la librería de Culqi monta la pantalla del banco y devuelve el resultado por `postMessage`.
+     * El 06/10 y el 07/10 hubo retos que nunca volvieron —YAURHB, DW864U— y sólo quedaba saber que
+     * el segundo cobro no llegó. Ver `FinCobroAuditor::anotarReto()`.
+     */
+    /** Se lanzó la autenticación del banco. */
+    public const DESENLACE_RETO_LANZADO = 'reto_lanzado';
+    /** La librería de Culqi devolvió un error; el texto va en `motivo`. */
+    public const DESENLACE_RETO_ERROR = 'reto_error';
+    /** Venció nuestro plazo sin respuesta ni error de la librería. */
+    public const DESENLACE_RETO_SIN_RESPUESTA = 'reto_sin_respuesta';
+    /** Se cerró o recargó la página con el reto en curso. */
+    public const DESENLACE_RETO_ABANDONADO = 'reto_abandonado';
+
+    /** @var list<string> Los que puede anotar el navegador. */
+    public const DESENLACES_DEL_NAVEGADOR = [
+        self::DESENLACE_RETO_LANZADO,
+        self::DESENLACE_RETO_ERROR,
+        self::DESENLACE_RETO_SIN_RESPUESTA,
+        self::DESENLACE_RETO_ABANDONADO,
+    ];
+
     #[ORM\Column(type: 'string', length: 30, enumType: FinPasarela::class)]
     private FinPasarela $pasarela = FinPasarela::CULQI;
 

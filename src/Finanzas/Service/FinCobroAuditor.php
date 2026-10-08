@@ -56,6 +56,37 @@ final readonly class FinCobroAuditor
     }
 
     /**
+     * Una fila por cada cosa que el NAVEGADOR cuenta del reto 3DS (`DESENLACES_DEL_NAVEGADOR`).
+     *
+     * El tramo entre `reto_3ds` y el segundo cobro ocurre entero en el navegador, y cuando el reto
+     * no volvía no quedaba nada: ni si llegó a lanzarse, ni qué dijo la librería de Culqi, ni si
+     * el huésped recargó. Va con `con_3ds` a 1 porque es parte del reto.
+     *
+     * El detalle lo escribe el navegador —es un endpoint público—: se recorta, y nunca lleva datos
+     * de la tarjeta (sólo el texto de error de la librería). Como todo aquí, no lanza.
+     */
+    public function anotarReto(FinEnlacePago $enlace, FinPasarela $pasarela, string $evento, ?string $detalle): void
+    {
+        try {
+            $audit = (new FinPasarelaCobroAudit())
+                ->setPasarela($pasarela)
+                ->setEnlaceId($enlace->getId())
+                ->setCon3DS(true)
+                ->setDesenlace($evento)
+                ->setMotivo($detalle !== null && $detalle !== '' ? mb_substr($detalle, 0, 500) : null);
+
+            $this->em->persist($audit);
+            $this->em->flush();
+        } catch (Throwable $e) {
+            $this->logger->error('[finanzas] no se pudo anotar el reto 3DS', [
+                'enlace' => (string) $enlace->getId(),
+                'evento' => $evento,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Cierra la fila con lo que contestó la pasarela.
      *
      * @param array<string, mixed> $cuerpo Respuesta cruda; se guarda sin datos del titular.

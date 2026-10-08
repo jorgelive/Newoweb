@@ -1291,6 +1291,49 @@ falta para entender qué contestó la pasarela y sí sobran en una tabla que se 
 después. Lo cubre `FinCobroAuditorTest`, que es también donde están escritos los cuerpos reales
 de un cargo autorizado, uno denegado y una petición de reto.
 
+### 🔥 El reto en el navegador: reintentar recarga, y lo que pasa queda anotado (07/10/2026)
+
+**Los casos.** El 06/10 (YAURHB, Casita 6, USD 384.44) y el 07/10 (DW864U, Casita 1, USD 115.31)
+el huésped no pudo pagar y acabó viendo «Ups! Algo salió mal · **CCKT-408**», que es el
+`NETWORK.TIMEOUT` del iframe de Culqi (`checkoutview.culqi.com`) al tokenizar. La tabla contaba
+la mitad de la historia: el **primer** reto de la página funcionó las dos veces —en DW864U se
+autenticó y el banco denegó después con `DNGA0322` «Recoger tarjeta»—, pero el segundo y el
+tercero lanzados **en la misma página** nunca volvieron, y a partir de ahí el checkout ya no
+tokenizaba. Ningún cambio nuestro en el pago desde el 26/09 lo explica.
+
+**Lo que es nuestro: cada reintento empieza de cero.** `culqi3ds.min.js` guarda estado propio
+—su sesión de diez minutos, sus iframes— que no sabemos limpiar desde fuera. Por eso, en cuanto
+la página ha lanzado un reto (salga como salga), `retoUsado` cambia el botón a «Volver a intentar
+el pago» y pulsarlo **recarga la página** en vez de reabrir el checkout. Es repetir exactamente
+las condiciones del intento que sí salió. Mientras el reto está abierto, el botón dice «Esperando
+a tu banco…» y debajo se le dice que complete la verificación en la ventana que se abrió.
+
+**Lo que no veíamos: el tramo del navegador.** Entre `reto_3ds` y el segundo cobro no pasa nada
+por el servidor, así que un reto que no volvía no dejaba rastro. Ahora el navegador lo cuenta en
+`POST /finanzas/pago/{token}/culqi/reto` (`{evento, detalle?}`), y `FinCobroAuditor::anotarReto()`
+escribe una fila más en `fin_pasarela_cobro_audit`, con `con_3ds = 1`:
+
+| Desenlace | Cuándo | `motivo` |
+|---|---|---|
+| `reto_lanzado` | justo antes de `Culqi3DS.initAuthentication()` | — |
+| `reto_error` | la librería devolvió `error` por `postMessage` | su texto tal cual |
+| `reto_sin_respuesta` | vencieron nuestros `MINUTOS_DE_RETO` sin respuesta ni error | — |
+| `reto_abandonado` | la página se cerró, recargó o desmontó con el reto abierto | — |
+
+Un reto que salió bien se ve como `reto_3ds` → `reto_lanzado` → el segundo cobro con `con_3ds = 1`.
+Uno que se quedó colgado, como `reto_lanzado` seguido de `reto_abandonado` o `reto_sin_respuesta`
+y sin segundo cobro. Si CCKT-408 vuelve, esa secuencia es lo que se le lleva a Culqi.
+
+⚠️ **El endpoint siempre contesta 204.** Es público y es observabilidad: con un enlace que no es
+de Culqi o un evento fuera de `DESENLACES_DEL_NAVEGADOR` no escribe nada, pero tampoco da error.
+No exige que el enlace esté vigente —el `abandonado` puede llegar tarde— y el detalle se recorta
+a 500 caracteres. Nunca lleva datos de la tarjeta: sólo el texto de error de la librería.
+
+⚠️ **El `abandonado` va por `sendBeacon` y con `text/plain`.** Es lo único que sobrevive a un
+cierre de pestaña. La API vive en otro origen y un beacon no hace preflight: con
+`application/json` el navegador lo descartaría en silencio. El controlador lee el cuerpo crudo,
+así que el tipo le da igual.
+
 ### Sigue pendiente
 
 **Probar el reto 3DS de punta a punta.** Sigue sin ejecutarse una sola vez: el reto lo dispara
@@ -2270,7 +2313,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar quién puede emitir o anular un enlace | el backend (`#[IsGranted]` de `FinEnlacePagoApiController`) | **no** un `readOnly` en el front — ver §11 bis |
 | Cambiar qué códigos de Culqi disparan el reto 3DS | `src/Finanzas/Service/Culqi/CulqiRechazoException.php` | `pideAutenticacion3DS()` — hoy sólo `DNGE0116` |
 | Cambiar cuándo un cargo de Culqi SALDA el enlace | `src/Finanzas/Service/Culqi/CulqiClient.php` | `cargoPagaElEnlace()` — enumera lo bueno (`venta_exitosa`) |
-| Tocar el reto 3DS del navegador | `pax/src/views/pago/PagoCulqiForm.vue` | `autenticar3DS()` · `MINUTOS_DE_RETO` |
+| Tocar el reto 3DS del navegador | `pax/src/views/pago/PagoCulqiForm.vue` | `autenticar3DS()` · `MINUTOS_DE_RETO` · `retoUsado` · `anotarReto()` |
+| Ver qué pasó en el navegador durante un reto | tabla `fin_pasarela_cobro_audit` | desenlaces `reto_*` (`DESENLACES_DEL_NAVEGADOR`) |
 | Leer más campos del webhook de Culqi | `src/Finanzas/Controller/Webhook/CulqiWebhookController.php` | `datosDelEvento()` — `data` llega como cadena y en camelCase |
 | Cambiar lo que lee el cliente ante un error sin mensaje | `pax/src/views/pago/PagoCulqiForm.vue` | `textoDelError()` |
 | Ver qué pasó en un cobro que no cuadra | tabla `fin_pasarela_cobro_audit` | una fila por intento; empieza por los `iniciado` |

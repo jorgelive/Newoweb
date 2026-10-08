@@ -22,7 +22,7 @@
  * pueda dispararse contra un enlace que ya no toca. Ver §11 del doc.
  */
 import { markRaw, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
-import { apiClient } from '@/services/apiClient';
+import { apiClient, getUrls } from '@/services/apiClient';
 import type { PaxConfigCulqi, PaxConfigPago, PaxCulqiCobroRespuesta } from '@/types/paxPagoModel';
 import type { CulqiCheckoutInstance, Parametros3DS } from '@/types/culqiCheckout';
 
@@ -36,6 +36,61 @@ const emit = defineEmits<{
 
 const listo = ref(false);
 const cobrando = ref(false);
+
+/** El reto del banco está abierto: se le dice dónde mirar en vez de un «Procesando…» mudo. */
+const enReto = ref(false);
+
+/**
+ * Ya hubo un reto 3DS en esta página, saliera como saliera.
+ *
+ * 🔥 **Con esto puesto, reintentar RECARGA la página en vez de reabrir el checkout.** El 06/10
+ * (YAURHB) y el 07/10 (DW864U) el segundo y el tercer reto lanzados en la misma página nunca
+ * volvieron, y después el checkout ya no tokenizaba: «CCKT-408 · El tiempo de espera se ha
+ * agotado». El primer reto sí funcionó las dos veces. La librería del 3DS guarda estado propio
+ * —su sesión, sus iframes— que no sabemos limpiar desde fuera; recargar es la única forma de
+ * empezar como la vez que salió bien.
+ */
+const retoUsado = ref(false);
+
+/**
+ * Cuenta al servidor lo que pasa con el reto, que ocurre entero en el navegador y no deja rastro
+ * en otro sitio. Va a la auditoría de cobros (`FinCobroAuditor::anotarReto()`).
+ *
+ * Nunca estorba al pago: sin `await`, y un fallo se ignora.
+ */
+type EventoReto = 'reto_lanzado' | 'reto_error' | 'reto_sin_respuesta' | 'reto_abandonado';
+
+const rutaReto = (): string => `/finanzas/pago/${props.token}/culqi/reto`;
+
+const anotarReto = (evento: EventoReto, detalle?: string): void => {
+    apiClient.post(rutaReto(), { evento, detalle }).catch(() => undefined);
+};
+
+/**
+ * Lo mismo cuando la página se va: `sendBeacon` es lo único que sobrevive a un cierre o recarga.
+ *
+ * ⚠️ **`text/plain`, no JSON.** La API está en otro origen, y con `application/json` el navegador
+ * pediría un preflight que un beacon no hace: el aviso se perdería en silencio. El servidor lee el
+ * cuerpo crudo, así que el tipo le da igual.
+ */
+const anotarRetoAlIrse = (evento: EventoReto): void => {
+    const cuerpo = new Blob([JSON.stringify({ evento })], { type: 'text/plain' });
+    navigator.sendBeacon?.(`${getUrls().api}${rutaReto()}`, cuerpo);
+};
+
+const alIrseConRetoAbierto = (): void => {
+    if (soltarReto !== null) anotarRetoAlIrse('reto_abandonado');
+};
+
+/** El error de la librería tal cual, para la auditoría: a veces es texto y a veces un objeto. */
+const textoDeFallo = (error: unknown): string => {
+    if (typeof error === 'string') return error;
+    try {
+        return JSON.stringify(error);
+    } catch {
+        return String(error);
+    }
+};
 
 /**
  * Cuánto se espera al reto del banco antes de rendirse. **Es un respaldo, no el plazo.**
@@ -150,12 +205,15 @@ const autenticar3DS = (tokenTarjeta: string): Promise<Parametros3DS> =>
 
         const limpiar = (): void => {
             window.removeEventListener('message', escuchar);
+            window.removeEventListener('pagehide', alIrseConRetoAbierto);
             clearTimeout(reloj);
             soltarReto = null;
+            enReto.value = false;
         };
 
         const reloj = window.setTimeout(() => {
             limpiar();
+            anotarReto('reto_sin_respuesta', `${MINUTOS_DE_RETO} min sin respuesta de la librería`);
             reject(new Error('La autenticación con tu banco tardó demasiado. Inténtalo otra vez.'));
         }, MINUTOS_DE_RETO * 60_000);
 
@@ -169,12 +227,17 @@ const autenticar3DS = (tokenTarjeta: string): Promise<Parametros3DS> =>
                 resolve(datos.parameters3DS);
             } else if (datos?.error) {
                 limpiar();
-                reject(new Error(String(datos.error)));
+                const texto = textoDeFallo(datos.error);
+                anotarReto('reto_error', texto);
+                reject(new Error(texto));
             }
         }
 
         window.addEventListener('message', escuchar);
+        window.addEventListener('pagehide', alIrseConRetoAbierto);
         soltarReto = limpiar;
+        retoUsado.value = true;
+        enReto.value = true;
 
         Culqi3DS.publicKey = publicKey.value;
 
@@ -196,6 +259,7 @@ const autenticar3DS = (tokenTarjeta: string): Promise<Parametros3DS> =>
             },
         };
 
+        anotarReto('reto_lanzado');
         void Culqi3DS.initAuthentication(tokenTarjeta);
     });
 
@@ -262,7 +326,16 @@ const cobrar = async (tokenTarjeta: string, autenticacion3DS?: Parametros3DS): P
     }
 };
 
-const abrir = (): void => checkout.value?.open();
+const abrir = (): void => {
+    // Tras un reto, el siguiente intento empieza de cero. Ver `retoUsado`.
+    if (retoUsado.value) {
+        window.location.reload();
+
+        return;
+    }
+
+    checkout.value?.open();
+};
 
 const montar = async (): Promise<void> => {
     const { data } = await apiClient.post<PaxConfigPago>(`/finanzas/pago/${props.token}/configuracion`, {});
@@ -352,6 +425,7 @@ onBeforeUnmount(() => {
     // ⚠️ Y el reto, si estaba a medias. Sin esto, un `postMessage` que llega después de que la
     // persona haya navegado dispara `cobrar()` desde un componente muerto: el cargo se hace y el
     // enlace queda pagado, pero nadie ve la confirmación y un segundo intento choca con un 410.
+    alIrseConRetoAbierto();
     abandonarReto();
 });
 </script>
@@ -360,10 +434,16 @@ onBeforeUnmount(() => {
     <div class="bg-white rounded-2xl shadow-sm p-6 text-center">
         <button type="button" @click="abrir" :disabled="!listo || cobrando"
             class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-sm">
-            <span v-if="cobrando">Procesando…</span>
+            <span v-if="enReto">Esperando a tu banco…</span>
+            <span v-else-if="cobrando">Procesando…</span>
             <span v-else-if="!listo">Cargando…</span>
+            <span v-else-if="retoUsado">Volver a intentar el pago</span>
             <span v-else>Pagar {{ props.monedaSimbolo }} {{ props.montoTotal }}</span>
         </button>
+
+        <p v-if="enReto" class="mt-3 text-xs font-bold text-slate-600">
+            Completa la verificación de tu banco en la ventana que se abrió.
+        </p>
 
         <!-- Sólo tarjeta: Yape y efectivo exigen una orden de la API de Culqi, que aún no
              creamos. Prometerlos aquí haría que el cliente abriera el modal buscando un

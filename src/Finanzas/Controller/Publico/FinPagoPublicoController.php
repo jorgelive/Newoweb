@@ -19,6 +19,7 @@ use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -119,6 +120,34 @@ final class FinPagoPublicoController extends AbstractController
      * como red de seguridad para el caso de que el cliente pierda la conexión justo aquí, y
      * no duplica nada porque `confirmarPago()` es idempotente.
      */
+    /**
+     * Lo que el navegador cuenta del reto 3DS: lanzado, error de la librería, sin respuesta o
+     * abandonado. Ver `FinCobroAuditor::anotarReto()`.
+     *
+     * Sólo con un enlace de Culqi que exista; el evento, de la lista cerrada. No exige que esté
+     * vigente: el «abandonado» llega cuando el huésped ya se va, y puede llegar tarde. Siempre 204,
+     * pase lo que pase: es observabilidad y no puede estorbar al pago.
+     */
+    #[Route('/{token}/culqi/reto', name: 'culqi_reto', methods: ['POST'])]
+    public function culqiReto(string $token, Request $request): Response
+    {
+        $enlace = $this->repository->porToken($token);
+        /** @var array<string, mixed> $datos */
+        $datos = json_decode((string) $request->getContent(), true) ?: [];
+        $evento = $datos['evento'] ?? null;
+        $detalle = $datos['detalle'] ?? null;
+
+        if ($enlace instanceof FinEnlacePago
+            && $enlace->getPasarela() === FinPasarela::CULQI
+            && is_string($evento)
+            && in_array($evento, FinPasarelaCobroAudit::DESENLACES_DEL_NAVEGADOR, true)
+        ) {
+            $this->auditor->anotarReto($enlace, FinPasarela::CULQI, $evento, is_string($detalle) ? $detalle : null);
+        }
+
+        return new Response(null, Response::HTTP_NO_CONTENT);
+    }
+
     #[Route('/{token}/culqi/cobrar', name: 'culqi_cobrar', methods: ['POST'])]
     public function culqiCobrar(string $token, Request $request): JsonResponse
     {
