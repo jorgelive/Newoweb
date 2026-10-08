@@ -556,7 +556,10 @@ ordenada por lo que se busca:
 - **«Atrás» cierra lo de encima, no sale de Finanzas.** La ficha del cobro, el panel del cobro
   manual y la ficha de la reserva son capas de `useCapasEnHistorial` (`?capa=cobro.reserva`), y
   la pestaña va en la URL (`?tab=caja`), como en OperacionView. Antes eran `ref` sueltos: con
-  la ficha abierta, el gesto atrás te sacaba a la pantalla anterior.
+  la ficha abierta, el gesto atrás te sacaba a la pantalla anterior. Lo cubre
+  `util/src/views/Finanzas/FinanzasView.historial.test.ts`, que monta la vista real con el router
+  y el historial del navegador (jsdom): abre la ficha o la reserva, retrocede y comprueba que se
+  sigue en `/finanzas` con la capa cerrada.
 - **El localizador abre la ficha de la reserva aquí mismo.** Antes navegaba a `/reservas`, que
   sin `?evento=` ni abría la ficha: aterrizabas en el calendario y perdías el listado. Ahora es
   un botón (en la tarjeta, en Caja y en la ficha del cobro) que monta el mismo
