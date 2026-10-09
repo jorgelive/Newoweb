@@ -858,6 +858,38 @@ const proveedorPorComponente = computed(() => {
 const proveedorDeComponente = (componenteId?: string): PrestadorInfo | null =>
     componenteId ? proveedorPorComponente.value.get(componenteId) ?? null : null;
 
+/**
+ * Componentes que abarcan más de un día de calendario, por id.
+ *
+ * ⚠️ **Los ítems no tienen fecha propia.** `construirInclusiones()` les da la de INICIO de su
+ * componente, que es verdad para lo que pasa ese día y mentira para lo demás. Un hotel del 20
+ * al 21 publicaba «Desayuno · 20 Oct» cuando el pasajero salía de Cusco a las 05:30 y su
+ * desayuno era el del 21; un 2D de Amantaní fechaba su «Desayuno (Dia 2)» el día 1.
+ *
+ * No se arregla adivinando cuándo ocurre cada ítem —eso sería una lista por nombre:
+ * el desayuno a la mañana siguiente, la cena esa noche, el almuerzo según…—, sino dejando de
+ * afirmarlo. El ítem de un componente que abarca varios días **no lleva fecha**: cuelga de la
+ * línea del componente, que ya dice cuándo empieza, y si su día importa lo dice su nombre.
+ *
+ * Se mira el componente VIVO por `componenteId`, no la línea guardada: así vale también para
+ * las propuestas ya publicadas, sin re-guardarlas. Las anteriores a ese campo no lo traen y
+ * siguen como estaban.
+ */
+const componentesQueAbarcan = computed(() => {
+  const s = new Set<string>();
+  for (const srv of store.cotizacion?.cotservicios ?? []) {
+    for (const comp of srv.cotcomponentes ?? []) {
+      const ini = comp.fechaHoraInicio ? dateOf(comp.fechaHoraInicio) : '';
+      const fin = comp.fechaHoraFin ? dateOf(comp.fechaHoraFin) : '';
+      if (comp.id && ini && fin && fin > ini) s.add(comp.id);
+    }
+  }
+  return s;
+});
+
+const muestraFechaDeLinea = (l: PaxInclusionItem): boolean =>
+    !(l.origen === 'item' && l.componenteId && componentesQueAbarcan.value.has(l.componenteId));
+
 const modalProveedor = ref<PrestadorInfo | null>(null);
 const abrirProveedor = (p: PrestadorInfo) => { modalProveedor.value = p; };
 
@@ -2664,7 +2696,7 @@ const adelantoVista = computed(() => {
                               <!-- «×5» no decía de qué. Si el componente declara unidad, se
                                    escribe: «5 días», «4 noches», «5 desayunos». -->
                               <b v-if="l.cantidadComponente > 1" class="text-[#376875] font-black">{{ l.sustantivoUnidad ? etiquetaDeUnidades(l.cantidadComponente, l.sustantivoUnidad) : '×' + l.cantidadComponente }}</b>
-                              <span class="text-[10px] font-medium text-slate-400 ml-1.5 whitespace-nowrap capitalize">
+                              <span v-if="muestraFechaDeLinea(l)" class="text-[10px] font-medium text-slate-400 ml-1.5 whitespace-nowrap capitalize">
                                 · {{ fechaChip(l.fecha) }}
                               </span>
                             </span>
@@ -2917,7 +2949,7 @@ const adelantoVista = computed(() => {
                       </span>
                       {{ store.traducir(l.nombre) }}
                       <b v-if="l.cantidadComponente > 1" class="text-[#376875] font-black">×{{ l.cantidadComponente }}</b>
-                      <span class="text-[10px] font-medium text-slate-400 ml-1.5 whitespace-nowrap capitalize">
+                      <span v-if="muestraFechaDeLinea(l)" class="text-[10px] font-medium text-slate-400 ml-1.5 whitespace-nowrap capitalize">
                         · {{ fechaChip(l.fecha) }}
                       </span>
                     </span>
