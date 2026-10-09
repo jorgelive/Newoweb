@@ -211,9 +211,12 @@ Alternativa a valorar: el motor de reservas de Beds24 incrustado (más rápido, 
 
 ## 4. Preguntas abiertas
 
-- **RUC y marca.** Las condiciones heredadas son de Susan Acuña Romero (RUC 10249916001,
-  «Centro Cusco Inti») y dicen que las excursiones se contratan **por cuenta del huésped**.
-  Vender tours como actividad principal contradice esa cláusula: hay que confirmar con qué RUC
-  se venden (¿agencia inscrita en DIRCETUR?) y reescribir términos y devoluciones para tours.
-  La marca visible de `openperu.pe` es un único parámetro (`front.marca`).
+- **RUC y marca — resuelto el 09/10/2026.** El titular de openperu.pe es **Openperu Travel
+  Group SAC (RUC 20600633164)**, marca OpenPeru Travel (parámetros `front.*`: pie, Libro de
+  Reclamaciones y sus correos). El alojamiento (Centro Cusco Inti, Susan Acuña Romero, RUC
+  10249916001) es otro titular y tendrá el suyo en centrocuscointi.com. **Sigue pendiente**: la
+  dirección del titular (hoy figura la del alojamiento, Cal. Saphy 877A) y **reescribir los textos
+  legales para tours** — términos, privacidad y ESNNA nombran todavía a Centro Cusco Inti y a
+  Susan Acuña Romero, y no se sustituyeron a ciegas: cambiar quién firma el compromiso ESNNA o
+  quién es responsable de los datos es una afirmación legal que tiene que confirmar Jorge.
 - **Más idiomas**: ¿pt/fr/de en la web desde el principio?

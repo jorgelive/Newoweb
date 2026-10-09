@@ -97,7 +97,9 @@ porqué están en `docs/Cotizaciones.md` §6.b, «El precio desde».
   el controlador según `SitioWeb`, así que en cada dominio salen con la cabecera de su web.
 - La identidad (marca, razón social, RUC, dirección, correo, WhatsApp) son **parámetros
   `front.*`** en `config/services/services_parameters.yaml`, expuestos a Twig como `front`.
-  Cambiar de marca o de RUC es tocar ahí (y los textos legales, §6).
+  Cambiar de marca o de RUC es tocar ahí (y los textos legales, §6). Titular de openperu.pe desde
+  el 09/10/2026: **Openperu Travel Group SAC, RUC 20600633164**. El nombre del alojamiento que
+  anuncia la portada es aparte (`front.alojamiento_nombre`): es otra marca y otro titular.
 
 ### 3.1 Marcas: OpenPeru Travel y Open World Travel (07/10/2026)
 

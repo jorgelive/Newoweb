@@ -19,7 +19,7 @@
 
     <div class="titular-legal">
         <strong>{{ front.razon_social }}</strong> · RUC {{ front.ruc }}<br>
-        {{ 'libro.nombre_comercial'|trans({}, 'front') }}: {{ front.nombre_comercial }} — {{ front.marca }}<br>
+        {{ 'libro.nombre_comercial'|trans({}, 'front') }}: {{ front.nombre_comercial }}{% if front.marca != front.nombre_comercial %} — {{ front.marca }}{% endif %}<br>
         {{ front.direccion }}<br>
         {{ 'libro.fecha'|trans({}, 'front') }}: {{ 'now'|date('d/m/Y') }}
     </div>

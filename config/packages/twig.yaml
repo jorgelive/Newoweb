@@ -21,6 +21,7 @@ twig:
             whatsapp: '%front.whatsapp%'
             telefono_visible: '%front.telefono_visible%'
             alojamiento_url: '%front.alojamiento_url%'
+            alojamiento_nombre: '%front.alojamiento_nombre%'
         colores:
             lila: "#954e8d"
             azul_acero: "#016c8d"

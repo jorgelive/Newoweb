@@ -61,7 +61,7 @@
         <div class="banda">
             <div>
                 <h2>{{ 'portada.alojamiento_titulo'|trans({}, 'front_tours') }}</h2>
-                <p>{{ 'portada.alojamiento_texto'|trans({'%nombre%': front.nombre_comercial}, 'front_tours') }}</p>
+                <p>{{ 'portada.alojamiento_texto'|trans({'%nombre%': front.alojamiento_nombre}, 'front_tours') }}</p>
             </div>
             <a class="boton boton-primario" href="{{ front.alojamiento_url }}" target="_blank" rel="noopener">{{ 'portada.alojamiento_boton'|trans({}, 'front_tours') }}</a>
         </div>
