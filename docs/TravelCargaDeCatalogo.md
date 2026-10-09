@@ -658,8 +658,7 @@ $this->em->persist((new TravelSegmentoComponente())
     ->setSegmento($segmento)->setComponente($componente)
     ->setModo(ComponenteModoEnum::INCLUIDO)
     ->setTarifaPredeterminada($tarifa)
-    ->setDia(1)->setOrden(1)
-    ->setHora(new \DateTimeImmutable('08:30')));
+    ->setOrden(1));              // ⚠️ SIN día y SIN hora: ver abajo
 
 // 7 · la plantilla, y una Rel por segmento en el orden en que se cuentan
 $itinerario = (new TravelItinerario())
@@ -687,6 +686,32 @@ $this->em->persist((new TravelSegmentoComponente())
 La colección de `TravelItinerario::$itinerarioSegmentos` viene ordenada por `['dia' => 'ASC',
 'orden' => 'ASC']` desde el mapeo, así que **el orden es del ORM**: no hay que reordenar en PHP ni
 en el front.
+
+### 🔥 El pivote global NO lleva día (corregido el 09/10/2026)
+
+Este esqueleto le ponía `->setDia(1)` a la relación global, y así lo tenía también el comando de
+referencia. Contradecía la tabla de la sección anterior —global es contexto `null` **y** día
+`null`— y es un error caro, porque en la matriz de `docs/Travel.md` §4 un día sin plantilla
+significa **«sólo cuando el segmento cae ese día»**:
+
+```
+contexto NULL · día NULL   el componente entra el día que sea         ← global de verdad
+contexto NULL · día 1      SÓLO si el segmento cae el día 1           ← lo que escribía esto
+```
+
+Se descubrió con un traslado de retorno puesto el día 2 de una cotización: llegó **«sin
+componentes vinculados»**, mientras su hermano —idéntico salvo por esa columna— traía el suyo.
+Para un ancla de excursión pasa desapercibido, porque la plantilla trae su propio pivote de
+contexto; para un traslado, que se usa cualquier día, lo deja vacío casi siempre.
+
+Ya se había copiado a 42 pivotes del catálogo. Los de las cargas de octubre los arregló
+`app:travel:quitar-dia-a-pivotes-globales`; los del resort de Punta Cana, Miraflores, Saona y
+Coco Bongo siguen con día 1 y se revisan aparte, porque en alguno —un check-in— el día 1 puede
+ser lo que se quería.
+
+⚠️ **Y tampoco lleva hora el global de un ANCLA**: la hora de una excursión es de cada plantilla
+(§4, «Cuando hay plantilla, el pivote se escribe DOS veces»). Un traslado o una comida sí la
+llevan en el global, porque el bus de las diez sale a las diez lo use quien lo use.
 
 ### Slug
 
@@ -1130,6 +1155,18 @@ recorrido, comprobando la pareja `(componente, término)`, que es lo que de verd
 La regla general: **lo que se comprueba por una clave distinta va en su propia pasada.** Vale
 igual para los pools y para las entradas.
 
+⚠️ Mordió **tres veces en dos días**, siempre con la misma forma —algo metido dentro del alta,
+que en cuanto el objeto ya existía no se volvía a mirar—:
+
+| Qué se quedó sin poner | Comando | Cómo se notó |
+|---|---|---|
+| los ítems del «qué incluye» | `crear-cuatrimotos-maras` | componentes vivos sin nada que enseñar |
+| la corrección de un texto | `partir-segmentos-bimodales` | un segmento traducido sólo al español |
+| los pools de un segmento | `crear-retorno-centro-cusco` | no salía buscándolo desde MAPI |
+
+Antes de escribir un `if ($existente) { continue; }`, pregúntate qué más tiene que garantizar el
+comando sobre ese objeto aunque ya exista. Eso va abajo, en su pasada.
+
 ### Reutilizar un segmento arrastra lo que cuelga de él
 
 `Ingreso a Maras` no hizo falta escribirlo: cuelga **globalmente** del segmento de las Salineras
@@ -1534,3 +1571,4 @@ prueba de idempotencia**, y como ninguna clave natural está protegida por la ba
 | `app:travel:crear-cuatrimotos-maras` | **servicio entero con varias rutas** · idempotencia por plantilla · reutilizar un componente con sus tarifas · ítems en pasada aparte · entradas atadas por contexto (§4 quater) |
 | `app:travel:asignar-prestadores-cuatrimotos` | sacar al proveedor del nombre de la tarifa y ponerlo en `prestador` · dejar intacto lo que no se sabe |
 | `app:travel:limpiar-diccionario-items` | fusionar términos que son uno · corregir erratas con la sobrescritura activada · **idempotencia en PHP cuando el cambio es una tilde** |
+| `app:travel:quitar-dia-a-pivotes-globales` | deshacer el `setDia(1)` que el esqueleto ponía al pivote global · borrar en vez de actualizar si ya hay un gemelo sin día |

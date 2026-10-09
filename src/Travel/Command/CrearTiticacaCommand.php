@@ -726,7 +726,6 @@ final class CrearTiticacaCommand extends Command
                         ->setComponente($componente)
                         ->setTarifaPredeterminada($predeterminada)
                         ->setModo(ComponenteModoEnum::INCLUIDO)
-                        ->setDia(1)
                         ->setOrden(1),
                 );
             }

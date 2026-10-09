@@ -401,7 +401,6 @@ final class CrearConexionPunoCommand extends Command
                 ->setSegmento($segmento)
                 ->setComponente($componente)
                 ->setModo(ComponenteModoEnum::INCLUIDO)
-                ->setDia(1)
                 ->setOrden(1);
 
             // Un traslado sí lleva hora global: el bus de las diez sale a las diez lo use quien

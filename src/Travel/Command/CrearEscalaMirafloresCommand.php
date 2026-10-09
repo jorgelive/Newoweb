@@ -306,7 +306,6 @@ final class CrearEscalaMirafloresCommand extends Command
                 ->setComponente($componente)
                 ->setTarifaPredeterminada($tarifa)
                 ->setModo(ComponenteModoEnum::INCLUIDO)
-                ->setDia(1)
                 ->setOrden(1);
 
             // ⚠️ El ancla NO lleva hora en la relación global: la hora de una excursión es propia

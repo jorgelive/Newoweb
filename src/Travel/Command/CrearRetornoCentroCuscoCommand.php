@@ -205,7 +205,6 @@ final class CrearRetornoCentroCuscoCommand extends Command
                     ->setComponente($componente)
                     ->setTarifaPredeterminada($predeterminada)
                     ->setModo(ComponenteModoEnum::INCLUIDO)
-                    ->setDia(1)
                     ->setOrden(1)
                     ->setHora(new \DateTimeImmutable(self::SEGMENTO['hora'])),
             );
