@@ -4921,16 +4921,21 @@ store.$onAction(({ name, args }) => {
               <div class="flex-1 flex flex-col min-h-0 overflow-hidden" :class="{'hidden md:flex': activeAccordion !== 'pool'}">
                 <div class="p-3 md:p-5 border-b border-slate-100 bg-slate-50 shrink-0">
                   <label class="block text-[10px] font-black text-teal-600 uppercase tracking-widest mb-2">1. Cargar Plantilla</label>
-                  <div class="flex gap-2">
-                    <SearchableSelect
-                        v-model="plantillaSeleccionada"
-                        :options="opcionesPlantillas"
-                        placeholder="Elegir itinerario..."
-                    />
+                  <div class="flex gap-2 items-start">
+                    <!-- `SearchableSelect` es `w-full`: sin `min-w-0` reclama el ancho entero y
+                         deja al botón reducido a una tira de color. El `flex-1 min-w-0` le da
+                         sólo lo que sobra, y el `shrink-0` del botón impide que lo aplasten. -->
+                    <div class="flex-1 min-w-0">
+                      <SearchableSelect
+                          v-model="plantillaSeleccionada"
+                          :options="opcionesPlantillas"
+                          placeholder="Elegir itinerario..."
+                      />
+                    </div>
                     <button @click="handleAplicarPlantilla"
                             :disabled="store.isLoading || !puedeAplicarPlantilla"
                             :title="!puedeAplicarPlantilla ? 'Ya hay párrafos en este servicio. Vacía el panel para aplicar una plantilla.' : ''"
-                            class="bg-teal-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-2"
+                            class="bg-teal-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-2 shrink-0 whitespace-nowrap"
                             :class="(store.isLoading || !puedeAplicarPlantilla) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-teal-700'">
                       <i v-if="store.isLoading" class="fas fa-spinner fa-spin"></i> Aplicar
                     </button>
@@ -4953,8 +4958,8 @@ store.$onAction(({ name, args }) => {
                          @pointerup="onPoolPointerUp"
                          @pointercancel="onPoolPointerUp">
                       <div class="flex-1 min-w-0">
-                        <div class="text-[9px] font-black text-teal-500 uppercase tracking-widest mb-0.5 truncate">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</div>
-                        <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo, store.cotizacion?.idiomaEdicion || 'es') }}</h4>
+                        <div class="text-[9px] font-black text-teal-500 uppercase tracking-widest mb-0.5 break-words">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</div>
+                        <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 break-words">{{ store.getI18nText(seg.titulo, store.cotizacion?.idiomaEdicion || 'es') }}</h4>
                         <!-- eslint-disable-next-line vue/no-v-html -- Texto enriquecido del catálogo maestro, redactado por el equipo. HTML a propósito, no viene del huésped. -->
                         <div class="text-[10px] text-slate-500 line-clamp-1 md:line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido, store.cotizacion?.idiomaEdicion || 'es')"></div>
                       </div>
