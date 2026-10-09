@@ -74,15 +74,18 @@ final class CrearConexionPunoCommand extends Command
     ];
 
     /**
-     * El componente de transporte que no existía, con su tarifa.
+     * El traslado del hotel al punto de salida en Cusco. **Ya existía**, con su cuadro de flota.
      *
-     * Bidireccional, como el resto: «ida o vuelta» en el nombre y un segmento por sentido.
+     * ⚠️ Este comando llegó a crear un `Transporte Htl Cusco ↔ Term Cusco (ida o vuelta)` con una
+     * sola tarifa inventada, sin ver que el catálogo ya tenía éste —Bus 20, Master 14, Sprinter
+     * 16, Van 35, todas `privado`—. Es el duplicado silencioso contra el que avisa
+     * `docs/TravelCargaDeCatalogo.md` §4 bis: `travel_componente` no tiene clave única y nada lo
+     * habría impedido. {@see self::DUPLICADO} lo deshace.
      */
-    private const COMPONENTE_NUEVO = [
-        'nombre' => 'Transporte Htl Cusco ↔ Term Cusco (ida o vuelta)',
-        'tarifa' => 'Auto',
-        'monto' => '35.00',
-    ];
+    private const COMPONENTE_TRASLADO = 'Transporte Htl Cusco ↔ Paradero Cusco (ida o vuelta)';
+
+    /** El que sobra. Se le reapunta lo que cuelgue y se borra. */
+    private const DUPLICADO = 'Transporte Htl Cusco ↔ Term Cusco (ida o vuelta)';
 
     /**
      * Componentes que ya existen sueltos y pasan al pool de `TRF_PUN`.
@@ -115,7 +118,7 @@ final class CrearConexionPunoCommand extends Command
             'titulo' => 'Al Terminal Terrestre de Cusco',
             'contenido' => 'Les recogemos en su hotel y les dejamos en el Terminal Terrestre con '
                 . 'tiempo para el embarque del bus nocturno a Puno.',
-            'componente' => self::COMPONENTE_NUEVO['nombre'],
+            'componente' => self::COMPONENTE_TRASLADO,
             'hora' => '20:00',
             'inicio' => PuntoModoEnum::ALOJAMIENTO,
             'fin' => PuntoModoEnum::FIJO,
@@ -129,7 +132,7 @@ final class CrearConexionPunoCommand extends Command
             'contenido' => 'A la llegada del bus les esperamos en el Terminal Terrestre y les '
                 . 'llevamos a su hotel. Es de madrugada, así que conviene tener la habitación '
                 . 'reservada desde la noche anterior si quieren entrar de inmediato.',
-            'componente' => self::COMPONENTE_NUEVO['nombre'],
+            'componente' => self::COMPONENTE_TRASLADO,
             'hora' => '05:00',
             'inicio' => PuntoModoEnum::FIJO,
             'fin' => PuntoModoEnum::ALOJAMIENTO,
@@ -258,37 +261,59 @@ final class CrearConexionPunoCommand extends Command
 
         $io->text(sprintf('  ya existe · %s', self::SERVICIO_CUSCO));
 
-        $io->section('Componente nuevo');
-        $nuevo = $this->em->getRepository(TravelComponente::class)
-            ->findOneBy(['nombreInterno' => self::COMPONENTE_NUEVO['nombre']]);
+        $io->section('Traslado del hotel al punto de salida');
+        $traslado = $this->em->getRepository(TravelComponente::class)
+            ->findOneBy(['nombreInterno' => self::COMPONENTE_TRASLADO]);
 
-        if ($nuevo !== null) {
-            $io->text(sprintf('  ya existe · %s', self::COMPONENTE_NUEVO['nombre']));
-        } else {
-            $io->text(sprintf(
-                '  %s · %s   %s S/ %s',
-                $simula ? 'crearía' : 'creado ',
-                self::COMPONENTE_NUEVO['nombre'],
-                self::COMPONENTE_NUEVO['tarifa'],
-                self::COMPONENTE_NUEVO['monto'],
-            ));
+        if ($traslado === null) {
+            $io->error(sprintf('No existe «%s».', self::COMPONENTE_TRASLADO));
+
+            return Command::FAILURE;
+        }
+
+        $io->text(sprintf('  usa · %s', self::COMPONENTE_TRASLADO));
+
+        // El duplicado que creó una versión anterior de este comando. Se le reapunta lo que
+        // cuelgue y se borra, con su tarifa inventada: el bueno es el que trae el cuadro de flota.
+        $duplicado = $this->em->getRepository(TravelComponente::class)
+            ->findOneBy(['nombreInterno' => self::DUPLICADO]);
+
+        if ($duplicado !== null) {
+            /** @var list<TravelSegmentoComponente> $colgados */
+            $colgados = $this->em->getRepository(TravelSegmentoComponente::class)
+                ->findBy(['componente' => $duplicado]);
+
+            foreach ($colgados as $pivote) {
+                $io->text(sprintf(
+                    '  %s · reapunta «%s» al bueno',
+                    $simula ? 'haría ' : 'hecho ',
+                    $pivote->getSegmento()?->getSlug() ?? '?',
+                ));
+
+                if (!$simula) {
+                    $pivote->setComponente($traslado);
+                    $pivote->setTarifaPredeterminada(null);
+                }
+            }
+
+            $io->text(sprintf('  %s · borra el duplicado «%s»', $simula ? 'haría ' : 'hecho ', self::DUPLICADO));
 
             if (!$simula) {
-                $nuevo = (new TravelComponente())
-                    ->setNombreInterno(self::COMPONENTE_NUEVO['nombre'])
-                    ->setTitulo([['language' => 'es', 'content' => 'Traslado al Terminal Terrestre']])
-                    ->setTipo(ComponenteTipoEnum::TRANSPORTE);
-                $this->em->persist($nuevo);
+                $this->em->flush();
 
-                $tarifa = new TravelTarifa();
-                $tarifa->setComponente($nuevo);
-                $tarifa->setNombreInterno(self::COMPONENTE_NUEVO['nombre'] . ' · ' . self::COMPONENTE_NUEVO['tarifa']);
-                $tarifa->setTitulo([['language' => 'es', 'content' => self::COMPONENTE_NUEVO['tarifa']]]);
-                $tarifa->setMoneda($moneda);
-                $tarifa->setMonto(self::COMPONENTE_NUEVO['monto']);
-                $this->em->persist($tarifa);
+                foreach ($duplicado->getTarifas() as $tarifa) {
+                    $this->em->remove($tarifa);
+                }
+
+                $this->em->flush();
+                $this->em->remove($duplicado);
                 $this->em->flush();
             }
+        }
+
+        if (!$simula) {
+            $trfCusco->addComponente($traslado);
+            $this->em->flush();
         }
 
         $io->section('Pool de Transporte en Puno');
@@ -404,7 +429,8 @@ final class CrearConexionPunoCommand extends Command
             'TRF_PUN no lleva plantilla, como TRF_CUZ y TRF_LIM: es un repertorio del que se toma',
             'lo que haga falta en cada cotización, no un guion.',
             '',
-            'La tarifa del traslado nuevo (S/ 35) es un supuesto: confírmala con el proveedor.',
+'El traslado del hotel al punto de salida usa el componente que ya existía, con su cuadro',
+            'de flota (Bus 20, Master 14, Sprinter 16, Van 35), no una tarifa nueva.',
         ]);
 
         if ($simula) {
