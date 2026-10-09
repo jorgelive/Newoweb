@@ -47,8 +47,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * ordenaría el día al revés, así que esta plantilla lo pone a las **05:30**. Es un supuesto
  * operativo —dos horas de Cusco a Ollantaytambo más margen— que conviene confirmar.
  *
- * El retorno directo se queda con su hora global, 18:20, que ya es posterior al tren de las
- * 14:30: ahí no hace falta inventar nada.
+ * ⚠️ **El retorno NO puede quedarse con su hora global**, aunque así se creó al principio con el
+ * argumento de que 18:20 ya era posterior al tren de las 14:30. Ser posterior no basta: el
+ * pasajero esperaba casi dos horas en la estación. Sale a la llegada del tren, 16:30. Y el
+ * contacto en el hotel no tenía hora ninguna y la cotización le ponía la que le tocaba —las
+ * 08:00, con el bus subiendo a las 07:00—. Lo destapó la propuesta EG95UF; las plantillas ya
+ * creadas las corrige `app:travel:fijar-horas-plantillas-mapi`.
  */
 #[AsCommand(
     name: 'app:travel:crear-plantillas-mapi',
@@ -111,6 +115,10 @@ final class CrearPlantillasMapiCommand extends Command
                 // ⚠️ Supuesto: la global son las 12:00 y delante de un tren de las 07:45
                 // ordenaría el día al revés.
                 'TRANS_DIRECT_SAL-MAPI-CUZ_OLL' => '05:30',
+                // Media hora antes del bus de subida, que sale a las 07:00.
+                'CONTACT-MAPI-HTL' => '06:30',
+                // A la llegada del tren de retorno (14:30 → 16:30), no a la global de las 18:20.
+                'TRANS_DIRECT_RET-MAPI-OLL_CUZ' => '16:30',
                 // El resto, copiadas de «2D MAPI: OLLA MAPI OLLA CUZ (BM)», que es su hermana.
                 'SUBBAJ_BUS-MAPI-SUB' => '07:00',
                 'VIS-MAPI-C2|Ingreso a Machu Picchu' => '08:00',
