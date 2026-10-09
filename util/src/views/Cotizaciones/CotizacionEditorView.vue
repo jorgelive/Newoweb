@@ -4970,7 +4970,13 @@ store.$onAction(({ name, args }) => {
               </div>
             </aside>
 
-            <main class="w-full md:flex-1 bg-[#F8FAFC] flex flex-col shrink-0 transition-all duration-300"
+            <!-- ⚠️ `md:shrink md:min-w-0`: en escritorio este panel es un hijo flex de una fila, y
+                 sin `min-w-0` no puede encogerse por debajo del ancho de su contenido — empujaba
+                 hacia la derecha y el modal lo recortaba, con la barra de «Actualizar», la fecha y
+                 el botón de borrar cortados. El `shrink-0` se queda para el móvil, donde la fila es
+                 una columna y lo que no debe encogerse es la ALTURA del acordeón. Es el mismo
+                 fallo que tenía el botón «Aplicar» con el `SearchableSelect`, un piso más abajo. -->
+            <main class="w-full md:flex-1 bg-[#F8FAFC] flex flex-col shrink-0 md:shrink md:min-w-0 transition-all duration-300"
                   :class="activeAccordion === 'parrafos' ? 'flex-1 min-h-0' : 'h-auto'">
 
               <div class="md:hidden flex justify-between items-center px-4 py-4 bg-slate-200 hover:bg-slate-300 cursor-pointer transition-colors border-b border-slate-300"
@@ -4982,9 +4988,9 @@ store.$onAction(({ name, args }) => {
               <div class="flex-1 overflow-y-auto p-4 md:p-8" :class="{'hidden md:block': activeAccordion !== 'parrafos'}">
                 <div class="max-w-3xl mx-auto pb-20 relative">
 
-                  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                  <div class="flex flex-col md:flex-row md:flex-wrap md:items-center justify-between gap-4 mb-6">
                     <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest hidden md:flex items-center"><i class="fas fa-stream mr-2"></i> Párrafos en la Cotización</h3>
-                    <div class="flex items-center gap-3 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm w-fit ml-auto">
+                    <div class="flex items-center gap-3 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm w-fit max-w-full ml-auto">
 
                       <button @click="handleActualizarTextos"
                               :disabled="isActualizandoTextos"
