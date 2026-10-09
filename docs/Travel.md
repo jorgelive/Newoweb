@@ -2595,7 +2595,7 @@ es un error de formato para nadie, es una cotización con un álbum de un dólar
 | Que un proveedor pueda (o no) nombrarse ante el cliente | `src/Travel/Entity/TravelOrganizacion.php` | `$visibleParaCliente` — **semilla, no veto**; espejo TS en `proveedorModel.ts` |
 | Añadir o retirar un centro turístico | `src/Travel/Entity/TravelLugar.php` | `$nombre`, `$orden`, `$activo` — **desactivar, no borrar** |
 | Cambiar las etiquetas de un componente | `src/Travel/Entity/TravelComponente.php` | `$lugares` (lado dueño) |
-| A quién se le compra un componente | `src/Travel/Entity/TravelComponente.php` | `$proveedor`, `$proveedorServicio` — **no** están en la tarifa |
+| A quién se le compra un componente | `src/Travel/Entity/TravelTarifa.php` | `$prestador`, `$prestadorServicio`, `$comprador` — cuelgan de la TARIFA, no del componente: una ficha puede tener tarifas de empresas distintas (§7). El campo estuvo seis días en el componente y volvió |
 | Cómo llama el proveedor a una tarifa | `src/Travel/Entity/TravelTarifa.php` | `$nombreParaProveedor` — lo usa la Orden de Servicio |
 | Cambiar la cobertura de un proveedor | `src/Travel/Entity/TravelOrganizacion.php` | `$lugares` (lado dueño) |
 | Etiquetar muchos componentes de golpe | `src/Travel/Controller/Crud/TravelLugarCrudController.php` | `componentes` + `by_reference: false` |

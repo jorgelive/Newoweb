@@ -37,6 +37,8 @@ arreglar el precio. Léase el informe antes; para eso lo imprime fila a fila.
 3. [Pool o plantilla](#3-pool-o-plantilla)
 4. [La receta](#4-la-receta)
 4 bis. [El contrato de escritura de cada entidad](#4-bis-el-contrato-de-escritura-de-cada-entidad)
+4 ter. [Los ítems: el «qué incluye» que lee el pasajero](#4-ter-los-ítems-el-qué-incluye-que-lee-el-pasajero)
+4 quater. [Un servicio entero en un comando](#4-quater-un-servicio-entero-en-un-comando)
 5. [Los valores por defecto que hay que poner](#5-los-valores-por-defecto-que-hay-que-poner)
 6. [AutoTranslate: por qué esto va por comando](#6-autotranslate-por-qué-esto-va-por-comando)
 7. [Trampas que ya mordieron](#7-trampas-que-ya-mordieron)
@@ -723,6 +725,8 @@ cada tabla al crear una fila, con qué se reconoce una que ya existe, y qué se 
 | `TravelItinerarioSegmentoRel` | `itinerario`, `segmento`, `dia`, `orden` | `(itinerario, segmento, dia)` | **no** | — |
 | `TravelLugar` | `nombre` | `nombre` | **sí**, índice único | — |
 | `TravelPunto` | `nombre` | `nombre` | **sí**, índice único | — |
+| `TravelItemDiccionario` | `nombreInterno`, `titulo` | `nombreInterno` | **no** | AutoTranslate → `titulo` |
+| `TravelComponenteItem` | `componente`, `diccionario`, `modo`, `orden` | `(componente, diccionario)` | **no** | — |
 | pools (`*_pool`) | las dos columnas | la pareja entera | **sí**, es la PK | — |
 
 `titulo` y `descripcion` son `json` **NOT NULL**: aceptan `[]`, no `null`. Un `setTitulo([])` pasa
@@ -993,6 +997,201 @@ Es deuda anterior, no la deja tu carga, así que la forma de usarla es **compara
 después de tu comando**, no esperar una lista vacía. Un componente sin tarifa entra en la
 cotización a cero y nadie lo nota.
 
+## 4 ter. Los ítems: el «qué incluye» que lee el pasajero
+
+Es el paso que este documento no tenía y el que más barato sale olvidar, porque **el producto se
+ve entero sin él**: tiene segmentos, tarifas, plantilla y precio. Lo único que le falta es decir
+qué se compró.
+
+```
+TravelComponente ──► TravelComponenteItem ──► TravelItemDiccionario
+                     modo · orden              nombre_interno · titulo (i18n)
+```
+
+⚠️ **Es la norma, no un extra.** Medido el 08/10/2026: de los **52** componentes de tipo `pool`,
+**45 llevan ítems**. Los que no, son los que alguien cargó sin ellos. El desglose viaja a la
+cotización en `snapshot_items` y es lo que el pasajero lee como «qué incluye».
+
+### El diccionario es vocabulario CONTROLADO
+
+96 términos compartidos por todo el catálogo. Antes de inventar uno hay que buscar el que ya
+dice lo mismo — y casi siempre está:
+
+```sql
+SELECT nombre_interno FROM travel_item_diccionario WHERE nombre_interno LIKE '%casco%';
+```
+
+Al cargar las siete rutas de cuatrimotos hacían falta diez términos y **nueve ya existían**,
+incluidos `Armadura completa`, `Recorrido en Zipline` y `Arnés de seguridad`, estos dos sin usar
+por nadie. Sólo hubo que crear `Poncho de lluvia`.
+
+**Copia la lista del hermano más completo**, que es más fiable que redactarla del folleto. Para
+un tour de cuatrimotos la daba «Cuatrimotos en Piuray Ocotuan»:
+
+```
+1 Guia Profesional   2 Transporte   3 Cuatrimotos
+4 Casco              5 Armadura completa   6 Guantes
+```
+
+⚠️ **`modo` es `ItemModoEnum`, NO `ComponenteModoEnum`.** Se llaman casi igual y tienen casos
+distintos —el de ítem añade `OPCIONAL`—. `php -l` no lo caza; PHPStan sí.
+
+⚠️ **El «no incluye» NO se modela aquí**, aunque el enum lo permita. En todo el catálogo hay
+**5** filas `no_incluido` frente a **211** `incluido`: lo que no entra se cuenta en el texto del
+segmento, y meterlo como ítem sería una excepción para un solo producto.
+
+### La revisión del diccionario (08/10/2026)
+
+Se miraron los 96 términos. Lo que salió, y qué se hizo con cada cosa —
+`app:travel:limpiar-diccionario-items`, con `--dry-run`:
+
+| Qué | Cuál | |
+|---|---|---|
+| Dos términos que son uno | `Transporte Cusco de Action a Valley` · `Carpa comedor con sillas y mesas` | **fusionados** |
+| Erratas | `Botiquin`, `Degustacion` (×2), `cargador de ceular` | **corregidas** |
+| Un término **sin traducir** | `Almuerzo (Dia 3)` — 0 idiomas; los otros 95 tienen 7 | **titulado** |
+| Un título que **miente** | `Almuerzo (Dia 5)` decía «Cena (Dia 5)» | **corregido** |
+| No son duplicados | `Ticket de ingreso` / `Tickets de ingreso` — uno y varios | se quedan |
+| Mezcla de idioma | `Transporte from Hidroeléctrica to Cusco` | redacción, no errata |
+| Dudoso | `Bus Cusco 180ª` — puede ser 180° y puede no serlo | sin tocar |
+| **Comidas numeradas por día** | 11 términos `Almuerzo (Dia N)`, `Desayuno (Dia N)`, `Cena (Dia N)`, **8 sin usar** | patrón, ver abajo |
+
+⚠️ **Al fusionar, mira el USO antes que el nombre.** `Transporte Cusco de Action a Valley` parece
+una ruta distinta y es la misma con las palabras cambiadas de sitio; lo delata que los tres
+productos de Action Valley llevan ida y vuelta y sólo uno tiene la rota.
+
+⚠️ **Al elegir cuál de los dos se queda, gana el que promete menos.** Se conservó el genérico
+`Carpa Comedor` y no `Carpa comedor con sillas y mesas`: el detalle es cierto en el Camino Inca,
+que es quien lo escribió, pero afirmarlo también del Salkantay sería prometer en su nombre algo
+que nadie ha comprobado.
+
+Las comidas numeradas son un patrón, no una errata: el vocabulario crece con la duración del
+trek más largo que alguien cargue. Qué día ocurre una comida ya lo dice el pivote; el término
+sólo debería decir qué es. Es el mismo argumento por el que el sustantivo de la unidad es un
+campo y no un caso del enum (`docs/Travel.md`, cabecera).
+
+### 🔥 `findOneBy` por nombre NO distingue tildes
+
+La columna va en **`utf8mb4_unicode_ci`**, que es insensible a acentos: para MySQL `'Botiquin'`
+y `'Botiquín'` son la misma cadena.
+
+Se ve en cuanto corriges una tilde. El `UPDATE` entra bien, y en la pasada siguiente el
+`findOneBy(['nombreInterno' => 'Botiquin'])` **vuelve a encontrarlo** —ya corregido— y el comando
+cree que sigue pendiente: reescribe y dispara otra vez las siete traducciones, cada vez que se
+ejecute.
+
+```php
+$termino = $repo->findOneBy(['nombreInterno' => $viejo]);   // lo encuentra aunque ya esté bien
+
+if ($termino->getNombreInterno() === $nuevo) {              // ESTA es la que decide: PHP sí distingue
+    continue;
+}
+```
+
+**La regla:** cuando el cambio es sólo de acentuación o de mayúsculas, la comprobación de
+idempotencia va en PHP, no en la consulta. Y de rebote, por lo mismo, **no se puede crear un
+término que sólo difiera en una tilde de otro**: `findOneBy` devolvería el que ya hay.
+
+---
+
+## 4 quater. Un servicio entero en un comando
+
+Lo que enseñó `app:travel:crear-cuatrimotos-maras`, que carga **7 rutas, 11 segmentos, 3 entradas
+y 50 ítems** en un servicio nuevo. Cinco cosas que no se deducen de la receta de §4.
+
+### ⚠️ Con varias rutas, la idempotencia va por la PLANTILLA
+
+Cortar por el componente es lo natural y es lo que falla. `Pool Cuatrimoto Moray y Salineras` ya
+existía —era un componente genérico huérfano, con tarifas de dos proveedores y **cero
+segmentos**—. Un `findOneBy` por componente habría dicho «ya existe», saltado la ruta entera y
+dejado el huérfano igual de inútil que estaba.
+
+```php
+// la plantilla decide si esta ruta ya está cargada
+$itinerario = $repo->findOneBy(['slug' => $def['plantillaSlug']]);
+if ($itinerario !== null) { continue; }
+
+// el componente se busca aparte: puede existir y hay que REUTILIZARLO
+$componente = $repo->findOneBy(['nombreInterno' => $def['componente']]);
+```
+
+### ⚠️ Si el componente ya existía, sus tarifas ganan
+
+Crearle encima las de la constante las duplicaría sin que nada lo impida: `travel_tarifa` no
+tiene clave natural (§4 bis). Las suyas las puso quien negoció el precio, así que el comando las
+lee y toma la primera como `tarifaPredeterminada` en vez de escribir las propias.
+
+### ⚠️ Los ítems van en una pasada APARTE del bucle de rutas
+
+Consecuencia directa de lo anterior: si viven dentro del bucle, un componente que se creó sin
+ítems no los recibe nunca, porque en la segunda pasada el bucle ya no entra. Van en su propio
+recorrido, comprobando la pareja `(componente, término)`, que es lo que de verdad los identifica.
+
+La regla general: **lo que se comprueba por una clave distinta va en su propia pasada.** Vale
+igual para los pools y para las entradas.
+
+### Reutilizar un segmento arrastra lo que cuelga de él
+
+`Ingreso a Maras` no hizo falta escribirlo: cuelga **globalmente** del segmento de las Salineras
+—`itinerarioContexto` y `dia` a `null`, el cubo «siempre que se use el segmento» de
+`docs/Travel.md` §4—, así que las cinco rutas que lo reutilizan lo heredan. Añadirlo otra vez lo
+habría duplicado en la cotización.
+
+Antes de escribir un pivote, mira si el segmento que reutilizas ya lo trae:
+
+```sql
+SELECT c.nombre_interno, sc.itinerario_contexto_id, sc.dia
+  FROM travel_segmento_componente sc
+  JOIN travel_componente c ON c.id = sc.componente_id
+  JOIN travel_segmento s ON s.id = sc.segmento_id
+ WHERE s.slug = 'EL-SLUG-QUE-REUTILIZAS';
+```
+
+### ⚠️ Un ancla compartida obliga a atar las entradas por contexto
+
+Las tres rutas compartidas arrancan en el **mismo** segmento de recojo, y una de ellas no pasa
+por Moray. Colgar ahí el Boleto Turístico de forma global se lo colaría a quien no lo necesita,
+así que va con `itinerarioContexto` a cada plantilla — el cubo «sólo dentro de esa plantilla».
+
+Es la diferencia con `MARAS_MORAY`, que sí lo cuelga global de sus anclas porque **las suyas son
+de una sola ruta**. El mismo dato, dos sitios distintos, y lo que decide es si el ancla se
+comparte.
+
+### El proveedor va en la tarifa, no en el nombre
+
+Ocho tarifas de cuatrimotos llevaban el **nombre de pila del dueño** —«John Individual», «Katy
+ATV Doble»— y `prestador_id` a null. El dato estaba, en el único sitio donde no sirve: la Orden
+de Servicio lee `prestador` y `comprador`, no el nombre de la tarifa.
+
+`app:travel:asignar-prestadores-cuatrimotos` lo mueve al campo que lo representa y deja en el
+nombre sólo lo que distingue la fila de sus hermanas. **No pisa una tarifa que ya tenga
+prestador**, y las personas cuya empresa no se conoce las informa y las deja intactas:
+inventarles una sería peor que no tener el dato.
+
+### ⚠️ El título público de los `pool` es un hueco conocido
+
+De los 52 componentes `pool`, **40 no tienen título público**, y son el único tipo con huecos —
+los otros 213 componentes del catálogo están al 100%. Se nota: las **29** líneas de cotización
+sin `titulo_snapshot` son exactamente las de tipo `pool`.
+
+No revienta porque la guía cae al título del segmento
+(`PaxCotizacionGuiaView.vue`: `traducir(c.tituloSnapshot) || delSegmento`), pero el pasajero lee
+dónde está en vez de qué compró. Si cargas un `pool`, **dale título público**.
+
+### Y una regla que no es de código: la jerarquía de fuentes
+
+El proveedor publicaba su web, un tarifario de agencias y un documento de itinerarios. Los tres
+decían cosas distintas, y la web —archivada, con el dominio vencido— estaba desactualizada:
+daba otra base de operaciones, otro modelo de vehículo y describía un sitio arqueológico que no
+es el que se visita.
+
+**Lo que el proveedor te factura manda sobre lo que el proveedor publica**, y entre dos
+documentos suyos gana el más reciente. Un producto que está en el tarifario nuevo y no en la web
+no es dudoso: es posterior. Y al revés, uno que está en la web y no en el tarifario está
+retirado.
+
+---
+
 ## 5. Los valores por defecto que hay que poner
 
 ### La hora: **coloca**, no describe
@@ -1254,6 +1453,9 @@ Antes de dar por cerrada una carga:
 □ php bin/phpunit
 □ ¿cada segmento nuevo tiene componente?      (salvo excursión: sólo el ancla)
 □ ¿cada componente tiene tarifa?
+□ ¿cada componente de excursión tiene ÍTEMS?   el «qué incluye» del pasajero (§4 ter)
+□ ¿los términos nuevos del diccionario salieron con 7 idiomas?
+□ ¿el componente `pool` tiene TÍTULO PÚBLICO?  es el hueco del 77 % (§4 quater)
 □ ¿la relación tiene tarifaPredeterminada?
 □ ¿tiene hora, o es a propósito que no?
 □ ¿está en el pool del servicio, segmentos Y componentes?
@@ -1274,6 +1476,7 @@ prueba de idempotencia**, y como ninguna clave natural está protegida por la ba
 | Necesidad | Archivo | Símbolo |
 |---|---|---|
 | Añadir un tipo de componente | `src/Travel/Enum/ComponenteTipoEnum.php` | los `case` |
+| **Añadir un término al «qué incluye»** | `TravelItemDiccionario` | busca primero el que ya existe (§4 ter); `modo` es `ItemModoEnum` |
 | Cambiar cómo se ordena un día | `pax/.../PaxCotizacionGuiaView.vue` | `itinerarioVista` |
 | Prohibir una combinación al guardar | la entidad | `#[Assert\Callback]` |
 | Ver si un segmento saldrá con fotos | panel, ficha del segmento | `virtualCadenaFotos` |
@@ -1308,3 +1511,6 @@ prueba de idempotencia**, y como ninguna clave natural está protegida por la ba
 | `app:travel:redaccion-punta-cana` | el marcado como contrato del campo, no como gusto · separar retitular de reescribir |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
 | `app:travel:crear-seguro-de-viaje` | la receta de §4 **entera** en un comando · producto diario sin campo «por día» · `EXTRAS` para lo multi-día que no ubica |
+| `app:travel:crear-cuatrimotos-maras` | **servicio entero con varias rutas** · idempotencia por plantilla · reutilizar un componente con sus tarifas · ítems en pasada aparte · entradas atadas por contexto (§4 quater) |
+| `app:travel:asignar-prestadores-cuatrimotos` | sacar al proveedor del nombre de la tarifa y ponerlo en `prestador` · dejar intacto lo que no se sabe |
+| `app:travel:limpiar-diccionario-items` | fusionar términos que son uno · corregir erratas con la sobrescritura activada · **idempotencia en PHP cuando el cambio es una tilde** |
