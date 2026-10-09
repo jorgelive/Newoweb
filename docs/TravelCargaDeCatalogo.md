@@ -704,10 +704,17 @@ componentes vinculados»**, mientras su hermano —idéntico salvo por esa colum
 Para un ancla de excursión pasa desapercibido, porque la plantilla trae su propio pivote de
 contexto; para un traslado, que se usa cualquier día, lo deja vacío casi siempre.
 
-Ya se había copiado a 42 pivotes del catálogo. Los de las cargas de octubre los arregló
-`app:travel:quitar-dia-a-pivotes-globales`; los del resort de Punta Cana, Miraflores, Saona y
-Coco Bongo siguen con día 1 y se revisan aparte, porque en alguno —un check-in— el día 1 puede
-ser lo que se quería.
+Ya se había copiado a 42 pivotes del catálogo, y `app:travel:quitar-dia-a-pivotes-globales`
+los pasó todos a NULL. Los 21 del resort de Punta Cana, Miraflores, Saona y Coco Bongo se
+revisaron antes contra las cotizaciones reales: **los 75 usos estaban en el día 1 y ninguno había
+fallado** — porque el resort se cotiza con un cotservicio por día, y hasta el check-out del quinto
+día cae en el día 1 de su cotservicio. Se pasaron igual, porque con NULL siguen entrando donde
+entraban y dejan de ser una trampa el día que una estancia se arme como cotservicio de varios
+días.
+
+⚠️ **Lo que sí distingue un caso de otro es eso**: un día puesto en el global sólo muerde cuando
+el segmento cae en un cotservicio de VARIOS días. La de Machu Picchu en dos días lo es; un día de
+resort, no.
 
 ⚠️ **Y tampoco lleva hora el global de un ANCLA**: la hora de una excursión es de cada plantilla
 (§4, «Cuando hay plantilla, el pivote se escribe DOS veces»). Un traslado o una comida sí la

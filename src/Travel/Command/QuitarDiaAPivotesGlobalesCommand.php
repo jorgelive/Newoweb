@@ -40,10 +40,21 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * carga se escriben copiando ese esqueleto, así que el error se propagó. Los dos están
  * corregidos; esto deshace lo que ya se había escrito.
  *
- * ⚠️ **Sólo toca lo cargado el 08–09/10/2026**: cuatrimotos de Maras, Titicaca, la conexión de
- * Puno y el retorno compartido. Hay otros 21 pivotes con el mismo patrón —resort de Punta Cana,
- * Miraflores, Saona, Coco Bongo— y en algunos el día 1 puede ser intencionado (un check-in sólo
- * ocurre el primer día). Esos se deciden aparte, uno por uno.
+ * ── El alcance, en dos tandas ───────────────────────────────────────────────
+ *
+ * **Primero lo cargado el 08–09/10/2026**: cuatrimotos de Maras, Titicaca, la conexión de Puno
+ * y el retorno compartido. Ahí los traslados fallaban de verdad.
+ *
+ * **Después los 21 del mismo linaje** —resort de Punta Cana, Miraflores, Saona, Coco Bongo—,
+ * revisados uno por uno contra las cotizaciones reales. Resultado: los 75 usos están todos en el
+ * día 1, **ninguno ha fallado**. No por el día 1 sino porque el resort se cotiza con un
+ * cotservicio por día, así que hasta el check-out del quinto día cae en el día 1 de su
+ * cotservicio. Se pasan a NULL igual: ese día no lo decidió nadie —es el mismo artefacto del
+ * esqueleto—, con NULL siguen entrando donde entran hoy, y el día que un resort se arme como
+ * cotservicio de varios días, el check-out y el día libre no se quedarán vacíos.
+ *
+ * ⚠️ **Sólo el día 1.** Hay pivotes globales con `dia = 2` que sí son intencionados —el doc los
+ * cuenta, 18— y ése es un filtro que alguien quiso. El día 1 era el copiado.
  *
  * Quitar el día no duplica nada en las plantillas: el pivote de CONTEXTO, el que fija la hora,
  * sigue en su sitio y es el que manda dentro de ellas.
@@ -62,11 +73,21 @@ final class QuitarDiaAPivotesGlobalesCommand extends Command
      * @var list<string>
      */
     private const ALCANCE = [
+        // las cargas de octubre
         '%ATV_MARAS%',
         '%TITICACA%',
         'TRANS-%',
         'REC-%',
         'TRANS_DIRECT_RET-MAPI-OLL_CENTRO',
+        // el mismo linaje, revisado contra las cotizaciones reales
+        'ACT-RESORT-%',
+        'ALM-RESORT-%',
+        'CEN-RESORT-%',
+        'DES-RESORT-%',
+        'ALM-WALK_MIR-%',
+        'DES-APT_LIM',
+        'VIS-COCO_BONGO_PUJ-%',
+        'VIS-SAONA-%',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
@@ -90,7 +111,7 @@ final class QuitarDiaAPivotesGlobalesCommand extends Command
             ->join('sc.segmento', 's')->addSelect('s')
             ->join('sc.componente', 'c')->addSelect('c')
             ->where('sc.itinerarioContexto IS NULL')
-            ->andWhere('sc.dia IS NOT NULL');
+            ->andWhere('sc.dia = 1');
 
         $patrones = $qb->expr()->orX();
 
