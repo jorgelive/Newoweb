@@ -703,9 +703,14 @@ final class CrearCuatrimotosMarasCommand extends Command
             }
 
             if ($componente === null) {
+                // ⚠️ SIN título público, y es deliberado. En un `pool` o una `privada` el título
+                // del componente GANA al del segmento en la guía
+                // (`traducir(c.tituloSnapshot) || delSegmento`), así que ponerlo sustituye la
+                // narrativa del bloque —«Recojo e inicio de la aventura»— por el nombre del
+                // producto, que el pasajero ya está viendo en la cabecera del servicio. Qué
+                // incluye lo cuentan los ítems, no esto. Ver §4 quater del doc de carga.
                 $componente = (new TravelComponente())
                     ->setNombreInterno($def['componente'])
-                    ->setTitulo([['language' => 'es', 'content' => $def['titulo']]])
                     ->setTipo($def['tipo']);
                 $this->em->persist($componente);
             }
@@ -823,6 +828,45 @@ final class CrearCuatrimotosMarasCommand extends Command
             $this->em->flush();
         }
 
+        // ── Los títulos públicos que sobran ─────────────────────────────────────────────
+        //
+        // Pasada propia por lo mismo que los ítems: se comprueba por una clave distinta de la
+        // plantilla. `app:travel:renombrar-componente` escribe el título público salvo que se
+        // le pase `--solo-interno`, así que el componente reutilizado acabó anunciando al
+        // cliente su propio nombre interno, «Pool Cuatrimoto Moray y Salineras».
+        $io->section('Títulos públicos');
+        $vaciados = 0;
+
+        foreach (self::RUTAS as $def) {
+            $componente = $this->em->getRepository(TravelComponente::class)
+                ->findOneBy(['nombreInterno' => $def['componente']]);
+
+            if ($componente === null || $componente->getTitulo() === []) {
+                continue;
+            }
+
+            ++$vaciados;
+            $io->text(sprintf(
+                '  %s · %-44s quita «%s»',
+                $simula ? 'haría  ' : 'hecho  ',
+                $def['componente'],
+                $componente->getTitulo()[0]['content'] ?? '',
+            ));
+
+            if (!$simula) {
+                $componente->setSobreescribirTraduccion(true);
+                $componente->setTitulo([]);
+            }
+        }
+
+        if (!$simula) {
+            $this->em->flush();
+        }
+
+        if ($vaciados === 0) {
+            $io->text('  todos sin título público, que es lo correcto.');
+        }
+
         // ── Los ítems, en una pasada aparte ─────────────────────────────────────────────
         //
         // ⚠️ Van FUERA del bucle de rutas a propósito. La idempotencia de una ruta la decide su
@@ -889,11 +933,12 @@ final class CrearCuatrimotosMarasCommand extends Command
 
         $io->newLine();
         $io->success(sprintf(
-            '%s %d segmento(s), %d ruta(s) y %d ítem(s).',
+            '%s %d segmento(s), %d ruta(s), %d ítem(s) y %d título(s) retirado(s).',
             $simula ? 'Se crearían' : 'Creados',
             $nuevos,
             $rutas,
             $puestos,
+            $vaciados,
         ));
 
         $io->note([

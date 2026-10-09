@@ -1168,15 +1168,35 @@ nombre sólo lo que distingue la fila de sus hermanas. **No pisa una tarifa que 
 prestador**, y las personas cuya empresa no se conoce las informa y las deja intactas:
 inventarles una sería peor que no tener el dato.
 
-### ⚠️ El título público de los `pool` es un hueco conocido
+### Un `pool` SIN título público es lo correcto, no un hueco
 
-De los 52 componentes `pool`, **40 no tienen título público**, y son el único tipo con huecos —
-los otros 213 componentes del catálogo están al 100%. Se nota: las **29** líneas de cotización
-sin `titulo_snapshot` son exactamente las de tipo `pool`.
+De los 52 componentes `pool`, **40 no tienen título público** — el único tipo con «huecos»,
+porque los otros 213 del catálogo están al 100%. Parece deuda y no lo es: en un `pool` el título
+sobra, y ponerlo empeora la guía.
 
-No revienta porque la guía cae al título del segmento
-(`PaxCotizacionGuiaView.vue`: `traducir(c.tituloSnapshot) || delSegmento`), pero el pasajero lee
-dónde está en vez de qué compró. Si cargas un `pool`, **dale título público**.
+Lo que decide es el fallback de `PaxCotizacionGuiaView.vue`:
+
+```js
+return store.traducir(c.tituloSnapshot) || delSegmento;
+```
+
+Para un `pool`, `mandaElSegmento()` es false, así que **si el componente tiene título, gana al
+del segmento**. Y el reparto de quién cuenta qué al pasajero ya está resuelto sin él:
+
+```
+el bloque del día          lo titula el SEGMENTO        «Recojo e inicio de la excursión»
+qué incluye lo comprado    lo dicen los ÍTEMS           modal de inclusiones (§4 ter)
+```
+
+Darle título al componente sustituye la narrativa por el nombre del producto en la cabecera del
+bloque, que es información que el pasajero ya tiene —está mirando la ficha de ese servicio— y
+pierde la que no tiene. Dejarlo vacío no es un olvido: es lo que deja hablar al segmento.
+
+⚠️ **Por eso las 29 líneas de cotización sin `titulo_snapshot` son todas de tipo `pool`, y están
+bien.** No las cuentes como deuda al medir.
+
+**La regla:** en un `pool`, el título público se rellena sólo si el segmento no basta para
+titular el bloque. Lo normal es que baste.
 
 ### Y una regla que no es de código: la jerarquía de fuentes
 
@@ -1455,7 +1475,7 @@ Antes de dar por cerrada una carga:
 □ ¿cada componente tiene tarifa?
 □ ¿cada componente de excursión tiene ÍTEMS?   el «qué incluye» del pasajero (§4 ter)
 □ ¿los términos nuevos del diccionario salieron con 7 idiomas?
-□ ¿el componente `pool` tiene TÍTULO PÚBLICO?  es el hueco del 77 % (§4 quater)
+□ ¿el `pool` se quedó SIN título público?      lo correcto; con él pisa al segmento (§4 quater)
 □ ¿la relación tiene tarifaPredeterminada?
 □ ¿tiene hora, o es a propósito que no?
 □ ¿está en el pool del servicio, segmentos Y componentes?
