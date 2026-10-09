@@ -53,8 +53,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * esqueleto—, con NULL siguen entrando donde entran hoy, y el día que un resort se arme como
  * cotservicio de varios días, el check-out y el día libre no se quedarán vacíos.
  *
- * ⚠️ **Sólo el día 1.** Hay pivotes globales con `dia = 2` que sí son intencionados —el doc los
- * cuenta, 18— y ése es un filtro que alguien quiso. El día 1 era el copiado.
+ * ⚠️ **Sólo el día 1.** El doc contaba 18 pivotes globales con `dia = 2` el 31/08/2026, y un
+ * día distinto del 1 sí puede ser un filtro que alguien quiso. Al aplicar esto el 09/10/2026 ya
+ * no quedaba ninguno —los 207 globales quedaron en NULL—, pero el filtro se mantiene: si vuelve a
+ * aparecer uno con día 2, que lo decida una persona y no este comando.
  *
  * Quitar el día no duplica nada en las plantillas: el pivote de CONTEXTO, el que fija la hora,
  * sigue en su sitio y es el que manda dentro de ellas.
