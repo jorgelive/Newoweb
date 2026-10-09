@@ -70,6 +70,19 @@ final class CrearRetornoCentroCuscoCommand extends Command
 
     private const PUNTO_ORIGEN = 'Estación de Ollantaytambo';
 
+    /**
+     * El hermano al que sustituye cuando la van es compartida.
+     *
+     * ⚠️ **De él se copian los pools**, y por eso no hay lista fija aquí: los dos son el mismo
+     * trayecto con distinta tarifa, así que **donde se ofrezca uno hay que ofrecer el otro**. Si
+     * mañana el de hotel entra en un servicio nuevo, volver a correr este comando arrastra el
+     * compartido detrás.
+     *
+     * Se cargó sólo en `TRF_CUZ` y no aparecía en el pool de MAPI, que es el servicio desde el
+     * que se cotiza: el constructor de storytelling ofrece el pool del servicio activo.
+     */
+    private const HERMANO = 'TRANS_DIRECT_RET-MAPI-OLL_CUZ';
+
     private const SEGMENTO = [
         'slug' => 'TRANS_DIRECT_RET-MAPI-OLL_CENTRO',
         'nombre' => 'Traslado de Ollantaytambo al centro de Cusco (servicio compartido)',
@@ -146,12 +159,10 @@ final class CrearRetornoCentroCuscoCommand extends Command
         $existente = $this->em->getRepository(TravelSegmento::class)
             ->findOneBy(['slug' => self::SEGMENTO['slug']]);
 
+        $segmento = $existente;
+
         if ($existente !== null) {
             $io->text(sprintf('  ya existe · %s', self::SEGMENTO['slug']));
-            $io->newLine();
-            $io->success('Nada que hacer.');
-
-            return Command::SUCCESS;
         }
 
         // La tarifa compartida de 15 va por defecto: es para lo que existe este segmento. La otra
@@ -174,7 +185,7 @@ final class CrearRetornoCentroCuscoCommand extends Command
             $predeterminada instanceof TravelTarifa ? self::TARIFA_POR_DEFECTO : '⚠ sin tarifa por defecto',
         ));
 
-        if (!$simula) {
+        if (!$simula && $existente === null) {
             $segmento = (new TravelSegmento())
                 ->setSlug(self::SEGMENTO['slug'])
                 ->setNombreInterno(self::SEGMENTO['nombre'])
@@ -186,7 +197,6 @@ final class CrearRetornoCentroCuscoCommand extends Command
                 ->setFinPunto($destino);
 
             $this->em->persist($segmento);
-            $servicio->addSegmento($segmento);
             $servicio->addComponente($componente);
 
             $this->em->persist(
@@ -203,8 +213,48 @@ final class CrearRetornoCentroCuscoCommand extends Command
             $this->em->flush();
         }
 
+        // Los pools, en pasada aparte: se comprueban por una clave distinta de la existencia del
+        // segmento, así que meterlos dentro del alta los dejaría sin poner en cuanto el segmento
+        // ya existiera — que es exactamente lo que pasó.
+        $io->section('Pools');
+        $hermano = $this->em->getRepository(TravelSegmento::class)
+            ->findOneBy(['slug' => self::HERMANO]);
+
+        if ($hermano === null) {
+            $io->error(sprintf('No existe el hermano «%s».', self::HERMANO));
+
+            return Command::FAILURE;
+        }
+
+        $faltan = [];
+
+        foreach ($hermano->getServicios() as $suyo) {
+            if ($segmento !== null && $segmento->getServicios()->contains($suyo)) {
+                continue;
+            }
+
+            $faltan[] = (string) $suyo->getCodigo();
+
+            if (!$simula && $segmento !== null) {
+                $segmento->addServicio($suyo);
+            }
+        }
+
+        $io->text($faltan === []
+            ? '  completo · ya está en los mismos pools que el de hotel.'
+            : sprintf('  %s · lo añade a %s', $simula ? 'haría ' : 'hecho ', implode(', ', $faltan)));
+
+        if (!$simula) {
+            $this->em->flush();
+        }
+
         $io->newLine();
-        $io->success($simula ? 'Se crearía 1 segmento.' : 'Creado 1 segmento.');
+        $io->success(sprintf(
+            '%s %s · %d pool(s).',
+            $existente === null ? ($simula ? 'Se crearía' : 'Creado') : 'Ya estaba',
+            self::SEGMENTO['slug'],
+            count($faltan),
+        ));
 
         $io->note([
             'No entra en ninguna plantilla: cuál de los dos retornos toca lo decide la tarifa que',
