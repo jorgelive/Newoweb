@@ -318,7 +318,14 @@ final class PartirSegmentosBimodalesCommand extends Command
                 continue;
             }
 
-            if (($segmento->getContenido()[0]['content'] ?? '') === $texto['contenido']
+            // ⚠️ No basta con que el español coincida: hay que comprobar que **se tradujo**. Si
+            // el listener falló —pasó con un segmento al desplegar— el texto queda en un solo
+            // idioma y una comparación por contenido lo daría por bueno para siempre. Con esto,
+            // volver a correr el comando lo reintenta.
+            $traducido = count($segmento->getTitulo()) > 1 && count($segmento->getContenido()) > 1;
+
+            if ($traducido
+                && ($segmento->getContenido()[0]['content'] ?? '') === $texto['contenido']
                 && ($segmento->getTitulo()[0]['content'] ?? '') === $texto['titulo']) {
                 $io->text(sprintf('  ya está  · %s', $slug));
                 continue;
