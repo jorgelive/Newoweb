@@ -126,9 +126,10 @@ final class PartirSegmentosBimodalesCommand extends Command
             'busContenido' => 'Tramo en bus hasta la estación de Poroy, donde se enlaza con el tren.',
         ],
         [
-            // ⚠️ El segundo tramo de este NO es «Wanchaq/Sol ↔ Hotel» como los otros tres, sino
-            // «Transporte Cusco ↔ Poroy». Puede ser correcto —otra movilidad— o un apunte
-            // equivocado. Se parte igual, por el componente que de hecho tiene, y se avisa.
+            // Estaba apuntado a «Transporte Cusco ↔ Poroy», que era un error: en bimodal el bus
+            // devuelve a Wanchaq y de ahí la movilidad lleva al hotel, igual que en los otros
+            // tres. La partición usa el componente que la fila tenía de hecho; corregirlo es
+            // {@see self::CORRECCIONES}, que corre después.
             'viejo' => 'TRANS_BIM_RET-MAPI-POR_CUZ',
             'interno' => 'Transporte Cusco ↔ Poroy (ida o vuelta)',
             'nuevoSlug' => 'TRANS_BIM_RET-MAPI-POR_HTL',
@@ -202,8 +203,28 @@ final class PartirSegmentosBimodalesCommand extends Command
                 . 'PeruRail: IncaRail no opera hacia Poroy. Va incluido en el boleto del tren.',
         ],
         'TRANS_BIM_RET-MAPI-POR_HTL' => [
-            'titulo' => 'De la llegada del bus al hotel',
-            'contenido' => 'Les esperamos al terminar el tramo en bus y les llevamos a su hotel.',
+            'titulo' => 'De la estación de Wanchaq al hotel',
+            'contenido' => 'El bus deja en la estación de Wanchaq, donde les esperamos para '
+                . 'llevarles a su hotel. Esta ruta es sólo de PeruRail: IncaRail no opera hacia Poroy.',
+        ],
+    ];
+
+    /**
+     * Componentes mal apuntados, por segmento. `de` es lo que hay; `a`, lo que debería ser.
+     *
+     * ⚠️ El retorno bimodal de Poroy colgaba de «Transporte Cusco ↔ Poroy», que es el traslado
+     * directo a la estación — otro servicio. En bimodal el bus devuelve a **Wanchaq** y de ahí
+     * la movilidad lleva al hotel, que es lo mismo que hacen las rutas de Ollantaytambo.
+     * Confirmado con el operador el 09/10/2026.
+     *
+     * Se reapunta el pivote en vez de crear otro: la hora, el modo y el contexto ya están bien.
+     *
+     * @var array<string, array{de: string, a: string}>
+     */
+    private const CORRECCIONES = [
+        'TRANS_BIM_RET-MAPI-POR_HTL' => [
+            'de' => 'Transporte Cusco ↔ Poroy (ida o vuelta)',
+            'a' => 'Transporte Wanchaq/Sol ↔ Hotel (ida o vuelta)',
         ],
     ];
 
@@ -307,6 +328,63 @@ final class PartirSegmentosBimodalesCommand extends Command
         // Los textos, en pasada aparte: la partición es idempotente por el slug nuevo, así que
         // en la segunda pasada el bucle de arriba no entra y una corrección de texto no llegaría
         // nunca. Aquí se compara contra lo que hay, que es lo que de verdad decide.
+        $io->section('Componentes mal apuntados');
+        $reapuntados = 0;
+
+        foreach (self::CORRECCIONES as $slug => $cambio) {
+            $segmento = $this->segmento($slug);
+
+            if ($segmento === null) {
+                $io->text(sprintf('  no existe · %s', $slug));
+                continue;
+            }
+
+            /** @var list<TravelSegmentoComponente> $pivotes */
+            $pivotes = $this->em->getRepository(TravelSegmentoComponente::class)
+                ->findBy(['segmento' => $segmento]);
+
+            $bueno = $this->em->getRepository(\App\Travel\Entity\TravelComponente::class)
+                ->findOneBy(['nombreInterno' => $cambio['a']]);
+
+            if ($bueno === null) {
+                $io->error(sprintf('  no existe el componente «%s».', $cambio['a']));
+
+                return Command::FAILURE;
+            }
+
+            $tocado = false;
+
+            foreach ($pivotes as $pivote) {
+                if ($pivote->getComponente()?->getNombreInterno() !== $cambio['de']) {
+                    continue;
+                }
+
+                $tocado = true;
+                ++$reapuntados;
+
+                $io->text(sprintf(
+                    '  %s · %s: «%s» → «%s»',
+                    $simula ? 'haría ' : 'hecho ',
+                    $slug,
+                    $cambio['de'],
+                    $cambio['a'],
+                ));
+
+                if (!$simula) {
+                    $pivote->setComponente($bueno);
+                    $pivote->setTarifaPredeterminada(null);
+                }
+            }
+
+            if (!$tocado) {
+                $io->text(sprintf('  ya está  · %s', $slug));
+            }
+        }
+
+        if (!$simula) {
+            $this->em->flush();
+        }
+
         $io->section('Textos');
         $escritos = 0;
 
@@ -351,9 +429,10 @@ final class PartirSegmentosBimodalesCommand extends Command
 
         $io->newLine();
         $io->success(sprintf(
-            '%s %d bimodal(es) y %d texto(s).',
+            '%s %d bimodal(es), %d componente(s) reapuntado(s) y %d texto(s).',
             $simula ? 'Se partirían' : 'Partidos',
             $partidos,
+            $reapuntados,
             $escritos,
         ));
 
