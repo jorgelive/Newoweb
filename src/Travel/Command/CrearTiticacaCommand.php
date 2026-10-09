@@ -413,7 +413,7 @@ final class CrearTiticacaCommand extends Command
                 'VIS-TITICACA-TAQUILE_PLAZA', 'ALM-TITICACA-TAQUILE', 'RET_EXC-TITICACA-PUNO',
             ],
             'items' => ['Transporte', 'Lancha', 'Guia Profesional', 'Tickets de ingreso', 'Almuerzo'],
-            'tarifas' => [],
+            'tarifas' => [['nombre' => 'Compartido', 'monto' => '80.00']],
         ],
         [
             'componente' => 'Pool Uros Taquile Folclórico',
@@ -506,7 +506,7 @@ final class CrearTiticacaCommand extends Command
             'items' => ['Transporte', 'Lancha', 'Guia Profesional', 'Tickets de ingreso',
                 'Hospedaje en casa de familia', 'Almuerzo (Dia 1)', 'Cena (Dia 1)',
                 'Desayuno (Dia 2)', 'Almuerzo (Dia 2)'],
-            'tarifas' => [],
+            'tarifas' => [['nombre' => 'Compartido', 'monto' => '160.00']],
         ],
         [
             // ⚠️ Luquina NO es una variante de la de Amantaní: Taquile va el día 1 y la noche se
@@ -689,6 +689,8 @@ final class CrearTiticacaCommand extends Command
             $predeterminada = null;
 
             if ($reutiliza) {
+                // Las suyas se enseñan, pero quien manda es el tarifario: la pasada «Tarifas
+                // 2026» de más abajo las pone al día.
                 foreach ($componente->getTarifas() as $tarifa) {
                     $io->text(sprintf('      tarifa suya · %s S/ %s', $tarifa->getNombreInterno(), $tarifa->getMonto()));
                     $predeterminada ??= $tarifa;
@@ -770,6 +772,130 @@ final class CrearTiticacaCommand extends Command
             $this->em->flush();
         }
 
+        // ── Las tarifas del tarifario 2026 ──────────────────────────────────────────────
+        //
+        // ⚠️ Cambia la regla que traía este comando. Al cargar se respetaban las tarifas del
+        // componente que ya existía, porque no había autoridad para contradecirlas. Ahora sí:
+        // el tarifario de agencias de Qhapaq es lo que factura, y lo que había era de fecha
+        // desconocida — un «Qhapac Adventures Rapida» de S/90 que no existe en 2026 y un full
+        // day a S/30, por debajo del medio día de tres horas.
+        //
+        // ⚠️ **Sólo se tocan las tarifas de Qhapaq.** Las de otros proveedores se dejan y se
+        // informan: no tengo su tarifario de 2026 y borrarlas sería tirar un dato que nadie
+        // puede reponer.
+        $io->section('Tarifas 2026');
+        $tocadas = 0;
+
+        foreach (self::RUTAS as $def) {
+            $componente = $this->em->getRepository(TravelComponente::class)
+                ->findOneBy(['nombreInterno' => $def['componente']]);
+
+            if ($componente === null) {
+                continue;
+            }
+
+            $esperadas = [];
+            // ⚠️ Las adoptadas se anotan por id de objeto: tras renombrarlas ya no están en
+            // `$esperadas`, y el bucle de abajo las tomaría por tarifas de Qhapaq fuera del
+            // tarifario y las borraría — justo la que se acaba de poner al día.
+            $adoptadas = [];
+
+            foreach ($def['tarifas'] as $t) {
+                $esperadas[$def['componente'] . ' · ' . $t['nombre']] = $t['monto'];
+            }
+
+            // Primero, adoptar por IMPORTE: si Qhapaq ya tiene una tarifa con ese monto es la
+            // misma con otro nombre, y renombrarla conserva su id. Borrarla y crear otra igual
+            // sería churn gratis, y rompería cualquier cosa que la citara.
+            foreach ($componente->getTarifas() as $tarifa) {
+                $nombre = (string) $tarifa->getNombreInterno();
+
+                if (isset($esperadas[$nombre]) || stripos($nombre, 'qhapa') === false) {
+                    continue;
+                }
+
+                $destino = array_search($tarifa->getMonto(), $esperadas, true);
+
+                if ($destino === false) {
+                    continue;
+                }
+
+                ++$tocadas;
+                $io->text(sprintf('  %s · renombra «%s» → «%s», mismo importe', $simula ? 'haría ' : 'hecho ', $nombre, $destino));
+
+                if (!$simula) {
+                    $tarifa->setNombreInterno($destino);
+                    $tarifa->setTitulo([['language' => 'es', 'content' => 'Compartido']]);
+                    $tarifa->setModalidad(TarifaModalidadEnum::COMPARTIDO);
+                    $tarifa->setPrestador($proveedor);
+                    $tarifa->setComprador($proveedor);
+                }
+
+                $adoptadas[spl_object_id($tarifa)] = true;
+                unset($esperadas[$destino]);
+            }
+
+            foreach ($componente->getTarifas() as $tarifa) {
+                if (isset($adoptadas[spl_object_id($tarifa)])) {
+                    continue;
+                }
+
+                $nombre = (string) $tarifa->getNombreInterno();
+
+                if (isset($esperadas[$nombre])) {
+                    if ($tarifa->getMonto() !== $esperadas[$nombre]) {
+                        ++$tocadas;
+                        $io->text(sprintf('  %s · %s  S/ %s → S/ %s', $simula ? 'haría ' : 'hecho ', $nombre, $tarifa->getMonto(), $esperadas[$nombre]));
+
+                        if (!$simula) {
+                            $tarifa->setMonto($esperadas[$nombre]);
+                        }
+                    }
+
+                    unset($esperadas[$nombre]);
+                    continue;
+                }
+
+                // Una tarifa de Qhapaq que el tarifario 2026 ya no tiene: sobra.
+                if (stripos($nombre, 'qhapa') !== false) {
+                    ++$tocadas;
+                    $io->text(sprintf('  %s · retira «%s» S/ %s, no está en el tarifario 2026', $simula ? 'haría ' : 'hecho ', $nombre, $tarifa->getMonto()));
+
+                    if (!$simula) {
+                        $this->em->remove($tarifa);
+                    }
+
+                    continue;
+                }
+
+                $io->text(sprintf('  respeta · «%s» S/ %s, de otro proveedor', $nombre, $tarifa->getMonto()));
+            }
+
+            foreach ($esperadas as $nombre => $monto) {
+                ++$tocadas;
+                $io->text(sprintf('  %s · añade «%s» S/ %s', $simula ? 'haría ' : 'hecho ', $nombre, $monto));
+
+                if ($simula) {
+                    continue;
+                }
+
+                $tarifa = new TravelTarifa();
+                $tarifa->setComponente($componente);
+                $tarifa->setNombreInterno($nombre);
+                $tarifa->setTitulo([['language' => 'es', 'content' => 'Compartido']]);
+                $tarifa->setMoneda($moneda);
+                $tarifa->setMonto($monto);
+                $tarifa->setModalidad(TarifaModalidadEnum::COMPARTIDO);
+                $tarifa->setPrestador($proveedor);
+                $tarifa->setComprador($proveedor);
+                $this->em->persist($tarifa);
+            }
+        }
+
+        if (!$simula) {
+            $this->em->flush();
+        }
+
         // Los ítems, en pasada aparte: la idempotencia de un producto la decide su plantilla, y
         // un componente que ya existía no recibiría los suyos nunca desde el bucle de arriba.
         $io->section('Ítems del «qué incluye»');
@@ -829,11 +955,12 @@ final class CrearTiticacaCommand extends Command
 
         $io->newLine();
         $io->success(sprintf(
-            '%s %d segmento(s), %d producto(s) y %d ítem(s).',
+            '%s %d segmento(s), %d producto(s), %d ítem(s) y %d tarifa(s).',
             $simula ? 'Se crearían' : 'Creados',
             $nuevos,
             $rutas,
             $puestos,
+            $tocadas,
         ));
 
         $io->note([
