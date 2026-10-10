@@ -28,7 +28,7 @@ import {
   getTipoNotaUI,
   getRolTarifaUI, Servicio, TarifaSnapshot, ImagenSnapshot, formatRangoEdad,
   CotServicio, CotSegmento, ComponenteCompleto, SnapshotItem, Segmento, OpcionUpgradeInterna, NotaSnapshot,
-  MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE,
+  MODALIDAD_CONFIG, CATEGORIA_CONFIG, PROCEDENCIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE,
   AudienciaDetalle, AUDIENCIA_DETALLE_CONFIG, type SubgrupoOpcion,
   ESTADOS_ELEGIBLES, esEstadoDeProceso, type EstadoUIConfig, type CotizacionEstadoValue,
   type TarifaModalidadValue, type TarifaCategoriaValue, esOpcionalParaElCliente,
@@ -1101,6 +1101,9 @@ const getCategoriaTarifaUI = (t: { categoria?: string | null } | null) => {
   const v = t?.categoria as TarifaCategoriaValue | null | undefined;
   return v ? (CATEGORIA_CONFIG[v] ?? null) : null;
 };
+
+/** `v-model.number` deja `""` al vaciar el campo: la edad sin límite es `null`, no texto vacío. */
+const numeroOVacio = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
 const etiquetaProcedencia = (procedencia?: string | null): string =>
     procedencia ? getProcedenciaUI(procedencia).label : 'Toda nacionalidad';
@@ -4467,7 +4470,7 @@ store.$onAction(({ name, args }) => {
                 <button v-if="store.tarifaActiva.tarifaMaestraId"
                         @click="store.tarifaActiva.tarifaMaestraId = null"
                         class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
-                        title="Desvincular tarifa maestra">
+                        title="Desvincular: los datos se quedan como tarifa manual">
                   <i class="fas fa-times"></i>
                 </button>
               </div>
@@ -4693,6 +4696,32 @@ store.$onAction(({ name, args }) => {
                         {{ opt.icon }} {{ opt.label }}
                       </option>
                     </select>
+                  </div>
+                  <!-- Procedencia y edades, editables como modalidad y categoría. Antes sólo se veían
+                       en las pastillas del maestro: al desvincular con la X la tarifa manual las
+                       conservaba —deciden a qué pasajeros se aplica y salen en la guía— sin que
+                       nada las enseñara ni dejara cambiarlas. -->
+                  <div>
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Procedencia</label>
+                    <select v-model="store.tarifaActiva.procedenciaSnapshot"
+                            class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm">
+                      <option :value="null">Toda nacionalidad</option>
+                      <option v-for="opt in enumOptions(PROCEDENCIA_CONFIG)" :key="opt.value" :value="opt.value">
+                        {{ opt.icon }} {{ opt.label }}
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Edad (mín – máx)</label>
+                    <div class="flex items-center gap-1">
+                      <input v-model.number="store.tarifaActiva.edadMinimaSnapshot" type="number" min="0" placeholder="—"
+                             @change="store.tarifaActiva.edadMinimaSnapshot = numeroOVacio(store.tarifaActiva.edadMinimaSnapshot)"
+                             class="w-full min-w-0 bg-white border border-slate-300 rounded-lg px-2 py-2 text-xs font-bold text-slate-700 text-center outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm">
+                      <span class="text-slate-400 text-xs">–</span>
+                      <input v-model.number="store.tarifaActiva.edadMaximaSnapshot" type="number" min="0" placeholder="—"
+                             @change="store.tarifaActiva.edadMaximaSnapshot = numeroOVacio(store.tarifaActiva.edadMaximaSnapshot)"
+                             class="w-full min-w-0 bg-white border border-slate-300 rounded-lg px-2 py-2 text-xs font-bold text-slate-700 text-center outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm">
+                    </div>
                   </div>
                 </div>
               </div>
