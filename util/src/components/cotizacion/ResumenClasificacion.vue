@@ -220,33 +220,34 @@ const totalesInclusiones = computed(() => {
           </span>
         </button>
 
-        <div v-show="isOpen('general')" class="border-t border-slate-100 overflow-x-auto">
-          <table class="w-full text-sm min-w-[480px]">
-            <thead>
-            <tr class="text-[10px] font-black text-slate-400 uppercase tracking-wide border-b border-slate-100">
-              <th class="text-left px-3 sm:px-5 py-2.5 sm:py-3">Tipo</th>
-              <th class="text-right px-3 sm:px-5 py-2.5 sm:py-3">Costo</th>
-              <th class="text-right px-3 sm:px-5 py-2.5 sm:py-3">Venta</th>
-              <th class="text-right px-3 sm:px-5 py-2.5 sm:py-3">Ganancia</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr v-for="fila in filasResumenGeneral(fin)" :key="fila.tipo"
-                class="border-b border-slate-50 last:border-0 odd:bg-slate-50/50 tabular-nums">
-              <td class="px-3 sm:px-5 py-2.5">
-                  <span class="text-[10px] font-black px-2 py-1 rounded-lg border" :class="MODO_UI[fila.tipo].badge">
-                    {{ fila.label }}
-                  </span>
-              </td>
-              <td class="text-right px-3 sm:px-5 py-2.5 font-bold text-slate-600">{{ mv(fila.costoSoles, fila.costoDolares) }}</td>
-              <td class="text-right px-3 sm:px-5 py-2.5 font-bold text-slate-800">{{ mv(fila.ventaSoles, fila.ventaDolares) }}</td>
-              <td class="text-right px-3 sm:px-5 py-2.5 font-black"
-                  :class="fila.gananciaDolares < 0 ? 'text-red-600' : 'text-emerald-700'">
-                {{ mv(fila.gananciaSoles, fila.gananciaDolares) }}
-              </td>
-            </tr>
-            </tbody>
-          </table>
+        <!-- Fichas, no tabla: mismo criterio que las líneas por pasajero de abajo. La tabla pedía
+             480 px y en el teléfono la ganancia —la cifra que se busca— quedaba fuera, detrás de
+             un arrastre lateral. Una ficha por tipo: apiladas en móvil, en fila desde `sm`. -->
+        <div v-show="isOpen('general')" class="border-t border-slate-100 p-2.5 sm:p-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <article v-for="fila in filasResumenGeneral(fin)" :key="fila.tipo"
+                   class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm tabular-nums">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-[10px] font-black px-2 py-1 rounded-lg border" :class="MODO_UI[fila.tipo].badge">
+                {{ fila.label }}
+              </span>
+              <span class="text-right">
+                <span class="block text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Ganancia</span>
+                <span class="text-[15px] font-black" :class="fila.gananciaDolares < 0 ? 'text-red-600' : 'text-emerald-700'">
+                  {{ mv(fila.gananciaSoles, fila.gananciaDolares) }}
+                </span>
+              </span>
+            </div>
+            <dl class="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[12px]">
+              <div>
+                <dt class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Costo</dt>
+                <dd class="font-bold text-slate-600">{{ mv(fila.costoSoles, fila.costoDolares) }}</dd>
+              </div>
+              <div class="text-right">
+                <dt class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Venta</dt>
+                <dd class="font-bold text-slate-800">{{ mv(fila.ventaSoles, fila.ventaDolares) }}</dd>
+              </div>
+            </dl>
+          </article>
         </div>
       </section>
 
