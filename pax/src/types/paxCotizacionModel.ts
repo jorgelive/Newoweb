@@ -281,6 +281,8 @@ export interface PaxInclusionItem {
 export interface PaxInclusionServicio {
     servicioId: string;
     servicioNombre: I18n;
+    /** El servicio entero es opcional: lo suyo viene en `opcionales` y el itinerario lo marca. */
+    servicioOpcional?: boolean;
     incluidos: PaxInclusionItem[];
     noIncluidos: PaxInclusionItem[];
     opcionales: PaxInclusionItem[];
@@ -541,7 +543,14 @@ export interface PaxDiaItinerario {
 }
 
 export interface PaxOpcionUpgrade {
+    servicioId?: string;
     servicioNombre: I18n;
+    /**
+     * La tarjeta es un SERVICIO opcional entero: `componenteNombre` es el del servicio, `incluye`
+     * lo que trae dentro y los deltas ya vienen sumados desde el editor.
+     */
+    servicioOpcional?: boolean;
+    incluye?: I18n[];
     componenteNombre: I18n;
     tarifaTitulo: I18n;
     modalidad: string | null;

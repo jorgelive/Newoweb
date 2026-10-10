@@ -547,3 +547,86 @@ describe('varios rangos en un grupo, con liberados', () => {
         }
     });
 });
+
+
+/**
+ * Un SERVICIO cuyas tarifas son todas alternativas se vende entero, como una sola opción.
+ *
+ * 🔥 El caso que lo pidió: el «Half Day Combinada» de Q4V2FR. Pool, Koricancha y Sacsayhuamán
+ * marcados como alternativa: el cliente veía tres añadidos sueltos sin el servicio que los une, y
+ * los ítems del pool —que no lleva título— salían como INCLUIDOS.
+ */
+describe('un servicio opcional entero', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    const es = (content: string) => [{ language: 'es', content }];
+    const item = (nombre: string) => ({ id: `i-${nombre}`, modo: 'incluido', tituloSnapshot: es(nombre) });
+    const componente = (id: string, titulo: string | null, monto: number, extra: Record<string, unknown> = {}) => ({
+        id, modo: 'incluido', estado: 'confirmado', cantidad: 1,
+        fechaHoraInicio: '2026-12-05T09:00:00',
+        tituloSnapshot: titulo ? es(titulo) : [],
+        nombreInternoSnapshot: id,
+        snapshotItems: [],
+        cottarifas: [tarifa(monto, 8, { rolSnapshot: 'alternativa', grupoTarifa: 1 })],
+        ...extra,
+    });
+    const servicio = (id: string, titulo: string, componentes: unknown[]) => ({
+        id, orden: 1, fechaInicioAbsoluta: '2026-12-05',
+        tituloSnapshot: es(titulo), nombreInternoSnapshot: [], cotsegmentos: [],
+        cotcomponentes: componentes,
+    });
+
+    const conCityTour = (otro: unknown[] = []) => {
+        const store = useCotizacionEditorStore();
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = {
+            id: 'cot-1', numPax: 8, comision: '0', adelanto: '0', tipoCambio: '1', idiomaEdicion: 'es',
+            cotservicios: [
+                servicio('s-city', 'City tour', [
+                    componente('c-pool', null, 18, { snapshotItems: [item('Guía'), item('Transporte')] }),
+                    componente('c-kori', 'Boleto Koricancha', 20),
+                    componente('c-sacsa', 'Boleto Sacsayhuamán', 70),
+                ]),
+                ...otro,
+            ],
+        };
+        return store.resumenFinanciero!;
+    };
+
+    it('nada de lo suyo se publica como incluido; los ítems del pool tampoco', () => {
+        const bloque = conCityTour().inclusiones.find((s) => s.servicioId === 's-city')!;
+        expect(bloque.servicioOpcional).toBe(true);
+        expect(bloque.incluidos).toHaveLength(0);
+        expect(JSON.stringify(bloque.opcionales)).toContain('Guía');
+    });
+
+    it('el cliente ve UNA tarjeta con el nombre del servicio y el precio sumado', () => {
+        const fin = conCityTour();
+        const cliente = expurgarParaCliente(fin);
+        expect(cliente.opcionesUpgrade).toHaveLength(1);
+
+        const [tarjeta] = cliente.opcionesUpgrade;
+        const totalSuelto = fin.opcionesUpgrade.reduce((n, o) => n + o.deltaVentaTotal, 0);
+        expect(tarjeta.componenteNombre).toEqual(es('City tour'));
+        expect(tarjeta.incluye).toHaveLength(3);
+        expect(tarjeta.deltaVentaTotal).toBeCloseTo(totalSuelto, 2);
+        expect(tarjeta.deltaVentaPorPax).toBeCloseTo(totalSuelto / 8, 2);
+    });
+
+    it('el interno conserva cada alternativa por separado', () => {
+        expect(conCityTour().opcionesUpgrade).toHaveLength(3);
+    });
+
+    it('un servicio con algo estándar NO se agrupa: su alternativa sigue suelta', () => {
+        const fin = conCityTour([servicio('s-valle', 'Valle', [
+            componente('c-bus', 'Bus', 30, { cottarifas: [tarifa(30, 8)] }),
+            componente('c-alm', 'Almuerzo', 25),
+        ])]);
+        const cliente = expurgarParaCliente(fin);
+        const delValle = cliente.opcionesUpgrade.filter((o) => o.servicioId === 's-valle');
+        expect(delValle).toHaveLength(1);
+        expect(delValle[0].servicioOpcional).toBe(false);
+        expect(delValle[0].componenteNombre).toEqual(es('Almuerzo'));
+        expect(fin.inclusiones.find((s) => s.servicioId === 's-valle')!.servicioOpcional).toBe(false);
+    });
+});

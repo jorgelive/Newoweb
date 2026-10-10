@@ -413,6 +413,22 @@ const tituloGrandeDeServicio = (b: BloqueVista): boolean =>
 const mostrarAccionInclusiones = (b: BloqueVista): boolean =>
     b.esPrimeroDelServicioEnElDia && !b.esRepeticion && serviciosConInclusiones.value.has(b.servicio.id);
 
+/**
+ * Servicios que se venden enteros como opcionales (todas sus tarifas son alternativas).
+ *
+ * Sale de las INCLUSIONES y no de `opcionesUpgrade` a propósito: las inclusiones llevan los ids del
+ * itinerario que se pinta —en una operativa se traducen, ver `Cotizacion::getClasificacionFinancieraParaCliente()`—
+ * y las opciones no. El precio se busca después y, si no casa, la marca sale sin él.
+ */
+const serviciosOpcionales = computed(() => new Set(
+    store.inclusiones.filter((s) => s.servicioOpcional).map((s) => s.servicioId)));
+
+const precioDeServicioOpcional = (servicioId: string): number | null => {
+  const o = store.gruposUpgrade.flatMap((g) => g.opciones)
+      .find((x) => x.servicioOpcional && x.servicioId === servicioId);
+  return o?.deltaVentaPorPax ?? null;
+};
+
 
 // ── Horarios de componentes ──────────────────────────────────────────────────
 const compsConHora = (b: BloqueVista) =>
@@ -1116,6 +1132,9 @@ const estadoPorActividad = computed(() => {
   const m = new Map<string, { incluidos: string[]; excepciones: ExcepcionDeActividad[] }>();
   for (const dia of itinerarioVista.value) {
     for (const b of dia.bloques) {
+      // En un servicio opcional entero lo dice UNA marca en el servicio: repetir «Opcional» en
+      // cada actividad sería la misma información cuatro veces.
+      if (serviciosOpcionales.value.has(b.servicio.id)) continue;
       const incluidos: string[] = [];
       const vistas = new Set<string>();
       const excepciones: ExcepcionDeActividad[] = [];
@@ -2289,7 +2308,12 @@ const adelantoVista = computed(() => {
                         <p class="text-sm font-black text-gray-800 leading-snug">
                           {{ store.traducir(up.componenteNombre) }}
                         </p>
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
+                        <!-- Un servicio opcional entero ya se llama como el servicio: debajo va lo que trae. -->
+                        <p v-if="up.servicioOpcional && up.incluye?.length" class="text-[11px] font-medium text-slate-500 mt-0.5 leading-snug">
+                          <span class="font-bold">{{ maestroStore.t('cot_incluye') || 'Incluye' }}:</span>
+                          {{ up.incluye.map((n) => store.traducir(n)).join(' · ') }}
+                        </p>
+                        <p v-else class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
                           {{ store.traducir(up.servicioNombre) }}
                         </p>
                         <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -2540,11 +2564,23 @@ const adelantoVista = computed(() => {
                  Va entre el <h3> (multi-segmento) y la card, o encima de la card (single) → simetría. -->
             <div
                 v-if="mostrarAccionInclusiones(item)"
-                class="flex justify-end mb-3 no-imprimir"
+                class="flex flex-wrap items-center gap-2 mb-3"
+                :class="serviciosOpcionales.has(item.servicio.id) ? 'justify-between' : 'justify-end no-imprimir'"
             >
+              <!-- Servicio opcional entero: se marca aquí, una vez, con su precio. Ver `serviciosOpcionales`. -->
+              <span
+                  v-if="serviciosOpcionales.has(item.servicio.id)"
+                  class="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2"
+              >
+                <i class="fas fa-circle-question text-amber-500"></i>
+                {{ maestroStore.t('cot_servicio_opcional') || 'Servicio opcional' }}
+                <template v-if="store.precioVisible && precioDeServicioOpcional(item.servicio.id) !== null">
+                  · +{{ mvDelta(precioDeServicioOpcional(item.servicio.id)!) }} {{ maestroStore.t('cot_por_persona') || 'c/u' }}
+                </template>
+              </span>
               <button
                   @click="abrirInclusiones(item.servicio.id, item.servicio.tituloSnapshot)"
-                  class="inline-flex items-center gap-2 text-[11px] font-black tracking-wide text-[#376875] bg-white border border-[#376875]/20 hover:border-[#376875]/50 hover:bg-[#376875]/5 rounded-xl px-3.5 py-2 shadow-sm transition-colors"
+                  class="no-imprimir inline-flex items-center gap-2 text-[11px] font-black tracking-wide text-[#376875] bg-white border border-[#376875]/20 hover:border-[#376875]/50 hover:bg-[#376875]/5 rounded-xl px-3.5 py-2 shadow-sm transition-colors"
               >
                 <i class="fas fa-list-check text-[#E07845]"></i>
                 {{ item.totalSegmentosServicio > 1

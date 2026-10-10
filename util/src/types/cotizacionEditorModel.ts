@@ -831,18 +831,23 @@ export interface EtiquetaGrupoTarifa {
 export const esOpcionalParaElCliente = (comp: {
     modo?: string | null;
     tituloSnapshot?: unknown[] | null;
+    snapshotItems?: unknown[] | null;
     cottarifas?: { rolSnapshot?: string | null; calculoSnapshot?: string | null }[] | null;
 }): boolean => {
     if ((comp.modo || 'incluido').toLowerCase() !== 'incluido') {
         return false;
     }
 
-    // ⚠️ **Sin título público no hay línea, y por tanto no hay opcional.** El panel del cliente
-    // sólo emite la línea del componente `if (tieneNombre)`; esta comprobación faltaba aquí, así
-    // que un componente sin título llevaba el badge «opcional» en el editor y no aparecía por
-    // ningún lado en la propuesta. Un badge que promete algo que el cliente nunca ve es peor que
-    // no tenerlo: el operador da por publicado lo que no se publicó.
-    if (!comp.tituloSnapshot?.length) {
+    // ⚠️ **Sin título público ni ítems no hay línea, y por tanto no hay opcional.** Un badge que
+    // promete algo que el cliente nunca ve es peor que no tenerlo: el operador da por publicado lo
+    // que no se publicó.
+    //
+    // 🔥 **Los ítems también publican.** Esto pedía sólo el título, y un pool —que no lleva título
+    // público a propósito: el cliente ve sus ítems— marcado entero como alternativa salía
+    // «Incluido» en el editor, no contaba entre los opcionales del servicio, y en la propuesta sus
+    // ítems («Guía», «Transporte») se publicaban como INCLUIDOS de algo que se cobra aparte.
+    // `construirInclusiones()` manda ahora esos ítems a Opcional; esto dice lo mismo.
+    if (!comp.tituloSnapshot?.length && !comp.snapshotItems?.length) {
         return false;
     }
 
@@ -856,6 +861,46 @@ export const esOpcionalParaElCliente = (comp: {
     // estándar, así que un opcional al que se le añade un liberado dejaba de ser opcional en la
     // propuesta —y pasaba a publicarse como incluido.
     return !tarifas.some(esEstandarVisible) && tarifas.some(publicable);
+};
+
+/**
+ * ¿El SERVICIO entero se le publica al cliente como opcional?
+ *
+ * Sí cuando nada de lo que cobra va incluido: ningún componente activo `incluido` tiene una
+ * estándar visible, y al menos uno es opcional ({@see esOpcionalParaElCliente}). Es el «Half Day
+ * City Tour» que se ofrece como añadido: su pool, su Koricancha y su Sacsayhuamán son
+ * alternativas, y publicados uno a uno el cliente veía tres añadidos sueltos —sin el servicio que
+ * los une— y la guía del pool como incluida.
+ *
+ * Con esto el servicio se vende como **una** cosa: una tarjeta con el precio sumado, una marca en
+ * el itinerario y sus líneas en Opcional. Ver `construirInclusiones()` y `expurgarParaCliente()`.
+ *
+ * ⚠️ **Un componente sin tarifas no decide.** Una recepción o una visita sin precio propio no
+ * hacen «incluido» al servicio: no hay nada pagado dentro. Sus ítems siguen la suerte del servicio.
+ *
+ * ⚠️ `no_incluido` y `cortesia` tampoco deciden: describen lo que no se cobra en ningún caso.
+ */
+export const esServicioOpcionalParaElCliente = (servicio: {
+    cotcomponentes?: {
+        modo?: string | null;
+        estado?: string | null;
+        tituloSnapshot?: unknown[] | null;
+        snapshotItems?: unknown[] | null;
+        cottarifas?: { rolSnapshot?: string | null; calculoSnapshot?: string | null }[] | null;
+    }[] | null;
+}): boolean => {
+    const activos = (servicio.cotcomponentes || []).filter((c) => {
+        const estado = (c.estado || '').toLowerCase();
+        const modo = (c.modo || '').toLowerCase();
+        return estado !== 'cancelado' && modo !== 'reemplazado';
+    });
+    const incluidos = activos.filter((c) => (c.modo || 'incluido').toLowerCase() === 'incluido');
+
+    if (incluidos.some((c) => (c.cottarifas || []).some(esEstandarVisible))) {
+        return false;
+    }
+
+    return incluidos.some(esOpcionalParaElCliente);
 };
 
 /**
@@ -1065,6 +1110,14 @@ export interface OpcionUpgradeCliente {
     deltaVentaPorPax: number;
     deltasPorPerfil: DeltaUpgradePorPerfil[];
     deltaVentaTotal: number;
+    /**
+     * La opción es el SERVICIO entero ({@see esServicioOpcionalParaElCliente}). En el interno marca
+     * cada alternativa suya; en el cliente, la tarjeta única que las suma —`componenteNombre` es
+     * entonces el del servicio e `incluye` lo que trae dentro—.
+     */
+    servicioOpcional?: boolean;
+    /** Sólo en la tarjeta de un servicio opcional: el nombre público de cada componente que suma. */
+    incluye?: I18nContent[][];
 }
 
 export interface OpcionUpgradeInterna extends OpcionUpgradeCliente {
@@ -1167,6 +1220,8 @@ export interface InclusionLinea {
 export interface InclusionServicio {
     servicioId: string;
     servicioNombre: I18nContent[];
+    /** El servicio entero es opcional: todo lo suyo va en `opcionales`. Ver `esServicioOpcionalParaElCliente`. */
+    servicioOpcional?: boolean;
     incluidos: InclusionLinea[];
     noIncluidos: InclusionLinea[];
     cortesias: InclusionLinea[];
@@ -1266,7 +1321,7 @@ export function expurgarParaCliente(fin: ClasificacionFinancieraInterna): Clasif
             },
             resumen: { ventaDolares: r2(c.resumen.ventaDolares) }
         })),
-        opcionesUpgrade: fin.opcionesUpgrade.map((o): OpcionUpgradeCliente => ({
+        opcionesUpgrade: agruparServiciosOpcionales(fin.numPax, fin.opcionesUpgrade.map((o): OpcionUpgradeCliente => ({
             componenteId: o.componenteId,
             grupoTarifa: o.grupoTarifa,
             grupoLabel: o.grupoLabel,
@@ -1292,8 +1347,9 @@ export function expurgarParaCliente(fin: ClasificacionFinancieraInterna): Clasif
             estandarCategoria: o.mostrarCategoriaCliente ? o.estandarCategoria : null,
             deltaVentaPorPax: r2(o.deltaVentaPorPax),
             deltasPorPerfil: o.deltasPorPerfil.map(dp => ({ ...dp, deltaVentaPorPax: r2(dp.deltaVentaPorPax) })),
-            deltaVentaTotal: r2(o.deltaVentaTotal)
-        })),
+            deltaVentaTotal: r2(o.deltaVentaTotal),
+            servicioOpcional: o.servicioOpcional ?? false
+        }))),
         inclusiones: fin.inclusiones.map((s): InclusionServicio => ({
             ...s,
             incluidos: s.incluidos.map(limpiarMontoInclusion),
@@ -1303,6 +1359,71 @@ export function expurgarParaCliente(fin: ClasificacionFinancieraInterna): Clasif
         }))
     };
 }
+
+/**
+ * Junta en UNA tarjeta las alternativas de un servicio opcional entero.
+ *
+ * Publicadas sueltas, el cliente leía tres añadidos —«Guía · Transporte», «Boleto Koricancha»,
+ * «Boleto Sacsayhuamán»— sin el servicio que los une, y tenía que sumar él. La tarjeta lleva el
+ * nombre del servicio, lo que trae dentro y el precio sumado.
+ *
+ * ⚠️ **Sólo en el cliente.** El interno conserva cada alternativa con su costo y su comisión: es
+ * donde se revisa el margen de cada una.
+ *
+ * ⚠️ **Por servicio Y por grupo.** Dos grupos dentro de un servicio opcional son dos versiones
+ * del servicio que compiten —«Opción 1» con un hotel, «Opción 2» con otro—, no piezas que se suman.
+ */
+const agruparServiciosOpcionales = (numPax: number, opciones: OpcionUpgradeCliente[]): OpcionUpgradeCliente[] => {
+    const resultado: OpcionUpgradeCliente[] = [];
+    const tarjetas = new Map<string, OpcionUpgradeCliente>();
+
+    for (const o of opciones) {
+        if (!o.servicioOpcional) {
+            resultado.push(o);
+            continue;
+        }
+
+        const clave = `${o.servicioId}|${o.grupoTarifa}`;
+        const tarjeta = tarjetas.get(clave);
+
+        if (!tarjeta) {
+            const nueva: OpcionUpgradeCliente = {
+                ...o,
+                componenteNombre: o.servicioNombre,
+                tarifaTitulo: [],
+                modalidad: null,
+                categoria: null,
+                procedencia: null,
+                edadMin: null,
+                edadMax: null,
+                tieneEstandarEspejo: false,
+                estandarTitulo: [],
+                estandarModalidad: null,
+                estandarCategoria: null,
+                incluye: [o.componenteNombre],
+            };
+            tarjetas.set(clave, nueva);
+            resultado.push(nueva);
+            continue;
+        }
+
+        tarjeta.deltaVentaTotal = r2(tarjeta.deltaVentaTotal + o.deltaVentaTotal);
+        // ⚠️ **El «c/u» sale del total, no de sumar los «c/u».** Un componente con tarifa de adulto
+        // y de niño trae dos opciones, cada una con su precio por persona: sumarlas cobraría a cada
+        // pasajero el boleto de adulto MÁS el de niño. El total sí suma bien —cada opción lleva sus
+        // pasajeros—, y repartido entre todos es el precio medio por persona.
+        tarjeta.deltaVentaPorPax = numPax > 0 ? r2(tarjeta.deltaVentaTotal / numPax) : tarjeta.deltaVentaPorPax;
+        tarjeta.deltasPorPerfil = [...tarjeta.deltasPorPerfil, ...o.deltasPorPerfil];
+        tarjeta.notaRol = tarjeta.notaRol.length ? tarjeta.notaRol : o.notaRol;
+        // Dos tarifas del mismo componente (adulto y niño) son una sola cosa incluida.
+        const nombre = JSON.stringify(o.componenteNombre);
+        if (!tarjeta.incluye!.some((n) => JSON.stringify(n) === nombre)) {
+            tarjeta.incluye!.push(o.componenteNombre);
+        }
+    }
+
+    return resultado;
+};
 
 const limpiarMontoInclusion = (l: InclusionLinea): InclusionLinea => ({
     ...l,

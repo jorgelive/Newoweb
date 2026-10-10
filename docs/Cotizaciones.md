@@ -873,6 +873,43 @@ era opcional cuando lo montó: al leerlo en el resumen dirá que sí, en vez de 
 pasó. Ése era el problema real — no que el sistema no supiera distinguir, sino que **no enseñaba lo
 que sabía**.
 
+#### Un servicio entero opcional (10/10/2026)
+
+Cuando **ninguna** tarifa de un servicio es estándar visible —todo lo que cobra es alternativa—
+el servicio se vende entero como **una** opción. Es el «Half Day Combinada» de Q4V2FR: pool,
+Koricancha y Sacsayhuamán marcados como alternativa. Antes el cliente veía tres añadidos sueltos
+sin el servicio que los une, y los ítems del pool —que no lleva título— salían como **incluidos**.
+
+Una sola definición, `esServicioOpcionalParaElCliente()` (`cotizacionEditorModel.ts`), que leen
+las tres piezas:
+
+| Pieza | Qué hace con un servicio opcional |
+|---|---|
+| `construirInclusiones()` | `servicioOpcional: true` en el bloque; todo lo `incluido` suyo va a `opcionales`; UN aviso informativo por servicio, no uno por componente |
+| `resumenFinanciero` | marca cada alternativa con `servicioOpcional` — el interno sigue viéndolas por separado |
+| `expurgarParaCliente()` → `agruparServiciosOpcionales()` | UNA tarjeta por servicio y grupo: nombre del servicio, `incluye` con lo que trae, `deltaVentaTotal` sumado y `deltaVentaPorPax = total / numPax` |
+
+⚠️ **El «c/u» sale del total, no de sumar los «c/u»**: un componente con tarifa de adulto y de niño
+trae dos opciones y sumarlas cobraría las dos a cada pasajero.
+
+⚠️ **Por servicio Y grupo**: dos grupos en un servicio opcional son dos versiones que compiten, no
+piezas que se suman.
+
+⚠️ Un componente **sin tarifas** no decide (no hay nada pagado dentro), y `no_incluido`/`cortesia`
+tampoco.
+
+En pax: marca «Servicio opcional · +X c/u» en la fila del botón del servicio (el id sale de las
+inclusiones, que en una operativa vienen traducidas; el precio se busca en `opcionesUpgrade` y si no
+casa la marca sale sin él), y las actividades de ese servicio no repiten «Opcional» cada una. En el
+editor: «Servicio opcional» en la cabecera de componentes.
+
+Con esto `esOpcionalParaElCliente()` acepta también un componente **sin título pero con ítems**:
+pedía el título y un pool marcado como alternativa salía «Incluido» y no contaba entre los
+opcionales. Lo incluido de un componente opcional es opcional (`destinoAqui` en
+`construirInclusiones()`).
+
+> Como todo el snapshot del cliente, sólo se ve **al re-guardar** la propuesta.
+
 #### Y con esto la pregunta queda CERRADA, no pendiente
 
 Durante un tiempo esto se anotó como deuda: «falta frenar el olvido de verdad». **No lo era.** Un

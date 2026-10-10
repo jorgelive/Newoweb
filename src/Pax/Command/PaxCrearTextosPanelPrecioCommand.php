@@ -53,6 +53,8 @@ final class PaxCrearTextosPanelPrecioCommand extends Command
         'cot_ver_detalle_opciones'   => 'Toca para ver el detalle de las opciones',
         'cot_opcion_mas'             => 'opción más',
         'cot_opciones_mas'           => 'opciones más',
+        // La marca de un servicio que se vende entero como opcional, en el itinerario.
+        'cot_servicio_opcional'      => 'Servicio opcional',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

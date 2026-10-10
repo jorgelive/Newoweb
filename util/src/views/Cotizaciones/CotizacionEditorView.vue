@@ -31,7 +31,7 @@ import {
   MODALIDAD_CONFIG, CATEGORIA_CONFIG, PROCEDENCIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE,
   AudienciaDetalle, AUDIENCIA_DETALLE_CONFIG, type SubgrupoOpcion,
   ESTADOS_ELEGIBLES, esEstadoDeProceso, type EstadoUIConfig, type CotizacionEstadoValue,
-  type TarifaModalidadValue, type TarifaCategoriaValue, esOpcionalParaElCliente,
+  type TarifaModalidadValue, type TarifaCategoriaValue, esOpcionalParaElCliente, esServicioOpcionalParaElCliente,
   preciosDesdeCalculados, type PrecioDesdeRango
 } from '@/types/cotizacionEditorModel';
 import { GRUPO_TIPO_LABELS } from '@/types/fileDetalleModel';
@@ -389,6 +389,10 @@ const alternarGrupo = (iri: string): void => {
  */
 const opcionalesDelServicio = computed(() =>
   (store.servicioActivo?.cotcomponentes ?? []).filter(c => esOpcionalParaElCliente(c)).length);
+
+/** Nada de lo que cobra va incluido: el cliente verá el servicio entero como UNA opción. */
+const servicioActivoEsOpcional = computed(() =>
+  !!store.servicioActivo && esServicioOpcionalParaElCliente(store.servicioActivo));
 
 const resumenDeGrupos = (comp: ComponenteCompleto): string => {
   const iris = (comp.grupos ?? []) as string[];
@@ -3065,7 +3069,11 @@ store.$onAction(({ name, args }) => {
                   Componentes Logísticos
                   <!-- El mismo dato que el badge de cada tarjeta, contado aquí: con quince
                        componentes en un servicio no se llega a verlos todos de un vistazo. -->
-                  <span v-if="opcionalesDelServicio" class="normal-case tracking-normal text-[9px] font-black px-2 py-0.5 rounded-lg border bg-amber-50 text-amber-700 border-amber-200 whitespace-nowrap"
+                  <span v-if="servicioActivoEsOpcional" class="normal-case tracking-normal text-[9px] font-black px-2 py-0.5 rounded-lg border bg-amber-100 text-amber-800 border-amber-300 whitespace-nowrap"
+                        title="Ninguna tarifa es estándar: el cliente verá el servicio entero como un opcional, con el precio de todos sus componentes sumado">
+                    <i class="fas fa-circle-question mr-1"></i>Servicio opcional
+                  </span>
+                  <span v-else-if="opcionalesDelServicio" class="normal-case tracking-normal text-[9px] font-black px-2 py-0.5 rounded-lg border bg-amber-50 text-amber-700 border-amber-200 whitespace-nowrap"
                         :title="`${opcionalesDelServicio} componente(s) sin tarifa estándar: el cliente los verá como Opcional`">
                     <i class="fas fa-circle-question mr-1"></i>{{ opcionalesDelServicio }} opcional{{ opcionalesDelServicio === 1 ? '' : 'es' }}
                   </span>

@@ -29,6 +29,7 @@ import {
     AudienciaDetalle,
     etiquetaGrupoTarifa,
     esEstandarVisible,
+    esServicioOpcionalParaElCliente,
     expurgarParaCliente,
     formatRangoEdad,
     getProcedenciaUI,
@@ -968,6 +969,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             const servicioNombre = servicio.tituloSnapshot?.length
                 ? servicio.tituloSnapshot : (servicio.nombreInternoSnapshot || []);
             const servicioLabel = getI18nText(servicioNombre, idiomaEdicion) || 'Servicio';
+            // El cliente lo verá como UNA opción con el precio sumado: ver `expurgarParaCliente()`.
+            const servicioOpcional = esServicioOpcionalParaElCliente(servicio);
 
             servicio.cotcomponentes?.forEach((componente: ComponenteCompleto) => {
                 const modo = (componente.modo || '').toLowerCase();
@@ -1360,6 +1363,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 mostrarCategoriaCliente,
                                 servicioId,
                                 servicioNombre,
+                                servicioOpcional,
                                 tarifaTitulo: t.tituloSnapshot || [],
                                 tarifaNombreInterno: t.nombreInternoSnapshot || null,
                                 tieneEstandarEspejo: !!std,
@@ -1823,12 +1827,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 idiomaEdicion
             ) || 'Servicio';
 
+            // ⚠️ Misma pregunta que `resumenFinanciero`, por la misma función: si una dijera que el
+            // servicio es opcional y la otra no, la tarjeta sumaría lo que «qué incluye» da por
+            // incluido.
+            const servicioOpcional = esServicioOpcionalParaElCliente(servicio);
+
             const bloque: InclusionServicio = {
                 servicioId: extractIdStr(servicio.id),
                 servicioNombre: servicio.tituloSnapshot?.length
                     ? servicio.tituloSnapshot : (servicio.nombreInternoSnapshot || []),
+                servicioOpcional,
                 incluidos: [], noIncluidos: [], cortesias: [], opcionales: []
             };
+
+            if (servicioOpcional) {
+                // UN aviso por servicio, no uno por componente: son la misma decisión.
+                informativas.push(`"${servicioLabel}": ninguna de sus tarifas es estándar, así que el `
+                    + 'cliente verá el servicio entero como OPCIONAL, con el precio sumado. Si algo tenía '
+                    + 'que ir incluido en el paquete, marca su tarifa como estándar.');
+            }
 
             // ⚠️ El `else` final es un cajón de sastre: cualquier modo que no reconozca
             // acaba en "Incluye". Por eso existe MODOS_ITEM_VALIDOS — para que un modo
@@ -1904,6 +1921,20 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const hayEstandar = estandares.length > 0;
                 const tarifaRef = estandares[0] || null;
 
+                /**
+                 * Adónde va una línea de ESTE componente.
+                 *
+                 * 🔥 **Lo incluido de algo opcional es opcional.** Los ítems iban siempre a su
+                 * propio modo, así que un pool sin título —la guía y el transporte son sus ítems—
+                 * cuyas tarifas eran todas alternativas publicaba «Incluye: Guía, Transporte»
+                 * mientras la tarjeta de precio lo ofrecía como añadido. Vale para el componente
+                 * opcional y para todo lo de un servicio opcional entero.
+                 */
+                const esOpcionalAqui = servicioOpcional || (modo === 'incluido' && !hayEstandar
+                    && (componente.cottarifas || []).some((t: TarifaSnapshot) => modalidadDeTarifa(t) !== 'operativa'));
+                const destinoAqui = (m: string): InclusionLinea[] =>
+                    esOpcionalAqui && m === 'incluido' ? bloque.opcionales : destino(m);
+
                 const mapearTarifaInclusion = (t: TarifaSnapshot): InclusionTarifa => ({
                     tarifaTitulo: t.tituloSnapshot || [],
                     cantidad: unidadesDe(t.cantidad),
@@ -1942,11 +1973,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             // ⚠️ INFORMATIVO, no advertencia: así se monta un opcional con precio,
                             // y bloquear por esto impedía publicar cualquier propuesta que tuviera
                             // uno. El texto dice lo que va a pasar y deja la decisión, en vez de
-                            // dar por hecho que es un error.
-                            informar(servicioLabel, compLabel,
-                                'no tiene tarifa estándar, así que el cliente lo verá como OPCIONAL '
-                                + 'y podrá añadirlo por su diferencia de precio. Si tenía que ir incluido '
-                                + 'en el paquete, marca una de sus tarifas como estándar.');
+                            // dar por hecho que es un error. En un servicio opcional entero ya se
+                            // avisó una vez por todo el servicio.
+                            if (!servicioOpcional) {
+                                informar(servicioLabel, compLabel,
+                                    'no tiene tarifa estándar, así que el cliente lo verá como OPCIONAL '
+                                    + 'y podrá añadirlo por su diferencia de precio. Si tenía que ir incluido '
+                                    + 'en el paquete, marca una de sus tarifas como estándar.');
+                            }
                         } else {
                             // Ni estándar ni alternativas: no se publica absolutamente nada.
                             // "Publicable" y no "ninguna": `opcionables` descarta las de rol
@@ -2002,7 +2036,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             : null;
 
 
-                        destino(modo).push({
+                        destinoAqui(modo).push({
                             origen: 'componente',
                             modo: modo as ModoFinanciero,
                             nombre: nombrePublicoDeLinea(),
@@ -2040,7 +2074,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             + `tiene el modo desconocido "${modoItem}" y se publicará como Incluido.`);
                     }
 
-                    destino(modoItem).push({
+                    destinoAqui(modoItem).push({
                         origen: 'item',
                         modo: modoItem as InclusionLinea['modo'],
                         nombre: item.tituloSnapshot,
