@@ -5004,6 +5004,12 @@ del ojo. Desde entonces, en `FileDetalle.vue`:
   mandárselo». Se copia antes de preguntar: tras el `await` de publicar, Safari ya no deja
   escribir en el portapapeles.
 
+Y desde el 10/10/2026 lo mismo **en el editor** (`copiarEnlaceCliente()` en
+`CotizacionEditorView.vue`), junto al ojo de «Vista Cliente»: el botón lleva un punto ámbar si la
+propuesta no está publicada, y al copiar pregunta «¿La publico ahora?». Además **guarda** si hay
+cambios pendientes, como el ojo: el cliente ve la última versión guardada, y mandar el enlace con
+cambios a medias es mandarle otra cosa.
+
 ### Y el guarda de conflictos financieros vigila lo que siempre quiso
 
 `guardarCotizacion()` bloqueaba el paso a `enviado`/`confirmado`/`operado` con conflictos, y su

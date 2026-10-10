@@ -738,6 +738,53 @@ const abrirVistaPax = async () => {
   window.open(paxPreviewUrl.value, '_blank', 'noopener');
 };
 
+/** El visto del botón de copiar, dos segundos. */
+const enlaceCopiado = ref(false);
+
+/**
+ * Copia el enlace de la vista del cliente de esta propuesta.
+ *
+ * Hermano de `copiarLinkPropuesta()` en `FileDetalle.vue`, y con su misma regla: copiar es el gesto
+ * de «voy a mandárselo», así que es donde se pregunta lo que el operador no ve. Él tiene sesión y
+ * ve la propuesta aunque no esté publicada; el cliente, «Propuesta no encontrada» (28/09/2026, la
+ * cotización de Eduardo: se envió el enlace y el cliente mandó la captura).
+ *
+ * ⚠️ **Se copia PRIMERO**, dentro del clic: tras un `await` Safari ya no lo cuenta como gesto y el
+ * portapapeles se niega. Y si se niega igual —http, permiso— el `alert` enseña la URL para copiarla
+ * a mano.
+ *
+ * Después, si hay cambios sin guardar se guardan, como hace `abrirVistaPax()`: el cliente ve la
+ * última versión GUARDADA, y mandar el enlace con cambios a medias es mandarle otra cosa.
+ */
+const copiarEnlaceCliente = async () => {
+  const url = paxPreviewUrl.value;
+  if (!url || !store.cotizacion) return;
+
+  try {
+    await navigator.clipboard.writeText(url);
+    enlaceCopiado.value = true;
+    setTimeout(() => { enlaceCopiado.value = false; }, 2000);
+  } catch {
+    alert('No se pudo copiar. Copia manualmente: ' + url);
+    return;
+  }
+
+  // Se decide aquí y no leyendo `isDirty` después: el watcher que lo levanta corre en el siguiente
+  // tick, y publicar justo antes no lo habría marcado todavía.
+  let guardar = isDirty.value;
+
+  if (!store.cotizacion.publicado && confirm(
+    `Enlace copiado, pero la propuesta ${store.cotizacion.propuesta} NO está publicada: el cliente verá «Propuesta no encontrada».\n\n¿La publico ahora?`
+  )) {
+    store.cotizacion.publicado = true;
+    guardar = true;
+  }
+
+  if (guardar) {
+    await handleGuardar();
+  }
+};
+
 // ============================================================================
 // 🔥 1. MÁSCARA ESTRICTA PARA FECHA Y HORA
 // ============================================================================
@@ -2123,6 +2170,16 @@ store.$onAction(({ name, args }) => {
                 title="Abrir la vista del cliente (guía pax) en otra pestaña"
                 class="flex items-center gap-2 px-3 md:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold border border-slate-700 transition-colors whitespace-nowrap">
           <i class="fas fa-eye"></i> <span class="hidden md:inline">Vista Cliente</span>
+        </button>
+        <button v-if="paxPreviewUrl" @click="copiarEnlaceCliente"
+                :title="store.cotizacion.publicado ? 'Copiar el enlace para el cliente' : 'Copiar el enlace — la propuesta NO está publicada'"
+                class="relative flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold border border-slate-700 transition-colors whitespace-nowrap"
+                :class="enlaceCopiado ? 'text-emerald-400' : 'text-slate-200'">
+          <i class="fas" :class="enlaceCopiado ? 'fa-check' : 'fa-link'"></i>
+          <span class="hidden md:inline">{{ enlaceCopiado ? 'Copiado' : 'Copiar enlace' }}</span>
+          <!-- Sin publicar, el enlace lleva al cliente a «Propuesta no encontrada»: se ve antes de copiar. -->
+          <span v-if="!store.cotizacion.publicado"
+                class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-slate-900"></span>
         </button>
         <!-- La acción primaria: siempre visible y siempre con su nombre. Un icono suelto de
              disquete no se lee como «guardar» en un móvil.
