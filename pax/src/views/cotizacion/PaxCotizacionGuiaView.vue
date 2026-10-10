@@ -1061,10 +1061,86 @@ const inclusionesPorDia = computed(() => {
     // Total de líneas del día → decide si el panel arranca semicolapsado
     const totalLineas = servicios.reduce(
         (n, s) => n + s.secciones.reduce((k, sec) => k + sec.lineas.length, 0), 0);
-    m.set(dia.fecha, { servicios, largo: totalLineas > 3 });
+    // ⚠️ **Un día con algo NO incluido no se pliega nunca.** El panel se cerraba a partir de
+    // tres líneas y el «no incluye» va siempre al final, así que la exclusión —que es lo que el
+    // cliente más necesita saber— quedaba detrás de «Ver todo». En EG95UF lo único que no
+    // incluía el día de Machu Picchu era la entrada, y no se veía sin pulsar.
+    const hayNoIncluidos = servicios.some((s) => s.secciones.some((sec) => sec.key === 'noIncluidos'));
+    m.set(dia.fecha, { servicios, largo: totalLineas > 3 && !hayNoIncluidos });
   }
   return m;
 });
+
+/**
+ * Qué tiene incluido cada ACTIVIDAD, para decirlo donde está y no sólo al final del día.
+ *
+ * El panel «¿Qué incluye este día?» vive al pie y obliga a emparejar a ojo: arriba pone «Ascenso
+ * en bus al Santuario» y abajo «Boleto de bus desde Aguas Calientes al Santuario de Machupicchu».
+ * Aquí cada actividad dice su propio estado: «Incluye» si todo lo suyo va incluido, y la
+ * excepción con nombre —«No incluye: Boleto de ingreso a Machu Picchu»— si algo no.
+ *
+ * ⚠️ **Sale de las MISMAS líneas que el panel**, cruzadas por `componenteId`, y no del `modo` del
+ * componente. La clasificación que ve el cliente la decide `construirInclusiones()`: un
+ * componente incluido sin tarifa estándar se publica como opcional. Leer el `modo` crudo haría
+ * que la actividad dijera «Incluye» y el panel «Opcional» sobre la misma cosa.
+ *
+ * ⚠️ **Añade, no sustituye.** El panel sigue: lleva lo que una marca no puede —la tarifa, el
+ * proveedor, los ítems, el precio de cada opcional—. Una actividad sin líneas cruzadas no dice
+ * nada en vez de suponer: las propuestas anteriores a `componenteId` siguen como estaban.
+ */
+type ExcepcionDeActividad = { tipo: 'noIncluidos' | 'opcionales' | 'cortesias'; nombre: string };
+
+const lineasPorComponente = computed(() => {
+  const m = new Map<string, { incluidos: number; excepciones: ExcepcionDeActividad[] }>();
+  const anotar = (l: PaxInclusionItem, tipo: 'incluidos' | ExcepcionDeActividad['tipo']) => {
+    if (!l.componenteId) return;
+    const e = m.get(l.componenteId) ?? { incluidos: 0, excepciones: [] };
+    if (tipo === 'incluidos') e.incluidos++;
+    else e.excepciones.push({ tipo, nombre: store.traducir(l.nombre) });
+    m.set(l.componenteId, e);
+  };
+  for (const srv of store.inclusiones) {
+    (srv.incluidos ?? []).forEach((l) => anotar(l, 'incluidos'));
+    (srv.noIncluidos ?? []).forEach((l) => anotar(l, 'noIncluidos'));
+    (srv.opcionales ?? []).forEach((l) => anotar(l, 'opcionales'));
+    (srv.cortesias ?? []).forEach((l) => anotar(l, 'cortesias'));
+  }
+  return m;
+});
+
+const ORDEN_EXCEPCION: Record<ExcepcionDeActividad['tipo'], number> = { noIncluidos: 0, opcionales: 1, cortesias: 2 };
+
+const estadoPorActividad = computed(() => {
+  const m = new Map<string, { todoIncluido: boolean; excepciones: ExcepcionDeActividad[] }>();
+  for (const dia of itinerarioVista.value) {
+    for (const b of dia.bloques) {
+      let incluidos = 0;
+      const vistas = new Set<string>();
+      const excepciones: ExcepcionDeActividad[] = [];
+      for (const c of b.componentes) {
+        const e = lineasPorComponente.value.get(c.id);
+        if (!e) continue;
+        incluidos += e.incluidos;
+        for (const x of e.excepciones) {
+          // Un opcional con dos grupos de tarifa son dos líneas del mismo nombre: aquí basta una.
+          const k = `${x.tipo}|${x.nombre}`;
+          if (vistas.has(k)) continue;
+          vistas.add(k);
+          excepciones.push(x);
+        }
+      }
+      excepciones.sort((a, z) => ORDEN_EXCEPCION[a.tipo] - ORDEN_EXCEPCION[z.tipo]);
+      m.set(b.key, { todoIncluido: incluidos > 0 && excepciones.length === 0, excepciones });
+    }
+  }
+  return m;
+});
+
+const ESTILO_EXCEPCION: Record<ExcepcionDeActividad['tipo'], { clave: string; texto: string; icono: string; cls: string }> = {
+  noIncluidos: { clave: 'cot_no_incluye', texto: 'No incluye', icono: 'fa-circle-xmark', cls: 'bg-red-50 border-red-200 text-red-700' },
+  opcionales: { clave: 'cot_opcional', texto: 'Opcional', icono: 'fa-circle-question', cls: 'bg-amber-50 border-amber-200 text-amber-800' },
+  cortesias: { clave: 'cot_cortesia', texto: 'Cortesía', icono: 'fa-gift', cls: 'bg-sky-50 border-sky-200 text-sky-700' },
+};
 
 /**
  * En qué línea de cada día se nombra a un proveedor, callando las repeticiones SEGUIDAS.
@@ -2560,6 +2636,30 @@ const adelantoVista = computed(() => {
                   <i class="far fa-clock"></i>
                   {{ item.horaInicio }}<template v-if="item.horaFin && item.horaFin !== item.horaInicio"> – {{ item.horaFin }}</template>
                 </span>
+
+                <!-- Estado de la actividad: «Incluye», o la excepción con nombre. Ver
+                     `estadoPorActividad`. Va también en modo Resumen, que es donde más se lee. -->
+                <div
+                    v-if="!item.esRepeticion && (estadoPorActividad.get(item.key)?.todoIncluido || estadoPorActividad.get(item.key)?.excepciones.length)"
+                    class="flex flex-wrap gap-2"
+                    :class="modoResumen ? 'mt-2' : 'mb-4'"
+                >
+                  <span
+                      v-if="estadoPorActividad.get(item.key)?.todoIncluido"
+                      class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1"
+                  >
+                    <i class="fas fa-circle-check"></i>{{ maestroStore.t('cot_incluye') || 'Incluye' }}
+                  </span>
+                  <span
+                      v-for="x in estadoPorActividad.get(item.key)?.excepciones"
+                      :key="x.tipo + x.nombre"
+                      class="inline-flex items-start gap-1.5 text-xs font-bold border rounded-lg px-2.5 py-1.5 leading-snug"
+                      :class="ESTILO_EXCEPCION[x.tipo].cls"
+                  >
+                    <i class="fas mt-0.5 shrink-0" :class="ESTILO_EXCEPCION[x.tipo].icono"></i>
+                    <span><span class="font-black">{{ maestroStore.t(ESTILO_EXCEPCION[x.tipo].clave) || ESTILO_EXCEPCION[x.tipo].texto }}:</span> {{ x.nombre }}</span>
+                  </span>
+                </div>
 
                 <!-- Contenido narrativo (truncable) — oculto en modo Resumen -->
                 <div v-if="!modoResumen" class="relative">
