@@ -235,6 +235,8 @@ export interface PaxInclusionItem {
     modo: string;
     fecha: string;
     nombre: I18n;
+    /** Lo que trae dentro una línea opcional de componente (sus ítems). Ver `InclusionLinea.detalle` en util. */
+    detalle?: I18n[];
     /** Número de opción (req 3): componente opcional sin estándar. El texto
      *  "Opción N" se compone en la vista con el idioma actual. */
     grupoOpcion?: number;
@@ -551,6 +553,15 @@ export interface PaxOpcionUpgrade {
      */
     servicioOpcional?: boolean;
     incluye?: I18n[];
+    /** Las alternativas DE un servicio opcional: lo que cambia y cuánto más. Deltas ausentes si precioOculto. */
+    alternativas?: {
+        indice: number;
+        cambia: I18n[];
+        tarifaTitulo: I18n;
+        notaRol?: I18n;
+        deltaVentaPorPax?: number;
+        deltaVentaTotal?: number;
+    }[];
     componenteNombre: I18n;
     tarifaTitulo: I18n;
     modalidad: string | null;

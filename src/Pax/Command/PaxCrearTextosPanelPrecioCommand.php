@@ -55,6 +55,9 @@ final class PaxCrearTextosPanelPrecioCommand extends Command
         'cot_opciones_mas'           => 'opciones más',
         // La marca de un servicio que se vende entero como opcional, en el itinerario.
         'cot_servicio_opcional'      => 'Servicio opcional',
+        // …y cuántas alternativas tiene. `{{ n }}` lo pone `pax`.
+        'cot_una_alternativa'        => '1 alternativa',
+        'cot_n_alternativas'         => '{{ n }} alternativas',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

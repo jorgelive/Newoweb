@@ -887,26 +887,46 @@ las tres piezas:
 |---|---|
 | `construirInclusiones()` | `servicioOpcional: true` en el bloque; todo lo `incluido` suyo va a `opcionales`; UN aviso informativo por servicio, no uno por componente |
 | `resumenFinanciero` | marca cada alternativa con `servicioOpcional` — el interno sigue viéndolas por separado |
-| `expurgarParaCliente()` → `agruparServiciosOpcionales()` | UNA tarjeta por servicio y grupo: nombre del servicio, `incluye` con lo que trae, `deltaVentaTotal` sumado y `deltaVentaPorPax = total / numPax` |
+| `expurgarParaCliente()` → `tarjetaDeServicioOpcional()` | UNA tarjeta por servicio: nombre **público** del servicio, `incluye`, el precio del opcional y sus `alternativas` dentro |
 
-⚠️ **El «c/u» sale del total, no de sumar los «c/u»**: un componente con tarifa de adulto y de niño
-trae dos opciones y sumarlas cobraría las dos a cada pasajero.
+**El grupo más bajo ES el opcional; los demás son alternativas DE él** — misma regla que en un
+servicio incluido: lo que no tiene alternativa en un grupo no cambia.
 
-⚠️ **Por servicio Y grupo**: dos grupos en un servicio opcional son dos versiones que compiten, no
-piezas que se suman.
+```
+                grupo 1   grupo 2
+Pool              18        30        → Half Day · +108 c/u
+Koricancha        20         —          Alternativa 1: Pool · +12 c/u sobre el opcional
+Sacsayhuamán      70         —
+```
+
+🔥 La primera versión (52516ec9) hacía una tarjeta por grupo con sólo lo suyo: la «Opción 2» salía
+«sólo el pool, 30», que se lee como la barata SIN boletos cuando era la superior CON ellos. Revisión
+del 10/10/2026: no se limita crear una alternativa «incompleta» —con esta regla no existe—; sólo se
+**avisa** (informativa) de una pieza con tarifa únicamente en una alternativa, porque el opcional base
+no la incluye y la alternativa la añade entera.
+
+⚠️ **El «c/u»: por componente, el precio por persona MÁS ALTO de sus tarifas, y se suman.** Es lo
+que paga un adulto, igual que la tarjeta de un componente opcional suelto. Ni sumar todos los «c/u»
+(adulto + niño a cada uno) ni dividir el total entre todos (con niños sin tarifa, el adulto que
+paga 90 leía 67,5). El total sí es la suma exacta.
 
 ⚠️ Un componente **sin tarifas** no decide (no hay nada pagado dentro), y `no_incluido`/`cortesia`
-tampoco.
+tampoco. Modo vacío no cuenta como incluido, igual que en el votante.
 
-En pax: marca «Servicio opcional · +X c/u» en la fila del botón del servicio (el id sale de las
-inclusiones, que en una operativa vienen traducidas; el precio se busca en `opcionesUpgrade` y si no
-casa la marca sale sin él), y las actividades de ese servicio no repiten «Opcional» cada una. En el
-editor: «Servicio opcional» en la cabecera de componentes.
+**Lo que arregló la misma revisión, fuera de la tarjeta:**
 
-Con esto `esOpcionalParaElCliente()` acepta también un componente **sin título pero con ítems**:
-pedía el título y un pool marcado como alternativa salía «Incluido» y no contaba entre los
-opcionales. Lo incluido de un componente opcional es opcional (`destinoAqui` en
-`construirInclusiones()`).
+| Qué | Dónde |
+|---|---|
+| Un liberado **sin grupo** en un componente sin estándar visible iba al precio del viaje: ahora viaja con todas sus opciones | bucle de líneas + `operativasPorGrupo` en `resumenFinanciero` |
+| El ítem `incluido` de una cortesía o un no incluido salía en «Incluye»: ahora sigue a su componente | `destinoAqui` en `construirInclusiones()` |
+| Los ítems de un opcional **con título** salían como opcionales sueltos («tres compras»): ahora son su `detalle` | `InclusionLinea.detalle` |
+| El nombre interno de un servicio sin título público llegaba al cliente | `titulosPublicosDeServicio` + `expurgarParaCliente()` |
+| En copias y operativas la marca salía sin precio: los ids de `opcionesUpgrade` no se traducían | `Cotizacion::remapearOpciones()` |
+
+En pax: marca «Servicio opcional · +X c/u · N alternativas» en la fila del botón del servicio, y
+las actividades de ese servicio no repiten «Opcional» (sí dicen «No incluye» y cortesías). En el
+editor: «Servicio opcional» en la cabecera de componentes; `esOpcionalParaElCliente()` acepta un
+componente sin título pero con ítems.
 
 > Como todo el snapshot del cliente, sólo se ve **al re-guardar** la propuesta.
 

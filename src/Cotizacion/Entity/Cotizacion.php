@@ -709,6 +709,47 @@ class Cotizacion
 
         $bloque['inclusiones'] = $inclusiones;
 
+        return self::remapearOpciones($bloque, $mapa);
+    }
+
+    /**
+     * Los `servicioId`/`componenteId` de `opcionesUpgrade` traducidos con el mismo mapa.
+     *
+     * 🔥 **Hacía falta desde que `pax` cruza una opción con el itinerario.** La marca «Servicio
+     * opcional · +X c/u» busca el precio de su servicio por id en `opcionesUpgrade`; con los ids del
+     * original, en toda copia y en toda operativa la marca salía sin precio. Ver
+     * {@see self::getClasificacionFinancieraParaCliente()}.
+     *
+     * @param array<string, mixed> $bloque
+     * @param array<string, string> $mapa
+     *
+     * @return array<string, mixed>
+     */
+    private static function remapearOpciones(array $bloque, array $mapa): array
+    {
+        if (!is_array($bloque['opcionesUpgrade'] ?? null)) {
+            return $bloque;
+        }
+
+        $traducir = static fn (mixed $id): mixed => is_string($id) ? ($mapa[$id] ?? $id) : $id;
+
+        $bloque['opcionesUpgrade'] = array_map(
+            static function (mixed $opcion) use ($traducir): mixed {
+                if (!is_array($opcion)) {
+                    return $opcion;
+                }
+
+                foreach (['servicioId', 'componenteId'] as $campo) {
+                    if (isset($opcion[$campo])) {
+                        $opcion[$campo] = $traducir($opcion[$campo]);
+                    }
+                }
+
+                return $opcion;
+            },
+            $bloque['opcionesUpgrade'],
+        );
+
         return $bloque;
     }
 
@@ -1299,8 +1340,10 @@ class Cotizacion
      * existe justamente para decir eso mejor que la confirmada. Así que se toman de `$this`.
      *
      * ⚠️ **`opcionesUpgrade` se queda con las del origen**: ahí sí hay importes —el delta que se le
-     * cobraría— y no se cruzan contra el itinerario por id, se pintan solas en la tarjeta de
-     * precio.
+     * cobraría—. Pero sus ids SÍ se traducen al árbol de la operativa: desde el 10/10/2026 `pax`
+     * cruza la opción de un servicio opcional con el itinerario para poner su precio en la marca.
+     * Si la operativa ya no tiene la forma del origen —se le añadieron o quitaron piezas— no hay
+     * mapa fiable y se quedan como están: la marca sale sin precio, que es mejor que con el de otro.
      *
      * ⚠️ No hay error que ver: los ids son ids, casan o no. Sólo se encuentra comparando lo que
      * llega al navegador con lo que hay en el árbol.
@@ -1319,6 +1362,11 @@ class Cotizacion
         }
 
         $bloque['inclusiones'] = $this->clasificacionFinancieraCliente['inclusiones'] ?? [];
+
+        $mapa = self::mapaDeIds($origen, $this);
+        if ($mapa !== null) {
+            $bloque = self::remapearOpciones($bloque, $mapa);
+        }
 
         return $this->acotarInclusiones($bloque);
     }

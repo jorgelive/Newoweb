@@ -133,6 +133,34 @@ final class CotizacionCopiaTest extends TestCase
     }
 
     #[Test]
+    public function las_opciones_del_cliente_apuntan_al_arbol_nuevo(): void
+    {
+        // `pax` cruza la opción de un servicio opcional con el itinerario para poner su precio en
+        // la marca: con los ids del original, toda copia la enseñaba sin precio.
+        $original = $this->cotizacion();
+        $servicio = $original->getCotservicios()->getValues()[0];
+        $componente = $this->componentes($original)[0];
+        $original->setClasificacionFinancieraCliente([
+            'inclusiones' => [],
+            'opcionesUpgrade' => [[
+                'servicioId' => $this->id($servicio),
+                'componenteId' => $this->id($componente),
+                'deltaVentaTotal' => 40,
+            ]],
+        ]);
+
+        $copia = $original->duplicar();
+        $bloque = $copia->getClasificacionFinancieraCliente() ?? self::fail('sin bloque');
+        $opciones = $bloque['opcionesUpgrade'];
+        self::assertIsArray($opciones);
+        self::assertIsArray($opciones[0]);
+
+        self::assertSame($this->id($copia->getCotservicios()->getValues()[0]), $opciones[0]['servicioId']);
+        self::assertSame($this->id($this->componentes($copia)[0]), $opciones[0]['componenteId']);
+        self::assertSame(40, $opciones[0]['deltaVentaTotal']);
+    }
+
+    #[Test]
     public function en_el_mismo_expediente_los_subgrupos_se_quedan(): void
     {
         $copia = $this->cotizacion()->duplicar();

@@ -124,6 +124,17 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
                 $cfc['opcionesUpgrade'] = array_map(static function ($opcion) {
                     if (\is_array($opcion)) {
                         unset($opcion['deltaVentaPorPax'], $opcion['deltaVentaTotal'], $opcion['deltasPorPerfil']);
+
+                        // Las alternativas de un servicio opcional viajan DENTRO de su tarjeta,
+                        // con su propio delta: dinero igual que el de arriba.
+                        if (isset($opcion['alternativas']) && \is_array($opcion['alternativas'])) {
+                            $opcion['alternativas'] = array_map(static function ($alt) {
+                                if (\is_array($alt)) {
+                                    unset($alt['deltaVentaPorPax'], $alt['deltaVentaTotal']);
+                                }
+                                return $alt;
+                            }, $opcion['alternativas']);
+                        }
                     }
                     return $opcion;
                 }, $cfc['opcionesUpgrade']);

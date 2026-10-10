@@ -1048,6 +1048,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         // error del operador que si no, no se ve.
                         if (t.grupoTarifa != null && gruposConOpcion.has(t.grupoTarifa)) return;
 
+                        // 🔥 **Sin grupo, en un componente que sólo tiene opciones, tampoco es de la
+                        // base.** No hay línea de paquete a la que cargarlo: el componente entero se
+                        // vende aparte, y sus liberados se compran sólo si se compra. Sumarlo aquí
+                        // cobraba en el precio del viaje los liberados de algo que el cliente podía
+                        // no contratar. Se reparte entre sus opciones, abajo, en `operativasPorGrupo`.
+                        if (t.grupoTarifa == null && gruposConOpcion.size > 0
+                            && !(componente.cottarifas || []).some(esEstandarVisible)) return;
+
                         if (t.grupoTarifa != null) {
                             informativas.push(
                                 `"${servicioLabel} ➔ ${compLabel}": la operativa `
@@ -1284,12 +1292,20 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                     // Las operativas atadas a un grupo: su costo viaja con la opción, no con la
                     // base. Se recogen por grupo para sumarlas al adicional de abajo.
+                    //
+                    // Una SIN grupo en un componente sin estándar visible va con TODAS sus opciones:
+                    // se elija la que se elija, esos liberados se compran (ver el `return` del
+                    // bucle de líneas, que la aparta de la base por la misma razón).
                     const operativasPorGrupo = new Map<number, TarifaSnapshot[]>();
                     (componente.cottarifas || []).forEach((t) => {
-                        if (resolverCalculo(t) !== 'operativa' || t.grupoTarifa == null) return;
-                        const g = t.grupoTarifa;
-                        if (!operativasPorGrupo.has(g)) operativasPorGrupo.set(g, []);
-                        operativasPorGrupo.get(g)!.push(t);
+                        if (resolverCalculo(t) !== 'operativa') return;
+                        const destinos = t.grupoTarifa != null
+                            ? [t.grupoTarifa]
+                            : (hayEstandar ? [] : [...gruposConOpcion]);
+                        destinos.forEach((g) => {
+                            if (!operativasPorGrupo.has(g)) operativasPorGrupo.set(g, []);
+                            operativasPorGrupo.get(g)!.push(t);
+                        });
                     });
 
                     const grupos = new Map<number, TarifaSnapshot[]>();
@@ -1610,7 +1626,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // la cotizadora en solo-lectura a mitad de armar un grupo — el fallo que ya costó
             // caro con «⚠️ CONFLICTO». Al publicar se pregunta, que es donde importa.
             informativas: [...informativas, ...tarifasSinNombre.value],
-            publicable: !tieneConflictos && advertencias.length === 0
+            publicable: !tieneConflictos && advertencias.length === 0,
+            titulosPublicosDeServicio: Object.fromEntries(cotizacion.value.cotservicios.map((s: CotServicio) =>
+                [extractIdStr(s.id), s.tituloSnapshot?.length ? s.tituloSnapshot : []])),
         };
     });
 
@@ -1845,6 +1863,24 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 informativas.push(`"${servicioLabel}": ninguna de sus tarifas es estándar, así que el `
                     + 'cliente verá el servicio entero como OPCIONAL, con el precio sumado. Si algo tenía '
                     + 'que ir incluido en el paquete, marca su tarifa como estándar.');
+
+                // El grupo más bajo ES el opcional; los demás son alternativas de él (ver
+                // `tarjetaDeServicioOpcional()`). Una pieza con tarifa sólo en una alternativa no
+                // está en el opcional base: la alternativa la añade entera. Puede ser a propósito
+                // —«con almuerzo»—, así que se dice y no se bloquea.
+                const gruposDe = (c: ComponenteCompleto): number[] => (c.cottarifas || [])
+                    .filter((t: TarifaSnapshot) => t.rolSnapshot === 'alternativa' && modalidadDeTarifa(t) !== 'operativa')
+                    .map((t: TarifaSnapshot) => t.grupoTarifa ?? 0);
+                const piezas = (servicio.cotcomponentes || []).filter((c: ComponenteCompleto) =>
+                    (c.modo || '').toLowerCase() === 'incluido'
+                    && (c.estado || '').toLowerCase() !== 'cancelado'
+                    && gruposDe(c).length > 0);
+                const base = Math.min(...piezas.flatMap(gruposDe));
+                piezas.filter((c: ComponenteCompleto) => !gruposDe(c).includes(base)).forEach((c: ComponenteCompleto) => {
+                    informar(servicioLabel, getI18nText(c.tituloSnapshot, idiomaEdicion) || c.nombreInternoSnapshot || 'Componente',
+                        'sólo tiene tarifa en una alternativa: el opcional base no lo incluye y esa '
+                        + 'alternativa lo añade entero. Si va en todas, dale también tarifa en el grupo del opcional.');
+                });
             }
 
             // ⚠️ El `else` final es un cajón de sastre: cualquier modo que no reconozca
@@ -1930,10 +1966,32 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                  * mientras la tarjeta de precio lo ofrecía como añadido. Vale para el componente
                  * opcional y para todo lo de un servicio opcional entero.
                  */
-                const esOpcionalAqui = servicioOpcional || (modo === 'incluido' && !hayEstandar
-                    && (componente.cottarifas || []).some((t: TarifaSnapshot) => modalidadDeTarifa(t) !== 'operativa'));
-                const destinoAqui = (m: string): InclusionLinea[] =>
-                    esOpcionalAqui && m === 'incluido' ? bloque.opcionales : destino(m);
+                //
+                // ⚠️ Sólo si el componente ES `incluido`: el ítem de una cortesía o de un no incluido
+                // sigue a su componente aunque el servicio sea opcional.
+                const componenteOpcional = modo === 'incluido' && !hayEstandar
+                    && (componente.cottarifas || []).some((t: TarifaSnapshot) => modalidadDeTarifa(t) !== 'operativa');
+                const esOpcionalAqui = modo === 'incluido' && (servicioOpcional || componenteOpcional);
+                //
+                // Y por la misma razón, lo «incluido» de un componente que es cortesía o no incluido
+                // es eso: el ítem «Agua fría» de la cortesía «Agua» salía en «Incluye». El modo
+                // propio del ítem manda sólo cuando se aparta del componente (un no incluido
+                // dentro de un incluido).
+                const destinoAqui = (m: string): InclusionLinea[] => {
+                    if (m !== 'incluido') return destino(m);
+                    if (esOpcionalAqui) return bloque.opcionales;
+                    return destino(modo);
+                };
+
+                // Con línea opcional propia, sus ítems incluidos son su DETALLE y no líneas sueltas.
+                // Ver `InclusionLinea.detalle`.
+                const itemsComoDetalle = tieneNombre && componenteOpcional;
+                const detalleDeItems = itemsComoDetalle
+                    ? items
+                        .filter((it: SnapshotItem) => (it.modo || 'incluido').toLowerCase() === 'incluido')
+                        .map((it: SnapshotItem) => it.tituloSnapshot)
+                        .filter((t) => Array.isArray(t) && t.length > 0)
+                    : [];
 
                 const mapearTarifaInclusion = (t: TarifaSnapshot): InclusionTarifa => ({
                     tarifaTitulo: t.tituloSnapshot || [],
@@ -2015,6 +2073,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                     edadMax: ref?.edadMaximaSnapshot ?? null,
                                     tarifaTitulo: [],
                                     tarifas: tarifasGrupo.map(mapearTarifaInclusion),
+                                    ...(detalleDeItems.length ? { detalle: detalleDeItems } : {}),
                                     // ⚠️ **De qué componente cuelga.** Era la única de las cuatro
                                     // secciones que no lo llevaba, y el filtro por subgrupo deja
                                     // pasar lo que no puede identificar: un pasajero del vuelo Sky
@@ -2064,6 +2123,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 // Líneas de ITEMS aplanadas (casos 1 y 3): cada item con su propio modo
                 items.forEach((item: SnapshotItem) => {
                     const modoItem = (item.modo || 'incluido').toLowerCase();
+                    if (itemsComoDetalle && modoItem === 'incluido') return;   // ya va en `detalle`
 
                     // `destino()` manda a "Incluye" todo lo que no reconoce. Un modo con
                     // una errata deja de ser opcional y pasa a estar incluido, en silencio

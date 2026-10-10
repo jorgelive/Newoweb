@@ -578,7 +578,7 @@ describe('un servicio opcional entero', () => {
 
     const conCityTour = (otro: unknown[] = []) => {
         const store = useCotizacionEditorStore();
-        // @ts-expect-error — fixture mínimo.
+        // Fixture mínimo: sólo lleva lo que el clasificador lee.
         store.cotizacion = {
             id: 'cot-1', numPax: 8, comision: '0', adelanto: '0', tipoCambio: '1', idiomaEdicion: 'es',
             cotservicios: [
@@ -589,7 +589,7 @@ describe('un servicio opcional entero', () => {
                 ]),
                 ...otro,
             ],
-        };
+        } as unknown as typeof store.cotizacion;
         return store.resumenFinanciero!;
     };
 
@@ -610,7 +610,8 @@ describe('un servicio opcional entero', () => {
         expect(tarjeta.componenteNombre).toEqual(es('City tour'));
         expect(tarjeta.incluye).toHaveLength(3);
         expect(tarjeta.deltaVentaTotal).toBeCloseTo(totalSuelto, 2);
-        expect(tarjeta.deltaVentaPorPax).toBeCloseTo(totalSuelto / 8, 2);
+        // Todos pagan todo: el «c/u» es la suma de los «c/u».
+        expect(tarjeta.deltaVentaPorPax).toBeCloseTo(fin.opcionesUpgrade.reduce((n, o) => n + o.deltaVentaPorPax, 0), 2);
     });
 
     it('el interno conserva cada alternativa por separado', () => {
@@ -628,5 +629,115 @@ describe('un servicio opcional entero', () => {
         expect(delValle[0].servicioOpcional).toBe(false);
         expect(delValle[0].componenteNombre).toEqual(es('Almuerzo'));
         expect(fin.inclusiones.find((s) => s.servicioId === 's-valle')!.servicioOpcional).toBe(false);
+    });
+});
+
+
+describe('un servicio opcional con más de un grupo', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    const es = (content: string) => [{ language: 'es', content }];
+    const item = (nombre: string, modo = 'incluido') => ({ id: `i-${nombre}`, modo, tituloSnapshot: es(nombre) });
+    const alt = (monto: number, grupo: number, extra: Record<string, unknown> = {}) =>
+        tarifa(monto, 8, { rolSnapshot: 'alternativa', grupoTarifa: grupo, ...extra });
+    const componente = (id: string, titulo: string | null, cottarifas: unknown[], extra: Record<string, unknown> = {}) => ({
+        id, modo: 'incluido', estado: 'confirmado', cantidad: 1,
+        fechaHoraInicio: '2026-12-05T09:00:00',
+        tituloSnapshot: titulo ? es(titulo) : [],
+        nombreInternoSnapshot: id,
+        snapshotItems: [],
+        cottarifas,
+        ...extra,
+    });
+
+    const con = (componentes: unknown[], tituloServicio: string | null = 'City tour') => {
+        const store = useCotizacionEditorStore();
+        store.cotizacion = {
+            id: 'cot-1', numPax: 8, comision: '0', adelanto: '0', tipoCambio: '1', idiomaEdicion: 'es',
+            cotservicios: [{
+                id: 's-city', orden: 1, fechaInicioAbsoluta: '2026-12-05',
+                tituloSnapshot: tituloServicio ? es(tituloServicio) : [],
+                nombreInternoSnapshot: es('CITY INTERNO'), cotsegmentos: [],
+                cotcomponentes: componentes,
+            }],
+        } as unknown as typeof store.cotizacion;
+        return store.resumenFinanciero!;
+    };
+
+    const venta = (fin: ReturnType<typeof con>, comp: string, grupo: number) =>
+        fin.opcionesUpgrade.filter((o) => o.componenteId === comp && o.grupoTarifa === grupo)
+            .reduce((n, o) => n + o.deltaVentaTotal, 0);
+
+    it('el grupo 2 es una alternativa DEL opcional: lo que no cambia sigue dentro', () => {
+        const fin = con([
+            componente('c-pool', null, [alt(18, 1), alt(30, 2)], { snapshotItems: [item('Guía')] }),
+            componente('c-kori', 'Koricancha', [alt(20, 1)]),
+        ]);
+        const [tarjeta] = expurgarParaCliente(fin).opcionesUpgrade;
+
+        expect(tarjeta.incluye).toHaveLength(2);
+        expect(tarjeta.deltaVentaTotal).toBeCloseTo(venta(fin, 'c-pool', 1) + venta(fin, 'c-kori', 1), 2);
+        expect(tarjeta.alternativas).toHaveLength(1);
+        expect(tarjeta.alternativas![0].indice).toBe(1);
+        expect(tarjeta.alternativas![0].deltaVentaTotal)
+            .toBeCloseTo(venta(fin, 'c-pool', 2) - venta(fin, 'c-pool', 1), 2);
+    });
+
+    it('una pieza que sólo está en la alternativa no entra en el opcional, y se dice', () => {
+        const fin = con([
+            componente('c-pool', 'Pool', [alt(18, 1)]),
+            componente('c-alm', 'Almuerzo', [alt(25, 2)]),
+        ]);
+        const [tarjeta] = expurgarParaCliente(fin).opcionesUpgrade;
+
+        expect(tarjeta.incluye).toEqual([es('Pool')]);
+        expect(tarjeta.alternativas![0].deltaVentaTotal).toBeCloseTo(venta(fin, 'c-alm', 2), 2);
+        expect(fin.informativas.some((x) => x.includes('Almuerzo') && x.includes('sólo tiene tarifa en una alternativa'))).toBe(true);
+    });
+
+    it('con adulto y niño, el «c/u» es lo que paga el adulto, no las dos sumadas', () => {
+        const fin = con([
+            componente('c-kori', 'Koricancha', [alt(20, 1, { cantidad: 6 }), alt(10, 1, { cantidad: 2, edadMaximaSnapshot: 12 })]),
+            componente('c-sacsa', 'Sacsayhuamán', [alt(70, 1)]),
+        ]);
+        const [tarjeta] = expurgarParaCliente(fin).opcionesUpgrade;
+        const pp = (comp: string) => Math.max(...fin.opcionesUpgrade.filter((o) => o.componenteId === comp).map((o) => o.deltaVentaPorPax));
+
+        expect(tarjeta.deltaVentaPorPax).toBeCloseTo(pp('c-kori') + pp('c-sacsa'), 2);
+    });
+
+    it('un liberado sin grupo va con la opción, no al precio del viaje', () => {
+        const fin = con([componente('c-pool', 'Pool', [
+            alt(18, 1),
+            tarifa(160, 1, { calculoSnapshot: 'operativa', grupoTarifa: null }),
+        ])]);
+        expect(fin.totalVentaBruta).toBe(0);
+        expect(expurgarParaCliente(fin).opcionesUpgrade[0].deltaVentaTotal).toBeGreaterThan(venta(con([componente('c-pool', 'Pool', [alt(18, 1)])]), 'c-pool', 1));
+    });
+
+    it('el ítem de una cortesía sigue a su componente aunque el servicio sea opcional', () => {
+        const fin = con([
+            componente('c-pool', 'Pool', [alt(18, 1)]),
+            componente('c-agua', 'Agua', [], { modo: 'cortesia', snapshotItems: [item('Agua fría')] }),
+        ]);
+        const bloque = fin.inclusiones[0];
+        expect(JSON.stringify(bloque.cortesias)).toContain('Agua fría');
+        expect(JSON.stringify(bloque.opcionales)).not.toContain('Agua fría');
+    });
+
+    it('los ítems de un opcional con título son su detalle, no líneas sueltas', () => {
+        const fin = con([componente('c-coco', 'Coco Bongo', [alt(100, 1)], {
+            snapshotItems: [item('Entrada'), item('Transporte'), item('Bebidas', 'no_incluido')],
+        })]);
+        const bloque = fin.inclusiones[0];
+
+        expect(bloque.opcionales).toHaveLength(1);
+        expect(bloque.opcionales[0].detalle).toEqual([es('Entrada'), es('Transporte')]);
+        expect(JSON.stringify(bloque.noIncluidos)).toContain('Bebidas');
+    });
+
+    it('un servicio sin título público NO enseña su nombre interno', () => {
+        const cliente = expurgarParaCliente(con([componente('c-pool', 'Pool', [alt(18, 1)])], null));
+        expect(JSON.stringify(cliente)).not.toContain('CITY INTERNO');
     });
 });

@@ -423,11 +423,18 @@ const mostrarAccionInclusiones = (b: BloqueVista): boolean =>
 const serviciosOpcionales = computed(() => new Set(
     store.inclusiones.filter((s) => s.servicioOpcional).map((s) => s.servicioId)));
 
-const precioDeServicioOpcional = (servicioId: string): number | null => {
-  const o = store.gruposUpgrade.flatMap((g) => g.opciones)
-      .find((x) => x.servicioOpcional && x.servicioId === servicioId);
-  return o?.deltaVentaPorPax ?? null;
-};
+/**
+ * La tarjeta del servicio opcional: su precio para la marca y cuántas alternativas tiene.
+ *
+ * ⚠️ El precio es el del OPCIONAL; las alternativas se cuentan aparte. Con sólo el primero, un
+ * servicio con «Alternativa 1 +12» decía un único precio como si no hubiera más.
+ */
+const etiquetaAlternativas = (n: number): string => n === 1
+    ? (maestroStore.t('cot_una_alternativa') || '1 alternativa')
+    : (maestroStore.t('cot_n_alternativas', { n: String(n) }) || `${n} alternativas`);
+
+const tarjetaDeServicioOpcional = (servicioId: string) =>
+  store.gruposUpgrade.flatMap((g) => g.opciones).find((x) => x.servicioOpcional && x.servicioId === servicioId) ?? null;
 
 
 // ── Horarios de componentes ──────────────────────────────────────────────────
@@ -1132,9 +1139,10 @@ const estadoPorActividad = computed(() => {
   const m = new Map<string, { incluidos: string[]; excepciones: ExcepcionDeActividad[] }>();
   for (const dia of itinerarioVista.value) {
     for (const b of dia.bloques) {
-      // En un servicio opcional entero lo dice UNA marca en el servicio: repetir «Opcional» en
-      // cada actividad sería la misma información cuatro veces.
-      if (serviciosOpcionales.value.has(b.servicio.id)) continue;
+      // En un servicio opcional entero el «Opcional» lo dice UNA marca en el servicio: repetirlo
+      // en cada actividad sería lo mismo cuatro veces. Sólo eso se calla: un «No incluye» o una
+      // cortesía dentro del servicio siguen diciéndose donde ocurren.
+      const callarOpcionales = serviciosOpcionales.value.has(b.servicio.id);
       const incluidos: string[] = [];
       const vistas = new Set<string>();
       const excepciones: ExcepcionDeActividad[] = [];
@@ -1148,6 +1156,7 @@ const estadoPorActividad = computed(() => {
           incluidos.push(n);
         }
         for (const x of e.excepciones) {
+          if (callarOpcionales && x.tipo === 'opcionales') continue;
           // Un opcional con dos grupos de tarifa son dos líneas del mismo nombre: aquí basta una.
           const k = `${x.tipo}|${x.nombre}`;
           if (vistas.has(k)) continue;
@@ -2392,6 +2401,38 @@ const adelantoVista = computed(() => {
                       <i class="fas fa-circle-info mr-1 text-slate-400 not-italic"></i>
                       {{ store.traducir(up.notaRol) }}
                     </p>
+
+                    <!-- Alternativas DEL servicio opcional: lo que cambia y cuánto más sobre él. Lo
+                         que no nombran sigue como en el opcional. Ver `tarjetaDeServicioOpcional()` en util. -->
+                    <div v-if="up.alternativas?.length" class="mt-3 space-y-2">
+                      <div v-for="alt in up.alternativas" :key="alt.indice"
+                           class="flex items-start justify-between gap-3 bg-white border border-orange-100 rounded-xl px-3 py-2">
+                        <div class="min-w-0">
+                          <p class="flex flex-wrap items-center gap-1.5">
+                            <span class="inline-flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider bg-[#E07845]/10 text-[#E07845]">
+                              <i class="fas fa-shuffle"></i>
+                              {{ maestroStore.t('cot_alternativa') || 'Alternativa' }} {{ alt.indice }}
+                            </span>
+                            <span class="text-[12px] font-bold text-gray-800 leading-snug">
+                              {{ alt.cambia.map((n) => store.traducir(n)).join(' · ') }}
+                            </span>
+                            <template v-for="t in [partirTituloTarifa(store.traducir(alt.tarifaTitulo) || '')]" :key="t.sello">
+                              <span v-if="t.sello"
+                                    class="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200/80 rounded-md px-1.5 py-0.5">
+                                {{ t.sello }}
+                              </span>
+                            </template>
+                          </p>
+                          <p v-if="alt.notaRol?.length" class="mt-1 text-[11px] text-slate-500 italic">{{ store.traducir(alt.notaRol) }}</p>
+                        </div>
+                        <span v-if="store.precioVisible && alt.deltaVentaPorPax != null"
+                              class="shrink-0 text-right text-[13px] font-black tabular-nums"
+                              :class="alt.deltaVentaPorPax < 0 ? 'text-emerald-700' : 'text-[#E07845]'">
+                          {{ alt.deltaVentaPorPax < 0 ? '−' : '+' }}{{ mvDelta(alt.deltaVentaPorPax) }}
+                          <span class="block text-[8px] font-black uppercase tracking-widest opacity-70">{{ maestroStore.t('cot_por_persona') || 'c/u' }}</span>
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2574,8 +2615,11 @@ const adelantoVista = computed(() => {
               >
                 <i class="fas fa-circle-question text-amber-500"></i>
                 {{ maestroStore.t('cot_servicio_opcional') || 'Servicio opcional' }}
-                <template v-if="store.precioVisible && precioDeServicioOpcional(item.servicio.id) !== null">
-                  · +{{ mvDelta(precioDeServicioOpcional(item.servicio.id)!) }} {{ maestroStore.t('cot_por_persona') || 'c/u' }}
+                <template v-if="store.precioVisible && tarjetaDeServicioOpcional(item.servicio.id)?.deltaVentaPorPax != null">
+                  · +{{ mvDelta(tarjetaDeServicioOpcional(item.servicio.id)!.deltaVentaPorPax!) }} {{ maestroStore.t('cot_por_persona') || 'c/u' }}
+                </template>
+                <template v-if="tarjetaDeServicioOpcional(item.servicio.id)?.alternativas?.length">
+                  · {{ etiquetaAlternativas(tarjetaDeServicioOpcional(item.servicio.id)!.alternativas!.length) }}
                 </template>
               </span>
               <button
@@ -2859,6 +2903,10 @@ const adelantoVista = computed(() => {
                               </span>
                             </span>
                           </p>
+                          <!-- Lo que trae dentro un opcional: es parte de esta línea, no otra compra. -->
+                          <p v-if="l.detalle?.length" class="ml-6 mt-0.5 text-[11px] font-medium text-slate-500 leading-snug">
+                            {{ l.detalle.map((d) => store.traducir(d)).join(' · ') }}
+                          </p>
 
                           <!-- Chips: tarifa + badges + proveedor -->
                           <div
@@ -3111,6 +3159,10 @@ const adelantoVista = computed(() => {
                         · {{ fechaChip(l.fecha) }}
                       </span>
                     </span>
+                  </p>
+                  <!-- Lo que trae dentro un opcional: es parte de esta línea, no otra compra. -->
+                  <p v-if="l.detalle?.length" class="ml-6 mt-0.5 text-[11px] font-medium text-slate-500 leading-snug">
+                    {{ l.detalle.map((d) => store.traducir(d)).join(' · ') }}
                   </p>
 
                   <!-- Chips: tarifa + badges + proveedor -->
