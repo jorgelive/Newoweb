@@ -2748,7 +2748,7 @@ const adelantoVista = computed(() => {
                 </template>
 
                 <div class="absolute bottom-0 left-0 p-5 md:p-6 pointer-events-none">
-                  <p v-if="!tituloGrandeDeServicio(item)" class="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1 drop-shadow">
+                  <p v-if="!tituloGrandeDeServicio(item) && !grupo.enMarco" class="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1 drop-shadow">
                     {{ store.traducir(item.servicio.tituloSnapshot) }}
                   </p>
                   <h4 class="text-white text-lg md:text-xl font-black leading-tight drop-shadow-md">
@@ -2762,7 +2762,7 @@ const adelantoVista = computed(() => {
                      Resumen (donde la galería se oculta y el título toma su lugar). -->
                 <div v-if="modoResumen || !imagenesDe(item.segmento).length" class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
-                    <p v-if="!tituloGrandeDeServicio(item)" class="text-[#376875]/60 text-[10px] font-black uppercase tracking-widest mb-1">
+                    <p v-if="!tituloGrandeDeServicio(item) && !grupo.enMarco" class="text-[#376875]/60 text-[10px] font-black uppercase tracking-widest mb-1">
                       {{ store.traducir(item.servicio.tituloSnapshot) }}
                     </p>
                     <h4
