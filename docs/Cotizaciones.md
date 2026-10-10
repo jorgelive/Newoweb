@@ -7935,6 +7935,32 @@ de él lo suyo. La guía lo hace en dos funciones de una línea (`tituloGrandeDe
 **La regla:** un módulo compartido devuelve hechos, no decisiones de pintado. Un flag de
 presentación ahí dentro es una bomba de relojería con el nombre del segundo consumidor escrito.
 
+### El marco del servicio en la guía (10/10/2026)
+
+Cada segmento era una tarjeta suelta, con la misma sombra que un servicio entero: un Valle VIP de
+nueve paradas se leía como nueve cosas. Ahora `gruposPorDia` (en `PaxCotizacionGuiaView.vue`) junta
+los bloques de un servicio en el día y, si son **más de uno**, los pinta en UN marco:
+
+```
+┌ [SERVICIO OPCIONAL · +X c/u]           ← sólo si es opcional entero; borde ámbar
+│ Excursión al Valle VIP                 ← título grande
+│ 07:00 – 18:30 Horario de la excursión  ← el del promovido
+│ ✓ Guía · ✓ Transporte · ✓ BTP          ← lo del PROGRAMA (EstadoDeActividad)
+│ ● Recojo …          (etapa, sombra leve, sin repetir el nombre del servicio)
+│ ● Salineras  ✓ Ingreso a Maras
+└ ● Retorno …
+```
+
+- **Uno de una sola etapa no cambia**: tarjeta y servicio ya son lo mismo (113 de 168 servicios).
+- **Agrupa por contigüidad** porque el grupo es atómico (§6.u). El módulo `itinerarioVista` no se
+  tocó: el marco es una decisión de esta pantalla, como pide la regla de arriba.
+- **Lo del programa** es lo que cuelga del bloque del **promovido** (`horaServicioCompleto`, el
+  ancla): sube a la cabecera y su etapa no lo repite (`estadoDeEtapa`). Sin promovido no sube nada.
+  Por eso un servicio de catálogo sin promovido enseña la guía y el transporte en la tarjeta del
+  recojo — se arregla en el catálogo, no aquí (ver `docs/Travel.md`, auditoría del 10/10/2026).
+- La marca de la actividad es el componente `EstadoDeActividad.vue`: se pinta en la cabecera y en
+  cada etapa, y escrita dos veces acabaría diciendo cosas distintas.
+
 ### La entrada es un contrato ESTRECHO, no la serialización de nadie
 
 `componerItinerario()` declara **los doce campos que lee** (`ServicioMinimo`, `SegmentoMinimo`,
