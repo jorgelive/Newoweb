@@ -5695,6 +5695,43 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return null;
     });
 
+    /**
+     * El horario de la EXCURSIÓN, del catálogo, para un componente que es el principal del día.
+     *
+     * 🔥 «Actualizar» traía la marca de principal y no su horario. En Q4V2FR el pool del Valle VIP
+     * pasó a principal con las horas que tenía como ancla de su segmento —07:00 a 07:00— y la guía
+     * siguió diciendo «07:00» en vez de «07:00 – 18:30»: la marca sin el dato que la hace útil.
+     *
+     * ⚠️ **No pisa lo que el operador decidió.** Sólo actúa si el componente ACABA de pasar a
+     * principal —sus horas eran las de una parada, no las del día— o si no tiene duración (fin igual
+     * a inicio), que no es una decisión de nadie. Un principal con su horario ajustado a mano se
+     * queda como está: por eso este botón no toca horas en general.
+     *
+     * La fecha es la del componente; sólo cambian las horas, con la misma regla que la inyección
+     * (`inyectarSegmento`): un fin anterior o igual al inicio cae al día siguiente.
+     */
+    const traerHorarioDeExcursion = (
+        comp: ComponenteCompleto,
+        segComp: SegmentoComponenteProcesado,
+        eraPrincipal: boolean,
+    ): void => {
+        const inicioActual = comp.fechaHoraInicio || '';
+        const sinDuracion = !comp.fechaHoraFin || comp.fechaHoraFin === inicioActual;
+        if (eraPrincipal && !sinDuracion) return;
+
+        const hInicio = getHoraLimpia(segComp.hora);
+        const hFin = getHoraLimpia(segComp.horaFin);
+        if (!hInicio || !hFin) return;
+
+        const fecha = getFechaLimpia(inicioActual);
+        const fechaFin = hFin <= hInicio
+            ? getFechaLimpia(addDurationToDate(toDateTimeString(fecha, '12:00'), 24))
+            : fecha;
+
+        comp.fechaHoraInicio = toDateTimeString(fecha, hInicio);
+        comp.fechaHoraFin = toDateTimeString(fechaFin, hFin);
+    };
+
     const actualizarTextosSegmentos = async (): Promise<void> => {
         const servicio = servicioActivo.value;
         if (!servicio || !servicio.cotsegmentos || servicio.cotsegmentos.length === 0) return;
@@ -5782,7 +5819,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         .forEach((comp) => {
                             const segComp = resolverSegCompDeComponente(segComps, comp.componenteMaestroId, cotSeg.dia);
                             if (segComp) {
+                                const eraPrincipal = !!comp.horaServicioCompleto;
                                 comp.horaServicioCompleto = !!segComp.horaServicioCompleto;
+                                if (comp.horaServicioCompleto) {
+                                    traerHorarioDeExcursion(comp, segComp, eraPrincipal);
+                                }
                             }
                         });
                 }
