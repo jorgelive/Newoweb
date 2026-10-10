@@ -22,6 +22,7 @@ import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
+import EstadoDeActividad, { type ExcepcionDeActividad } from '@/components/cotizacion/EstadoDeActividad.vue';
 import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
 import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnidades, resumenDeDuracion, mandaElSegmento } from '@dominio/cotizacion/index.ts';
 import type { BloqueVista as BloqueVistaBase } from '@dominio/cotizacion/index.ts';
@@ -401,6 +402,52 @@ const fechaDeVuelo = (iso?: string | null) => {
 // encerrada en este componente no la podía importar nadie —ni un PDF, ni un test, ni Node—.
 // Sigue siendo un `computed`, así que la reactividad es la misma de antes.
 const itinerarioVista = computed(() => componerItinerario(store.cotizacion));
+
+/**
+ * Los bloques de cada día, juntos por SERVICIO: lo que la guía enmarca.
+ *
+ * 🔥 **Cada segmento era una tarjeta suelta**, con la misma sombra y el mismo peso que un servicio
+ * entero: un Valle VIP de nueve paradas se leía como nueve cosas, unidas sólo por un título encima
+ * de la primera. Ahora un servicio con varias etapas en el día va en UN marco —cabecera con lo del
+ * programa, etapas sobre una línea— y uno de una sola etapa se queda como estaba: ahí tarjeta y
+ * servicio ya son lo mismo.
+ *
+ * ⚠️ Puede agrupar por contigüidad porque `componerItinerario()` garantiza que todo lo de un
+ * servicio en un día sale seguido (el grupo es atómico, `docs/Cotizaciones.md` §6.u). El módulo
+ * no se toca: devuelve hechos y el marco es una decisión de esta pantalla.
+ *
+ * ⚠️ `ancla` es el bloque donde cuelga el componente promovido (`horaServicioCompleto`): lo que
+ * cuelga de él es del PROGRAMA —guía, transporte, el boleto que vale para cuatro sitios— y sube a
+ * la cabecera. Es el patrón del catálogo (`docs/Travel.md` §11.quinquies), no una lista. Sin
+ * promovido no sube nada: cada cosa se queda en su etapa.
+ */
+type GrupoDeServicio = { key: string; bloques: BloqueVista[]; enMarco: boolean; ancla: string | null };
+
+const gruposPorDia = computed(() => {
+  const m = new Map<string, GrupoDeServicio[]>();
+  for (const dia of itinerarioVista.value) {
+    const grupos: GrupoDeServicio[] = [];
+    for (const b of dia.bloques) {
+      const ultimo = grupos.at(-1);
+      const mismo = ultimo && !b.esRepeticion && !ultimo.bloques[0].esRepeticion
+          && ultimo.bloques[0].servicio.id === b.servicio.id;
+      if (mismo) ultimo.bloques.push(b);
+      else grupos.push({ key: b.key, bloques: [b], enMarco: false, ancla: null });
+    }
+    for (const g of grupos) {
+      g.enMarco = g.bloques.length > 1;
+      g.ancla = g.enMarco
+          ? (g.bloques.find((b) => b.componentes.some((c) => c?.horaServicioCompleto))?.key ?? null)
+          : null;
+    }
+    m.set(dia.fecha, grupos);
+  }
+  return m;
+});
+
+/** Lo que la marca de una etapa enseña: nada si su estado ya subió a la cabecera del marco. */
+const estadoDeEtapa = (grupo: GrupoDeServicio, item: BloqueVista) =>
+  grupo.ancla === item.key ? undefined : estadoPorActividad.value.get(item.key);
 
 /**
  * Las dos decisiones de pantalla que ANTES devolvía el módulo, ahora aquí — que es donde deben
@@ -1113,7 +1160,6 @@ const inclusionesPorDia = computed(() => {
  * —la tarifa, el proveedor, el precio de cada opcional—. Una actividad sin líneas cruzadas no dice
  * nada en vez de suponer: las propuestas anteriores a `componenteId` siguen como estaban.
  */
-type ExcepcionDeActividad = { tipo: 'noIncluidos' | 'opcionales' | 'cortesias'; nombre: string };
 
 const lineasPorComponente = computed(() => {
   const m = new Map<string, { incluidos: string[]; excepciones: ExcepcionDeActividad[] }>();
@@ -1171,15 +1217,6 @@ const estadoPorActividad = computed(() => {
   return m;
 });
 
-const ESTILO_EXCEPCION: Record<ExcepcionDeActividad['tipo'], { clave: string; texto: string; icono: string; cls: string }> = {
-  // ⚠️ **Gris y con icono de información, no rojo con una ✗.** La guía es para vender: la
-  // exclusión tiene que estar —que el cliente no se entere en la puerta de Machu Picchu—, pero
-  // como un dato práctico, no como la alarma más llamativa de la página. En rojo era lo primero
-  // que se veía en la actividad estrella del viaje.
-  noIncluidos: { clave: 'cot_no_incluye', texto: 'No incluye', icono: 'fa-circle-info', cls: 'bg-slate-50 border-slate-200 text-slate-500' },
-  opcionales: { clave: 'cot_opcional', texto: 'Opcional', icono: 'fa-circle-question', cls: 'bg-amber-50 border-amber-200 text-amber-800' },
-  cortesias: { clave: 'cot_cortesia', texto: 'Cortesía', icono: 'fa-gift', cls: 'bg-sky-50 border-sky-200 text-sky-700' },
-};
 
 /**
  * En qué línea de cada día se nombra a un proveedor, callando las repeticiones SEGUIDAS.
@@ -2575,7 +2612,16 @@ const adelantoVista = computed(() => {
           </div>
 
           <!-- Bloques del día -->
-          <template v-for="item in dia.bloques" :key="item.key">
+          <!-- Un marco por servicio con varias etapas en el día. Ver `gruposPorDia`. -->
+          <section
+              v-for="grupo in gruposPorDia.get(dia.fecha)"
+              :key="grupo.key"
+              :class="grupo.enMarco
+                ? ['marco-servicio rounded-[2rem] border p-3 md:p-5 mb-6',
+                   serviciosOpcionales.has(grupo.bloques[0].servicio.id) ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200 bg-slate-100/50']
+                : ''"
+          >
+          <template v-for="item in grupo.bloques" :key="item.key">
 
             <!-- Servicio opcional entero: ENCIMA del título, una vez, con su precio —es lo primero
                  que hay que saber del servicio—. Ver `serviciosOpcionales`. -->
@@ -2634,6 +2680,20 @@ const adelantoVista = computed(() => {
               </button>
             </div>
 
+            <!-- Lo del PROGRAMA entero, en la cabecera del marco: lo que cuelga del segmento del ancla.
+                 Su etapa ya no lo repite (`estadoDeEtapa`). -->
+            <EstadoDeActividad
+                v-if="grupo.ancla && item.esPrimeroDelServicioEnElDia
+                  && (estadoPorActividad.get(grupo.ancla)?.incluidos.length || estadoPorActividad.get(grupo.ancla)?.excepciones.length)"
+                :incluidos="estadoPorActividad.get(grupo.ancla)!.incluidos"
+                :excepciones="estadoPorActividad.get(grupo.ancla)!.excepciones"
+                class="mb-4"
+            />
+
+            <!-- Dentro de un marco, cada etapa cuelga de una línea: se lee como parte de un todo. -->
+            <div :class="grupo.enMarco ? 'etapa relative ml-1.5 pl-5 border-l-2 border-[#376875]/15 pb-4 last:pb-0' : ''">
+            <span v-if="grupo.enMarco" class="absolute -left-[7px] top-5 w-3 h-3 rounded-full bg-[#E07845] ring-4 ring-white"></span>
+
             <!-- ── Card compacta: repetición de estadía (noche 2+) ── -->
             <article
                 v-if="item.esRepeticion"
@@ -2656,7 +2716,10 @@ const adelantoVista = computed(() => {
             <!-- ── Card completa ── -->
             <article
                 v-else
-                class="bg-white rounded-4xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden mb-6"
+                class="bg-white overflow-hidden"
+                :class="grupo.enMarco
+                  ? 'rounded-3xl border border-slate-100 shadow-sm'
+                  : 'rounded-4xl shadow-xl shadow-slate-200/50 border border-slate-100 mb-6'"
             >
               <!-- Galería de imágenes (desplazable) — oculta en modo Resumen -->
               <div v-if="!modoResumen && galeriaDe(item).length" class="h-48 md:h-64 relative overflow-hidden" data-galeria>
@@ -2730,29 +2793,12 @@ const adelantoVista = computed(() => {
 
                 <!-- Estado de la actividad: «Incluye», o la excepción con nombre. Ver
                      `estadoPorActividad`. Va también en modo Resumen, que es donde más se lee. -->
-                <div
-                    v-if="!item.esRepeticion && (estadoPorActividad.get(item.key)?.incluidos.length || estadoPorActividad.get(item.key)?.excepciones.length)"
-                    class="flex flex-wrap gap-2"
+                <EstadoDeActividad
+                    v-if="!item.esRepeticion && (estadoDeEtapa(grupo, item)?.incluidos.length || estadoDeEtapa(grupo, item)?.excepciones.length)"
+                    :incluidos="estadoDeEtapa(grupo, item)!.incluidos"
+                    :excepciones="estadoDeEtapa(grupo, item)!.excepciones"
                     :class="modoResumen ? 'mt-2' : 'mb-4'"
-                >
-                  <span
-                      v-for="n in estadoPorActividad.get(item.key)?.incluidos"
-                      :key="'incluidos' + n"
-                      class="inline-flex items-start gap-1.5 text-[11px] font-semibold border rounded-lg px-2 py-1 leading-snug bg-emerald-50 border-emerald-200 text-emerald-800"
-                  >
-                    <i class="fas fa-circle-check mt-0.5 shrink-0 text-emerald-500"></i>
-                    <span><span class="font-bold">{{ maestroStore.t('cot_incluye') || 'Incluye' }}:</span> {{ n }}</span>
-                  </span>
-                  <span
-                      v-for="x in estadoPorActividad.get(item.key)?.excepciones"
-                      :key="x.tipo + x.nombre"
-                      class="inline-flex items-start gap-1.5 text-[11px] font-semibold border rounded-lg px-2 py-1 leading-snug"
-                      :class="ESTILO_EXCEPCION[x.tipo].cls"
-                  >
-                    <i class="fas mt-0.5 shrink-0" :class="ESTILO_EXCEPCION[x.tipo].icono"></i>
-                    <span><span class="font-bold">{{ maestroStore.t(ESTILO_EXCEPCION[x.tipo].clave) || ESTILO_EXCEPCION[x.tipo].texto }}:</span> {{ x.nombre }}</span>
-                  </span>
-                </div>
+                />
 
                 <!-- Contenido narrativo (truncable) — oculto en modo Resumen -->
                 <div v-if="!modoResumen" class="relative">
@@ -2849,7 +2895,9 @@ const adelantoVista = computed(() => {
                 </details>
               </div>
             </article>
+            </div>
           </template>
+          </section>
 
           <!-- ══ INCLUSIONES DEL DÍA — SÓLO EN PAPEL ══
                ⚠️ En pantalla duplicaba el «¿Qué incluye el tour?» de cada servicio: las mismas
