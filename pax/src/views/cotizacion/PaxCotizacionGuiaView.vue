@@ -1061,12 +1061,11 @@ const inclusionesPorDia = computed(() => {
     // Total de líneas del día → decide si el panel arranca semicolapsado
     const totalLineas = servicios.reduce(
         (n, s) => n + s.secciones.reduce((k, sec) => k + sec.lineas.length, 0), 0);
-    // ⚠️ **Un día con algo NO incluido no se pliega nunca.** El panel se cerraba a partir de
-    // tres líneas y el «no incluye» va siempre al final, así que la exclusión —que es lo que el
-    // cliente más necesita saber— quedaba detrás de «Ver todo». En EG95UF lo único que no
-    // incluía el día de Machu Picchu era la entrada, y no se veía sin pulsar.
-    const hayNoIncluidos = servicios.some((s) => s.secciones.some((sec) => sec.key === 'noIncluidos'));
-    m.set(dia.fecha, { servicios, largo: totalLineas > 3 && !hayNoIncluidos });
+    // ⚠️ Se probó a NO plegar los días con algo no incluido, para que la exclusión no quedara
+    // detrás de «Ver todo», y se retiró: el panel abierto ponía el «no incluye» en primer plano
+    // y la guía es para vender. La exclusión ya no se esconde porque cada actividad la nombra
+    // —en tono informativo— donde ocurre. Ver `estadoPorActividad`.
+    m.set(dia.fecha, { servicios, largo: totalLineas > 3 });
   }
   return m;
 });
@@ -1137,7 +1136,11 @@ const estadoPorActividad = computed(() => {
 });
 
 const ESTILO_EXCEPCION: Record<ExcepcionDeActividad['tipo'], { clave: string; texto: string; icono: string; cls: string }> = {
-  noIncluidos: { clave: 'cot_no_incluye', texto: 'No incluye', icono: 'fa-circle-xmark', cls: 'bg-red-50 border-red-200 text-red-700' },
+  // ⚠️ **Gris y con icono de información, no rojo con una ✗.** La guía es para vender: la
+  // exclusión tiene que estar —que el cliente no se entere en la puerta de Machu Picchu—, pero
+  // como un dato práctico, no como la alarma más llamativa de la página. En rojo era lo primero
+  // que se veía en la actividad estrella del viaje.
+  noIncluidos: { clave: 'cot_no_incluye', texto: 'No incluye', icono: 'fa-circle-info', cls: 'bg-slate-50 border-slate-200 text-slate-500' },
   opcionales: { clave: 'cot_opcional', texto: 'Opcional', icono: 'fa-circle-question', cls: 'bg-amber-50 border-amber-200 text-amber-800' },
   cortesias: { clave: 'cot_cortesia', texto: 'Cortesía', icono: 'fa-gift', cls: 'bg-sky-50 border-sky-200 text-sky-700' },
 };
@@ -2653,11 +2656,11 @@ const adelantoVista = computed(() => {
                   <span
                       v-for="x in estadoPorActividad.get(item.key)?.excepciones"
                       :key="x.tipo + x.nombre"
-                      class="inline-flex items-start gap-1.5 text-xs font-bold border rounded-lg px-2.5 py-1.5 leading-snug"
+                      class="inline-flex items-start gap-1.5 text-[11px] font-semibold border rounded-lg px-2 py-1 leading-snug"
                       :class="ESTILO_EXCEPCION[x.tipo].cls"
                   >
                     <i class="fas mt-0.5 shrink-0" :class="ESTILO_EXCEPCION[x.tipo].icono"></i>
-                    <span><span class="font-black">{{ maestroStore.t(ESTILO_EXCEPCION[x.tipo].clave) || ESTILO_EXCEPCION[x.tipo].texto }}:</span> {{ x.nombre }}</span>
+                    <span><span class="font-bold">{{ maestroStore.t(ESTILO_EXCEPCION[x.tipo].clave) || ESTILO_EXCEPCION[x.tipo].texto }}:</span> {{ x.nombre }}</span>
                   </span>
                 </div>
 
