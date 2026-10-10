@@ -1075,26 +1075,29 @@ const inclusionesPorDia = computed(() => {
  *
  * El panel «¿Qué incluye este día?» vive al pie y obliga a emparejar a ojo: arriba pone «Ascenso
  * en bus al Santuario» y abajo «Boleto de bus desde Aguas Calientes al Santuario de Machupicchu».
- * Aquí cada actividad dice su propio estado: «Incluye» si todo lo suyo va incluido, y la
- * excepción con nombre —«No incluye: Boleto de ingreso a Machu Picchu»— si algo no.
+ * Aquí cada actividad dice su propio estado, siempre con nombre: «Incluye: Boleto de bus…» y,
+ * si algo no va, «No incluye: Boleto de ingreso a Machu Picchu».
+ *
+ * ⚠️ **Nunca un «Incluye» suelto.** Se probó una marca sin objeto cuando todo iba incluido y el
+ * cliente —y Jorge— preguntaban «¿incluye qué?». Lo incluido es lo que vende: se nombra.
  *
  * ⚠️ **Sale de las MISMAS líneas que el panel**, cruzadas por `componenteId`, y no del `modo` del
  * componente. La clasificación que ve el cliente la decide `construirInclusiones()`: un
  * componente incluido sin tarifa estándar se publica como opcional. Leer el `modo` crudo haría
  * que la actividad dijera «Incluye» y el panel «Opcional» sobre la misma cosa.
  *
- * ⚠️ **Añade, no sustituye.** El panel sigue: lleva lo que una marca no puede —la tarifa, el
- * proveedor, los ítems, el precio de cada opcional—. Una actividad sin líneas cruzadas no dice
+ * ⚠️ **Añade, no sustituye.** El detalle del servicio sigue: lleva lo que una marca no puede
+ * —la tarifa, el proveedor, el precio de cada opcional—. Una actividad sin líneas cruzadas no dice
  * nada en vez de suponer: las propuestas anteriores a `componenteId` siguen como estaban.
  */
 type ExcepcionDeActividad = { tipo: 'noIncluidos' | 'opcionales' | 'cortesias'; nombre: string };
 
 const lineasPorComponente = computed(() => {
-  const m = new Map<string, { incluidos: number; excepciones: ExcepcionDeActividad[] }>();
+  const m = new Map<string, { incluidos: string[]; excepciones: ExcepcionDeActividad[] }>();
   const anotar = (l: PaxInclusionItem, tipo: 'incluidos' | ExcepcionDeActividad['tipo']) => {
     if (!l.componenteId) return;
-    const e = m.get(l.componenteId) ?? { incluidos: 0, excepciones: [] };
-    if (tipo === 'incluidos') e.incluidos++;
+    const e = m.get(l.componenteId) ?? { incluidos: [], excepciones: [] };
+    if (tipo === 'incluidos') e.incluidos.push(store.traducir(l.nombre));
     else e.excepciones.push({ tipo, nombre: store.traducir(l.nombre) });
     m.set(l.componenteId, e);
   };
@@ -1110,16 +1113,21 @@ const lineasPorComponente = computed(() => {
 const ORDEN_EXCEPCION: Record<ExcepcionDeActividad['tipo'], number> = { noIncluidos: 0, opcionales: 1, cortesias: 2 };
 
 const estadoPorActividad = computed(() => {
-  const m = new Map<string, { todoIncluido: boolean; excepciones: ExcepcionDeActividad[] }>();
+  const m = new Map<string, { incluidos: string[]; excepciones: ExcepcionDeActividad[] }>();
   for (const dia of itinerarioVista.value) {
     for (const b of dia.bloques) {
-      let incluidos = 0;
+      const incluidos: string[] = [];
       const vistas = new Set<string>();
       const excepciones: ExcepcionDeActividad[] = [];
       for (const c of b.componentes) {
         const e = lineasPorComponente.value.get(c.id);
         if (!e) continue;
-        incluidos += e.incluidos;
+        for (const n of e.incluidos) {
+          // Mismo criterio que abajo: dos grupos de tarifa no son dos cosas incluidas.
+          if (vistas.has(`incluidos|${n}`)) continue;
+          vistas.add(`incluidos|${n}`);
+          incluidos.push(n);
+        }
         for (const x of e.excepciones) {
           // Un opcional con dos grupos de tarifa son dos líneas del mismo nombre: aquí basta una.
           const k = `${x.tipo}|${x.nombre}`;
@@ -1129,7 +1137,7 @@ const estadoPorActividad = computed(() => {
         }
       }
       excepciones.sort((a, z) => ORDEN_EXCEPCION[a.tipo] - ORDEN_EXCEPCION[z.tipo]);
-      m.set(b.key, { todoIncluido: incluidos > 0 && excepciones.length === 0, excepciones });
+      m.set(b.key, { incluidos, excepciones });
     }
   }
   return m;
@@ -2643,15 +2651,17 @@ const adelantoVista = computed(() => {
                 <!-- Estado de la actividad: «Incluye», o la excepción con nombre. Ver
                      `estadoPorActividad`. Va también en modo Resumen, que es donde más se lee. -->
                 <div
-                    v-if="!item.esRepeticion && (estadoPorActividad.get(item.key)?.todoIncluido || estadoPorActividad.get(item.key)?.excepciones.length)"
+                    v-if="!item.esRepeticion && (estadoPorActividad.get(item.key)?.incluidos.length || estadoPorActividad.get(item.key)?.excepciones.length)"
                     class="flex flex-wrap gap-2"
                     :class="modoResumen ? 'mt-2' : 'mb-4'"
                 >
                   <span
-                      v-if="estadoPorActividad.get(item.key)?.todoIncluido"
-                      class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1"
+                      v-for="n in estadoPorActividad.get(item.key)?.incluidos"
+                      :key="'incluidos' + n"
+                      class="inline-flex items-start gap-1.5 text-[11px] font-semibold border rounded-lg px-2 py-1 leading-snug bg-emerald-50 border-emerald-200 text-emerald-800"
                   >
-                    <i class="fas fa-circle-check"></i>{{ maestroStore.t('cot_incluye') || 'Incluye' }}
+                    <i class="fas fa-circle-check mt-0.5 shrink-0 text-emerald-500"></i>
+                    <span><span class="font-bold">{{ maestroStore.t('cot_incluye') || 'Incluye' }}:</span> {{ n }}</span>
                   </span>
                   <span
                       v-for="x in estadoPorActividad.get(item.key)?.excepciones"
