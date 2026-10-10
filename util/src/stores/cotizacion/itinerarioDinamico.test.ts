@@ -221,16 +221,36 @@ describe('itinerarioDinamico · cómo ordena el editor un día', () => {
 });
 
 /**
- * La otra mitad del arreglo: que el estado roto no se produzca, en vez de sobrevivir a él.
+ * Dónde nace un servicio nuevo: el DÍA SIGUIENTE al último del viaje.
  *
- * El de arriba hace determinista un día ya mezclado; éste comprueba que **el editor no lo mezcla**.
- * Hacen falta los dos: el primero cubre lo que entre por fuera —el agente, un import, la API—,
- * donde nadie corrió `reordenarServicios()`.
+ * Nacía en el día del último servicio del array. Dos servicios el mismo día son la excepción: en
+ * Q4V2FR un half day añadido tras Vinicunca cayó en el mismo sábado, solapado con ella.
  */
-describe('agregarServicio · no rompe un día ya colocado', () => {
+describe('agregarServicio · nace al día siguiente', () => {
     beforeEach(() => setActivePinia(createPinia()));
 
-    it('en un día a mano, el servicio nuevo nace con sitio propio (max + 10)', () => {
+    it('al día siguiente del último servicio, aunque el array no esté en orden de calendario', () => {
+        const store = montar([
+            servicio('tarde', '2030-01-03', 0, [{ ordenNarrativo: 30 }]),
+            servicio('temprano', '2030-01-01', 0, [{ ordenNarrativo: 30 }]),
+        ]);
+
+        store.agregarServicio();
+
+        expect(store.cotizacion?.cotservicios?.at(-1)?.fechaInicioAbsoluta).toBe('2030-01-04');
+    });
+
+    it('tras un servicio de varios días, al día siguiente de que ACABE', () => {
+        const store = montar([servicio('camino-inca', '2030-01-01', 0, [{ hora: '2030-01-01T06:00:00' }])]);
+        const comp = store.cotizacion!.cotservicios![0].cotcomponentes![0];
+        comp.fechaHoraFin = '2030-01-04T16:00:00';
+
+        store.agregarServicio();
+
+        expect(store.cotizacion?.cotservicios?.at(-1)?.fechaInicioAbsoluta).toBe('2030-01-05');
+    });
+
+    it('nace automático: su día es nuevo, no hay nada colocado a mano que respetar', () => {
         const store = montar([
             servicio('colocado1', '2030-01-01', 10, [{ ordenNarrativo: 30 }]),
             servicio('colocado2', '2030-01-01', 20, [{ ordenNarrativo: 30 }]),
@@ -239,17 +259,7 @@ describe('agregarServicio · no rompe un día ya colocado', () => {
         store.agregarServicio();
 
         const nuevo = store.cotizacion?.cotservicios?.at(-1);
-        expect(nuevo?.orden).toBe(30);
-        expect(idsPorDia(store).at(-1)?.at(-1)).toBe(nuevo?.id);
-    });
-
-    it('en un día automático sigue naciendo con 0, que es lo correcto ahí', () => {
-        const store = montar([
-            servicio('a', '2030-01-01', 0, [{ ordenNarrativo: 30 }]),
-        ]);
-
-        store.agregarServicio();
-
-        expect(store.cotizacion?.cotservicios?.at(-1)?.orden).toBe(0);
+        expect(nuevo?.orden).toBe(0);
+        expect(idsPorDia(store).at(-1)).toEqual([nuevo?.id]);
     });
 });

@@ -633,8 +633,11 @@ que este mismo cálculo dice haber arreglado, reapareciendo por otra puerta.
 
 **El arreglo tiene dos mitades, y hacen falta las dos:**
 
-1. **Que el estado no se produzca.** `agregarServicio()` da al nuevo `max + 10` si el día ya está
-   colocado. Aparece al final, que es donde uno espera lo que acaba de añadir.
+1. **Que el estado no se produzca.** `agregarServicio()` daba al nuevo `max + 10` si el día ya
+   estaba colocado. Desde el 10/10/2026 el servicio nuevo nace **al día siguiente del último del
+   viaje** —dos servicios en un día son la excepción—, así que nace en un día vacío y esta mitad
+   ya no hace falta: el caso no puede darse al añadir. Si se le cambia la fecha a un día curado,
+   lo recoge la segunda mitad.
 2. **Que lo que llegue roto sea determinista.** En un día a mano, un servicio con `orden = 0` va al
    final (`MAX_SAFE_INTEGER`), no a su orden narrativo — en un día que una persona curó, la
    naturaleza del servicio ya fue anulada. Cubre lo que entre por fuera del editor, donde nadie

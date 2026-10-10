@@ -3461,29 +3461,36 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (!cotizacion.value) return;
 
         const cots = cotizacion.value.cotservicios || [];
-        const fechaBase = cots.length > 0
-            ? getFechaLimpia(cots[cots.length - 1].fechaInicioAbsoluta)
-            : (modoCatalogo.value ? FECHA_BASE_NOMINAL : hoyNaive());
 
         /**
-         * ⚠️ **Si el día ya está colocado a mano, el servicio nuevo NACE con sitio.**
+         * ⚠️ **El servicio nuevo nace el DÍA SIGUIENTE al último del viaje.** Nacía en la fecha del
+         * último servicio del array, y dos servicios en un mismo día son la excepción, no la
+         * regla: en Q4V2FR un half day añadido después de Vinicunca cayó en el mismo sábado,
+         * solapado con una excursión de 04:00 a 17:00, y el cliente lo vio en el día 4 en vez
+         * del 5. Lo raro —un traslado el mismo día— se mueve a mano; lo normal no.
          *
-         * `orden = 0` significa «automático», y en un día automático es lo correcto. Pero si
-         * alguien ya ordenó ese día, un 0 rompe el invariante que sostiene todo esto —«o el día
-         * entero lo colocó una persona, o lo coloca el reloj»— y el servicio nuevo se colaba
-         * **en medio** de lo curado: medido, un día 10/20 más un traslado añadido después salía
-         * `colocado1 → NUEVO → colocado2`, empatando con el primero y desempatando por el orden
-         * del array.
-         *
-         * Al final del día, que es donde uno espera lo que acaba de añadir. Desde ahí se arrastra,
-         * y arrastrar renumera el día entero.
+         * «Último día» es el mayor entre los inicios de servicio y los FINES de sus componentes:
+         * tras un Camino Inca que empieza el 2 y acaba el 5, lo siguiente es el 6, no el 3. Y no
+         * el último del array, que no está en orden de calendario.
          */
-        const delDia = cots.filter((s) => getFechaLimpia(s.fechaInicioAbsoluta) === fechaBase);
-        const diaAMano = delDia.some((s) => (s.orden ?? 0) > 0);
-        const ordenInicial = diaAMano
-            ? Math.max(...delDia.map((s) => s.orden ?? 0)) + 10
-            : 0;
+        const ultimoDia = cots
+            .flatMap((s: CotServicio) => [
+                s.fechaInicioAbsoluta,
+                ...(s.cotcomponentes ?? []).map((c: ComponenteCompleto) => c.fechaHoraFin),
+            ])
+            // Antes de limpiar: `getFechaLimpia()` convierte un vacío en HOY, y un componente sin fin
+            // empujaría un viaje ya pasado —o un catálogo— a mañana.
+            .filter((f): f is string => typeof f === 'string' && f !== '')
+            .map((f) => getFechaLimpia(f).slice(0, 10))
+            .sort()
+            .at(-1);
+        const fechaBase = ultimoDia
+            ? getFechaLimpia(addDurationToDate(ultimoDia, 24))
+            : (modoCatalogo.value ? FECHA_BASE_NOMINAL : hoyNaive());
 
+        // Nace en un día vacío —el siguiente al último—, así que siempre es automático (`orden = 0`).
+        // Hasta el 10/10/2026 nacía en el último día y podía caer en medio de uno colocado a mano;
+        // por eso se le daba sitio (`max + 10`). Con el día propio ese caso ya no existe.
         const nuevoServicio = {
             id: crypto.randomUUID(),
             servicioMaestroId: null,
@@ -3492,8 +3499,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             tituloSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
             fechaInicioAbsoluta: fechaBase,
             // 0 = automático: se coloca por la hora de sus componentes, y sin hora por lo que es.
-            // Deja de ser 0 si alguien lo mueve a mano, o si el día ya estaba colocado (arriba).
-            orden: ordenInicial,
+            // Deja de ser 0 si alguien lo mueve a mano.
+            orden: 0,
             cotsegmentos: [],
             cotcomponentes: [],
             sobreescribirTraduccion: false
