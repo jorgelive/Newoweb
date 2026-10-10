@@ -1489,6 +1489,17 @@ ningún punto de recojo, sin dar error**. Es la familia de fallo que este repo t
 un dato mal puesto que no falla, simplemente deja de hacer su trabajo. Tiene que llevar el tipo
 que refleje la realidad (`pool`, `privada`, `transporte`).
 
+**Auditoría del 10/10/2026** (a raíz del Valle VIP compartido en Q4V2FR, que enseñaba «07:00» e
+«Incluye: Guía, Transporte» en la tarjeta del recojo): de las plantillas de **un día**, sólo
+«Full Day Valle Vip» no tenía promovido —sus tres hermanas del Valle sí—, y su pool llevaba la hora
+en la relación GLOBAL, que va sin hora (§11.quinquies). Y **16 promovidos tenían inicio y no fin**:
+los de cuatrimotos y Titicaca cargados el 08/10 y el Valle VIP privado. Lo arregló
+`app:travel:fijar-cierre-excursiones` con las horas que tienen fuente (Valle VIP 18:30, cuatrimotos
+13:00 / 15:00 con zip line, full days del Titicaca 15:00). Quedan **6 sin fin a propósito**, sin
+fuente: Medio Día Uros, Checoq y Full Day Maras privados, y los tres 2D de Titicaca —su promovido es
+del día 1 y el 15:00 del tarifario es la vuelta del día 2—. El global de «Transporte Super Valle»
+conserva su 07:00: el privado tiene promovido y no muerde, pero contradice la misma regla.
+
 **Estado al 22/08/2026:** las cinco plantillas de varios días del catálogo —Two Day Camino Inca,
 Two Day MAPI bimodal, Two Day Vertical Sky, Skylodge y Starlodge— **no tienen ninguna marca por
 día**. `app:travel:proponer-puntos` las saca en una sección propia, «para revisar», cada vez que

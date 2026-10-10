@@ -1522,6 +1522,10 @@ Antes de dar por cerrada una carga:
 □ ¿el `pool` se quedó SIN título público?      lo correcto; con él pisa al segmento (§4 quater)
 □ ¿la relación tiene tarifaPredeterminada?
 □ ¿tiene hora, o es a propósito que no?
+□ ¿cada plantilla de excursión tiene su PROMOVIDO, con hora de INICIO Y DE FIN?
+                                               sin promovido, la hora y el «incluye» del programa
+                                               salen pegados a la tarjeta del recojo; sin fin, el
+                                               cliente no sabe a qué hora vuelve
 □ ¿está en el pool del servicio, segmentos Y componentes?
 □ ¿los títulos salieron con 7 idiomas?         SELECT JSON_LENGTH(titulo)
 □ ¿el prestador está visibleParaCliente, si sus fotos deben salir?
