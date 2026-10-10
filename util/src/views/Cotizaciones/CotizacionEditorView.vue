@@ -4413,7 +4413,10 @@ store.$onAction(({ name, args }) => {
               <!-- Decía «Tarifa Manual» cuando no había nombre, que suena a tipo de tarifa y no
                    a campo vacío. Una tarifa nueva nace sin nombre desde el 05/10/2026, así que
                    este texto es lo primero que dice que falta rellenarlo. -->
-              <h2 class="text-sm font-black text-slate-800 truncate">{{ store.getI18nText(store.tarifaActiva?.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Tarifa sin nombre' }}</h2>
+              <!-- Nombre interno primero, como las filas de tarifa del componente: una tarifa de pool no
+                   lleva título público —el cliente ve los ítems— y la cabecera decía «sin nombre»
+                   con la tarifa elegida justo debajo. -->
+              <h2 class="text-sm font-black text-slate-800 truncate">{{ store.tarifaActiva?.nombreInternoSnapshot || store.getI18nText(store.tarifaActiva?.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Tarifa sin nombre' }}</h2>
               <p v-if="store.tarifasHermanas.length > 1" class="text-[11px] font-bold text-slate-400 mt-0.5">
                 Tarifa {{ store.tarifasHermanas.findIndex(t => t.id === store.tarifaActiva?.id) + 1 }} de {{ store.tarifasHermanas.length }}
               </p>
