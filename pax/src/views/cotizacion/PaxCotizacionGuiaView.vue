@@ -2577,6 +2577,21 @@ const adelantoVista = computed(() => {
           <!-- Bloques del día -->
           <template v-for="item in dia.bloques" :key="item.key">
 
+            <!-- Servicio opcional entero: ENCIMA del título, una vez, con su precio —es lo primero
+                 que hay que saber del servicio—. Ver `serviciosOpcionales`. -->
+            <div v-if="mostrarAccionInclusiones(item) && serviciosOpcionales.has(item.servicio.id)" class="mt-2 mb-2">
+              <span class="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                <i class="fas fa-circle-question text-amber-500"></i>
+                {{ maestroStore.t('cot_servicio_opcional') || 'Servicio opcional' }}
+                <template v-if="store.precioVisible && tarjetaDeServicioOpcional(item.servicio.id)?.deltaVentaPorPax != null">
+                  · +{{ mvDelta(tarjetaDeServicioOpcional(item.servicio.id)!.deltaVentaPorPax!) }} {{ maestroStore.t('cot_por_persona') || 'c/u' }}
+                </template>
+                <template v-if="tarjetaDeServicioOpcional(item.servicio.id)?.alternativas?.length">
+                  · {{ etiquetaAlternativas(tarjetaDeServicioOpcional(item.servicio.id)!.alternativas!.length) }}
+                </template>
+              </span>
+            </div>
+
             <!-- Título grande del servicio (1er segmento de servicios multi-segmento) -->
             <h3
                 v-if="tituloGrandeDeServicio(item)"
@@ -2605,26 +2620,11 @@ const adelantoVista = computed(() => {
                  Va entre el <h3> (multi-segmento) y la card, o encima de la card (single) → simetría. -->
             <div
                 v-if="mostrarAccionInclusiones(item)"
-                class="flex flex-wrap items-center gap-2 mb-3"
-                :class="serviciosOpcionales.has(item.servicio.id) ? 'justify-between' : 'justify-end no-imprimir'"
+                class="flex justify-end mb-3 no-imprimir"
             >
-              <!-- Servicio opcional entero: se marca aquí, una vez, con su precio. Ver `serviciosOpcionales`. -->
-              <span
-                  v-if="serviciosOpcionales.has(item.servicio.id)"
-                  class="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2"
-              >
-                <i class="fas fa-circle-question text-amber-500"></i>
-                {{ maestroStore.t('cot_servicio_opcional') || 'Servicio opcional' }}
-                <template v-if="store.precioVisible && tarjetaDeServicioOpcional(item.servicio.id)?.deltaVentaPorPax != null">
-                  · +{{ mvDelta(tarjetaDeServicioOpcional(item.servicio.id)!.deltaVentaPorPax!) }} {{ maestroStore.t('cot_por_persona') || 'c/u' }}
-                </template>
-                <template v-if="tarjetaDeServicioOpcional(item.servicio.id)?.alternativas?.length">
-                  · {{ etiquetaAlternativas(tarjetaDeServicioOpcional(item.servicio.id)!.alternativas!.length) }}
-                </template>
-              </span>
               <button
                   @click="abrirInclusiones(item.servicio.id, item.servicio.tituloSnapshot)"
-                  class="no-imprimir inline-flex items-center gap-2 text-[11px] font-black tracking-wide text-[#376875] bg-white border border-[#376875]/20 hover:border-[#376875]/50 hover:bg-[#376875]/5 rounded-xl px-3.5 py-2 shadow-sm transition-colors"
+                  class="inline-flex items-center gap-2 text-[11px] font-black tracking-wide text-[#376875] bg-white border border-[#376875]/20 hover:border-[#376875]/50 hover:bg-[#376875]/5 rounded-xl px-3.5 py-2 shadow-sm transition-colors"
               >
                 <i class="fas fa-list-check text-[#E07845]"></i>
                 {{ item.totalSegmentosServicio > 1
