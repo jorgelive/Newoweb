@@ -2676,7 +2676,13 @@ const adelantoVista = computed(() => {
                 {{ item.totalSegmentosServicio > 1
                   ? (maestroStore.t('cot_inclusiones_tour') || '¿Qué incluye el tour?')
                   : (maestroStore.t('cot_inclusiones_servicio') || '¿Qué incluye este servicio?') }}
-                <i class="fas fa-circle-arrow-right text-[10px] text-[#E07845]"></i>
+                <!-- Un pulso detrás de la flecha: el detalle de lo incluido vive SÓLO aquí desde que
+                     el panel del día se quitó de la pantalla, y un botón que nadie pulsa lo esconde.
+                     `motion-safe`: quien pidió menos movimiento al sistema no lo recibe. -->
+                <span class="relative inline-flex">
+                  <span class="motion-safe:animate-ping absolute inset-0 rounded-full bg-[#E07845]/50"></span>
+                  <i class="relative fas fa-circle-arrow-right text-[10px] text-[#E07845]"></i>
+                </span>
               </button>
             </div>
 
