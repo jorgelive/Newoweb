@@ -1,5 +1,8 @@
 <template>
-  <div class="relative w-full">
+  <!-- `min-w-0`: el nombre elegido va con `truncate`, que en un hijo flex no recorta si la caja no
+       puede encoger por debajo del texto. Sin él, un nombre largo ensancha el selector y empuja lo
+       que tenga al lado —la X de desvincular tarifa salía fuera de la tarjeta—. -->
+  <div class="relative w-full min-w-0">
     <div
         ref="triggerRef"
         @click="toggle"
