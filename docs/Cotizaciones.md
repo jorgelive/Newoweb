@@ -279,12 +279,18 @@ prometería una edición que el siguiente refresco se lleva sin decir nada — s
 operativo» en gris: esa fila llegará a La Biblia sin nombre de tramo, y eso también conviene verlo
 antes y no en la orden.
 
-**«Actualizar» trae también la marca de servicio principal del día** (`horaServicioCompleto`), y
-desde el 10/10/2026 **su horario** cuando hace falta (`traerHorarioDeExcursion()`): en Q4V2FR el
-pool del Valle VIP pasó a principal con las horas de ancla de su segmento —07:00 a 07:00— y la guía
-siguió diciendo «07:00» sin hora de vuelta. Sólo toma las horas del catálogo si el componente
-**acaba** de pasar a principal o no tiene duración; un principal con su horario ajustado a mano no
-se toca, que es por lo que este botón no refresca horas en general.
+**«Actualizar» trae también la marca de servicio principal del día** (`horaServicioCompleto`),
+pero **no toca horas**: el operador las ajusta a mano y un refresco de textos no puede llevárselas.
+Para eso está **«Horarios»**, al lado (`horariosDelCatalogo()` + `aplicarHorarios()`): compara cada
+componente con la hora de su fila en el catálogo, **enseña** los que difieren —«Pool Super Valle:
+07:00–07:00 → 07:00–18:30»— y aplica sólo si se acepta. Inicio a la hora del catálogo; fin a su
+`horaFin` (anterior o igual al inicio → día siguiente, como la inyección) o, sin ella, conservando
+la duración. La fecha no cambia.
+
+🔥 Salió en Q4V2FR: el pool del Valle VIP pasó a principal con las horas de ancla de su segmento
+—07:00 a 07:00— y la guía decía «07:00» sin hora de vuelta. Se probó primero a traer el horario
+automáticamente al promover (8f56cb00) y se cambió por la acción aparte el mismo día: Jorge prefiere
+que se ofrezca, no que se haga.
 
 ### ⚠️ Los tres nombres de un SERVICIO, y la asimetría interno/público (2026-08-17)
 

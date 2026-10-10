@@ -1635,6 +1635,30 @@ const handleActualizarTextos = async () => {
   isActualizandoTextos.value = false;
 };
 
+const isLeyendoHorarios = ref(false);
+
+/**
+ * «Actualizar horarios»: la alternativa a «Actualizar» que SÍ toca horas, y por eso pregunta.
+ * Enseña cada cambio —«Pool Super Valle: 07:00–07:00 → 07:00–18:30»— antes de aplicarlo: el
+ * operador ajusta horarios a mano y no puede perderlos sin verlo. Ver `horariosDelCatalogo()`.
+ */
+const handleActualizarHorarios = async () => {
+  isLeyendoHorarios.value = true;
+  const cambios = await store.horariosDelCatalogo();
+  isLeyendoHorarios.value = false;
+  if (cambios === null) return;
+
+  if (!cambios.length) {
+    alert('Los horarios ya coinciden con el catálogo.');
+    return;
+  }
+
+  const lista = cambios.map((c) => `• ${c.nombre}: ${c.antes} → ${c.despues}`).join('\n');
+  if (confirm(`El catálogo tiene otro horario para ${cambios.length} componente(s):\n\n${lista}\n\n¿Los actualizo?`)) {
+    store.aplicarHorarios(cambios);
+  }
+};
+
 watch(() => store.isSegmentEditorOpen, (open) => {
   if (open) {
     activeAccordion.value = store.servicioActivo?.cotsegmentos?.length ? 'parrafos' : 'pool';
@@ -5087,13 +5111,19 @@ store.$onAction(({ name, args }) => {
 
                   <div class="flex flex-col md:flex-row md:flex-wrap md:items-center justify-between gap-4 mb-6">
                     <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest hidden md:flex items-center"><i class="fas fa-stream mr-2"></i> Párrafos en la Cotización</h3>
-                    <div class="flex items-center gap-3 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm w-fit max-w-full ml-auto">
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm w-fit max-w-full ml-auto">
 
                       <button @click="handleActualizarTextos"
                               :disabled="isActualizandoTextos"
                               class="flex items-center gap-2 text-[10px] font-black text-teal-600 uppercase tracking-widest hover:text-teal-700 transition-colors pr-3 border-r border-slate-200 disabled:opacity-50"
-                              title="Actualizar textos, notas y fotos desde el catálogo maestro">
+                              title="Actualizar textos, notas, fotos y la marca de servicio principal desde el catálogo. No toca horarios: para eso, «Horarios»">
                         <i class="fas fa-sync-alt" :class="{'fa-spin': isActualizandoTextos}"></i> Actualizar
+                      </button>
+                      <button @click="handleActualizarHorarios"
+                              :disabled="isLeyendoHorarios"
+                              class="flex items-center gap-2 text-[10px] font-black text-teal-600 uppercase tracking-widest hover:text-teal-700 transition-colors pr-3 border-r border-slate-200 disabled:opacity-50 whitespace-nowrap"
+                              title="Traer los horarios del catálogo. Enseña qué cambiaría y pregunta antes de aplicarlo">
+                        <i class="far fa-clock" :class="{'fa-spin': isLeyendoHorarios}"></i> Horarios
                       </button>
                       <label class="text-[10px] font-black text-slate-600 uppercase tracking-widest cursor-pointer select-none" @click="expandirEditores = !expandirEditores">Expandir Textos</label>
                       <button @click="expandirEditores = !expandirEditores"

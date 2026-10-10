@@ -5696,137 +5696,105 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     });
 
     /**
-     * El horario de la EXCURSIÓN, del catálogo, para un componente que es el principal del día.
+     * Los segmentos maestros del servicio activo y, para cada componente ya inyectado, la fila
+     * `TravelSegmentoComponente` que aporta su configuración. Lo comparten «Actualizar» y
+     * «Actualizar horarios», que leen del mismo sitio y no pueden elegir filas distintas.
      *
-     * 🔥 «Actualizar» traía la marca de principal y no su horario. En Q4V2FR el pool del Valle VIP
-     * pasó a principal con las horas que tenía como ancla de su segmento —07:00 a 07:00— y la guía
-     * siguió diciendo «07:00» en vez de «07:00 – 18:30»: la marca sin el dato que la hace útil.
-     *
-     * ⚠️ **No pisa lo que el operador decidió.** Sólo actúa si el componente ACABA de pasar a
-     * principal —sus horas eran las de una parada, no las del día— o si no tiene duración (fin igual
-     * a inicio), que no es una decisión de nadie. Un principal con su horario ajustado a mano se
-     * queda como está: por eso este botón no toca horas en general.
-     *
-     * La fecha es la del componente; sólo cambian las horas, con la misma regla que la inyección
-     * (`inyectarSegmento`): un fin anterior o igual al inicio cae al día siguiente.
+     * `null` si no hay nada que leer —ya avisado—.
      */
-    const traerHorarioDeExcursion = (
-        comp: ComponenteCompleto,
-        segComp: SegmentoComponenteProcesado,
-        eraPrincipal: boolean,
-    ): void => {
-        const inicioActual = comp.fechaHoraInicio || '';
-        const sinDuracion = !comp.fechaHoraFin || comp.fechaHoraFin === inicioActual;
-        if (eraPrincipal && !sinDuracion) return;
-
-        const hInicio = getHoraLimpia(segComp.hora);
-        const hFin = getHoraLimpia(segComp.horaFin);
-        if (!hInicio || !hFin) return;
-
-        const fecha = getFechaLimpia(inicioActual);
-        const fechaFin = hFin <= hInicio
-            ? getFechaLimpia(addDurationToDate(toDateTimeString(fecha, '12:00'), 24))
-            : fecha;
-
-        comp.fechaHoraInicio = toDateTimeString(fecha, hInicio);
-        comp.fechaHoraFin = toDateTimeString(fechaFin, hFin);
-    };
-
-    const actualizarTextosSegmentos = async (): Promise<void> => {
-        const servicio = servicioActivo.value;
-        if (!servicio || !servicio.cotsegmentos || servicio.cotsegmentos.length === 0) return;
-
-        // Extraer IDs maestros únicos de los segmentos actuales en la vista
+    const cargarCatalogoDelServicio = async (servicio: CotServicio): Promise<{
+        maestroDe: (cotSeg: CotSegmento) => SegmentoMaestro | undefined;
+        filaDe: (comp: ComponenteCompleto, cotSeg: CotSegmento) => SegmentoComponenteProcesado | null;
+    } | null> => {
         const idsToFetch: string[] = Array.from(new Set(
-            servicio.cotsegmentos
+            (servicio.cotsegmentos || [])
                 .map((s: CotSegmento) => s.segmentoMaestroId)
                 .filter((id): id is string => !!id)
         ));
 
         if (idsToFetch.length === 0) {
             alert("Los segmentos actuales no tienen vinculación con un maestro. Aplica la plantilla de nuevo para vincularlos.");
-            return;
+            return null;
         }
+
+        // Petición al endpoint en formato id[]=...&id[]=...
+        const idsParam = idsToFetch.map((id) => `id[]=${id}`).join('&');
+        const res = await apiClient.get(`/platform/travel/segmentos?${idsParam}&pagination=false`);
+        const mapaMaestros = new Map<string, SegmentoMaestro>();
+        miembrosHydra<SegmentoMaestro>(res.data).forEach((seg) => mapaMaestros.set(extractIdStr(seg), seg));
+
+        // Id de la plantilla con la que se armó el servicio (si se conoce): permite
+        // el match exacto de la fila TravelSegmentoComponente, igual que la inyección.
+        const itinId = extractIdStr(servicio.itinerarioMaestroId);
+
+        const maestroDe = (cotSeg: CotSegmento) =>
+            cotSeg.segmentoMaestroId ? mapaMaestros.get(cotSeg.segmentoMaestroId) : undefined;
+
+        const filaDe = (comp: ComponenteCompleto, cotSeg: CotSegmento): SegmentoComponenteProcesado | null => {
+            const maestro = maestroDe(cotSeg);
+            const segComps = maestro && Array.isArray(maestro.segmentoComponentes) ? maestro.segmentoComponentes : [];
+            const targetId = extractIdStr(comp.componenteMaestroId);
+            if (!targetId) return null;
+            const candidatos = segComps.filter((sc) => {
+                if (extractIdStr(sc.componente) !== targetId) return false;
+                return sc.dia === undefined || sc.dia === null || sc.dia === cotSeg.dia;
+            });
+            if (!candidatos.length) return null;
+
+            if (itinId) {
+                // Match exacto (como en la inyección): se excluyen filas ligadas a
+                // OTRA plantilla; las de esta plantilla mandan sobre las globales.
+                const aplicables = candidatos.filter((sc) =>
+                    !sc.itinerarioContexto || extractIdStr(sc.itinerarioContexto) === itinId);
+                if (!aplicables.length) return null;
+                const deLaPlantilla = aplicables.filter((sc) => extractIdStr(sc.itinerarioContexto) === itinId);
+                const grupo = deLaPlantilla.length ? deLaPlantilla : aplicables;
+                return grupo.find((sc) => sc.horaServicioCompleto) || grupo[0];
+            }
+
+            // Fallback (servicios previos a itinerarioMaestroId): mejor esfuerzo —
+            // prioriza filas ligadas a plantilla y, entre ellas, la promovida.
+            const ligadasAPlantilla = candidatos.filter((sc) => sc.itinerarioContexto);
+            const grupo = ligadasAPlantilla.length ? ligadasAPlantilla : candidatos;
+            return grupo.find((sc) => sc.horaServicioCompleto) || grupo[0];
+        };
+
+        return { maestroDe, filaDe };
+    };
+
+    const actualizarTextosSegmentos = async (): Promise<void> => {
+        const servicio = servicioActivo.value;
+        if (!servicio || !servicio.cotsegmentos || servicio.cotsegmentos.length === 0) return;
 
         isLoading.value = true;
         try {
-            // Petición al endpoint en formato id[]=...&id[]=...
-            const idsParam = idsToFetch.map((id) => `id[]=${id}`).join('&');
-            const res = await apiClient.get(`/platform/travel/segmentos?${idsParam}&pagination=false`);
-            const segmentosMaestros = miembrosHydra<SegmentoMaestro>(res.data);
-
-            // Crear diccionario de maestros para búsqueda O(1)
-            const mapaMaestros = new Map<string, SegmentoMaestro>();
-            segmentosMaestros.forEach((seg) => {
-                mapaMaestros.set(extractIdStr(seg), seg);
-            });
-
-            // Id de la plantilla con la que se armó el servicio (si se conoce): permite
-            // el match exacto de la fila TravelSegmentoComponente, igual que la inyección.
-            const itinId = extractIdStr(servicio.itinerarioMaestroId);
-
-            // Elige, para un componente ya inyectado, la fila TravelSegmentoComponente
-            // del maestro que aporta su configuración.
-            const resolverSegCompDeComponente = (
-                segComps: SegmentoComponenteProcesado[],
-                componenteMaestroId: string | null | undefined,
-                dia: number | null | undefined,
-            ): SegmentoComponenteProcesado | null => {
-                const targetId = extractIdStr(componenteMaestroId);
-                if (!targetId) return null;
-                const candidatos = segComps.filter((sc) => {
-                    const cId = extractIdStr(sc.componente);
-                    if (cId !== targetId) return false;
-                    return sc.dia === undefined || sc.dia === null || sc.dia === dia;
-                });
-                if (!candidatos.length) return null;
-
-                if (itinId) {
-                    // Match exacto (como en la inyección): se excluyen filas ligadas a
-                    // OTRA plantilla; las de esta plantilla mandan sobre las globales.
-                    const aplicables = candidatos.filter((sc) =>
-                        !sc.itinerarioContexto || extractIdStr(sc.itinerarioContexto) === itinId);
-                    if (!aplicables.length) return null;
-                    const deLaPlantilla = aplicables.filter((sc) => extractIdStr(sc.itinerarioContexto) === itinId);
-                    const grupo = deLaPlantilla.length ? deLaPlantilla : aplicables;
-                    return grupo.find((sc) => sc.horaServicioCompleto) || grupo[0];
-                }
-
-                // Fallback (servicios previos a itinerarioMaestroId): mejor esfuerzo —
-                // prioriza filas ligadas a plantilla y, entre ellas, la promovida.
-                const ligadasAPlantilla = candidatos.filter((sc) => sc.itinerarioContexto);
-                const grupo = ligadasAPlantilla.length ? ligadasAPlantilla : candidatos;
-                return grupo.find((sc) => sc.horaServicioCompleto) || grupo[0];
-            };
+            const catalogo = await cargarCatalogoDelServicio(servicio);
+            if (!catalogo) return;
 
             // Actualizar estrictamente los textos, imágenes y el flag de "hora de
             // servicio completo". NO se tocan tarifas, fechas/horas ni el modo
             // comercial, y NO se elimina ningún componente que ya no figure en los
-            // segmentos maestros (los sin coincidencia quedan intactos).
+            // segmentos maestros (los sin coincidencia quedan intactos). Las horas tienen su
+            // propia acción, `horariosDelCatalogo()`, que enseña lo que cambiaría y pregunta.
             const componentesDelServicio: ComponenteCompleto[] = servicio.cotcomponentes || [];
             servicio.cotsegmentos.forEach((cotSeg: CotSegmento) => {
-                const maestro = cotSeg.segmentoMaestroId ? mapaMaestros.get(cotSeg.segmentoMaestroId) : undefined;
-                if (maestro) {
-                    cotSeg.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
-                    cotSeg.nombreInternoSnapshot = nombreOperativoComoI18n(maestro.nombreInterno);
-                    cotSeg.contenidoSnapshot = JSON.parse(JSON.stringify(maestro.contenido || []));
-                    cotSeg.notasSnapshot = extraerNotasSnapshot(maestro);
-                    cotSeg.imagenesSnapshot = extraerImagenesSnapshot(maestro);
+                const maestro = catalogo.maestroDe(cotSeg);
+                if (!maestro) return;
 
-                    const segComps = Array.isArray(maestro.segmentoComponentes) ? maestro.segmentoComponentes : [];
-                    componentesDelServicio
-                        .filter((comp) => comp.cotsegmentoId === cotSeg.id)
-                        .forEach((comp) => {
-                            const segComp = resolverSegCompDeComponente(segComps, comp.componenteMaestroId, cotSeg.dia);
-                            if (segComp) {
-                                const eraPrincipal = !!comp.horaServicioCompleto;
-                                comp.horaServicioCompleto = !!segComp.horaServicioCompleto;
-                                if (comp.horaServicioCompleto) {
-                                    traerHorarioDeExcursion(comp, segComp, eraPrincipal);
-                                }
-                            }
-                        });
-                }
+                cotSeg.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+                cotSeg.nombreInternoSnapshot = nombreOperativoComoI18n(maestro.nombreInterno);
+                cotSeg.contenidoSnapshot = JSON.parse(JSON.stringify(maestro.contenido || []));
+                cotSeg.notasSnapshot = extraerNotasSnapshot(maestro);
+                cotSeg.imagenesSnapshot = extraerImagenesSnapshot(maestro);
+
+                componentesDelServicio
+                    .filter((comp) => comp.cotsegmentoId === cotSeg.id)
+                    .forEach((comp) => {
+                        const segComp = catalogo.filaDe(comp, cotSeg);
+                        if (segComp) {
+                            comp.horaServicioCompleto = !!segComp.horaServicioCompleto;
+                        }
+                    });
             });
 
         } catch (error) {
@@ -5834,6 +5802,94 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             alert("Ocurrió un error al actualizar los textos del storytelling.");
         } finally {
             isLoading.value = false;
+        }
+    };
+
+    /** Un horario que el catálogo dice distinto de lo que tiene la cotización. */
+    type CambioDeHorario = {
+        componente: ComponenteCompleto;
+        nombre: string;
+        antes: string;
+        despues: string;
+        inicio: string;
+        fin: string;
+    };
+
+    /**
+     * Los horarios del CATÁLOGO que no coinciden con los de esta cotización, sin aplicarlos.
+     *
+     * 🔥 Hace falta porque «Actualizar» no toca horas, y con razón: el operador ajusta horarios a
+     * mano y un refresco de textos no puede llevárselos. Pero eso dejaba sin camino el caso
+     * contrario: en Q4V2FR el pool del Valle VIP pasó a principal del día con las horas de ancla de
+     * su segmento —07:00 a 07:00— y la guía decía «07:00» sin hora de vuelta, aunque el catálogo ya
+     * tenía 07:00–18:30. Es una acción aparte que ENSEÑA lo que cambiaría y pregunta.
+     *
+     * Por componente con hora en su fila: inicio a la hora del catálogo; fin a su `horaFin` si la
+     * tiene —un fin anterior o igual al inicio cae al día siguiente, como en la inyección— y, si no,
+     * conservando la duración que tenía. La fecha no cambia.
+     */
+    const horariosDelCatalogo = async (): Promise<CambioDeHorario[] | null> => {
+        const servicio = servicioActivo.value;
+        if (!servicio || !servicio.cotsegmentos?.length) return [];
+
+        isLoading.value = true;
+        try {
+            const catalogo = await cargarCatalogoDelServicio(servicio);
+            if (!catalogo) return null;
+
+            const hhmm = (f: string | null | undefined) => getHoraLimpia(f) ?? '—';
+            const cambios: CambioDeHorario[] = [];
+
+            for (const cotSeg of servicio.cotsegmentos) {
+                for (const comp of (servicio.cotcomponentes || []).filter((c) => c.cotsegmentoId === cotSeg.id)) {
+                    if (comp.sinHorario || sinHorarioDeTipo(comp.tipo)) continue;
+                    const segComp = catalogo.filaDe(comp, cotSeg);
+                    const hInicio = getHoraLimpia(segComp?.hora);
+                    if (!segComp || !hInicio || !comp.fechaHoraInicio) continue;
+
+                    const fecha = getFechaLimpia(comp.fechaHoraInicio);
+                    const inicio = toDateTimeString(fecha, hInicio);
+                    const hFin = getHoraLimpia(segComp.horaFin);
+                    let fin: string;
+                    if (hFin) {
+                        const fechaFin = hFin <= hInicio
+                            ? getFechaLimpia(addDurationToDate(toDateTimeString(fecha, '12:00'), 24))
+                            : fecha;
+                        fin = toDateTimeString(fechaFin, hFin);
+                    } else {
+                        const horas = getDuracionMs(comp.fechaHoraInicio, comp.fechaHoraFin || comp.fechaHoraInicio) / 3_600_000;
+                        fin = addDurationToDate(inicio, horas);
+                    }
+
+                    const mismo = (a: string | null | undefined, b: string) => (a || '').slice(0, 16) === b.slice(0, 16);
+                    if (mismo(comp.fechaHoraInicio, inicio) && mismo(comp.fechaHoraFin, fin)) continue;
+
+                    cambios.push({
+                        componente: comp,
+                        nombre: comp.nombreInternoSnapshot || getI18nText(comp.tituloSnapshot, 'es') || 'Componente',
+                        antes: `${hhmm(comp.fechaHoraInicio)}–${hhmm(comp.fechaHoraFin)}`,
+                        despues: `${hInicio}–${hhmm(fin)}`,
+                        inicio,
+                        fin,
+                    });
+                }
+            }
+
+            return cambios;
+        } catch (error) {
+            console.error("Error al leer los horarios del catálogo:", error);
+            alert("Ocurrió un error al leer los horarios del catálogo.");
+            return null;
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
+    /** Aplica lo que `horariosDelCatalogo()` propuso y el operador aceptó. */
+    const aplicarHorarios = (cambios: CambioDeHorario[]): void => {
+        for (const c of cambios) {
+            c.componente.fechaHoraInicio = c.inicio;
+            c.componente.fechaHoraFin = c.fin;
         }
     };
 
@@ -5878,6 +5934,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         agregarTarifa, eliminarTarifa, fetchComponenteMaestroSilencioso,
         abrirEditorSegmentos, cerrarEditorSegmentos, aplicarPlantilla,
         actualizarTextosSegmentos,
+        horariosDelCatalogo,
+        aplicarHorarios,
         agregarSegmentoIndividual, reordenarSegmentos, reordenarServicios, soltarOrdenDelDia, diaOrdenadoAMano, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
         onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange, onCambioModoComponente,
