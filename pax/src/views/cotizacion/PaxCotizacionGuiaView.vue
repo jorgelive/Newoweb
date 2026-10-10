@@ -2761,10 +2761,19 @@ const adelantoVista = computed(() => {
             </article>
           </template>
 
-          <!-- ══ INCLUSIONES DEL DÍA (panel único, elegante, semicolapsado) ══ -->
+          <!-- ══ INCLUSIONES DEL DÍA — SÓLO EN PAPEL ══
+               ⚠️ En pantalla duplicaba el «¿Qué incluye el tour?» de cada servicio: las mismas
+               líneas, filtradas por fecha, y con la marca de cada actividad ya eran tres vistas de
+               lo mismo — y repetido tres veces nada destaca. En pantalla el detalle vive en el
+               botón del servicio, que lo enseña entero; el cliente compra productos, no días.
+
+               ⚠️ **Pero en papel no hay botón** (lleva `no-imprimir`), y este panel es lo único que
+               lleva las inclusiones al PDF — la hoja de impresión lo despliega entero a propósito.
+               Por eso se oculta en pantalla y se queda en la impresión: borrarlo dejaba la guía
+               impresa sin un solo «incluye». -->
           <div
               v-if="inclusionesPorDia.get(dia.fecha)?.servicios.length"
-              class="bg-white rounded-3xl shadow-md shadow-slate-200/40 border border-slate-100 p-5 md:p-7 mb-4"
+              class="hidden print:block bg-white rounded-3xl shadow-md shadow-slate-200/40 border border-slate-100 p-5 md:p-7 mb-4"
           >
             <p class="text-sm font-black text-[#376875] tracking-tight flex items-center gap-2 mb-5">
               <i class="fas fa-list-check text-[#E07845]"></i>
