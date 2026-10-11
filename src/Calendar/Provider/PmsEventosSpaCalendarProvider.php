@@ -667,6 +667,11 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             // se pinta aparte, como fondo (ver horariosExtra()).
             'entradaTemprana' => $evento->isEntradaTemprana(),
             'salidaTardia' => $evento->isSalidaTardia(),
+            // La hora de entrada y de salida, SÓLO si está confirmada (10/10/2026). Sin confirmar
+            // es la hora por defecto del establecimiento, que no dice nada: pintarla en la barra
+            // haría pasar «no dijo nada» por «sale a las 10». Ver `llegada_confirmada_at`.
+            'horaLlegada' => $evento->getLlegadaConfirmadaAt() !== null ? $evento->getInicio()?->format('H:i') : null,
+            'horaSalida' => $evento->getSalidaConfirmadaAt() !== null ? $evento->getFin()?->format('H:i') : null,
             // Su noche extra choca con otra estancia, o pisa la de otra: lo dejó así un canal
             // (ver choquesDeNochesExtra()). La barra lo marca en rojo con este motivo.
             'choqueHorarioExtra' => $choqueHorarioExtra,

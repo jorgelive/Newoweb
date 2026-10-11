@@ -1207,6 +1207,10 @@ const calendarOptions: CalendarOptions = {
             // se leía como salida.
             p.entradaTemprana ? `<span class="fc-reserva-dato fc-reserva-tarde" title="Entrada temprana">${marcaHorarioExtra('entrada')}</span>` : '',
             p.salidaTardia ? `<span class="fc-reserva-dato fc-reserva-tarde" title="Salida tardía">${marcaHorarioExtra('salida')}</span>` : '',
+            // Horas CONFIRMADAS (10/10/2026): sólo llegan si alguien las confirmó, así que una
+            // hora en la barra es siempre una hora firme. «E» entra, «S» sale.
+            p.horaLlegada ? `<span class="fc-reserva-dato fc-reserva-hora" title="Llega a las ${escaparHtml(p.horaLlegada)} (confirmada)"><i class="fas fa-check"></i>E ${escaparHtml(p.horaLlegada)}</span>` : '',
+            p.horaSalida ? `<span class="fc-reserva-dato fc-reserva-hora" title="Sale a las ${escaparHtml(p.horaSalida)} (confirmada)"><i class="fas fa-check"></i>S ${escaparHtml(p.horaSalida)}</span>` : '',
             // Un canal dejó su noche extra encima de otra estancia (o ésta encima de la de otra).
             // Rojo y delante de las cifras: hay que reubicar a alguien. Ver choquesDeNochesExtra().
             p.choqueHorarioExtra ? `<span class="fc-reserva-dato fc-reserva-choque" title="${escaparHtml(p.choqueHorarioExtra)}"><i class="fas fa-triangle-exclamation"></i></span>` : '',
@@ -1931,6 +1935,11 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 .fc-reserva-tarde {
     color: #92400e;
     background: #fde68a;
+}
+
+/* Una hora confirmada: el verde de «confirmada» del drawer. */
+.fc-reserva-hora {
+    color: #047857;
 }
 
 /* La noche de una entrada temprana o salida tardía: ocupada aunque no haya barra. Rayada en el

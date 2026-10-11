@@ -1302,6 +1302,13 @@ desbloquearía el día en el acto y el backend rechazaría el guardado. Y el PAT
 > sólo si se tocó. Se pierden si cambia el DÍA (lo mueva una persona o el canal): era para otro
 > día. Las ven el drawer, `listar_entradas_salidas` y el aviso al equipo («sale a las 10:00 (sin
 > confirmar)»).
+>
+> 🕐 **10/10/2026 — también en «Ver» y en el calendario.** La marca sólo salía en el drawer en modo
+> EDICIÓN: en «Ver» la hora aparecía sin decir si era firme, y el calendario no la recibía. Ahora el
+> modo «Ver» pinta la misma marca (✓ confirmada / ? sin confirmar) y el feed del calendario manda
+> `horaLlegada` / `horaSalida` **sólo si están confirmadas** —una hora sin confirmar es la de por
+> defecto y pintarla la haría pasar por firme—; la barra las enseña en verde como «✓E 15:30» /
+> «✓S 10:00» (`PmsEventosSpaCalendarProvider::buildContext()`).
 
 > 🔁 **01/10/2026 — bloquear lo decide el equipo, y la skill ya sabe decir que no.** Con hora fuera
 > del horario y la noche libre, `aplicar_cambio_horario` pregunta si se bloquea, y la respuesta

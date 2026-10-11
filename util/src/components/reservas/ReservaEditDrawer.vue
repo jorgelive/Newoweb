@@ -2143,11 +2143,31 @@ async function ejecutarBorrado(): Promise<void> {
                                             </p>
                                         </div>
                                         <div>
-                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Check-in</p>
+                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">
+                                                Check-in
+                                                <!-- La misma marca que en edición: sin ella, «Ver» no distinguía
+                                                     «confirmó las 10:00» de «no dijo nada» (10/10/2026). -->
+                                                <span v-if="entry.eventoId" class="ml-1 px-1.5 rounded normal-case tracking-normal font-bold"
+                                                    :class="entry.llegadaConfirmadaAt ? 'text-emerald-700 bg-emerald-50' : 'text-slate-400 bg-slate-100'"
+                                                    :title="entry.llegadaConfirmadaAt ? `Hora confirmada el ${fechaHoraCorta(entry.llegadaConfirmadaAt)}` : 'Nadie ha confirmado esta hora.'">
+                                                    <i class="fas" :class="entry.llegadaConfirmadaAt ? 'fa-check' : 'fa-question'"></i>
+                                                    {{ entry.llegadaConfirmadaAt ? 'confirmada' : 'sin confirmar' }}
+                                                </span>
+                                            </p>
                                             <p class="text-sm font-bold text-slate-800 mt-0.5">{{ formatFechaHora(entry.form.inicio) }}</p>
                                         </div>
                                         <div>
-                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Check-out</p>
+                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">
+                                                Check-out
+                                                <!-- La misma marca que en edición: sin ella, «Ver» no distinguía
+                                                     «confirmó las 10:00» de «no dijo nada» (10/10/2026). -->
+                                                <span v-if="entry.eventoId" class="ml-1 px-1.5 rounded normal-case tracking-normal font-bold"
+                                                    :class="entry.salidaConfirmadaAt ? 'text-emerald-700 bg-emerald-50' : 'text-slate-400 bg-slate-100'"
+                                                    :title="entry.salidaConfirmadaAt ? `Hora confirmada el ${fechaHoraCorta(entry.salidaConfirmadaAt)}` : 'Nadie ha confirmado esta hora.'">
+                                                    <i class="fas" :class="entry.salidaConfirmadaAt ? 'fa-check' : 'fa-question'"></i>
+                                                    {{ entry.salidaConfirmadaAt ? 'confirmada' : 'sin confirmar' }}
+                                                </span>
+                                            </p>
                                             <p class="text-sm font-bold text-slate-800 mt-0.5">{{ formatFechaHora(entry.form.fin) }}</p>
                                         </div>
                                         <div v-if="!isCreate || isCreateReserva">

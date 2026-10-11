@@ -292,6 +292,12 @@ export interface PmsEventoExtendedProps {
     entradaTemprana?: boolean;
     /** Late check-out pactado: la barra lo marca con la flecha de SALIR del umbral. */
     salidaTardia?: boolean;
+    /**
+     * Hora de entrada / salida (`HH:MM`) sólo si está CONFIRMADA; `null` si es la de por defecto.
+     * Espejo de `PmsEventosSpaCalendarProvider::buildContext()`.
+     */
+    horaLlegada?: string | null;
+    horaSalida?: string | null;
 
     /**
      * Para contactar sin abrir la ficha. En dígitos, listo para `wa.me`.
