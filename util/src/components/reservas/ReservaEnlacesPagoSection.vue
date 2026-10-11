@@ -63,6 +63,18 @@ const props = defineProps<{
      * pintar las dos con el mismo símbolo sería exactamente el error que se vino a arreglar.
      */
     monedaSimbolo?: string | null;
+    /**
+     * Registra un cargo en el documento. Lo pasa quien sabe de cargos —el panel de la reserva—;
+     * sin él, este componente no deja pedir más de lo que se debe.
+     *
+     * 🔒 Un enlace no puede pedir más de lo que se debe (`FinEnlacePagoService::crear()`, 10/10/2026).
+     * Para cobrar un consumo aún sin registrar, el formulario registra primero el cargo por la
+     * diferencia, en el mismo paso: la cuenta dice siempre la verdad y no queda un «saldo a
+     * favor» falso al pagar.
+     */
+    registrarCargo?: (cargo: { monto: string; moneda: string; concepto: string; tipo: string }) => Promise<void>;
+    /** Los tipos de cargo que se ofrecen en ese paso. */
+    tiposCargo?: { id: string; label: string }[];
 }>();
 
 const emit = defineEmits<{
@@ -135,6 +147,9 @@ const form = ref({
      * un error y acaba en una reclamación.
      */
     concepto: '',
+    /** El cargo por lo que pase de la deuda. Sólo se usa si el importe la supera. */
+    cargoConcepto: '',
+    cargoTipo: '',
 });
 
 /** Con una sola pasarela no hay nada que elegir: el selector estorbaría. */
@@ -170,6 +185,20 @@ const monedaPorDefecto = computed<string | null>(() => {
     const orden = [...conSaldo.value].sort((a, b) => Number(b.saldo) - Number(a.saldo));
 
     return orden[0]?.moneda ?? null;
+});
+
+/** Lo que se debe en la moneda del formulario. Cero si en esa moneda no se debe nada. */
+const saldoDelForm = computed<number>(() => {
+    const moneda = form.value.moneda || monedaPorDefecto.value;
+
+    return Number(props.saldos.find(s => s.moneda === moneda)?.saldo ?? 0);
+});
+
+/** Lo que el importe tecleado pasa de la deuda: eso es lo que hay que registrar como cargo. */
+const excedente = computed<number>(() => {
+    const exceso = Number(form.value.monto || 0) - saldoDelForm.value;
+
+    return exceso > 0.005 ? Number(exceso.toFixed(2)) : 0;
 });
 
 /**
@@ -269,8 +298,15 @@ function abrirForm(preset?: PresetImporte): void {
     // Sin atajo se prellena con el saldo COMPLETO: cobrar todo lo pendiente es el caso normal.
     const porDefecto = conSaldo.value.find(s => s.moneda === monedaPorDefecto.value);
 
+    // Sin atajo, se propone LO QUE SE PIDE: el adelanto si toca, y si no el saldo. Proponer
+    // siempre el saldo entero fue como nació el enlace de BGD96K (10/10/2026): un total suelto
+    // mientras la guía del huésped pedía el adelanto.
+    const propuesto = props.prepago && Number(props.prepago.monto) > 0.005
+        ? Number(props.prepago.monto).toFixed(2)
+        : (porDefecto ? Number(porDefecto.saldo).toFixed(2) : '');
+
     form.value = {
-        monto: preset ? preset.monto : (porDefecto ? Number(porDefecto.saldo).toFixed(2) : ''),
+        monto: preset ? preset.monto : propuesto,
         conRecargo: true,
         vigenciaDias: 7,
         pasarela: '',
@@ -279,6 +315,8 @@ function abrirForm(preset?: PresetImporte): void {
         // `null`. Se manda explícita para que lo que ve el operador y lo que se cobra no
         // dependan de dos criterios distintos.
         moneda: preset?.moneda ?? monedaPorDefecto.value ?? '',
+        cargoConcepto: '',
+        cargoTipo: '',
     };
     formAbierto.value = true;
     // Al abrir y no al montar: la mayoría de veces el panel se despliega para mirar, no
@@ -286,10 +324,65 @@ function abrirForm(preset?: PresetImporte): void {
     void store.fetchPasarelas();
 }
 
+/**
+ * Las comprobaciones ANTES de crear (10/10/2026). Un enlace manual que no cuadra con lo que se
+ * pide o con lo que se debe no falla al crearse: falla después, cuando el huésped ve una cifra en
+ * su guía y paga otra, o paga algo que ya no debía. Por eso se avisa aquí, que es donde se decide.
+ *
+ * @returns `false` si no hay que crear el enlace.
+ */
+function comprobarAntesDeCrear(): boolean {
+    const monto = Number(form.value.monto || 0);
+    const simbolo = simboloDe(form.value.moneda || monedaPorDefecto.value);
+
+    // 1. Más de lo que se debe: o se registra el cargo de la diferencia, o no se crea.
+    if (excedente.value > 0) {
+        if (!props.registrarCargo) {
+            error.value = `Se deben ${simbolo} ${saldoDelForm.value.toFixed(2)} y este enlace pediría ${monto.toFixed(2)}. No se puede pedir más de lo que se debe.`;
+            return false;
+        }
+        if (!form.value.cargoConcepto.trim() || !form.value.cargoTipo) {
+            error.value = `Faltan el concepto y el tipo del cargo de ${simbolo} ${excedente.value.toFixed(2)}.`;
+            return false;
+        }
+    }
+
+    // 2. El total cuando la guía pide el adelanto: eso es «Cobrar el total», no un enlace suelto.
+    const unaMoneda = conSaldo.value.length <= 1;
+    if (excedente.value === 0 && props.prepago && unaMoneda && Math.abs(monto - saldoDelForm.value) < 0.005) {
+        formAbierto.value = false;
+        emit('cobrarTotal');
+        return false;
+    }
+
+    // 3. Cualquier otra cifra que no sea la que pide la guía: se puede, pero sabiéndolo.
+    const pedido = props.prepago ? Number(props.prepago.monto) : saldoDelForm.value + excedente.value;
+    if (pedido > 0.005 && Math.abs(monto - pedido) > 0.005) {
+        return window.confirm(
+            `La guía del huésped pide ${simbolo} ${pedido.toFixed(2)}. Este enlace cobra ${simbolo} ${monto.toFixed(2)}.\n\n`
+            + 'El botón de su guía llevará a este enlace aunque la guía diga la otra cifra. ¿Crearlo igualmente?',
+        );
+    }
+
+    return true;
+}
+
 async function crear(): Promise<void> {
     error.value = null;
 
+    if (!comprobarAntesDeCrear()) return;
+
     try {
+        // El cargo primero: así el backend ya ve la deuda que el enlace va a pedir.
+        if (excedente.value > 0 && props.registrarCargo) {
+            await props.registrarCargo({
+                monto: excedente.value.toFixed(2),
+                moneda: form.value.moneda || monedaPorDefecto.value || '',
+                concepto: form.value.cargoConcepto.trim(),
+                tipo: form.value.cargoTipo,
+            });
+        }
+
         await store.crear({
             origenTipo: props.origenTipo,
             origenId: props.origenId,
@@ -333,8 +426,12 @@ async function copiar(enlace: FinEnlacePago): Promise<void> {
 
 /** El backend responde `{error: "..."}` en texto plano, no en hydra. */
 function mensajeDeError(err: unknown): string {
-    const data = (err as { response?: { data?: { error?: string } } })?.response?.data;
-    return data?.error || 'No se pudo completar la operación.';
+    const respuesta = (err as { response?: { data?: { error?: string } } })?.response;
+    if (respuesta) return respuesta.data?.error || 'No se pudo completar la operación.';
+
+    // Sin respuesta HTTP es un error nuestro con su motivo escrito —el del cargo en otra
+    // moneda, por ejemplo—, y ese motivo es justo lo que hay que leer.
+    return err instanceof Error && err.message ? err.message : 'No se pudo completar la operación.';
 }
 
 function fechaCorta(iso: string | null): string {
@@ -429,6 +526,28 @@ function fechaCorta(iso: string | null): string {
                         </option>
                     </select>
                 </label>
+
+                <!-- Más de lo que se debe: la diferencia entra como cargo en el mismo paso. Ver
+                     `registrarCargo` y `comprobarAntesDeCrear()`. -->
+                <div v-if="excedente > 0" class="rounded-lg border border-amber-200 bg-amber-50 p-2 space-y-2">
+                    <p class="text-[11px] font-bold text-amber-800 leading-snug">
+                        <i class="fas fa-circle-plus mr-1"></i>
+                        Se deben {{ simboloDe(form.moneda || monedaPorDefecto) }} {{ saldoDelForm.toFixed(2) }}.
+                        <template v-if="registrarCargo">
+                            Los {{ excedente.toFixed(2) }} de más se registrarán como cargo:
+                        </template>
+                        <template v-else>No se puede pedir más de lo que se debe.</template>
+                    </p>
+                    <template v-if="registrarCargo">
+                        <input v-model="form.cargoConcepto" type="text" placeholder="Concepto (lo verá el huésped)"
+                            class="w-full px-2 py-1.5 border border-amber-200 rounded-lg text-xs font-bold bg-white" />
+                        <select v-model="form.cargoTipo"
+                            class="w-full px-2 py-1.5 border border-amber-200 rounded-lg text-xs font-bold bg-white">
+                            <option value="">Tipo de cargo…</option>
+                            <option v-for="t in tiposCargo ?? []" :key="t.id" :value="t.id">{{ t.label }}</option>
+                        </select>
+                    </template>
+                </div>
 
                 <label class="flex items-start gap-2 cursor-pointer">
                     <input v-model="form.conRecargo" type="checkbox" class="mt-0.5" />

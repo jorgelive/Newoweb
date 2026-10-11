@@ -341,6 +341,11 @@ final readonly class PmsPrepagoEnlaceService
             // dejó de decidir dinero, «inactiva» ya no significa «cancelada»: puede quedar abajo
             // en una reserva que siguió adelante como directa, y entonces esto le negaba el enlace
             // de adelanto al huésped que sí va a venir.
+            // Un manual que ya pide más de lo que se debe se anula: la deuda bajó después de
+            // emitirlo —una transferencia, el depósito de la OTA, un cargo retirado—. Va antes de
+            // todo porque vale también para una reserva cancelada.
+            $this->anularManualesQueExcedenLaDeuda($info, $id);
+
             if ($reserva->isCancelada()) {
                 $this->anularAutomaticosVigentes($id);
 
@@ -509,6 +514,39 @@ final readonly class PmsPrepagoEnlaceService
         }
 
         return null;
+    }
+
+    /**
+     * Anula los enlaces MANUALES vivos que piden más de lo que hoy se debe en su moneda.
+     *
+     * La otra mitad de la regla de `FinEnlacePagoService::crear()` (10/10/2026): allí no se deja
+     * crear uno por encima de la deuda; aquí se retira el que se quedó por encima porque la deuda
+     * bajó después —se pagó por otro medio, o se retiró un cargo—. Sin esto, BGD96K quedó saldada
+     * con un enlace de 83.31 que el huésped todavía podía pagar.
+     *
+     * Sólo los manuales: los automáticos los releva este mismo emisor con su regla.
+     */
+    private function anularManualesQueExcedenLaDeuda(PmsInformacionFinanciera $info, Uuid $reservaId): void
+    {
+        $porMoneda = PmsTotalesPorMoneda::de($info)->porMoneda;
+
+        foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
+            if (!$enlace->estaVigente() || $enlace->getCreadoPor() === null) {
+                continue;
+            }
+
+            $debe = (float) ($porMoneda[$enlace->getMonedaCodigo() ?? '']['saldo'] ?? 0);
+
+            if ((float) $enlace->getMontoNeto() > $debe + 0.005) {
+                $this->logger->info('[prepago] enlace manual por encima de la deuda: se anula.', [
+                    'reserva' => (string) $reservaId,
+                    'enlace' => (string) $enlace->getId(),
+                    'pide' => $enlace->getMontoNeto(),
+                    'debe' => $debe,
+                ]);
+                $this->enlaces->anular($enlace);
+            }
+        }
     }
 
     /** ¿Hay un enlace emitido por una PERSONA que todavía se pueda pagar? */

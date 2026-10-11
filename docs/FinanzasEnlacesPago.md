@@ -1698,6 +1698,55 @@ Verificado con `tools/pruebas/probar-prepago-total-y-saldo.php` (transacción co
 última hora, marca y vuelta atrás, saldo a los 10 y a los 31 minutos, el aviso una sola vez, y
 «un documento, un enlace vivo».
 
+### 🔒 Un enlace a mano no puede pedir más de lo que se debe (10/10/2026)
+
+**De dónde sale.** BGD96K acabó saldada con un enlace manual de 83.31 todavía pagable. La cadena:
+el automático emitió el adelanto (27.77); Susan pulsó «Crear enlace», que salía **prellenado con
+el saldo entero**, y creó un total suelto de 83.31; un movimiento reemitió el adelanto al lado; el
+huésped pagó el adelanto —la guía se lo pedía— y luego el saldo. El de Susan quedó vivo. El hueco
+no nació al pagar: nació al **crear** un enlace que no cuadraba con lo que se pedía, sin aviso.
+
+**Las dos reglas, sólo para enlaces con autor** (los automáticos los decide la regla y el emisor
+los releva solo; además el adelanto puede ir en la moneda de la cabecera aunque la deuda esté en
+otra):
+
+1. **Al crear** (`FinEnlacePagoService::crear()`): más de lo que se debe en esa moneda → se
+   rechaza con el motivo. Va en el servicio porque por ahí pasan el panel y el agente.
+2. **Después** (`PmsPrepagoEnlaceService::anularManualesQueExcedenLaDeuda()`, en cada movimiento):
+   el manual que se quedó por encima de la deuda —se pagó por otro medio, se retiró un cargo, se
+   canceló una estancia— se anula solo.
+
+**Para cobrar algo que aún no está en la cuenta** —un consumo, una noche extra— el formulario de
+«Crear enlace» no lo impide: si el importe pasa de la deuda, pide concepto y tipo y **registra el
+cargo por la diferencia** antes de crear el enlace, en el mismo paso. La decisión de dejar el
+botón siempre disponible (para cobrar en el momento) se mantiene; lo que cambia es que la cuenta
+dice la verdad: sin el cargo, el pago dejaba un «saldo a favor» falso. Sólo en la moneda de la
+cabecera; en otra hace falta el tipo de cambio y se registra desde «Cargos».
+
+**Los avisos del panel, ANTES de crear** (`ReservaEnlacesPagoSection::comprobarAntesDeCrear()`):
+
+| Lo que se teclea | Qué pasa |
+|---|---|
+| Más de lo que se debe | Cargo por la diferencia (arriba), o error si el documento no sabe de cargos |
+| El saldo entero, con la guía pidiendo el adelanto | No se crea un enlace suelto: se ofrece **«Cobrar el total»** (la marca) |
+| Otra cifra que no es la que pide la guía | `confirm` explicando que el botón de la guía llevará a ese enlace aunque diga otra cifra |
+
+Y «Crear enlace» se prellena con **lo que se pide** (el adelanto, si toca), no con el saldo entero.
+Al **registrar un pago** con un enlace vivo, el panel avisa de que, si ya no se debe ese importe,
+el enlace se anulará.
+
+#### Dónde podría filtrarse, y qué lo cierra
+
+| Camino | Cubierto por |
+|---|---|
+| Panel, «Crear enlace» | regla 1 en el backend + avisos previos |
+| Agente (`generar_enlace_prepago_pago_total`) | regla 1: el importe lo calcula la regla, nunca pasa de la deuda |
+| Pago por transferencia / efectivo (panel o skill `registrar_pago`) | regla 2 en el `postFlush`; el panel avisa antes |
+| Depósito automático de la OTA | regla 2, en el mismo `postFlush` |
+| Cargo retirado o estancia cancelada | regla 2: la estancia también dispara el emisor |
+| El emisor no consigue el turno, o el interruptor está apagado | el barrido de cada 5 min repasa las reservas con un manual vivo |
+| **Cobro manual suelto desde Finanzas, etiquetado PMS** | ⚠️ **NO cubierto**: no cuelga de la reserva, así que ni cuenta como enlace suyo ni abona su cuenta |
+
 ### Una estancia que cambia de estado mueve dinero (10/10/2026)
 
 `PmsInformacionFinancieraCoherenciaListener::collectPorEstancia()`: una estancia que nace, se borra
@@ -2435,6 +2484,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar cuándo se pide el total antes de la llegada (última hora, marca) | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `pideElTotal()` · `DIAS_DE_ULTIMA_HORA` |
 | Cambiar cuándo sale el saldo tras pagar el adelanto | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `MINUTOS_SALDO_TRAS_ADELANTO` · `puedePedirseElSaldo()` |
 | El barrido y el aviso del saldo | `src/Pms/Command/PmsPrepagoSaldoTrasAdelantoCommand.php` · `src/Pms/Service/Message/SaldoPendiente.php` | `HORAS_DE_AVISO` |
+| Un manual por encima de la deuda: rechazo al crear y anulación después | `src/Finanzas/Service/FinEnlacePagoService.php` · `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `crear()` · `anularManualesQueExcedenLaDeuda()` |
+| Los avisos antes de crear un enlace y el cargo por la diferencia | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` · `ReservaFinanzasPanel.vue` | `comprobarAntesDeCrear()` · `registrarCargoDelEnlace()` |
 | La regla «un documento, un enlace vivo» | `src/Finanzas/Service/FinEnlacePagoService.php` | `construir()` · `tomarDocumento()` |
 | Tocar el reto 3DS del navegador | `pax/src/views/pago/PagoCulqiForm.vue` | `autenticar3DS()` · `MINUTOS_DE_RETO` · `retoUsado` · `anotarReto()` |
 | Ver qué pasó en el navegador durante un reto | tabla `fin_pasarela_cobro_audit` | desenlaces `reto_*` (`DESENLACES_DEL_NAVEGADOR`) |

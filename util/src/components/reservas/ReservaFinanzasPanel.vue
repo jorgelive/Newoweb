@@ -519,6 +519,36 @@ async function cambiarCobroTotal(pedido: boolean): Promise<void> {
     }
 }
 
+/**
+ * El cargo que registra el formulario de enlaces cuando el importe pasa de la deuda (10/10/2026).
+ *
+ * Un enlace no puede pedir más de lo que se debe; para cobrar un consumo aún sin registrar, la
+ * diferencia entra aquí como cargo manual y después se crea el enlace. Sólo en la moneda de la
+ * cabecera: en otra haría falta su tipo de cambio, y ése se pone desde «Cargos».
+ */
+async function registrarCargoDelEnlace(cargo: { monto: string; moneda: string; concepto: string; tipo: string }): Promise<void> {
+    const infoId = finanzas.info?.id;
+    if (!infoId) throw new Error('Esta reserva todavía no tiene información financiera.');
+
+    if (cargo.moneda !== monedaCabecera.value?.id) {
+        throw new Error(`Un cargo en ${cargo.moneda} necesita tipo de cambio: regístralo desde «Cargos» y crea después el enlace.`);
+    }
+
+    await finanzas.createCargo({
+        informacionFinanciera: pmsInformacionFinancieraIri(infoId),
+        moneda: `/platform/maestro/monedas/${cargo.moneda}`,
+        // Mismo cast acotado que en `guardarCargoOrThrow()`: el id sale de `finanzas.tiposCargo`.
+        tipoCargo: cargo.tipo as PmsCargoFinancieroCreate['tipoCargo'],
+        descripcion: cargo.concepto,
+        descripcionClienteEs: cargo.concepto,
+        totalLinea: cargo.monto,
+        tipoCambio: null,
+        evento: null,
+        sobreescribirTraduccion: false,
+        fijadoPorOperador: false,
+    });
+}
+
 /** El prepago ya cobrado deja de existir, así que esto sólo aparece si queda algo por pedir. */
 const prepagoImporte = computed(() =>
     prepago.value ? importeConMoneda(prepago.value.monto, monedaCabecera.value) : '',
@@ -1688,6 +1718,17 @@ async function guardarPagoOrThrow(): Promise<void> {
 /** Handler del botón del propio formulario: muestra el error aquí mismo. */
 async function guardarPago(): Promise<void> {
     error.value = null;
+
+    // Un pago por otro medio con un enlace vivo: si con él ya no se debe lo que pide el enlace,
+    // el backend lo anula solo (`anularManualesQueExcedenLaDeuda()`). Se dice antes, no después.
+    const vivo = enlacesVigentes.value[0];
+    if (!pagoEditandoId.value && vivo && !window.confirm(
+        `Hay un enlace de pago vivo por ${vivo.monedaSimbolo ?? vivo.moneda ?? ''} ${vivo.montoNeto}.\n\n`
+        + 'Si con este pago ya no se debe ese importe, el enlace se anulará y el huésped no podrá pagarlo. ¿Registrar el pago?',
+    )) {
+        return;
+    }
+
     try {
         await guardarPagoOrThrow();
     } catch (err) {
@@ -3120,6 +3161,8 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         :saldos="saldosParaCobrar"
                         :prepago="prepago"
                         :moneda-simbolo="monedaCabecera?.simbolo"
+                        :registrar-cargo="registrarCargoDelEnlace"
+                        :tipos-cargo="finanzas.tiposCargo"
                         @actualizado="finanzas.recargar()"
                         @cobrar-total="cambiarCobroTotal(true)" />
                 </div>

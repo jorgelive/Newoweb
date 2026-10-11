@@ -83,6 +83,25 @@ final class FinEnlacePagoService
             throw new DomainException('El documento que se quiere cobrar ya no existe.');
         }
 
+        // 🔒 Una PERSONA no puede pedir más de lo que se debe (10/10/2026). Hasta hoy sólo se
+        // comprobaba que fuera mayor que cero: BGD96K acabó saldada con un enlace manual de
+        // 83.31 todavía pagable, porque nació cuando ya había otro enlace pidiendo el adelanto.
+        // Es la protección que no depende de que nadie lea un aviso, y por eso va aquí, por donde
+        // pasan el panel y el agente.
+        //
+        // Sólo con autor: el adelanto automático va en la moneda de la CABECERA aunque la deuda
+        // esté en otra —lo convierte el calculador—, y ése lo decide la regla, no una persona.
+        $pedido = $montoNeto ?? $origen->saldoPendiente;
+        if ($creadoPor !== null && (float) $pedido > (float) $origen->saldoPendiente + 0.005) {
+            throw new DomainException(sprintf(
+                'El huésped debe %s %s y este enlace pediría %s. No se puede pedir más de lo que se debe: '
+                . 'si hay algo más que cobrar, regístralo antes como cargo.',
+                $origen->moneda,
+                $origen->saldoPendiente,
+                $pedido,
+            ));
+        }
+
         return $this->construir(
             origenTipo: $origenTipo,
             origenId: $origenId,

@@ -43,6 +43,13 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * habría escrito a todos los que adelantaron hace semanas, de golpe y sin contexto. Y una vez por
  * reserva: ver `SaldoPendiente`.
  *
+ * ### Y los enlaces manuales que se quedaron por encima de la deuda
+ *
+ * El emisor anula el manual que pide más de lo que se debe (`anularManualesQueExcedenLaDeuda()`)
+ * en cada movimiento — salvo que no consiga el turno, o que el movimiento no pase por él. Este
+ * barrido le da otra vuelta cada 5 minutos a las reservas con un manual vivo, para que ninguno
+ * quede pagable sobre una deuda saldada más de unos minutos (10/10/2026, BGD96K).
+ *
  * ⚠️ Las fechas se calculan en PHP: `pagado_en` lo escribe Doctrine en la zona de PHP
  * (`America/Lima`) y el servidor de base va en UTC. Ver `PmsPrepagoRevisarLlegadasCommand`.
  *
@@ -103,6 +110,26 @@ final class PmsPrepagoSaldoTrasAdelantoCommand extends Command
             ],
         );
 
+        // Las reservas con un enlace MANUAL vivo: el emisor anula el que exceda la deuda.
+        /** @var list<array{info_id: string, loc: string}> $conManual */
+        $conManual = $this->em->getConnection()->fetchAllAssociative(
+            'SELECT DISTINCT BIN_TO_UUID(i.id) AS info_id, r.localizador AS loc
+             FROM pms_reserva r
+             INNER JOIN pms_informacion_financiera i ON i.reserva_id = r.id
+             INNER JOIN fin_enlace_pago e ON e.origen_id = r.id AND e.origen_tipo = :tipo
+             WHERE e.creado_por_id IS NOT NULL AND e.estado IN (:pendiente, :fallido)',
+            ['tipo' => FinOrigenCobro::PMS_RESERVA->value, 'pendiente' => 'pendiente', 'fallido' => 'fallido'],
+        );
+
+        if (!$seco) {
+            foreach ($conManual as $fila) {
+                $info = $this->em->getRepository(PmsInformacionFinanciera::class)->find($fila['info_id']);
+                if ($info instanceof PmsInformacionFinanciera) {
+                    $this->prepago->emitirPorCambioDeCargos($info);
+                }
+            }
+        }
+
         $emitidos = 0;
         $avisados = 0;
 
@@ -135,7 +162,10 @@ final class PmsPrepagoSaldoTrasAdelantoCommand extends Command
             }
         }
 
-        $io->success(sprintf('%d candidata(s) · %d enlace(s) emitido(s) · %d aviso(s).', count($filas), $emitidos, $avisados));
+        $io->success(sprintf(
+            '%d candidata(s) · %d enlace(s) emitido(s) · %d aviso(s) · %d reserva(s) con enlace manual revisada(s).',
+            count($filas), $emitidos, $avisados, count($conManual),
+        ));
 
         return Command::SUCCESS;
     }

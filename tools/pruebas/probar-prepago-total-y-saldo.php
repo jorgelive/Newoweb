@@ -11,6 +11,8 @@ declare(strict_types=1);
  *   3. Adelanto pagado por enlace: a los 10 minutos no hay saldo; a los 31, sí, y uno solo.
  *      Y el aviso al huésped se deja en cola una sola vez.
  *   4. Un documento, un enlace vivo: dos enlaces manuales seguidos dejan uno.
+ *   5. Un enlace a mano por más de lo que se debe se rechaza, y el que se queda por encima
+ *      porque la deuda se pagó por otro medio se anula solo.
  *
  *   php tools/pruebas/probar-prepago-total-y-saldo.php [LOCALIZADOR]
  */
@@ -188,6 +190,30 @@ try {
 
     $mover('5.00');
     $comprobar(count($vivos()) === 1, 'Con un manual vivo, un movimiento no le pone un automático al lado', $describir($vivos()));
+
+    // ── 5. Más de lo que se debe ───────────────────────────────────────────
+    $debe = (float) PmsTotalesPorMonedaDeLaPrueba::saldoUsd($info);
+    try {
+        $enlaces->crear(FinOrigenCobro::PMS_RESERVA, $rid, number_format($debe + 50, 2, '.', ''),
+            concepto: 'PRUEBA por encima', creadoPor: $operador, moneda: 'USD');
+        $comprobar(false, 'Un enlace a mano por MÁS de lo que se debe se rechaza');
+    } catch (DomainException $e) {
+        $comprobar(true, 'Un enlace a mano por MÁS de lo que se debe se rechaza', $e->getMessage());
+    }
+
+    // Un manual por toda la deuda y, después, un pago por transferencia que la salda: el manual
+    // se queda pidiendo lo que ya no se debe y tiene que morir solo (BGD96K).
+    $manual = $enlaces->crear(FinOrigenCobro::PMS_RESERVA, $rid, number_format($debe, 2, '.', ''),
+        concepto: 'PRUEBA manual por la deuda', creadoPor: $operador, moneda: 'USD');
+    $transferencia = (new PmsPagoFinanciero())->setInformacionFinanciera($info)->setMoneda($usd)->setTipoCambio('3.500')
+        ->setMedioPago(PmsMedioPago::TRANSFERENCIA_BANCARIA)->setMonto(number_format($debe, 2, '.', ''))
+        ->setFechaPago(new DateTimeImmutable())->setNotas('PRUEBA transferencia');
+    $info->addPago($transferencia);
+    $em->persist($transferencia);
+    $em->flush();
+    $em->refresh($info);
+    $comprobar($repo->find($manual->getId())?->getEstado() === FinEnlacePagoEstado::ANULADO,
+        'Saldada por transferencia, el enlace manual que pedía esa deuda se anula solo', $describir($vivos()));
 } finally {
     $conn->rollBack();
     echo "\n(rollback: no se persistió nada)\n";
