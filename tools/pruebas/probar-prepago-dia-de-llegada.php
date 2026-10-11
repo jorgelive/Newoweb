@@ -98,7 +98,7 @@ $localizador = $argv[1] ?? null;
 
 $sql = 'SELECT i.id FROM pms_reserva r
         INNER JOIN pms_informacion_financiera i ON i.reserva_id = r.id
-        WHERE i.activa = 1
+        WHERE EXISTS (SELECT 1 FROM pms_evento_calendario ev WHERE ev.reserva_id = r.id AND COALESCE(ev.estado_id, \'\') NOT IN (\'cancelada\', \'bloqueo\'))
           AND r.channel_id NOT IN (\'airbnb\', \'vrbo\')
           AND r.fecha_llegada > CURDATE()
           AND NOT EXISTS (SELECT 1 FROM pms_pago_financiero p WHERE p.informacion_id = i.id)'
@@ -219,9 +219,11 @@ try {
     $añadirCargo('0.01');
     $trasSaldo = $automaticos();
 
+    // Sin ningún pago, el saldo entero es el PAGO TOTAL, y así se llama desde el 10/10/2026: es
+    // el rótulo de la guía del huésped («Total a pagar»). «Saldo» queda para cuando ya pagó algo.
     $ok2 = count($trasSaldo) === 1
-        && str_starts_with((string) $trasSaldo[0]->getConcepto(), 'Saldo de reserva');
-    printf("\n%s Desde el día de la llegada emite SALDO\n", $ok2 ? '✅' : '❌');
+        && str_starts_with((string) $trasSaldo[0]->getConcepto(), 'Pago total de reserva');
+    printf("\n%s Desde el día de la llegada emite el TOTAL («Pago total», aún sin pagos)\n", $ok2 ? '✅' : '❌');
 
     if (count($trasSaldo) === 1) {
         $e = $trasSaldo[0];
@@ -305,6 +307,12 @@ try {
         printf("\n⚠️  No se pudo rehacer el adelanto; el caso 3 no se comprobó.\n");
     }
 
+    // El manual del caso 3 sigue vivo, y desde el 10/10/2026 un manual vivo hace que el
+    // automático se abstenga. Lo que se prueba abajo es el automático: se retira el manual.
+    if (isset($manual, $enlacesService)) {
+        $enlacesService->anular($manual);
+    }
+
     // ── 4. Pago parcial + ya llegó → enlace por el saldo restante ───────────
     //
     // Se registra un pago a cuenta con la reserva ya llegada: antes eso cerraba la puerta y no
@@ -386,11 +394,11 @@ try {
     $unaNoche = $automaticos();
     $saldoUnaNoche = $saldoDe('USD');
     $ok5 = count($unaNoche) === 1
-        && str_starts_with((string) $unaNoche[0]->getConcepto(), 'Saldo de reserva')
+        && str_starts_with((string) $unaNoche[0]->getConcepto(), 'Pago total de reserva')
         && $saldoUnaNoche !== null
         && abs((float) $saldoUnaNoche - (float) $unaNoche[0]->getMontoNeto()) < 0.005;
 
-    printf("\n%s Estancia de UNA noche: el enlace se llama «Saldo», no «Adelanto»\n", $ok5 ? '✅' : '❌');
+    printf("\n%s Estancia de UNA noche: el enlace se llama «Pago total», no «Adelanto»\n", $ok5 ? '✅' : '❌');
     printf(
         "   %s · saldo %s · noches %d\n",
         count($unaNoche) === 1

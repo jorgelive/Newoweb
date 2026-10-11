@@ -113,6 +113,11 @@
 # Releva el enlace de adelanto por uno del saldo en las reservas que ya llegaron.
 # 05:05 UTC = 00:05 de Lima: la regla queSePide() cambia a medianoche en la zona de PHP.
 5 5 * * * /var/www/openperu.pe/tools/cron/con-candado 1800 /usr/bin/php /var/www/openperu.pe/bin/console app:pms:prepago:revisar-llegadas --env=prod >> /var/www/openperu.pe/var/log/pms_prepago_llegadas.log 2>&1
+
+# Emite el enlace del SALDO media hora después de pagado el adelanto por enlace, y avisa al
+# huésped (una vez). Barrido y no mensaje diferido: si un pase falla, lo recoge el siguiente.
+# Ver PmsPrepagoSaldoTrasAdelantoCommand.
+2-59/5 * * * * /var/www/openperu.pe/tools/cron/con-candado 120 /usr/bin/php /var/www/openperu.pe/bin/console app:pms:prepago:saldo-tras-adelanto --env=prod >> /var/www/openperu.pe/var/log/pms_prepago_saldo.log 2>&1
 10 4 * * * /var/www/openperu.pe/tools/cron/con-candado 1800 /usr/bin/php /var/www/openperu.pe/bin/console app:cotizacion:purgar-archivos --env=prod >> /var/www/openperu.pe/var/log/cotizacion_purga.log 2>&1
 
 # Tipo de cambio: 08:00 de Lima (el servidor va en UTC). Trae la cotizacion del dia y, sobre todo,

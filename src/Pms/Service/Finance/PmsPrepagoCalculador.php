@@ -42,6 +42,15 @@ use DateTimeImmutable;
 final readonly class PmsPrepagoCalculador
 {
     /**
+     * Reserva de ÚLTIMA HORA: hecha con estos días de antelación o menos. Se pide el total.
+     *
+     * Medido el 10/10/2026: DW864U, BPRHMB y HD64SF (1 día) y BGD96K (2) recibieron un enlace de
+     * adelanto y, horas después, otro del saldo — dos URLs distintas en una tarde. Con 2 días se
+     * cubren todas. Lo decidió Jorge.
+     */
+    public const int DIAS_DE_ULTIMA_HORA = 2;
+
+    /**
      * ¿Es hoy, o ya pasó, el día de llegada?
      *
      * Sale de `queSePide()` porque el emisor de enlaces necesita distinguir **por qué** se pide
@@ -80,7 +89,7 @@ final readonly class PmsPrepagoCalculador
      */
     public function queSePide(PmsInformacionFinanciera $finanzas): PmsQueSePide
     {
-        if ($this->yaLlegoElDia($finanzas)) {
+        if ($this->yaLlegoElDia($finanzas) || $this->pideElTotal($finanzas)) {
             return PmsQueSePide::TOTAL;
         }
 
@@ -88,6 +97,51 @@ final readonly class PmsPrepagoCalculador
         return $this->pendiente($finanzas) !== null
             ? PmsQueSePide::ADELANTO
             : PmsQueSePide::TOTAL;
+    }
+
+    /**
+     * ¿Se pide el TOTAL aunque todavía no sea el día de llegada? (10/10/2026)
+     *
+     * Dos motivos, y ninguno depende del reloj de hoy:
+     *
+     * - **El operador lo marcó** (`cobroTotalPedido`): el huésped prefiere pagarlo todo.
+     * - **Es de última hora**: se reservó con `DIAS_DE_ULTIMA_HORA` o menos de antelación.
+     *
+     * ⚠️ La antelación se mide AL RESERVAR, no contra hoy. Contra hoy, una reserva hecha hace
+     * meses cambiaría de adelanto a total dos días antes de llegar, y el huésped vería morir el
+     * enlace que ya tiene en su WhatsApp.
+     */
+    public function pideElTotal(PmsInformacionFinanciera $finanzas): bool
+    {
+        return $finanzas->isCobroTotalPedido() || $this->esDeUltimaHora($finanzas);
+    }
+
+    public function esDeUltimaHora(PmsInformacionFinanciera $finanzas): bool
+    {
+        $reserva = $finanzas->getReserva();
+        $llegada = $reserva?->getFechaLlegada();
+        // La fecha del canal es la de verdad —una reserva importada tarde nace hoy aunque se
+        // hiciera hace un mes—; `createdAt`, el respaldo para las que no la traen.
+        $reservadaEl = $reserva?->getPrimeraFechaReservaCanal() ?? $reserva?->getCreatedAt();
+
+        if ($llegada === null || $reservadaEl === null) {
+            return false;
+        }
+
+        $dias = (int) (new DateTimeImmutable($reservadaEl->format('Y-m-d')))
+            ->diff(new DateTimeImmutable($llegada->format('Y-m-d')))
+            ->format('%r%a');
+
+        return $dias <= self::DIAS_DE_ULTIMA_HORA;
+    }
+
+    /** ¿Hay algún pago registrado, en cualquier moneda? Ver `pendiente()`. */
+    public function hayPagos(PmsInformacionFinanciera $finanzas): bool
+    {
+        return array_filter(
+            PmsTotalesPorMoneda::de($finanzas)->porMoneda,
+            static fn (array $c): bool => (float) $c['pagos'] > 0.0,
+        ) !== [];
     }
 
     /**
@@ -114,10 +168,7 @@ final readonly class PmsPrepagoCalculador
         // «¿Hay algún pago?» en CUALQUIER moneda. Con el escalar convertido, un cobro en soles
         // sin tipo de cambio aportaba 0 y esta guarda no lo veía: se le volvía a pedir el
         // adelanto a alguien que ya había pagado.
-        if (array_filter(
-            PmsTotalesPorMoneda::de($finanzas)->porMoneda,
-            static fn (array $c): bool => (float) $c['pagos'] > 0.0,
-        ) !== []) {
+        if ($this->hayPagos($finanzas)) {
             return null;
         }
 

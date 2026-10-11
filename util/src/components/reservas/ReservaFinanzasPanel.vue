@@ -499,6 +499,26 @@ async function cambiarMonedaBase(nueva: string): Promise<void> {
 
 const prepago = computed(() => finanzas.info?.prepagoPendiente ?? null);
 
+/**
+ * Marca (o quita) «el huésped paga el total». El backend releva el enlace —anula el del adelanto
+ * y emite el del total, o al revés— y la guía del huésped cambia con él. Ver docs/FinanzasEnlacesPago.md.
+ */
+async function cambiarCobroTotal(pedido: boolean): Promise<void> {
+    const pregunta = pedido
+        ? '¿Cobrar el TOTAL en lugar del adelanto?\n\nSe anula el enlace del adelanto, se emite uno por el total y la guía del huésped pasa a pedir el total.'
+        : '¿Volver a pedir el adelanto?\n\nSe anula el enlace del total y se emite el del adelanto.';
+
+    if (!window.confirm(pregunta)) return;
+
+    error.value = null;
+    try {
+        await finanzas.setCobroTotalPedido(pedido);
+        await enlacesPago.fetchPorOrigen('pms_reserva', props.reservaId);
+    } catch {
+        error.value = 'No se pudo cambiar el cobro. Inténtalo de nuevo.';
+    }
+}
+
 /** El prepago ya cobrado deja de existir, así que esto sólo aparece si queda algo por pedir. */
 const prepagoImporte = computed(() =>
     prepago.value ? importeConMoneda(prepago.value.monto, monedaCabecera.value) : '',
@@ -3081,13 +3101,27 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                      enlaces al montarse y con `v-if` la cabecera no sabría cuántos hay hasta
                      que alguien la abriera — que es justo lo que se quiere evitar. -->
                 <div v-show="seccionAbierta === 'enlaces'" class="border-t border-violet-100">
+                    <!-- La marca «cobrar el total», a la vista mientras esté puesta: explica por
+                         qué el enlace es del total cuando la política pide adelanto, y es por
+                         donde se deshace. -->
+                    <div v-if="finanzas.info?.cobroTotalPedido"
+                        class="mx-4 mt-3 flex items-center justify-between gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2">
+                        <p class="text-[11px] font-bold text-violet-800 leading-snug">
+                            <i class="fas fa-circle-check mr-1"></i>Se cobra el <b>total</b> en lugar del adelanto.
+                        </p>
+                        <button type="button" @click="cambiarCobroTotal(false)" :disabled="finanzas.isSaving"
+                            class="shrink-0 text-[10px] font-black uppercase tracking-wide text-violet-600 hover:text-violet-800 disabled:opacity-40">
+                            Volver al adelanto
+                        </button>
+                    </div>
                     <ReservaEnlacesPagoSection
                         origen-tipo="pms_reserva"
                         :origen-id="props.reservaId"
                         :saldos="saldosParaCobrar"
                         :prepago="prepago"
                         :moneda-simbolo="monedaCabecera?.simbolo"
-                        @actualizado="finanzas.recargar()" />
+                        @actualizado="finanzas.recargar()"
+                        @cobrar-total="cambiarCobroTotal(true)" />
                 </div>
             </div>
         </template>

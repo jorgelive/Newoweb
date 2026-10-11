@@ -158,6 +158,24 @@ export const useFinanzasStore = defineStore('finanzasStore', () => {
         }
     };
 
+    /**
+     * «El huésped paga el total» (o vuelta al adelanto). Ver `PmsInformacionFinanciera::$cobroTotalPedido`.
+     *
+     * No emite nada aquí: al guardarse la marca, el emisor automático del backend anula el enlace
+     * del adelanto y emite el del total, y la guía del huésped pasa a pedir el total.
+     */
+    const setCobroTotalPedido = async (pedido: boolean): Promise<void> => {
+        const id = info.value?.id;
+        if (!id) return;
+        isSaving.value = true;
+        try {
+            await apiClient.patch(`/platform/pms/pms_informacion_financieras/${id}`, { cobroTotalPedido: pedido });
+            await recargar();
+        } finally {
+            isSaving.value = false;
+        }
+    };
+
     /** Crea un cargo manual (reservas directas, que no reciben invoiceItems del canal). */
     const createCargo = async (payload: PmsCargoFinancieroCreate): Promise<void> => {
         isSaving.value = true;
@@ -250,6 +268,7 @@ export const useFinanzasStore = defineStore('finanzasStore', () => {
         fetchPorReserva,
         recargar,
         patchCargo,
+        setCobroTotalPedido,
         createCargo,
         deleteCargo,
         cambiarMonedaBase,

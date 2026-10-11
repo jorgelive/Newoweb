@@ -102,12 +102,17 @@ final readonly class GenerarEnlacePrepagoPagoTotalSkill implements SkillInterfac
                 . 'calculado. Si la respuesta dice reutilizado=true, ese enlace ya existía y '
                 . 'sigue vivo — dilo, y no emitas otro. Si no hay nada que cobrar, esta skill te '
                 . 'lo dirá: no insistas ni inventes un importe. Para consultar cuánto es SIN '
-                . 'emitir nada, usa consultar_cuenta. Necesita el reserva_id.',
+                . 'emitir nada, usa consultar_cuenta. Necesita el reserva_id. Si el huésped '
+                . 'PREFIERE PAGAR EL TOTAL en lugar del adelanto, pasa cobrar_total=true: la '
+                . 'reserva queda marcada, el enlace del adelanto se anula y su guía pasa a pedir '
+                . 'el total.',
             parametros: [
                 SkillParameter::texto('reserva_id', 'Identificador de la reserva, tal cual lo '
                     . 'devolvió buscar_reserva.'),
                 SkillParameter::booleano('confirmado', 'true SÓLO tras la confirmación '
                     . 'explícita del operador. false para previsualizar sin emitir nada.'),
+                SkillParameter::booleano('cobrar_total', 'true si el huésped quiere pagar el '
+                    . 'TOTAL de una vez en lugar del adelanto. Por defecto false.'),
             ],
         );
     }
@@ -147,6 +152,9 @@ final readonly class GenerarEnlacePrepagoPagoTotalSkill implements SkillInterfac
 
         $reservaId = trim($e->texto('reserva_id'));
         $confirmado = $e->booleano('confirmado');
+        // «Hay clientes que lo piden» (Jorge, 10/10/2026). No emite un enlace manual por el total
+        // —eso dejaba la guía diciendo «adelanto»—: marca la reserva y el emisor hace el resto.
+        $cobrarTotal = $e->booleano('cobrar_total');
 
         if (!Uuid::isValid($reservaId)) {
             return SkillResult::error(
@@ -163,7 +171,7 @@ final readonly class GenerarEnlacePrepagoPagoTotalSkill implements SkillInterfac
         // La previsualización se calcula con el MISMO servicio que emite, no con una copia
         // de sus reglas: si el prepago ya no procede, el operador se entera antes de aprobar
         // y no después de que el enlace exista.
-        $prepago = $this->prepagoEnlaces->emitirSimulado($reserva);
+        $prepago = $this->prepagoEnlaces->emitirSimulado($reserva, comoTotal: $cobrarTotal);
 
         if ($prepago === null) {
             return SkillResult::error(
@@ -181,7 +189,7 @@ final readonly class GenerarEnlacePrepagoPagoTotalSkill implements SkillInterfac
         $politica = $prepago['esSaldo']
             ? null
             : PmsPoliticaPrepago::tryFrom($prepago['politica'])?->etiqueta();
-        $queSePide = $prepago['esSaldo'] ? 'saldo' : 'adelanto';
+        $queSePide = $cobrarTotal ? 'total' : ($prepago['esSaldo'] ? 'saldo' : 'adelanto');
 
         if (!$confirmado) {
             return SkillResult::ok(array_filter([
@@ -205,6 +213,13 @@ final readonly class GenerarEnlacePrepagoPagoTotalSkill implements SkillInterfac
         }
 
         try {
+            if ($cobrarTotal && $reserva->getInformacionFinanciera() !== null) {
+                // La marca, y no un enlace a mano: al guardarla, el emisor automático anula el del
+                // adelanto y emite el del total, y `emitir()` de abajo lo encuentra y lo devuelve.
+                $reserva->getInformacionFinanciera()->setCobroTotalPedido(true);
+                $this->em->flush();
+            }
+
             $emitido = $this->prepagoEnlaces->emitir($reserva, $this->autorPersistido($actor));
         } catch (DomainException $e) {
             return SkillResult::error($e->getMessage());
@@ -223,9 +238,10 @@ final readonly class GenerarEnlacePrepagoPagoTotalSkill implements SkillInterfac
             'total_con_tarjeta' => $emitido['enlace']->getMontoTotal(),
             'recargo_porcentaje' => $emitido['enlace']->getRecargoPorcentaje(),
             'politica' => $politica,
-            'que_se_pide' => $emitido['esSaldo'] ? 'saldo' : 'adelanto',
+            'que_se_pide' => $cobrarTotal ? 'total' : ($emitido['esSaldo'] ? 'saldo' : 'adelanto'),
             'caduca' => $emitido['enlace']->getExpiraEn()?->format('Y-m-d'),
-            'reutilizado' => $emitido['reutilizado'],
+            // Con `cobrar_total` el enlace lo acaba de emitir la marca: «ya existía» sería falso.
+            'reutilizado' => !$cobrarTotal && $emitido['reutilizado'],
             'idioma_huesped' => $reserva->getIdioma()?->getId(),
             'siguiente_paso' => 'El enlace NO se ha enviado. Redacta el mensaje en el idioma '
                 . 'del huésped y mándalo con enviar_mensaje_huesped.',

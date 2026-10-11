@@ -36,13 +36,15 @@ use App\Finanzas\Enum\FinOrigenCobro;
 use App\Finanzas\Repository\FinEnlacePagoRepository;
 use App\Finanzas\Service\FinEnlacePagoService;
 use App\Pms\Entity\PmsCargoFinanciero;
+use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Enum\PmsTipoCargo;
 use Doctrine\ORM\EntityManagerInterface;
 
 (new Symfony\Component\Dotenv\Dotenv())->bootEnv(dirname(__DIR__, 2) . '/.env');
 $_SERVER['APP_ENV'] = 'dev';
-$kernel = new App\Kernel('dev', true);
+require __DIR__ . '/KernelDePrueba.php';
+$kernel = new KernelDePrueba('dev', true);
 $kernel->boot();
 
 /** @var EntityManagerInterface $em */
@@ -72,13 +74,13 @@ if (($_SERVER['FINANZAS_ENLACES_PREPAGO'] ?? '0') !== '1') {
 $localizador = $argv[1] ?? null;
 
 // Una reserva a la que de verdad se le pueda pedir adelanto. Las tres condiciones importan:
-// canal que NO cobra por nosotros, cabecera activa, y NINGÚN pago —`pendiente()` devuelve null
+// canal que NO cobra por nosotros, alguna estancia en pie, y NINGÚN pago —`pendiente()` devuelve null
 // en cuanto hay uno—. Sin filtrar, esto cogía «la última creada» y acababa en una reserva ya
 // pagada: no se emitía nada y la prueba salía en ROJO culpando al código.
 $sql = "SELECT i.id FROM pms_reserva r
         INNER JOIN pms_informacion_financiera i ON i.reserva_id = r.id
         WHERE r.channel_id NOT IN ('airbnb','vrbo')
-          AND i.activa = 1
+          AND EXISTS (SELECT 1 FROM pms_evento_calendario ev WHERE ev.reserva_id = r.id AND COALESCE(ev.estado_id, '') NOT IN ('cancelada', 'bloqueo'))
           AND r.fecha_llegada > CURDATE()
           AND NOT EXISTS (SELECT 1 FROM pms_pago_financiero p WHERE p.informacion_id = i.id)"
     . ($localizador ? ' AND r.localizador = ?' : '') . '
@@ -174,7 +176,19 @@ try {
     // caducidad, ese enlace quedaría pagable para siempre sobre una reserva cancelada.
     $vivoAntes = $vivos()[0] ?? null;
 
-    $info->setActiva(false);
+    // Cancelar = todas las estancias canceladas (desde el 08/10/2026 ya no hay casilla `activa`).
+    // Que esto anule el enlace prueba también que el cambio de ESTADO de una estancia dispara el
+    // emisor: es lo que se perdió al retirar la casilla y se repuso el 10/10/2026.
+    // Como lo haría Beds24: en modo `pull`. A mano, el listener de seguridad lo vetaría.
+    $sync = $kernel->getContainer()->get(App\Exchange\Service\Context\SyncContext::class);
+    \assert($sync instanceof App\Exchange\Service\Context\SyncContext);
+    $comoBeds24 = $sync->enter(App\Exchange\Service\Context\SyncContext::MODE_PULL, 'beds24');
+    $estadosAntes = [];
+    $cancelada = $em->getReference(PmsEventoEstado::class, PmsEventoEstado::CODIGO_CANCELADA);
+    foreach ($reserva?->getEventosCalendario() ?? [] as $ev) {
+        $estadosAntes[] = [$ev, $ev->getEstado()];
+        $ev->setEstado($cancelada);
+    }
     $em->flush();
     $em->refresh($info);
 
@@ -190,9 +204,12 @@ try {
     // Se toma el mismo lock desde OTRA conexión y se comprueba que el emisor se retira en vez
     // de emitir. Es lo único que no se puede ver con una sola conexión: `GET_LOCK` es
     // reentrante para la sesión que ya lo tiene.
-    $info->setActiva(true);
+    foreach ($estadosAntes as [$ev, $estado]) {
+        $ev->setEstado($estado);
+    }
     $em->flush();
     $em->refresh($info);
+    $comoBeds24->restore();
 
     $otra = Doctrine\DBAL\DriverManager::getConnection($conn->getParams());
     $nombreLock = substr('prepago-' . $conn->getDatabase() . '-' . $reservaId, 0, 64);

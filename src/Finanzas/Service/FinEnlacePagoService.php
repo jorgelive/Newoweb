@@ -72,8 +72,9 @@ final class FinEnlacePagoService
         ?User $creadoPor = null,
         ?FinPasarela $pasarela = null,
         // En qué moneda se cobra. `null` = la de mayor saldo, que es lo que respondía antes de
-        // que un documento pudiera deber en dos. Una pasarela cobra un enlace en UNA divisa, así
-        // que con deuda en soles y en dólares se emite un enlace por cada una.
+        // que un documento pudiera deber en dos. Una pasarela cobra un enlace en UNA divisa.
+        // ⚠️ Y desde el 10/10/2026 un documento tiene UN enlace vivo: con deuda en dos monedas se
+        // cobra una y, pagada, la otra. Ver `construir()`.
         ?string $moneda = null,
     ): FinEnlacePago {
         $origen = $this->registry->resolver($origenTipo, $origenId, $moneda);
@@ -171,10 +172,73 @@ final class FinEnlacePagoService
 
         $enlace->setOrdenId($this->generarOrdenId($enlace));
 
-        $this->em->persist($enlace);
-        $this->em->flush();
+        if ($origenTipo === null || $origenId === null) {
+            $this->em->persist($enlace);
+            $this->em->flush();
+
+            return $enlace;
+        }
+
+        // 🔒 UN DOCUMENTO, UN ENLACE VIVO (10/10/2026). «En ningún caso deben estar dos enlaces»
+        // (Jorge): el huésped que ve dos pagables por importes distintos puede pagar el que no
+        // toca, o los dos. Se impone aquí, que es por donde pasan TODOS —el panel, la skill, el
+        // emisor automático—, en vez de confiar en que cada camino se acuerde de anular.
+        //
+        // Va DESPUÉS de las validaciones —credenciales, tope—: un enlace nuevo que no puede
+        // existir no puede llevarse por delante al que había. Y con el documento bloqueado,
+        // porque anular-y-crear desde dos peticiones a la vez dejaría dos vivos igual.
+        if (!$this->tomarDocumento($origenId)) {
+            throw new DomainException('Se está emitiendo otro enlace para este documento. Inténtalo en unos segundos.');
+        }
+
+        try {
+            foreach ($this->repository->porOrigen($origenTipo, $origenId) as $vivo) {
+                // Se anula, no se borra: el enlace que se mandó existió.
+                if ($vivo->estaVigente()) {
+                    $vivo->setEstado(FinEnlacePagoEstado::ANULADO);
+                }
+            }
+
+            $this->em->persist($enlace);
+            $this->em->flush();
+        } finally {
+            $this->soltarDocumento($origenId);
+        }
 
         return $enlace;
+    }
+
+    /**
+     * El turno sobre un documento mientras se le cambia el enlace vivo.
+     *
+     * `GET_LOCK` de sesión, como el turno del prepago (`PmsPrepagoEnlaceService::tomarElTurno()`),
+     * y con la base en el nombre por lo mismo: su espacio de nombres es el servidor entero. Es
+     * otro nombre que aquél, así que el emisor automático puede tener los dos a la vez.
+     */
+    private function tomarDocumento(Uuid $origenId): bool
+    {
+        /** @var int|string|null $resultado 1 = turno ganado, 0 = ocupado, NULL = error interno. */
+        $resultado = $this->em->getConnection()->fetchOne('SELECT GET_LOCK(?, 5)', [$this->nombreDelTurno($origenId)]);
+
+        return $resultado !== null && (int) $resultado === 1;
+    }
+
+    private function soltarDocumento(Uuid $origenId): void
+    {
+        try {
+            $this->em->getConnection()->executeStatement('SELECT RELEASE_LOCK(?)', [$this->nombreDelTurno($origenId)]);
+        } catch (\Throwable $e) {
+            // MySQL lo suelta al cerrar la sesión; que no se pueda aquí no tumba el cobro.
+            $this->logger->warning('[finanzas] no se pudo soltar el turno del documento.', [
+                'origen' => (string) $origenId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function nombreDelTurno(Uuid $origenId): string
+    {
+        return substr('enlace-' . $this->em->getConnection()->getDatabase() . '-' . $origenId, 0, 64);
     }
 
     /**

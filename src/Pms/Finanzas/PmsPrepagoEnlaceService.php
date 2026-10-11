@@ -6,6 +6,7 @@ namespace App\Pms\Finanzas;
 
 use App\Entity\User;
 use App\Finanzas\Entity\FinEnlacePago;
+use App\Finanzas\Enum\FinEnlacePagoEstado;
 use App\Finanzas\Enum\FinOrigenCobro;
 use App\Finanzas\Repository\FinEnlacePagoRepository;
 use App\Finanzas\Service\FinEnlacePagoService;
@@ -66,6 +67,16 @@ use Symfony\Component\Uid\Uuid;
  */
 final readonly class PmsPrepagoEnlaceService
 {
+    /**
+     * Minutos desde que se paga el ADELANTO por enlace hasta que se emite el del saldo.
+     *
+     * Lo pidió Jorge el 10/10/2026: tras el adelanto, el saldo se puede pagar ya — es obligatorio
+     * el día del check-in, pero no hay por qué esperar a ese día para ofrecerlo. La media hora
+     * separa el «hemos recibido tu pago» del aviso del saldo. Lo emite el barrido
+     * `app:pms:prepago:saldo-tras-adelanto`; ver `adelantoPagadoHaceRato()`.
+     */
+    public const int MINUTOS_SALDO_TRAS_ADELANTO = 30;
+
     public function __construct(
         private PmsPrepagoCalculador $calculador,
         // Para el turno (GET_LOCK) y para releer la cabecera ya bloqueada.
@@ -123,7 +134,7 @@ final readonly class PmsPrepagoEnlaceService
      *         el adelanto del saldo entero: quien lo enseñe tiene que decir cuál es, y no
      *         deducirlo. Ver `loQueSePide()`.
      */
-    public function emitirSimulado(PmsReserva $reserva): ?array
+    public function emitirSimulado(PmsReserva $reserva, bool $comoTotal = false): ?array
     {
         $info = $reserva->getInformacionFinanciera();
         $id = $reserva->getId();
@@ -132,9 +143,11 @@ final readonly class PmsPrepagoEnlaceService
             return null;
         }
 
-        // Espejo de `emitir()`: la previsualización tiene que ver la misma puerta.
-        $prepago = $this->calculador->pendiente($info)
-            ?? ($this->calculador->yaLlegoElDia($info) ? $this->calculador->calcular($info) : null);
+        // Espejo de `emitir()`: la previsualización tiene que ver la misma puerta. Con
+        // `$comoTotal` —el operador va a marcar «cobrar el total»— la puerta es la del total.
+        $prepago = $comoTotal
+            ? ($this->calculador->pendiente($info) ?? $this->calculador->calcular($info))
+            : $this->prepagoQueProcede($info, $id);
 
         if ($prepago === null) {
             return null;
@@ -142,7 +155,7 @@ final readonly class PmsPrepagoEnlaceService
 
         // Adelanto, o el saldo entero desde el día de llegada. La previsualización tiene que
         // enseñar EXACTAMENTE lo que va a emitirse: mismo helper que `emitir()`.
-        $pide = $this->loQueSePide($reserva, $info, $prepago);
+        $pide = $this->loQueSePide($reserva, $info, $prepago, $comoTotal ? PmsQueSePide::TOTAL : null);
 
         if ($pide === null) {
             return null;
@@ -182,10 +195,8 @@ final readonly class PmsPrepagoEnlaceService
             throw new DomainException('Esta reserva todavía no tiene cuenta financiera abierta.');
         }
 
-        // Misma puerta que el camino automático: con un pago registrado y la reserva ya
-        // llegada, lo que queda por pedir es el saldo. Ver `emitirConTurno()`.
-        $prepago = $this->calculador->pendiente($info)
-            ?? ($this->calculador->yaLlegoElDia($info) ? $this->calculador->calcular($info) : null);
+        // Misma puerta que el camino automático. Ver `prepagoQueProcede()`.
+        $prepago = $this->prepagoQueProcede($info, $id);
 
         if ($prepago === null) {
             throw new DomainException(
@@ -336,6 +347,17 @@ final readonly class PmsPrepagoEnlaceService
                 return null;
             }
 
+            // 🔒 Un enlace MANUAL vivo manda: el automático no emite nada a su lado (10/10/2026).
+            //
+            // «En ningún caso deben estar dos enlaces» (Jorge). Hasta hoy el automático buscaba
+            // uno vivo POR SU IMPORTE: el «Total» que el operador emitía a mano no coincidía con
+            // el adelanto, y en el siguiente movimiento le salía un adelanto al lado. Uno manual
+            // es la decisión de una persona; se respeta hasta que se pague o se anule. Para
+            // cobrar el total sin enlace manual está `cobroTotalPedido`.
+            if ($this->hayManualVivo($id)) {
+                return null;
+            }
+
             $prepago = $this->calculador->pendiente($info);
 
             if ($prepago === null) {
@@ -349,12 +371,12 @@ final readonly class PmsPrepagoEnlaceService
                 // del huésped que adelantó la primera noche y llega debiendo el resto.
                 //
                 // `calcular()` es `pendiente()` sin la regla del pago, así que sirve exactamente
-                // para separar ese motivo de los otros tres. Y la puerta sólo se abre con
-                // `yaLlegoElDia()`: antes de la llegada, quien ya adelantó no recibe un enlace
-                // por el resto — el mensaje tampoco se lo pide.
+                // para separar ese motivo de los otros tres. Y la puerta se abre con
+                // `puedePedirseElSaldo()`: el día de llegada, el total pedido o de última hora,
+                // o el adelanto pagado por enlace hace media hora (10/10/2026).
                 $prepago = $this->calculador->calcular($info);
 
-                if ($prepago === null || !$this->calculador->yaLlegoElDia($info)) {
+                if ($prepago === null || !$this->puedePedirseElSaldo($info, $id)) {
                     // 🔴 Ya no procede pedir nada —el canal cobró, no hay política, la base es
                     // cero, o pagó y todavía no ha llegado—, así que el enlace vivo tiene que
                     // MORIR.
@@ -427,6 +449,78 @@ final readonly class PmsPrepagoEnlaceService
                 creadoPor: null,
                 vigenciaDias: 0,
             );
+    }
+
+    /**
+     * La puerta común de los tres caminos —automático, skill y previsualización—: qué prepago
+     * procede pedir, o `null`.
+     *
+     * Sin pagos, el de la política (`pendiente()`). Con algún pago, ese pago fue el adelanto y lo
+     * que queda es el SALDO, pero sólo cuando `puedePedirseElSaldo()`. Estuvo copiada en tres
+     * sitios con la condición del día de llegada escrita a mano en cada uno.
+     *
+     * @return array{monto: string, claveI18n: string, politica: string}|null
+     */
+    private function prepagoQueProcede(PmsInformacionFinanciera $info, Uuid $id): ?array
+    {
+        return $this->calculador->pendiente($info)
+            ?? ($this->puedePedirseElSaldo($info, $id) ? $this->calculador->calcular($info) : null);
+    }
+
+    /**
+     * Con un pago ya hecho, ¿toca pedir el resto?
+     *
+     * - el día de llegada o después (28/08/2026);
+     * - si se pide el total: marcado por el operador o de última hora (10/10/2026);
+     * - o si el adelanto se pagó por enlace hace `MINUTOS_SALDO_TRAS_ADELANTO` (10/10/2026).
+     *
+     * Un pago registrado A MANO (transferencia, efectivo) no abre la tercera puerta: ahí hay una
+     * persona delante, y la detección que se pidió es la del enlace, que sólo marca pagado el
+     * servidor cuando la pasarela confirma el cargo.
+     */
+    private function puedePedirseElSaldo(PmsInformacionFinanciera $info, Uuid $id): bool
+    {
+        return $this->calculador->yaLlegoElDia($info)
+            || $this->calculador->pideElTotal($info)
+            || $this->adelantoPagadoHaceRato($id) !== null;
+    }
+
+    /**
+     * El último enlace AUTOMÁTICO de la reserva pagado hace al menos media hora, o `null`.
+     *
+     * Automático = sin autor: el adelanto lo emite el sistema. Se mira `pagadoEn`, que escribe
+     * `FinEnlacePagoService::confirmarPago()` sólo con el cargo confirmado por la pasarela — el
+     * navegador no puede marcarlo. Un reembolsado ya no está pagado y no cuenta.
+     */
+    public function adelantoPagadoHaceRato(Uuid $reservaId): ?FinEnlacePago
+    {
+        $corte = new \DateTimeImmutable(sprintf('-%d minutes', self::MINUTOS_SALDO_TRAS_ADELANTO));
+
+        foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
+            $pagadoEn = $enlace->getPagadoEn();
+
+            if ($enlace->getEstado() === FinEnlacePagoEstado::PAGADO
+                && $enlace->getCreadoPor() === null
+                && $pagadoEn !== null
+                && $pagadoEn <= $corte
+            ) {
+                return $enlace;
+            }
+        }
+
+        return null;
+    }
+
+    /** ¿Hay un enlace emitido por una PERSONA que todavía se pueda pagar? */
+    private function hayManualVivo(Uuid $reservaId): bool
+    {
+        foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
+            if ($enlace->estaVigente() && $enlace->getCreadoPor() !== null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -633,9 +727,9 @@ final readonly class PmsPrepagoEnlaceService
      * @return array{monto: string, moneda: ?string, concepto: string, esSaldo: bool}|null `null`
      *         cuando toca el total y no queda saldo que cobrar: no hay enlace que emitir.
      */
-    private function loQueSePide(PmsReserva $reserva, PmsInformacionFinanciera $info, array $prepago): ?array
+    private function loQueSePide(PmsReserva $reserva, PmsInformacionFinanciera $info, array $prepago, ?PmsQueSePide $forzar = null): ?array
     {
-        if ($this->calculador->queSePide($info) === PmsQueSePide::ADELANTO) {
+        if (($forzar ?? $this->calculador->queSePide($info)) === PmsQueSePide::ADELANTO) {
             // La moneda se DICE: el importe viene en la de la cabecera. Ver `emitir()`.
             $moneda = $info->getMoneda()?->getId();
             $esTodo = $this->esElSaldoEntero($info, $moneda, $prepago['monto']);
@@ -652,7 +746,8 @@ final readonly class PmsPrepagoEnlaceService
                 // Se decide al EMITIR y no al cruzar el día de llegada a propósito: relevar el
                 // enlace entonces mataría uno que el huésped ya tiene en su WhatsApp y le
                 // mandaría otra URL sólo por cambiar un rótulo.
-                'concepto' => $esTodo ? $this->conceptoSaldo($reserva) : $this->concepto($reserva),
+                // Sin pagos —es la rama del adelanto—, el saldo entero es el PAGO TOTAL.
+                'concepto' => $esTodo ? $this->conceptoTotal($reserva) : $this->concepto($reserva),
                 // Lo que se está pidiendo, para que quien lo enseñe no tenga que deducirlo del
                 // concepto. Sin esto la skill del agente preguntaba «¿emito el enlace de
                 // ADELANTO de 188.88?» sobre un cobro que era el saldo entero: el importe
@@ -674,7 +769,10 @@ final readonly class PmsPrepagoEnlaceService
         return [
             'monto' => $origen->saldoPendiente,
             'moneda' => $origen->moneda,
-            'concepto' => $this->conceptoSaldo($reserva),
+            // «Pago total» si todavía no ha pagado nada —total pedido, última hora, una sola
+            // noche—; «Saldo» si ya pagó algo. Es el mismo rótulo que pone la guía del huésped
+            // («Total a pagar» / «Saldo por pagar»), y lo lee en el extracto de su tarjeta.
+            'concepto' => $this->calculador->hayPagos($info) ? $this->conceptoSaldo($reserva) : $this->conceptoTotal($reserva),
             'esSaldo' => true,
         ];
     }
@@ -708,6 +806,16 @@ final readonly class PmsPrepagoEnlaceService
     {
         return substr(sprintf(
             'Saldo de reserva %s — %s',
+            $reserva->getLocalizador(),
+            $reserva->getUnidadesAggregate() ?: $reserva->getNombreHabitacion(),
+        ), 0, 255);
+    }
+
+    /** El concepto de un cobro por TODO, cuando todavía no se ha pagado nada. Ver `loQueSePide()`. */
+    public function conceptoTotal(PmsReserva $reserva): string
+    {
+        return substr(sprintf(
+            'Pago total de reserva %s — %s',
             $reserva->getLocalizador(),
             $reserva->getUnidadesAggregate() ?: $reserva->getNombreHabitacion(),
         ), 0, 255);

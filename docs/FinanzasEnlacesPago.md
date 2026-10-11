@@ -1485,11 +1485,19 @@ que no pueden divergir:
 | Situación de la reserva | Qué se emite | Concepto en la tarjeta | Importe |
 |---|---|---|---|
 | Antes del día de llegada, sin pagos | adelanto | `Adelanto de reserva X — Casita N` | la fracción de la política, en la moneda de la **cabecera** |
-| Antes del día de llegada, **con** algún pago | nada, y se retira el vivo | — | — |
-| Desde el día de llegada, sin pagos | saldo | `Saldo de reserva X — Casita N` | el saldo entero de la moneda que **más se debe** |
+| **Última hora**: reservada con ≤ 2 días de antelación (10/10/2026) | total, **desde el primer enlace** | `Pago total de reserva X — Casita N` | el saldo entero |
+| **«Cobrar el total»** marcado por el operador o el agente (10/10/2026) | total, y se anula el del adelanto | `Pago total de reserva X — Casita N` | el saldo entero |
+| Antes del día de llegada, adelanto **pagado por enlace hace ≥ 30 min** (10/10/2026) | saldo, y aviso `saldo_pendiente` al huésped | `Saldo de reserva X — Casita N` | lo que queda |
+| Antes del día de llegada, con un pago **registrado a mano** | nada, y se retira el vivo | — | — |
+| Desde el día de llegada, sin pagos | total | `Pago total de reserva X — Casita N` | el saldo entero de la moneda que **más se debe** |
 | Desde el día de llegada, con pago parcial | saldo | `Saldo de reserva X — Casita N` | lo que queda |
-| El adelanto ya ES el saldo (estancia de una noche) | saldo, **desde el primer día** | `Saldo de reserva X — Casita N` | el saldo entero |
+| El adelanto ya ES el saldo (estancia de una noche) | total, **desde el primer día** | `Pago total de reserva X — Casita N` | el saldo entero |
+| Hay un enlace **manual** vivo | nada: el automático se abstiene (10/10/2026) | — | — |
 | Canal que ya cobró · sin política · base cero · saldo cero | nada, y se retira el vivo | — | — |
+
+**«Pago total» o «Saldo»**: sin ningún pago, el enlace por todo se llama «Pago total» —es lo que
+dice la guía del huésped, «Total a pagar»—; con algo pagado, «Saldo» («Saldo por pagar»). Lo decide
+`PmsPrepagoEnlaceService::loQueSePide()`.
 
 **Quién lo dispara.** Dos cosas, y sólo dos:
 
@@ -1497,12 +1505,25 @@ que no pueden divergir:
 |---|---|
 | `PmsInformacionFinancieraCoherenciaListener::postFlush()` | cuando en ese flush se movió un cargo, un pago, una estancia o nació la reserva — o sea, por **movimiento** |
 | `app:pms:prepago:revisar-llegadas` (cron, 05:05 UTC = 00:05 de Lima) | por **reloj**: el día de llegada la regla cambia y puede que nada mueva esa cuenta |
+| `app:pms:prepago:saldo-tras-adelanto` (cron, cada 5 min) | por **reloj**: media hora después de pagado el adelanto por enlace (10/10/2026) |
+
+Cuenta como movimiento, desde el 10/10/2026, también que una **estancia** nazca, se borre o cambie
+de estado: ver «Una estancia que cambia de estado mueve dinero», abajo.
 
 Más el camino a mano: `generar_enlace_prepago_pago_total` (`RESERVAS_WRITE`, dos pasos con
 confirmación) y el botón «Cobrar con tarjeta» del panel de la reserva.
 
-**Qué se retira, y qué no.** Se anulan **sólo los enlaces automáticos** (`creadoPor === null`).
-Uno emitido a mano por un operador sobrevive siempre — es la decisión de una persona. Y desde el
+**🔒 Un documento, un enlace vivo (10/10/2026).** «En ningún caso deben estar dos enlaces»
+(Jorge). Lo impone `FinEnlacePagoService::crear()`, por donde pasan todos —panel, skill, emisor—:
+al emitir uno, anula los vivos del mismo documento, con el documento bloqueado (`GET_LOCK`). Y el
+automático **no emite nada mientras haya uno manual vivo**: antes buscaba uno vivo *por su
+importe*, y el «Total» que el operador emitía a mano no coincidía con el adelanto, así que en el
+siguiente movimiento le ponía un adelanto al lado. Con deuda en dos monedas se cobra una y, pagada,
+la otra.
+
+**Qué se retira, y qué no.** El emisor automático anula **sólo los enlaces automáticos**
+(`creadoPor === null`). Uno emitido a mano sobrevive a sus recálculos — es la decisión de una
+persona, y la tapa sólo otro enlace emitido después (regla de arriba). Y desde el
 06/09/2026 también se retira el automático viejo **cuando se reutiliza otro por el importe
 bueno**, que es el caso del manual del operador coincidiendo con el saldo.
 
@@ -1635,6 +1656,61 @@ la reserva no queda ninguno vivo; y **con el turno tomado desde otra conexión, 
 retira en vez de emitir** —lo único que no se puede comprobar con una sola conexión, porque
 `GET_LOCK` es reentrante para la sesión que ya lo tiene—.
 
+### 🔥 Total pedido, última hora y saldo tras el adelanto (10/10/2026)
+
+> El **qué** está en «El estado actual, de un vistazo», arriba. Aquí está el **porqué**.
+
+Tres peticiones de Jorge, y las tres entran por la **misma regla**, `PmsPrepagoCalculador::queSePide()`:
+si el total se decide ahí, el enlace, la guía del huésped («Total a pagar»), el panel y el agente
+cambian juntos. Las tres puertas del emisor —automático, skill, previsualización— comparten además
+`PmsPrepagoEnlaceService::prepagoQueProcede()`; antes la condición del día de llegada estaba
+copiada a mano en cada una.
+
+**1 · «Cobrar el total» (`PmsInformacionFinanciera::$cobroTotalPedido`).** «Hay clientes que lo
+piden». Antes no había dónde anotarlo: el operador emitía a mano un enlace por el total, la guía
+seguía diciendo «adelanto» y el automático le ponía un adelanto al lado. Ahora es una marca en la
+ficha que pone el atajo «Cobrar el total» del panel (o la skill con `cobrar_total=true`); al
+guardarla, el emisor anula el adelanto y emite el total. «Volver al adelanto» la quita.
+
+**2 · Última hora (`PmsPrepagoCalculador::DIAS_DE_ULTIMA_HORA = 2`).** DW864U, BPRHMB, HD64SF (un
+día de antelación) y BGD96K (dos) recibieron un adelanto y, horas después, el saldo: dos URLs
+distintas en una tarde. Con ≤ 2 días de antelación el primer enlace ya es del total.
+⚠️ **Se mide AL RESERVAR** (`primeraFechaReservaCanal`, o `createdAt`), no contra hoy: contra hoy,
+una reserva de hace meses cambiaría de enlace dos días antes de llegar.
+
+**3 · Saldo media hora después del adelanto.** El saldo es obligatorio el día del check-in pero se
+puede pagar antes, y no condiciona la entrada como el adelanto. Antes, quien pagaba el adelanto
+no recibía ningún enlace más hasta su llegada —y ese día sólo si algo movía la reserva: el cron de
+llegadas sólo mira reservas con un enlace automático *sin pagar*—.
+
+- **La detección**: un enlace AUTOMÁTICO en `pagado` con `pagado_en` de hace ≥ 30 minutos
+  (`adelantoPagadoHaceRato()`). Ese estado sólo lo escribe `confirmarPago()` con el cargo
+  confirmado por la pasarela. Un pago registrado a mano no abre esta puerta.
+- **El disparo**: `app:pms:prepago:saldo-tras-adelanto`, cada 5 minutos. Barrido y no mensaje
+  diferido: si un pase falla, lo recoge el siguiente, y repetirlo no duplica (el emisor reutiliza
+  el vivo por el mismo importe).
+- **El aviso**: `saldo_pendiente` (`SaldoPendiente`), una vez por reserva, sólo si el adelanto se
+  pagó en las últimas 6 h —sin ese tope, el primer despliegue habría escrito de golpe a todos los
+  que adelantaron hace semanas; a ésos se les emite el enlace, sin mensaje—. **Sin horario de
+  silencio**: el huésped puede estar en cualquier país, y acaba de pagar hace media hora.
+
+Verificado con `tools/pruebas/probar-prepago-total-y-saldo.php` (transacción con rollback):
+última hora, marca y vuelta atrás, saldo a los 10 y a los 31 minutos, el aviso una sola vez, y
+«un documento, un enlace vivo».
+
+### Una estancia que cambia de estado mueve dinero (10/10/2026)
+
+`PmsInformacionFinancieraCoherenciaListener::collectPorEstancia()`: una estancia que nace, se borra
+o cambia de **estado** mete su cabecera en el recálculo y en el emisor. Desde el 08/09 los cargos
+de una estancia cancelada no suman, así que su cancelación tiene que recalcular.
+
+🔥 **Lo había roto la retirada de `activa` (08/10/2026).** Cancelar la última estancia apagaba esa
+casilla de la cabecera, y ESA escritura era lo que disparaba el recálculo y la anulación del enlace
+del adelanto. Sin casilla, una cancelación sin cargos nuevos dejaba los totales viejos y el enlace
+vivo. Lo destapó `probar-prepago-automatico.php`, que «cancelaba» tocando la casilla; ahora cancela
+las estancias como Beds24, en modo `pull` (`tools/pruebas/KernelDePrueba.php`). Y cubre además la
+cancelación **parcial** de un grupo, que no había recalculado nunca.
+
 ### 🎯 Adelanto hasta la víspera, SALDO desde el día de llegada (06/09/2026)
 
 > El **qué** está en «El estado actual, de un vistazo», arriba. Aquí está el **porqué**.
@@ -1711,7 +1787,7 @@ recibe un enlace por el resto**, porque el mensaje tampoco se lo pide.
 > Al medirlo, el caso tenía **cero apariciones en 117 llegadas** desde junio. Se implementa
 > igual porque cuando aparezca no habrá nadie mirando: el enlace o está o no está.
 
-**2 · Si el «adelanto» ya ES el saldo entero, el enlace se llama «Saldo» desde el primer día.**
+**2 · Si el «adelanto» ya ES el saldo entero, el enlace se llama «Saldo» desde el primer día.** *(Desde el 10/10/2026 se llama «Pago total», que es lo que es sin ningún pago: ver la tabla de arriba.)*
 Pasa en las estancias de **una noche**: `primera_noche_total` reparte la base entre las noches y
 cobra una, así que con una sola noche la fracción es el total. Titularlo «Adelanto de reserva»
 le miente al extracto de la tarjeta sobre un cobro que es el pago completo.
@@ -2107,6 +2183,13 @@ y reserva, y esto es un **hecho** que se repite —el adelanto y el saldo son do
   enlace a la cuenta saldría si no con la del contexto de la conversación.
 - Por Beds24 la estrategia no leía `variables_plantilla` (WhatsApp y correo sí): ahora las tres.
 
+**Media hora después, si fue el adelanto, `saldo_pendiente`** (10/10/2026): «Tu adelanto ya está
+registrado… El saldo de tu reserva es de USD X. Puedes pagarlo cuando prefieras, a más tardar el día
+de tu llegada…» con el botón a su guía. Lo crea `msg:plantillas:saldo-pendiente` y lo manda
+`SaldoPendiente`; ver «Total pedido, última hora y saldo tras el adelanto». La variable es
+`importe_saldo` (el neto del enlace vivo), no `importe_a_pagar`, que la calcula el resolver según
+la situación de cobro.
+
 ---
 
 ## 11 quater. Devoluciones: deshacer un cobro que ya pasó (28/08/2026)
@@ -2349,6 +2432,10 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar quién puede emitir o anular un enlace | el backend (`#[IsGranted]` de `FinEnlacePagoApiController`) | **no** un `readOnly` en el front — ver §11 bis |
 | Cambiar qué códigos de Culqi disparan el reto 3DS | `src/Finanzas/Service/Culqi/CulqiRechazoException.php` | `pideAutenticacion3DS()` — hoy sólo `DNGE0116` |
 | Cambiar cuándo un cargo de Culqi SALDA el enlace | `src/Finanzas/Service/Culqi/CulqiClient.php` | `cargoPagaElEnlace()` — enumera lo bueno (`venta_exitosa`) |
+| Cambiar cuándo se pide el total antes de la llegada (última hora, marca) | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `pideElTotal()` · `DIAS_DE_ULTIMA_HORA` |
+| Cambiar cuándo sale el saldo tras pagar el adelanto | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `MINUTOS_SALDO_TRAS_ADELANTO` · `puedePedirseElSaldo()` |
+| El barrido y el aviso del saldo | `src/Pms/Command/PmsPrepagoSaldoTrasAdelantoCommand.php` · `src/Pms/Service/Message/SaldoPendiente.php` | `HORAS_DE_AVISO` |
+| La regla «un documento, un enlace vivo» | `src/Finanzas/Service/FinEnlacePagoService.php` | `construir()` · `tomarDocumento()` |
 | Tocar el reto 3DS del navegador | `pax/src/views/pago/PagoCulqiForm.vue` | `autenticar3DS()` · `MINUTOS_DE_RETO` · `retoUsado` · `anotarReto()` |
 | Ver qué pasó en el navegador durante un reto | tabla `fin_pasarela_cobro_audit` | desenlaces `reto_*` (`DESENLACES_DEL_NAVEGADOR`) |
 | Leer más campos del webhook de Culqi | `src/Finanzas/Controller/Webhook/CulqiWebhookController.php` | `datosDelEvento()` — `data` llega como cadena y en camelCase |

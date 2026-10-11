@@ -68,6 +68,11 @@ const props = defineProps<{
 const emit = defineEmits<{
     /** Un enlace cambió de estado: el panel recarga por si generó un pago. */
     (e: 'actualizado'): void;
+    /**
+     * El atajo «Total» con adelanto pendiente. No abre el formulario: quien conoce el documento
+     * marca «cobrar el total» y su emisor releva el enlace. Ver `presets`.
+     */
+    (e: 'cobrarTotal'): void;
 }>();
 
 const store = useEnlacesPagoStore();
@@ -212,6 +217,8 @@ interface PresetImporte {
     /** Lo que verá el huésped en la página de pago. Vacío = lo describe el backend. */
     concepto: string;
     destacado: boolean;
+    /** En vez de prellenar el formulario, se pide al panel que marque «cobrar el total». */
+    cobraElTotal?: boolean;
 }
 
 const presets = computed<PresetImporte[]>(() => {
@@ -238,11 +245,19 @@ const presets = computed<PresetImporte[]>(() => {
             // Sin adelanto pendiente lo que queda ES el saldo, y llamarlo «total» mentiría:
             // el total de la reserva incluye lo ya cobrado.
             clave: `saldo-${s.moneda}`,
-            etiqueta: (prepago ? 'Total' : 'Saldo') + (varias ? ` ${s.moneda}` : ''),
+            etiqueta: (prepago ? 'Cobrar el total' : 'Saldo') + (varias ? ` ${s.moneda}` : ''),
+            // 🔥 Con adelanto pendiente, «Total» ya no emite un enlace a mano (10/10/2026). Lo
+            // hacía, y dejaba la guía del huésped pidiendo el adelanto mientras el enlace cobraba
+            // el total — y el automático le ponía un adelanto al lado. Ahora marca la reserva y
+            // todo cambia junto: enlace, guía y agente.
+            detalle: prepago && !varias
+                ? 'El huésped paga todo de una vez: se anula el enlace del adelanto y su guía pasa a pedir el total.'
+                : undefined,
             monto: Number(s.saldo).toFixed(2),
             moneda: s.moneda,
             concepto: '',
             destacado: !prepago && !varias,
+            cobraElTotal: !!prepago && !varias,
         });
     }
 
@@ -351,7 +366,7 @@ function fechaCorta(iso: string | null): string {
             <div v-if="!formAbierto && presets.length" class="mt-2 flex flex-wrap gap-2">
                 <button v-for="preset in presets" :key="preset.clave" type="button"
                     :title="preset.detalle"
-                    @click="abrirForm(preset)"
+                    @click="preset.cobraElTotal ? emit('cobrarTotal') : abrirForm(preset)"
                     class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-colors"
                     :class="preset.destacado
                         ? 'border-[#376875]/30 bg-[#376875]/8 text-[#376875] hover:bg-[#376875]/15'
@@ -372,7 +387,7 @@ function fechaCorta(iso: string | null): string {
             <div v-if="formAbierto" class="mt-3 p-3 rounded-lg bg-[#376875]/5 border border-[#376875]/20 space-y-3">
                 <p v-if="hayPendiente" class="text-[11px] font-bold text-amber-700">
                     <i class="fas fa-triangle-exclamation mr-1"></i>
-                    Ya hay un enlace vigente. Si emites otro, los dos podrán cobrarse.
+                    Ya hay un enlace vigente. Al emitir este, el anterior se anula: cada reserva tiene un solo enlace que se pueda pagar.
                 </p>
 
                 <div class="grid grid-cols-2 gap-3">

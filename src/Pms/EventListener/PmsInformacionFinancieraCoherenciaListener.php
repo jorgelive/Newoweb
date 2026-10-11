@@ -194,12 +194,21 @@ final class PmsInformacionFinancieraCoherenciaListener
         // 6. DETECCIÓN — qué cabeceras necesitan recálculo.
         foreach ($uow->getScheduledEntityInsertions() as $entity) {
             $this->collectInformacionId($entity);
+            $this->collectPorEstancia($entity);
         }
         foreach ($uow->getScheduledEntityUpdates() as $entity) {
             $this->collectInformacionId($entity);
+
+            // Una estancia que cambia de ESTADO mueve dinero: desde el 08/09/2026 los cargos de
+            // una cancelada no suman (`PmsCargoFinanciero::cuentaParaElSaldo()`). Las fechas o el
+            // título no, así que sólo el estado.
+            if ($entity instanceof PmsEventoCalendario && array_key_exists('estado', $uow->getEntityChangeSet($entity))) {
+                $this->collectPorEstancia($entity);
+            }
         }
         foreach ($uow->getScheduledEntityDeletions() as $entity) {
             $this->collectInformacionId($entity);
+            $this->collectPorEstancia($entity);
         }
     }
 
@@ -655,6 +664,30 @@ final class PmsInformacionFinancieraCoherenciaListener
             (string) $old,
             (string) $new
         ));
+    }
+
+    /**
+     * La cabecera de la reserva de una estancia que nace, se borra o cambia de estado.
+     *
+     * 🔥 **Faltaba desde el 08/10/2026, y lo destapé yo al retirar `activa`.** Hasta entonces,
+     * cancelar la última estancia apagaba esa casilla de la cabecera, y ESA escritura era lo que
+     * metía la cabecera en el recálculo y en el emisor de enlaces: los totales dejaban de contar
+     * los cargos cancelados y el enlace del adelanto se anulaba. Sin la casilla, una cancelación
+     * que no trajera cargos nuevos dejaba los totales viejos y el enlace vivo. Ahora la estancia
+     * dispara lo suyo directamente — y también en la cancelación PARCIAL de un grupo, que nunca
+     * lo había hecho.
+     */
+    private function collectPorEstancia(object $entity): void
+    {
+        if (!$entity instanceof PmsEventoCalendario) {
+            return;
+        }
+
+        $id = $entity->getReserva()?->getInformacionFinanciera()?->getId();
+
+        if ($id !== null) {
+            $this->informacionIds[(string) $id] = true;
+        }
     }
 
     private function collectInformacionId(object $entity): void

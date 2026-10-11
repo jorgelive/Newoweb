@@ -164,6 +164,21 @@ class PmsInformacionFinanciera
     #[Groups(['pms_finanzas:read'])]
     private string $totalPagos = '0.00';
 
+    /**
+     * El huésped paga el TOTAL de una vez, en lugar del adelanto que pide la política.
+     *
+     * Es una decisión de una persona —«hay clientes que lo piden»— y por eso se guarda: no se
+     * deduce de nada. La lee `PmsPrepagoCalculador::queSePide()`, así que con ella puesta el
+     * enlace automático pasa a ser del total (anulando el del adelanto), la guía del huésped
+     * dice «Total a pagar» y el agente habla del total. Quitarla devuelve el adelanto.
+     *
+     * Antes no había dónde anotarlo: el operador emitía a mano un enlace por el total y todo lo
+     * demás seguía diciendo «adelanto», y el automático podía ponerle un adelanto al lado.
+     */
+    #[ORM\Column(name: 'cobro_total_pedido', type: 'boolean', options: ['default' => false])]
+    #[Groups(['pms_finanzas:read', 'pms_finanzas:write'])]
+    private bool $cobroTotalPedido = false;
+
     #[ORM\Column(name: 'last_synced_at', type: 'datetime', nullable: true)]
     #[Groups(['pms_finanzas:read'])]
     private ?DateTimeInterface $lastSyncedAt = null;
@@ -612,6 +627,9 @@ class PmsInformacionFinanciera
 
         return false;
     }
+
+    public function isCobroTotalPedido(): bool { return $this->cobroTotalPedido; }
+    public function setCobroTotalPedido(bool $pedido): self { $this->cobroTotalPedido = $pedido; return $this; }
 
     public function getLastSyncedAt(): ?DateTimeInterface { return $this->lastSyncedAt; }
     public function setLastSyncedAt(?DateTimeInterface $at): self { $this->lastSyncedAt = $at; return $this; }
