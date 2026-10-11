@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Exchange\Service\Context\SyncContext;
+use App\Finanzas\Service\FinDeudasDeContacto;
 use App\Finanzas\Service\FinEnlacePagoService;
 use App\Pms\Finanzas\PmsPrepagoEnlaceService;
 use App\Pms\Service\Message\SaldoPendiente;
@@ -28,7 +29,7 @@ final class KernelDePrueba extends App\Kernel
         $container->addCompilerPass(new class implements CompilerPassInterface {
             public function process(ContainerBuilder $container): void
             {
-                foreach ([SyncContext::class, FinEnlacePagoService::class, PmsPrepagoEnlaceService::class, SaldoPendiente::class] as $id) {
+                foreach ([SyncContext::class, FinEnlacePagoService::class, FinDeudasDeContacto::class, PmsPrepagoEnlaceService::class, SaldoPendiente::class] as $id) {
                     $container->getDefinition($id)->setPublic(true);
                 }
             }

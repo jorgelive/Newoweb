@@ -1745,7 +1745,25 @@ el enlace se anulará.
 | Depósito automático de la OTA | regla 2, en el mismo `postFlush` |
 | Cargo retirado o estancia cancelada | regla 2: la estancia también dispara el emisor |
 | El emisor no consigue el turno, o el interruptor está apagado | el barrido de cada 5 min repasa las reservas con un manual vivo |
-| **Cobro manual suelto desde Finanzas, etiquetado PMS** | ⚠️ **NO cubierto**: no cuelga de la reserva, así que ni cuenta como enlace suyo ni abona su cuenta |
+| Cobro manual suelto desde Finanzas | **aviso, no bloqueo** (abajo): el cobro suelto es para vender a cualquiera |
+
+#### El cobro suelto avisa si la persona debe algo (10/10/2026)
+
+El «Cobro manual» de Finanzas no cuelga de ningún documento, y así tiene que seguir: sirve para
+vender cualquier cosa a cualquiera, tenga o no reserva o cotización —«y no sólo a clientes del PMS
+ni de travel: a extraños» (Jorge)—. Lo único que no puede pasar es cobrar así, sin darse cuenta, la
+deuda de una reserva: el dinero no llegaría a su cuenta y la persona podría pagarlo dos veces.
+
+Mientras se teclea el teléfono o el correo, el formulario pregunta
+`GET /finanzas/enlaces-pago/deudas-de-contacto` y, si esa persona debe algo, lo enseña en ámbar
+con un botón **Ver reserva** (la ficha encima de Finanzas). Se puede emitir igual.
+
+Finanzas no sabe de reservas: pregunta a `FinDeudasDeContactoInterface`, que cada módulo con deudas
+implementa y el contenedor enchufa solo. El del PMS (`PmsDeudasDeContacto`) busca por dos caminos:
+las **identidades** —la misma cadena identidad → conversación → reservas que «¿de quién es este
+teléfono?» al crear una reserva— y los **datos de alta** de la reserva (el teléfono, por sus
+últimos nueve dígitos, porque se guardó como se tecleó). Sólo reservas no canceladas que no hayan
+salido hace más de 30 días.
 
 ### Una estancia que cambia de estado mueve dinero (10/10/2026)
 
@@ -2486,6 +2504,7 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | El barrido y el aviso del saldo | `src/Pms/Command/PmsPrepagoSaldoTrasAdelantoCommand.php` · `src/Pms/Service/Message/SaldoPendiente.php` | `HORAS_DE_AVISO` |
 | Un manual por encima de la deuda: rechazo al crear y anulación después | `src/Finanzas/Service/FinEnlacePagoService.php` · `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `crear()` · `anularManualesQueExcedenLaDeuda()` |
 | Los avisos antes de crear un enlace y el cargo por la diferencia | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` · `ReservaFinanzasPanel.vue` | `comprobarAntesDeCrear()` · `registrarCargoDelEnlace()` |
+| El aviso del cobro suelto («esta persona debe algo») | `src/Finanzas/Contract/FinDeudasDeContactoInterface.php` · `src/Pms/Finanzas/PmsDeudasDeContacto.php` · `FinanzasView.vue` | `deudasDe()` · `deudasDelContacto` |
 | La regla «un documento, un enlace vivo» | `src/Finanzas/Service/FinEnlacePagoService.php` | `construir()` · `tomarDocumento()` |
 | Tocar el reto 3DS del navegador | `pax/src/views/pago/PagoCulqiForm.vue` | `autenticar3DS()` · `MINUTOS_DE_RETO` · `retoUsado` · `anotarReto()` |
 | Ver qué pasó en el navegador durante un reto | tabla `fin_pasarela_cobro_audit` | desenlaces `reto_*` (`DESENLACES_DEL_NAVEGADOR`) |

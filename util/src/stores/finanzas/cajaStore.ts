@@ -19,6 +19,7 @@ import type {
     FinCobrosRespuesta,
     FinTotalCobro,
     FinCobroDetalle,
+    FinDeudaDeContacto,
 } from '@/types/finEnlacePagoModel';
 import type {
     FinCajaFiltros,
@@ -74,6 +75,18 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
      * Se inserta en local en vez de recargar: el operador acaba de crearlo y lo que quiere
      * es copiar la URL ya, no esperar a que vuelva la consulta con sus filtros.
      */
+    /**
+     * Lo que debe quien tenga ese teléfono o correo, en cualquier módulo. Para el aviso del cobro
+     * manual: si es la deuda de una reserva, se cobra desde ella. Ver `FinDeudasDeContactoInterface`.
+     */
+    const fetchDeudasDeContacto = async (telefono: string, email: string): Promise<FinDeudaDeContacto[]> => {
+        const { data } = await apiClient.get<{ deudas: FinDeudaDeContacto[] }>(
+            '/finanzas/enlaces-pago/deudas-de-contacto',
+            { params: { telefono: telefono || undefined, email: email || undefined } },
+        );
+        return data.deudas;
+    };
+
     const crearManual = async (payload: FinEnlacePagoManualCreate): Promise<FinEnlacePago> => {
         const { data } = await apiClient.post<{ enlace: FinEnlacePago }>('/finanzas/enlaces-pago/manual', payload);
         cobros.value = [data.enlace, ...cobros.value];
@@ -197,6 +210,7 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
         estadosCobro,
         fetchCobros,
         fetchCobroDetalle,
+        fetchDeudasDeContacto,
         fetchMovimientos,
         crearManual,
         anularCobro,

@@ -33,6 +33,7 @@ import {
     type FinTotalCobro,
 } from '@/types/finEnlacePagoModel';
 import type { FinCajaFiltros, FinMovimiento } from '@/types/finMovimientoModel';
+import type { FinDeudaDeContacto } from '@/types/finEnlacePagoModel';
 import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
 import { useConfigDelFront } from '@/composables/useConfigDelFront';
 
@@ -249,6 +250,43 @@ const formManual = ref({
  * La regla vive en `@dominio/finanzas/topePorCargo` y es la MISMA que aplica
  * `FinEnlacePagoService::comprobarTope()` al emitir: aquí sólo se enseña antes.
  */
+// ============================================================================
+// ¿ES LA DEUDA DE UNA RESERVA? (10/10/2026)
+//
+// El cobro manual es para vender cualquier cosa a cualquiera —«y no sólo a clientes del PMS ni
+// de travel: a extraños»—, así que no se bloquea nada. Pero un cobro suelto no cuelga de ningún
+// documento: si lo que se cobra es la deuda de una reserva, el dinero no llega a su cuenta y la
+// persona puede pagarlo dos veces. Por eso, mientras se teclea el contacto, se pregunta si esa
+// persona debe algo, y se avisa con un botón a su reserva.
+// ============================================================================
+const deudasDelContacto = ref<FinDeudaDeContacto[]>([]);
+let relojDeudas: number | undefined;
+let peticionDeudas = 0;
+
+watch(
+    () => [formManual.value.clienteTelefono, formManual.value.clienteEmail] as const,
+    ([telefono, email]) => {
+        window.clearTimeout(relojDeudas);
+        const mia = ++peticionDeudas;
+
+        if (!formAbierto.value || (telefono.replace(/\D/g, '').length < 7 && !email.includes('@'))) {
+            deudasDelContacto.value = [];
+            return;
+        }
+
+        // Al dejar de teclear, no en cada tecla.
+        relojDeudas = window.setTimeout(async () => {
+            try {
+                const deudas = await store.fetchDeudasDeContacto(telefono.trim(), email.trim());
+                if (mia === peticionDeudas) deudasDelContacto.value = deudas;
+            } catch {
+                // Es un aviso: si la consulta falla, el cobro sigue pudiéndose hacer.
+                if (mia === peticionDeudas) deudasDelContacto.value = [];
+            }
+        }, 500);
+    },
+);
+
 const avisoTope = computed(() =>
     superaElTope(Number(formManual.value.monto), formManual.value.moneda, formManual.value.conRecargo));
 
@@ -264,6 +302,7 @@ function abrirFormManual(): void {
 /** Formulario en blanco. Aparte de abrir: «Emitir otro» reinicia sin apilar otra capa. */
 function reiniciarFormManual(): void {
     errorForm.value = null;
+    deudasDelContacto.value = [];
     recienCreado.value = null;
     formManual.value = {
         monto: '', moneda: 'USD', concepto: '', modulo: '',
@@ -1108,6 +1147,29 @@ function fechaLarga(iso?: string | null): string {
                                 placeholder="Nº de factura…"
                                 class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
                         </label>
+                    </div>
+
+                    <!-- Aviso, no bloqueo: el cobro suelto vale para cualquier venta. Ver
+                         `deudasDelContacto` en el script. -->
+                    <div v-if="deudasDelContacto.length"
+                        class="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 space-y-1.5">
+                        <p class="text-[11px] font-bold text-amber-800 leading-snug">
+                            <i class="fas fa-triangle-exclamation mr-1"></i>
+                            Esta persona tiene saldo pendiente. Si lo que cobras es eso, hazlo desde su
+                            reserva: un cobro suelto no abona su cuenta y podría pagarlo dos veces.
+                        </p>
+                        <div v-for="d in deudasDelContacto" :key="d.origenId + d.moneda"
+                            class="flex items-center justify-between gap-2 text-[11px]">
+                            <span class="min-w-0 text-amber-900">
+                                <b>{{ d.referencia || d.tipoEtiqueta }}</b> · {{ d.descripcion }}
+                                · <b>{{ d.moneda }} {{ d.saldo }}</b>
+                            </span>
+                            <button v-if="puedeAbrirDocumento(d.origenTipo, d.origenId)" type="button"
+                                @click="abrirDocumento(d.origenTipo, d.origenId)"
+                                class="shrink-0 px-2 py-0.5 rounded border border-amber-300 bg-white font-black text-amber-800 hover:bg-amber-100">
+                                <i class="fas fa-bed mr-1"></i>Ver reserva
+                            </button>
+                        </div>
                     </div>
 
                     <label class="flex items-start gap-2 cursor-pointer">

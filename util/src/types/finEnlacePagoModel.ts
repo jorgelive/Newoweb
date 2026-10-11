@@ -73,6 +73,20 @@ export type FinPasarela = 'izipay' | 'culqi';
  * Se pinta como JSON formateado, sin interpretar. Quien audita quiere ver lo que dijo la
  * pasarela, no nuestra lectura de lo que dijo.
  */
+/**
+ * Una deuda de quien se va a cobrar suelto. Espejo de `App\Finanzas\Dto\FinDeudaDeContacto`
+ * (`GET /finanzas/enlaces-pago/deudas-de-contacto`): controlador plano, fuera del esquema generado.
+ */
+export interface FinDeudaDeContacto {
+    tipoEtiqueta: string;
+    origenTipo: FinOrigenCobro;
+    origenId: string;
+    referencia: string | null;
+    descripcion: string;
+    moneda: string;
+    saldo: string;
+}
+
 export interface FinRespuestaPasarela {
     pasarela: FinPasarela;
     pasarelaEtiqueta: string;

@@ -12,6 +12,7 @@ use App\Finanzas\Service\FinPasarelaRegistry;
 use App\Finanzas\Service\FinEnlacePagoSerializer;
 use App\Finanzas\Service\FinEnlacePagoService;
 use App\Finanzas\Service\FinOrigenCobroRegistry;
+use App\Finanzas\Service\FinDeudasDeContacto;
 use App\Security\Roles;
 use DomainException;
 use RuntimeException;
@@ -46,6 +47,7 @@ final class FinEnlacePagoApiController extends AbstractController
         private readonly FinOrigenCobroRegistry $registry,
         private readonly FinEnlacePagoSerializer $serializador,
         private readonly FinPasarelaRegistry $pasarelas,
+        private readonly FinDeudasDeContacto $deudas,
     ) {}
 
     /**
@@ -158,6 +160,26 @@ final class FinEnlacePagoApiController extends AbstractController
         }
 
         return $this->json(['enlace' => $this->serializar($enlace)], 201);
+    }
+
+    /**
+     * ¿Debe algo quien tenga este teléfono o este correo? `?telefono=&email=`
+     *
+     * Para el aviso del «Cobro manual» (10/10/2026): si lo que se va a cobrar suelto es la deuda
+     * de una reserva, se cobra desde ella o el dinero no llega a su cuenta. Ver
+     * `FinDeudasDeContactoInterface`.
+     */
+    #[Route('/deudas-de-contacto', name: 'deudas_de_contacto', methods: ['GET'])]
+    #[IsGranted(Roles::RESERVAS_SHOW)]
+    public function deudasDeContacto(Request $request): JsonResponse
+    {
+        $telefono = trim($request->query->getString('telefono'));
+        $email = trim($request->query->getString('email'));
+
+        return $this->json(['deudas' => array_map(
+            static fn ($d): array => $d->aArray(),
+            $this->deudas->de($telefono !== '' ? $telefono : null, $email !== '' ? $email : null),
+        )]);
     }
 
     /** Módulos que se pueden ETIQUETAR en un cobro manual (no requieren resolver). */
