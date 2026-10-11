@@ -1685,7 +1685,11 @@ llegadas sólo mira reservas con un enlace automático *sin pagar*—.
 
 - **La detección**: un enlace AUTOMÁTICO en `pagado` con `pagado_en` de hace ≥ 30 minutos
   (`adelantoPagadoHaceRato()`). Ese estado sólo lo escribe `confirmarPago()` con el cargo
-  confirmado por la pasarela. Un pago registrado a mano no abre esta puerta.
+  confirmado por la pasarela. Un pago registrado a mano no abre esta puerta, **y es a
+  propósito** (Jorge, 10/10/2026): quien paga por Yape o en efectivo rara vez acaba pagando con
+  tarjeta, y emitirle un enlace del saldo sólo llenaría la reserva de enlaces inútiles. Por lo
+  mismo, el día de llegada tampoco se le emite uno si nada mueve la reserva (XVU23U): se crea a
+  mano desde el panel si hace falta.
 - **El disparo**: `app:pms:prepago:saldo-tras-adelanto`, cada 5 minutos. Barrido y no mensaje
   diferido: si un pase falla, lo recoge el siguiente, y repetirlo no duplica (el emisor reutiliza
   el vivo por el mismo importe).
