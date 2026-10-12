@@ -115,6 +115,16 @@ final class TravelPapelesDeTarifasCommand extends Command
             'motivo' => 'Misma regla que la fila de arriba, con el nombre mal escrito.',
         ],
         [
+            // Sólo comprador: el restaurante varía (Jorge, 12/10/2026). Mismo criterio que ya tenía
+            // «Buffet Mejorado Orientour».
+            'componentes' => ['Almuerzo en Urubamba'],
+            'tarifas' => ['Buffet Regular Pool'],
+            'prestador' => null,
+            'comprador' => 'Orientour',
+            'crear' => false,
+            'motivo' => 'Lo encarga Orientour con su pool; el restaurante cambia.',
+        ],
+        [
             'componentes' => ['Pool Vinicunca', 'Pool Humantay', 'Pool Palcoyo'],
             'tarifas' => ['Junela'],
             'prestador' => 'Junela',
