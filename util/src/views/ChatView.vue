@@ -466,6 +466,26 @@ watch(() => store.currentConversation?.id, () => { enlazarAbierto.value = false;
 const mostrarEnlazar = computed((): boolean =>
   enlazarAbierto.value || store.currentConversation?.contextType === 'manual');
 
+// ============================================================================
+// CERRAR / ARCHIVAR A MANO (10/10/2026)
+//
+// Se podía, pero escondido: lápiz → Estado → Guardar. Ahora es un botón de la cabecera. No cambia
+// la regla de fondo: un mensaje ENTRANTE reabre el hilo solo (los persisters de WhatsApp y Beds24),
+// así que archivar es «no lo quiero ver hasta que la persona vuelva a escribir».
+// ============================================================================
+const menuEstadoAbierto = ref(false);
+watch(() => store.currentConversation?.id, () => { menuEstadoAbierto.value = false; });
+
+const ETIQUETA_ESTADO: Record<string, string> = { closed: 'Cerrada', archived: 'Archivada' };
+
+const cambiarEstado = async (status: 'open' | 'closed' | 'archived'): Promise<void> => {
+  menuEstadoAbierto.value = false;
+  const id = store.currentConversation?.id;
+  if (!id) return;
+
+  await store.updateConversation(id, { status });
+};
+
 const alEnlazarAsunto = async (): Promise<void> => {
   enlazarAbierto.value = false;
   await store.fetchConversations();
@@ -1546,6 +1566,11 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
               <div class="truncate">
                 <h2 class="font-black text-slate-900 text-lg md:text-2xl tracking-tight truncate leading-none mb-1 flex items-center gap-2">
                   <span class="truncate">{{ store.currentConversation?.guestName || 'Huésped Sin Nombre' }}</span>
+                  <!-- En qué cajón está, si no es el de abiertas: archivada no se lee igual que abierta. -->
+                  <span v-if="store.currentConversation?.status && ETIQUETA_ESTADO[store.currentConversation.status]"
+                        class="shrink-0 px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-widest">
+                    {{ ETIQUETA_ESTADO[store.currentConversation.status] }}
+                  </span>
                   <button @click="isEditConversationModalOpen = true" title="Editar conversación" class="shrink-0 w-6 h-6 flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
                     <i class="fas fa-pen text-[10px]"></i>
                   </button>
@@ -1571,6 +1596,34 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                 costaba la conversación. Al cerrar el drawer sigue donde estaba, con el
                 borrador intacto.
               -->
+              <!-- Cerrar / archivar / reabrir, sin pasar por el editor. Ver `cambiarEstado()`. -->
+              <div class="relative">
+                <button v-if="store.currentConversation?.status === 'open'" @click="menuEstadoAbierto = !menuEstadoAbierto"
+                        title="Cerrar o archivar la conversación"
+                        class="w-9 h-9 flex items-center justify-center bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-700 transition-colors">
+                  <i class="fas fa-box-archive text-xs"></i>
+                </button>
+                <button v-else @click="cambiarEstado('open')" title="Volver a abrir la conversación"
+                        class="h-9 px-3 flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-600 text-[10px] font-black uppercase tracking-wider transition-colors">
+                  <i class="fas fa-box-open text-xs"></i><span class="hidden md:inline">Reabrir</span>
+                </button>
+                <template v-if="menuEstadoAbierto">
+                  <div class="fixed inset-0 z-30" @click="menuEstadoAbierto = false"></div>
+                  <div class="absolute right-0 top-full mt-1 z-40 w-52 bg-white border border-slate-200 rounded-xl shadow-xl p-1 text-xs font-bold text-slate-700">
+                    <button type="button" @click="cambiarEstado('closed')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">
+                      <i class="fas fa-circle-check mr-2 text-emerald-600"></i>Cerrar
+                      <span class="block pl-6 text-[10px] font-medium text-slate-400">Resuelta: pasa a «Cerradas»</span>
+                    </button>
+                    <button type="button" @click="cambiarEstado('archived')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">
+                      <i class="fas fa-box-archive mr-2 text-slate-500"></i>Archivar
+                      <span class="block pl-6 text-[10px] font-medium text-slate-400">Fuera de la vista: pasa a «Archivadas»</span>
+                    </button>
+                    <p class="px-3 pt-1 pb-1.5 text-[10px] font-medium text-slate-400 leading-snug">
+                      Si la persona vuelve a escribir, se reabre sola.
+                    </p>
+                  </div>
+                </template>
+              </div>
               <!-- Colgarle a este hilo otro asunto: el acompañante que escribe por la reserva de otro. -->
               <button v-if="store.currentConversation?.contextType !== 'manual'" @click="enlazarAbierto = !enlazarAbierto"
                       title="Enlazar a un asunto (acompañante o titular)"
