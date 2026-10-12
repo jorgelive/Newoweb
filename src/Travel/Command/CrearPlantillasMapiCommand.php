@@ -92,9 +92,11 @@ final class CrearPlantillasMapiCommand extends Command
                 ['TRANS_BIM_RET-MAPI-POR_HTL', 1, 10],
             ],
             // Las horas globales de Poroy ya son las suyas (05:20, 05:40, 06:40, 15:32, 19:05,
-            // 19:40) y las de Machu Picchu coinciden con las del full day por Ollanta. Nada que
-            // sobrescribir: es la ventaja de copiar del catálogo en vez de repetirlo aquí.
-            'horas' => [],
+            // 19:40) y las de Machu Picchu coinciden con las del full day por Ollanta. Sólo el
+            // contacto en la estación no tenía hora: a la llegada del tren, 09:54 (12/10/2026).
+            'horas' => [
+                'CONTACT-MAPI-EST_MAPI' => '09:54',
+            ],
         ],
         [
             'slug' => '2D MAPI: CUZ OLLA MAPI OLLA CUZ (DIR)',

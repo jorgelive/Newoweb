@@ -43,13 +43,15 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class TravelPapelesDeTarifasCommand extends Command
 {
     /**
-     * Todas las claves en todas las filas: `null` en un papel = no se toca.
+     * Todas las claves en todas las filas: `null` en un papel = no se toca. `tarifas` limita la fila a
+     * las tarifas con esos nombres internos exactos; `null` = todas las del componente.
      *
-     * @var list<array{componentes: list<string>, prestador: ?string, comprador: ?string, crear: bool, motivo: string}>
+     * @var list<array{componentes: list<string>, tarifas: ?list<string>, prestador: ?string, comprador: ?string, crear: bool, motivo: string}>
      */
     private const array FILAS = [
         [
             'componentes' => ['Ingreso a Vinicunca', 'Ingreso a Humantay', 'Ingreso a Quelccaya', 'Ingreso a Palcoyo'],
+            'tarifas' => null,
             'prestador' => 'Comunidad Campesina de la zona',
             'comprador' => null,
             'crear' => true,
@@ -62,10 +64,63 @@ final class TravelPapelesDeTarifasCommand extends Command
                 'Boleto Turistico Parcial Valle - BTPV',
                 'Boleto Turistico Parcial Valle Sur - BTPVS',
             ],
+            'tarifas' => null,
             'prestador' => 'Cosituc',
             'comprador' => 'Orientour',
             'crear' => false,
             'motivo' => 'Lo emite Cosituc y «normalmente es Orientour el que compra».',
+        ],
+        [
+            'componentes' => ['Consettur Subida', 'Consettur Bajada'],
+            'tarifas' => null,
+            'prestador' => 'Consettur',
+            'comprador' => 'OpenPeru Tickets',
+            'crear' => false,
+            'motivo' => 'Los boletos del bus los saca OpenPeru Tickets, como los del tren (confirmado el 12/10/2026).',
+        ],
+        [
+            'componentes' => ['Ingreso a Machu Picchu'],
+            'tarifas' => null,
+            'prestador' => 'Ministerio de Cultura',
+            'comprador' => 'OpenPeru Tickets',
+            'crear' => false,
+            'motivo' => 'Lo emite el Ministerio de Cultura y lo saca OpenPeru Tickets.',
+        ],
+        [
+            'componentes' => ['Ingreso a Koricancha'],
+            'tarifas' => null,
+            'prestador' => 'Arzobispado del Cusco',
+            'comprador' => 'Orientour',
+            'crear' => false,
+            'motivo' => 'Lo cobra el Arzobispado y lo compra Orientour con su tour.',
+        ],
+        [
+            // Sólo la tarifa que se llama como la empresa: «Pool combinada» tiene también tarifas
+            // de Americana o Machupicchu Turístico, que no son Orientour.
+            'componentes' => ['Pool combinada', 'Pool Valle Sagrado', 'Pool Valle Sur'],
+            'tarifas' => ['Orientour'],
+            'prestador' => 'Orientour',
+            'comprador' => null,
+            'crear' => false,
+            'motivo' => 'La tarifa ES de Orientour: su nombre lo dice, y ahora lo dice el prestador.',
+        ],
+        [
+            // ⚠️ «Orientur», con errata: es Orientour. No se renombra la tarifa aquí —eso es texto y
+            // se traduce—; sólo se le pone el prestador que su nombre quería decir.
+            'componentes' => ['Pool Maras Moray', 'Pool Maras Moray Ollanta', 'Pool Super Valle'],
+            'tarifas' => ['Orientur'],
+            'prestador' => 'Orientour',
+            'comprador' => null,
+            'crear' => false,
+            'motivo' => 'Misma regla que la fila de arriba, con el nombre mal escrito.',
+        ],
+        [
+            'componentes' => ['Pool Vinicunca', 'Pool Humantay', 'Pool Palcoyo'],
+            'tarifas' => ['Junela'],
+            'prestador' => 'Junela',
+            'comprador' => null,
+            'crear' => false,
+            'motivo' => 'La tarifa ES de Junela.',
         ],
     ];
 
@@ -110,6 +165,14 @@ final class TravelPapelesDeTarifasCommand extends Command
 
                 /** @var list<TravelTarifa> $tarifas */
                 $tarifas = $this->em->getRepository(TravelTarifa::class)->findBy(['componente' => $componente]);
+
+                if ($fila['tarifas'] !== null) {
+                    $soloEstas = $fila['tarifas'];
+                    $tarifas = array_values(array_filter(
+                        $tarifas,
+                        static fn (TravelTarifa $t): bool => in_array($t->getNombreInterno(), $soloEstas, true),
+                    ));
+                }
                 $tocadas = 0;
 
                 foreach ($tarifas as $tarifa) {
@@ -166,7 +229,7 @@ final class TravelPapelesDeTarifasCommand extends Command
      * La tabla, con su tipo de fila: leída directamente, el análisis la estrecha a sus valores
      * literales y da por decidido lo que en el bucle varía de una fila a otra.
      *
-     * @return list<array{componentes: list<string>, prestador: ?string, comprador: ?string, crear: bool, motivo: string}>
+     * @return list<array{componentes: list<string>, tarifas: ?list<string>, prestador: ?string, comprador: ?string, crear: bool, motivo: string}>
      */
     private function filas(): array
     {

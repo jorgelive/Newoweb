@@ -78,6 +78,10 @@ final class FijarHorasPlantillasMapiCommand extends Command
         '1D MAPI: CUZ OLLA MAPI OLLA CUZ (BM)' => [
             'CONTACT-MAPI-EST_MAPI' => '09:15',
         ],
+        // El tren de Poroy de las 06:40 llega a las 09:54 (Jorge, 12/10/2026).
+        '1D MAPI: CUZ PORO MAPI PORO CUZ (BM)' => [
+            'CONTACT-MAPI-EST_MAPI' => '09:54',
+        ],
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
