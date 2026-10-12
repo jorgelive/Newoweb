@@ -199,7 +199,9 @@ final class CrearPlantillasMapiCommand extends Command
             }
 
             foreach ($def['segmentos'] as [$slug, $dia, $orden]) {
-                $segmento = $segmentos[$slug];
+                // Siempre está —si faltara uno, el bucle de arriba ya salió con error—, pero dicho
+                // con su nombre: un `null` aquí acabaría en un setter, lejos de la causa.
+                $segmento = $segmentos[$slug] ?? throw new \LogicException(sprintf('Falta el segmento «%s».', $slug));
 
                 // Los pivotes GLOBALES del segmento dicen qué componentes lleva y a qué hora.
                 // Se copian al contexto de esta plantilla, que es como el catálogo expresa «aquí

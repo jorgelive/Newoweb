@@ -712,7 +712,7 @@ final class CrearTiticacaCommand extends Command
             }
 
             [$anclaSlug] = $this->partir($def['segmentos'][0]);
-            $ancla = $segmentos[$anclaSlug];
+            $ancla = $segmentos[$anclaSlug] ?? throw new \LogicException(sprintf('Falta el segmento «%s».', $anclaSlug));
 
             $yaGlobal = $this->em->getRepository(TravelSegmentoComponente::class)->findOneBy([
                 'segmento' => $ancla, 'componente' => $componente,
@@ -747,7 +747,7 @@ final class CrearTiticacaCommand extends Command
                 $this->em->persist(
                     (new TravelItinerarioSegmentoRel())
                         ->setItinerario($itinerario)
-                        ->setSegmento($segmentos[$slug])
+                        ->setSegmento($segmentos[$slug] ?? throw new \LogicException(sprintf('Falta el segmento «%s».', $slug)))
                         ->setDia($dia)
                         ->setOrden($orden[$dia]),
                 );

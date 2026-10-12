@@ -799,7 +799,7 @@ final class CrearCuatrimotosMarasCommand extends Command
                 $this->em->persist(
                     (new TravelSegmentoComponente())
                         ->setSegmento($this->resolver($segmentos, $entrada['segmento']))
-                        ->setComponente($entradas[$entrada['clave']])
+                        ->setComponente($entradas[$entrada['clave']] ?? throw new \LogicException(sprintf('Falta la entrada «%s».', $entrada['clave'])))
                         ->setItinerarioContexto($itinerario)
                         ->setModo(ComponenteModoEnum::INCLUIDO)
                         ->setOrden(1),

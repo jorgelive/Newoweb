@@ -1506,6 +1506,23 @@ duplicando el componente del ancla. La forma de usarla es **mirar sólo los serv
 un-componente-por-segmento** —`ACT_RESORT`, `VUELO`, `ALO`, los de transporte— o comparar el antes
 y el después de tu carga.
 
+### El mapa de lo encontrado se lee con `?? throw`, aunque «siempre esté» (12/10/2026)
+
+Los cargadores buscan primero lo que necesitan —segmentos, componentes, entradas— y lo guardan en
+un mapa por clave (`$segmentos[$slug] = $segmento`); si falta algo, salen con error antes de crear
+nada. Así que más abajo la clave **siempre está**… pero PHPStan no puede saberlo, y con cuatro
+cargadores a la vez el análisis estuvo en rojo (`offsetAccess.notFound`) en
+`CrearPlantillasMapiCommand`, `CrearCuatrimotosMarasCommand` y `CrearTiticacaCommand`.
+
+Se lee así, no con un `@var` ni con una entrada en la baseline:
+
+```php
+$segmento = $segmentos[$slug] ?? throw new \LogicException(sprintf('Falta el segmento «%s».', $slug));
+```
+
+No es sólo para callar al analizador: si un día el bucle de búsqueda cambia y deja pasar una clave,
+el fallo dice qué falta en vez de un aviso de PHP y un `null` dentro de un setter, lejos de la causa.
+
 ## 8. Lista de comprobación
 
 Antes de dar por cerrada una carga:
