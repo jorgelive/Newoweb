@@ -16,7 +16,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Horas de las plantillas de Machu Picchu en dos días que no cuadraban con su propio tren.
+ * Horas de las plantillas de Machu Picchu que no cuadraban con su propio tren: las de dos días y,
+ * desde el 12/10/2026, el contacto en la estación de las full day por Ollantaytambo.
  *
  * ── Lo que salió en una cotización real ─────────────────────────────────────
  *
@@ -49,7 +50,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:travel:fijar-horas-plantillas-mapi',
-    description: 'Alinea el contacto y el retorno de las plantillas de MAPI en dos días con su tren.',
+    description: 'Alinea el contacto y el retorno de las plantillas de MAPI con su tren.',
     hidden: true,
 )]
 final class FijarHorasPlantillasMapiCommand extends Command
@@ -68,6 +69,15 @@ final class FijarHorasPlantillasMapiCommand extends Command
             'CONTACT-MAPI-HTL' => '06:30',
             'TRANS_BIM_RET-MAPI-OLL_CUZ' => '16:30',
         ],
+        // Los full day por Ollantaytambo (12/10/2026): el contacto en la estación de Machu Picchu
+        // no tenía hora y la cotización le ponía las 08:00, con el tren de las 07:45 llegando a las
+        // 09:15 (Jorge). Lo destapó la cotización de Elizabeth y Familia (25JVEH).
+        '1D MAPI: CUZ OLLA MAPI OLLA CUZ (DIR)' => [
+            'CONTACT-MAPI-EST_MAPI' => '09:15',
+        ],
+        '1D MAPI: CUZ OLLA MAPI OLLA CUZ (BM)' => [
+            'CONTACT-MAPI-EST_MAPI' => '09:15',
+        ],
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
@@ -85,7 +95,7 @@ final class FijarHorasPlantillasMapiCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $simula = (bool) $input->getOption('dry-run');
 
-        $io->title('Horas de las plantillas de MAPI en dos días');
+        $io->title('Horas de las plantillas de MAPI');
         $tocados = 0;
 
         foreach (self::HORAS as $slugPlantilla => $horas) {

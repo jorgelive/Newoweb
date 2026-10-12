@@ -154,6 +154,9 @@ final class CrearPlantillasMapiCommand extends Command
                 // horas de Cusco a Ollantaytambo. Confírmalo.
                 'TRANS_DIRECT_SAL-MAPI-CUZ_OLL' => '05:30',
                 'TREN_IDA-MAPI-OLL' => '07:45',
+                // A la llegada del tren de las 07:45 (Jorge, 12/10/2026). Sin hora, la cotización le
+                // ponía las 08:00, antes de que el tren llegara.
+                'CONTACT-MAPI-EST_MAPI' => '09:15',
                 'SUBBAJ_BUS-MAPI-SUB' => '10:00',
                 'VIS-MAPI-C2|Ingreso a Machu Picchu' => '11:00',
                 'VIS-MAPI-C2|Guiado Machu Picchu' => '11:00',
