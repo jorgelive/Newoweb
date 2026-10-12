@@ -4551,6 +4551,392 @@ const eliminarDocumento = async (iri?: string) => {
         <section class="space-y-8 min-w-0">
 
           <div>
+            <!-- El historial de propuestas, ARRIBA (12/10/2026): es a lo que se viene casi siempre;
+                 manifiesto, vuelos y carga de datos van plegados debajo. -->
+            <div class="mb-8">
+            <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-200 pb-3 mb-4"><i class="fas fa-code-branch mr-2 text-[#E07845]"></i> Historial de Propuestas</h2>
+
+            <!-- ⚠️ QUIÉN SE QUEDA FUERA al partir el grupo.
+                 Va arriba y sin plegar a propósito: es un aviso sobre gente que NO puede
+                 reclamarlo. Si el vuelo se parte en dos y alguien no está en ninguno, abre su
+                 viaje y no ve ningún vuelo — y no echa de menos lo que no sabía que existía.
+                 Ver CoberturaDeSubgrupos. -->
+            <!-- ⚠️ **Plegado, con el recuento en el rótulo.** Desplegado ocupaba media pantalla
+                 con cuatro listas de nombres, y **no todo el mundo tiene que estar en todos los
+                 ejes**: quien no va en avión no está en ningún vuelo, y eso es correcto. Es
+                 información para consultar, no una tarea pendiente, así que se enseña como lo
+                 que es y se abre cuando alguien quiere leerla. -->
+            <div v-if="file?.subgruposIncompletos?.length"
+                 class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 overflow-hidden">
+              <button type="button" @click="sinAsignarAbierto = !sinAsignarAbierto"
+                      class="w-full flex items-center justify-between gap-2 p-4 text-left">
+                <span class="text-[11px] font-black uppercase tracking-widest text-amber-700 flex items-center gap-2 min-w-0">
+                  <i class="fas fa-triangle-exclamation shrink-0"></i>
+                  <span class="truncate">
+                    Hay gente sin asignar
+                    <span class="font-bold normal-case tracking-normal opacity-70">· {{ resumenSinAsignar }}</span>
+                  </span>
+                </span>
+                <i class="fas fa-chevron-down text-amber-500 text-xs transition-transform shrink-0"
+                   :class="sinAsignarAbierto ? 'rotate-180' : ''"></i>
+              </button>
+              <div v-if="sinAsignarAbierto" class="px-4 pb-4">
+              <div v-for="hallazgo in file.subgruposIncompletos" :key="hallazgo.eje" class="text-xs text-amber-900 leading-relaxed mb-1.5 last:mb-0">
+                <span class="font-black">{{ hallazgo.ejeLabel }}:</span>
+                <span class="font-bold">{{ hallazgo.faltan.length }}</span>
+                {{ hallazgo.faltan.length === 1 ? 'persona no está' : 'personas no están' }} en ningún subgrupo —
+                <span class="text-amber-700">{{ hallazgo.faltan.slice(0, 6).join(', ') }}<span v-if="hallazgo.faltan.length > 6"> y {{ hallazgo.faltan.length - 6 }} más</span></span>
+              </div>
+              </div>
+            </div>
+
+            <div v-if="!file.cotizaciones || file.cotizaciones.length === 0" class="bg-white border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400">
+              <i class="fas fa-clipboard-list text-4xl mb-4 opacity-50"></i>
+              <p class="text-sm font-bold uppercase tracking-widest">No hay cotizaciones</p>
+              <p class="text-xs mt-2 font-medium">Haz clic en "Crear Nueva Propuesta" para arrancar el motor operativo.</p>
+            </div>
+
+            <div v-else v-for="cot in versionesVivas" :key="cot.id"
+                 class="rounded-2xl p-4 sm:p-5 border shadow-sm hover:border-[#376875] transition-colors group mb-4"
+                 :class="[
+                   cot.estado === 'operativa'
+                     ? 'border-orange-200 ml-4 sm:ml-8 border-l-4 border-l-orange-300 rounded-l-none'
+                     : 'border-slate-200',
+                   // ⚠️ El fondo lo decide TENER la operación, no el estado: son cosas distintas
+                   // desde que confirmar ya no la arma. Ver tieneOperacion().
+                   tieneOperacion(cot) ? 'bg-[#376875]/[0.04]' : 'bg-white',
+                 ]">
+
+              <!-- ⚠️ El vínculo, ESCRITO. La operativa comparte número con su confirmada, así que
+                   sin esta línea eran dos tarjetas diciendo «P1» y parecía otra propuesta. La
+                   sangría sola no basta: dice que cuelga de algo, no de qué. -->
+              <div v-if="cot.estado === 'operativa'" class="flex items-center gap-2 -mt-1 mb-3 text-[11px] font-semibold uppercase tracking-wide text-orange-600">
+                <i class="fas fa-turn-up fa-rotate-90 text-[10px]"></i>
+                <span>Operativa de la Propuesta {{ cot.propuesta }}</span>
+                <span v-if="confirmadaDe(cot)" class="text-slate-400 normal-case font-normal tracking-normal">
+                  · deriva de la confirmada · el cliente sigue viendo sus precios
+                </span>
+              </div>
+
+              <!-- 1. CABECERA: Propuesta, Estado y Botones -->
+              <div class="flex flex-wrap sm:flex-nowrap items-start justify-between gap-3 mb-4">
+
+                <!-- Izquierda: Propuesta y Estado -->
+                <div class="flex items-center gap-3">
+                  <!-- Badge de versión, editable -->
+                  <div v-if="editandoVersion !== (cot['@id'] || cot.id)"
+                       @click="iniciarEdicionVersion(cot)"
+                       class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-700 text-lg border-2 border-white shadow-sm group-hover:bg-[#376875] group-hover:text-white transition-colors cursor-pointer shrink-0"
+                       title="Click para editar versión">
+                    P{{ cot.propuesta }}
+                  </div>
+                  <div v-else class="flex items-center gap-1 shrink-0">
+                    <input v-model.number="propuestaTemp" type="number" min="1"
+                           class="w-14 h-12 text-center font-black rounded-full border-2 border-[#376875] outline-none"
+                           @keyup.enter="guardarVersion(cot)" @keyup.esc="editandoVersion = null">
+                    <button @click="guardarVersion(cot)" class="text-emerald-600 w-8 h-8 flex items-center justify-center bg-emerald-50 rounded-full"><i class="fas fa-check"></i></button>
+                    <button @click="editandoVersion = null" class="text-slate-400 w-8 h-8 flex items-center justify-center bg-slate-100 rounded-full"><i class="fas fa-times"></i></button>
+                  </div>
+
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2 leading-none flex-wrap">
+                      <p class="text-sm sm:text-base font-black text-slate-800">
+                        {{ t18(cot.titulo) || `Propuesta ${cot.propuesta}` }}
+                      </p>
+                      <span class="text-[9px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 uppercase shrink-0">{{ cot.estado || 'Pendiente' }}</span>
+                      <span class="text-[9px] font-black bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded border border-orange-100 uppercase shrink-0">{{ cot.monedaGlobal || 'USD' }}</span>
+
+                      <!-- 🔥 NO PUBLICADA, a la vista. El estado («enviado») no dice si el cliente
+                           la ve: publicar es un eje aparte, y sólo lo contaba el color del ojo.
+                           Así se mandó un enlace que daba «Propuesta no encontrada» (28/09/2026). -->
+                      <button v-if="!cot.publicado" type="button" @click="alternarPublicado(cot)"
+                              class="text-[9px] font-black bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-200 uppercase shrink-0 flex items-center gap-1 hover:bg-rose-100"
+                              title="El cliente NO ve esta propuesta: su enlace le da «Propuesta no encontrada». Pulsa para publicarla.">
+                        <i class="fas fa-eye-slash text-[8px]"></i>
+                        No publicada
+                      </button>
+
+                      <!-- ⚠️ Dice dónde vive la operación, que ya NO se deduce del estado: desde
+                           el 02/09/2026 confirmar no la arma y la operativa se la lleva. Las dos
+                           dejan una confirmada vacía y significan cosas opuestas. -->
+                      <span v-if="tieneOperacion(cot)"
+                            class="text-[9px] font-black bg-[#376875] text-white px-1.5 py-0.5 rounded uppercase shrink-0 flex items-center gap-1"
+                            :title="`${cot.filasOperacionActivas} servicios activos en La Biblia`">
+                        <i class="fas fa-list-check text-[8px]"></i>
+                        Operación · {{ cot.filasOperacionActivas }}
+                      </span>
+
+                      <!-- Sin operación PERO es donde debería vivir: es una llamada a armarla, no
+                           un error. Se calla en las propuestas que todavía se venden. -->
+                      <span v-else-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
+                            class="text-[9px] font-black bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200 uppercase shrink-0"
+                            title="Todavía no se ha armado la operación de esta propuesta">
+                        Sin operación
+                      </span>
+                    </div>
+                    <p v-if="cot.resumen" class="text-[10px] text-slate-400 font-medium mt-1 truncate max-w-35 sm:max-w-xs">
+                      {{ resumenPreview(cot.resumen) }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Derecha: Botones de Acción.
+                     ⚠️ `flex-wrap`: son hasta OCHO botones y en un móvil se apretaban hasta
+                     quedar ilegibles y difíciles de acertar. Fluyen a segunda línea en vez de
+                     encogerse — un icono de 36 px es el mínimo para el dedo, y perder una fila de
+                     alto cuesta menos que fallar el botón. -->
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
+                  <button @click="abrirMotor(cot)" class="px-4 py-2 bg-[#E07845] text-white text-xs font-bold rounded-xl shadow-sm hover:bg-[#c96636] transition-colors flex items-center gap-2">
+                    Editar <i class="fas fa-arrow-right"></i>
+                  </button>
+
+                  <!-- ⚠️ Publicar es un eje PROPIO, no una consecuencia del estado. Antes había que
+                       poner «enviada» para que el cliente la viera —o para verla uno mismo—, que es
+                       mentir sobre un acto comercial para conseguir una visibilidad. -->
+                  <button v-tooltip-tactil @click="alternarPublicado(cot)"
+                          :class="cot.publicado
+                            ? 'text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
+                            : 'text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-50'"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border transition-colors"
+                          :title="cot.publicado
+                            ? `El cliente VE esta propuesta. Pulsa para dejar de publicarla.`
+                            : `El cliente NO la ve. Pulsa para publicarla.`">
+                    <i class="fas text-xs" :class="cot.publicado ? 'fa-eye' : 'fa-eye-slash'"></i>
+                  </button>
+
+                  <!-- La vista cliente se abre siempre: como operador ves también lo no publicado. -->
+                  <a :href="linkPublicoPropuesta(cot.propuesta)" target="_blank" rel="noopener"
+                     class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-emerald-500 hover:border-emerald-200 hover:bg-emerald-50 transition-colors"
+                     :title="`Abrir vista cliente (P${cot.propuesta})`">
+                    <i class="fas fa-external-link-alt text-xs"></i>
+                  </a>
+
+                  <!-- Copiar ese mismo enlace. Va PEGADO al de abrir porque son la misma cosa en
+                       dos gestos: mirarla uno o mandársela al cliente — y mandársela era abrir la
+                       pestaña y copiar de la barra de direcciones. -->
+                  <button v-tooltip-tactil @click="copiarLinkPropuesta(cot)"
+                          :class="propuestaCopiada === cot.propuesta
+                            ? 'text-emerald-600 border-emerald-200 bg-emerald-50'
+                            : 'text-slate-400 border-slate-200 hover:text-emerald-500 hover:border-emerald-200 hover:bg-emerald-50'"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border transition-colors"
+                          :title="propuestaCopiada === cot.propuesta
+                            ? 'Enlace copiado'
+                            : `Copiar el enlace de la vista cliente (P${cot.propuesta})`">
+                    <i class="text-xs" :class="propuestaCopiada === cot.propuesta ? 'fas fa-check' : 'far fa-copy'"></i>
+                  </button>
+
+                  <!-- Armar la operación. ⚠️ Mismo sitio que el plan —donde VIVE la operación—
+                       porque son la misma cosa en dos momentos: éste la crea, aquél la revisa.
+                       Confirmar ya no la crea (02/09/2026): ver GenerarOperacionProcessor. -->
+                  <button v-tooltip-tactil v-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
+                          @click="generarOperacion(cot)"
+                          :disabled="armandoOperacion === extractIdStr(cot.id || cot['@id'])"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white transition-colors disabled:opacity-50"
+                          title="Armar la operación: una fila de La Biblia por componente">
+                    <i class="fas fa-spinner fa-spin text-xs" v-if="armandoOperacion === extractIdStr(cot.id || cot['@id'])"></i>
+                    <i class="fas fa-list-check text-xs" v-else></i>
+                  </button>
+
+                  <!-- Donde VIVE la operación, que no siempre es la confirmada.
+                       ⚠️ Al abrir la operativa, las filas de La Biblia se mudan a ella y las de la
+                       confirmada quedan canceladas. Este botón se quedaba en la confirmada, o sea
+                       apuntando a un plan vacío, mientras la fila que sí tiene las 47 filas no lo
+                       ofrecía. Se vio en pantalla, no en un test: a ojo el `v-if` parecía correcto
+                       —y lo era, hasta que existió la operativa—. Ver docs/Cotizaciones.md §6.j.3. -->
+                  <button v-tooltip-tactil v-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
+                          @click="abrirPlanOperacion(cot)"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white transition-colors"
+                          title="Revisar los cambios de esta versión en el Centro de Operaciones">
+                    <i class="fas fa-code-compare text-xs"></i>
+                  </button>
+
+                  <!-- Abrir la operativa: sólo en la confirmada, y sólo si no la tiene ya. Es
+                       idempotente en el servidor —devuelve la que hay—, pero enseñar el botón
+                       cuando ya existe invita a pulsarlo esperando otra cosa. -->
+                  <button v-tooltip-tactil v-if="cot.estado === 'confirmado' && !operativaDe(cot)"
+                          @click="abrirOperativa(cot)"
+                          :disabled="abriendoOperativa === extractIdStr(cot.id || cot['@id'])"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-orange-200 text-orange-500 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-colors disabled:opacity-50"
+                          title="Abrir la propuesta operativa: lo que de verdad se va a operar">
+                    <i class="fas fa-spinner fa-spin text-xs" v-if="abriendoOperativa === extractIdStr(cot.id || cot['@id'])"></i>
+                    <i class="fas fa-route text-xs" v-else></i>
+                  </button>
+
+                  <!-- Guardar histórico vive AL LADO de clonar porque son la misma operación en
+                       direcciones opuestas, y confundirlas es lo caro: clonar crea la versión
+                       siguiente y deja ésta atrás —bien antes de vender—; esto congela una foto y
+                       deja ésta viva con sus órdenes. Ver docs/Cotizaciones.md §6.j. -->
+                  <button v-tooltip-tactil @click="guardarHistorico(cot)" :disabled="guardandoHistorico === extractIdStr(cot.id || cot['@id'])"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-violet-500 hover:border-violet-200 hover:bg-violet-50 transition-colors disabled:opacity-50"
+                          title="Guardar una foto de cómo está ahora, antes de modificarla">
+                    <i class="fas fa-spinner fa-spin text-xs" v-if="guardandoHistorico === extractIdStr(cot.id || cot['@id'])"></i>
+                    <i class="fas fa-camera text-xs" v-else></i>
+                  </button>
+
+                  <button v-tooltip-tactil @click="clonarVersion(cot)" :disabled="clonandoItem === extractIdStr(cot.id || cot['@id'])"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-sky-500 hover:border-sky-200 hover:bg-sky-50 transition-colors disabled:opacity-50"
+                          title="Clonar esta versión">
+                    <i class="fas fa-spinner fa-spin text-xs" v-if="clonandoItem === extractIdStr(cot.id || cot['@id'])"></i>
+                    <i class="fas fa-copy text-xs" v-else></i>
+                  </button>
+
+                  <!-- Copiar a OTRO expediente vive al lado de clonar porque es el mismo acto con
+                       otro destino, y separarlos haría buscar en dos sitios. El icono las
+                       distingue: copiar «ahí dentro» frente a copiar «hacia fuera». -->
+                  <button v-tooltip-tactil @click="abrirClonarAExpediente(cot)"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 hover:bg-indigo-50 transition-colors"
+                          title="Copiar a otro expediente (otras fechas y pasajeros) o a un catálogo de tours">
+                    <i class="fas fa-arrow-right-from-bracket text-xs"></i>
+                  </button>
+
+                  <button v-tooltip-tactil @click="eliminarVersion(cot)" :disabled="eliminandoItem === (cot['@id'] || cot.id)"
+                          title="Eliminar esta propuesta"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50">
+                    <i class="fas fa-spinner fa-spin text-xs" v-if="eliminandoItem === (cot['@id'] || cot.id)"></i>
+                    <i class="fas fa-trash-alt text-xs" v-else></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 2. PANEL DE MÉTRICAS (Grid separada) -->
+              <div class="grid grid-cols-4 gap-2 sm:gap-4 bg-slate-50 border border-slate-100 rounded-xl p-3 sm:p-4 mt-2">
+
+                <!-- Pax -->
+                <div class="flex flex-col">
+                  <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                    <i class="fas fa-users mr-1"></i> Pax
+                  </span>
+                  <span class="text-xs sm:text-sm font-black text-slate-700">
+                    {{ cot.numPax ?? '—' }}
+                  </span>
+                </div>
+
+                <!-- Venta -->
+                <div class="flex flex-col border-l border-slate-200 pl-3 sm:pl-4">
+                  <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                    <i class="fas fa-money-bill mr-1"></i> Venta
+                  </span>
+                  <span class="text-xs sm:text-sm font-black text-slate-800">
+                    <span class="text-[9px] font-bold text-slate-400 mr-0.5">{{ cot.monedaGlobal }}</span>
+                    {{ cot.totalVenta ?? '0.00' }}
+                  </span>
+                </div>
+
+                <!-- Ganancia -->
+                <div class="flex flex-col border-l border-slate-200 pl-3 sm:pl-4">
+                  <span class="text-[9px] font-bold text-emerald-600/70 uppercase tracking-widest mb-1">
+                    <i class="fas fa-chart-line mr-1"></i> Ganancia
+                  </span>
+                  <span class="text-xs sm:text-sm font-black text-emerald-600">
+                    <span class="text-[9px] font-bold text-emerald-600/60 mr-0.5">{{ cot.monedaGlobal }}</span>
+                    {{ cot.ganancia ?? '0.00' }}
+                  </span>
+                </div>
+
+                <!-- Idioma -->
+                <div class="flex flex-col border-l border-slate-200 pl-3 sm:pl-4">
+                  <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                    <i class="fas fa-language mr-1"></i> Idioma
+                  </span>
+                  <span class="text-xs sm:text-sm font-black text-slate-700">
+                    {{ idiomasDisponibles.find(i => i.id === cot.idiomaCliente)?.bandera ?? '🌐' }}
+                    <span class="text-[10px] uppercase text-slate-500">{{ cot.idiomaCliente || 'es' }}</span>
+                  </span>
+                </div>
+
+              </div>
+
+              <!-- ── Las fotos del pasado de esta versión ────────────────────
+                   Plegadas: lo normal es que no interesen, y desplegadas empujarían las versiones
+                   vivas fuera de la pantalla. Se identifican por FECHA y no por número, porque
+                   comparten el de su versión a propósito. -->
+              <div v-if="historicosDe(cot).length" class="mt-3 pt-3 border-t border-slate-100">
+                <button @click="alternarHistoricos(extractIdStr(cot.id || cot['@id']) || '')"
+                        class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-violet-500 hover:text-violet-700 transition-colors">
+                  <i class="fas fa-camera"></i>
+                  {{ historicosDe(cot).length }} histórico{{ historicosDe(cot).length === 1 ? '' : 's' }}
+                  <i class="fas text-[8px]" :class="historicosAbiertos.has(extractIdStr(cot.id || cot['@id']) || '') ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+
+                <div v-if="historicosAbiertos.has(extractIdStr(cot.id || cot['@id']) || '')" class="mt-2 space-y-1.5">
+                  <!-- ⚠️ El histórico enseña sus CIFRAS, no sólo su fecha.
+                       Una foto del pasado se consulta para responder «¿cuánto habíamos cotizado
+                       antes?», y con sólo «V1 · 11 jul» había que abrirla para saberlo — una por
+                       una, y comparando de memoria. Con compra, venta y pax delante, la pregunta
+                       se contesta desde la lista y sólo se abre la que interesa.
+                       Mismos campos y mismo formato que la tarjeta de la versión viva de arriba:
+                       si se leen distinto, no se pueden comparar. -->
+                  <div v-for="h in historicosDe(cot)" :key="h.id"
+                       class="bg-violet-50/60 border border-violet-100 rounded-lg px-3 py-2">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="text-[11px] font-bold text-violet-800 min-w-0 truncate">
+                        <i class="fas fa-clock-rotate-left text-[9px] mr-1.5 text-violet-400"></i>
+                        P{{ h.propuesta }} · {{ h.createdAt ? new Date(h.createdAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' }) : 'sin fecha' }}
+                      </span>
+                      <button @click="abrirMotor(h)"
+                              class="text-[10px] font-black text-violet-600 hover:text-violet-900 underline underline-offset-2 shrink-0">
+                        Ver
+                      </button>
+                    </div>
+
+                    <!-- Mismas tres cifras que la tarjeta de la versión viva —pax, venta y
+                         ganancia— y en el mismo orden: si se leen distinto no se pueden comparar,
+                         y comparar es para lo único que está esta lista. El idioma no se repite,
+                         que es de la versión y no de la foto.
+
+                         Cada una lleva su DIFERENCIA con la vigente cuando la hay. Sin ella hay
+                         que restar de cabeza tres pares de números por cada foto, que es
+                         exactamente el trabajo que esta fila viene a quitar. -->
+                    <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-violet-100">
+                      <div class="flex flex-col min-w-0">
+                        <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
+                          <i class="fas fa-users mr-1"></i>Pax
+                        </span>
+                        <span class="text-[11px] font-black text-violet-900 tabular-nums">
+                          {{ h.numPax ?? '—' }}
+                          <span v-if="diferenciaConVigente(h.numPax, cot.numPax) !== null"
+                                :class="(diferenciaConVigente(h.numPax, cot.numPax) ?? 0) > 0 ? 'text-emerald-600' : 'text-rose-600'"
+                                class="text-[9px] font-black ml-0.5">
+                            {{ formatoDiferencia(diferenciaConVigente(h.numPax, cot.numPax) ?? 0, 0) }}
+                          </span>
+                        </span>
+                      </div>
+                      <div class="flex flex-col min-w-0 border-l border-violet-100 pl-2">
+                        <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
+                          <i class="fas fa-money-bill mr-1"></i>Venta
+                        </span>
+                        <span class="text-[11px] font-black text-violet-900 tabular-nums">
+                          <span class="text-[9px] font-bold text-violet-400 mr-0.5">{{ h.monedaGlobal }}</span>{{ h.totalVenta ?? '0.00' }}
+                          <span v-if="diferenciaConVigente(h.totalVenta, cot.totalVenta) !== null"
+                                :class="(diferenciaConVigente(h.totalVenta, cot.totalVenta) ?? 0) > 0 ? 'text-emerald-600' : 'text-rose-600'"
+                                class="block text-[9px] font-black">
+                            {{ formatoDiferencia(diferenciaConVigente(h.totalVenta, cot.totalVenta) ?? 0) }}
+                          </span>
+                        </span>
+                      </div>
+                      <div class="flex flex-col min-w-0 border-l border-violet-100 pl-2">
+                        <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
+                          <i class="fas fa-chart-line mr-1"></i>Ganancia
+                        </span>
+                        <span class="text-[11px] font-black text-violet-900 tabular-nums">
+                          <span class="text-[9px] font-bold text-violet-400 mr-0.5">{{ h.monedaGlobal }}</span>{{ h.ganancia ?? '0.00' }}
+                          <span v-if="diferenciaConVigente(h.ganancia, cot.ganancia) !== null"
+                                :class="(diferenciaConVigente(h.ganancia, cot.ganancia) ?? 0) > 0 ? 'text-emerald-600' : 'text-rose-600'"
+                                class="block text-[9px] font-black">
+                            {{ formatoDiferencia(diferenciaConVigente(h.ganancia, cot.ganancia) ?? 0) }}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+            </div>
+
+            </div>
+
             <!-- ⚠️ Las cuatro secciones de abajo van PLEGADAS y con su resumen en el rótulo.
                  Un expediente de grupo son 131 personas, 16 vuelos y 109 subgrupos: desplegado todo,
                  llegar a lo de abajo son seis pantallas de scroll. Quien abre un expediente viene a
@@ -5595,389 +5981,6 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
 
 
-
-          <div>
-          </div>
-            <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-200 pb-3 mb-4"><i class="fas fa-code-branch mr-2 text-[#E07845]"></i> Historial de Propuestas</h2>
-
-            <!-- ⚠️ QUIÉN SE QUEDA FUERA al partir el grupo.
-                 Va arriba y sin plegar a propósito: es un aviso sobre gente que NO puede
-                 reclamarlo. Si el vuelo se parte en dos y alguien no está en ninguno, abre su
-                 viaje y no ve ningún vuelo — y no echa de menos lo que no sabía que existía.
-                 Ver CoberturaDeSubgrupos. -->
-            <!-- ⚠️ **Plegado, con el recuento en el rótulo.** Desplegado ocupaba media pantalla
-                 con cuatro listas de nombres, y **no todo el mundo tiene que estar en todos los
-                 ejes**: quien no va en avión no está en ningún vuelo, y eso es correcto. Es
-                 información para consultar, no una tarea pendiente, así que se enseña como lo
-                 que es y se abre cuando alguien quiere leerla. -->
-            <div v-if="file?.subgruposIncompletos?.length"
-                 class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 overflow-hidden">
-              <button type="button" @click="sinAsignarAbierto = !sinAsignarAbierto"
-                      class="w-full flex items-center justify-between gap-2 p-4 text-left">
-                <span class="text-[11px] font-black uppercase tracking-widest text-amber-700 flex items-center gap-2 min-w-0">
-                  <i class="fas fa-triangle-exclamation shrink-0"></i>
-                  <span class="truncate">
-                    Hay gente sin asignar
-                    <span class="font-bold normal-case tracking-normal opacity-70">· {{ resumenSinAsignar }}</span>
-                  </span>
-                </span>
-                <i class="fas fa-chevron-down text-amber-500 text-xs transition-transform shrink-0"
-                   :class="sinAsignarAbierto ? 'rotate-180' : ''"></i>
-              </button>
-              <div v-if="sinAsignarAbierto" class="px-4 pb-4">
-              <div v-for="hallazgo in file.subgruposIncompletos" :key="hallazgo.eje" class="text-xs text-amber-900 leading-relaxed mb-1.5 last:mb-0">
-                <span class="font-black">{{ hallazgo.ejeLabel }}:</span>
-                <span class="font-bold">{{ hallazgo.faltan.length }}</span>
-                {{ hallazgo.faltan.length === 1 ? 'persona no está' : 'personas no están' }} en ningún subgrupo —
-                <span class="text-amber-700">{{ hallazgo.faltan.slice(0, 6).join(', ') }}<span v-if="hallazgo.faltan.length > 6"> y {{ hallazgo.faltan.length - 6 }} más</span></span>
-              </div>
-              </div>
-            </div>
-
-            <div v-if="!file.cotizaciones || file.cotizaciones.length === 0" class="bg-white border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400">
-              <i class="fas fa-clipboard-list text-4xl mb-4 opacity-50"></i>
-              <p class="text-sm font-bold uppercase tracking-widest">No hay cotizaciones</p>
-              <p class="text-xs mt-2 font-medium">Haz clic en "Crear Nueva Propuesta" para arrancar el motor operativo.</p>
-            </div>
-
-            <div v-else v-for="cot in versionesVivas" :key="cot.id"
-                 class="rounded-2xl p-4 sm:p-5 border shadow-sm hover:border-[#376875] transition-colors group mb-4"
-                 :class="[
-                   cot.estado === 'operativa'
-                     ? 'border-orange-200 ml-4 sm:ml-8 border-l-4 border-l-orange-300 rounded-l-none'
-                     : 'border-slate-200',
-                   // ⚠️ El fondo lo decide TENER la operación, no el estado: son cosas distintas
-                   // desde que confirmar ya no la arma. Ver tieneOperacion().
-                   tieneOperacion(cot) ? 'bg-[#376875]/[0.04]' : 'bg-white',
-                 ]">
-
-              <!-- ⚠️ El vínculo, ESCRITO. La operativa comparte número con su confirmada, así que
-                   sin esta línea eran dos tarjetas diciendo «P1» y parecía otra propuesta. La
-                   sangría sola no basta: dice que cuelga de algo, no de qué. -->
-              <div v-if="cot.estado === 'operativa'" class="flex items-center gap-2 -mt-1 mb-3 text-[11px] font-semibold uppercase tracking-wide text-orange-600">
-                <i class="fas fa-turn-up fa-rotate-90 text-[10px]"></i>
-                <span>Operativa de la Propuesta {{ cot.propuesta }}</span>
-                <span v-if="confirmadaDe(cot)" class="text-slate-400 normal-case font-normal tracking-normal">
-                  · deriva de la confirmada · el cliente sigue viendo sus precios
-                </span>
-              </div>
-
-              <!-- 1. CABECERA: Propuesta, Estado y Botones -->
-              <div class="flex flex-wrap sm:flex-nowrap items-start justify-between gap-3 mb-4">
-
-                <!-- Izquierda: Propuesta y Estado -->
-                <div class="flex items-center gap-3">
-                  <!-- Badge de versión, editable -->
-                  <div v-if="editandoVersion !== (cot['@id'] || cot.id)"
-                       @click="iniciarEdicionVersion(cot)"
-                       class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-700 text-lg border-2 border-white shadow-sm group-hover:bg-[#376875] group-hover:text-white transition-colors cursor-pointer shrink-0"
-                       title="Click para editar versión">
-                    P{{ cot.propuesta }}
-                  </div>
-                  <div v-else class="flex items-center gap-1 shrink-0">
-                    <input v-model.number="propuestaTemp" type="number" min="1"
-                           class="w-14 h-12 text-center font-black rounded-full border-2 border-[#376875] outline-none"
-                           @keyup.enter="guardarVersion(cot)" @keyup.esc="editandoVersion = null">
-                    <button @click="guardarVersion(cot)" class="text-emerald-600 w-8 h-8 flex items-center justify-center bg-emerald-50 rounded-full"><i class="fas fa-check"></i></button>
-                    <button @click="editandoVersion = null" class="text-slate-400 w-8 h-8 flex items-center justify-center bg-slate-100 rounded-full"><i class="fas fa-times"></i></button>
-                  </div>
-
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-2 leading-none flex-wrap">
-                      <p class="text-sm sm:text-base font-black text-slate-800">
-                        {{ t18(cot.titulo) || `Propuesta ${cot.propuesta}` }}
-                      </p>
-                      <span class="text-[9px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 uppercase shrink-0">{{ cot.estado || 'Pendiente' }}</span>
-                      <span class="text-[9px] font-black bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded border border-orange-100 uppercase shrink-0">{{ cot.monedaGlobal || 'USD' }}</span>
-
-                      <!-- 🔥 NO PUBLICADA, a la vista. El estado («enviado») no dice si el cliente
-                           la ve: publicar es un eje aparte, y sólo lo contaba el color del ojo.
-                           Así se mandó un enlace que daba «Propuesta no encontrada» (28/09/2026). -->
-                      <button v-if="!cot.publicado" type="button" @click="alternarPublicado(cot)"
-                              class="text-[9px] font-black bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-200 uppercase shrink-0 flex items-center gap-1 hover:bg-rose-100"
-                              title="El cliente NO ve esta propuesta: su enlace le da «Propuesta no encontrada». Pulsa para publicarla.">
-                        <i class="fas fa-eye-slash text-[8px]"></i>
-                        No publicada
-                      </button>
-
-                      <!-- ⚠️ Dice dónde vive la operación, que ya NO se deduce del estado: desde
-                           el 02/09/2026 confirmar no la arma y la operativa se la lleva. Las dos
-                           dejan una confirmada vacía y significan cosas opuestas. -->
-                      <span v-if="tieneOperacion(cot)"
-                            class="text-[9px] font-black bg-[#376875] text-white px-1.5 py-0.5 rounded uppercase shrink-0 flex items-center gap-1"
-                            :title="`${cot.filasOperacionActivas} servicios activos en La Biblia`">
-                        <i class="fas fa-list-check text-[8px]"></i>
-                        Operación · {{ cot.filasOperacionActivas }}
-                      </span>
-
-                      <!-- Sin operación PERO es donde debería vivir: es una llamada a armarla, no
-                           un error. Se calla en las propuestas que todavía se venden. -->
-                      <span v-else-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
-                            class="text-[9px] font-black bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200 uppercase shrink-0"
-                            title="Todavía no se ha armado la operación de esta propuesta">
-                        Sin operación
-                      </span>
-                    </div>
-                    <p v-if="cot.resumen" class="text-[10px] text-slate-400 font-medium mt-1 truncate max-w-35 sm:max-w-xs">
-                      {{ resumenPreview(cot.resumen) }}
-                    </p>
-                  </div>
-                </div>
-
-                <!-- Derecha: Botones de Acción.
-                     ⚠️ `flex-wrap`: son hasta OCHO botones y en un móvil se apretaban hasta
-                     quedar ilegibles y difíciles de acertar. Fluyen a segunda línea en vez de
-                     encogerse — un icono de 36 px es el mínimo para el dedo, y perder una fila de
-                     alto cuesta menos que fallar el botón. -->
-                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
-                  <button @click="abrirMotor(cot)" class="px-4 py-2 bg-[#E07845] text-white text-xs font-bold rounded-xl shadow-sm hover:bg-[#c96636] transition-colors flex items-center gap-2">
-                    Editar <i class="fas fa-arrow-right"></i>
-                  </button>
-
-                  <!-- ⚠️ Publicar es un eje PROPIO, no una consecuencia del estado. Antes había que
-                       poner «enviada» para que el cliente la viera —o para verla uno mismo—, que es
-                       mentir sobre un acto comercial para conseguir una visibilidad. -->
-                  <button v-tooltip-tactil @click="alternarPublicado(cot)"
-                          :class="cot.publicado
-                            ? 'text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
-                            : 'text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-50'"
-                          class="w-9 h-9 flex items-center justify-center rounded-xl border transition-colors"
-                          :title="cot.publicado
-                            ? `El cliente VE esta propuesta. Pulsa para dejar de publicarla.`
-                            : `El cliente NO la ve. Pulsa para publicarla.`">
-                    <i class="fas text-xs" :class="cot.publicado ? 'fa-eye' : 'fa-eye-slash'"></i>
-                  </button>
-
-                  <!-- La vista cliente se abre siempre: como operador ves también lo no publicado. -->
-                  <a :href="linkPublicoPropuesta(cot.propuesta)" target="_blank" rel="noopener"
-                     class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-emerald-500 hover:border-emerald-200 hover:bg-emerald-50 transition-colors"
-                     :title="`Abrir vista cliente (P${cot.propuesta})`">
-                    <i class="fas fa-external-link-alt text-xs"></i>
-                  </a>
-
-                  <!-- Copiar ese mismo enlace. Va PEGADO al de abrir porque son la misma cosa en
-                       dos gestos: mirarla uno o mandársela al cliente — y mandársela era abrir la
-                       pestaña y copiar de la barra de direcciones. -->
-                  <button v-tooltip-tactil @click="copiarLinkPropuesta(cot)"
-                          :class="propuestaCopiada === cot.propuesta
-                            ? 'text-emerald-600 border-emerald-200 bg-emerald-50'
-                            : 'text-slate-400 border-slate-200 hover:text-emerald-500 hover:border-emerald-200 hover:bg-emerald-50'"
-                          class="w-9 h-9 flex items-center justify-center rounded-xl border transition-colors"
-                          :title="propuestaCopiada === cot.propuesta
-                            ? 'Enlace copiado'
-                            : `Copiar el enlace de la vista cliente (P${cot.propuesta})`">
-                    <i class="text-xs" :class="propuestaCopiada === cot.propuesta ? 'fas fa-check' : 'far fa-copy'"></i>
-                  </button>
-
-                  <!-- Armar la operación. ⚠️ Mismo sitio que el plan —donde VIVE la operación—
-                       porque son la misma cosa en dos momentos: éste la crea, aquél la revisa.
-                       Confirmar ya no la crea (02/09/2026): ver GenerarOperacionProcessor. -->
-                  <button v-tooltip-tactil v-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
-                          @click="generarOperacion(cot)"
-                          :disabled="armandoOperacion === extractIdStr(cot.id || cot['@id'])"
-                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white transition-colors disabled:opacity-50"
-                          title="Armar la operación: una fila de La Biblia por componente">
-                    <i class="fas fa-spinner fa-spin text-xs" v-if="armandoOperacion === extractIdStr(cot.id || cot['@id'])"></i>
-                    <i class="fas fa-list-check text-xs" v-else></i>
-                  </button>
-
-                  <!-- Donde VIVE la operación, que no siempre es la confirmada.
-                       ⚠️ Al abrir la operativa, las filas de La Biblia se mudan a ella y las de la
-                       confirmada quedan canceladas. Este botón se quedaba en la confirmada, o sea
-                       apuntando a un plan vacío, mientras la fila que sí tiene las 47 filas no lo
-                       ofrecía. Se vio en pantalla, no en un test: a ojo el `v-if` parecía correcto
-                       —y lo era, hasta que existió la operativa—. Ver docs/Cotizaciones.md §6.j.3. -->
-                  <button v-tooltip-tactil v-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
-                          @click="abrirPlanOperacion(cot)"
-                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white transition-colors"
-                          title="Revisar los cambios de esta versión en el Centro de Operaciones">
-                    <i class="fas fa-code-compare text-xs"></i>
-                  </button>
-
-                  <!-- Abrir la operativa: sólo en la confirmada, y sólo si no la tiene ya. Es
-                       idempotente en el servidor —devuelve la que hay—, pero enseñar el botón
-                       cuando ya existe invita a pulsarlo esperando otra cosa. -->
-                  <button v-tooltip-tactil v-if="cot.estado === 'confirmado' && !operativaDe(cot)"
-                          @click="abrirOperativa(cot)"
-                          :disabled="abriendoOperativa === extractIdStr(cot.id || cot['@id'])"
-                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-orange-200 text-orange-500 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-colors disabled:opacity-50"
-                          title="Abrir la propuesta operativa: lo que de verdad se va a operar">
-                    <i class="fas fa-spinner fa-spin text-xs" v-if="abriendoOperativa === extractIdStr(cot.id || cot['@id'])"></i>
-                    <i class="fas fa-route text-xs" v-else></i>
-                  </button>
-
-                  <!-- Guardar histórico vive AL LADO de clonar porque son la misma operación en
-                       direcciones opuestas, y confundirlas es lo caro: clonar crea la versión
-                       siguiente y deja ésta atrás —bien antes de vender—; esto congela una foto y
-                       deja ésta viva con sus órdenes. Ver docs/Cotizaciones.md §6.j. -->
-                  <button v-tooltip-tactil @click="guardarHistorico(cot)" :disabled="guardandoHistorico === extractIdStr(cot.id || cot['@id'])"
-                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-violet-500 hover:border-violet-200 hover:bg-violet-50 transition-colors disabled:opacity-50"
-                          title="Guardar una foto de cómo está ahora, antes de modificarla">
-                    <i class="fas fa-spinner fa-spin text-xs" v-if="guardandoHistorico === extractIdStr(cot.id || cot['@id'])"></i>
-                    <i class="fas fa-camera text-xs" v-else></i>
-                  </button>
-
-                  <button v-tooltip-tactil @click="clonarVersion(cot)" :disabled="clonandoItem === extractIdStr(cot.id || cot['@id'])"
-                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-sky-500 hover:border-sky-200 hover:bg-sky-50 transition-colors disabled:opacity-50"
-                          title="Clonar esta versión">
-                    <i class="fas fa-spinner fa-spin text-xs" v-if="clonandoItem === extractIdStr(cot.id || cot['@id'])"></i>
-                    <i class="fas fa-copy text-xs" v-else></i>
-                  </button>
-
-                  <!-- Copiar a OTRO expediente vive al lado de clonar porque es el mismo acto con
-                       otro destino, y separarlos haría buscar en dos sitios. El icono las
-                       distingue: copiar «ahí dentro» frente a copiar «hacia fuera». -->
-                  <button v-tooltip-tactil @click="abrirClonarAExpediente(cot)"
-                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 hover:bg-indigo-50 transition-colors"
-                          title="Copiar a otro expediente (otras fechas y pasajeros) o a un catálogo de tours">
-                    <i class="fas fa-arrow-right-from-bracket text-xs"></i>
-                  </button>
-
-                  <button v-tooltip-tactil @click="eliminarVersion(cot)" :disabled="eliminandoItem === (cot['@id'] || cot.id)"
-                          title="Eliminar esta propuesta"
-                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50">
-                    <i class="fas fa-spinner fa-spin text-xs" v-if="eliminandoItem === (cot['@id'] || cot.id)"></i>
-                    <i class="fas fa-trash-alt text-xs" v-else></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- 2. PANEL DE MÉTRICAS (Grid separada) -->
-              <div class="grid grid-cols-4 gap-2 sm:gap-4 bg-slate-50 border border-slate-100 rounded-xl p-3 sm:p-4 mt-2">
-
-                <!-- Pax -->
-                <div class="flex flex-col">
-                  <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                    <i class="fas fa-users mr-1"></i> Pax
-                  </span>
-                  <span class="text-xs sm:text-sm font-black text-slate-700">
-                    {{ cot.numPax ?? '—' }}
-                  </span>
-                </div>
-
-                <!-- Venta -->
-                <div class="flex flex-col border-l border-slate-200 pl-3 sm:pl-4">
-                  <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                    <i class="fas fa-money-bill mr-1"></i> Venta
-                  </span>
-                  <span class="text-xs sm:text-sm font-black text-slate-800">
-                    <span class="text-[9px] font-bold text-slate-400 mr-0.5">{{ cot.monedaGlobal }}</span>
-                    {{ cot.totalVenta ?? '0.00' }}
-                  </span>
-                </div>
-
-                <!-- Ganancia -->
-                <div class="flex flex-col border-l border-slate-200 pl-3 sm:pl-4">
-                  <span class="text-[9px] font-bold text-emerald-600/70 uppercase tracking-widest mb-1">
-                    <i class="fas fa-chart-line mr-1"></i> Ganancia
-                  </span>
-                  <span class="text-xs sm:text-sm font-black text-emerald-600">
-                    <span class="text-[9px] font-bold text-emerald-600/60 mr-0.5">{{ cot.monedaGlobal }}</span>
-                    {{ cot.ganancia ?? '0.00' }}
-                  </span>
-                </div>
-
-                <!-- Idioma -->
-                <div class="flex flex-col border-l border-slate-200 pl-3 sm:pl-4">
-                  <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                    <i class="fas fa-language mr-1"></i> Idioma
-                  </span>
-                  <span class="text-xs sm:text-sm font-black text-slate-700">
-                    {{ idiomasDisponibles.find(i => i.id === cot.idiomaCliente)?.bandera ?? '🌐' }}
-                    <span class="text-[10px] uppercase text-slate-500">{{ cot.idiomaCliente || 'es' }}</span>
-                  </span>
-                </div>
-
-              </div>
-
-              <!-- ── Las fotos del pasado de esta versión ────────────────────
-                   Plegadas: lo normal es que no interesen, y desplegadas empujarían las versiones
-                   vivas fuera de la pantalla. Se identifican por FECHA y no por número, porque
-                   comparten el de su versión a propósito. -->
-              <div v-if="historicosDe(cot).length" class="mt-3 pt-3 border-t border-slate-100">
-                <button @click="alternarHistoricos(extractIdStr(cot.id || cot['@id']) || '')"
-                        class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-violet-500 hover:text-violet-700 transition-colors">
-                  <i class="fas fa-camera"></i>
-                  {{ historicosDe(cot).length }} histórico{{ historicosDe(cot).length === 1 ? '' : 's' }}
-                  <i class="fas text-[8px]" :class="historicosAbiertos.has(extractIdStr(cot.id || cot['@id']) || '') ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                </button>
-
-                <div v-if="historicosAbiertos.has(extractIdStr(cot.id || cot['@id']) || '')" class="mt-2 space-y-1.5">
-                  <!-- ⚠️ El histórico enseña sus CIFRAS, no sólo su fecha.
-                       Una foto del pasado se consulta para responder «¿cuánto habíamos cotizado
-                       antes?», y con sólo «V1 · 11 jul» había que abrirla para saberlo — una por
-                       una, y comparando de memoria. Con compra, venta y pax delante, la pregunta
-                       se contesta desde la lista y sólo se abre la que interesa.
-                       Mismos campos y mismo formato que la tarjeta de la versión viva de arriba:
-                       si se leen distinto, no se pueden comparar. -->
-                  <div v-for="h in historicosDe(cot)" :key="h.id"
-                       class="bg-violet-50/60 border border-violet-100 rounded-lg px-3 py-2">
-                    <div class="flex items-center justify-between gap-3">
-                      <span class="text-[11px] font-bold text-violet-800 min-w-0 truncate">
-                        <i class="fas fa-clock-rotate-left text-[9px] mr-1.5 text-violet-400"></i>
-                        P{{ h.propuesta }} · {{ h.createdAt ? new Date(h.createdAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' }) : 'sin fecha' }}
-                      </span>
-                      <button @click="abrirMotor(h)"
-                              class="text-[10px] font-black text-violet-600 hover:text-violet-900 underline underline-offset-2 shrink-0">
-                        Ver
-                      </button>
-                    </div>
-
-                    <!-- Mismas tres cifras que la tarjeta de la versión viva —pax, venta y
-                         ganancia— y en el mismo orden: si se leen distinto no se pueden comparar,
-                         y comparar es para lo único que está esta lista. El idioma no se repite,
-                         que es de la versión y no de la foto.
-
-                         Cada una lleva su DIFERENCIA con la vigente cuando la hay. Sin ella hay
-                         que restar de cabeza tres pares de números por cada foto, que es
-                         exactamente el trabajo que esta fila viene a quitar. -->
-                    <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-violet-100">
-                      <div class="flex flex-col min-w-0">
-                        <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
-                          <i class="fas fa-users mr-1"></i>Pax
-                        </span>
-                        <span class="text-[11px] font-black text-violet-900 tabular-nums">
-                          {{ h.numPax ?? '—' }}
-                          <span v-if="diferenciaConVigente(h.numPax, cot.numPax) !== null"
-                                :class="(diferenciaConVigente(h.numPax, cot.numPax) ?? 0) > 0 ? 'text-emerald-600' : 'text-rose-600'"
-                                class="text-[9px] font-black ml-0.5">
-                            {{ formatoDiferencia(diferenciaConVigente(h.numPax, cot.numPax) ?? 0, 0) }}
-                          </span>
-                        </span>
-                      </div>
-                      <div class="flex flex-col min-w-0 border-l border-violet-100 pl-2">
-                        <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
-                          <i class="fas fa-money-bill mr-1"></i>Venta
-                        </span>
-                        <span class="text-[11px] font-black text-violet-900 tabular-nums">
-                          <span class="text-[9px] font-bold text-violet-400 mr-0.5">{{ h.monedaGlobal }}</span>{{ h.totalVenta ?? '0.00' }}
-                          <span v-if="diferenciaConVigente(h.totalVenta, cot.totalVenta) !== null"
-                                :class="(diferenciaConVigente(h.totalVenta, cot.totalVenta) ?? 0) > 0 ? 'text-emerald-600' : 'text-rose-600'"
-                                class="block text-[9px] font-black">
-                            {{ formatoDiferencia(diferenciaConVigente(h.totalVenta, cot.totalVenta) ?? 0) }}
-                          </span>
-                        </span>
-                      </div>
-                      <div class="flex flex-col min-w-0 border-l border-violet-100 pl-2">
-                        <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
-                          <i class="fas fa-chart-line mr-1"></i>Ganancia
-                        </span>
-                        <span class="text-[11px] font-black text-violet-900 tabular-nums">
-                          <span class="text-[9px] font-bold text-violet-400 mr-0.5">{{ h.monedaGlobal }}</span>{{ h.ganancia ?? '0.00' }}
-                          <span v-if="diferenciaConVigente(h.ganancia, cot.ganancia) !== null"
-                                :class="(diferenciaConVigente(h.ganancia, cot.ganancia) ?? 0) > 0 ? 'text-emerald-600' : 'text-rose-600'"
-                                class="block text-[9px] font-black">
-                            {{ formatoDiferencia(diferenciaConVigente(h.ganancia, cot.ganancia) ?? 0) }}
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-
-            </div>
 
           </div>
 
