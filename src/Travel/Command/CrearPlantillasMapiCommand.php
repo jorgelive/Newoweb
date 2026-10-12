@@ -18,7 +18,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Dos guiones de Machu Picchu que faltaban: el de Poroy y el de dos días sin bimodal.
+ * Tres guiones de Machu Picchu que faltaban: el de Poroy, el de dos días sin bimodal y —desde el
+ * 12/10/2026— el full day con traslado directo de ida y vuelta.
  *
  * ── Qué faltaba y por qué ───────────────────────────────────────────────────
  *
@@ -56,7 +57,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:travel:crear-plantillas-mapi',
-    description: 'Crea la plantilla de Machu Picchu por Poroy y la de dos días con traslado directo.',
+    description: 'Crea las plantillas de Machu Picchu por Poroy y con traslado directo (full day y dos días).',
     hidden: true,
 )]
 final class CrearPlantillasMapiCommand extends Command
@@ -125,6 +126,42 @@ final class CrearPlantillasMapiCommand extends Command
                 'VIS-MAPI-C2|Guiado Machu Picchu' => '08:30',
                 'SUBBAJ_BUS-MAPI-BAJ' => '11:00',
                 'TREN_RTN-MAPI-OLL' => '14:30',
+            ],
+        ],
+        [
+            // Pedida por Jorge el 12/10/2026: el full day por Ollantaytambo, pero con el traslado
+            // DIRECTO de ida y vuelta en vez de los cuatro tramos del bimodal (hotel → Wanchaq →
+            // bus → Ollanta, y al revés).
+            'slug' => '1D MAPI: CUZ OLLA MAPI OLLA CUZ (DIR)',
+            'nombre' => 'Full Day MAPI: CUZ OLLA MAPI OLLA CUZ (traslado directo)',
+            'titulo' => 'Machu Picchu en el día, con traslado directo',
+            'dias' => 1,
+            'segmentos' => [
+                ['TRANS_DIRECT_SAL-MAPI-CUZ_OLL', 1, 1],
+                ['TREN_IDA-MAPI-OLL', 1, 2],
+                ['CONTACT-MAPI-EST_MAPI', 1, 3],
+                ['SUBBAJ_BUS-MAPI-SUB', 1, 4],
+                ['VIS-MAPI-C2', 1, 5],
+                ['SUBBAJ_BUS-MAPI-BAJ', 1, 6],
+                ['TREN_RTN-MAPI-OLL', 1, 7],
+                ['TRANS_DIRECT_RET-MAPI-OLL_CUZ', 1, 8],
+            ],
+            // Todas explícitas y copiadas de su hermana «1D MAPI: CUZ OLLA MAPI OLLA CUZ (BM)»: las
+            // globales de estos segmentos son las de otros productos (el tren de ida de la tarde,
+            // el bus de las 07:00 de quien durmió arriba) y en un full day ordenarían mal el día.
+            'horas' => [
+                // ⚠️ El mismo supuesto que en la de dos días: el tren sale a las 07:45 y hay dos
+                // horas de Cusco a Ollantaytambo. Confírmalo.
+                'TRANS_DIRECT_SAL-MAPI-CUZ_OLL' => '05:30',
+                'TREN_IDA-MAPI-OLL' => '07:45',
+                'SUBBAJ_BUS-MAPI-SUB' => '10:00',
+                'VIS-MAPI-C2|Ingreso a Machu Picchu' => '11:00',
+                'VIS-MAPI-C2|Guiado Machu Picchu' => '11:00',
+                'SUBBAJ_BUS-MAPI-BAJ' => '14:00',
+                'TREN_RTN-MAPI-OLL' => '16:22',
+                // A la llegada del tren a Ollantaytambo: la misma hora que el bimodal de retorno
+                // de la hermana. Sin esperar casi dos horas en la estación (ver la cabecera).
+                'TRANS_DIRECT_RET-MAPI-OLL_CUZ' => '18:20',
             ],
         ],
     ];
@@ -268,7 +305,7 @@ final class CrearPlantillasMapiCommand extends Command
         $io->newLine();
         $io->success(sprintf('%s %d plantilla(s).', $simula ? 'Se crearían' : 'Creadas', $creadas));
 
-        $io->note('La hora del traslado directo de ida (05:30) es un supuesto: confírmala.');
+        $io->note('La hora del traslado directo de ida (05:30) es un supuesto en las dos plantillas que lo usan: confírmala.');
 
         if ($simula) {
             $io->note('Ensayo: no se escribió nada. Quita --dry-run para aplicarlo.');
