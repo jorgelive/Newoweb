@@ -42,7 +42,7 @@ mano y que el agente lo leyera.
 
 | Pieza | Qué hace |
 |---|---|
-| `EnlazarAAsunto.vue` | En un hilo `manual`, banner «¿De qué asunto es esta persona?»; en cualquier otro, botón 🔗 en la cabecera |
+| `EnlazarAAsunto.vue` | En un hilo `manual`, banner «¿De qué asunto es esta persona?» —**plegado** en una línea con el nº de sugerencias, porque desplegado tapaba en el móvil lo que la persona escribió (10/10/2026)—; en cualquier otro, botón 🔗 en la cabecera, que lo abre desplegado. La lista tiene alto máximo y scroll propio |
 | `CandidatosDeAsuntoInterface` | Cada dominio propone sus asuntos con su etiqueta y su motivo; `GET /conversations/{id}/asuntos/candidatos?q=` los reúne. El PMS (`PmsCandidatosDeAsunto`): alojadas o llegando en ±2 días, una fila por reserva, primero las del mismo prefijo de país y zona; con `q`, el buscador del calendario (`BuscadorDeEstancias`, compartido) |
 | **Acompañante** | `POST /conversations/{id}/asuntos` → `AperturaDeHilo::enlazarAcompanante()` → `MessageConversationFactory::enlazarAcompanante()` |
 | **Es el titular** | La misma persona con otro número: se UNE con su hilo (la fusión de siempre, con previa) |

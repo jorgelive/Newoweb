@@ -34,6 +34,12 @@ interface CandidatoDeAsunto {
 
 const props = defineProps<{
   conversacionId: string;
+  /**
+   * Arranca plegado en una sola línea. Lo pide el chat cuando el panel se abre SOLO —un hilo
+   * «manual»—: desplegado ocupaba media pantalla del móvil y tapaba justo lo que la persona
+   * escribió, que es lo que hay que leer para saber de quién es (10/10/2026).
+   */
+  plegadoAlInicio?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -46,6 +52,7 @@ const chat = useChatStore();
 const fusion = useDuenioDeIdentificador(() => true);
 
 const candidatos = ref<CandidatoDeAsunto[]>([]);
+const plegado = ref(!!props.plegadoAlInicio);
 const busqueda = ref('');
 const cargando = ref(false);
 const ocupado = ref(false);
@@ -135,8 +142,17 @@ const unir = async (): Promise<void> => {
 
 <template>
   <div class="text-[11px] font-bold text-sky-900 bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 leading-snug">
-    <p><i class="fas fa-link mr-1"></i>¿De qué asunto es esta persona?</p>
+    <!-- La pregunta es también el botón de plegar: plegada sigue a la vista, con cuántas
+         sugerencias hay, pero deja leer la conversación. -->
+    <button type="button" @click="plegado = !plegado"
+            class="w-full flex items-center justify-between gap-2 text-left">
+      <span><i class="fas fa-link mr-1"></i>¿De qué asunto es esta persona?
+        <span v-if="plegado && candidatos.length" class="ml-1 font-medium text-sky-700">({{ candidatos.length }} sugerencias)</span>
+      </span>
+      <i class="fas fa-chevron-down text-[10px] text-sky-600 transition-transform" :class="plegado ? '' : 'rotate-180'"></i>
+    </button>
 
+    <template v-if="!plegado">
     <input v-model="busqueda" type="search" placeholder="Buscar por nombre, código…"
            class="mt-1.5 w-full px-2 py-1 rounded-lg border border-sky-200 bg-white text-slate-700 text-[11px] font-medium focus:outline-none focus:ring-1 focus:ring-sky-400" />
 
@@ -145,7 +161,8 @@ const unir = async (): Promise<void> => {
       {{ busqueda.trim().length >= 2 ? 'Nada coincide.' : 'Nada en curso estos días.' }}
     </p>
 
-    <ul v-else-if="!previa" class="mt-1.5 flex flex-col gap-1">
+    <!-- Con alto máximo y scroll propio: cinco candidatos en un móvil ya eran la pantalla entera. -->
+    <ul v-else-if="!previa" class="mt-1.5 flex flex-col gap-1 max-h-[40vh] overflow-y-auto">
       <li v-for="c in candidatos" :key="`${c.contextType}:${c.contextId}`"
           class="flex flex-wrap items-center gap-x-2 gap-y-1 bg-white border border-sky-100 rounded-lg px-2 py-1.5">
         <span class="min-w-0 flex-1">
@@ -185,5 +202,6 @@ const unir = async (): Promise<void> => {
     </div>
 
     <p v-if="error" class="text-red-600 mt-1.5">{{ error }}</p>
+    </template>
   </div>
 </template>

@@ -1590,8 +1590,10 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
 
           <!-- ¿De qué asunto es? En los «manual» siempre; en el resto, a demanda. Ver EnlazarAAsunto. -->
           <div v-if="mostrarEnlazar && store.currentConversation?.id" class="bg-white border-b border-slate-200 px-4 md:px-8 py-2">
+            <!-- Plegado cuando se abre solo (hilo «manual»); desplegado si lo pidió el botón. -->
             <EnlazarAAsunto :key="store.currentConversation.id"
                             :conversacion-id="store.currentConversation.id"
+                            :plegado-al-inicio="!enlazarAbierto"
                             @enlazado="alEnlazarAsunto" @fusionado="alUnirHilos" />
           </div>
 
