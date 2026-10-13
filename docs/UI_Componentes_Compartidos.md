@@ -1524,6 +1524,11 @@ dos botones dentro, la ficha había crecido bastante desde que se diseñó.
 - **`chat/FusionSugeridaAviso.vue`** — el banner «¿es la misma persona?» con «unir» y «no es la
   misma persona». Lo montan `ChatView` (bajo la cabecera) y `ReservaEditDrawer` (junto al
   teléfono); la fusión pasa por `useDuenioDeIdentificador`, igual que el editor de identidades.
+- **`chat/TelefonoPrincipalDeFusion.vue`** — dentro de la previa de CUALQUIER unión (el banner de
+  arriba, `EditConversationModal` y «Es el titular» de `EnlazarAAsunto`): «después de unir,
+  escribirle a…», con el teléfono que propone el backend ya marcado. Sólo se pinta con dos o más
+  números. Una pantalla nueva que una hilos lo monta igual y pasa el elegido a
+  `fusionar(…, principal)`; ver `docs/Mensajeria.md`, «Fusionar dejó de ser sólo un comando».
 
 ⚠️ **Para abrir un hilo, `/chat?id=…`.** `/chat/:conversationId` redirige ahí; antes montaba
 `ChatView` con un parámetro que la vista no lee y dejaba en la bandeja sin abrir nada.

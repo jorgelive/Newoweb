@@ -61,9 +61,14 @@ final class FusionarHilosController extends AbstractController
             return $this->json(['error' => $error ?? 'Pareja de hilos incompleta.'], Response::HTTP_BAD_REQUEST);
         }
 
+        // Los teléfonos que pueden quedar de salida y el que se propone. Si quedan dos vivos y
+        // nadie elige, el hilo se queda escribiendo a uno al azar del pasado: ver
+        // `FusionadorDeHilos::telefonoPropuesto()`, el caso de Camille.
         return $this->json([
             'superviviente' => $this->ficha($superviviente),
             'absorbido' => $this->ficha($absorbido),
+            'telefonos' => $this->fusionador->telefonosCandidatos($superviviente, $absorbido),
+            'telefonoPropuesto' => $this->fusionador->telefonoPropuesto($superviviente, $absorbido),
         ]);
     }
 
@@ -72,8 +77,11 @@ final class FusionarHilosController extends AbstractController
     {
         $this->denyAccessUnlessGranted(Roles::MENSAJES_WRITE, null, 'Acceso denegado a las conversaciones.');
 
-        // Un solo campo, `{"con": "<uuid del otro hilo>"}`: se lee en el sitio y no merece DTO.
-        $con = Lee::texto(Lee::en(json_decode($request->getContent(), true), 'con')) ?? '';
+        // `{"con": "<uuid del otro hilo>", "principal": "<teléfono>"?}`: dos campos sueltos, se
+        // leen en el sitio y no merecen DTO.
+        $cuerpo = json_decode($request->getContent(), true);
+        $con = Lee::texto(Lee::en($cuerpo, 'con')) ?? '';
+        $principal = Lee::texto(Lee::en($cuerpo, 'principal'));
 
         [$superviviente, $absorbido, $error] = $this->parejaDe($id, $con);
 
@@ -83,7 +91,14 @@ final class FusionarHilosController extends AbstractController
             return $this->json(['error' => $error ?? 'Pareja de hilos incompleta.'], Response::HTTP_BAD_REQUEST);
         }
 
-        $movidos = $this->fusionador->unir($superviviente, $absorbido);
+        // Lo que elige el operador se comprueba contra la lista: un número que no es de ninguno
+        // de los dos hilos —o vetado— no puede quedar de salida.
+        if ($principal !== null && !in_array($principal, $this->fusionador->telefonosCandidatos($superviviente, $absorbido), true)) {
+            return $this->json(['error' => 'Ese teléfono no es de ninguno de los dos hilos.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Sin elección, el fusionador aplica su propuesta: la de la previa.
+        $movidos = $this->fusionador->unir($superviviente, $absorbido, $principal);
 
 
         // 🔥 Lo que esperaba canal sale YA, no en el siguiente barrido. Los mensajes se mueven

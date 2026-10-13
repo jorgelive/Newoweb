@@ -29,6 +29,19 @@ export interface DuenioDeIdentificador {
 
 export type TipoIdentificador = 'telefono' | 'email';
 
+/**
+ * Lo que devuelve `GET …/fusion/previa` — espejo de `FusionarHilosController::previa()`, que no es
+ * un `ApiResource` y por eso no sale en `api.d.ts`.
+ */
+export interface PreviaDeFusion {
+    superviviente: { id: string; nombre: string | null; mensajes: number; asuntos: number };
+    absorbido: { id: string; nombre: string | null; mensajes: number; asuntos: number };
+    /** Teléfonos vivos y sin vetar de los dos hilos: los que pueden quedar de salida. */
+    telefonos: string[];
+    /** El que propone el backend: el del hilo con la ventana de WhatsApp abierta, si lo hay. */
+    telefonoPropuesto: string | null;
+}
+
 export function useDuenioDeIdentificador(
     /** ¿Este asunto YA tiene hilo propio? Cambia el desenlace, y por tanto el aviso. */
     yaTieneHilo: Ref<boolean> | (() => boolean) = () => false,
@@ -117,10 +130,7 @@ export function useDuenioDeIdentificador(
      * backend, no esta pantalla. Enseñar aquí una suposición y que el servidor hiciera otra cosa
      * sería peor que no enseñar nada.
      */
-    const previaDeFusion = async (miHiloId: string, conHilo?: string): Promise<{
-        superviviente: { id: string; nombre: string | null; mensajes: number; asuntos: number };
-        absorbido: { id: string; nombre: string | null; mensajes: number; asuntos: number };
-    } | null> => {
+    const previaDeFusion = async (miHiloId: string, conHilo?: string): Promise<PreviaDeFusion | null> => {
         // `conHilo` lo pasa quien ya sabe con quién —el banner de la fusión sugerida—; si no, es
         // el dueño que acaba de encontrar la comprobación.
         const otro = conHilo ?? duenio.value?.conversacionId;
@@ -147,7 +157,12 @@ export function useDuenioDeIdentificador(
      * archivado y **sin identidades** —y dentro del chat, pudiendo escribirle a números que ya no
      * son suyos—.
      */
-    const fusionar = async (miHiloId: string, conHilo?: string): Promise<{ supervivienteId: string } | { error: string }> => {
+    const fusionar = async (
+        miHiloId: string,
+        conHilo?: string,
+        /** El teléfono que queda de salida. Sin él, el backend aplica `telefonoPropuesto`. */
+        principal?: string | null,
+    ): Promise<{ supervivienteId: string } | { error: string }> => {
         const otro = conHilo ?? duenio.value?.conversacionId;
 
         if (!otro || !miHiloId) return { error: 'No sé con qué hilo fusionar.' };
@@ -155,7 +170,7 @@ export function useDuenioDeIdentificador(
         try {
             const { data } = await apiClient.post(
                 `/platform/message/conversations/${miHiloId}/fusion`,
-                { con: otro },
+                principal ? { con: otro, principal } : { con: otro },
             );
 
             return { supervivienteId: String(data?.supervivienteId ?? miHiloId) };

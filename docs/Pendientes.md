@@ -1145,11 +1145,11 @@ Los automáticos ya no justifican un resumen diario: caben en la guardia técnic
 
 - **Humberto Pereda (08/10, 23:46).** La respuesta del agente falló por Beds24 con
   `[Code 0] Error desconocido al enviar mensaje`. Lo atendió una persona dos minutos después.
-- **Camille Boisfer (12/10, 19:50).** Meta rechazó la respuesta del agente con **131047
-  (Re-engagement message)**, que es «fuera de la ventana de 24 h»… **trece segundos después de
-  que ella escribiera**. Con la ventana recién abierta no debería pasar. Sin investigar: lo primero
-  es ver por qué canal entró su mensaje y por cuál salió la respuesta. Lo atendió una persona a
-  la mañana siguiente.
+- **Camille Boisfer (12/10, 19:50) — ✅ causa encontrada y arreglada el 13/10/2026.** Al unir su
+  hilo de Booking con el de WhatsApp quedaron dos teléfonos vivos sin principal, y siguió de
+  salida el que nunca nos escribió: sin ventana, 131047. La unión propone ahora el número con la
+  ventana abierta y deja elegirlo (`FusionadorDeHilos::telefonoPropuesto()`, `docs/Mensajeria.md`
+  «Fusionar dejó de ser sólo un comando»).
 
 En los dos, el agente le dijo al huésped «ya he avisado al equipo» en un mensaje que **no le
 llegó**. Que lo atendiera una persona después fue suerte, no diseño.

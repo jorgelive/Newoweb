@@ -6,6 +6,7 @@ import { useChatStore, type ApiConversation } from '@/stores/chat/chatStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { uuidDe } from '@/services/hydra';
 import InfoTooltip from '@/components/common/InfoTooltip.vue';
+import TelefonoPrincipalDeFusion from '@/components/chat/TelefonoPrincipalDeFusion.vue';
 
 const props = defineProps<{ conversation: ApiConversation }>();
 const emit = defineEmits<{ close: [] }>();
@@ -52,10 +53,13 @@ const duenioNuevo = useDuenioDeIdentificador(() => true);
 
 const previaFusion = ref<Awaited<ReturnType<typeof duenioNuevo.previaDeFusion>>>(null);
 const fusionando = ref(false);
+/** El teléfono que queda de salida; arranca en el que propone el backend. */
+const principalFusion = ref<string | null>(null);
 
 const pedirPreviaFusion = async (): Promise<void> => {
   fusionando.value = true;
   previaFusion.value = await duenioNuevo.previaDeFusion(conversationUuid.value ?? '');
+  principalFusion.value = previaFusion.value?.telefonoPropuesto ?? null;
   fusionando.value = false;
 
   if (!previaFusion.value) errorIdent.value = 'No se pudo preparar la fusión.';
@@ -63,7 +67,7 @@ const pedirPreviaFusion = async (): Promise<void> => {
 
 const aplicarFusion = async (): Promise<void> => {
   fusionando.value = true;
-  const r = await duenioNuevo.fusionar(conversationUuid.value ?? '');
+  const r = await duenioNuevo.fusionar(conversationUuid.value ?? '', undefined, principalFusion.value);
   fusionando.value = false;
 
   if ('error' in r) { errorIdent.value = r.error; return; }
@@ -560,6 +564,7 @@ const formatDateTime = (iso?: string | null) => {
                   ({{ previaFusion.absorbido.mensajes }} mensajes, {{ previaFusion.absorbido.asuntos }} asuntos).
                   <span class="text-amber-700">Esto no se deshace.</span>
                 </p>
+                <TelefonoPrincipalDeFusion v-model="principalFusion" :previa="previaFusion" />
                 <div class="flex gap-1.5 mt-1.5">
                   <button type="button" @click="previaFusion = null"
                           class="px-2 py-1 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500">Cancelar</button>

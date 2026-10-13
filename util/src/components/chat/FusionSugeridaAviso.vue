@@ -4,6 +4,7 @@ import type { components } from '@dominio/api';
 import { apiClient } from '@/services/apiClient';
 import { formatearTelefono } from '@/utils/telefono';
 import { useDuenioDeIdentificador } from '@/composables/useDuenioDeIdentificador';
+import TelefonoPrincipalDeFusion from '@/components/chat/TelefonoPrincipalDeFusion.vue';
 
 /**
  * «El teléfono de este hilo ya es de otro: ¿son la misma persona?» — con los dos botones.
@@ -37,6 +38,8 @@ const fusion = useDuenioDeIdentificador(() => true);
 const previa = ref<Awaited<ReturnType<typeof fusion.previaDeFusion>>>(null);
 const ocupado = ref(false);
 const error = ref<string | null>(null);
+/** El teléfono que queda de salida; arranca en el que propone el backend. */
+const principal = ref<string | null>(null);
 
 const dato = computed(() => props.sugerencia.tipo === 'telefono'
   ? `El teléfono ${formatearTelefono('+' + props.sugerencia.valor) || props.sugerencia.valor}`
@@ -46,6 +49,7 @@ const pedirPrevia = async (): Promise<void> => {
   ocupado.value = true;
   error.value = null;
   previa.value = await fusion.previaDeFusion(props.conversacionId, props.sugerencia.con);
+  principal.value = previa.value?.telefonoPropuesto ?? null;
   ocupado.value = false;
 
   if (!previa.value) error.value = 'No se pudo preparar la unión.';
@@ -53,7 +57,7 @@ const pedirPrevia = async (): Promise<void> => {
 
 const unir = async (): Promise<void> => {
   ocupado.value = true;
-  const r = await fusion.fusionar(props.conversacionId, props.sugerencia.con);
+  const r = await fusion.fusionar(props.conversacionId, props.sugerencia.con, principal.value);
   ocupado.value = false;
 
   if ('error' in r) { error.value = r.error; return; }
@@ -107,6 +111,7 @@ const descartar = async (): Promise<void> => {
         ({{ previa.absorbido.mensajes }} mensajes, {{ previa.absorbido.asuntos }} asuntos).
         <span class="text-amber-700">Esto no se deshace.</span>
       </p>
+      <TelefonoPrincipalDeFusion v-model="principal" :previa="previa" />
       <div class="flex gap-1.5 mt-1.5">
         <button type="button" @click="previa = null"
                 class="px-2 py-1 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500">Cancelar</button>

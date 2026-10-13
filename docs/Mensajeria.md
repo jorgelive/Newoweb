@@ -345,6 +345,31 @@ un aviso por WhatsApp. Se recalcula con la regla de la entidad (`recalcularTelef
 `recalcularBloqueoWhatsapp()`), con un `refresh()` del superviviente para que `identidades` relea
 lo movido.
 
+🔥 **Y elige el teléfono PRINCIPAL, porque con dos vivos la entidad no elige (13/10/2026).**
+Camille Boisfer: su hilo de Booking tenía un teléfono puesto a mano (`33635505384`, que nunca nos
+escribió); ella escribía por WhatsApp desde otro (`33769734264`), en su propio hilo. Al unirlos
+quedaron los dos vivos y ninguno principal, y `recalcularTelefonoPrincipal()` —con razón: sin
+marca no hay respuesta correcta— dejó `guestPhone` en el del superviviente. La respuesta del
+agente salió al número sin ventana y Meta la rechazó con **131047**, trece segundos después de que
+ella escribiera; el agente le había dicho «ya consulté con el equipo». Se arregló a la mañana
+siguiente marcando a mano el bueno.
+
+Ahora la previa (`GET …/fusion/previa`) devuelve `telefonos` y `telefonoPropuesto`, el panel
+enseña los números con el propuesto marcado (`TelefonoPrincipalDeFusion.vue`, en las tres
+pantallas que unen: aviso de fusión sugerida, editor de la conversación y «Es el titular»), y
+`POST …/fusion` acepta `principal`. **Sin él se aplica la propuesta**, así que nada que llame a
+`FusionadorDeHilos::unir()` vuelve a dejar el hilo sin elegir. La regla, en
+`FusionadorDeHilos::telefonoPropuesto()`:
+
+1. El del hilo con la **ventana de WhatsApp abierta** más larga: el número que acaba de
+   escribirnos, y el único al que se puede contestar con texto libre.
+2. Si ninguno la tiene, el principal del superviviente o su `guestPhone`: lo que ya funcionaba.
+3. El del absorbido.
+
+Siempre entre los candidatos —vivos y sin vetar—, y el elegido por el operador se valida contra
+esa lista. ⚠️ El barrido masivo (`FusionarHilosCommand` → `fusionar()`) **no** pasa por aquí: une
+varios de golpe y sigue dejando la elección a la regla de la entidad.
+
 ⚠️ **`refresh()`, no `detach()` + `find()`.** La primera versión soltaba el hilo y lo volvía a
 cargar, y la fusión reventaba —«A new entity was found through the relationship
 PmsConversacionEnlace#conversacion»— con los mensajes ya movidos y sin transacción: el `postFlush`
@@ -7352,6 +7377,7 @@ de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar
 | **Avisar al equipo de algo nuevo** (un cobro, una avería…) | `AvisoAlEquipoService::notificar()` | Compón un `AvisoAlEquipo` desde TU dominio: texto, plantilla para fuera de ventana, rol. El servicio no debe aprender qué es lo que avisas |
 | Cambiar a quién llegan los avisos | quien construye el `AvisoAlEquipo` | Es el campo `rol`. Reciben los que lo tengan **y** móvil registrado (`destinatarios()`) |
 | Cambiar cuándo se sugiere unir dos hilos o cuándo se avisa | `MessageConversation::sugerirFusion()` / `FusionSugeridaListener` | «El choque de identificadores que nadie veía» |
+| Cambiar qué teléfono queda de salida al unir dos hilos | `FusionadorDeHilos` | `telefonoPropuesto()` (la regla) y `telefonosCandidatos()`; el selector es `TelefonoPrincipalDeFusion.vue` (§«Fusionar dejó de ser sólo un comando») |
 | Cambiar el texto del aviso de fusión sugerida | `AvisarFusionSugeridaDispatchHandler` (dentro de ventana) / plantilla `aviso_fusion_sugerida_interno` (`msg:crear:aviso-fusion`) | En Meta, texto nuevo = versión nueva |
 | Cambiar qué cuenta como «sin teléfono» en el reporte del portal | `AsuntoSinTelefono::motivo()` | Mira lo mismo que el envío; ver «Reservas y cotizaciones sin teléfono» |
 | Cambiar cuándo la página del huésped pide el WhatsApp, o qué acepta | `TelefonoDelHuesped` | `hayQuePedirlo()` / `guardar()` — y los textos en `pax:textos:telefono` |

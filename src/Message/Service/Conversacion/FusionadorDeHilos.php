@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Message\Service\Conversacion;
 
 use App\Message\Entity\MessageConversation;
+use App\Message\Enum\IdentidadTipo;
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -56,8 +58,11 @@ final class FusionadorDeHilos
      * superviviente y no hay forma de decir cuántos venían de dónde. Es lo que el panel enseña
      * para confirmar, así que si se contara después diría siempre el total.
      */
-    public function unir(MessageConversation $superviviente, MessageConversation $absorbido): int
-    {
+    public function unir(
+        MessageConversation $superviviente,
+        MessageConversation $absorbido,
+        ?string $telefonoPrincipal = null,
+    ): int {
         $movidos = $this->db->fetchOne(
             'SELECT COUNT(*) FROM msg_message WHERE conversation_id = UNHEX(REPLACE(?, \'-\', \'\'))',
             [(string) $absorbido->getId()],
@@ -65,11 +70,95 @@ final class FusionadorDeHilos
         // El driver devuelve el `COUNT(*)` como entero o como texto numérico según la versión.
         $movidos = is_numeric($movidos) ? (int) $movidos : 0;
 
+        // Se decide ANTES de mover: después las identidades ya están juntas y no se sabe cuál
+        // venía del hilo que tenía la ventana de WhatsApp abierta.
+        $principal = $telefonoPrincipal ?? $this->telefonoPropuesto($superviviente, $absorbido);
+
         $this->fusionar($superviviente, [$absorbido]);
+
+        if ($principal !== null) {
+            $this->principales[(string) $superviviente->getId()] = $principal;
+        }
+
         $this->em->flush();
         $this->recalcularBloqueos();
 
         return $movidos;
+    }
+
+    /**
+     * Los teléfonos que pueden quedar de salida tras unir: vivos y sin vetar, de los dos hilos.
+     *
+     * @return list<string>
+     */
+    public function telefonosCandidatos(MessageConversation $superviviente, MessageConversation $absorbido): array
+    {
+        $valores = [];
+
+        foreach ([$superviviente, $absorbido] as $hilo) {
+            foreach ($hilo->getIdentidades() as $identidad) {
+                if ($identidad->getTipo() === IdentidadTipo::TELEFONO && $identidad->estaViva() && !$identidad->isBloqueado()) {
+                    $valores[$identidad->getValor()] = $identidad->getValor();
+                }
+            }
+        }
+
+        return array_values($valores);
+    }
+
+    /**
+     * El teléfono que debería quedar de salida tras unir, o `null` si no hay ninguno.
+     *
+     * 🔥 **Sin esto, la unión dejaba de salida el número que nunca nos escribió.** Camille Boisfer
+     * (12/10/2026): su hilo de Booking tenía un teléfono puesto a mano; ella escribía desde otro
+     * por WhatsApp, en su propio hilo. Al unirlos quedaron dos teléfonos vivos y ninguno
+     * principal, y {@see MessageConversation::recalcularTelefonoPrincipal()} —con razón— no elige
+     * en ese caso: dejó el del superviviente. La respuesta del agente salió a un número sin
+     * ventana abierta y Meta la rechazó con 131047, trece segundos después de que ella escribiera.
+     *
+     * La regla, por orden:
+     *   1. El del hilo con la **ventana de WhatsApp abierta** más larga: es el número que acaba
+     *      de escribirnos, y el único al que se le puede contestar con texto libre.
+     *   2. El principal del superviviente, o su `guestPhone`: lo que ya funcionaba.
+     *   3. El del absorbido.
+     * Siempre entre los candidatos: un número vetado o retirado no se propone nunca.
+     */
+    public function telefonoPropuesto(MessageConversation $superviviente, MessageConversation $absorbido): ?string
+    {
+        $candidatos = $this->telefonosCandidatos($superviviente, $absorbido);
+
+        if ($candidatos === []) {
+            return null;
+        }
+
+        $ahora = new DateTimeImmutable();
+        $conVentana = array_filter(
+            [$superviviente, $absorbido],
+            static fn (MessageConversation $h): bool => $h->getWhatsappSessionValidUntil() !== null
+                && $h->getWhatsappSessionValidUntil() > $ahora,
+        );
+        usort(
+            $conVentana,
+            static fn (MessageConversation $a, MessageConversation $b): int
+                => $b->getWhatsappSessionValidUntil() <=> $a->getWhatsappSessionValidUntil(),
+        );
+
+        foreach ([...$conVentana, $superviviente, $absorbido] as $hilo) {
+            foreach ([$hilo->getTelefonoPrincipal()?->getValor(), $this->normalizado($hilo->getGuestPhone())] as $valor) {
+                if ($valor !== null && in_array($valor, $candidatos, true)) {
+                    return $valor;
+                }
+            }
+        }
+
+        return $candidatos[0];
+    }
+
+    private function normalizado(?string $telefono): ?string
+    {
+        $valor = IdentidadTipo::TELEFONO->normalizar((string) $telefono);
+
+        return $valor === '' ? null : $valor;
     }
 
     /** @param list<MessageConversation> $absorbidos */
@@ -102,6 +191,9 @@ final class FusionadorDeHilos
 
     /** @var array<string, string> Los hilos que sobrevivieron, indexados para no repetirlos. */
     private array $supervivientes = [];
+
+    /** @var array<string, string> Teléfono que queda de salida, por hilo superviviente. */
+    private array $principales = [];
 
     /**
      * El veto de WhatsApp del hilo, a partir de las identidades que acabe teniendo.
@@ -153,6 +245,17 @@ final class FusionadorDeHilos
         }
 
         $this->em->refresh($hilo);
+
+        $principal = $this->principales[$conversacion] ?? null;
+
+        if ($principal !== null) {
+            foreach ($hilo->getIdentidades() as $identidad) {
+                if ($identidad->getTipo() === IdentidadTipo::TELEFONO) {
+                    $identidad->setPrincipal($identidad->getValor() === $principal);
+                }
+            }
+        }
+
         $hilo->recalcularTelefonoPrincipal()->recalcularBloqueoWhatsapp();
         $this->em->flush();
     }

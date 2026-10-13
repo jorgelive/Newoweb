@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { useChatStore } from '@/stores/chat/chatStore';
 import { useDuenioDeIdentificador } from '@/composables/useDuenioDeIdentificador';
+import TelefonoPrincipalDeFusion from '@/components/chat/TelefonoPrincipalDeFusion.vue';
 
 /**
  * «¿De qué asunto es esta persona?» — cuelga un asunto de ESTE hilo.
@@ -61,6 +62,8 @@ const error = ref<string | null>(null);
 /** La previa de la unión con el hilo titular, cuando se eligió «Es el titular». */
 const previa = ref<Awaited<ReturnType<typeof fusion.previaDeFusion>>>(null);
 const titularElegido = ref<string | null>(null);
+/** El teléfono que queda de salida; arranca en el que propone el backend. */
+const principal = ref<string | null>(null);
 
 let controlador: AbortController | null = null;
 
@@ -121,6 +124,7 @@ const esElTitular = async (c: CandidatoDeAsunto): Promise<void> => {
 
   titularElegido.value = suyo.id;
   previa.value = await fusion.previaDeFusion(props.conversacionId, suyo.id);
+  principal.value = previa.value?.telefonoPropuesto ?? null;
   ocupado.value = false;
 
   if (!previa.value) error.value = 'No se pudo preparar la unión.';
@@ -130,7 +134,7 @@ const unir = async (): Promise<void> => {
   if (!titularElegido.value) return;
 
   ocupado.value = true;
-  const r = await fusion.fusionar(props.conversacionId, titularElegido.value);
+  const r = await fusion.fusionar(props.conversacionId, titularElegido.value, principal.value);
   ocupado.value = false;
 
   if ('error' in r) { error.value = r.error; return; }
@@ -191,6 +195,7 @@ const unir = async (): Promise<void> => {
         ({{ previa.absorbido.mensajes }} mensajes, {{ previa.absorbido.asuntos }} asuntos).
         <span class="text-amber-700">Esto no se deshace.</span>
       </p>
+      <TelefonoPrincipalDeFusion v-model="principal" :previa="previa" />
       <div class="flex gap-1.5 mt-1.5">
         <button type="button" @click="previa = null"
                 class="px-2 py-1 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500">Cancelar</button>
