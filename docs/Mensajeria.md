@@ -5743,12 +5743,12 @@ propósito: significa que se está pagando el tramo que no era.
 Con las tres claves **vacías**, todo se atiende como antes: el motor de `AGENT_IA_PROVEEDOR`
 con su modelo por defecto. El mecanismo se puede desplegar sin cambiar nada.
 
-> 🚧 **Estado real de este entorno (09/09/2026).** Las tres claves apuntan **a Google**, no a
+> 🚧 **Estado real de este entorno (13/10/2026).** Las tres claves apuntan **a Google**, no a
 > Anthropic, y resuelven directamente — ya no degradan ni dejan `warning`:
 >
 > ```
->   AGENT_IA_POTENCIA_ALTA=google:gemini-3.7-flash
->   AGENT_IA_POTENCIA_MEDIA=google:gemini-3.7-flash
+>   AGENT_IA_POTENCIA_ALTA=google:gemini-3.8-flash
+>   AGENT_IA_POTENCIA_MEDIA=google:gemini-3.8-flash
 >   AGENT_IA_POTENCIA_BAJA=google:gemini-3.5-flash-lite
 > ```
 >
@@ -5756,6 +5756,11 @@ con su modelo por defecto. El mecanismo se puede desplegar sin cambiar nada.
 > separa dos cosas, no tres: lo que ahorra la charla es el tramo bajo y el catálogo que no se
 > manda. La versión anterior de este bloque decía `anthropic` y `gemini-3.6-flash`: llevaba
 > tiempo describiendo una configuración que ya no existía.
+>
+> **De 3.7 a 3.8 el 13/10/2026**: Google ya trata la 3.7 como legacy y redirige a la 3.8. Antes de
+> cambiar se comprobó que la 3.8 acepta `thinkingLevel: low` y el *function calling*. ⚠️ Cambiar el
+> `.env` **no basta**: producción lee `.env.local.php`, así que va `composer dump-env prod` en el
+> servidor y reiniciar los workers, que cargan la configuración al arrancar.
 
 ### 13.5 bis Lo que cuesta de verdad, medido (09/09/2026)
 
