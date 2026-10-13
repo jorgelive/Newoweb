@@ -1128,65 +1128,28 @@ negocio previsible es un **aviso**, no un error.
 
 ---
 
-## Volver a medir el reparto de fallos: la cuenta que lo decidía está caducada — 10/09/2026
+## Reparto de fallos: medido otra vez el 13/10/2026, y la cuenta vieja ya no vale
 
-El aviso de envío fallido se reparte hoy entre dos guardias, y **quién queda fuera se decidió con
-una cuenta que el mismo día dejó de ser válida**.
+La cuenta del 10/09 (302 fallos de regla programada contra 3 del agente) se tomó antes de mover el
+veto de canal al momento del envío. Repetida sobre lo creado **del 10/09 al 13/10/2026**:
 
-La cuenta, medida en producción el 10/09/2026 sobre los salientes en `failed`:
-
-| origen | cuántos | ¿avisa? |
+| origen | cuántos | qué eran |
 |---|---|---|
-| Persona (`SENDER_HOST`) | 16 | sí, desde siempre |
-| Agente (`SENDER_SYSTEM` con `generado_por = 'ia'`) | **3** en seis meses | sí, desde el 10/09 |
-| Regla programada (`SENDER_SYSTEM` sin `generado_por`) | **302** | **no** |
+| Regla programada | **7** | 1 sin motivo; 6 son **avisos internos al equipo** (cobro, fusión) fuera de ventana, del 26/09 y el 02/10, antes de que sus plantillas estuvieran aprobadas. Hoy las nueve `aviso_*` lo están, en 7 idiomas |
+| Agente (`generado_por = ia`) | **2** | ver abajo |
 
-El argumento para dejar fuera los 302 es bueno y está escrito en `AvisoEnvioFallidoListener`:
-~1,6 al día, y avisar de cada uno llenaría el móvil con algo que nadie puede arreglar en el
-momento. Su sitio natural es un resumen, no un empujón por cada uno.
+**Los 302 eran el veto de canal muriendo antes de tiempo, y con eso arreglado desaparecieron.**
+Los automáticos ya no justifican un resumen diario: caben en la guardia técnica tal cual.
 
-⚠️ **Pero los 302 se contaron ANTES de mover el veto de canal.** El commit «El veto del canal se
-preguntaba tres días antes de tocar enviar» sacó la comprobación de `WhatsappMetaSendEnqueuer::createQueueEntity()`
-—donde se resolvía con el estado del día de la creación— y la dejó sólo en la estrategia de
-envío. Una parte de esos 302 son exactamente eso: mensajes declarados muertos antes de tocarles
-salir, con el canal ya rehabilitado cuando llegó su hora (el caso medido está en el pendiente
-«Un canal deshabilitado deja mensajes muertos»).
+### Lo que sí queda, y son dos casos de huésped
 
-O sea que **el número que sostiene la decisión ya no describe la realidad**, y puede haberse
-movido en cualquiera de los dos sentidos: menos fallos totales porque dejaron de morir antes de
-tiempo, o los mismos repartidos de otra forma.
+- **Humberto Pereda (08/10, 23:46).** La respuesta del agente falló por Beds24 con
+  `[Code 0] Error desconocido al enviar mensaje`. Lo atendió una persona dos minutos después.
+- **Camille Boisfer (12/10, 19:50).** Meta rechazó la respuesta del agente con **131047
+  (Re-engagement message)**, que es «fuera de la ventana de 24 h»… **trece segundos después de
+  que ella escribiera**. Con la ventana recién abierta no debería pasar. Sin investigar: lo primero
+  es ver por qué canal entró su mensaje y por cuál salió la respuesta. Lo atendió una persona a
+  la mañana siguiente.
 
-### Qué medir, y por qué son dos preguntas y no una
-
-```sql
--- 1. ¿Sigue siendo 302 contra 3? Sólo cuenta lo posterior al arreglo del veto.
-SELECT COALESCE(JSON_UNQUOTE(JSON_EXTRACT(metadata,'$.generado_por')),'(regla programada)') AS origen,
-       COUNT(*) n
-FROM msg_message
-WHERE direction='outgoing' AND status='failed' AND sender_type='system'
-  AND created_at > '2026-09-10'
-GROUP BY origen;
-
--- 2. De los de regla, ¿cuántos traen un motivo con el que alguien pueda ACTUAR?
-SELECT JSON_UNQUOTE(JSON_EXTRACT(metadata,'$.dispatch_errors[0]')) AS motivo, COUNT(*) n
-FROM msg_message
-WHERE direction='outgoing' AND status='failed' AND sender_type='system'
-  AND created_at > '2026-09-10'
-GROUP BY motivo ORDER BY n DESC;
-```
-
-La segunda es la que decide de verdad. En la medición vieja, **207 de los 302 decían «posible
-restricción de negocio por canal»**, que no dice qué hacer: sale de que
-`WhatsappMetaSendEnqueuer` devolvía `null` en silencio en vez de lanzar con su razón como sí hace
-Beds24. Un resumen construido sobre ese motivo no le sirve a nadie. **Antes de avisar de más, que
-el motivo sea real.**
-
-### Qué se decide con esto
-
-- Si el volumen cae mucho, los automáticos pueden entrar en la guardia técnica sin resumen.
-- Si se mantiene, hace falta el resumen diario — y hace falta antes arreglar el motivo.
-- Y en los dos casos, comprobar que la guardia técnica no se llene: hoy la sostiene una sola
-  persona, y `ROLE_TECH_SUPPORT` sin nadie con dispositivo suscrito cae al respaldo amplio.
-
-> Cuándo: pasada al menos una semana desde el 10/09/2026, para que haya ciclos de envío completos
-> con el veto ya movido. Antes de esa fecha la muestra mezcla los dos comportamientos.
+En los dos, el agente le dijo al huésped «ya he avisado al equipo» en un mensaje que **no le
+llegó**. Que lo atendiera una persona después fue suerte, no diseño.
