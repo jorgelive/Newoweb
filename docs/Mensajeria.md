@@ -5281,6 +5281,30 @@ Y dos diferencias de comportamiento que conviene tener presentes al comparar:
 `MAX_VUELTAS = 8` es el freno que en Anthropic pone el SDK: sin él, un modelo que insista en
 llamar a la misma skill deja el turno girando y quemando dinero hasta el timeout de PHP.
 
+### 🔁 Un tropiezo de Google no es una caída: un reintento (13/10/2026)
+
+El 13/10/2026 a las 18:48 Google devolvió **una** respuesta que no era JSON —la página de un 503,
+casi seguro— y al segundo siguiente respondía bien. Bastó para que el huésped recibiera el acuse de
+cortesía y `VigilanteDelMotor` mandara al grupo de soporte «El agente NO está contestando —
+conviene mirarlo ya», con un motivo que no decía nada: «Syntax error for "https://…"», porque
+`toArray()` iba en el mismo `try` que la petición y el fallo de leer el HTML tapaba el código HTTP.
+
+`GoogleAIClient::generarContenido()` ahora:
+
+| Fallo | Qué hace |
+|---|---|
+| 5xx, cuerpo que no es JSON, caída de red (`FalloPasajeroDeGoogle`) | **reintenta una vez** a los 2 s |
+| 4xx —clave, créditos (el 402 del 19/09), modelo, cuota— | lanza al primero: pedirlo otra vez no lo arregla |
+| Tiempo agotado (120 s) | lanza al primero: reintentar serían 4 minutos con el huésped esperando |
+
+Y el mensaje lleva **el código real** —«Google AI 503: respuesta que no es JSON («…»)»—, que es lo
+que dice si hay que hacer algo.
+
+⚠️ **El vigilante NO se tocó**, y es a propósito: avisa al primer fallo porque «el primer 402 ya es
+la avería entera». Lo que estaba mal no era su umbral sino que le llegaran tropiezos; con el
+reintento, lo que le llega ya falló dos veces seguidas. Subir el umbral habría retrasado el aviso de
+una caída de verdad. Tests: `GoogleAIClientTest`.
+
 ### ⏱️ Latencia y cuota: lo que mide de verdad
 
 Un turno de Gemini tardaba **35 s** la primera vez que funcionó. El desglose, medido, sirve

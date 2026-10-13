@@ -6,7 +6,10 @@ namespace App\Agent\Provider\Google;
 
 use App\Dto\Lee;
 use App\Agent\Provider\CatalogoModelos;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
+use Symfony\Contracts\HttpClient\Exception\TimeoutExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Throwable;
 
@@ -33,6 +36,19 @@ final class GoogleAIClient
     /** Un turno con varias herramientas encadenadas puede tardar. Corta el cuelgue. */
     private const int TIMEOUT = 120;
 
+    /**
+     * Cuántas veces se pide, y cuánto se espera entre una y otra, ante un fallo PASAJERO.
+     *
+     * 🔥 El 13/10/2026 a las 18:48 Google devolvió UNA respuesta que no era JSON —la página de un
+     * 503 por sobrecarga, con toda probabilidad— y al segundo siguiente ya respondía bien. Sin
+     * reintento, ese único tropiezo bastó para que el huésped recibiera el acuse de cortesía en
+     * vez de su respuesta y para que `VigilanteDelMotor` mandara al equipo «El agente NO está
+     * contestando — conviene mirarlo ya». Un segundo intento lo habría absorbido sin que nadie
+     * lo notara. Si también falla, ya no es un tropiezo: el aviso sí toca.
+     */
+    private const int INTENTOS = 2;
+    private const int ESPERA_ENTRE_INTENTOS_MS = 2000;
+
     private readonly string $modelo;
 
     /** @var non-empty-list<string> */
@@ -50,6 +66,9 @@ final class GoogleAIClient
         string $modelo,
         string $modelos = '',
         string $razonamiento = '',
+        private readonly ?LoggerInterface $logger = null,
+        /** Sólo los tests la cambian: para no esperar dos segundos de verdad. */
+        private readonly int $esperaEntreIntentosMs = self::ESPERA_ENTRE_INTENTOS_MS,
     ) {
         $this->modelo = trim($modelo) !== '' ? trim($modelo) : self::MODELO_FALLBACK;
         $this->modelos = CatalogoModelos::desde($this->modelo, $modelos);
@@ -98,6 +117,33 @@ final class GoogleAIClient
      */
     public function generarContenido(string $modelo, array $cuerpo): array
     {
+        for ($intento = 1; ; ++$intento) {
+            try {
+                return $this->llamar($modelo, $cuerpo);
+            } catch (FalloPasajeroDeGoogle $e) {
+                if ($intento >= self::INTENTOS) {
+                    throw $e;
+                }
+
+                $this->logger?->warning(sprintf('[Agente] %s — se reintenta (%d/%d).', $e->getMessage(), $intento + 1, self::INTENTOS));
+                usleep($this->esperaEntreIntentosMs * 1000);
+            }
+        }
+    }
+
+    /**
+     * Una petición.
+     *
+     * ⚠️ **El código HTTP se lee ANTES que el cuerpo.** Antes `toArray()` iba dentro del mismo
+     * `try` y, ante una página de error en HTML, lanzaba «Syntax error for "https://…"»: el aviso
+     * al equipo decía eso y no «503», que es lo único que permite saber si hay que hacer algo.
+     *
+     * @param array<string, mixed> $cuerpo
+     *
+     * @return array<string, mixed>
+     */
+    private function llamar(string $modelo, array $cuerpo): array
+    {
         try {
             $respuesta = $this->http->request('POST', sprintf(self::BASE, $modelo), [
                 // La clave va en cabecera y no en `?key=`: en la query acabaría en los logs de
@@ -111,19 +157,36 @@ final class GoogleAIClient
             ]);
 
             $estado = $respuesta->getStatusCode();
-            // `false` desactiva la excepción automática de 4xx/5xx: el cuerpo de error de
-            // Google explica qué pasó y se pierde si dejamos que salte antes de leerlo.
-            $datos = $respuesta->toArray(false);
+            // `false`: el cuerpo de error de Google explica qué pasó y se pierde si dejamos que
+            // la excepción automática de 4xx/5xx salte antes de leerlo.
+            $crudo = $respuesta->getContent(false);
+        } catch (TimeoutExceptionInterface $e) {
+            // Dos minutos sin respuesta no se reintentan: serían cuatro con el huésped esperando.
+            throw new RuntimeException('Google AI: ' . $e->getMessage(), 0, $e);
+        } catch (TransportExceptionInterface $e) {
+            throw new FalloPasajeroDeGoogle('Google AI (red): ' . $e->getMessage(), 0, $e);
         } catch (Throwable $e) {
             throw new RuntimeException('Google AI: ' . $e->getMessage(), 0, $e);
         }
 
-        if ($estado !== 200) {
-            throw new RuntimeException(sprintf(
-                'Google AI %d: %s',
+        $datos = json_decode($crudo, true);
+
+        if (!is_array($datos)) {
+            $muestra = trim((string) preg_replace('/\s+/', ' ', strip_tags(mb_substr($crudo, 0, 300))));
+
+            throw new FalloPasajeroDeGoogle(sprintf(
+                'Google AI %d: respuesta que no es JSON%s',
                 $estado,
-                Lee::texto(Lee::en($datos, 'error', 'message')) ?? 'sin detalle'
+                $muestra !== '' ? ' («' . mb_substr($muestra, 0, 80) . '»)' : ''
             ));
+        }
+
+        if ($estado !== 200) {
+            $mensaje = sprintf('Google AI %d: %s', $estado, Lee::texto(Lee::en($datos, 'error', 'message')) ?? 'sin detalle');
+
+            // Un 5xx es Google teniendo un mal momento; un 4xx —clave, créditos, modelo, cuota— no
+            // se arregla pidiéndolo otra vez, y el aviso tiene que salir al primero.
+            throw $estado >= 500 ? new FalloPasajeroDeGoogle($mensaje) : new RuntimeException($mensaje);
         }
 
         return Lee::objeto($datos);
