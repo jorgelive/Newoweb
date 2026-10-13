@@ -14,6 +14,22 @@ use Symfony\Component\HttpKernel\KernelInterface;
 class PaxAppController extends AbstractController
 {
     /**
+     * Primeros tramos de las rutas PRIVADAS del router de pax (`pax/src/router/index.ts`).
+     *
+     * 🔒 **pax no es un escaparate (13/10/2026).** Sus páginas se comparten por enlace y nada
+     * pedía a los buscadores que no las indexaran: ni `robots.txt` (la ruta cae en este mismo
+     * controlador) ni `noindex`. Un enlace pegado en un foro bastaba para que Google indexara la
+     * guía de un huésped —con sus instrucciones de entrada—, un enlace de pago, un expediente o un
+     * catálogo hecho para un cliente. Desde entonces todo lleva `X-Robots-Tag: noindex` salvo la
+     * vitrina de las casitas (`/{establecimiento}/{unidad}`), que es pública a propósito: la sección
+     * de alojamiento de openperu.pe enlaza ahí (`front.alojamiento_url`).
+     *
+     * ⚠️ Una ruta privada nueva en pax con otro prefijo de dos tramos se tomaría por vitrina: va
+     * en esta lista.
+     */
+    private const array PRIVADAS = ['file', 'catalogo', 'pago', 'huesped'];
+
+    /**
      * App Pax (Symfony-first):
      * - HTML base lo sirve Symfony (Twig)
      * - En dev: carga Vite HMR
@@ -33,10 +49,10 @@ class PaxAppController extends AbstractController
 
         // 1) DEV (Vite HMR)
         if ($env === 'dev' && !$forceBuild) {
-            return $this->render('pax/app.html.twig', [
+            return $this->paraBuscadores($this->render('pax/app.html.twig', [
                 'is_dev' => true,
                 'vite_entry' => 'src/main.ts',
-            ]);
+            ]), $request->getPathInfo());
         }
 
         // 2) PROD / BUILD
@@ -70,10 +86,28 @@ class PaxAppController extends AbstractController
             throw $this->createNotFoundException("Entrada 'src/main.ts' no encontrada en manifest.json. Claves disponibles: [$keys]");
         }
 
-        return $this->render('pax/app.html.twig', [
+        return $this->paraBuscadores($this->render('pax/app.html.twig', [
             'is_dev' => false,
             'js_file' => $entrada['file'],
             'css_files' => $entrada['css'],
-        ]);
+        ]), $request->getPathInfo());
+    }
+
+    /** `noindex` en todo lo que no sea la vitrina de una casita. Ver {@see self::PRIVADAS}. */
+    private function paraBuscadores(Response $respuesta, string $ruta): Response
+    {
+        if (!self::esVitrina($ruta)) {
+            $respuesta->headers->set('X-Robots-Tag', 'noindex, nofollow');
+        }
+
+        return $respuesta;
+    }
+
+    /** `/centro-cusco-inti/centro-cusco-inti-casita-1`: dos tramos y ninguno de los privados. */
+    public static function esVitrina(string $ruta): bool
+    {
+        $tramos = array_values(array_filter(explode('/', $ruta), static fn (string $t): bool => $t !== ''));
+
+        return count($tramos) === 2 && !in_array($tramos[0], self::PRIVADAS, true);
     }
 }
