@@ -15,8 +15,8 @@ como cualquier otro importe.
 > ⚠️ **Estado al 13/10/2026: SIN DATOS desde mediados de septiembre, y el muestreo PAUSADO.**
 >
 > - **La suscripción IoT Core de Tuya venció y no se renueva a propósito**: la domótica se va a
->   migrar a un servicio en la **intranet con easytuya**. Ese plan **todavía no está escrito**
->   en ningún doc; cuando se diseñe, va aquí.
+>   migrar a un servicio en la **intranet con easytuya** que empuja a producción. El plan está en
+>   **`docs/PlanDomoticaLocal.md`**.
 > - El cron `app:domotica:muestrear` está **comentado** en `tools/cron/www-data.crontab` desde el
 >   13/10: sin suscripción fallaba cada hora y llenaba `error.log` de un fallo conocido.
 > - ⚠️ **Y el corte es anterior al vencimiento.** Medido el 13/10 en producción: la última lectura

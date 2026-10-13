@@ -265,6 +265,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Logging/`, `config/packages/monolog.yaml`, rotación de logs | `docs/Logging.md` |
 | `config/packages/mailer.yaml`, variables `MAILER_*`, envío por Graph | `docs/CorreoSaliente.md` |
 | `src/Domotica/`, `TuyaExchangeClient`, aparatos inteligentes (consumo y estado) | `docs/Domotica.md` |
+| La domótica desde la red local: Raspberry, push a producción, red de las casitas (DHCP, VPN) | `docs/PlanDomoticaLocal.md` |
 | Procesos Node, sidecars, cálculo compartido TS ↔ PHP | `docs/NodeEnElStack.md` |
 | `src/Travel/` (catálogo maestro: servicios, itinerarios, segmentos, componentes, tarifas, proveedores) | `docs/Travel.md` |
 | **Cargar** contenido de catálogo por comando (segmentos, componentes, tarifas, pools, plantillas) | `docs/TravelCargaDeCatalogo.md` — la receta y sus trampas |
