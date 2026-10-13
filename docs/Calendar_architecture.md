@@ -1585,11 +1585,12 @@ Tres cosas, medidas el 10/09/2026 contra producción:
    corre en `prePersist`, y `pms:finanzas:completar-tipo-cambio` **sólo repasa cargos y pagos**:
    una ficha que naciera sin tasa no la recupera nadie.
 
-3. **La puerta sin guarda es la API.** `PmsMonedaBaseService::cambiar()` valida `<= 0` y lanza,
-   pero el `Patch` de `PmsInformacionFinanciera` expone `tipoCambio` en `pms_finanzas:write`
-   **sin una sola restricción de validación** — la entidad no tiene ningún `#[Assert]`. Un
-   `PATCH {"tipoCambio": "0"}` con `ROLE_RESERVAS_WRITE` entra. No rompe el color por lo de
-   arriba, pero deja la cifra del cuadre mintiendo.
+3. **La puerta de la API ya tiene guarda (13/10/2026).** `PmsMonedaBaseService::cambiar()`
+   valida `<= 0`, pero el `Patch` de `PmsInformacionFinanciera` expone `tipoCambio` en
+   `pms_finanzas:write` y hasta esa fecha **no llevaba ni un `#[Assert]`**: un
+   `PATCH {"tipoCambio": "0"}` entraba y dejaba la cifra del cuadre mintiendo. Ahora lleva
+   `Type('numeric')` + `Positive`, **los dos**: `Positive` solo compara `"abc" > 0` como texto y
+   lo da por bueno (comprobado con el validador).
 
 ### 🚨 Y una que no es del calendario: el maestro lleva 15 días parado
 

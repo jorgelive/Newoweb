@@ -26,6 +26,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Cabecera financiera de una reserva (espejo de App\Message\Entity\MessageConversation).
@@ -143,9 +144,15 @@ class PmsInformacionFinanciera
      * es cuestión de gusto: `pago-total` → `confirmarPorPago()` → `ESTADOS_PAGO_CONFIABLES` → se
      * le abren al huésped los códigos de acceso de la casa. Un umbral no puede estar en esa
      * cadena. Lo que hace el cuadre es **proponer** al operador que impute el cobro (§12.2b, «La imputación en el panel»).
+     *
+     * ⚠️ **Las dos restricciones van juntas.** El `Patch` lo expone en `pms_finanzas:write` y hasta
+     * el 13/10/2026 entraba cualquier cosa: un `"0"` dejaba el cuadre mintiendo. `Positive` solo
+     * no basta, porque compara `"abc" > 0` como texto y lo da por bueno: por eso `numeric` delante.
      */
     #[ORM\Column(name: 'tipo_cambio', type: 'decimal', precision: 10, scale: 3, nullable: true)]
     #[Groups(['pms_finanzas:read', 'pms_finanzas:write'])]
+    #[Assert\Type(type: 'numeric', message: 'El tipo de cambio tiene que ser un número.')]
+    #[Assert\Positive(message: 'El tipo de cambio tiene que ser mayor que cero.')]
     private ?string $tipoCambio = null;
 
     /**

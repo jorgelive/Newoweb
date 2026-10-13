@@ -1031,23 +1031,6 @@ su listener sólo corre en `prePersist`.
 
 ---
 
-## `PmsInformacionFinanciera` no tiene ni una restricción de validación — 10/09/2026
-
-La entidad no lleva **ningún** `#[Assert]`, y su `Patch` expone `tipoCambio` en
-`pms_finanzas:write`. Un `PATCH {"tipoCambio": "0"}` con `ROLE_RESERVAS_WRITE` entra sin más.
-
-`PmsMonedaBaseService::cambiar()` sí valida (`if (!$tc || (float) $tc <= 0) throw`), y el candado
-`assertTipoCambioNoBloqueado()` protege los cargos y los pagos una vez sellados — **pero ninguno
-de los dos cubre la cabecera**.
-
-No es urgente: hoy hay 0 fichas a cero, y `cuadra()` no se deja engañar por una tasa a cero
-(§«El tipo de cambio a cero» en `docs/Calendar_architecture.md`). Lo que quedaría mintiendo es la
-cifra del cuadre, que es la que el operador lee para decidir cuánto cobrar en la otra moneda.
-
-Un `#[Assert\Positive]` sobre el campo lo cierra.
-
----
-
 ## Cotizaciones se lleva 10× más tiempo de servidor que el chat entero — 10/09/2026
 
 Salió al medir el chat: con la mensajería ya arreglada, el ranking de tiempo de servidor por
