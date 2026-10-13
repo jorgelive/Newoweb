@@ -78,6 +78,13 @@ La portada pinta **una sección por catálogo publicado**, en su `orden`. Las re
 idioma (`TextoI18n::en()`: idioma → español → el primero con texto) y da forma a los DTOs de
 `src/Front/Tours/Dto/`.
 
+⚠️ **`CatalogoWebLector` tiene un segundo cliente: el agente del chat** (`consultar_tours`, desde el
+11/10/2026; ver `docs/Agent.md` §5.8), por `paraElAgente()`: lo publicado en la web **más** los
+catálogos marcados «lo ofrece el agente» (`ofrecidoPorAgente`, 13/10/2026: los traslados, que se
+venden por chat pero no lucen en la portada). Mismas tarjetas y mismo «desde»; un cambio en la
+forma de `TourTarjetaWeb` cambia también lo que contesta el WhatsApp. `CatalogoWeb::$enLaWeb`
+dice si el enlace es la ficha web o la página de pax.
+
 La **galería de la ficha** abre con las fotos de los bloques destacados (la estrella del editor,
 `destacadosComponenteIds`) y sigue en orden de itinerario: ver `docs/Cotizaciones.md`, «La propuesta
 destaca un bloque en su cabecera».
@@ -159,6 +166,13 @@ portada: <section class="seccion marca-…">  ·  catálogo y ficha: <body class
   ficha.
 - `robots.txt` y `sitemap.xml` van por **controlador**, no como archivos en `public/`: `public/`
   lo comparten todos los hosts y un `robots.txt` estático le diría lo mismo a `api` y a `util`.
+- 🔒 **pax no se indexa (13/10/2026), salvo la vitrina de las casitas.** Lo de pax se comparte
+  por enlace —guía del huésped con sus instrucciones de entrada, enlaces de pago, expedientes,
+  catálogos hechos para un cliente o que sólo ofrece el agente— y nada pedía a los buscadores que
+  no lo indexaran. `PaxAppController` pone `X-Robots-Tag: noindex, nofollow` en todo menos en
+  `/{establecimiento}/{unidad}`, a la que enlaza la sección de alojamiento de esta web. Una ruta
+  privada nueva de pax va en `PaxAppController::PRIVADAS`. ⚠️ En local TODO sale con `noindex`:
+  lo añade Symfony en modo debug (`disallow_search_engine_index`), no es este cambio.
 - Caché HTTP pública: 5 min en portada/catálogo/tour, 1 h en legales y sitemap. **En
   desarrollo no** (`kernel.debug`), o cada cambio de plantilla tardaría cinco minutos en verse.
 

@@ -18,6 +18,12 @@ final readonly class CatalogoWeb
         public ?string $descripcionHtml,
         public array $tours,
         public MarcaWeb $marca,
+        /**
+         * Listado en openperu.pe. `false` sólo llega por `CatalogoWebLector::paraElAgente()`: un
+         * catálogo que el agente ofrece sin estar en la web (los traslados), cuyo enlace es el de
+         * pax y cuyo `slug` puede venir vacío.
+         */
+        public bool $enLaWeb = true,
     ) {
     }
 

@@ -16,6 +16,9 @@ use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
  * lista, gana el primero que dice soportar el `context_type`, y si ninguno lo hace se cae al
  * marcado por defecto. Ese último caso no es un remiendo — es el prospecto, que por
  * definición no trae contexto y aun así necesita que alguien le venda algo.
+ *
+ * ⚠️ Salvo en las REGLAS del prompt ({@see self::para()}): sin contexto reconocido no habla sólo
+ * el por defecto, hablan todos los negocios. El contexto volátil sí sigue siendo de uno solo.
  */
 final readonly class InstruccionesDominioRegistry
 {
@@ -27,9 +30,38 @@ final readonly class InstruccionesDominioRegistry
         private iterable $dominios
     ) {}
 
+    /**
+     * El bloque del negocio para este perfil.
+     *
+     * Con un contexto que algún dominio reconoce, habla sólo ése: un huésped de una casita oye
+     * del alojamiento. **Sin contexto reconocido —el prospecto, un hilo `manual`— hablan
+     * TODOS**: el por defecto primero y detrás el resto, cada uno con lo suyo o nada. Es la misma
+     * idea que las puertas de venta de `EnumeradorDeFrentes` («la venta va siempre, para
+     * todos»): quien no es de nadie puede comprar cualquier cosa.
+     *
+     * 🔥 Hasta el 11/10/2026 aquí también ganaba uno solo, el por defecto (alojamiento), y un
+     * desconocido que preguntó por transporte a Machu Picchu recibió «no organizamos transporte»
+     * con el tour publicado en la web: del negocio de tours el agente no sabía ni que existía.
+     */
     public function para(?string $contextType, PerfilConversacion $perfil): string
     {
-        return $this->resolver($contextType)?->para($perfil) ?? '';
+        $propio = $this->propio($contextType);
+
+        if ($propio !== null) {
+            return $propio->para($perfil);
+        }
+
+        $bloques = [];
+
+        foreach ($this->ordenados() as $dominio) {
+            $bloque = $dominio->para($perfil);
+
+            if ($bloque !== '') {
+                $bloques[] = $bloque;
+            }
+        }
+
+        return implode("\n\n", $bloques);
     }
 
     /**
@@ -52,18 +84,44 @@ final readonly class InstruccionesDominioRegistry
      */
     private function resolver(?string $contextType): ?InstruccionesDeDominioInterface
     {
-        $porDefecto = null;
+        $primero = $this->ordenados()[0] ?? null;
 
+        return $this->propio($contextType) ?? ($primero?->esPorDefecto() === true ? $primero : null);
+    }
+
+    /** El dominio que reconoce este `context_type`, si alguno lo hace. */
+    private function propio(?string $contextType): ?InstruccionesDeDominioInterface
+    {
         foreach ($this->dominios as $dominio) {
             if ($dominio->supports($contextType)) {
                 return $dominio;
             }
+        }
 
-            if ($porDefecto === null && $dominio->esPorDefecto()) {
-                $porDefecto = $dominio;
+        return null;
+    }
+
+    /**
+     * Todos, con el marcado por defecto delante.
+     *
+     * El orden importa en el prompt: el por defecto es el negocio con el que se presenta la casa
+     * («eres la primera impresión del alojamiento»), y los demás se leen como «además…».
+     *
+     * @return list<InstruccionesDeDominioInterface>
+     */
+    private function ordenados(): array
+    {
+        $primero = [];
+        $resto = [];
+
+        foreach ($this->dominios as $dominio) {
+            if ($primero === [] && $dominio->esPorDefecto()) {
+                $primero[] = $dominio;
+            } else {
+                $resto[] = $dominio;
             }
         }
 
-        return $porDefecto;
+        return [...$primero, ...$resto];
     }
 }

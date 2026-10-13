@@ -18,6 +18,7 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Pms\Entity\PmsGuiaItem;
 use App\Pms\Entity\PmsGuiaSeccion;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Guia\PmsGuiaAcceso;
 use App\Pms\Guia\PmsGuiaMensajes;
@@ -372,11 +373,13 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
     ): SkillResult
     {
         if ($casita === '') {
+            // Las horas de entrada y salida no dependen de la casita: van igual, y así «¿a qué
+            // hora es el check-in?» se contesta sin pedirle que elija casa primero.
             return SkillResult::ok([
                 'falta_datos' => ['casita'],
-                'pregunta' => 'No sé de qué casita me hablas. Pregúntale cuál le interesa y '
-                    . 'vuelve a llamarme con «casita».',
-            ]);
+                'pregunta' => 'Para el detalle de una casa, pregúntale cuál le interesa y vuelve a '
+                    . 'llamarme con «casita».',
+            ] + $this->horasEstandar(null));
         }
 
         $encontradas = $this->resolverUnidad($casita);
@@ -416,18 +419,66 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
             ));
         }
 
-        // Sin `huesped` ni horas: no hay nadie ni estancia. El nombre de la casita sí, que es
-        // lo que `responder()` necesita para poder nombrarla.
+        // Sin `huesped`: no hay nadie ni estancia. El nombre de la casita sí, que es lo que
+        // `responder()` necesita para poder nombrarla, y las horas ESTÁNDAR del establecimiento.
         $base = [
             'casita' => $unidad->getNombre(),
             'alcance' => 'Guía PÚBLICA: sólo lo que puede ver alguien que todavía no tiene '
                 . 'reserva. Los códigos de acceso y las instrucciones de la estancia NO están '
                 . 'aquí, y es correcto que no estén.',
-        ];
+        ] + $this->horasEstandar($unidad->getEstablecimiento());
 
         return $this->responder(
             $entrada, $base, $secciones, 'es', $contexto, $acceso, $conversacionId
         );
+    }
+
+    /**
+     * La hora de entrada y de salida ESTÁNDAR, de `PmsEstablecimiento` —que es donde se editan—.
+     *
+     * 🔥 **Un prospecto no tenía forma de saberlas (12/10/2026).** Las horas sólo viajaban con
+     * una reserva (`hora_check_in` de la estancia, que puede cambiar por una entrada temprana), y
+     * la guía pública no las llevaba. A «¿a qué hora es el check-in?» el agente dio ocho vueltas
+     * por conocimiento y guía, agotó el tope y el turno acabó en «el agente NO está contestando».
+     * Es la pregunta más básica de quien está decidiendo.
+     *
+     * Sin casita (`null`) valen si todos los establecimientos comparten horario; si no, no se dan:
+     * una hora de otro sitio es peor que pedirle la casita. Con la estancia ya hecha mandan las de
+     * la reserva, no éstas.
+     *
+     * @return array<string, string>
+     */
+    private function horasEstandar(?PmsEstablecimiento $establecimiento): array
+    {
+        $candidatos = $establecimiento !== null
+            ? [$establecimiento]
+            : $this->em->getRepository(PmsEstablecimiento::class)->findAll();
+
+        $horarios = [];
+
+        foreach ($candidatos as $e) {
+            $entrada = $e->getHoraCheckIn()?->format('H:i');
+            $salida = $e->getHoraCheckOut()?->format('H:i');
+
+            if ($entrada !== null && $salida !== null) {
+                $horarios[$entrada . '|' . $salida] = [$entrada, $salida];
+            }
+        }
+
+        if (count($horarios) !== 1) {
+            return [];
+        }
+
+        [$entrada, $salida] = array_values($horarios)[0];
+
+        return [
+            'hora_check_in' => $entrada,
+            'hora_check_out' => $salida,
+            // Sólo el dato. Llegar antes o irse más tarde es POLÍTICA, con su coste, y vive en la
+            // guía («Early check in Late Check Out»): repetirla aquí sería una segunda fuente.
+            'horas_nota' => 'Horario estándar del alojamiento: entrada desde ' . $entrada
+                . ', salida hasta ' . $salida . '.',
+        ];
     }
 
     /**

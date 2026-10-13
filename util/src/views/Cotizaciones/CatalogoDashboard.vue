@@ -34,7 +34,7 @@ type TourCatalogo = Cotizacion & {
  * `I18nContent[]` (mismo caso que `titulo` en la cotización). Ver docs/WebPublica.md §2.
  */
 type CatalogoWebCampos =
-  Pick<components['schemas']['CotizacionCatalogo-catalogo.read_timestamp.read'], 'publicadoWeb' | 'slug' | 'marcaWeb'>
+  Pick<components['schemas']['CotizacionCatalogo-catalogo.read_timestamp.read'], 'publicadoWeb' | 'ofrecidoPorAgente' | 'slug' | 'marcaWeb'>
   & { tituloWeb?: I18nContent[]; descripcionWeb?: I18nContent[] };
 
 type MarcaWeb = NonNullable<CatalogoWebCampos['marcaWeb']>;
@@ -229,7 +229,7 @@ const moverTour = async (idx: number, dir: -1 | 1) => {
 // Edición de catálogo (nombre, modalidad y web pública)
 const editCatalogo = ref<{
   id: string; nombre: string; tipoCliente: string;
-  publicadoWeb: boolean; slug: string; tituloWeb: string; descripcionWeb: string;
+  publicadoWeb: boolean; ofrecidoPorAgente: boolean; slug: string; tituloWeb: string; descripcionWeb: string;
   marcaWeb: MarcaWeb;
 } | null>(null);
 const errorEdicion = ref('');
@@ -241,6 +241,7 @@ const abrirEdicion = (cat: CatalogoResumen) => {
     nombre: cat.nombre || '',
     tipoCliente: cat.tipoCliente || 'economico',
     publicadoWeb: !!cat.publicadoWeb,
+    ofrecidoPorAgente: !!cat.ofrecidoPorAgente,
     marcaWeb: cat.marcaWeb ?? 'openperu',
     slug: cat.slug || '',
     tituloWeb: textoEs(cat.tituloWeb),
@@ -267,6 +268,7 @@ const handleEditSave = async () => {
     nombre: e.nombre.trim(),
     tipoCliente: e.tipoCliente,
     publicadoWeb: e.publicadoWeb,
+    ofrecidoPorAgente: e.ofrecidoPorAgente,
     marcaWeb: e.marcaWeb,
     slug: e.slug.trim() || null,
     tituloWeb: conEspanol(cat?.tituloWeb, e.tituloWeb),
@@ -774,6 +776,24 @@ onMounted(() => {
                       :class="['relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors', editCatalogo.publicadoWeb ? 'bg-[#E07845]' : 'bg-slate-300']"
                       :aria-pressed="editCatalogo.publicadoWeb" title="Publicar en la web pública">
                 <span :class="editCatalogo.publicadoWeb ? 'translate-x-6' : 'translate-x-1'"
+                      class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
+              </button>
+            </div>
+            <!-- El agente del chat ofrece lo de la web y, además, lo marcado aquí: los traslados se venden
+                 por WhatsApp sin ocupar una sección en la portada. Ver CotizacionCatalogo::loOfreceElAgente(). -->
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-[10px] font-black text-slate-500 uppercase ml-1">Lo ofrece el agente (WhatsApp)</p>
+                <p class="text-[11px] text-slate-400 ml-1">
+                  <template v-if="editCatalogo.publicadoWeb">Publicado en la web: el agente lo ofrece siempre.</template>
+                  <template v-else>Aunque no esté en la web; enlaza a su página de pax. Apagado para lo hecho para un cliente.</template>
+                </p>
+              </div>
+              <button type="button" :disabled="editCatalogo.publicadoWeb"
+                      @click="editCatalogo.ofrecidoPorAgente = !editCatalogo.ofrecidoPorAgente"
+                      :class="['relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60', (editCatalogo.publicadoWeb || editCatalogo.ofrecidoPorAgente) ? 'bg-[#376875]' : 'bg-slate-300']"
+                      :aria-pressed="editCatalogo.publicadoWeb || editCatalogo.ofrecidoPorAgente" title="Que el agente lo ofrezca por WhatsApp">
+                <span :class="(editCatalogo.publicadoWeb || editCatalogo.ofrecidoPorAgente) ? 'translate-x-6' : 'translate-x-1'"
                       class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
               </button>
             </div>

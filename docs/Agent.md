@@ -19,6 +19,7 @@ quien lo cuenta bien; aquí sólo se dice cómo encaja.
 4. [Los contratos con los dominios](#4-los-contratos-con-los-dominios)
 5. [Dónde vive cada contrato, y por qué ahí](#5-dónde-vive-cada-contrato-y-por-qué-ahí)
 5.6. [Los cuatro sitios donde vive lo que el agente sabe del negocio](#56-los-cuatro-sitios-donde-vive-lo-que-el-agente-sabe-del-negocio-18092026)
+5.8. [El negocio de turismo: un prospecto también compra tours](#58-el-negocio-de-turismo-un-prospecto-también-compra-tours-11102026)
 6. [Dónde tocar para cambiar X](#6-dónde-tocar-para-cambiar-x)
 
 ---
@@ -561,6 +562,20 @@ el hilo, que casi siempre basta para «encontré esto, me falta aquello».
 `functionResponse` ya dentro del hilo, quitar las declaraciones es un 400. Lo que se retira es el
 permiso de volver a llamarlas.
 
+🔥 **`NONE` solo no bastaba (12/10/2026).** Un prospecto preguntó a qué hora es el check-in, el
+agente dio ocho vueltas sin encontrarla y el cierre volvió con **49 tokens de salida y cero de
+texto**: el modelo quería seguir llamando y la API no le dejó. Turno perdido, acuse genérico y la
+alerta de «el agente NO está contestando». El hilo acababa en los `functionResponse` y nada en él
+decía que se habían acabado las consultas. Ahora el cierre añade al último turno de usuario
+`GoogleAIEngine::ORDEN_DE_CIERRE` —contesta ya, con lo que sabes; lo que falte, que lo confirma el
+equipo— y, si aun así vuelve vacío, el log dice el `finishReason` y cuántas llamadas pedía.
+
+Y la causa de las ocho vueltas era un **dato que no llegaba**: la hora de entrada sólo viajaba con
+una reserva. `ConsultarGuiaSkill::horasEstandar()` la da ahora al prospecto desde
+`PmsEstablecimiento` (también sin casita). Probado sin ella: el modelo **se inventó «a partir de
+las 15:00»** (son las 14:00). Un bucle largo casi siempre es un hueco de contenido, no un fallo del
+motor: mira qué buscaba antes de tocar el tope.
+
 ⚠️ **En la última vuelta ya no se ejecuta nada**, como en DeepSeek: ejecutar sin poder volver a
 llamar significa que una skill de escritura escribe y su resultado se tira, porque no queda quien
 lo lea. Google lo hacía, y encima descartaba el resultado sin entregar respuesta.
@@ -720,12 +735,87 @@ Lo que cambió en el código ese día:
 «gratis» lo escribió una sesión que buscaba lo contrario —que ofreciera el almacén—, quitando el
 freno de la oferta y llevándose con él el del precio.
 
+## 5.8 El negocio de turismo: un prospecto también compra tours (11/10/2026)
+
+Un desconocido escribió por WhatsApp «¿organizan transporte entre Cusco y Machu Picchu?» y el
+agente contestó **«No organizamos transporte directo a Machu Picchu»**, con el tour «Machu Picchu:
+Full day en tren turístico» publicado en openperu.pe. No fue el modelo: **para un prospecto el
+negocio de tours no existía**, en ninguna de las tres capas.
+
+| capa | qué había | qué hay |
+|---|---|---|
+| dominios del actor (`EnumeradorDeFrentes::dominiosPara()`) | sólo `hotelero`: era el único negocio vendible | `turistico` también, por `CotizacionFrentes::esVendible()` |
+| skills | `anotar_pedido_cotizacion` (de `turistico`) filtrada fuera; ninguna que mirase el catálogo | `consultar_tours` + `anotar_pedido_cotizacion` |
+| reglas (`InstruccionesDominioRegistry::para()`) | sin contexto ganaba UNO, el por defecto: «eres la primera impresión del alojamiento» | sin contexto hablan TODOS, el por defecto delante; tours añade `CotizacionInstruccionesDominio::VENTA` |
+| conocimiento | la única ficha de transporte terminaba en «No ofrecemos traslado propio.» | la oferta en positivo: «si prefiere que le recojan, la agencia vende el traslado desde el aeropuerto», con puntero a `consultar_tours` (`Version20261011120000`) |
+
+El modelo hizo lo que pudo con lo que tenía: buscó «servicios», luego «llegada», encontró la
+negativa del aeropuerto y la generalizó. **Una negativa sin acotar en un texto del agente es una
+negativa para todo lo que se le parezca.** Y si el producto existe —la agencia vende el traslado
+del aeropuerto, catálogo «Traslados»—, la frase no se acota: se cambia por la oferta. Un «no» en el
+conocimiento junto a un «sí» en el catálogo deja al modelo eligiendo.
+
+```
+prospecto (sin contexto)
+  ├─ dominios: hotelero + turistico            ← los dos se declaran vendibles
+  ├─ reglas:   PMS::prospecto() + Tours::VENTA ← el por defecto delante, «además…» detrás
+  └─ skills:   consultar_disponibilidad, consultar_guia, …,
+               consultar_tours, anotar_pedido_cotizacion
+huésped de una casita (pms_reserva)
+  ├─ reglas:   sólo PMS::huesped()             ← su contexto lo reconoce un dominio
+  └─ skills:   … + consultar_tours             ← turistico es vendible: lo ve igual
+```
+
+**`consultar_tours`** (`src/Agent/Skill/Cotizacion/ConsultarToursSkill.php`):
+
+- **Lee `CatalogoWebLector::paraElAgente()`: lo de la web y, además, lo marcado «lo ofrece el
+  agente».** Mismas tarjetas que openperu.pe —tours publicados, precio oculto respetado, el «desde»
+  de la ficha (`TourTarjetaResolver::preciosDesdeEfectivos()`)—; sólo cambia qué catálogos entran:
+  `CotizacionCatalogo::loOfreceElAgente()` = activo y (publicado en la web **o**
+  `ofrecidoPorAgente`). El enlace va a la ficha web o, si el catálogo no está en la web, a su
+  página de pax (`/catalogo/{localizador}/p/{n}`).
+- **Por qué no basta con «publicado en pax».** El enlace de pax se comparte en privado: un catálogo
+  hecho para un colegio, con su nombre, vive ahí. El agente habla con cualquiera, y contarlo por
+  WhatsApp es publicarlo. Primero se ató a la web (11/10/2026); el 13/10 se le dio su casilla
+  porque los **traslados** se venden por chat pero, sin fotos, en la portada eran un hueco. La
+  casilla sólo SUMA: lo publicado en la web lo ofrece siempre, así que no hay una segunda casilla
+  que olvidar al publicar (`Version20261013090000`, en util: modal del catálogo, «Lo ofrece el
+  agente»).
+- **Filtra por palabras (`buscar`) y nunca devuelve vacío**: si nada coincide da el catálogo
+  entero con el aviso de que lo que falte se arma a medida (`anotar_pedido_cotizacion`). Un «no
+  tenemos Machu Picchu» por una palabra mal escrita es el fallo que vino a cerrar.
+- **Con `tour` trae el detalle**: `incluye` / `no_incluye` / `opcional` / `cortesia` de
+  `clasificacionFinancieraCliente.inclusiones` (lo mismo que «¿Qué incluye?» en pax, **sólo los
+  nombres**, sin tarifas) y el itinerario por `ItinerarioCompuesto` (la regla de pax y del PDF),
+  como «hora · título del segmento». El id se valida contra lo PUBLICADO antes de leer la base:
+  lo escribe el modelo.
+- **Enlaces según canal**: en una consulta de OTA sin reserva no viaja ninguno, por la misma
+  lista que tapa `tours_catalog_url` (`RestriccionCanal::variablesBloqueadas()`). Los tours sí se
+  cuentan: promocionarlos no está prohibido.
+- **`idioma`** es `es` o `en` porque la web sólo tiene esos dos: decide los títulos y la URL.
+- **Anotar no es escalar (Jorge, 13/10/2026).** `anotar_pedido_cotizacion` ya deja el pedido a
+  Cotizaciones; `escalar_al_equipo` además —un WhatsApp al equipo— sólo si es para hoy o mañana.
+  En la simulación de un traslado a cinco semanas vista hizo las dos cosas. Dicho en
+  `CotizacionInstruccionesDominio::VENTA` y en el `aviso` que devuelve la propia skill al anotar.
+- **Zona de venta (Jorge, 12/10/2026): todo el Perú y el Caribe.** Lo que no está en el catálogo
+  pero cae ahí se arma a medida; otro destino ni se promete ni se niega. En los dos casos se anota
+  (`anotar_pedido_cotizacion`). Sin la zona escrita, en la simulación afirmó «sí, organizamos» un
+  tour a Puno sin saber si se hacía: un modelo al que se le dice «no digas que no» dice que sí a
+  todo. La zona vive en `CotizacionInstruccionesDominio::VENTA` y en los avisos de la skill.
+
+⚠️ **Lo que queda por hacer:** el pasajero de un expediente (`cotizacion_file`) no tiene bloque
+propio —su viaje, sus fechas— y cae al camino sin contexto (alojamiento + venta de tours).
+`CotizacionFrentes::frentesVivos()` devuelve vacío porque la enumeración de frentes aún no la lee
+nadie para el prompt.
+
 ## 6. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
 | Añadir una herramienta nueva | `src/Agent/Skill/**` | implementar `SkillInterface`; se autolocaliza |
 | Cambiar cuándo se corta un bucle de herramientas | `src/Agent/Provider/Google/GoogleAIEngine.php` | `MAX_VUELTAS`, `MAX_FALLOS_SEGUIDOS`, `cerrarSinHerramientas()` |
+| Cambiar qué se le dice al modelo al cortarle las herramientas | idem | `ORDEN_DE_CIERRE` |
+| Qué horas de entrada/salida ve quien aún no reservó | `src/Agent/Skill/Pms/ConsultarGuiaSkill.php` | `horasEstandar()` — de `PmsEstablecimiento`; con reserva mandan las de la estancia |
 | Cambiar qué se registra de cada llamada a skill | `src/Agent/Skill/RastroDeSkill.php` | `argumentos()`, `resultado()`, `fueFallo()` |
 | Cambiar qué se devuelve de una persona del padrón | `src/Agent/Skill/Cotizacion/ConsultarPadronSkill.php` | `describirPersona()` |
 | Cambiar cuánta gente recibe los horarios de sus vuelos | idem | `MAX_CON_HORARIOS` |
@@ -744,6 +834,11 @@ freno de la oferta y llevándose con él el del precio.
 | Cambiar qué puede empatar o enrutarse directo | `src/Agent/Triage/CatalogoDelTriaje.php` | `veEscrituras()` / `permitidas()` / `enrutablesDirectas()` |
 | Ver qué skills tiene cada perfil | — | `php bin/console app:agent:permisos` |
 | Repetir una conversación pasada contra el agente de hoy | `src/Agent/Command/AgentReplayCommand.php` | `app:agent:replay` |
+| Cambiar qué cuenta el agente de los tours | `src/Agent/Skill/Cotizacion/ConsultarToursSkill.php` | `tarjeta()`, `inclusionesDe()`, `itinerarioDe()` — qué catálogos entran lo decide `CatalogoWebLector::paraElAgente()` (§5.8) |
+| Que el agente ofrezca un catálogo que no está en la web | util → modal del catálogo → «Lo ofrece el agente» | `CotizacionCatalogo::$ofrecidoPorAgente`; la regla en `loOfreceElAgente()` **y** el DQL de `paraElAgente()` |
+| Cambiar cuándo el agente ofrece tours | `src/Cotizacion/Service/Agent/CotizacionInstruccionesDominio.php` | `VENTA` (sin nombres de tours: van por la skill) |
+| Que un negocio se le venda a cualquiera | su `FrentesPorDominioInterface` | `esVendible()` → entra en los dominios de todo actor |
+| Cambiar qué negocios hablan en el prompt de un prospecto | `src/Agent/Conversation/InstruccionesDominioRegistry.php` | `para()` / `ordenados()` |
 | Cambiar los hechos del sitio que el agente da por sabidos | `src/Pms/Service/Agent/PmsInstruccionesDominio.php` | `COMO_ES_EL_SITIO` — sin horas, códigos ni importes (§5.6) |
 | Añadir una respuesta escrita para lo que se pregunta mucho | panel **Bot & IA → Conocimiento del agente**, o `AgentSembrarConocimientoCommand` | acotar con `perfiles`; el validador avisa si la guía ya lo dice |
 | Remitir de un texto a otro sin copiarlo | el contenido, con `{{ ficha: codigo }}` | lo resuelve `PmsEnlacesDeFicha`; vale en guía y en conocimiento (§5.6) |

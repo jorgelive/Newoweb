@@ -4076,8 +4076,10 @@ cuanto cambiaba una tarifa, la tarjeta decía una cosa y el itinerario otra. Y l
 Cusco tenían escrito a mano exactamente lo que el cálculo ya decía (69/119/75/75 = 69/119/75/75).
 
 **La regla ahora es una** — `TourTarjetaResolver::preciosDesdeEfectivos()`, para el escaparate de
-`pax` (`toursParaCliente[].preciosDesde`), la web (tarjeta y ficha) y el panel
-(`Cotizacion::$preciosDesdeEfectivos`, virtual):
+`pax` (`toursParaCliente[].preciosDesde`), la web (tarjeta y ficha), el panel
+(`Cotizacion::$preciosDesdeEfectivos`, virtual) y el agente del chat (`consultar_tours`, que lee la
+web por `CatalogoWebLector` y del tour sólo añade los NOMBRES de
+`clasificacionFinancieraCliente.inclusiones`; ver `docs/Agent.md` §5.8):
 
 ```
 precioOculto                 → ningún precio

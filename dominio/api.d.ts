@@ -7152,6 +7152,12 @@ export interface components {
              * @default false
              */
             publicadoWeb: boolean;
+            /**
+             * @description El agente del chat lo ofrece AUNQUE no esté en la web (13/10/2026). Ver
+             *     {@see self::loOfreceElAgente()} y docs/Agent.md §5.8.
+             * @default false
+             */
+            ofrecidoPorAgente: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
@@ -7210,6 +7216,12 @@ export interface components {
              * @default false
              */
             publicadoWeb: boolean;
+            /**
+             * @description El agente del chat lo ofrece AUNQUE no esté en la web (13/10/2026). Ver
+             *     {@see self::loOfreceElAgente()} y docs/Agent.md §5.8.
+             * @default false
+             */
+            ofrecidoPorAgente: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
@@ -7267,6 +7279,12 @@ export interface components {
              * @default false
              */
             publicadoWeb: boolean;
+            /**
+             * @description El agente del chat lo ofrece AUNQUE no esté en la web (13/10/2026). Ver
+             *     {@see self::loOfreceElAgente()} y docs/Agent.md §5.8.
+             * @default false
+             */
+            ofrecidoPorAgente: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
@@ -7319,6 +7337,12 @@ export interface components {
              * @default false
              */
             publicadoWeb: boolean;
+            /**
+             * @description El agente del chat lo ofrece AUNQUE no esté en la web (13/10/2026). Ver
+             *     {@see self::loOfreceElAgente()} y docs/Agent.md §5.8.
+             * @default false
+             */
+            ofrecidoPorAgente: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
@@ -7404,6 +7428,12 @@ export interface components {
              * @default false
              */
             publicadoWeb: boolean;
+            /**
+             * @description El agente del chat lo ofrece AUNQUE no esté en la web (13/10/2026). Ver
+             *     {@see self::loOfreceElAgente()} y docs/Agent.md §5.8.
+             * @default false
+             */
+            ofrecidoPorAgente: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
@@ -7462,6 +7492,12 @@ export interface components {
              * @default false
              */
             publicadoWeb: boolean;
+            /**
+             * @description El agente del chat lo ofrece AUNQUE no esté en la web (13/10/2026). Ver
+             *     {@see self::loOfreceElAgente()} y docs/Agent.md §5.8.
+             * @default false
+             */
+            ofrecidoPorAgente: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
@@ -7552,6 +7588,12 @@ export interface components {
              * @default false
              */
             publicadoWeb: boolean;
+            /**
+             * @description El agente del chat lo ofrece AUNQUE no esté en la web (13/10/2026). Ver
+             *     {@see self::loOfreceElAgente()} y docs/Agent.md §5.8.
+             * @default false
+             */
+            ofrecidoPorAgente: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
@@ -7610,6 +7652,12 @@ export interface components {
              * @default false
              */
             publicadoWeb: boolean;
+            /**
+             * @description El agente del chat lo ofrece AUNQUE no esté en la web (13/10/2026). Ver
+             *     {@see self::loOfreceElAgente()} y docs/Agent.md §5.8.
+             * @default false
+             */
+            ofrecidoPorAgente: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
@@ -7700,6 +7748,12 @@ export interface components {
              * @default false
              */
             publicadoWeb: boolean;
+            /**
+             * @description El agente del chat lo ofrece AUNQUE no esté en la web (13/10/2026). Ver
+             *     {@see self::loOfreceElAgente()} y docs/Agent.md §5.8.
+             * @default false
+             */
+            ofrecidoPorAgente: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**
@@ -7758,6 +7812,12 @@ export interface components {
              * @default false
              */
             publicadoWeb: boolean;
+            /**
+             * @description El agente del chat lo ofrece AUNQUE no esté en la web (13/10/2026). Ver
+             *     {@see self::loOfreceElAgente()} y docs/Agent.md §5.8.
+             * @default false
+             */
+            ofrecidoPorAgente: boolean;
             /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
             slug?: string | null;
             /**

@@ -291,6 +291,14 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
     }
 
     /**
+     * Lo que se le dice al modelo cuando ya no puede consultar nada más. Ver
+     * {@see self::cerrarSinHerramientas()}.
+     */
+    private const string ORDEN_DE_CIERRE = 'Ya no puedes usar más herramientas. Contesta AHORA, en '
+        . 'texto y en el idioma de la conversación, con lo que hayas averiguado. Si te falta un '
+        . 'dato, dilo con naturalidad y que se lo confirma el equipo; no inventes.';
+
+    /**
      * Le pide al modelo la respuesta final PROHIBIÉNDOLE llamar a nada más.
      *
      * Es la diferencia entre un turno caro y un turno caro **y además inútil**. Antes, agotar las
@@ -323,6 +331,21 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
 
         $base['toolConfig'] = ['functionCallingConfig' => ['mode' => 'NONE']];
 
+        // 🔥 `mode: NONE` solo NO bastaba (12/10/2026). Tras ocho vueltas buscando una hora de
+        // check-in, el cierre volvió con 49 tokens de salida y CERO de texto: el modelo quería
+        // seguir llamando y la API no se lo dejó, así que no quedó nada que mandar. El turno
+        // acabó en el acuse genérico y en la alerta de «el agente NO está contestando».
+        //
+        // El hilo termina en los `functionResponse` de la última vuelta, y nada en él le dice al
+        // modelo que se acabaron las consultas: se le dice, en el MISMO turno de usuario (dos
+        // turnos `user` seguidos no son un hilo válido). Lo que tiene que hacer con lo que le
+        // falta es lo que ya hace un humano: decir lo que sabe y que el resto lo confirma alguien.
+        $ultimo = array_key_last($contenidos);
+        if ($ultimo !== null && ($contenidos[$ultimo]['role'] ?? null) === 'user') {
+            $partes = $contenidos[$ultimo]['parts'] ?? [];
+            $contenidos[$ultimo]['parts'] = [...(is_array($partes) ? $partes : []), ['text' => self::ORDEN_DE_CIERRE]];
+        }
+
         try {
             $datos = $this->google->generarContenido($modelo, [...$base, 'contents' => $contenidos]);
         } catch (Throwable $e) {
@@ -343,6 +366,17 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
             $leida->consumo->cacheLeido,
             $leida->consumo->salida ?? 0
         ));
+
+        // Si aun así vuelve sin texto, que el log diga POR QUÉ: con sólo «sin_respuesta» no se
+        // distingue un modelo que insiste en llamar de uno cortado por longitud.
+        if (trim($leida->texto) === '') {
+            $this->logger->warning(sprintf(
+                'Agent (google): el cierre forzado volvió SIN texto para %s (fin: %s · %d llamada(s) pedidas).',
+                $peticion->actor->etiqueta(),
+                $leida->motivoFin !== '' ? $leida->motivoFin : '—',
+                count($leida->llamadas)
+            ));
+        }
 
         return $this->desenlace($leida->texto, $usadas);
     }

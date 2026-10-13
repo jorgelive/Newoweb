@@ -128,7 +128,8 @@ final readonly class AnotarPedidoCotizacionSkill implements SkillInterface, Skil
             // no «ya tiene el precio». La diferencia la nota el cliente que espera un número.
             'aviso' => 'Queda anotado para que el área de Cotizaciones lo trabaje. Dile que en '
                 . 'breve le llega su cotización, sin prometerle un plazo exacto ni un precio que '
-                . 'no tienes.',
+                . 'no tienes. Con esto el equipo ya lo tiene: NO llames además a '
+                . 'escalar_al_equipo, salvo que sea para hoy o mañana.',
         ]);
     }
 }

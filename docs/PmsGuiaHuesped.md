@@ -879,6 +879,12 @@ El catálogo público (`PmsUnidadCatalogoProvider`) recorre lo mismo con
 `PmsGuiaAcceso::publico()` y `PmsGuiaContexto::construir($unidad, null)` — que ni siquiera carga
 las credenciales en memoria — y serializa con `pax_catalogo:read`.
 
+⚠️ **Sin estancia no hay `{{ check_in }}`, y el agente se quedaba sin horas.** La guía pública que
+lee el agente para un prospecto (`ConsultarGuiaSkill::guiaPublica()`) añade desde el 12/10/2026 la
+hora de entrada y salida **estándar** de `PmsEstablecimiento` (`horasEstandar()`), también cuando
+no se nombra casita. Sin ellas, a «¿a qué hora es el check-in?» el agente agotó sus vueltas en
+producción y, en una prueba, se inventó una hora. Ver `docs/Agent.md` §5.5.
+
 ### Interpolación: por qué se movió a PHP
 
 `RichContentEngine.interpolateString()` sustituía los placeholders **en el navegador**. Para

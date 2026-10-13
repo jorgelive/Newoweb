@@ -168,6 +168,18 @@ class CotizacionCatalogo
     private bool $publicadoWeb = false;
 
     /**
+     * El agente del chat lo ofrece AUNQUE no esté en la web (13/10/2026). Ver
+     * {@see self::loOfreceElAgente()} y docs/Agent.md §5.8.
+     *
+     * Existe por los traslados: se venden por WhatsApp, pero sin fotos y con un precio que no
+     * luce dejaban una sección vacía en la portada. Sólo suma: lo publicado en la web el agente lo
+     * ofrece siempre, así que no hay una segunda casilla que olvidar al publicar.
+     */
+    #[Groups(['catalogo:read', 'catalogo:item:read', 'catalogo:write'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $ofrecidoPorAgente = false;
+
+    /**
      * Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique.
      *
      * ⚠️ Cambiarlo rompe los enlaces ya compartidos del catálogo (los de los tours no: esos se
@@ -358,6 +370,22 @@ class CotizacionCatalogo
 
     public function isPublicadoWeb(): bool { return $this->publicadoWeb; }
     public function setPublicadoWeb(bool $publicadoWeb): self { $this->publicadoWeb = $publicadoWeb; return $this; }
+
+    public function isOfrecidoPorAgente(): bool { return $this->ofrecidoPorAgente; }
+    public function setOfrecidoPorAgente(bool $ofrecidoPorAgente): self { $this->ofrecidoPorAgente = $ofrecidoPorAgente; return $this; }
+
+    /**
+     * ¿Lo cuenta el agente del chat a quien pregunte? Lo publicado en la web, siempre; lo demás,
+     * sólo si se marcó a propósito. Un catálogo hecho para un cliente concreto —que se comparte
+     * por enlace— se queda con las dos apagadas: contarlo por WhatsApp a cualquiera es publicarlo.
+     *
+     * ⚠️ Es la misma condición que el DQL de `CatalogoWebLector::paraElAgente()`: si cambia una,
+     * cambia la otra.
+     */
+    public function loOfreceElAgente(): bool
+    {
+        return $this->activo && ($this->publicadoWeb || $this->ofrecidoPorAgente);
+    }
 
     public function getMarcaWeb(): CatalogoMarcaEnum { return $this->marcaWeb; }
     public function setMarcaWeb(CatalogoMarcaEnum $marcaWeb): self { $this->marcaWeb = $marcaWeb; return $this; }

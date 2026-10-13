@@ -60,6 +60,34 @@ final class CatalogoWebLector
         return $web;
     }
 
+    /**
+     * Lo que el agente del chat puede ofrecer: lo de la web y, además, lo marcado «lo ofrece el
+     * agente» (`CotizacionCatalogo::$ofrecidoPorAgente`), en el mismo orden que la portada.
+     *
+     * Mismas tarjetas, mismo «desde» y mismos tours publicados que la web: sólo cambia QUÉ
+     * catálogos entran. ⚠️ La condición es la de `CotizacionCatalogo::loOfreceElAgente()`.
+     *
+     * @return list<CatalogoWeb>
+     */
+    public function paraElAgente(string $idioma): array
+    {
+        /** @var list<CotizacionCatalogo> $catalogos */
+        $catalogos = $this->em->createQuery(<<<'DQL'
+            SELECT k FROM App\Cotizacion\Entity\CotizacionCatalogo k
+            WHERE k.activo = true AND (k.publicadoWeb = true OR k.ofrecidoPorAgente = true)
+            ORDER BY k.orden ASC, k.createdAt ASC
+        DQL)->getResult();
+
+        $salida = [];
+        foreach ($catalogos as $catalogo) {
+            $c = $this->aWeb($catalogo, $idioma, enLaWeb: $catalogo->isPublicadoWeb() && $catalogo->getSlug() !== null);
+            if ($c !== null) {
+                $salida[] = $c;
+            }
+        }
+        return $salida;
+    }
+
     public function catalogo(string $slug, string $idioma): ?CatalogoWeb
     {
         $catalogo = $this->em->getRepository(CotizacionCatalogo::class)->findOneBy([
@@ -92,10 +120,12 @@ final class CatalogoWebLector
         return $slug !== '' ? $slug : 'tour';
     }
 
-    private function aWeb(CotizacionCatalogo $catalogo, string $idioma): ?CatalogoWeb
+    private function aWeb(CotizacionCatalogo $catalogo, string $idioma, bool $enLaWeb = true): ?CatalogoWeb
     {
+        // En la web el slug es la URL y sin él no hay página. Fuera de ella (lo que sólo ofrece el
+        // agente) el enlace es el de pax, por localizador, y el slug sobra.
         $slug = $catalogo->getSlug();
-        if ($slug === null) {
+        if ($enLaWeb && $slug === null) {
             return null;
         }
 
@@ -131,12 +161,13 @@ final class CatalogoWebLector
         }
 
         return new CatalogoWeb(
-            slug: $slug,
+            slug: $slug ?? '',
             localizador: $catalogo->getLocalizador() ?? '',
             titulo: TextoI18n::en($catalogo->getTituloWeb(), $idioma) ?? ($catalogo->getNombre() ?? 'Tours'),
             descripcionHtml: TextoI18n::en($catalogo->getDescripcionWeb(), $idioma),
             tours: $tours,
             marca: MarcaWeb::de($catalogo->getMarcaWeb()),
+            enLaWeb: $enLaWeb,
         );
     }
 
