@@ -7,6 +7,7 @@ use App\Dto\Lee;
 use App\Dto\ExchangeRateDto;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Maestro\MaestroTipocambio;
+use App\Entity\Maestro\MaestroTipocambioConsulta;
 use DateTime;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -48,6 +49,16 @@ class TipocambioManager
     private const CAMPO_VENTA = 'sell_price';
 
     /**
+     * Peticiones HTTP al proveedor como máximo por día (hora de Lima), sumando todos los procesos.
+     *
+     * Pasado el tope no se llama hasta el día siguiente y rige la última cotización en base, que
+     * es el mismo respaldo de cuando la API falla. En régimen normal se gastan ~12 al día (medido
+     * del 1 al 8/10/2026), así que 20 no estorba; con la API caída, sin tope, eran ~170. Ver
+     * {@see MaestroTipocambioConsulta}.
+     */
+    public const MAX_CONSULTAS_DIA = 20;
+
+    /**
      * Por qué falló la última llamada al proveedor, o `null` si la última fue bien.
      *
      * Existe para que el aviso de `app:pms:tipo-cambio:sincronizar` diga la CAUSA y no sólo el
@@ -64,9 +75,69 @@ class TipocambioManager
         private readonly string $sunatApiToken
     ) {}
 
+    /**
+     * La causa del último fallo: el de este proceso o, si aquí no se llamó, el que anotó otro
+     * proceso hoy en la tabla. El cron puede no llegar a llamar —tope gastado de madrugada—
+     * y aun así tiene que poder decir por qué.
+     */
     public function ultimoFallo(): ?string
     {
-        return $this->ultimoFallo;
+        if ($this->ultimoFallo !== null) {
+            return $this->ultimoFallo;
+        }
+
+        $guardado = $this->em->getConnection()->fetchOne(
+            'SELECT ultimo_fallo FROM maestro_tipocambio_consulta WHERE dia = ?',
+            [$this->hoyEnLima()]
+        );
+
+        return is_string($guardado) ? $guardado : null;
+    }
+
+    /**
+     * Reserva UNA petición del cupo de hoy. `false` si ya se gastó.
+     *
+     * ⚠️ Atómico a propósito: el `UPDATE … WHERE intentos < tope` lo decide MySQL, así que dos
+     * procesos a la vez no pueden pasarse del tope. Leer, comparar y escribir por separado sí
+     * podría, y con php-fpm, workers y cron llamando a la vez, pasaría.
+     */
+    private function reservarConsulta(): bool
+    {
+        $conexion = $this->em->getConnection();
+        $hoy = $this->hoyEnLima();
+
+        $conexion->executeStatement(
+            'INSERT IGNORE INTO maestro_tipocambio_consulta (dia, intentos) VALUES (?, 0)',
+            [$hoy]
+        );
+
+        $reservadas = $conexion->executeStatement(
+            'UPDATE maestro_tipocambio_consulta SET intentos = intentos + 1 WHERE dia = ? AND intentos < ?',
+            [$hoy, self::MAX_CONSULTAS_DIA]
+        );
+
+        return $reservadas > 0;
+    }
+
+    private function anotarFallo(string $fallo): void
+    {
+        $this->ultimoFallo = $fallo;
+
+        try {
+            $this->em->getConnection()->executeStatement(
+                'UPDATE maestro_tipocambio_consulta SET ultimo_fallo = ? WHERE dia = ?',
+                [mb_substr($fallo, 0, 255), $this->hoyEnLima()]
+            );
+        } catch (Exception $e) {
+            // Anotar la causa es para el aviso; no puede tumbar a quien pidió la tasa.
+            $this->logger->error('[TipoCambio] No se pudo anotar el fallo: ' . $e->getMessage());
+        }
+    }
+
+    /** Hoy en Lima, que es el día de SUNAT. El servidor va en UTC. */
+    private function hoyEnLima(): string
+    {
+        return (new DateTimeImmutable('now', new \DateTimeZone('America/Lima')))->format('Y-m-d');
     }
 
     /**
@@ -167,6 +238,21 @@ class TipocambioManager
     private function callApi(array $queryParams): array
     {
         try {
+            if (!$this->reservarConsulta()) {
+                // No se pisa `ultimoFallo` de la tabla: la causa real (el 403) es lo que el aviso
+                // tiene que contar, no que se gastó el cupo por culpa de ella.
+                $this->ultimoFallo ??= $this->ultimoFallo() ?? sprintf(
+                    'tope diario de %d consultas a decolecta alcanzado',
+                    self::MAX_CONSULTAS_DIA
+                );
+                $this->logger->notice(sprintf(
+                    '[TipoCambio] Tope diario de %d consultas alcanzado: no se llama a la API hasta mañana.',
+                    self::MAX_CONSULTAS_DIA
+                ));
+
+                return [];
+            }
+
             $response = $this->client->request('GET', self::ENDPOINT, [
                 'query' => $queryParams,
                 'headers' => [
@@ -181,6 +267,10 @@ class TipocambioManager
 
             if ($codigo === 200) {
                 $this->ultimoFallo = null;
+                $this->em->getConnection()->executeStatement(
+                    'UPDATE maestro_tipocambio_consulta SET ultimo_fallo = NULL WHERE dia = ?',
+                    [$this->hoyEnLima()]
+                );
                 $raw = $response->toArray();
 
                 if (isset($raw[self::CAMPO_FECHA])) {
@@ -208,12 +298,12 @@ class TipocambioManager
 
             // Un 403 de decolecta es una página de nginx, no su JSON: es la cuota mensual agotada
             // (o la llave bloqueada). Una llave inválida da 401. Medido el 13/10/2026.
-            $this->ultimoFallo = $codigo === 403
+            $this->anotarFallo($codigo === 403
                 ? 'decolecta responde HTTP 403: cuota del plan agotada o llave bloqueada'
-                : sprintf('decolecta responde HTTP %d', $codigo);
+                : sprintf('decolecta responde HTTP %d', $codigo));
         } catch (Exception $e) {
             $this->logger->error('Error API tipo de cambio: ' . $e->getMessage());
-            $this->ultimoFallo = 'sin conexión con decolecta: ' . $e->getMessage();
+            $this->anotarFallo('sin conexión con decolecta: ' . $e->getMessage());
         }
 
         return [];

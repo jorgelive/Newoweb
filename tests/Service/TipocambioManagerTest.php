@@ -6,6 +6,7 @@ namespace App\Tests\Service;
 
 use App\Dto\ExchangeRateDto;
 use App\Service\TipocambioManager;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -41,15 +42,26 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 final class TipocambioManagerTest extends TestCase
 {
     /**
-     * @param array<int, MockResponse> $respuestas
+     * @param array<int, MockResponse>|MockHttpClient $respuestas
+     * @param bool $quedaCupo Si la reserva del tope diario sale bien (`UPDATE` que afecta una fila).
      */
-    private function manager(array $respuestas, ?LoggerInterface $logger = null): TipocambioManager
-    {
+    private function manager(
+        array|MockHttpClient $respuestas,
+        ?LoggerInterface $logger = null,
+        bool $quedaCupo = true,
+    ): TipocambioManager {
+        // Stubs y no mocks: no hay expectativas que declarar y PHPUnit 13 avisa si se usa un mock
+        // sin ellas. La conexión es lo único de la base que toca `callApi()`: el tope diario.
+        $conexion = $this->createStub(Connection::class);
+        $conexion->method('executeStatement')->willReturn($quedaCupo ? 1 : 0);
+        $conexion->method('fetchOne')->willReturn(false);
+
+        $em = $this->createStub(EntityManagerInterface::class);
+        $em->method('getConnection')->willReturn($conexion);
+
         return new TipocambioManager(
-            // Un stub y no un mock: los dos métodos que se prueban no tocan la base, así que no
-            // hay ninguna expectativa que declarar y PHPUnit 13 avisa si se usa un mock sin ellas.
-            $this->createStub(EntityManagerInterface::class),
-            new MockHttpClient($respuestas),
+            $em,
+            $respuestas instanceof MockHttpClient ? $respuestas : new MockHttpClient($respuestas),
             $logger ?? new NullLogger(),
             'token-de-prueba',
         );
@@ -199,5 +211,39 @@ final class TipocambioManagerTest extends TestCase
         self::assertSame(['2026-08-16'], array_keys($dtos));
         self::assertSame('3.522', $dtos['2026-08-16']->buy);
         self::assertSame('3.532', $dtos['2026-08-16']->sell);
+    }
+
+    /**
+     * El tope diario. Sin él, con la API caída, cada petición que necesitaba la tasa de hoy volvía
+     * a llamar: 873 rechazadas del 9 al 13/10/2026, y el plan de 1000 nació agotado.
+     *
+     * Lo que se fija es que **no sale a la red**: con el cupo gastado ni se intenta.
+     */
+    public function testConElCupoGastadoNoSeLlamaALaApi(): void
+    {
+        $llamadas = 0;
+        $cliente = new MockHttpClient(static function () use (&$llamadas): MockResponse {
+            ++$llamadas;
+
+            return new MockResponse('[]');
+        });
+
+        $manager = $this->manager($cliente, quedaCupo: false);
+
+        self::assertSame([], $this->llamar($manager, 'callApi', ['date' => '2026-10-13']));
+        self::assertSame(0, $llamadas, 'Con el tope alcanzado no puede salir ni una petición.');
+        self::assertStringContainsString('tope diario', (string) $manager->ultimoFallo());
+    }
+
+    /**
+     * El 403 de decolecta es una página de nginx: cuota agotada o llave bloqueada. Lo que dice el
+     * aviso a soporte sale de aquí, y es lo que distingue «paga el plan» de «la llave está mal».
+     */
+    public function testUn403SeExplicaComoCuotaAgotada(): void
+    {
+        $manager = $this->manager([new MockResponse('<html>403 Forbidden</html>', ['http_code' => 403])]);
+
+        self::assertSame([], $this->llamar($manager, 'callApi', ['date' => '2026-10-13']));
+        self::assertStringContainsString('cuota del plan agotada', (string) $manager->ultimoFallo());
     }
 }

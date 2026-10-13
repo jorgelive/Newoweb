@@ -6359,8 +6359,28 @@ no la arregla operaciones: la arregla quien paga el plan o cambia la llave.
 - **Consumo real**: ~12 peticiones al día, ~375 al mes (medido del 1 al 8/10/2026). No es el cron:
   `getTipodecambio()` llama a la API cada vez que la fecha pedida no está en base, y la de HOY no
   está hasta que SUNAT la publica — el listener de sellado, las skills, el push de tarifas y el
-  endpoint de consulta la piden a cualquier hora. Y con la API caída sigue reintentando: **~100
-  al día**. Desde el 13/10/2026 el plan es de **1000 al mes**.
+  endpoint de consulta la piden a cualquier hora, y cada intento son DOS peticiones (mes y día).
+
+⚠️ **Y decolecta cuenta las RECHAZADAS.** Con la API caída nadie recordaba el fallo y cada
+petición volvía a llamar: **873 peticiones rechazadas del 9 al 13/10/2026** (~170 al día). El
+plan de 1000 comprado el 13/10 continuó el contador del mes y **nació agotado (1001 / 1000)**.
+
+**Desde el 13/10/2026 hay tope: `TipocambioManager::MAX_CONSULTAS_DIA` = 20 peticiones al día**
+(hora de Lima), sumando todos los procesos. Vive en la tabla `maestro_tipocambio_consulta`, una
+fila por día:
+
+- **En tabla y no en caché**: tiene que valer igual para php-fpm, workers y cron, y sobrevivir al
+  `cache:clear` de cada despliegue.
+- **La reserva es atómica**: `UPDATE … SET intentos = intentos + 1 WHERE intentos < 20` lo decide
+  MySQL antes de llamar. Leer, comparar y escribir por separado dejaría pasarse a dos procesos a
+  la vez.
+- **Pasado el tope no se llama hasta mañana** y rige la última cotización en base, el mismo
+  respaldo de cuando la API falla. En régimen normal se gastan ~12 al día, así que no estorba.
+- **`ultimo_fallo` guarda la causa del día**, y `ultimoFallo()` la lee de ahí si el proceso no
+  llegó a llamar: el cron de las 08:40 puede encontrar el cupo ya gastado de madrugada y aun así
+  tiene que decir que el motivo es un 403, no «tope alcanzado».
+
+Peor caso con la API caída: 20 al día, ~600 al mes. Cabe en el plan de 1000.
 
 ⚠️ **El umbral no es 1, y no es pereza.** SUNAT publica todos los días —fines de semana incluidos,
 repitiendo el último día hábil— pero la cotización del día en curso tarda unas horas en salir. Con
@@ -6618,6 +6638,8 @@ contra la base local: mismos veredictos que antes.
 | Añadir un par de monedas al rebase (§12.4.4) | `PmsMonedaBaseService` | `convertir()` — hoy sólo USD↔PEN |
 | Levantar los candados de moneda desde otro sitio (§12.4.4) | `MonedaBaseRebaseContext` | `durante()` — **no** debilites los `assert*` del listener |
 | Cambiar qué tipo de cambio se snapshotea (venta/promedio/compra) | `TipoCambioDelDia` | `venta()` |
+| Cambiar el tope diario de peticiones a decolecta (§12.18) | `TipocambioManager` | `MAX_CONSULTAS_DIA` (hoy 20); la reserva en `reservarConsulta()` |
+| Cambiar a quién y cómo avisa el tipo de cambio atrasado (§12.18) | `TipoCambioSincronizarCommand` | `alarma()` — WhatsApp a `TECH_SUPPORT`, push de respaldo |
 | Cambiar el % de comisión de tarjeta (hoy 5.5%) | `PmsMedioPago` | `comisionPorcentaje()` |
 | Cambiar la fórmula del recargo / total cobrado (§11.5) | `PmsPagoFinanciero` + `util/src/types/pmsFinanzasModel.ts` | `getMontoComision()` / `totalConComision()` (son **espejo**: tocar los dos) |
 | Cambiar de dónde sale el tipo de cambio del panel (§11.5) | `ReservaFinanzasPanel.vue` | `autocompletarTipoCambio()` (hoy: `venta` de `/maestro/tipo-cambio/consultar`) |
