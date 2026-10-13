@@ -12,6 +12,22 @@ pero lo que se registra aquí son aparatos: los hay que sólo conmutan, y el acc
 (pendiente). Fuera de alcance: el cobro en sí, que cuando llegue pasará por `src/Finanzas/`
 como cualquier otro importe.
 
+> ⚠️ **Estado al 13/10/2026: SIN DATOS desde mediados de septiembre, y el muestreo PAUSADO.**
+>
+> - **La suscripción IoT Core de Tuya venció y no se renueva a propósito**: la domótica se va a
+>   migrar a un servicio en la **intranet con easytuya**. Ese plan **todavía no está escrito**
+>   en ningún doc; cuando se diseñe, va aquí.
+> - El cron `app:domotica:muestrear` está **comentado** en `tools/cron/www-data.crontab` desde el
+>   13/10: sin suscripción fallaba cada hora y llenaba `error.log` de un fallo conocido.
+> - ⚠️ **Y el corte es anterior al vencimiento.** Medido el 13/10 en producción: la última lectura
+>   de los 3 contómetros es del **12/09** (119 fallos consecutivos) y el último estado de los 21
+>   que sólo conmutan, del **14/09**. El «subscription has expired» sólo aparece en `info.log`
+>   desde el 11/10; lo de antes tuvo otra causa, sin investigar.
+> - 🔥 **El vigilante avisó UNA vez (14/09) y luego calló un mes**, reportando `0 aviso(s)` cada
+>   hora con el parque entero mudo. §10 dice que mira el reloj precisamente para sobrevivir a que
+>   se muera el muestreo: no lo hizo, o su enfriamiento no se levanta nunca. **Revisarlo antes de
+>   reactivar nada**, con el origen que sea: es la red de la migración.
+
 **Estado (08/09/2026):** están las entidades, los repositorios, la vigilancia, la configuración
 y **las dos migraciones, aplicadas en producción**. El cron de vigilancia lleva semanas corriendo
 allí cada hora. **No están todavía** el cliente de Tuya, el muestreo, el accionamiento ni las

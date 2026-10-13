@@ -87,7 +87,12 @@
 # Minuto 35 para no pisar al muestreo cuando exista (ira en el minuto 5).
 # Muestreo: estado de los 28 aparatos y consumo de los 3 que miden. Dos llamadas
 # para el parque entero mas una por cada aparato con contometro. Ver docs/Domotica.md 14.2.
-5 * * * * /var/www/openperu.pe/tools/cron/con-candado 1800 /usr/bin/php /var/www/openperu.pe/bin/console app:domotica:muestrear --env=prod >> /var/www/openperu.pe/var/log/domotica_muestrear.log 2>&1
+#
+# PAUSADO el 13/10/2026: la suscripcion IoT Core de Tuya vencio el 11/10 y no se renueva a
+# proposito, porque la domotica se va a migrar a un servicio en la intranet (easytuya). Sin
+# suscripcion cada pasada fallaba y llenaba error.log. Se reactiva al terminar la migracion,
+# apuntando al nuevo origen. Ver el aviso de estado al principio de docs/Domotica.md.
+#5 * * * * /var/www/openperu.pe/tools/cron/con-candado 1800 /usr/bin/php /var/www/openperu.pe/bin/console app:domotica:muestrear --env=prod >> /var/www/openperu.pe/var/log/domotica_muestrear.log 2>&1
 
 35 * * * * /var/www/openperu.pe/tools/cron/con-candado 1800 /usr/bin/php /var/www/openperu.pe/bin/console app:domotica:vigilar --env=prod >> /var/www/openperu.pe/var/log/domotica_vigilar.log 2>&1
 
