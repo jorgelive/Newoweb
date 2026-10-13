@@ -230,67 +230,24 @@ Un **plan de pagos como dato de la reserva**: cuotas con importe, fecha y estado
 
 ### Suelto pero relacionado
 
-- El cargo de alojamiento de esta reserva se llama `[ROOMNAME1] [FIRSTNIGHT] - [LEAVINGDAY]`:
-  placeholders de Beds24 sin resolver. `ConsultarCuentaSkill::concepto()` los limpia;
-  `GenerarMensajePrepagoSkill` **no**, así que ahí saldrían crudos al huésped.
-- El nombre de esta reserva está cruzado (`nombre_cliente = "Pasquali"`,
-  `apellido_cliente = "Susanna"`), y la conversación se llama «Pasquali Susanna». Cualquier
-  plantilla con `{{ nombre }}` la saluda por el apellido. `RevisarOrdenDelNombreDispatch` sólo
-  actúa cuando el nombre entra o cambia: **no cubre el histórico**. Falta un comando que lo
-  barra, como se hizo con `app:pms:corregir-pais-ota`.
+- **Nombre cruzado en el histórico.** El de esta reserva ya está corregido (`Susanna` /
+  `Pasquali`, comprobado el 13/10/2026), pero `RevisarOrdenDelNombreDispatch` sólo actúa cuando el
+  nombre entra o cambia: **no cubre el histórico**. Falta un comando que lo barra, como se hizo con
+  `app:pms:corregir-pais-ota`.
 
 ---
 
-## El comprobante que nadie pudo abrir — 19/08/2026
+## ✅ CERRADO (13/10/2026): el comprobante de 170,30 de la reserva 88591163
 
-**Es el mismo agujero de arriba, visto desde el otro lado.** No falta un plan de pagos: falta
-que llegue el dato del pago.
+Se anotó el 19/08/2026 como «no registrado» porque el adjunto de Booking no se podía abrir. **Se
+registró ese mismo día a las 21:45** —161,42 + 5,5 % de recargo = 170,30, el neto como manda
+`PmsReservaOrigenCobroResolver`— y el 05/09 la huésped pagó en efectivo los 161,44 restantes. La
+cuenta cuadra: **392,15 de cargos, 392,15 pagados**. El pendiente se quedó abierto dos meses sólo
+porque nadie volvió a esta nota.
 
-La huésped de la reserva **88591163** (Pasquali, 01–07/09/2026) mandó por Booking.com el
-comprobante de un cargo. El comprobante existe, es legible y es inequívoco:
-
-| Dato | Valor |
-|---|---|
-| Monto | **170,30 USD** |
-| Fecha | 19/08/2026 10:44 |
-| Medio | Mastercard `516499…5726` |
-| Autorización | X49320 |
-| Referencia | «Sussane set» |
-
-**Y no está registrado.** Lo que hay en su cuenta hoy:
-
-```
-cargos    suplemento de limpieza                     15.00
-          [ROOMNAME1] [FIRSTNIGHT] - [LEAVINGDAY]   327.96
-          cargo por servicio                         49.19
-                                                   ───────
-                                                    392.15
-
-pagos     20/06/2026  tarjeta de crédito             69.29
-                                                   ───────
-saldo que muestra el sistema                        322.86
-saldo real, con el comprobante                      152.56   ← 170.30 de diferencia
-```
-
-**Por qué nadie lo anotó:** el adjunto llegó como un enlace que no se podía abrir. El `href`
-venía sin host y el panel lo resolvía contra su propio dominio → 404. Eso ya está arreglado
-(`EnlaceDeBeds24` + `Version20260819235500`, 92 mensajes corregidos), así que a partir de ahora
-el enlace **se abre**. Ver `docs/Mensajeria.md` §23.
-
-Pero el arreglo tiene un techo: el operador puede abrirlo porque tiene sesión en beds24.com; el
-servidor **no puede descargarlo** —está probado que ninguna credencial de la API sirve—. Así que
-el comprobante nunca estará en nuestra base ni lo verá el agente.
-
-**Lo que queda pendiente, por orden:**
-
-1. **Registrar los 170,30 de esta reserva.** Es un dato, no una interpretación: está el número de
-   autorización.
-2. **Revisar los otros 91 mensajes con adjunto.** Ninguno se pudo abrir en su momento, así que
-   cualquiera podría llevar dentro otro comprobante sin anotar. Ahora los enlaces funcionan.
-3. **Decidir si se avisa.** Un adjunto que el sistema no puede leer y que puede ser dinero
-   debería levantar la mano solo, en vez de esperar a que alguien mire el hilo. Es exactamente el
-   caso de «ver valores, no interpretar conversaciones»: hoy el valor está en una imagen que el
-   sistema no ve.
+Los otros dos puntos que colgaban de aquí no eran trabajo: los 91 adjuntos restantes **son
+nuestros** (`host`), no comprobantes del huésped, y el aviso de cobros sin registrar vive en la
+sección de abajo, que es donde está la causa de raíz.
 
 ---
 
