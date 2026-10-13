@@ -68,12 +68,17 @@ La regla de `CLAUDE.md` («Node y PHP: cada lógica en un solo sitio») decide e
 
 ## 3. Hardware
 
-**Raspberry Pi 5 (4 GB) o Pi 4 (4 GB).** No la Zero 2 W: no tiene puerto de red con cable y no
-sirve de router.
+**Raspberry Pi 5 (4 GB), obligatoria.** No la Pi 4: si algún día corre el controlador de Omada
+(§8), éste trae MongoDB, y MongoDB 5.0+ exige ARMv8.2, que la Pi 4 (Cortex-A72, ARMv8.0) no tiene:
+se cae al arrancar con «illegal instruction». La Pi 5 (Cortex-A76) sí lo tiene. Tampoco la Zero 2 W:
+no tiene puerto de red con cable y no sirve de router.
+
+**Sistema: Ubuntu Server 24.04 LTS** (imagen oficial de Canonical para Pi 5) o Raspberry Pi OS de
+64 bits. Ubuntu es lo que documenta TP-Link para su controlador.
 
 | Pieza | Por qué | Aprox. (lista, US$; en Perú más) |
 |---|---|---|
-| Pi 5 4 GB | Sobra para ~30 aparatos + DHCP + VPN | ~60 |
+| Pi 5 4 GB | Sobra para ~30 aparatos + DHCP + VPN (+ controlador Omada en Docker) | ~60 |
 | **SSD por USB** (no SD) | Lo que muere en una Pi es la tarjeta SD por desgaste de escritura | ~25–40 |
 | **Fuente oficial** | Con un cargador cualquiera la Pi sufre bajo voltaje y corrompe datos | ~12 |
 | Caja con ventilador | No ponerla cerrada junto al módem | ~10–15 |
@@ -229,9 +234,24 @@ cobertura y la gestión de muchos equipos que cualquier AP suelto. **Descartada 
 técnica.
 
 No compite con este plan, lo complementa: los APs Omada irían **detrás** de la Raspberry, en el
-lugar de «switch / APs» del diagrama de §4. Si un día se compran, nada de lo de arriba cambia. El
-controlador de Omada también podría correr en la propia Pi, pero eso está **sin comprobar** (hay
-que ver si el software del controlador tiene versión para ARM).
+lugar de «switch / APs» del diagrama de §4. Si un día se compran, nada de lo de arriba cambia.
+
+### Dónde correría el controlador (verificado el 13/10/2026)
+
+**TP-Link NO publica el controlador para ARM.** Sólo hay `linux_x64` (`.deb` y `.tar.gz`) y su guía
+de instalación es para Ubuntu en PC. En una Pi hay dos caminos, los dos de la comunidad:
+
+| Camino | Veredicto |
+|---|---|
+| El `.deb` de PC con el Java parcheado a mano | ❌ **No.** Funciona a ratos y se rompe al actualizar el sistema (hay quien tuvo que reinstalar dependencias tras un update de Debian). Sin vuelta atrás limpia |
+| **Docker, imagen `mbentley/omada-controller`** (publica arm64) | ✅ **Éste, en la Pi 5.** Java y MongoDB van dentro y en versiones que casan; actualizar la Pi no los toca; volver a la versión anterior es cambiar la etiqueta; y queda aislado de la domótica, `dnsmasq` y WireGuard |
+
+**El OC200** (el controlador de TP-Link en aparato) sigue siendo la salida oficial y más barata que
+la Pi — pero la Pi hace falta igual por la domótica, y el OC200 no la sustituye. Se compra sólo si
+el controlador en Docker diera problemas.
+
+⚠️ **Que muera el controlador no tumba el wifi**: los APs Omada siguen dando servicio sin él. Lo que
+se pierde mientras tanto es configurar, ver estadísticas y montar el mesh.
 
 ## 9. Preguntas abiertas
 
