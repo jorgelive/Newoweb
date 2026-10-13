@@ -6379,6 +6379,14 @@ fila por día:
 - **`ultimo_fallo` guarda la causa del día**, y `ultimoFallo()` la lee de ahí si el proceso no
   llegó a llamar: el cron de las 08:40 puede encontrar el cupo ya gastado de madrugada y aun así
   tiene que decir que el motivo es un 403, no «tope alcanzado».
+- **Y 20 minutos entre peticiones** (`MINUTOS_ENTRE_CONSULTAS`, columna `ultima_peticion`), en el
+  mismo `UPDATE`. El tope solo dejaba gastar los 20 en una ráfaga de un minuto, que es justo lo
+  que hacía el sistema con la API caída. La hora es `NOW()` de MySQL al escribir y al comparar:
+  un solo reloj.
+- ⚠️ **Consecuencia buscada:** el intento B de `fetchExternalData()` —el día suelto cuando el mes
+  sale vacío— ya casi nunca sale en la misma pasada que el A: queda frenado y lo reintenta quien
+  pida la tasa 20 minutos después. El mes vacío sólo pasa el día 1 antes de que SUNAT publique,
+  y el cron tolera 2 días de retraso antes de avisar.
 
 Peor caso con la API caída: 20 al día, ~600 al mes. Cabe en el plan de 1000.
 
@@ -6638,7 +6646,7 @@ contra la base local: mismos veredictos que antes.
 | Añadir un par de monedas al rebase (§12.4.4) | `PmsMonedaBaseService` | `convertir()` — hoy sólo USD↔PEN |
 | Levantar los candados de moneda desde otro sitio (§12.4.4) | `MonedaBaseRebaseContext` | `durante()` — **no** debilites los `assert*` del listener |
 | Cambiar qué tipo de cambio se snapshotea (venta/promedio/compra) | `TipoCambioDelDia` | `venta()` |
-| Cambiar el tope diario de peticiones a decolecta (§12.18) | `TipocambioManager` | `MAX_CONSULTAS_DIA` (hoy 20); la reserva en `reservarConsulta()` |
+| Cambiar el tope diario de peticiones a decolecta (§12.18) | `TipocambioManager` | `MAX_CONSULTAS_DIA` (hoy 20) y `MINUTOS_ENTRE_CONSULTAS` (hoy 20); la reserva en `reservarConsulta()` |
 | Cambiar a quién y cómo avisa el tipo de cambio atrasado (§12.18) | `TipoCambioSincronizarCommand` | `alarma()` — WhatsApp a `TECH_SUPPORT`, push de respaldo |
 | Cambiar el % de comisión de tarjeta (hoy 5.5%) | `PmsMedioPago` | `comisionPorcentaje()` |
 | Cambiar la fórmula del recargo / total cobrado (§11.5) | `PmsPagoFinanciero` + `util/src/types/pmsFinanzasModel.ts` | `getMontoComision()` / `totalConComision()` (son **espejo**: tocar los dos) |

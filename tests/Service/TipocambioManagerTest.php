@@ -232,7 +232,7 @@ final class TipocambioManagerTest extends TestCase
 
         self::assertSame([], $this->llamar($manager, 'callApi', ['date' => '2026-10-13']));
         self::assertSame(0, $llamadas, 'Con el tope alcanzado no puede salir ni una petición.');
-        self::assertStringContainsString('tope diario', (string) $manager->ultimoFallo());
+        self::assertStringContainsString('frenada', (string) $manager->ultimoFallo());
     }
 
     /**

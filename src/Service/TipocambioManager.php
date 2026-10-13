@@ -59,6 +59,17 @@ class TipocambioManager
     public const MAX_CONSULTAS_DIA = 20;
 
     /**
+     * Minutos mínimos entre dos peticiones, de cualquier proceso.
+     *
+     * El tope diario solo no basta: deja gastar los 20 en una ráfaga de un minuto. Con esto el
+     * peor caso son 3 por hora. ⚠️ Consecuencia buscada: el intento B de `fetchExternalData()`
+     * (el día suelto tras un mes vacío) casi nunca sale en la misma pasada — espera 20 minutos y
+     * lo vuelve a intentar quien pida la tasa después. Vale la pena: el mes vacío sólo ocurre el
+     * día 1, antes de que SUNAT publique.
+     */
+    public const MINUTOS_ENTRE_CONSULTAS = 20;
+
+    /**
      * Por qué falló la última llamada al proveedor, o `null` si la última fue bien.
      *
      * Existe para que el aviso de `app:pms:tipo-cambio:sincronizar` diga la CAUSA y no sólo el
@@ -95,11 +106,14 @@ class TipocambioManager
     }
 
     /**
-     * Reserva UNA petición del cupo de hoy. `false` si ya se gastó.
+     * Reserva UNA petición del cupo de hoy. `false` si ya se gastó o si la última salió hace
+     * menos de {@see self::MINUTOS_ENTRE_CONSULTAS} minutos.
      *
-     * ⚠️ Atómico a propósito: el `UPDATE … WHERE intentos < tope` lo decide MySQL, así que dos
-     * procesos a la vez no pueden pasarse del tope. Leer, comparar y escribir por separado sí
-     * podría, y con php-fpm, workers y cron llamando a la vez, pasaría.
+     * ⚠️ Atómico a propósito: el `UPDATE … WHERE intentos < tope AND última <= hace 20 min` lo
+     * decide MySQL, así que dos procesos a la vez no pueden pasarse de ninguna de las dos. Leer,
+     * comparar y escribir por separado sí podría, y con php-fpm, workers y cron llamando a la
+     * vez, pasaría. La hora es la de MySQL (`NOW()`) en la escritura y en la comparación: un solo
+     * reloj, sin zonas de por medio.
      */
     private function reservarConsulta(): bool
     {
@@ -112,8 +126,10 @@ class TipocambioManager
         );
 
         $reservadas = $conexion->executeStatement(
-            'UPDATE maestro_tipocambio_consulta SET intentos = intentos + 1 WHERE dia = ? AND intentos < ?',
-            [$hoy, self::MAX_CONSULTAS_DIA]
+            'UPDATE maestro_tipocambio_consulta SET intentos = intentos + 1, ultima_peticion = NOW() '
+            . 'WHERE dia = ? AND intentos < ? '
+            . 'AND (ultima_peticion IS NULL OR ultima_peticion <= NOW() - INTERVAL ? MINUTE)',
+            [$hoy, self::MAX_CONSULTAS_DIA, self::MINUTOS_ENTRE_CONSULTAS]
         );
 
         return $reservadas > 0;
@@ -242,12 +258,14 @@ class TipocambioManager
                 // No se pisa `ultimoFallo` de la tabla: la causa real (el 403) es lo que el aviso
                 // tiene que contar, no que se gastó el cupo por culpa de ella.
                 $this->ultimoFallo ??= $this->ultimoFallo() ?? sprintf(
-                    'tope diario de %d consultas a decolecta alcanzado',
-                    self::MAX_CONSULTAS_DIA
+                    'consulta a decolecta frenada (tope de %d al día o espera de %d min entre consultas)',
+                    self::MAX_CONSULTAS_DIA,
+                    self::MINUTOS_ENTRE_CONSULTAS
                 );
                 $this->logger->notice(sprintf(
-                    '[TipoCambio] Tope diario de %d consultas alcanzado: no se llama a la API hasta mañana.',
-                    self::MAX_CONSULTAS_DIA
+                    '[TipoCambio] Consulta frenada: tope de %d al día o menos de %d min desde la última.',
+                    self::MAX_CONSULTAS_DIA,
+                    self::MINUTOS_ENTRE_CONSULTAS
                 ));
 
                 return [];

@@ -43,6 +43,14 @@ class MaestroTipocambioConsulta
     #[ORM\Column(type: 'integer')]
     private int $intentos = 0;
 
+    /**
+     * Cuándo salió la última petición. No sale otra hasta pasados
+     * {@see \App\Service\TipocambioManager::MINUTOS_ENTRE_CONSULTAS}: el tope diario solo deja
+     * gastar los 20 en un minuto de ráfaga, y eso es lo que hacía el sistema con la API caída.
+     */
+    #[ORM\Column(name: 'ultima_peticion', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $ultimaPeticion = null;
+
     /** Lo último que dijo el proveedor al fallar ese día, para que el aviso diga la causa. */
     #[ORM\Column(name: 'ultimo_fallo', type: 'string', length: 255, nullable: true)]
     private ?string $ultimoFallo = null;
@@ -60,6 +68,11 @@ class MaestroTipocambioConsulta
     public function getIntentos(): int
     {
         return $this->intentos;
+    }
+
+    public function getUltimaPeticion(): ?\DateTimeImmutable
+    {
+        return $this->ultimaPeticion;
     }
 
     public function getUltimoFallo(): ?string
