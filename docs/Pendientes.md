@@ -1060,15 +1060,14 @@ necesitó su propia llamada.
 Y el cron que nunca existió: `app:pms:tipo-cambio:sincronizar`, 08:00 de Lima, que **falla y avisa**
 si el maestro se queda atrás. El detalle en `docs/PmsBeds24ReservasSync.md` §12.18.
 
-### Lo que SÍ sigue pendiente
+**Re-sellar lo ya escrito: descartado el 13/10/2026.** La diferencia es de milésimas y no compensa;
+lo sellado con tasa vieja se queda así (`docs/PmsBeds24ReservasSync.md` §12.18). El 09/10/2026 el
+maestro volvió a pararse —cuota del plan gratis de decolecta agotada— y desde el 13/10 el aviso va
+por WhatsApp a soporte técnico con la causa. Mismo sitio del doc.
 
-| Necesidad | Dónde |
-|---|---|
-| Re-sellar lo ya escrito | 49 cargos, 20 pagos y 18 fichas del 27/08 al 10/09 llevan 3.350. `pms:finanzas:completar-tipo-cambio` sólo rellena los `null`, no corrige los sellados: haría falta un modo aparte |
-| Comprobar el estado | `php bin/console app:test-tipocambio <fecha>` |
-| ~~El `TipocambioManager` de `src/Oweb/`~~ | **Resuelto solo**: Oweb se archivó el 17/09/2026 y sus tablas se fueron el 21/09 (`docs/OwebArchivado.md`). Ya no hay comprobantes viejos que lo usen |
+### Lo único que queda
 
-⚠️ Y de paso: `pms:finanzas:completar-tipo-cambio` **sólo repasa cargos y pagos**, no fichas
+⚠️ `pms:finanzas:completar-tipo-cambio` **sólo repasa cargos y pagos**, no fichas
 (`findBy(['tipoCambio' => null])` sobre `PmsCargoFinanciero` y `PmsPagoFinanciero`). Hoy hay 3
 cargos y 6 pagos sin sellar y 0 fichas, pero una ficha que naciera sin tasa no la recupera nadie:
 su listener sólo corre en `prePersist`.

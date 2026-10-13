@@ -6335,13 +6335,32 @@ que ya existía; y el cron de las 08:00 avisa si falta el día. Lo fija `Tipocam
 
 ### El cron, que es lo que faltaba de verdad
 
-`app:pms:tipo-cambio:sincronizar`, todos los días a las **08:00 de Lima** (13:40 UTC — el servidor
+`app:pms:tipo-cambio:sincronizar`, todos los días a las **08:40 de Lima** (13:40 UTC — el servidor
 va en UTC).
 
 **Traer el dato ya lo hacía el rebote. Lo que faltaba era notar la ausencia**, así que el comando
-termina en `FAILURE` y manda un push a quien tenga `OPERACIONES_SHOW` cuando el maestro pasa de
-**2 días** de retraso. Los dos canales a propósito: el código de salida es lo que hace que el cron
-lo mande por correo, el push es lo que hace que alguien de operaciones se entere el mismo día.
+termina en `FAILURE` y avisa cuando el maestro pasa de **2 días** de retraso: el código de salida
+es lo que hace que el cron lo mande por correo, el aviso es lo que hace que alguien se entere el
+mismo día.
+
+⚠️ **El aviso va por WhatsApp a `ROLE_TECH_SUPPORT`, con la causa, y el push queda de respaldo
+(13/10/2026).** Antes era sólo un push a `OPERACIONES_SHOW`, y no bastó: el **09/10/2026** se agotó
+la cuota del plan gratis de decolecta (**100 peticiones al mes**), el proveedor pasó a contestar
+403 y el comando lo gritó cuatro mañanas seguidas sin que nadie lo viera. Una avería del proveedor
+no la arregla operaciones: la arregla quien paga el plan o cambia la llave.
+
+- **La causa sale en el aviso**: `TipocambioManager::ultimoFallo()` guarda el código de la última
+  llamada fallida. Un **403 es una página HTML de nginx** = cuota agotada o llave bloqueada; una
+  llave inválida da **401** en JSON (`Apikey Required / Limit Exceeded`). Se distinguen sin mirar
+  el panel de decolecta.
+- **Sin plantilla de respaldo**, a propósito: la única técnica aprobada, `aviso_tecnico_interno`,
+  lleva fijo «a los huéspedes les contesta un mensaje automático de cortesía», que aquí es falso.
+  Fuera de la ventana de 24 h el WhatsApp no sale y cae al push.
+- **Consumo real**: ~12 peticiones al día, ~375 al mes (medido del 1 al 8/10/2026). No es el cron:
+  `getTipodecambio()` llama a la API cada vez que la fecha pedida no está en base, y la de HOY no
+  está hasta que SUNAT la publica — el listener de sellado, las skills, el push de tarifas y el
+  endpoint de consulta la piden a cualquier hora. Y con la API caída sigue reintentando: **~100
+  al día**. Desde el 13/10/2026 el plan es de **1000 al mes**.
 
 ⚠️ **El umbral no es 1, y no es pereza.** SUNAT publica todos los días —fines de semana incluidos,
 repitiendo el último día hábil— pero la cotización del día en curso tarda unas horas en salir. Con
@@ -6355,12 +6374,12 @@ que mire.
 La zona horaria se fija a `America/Lima` dentro del comando, no se hereda del servidor: en UTC, a
 partir de las 19:00 de Lima «hoy» ya es mañana y se pediría una cotización que aún no existe.
 
-### Lo que sigue pendiente
+### Lo sellado con tasa vieja se queda así (decidido el 13/10/2026)
 
-Los **49 cargos, 20 pagos y 18 fichas** sellados con la tasa del 26/08 siguen así.
-`pms:finanzas:completar-tipo-cambio` sólo rellena los `null`, no corrige los ya sellados — haría
-falta un modo aparte, y decidir si se re-sella un hecho histórico o se deja constancia de que fue
-estimado. Anotado en `docs/Pendientes.md`.
+Los **49 cargos, 20 pagos y 18 fichas** sellados con la tasa del 26/08, y lo sellado del 09/10 al
+13/10/2026 con la del 08/10, **no se re-sellan**. Decisión del dueño del producto: la diferencia es
+de milésimas y no compensa construir un modo de corrección para datos viejos.
+`pms:finanzas:completar-tipo-cambio` sigue rellenando sólo los `null`.
 
 ## 12.19 Nulos: decide el dominio, no los datos (26/09/2026)
 

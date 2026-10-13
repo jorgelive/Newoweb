@@ -47,12 +47,27 @@ class TipocambioManager
     private const CAMPO_COMPRA = 'buy_price';
     private const CAMPO_VENTA = 'sell_price';
 
+    /**
+     * Por qué falló la última llamada al proveedor, o `null` si la última fue bien.
+     *
+     * Existe para que el aviso de `app:pms:tipo-cambio:sincronizar` diga la CAUSA y no sólo el
+     * síntoma. El 09/10/2026 se agotó la cuota del plan gratis (100 al mes) y decolecta pasó a
+     * contestar 403; el aviso sólo podía decir «lleva N días sin actualizarse», y la causa
+     * estaba en una línea de `tipo_cambio.log` que nadie abre.
+     */
+    private ?string $ultimoFallo = null;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly HttpClientInterface $client,
         private readonly LoggerInterface $logger,
         private readonly string $sunatApiToken
     ) {}
+
+    public function ultimoFallo(): ?string
+    {
+        return $this->ultimoFallo;
+    }
 
     /**
      * ⚠️ Acepta `DateTimeInterface`, no `DateTime`. Con la firma estrecha, pasarle un
@@ -165,6 +180,7 @@ class TipocambioManager
             $codigo = $response->getStatusCode();
 
             if ($codigo === 200) {
+                $this->ultimoFallo = null;
                 $raw = $response->toArray();
 
                 if (isset($raw[self::CAMPO_FECHA])) {
@@ -189,8 +205,15 @@ class TipocambioManager
                 $codigo,
                 http_build_query($queryParams)
             ));
+
+            // Un 403 de decolecta es una página de nginx, no su JSON: es la cuota mensual agotada
+            // (o la llave bloqueada). Una llave inválida da 401. Medido el 13/10/2026.
+            $this->ultimoFallo = $codigo === 403
+                ? 'decolecta responde HTTP 403: cuota del plan agotada o llave bloqueada'
+                : sprintf('decolecta responde HTTP %d', $codigo);
         } catch (Exception $e) {
             $this->logger->error('Error API tipo de cambio: ' . $e->getMessage());
+            $this->ultimoFallo = 'sin conexión con decolecta: ' . $e->getMessage();
         }
 
         return [];

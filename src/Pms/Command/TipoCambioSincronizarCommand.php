@@ -7,6 +7,8 @@ namespace App\Pms\Command;
 use App\Command\EntradaDeConsola;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Maestro\MaestroTipocambio;
+use App\Message\Service\Aviso\AvisoAlEquipo;
+use App\Message\Service\Aviso\AvisoAlEquipoService;
 use App\Service\TipocambioManager;
 use App\Service\WebPushNotificationService;
 use App\Security\Roles;
@@ -72,6 +74,7 @@ final class TipoCambioSincronizarCommand extends Command
     public function __construct(
         private readonly TipocambioManager $tipoCambio,
         private readonly EntityManagerInterface $em,
+        private readonly AvisoAlEquipoService $avisos,
         private readonly WebPushNotificationService $push,
         private readonly UserRepository $usuarios,
         private readonly RoleHierarchyInterface $jerarquia,
@@ -126,13 +129,16 @@ final class TipoCambioSincronizarCommand extends Command
         $retraso = (int) $ultima->diff($hoy->setTime(0, 0))->days;
 
         if ($retraso >= self::DIAS_TOLERADOS) {
+            $causa = $this->tipoCambio->ultimoFallo();
+
             return $this->alarma(
                 $io,
                 sprintf(
                     'El tipo de cambio lleva %d días sin actualizarse (última: %s). Se está sellando '
-                    . 'todo con una cotización vieja y nadie lo nota.',
+                    . 'todo con una cotización vieja y nadie lo nota.%s',
                     $retraso,
-                    $ultima->format('Y-m-d')
+                    $ultima->format('Y-m-d'),
+                    $causa === null ? '' : ' Causa: ' . $causa . '.'
                 ),
                 $callado
             );
@@ -170,9 +176,17 @@ final class TipoCambioSincronizarCommand extends Command
      * Sale en FAILURE y avisa. Las dos cosas, y a propósito.
      *
      * El código de salida es lo que hace que el cron lo mande por correo al administrador del
-     * sistema; el push es lo que hace que alguien de operaciones se entere el mismo día. Sin el
-     * primero se pierde si nadie tiene la app; sin el segundo, se pierde en un buzón que nadie
-     * lee.
+     * sistema; el aviso es lo que hace que alguien se entere el mismo día.
+     *
+     * ⚠️ **Por WhatsApp a soporte técnico primero, y el push sólo de respaldo.** Hasta el
+     * 13/10/2026 avisaba sólo por push a operaciones, y del 09/10 al 13/10 la cuota de decolecta
+     * estuvo agotada con este comando gritándolo cada mañana: nadie lo vio. Una avería del
+     * proveedor no la arregla operaciones; la arregla quien puede pagar el plan o cambiar la llave.
+     *
+     * Sin plantilla de respaldo, a propósito: la única técnica aprobada (`aviso_tecnico_interno`)
+     * lleva fijo «a los huéspedes les contesta un mensaje de cortesía», que aquí es falso. Fuera
+     * de la ventana de 24 h el WhatsApp no sale, `alguienFueAvisado()` da false y cae al push.
+     * Se avisa a diario mientras dure, que es lo que corre el cron: no hace falta enfriarlo.
      */
     private function alarma(SymfonyStyle $io, string $mensaje, bool $callado): int
     {
@@ -183,6 +197,24 @@ final class TipoCambioSincronizarCommand extends Command
             $io->note('Modo sin aviso: no se notificó a nadie.');
 
             return Command::FAILURE;
+        }
+
+        try {
+            $resultado = $this->avisos->notificar(new AvisoAlEquipo(
+                rol: Roles::TECH_SUPPORT,
+                texto: "💱 Tipo de cambio desactualizado\n\n" . $mensaje,
+                metadata: ['aviso_tipo_cambio' => true],
+            ));
+
+            if ($resultado->alguienFueAvisado()) {
+                $io->note('Avisado por WhatsApp: ' . implode(', ', $resultado->avisados));
+
+                return Command::FAILURE;
+            }
+
+            $this->logger->warning('[TipoCambio] El aviso no salió por WhatsApp; se intenta por push.');
+        } catch (Throwable $e) {
+            $this->logger->error('[TipoCambio] No se pudo avisar por WhatsApp: ' . $e->getMessage(), ['exception' => $e]);
         }
 
         try {
