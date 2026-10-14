@@ -1748,7 +1748,9 @@ abrirlo enseña su candado y cuándo se abre, que es lo que hace falta saber en 
 `push`, el «atrás» desde el paso 5 recorría los cuatro anteriores antes de volver a la lista. Así
 vuelve a la lista de la sección, que es de donde se vino.
 
-La cadena `gui_siguiente` entra por `pax:textos:guia` (ORM, traducida a los siete idiomas).
+La cadena `gui_siguiente` entra por `pax:textos:guia` (ORM). ⚠️ Y sus traducciones van **a mano**, como los
+títulos cortos: sola, «Siguiente» salió «Following», «Seguindo», «Im Folgenden» y «Volgend». El comando
+las fija tras el primer `flush` conservando el `origenHash`.
 
 ## 8. Dónde tocar para cambiar X
 

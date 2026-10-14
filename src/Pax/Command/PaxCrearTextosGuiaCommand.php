@@ -36,6 +36,20 @@ final class PaxCrearTextosGuiaCommand extends Command
         'gui_siguiente' => 'Siguiente',
     ];
 
+    /**
+     * ⚠️ **Una palabra suelta se traduce mal**, como ya avisa la guía para los títulos cortos
+     * (docs/PmsGuiaHuesped.md §7 bis): sin contexto, «Siguiente» salió «Following», «Seguindo»,
+     * «Im Folgenden» y «Volgend». Van a mano, conservando el `origenHash` que dejó el traductor —es
+     * lo que le dice que la fila está al día—. Se reaplican en cada pasada.
+     *
+     * @var array<string, array<string, string>>
+     */
+    private const array A_MANO = [
+        'gui_siguiente' => [
+            'en' => 'Next', 'pt' => 'Próximo', 'fr' => 'Suivant', 'it' => 'Avanti', 'de' => 'Weiter', 'nl' => 'Volgende',
+        ],
+    ];
+
     public function __construct(private readonly EntityManagerInterface $em)
     {
         parent::__construct();
@@ -69,13 +83,9 @@ final class PaxCrearTextosGuiaCommand extends Command
             }
         }
 
-        if ($creadas === []) {
-            $io->success('No falta ninguna cadena.');
-
-            return Command::SUCCESS;
+        if ($creadas !== []) {
+            $io->table(['clave', 'es'], $creadas);
         }
-
-        $io->table(['clave', 'es'], $creadas);
 
         if ($simular) {
             $io->note('--dry-run: no se escribió nada.');
@@ -83,9 +93,51 @@ final class PaxCrearTextosGuiaCommand extends Command
             return Command::SUCCESS;
         }
 
+        // Primero se crean (y el listener traduce); después se fijan las que van a mano.
         $this->em->flush();
-        $io->success(sprintf('%d cadena(s) creada(s) y traducida(s).', count($creadas)));
+        $fijadas = $this->fijarAMano($repo);
+        $this->em->flush();
+
+        $io->success(sprintf('%d cadena(s) creada(s); %d traducción(es) fijada(s) a mano.', count($creadas), $fijadas));
 
         return Command::SUCCESS;
+    }
+
+    /** @param \Doctrine\ORM\EntityRepository<UiI18n> $repo */
+    private function fijarAMano(\Doctrine\ORM\EntityRepository $repo): int
+    {
+        $fijadas = 0;
+
+        foreach (self::A_MANO as $clave => $porIdioma) {
+            $texto = $repo->find($clave);
+            if (!$texto instanceof UiI18n) {
+                continue;
+            }
+
+            $contenido = $texto->getContenido();
+            $hecho = [];
+
+            foreach ($contenido as $i => $fila) {
+                $idioma = $fila['language'] ?? '';
+                if (isset($porIdioma[$idioma]) && ($fila['content'] ?? null) !== $porIdioma[$idioma]) {
+                    $contenido[$i]['content'] = $porIdioma[$idioma];
+                    ++$fijadas;
+                }
+                $hecho[$idioma] = true;
+            }
+
+            foreach ($porIdioma as $idioma => $valor) {
+                if (!isset($hecho[$idioma])) {
+                    $contenido[] = ['language' => $idioma, 'content' => $valor];
+                    ++$fijadas;
+                }
+            }
+
+            $texto->setContenido($contenido);
+            // Sin esto, el listener volvería a traducir encima de lo que acabamos de fijar.
+            $texto->setEjecutarTraduccion(false);
+        }
+
+        return $fijadas;
     }
 }
