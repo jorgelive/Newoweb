@@ -106,6 +106,66 @@ final class PrecioDesdeEfectivoTest extends TestCase
         self::assertSame(['precios' => [], 'origen' => null], TourTarjetaResolver::preciosDesdeEfectivos([], ['clasesPasajeros' => 'basura'], 'USD', false));
     }
 
+    /**
+     * El financiero de un traslado privado: un Sedán de S/ 36 repartido entre 4 → S/ 9 por persona.
+     *
+     * @return array<string, mixed>
+     */
+    private function traslado(): array
+    {
+        return $this->snapshot([['Cualquier Nacionalidad', 9.0, 2.61]])
+            + ['resumenGeneral' => ['incluido' => ['ventaSoles' => 36, 'ventaDolares' => 10.44]]];
+    }
+
+    #[Test]
+    public function con_los_totales_a_la_vista_la_tarjeta_da_el_total_del_grupo(): void
+    {
+        $precios = TourTarjetaResolver::preciosDesdeEfectivos([], $this->traslado(), 'USD', false);
+
+        self::assertSame(
+            ['moneda' => 'USD', 'valor' => '11', 'pax' => 4],
+            TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $this->traslado(), 'USD', false, 4),
+            'US$ 10,44 se anuncia «11», hacia arriba como el desde: nunca menos de lo real.',
+        );
+    }
+
+    #[Test]
+    public function el_total_no_contradice_al_por_persona_por_unos_centimos(): void
+    {
+        // Valle Sagrado real: S/ 69 por persona, base de 2, y el total guardado como 138,01.
+        $valle = $this->snapshot([['General', 69.0, 20.29]])
+            + ['resumenGeneral' => ['incluido' => ['ventaSoles' => 138.01, 'ventaDolares' => 40.58]]];
+        $precios = TourTarjetaResolver::preciosDesdeEfectivos([], $valle, 'PEN', false);
+
+        self::assertSame('138', TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $valle, 'PEN', false, 2)['valor'] ?? null, '«S/ 139 · S/ 69 por persona» no cuadra delante del cliente.');
+    }
+
+    #[Test]
+    public function con_los_totales_ocultos_no_hay_total_sino_base_de_grupo(): void
+    {
+        $precios = TourTarjetaResolver::preciosDesdeEfectivos([], $this->traslado(), 'USD', false);
+
+        self::assertNull(TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $this->traslado(), 'USD', true, 4));
+        self::assertSame(4, TourTarjetaResolver::paxBaseGrupo(true, 4));
+    }
+
+    #[Test]
+    public function el_total_no_se_inventa_cuando_no_es_inequivoco(): void
+    {
+        $t = $this->traslado();
+        $precios = TourTarjetaResolver::preciosDesdeEfectivos([], $t, 'USD', false);
+
+        self::assertNull(TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $t, 'USD', false, 1), 'Base de uno: el total ES el precio por persona.');
+        self::assertNull(TourTarjetaResolver::totalDelGrupo($precios['precios'], 'manual', $t, 'USD', false, 4), 'Un precio escrito a mano es un override: manda tal cual.');
+
+        $dosClases = $this->snapshot([['Peruano', 180.0, 50.0], ['Extranjero', 250.0, 70.0]])
+            + ['resumenGeneral' => ['incluido' => ['ventaSoles' => 430, 'ventaDolares' => 120]]];
+        $varios = TourTarjetaResolver::preciosDesdeEfectivos([], $dosClases, 'USD', false);
+        self::assertNull(TourTarjetaResolver::totalDelGrupo($varios['precios'], $varios['origen'], $dosClases, 'USD', false, 2), 'Con varias clases el total depende de la mezcla.');
+
+        self::assertNull(TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $this->snapshot([['General', 9.0, 2.61]]), 'USD', false, 4), 'Sin resumen guardado no hay total que leer.');
+    }
+
     #[Test]
     public function la_base_de_grupo_solo_cuando_el_total_esta_oculto_y_es_mas_de_uno(): void
     {

@@ -30,6 +30,13 @@ final readonly class TourTarjetaWeb
         public ?int $paxBaseGrupo = null,
         /** Componentes destacados (la estrella del editor): sus fotos abren la galería. */
         public array $destacados = [],
+        /**
+         * El total del grupo base cuando el tour deja los totales a la vista; null si no. Lo decide
+         * `TourTarjetaResolver::totalDelGrupo()`. Con él, la cifra grande es el total y el por
+         * persona va debajo.
+         */
+        public ?PrecioDesdeWeb $totalGrupo = null,
+        public ?int $paxTotal = null,
     ) {
     }
 

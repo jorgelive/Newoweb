@@ -13,7 +13,15 @@
         {% if tour.resumenPlano %}<p class="tarjeta-resumen">{{ tour.resumenPlano }}</p>{% endif %}
         <div class="tarjeta-pie">
             {% set precio = tour.precioPrincipal %}
-            {% if precio %}
+            {% if precio and tour.totalGrupo %}
+                {# Totales a la vista (TourTarjetaResolver::totalDelGrupo()): la cifra grande es lo que
+                   paga el grupo, y el por persona va debajo. Sin esto, un traslado de US$ 11 para 4
+                   se anunciaba «US$ 3 por persona». #}
+                <div class="precio-desde">
+                    <small>{{ 'tour.desde'|trans({}, 'front_tours') }}</small><strong>{{ tour.totalGrupo.formateado }}</strong>
+                    <span class="precio-nota">{{ 'tour.total_para'|trans({'%n%': tour.paxTotal}, 'front_tours') }} · {{ precio.formateado }} {{ 'tour.por_persona'|trans({}, 'front_tours')|lower }}</span>
+                </div>
+            {% elseif precio %}
                 <div class="precio-desde">
                     <small>{{ 'tour.desde'|trans({}, 'front_tours') }}</small><strong>{{ precio.formateado }}</strong>
                     {# Con una sola clase el precio no lleva perfil: es «por persona». Si depende del tamaño

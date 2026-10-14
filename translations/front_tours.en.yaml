@@ -25,6 +25,7 @@ tour:
     ver: 'See tour'
     por_persona: 'Per person'
     base_pax: 'calculated for %n% travellers'
+    total_para: 'total for %n% travellers'
     base_pax_nota: 'Per-person price calculated for a group of %n% travellers: it may vary with a different group size.'
     consultar: 'Check availability'
     reservar: Booking

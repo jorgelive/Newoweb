@@ -71,6 +71,9 @@
                 <div>
                     <small style="text-transform:uppercase;letter-spacing:.06em;color:var(--suave);font-size:.75rem">{{ 'tour.desde'|trans({}, 'front_tours') }}</small>
                     <ul class="lista-precios">
+                        {% if tour.totalGrupo %}
+                            <li><span>{{ 'tour.total_para'|trans({'%n%': tour.paxTotal}, 'front_tours')|capitalize }}</span><strong>{{ tour.totalGrupo.formateado }}</strong></li>
+                        {% endif %}
                         {% for p in tour.precios %}
                             <li><span>{{ p.etiqueta ?? 'tour.por_persona'|trans({}, 'front_tours') }}</span><strong>{{ p.formateado }}</strong></li>
                         {% endfor %}

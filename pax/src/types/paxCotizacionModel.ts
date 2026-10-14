@@ -500,6 +500,12 @@ export interface PaxTourResumen {
     precioDesdeOrigen?: 'manual' | 'calculado' | null;
     /** Base de pasajeros del precio por persona cuando depende del grupo (`paxBaseGrupo()`); null si no. */
     paxBaseGrupo?: number | null;
+    /**
+     * El total del grupo base cuando el tour deja los totales a la vista; null si no. Lo decide
+     * `TourTarjetaResolver::totalDelGrupo()` (PHP): la tarjeta lo pone como cifra grande y el por
+     * persona debajo. Excluyente con `paxBaseGrupo` (uno pide totales ocultos y el otro visibles).
+     */
+    totalGrupo?: { moneda: string; valor: string; pax: number } | null;
     /** Snapshot de la imagen de portada (override o derivada); null si el tour no tiene fotos */
     imagenPortada?: { imageUrl?: string; imageName?: string; isPortada?: boolean } | null;
     /** Duración del programa en días (span del itinerario nominal) */

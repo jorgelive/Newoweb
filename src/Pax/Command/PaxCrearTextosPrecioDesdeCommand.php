@@ -42,6 +42,8 @@ final class PaxCrearTextosPrecioDesdeCommand extends Command
     private const array TEXTOS = [
         'cat_por_persona' => 'por persona',
         'cat_base_pax'    => 'calculado para {{ n }} pasajeros',
+        // 13/10/2026: con los totales a la vista la tarjeta enseña el total del grupo base.
+        'cat_total_para'  => 'total para {{ n }} pasajeros',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

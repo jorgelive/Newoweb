@@ -295,6 +295,15 @@ final readonly class ConsultarToursSkill implements SkillInterface, SkillDominio
             $t->precios,
         );
 
+        // Totales a la vista (`TourTarjetaResolver::totalDelGrupo()`): lo que se anuncia es lo que
+        // paga el grupo. Mismo criterio que la tarjeta de la web, para no dar dos cifras distintas.
+        $precioEs = null;
+        if ($t->totalGrupo !== null && $t->paxTotal !== null && $desde !== []) {
+            $desde = [sprintf('%s en total para %d personas', $t->totalGrupo->formateado(), $t->paxTotal)];
+            $precioEs = sprintf('total del grupo de %d (sale a %s por persona); con otro número de personas '
+                . 'el precio cambia: pregúntale cuántos son', $t->paxTotal, $t->precioPrincipal()?->formateado() ?? '');
+        }
+
         return array_filter([
             'tour' => $t->id,
             'titulo' => $t->titulo,
@@ -302,7 +311,7 @@ final readonly class ConsultarToursSkill implements SkillInterface, SkillDominio
             'desde' => $desde !== [] ? $desde : 'precio a consultar',
             // Sin la base, «US$ 1 599 por persona» de un viaje de promoción calculado para 60 se
             // lee como el precio para una pareja. Es la misma nota que lleva la ficha web.
-            'precio_es' => $desde === [] ? null : ($t->paxBaseGrupo !== null
+            'precio_es' => $desde === [] ? null : $precioEs ?? ($t->paxBaseGrupo !== null
                 ? sprintf('por persona, calculado para un grupo de %d: con otro tamaño varía', $t->paxBaseGrupo)
                 : 'por persona'),
             'resumen' => self::recortar($t->resumenPlano ?? ''),

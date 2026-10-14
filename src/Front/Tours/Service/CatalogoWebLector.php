@@ -153,6 +153,8 @@ final class CatalogoWebLector
                 imagenUrl: Lee::texto(Lee::mapa($t['imagenPortada'])['imageUrl'] ?? null),
                 paxBaseGrupo: $t['paxBaseGrupo'],
                 destacados: $t['destacados'],
+                totalGrupo: $t['totalGrupo'] !== null ? new PrecioDesdeWeb(null, $t['totalGrupo']['valor'], $t['totalGrupo']['moneda']) : null,
+                paxTotal: $t['totalGrupo']['pax'] ?? null,
             );
         }
 

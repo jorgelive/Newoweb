@@ -52,6 +52,12 @@ const rangoPrincipal = (tour: PaxTourResumen) => tour.preciosDesde?.[0] ?? null;
 const notaPrecio = (tour: PaxTourResumen): string => {
   const rango = rangoPrincipal(tour);
   if (!rango) return '';
+  // Totales a la vista: la cifra grande es el total del grupo, y aquí va el por persona.
+  if (tour.totalGrupo) {
+    const n = String(tour.totalGrupo.pax);
+    const total = maestroStore.t('cat_total_para', { n }) || `total para ${n} pasajeros`;
+    return `${total} · ${rango.moneda} ${formatMonto(rango.valor)} ${maestroStore.t('cat_por_persona') || 'por persona'}`;
+  }
   const perfil = store.traducir(rango.titulo) || maestroStore.t('cat_por_persona') || 'por persona';
   if (!tour.paxBaseGrupo) return perfil;
   const n = String(tour.paxBaseGrupo);
@@ -198,7 +204,8 @@ const resumenPlano = (tour: PaxTourResumen): string =>
                 {{ maestroStore.t('cat_desde') || 'Desde' }}
               </span>
               <span class="flex items-center gap-2 text-lg md:text-xl font-black text-[#E07845] leading-tight whitespace-nowrap tabular-nums">
-                {{ rangoPrincipal(tour)!.moneda }} {{ formatMonto(rangoPrincipal(tour)!.valor) }}
+                <template v-if="tour.totalGrupo">{{ tour.totalGrupo.moneda }} {{ formatMonto(tour.totalGrupo.valor) }}</template>
+                <template v-else>{{ rangoPrincipal(tour)!.moneda }} {{ formatMonto(rangoPrincipal(tour)!.valor) }}</template>
                 <i class="fas fa-arrow-right text-base group-hover:translate-x-1 transition-transform"></i>
               </span>
               <span class="block text-[10px] font-bold text-slate-400 mt-0.5">{{ notaPrecio(tour) }}</span>

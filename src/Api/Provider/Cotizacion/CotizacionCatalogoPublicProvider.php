@@ -96,6 +96,8 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
             'precioDesdeOrigen' => $t['precioDesdeOrigen'],
             // Base de pasajeros del precio, cuando depende del tamaño del grupo (null si no).
             'paxBaseGrupo'  => $t['paxBaseGrupo'],
+            // Total del grupo base si los totales están a la vista (`TourTarjetaResolver::totalDelGrupo()`).
+            'totalGrupo'    => $t['totalGrupo'],
             'imagenPortada' => $t['imagenPortada'],
             'numDias'       => $t['numDias'],
         ], $tarjetas));

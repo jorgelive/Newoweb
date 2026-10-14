@@ -27,6 +27,7 @@ tour:
     ver: 'Ver tour'
     por_persona: 'Por persona'
     base_pax: 'calculado para %n% pasajeros'
+    total_para: 'total para %n% pasajeros'
     base_pax_nota: 'Precio por persona calculado con una base de %n% pasajeros: con otro tamaño de grupo puede variar.'
     consultar: 'Consultar disponibilidad'
     reservar: Reserva

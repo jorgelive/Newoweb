@@ -32,9 +32,10 @@ use Symfony\Component\Uid\Uuid;
  *     titulo: array<mixed>, resumen: array<mixed>, idiomaCliente: string, monedaGlobal: string,
  *     precioOculto: bool, orden: int, preciosDesde: list<PrecioDesde>, imagenPortada: array<mixed>|null,
  *     numDias: int|null, precioDesdeOrigen: 'manual'|'calculado'|null, paxBaseGrupo: int|null,
- *     destacados: list<string>
+ *     totalGrupo: TotalDeGrupo|null, destacados: list<string>
  * }
  * @phpstan-type PrecioDesde array{titulo: list<array{language: string, content: string}>|array<mixed>, moneda: string, valor: string}
+ * @phpstan-type TotalDeGrupo array{moneda: string, valor: string, pax: int}
  */
 final class TourTarjetaResolver
 {
@@ -111,6 +112,7 @@ final class TourTarjetaResolver
                 'preciosDesde'  => $precios['precios'],
                 'precioDesdeOrigen' => $precios['origen'],
                 'paxBaseGrupo'  => self::paxBaseGrupo((bool) $f['totalesOcultos'], $f['numPax']),
+                'totalGrupo'    => self::totalDelGrupo($precios['precios'], $precios['origen'], $clases[self::clave($f['id'])] ?? null, $f['monedaGlobal'], (bool) $f['totalesOcultos'], $f['numPax']),
                 'destacados'    => Lee::listaDeTextos($f['destacadosComponenteIds'] ?? null),
                 'imagenPortada' => $f['imagenPortada'] ?? $portadas[self::clave($f['id'])] ?? null,
                 'numDias'       => self::numDias($f['fechaMin'], $f['fechaMax']),
@@ -131,7 +133,10 @@ final class TourTarjetaResolver
      *
      * @param list<AbstractUid|string> $cotIds
      *
-     * @return array<string, array{clasesPasajeros: list<array{tipoPaxNombre: mixed, resumenPorModo: array{normal: mixed}}>}>
+     * Trae también el total del grupo (`resumenGeneral.incluido`) para {@see self::totalDelGrupo()}:
+     * otros ~50 bytes del mismo JSON, en la misma consulta.
+     *
+     * @return array<string, array{clasesPasajeros: list<array{tipoPaxNombre: mixed, resumenPorModo: array{normal: mixed}}>, resumenGeneral: array{incluido: mixed}}>
      */
     public function clasesParaElDesde(array $cotIds): array
     {
@@ -142,7 +147,8 @@ final class TourTarjetaResolver
         $filas = $this->em->getConnection()->fetchAllAssociative(
             "SELECT id,
                     JSON_EXTRACT(clasificacion_financiera_cliente, '$.clasesPasajeros[*].tipoPaxNombre') AS nombres,
-                    JSON_EXTRACT(clasificacion_financiera_cliente, '$.clasesPasajeros[*].resumenPorModo.normal') AS normales
+                    JSON_EXTRACT(clasificacion_financiera_cliente, '$.clasesPasajeros[*].resumenPorModo.normal') AS normales,
+                    JSON_EXTRACT(clasificacion_financiera_cliente, '$.resumenGeneral.incluido') AS incluido
              FROM cotizacion_cotizacion WHERE id IN (?)",
             [self::binarios($cotIds)],
             [ArrayParameterType::BINARY],
@@ -158,7 +164,10 @@ final class TourTarjetaResolver
             foreach ($normales as $i => $normal) {
                 $clases[] = ['tipoPaxNombre' => $nombres[$i] ?? null, 'resumenPorModo' => ['normal' => $normal]];
             }
-            $porTour[self::clave($fila['id'])] = ['clasesPasajeros' => $clases];
+            $porTour[self::clave($fila['id'])] = [
+                'clasesPasajeros' => $clases,
+                'resumenGeneral' => ['incluido' => is_string($fila['incluido']) ? json_decode($fila['incluido'], true) : null],
+            ];
         }
 
         return $porTour;
@@ -257,6 +266,55 @@ final class TourTarjetaResolver
     public static function paxBaseGrupo(bool $totalesOcultos, int $numPax): ?int
     {
         return $totalesOcultos && $numPax > 1 ? $numPax : null;
+    }
+
+    /**
+     * El TOTAL del grupo base, para la tarjeta, cuando el operador dejó los totales a la vista
+     * (13/10/2026).
+     *
+     * «Ocultar totales» (`Cotizacion::$totalesOcultos`) ya decidía qué se ve en la GUÍA de pax: con
+     * él apagado sale la barra «Precio total del viaje». La tarjeta no le hacía caso: enseñaba sólo
+     * el precio por persona, sin decir que salía de repartir entre N. Un traslado privado de
+     * US$ 11 para 4 se anunciaba «US$ 3 por persona», y eso es lo que más engaña a quien viaja solo.
+     * Ahora la tarjeta obedece al mismo interruptor:
+     *
+     *   encendido → por persona · «calculado para N» ({@see self::paxBaseGrupo()}), como siempre
+     *   apagado   → el TOTAL de N, y el por persona debajo (esto)
+     *
+     * Sólo cuando el total dice algo inequívoco:
+     *   - el «desde» es el CALCULADO: un precio escrito a mano es un override y manda tal cual;
+     *   - UNA clase de pasajero: con «Nacional / Extranjero» el total depende de la mezcla que se
+     *     puso en la base, y anunciarlo como «desde» sería inventarse un grupo;
+     *   - base de más de uno: con uno, el total ES el precio por persona.
+     *
+     * Sale de `resumenGeneral.incluido` del financiero del cliente —lo mismo que la barra de la
+     * guía—, en la moneda del tour y redondeado hacia arriba, como el «desde».
+     *
+     * @param list<PrecioDesde> $precios los ya efectivos
+     *
+     * @return TotalDeGrupo|null
+     */
+    public static function totalDelGrupo(array $precios, ?string $origen, mixed $clasificacionCliente, string $moneda, bool $totalesOcultos, int $numPax): ?array
+    {
+        if ($totalesOcultos || $numPax <= 1 || $origen !== 'calculado' || count($precios) !== 1) {
+            return null;
+        }
+
+        $campo = strtoupper($moneda) === 'PEN' ? 'ventaSoles' : 'ventaDolares';
+        $incluido = Lee::mapa(Lee::mapa(Lee::mapa($clasificacionCliente)['resumenGeneral'] ?? null)['incluido'] ?? null);
+        $total = Lee::decimal($incluido[$campo] ?? null);
+
+        if ($total === null || $total <= 0) {
+            return null;
+        }
+
+        // Hacia arriba como el «desde», pero nunca por encima de «por persona anunciado × N»: el
+        // financiero guarda céntimos de ruido (Valle Sagrado: 69 × 2 guardado como 138,01) y el
+        // techo daba «S/ 139 · S/ 69 por persona», dos cifras que no casan delante del cliente.
+        $porPersona = Lee::entero($precios[0]['valor']) ?? PHP_INT_MAX;
+        $valor = min((int) ceil(round($total, 2)), $porPersona * $numPax);
+
+        return ['moneda' => strtoupper($moneda), 'valor' => (string) $valor, 'pax' => $numPax];
     }
 
     /**

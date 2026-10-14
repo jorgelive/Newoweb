@@ -4107,6 +4107,23 @@ si no                        → el CALCULADO                          origen = 
   (`cat_base_pax`, `tour.base_pax`) y la ficha web una nota. Punta Cana: los liberados y el bus se
   reparten entre 60, y quien viaja solo leería un precio que no le corresponde. Es mecánico: si un
   tour con base 2 no depende de ella (Valle Sagrado), se baja la base a 1.
+- **Con los totales A LA VISTA, la tarjeta da el total (13/10/2026).** «Ocultar totales»
+  (`Cotizacion::$totalesOcultos`) sólo mandaba en la guía —la barra «Precio total del viaje»—; la
+  tarjeta, apagado, enseñaba el por persona a secas: un traslado privado de US$ 11 para 4 salía
+  «US$ 3 por persona». Ahora la tarjeta obedece al mismo interruptor:
+
+  ```
+  totales ocultos, base > 1  → «S/ 69 · por persona · calculado para 2 pasajeros»   (paxBaseGrupo)
+  totales visibles, base > 1 → «S/ 138 · total para 2 pasajeros · S/ 69 por persona» (totalGrupo)
+  base 1                     → «S/ 75 · por persona»
+  ```
+
+  `TourTarjetaResolver::totalDelGrupo()` sólo lo da si el «desde» es el CALCULADO (un override
+  manda tal cual) y hay UNA clase (con «Nacional / Extranjero» el total depende de la mezcla). Sale
+  de `resumenGeneral.incluido`, en la moneda del tour, hacia arriba **pero nunca por encima de «por
+  persona anunciado × N»**: el financiero guarda céntimos de ruido (138,01) y el techo daba «S/ 139 ·
+  S/ 69 por persona». Lo pintan la tarjeta y la ficha web, el escaparate de pax (`totalGrupo`,
+  cadena `cat_total_para` por `pax:textos:precio-desde`) y el agente (`consultar_tours`).
 - **Override**: sólo para lo que el cálculo no distingue (perfiles «Peruano / Extranjero» que no son
   clases) o un precio de campaña. En el editor, el interruptor «Automático / Personalizado» de la
   caja «Precio desde»; «Personalizado» parte del calculado, lo enseña al lado y **avisa en rojo si
