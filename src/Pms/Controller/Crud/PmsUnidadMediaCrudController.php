@@ -17,6 +17,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -72,7 +73,15 @@ class PmsUnidadMediaCrudController extends BaseCrudController
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
-            ->add(EntityFilter::new('unidad', 'Casita'));
+            ->add(EntityFilter::new('unidad', 'Casita'))
+            // Por tipo (14/10/2026): «qué casitas tienen ya su vídeo de ingreso» es la pregunta que
+            // uno se hace al cargarlos, y con siete casitas por tipo se ve de un vistazo. Valor y no
+            // el caso: el filtro compara en SQL, como el de `TravelComponenteCrudController`.
+            ->add(ChoiceFilter::new('tipo', 'Tipo')->setChoices(array_reduce(
+                PmsUnidadMediaTipo::cases(),
+                static fn (array $c, PmsUnidadMediaTipo $t): array => $c + [$t->etiqueta() => $t->value],
+                [],
+            )));
     }
 
     public function configureFields(string $pageName): iterable

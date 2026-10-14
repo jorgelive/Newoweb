@@ -1736,6 +1736,25 @@ enterraba la pregunta de la hora; el `aviso_salida` nuevo es corto y remite aqu�
 cuerpo también se reescribió dos veces: «Tu salida es hasta las…» y «Deja el departamento hasta
 las…» daban «until» en inglés; «a más tardar a las» sale bien en los siete.
 
+## 7 quater. Las siete puertas, con un solo formato (14/10/2026)
+
+Cada «Puerta (casa N)» estaba escrita a su manera: prosa en la 1 a la 4, pasos en la 5 a la 7,
+erratas, y en la 4 el croquis pegado al texto. La 7 parecía «más completa» y no era el texto: era
+que tenía su vídeo cargado. Los medios ya eran todos marcadores (`{{ croquis }}`,
+`{{ foto_puerta }}`, `{{ video_ingreso }}`), sin nada pegado a mano.
+
+`app:pms:guia:formato-puertas` (archivado, idempotente) las reescribe con el formato de la 7, en
+este orden: 🔑 cómo se abre · 🧭 cómo llegar (pasos) · 🚪 tu puerta · #️⃣ croquis · 📸 foto ·
+🎥 vídeo · ℹ️ a tener en cuenta (sólo si hace falta, como el recibidor de la 6). El
+`agente_contenido` sigue la misma estructura, con `{{ unit_name }}`.
+
+⚠️ **La frase que presenta el vídeo va sólo en las casas que lo tienen** (todas menos la 5): el
+marcador se quita solo si no hay vídeo, pero la frase no, y quedaría huérfana. Cuando la 5 tenga el
+suyo, se cambia `video` en el comando y se relanza.
+
+Para ver qué casitas tienen ya cada medio, «Medios de las casitas» filtra por **casita y por tipo**
+(`PmsUnidadMediaCrudController::configureFilters()`).
+
 ## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
 
 Los ítems de «Ingreso» son pasos —Ubicación, Llaves, Puerta, Después de ingresar…— y para pasar de
