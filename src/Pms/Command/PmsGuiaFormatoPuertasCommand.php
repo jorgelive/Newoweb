@@ -114,6 +114,11 @@ final class PmsGuiaFormatoPuertasCommand extends Command
      * los idiomas que lo marcan y el traductor, sin el sustantivo delante, la hizo masculina
      * («Il possède», «Come aprirlo», «la seta aponta para ele»).
      *
+     * Y el registro: el español tutea, y en italiano y neerlandés el traductor mezclaba el «tú»
+     * con el «voi»/«u» dentro de la misma ficha. Esas dos van de «tú» (Jorge, 14/10/2026). El
+     * alemán y el francés se quedan de «Sie»/«vous»: son coherentes en toda la guía y es lo
+     * normal al dirigirse a un huésped.
+     *
      * ⚠️ Cada reemplazo NO puede contener su búsqueda, o cada pasada la volvería a aplicar.
      *
      * @var array<string, array<string, string>>
@@ -146,11 +151,20 @@ final class PmsGuiaFormatoPuertasCommand extends Command
         ],
         'it' => [
             'Come aprirlo:' => 'Come aprirla:',
+            'girare la chiave' => 'gira la chiave',
+            'Vedrete due serrature. Usate quella inferiore, girando la chiave in senso antiorario. Abbiamo lasciato aperta quella superiore per voi: al vostro arrivo, vi basterà usare solo quella inferiore. Avete le chiavi di entrambe le serrature nel caso preferiate chiudere anche quella superiore durante il vostro soggiorno.'
+                => 'Vedrai due serrature. Usa quella inferiore, girando la chiave in senso antiorario. Quella superiore te la lasciamo aperta: al tuo arrivo ti basta quella inferiore. Hai le chiavi di entrambe le serrature, nel caso preferissi chiudere anche quella superiore durante il tuo soggiorno.',
+            'Tirate delicatamente la porta verso di voi mentre girate la chiave' => 'tira delicatamente la porta verso di te mentre giri la chiave',
+            'All&#39;arrivo troverete due porte. Solo quella esterna è chiusa a chiave: girate la chiave in senso orario. Lasciamo la porta interna aperta in modo che possiate entrare direttamente; se preferite chiuderla a chiave durante il vostro soggiorno, le chiavi che avete con voi funzioneranno comunque.'
+                => 'All&#39;arrivo troverai due porte. Solo quella esterna è chiusa a chiave: gira la chiave in senso orario. La porta interna te la lasciamo aperta perché tu possa entrare direttamente; se preferisci chiuderla a chiave durante il tuo soggiorno, le chiavi che hai funzionano anche per quella.',
+            'Salite le scale' => 'Sali le scale',
+            'Girate di nuovo a sinistra e salite le scale.' => 'Gira di nuovo a sinistra e sali le scale.',
+            'Si prega di tenere chiuse le porte verde e rossa.' => 'Per favore, tieni chiuse la porta verde e quella rossa.',
             'È il secondo ingresso, proprio ai piedi delle tribune.' => 'È la seconda porta, proprio ai piedi della scalinata.',
             'in fondo al corridoio' => 'in fondo al passaggio',
-            'Quando li avrai finiti, li avrai proprio davanti a te.' => 'In cima alle scale, la troverete proprio di fronte.',
-            'Girare a ' => 'Girate a ',
-            'Poi, fai la chiamata.' => 'Poi girate a destra.',
+            'Quando li avrai finiti, li avrai proprio davanti a te.' => 'In cima alle scale, la troverai proprio di fronte.',
+            'Girare a ' => 'Gira a ',
+            'Poi, fai la chiamata.' => 'Poi gira a destra.',
             'la prima a destra, in rosso.' => 'la prima a destra, quella rossa.',
             '(la freccia lo indica)' => '(la freccia la indica)',
         ],
@@ -161,6 +175,10 @@ final class PmsGuiaFormatoPuertasCommand extends Command
             'Als je ze af hebt, heb je ze recht voor je liggen.' => 'Boven aan de trap zie je hem recht voor je.',
             'de eerste aan de rechterkant, in het rood.' => 'de eerste aan de rechterkant, de rode.',
             'dan gaat hij vanzelf open.' => 'dan gaat hij open zonder te forceren.',
+            'U ziet twee sloten. Gebruik het onderste slot door de sleutel tegen de klok in te draaien. We hebben het bovenste slot voor u open gelaten: bij aankomst heeft u alleen het onderste slot nodig. U heeft sleutels voor beide sloten, mocht u het bovenste slot tijdens uw verblijf ook willen afsluiten.'
+                => 'Je ziet twee sloten. Gebruik het onderste slot door de sleutel tegen de klok in te draaien. Het bovenste laten we voor je open: bij aankomst heb je alleen het onderste nodig. Je hebt sleutels voor beide sloten, mocht je het bovenste tijdens je verblijf ook willen afsluiten.',
+            'Bij aankomst vindt u twee deuren. Alleen de buitendeur is op slot: draai de sleutel met de klok mee. De binnendeur is niet op slot, zodat u direct naar binnen kunt. Als u deze liever op slot doet tijdens uw verblijf, kunt u ook de sleutels gebruiken die u heeft.'
+                => 'Bij aankomst vind je twee deuren. Alleen de buitendeur is op slot: draai de sleutel met de klok mee. De binnendeur laten we open, zodat je direct naar binnen kunt; doe je die tijdens je verblijf liever op slot, dan passen je sleutels er ook op.',
         ],
         'pt' => [
             'É o segundo portão, bem no pé das arquibancadas.' => 'É a segunda porta, bem ao pé da escada.',
@@ -179,6 +197,7 @@ final class PmsGuiaFormatoPuertasCommand extends Command
     {
         $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'Enseña qué cambiaría, sin escribir.');
         $this->addOption('ver', null, InputOption::VALUE_REQUIRED, 'Imprime los dos textos de esa casa (1-7).');
+        $this->addOption('retraducir', null, InputOption::VALUE_NONE, 'Rehace las traducciones aunque el español no cambie, y vuelve a corregirlas.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -186,6 +205,8 @@ final class PmsGuiaFormatoPuertasCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $seco = (bool) $input->getOption('dry-run');
         $ver = $input->getOption('ver');
+        // Para cuando cambian las CORRECCIONES: buscan lo que dejó el traductor, no lo ya corregido.
+        $retraducir = (bool) $input->getOption('retraducir');
         $tocados = 0;
         /** @var list<PmsGuiaItem> $items */
         $items = [];
@@ -217,7 +238,10 @@ final class PmsGuiaFormatoPuertasCommand extends Command
             }
 
             if ($actualEs === $publicado && $item->getAgenteContenido() === $agente) {
-                $io->text(sprintf('· %s — ya está', $nombre));
+                if ($retraducir && !$seco) {
+                    $item->setSobreescribirTraduccion(true);
+                }
+                $io->text(sprintf('· %s — %s', $nombre, $retraducir ? 'se retraduce' : 'ya está'));
                 continue;
             }
 
