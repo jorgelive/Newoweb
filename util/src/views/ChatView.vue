@@ -834,6 +834,19 @@ const ventanaAbierta = computed(() => {
 
 const ventanaDe = (hasta: string | null): boolean => !!hasta && new Date(hasta).getTime() > ahora.value;
 
+/**
+ * Corto a propósito: «···4264 🟢». El número entero y el «ventana abierta» se comían la barra de
+ * salida en el móvil. Cuatro dígitos bastan para distinguir los teléfonos de una misma persona;
+ * el número completo va en el `title` del selector.
+ */
+const etiquetaDeNumero = (valor: string, abierta: boolean): string => `···${valor.slice(-4)} ${abierta ? '🟢' : '🔒'}`;
+
+/** El número completo del elegido, para el `title`: lo que no cabe en la etiqueta corta. */
+const tituloDelSelector = computed(() => {
+  const elegido = telefonoElegido.value ?? salidaDelHilo.value;
+  return `Sale a ${formatearTelefono('+' + elegido) || elegido} · 🟢 ventana abierta · 🔒 sin ventana: irá con el aviso de mensaje pendiente`;
+});
+
 const isWhatsappAllowed = computed(() => {
   if (!canalHabilitado('whatsapp_meta')) return false;
 
@@ -2019,14 +2032,14 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                 v-if="telefonosDeSalida.length + (salidaFueraDeLista ? 1 : 0) > 1 && selectedChannels.includes('whatsapp_meta')"
                 :value="telefonoElegido ?? salidaDelHilo"
                 @change="telefonoElegido = ($event.target as HTMLSelectElement).value || null"
-                class="px-2 py-1.5 rounded-lg text-xs font-bold border border-green-200 bg-white text-slate-700 shrink-0 focus:outline-none focus:ring-1 focus:ring-green-400"
-                title="A qué número sale por WhatsApp"
+                class="px-1.5 py-1.5 rounded-lg text-xs font-bold border border-green-200 bg-white text-slate-700 shrink-0 focus:outline-none focus:ring-1 focus:ring-green-400"
+                :title="tituloDelSelector"
             >
               <option v-if="salidaFueraDeLista" :value="salidaDelHilo">
-                {{ formatearTelefono('+' + salidaDelHilo) || salidaDelHilo }} · salida actual {{ ventanaDe(store.currentConversation?.whatsappSessionValidUntil ?? null) ? '· ventana abierta' : '· 🔒 sin ventana' }}
+                {{ etiquetaDeNumero(salidaDelHilo, ventanaDe(store.currentConversation?.whatsappSessionValidUntil ?? null)) }}
               </option>
               <option v-for="t in telefonosDeSalida" :key="t.valor" :value="t.valor">
-                {{ formatearTelefono('+' + t.valor) || t.valor }} {{ ventanaDe(t.ventanaHasta) ? '· ventana abierta' : '· 🔒 sin ventana' }}
+                {{ etiquetaDeNumero(t.valor, ventanaDe(t.ventanaHasta)) }}
               </option>
             </select>
 
