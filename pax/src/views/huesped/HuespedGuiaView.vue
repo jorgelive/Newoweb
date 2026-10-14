@@ -162,6 +162,33 @@ const itemActivo = computed<GuiaItem | null>(() => {
   return id ? (itemsSeccionActiva.value.find(it => it['@id'] === id) ?? null) : null;
 });
 
+/**
+ * El ítem que sigue en la misma sección, para el «Siguiente» del pie (14/10/2026).
+ *
+ * Los ítems de «Ingreso» son pasos —ubicación, llaves, puerta…— y para pasar de uno al siguiente
+ * había que volver a la lista. Un ítem bloqueado también cuenta: abrirlo enseña su candado y
+ * cuándo se desbloquea, que es justo lo que el huésped necesita saber en ese paso.
+ */
+const posicionItemActivo = computed<number>(() =>
+  itemActivo.value ? itemsSeccionActiva.value.indexOf(itemActivo.value) : -1);
+
+const itemSiguiente = computed<GuiaItem | null>(() => {
+  const i = posicionItemActivo.value;
+  return i >= 0 ? itemsSeccionActiva.value[i + 1] ?? null : null;
+});
+
+/**
+ * `replace` y no `push`: pasar de un paso al siguiente no es entrar más hondo. Con `push`, el
+ * «atrás» desde el paso 5 recorría los cuatro anteriores antes de volver a la lista; así vuelve a
+ * la lista de la sección, que es el «menú» de donde se vino.
+ */
+const irAlSiguiente = () => {
+  const seccion = seccionActiva.value;
+  const siguiente = itemSiguiente.value;
+  if (!seccion || !siguiente) return;
+  router.replace({ query: { section: seccion.id, item: siguiente['@id'] } });
+};
+
 const abrirSeccion = (seccion: GuiaSeccion) => {
   router.push({ query: { section: seccion.id } });
 };
@@ -729,6 +756,27 @@ const mensajeError = computed(() => {
                 {{ maestroStore.traducir(itemActivo.labelBoton) }}
                 <i class="fas fa-arrow-right text-[10px]"></i>
               </a>
+            </div>
+
+            <!-- El paso siguiente de la sección, sin volver a la lista. Ver `itemSiguiente`. -->
+            <button v-if="itemSiguiente" type="button" @click="irAlSiguiente"
+                    class="group mt-4 w-full flex items-center gap-4 bg-white rounded-2xl border border-slate-200/60 shadow-sm shadow-slate-900/3 hover:shadow-md hover:border-[#376875]/25 active:scale-[0.99] transition-all p-4 text-left">
+              <span class="flex-1 min-w-0 flex flex-col">
+                <span class="text-[10px] font-black uppercase tracking-[0.2em] text-[#E07845]">
+                  {{ maestroStore.t('gui_siguiente') || 'Siguiente' }} · {{ posicionItemActivo + 2 }}/{{ itemsSeccionActiva.length }}
+                </span>
+                <span class="mt-0.5 font-bold text-gray-800 leading-tight truncate group-hover:text-[#376875] transition-colors">
+                  {{ maestroStore.traducir(itemSiguiente.titulo) }}
+                </span>
+              </span>
+              <i v-if="itemSiguiente.bloqueado" class="fas fa-lock shrink-0 text-slate-300"></i>
+              <i v-else class="fas fa-arrow-right shrink-0 text-[#376875] group-hover:translate-x-0.5 transition-transform"></i>
+            </button>
+            <div v-else-if="itemsSeccionActiva.length > 1" class="mt-6 text-center">
+              <button type="button" @click="volver"
+                      class="text-[10px] font-black text-gray-400 hover:text-[#376875] uppercase tracking-[0.2em] px-4 py-2 hover:bg-white rounded-full transition-colors">
+                {{ maestroStore.t('gui_btn_volver_menu') || 'Volver al menú' }}
+              </button>
             </div>
           </div>
         </div>

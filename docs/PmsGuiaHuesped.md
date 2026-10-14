@@ -1736,6 +1736,20 @@ enterraba la pregunta de la hora; el `aviso_salida` nuevo es corto y remite aqu�
 cuerpo también se reescribió dos veces: «Tu salida es hasta las…» y «Deja el departamento hasta
 las…» daban «until» en inglés; «a más tardar a las» sale bien en los siete.
 
+## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
+
+Los ítems de «Ingreso» son pasos —Ubicación, Llaves, Puerta, Después de ingresar…— y para pasar de
+uno al siguiente había que volver a la lista de la sección. Ahora el pie de cada ítem lleva al
+siguiente de **su misma sección** (`HuespedGuiaView::itemSiguiente`), con el paso en que se está
+(«Siguiente · 3/7» y el título). En el último, «Volver al menú». Un ítem bloqueado también cuenta:
+abrirlo enseña su candado y cuándo se abre, que es lo que hace falta saber en ese paso.
+
+⚠️ **`router.replace`, no `push`.** Pasar de un paso al siguiente no es entrar más hondo: con
+`push`, el «atrás» desde el paso 5 recorría los cuatro anteriores antes de volver a la lista. Así
+vuelve a la lista de la sección, que es de donde se vino.
+
+La cadena `gui_siguiente` entra por `pax:textos:guia` (ORM, traducida a los siete idiomas).
+
 ## 8. Dónde tocar para cambiar X
 
 | Necesito… | Archivo | Símbolo |
