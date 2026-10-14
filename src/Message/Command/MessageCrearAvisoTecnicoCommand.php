@@ -104,7 +104,7 @@ final class MessageCrearAvisoTecnicoCommand extends Command
      *
      * @var list<array{language: string, content: string}>
      */
-    private const array PIE = [
+    public const array PIE = [
         ['language' => 'es', 'content' => 'Aviso automático · Sistema OpenPeru'],
         ['language' => 'en', 'content' => 'Automatic alert · Sistema OpenPeru'],
         ['language' => 'pt', 'content' => 'Alerta automático · Sistema OpenPeru'],

@@ -63,8 +63,10 @@ La regla de `CLAUDE.md` («Node y PHP: cada lógica en un solo sitio») decide e
   qué es una casita, una suscripción ni una tarifa. Da igual que sea Python o Node.
 - **PHP persiste y calcula.** Validar, deduplicar, convertir a consumo y cobrar sigue en
   `src/Domotica/`. El servicio local **nunca escribe en la base**.
-- **Sólo conexiones salientes** desde la red local. No se abre ningún puerto en el módem para
-  esto, y producción nunca le habla a la Raspberry.
+- **El push sólo necesita conexiones salientes** desde la red local, y producción nunca le habla
+  a la Raspberry. ⚠️ Eso es del push: **la red sí abre la Pi a internet** desde que se pone en la
+  DMZ del módem (fase 5, §4). La seguridad de esa puerta la pone el firewall de la Pi, no el
+  diseño del push — ver §4, «La Pi en la DMZ queda EXPUESTA».
 
 ## 3. Hardware
 
@@ -118,6 +120,24 @@ Internet ─ módem del operador ─[cable]─ Raspberry ─[cable]─ switch / 
 - **Los enchufes en una red aislada** (VLAN o subred aparte) que sólo vea la Raspberry, no los
   equipos de los huéspedes. Los aparatos IoT baratos son lo menos seguro de una red.
 
+### 🔒 La Pi en la DMZ queda EXPUESTA: firewall que niega todo lo que entra
+
+La DMZ reenvía a la Pi **todo** lo que llega de internet: SSH, `dnsmasq`, el servicio de domótica,
+el controlador de Omada si llega a instalarse. Sin firewall, la fase 5 deja la Pi entera a la
+vista. Lo vio la revisión de Fable (13/10/2026): el plan decía «no se abre ningún puerto» y a la
+vez metía la Pi en la DMZ.
+
+La regla, en `nftables`, **antes** de poner la Pi en la DMZ:
+
+- **Por la interfaz del módem (WAN): se niega todo lo entrante**, salvo el puerto UDP de
+  WireGuard (fase 6) y las respuestas a conexiones que la Pi abrió (`ct state established,related`).
+- **SSH sólo desde la LAN o por la VPN**, nunca desde la WAN, y con clave, sin contraseña.
+- **`dnsmasq` sólo escucha en las interfaces de dentro**, nunca en la WAN.
+- **La red aislada de los enchufes** puede hablar con la Pi y con nada más; los huéspedes no la
+  ven.
+- Comprobarlo **desde fuera** tras activar la DMZ (un escaneo de puertos a la IP pública desde
+  otra red): lo único que debe responder es WireGuard.
+
 ### 🛟 El plan B, y por qué el DHCP del módem se deja encendido
 
 Si la Raspberry falla, **se pasa el cable del switch de la Pi al módem y se vuelve a encender su
@@ -143,7 +163,16 @@ dentro de la petición.
 | `X-Domotica-Firma` | `hex(HMAC-SHA256(secreto, tiempo + "." + cuerpo))` |
 
 Se rechaza con 401 si la firma no cuadra o si `tiempo` se aparta más de **5 minutos** del reloj del
-servidor (impide reenviar un lote capturado). El secreto es una variable de entorno
+servidor. La ventana limita reenviar un lote capturado; dentro de esos 5 minutos lo que impide
+duplicar es la idempotencia por `loteId` (más abajo).
+
+- **La firma se compara con `hash_equals()`**, nunca con `===`: comparar texto corta en el primer
+  carácter distinto, y el tiempo de respuesta filtra cuánto de la firma era correcto.
+- ⚠️ **La Pi no tiene reloj propio** (sin RTC): tras un corte arranca con la hora mal hasta que NTP
+  sincroniza, y mientras tanto **todos sus lotes dan 401**. No se pierde nada —la cola en disco
+  los guarda y se reenvían— pero el servicio local debe **esperar a tener hora sincronizada**
+  (`timedatectl` → `System clock synchronized: yes`) antes de vaciar la cola, y registrar los 401
+  como lo que son. El secreto es una variable de entorno
 **obligatoria**: `%env(resolve:DOMOTICA_PUSH_SECRETO)%` **y** en el `.env.local` del servidor el
 mismo día del despliegue — ver `CLAUDE.md`, «Una variable de entorno NUEVA no basta con ponerla en
 `.env`».
@@ -197,9 +226,14 @@ Cada **5 minutos** el servicio local manda un lote `"tipo": "latido"` (sin event
 recuento de aparatos que ve). Producción apunta la hora del último.
 
 **Si pasan 15 minutos sin latido, se avisa** por WhatsApp a soporte técnico
-(`AvisoAlEquipo` con `Roles::TECH_SUPPORT`, como el tipo de cambio — ver
-`docs/PmsBeds24ReservasSync.md` §12.18), con el push de respaldo. Un aviso al empezar la caída, no
-uno cada cinco minutos.
+(`AvisoAlEquipo` con `Roles::TECH_SUPPORT` y la plantilla `aviso_tecnico_generico_interno`, como el
+tipo de cambio — ver `docs/PmsBeds24ReservasSync.md` §12.18), con el push de respaldo. Un aviso al
+empezar la caída, no uno cada cinco minutos.
+
+⚠️ **El silencio no se detecta solo: hace falta una tarea en producción que mire el reloj.** Que
+no llegue nada no dispara ningún código. Va un comando por cron cada 5 minutos —con el envoltorio
+`tools/cron/con-candado` como todas las tareas, ver `CLAUDE.md` «Despliegue»— que compara la hora
+del último latido con ahora y avisa una vez por caída.
 
 **Por qué es mejor que lo de hoy**: con el muestreo por consulta, un fallo se reconocía contando
 errores, y el vigilante dejó de contar (calló un mes con el parque entero mudo). Con push, el
@@ -277,6 +311,7 @@ Casi todo está **por crear**; la tabla dice dónde irá, para que se cree ahí.
 | El secreto compartido | `.env.local` del servidor **y** de la Pi | `DOMOTICA_PUSH_SECRETO` |
 | Leer el cuerpo del lote | `src/Domotica/Dto/` *(por crear)* | un `fromArray()` con `App\Dto\Lee` (`docs/TiposDeFrontera.md`) |
 | Qué DP es contador, potencia o interruptor | lo que hoy usa el muestreo | `docs/Domotica.md` §13.2 |
-| Cuándo se avisa por falta de latido | *(por crear)* | 15 min; aviso con `AvisoAlEquipoService`, rol `TECH_SUPPORT` |
+| Cuándo se avisa por falta de latido | `src/Domotica/Command/` *(por crear)* + su línea en `tools/cron/www-data.crontab` con `con-candado` | 15 min; aviso con `AvisoAlEquipoService`, rol `TECH_SUPPORT`, plantilla `aviso_tecnico_generico_interno` |
+| Qué entra a la Pi desde internet | `nftables` en la Pi, **no el repo** | default-deny en la WAN salvo WireGuard (§4) |
 | El crontab del muestreo contra la nube | `tools/cron/www-data.crontab` | línea `app:domotica:muestrear`, comentada desde el 13/10/2026 |
 | La red de las casitas (DHCP, reservas, firewall) | la Raspberry, **no el repo** | `dnsmasq`, `nftables`, WireGuard |

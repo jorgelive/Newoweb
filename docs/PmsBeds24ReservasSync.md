@@ -6353,9 +6353,16 @@ no la arregla operaciones: la arregla quien paga el plan o cambia la llave.
   llamada fallida. Un **403 es una página HTML de nginx** = cuota agotada o llave bloqueada; una
   llave inválida da **401** en JSON (`Apikey Required / Limit Exceeded`). Se distinguen sin mirar
   el panel de decolecta.
-- **Sin plantilla de respaldo**, a propósito: la única técnica aprobada, `aviso_tecnico_interno`,
-  lleva fijo «a los huéspedes les contesta un mensaje automático de cortesía», que aquí es falso.
-  Fuera de la ventana de 24 h el WhatsApp no sale y cae al push.
+- 🔥 **Con plantilla de respaldo: `aviso_tecnico_generico_interno`** (comando
+  `msg:crear:aviso-tecnico-generico`). La primera versión iba sin ella, porque la técnica aprobada
+  —`aviso_tecnico_interno`— lleva fijo «a los huéspedes les contesta un mensaje automático de
+  cortesía», que aquí es falso. La revisión de Fable (13/10/2026) sacó la consecuencia: sólo se
+  manda texto libre a quien escribió al número en las últimas 24 h, y a las 08:40 lo normal es
+  que nadie de guardia lo haya hecho, así que **el WhatsApp casi nunca salía** y el aviso volvía
+  al push — el canal que nadie miró. La genérica tiene dos huecos (`{{sistema}}`, `{{motivo}}`) y
+  no supone nada del huésped; sirve también para el latido de la domótica
+  (`docs/PlanDomoticaLocal.md` §6). ⚠️ **Hasta que Meta la apruebe** —lo marca solo
+  `app:whatsapp:sync-templates` a las 03:15— fuera de ventana sigue cayendo al push.
 - **Consumo real**: ~12 peticiones al día, ~375 al mes (medido del 1 al 8/10/2026). No es el cron:
   `getTipodecambio()` llama a la API cada vez que la fecha pedida no está en base, y la de HOY no
   está hasta que SUNAT la publica — el listener de sellado, las skills, el push de tarifas y el
@@ -6379,6 +6386,14 @@ fila por día:
 - **`ultimo_fallo` guarda la causa del día**, y `ultimoFallo()` la lee de ahí si el proceso no
   llegó a llamar: el cron de las 08:40 puede encontrar el cupo ya gastado de madrugada y aun así
   tiene que decir que el motivo es un 403, no «tope alcanzado».
+- ⚠️ **Frenada sin fallo anotado = sin causa, no «tope alcanzado».** La primera versión ponía
+  «frenada por el tope» cuando la tabla no tenía fallo, y eso pasa justo cuando la API contesta
+  **200 con datos inservibles** (decolecta renombrando campos, el caso de los `CAMPO_*`): soporte
+  habría ido a mirar la cuota. El aviso dice sólo el retraso y deja la causa en blanco.
+- ⚠️ **Un fallo de la base al reservar no se disfraza de caída del proveedor.** La reserva va fuera
+  del `try` de la llamada y con su propio mensaje («fallo de la base, no del proveedor»); sin cupo
+  reservable no se llama —falla cerrado—. Y `ultimoFallo()` no lanza: con la tabla rota la alarma
+  sale igual, sin causa. Las dos, de la revisión de Fable.
 - **Y 20 minutos entre peticiones** (`MINUTOS_ENTRE_CONSULTAS`, columna `ultima_peticion`), en el
   mismo `UPDATE`. El tope solo dejaba gastar los 20 en una ráfaga de un minuto, que es justo lo
   que hacía el sistema con la API caída. La hora es `NOW()` de MySQL al escribir y al comparar:

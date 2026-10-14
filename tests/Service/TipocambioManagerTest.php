@@ -49,11 +49,16 @@ final class TipocambioManagerTest extends TestCase
         array|MockHttpClient $respuestas,
         ?LoggerInterface $logger = null,
         bool $quedaCupo = true,
+        bool $baseRota = false,
     ): TipocambioManager {
         // Stubs y no mocks: no hay expectativas que declarar y PHPUnit 13 avisa si se usa un mock
         // sin ellas. La conexión es lo único de la base que toca `callApi()`: el tope diario.
         $conexion = $this->createStub(Connection::class);
-        $conexion->method('executeStatement')->willReturn($quedaCupo ? 1 : 0);
+        if ($baseRota) {
+            $conexion->method('executeStatement')->willThrowException(new \RuntimeException('Table maestro_tipocambio_consulta doesn\'t exist'));
+        } else {
+            $conexion->method('executeStatement')->willReturn($quedaCupo ? 1 : 0);
+        }
         $conexion->method('fetchOne')->willReturn(false);
 
         $em = $this->createStub(EntityManagerInterface::class);
@@ -232,7 +237,7 @@ final class TipocambioManagerTest extends TestCase
 
         self::assertSame([], $this->llamar($manager, 'callApi', ['date' => '2026-10-13']));
         self::assertSame(0, $llamadas, 'Con el tope alcanzado no puede salir ni una petición.');
-        self::assertStringContainsString('frenada', (string) $manager->ultimoFallo());
+        self::assertNull($manager->ultimoFallo(), 'Frenada sin fallo anotado: no se inventa una causa.');
     }
 
     /**
@@ -245,5 +250,26 @@ final class TipocambioManagerTest extends TestCase
 
         self::assertSame([], $this->llamar($manager, 'callApi', ['date' => '2026-10-13']));
         self::assertStringContainsString('cuota del plan agotada', (string) $manager->ultimoFallo());
+    }
+
+    /**
+     * Con la base rota al reservar: no se llama a la API (falla cerrado) y la causa culpa a la
+     * base, no al proveedor. Antes salía como «sin conexión con decolecta» (Fable, 13/10/2026).
+     */
+    public function testUnFalloDeLaBaseAlReservarNoSeDisfrazaDeCaidaDelProveedor(): void
+    {
+        $llamadas = 0;
+        $cliente = new MockHttpClient(static function () use (&$llamadas): MockResponse {
+            ++$llamadas;
+
+            return new MockResponse('[]');
+        });
+
+        $manager = $this->manager($cliente, baseRota: true);
+
+        self::assertSame([], $this->llamar($manager, 'callApi', ['date' => '2026-10-13']));
+        self::assertSame(0, $llamadas);
+        self::assertStringContainsString('fallo de la base', (string) $manager->ultimoFallo());
+        self::assertStringNotContainsString('decolecta', (string) $manager->ultimoFallo());
     }
 }

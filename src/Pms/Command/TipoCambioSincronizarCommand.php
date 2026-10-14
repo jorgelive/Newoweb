@@ -8,6 +8,7 @@ use App\Command\EntradaDeConsola;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Maestro\MaestroTipocambio;
 use App\Message\Service\Aviso\AvisoAlEquipo;
+use App\Message\Command\MessageCrearAvisoTecnicoGenericoCommand;
 use App\Message\Service\Aviso\AvisoAlEquipoService;
 use App\Service\TipocambioManager;
 use App\Service\WebPushNotificationService;
@@ -183,9 +184,13 @@ final class TipoCambioSincronizarCommand extends Command
      * estuvo agotada con este comando gritándolo cada mañana: nadie lo vio. Una avería del
      * proveedor no la arregla operaciones; la arregla quien puede pagar el plan o cambiar la llave.
      *
-     * Sin plantilla de respaldo, a propósito: la única técnica aprobada (`aviso_tecnico_interno`)
-     * lleva fijo «a los huéspedes les contesta un mensaje de cortesía», que aquí es falso. Fuera
-     * de la ventana de 24 h el WhatsApp no sale, `alguienFueAvisado()` da false y cae al push.
+     * 🔥 **Con plantilla de respaldo desde el 13/10/2026.** La primera versión iba sin ella —la
+     * técnica aprobada, `aviso_tecnico_interno`, lleva fijo «a los huéspedes les contesta un
+     * mensaje de cortesía», que aquí es falso— y la revisión de Fable sacó la consecuencia: fuera
+     * de la ventana de 24 h, que a las 08:40 es lo normal, el WhatsApp fallaba y el aviso volvía
+     * al push, el canal que nadie miró. Ahora va con `aviso_tecnico_generico_interno`, que no
+     * supone nada del huésped. Mientras Meta no la apruebe, sigue cayendo al push.
+     *
      * Se avisa a diario mientras dure, que es lo que corre el cron: no hace falta enfriarlo.
      */
     private function alarma(SymfonyStyle $io, string $mensaje, bool $callado): int
@@ -203,6 +208,13 @@ final class TipoCambioSincronizarCommand extends Command
             $resultado = $this->avisos->notificar(new AvisoAlEquipo(
                 rol: Roles::TECH_SUPPORT,
                 texto: "💱 Tipo de cambio desactualizado\n\n" . $mensaje,
+                plantillaCodigo: MessageCrearAvisoTecnicoGenericoCommand::CODIGO,
+                // ⚠️ Una línea por valor (lo exige Meta); `$mensaje` ya lo es. El tope de largo es
+                // de margen: Meta limita el cuerpo hidratado.
+                variables: [
+                    'sistema' => 'El tipo de cambio',
+                    'motivo' => mb_substr((string) preg_replace('/\s+/', ' ', $mensaje), 0, 600),
+                ],
                 metadata: ['aviso_tipo_cambio' => true],
             ));
 

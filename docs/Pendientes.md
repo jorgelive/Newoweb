@@ -1014,7 +1014,7 @@ maestro pasó de **116 filas / 26-08** a **131 filas / 10-09**, con el hueco del
 tapado — `persistMonthData()` sólo rellena el mes de la fecha que se le pide, así que agosto
 necesitó su propia llamada.
 
-Y el cron que nunca existió: `app:pms:tipo-cambio:sincronizar`, 08:00 de Lima, que **falla y avisa**
+Y el cron que nunca existió: `app:pms:tipo-cambio:sincronizar`, 08:40 de Lima, que **falla y avisa**
 si el maestro se queda atrás. El detalle en `docs/PmsBeds24ReservasSync.md` §12.18.
 
 **Re-sellar lo ya escrito: descartado el 13/10/2026.** La diferencia es de milésimas y no compensa;

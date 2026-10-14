@@ -3967,6 +3967,14 @@ necesita. Meterlo dentro obligaría a inventar una clave genérica para todos.
 Para un aviso nuevo hace falta: el texto, una plantilla aprobada por Meta para fuera de ventana
 (o `null`, y entonces fuera de ventana no saldrá y el resultado lo dirá), y el rol destinatario.
 
+⚠️ **`null` NO es una opción razonable para una alarma**: fuera de ventana es lo normal —quien está
+de guardia no escribe al número todos los días—, así que un aviso sin plantilla casi nunca sale
+por WhatsApp. Le pasó al del tipo de cambio en su primera versión (revisión de Fable, 13/10/2026).
+Para averías técnicas que no tocan al huésped existe **`aviso_tecnico_generico_interno`**
+(`{{sistema}}` + `{{motivo}}`, comando `msg:crear:aviso-tecnico-generico`). No se usa
+`aviso_tecnico_interno` para eso: su texto aprobado dice que los huéspedes están recibiendo la
+frase de cortesía, y sólo es verdad cuando el caído es el motor de IA.
+
 ⚠️ Y si el aviso necesita marcar el mensaje con algo suyo —como hace el escalado con
 `escaladoDe`—, va por `ajustarMensaje`, un `Closure(Message): void`. Existe para que ese dato no
 entre en el contrato y acabe siendo un campo que los demás avisos arrastran sin usar.

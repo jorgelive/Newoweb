@@ -97,10 +97,18 @@ class TipocambioManager
             return $this->ultimoFallo;
         }
 
-        $guardado = $this->em->getConnection()->fetchOne(
-            'SELECT ultimo_fallo FROM maestro_tipocambio_consulta WHERE dia = ?',
-            [$this->hoyEnLima()]
-        );
+        // Protegido: lo llama la alarma del cron, y un fallo de la base aquí la mataría antes de
+        // avisar a nadie (revisión de Fable, 13/10/2026). Sin causa es mejor que sin aviso.
+        try {
+            $guardado = $this->em->getConnection()->fetchOne(
+                'SELECT ultimo_fallo FROM maestro_tipocambio_consulta WHERE dia = ?',
+                [$this->hoyEnLima()]
+            );
+        } catch (Exception $e) {
+            $this->logger->error('[TipoCambio] No se pudo leer la causa del último fallo: ' . $e->getMessage());
+
+            return null;
+        }
 
         return is_string($guardado) ? $guardado : null;
     }
@@ -135,14 +143,15 @@ class TipocambioManager
         return $reservadas > 0;
     }
 
-    private function anotarFallo(string $fallo): void
+    /** `null` = la última llamada fue bien: se borra la causa de hoy. */
+    private function anotarFallo(?string $fallo): void
     {
         $this->ultimoFallo = $fallo;
 
         try {
             $this->em->getConnection()->executeStatement(
                 'UPDATE maestro_tipocambio_consulta SET ultimo_fallo = ? WHERE dia = ?',
-                [mb_substr($fallo, 0, 255), $this->hoyEnLima()]
+                [$fallo === null ? null : mb_substr($fallo, 0, 255), $this->hoyEnLima()]
             );
         } catch (Exception $e) {
             // Anotar la causa es para el aviso; no puede tumbar a quien pidió la tasa.
@@ -253,24 +262,35 @@ class TipocambioManager
      */
     private function callApi(array $queryParams): array
     {
+        // ⚠️ La reserva va FUERA del `try` de la llamada, con su propio `catch`. Dentro, un fallo de
+        // la base se registraba como «sin conexión con decolecta»: el mismo disfraz que tapó el
+        // 404 de agosto, ahora con la base de culpable y el proveedor de acusado (Fable,
+        // 13/10/2026). Sin cupo reservable no se llama: falla cerrado, nunca abierto.
         try {
-            if (!$this->reservarConsulta()) {
-                // No se pisa `ultimoFallo` de la tabla: la causa real (el 403) es lo que el aviso
-                // tiene que contar, no que se gastó el cupo por culpa de ella.
-                $this->ultimoFallo ??= $this->ultimoFallo() ?? sprintf(
-                    'consulta a decolecta frenada (tope de %d al día o espera de %d min entre consultas)',
-                    self::MAX_CONSULTAS_DIA,
-                    self::MINUTOS_ENTRE_CONSULTAS
-                );
-                $this->logger->notice(sprintf(
-                    '[TipoCambio] Consulta frenada: tope de %d al día o menos de %d min desde la última.',
-                    self::MAX_CONSULTAS_DIA,
-                    self::MINUTOS_ENTRE_CONSULTAS
-                ));
+            $reservada = $this->reservarConsulta();
+        } catch (Exception $e) {
+            $this->logger->error('[TipoCambio] No se pudo reservar cupo en maestro_tipocambio_consulta: ' . $e->getMessage());
+            $this->ultimoFallo = 'no se pudo reservar cupo en la tabla maestro_tipocambio_consulta (fallo de la base, no del proveedor)';
 
-                return [];
-            }
+            return [];
+        }
 
+        if (!$reservada) {
+            // Frenada por el tope o por la espera: se cuenta la causa que haya anotada HOY, y si
+            // no hay ninguna —la última llamada fue bien— NO se inventa. Antes ponía «frenada por
+            // el tope» y soporte iba a mirar la cuota cuando el proveedor contestaba 200 con datos
+            // inservibles (Fable, 13/10/2026).
+            $this->ultimoFallo ??= $this->ultimoFallo();
+            $this->logger->notice(sprintf(
+                '[TipoCambio] Consulta frenada: tope de %d al día o menos de %d min desde la última.',
+                self::MAX_CONSULTAS_DIA,
+                self::MINUTOS_ENTRE_CONSULTAS
+            ));
+
+            return [];
+        }
+
+        try {
             $response = $this->client->request('GET', self::ENDPOINT, [
                 'query' => $queryParams,
                 'headers' => [
@@ -284,11 +304,7 @@ class TipocambioManager
             $codigo = $response->getStatusCode();
 
             if ($codigo === 200) {
-                $this->ultimoFallo = null;
-                $this->em->getConnection()->executeStatement(
-                    'UPDATE maestro_tipocambio_consulta SET ultimo_fallo = NULL WHERE dia = ?',
-                    [$this->hoyEnLima()]
-                );
+                $this->anotarFallo(null);
                 $raw = $response->toArray();
 
                 if (isset($raw[self::CAMPO_FECHA])) {
