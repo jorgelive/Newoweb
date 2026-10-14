@@ -152,8 +152,11 @@ final class PmsGuiaFormatoPuertasCommand extends Command
         'it' => [
             'Come aprirlo:' => 'Come aprirla:',
             'girare la chiave' => 'gira la chiave',
-            'Vedrete due serrature. Usate quella inferiore, girando la chiave in senso antiorario. Abbiamo lasciato aperta quella superiore per voi: al vostro arrivo, vi basterà usare solo quella inferiore. Avete le chiavi di entrambe le serrature nel caso preferiate chiudere anche quella superiore durante il vostro soggiorno.'
-                => 'Vedrai due serrature. Usa quella inferiore, girando la chiave in senso antiorario. Quella superiore te la lasciamo aperta: al tuo arrivo ti basta quella inferiore. Hai le chiavi di entrambe le serrature, nel caso preferissi chiudere anche quella superiore durante il tuo soggiorno.',
+            // Por frases y no el párrafo entero: al retraducir, el traductor se comió un «solo».
+            'Vedrete due serrature. Usate quella inferiore' => 'Vedrai due serrature. Usa quella inferiore',
+            'Abbiamo lasciato aperta quella superiore per voi: al vostro arrivo, vi basterà' => 'Quella superiore te la lasciamo aperta: al tuo arrivo ti basterà',
+            'Avete le chiavi di entrambe le serrature nel caso preferiate chiudere anche quella superiore durante il vostro soggiorno.'
+                => 'Hai le chiavi di entrambe le serrature, nel caso preferissi chiudere anche quella superiore durante il tuo soggiorno.',
             'Tirate delicatamente la porta verso di voi mentre girate la chiave' => 'tira delicatamente la porta verso di te mentre giri la chiave',
             'All&#39;arrivo troverete due porte. Solo quella esterna è chiusa a chiave: girate la chiave in senso orario. Lasciamo la porta interna aperta in modo che possiate entrare direttamente; se preferite chiuderla a chiave durante il vostro soggiorno, le chiavi che avete con voi funzioneranno comunque.'
                 => 'All&#39;arrivo troverai due porte. Solo quella esterna è chiusa a chiave: gira la chiave in senso orario. La porta interna te la lasciamo aperta perché tu possa entrare direttamente; se preferisci chiuderla a chiave durante il tuo soggiorno, le chiavi che hai funzionano anche per quella.',
