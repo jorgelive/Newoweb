@@ -312,7 +312,12 @@ final readonly class ConsultarToursSkill implements SkillInterface, SkillDominio
             // Sin la base, «US$ 1 599 por persona» de un viaje de promoción calculado para 60 se
             // lee como el precio para una pareja. Es la misma nota que lleva la ficha web.
             'precio_es' => $desde === [] ? null : $precioEs ?? ($t->paxBaseGrupo !== null
-                ? sprintf('por persona, calculado para un grupo de %d: con otro tamaño varía', $t->paxBaseGrupo)
+                ? sprintf(
+                    $t->precioPersonalizado
+                        ? 'por persona, para un grupo de %d: con otro tamaño varía'
+                        : 'por persona, calculado para un grupo de %d: con otro tamaño varía',
+                    $t->paxBaseGrupo,
+                )
                 : 'por persona'),
             'resumen' => self::recortar($t->resumenPlano ?? ''),
             'enlace' => $conEnlaces ? $this->enlaceDelTour($catalogo, $t, $idioma) : null,

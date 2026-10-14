@@ -23,6 +23,7 @@ use App\Cotizacion\ApiPlatform\State\AbrirOperativaProcessor;
 use App\Cotizacion\ApiPlatform\State\GenerarOperacionProcessor;
 use App\Cotizacion\ApiPlatform\State\GuardarHistoricoProcessor;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
+use App\Cotizacion\Enum\PresentacionPrecioEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
@@ -291,35 +292,25 @@ class Cotizacion
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
     private string $adelanto = '0.00';
 
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    private bool $precioOculto = false;
+    /**
+     * Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
+     * persona con la base, o sólo por persona. Sustituye a los booleanos `precioOculto` y
+     * `totalesOcultos`, que siguen existiendo para quien los lee pero DERIVADOS de esto
+     * ({@see self::isPrecioOculto()}, {@see self::isTotalesOcultos()}). Ver `PresentacionPrecioEnum`.
+     *
+     * El defecto es el de un expediente de grupo. Un tour entra en un catálogo con
+     * `POR_PERSONA_BASE` ({@see self::reubicarEnCatalogo()}; el editor lo crea así) porque su
+     * `numPax` es una base, no un grupo que compre: el total de esa base no es vendible.
+     *
+     * ⚠️ «Sin el total» también sirve en un EXPEDIENTE: cuando dentro de un grupo no todos llevan lo
+     * mismo, el «precio total del viaje» no describe a nadie (13 combinaciones de servicios entre
+     * 133 personas en el padrón de Punta Cana 2026). Ver `docs/Cotizaciones.md` §6.o.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 20, enumType: PresentacionPrecioEnum::class, options: ['default' => 'total_grupo'])]
+    private PresentacionPrecioEnum $presentacionPrecio = PresentacionPrecioEnum::TOTAL_GRUPO;
 
     // 🔥 NUEVO FLAG DE PROVEEDOR OCULTO A NIVEL GLOBAL
-
-    /**
-     * Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-     * mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-     * (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-     * El catálogo funciona como un menú de precios por unidad — "peruanos tal
-     * precio, extranjeros tal precio" — no como cotización de un grupo concreto.
-     * Sólo tiene sentido en modo catálogo; el precio unitario sí se sigue viendo.
-     *
-     * El default false es el de un expediente de grupo. En catálogo el editor lo crea
-     * ya activo (cotizacionEditorStore::crearCotizacionVacia) y sólo se apaga a mano
-     * cuando el tour se vende como salida de grupo fijo.
-     *
-     * ⚠️ **También sirve en un EXPEDIENTE, y el interruptor estuvo escondido tras el modo
-     * catálogo por descuido.** Cuando dentro de un grupo no todos llevan los mismos servicios, el
-     * «precio total del viaje» no describe a nadie: en el padrón de Punta Cana 2026 hay **13
-     * combinaciones de servicios entre 133 personas** y sólo 105 llevan el paquete completo. Ahí
-     * lo que se le enseña a cada familia es su precio por persona, que es exactamente lo que este
-     * flag deja ver. Ver `docs/Cotizaciones.md` §6.o.
-     */
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    private bool $totalesOcultos = false;
-
 
     /**
      * Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -919,7 +910,10 @@ class Cotizacion
         }
 
         if ($veniaDeCatalogo) {
-            $this->totalesOcultos = false;
+            // Ahora es un grupo de verdad: su total se puede enseñar. «Sin precio» se respeta.
+            if (!$this->presentacionPrecio->ocultaPrecio()) {
+                $this->presentacionPrecio = PresentacionPrecioEnum::TOTAL_GRUPO;
+            }
             $this->preciosDesde = [];
             $this->orden = 0;
         }
@@ -930,7 +924,8 @@ class Cotizacion
      *
      * - Sin expediente (directo a la propiedad: `setFile(null)` se ignora a propósito, ver allí).
      * - Sin subgrupos: no hay grupo ni pasajeros.
-     * - Total oculto: `numPax` pasa a ser «pax base» y el total de ese grupo no es vendible.
+     * - Por persona con la base (`PresentacionPrecioEnum::POR_PERSONA_BASE`): `numPax` pasa a ser
+     *   «pax base» y el total de ese grupo no es vendible.
      * - Sin fecha de expiración: es la validez de una oferta a un cliente, no de un producto.
      * - Al final del catálogo (`$orden`, lo calcula quien conoce a las hermanas).
      *
@@ -942,7 +937,9 @@ class Cotizacion
         $this->file = null;
         $this->catalogo = $destino;
         $this->vaciarSubgrupos();
-        $this->totalesOcultos = true;
+        if (!$this->presentacionPrecio->ocultaPrecio()) {
+            $this->presentacionPrecio = PresentacionPrecioEnum::POR_PERSONA_BASE;
+        }
         $this->fechaExpiracion = null;
         $this->orden = $orden;
     }
@@ -1627,11 +1624,20 @@ class Cotizacion
     public function getAdelanto(): string { return $this->adelanto; }
     public function setAdelanto(string $adelanto): void { $this->adelanto = $adelanto; }
 
-    public function isPrecioOculto(): bool { return $this->precioOculto; }
-    public function setPrecioOculto(bool $precioOculto): void { $this->precioOculto = $precioOculto; }
+    public function getPresentacionPrecio(): PresentacionPrecioEnum { return $this->presentacionPrecio; }
+    public function setPresentacionPrecio(PresentacionPrecioEnum $presentacionPrecio): void { $this->presentacionPrecio = $presentacionPrecio; }
 
-    public function isTotalesOcultos(): bool { return $this->totalesOcultos; }
-    public function setTotalesOcultos(bool $totalesOcultos): void { $this->totalesOcultos = $totalesOcultos; }
+    /**
+     * DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+     * que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+     * un `precioOculto` en el cuerpo de un PUT se ignora.
+     */
+    #[Groups(['cotizacion:read', 'file:item:read', 'pax_cotizacion:read'])]
+    public function isPrecioOculto(): bool { return $this->presentacionPrecio->ocultaPrecio(); }
+
+    /** DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+    #[Groups(['cotizacion:read', 'file:item:read', 'pax_cotizacion:read'])]
+    public function isTotalesOcultos(): bool { return $this->presentacionPrecio->ocultaTotales(); }
 
 
     /**

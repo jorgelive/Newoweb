@@ -27,6 +27,8 @@ tour:
     base_pax: 'calculated for %n% travellers'
     total_para: 'total for %n% travellers'
     base_pax_nota: 'Per-person price calculated for a group of %n% travellers: it may vary with a different group size.'
+    grupo_de: 'for a group of %n% travellers'
+    grupo_de_nota: 'Per-person price for a group of %n% travellers: it may vary with a different group size.'
     consultar: 'Check availability'
     reservar: Booking
     whatsapp_mensaje: 'Hi, I''m interested in the tour "%tour%": %url%'

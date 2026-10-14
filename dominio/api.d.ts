@@ -4596,15 +4596,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -4689,6 +4680,14 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -4724,15 +4723,15 @@ export interface components {
             comision: string;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
             /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
+             * @description Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
+             *     persona con la base, o sólo por persona. Sustituye a los booleanos `precioOculto` y
+             *     `totalesOcultos`, que siguen existiendo para quien los lee pero DERIVADOS de esto
+             *     ({@see self::isPrecioOculto()}, {@see self::isTotalesOcultos()}). Ver `PresentacionPrecioEnum`.
+             * @default total_grupo
+             * @enum {string}
              */
-            totalesOcultos: boolean;
+            presentacionPrecio: "sin_precio" | "total_grupo" | "por_persona_base" | "por_persona";
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -4805,6 +4804,14 @@ export interface components {
             readonly resumenDuracion?: {
                 [key: string]: number;
             };
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -4845,15 +4852,15 @@ export interface components {
             comision: string;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
             /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
+             * @description Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
+             *     persona con la base, o sólo por persona. Sustituye a los booleanos `precioOculto` y
+             *     `totalesOcultos`, que siguen existiendo para quien los lee pero DERIVADOS de esto
+             *     ({@see self::isPrecioOculto()}, {@see self::isTotalesOcultos()}). Ver `PresentacionPrecioEnum`.
+             * @default total_grupo
+             * @enum {string}
              */
-            totalesOcultos: boolean;
+            presentacionPrecio: "sin_precio" | "total_grupo" | "por_persona_base" | "por_persona";
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -4946,15 +4953,15 @@ export interface components {
             comision: string;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
             /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
+             * @description Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
+             *     persona con la base, o sólo por persona. Sustituye a los booleanos `precioOculto` y
+             *     `totalesOcultos`, que siguen existiendo para quien los lee pero DERIVADOS de esto
+             *     ({@see self::isPrecioOculto()}, {@see self::isTotalesOcultos()}). Ver `PresentacionPrecioEnum`.
+             * @default total_grupo
+             * @enum {string}
              */
-            totalesOcultos: boolean;
+            presentacionPrecio: "sin_precio" | "total_grupo" | "por_persona_base" | "por_persona";
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5033,15 +5040,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5093,6 +5091,14 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -5119,15 +5125,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5183,6 +5180,14 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -5204,15 +5209,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5264,6 +5260,14 @@ export interface components {
             readonly resumenDuracion?: {
                 [key: string]: number;
             };
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
         };
         "Cotizacion-pax_file.read_pax_cotizacion.read": {
             /**
@@ -5280,15 +5284,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5340,6 +5335,14 @@ export interface components {
             readonly resumenDuracion?: {
                 [key: string]: number;
             };
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
         };
         "Cotizacion.AplicarPlanInput-operacion.plan.write": {
             /** @description Firma del plan que se revisó. Si el estado se movió, `aplicar` lo rechaza. */
@@ -5453,15 +5456,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5546,6 +5540,14 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -5581,15 +5583,15 @@ export interface components {
             comision: string;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
             /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
+             * @description Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
+             *     persona con la base, o sólo por persona. Sustituye a los booleanos `precioOculto` y
+             *     `totalesOcultos`, que siguen existiendo para quien los lee pero DERIVADOS de esto
+             *     ({@see self::isPrecioOculto()}, {@see self::isTotalesOcultos()}). Ver `PresentacionPrecioEnum`.
+             * @default total_grupo
+             * @enum {string}
              */
-            totalesOcultos: boolean;
+            presentacionPrecio: "sin_precio" | "total_grupo" | "por_persona_base" | "por_persona";
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5662,6 +5664,14 @@ export interface components {
             readonly resumenDuracion?: {
                 [key: string]: number;
             };
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -5688,15 +5698,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5748,6 +5749,14 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -5774,15 +5783,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5838,6 +5838,14 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -5859,15 +5867,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5919,6 +5918,14 @@ export interface components {
             readonly resumenDuracion?: {
                 [key: string]: number;
             };
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
         };
         "Cotizacion.html-pax_file.read_pax_cotizacion.read": {
             /**
@@ -5935,15 +5942,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5995,6 +5993,14 @@ export interface components {
             readonly resumenDuracion?: {
                 [key: string]: number;
             };
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
         };
         "Cotizacion.jsonld-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -6016,15 +6022,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6109,6 +6106,14 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -6144,15 +6149,15 @@ export interface components {
             comision: string;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
             /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
+             * @description Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
+             *     persona con la base, o sólo por persona. Sustituye a los booleanos `precioOculto` y
+             *     `totalesOcultos`, que siguen existiendo para quien los lee pero DERIVADOS de esto
+             *     ({@see self::isPrecioOculto()}, {@see self::isTotalesOcultos()}). Ver `PresentacionPrecioEnum`.
+             * @default total_grupo
+             * @enum {string}
              */
-            totalesOcultos: boolean;
+            presentacionPrecio: "sin_precio" | "total_grupo" | "por_persona_base" | "por_persona";
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6225,6 +6230,14 @@ export interface components {
             readonly resumenDuracion?: {
                 [key: string]: number;
             };
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -6251,15 +6264,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6311,6 +6315,14 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -6337,15 +6349,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6401,6 +6404,14 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -6422,15 +6433,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6482,6 +6484,14 @@ export interface components {
             readonly resumenDuracion?: {
                 [key: string]: number;
             };
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
         };
         "Cotizacion.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -6498,15 +6508,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6558,6 +6559,14 @@ export interface components {
             readonly resumenDuracion?: {
                 [key: string]: number;
             };
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
         };
         "Cotizacion.multipart-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
             /**
@@ -6579,15 +6588,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6672,6 +6672,14 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -6707,15 +6715,15 @@ export interface components {
             comision: string;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
             /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
+             * @description Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
+             *     persona con la base, o sólo por persona. Sustituye a los booleanos `precioOculto` y
+             *     `totalesOcultos`, que siguen existiendo para quien los lee pero DERIVADOS de esto
+             *     ({@see self::isPrecioOculto()}, {@see self::isTotalesOcultos()}). Ver `PresentacionPrecioEnum`.
+             * @default total_grupo
+             * @enum {string}
              */
-            totalesOcultos: boolean;
+            presentacionPrecio: "sin_precio" | "total_grupo" | "por_persona_base" | "por_persona";
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6788,6 +6796,14 @@ export interface components {
             readonly resumenDuracion?: {
                 [key: string]: number;
             };
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -6814,15 +6830,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6874,6 +6881,14 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -6900,15 +6915,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6964,6 +6970,14 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -6985,15 +6999,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -7045,6 +7050,14 @@ export interface components {
             readonly resumenDuracion?: {
                 [key: string]: number;
             };
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
         };
         "Cotizacion.multipart-pax_file.read_pax_cotizacion.read": {
             /**
@@ -7061,15 +7074,6 @@ export interface components {
             numPax: number;
             /** @default 0.00 */
             adelanto: string;
-            /** @default false */
-            precioOculto: boolean;
-            /**
-             * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
-             *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
-             *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
-             * @default false
-             */
-            totalesOcultos: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -7121,6 +7125,14 @@ export interface components {
             readonly resumenDuracion?: {
                 [key: string]: number;
             };
+            /**
+             * @description DERIVADO de {@see self::$presentacionPrecio}. Se sigue serializando con el mismo nombre para
+             *     que pax, el normalizador público y los proveedores no cambien; ya no se escribe: sin setter,
+             *     un `precioOculto` en el cuerpo de un PUT se ignora.
+             */
+            readonly precioOculto?: boolean;
+            /** @description DERIVADO, como {@see self::isPrecioOculto()}: la guía sin «Precio total del viaje» ni «× N pax». */
+            readonly totalesOcultos?: boolean;
         };
         /**
          * @description Catálogo de Tours. Agrupa propuestas comerciales pre-armadas (tours simples

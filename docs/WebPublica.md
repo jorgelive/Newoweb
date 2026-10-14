@@ -94,10 +94,12 @@ pasajero (redondeado hacia arriba), el mismo que enseña el itinerario. Con una 
 «por persona»; si el precio depende del tamaño del grupo, «calculado para N pasajeros». La regla y su
 porqué están en `docs/Cotizaciones.md` §6.b, «El precio desde».
 
-Con «Ocultar totales» **apagado** y base de más de uno, la cifra grande de la tarjeta y la
-primera línea de la ficha son el **total del grupo** («total para N pasajeros», `tour.total_para`)
-y el por persona va debajo. La regla y sus excepciones están en `docs/Cotizaciones.md`, «El precio
-«desde»» (`TourTarjetaResolver::totalDelGrupo()`).
+Qué dice la tarjeta sobre el grupo lo decide la **presentación del precio** de cada tour
+(`Cotizacion::$presentacionPrecio`, selector «Precio al cliente» del editor): con «total del grupo»
+la cifra grande es el total («total para N pasajeros», `tour.total_para`) y el por persona va debajo;
+con «por persona, con la base», la nota «calculado para N» (o «para un grupo de N» si el precio es
+personalizado, `tour.grupo_de`); con «solo por persona», ninguna. El mapa de casos está en
+`docs/Cotizaciones.md`, «El precio desde».
 
 ## 3. Plantillas, estilos e idiomas
 

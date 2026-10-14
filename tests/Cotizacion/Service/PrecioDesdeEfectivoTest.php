@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Cotizacion\Service;
 
+use App\Cotizacion\Enum\PresentacionPrecioEnum as P;
 use App\Cotizacion\Service\TourTarjetaResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -124,7 +125,7 @@ final class PrecioDesdeEfectivoTest extends TestCase
 
         self::assertSame(
             ['moneda' => 'USD', 'valor' => '11', 'pax' => 4],
-            TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $this->traslado(), 'USD', false, 4),
+            TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $this->traslado(), 'USD', P::TOTAL_GRUPO, 4),
             'US$ 10,44 se anuncia «11», hacia arriba como el desde: nunca menos de lo real.',
         );
     }
@@ -137,16 +138,16 @@ final class PrecioDesdeEfectivoTest extends TestCase
             + ['resumenGeneral' => ['incluido' => ['ventaSoles' => 138.01, 'ventaDolares' => 40.58]]];
         $precios = TourTarjetaResolver::preciosDesdeEfectivos([], $valle, 'PEN', false);
 
-        self::assertSame('138', TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $valle, 'PEN', false, 2)['valor'] ?? null, '«S/ 139 · S/ 69 por persona» no cuadra delante del cliente.');
+        self::assertSame('138', TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $valle, 'PEN', P::TOTAL_GRUPO, 2)['valor'] ?? null, '«S/ 139 · S/ 69 por persona» no cuadra delante del cliente.');
     }
 
     #[Test]
-    public function con_los_totales_ocultos_no_hay_total_sino_base_de_grupo(): void
+    public function por_persona_con_la_base_no_da_total_sino_la_base(): void
     {
         $precios = TourTarjetaResolver::preciosDesdeEfectivos([], $this->traslado(), 'USD', false);
 
-        self::assertNull(TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $this->traslado(), 'USD', true, 4));
-        self::assertSame(4, TourTarjetaResolver::paxBaseGrupo(true, 4));
+        self::assertNull(TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $this->traslado(), 'USD', P::POR_PERSONA_BASE, 4));
+        self::assertSame(4, TourTarjetaResolver::paxBaseGrupo(P::POR_PERSONA_BASE, 4, false));
     }
 
     #[Test]
@@ -155,22 +156,39 @@ final class PrecioDesdeEfectivoTest extends TestCase
         $t = $this->traslado();
         $precios = TourTarjetaResolver::preciosDesdeEfectivos([], $t, 'USD', false);
 
-        self::assertNull(TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $t, 'USD', false, 1), 'Base de uno: el total ES el precio por persona.');
-        self::assertNull(TourTarjetaResolver::totalDelGrupo($precios['precios'], 'manual', $t, 'USD', false, 4), 'Un precio escrito a mano es un override: manda tal cual.');
+        self::assertNull(TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $t, 'USD', P::TOTAL_GRUPO, 1), 'Base de uno: el total ES el precio por persona.');
+        self::assertNull(TourTarjetaResolver::totalDelGrupo($precios['precios'], 'manual', $t, 'USD', P::TOTAL_GRUPO, 4), 'Un precio escrito a mano es un override: manda tal cual.');
 
         $dosClases = $this->snapshot([['Peruano', 180.0, 50.0], ['Extranjero', 250.0, 70.0]])
             + ['resumenGeneral' => ['incluido' => ['ventaSoles' => 430, 'ventaDolares' => 120]]];
         $varios = TourTarjetaResolver::preciosDesdeEfectivos([], $dosClases, 'USD', false);
-        self::assertNull(TourTarjetaResolver::totalDelGrupo($varios['precios'], $varios['origen'], $dosClases, 'USD', false, 2), 'Con varias clases el total depende de la mezcla.');
+        self::assertNull(TourTarjetaResolver::totalDelGrupo($varios['precios'], $varios['origen'], $dosClases, 'USD', P::TOTAL_GRUPO, 2), 'Con varias clases el total depende de la mezcla.');
 
-        self::assertNull(TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $this->snapshot([['General', 9.0, 2.61]]), 'USD', false, 4), 'Sin resumen guardado no hay total que leer.');
+        self::assertNull(TourTarjetaResolver::totalDelGrupo($precios['precios'], $precios['origen'], $this->snapshot([['General', 9.0, 2.61]]), 'USD', P::TOTAL_GRUPO, 4), 'Sin resumen guardado no hay total que leer.');
+    }
+
+    /**
+     * El mapa de casos del 14/10/2026: cuándo la tarjeta añade «calculado para N».
+     */
+    #[Test]
+    public function la_base_la_decide_la_presentacion_y_no_va_si_ya_sale_el_total(): void
+    {
+        self::assertSame(60, TourTarjetaResolver::paxBaseGrupo(P::POR_PERSONA_BASE, 60, false), 'Punta Cana.');
+        self::assertNull(TourTarjetaResolver::paxBaseGrupo(P::POR_PERSONA, 2, false), 'Machu Picchu con varios perfiles: quien la quita, la quita.');
+        self::assertNull(TourTarjetaResolver::paxBaseGrupo(P::TOTAL_GRUPO, 4, true), 'Si ya sale «total para 4», la base sobra.');
+        self::assertSame(2, TourTarjetaResolver::paxBaseGrupo(P::TOTAL_GRUPO, 2, false), 'Total pedido pero imposible (varios perfiles, override): queda la base.');
+        self::assertNull(TourTarjetaResolver::paxBaseGrupo(P::POR_PERSONA_BASE, 1, false), 'Base de uno: no hay grupo del que hablar.');
+        self::assertNull(TourTarjetaResolver::paxBaseGrupo(P::SIN_PRECIO, 4, false));
     }
 
     #[Test]
-    public function la_base_de_grupo_solo_cuando_el_total_esta_oculto_y_es_mas_de_uno(): void
+    public function los_booleanos_de_siempre_salen_derivados_de_la_presentacion(): void
     {
-        self::assertSame(60, TourTarjetaResolver::paxBaseGrupo(true, 60));
-        self::assertNull(TourTarjetaResolver::paxBaseGrupo(true, 1));
-        self::assertNull(TourTarjetaResolver::paxBaseGrupo(false, 60), 'Salida de grupo fijo: el total se vende, no hace falta decirlo.');
+        self::assertTrue(P::SIN_PRECIO->ocultaPrecio());
+        self::assertTrue(P::SIN_PRECIO->ocultaTotales());
+        self::assertFalse(P::TOTAL_GRUPO->ocultaTotales(), 'La guía enseña «Precio total del viaje».');
+        self::assertTrue(P::POR_PERSONA_BASE->ocultaTotales());
+        self::assertTrue(P::POR_PERSONA->ocultaTotales());
+        self::assertFalse(P::POR_PERSONA->ocultaPrecio());
     }
 }

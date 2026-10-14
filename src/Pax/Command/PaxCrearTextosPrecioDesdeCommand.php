@@ -44,6 +44,8 @@ final class PaxCrearTextosPrecioDesdeCommand extends Command
         'cat_base_pax'    => 'calculado para {{ n }} pasajeros',
         // 13/10/2026: con los totales a la vista la tarjeta enseña el total del grupo base.
         'cat_total_para'  => 'total para {{ n }} pasajeros',
+        // 14/10/2026: la base de un precio escrito a mano no es un cálculo.
+        'cat_grupo_de'    => 'para un grupo de {{ n }} pasajeros',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

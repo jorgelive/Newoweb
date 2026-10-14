@@ -7,6 +7,7 @@ namespace App\Cotizacion\Service;
 use App\Cotizacion\Entity\CotizacionCatalogo;
 use App\Dto\Lee;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
+use App\Cotizacion\Enum\PresentacionPrecioEnum;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -66,14 +67,15 @@ final class TourTarjetaResolver
         /**
          * @var list<array{id: Uuid, imagenPortada: array<mixed>|null, propuesta: int,
          *     estado: CotizacionEstadoEnum|string, publicado: bool, numPax: int, titulo: array<mixed>|null,
-         *     resumen: array<mixed>|null, idiomaCliente: string, monedaGlobal: string, precioOculto: bool,
-         *     preciosDesde: array<mixed>|null, orden: int, totalesOcultos: bool, destacadosComponenteIds: array<mixed>|null,
+         *     resumen: array<mixed>|null, idiomaCliente: string, monedaGlobal: string,
+         *     presentacionPrecio: PresentacionPrecioEnum|string,
+         *     preciosDesde: array<mixed>|null, orden: int, destacadosComponenteIds: array<mixed>|null,
          *     fechaMin: ?string, fechaMax: ?string}> $filas
          */
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT c.id, c.imagenPortada, c.propuesta, c.estado, c.publicado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
-                   c.monedaGlobal, c.precioOculto,
-                   c.preciosDesde, c.orden, c.totalesOcultos, c.destacadosComponenteIds,
+                   c.monedaGlobal, c.presentacionPrecio,
+                   c.preciosDesde, c.orden, c.destacadosComponenteIds,
                    MIN(s.fechaInicioAbsoluta) AS fechaMin, MAX(s.fechaInicioAbsoluta) AS fechaMax
             FROM App\Cotizacion\Entity\Cotizacion c
             LEFT JOIN c.cotservicios s
@@ -94,8 +96,14 @@ final class TourTarjetaResolver
         $clases = $this->clasesParaElDesde(array_column($filas, 'id'));
 
         return array_map(static function (array $f) use ($portadas, $clases): array {
-            $oculto = (bool) $f['precioOculto'];
-            $precios = self::preciosDesdeEfectivos($f['preciosDesde'] ?? [], $clases[self::clave($f['id'])] ?? null, $f['monedaGlobal'], $oculto);
+            // `getArrayResult()` devuelve el enum ya hidratado o su valor crudo según la versión.
+            $presentacion = $f['presentacionPrecio'] instanceof PresentacionPrecioEnum
+                ? $f['presentacionPrecio']
+                : (PresentacionPrecioEnum::tryFrom($f['presentacionPrecio']) ?? PresentacionPrecioEnum::TOTAL_GRUPO);
+            $oculto = $presentacion->ocultaPrecio();
+            $clasif = $clases[self::clave($f['id'])] ?? null;
+            $precios = self::preciosDesdeEfectivos($f['preciosDesde'] ?? [], $clasif, $f['monedaGlobal'], $oculto);
+            $total = self::totalDelGrupo($precios['precios'], $precios['origen'], $clasif, $f['monedaGlobal'], $presentacion, $f['numPax']);
 
             return [
                 'id'            => self::clave($f['id']),
@@ -111,8 +119,8 @@ final class TourTarjetaResolver
                 'orden'         => $f['orden'],
                 'preciosDesde'  => $precios['precios'],
                 'precioDesdeOrigen' => $precios['origen'],
-                'paxBaseGrupo'  => self::paxBaseGrupo((bool) $f['totalesOcultos'], $f['numPax']),
-                'totalGrupo'    => self::totalDelGrupo($precios['precios'], $precios['origen'], $clases[self::clave($f['id'])] ?? null, $f['monedaGlobal'], (bool) $f['totalesOcultos'], $f['numPax']),
+                'paxBaseGrupo'  => $precios['precios'] === [] ? null : self::paxBaseGrupo($presentacion, $f['numPax'], $total !== null),
+                'totalGrupo'    => $total,
                 'destacados'    => Lee::listaDeTextos($f['destacadosComponenteIds'] ?? null),
                 'imagenPortada' => $f['imagenPortada'] ?? $portadas[self::clave($f['id'])] ?? null,
                 'numDias'       => self::numDias($f['fechaMin'], $f['fechaMax']),
@@ -259,27 +267,40 @@ final class TourTarjetaResolver
     }
 
     /**
-     * Si el precio por persona depende del TAMAÑO del grupo: total oculto (no es un grupo real) y
-     * base de más de uno. Punta Cana: los liberados y el bus se reparten entre 60, y quien viaja
-     * solo leería un precio que no le corresponde. La web y `pax` lo dicen: «grupo de 60».
+     * La base de pasajeros que la tarjeta añade al precio por persona: «calculado para 60». Punta
+     * Cana: los liberados y el bus se reparten entre 60, y quien viaja solo leería un precio que no
+     * le corresponde.
+     *
+     * Se da con `POR_PERSONA_BASE`, y también con `TOTAL_GRUPO` cuando el total no se puede enseñar
+     * (varios perfiles, o precio personalizado): ahí el operador quería el grupo a la vista, y la
+     * base es lo único del grupo que se puede decir sin inventar. Con `POR_PERSONA` no, aunque haya
+     * base: es la opción de quien enseña varios rangos por perfil y no quiere la nota (Machu Picchu,
+     * 14/10/2026). Hasta entonces la nota iba atada a «ocultar totales» y no se podía quitar sin
+     * enseñar en la guía el total de un grupo mezclado.
+     *
+     * El TEXTO depende de dónde sale el precio, y lo elige quien pinta: calculado → «calculado para
+     * N»; personalizado → «para un grupo de N» (un precio escrito a mano no se calculó para nadie).
      */
-    public static function paxBaseGrupo(bool $totalesOcultos, int $numPax): ?int
+    public static function paxBaseGrupo(PresentacionPrecioEnum $presentacion, int $numPax, bool $hayTotal): ?int
     {
-        return $totalesOcultos && $numPax > 1 ? $numPax : null;
+        if ($numPax <= 1 || $hayTotal) {
+            return null;
+        }
+
+        return match ($presentacion) {
+            PresentacionPrecioEnum::POR_PERSONA_BASE, PresentacionPrecioEnum::TOTAL_GRUPO => $numPax,
+            PresentacionPrecioEnum::POR_PERSONA, PresentacionPrecioEnum::SIN_PRECIO => null,
+        };
     }
 
     /**
-     * El TOTAL del grupo base, para la tarjeta, cuando el operador dejó los totales a la vista
+     * El TOTAL del grupo base, para la tarjeta, con `PresentacionPrecioEnum::TOTAL_GRUPO`
      * (13/10/2026).
      *
-     * «Ocultar totales» (`Cotizacion::$totalesOcultos`) ya decidía qué se ve en la GUÍA de pax: con
-     * él apagado sale la barra «Precio total del viaje». La tarjeta no le hacía caso: enseñaba sólo
-     * el precio por persona, sin decir que salía de repartir entre N. Un traslado privado de
-     * US$ 11 para 4 se anunciaba «US$ 3 por persona», y eso es lo que más engaña a quien viaja solo.
-     * Ahora la tarjeta obedece al mismo interruptor:
-     *
-     *   encendido → por persona · «calculado para N» ({@see self::paxBaseGrupo()}), como siempre
-     *   apagado   → el TOTAL de N, y el por persona debajo (esto)
+     * Esa opción ya decidía qué se ve en la GUÍA de pax —la barra «Precio total del viaje»—, pero la
+     * tarjeta no le hacía caso: enseñaba sólo el precio por persona, sin decir que salía de repartir
+     * entre N. Un traslado privado de US$ 11 para 4 se anunciaba «US$ 3 por persona», y eso es lo
+     * que más engaña a quien viaja solo. Ahora la tarjeta da el TOTAL de N y el por persona debajo.
      *
      * Sólo cuando el total dice algo inequívoco:
      *   - el «desde» es el CALCULADO: un precio escrito a mano es un override y manda tal cual;
@@ -294,9 +315,9 @@ final class TourTarjetaResolver
      *
      * @return TotalDeGrupo|null
      */
-    public static function totalDelGrupo(array $precios, ?string $origen, mixed $clasificacionCliente, string $moneda, bool $totalesOcultos, int $numPax): ?array
+    public static function totalDelGrupo(array $precios, ?string $origen, mixed $clasificacionCliente, string $moneda, PresentacionPrecioEnum $presentacion, int $numPax): ?array
     {
-        if ($totalesOcultos || $numPax <= 1 || $origen !== 'calculado' || count($precios) !== 1) {
+        if ($presentacion !== PresentacionPrecioEnum::TOTAL_GRUPO || $numPax <= 1 || $origen !== 'calculado' || count($precios) !== 1) {
             return null;
         }
 

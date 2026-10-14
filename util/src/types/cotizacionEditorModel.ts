@@ -170,8 +170,33 @@ export type Cotizacion = Omit<
     resumen: I18nContent[];
     clasificacionFinanciera?: ClasificacionFinancieraInterna;
     clasificacionFinancieraCliente?: ClasificacionFinancieraCliente;
-    /** Modo catálogo unitario: oculta totales y referencias a cantidad de pax en la guía del cliente. */
-    totalesOcultos?: boolean;
+};
+
+/** Cómo se presenta el precio al cliente. Las claves las da el esquema (`PresentacionPrecioEnum`). */
+export type PresentacionPrecio = NonNullable<Cotizacion['presentacionPrecio']>;
+
+/**
+ * Las opciones del selector «Precio al cliente» del editor, con lo que hace cada una.
+ *
+ * ⚠️ Espejo de `App\Cotizacion\Enum\PresentacionPrecioEnum` (PHP), que decide los booleanos
+ * derivados de la guía y lo que pinta la tarjeta (`TourTarjetaResolver`). Si cambia el significado
+ * de una opción, cambian los dos. `soloCatalogo`: la diferencia con la anterior sólo se ve en la
+ * tarjeta del catálogo, así que en un expediente no se ofrece.
+ */
+export const PRESENTACIONES_PRECIO: { valor: PresentacionPrecio; etiqueta: string; ayuda: string; soloCatalogo?: boolean }[] = [
+    { valor: 'total_grupo', etiqueta: 'Total del grupo', ayuda: 'La guía enseña «Precio total del viaje». La tarjeta: «total para N» y el por persona debajo.' },
+    { valor: 'por_persona_base', etiqueta: 'Por persona, con la base', ayuda: 'Sin total. La tarjeta: por persona · «calculado para N pasajeros».' },
+    { valor: 'por_persona', etiqueta: 'Solo por persona', ayuda: 'Sin total ni nota de grupo: para varios perfiles (Nacional / Extranjero).', soloCatalogo: true },
+    { valor: 'sin_precio', etiqueta: 'Sin precio', ayuda: 'Ni la guía ni la tarjeta enseñan precios.' },
+];
+
+/**
+ * Base de pasajeros que la tarjeta añade al precio. Espejo de `TourTarjetaResolver::paxBaseGrupo()`
+ * (PHP): con «por persona, con la base», o con «total del grupo» cuando el total no se puede dar.
+ */
+export const paxBaseDeLaTarjeta = (presentacion: PresentacionPrecio | undefined, numPax: number, hayTotal: boolean): number | null => {
+    if (numPax <= 1 || hayTotal) return null;
+    return presentacion === 'por_persona_base' || presentacion === 'total_grupo' ? numPax : null;
 };
 
 export type TarifaProcedenciaValue = NonNullable<TarifaBase['procedencia']>;

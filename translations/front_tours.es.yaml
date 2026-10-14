@@ -29,6 +29,8 @@ tour:
     base_pax: 'calculado para %n% pasajeros'
     total_para: 'total para %n% pasajeros'
     base_pax_nota: 'Precio por persona calculado con una base de %n% pasajeros: con otro tamaño de grupo puede variar.'
+    grupo_de: 'para un grupo de %n% pasajeros'
+    grupo_de_nota: 'Precio por persona para un grupo de %n% pasajeros: con otro tamaño de grupo puede variar.'
     consultar: 'Consultar disponibilidad'
     reservar: Reserva
     whatsapp_mensaje: 'Hola, me interesa el tour «%tour%»: %url%'

@@ -1590,7 +1590,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             generatedAt: new Date().toISOString(),
             numPax: numPaxGlobal,
             tipoCambio: tc,
-            precioOculto: !!cotizacion.value.precioOculto,
+            // De la opción elegida, no del booleano: ése lo deriva el servidor al guardar y aquí
+            // todavía es el de antes del cambio.
+            precioOculto: cotizacion.value.presentacionPrecio === 'sin_precio',
             comisionGlobal,
             // ⚠️ EL COSTO INCLUYE LAS CORTESÍAS; LA VENTA NO.
             //
@@ -2742,9 +2744,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             tipoCambio: String(tipoCambioSugerido.value || 1),
             totalCosto: '0.00',
             totalVenta: '0.00',
+            // En catálogo nace «por persona, con la base»: un tour no es un grupo concreto, así que
+            // su "total de viaje" (numPax base × precio) no es vendible — ver docs §6.b.
+            presentacionPrecio: modoCatalogo.value ? 'por_persona_base' : 'total_grupo',
             precioOculto: false,
-            // En catálogo nace activo: un tour no es un grupo concreto, así que su
-            // "total de viaje" (numPax base × precio) no es vendible — ver docs §6.b.
             totalesOcultos: modoCatalogo.value,
             titulo: [],
             resumen: [],

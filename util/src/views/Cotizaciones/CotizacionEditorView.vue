@@ -32,7 +32,8 @@ import {
   AudienciaDetalle, AUDIENCIA_DETALLE_CONFIG, type SubgrupoOpcion,
   ESTADOS_ELEGIBLES, esEstadoDeProceso, type EstadoUIConfig, type CotizacionEstadoValue,
   type TarifaModalidadValue, type TarifaCategoriaValue, esOpcionalParaElCliente, esServicioOpcionalParaElCliente,
-  preciosDesdeCalculados, type PrecioDesdeRango
+  preciosDesdeCalculados, type PrecioDesdeRango,
+  PRESENTACIONES_PRECIO, paxBaseDeLaTarjeta
 } from '@/types/cotizacionEditorModel';
 import { GRUPO_TIPO_LABELS } from '@/types/fileDetalleModel';
 // La etiqueta legible de cada Categoría Operativa vive con La Biblia, que es donde más se
@@ -2070,9 +2071,23 @@ const desdeCalculado = computed<PrecioDesdeRango[]>(() =>
 
 const desdeAutomatico = computed(() => !store.cotizacion?.preciosDesde?.length);
 
-/** Base de pasajeros del precio cuando depende del grupo: espejo de `TourTarjetaResolver::paxBaseGrupo()`. */
+/**
+ * Lo que dirá la tarjeta sobre el grupo, con la opción elegida. El total sólo sale con el «desde»
+ * calculado y un perfil (`TourTarjetaResolver::totalDelGrupo()`); si no, la base
+ * (`paxBaseDeLaTarjeta`, espejo de `paxBaseGrupo()`).
+ */
+const desdeHayTotal = computed(() =>
+  store.cotizacion?.presentacionPrecio === 'total_grupo' && desdeAutomatico.value
+  && desdeCalculado.value.length === 1 && (store.cotizacion?.numPax || 0) > 1);
 const desdeBaseGrupo = computed<number | null>(() =>
-  store.cotizacion?.totalesOcultos && (store.cotizacion.numPax || 0) > 1 ? store.cotizacion.numPax : null);
+  store.cotizacion ? paxBaseDeLaTarjeta(store.cotizacion.presentacionPrecio, store.cotizacion.numPax || 0, desdeHayTotal.value) : null);
+
+const ayudaPresentacion = computed(() =>
+  PRESENTACIONES_PRECIO.find((o) => o.valor === store.cotizacion?.presentacionPrecio)?.ayuda ?? '');
+
+/** El selector del editor: en un expediente sobra «solo por persona» (sólo cambia la tarjeta del catálogo). */
+const opcionesPresentacion = computed(() =>
+  PRESENTACIONES_PRECIO.filter((o) => store.modoCatalogo || !o.soloCatalogo || o.valor === store.cotizacion?.presentacionPrecio));
 
 /** Pasar a override partiendo del calculado: se edita sobre lo que hay, no sobre el vacío. */
 const personalizarDesde = () => {
@@ -2582,8 +2597,11 @@ store.$onAction(({ name, args }) => {
                 </p>
               </template>
 
-              <p v-if="desdeBaseGrupo" class="mt-2 text-[9px] text-slate-500 leading-snug">
-                <i class="fas fa-users mr-1"></i>El cliente leerá «por persona · calculado para {{ desdeBaseGrupo }} pasajeros» (total oculto, base &gt; 1).
+              <p v-if="desdeHayTotal" class="mt-2 text-[9px] text-slate-500 leading-snug">
+                <i class="fas fa-users mr-1"></i>La tarjeta dirá «total para {{ store.cotizacion.numPax }} pasajeros» y el precio por persona debajo.
+              </p>
+              <p v-else-if="desdeBaseGrupo" class="mt-2 text-[9px] text-slate-500 leading-snug">
+                <i class="fas fa-users mr-1"></i>La tarjeta dirá «por persona · {{ desdeAutomatico ? 'calculado para' : 'para un grupo de' }} {{ desdeBaseGrupo }} pasajeros».
               </p>
             </div>
 
@@ -2592,23 +2610,22 @@ store.$onAction(({ name, args }) => {
                  llevan lo mismo. En el padrón de Punta Cana hay 13 combinaciones de servicios
                  entre 133 personas, así que un «precio total del viaje» no describe a nadie.
                  Ver docs/Cotizaciones.md §6.o. -->
-            <div class="order-5 shrink-0 bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-              <div>
-                <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest"><i class="fas fa-user-tag mr-1"></i> Ocultar Total de Grupo</h3>
-                <p class="text-[9px] text-orange-400 mt-1 font-medium leading-tight pr-4">
-                  Suprime en la vista del cliente el «2X» del perfil, el «× N pax · total» y la barra «Precio total del viaje». El precio por pasajero se sigue viendo.
-                  <template v-if="store.modoCatalogo">Actívalo salvo que el tour se venda como salida de grupo fijo.</template>
-                  <template v-else>Útil en un grupo donde no todos llevan los mismos servicios: ahí el total no describe a nadie.</template>
-                </p>
+            <!-- Una sola decisión con cuatro respuestas (14/10/2026): sustituye a los interruptores
+                 «precio oculto» y «ocultar total de grupo». Ver PresentacionPrecioEnum (PHP). -->
+            <div class="order-5 shrink-0 bg-orange-50 border border-orange-200 rounded-2xl p-4 shadow-sm">
+              <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest"><i class="fas fa-user-tag mr-1"></i> Precio al cliente</h3>
+              <div class="mt-2 grid grid-cols-2 gap-1.5">
+                <button v-for="o in opcionesPresentacion" :key="o.valor" type="button"
+                        @click="store.cotizacion.presentacionPrecio = o.valor"
+                        :class="store.cotizacion.presentacionPrecio === o.valor ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-orange-700 border-orange-200 hover:border-orange-400'"
+                        class="px-2 py-1.5 rounded-lg border text-[10px] font-black transition-colors text-left leading-tight">
+                  {{ o.etiqueta }}
+                </button>
               </div>
-              <button @click="store.cotizacion.totalesOcultos = !store.cotizacion.totalesOcultos"
-                      :class="[
-                           'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0',
-                           store.cotizacion.totalesOcultos ? 'bg-orange-500' : 'bg-slate-300'
-                       ]">
-                 <span :class="store.cotizacion.totalesOcultos ? 'translate-x-6' : 'translate-x-1'"
-                       class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
-              </button>
+              <p class="text-[9px] text-orange-400 mt-2 font-medium leading-tight">
+                {{ ayudaPresentacion }}
+                <template v-if="!store.modoCatalogo && store.cotizacion.presentacionPrecio !== 'total_grupo'"> Útil en un grupo donde no todos llevan lo mismo: ahí el total no describe a nadie.</template>
+              </p>
             </div>
 
             <div v-if="store.modoCatalogo" class="order-4 shrink-0 bg-teal-50 border border-teal-200 rounded-2xl p-4 shadow-sm">

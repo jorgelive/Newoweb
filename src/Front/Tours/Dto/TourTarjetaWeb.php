@@ -37,6 +37,11 @@ final readonly class TourTarjetaWeb
          */
         public ?PrecioDesdeWeb $totalGrupo = null,
         public ?int $paxTotal = null,
+        /**
+         * El «desde» lo escribió el operador (override). Cambia el texto de la base: «para un grupo
+         * de N», porque un precio escrito a mano no se «calculó» para nadie.
+         */
+        public bool $precioPersonalizado = false,
     ) {
     }
 

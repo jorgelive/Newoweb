@@ -78,7 +78,7 @@
                             <li><span>{{ p.etiqueta ?? 'tour.por_persona'|trans({}, 'front_tours') }}</span><strong>{{ p.formateado }}</strong></li>
                         {% endfor %}
                     </ul>
-                    {% if tour.paxBaseGrupo %}<p class="nota" style="margin-top:8px">{{ 'tour.base_pax_nota'|trans({'%n%': tour.paxBaseGrupo}, 'front_tours') }}</p>{% endif %}
+                    {% if tour.paxBaseGrupo %}<p class="nota" style="margin-top:8px">{{ (tour.precioPersonalizado ? 'tour.grupo_de_nota' : 'tour.base_pax_nota')|trans({'%n%': tour.paxBaseGrupo}, 'front_tours') }}</p>{% endif %}
                 </div>
             {% endif %}
             <a class="boton boton-wa" href="{{ front_whatsapp(mensaje_wa) }}" target="_blank" rel="noopener">

@@ -4102,28 +4102,53 @@ si no                        → el CALCULADO                          origen = 
 - **Con una sola clase el título va vacío** y la web y `pax` dicen «por persona» (traducido:
   `front_tours` `tour.por_persona`, `pax_ui_i18n` `cat_por_persona`). Con varias, el nombre de la
   clase, que el snapshot guarda **sólo en español** (pendiente: guardar su i18n en el cálculo).
-- **Precio que depende del grupo**: con el total oculto y base > 1
-  (`TourTarjetaResolver::paxBaseGrupo()`), la tarjeta añade «calculado para N pasajeros»
-  (`cat_base_pax`, `tour.base_pax`) y la ficha web una nota. Punta Cana: los liberados y el bus se
-  reparten entre 60, y quien viaja solo leería un precio que no le corresponde. Es mecánico: si un
-  tour con base 2 no depende de ella (Valle Sagrado), se baja la base a 1.
-- **Con los totales A LA VISTA, la tarjeta da el total (13/10/2026).** «Ocultar totales»
-  (`Cotizacion::$totalesOcultos`) sólo mandaba en la guía —la barra «Precio total del viaje»—; la
-  tarjeta, apagado, enseñaba el por persona a secas: un traslado privado de US$ 11 para 4 salía
-  «US$ 3 por persona». Ahora la tarjeta obedece al mismo interruptor:
+- **La presentación del precio es UNA decisión: `Cotizacion::$presentacionPrecio` (14/10/2026).**
+  Sustituye a los booleanos `precioOculto` y `totalesOcultos`, que respondían a la misma pregunta
+  por partes (con combinaciones sin sentido: «sin precio» con «totales a la vista») y no dejaban
+  quitar la nota de base sin enseñar en la guía un total de grupo mezclado. Siguen existiendo para
+  quien los lee —pax, el normalizador público, los proveedores— pero **derivados y de sólo lectura**
+  (`Cotizacion::isPrecioOculto()`, `isTotalesOcultos()`): un PUT que los mande se ignora.
+
+  | `PresentacionPrecioEnum` | Guía (pax) | Tarjeta (web, escaparate, agente) | Nace así |
+  |---|---|---|---|
+  | `sin_precio` | sin precios | sin precio | — |
+  | `total_grupo` | con «Precio total del viaje» | «S/ 138 · total para 2 · S/ 69 por persona» | cotización de expediente |
+  | `por_persona_base` | sin total | «S/ 69 · por persona · calculado para 2» | tour al entrar en un catálogo |
+  | `por_persona` | sin total | «S/ 69 · por persona» | — (varios perfiles sin nota) |
+
+  Lo que la tarjeta hace con cada opción, caso por caso (el mapa del 14/10/2026, con los tours reales):
 
   ```
-  totales ocultos, base > 1  → «S/ 69 · por persona · calculado para 2 pasajeros»   (paxBaseGrupo)
-  totales visibles, base > 1 → «S/ 138 · total para 2 pasajeros · S/ 69 por persona» (totalGrupo)
-  base 1                     → «S/ 75 · por persona»
+  precio oculto                                → nada
+  base 1                                       → por persona (Montaña, Humantay, Quelccaya)
+  total_grupo, calculado, 1 perfil, base > 1   → TOTAL + por persona            (Traslado 1)
+  total_grupo, varios perfiles u override      → por persona + BASE  (el total no se puede dar)
+  por_persona_base, base > 1                   → por persona + BASE  (Valle, Punta Cana, Machu Picchu)
+  por_persona                                  → por persona, sin nota
   ```
 
-  `TourTarjetaResolver::totalDelGrupo()` sólo lo da si el «desde» es el CALCULADO (un override
-  manda tal cual) y hay UNA clase (con «Nacional / Extranjero» el total depende de la mezcla). Sale
-  de `resumenGeneral.incluido`, en la moneda del tour, hacia arriba **pero nunca por encima de «por
-  persona anunciado × N»**: el financiero guarda céntimos de ruido (138,01) y el techo daba «S/ 139 ·
-  S/ 69 por persona». Lo pintan la tarjeta y la ficha web, el escaparate de pax (`totalGrupo`,
-  cadena `cat_total_para` por `pax:textos:precio-desde`) y el agente (`consultar_tours`).
+  - **El total** (`TourTarjetaResolver::totalDelGrupo()`): sólo con el «desde» CALCULADO (un override
+    manda tal cual) y UN perfil (con «Nacional / Extranjero» depende de la mezcla). Sale de
+    `resumenGeneral.incluido`, en la moneda del tour, hacia arriba **pero nunca por encima de «por
+    persona anunciado × N»**: el financiero guarda céntimos de ruido (138,01) y el techo daba
+    «S/ 139 · S/ 69 por persona». Antes de esto, un traslado privado de US$ 11 para 4 se anunciaba
+    «US$ 3 por persona».
+  - **La base** (`TourTarjetaResolver::paxBaseGrupo()`): Punta Cana reparte liberados y bus entre 60,
+    y quien viaja solo leería un precio que no le corresponde. Su TEXTO depende del origen del
+    precio: calculado → «calculado para N» (`tour.base_pax`, `cat_base_pax`); override → «para un
+    grupo de N» (`tour.grupo_de`, `cat_grupo_de`), porque un precio escrito a mano no se calculó para
+    nadie. Si un tour con base 2 no depende de ella (Valle Sagrado), se baja la base a 1.
+  - Lo pintan la tarjeta y la ficha web (`TourTarjetaWeb::$totalGrupo`, `$precioPersonalizado`), el
+    escaparate de pax (`totalGrupo`, `paxBaseGrupo`, `precioDesdeOrigen`; cadenas por
+    `pax:textos:precio-desde`) y el agente (`consultar_tours`).
+  - ⚠️ **Espejo PHP ↔ TS**: `PresentacionPrecioEnum` y `PRESENTACIONES_PRECIO` /
+    `paxBaseDeLaTarjeta()` de `util/src/types/cotizacionEditorModel.ts` (el selector «Precio al
+    cliente» del editor y su aviso de lo que dirá la tarjeta). En un expediente el selector no ofrece
+    `por_persona`: la diferencia con `por_persona_base` sólo se ve en la tarjeta del catálogo.
+  - La migración `Version20261014140000` pasó cada fila a su opción equivalente (sin cambio visible) y
+    se probó ida y vuelta. Ojo con el nombre: una primera versión pisó por descuido la
+    `Version20261014090000` de otra sesión (la ventana de WhatsApp por número); se restauró de git
+    antes de ejecutar nada.
 - **Override**: sólo para lo que el cálculo no distingue (perfiles «Peruano / Extranjero» que no son
   clases) o un precio de campaña. En el editor, el interruptor «Automático / Personalizado» de la
   caja «Precio desde»; «Personalizado» parte del calculado, lo enseña al lado y **avisa en rojo si
@@ -4136,8 +4161,8 @@ si no                        → el CALCULADO                          origen = 
 - Los overrides iguales al calculado se vacían con
   `app:cotizacion:catalogo:precios-desde-automaticos` (`--dry-run`; por ORM y sin traducir).
 
-`totalesOcultos` es otra cosa: **flag de render** de la guía (`PaxCotizacionGuiaView.vue`), no crea
-ningún precio. Suprime el `2X` del perfil, el `× N pax · total` y la barra «Precio total del
+`totalesOcultos` —hoy DERIVADO de `presentacionPrecio`: verdadero salvo con `total_grupo`— es otra
+cosa: **flag de render** de la guía (`PaxCotizacionGuiaView.vue`), no crea ningún precio. Suprime el `2X` del perfil, el `× N pax · total` y la barra «Precio total del
 viaje»; el precio **por pasajero** sigue visible.
 
 **El flag no está hardcodeado por `esCatalogo`.** En pax, `esCatalogo` (`route.meta`) sólo gobierna
@@ -4146,12 +4171,13 @@ tarifa colapsados a valor unánime, "Volver al catálogo" en vez de `nombreGrupo
 vía: `ocultarTotales` depende **únicamente** de `cotizacion.totalesOcultos`. Si el flag está apagado,
 un tour de catálogo muestra el total de un grupo que no existe.
 
-Por eso `cotizacionEditorStore::crearCotizacionVacia()` lo crea **activo cuando `modoCatalogo`**, y
+Por eso `cotizacionEditorStore::crearCotizacionVacia()` crea el tour de catálogo en `por_persona_base`
+(antes: el flag activo), y
 `Version20260803120000` hace backfill (`totales_ocultos = 1 WHERE catalogo_id IS NOT NULL`) de los
 tours anteriores al cambio. Se apaga a mano sólo en el caso legítimo: **salida de grupo fijo**, donde
 el "Num Pax (Base)" sí es el tamaño real que se vende y el total es una cifra vendible.
 
-> Espejo PHP ↔ TS: la semántica vive en el docblock de `Cotizacion::$totalesOcultos` y en el comentario
+> Espejo PHP ↔ TS: la semántica vive en `PresentacionPrecioEnum::ocultaTotales()` y en el comentario
 > de `ocultarTotales` en `PaxCotizacionGuiaView.vue`. Si cambia la regla, se tocan los dos.
 
 ---
@@ -7468,7 +7494,7 @@ falta para la unicidad con nombre propio, y aloja `validarMismoExpediente()`.
 ### El flag de acceso es APARTE del de precio
 
 ```
-totalesOcultos       presentación de precio: unitario, sin total de grupo
+presentacionPrecio   presentación de precio (antes totalesOcultos): unitario, sin total de grupo
 accesoIdentificado   acceso: exige documento + fecha y filtra por rol
 ```
 
@@ -9361,7 +9387,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Lo que dice el disparador de esa tarjeta** → `etiquetaDisparador` en `PaxCotizacionGuiaView.vue`. Se calcula de `clasesPasajeros` y `opcionesPlanas`: si el panel gana una sección, la etiqueta se queda corta y se toca ahí.
 - **Cuántos opcionales se ven con la tarjeta cerrada** → `OPCIONES_EN_ADELANTO` en `PaxCotizacionGuiaView.vue`.
 - **Una cadena de UI de `pax` (crear o traducir)** → un comando en `src/Pax/Command/`, NUNCA una migración: lleva `#[AutoTranslate]`. Ver §6.
-- **Que un tour de catálogo muestre (o no) el total de grupo** → flag `totalesOcultos`: default al crear en `crearCotizacionVacia()` (store), toggle "Ocultar Total de Grupo" en `CotizacionEditorView.vue`, consumo en `ocultarTotales` de `PaxCotizacionGuiaView.vue`. Ver §6.b.
+- **Cómo se presenta el precio (sin precio / total del grupo / por persona con o sin base)** → `Cotizacion::$presentacionPrecio` (`PresentacionPrecioEnum`): default al crear en `crearCotizacionVacia()` (store), selector «Precio al cliente» en `CotizacionEditorView.vue` (`PRESENTACIONES_PRECIO`), lo que pinta la tarjeta en `TourTarjetaResolver::totalDelGrupo()` / `paxBaseGrupo()`, la guía en `ocultarTotales` de `PaxCotizacionGuiaView.vue` (lee el `totalesOcultos` derivado). Ver §6.b.
 - **Precio "desde" del escaparate del catálogo** → `preciosDesde[]` (bloque "Precios de Exhibición" del editor) → `PaxCatalogoPortadaView.vue` / `CatalogoDashboard.vue`. No es lo mismo que el flag anterior (§6.b).
 - **Lo que enseña cada fila de versión en el dashboard (estado, título, tramo de fechas)** → `CotizacionFileCollectionProvider` lo calcula en UNA consulta batched y viaja en `CotizacionFile::$versionesFechas`; lo pinta `DashboardView.vue` (`tituloDeVersion`, `rangoDeVersion`). **`fechaFin` no es `MAX(fechaInicioAbsoluta)`**: ver la sección del dashboard antes de tocar el DQL.
 - **En qué idioma ve el cliente la propuesta** → `idiomaCliente` (§6). Alta: `handleCreate` en `DashboardView.vue`. Cambio posterior: selector de `FileDetalle.vue` → propaga `CotizacionFileIdiomaClienteListener`. Por versión: selector del editor.
@@ -11815,7 +11841,7 @@ viven en la entidad, una por dirección; el procesador sólo elige destino y fec
 | `{}` mismo padre | nada | opcional |
 | `file` otro expediente | se vacían los subgrupos (son del otro grupo) | opcional; **obligatoria si viene de un catálogo** (422): sus fechas son de 2030 |
 | `file` desde un catálogo | además: total visible, sin `preciosDesde`, `orden = 0` | ídem |
-| `catalogo` | sin expediente, sin subgrupos, `totalesOcultos = true`, sin `fechaExpiracion`, al final del catálogo | si no llega, `CotizacionCatalogo::FECHA_BASE_NOMINAL` (05/01/2030) |
+| `catalogo` | sin expediente, sin subgrupos, `presentacionPrecio = por_persona_base` (salvo «sin precio»), sin `fechaExpiracion`, al final del catálogo | si no llega, `CotizacionCatalogo::FECHA_BASE_NOMINAL` (05/01/2030) |
 | `file` + `catalogo` | — | 422: «elige un destino» |
 
 - Los **precios «desde» no se derivan** del total del grupo (liberados, clases de pasajero): los

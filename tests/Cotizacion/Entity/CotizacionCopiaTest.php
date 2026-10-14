@@ -6,6 +6,7 @@ namespace App\Tests\Cotizacion\Entity;
 
 use App\Cotizacion\Dto\CuerpoDeClonacion;
 use App\Cotizacion\Entity\Cotizacion;
+use App\Cotizacion\Enum\PresentacionPrecioEnum;
 use App\Cotizacion\Entity\CotizacionCatalogo;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Entity\CotizacionCotservicio;
@@ -204,7 +205,7 @@ final class CotizacionCopiaTest extends TestCase
     {
         $tour = new Cotizacion();
         $tour->setCatalogo(new CotizacionCatalogo());
-        $tour->setTotalesOcultos(true);
+        $tour->setPresentacionPrecio(PresentacionPrecioEnum::POR_PERSONA_BASE);
         $tour->setPreciosDesde([['valor' => '69', 'moneda' => 'PEN']]);
         $tour->setOrden(3);
 
@@ -213,7 +214,8 @@ final class CotizacionCopiaTest extends TestCase
 
         self::assertNull($copia->getCatalogo());
         self::assertSame($this->expediente, $copia->getFile());
-        self::assertFalse($copia->isTotalesOcultos(), 'Un expediente es un grupo concreto: su total se vende.');
+        self::assertSame(PresentacionPrecioEnum::TOTAL_GRUPO, $copia->getPresentacionPrecio(), 'Un expediente es un grupo concreto: su total se vende.');
+        self::assertFalse($copia->isTotalesOcultos());
         self::assertSame([], $copia->getPreciosDesde());
         self::assertSame(0, $copia->getOrden());
     }

@@ -61,7 +61,11 @@ const notaPrecio = (tour: PaxTourResumen): string => {
   const perfil = store.traducir(rango.titulo) || maestroStore.t('cat_por_persona') || 'por persona';
   if (!tour.paxBaseGrupo) return perfil;
   const n = String(tour.paxBaseGrupo);
-  return `${perfil} · ${maestroStore.t('cat_base_pax', { n }) || `calculado para ${n} pasajeros`}`;
+  // Un precio escrito a mano no se «calculó» para nadie: se dice para qué grupo es.
+  const base = tour.precioDesdeOrigen === 'manual'
+    ? maestroStore.t('cat_grupo_de', { n }) || `para un grupo de ${n} pasajeros`
+    : maestroStore.t('cat_base_pax', { n }) || `calculado para ${n} pasajeros`;
+  return `${perfil} · ${base}`;
 };
 
 /**

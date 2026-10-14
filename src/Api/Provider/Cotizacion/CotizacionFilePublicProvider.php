@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\Operation;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
+use App\Cotizacion\Enum\PresentacionPrecioEnum;
 use App\Cotizacion\Enum\GrupoTipoEnum;
 use App\Enum\DocumentoTipoEnum;
 use App\Cotizacion\Entity\CotizacionFileGrupo;
@@ -100,13 +101,13 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         /**
          * @var list<array{propuesta: int, estado: CotizacionEstadoEnum|string, publicado: bool,
          *     numPax: int, titulo: array<mixed>|null, resumen: array<mixed>|null, idiomaCliente: string,
-         *     monedaGlobal: string, precioOculto: bool, totalVenta: string, adelanto: string,
+         *     monedaGlobal: string, presentacionPrecio: PresentacionPrecioEnum|string, totalVenta: string, adelanto: string,
          *     tipoCambio: string, fechaExpiracion: ?\DateTimeInterface,
          *     fechaInicio: \DateTimeInterface|string|null, totalVentaOrigen: ?string}> $filas
          */
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT c.propuesta, c.estado, c.publicado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
-                   c.monedaGlobal, c.precioOculto, c.totalVenta, c.adelanto,
+                   c.monedaGlobal, c.presentacionPrecio, c.totalVenta, c.adelanto,
                    c.tipoCambio, c.fechaExpiracion, MIN(s.fechaInicioAbsoluta) AS fechaInicio,
                    o.totalVenta AS totalVentaOrigen
             FROM App\Cotizacion\Entity\Cotizacion c
@@ -136,7 +137,11 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         }
 
         $file->setPropuestasParaCliente(array_map(static function (array $f) use ($previsualiza): array {
-            $oculto = (bool) $f['precioOculto'];
+            // `precioOculto` sale DERIVADO del enum, igual que `Cotizacion::isPrecioOculto()`.
+            $presentacion = $f['presentacionPrecio'] instanceof PresentacionPrecioEnum
+                ? $f['presentacionPrecio']
+                : PresentacionPrecioEnum::tryFrom($f['presentacionPrecio']);
+            $oculto = $presentacion?->ocultaPrecio() ?? false;
             $estado = $f['estado'] instanceof CotizacionEstadoEnum ? $f['estado']->value : $f['estado'];
 
             return [

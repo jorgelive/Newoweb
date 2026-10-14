@@ -155,6 +155,7 @@ final class CatalogoWebLector
                 destacados: $t['destacados'],
                 totalGrupo: $t['totalGrupo'] !== null ? new PrecioDesdeWeb(null, $t['totalGrupo']['valor'], $t['totalGrupo']['moneda']) : null,
                 paxTotal: $t['totalGrupo']['pax'] ?? null,
+                precioPersonalizado: $t['precioDesdeOrigen'] === 'manual',
             );
         }
 
