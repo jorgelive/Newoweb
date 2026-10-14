@@ -40,13 +40,18 @@ namespace App\Service\Translate;
 final class ProtectorDeMarcadores
 {
     /**
-     * Los marcadores del proyecto: `{{ clave }}`, con o sin espacios.
+     * Los marcadores del proyecto: `{{ clave }}` y `{{ tipo: valor }}`, con o sin espacios.
+     *
+     * ⚠️ **La forma con dos puntos estuvo fuera hasta el 14/10/2026**, y el traductor se la comía:
+     * `{{ ficha: equipaje-horarios-flexibles }}` —el enlace de una ficha a otra, que pinta
+     * `RichContentEngine`— salió en inglés como `{{ data sheet: luggage-flexible-hours }}`. Ni
+     * el tipo ni el valor (un código, una URL de vídeo) son texto que traducir.
      *
      * Sólo la sintaxis de llave DOBLE. La de llave simple (`{codigo_puerta}`) no la resuelve
      * ningún interpolador vivo —quedó en algún texto de ayuda del panel— y protegerla sería
      * dar por bueno algo que no funciona.
      */
-    private const string PATRON = '/\{\{\s*[\w.]+\s*\}\}/u';
+    private const string PATRON = '/\{\{\s*[\w.]+(?:\s*:\s*[^{}]+?)?\s*\}\}/u';
 
     /**
      * `__PH0__`, `__PH1__`… Ni palabra ni símbolo raro, y esa es toda la gracia.

@@ -91,7 +91,8 @@ class AutoTranslationService
         private readonly GoogleTranslateService $translator,
         private readonly EntityManagerInterface $entityManager,
         private readonly ProtectorDeMarcadores $marcadores = new ProtectorDeMarcadores(),
-        private readonly ?LoggerInterface $logger = null
+        private readonly ?LoggerInterface $logger = null,
+        private readonly CorreccionesDeTraduccion $correcciones = new CorreccionesDeTraduccion(),
     ) {}
 
     /** Lo que falló desde el último olvido. Vacío = todo lo que se intentó, salió. */
@@ -485,6 +486,18 @@ class AutoTranslationService
                 continue;
             }
 
+            // Un rótulo corto con traducción fija no pasa por Google: sin contexto, adivina.
+            $fija = $this->correcciones->fija($sourceText, $targetCode);
+            if ($fija !== null) {
+                $valuesMap[$targetCode] = array_merge($existingRow ?? $sourceRow, [
+                    'language'            => $targetCode,
+                    'content'             => $fija,
+                    self::SOURCE_HASH_KEY => $hashActual,
+                ]);
+
+                continue;
+            }
+
             try {
                 // 🛡️ Los `{{ marcadores }}` van enmascarados: Google no los deja quietos, les
                 // TRADUCE el nombre de dentro —`{{ medios_pago }}` vuelve como
@@ -514,7 +527,9 @@ class AutoTranslationService
                     $baseRow = $existingRow !== null ? $existingRow : $sourceRow;
                     $valuesMap[$targetCode] = array_merge($baseRow, [
                         'language'            => $targetCode,
-                        'content'             => $this->marcadores->restaurar($res[0], $marcadores),
+                        // Y corregida: lo que el traductor dice mal de este sitio, sale ya bien.
+                        // Ver CorreccionesDeTraduccion.
+                        'content'             => $this->correcciones->aplicar($targetCode, $this->marcadores->restaurar($res[0], $marcadores)),
                         // La huella del texto del que ACABA de salir. Mientras cuadre, esta fila
                         // está al día; en cuanto el español cambie, dejará de cuadrar y se rehará.
                         self::SOURCE_HASH_KEY => $hashActual,

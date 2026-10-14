@@ -19,6 +19,7 @@ entidades que lo usan.
 8. [Sellar el contenido existente](#8-sellar-el-contenido-existente)
 9. [Gotchas](#9-gotchas)
 11. [Traducciones que hablan de otra cosa](#11-traducciones-que-hablan-de-otra-cosa-05102026) — el clon, el auditor y la tanda que falla en silencio
+12. [Lo que el traductor dice mal](#12-lo-que-el-traductor-dice-mal-14102026) — correcciones y rótulos fijos
 10. [Dónde tocar para cambiar X](#10-dónde-tocar-para-cambiar-x)
 
 ---
@@ -182,6 +183,11 @@ para las dos sin código aparte.
 Google **traduce el interior de los `{{ marcadores }}`**: `{{ medios_pago }}` vuelve como
 `{{ payment_methods }}` y el interpolador ya no lo reconoce — el huésped ve la llave en crudo.
 `ProtectorDeMarcadores` los enmascara antes y los restaura después.
+
+⚠️ **`{{ tipo: valor }}` estuvo desprotegido hasta el 14/10/2026.** El patrón sólo reconocía
+`{{ clave }}`, y el enlace entre fichas `{{ ficha: equipaje-horarios-flexibles }}` salió como
+`{{ data sheet: luggage-flexible-hours }}` (y `{{ mappa: … }}` en italiano). Ahora se protege
+la forma con dos puntos entera: ni el tipo ni el valor —un código, una URL— son texto.
 
 Si el traductor se come un centinela, **esa traducción no se guarda** y queda un `warning` en el
 log. Es deliberado: un texto al que le falta el widget de medios de pago se publica igual de
@@ -411,6 +417,64 @@ Duplicados del catálogo con erratas, que traducen igual porque **son lo mismo**
 Eso es limpieza de catálogo, no de traductor. Y el `↔` es un aviso aparte: la traducción de un
 tramo bidireccional pierde la bidireccionalidad y nadie lo nota.
 
+## 12. Lo que el traductor dice mal (14/10/2026)
+
+Una revisión de la guía entera, idioma por idioma, encontró errores que el `origenHash` no
+puede ver porque la traducción **sí corresponde a su español**; sólo que lo dice mal:
+
+```
+«al pie de las gradas»                → at the foot of the stands       (gradas de estadio, ×6)
+«playa de estacionamiento gratuita»   → the free beach                  (×6)
+«Check-out:»                          → Kasse:                          (caja registradora, de)
+«cuanta más agua pasa, menos caliente» → je mehr Wasser … kühlt weniger ab (al revés, de)
+«Está sujeto a disponibilidad»        → A disponibilidade é obrigatória (pt)
+«Se coordina con ellos»               → We coordinate with them         (es el huésped, ×6)
+«Estar 2» (la sala de estar)          → To be 2 / Om 2 te zijn          (×6)
+«Servicios»                           → None                            (×6, sellado así)
+```
+
+`CorreccionesDeTraduccion` las arregla en dos formas:
+
+- **`CORRECCIONES`**: frase de Google → frase corregida, por idioma. Para texto largo.
+- **`FIJAS`**: para rótulos cortos (pies de foto, títulos), **por su español**: si el texto
+  entero es «Estar», la traducción es la de la tabla y a Google ni se le pregunta. Corregir lo
+  que dice Google no sirve en una palabra suelta: cambia de una vez a otra. Los números
+  finales se respetan («Dormitorio 1 2»).
+
+### Por qué en el servicio y no en cada comando
+
+Se aplican en `translateAndCloneRows()`, justo al salir de Google. Al principio vivieron en el
+comando de las puertas, y eso tenía un agujero: en cuanto alguien tocaba el español de una ficha
+en EasyAdmin, el hash dejaba de cuadrar, la ficha se retraducía y el error volvía sin que nadie
+lo viera. Aquí una traducción nueva sale ya corregida.
+
+Lo ya guardado se corrige con **`app:traduccion:corregir`** (`--dry-run` delante). Respeta el
+veto de las plantillas de Meta, no toca el `origenHash` y lista las **huérfanas**: correcciones
+que ya no casan con nada guardado, normalmente porque Google cambió la traducción. Sale con
+código ≠ 0 si hay alguna.
+
+### Reglas de una corrección
+
+- **Frase concreta, no palabra suelta**: se aplica a todo lo traducible del proyecto.
+- **Corta**: al retraducir, Google varía detalles (se comió un «solo» en italiano) y un párrafo
+  entero deja de casar.
+- **El reemplazo no contiene la búsqueda**, o cada pasada la volvería a aplicar. Lo comprueba
+  `CorreccionesDeTraduccionTest`.
+- El francés lleva **espacio duro** antes de «:» y «;»: van con `\u{a0}`.
+
+### Registro
+
+El español tutea. **Italiano y neerlandés van de «tú»** (decisión de Jorge): el traductor mezclaba
+«voi»/«u» con «tu»/«je» en la misma ficha. Alemán y francés se quedan de «Sie»/«vous», coherentes
+en toda la guía. El portugués, «você».
+
+### Cómo se hizo la revisión
+
+Se exportó la guía (`pms_guia*`) a un archivo por idioma, español al lado, y un revisor por idioma
+la leyó entera. Cada hallazgo se validó contra el texto real (que la frase exista tal cual) y se
+simuló la tabla entera antes de escribirla: sin huérfanas, sin perder marcadores ni etiquetas, y
+aplicar dos veces igual a una. Los graves se contrastaron con el español.
+
 ---
 
 ## 10. Dónde tocar para cambiar X
@@ -427,5 +491,6 @@ tramo bidireccional pierde la bidireccionalidad y nadie lo nota.
 | Sellar contenido sin traducirlo | — | `app:traduccion:sellar-hash --dry-run --clase=` |
 | **Encontrar traducciones que no se corresponden con su español** | — | `app:traduccion:auditar` — §11 |
 | Saber si una tanda de traducción falló | `AutoTranslationService` | `olvidarFallos()` antes, `fallos()` después — el log solo no basta (§11) |
+| **Corregir algo que el traductor dice mal** | `CorreccionesDeTraduccion` | `CORRECCIONES` (frase de Google → frase buena) o `FIJAS` (rótulo corto, por su español); después `app:traduccion:corregir` — §12 |
 | Que un `{{ marcador }}` sobreviva | `ProtectorDeMarcadores` | `enmascarar()` / `estaIntacto()` |
 | Sacar la traducción de la transacción | `AutoTranslationEventListener` | **Sin hacer.** Ver la nota de §1: hoy `preUpdate` traduce con los locks abiertos |

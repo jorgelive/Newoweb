@@ -1752,21 +1752,10 @@ este orden: 🔑 cómo se abre · 🧭 cómo llegar (pasos) · 🚪 tu puerta ·
 marcador se quita solo si no hay vídeo, pero la frase no, y quedaría huérfana. Cuando la 5 tenga el
 suyo, se cambia `video` en el comando y se relanza.
 
-⚠️ **El traductor no conoce el sitio.** «Al pie de las gradas» salió «at the foot of the stands» (y
-«Tribüne», «tribunes», «arquibancadas»…) en los seis idiomas, «al terminarlas, la tienes de frente»
-un «verás el resultado», y en italiano «gira a la derecha» un «haz la llamada». El español es de
-Jorge y no se toca para complacer al traductor: el comando aplica `CORRECCIONES` (frase traducida →
-corregida, por idioma) **después** de traducir, en cada pasada y conservando el `origenHash`. Si una
-retraducción cambia la frase, el comando avisa de la corrección huérfana. Ojo con el francés: lleva
-espacio duro (U+00A0) antes de «:» y «;».
-
-Las correcciones buscan **lo que dejó el traductor**, no lo ya corregido: si se cambia una, se
-relanza con `--retraducir`. Conviene que sean frases cortas: al retraducir, el traductor varía
-detalles (se comió un «solo» en italiano) y un párrafo entero deja de casar.
-
-El registro también va ahí: el español tutea, y en **italiano y neerlandés** el traductor mezclaba
-«tú» y «voi»/«u» dentro de la misma ficha. Las puertas van de «tú» (Jorge). El alemán y el francés
-siguen de «Sie»/«vous»: son coherentes en toda la guía.
+⚠️ **El traductor no conoce el sitio.** «Al pie de las gradas» salió «at the foot of the stands»
+en los seis idiomas. El español es de Jorge y no se toca para complacer al traductor: lo arregla
+`CorreccionesDeTraduccion` al traducir, para estas fichas y para cualquier otra
+(docs/Autotraduccion.md §12). `--retraducir` rehace las siete aunque el español no cambie.
 
 Para ver qué casitas tienen ya cada medio, «Medios de las casitas» filtra por **casita y por tipo**
 (`PmsUnidadMediaCrudController::configureFilters()`).
