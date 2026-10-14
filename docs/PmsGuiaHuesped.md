@@ -1760,6 +1760,14 @@ corregida, por idioma) **después** de traducir, en cada pasada y conservando el
 retraducción cambia la frase, el comando avisa de la corrección huérfana. Ojo con el francés: lleva
 espacio duro (U+00A0) antes de «:» y «;».
 
+Las correcciones buscan **lo que dejó el traductor**, no lo ya corregido: si se cambia una, se
+relanza con `--retraducir`. Conviene que sean frases cortas: al retraducir, el traductor varía
+detalles (se comió un «solo» en italiano) y un párrafo entero deja de casar.
+
+El registro también va ahí: el español tutea, y en **italiano y neerlandés** el traductor mezclaba
+«tú» y «voi»/«u» dentro de la misma ficha. Las puertas van de «tú» (Jorge). El alemán y el francés
+siguen de «Sie»/«vous»: son coherentes en toda la guía.
+
 Para ver qué casitas tienen ya cada medio, «Medios de las casitas» filtra por **casita y por tipo**
 (`PmsUnidadMediaCrudController::configureFilters()`).
 
