@@ -136,7 +136,8 @@ final class PmsGuiaFormatoPuertasCommand extends Command
             'Il possède une seule serrure' => 'Elle a une seule serrure',
             'cadenas' => 'serrures',
             'celui du' => 'celle du',
-            'celle du haut ouvert :' => 'celle du haut ouverte :',
+            // El francés lleva espacio duro antes de los dos puntos.
+            "celle du haut ouvert\u{a0}:" => "celle du haut ouverte\u{a0}:",
             'tout au pied des tribunes.' => 'juste au pied des marches.',
             'Une fois que vous les aurez terminés, vous l&#39;aurez juste devant vous.' => 'En haut des marches, elle est juste devant vous.',
             'Tourner à gauche.' => 'Tournez à gauche.',
