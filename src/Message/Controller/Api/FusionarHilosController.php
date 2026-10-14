@@ -69,6 +69,9 @@ final class FusionarHilosController extends AbstractController
             'absorbido' => $this->ficha($absorbido),
             'telefonos' => $this->fusionador->telefonosCandidatos($superviviente, $absorbido),
             'telefonoPropuesto' => $this->fusionador->telefonoPropuesto($superviviente, $absorbido),
+            // La ventana es de cada número: con esto el panel avisa antes de elegir uno al que
+            // no se le puede escribir texto libre (Fable, 13/10/2026).
+            'telefonosConVentana' => $this->fusionador->telefonosConVentana($superviviente, $absorbido),
         ]);
     }
 

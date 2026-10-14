@@ -1306,6 +1306,8 @@ export const useChatStore = defineStore('chatStore', () => {
         channels: string[] = [],
         estado: 'pending' | 'en_espera' = 'pending',
         referenciaEspera: string | null = null,
+        /** Otro número que el de salida del hilo, por WhatsApp. `null` = el de siempre. */
+        telefonoSalida: string | null = null,
     ) => {
         if (!currentConversation.value) return;
 
@@ -1328,6 +1330,10 @@ export const useChatStore = defineStore('chatStore', () => {
             if (estado === 'en_espera' && referenciaEspera) form.append('referenciaEspera', referenciaEspera);
 
             channels.forEach(channel => form.append('transientChannels[]', channel));
+
+            // La ventana de WhatsApp es de cada número: si se eligió otro, el backend comprueba que
+            // sea un teléfono vivo del hilo y mira SU ventana (`WhatsappMetaSendEnqueuer`).
+            if (telefonoSalida && channels.includes('whatsapp_meta')) form.append('telefonoSalida', telefonoSalida);
 
             // A QUÉ asunto va. Sólo cuando hay que elegir: con uno solo lo estampa el backend
             // (`AsuntoDelMensaje`), y con ninguno es que no hay. Lo que se manda se contrasta

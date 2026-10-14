@@ -186,7 +186,11 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
                 $resolver = $this->resolverRegistry->getResolver($asuntoType);
 
-                $livePhone = $resolver?->getPhoneNumber($asuntoId);
+                // ⚠️ Con un número ELEGIDO por el operador para este mensaje, manda la cola, que ya
+                // lo lleva validado (`WhatsappMetaSendEnqueuer`). El teléfono «vivo» del dominio es
+                // el principal del hilo y lo pisaría: el mensaje saldría a otro número del que se
+                // eligió, sin un solo error.
+                $livePhone = $msg->getTelefonoSalida() === null ? $resolver?->getPhoneNumber($asuntoId) : null;
                 $destination = $livePhone ?: $item->getDestinationPhone();
 
                 if ($livePhone && $livePhone !== $item->getDestinationPhone()) {
@@ -213,7 +217,9 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
                 $metaLang = $this->normalizeLanguageForMeta($templateLang);
 
-                $isSessionActive = $conversation->isWhatsappSessionActive();
+                // La ventana del número al que va ESTA fila de la cola: es por número en Meta, y
+                // la del hilo es sólo la del número de salida por defecto.
+                $isSessionActive = $conversation->ventanaWhatsappAbiertaPara($destination);
 
                 // Variables de la plantilla, resueltas UNA vez para las tres ramas que las usan
                 // (header, body, botones) en lugar de tres veces como antes.

@@ -419,6 +419,17 @@ class Message
     #[Groups(['message:write'])]
     private ?string $referenciaEspera = null;
 
+    /**
+     * A qué número sale ESTE mensaje por WhatsApp, cuando el operador elige uno distinto del de
+     * salida del hilo (`guestPhone`). `null` = el de siempre.
+     *
+     * Se guarda en la metadata (`telefono_salida`) y no sólo en la propiedad, porque se lee
+     * DESPUÉS de crear el mensaje: el envío de la cola, y `MensajeEnEsperaDeVentana::liberar()`
+     * días más tarde. Que sea un teléfono vivo del hilo lo comprueba `WhatsappMetaSendEnqueuer`.
+     */
+    #[Groups(['message:write'])]
+    private ?string $telefonoSalida = null;
+
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     #[Groups(['message:read', 'message:write'])]
     private ?DateTimeImmutable $scheduledAt = null;
@@ -537,7 +548,11 @@ class Message
             }
             $this->conversation->incrementUnreadCount();
 
-            if ($this->channel?->getId() === 'whatsapp_meta') {
+            // La ventana es del NÚMERO que escribe, y aquí no se sabe cuál fue: la abre
+            // `WhatsappMetaReceivePersister` con `abrirVentanaWhatsappDe()`. Sólo un hilo sin
+            // identidad de salida —anterior a las identidades— la sigue abriendo aquí, en el hilo,
+            // que es lo único que tiene. Ver `MessageIdentidad::$ventanaWhatsappHasta`.
+            if ($this->channel?->getId() === 'whatsapp_meta' && $this->conversation->identidadDeSalida() === null) {
                 $this->conversation->setWhatsappSessionValidUntil(
                     DateTimeImmutable::createFromInterface($msgDate)->modify('+24 hours')
                 );
@@ -714,6 +729,30 @@ class Message
 
     public function getReferenciaEspera(): ?string { return $this->referenciaEspera; }
     public function setReferenciaEspera(?string $referencia): self { $this->referenciaEspera = $referencia; return $this; }
+
+    /** El número elegido para ESTE envío, normalizado; `null` = el de salida del hilo. */
+    public function getTelefonoSalida(): ?string
+    {
+        if ($this->telefonoSalida !== null) {
+            return $this->telefonoSalida;
+        }
+
+        $guardado = $this->getMetadata()['telefono_salida'] ?? null;
+
+        return is_string($guardado) && $guardado !== '' ? $guardado : null;
+    }
+
+    public function setTelefonoSalida(?string $telefono): self
+    {
+        $valor = \App\Message\Enum\IdentidadTipo::TELEFONO->normalizar((string) $telefono);
+        $this->telefonoSalida = $valor === '' ? null : $valor;
+
+        if ($this->telefonoSalida !== null) {
+            $this->addMetadata('telefono_salida', $this->telefonoSalida);
+        }
+
+        return $this;
+    }
 
     public function getScheduledAt(): ?DateTimeImmutable { return $this->scheduledAt; }
     /**

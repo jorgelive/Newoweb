@@ -38,8 +38,10 @@ export interface PreviaDeFusion {
     absorbido: { id: string; nombre: string | null; mensajes: number; asuntos: number };
     /** Teléfonos vivos y sin vetar de los dos hilos: los que pueden quedar de salida. */
     telefonos: string[];
-    /** El que propone el backend: el del hilo con la ventana de WhatsApp abierta, si lo hay. */
+    /** El que propone el backend: el número con la ventana de WhatsApp abierta, si lo hay. */
     telefonoPropuesto: string | null;
+    /** Los que tienen la ventana de WhatsApp abierta AHORA (es de cada número, no del hilo). */
+    telefonosConVentana: string[];
 }
 
 export function useDuenioDeIdentificador(

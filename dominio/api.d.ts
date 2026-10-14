@@ -20694,6 +20694,11 @@ export interface components {
              */
             referenciaEspera?: string | null;
             /**
+             * @description A qué número sale ESTE mensaje por WhatsApp, cuando el operador elige uno distinto del de
+             *     salida del hilo (`guestPhone`). `null` = el de siempre.
+             */
+            telefonoSalida?: string | null;
+            /**
              * Format: date-time
              * @description ⚠️ Recalcula `ocurrio_at` en el acto, y por eso no vale asignar la propiedad a pelo.
              */
@@ -20932,6 +20937,11 @@ export interface components {
              * @description Retirada: sigue resolviendo el historial, deja de ser salida. **Es una lápida.**
              */
             readonly retiradoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Hasta cuándo se le puede escribir TEXTO LIBRE por WhatsApp a ESTE número.
+             */
+            readonly ventanaWhatsappHasta?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -20968,6 +20978,11 @@ export interface components {
              * @description Retirada: sigue resolviendo el historial, deja de ser salida. **Es una lápida.**
              */
             readonly retiradoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Hasta cuándo se le puede escribir TEXTO LIBRE por WhatsApp a ESTE número.
+             */
+            readonly ventanaWhatsappHasta?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -20995,6 +21010,11 @@ export interface components {
              * @description Retirada: sigue resolviendo el historial, deja de ser salida. **Es una lápida.**
              */
             readonly retiradoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Hasta cuándo se le puede escribir TEXTO LIBRE por WhatsApp a ESTE número.
+             */
+            readonly ventanaWhatsappHasta?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -21022,6 +21042,11 @@ export interface components {
              * @description Retirada: sigue resolviendo el historial, deja de ser salida. **Es una lápida.**
              */
             readonly retiradoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Hasta cuándo se le puede escribir TEXTO LIBRE por WhatsApp a ESTE número.
+             */
+            readonly ventanaWhatsappHasta?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -21049,6 +21074,11 @@ export interface components {
              * @description Retirada: sigue resolviendo el historial, deja de ser salida. **Es una lápida.**
              */
             readonly retiradoEn?: string | null;
+            /**
+             * Format: date-time
+             * @description Hasta cuándo se le puede escribir TEXTO LIBRE por WhatsApp a ESTE número.
+             */
+            readonly ventanaWhatsappHasta?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
         };

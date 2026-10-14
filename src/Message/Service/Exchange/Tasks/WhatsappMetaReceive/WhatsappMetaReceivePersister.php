@@ -320,19 +320,24 @@ readonly class WhatsappMetaReceivePersister
         }
 
         // 3. 🔥 VENTANA DE 24 HORAS DE META (Vital para WhatsApp)
+        //
+        // ⚠️ De ESTE número, no del hilo: Meta la cuenta por número. Antes se abría la del hilo
+        // y valía para todos sus teléfonos, y la respuesta podía salir a uno que nunca escribió
+        // (Camille, 12/10/2026 → 131047). La del hilo queda como espejo de la del número de salida.
         $windowExpiry = (clone $msgDate)->modify('+24 hours');
-        $conversation->setWhatsappSessionValidUntil($windowExpiry);
+        $conversation->abrirVentanaWhatsappDe($guestPhone, $windowExpiry);
 
         // 4. ⏳ Con la ventana abierta, sale lo que el operador dejó esperando. Da igual que el
         // cliente pulse «Sí, envíamela» o escriba otra cosa: cualquier mensaje suyo la abre.
-        if ($conversation->isWhatsappSessionActive()) {
-            $liberados = $this->espera->liberar($conversation);
+        //
+        // Sin condición previa: la ventana que se abrió es la de ESTE número, que puede no ser el
+        // principal. `liberar()` suelta sólo lo que esperaba a un número que ahora tiene ventana.
+        $liberados = $this->espera->liberar($conversation);
 
-            if ($liberados > 0) {
-                $this->logger->info(sprintf('WhatsApp: ventana abierta, salen %d mensajes en espera.', $liberados), [
-                    'conversacion' => $conversation->getId()?->toRfc4122(),
-                ]);
-            }
+        if ($liberados > 0) {
+            $this->logger->info(sprintf('WhatsApp: ventana abierta, salen %d mensajes en espera.', $liberados), [
+                'conversacion' => $conversation->getId()?->toRfc4122(),
+            ]);
         }
 
         $this->em->flush();

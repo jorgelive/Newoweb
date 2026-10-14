@@ -131,6 +131,26 @@ class MessageIdentidad
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?DateTimeImmutable $retiradoEn = null;
 
+    /**
+     * Hasta cuándo se le puede escribir TEXTO LIBRE por WhatsApp a ESTE número.
+     *
+     * ── Por qué aquí y no en la conversación ────────────────────────────────
+     * Meta cuenta la ventana de 24 h **por número**: se abre cuando ESE número nos escribe. Vivía
+     * sólo en `MessageConversation::$whatsappSessionValidUntil`, y cualquier entrante de cualquier
+     * número del hilo la abría para todos. Camille Boisfer (12/10/2026): escribía desde un número,
+     * el hilo «tenía ventana», la respuesta salió al otro —el de su reserva, que nunca nos había
+     * escrito— y Meta la rechazó con 131047. Mismo camino que el veto: era del hilo, es del número.
+     *
+     * La de la conversación **se queda como espejo** de la del número de salida
+     * (`MessageConversation::recalcularVentanaWhatsapp()`): la leen una docena de sitios, y con el
+     * espejo bien puesto todos dicen la verdad del número al que de verdad se escribe.
+     *
+     * Hora de pared, como el resto (`docs/ZonasHorarias.md`): la del entrante más 24 h.
+     */
+    #[Groups(['conversation:read'])]
+    #[ORM\Column(name: 'ventana_whatsapp_hasta', type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $ventanaWhatsappHasta = null;
+
     public function __construct(IdentidadTipo $tipo, string $valor, ?string $origen = null)
     {
         $this->initializeId();
@@ -174,6 +194,29 @@ class MessageIdentidad
     public function setPrincipal(bool $v): self { $this->principal = $v; return $this; }
 
     public function getRetiradoEn(): ?DateTimeImmutable { return $this->retiradoEn; }
+
+    public function getVentanaWhatsappHasta(): ?DateTimeImmutable { return $this->ventanaWhatsappHasta; }
+
+    /**
+     * Este número acaba de escribir: su ventana dura hasta `$hasta`. Nunca la acorta — un
+     * entrante viejo procesado tarde (un webhook repetido) no puede cerrar una ventana que otro
+     * más nuevo ya abrió.
+     */
+    public function abrirVentanaWhatsapp(\DateTimeInterface $hasta): self
+    {
+        $hasta = DateTimeImmutable::createFromInterface($hasta);
+
+        if ($this->ventanaWhatsappHasta === null || $hasta > $this->ventanaWhatsappHasta) {
+            $this->ventanaWhatsappHasta = $hasta;
+        }
+
+        return $this;
+    }
+
+    public function tieneVentanaWhatsappAbierta(): bool
+    {
+        return $this->ventanaWhatsappHasta !== null && $this->ventanaWhatsappHasta > new DateTimeImmutable();
+    }
 
     /** ¿Sigue siendo una salida válida? Una retirada resuelve, pero no se le escribe. */
     public function estaViva(): bool { return $this->retiradoEn === null; }

@@ -77,6 +77,24 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
         // =====================================================================
         $targetPhone = $conversation->getGuestPhone();
 
+        // El operador eligió OTRO número para este mensaje. Tiene que ser un teléfono vivo y sin
+        // vetar del propio hilo: si no, se lanza —queda `failed` con el motivo— en vez de caer al
+        // de siempre. Mandarlo a un número distinto del que se eligió sería peor que no mandarlo.
+        $elegido = $message->getTelefonoSalida();
+
+        if ($elegido !== null) {
+            $identidad = $conversation->identidadDeSalida($elegido);
+
+            if ($identidad === null || !$identidad->estaViva() || $identidad->isBloqueado()) {
+                throw new RuntimeException(sprintf(
+                    'El número elegido para la salida (%s) no es un teléfono vivo y sin vetar de esta conversación.',
+                    $elegido
+                ));
+            }
+
+            $targetPhone = $identidad->getValor();
+        }
+
         // Fallback: Si por alguna razón la conversación no tiene el teléfono guardado,
         // intentamos extraerlo de la entidad origen (PMS, Agencia, etc.) usando el Resolver.
         if (empty($targetPhone)) {
@@ -142,7 +160,9 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
 
             $template = $message->getTemplate();
             $lang = (string) $conversation->getIdioma()->getId();   // el código ISO es la clave del idioma
-            $isSessionActive = $conversation->isWhatsappSessionActive();
+            // La ventana del número al que SALE, no la del hilo: si se eligió otro número, la del
+            // hilo es la del principal y no dice nada de éste.
+            $isSessionActive = $conversation->ventanaWhatsappAbiertaPara($elegido);
 
             if (!$isSessionActive) {
                 if ($template === null) {

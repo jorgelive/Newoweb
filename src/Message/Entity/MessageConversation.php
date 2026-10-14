@@ -514,9 +514,12 @@ class MessageConversation
             $this->whatsappDisabledReason = null;
         }
 
+        $changed = $this->guestPhone !== $guestPhone;
         $this->guestPhone = $guestPhone;
 
-        return $this;
+        // Otro número de salida, otra ventana: la del número nuevo. Sólo si cambia, por lo mismo
+        // que el veto — `upsertFromContext()` reescribe el mismo valor en cada entrante.
+        return $changed ? $this->recalcularVentanaWhatsapp() : $this;
     }
 
     // Getters y Setters
@@ -1072,14 +1075,100 @@ class MessageConversation
                 $this->setGuestPhone($principal->getValor());
             }
 
-            return $this;
+            // Cambiar de salida cambia de ventana: es la del número nuevo, no la del viejo.
+            return $this->recalcularVentanaWhatsapp();
         }
 
         if (!$this->tieneTelefonoVivo()) {
             $this->guestPhone = null;
         }
 
+        return $this->recalcularVentanaWhatsapp();
+    }
+
+    /**
+     * La identidad de teléfono por la que sale WhatsApp: la del número pedido o, sin él, la de
+     * `guestPhone`, que es a donde manda el envío por defecto. `null` si ese número no es una
+     * identidad del hilo (hilos anteriores a las identidades, o un número ajeno).
+     */
+    public function identidadDeSalida(?string $telefono = null): ?MessageIdentidad
+    {
+        $valor = IdentidadTipo::TELEFONO->normalizar((string) ($telefono ?? $this->guestPhone));
+
+        if ($valor === '') {
+            return null;
+        }
+
+        foreach ($this->identidades as $identidad) {
+            if ($identidad->getTipo() === IdentidadTipo::TELEFONO && $identidad->getValor() === $valor) {
+                return $identidad;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Un número del hilo acaba de escribir por WhatsApp: SU ventana se abre hasta `$hasta`, y la
+     * del hilo se recalcula como espejo de la del número de salida.
+     *
+     * ⚠️ Antes se abría la del hilo sin mirar quién escribía, y valía para todos sus números (ver
+     * {@see MessageIdentidad::$ventanaWhatsappHasta}). Un número que no es identidad del hilo
+     * —hilos anteriores a las identidades— cae al comportamiento viejo: abre la del hilo, que es
+     * lo único que hay.
+     */
+    public function abrirVentanaWhatsappDe(string $telefono, \DateTimeInterface $hasta): self
+    {
+        $identidad = $this->identidadDeSalida($telefono);
+
+        if ($identidad === null) {
+            $this->whatsappSessionValidUntil = $hasta;
+
+            return $this;
+        }
+
+        $identidad->abrirVentanaWhatsapp($hasta);
+
+        return $this->recalcularVentanaWhatsapp();
+    }
+
+    /**
+     * Deja `whatsappSessionValidUntil` igual a la ventana del número de salida (`guestPhone`).
+     *
+     * Es el mismo trato que `guestPhone` y `whatsappDisabled`: copia denormalizada en el hilo, la
+     * verdad en las identidades. La leen el chat, el agente, las órdenes, los avisos al equipo…
+     * y todos preguntan en realidad «¿puedo escribirle texto libre al número al que va a salir?».
+     *
+     * Sin identidad para `guestPhone` no se toca: es un hilo sin identidades y su ventana sólo
+     * existe en el hilo.
+     */
+    public function recalcularVentanaWhatsapp(): self
+    {
+        $salida = $this->identidadDeSalida();
+
+        if ($salida !== null) {
+            $this->whatsappSessionValidUntil = $salida->getVentanaWhatsappHasta();
+        }
+
         return $this;
+    }
+
+    /**
+     * ¿Se le puede escribir texto libre por WhatsApp a ESTE número? Sin número, al de salida.
+     *
+     * Es la pregunta que hace el envío cuando el operador eligió un número distinto del principal:
+     * la ventana del hilo es la del principal y no sirve para el otro.
+     */
+    public function ventanaWhatsappAbiertaPara(?string $telefono): bool
+    {
+        if ($telefono === null || $telefono === '') {
+            return $this->isWhatsappSessionActive();
+        }
+
+        $identidad = $this->identidadDeSalida($telefono);
+
+        // Un número que no es del hilo no tiene ventana que valga.
+        return $identidad !== null && $identidad->tieneVentanaWhatsappAbierta();
     }
 
     /**

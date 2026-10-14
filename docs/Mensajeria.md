@@ -361,8 +361,10 @@ pantallas que unen: aviso de fusión sugerida, editor de la conversación y «Es
 `FusionadorDeHilos::unir()` vuelve a dejar el hilo sin elegir. La regla, en
 `FusionadorDeHilos::telefonoPropuesto()`:
 
-1. El del hilo con la **ventana de WhatsApp abierta** más larga: el número que acaba de
-   escribirnos, y el único al que se puede contestar con texto libre.
+1. El **número con la ventana de WhatsApp abierta** más larga: el que acaba de escribirnos, y el
+   único al que se puede contestar con texto libre. Desde el 13/10/2026 se lee de cada identidad
+   (ver «La ventana de WhatsApp es de cada NÚMERO»); la primera versión lo deducía del hilo, y la
+   previa enseña además `telefonosConVentana` para avisar antes de elegir uno sin ella.
 2. Si ninguno la tiene, el principal del superviviente o su `guestPhone`: lo que ya funcionaba.
 3. El del absorbido.
 
@@ -894,6 +896,52 @@ por un canal ya descartado — el mismo fallo silencioso de §7.
 Lo que sigue creciendo a mano, y es la deuda pendiente: la **columna por canal** de
 `MessageTemplate` (exige migración cada vez) y el hecho de que `buttons_map` viva dentro de
 `whatsappMetaTmpl` aunque defina el menú de todos los canales (§8).
+
+### 📱 La ventana de WhatsApp es de cada NÚMERO, y se elige a cuál sale (13/10/2026)
+
+Meta cuenta la ventana de 24 h **por número**: sólo se le escribe texto libre al número que nos
+escribió. Aquí vivía en el hilo (`MessageConversation::$whatsappSessionValidUntil`), cualquier
+entrante de cualquiera de sus números la abría para todos, y el envío no miraba a qué número
+salía. **Camille Boisfer (12/10/2026)**: escribía desde su WhatsApp, el hilo «tenía ventana», la
+respuesta del agente —«ya consulté con el equipo»— salió al número de su reserva, que nunca nos
+había escrito, y Meta la rechazó con **131047**. Medido ese día: 8 hilos con más de un teléfono
+vivo, y los dos 131047 desde septiembre eran de ella.
+
+```
+entrante de WhatsApp desde el número X
+  WhatsappMetaReceivePersister → hilo.abrirVentanaWhatsappDe(X, +24 h)
+     ├─ identidad X.ventanaWhatsappHasta = +24 h          ← la verdad
+     └─ recalcularVentanaWhatsapp(): hilo.whatsappSessionValidUntil = la del número de SALIDA
+  → MensajeEnEsperaDeVentana::liberar(): suelta lo que esperaba a un número que AHORA tiene ventana
+
+envío (chat: «A qué número» si hay más de uno)            Message::$telefonoSalida
+  WhatsappMetaSendEnqueuer: ¿es un teléfono vivo y sin vetar del hilo? si no → `failed`, nunca al de siempre
+                            ventana = la de ESE número (ventanaWhatsappAbiertaPara)
+  WhatsappMetaSendMappingStrategy: con número elegido NO se toma el teléfono «vivo» del dominio
+  sin ventana → modo «esperar»: respuesta_pendiente al MISMO número, y sale cuando ÉL conteste
+```
+
+- **La del hilo se queda como espejo de la del número de salida** (`guestPhone`), igual que
+  `guestPhone` y `whatsappDisabled`. La leen una docena de sitios —el chat, el agente, las órdenes,
+  los avisos al equipo— y todos preguntan en realidad «¿puedo escribirle al número al que va a
+  salir?». Se recalcula al cambiar el principal (`recalcularTelefonoPrincipal()`), al cambiar
+  `guestPhone` (el setter, sólo si cambia) y tras una fusión.
+- **Un hilo sin identidad de salida** —anterior a las identidades, 11 en producción el 13/10—
+  sigue con la ventana en el hilo: es lo único que tiene. Por eso `Message::onPrePersist()` sólo
+  abre la del hilo cuando `identidadDeSalida()` es `null`.
+- ⚠️ **El teléfono «vivo» del dominio pisaba al elegido.** `WhatsappMetaSendMappingStrategy` no
+  manda a la cola: le pregunta al resolver del asunto (`ContactoDelAsunto`, el principal) y, si
+  contesta, manda ahí. Con un número elegido eso lo devolvería al principal **sin un solo error**;
+  con `telefonoSalida` se respeta la cola, que ya va validada.
+- **La espera es por número**: el aviso `respuesta_pendiente` sale al mismo número que el mensaje
+  (lleva su `telefono_salida`), un aviso vigente sólo cubre lo que espera al mismo número, y
+  `liberar()` ya no exige que el hilo tenga ventana — que escriba el acompañante no suelta lo que
+  esperaba al titular.
+- **El relleno de la migración es aproximado** (`Version20261014090000`): la ventana del hilo se
+  le dio al número de `guest_phone`, a quien se escribía con ella; casó 143 de 143. Una ventana
+  dura 24 h, así que la imprecisión se extinguió sola al día siguiente.
+- `telefonoSalida` viaja como `referenciaEspera`: campo del formulario en `message:write`, sin
+  columna, guardado en `metadata.telefono_salida` porque se lee después (la cola, la liberación).
 
 ### ⏳ Mensaje en espera: WhatsApp con la ventana cerrada (28/09/2026)
 
@@ -7414,6 +7462,8 @@ de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar
 | **Avisar al equipo de algo nuevo** (un cobro, una avería…) | `AvisoAlEquipoService::notificar()` | Compón un `AvisoAlEquipo` desde TU dominio: texto, plantilla para fuera de ventana, rol. El servicio no debe aprender qué es lo que avisas |
 | Cambiar a quién llegan los avisos | quien construye el `AvisoAlEquipo` | Es el campo `rol`. Reciben los que lo tengan **y** móvil registrado (`destinatarios()`) |
 | Cambiar cuándo se sugiere unir dos hilos o cuándo se avisa | `MessageConversation::sugerirFusion()` / `FusionSugeridaListener` | «El choque de identificadores que nadie veía» |
+| Cambiar cómo se abre o se lee la ventana de 24 h de un número | `MessageConversation` | `abrirVentanaWhatsappDe()`, `recalcularVentanaWhatsapp()`, `ventanaWhatsappAbiertaPara()`; la verdad en `MessageIdentidad::$ventanaWhatsappHasta` (§5, «La ventana de WhatsApp es de cada NÚMERO») |
+| Mandar un mensaje a OTRO número del hilo | `Message::setTelefonoSalida()` | validado en `WhatsappMetaSendEnqueuer::createQueueEntity()`; el selector es `telefonosDeSalida` en `ChatView.vue` |
 | Cambiar qué teléfono queda de salida al unir dos hilos | `FusionadorDeHilos` | `telefonoPropuesto()` (la regla) y `telefonosCandidatos()`; el selector es `TelefonoPrincipalDeFusion.vue` (§«Fusionar dejó de ser sólo un comando») |
 | Cambiar el texto del aviso de fusión sugerida | `AvisarFusionSugeridaDispatchHandler` (dentro de ventana) / plantilla `aviso_fusion_sugerida_interno` (`msg:crear:aviso-fusion`) | En Meta, texto nuevo = versión nueva |
 | Cambiar qué cuenta como «sin teléfono» en el reporte del portal | `AsuntoSinTelefono::motivo()` | Mira lo mismo que el envío; ver «Reservas y cotizaciones sin teléfono» |

@@ -30,6 +30,10 @@ const etiqueta = (valor: string): string => formatearTelefono('+' + valor) || va
             class="text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1">
         propuesto
       </span>
+      <!-- La ventana es de cada número: elegir uno sin ella deja el texto libre fuera de juego
+           hasta que ESE número escriba. -->
+      <span v-if="props.previa.telefonosConVentana.includes(tel)" class="text-[9px] font-bold text-green-700">· ventana abierta</span>
+      <span v-else class="text-[9px] font-bold text-slate-400">· 🔒 sin ventana</span>
     </label>
   </fieldset>
 </template>

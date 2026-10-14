@@ -1149,7 +1149,9 @@ Los automáticos ya no justifican un resumen diario: caben en la guardia técnic
   hilo de Booking con el de WhatsApp quedaron dos teléfonos vivos sin principal, y siguió de
   salida el que nunca nos escribió: sin ventana, 131047. La unión propone ahora el número con la
   ventana abierta y deja elegirlo (`FusionadorDeHilos::telefonoPropuesto()`, `docs/Mensajeria.md`
-  «Fusionar dejó de ser sólo un comando»).
+  «Fusionar dejó de ser sólo un comando»). Y la causa de fondo —la ventana era del hilo y Meta la
+  cuenta por número— se cerró el mismo día: la ventana es de cada identidad y el chat deja elegir
+  a qué número sale (`docs/Mensajeria.md` §5, «La ventana de WhatsApp es de cada NÚMERO»).
 
 En los dos, el agente le dijo al huésped «ya he avisado al equipo» en un mensaje que **no le
 llegó**. Que lo atendiera una persona después fue suerte, no diseño.

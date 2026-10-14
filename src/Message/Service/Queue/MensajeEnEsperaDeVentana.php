@@ -91,9 +91,11 @@ final readonly class MensajeEnEsperaDeVentana
     {
         $hilo = $mensaje->getConversation();
 
+        // La ventana del número al que va a salir: si el operador eligió uno que no es el
+        // principal, la del hilo no dice nada de él.
         if ($hilo === null
             || $mensaje->getDirection() !== Message::DIRECTION_OUTGOING
-            || $hilo->isWhatsappSessionActive()) {
+            || $hilo->ventanaWhatsappAbiertaPara($mensaje->getTelefonoSalida())) {
             $mensaje->setStatus(Message::STATUS_PENDING);
 
             return;
@@ -144,7 +146,10 @@ final readonly class MensajeEnEsperaDeVentana
             ->setStatus(Message::STATUS_PENDING)
             ->setTemplate($plantilla)
             ->setLanguageCode((string) $hilo->getIdioma()->getId())
-            ->setTransientChannels([self::CANAL]);
+            ->setTransientChannels([self::CANAL])
+            // El permiso se le pide al MISMO número al que va a salir lo que espera: es su
+            // respuesta la que abre la ventana que luego lo suelta.
+            ->setTelefonoSalida($mensaje->getTelefonoSalida());
         $aviso->addMetadata('aviso_de_mensaje_en_espera', (string) $mensaje->getId());
 
         // Las del propio mensaje ganan a las del resolver del hilo: la referencia no sale del
@@ -282,6 +287,13 @@ final readonly class MensajeEnEsperaDeVentana
         // dos pasarían la deduplicación y los dos soltarían el mismo mensaje — una cotización
         // enviada dos veces. El segundo espera aquí al commit del primero y ya no encuentra nada.
         foreach ($this->esperando($hilo, bloquear: true) as $mensaje) {
+            // Sólo lo que esperaba a un número que AHORA tiene ventana. La ventana es por número:
+            // que escriba el acompañante no abre la del titular, y soltar el mensaje al titular
+            // sin ventana sería el 131047 de siempre.
+            if (!$hilo->ventanaWhatsappAbiertaPara($mensaje->getTelefonoSalida())) {
+                continue;
+            }
+
             $mensaje->setStatus(Message::STATUS_PENDING);
             $mensaje->setTransientChannels([self::CANAL]);
             // Ocurre AHORA, no cuando se escribió: en el hilo tiene que quedar debajo de la
@@ -368,7 +380,9 @@ final readonly class MensajeEnEsperaDeVentana
     private function avisoVigente(MessageConversation $hilo, Message $nuevo): ?Message
     {
         foreach ($this->esperando($hilo) as $mensaje) {
-            if ($mensaje === $nuevo) {
+            // Un aviso sólo cubre lo que espera al MISMO número: el permiso de uno no abre la
+            // ventana del otro.
+            if ($mensaje === $nuevo || $mensaje->getTelefonoSalida() !== $nuevo->getTelefonoSalida()) {
                 continue;
             }
 

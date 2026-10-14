@@ -6,7 +6,6 @@ namespace App\Message\Service\Conversacion;
 
 use App\Message\Entity\MessageConversation;
 use App\Message\Enum\IdentidadTipo;
-use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -107,6 +106,30 @@ final class FusionadorDeHilos
     }
 
     /**
+     * De los candidatos, los que tienen la ventana de WhatsApp abierta AHORA: a ésos se les puede
+     * escribir texto libre. Es lo que el panel enseña junto a cada número al unir.
+     *
+     * @return list<string>
+     */
+    public function telefonosConVentana(MessageConversation $superviviente, MessageConversation $absorbido): array
+    {
+        $candidatos = $this->telefonosCandidatos($superviviente, $absorbido);
+        $abiertos = [];
+
+        foreach ([$superviviente, $absorbido] as $hilo) {
+            foreach ($hilo->getIdentidades() as $identidad) {
+                if ($identidad->getTipo() === IdentidadTipo::TELEFONO
+                    && in_array($identidad->getValor(), $candidatos, true)
+                    && $identidad->tieneVentanaWhatsappAbierta()) {
+                    $abiertos[$identidad->getValor()] = $identidad->getValor();
+                }
+            }
+        }
+
+        return array_values($abiertos);
+    }
+
+    /**
      * El teléfono que debería quedar de salida tras unir, o `null` si no hay ninguno.
      *
      * 🔥 **Sin esto, la unión dejaba de salida el número que nunca nos escribió.** Camille Boisfer
@@ -117,8 +140,10 @@ final class FusionadorDeHilos
      * ventana abierta y Meta la rechazó con 131047, trece segundos después de que ella escribiera.
      *
      * La regla, por orden:
-     *   1. El del hilo con la **ventana de WhatsApp abierta** más larga: es el número que acaba
-     *      de escribirnos, y el único al que se le puede contestar con texto libre.
+     *   1. El **número con la ventana de WhatsApp abierta** más larga: el que acaba de
+     *      escribirnos, y el único al que se le puede contestar con texto libre. Desde el
+     *      13/10/2026 la ventana es de cada número (`MessageIdentidad::$ventanaWhatsappHasta`),
+     *      así que esto ya no se deduce del hilo: se lee.
      *   2. El principal del superviviente, o su `guestPhone`: lo que ya funcionaba.
      *   3. El del absorbido.
      * Siempre entre los candidatos: un número vetado o retirado no se propone nunca.
@@ -131,19 +156,24 @@ final class FusionadorDeHilos
             return null;
         }
 
-        $ahora = new DateTimeImmutable();
-        $conVentana = array_filter(
-            [$superviviente, $absorbido],
-            static fn (MessageConversation $h): bool => $h->getWhatsappSessionValidUntil() !== null
-                && $h->getWhatsappSessionValidUntil() > $ahora,
-        );
-        usort(
-            $conVentana,
-            static fn (MessageConversation $a, MessageConversation $b): int
-                => $b->getWhatsappSessionValidUntil() <=> $a->getWhatsappSessionValidUntil(),
-        );
+        $conVentana = null;
 
-        foreach ([...$conVentana, $superviviente, $absorbido] as $hilo) {
+        foreach ([$superviviente, $absorbido] as $hilo) {
+            foreach ($hilo->getIdentidades() as $identidad) {
+                if (in_array($identidad->getValor(), $candidatos, true)
+                    && $identidad->getTipo() === IdentidadTipo::TELEFONO
+                    && $identidad->tieneVentanaWhatsappAbierta()
+                    && ($conVentana === null || $identidad->getVentanaWhatsappHasta() > $conVentana->getVentanaWhatsappHasta())) {
+                    $conVentana = $identidad;
+                }
+            }
+        }
+
+        if ($conVentana !== null) {
+            return $conVentana->getValor();
+        }
+
+        foreach ([$superviviente, $absorbido] as $hilo) {
             foreach ([$hilo->getTelefonoPrincipal()?->getValor(), $this->normalizado($hilo->getGuestPhone())] as $valor) {
                 if ($valor !== null && in_array($valor, $candidatos, true)) {
                     return $valor;
@@ -283,7 +313,7 @@ final class FusionadorDeHilos
      *   otro hilo lo había, lo sigue habiendo.
      * - **WhatsApp desactivado**: si alguno lo estaba, se queda desactivado. Es una decisión de
      *   seguridad y va por el lado prudente.
-     * - **ventana de 24 h**: la más lejana. Es del número, no del hilo.
+     * - **ventana de 24 h**: no se mezcla; es de cada número y viaja con su identidad.
      * - **resumen IA**: se borra. Resume una conversación que ya no es ésa; se regenera solo.
      */
     private function fusionarCabecera(MessageConversation $superviviente, MessageConversation $absorbido): void
@@ -312,10 +342,17 @@ final class FusionadorDeHilos
         //
         // Se recalcula al final de la fusión, cuando las identidades ya se movieron.
 
-        $ventanaB = $absorbido->getWhatsappSessionValidUntil();
-        $ventanaA = $superviviente->getWhatsappSessionValidUntil();
-        if ($ventanaB !== null && ($ventanaA === null || $ventanaB > $ventanaA)) {
-            $superviviente->setWhatsappSessionValidUntil($ventanaB);
+        // La ventana de 24 h ya NO se mezcla aquí: es de cada número y viaja con su identidad al
+        // moverla. La del hilo se recalcula en `recalcularCabecera()` como espejo de la del
+        // número de salida. Quedarse con «la más lejana» —lo de antes— le daba al superviviente la
+        // ventana de un número al que no se le iba a escribir (revisión de Fable, 13/10/2026).
+        // Sólo un superviviente sin identidad de salida la hereda, porque es lo único que tiene.
+        if ($superviviente->identidadDeSalida() === null) {
+            $ventanaB = $absorbido->getWhatsappSessionValidUntil();
+            $ventanaA = $superviviente->getWhatsappSessionValidUntil();
+            if ($ventanaB !== null && ($ventanaA === null || $ventanaB > $ventanaA)) {
+                $superviviente->setWhatsappSessionValidUntil($ventanaB);
+            }
         }
 
         $superviviente->setResumenIa(null);

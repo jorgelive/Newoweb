@@ -37,7 +37,11 @@ final class FusionadorDeHilosPropuestaTest extends TestCase
         $hilo = new MessageConversation('pms_reserva', 'x');
         $hilo->addIdentidad(new MessageIdentidad(IdentidadTipo::TELEFONO, $telefono, $origen));
         $hilo->setGuestPhone($telefono);
-        $hilo->setWhatsappSessionValidUntil($ventana);
+
+        // La ventana es del NÚMERO desde el 13/10/2026: se abre como lo hace la recepción.
+        if ($ventana !== null) {
+            $hilo->abrirVentanaWhatsappDe($telefono, $ventana);
+        }
 
         return $hilo;
     }

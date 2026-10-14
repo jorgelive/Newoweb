@@ -14,6 +14,7 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import { useNoLeidosStore } from '@/stores/chat/noLeidosStore';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { formatoAHtml, envolverSeleccion } from '@/utils/formatoDeTexto';
+import { formatearTelefono } from '@/utils/telefono';
 
 const store = useChatStore();
 const attachmentStore = useAttachmentStore();
@@ -784,14 +785,46 @@ const ahora = ref(Date.now());
 const relojDeVentana = setInterval(() => { ahora.value = Date.now(); }, 30_000);
 onUnmounted(() => clearInterval(relojDeVentana));
 
+/**
+ * Los teléfonos a los que se puede escribir por WhatsApp desde este hilo: vivos y sin vetar.
+ *
+ * 🔥 **La ventana de 24 h es de cada NÚMERO**, como la cuenta Meta (`MessageIdentidad::
+ * $ventanaWhatsappHasta`). Con dos números, que escriba uno no abre la del otro: Camille
+ * (12/10/2026) escribía desde su WhatsApp, la respuesta salió al número de su reserva y Meta la
+ * rechazó. Por eso, con más de uno, se elige a cuál sale y el candado es el de ESE número.
+ */
+const telefonosDeSalida = computed(() =>
+  (store.currentConversation?.identidades ?? [])
+    .filter(i => i.tipo === 'telefono' && !i.retiradoEn && !i.bloqueado && !!i.valor)
+    .map(i => ({ valor: i.valor as string, ventanaHasta: i.ventanaWhatsappHasta ?? null }))
+);
+
+/** El número elegido para este envío; `null` = el de salida del hilo (`guestPhone`). */
+const telefonoElegido = ref<string | null>(null);
+watch(() => store.currentConversation?.id, () => { telefonoElegido.value = null; });
+
+/** El elegido, sólo si es OTRO que el de salida del hilo: es lo único que el backend necesita. */
+const telefonoSalidaDistinto = computed<string | null>(() => {
+  const salida = (store.currentConversation?.guestPhone ?? '').replace(/\D/g, '');
+  return telefonoElegido.value && telefonoElegido.value !== salida ? telefonoElegido.value : null;
+});
+
 const ventanaAbierta = computed(() => {
   const chat = store.currentConversation;
   if (!chat) return false;
+
+  // Otro número que el de salida: su ventana, no la del hilo (que es la del de salida).
+  if (telefonoSalidaDistinto.value) {
+    const suya = telefonosDeSalida.value.find(t => t.valor === telefonoSalidaDistinto.value)?.ventanaHasta;
+    return suya ? new Date(suya).getTime() > ahora.value : false;
+  }
 
   const caduca = chat.whatsappSessionValidUntil ? new Date(chat.whatsappSessionValidUntil).getTime() : NaN;
 
   return Number.isNaN(caduca) ? (chat.whatsappSessionActive ?? false) : caduca > ahora.value;
 });
+
+const ventanaDe = (hasta: string | null): boolean => !!hasta && new Date(hasta).getTime() > ahora.value;
 
 const isWhatsappAllowed = computed(() => {
   if (!canalHabilitado('whatsapp_meta')) return false;
@@ -1045,7 +1078,7 @@ const send = async () => {
       store.error = 'Este chat no tiene nombre de cliente y el aviso empieza por «Hola …». Ponle nombre al chat y vuelve a enviarlo.';
       return;
     }
-    await store.sendMessage(newMessageText.value, null, ['whatsapp_meta'], 'en_espera', referenciaEspera.value.trim());
+    await store.sendMessage(newMessageText.value, null, ['whatsapp_meta'], 'en_espera', referenciaEspera.value.trim(), telefonoSalidaDistinto.value);
     newMessageText.value = '';
     // Sin `clearTemplate()`: re-elegiría los canales por defecto, y con la ventana cerrada eso es
     // Beds24 — el segundo párrafo de una cotización saldría por el chat de Booking sin que nadie
@@ -1063,7 +1096,7 @@ const send = async () => {
     return;
   }
 
-  await store.sendMessage(newMessageText.value, selectedTemplateId.value, selectedChannels.value);
+  await store.sendMessage(newMessageText.value, selectedTemplateId.value, selectedChannels.value, 'pending', null, telefonoSalidaDistinto.value);
   newMessageText.value = '';
   clearTemplate();
   showTemplateDropdown.value = false;
@@ -1971,6 +2004,20 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                 {{ store.currentConversation?.whatsappDisabledReason || 'Canal bloqueado por error de Meta' }}
               </div>
             </div>
+
+            <!-- A qué número sale, cuando hay más de uno. La ventana de 24 h es de cada número:
+                 el candado y el modo «esperar» son los del elegido. -->
+            <select
+                v-if="telefonosDeSalida.length > 1 && selectedChannels.includes('whatsapp_meta')"
+                :value="telefonoElegido ?? (store.currentConversation?.guestPhone ?? '').replace(/\D/g, '')"
+                @change="telefonoElegido = ($event.target as HTMLSelectElement).value || null"
+                class="px-2 py-1.5 rounded-lg text-xs font-bold border border-green-200 bg-white text-slate-700 shrink-0 focus:outline-none focus:ring-1 focus:ring-green-400"
+                title="A qué número sale por WhatsApp"
+            >
+              <option v-for="t in telefonosDeSalida" :key="t.valor" :value="t.valor">
+                {{ formatearTelefono('+' + t.valor) || t.valor }} {{ ventanaDe(t.ventanaHasta) ? '· ventana abierta' : '· 🔒 sin ventana' }}
+              </option>
+            </select>
 
             <!-- ⚠️ TERCER botón escrito a mano, y eso ya es una señal: esta barra debería
                  pintarse recorriendo `store.canalesDelChat`, que el backend ya devuelve con su
