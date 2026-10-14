@@ -283,8 +283,6 @@ final class CorreccionesDeTraduccion
                 => 'Si vous le trouvez fermé,',
             'Entrez dans le passage de 3 mètres.'
                 => 'Avancez de 3 mètres dans le passage.',
-            'vous trouverez deux coffres-forts numériques'
-                => 'vous trouverez deux boîtes à clés à code',
             // Limpieza (general)
             'passe <strong>tous les matins</strong>'
                 => 'passe <strong>chaque nuit, avant l&#39;aube</strong>',
