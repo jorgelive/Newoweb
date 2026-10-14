@@ -76,8 +76,6 @@ final class CorreccionesDeTraduccion
             'comes <strong>every morning</strong>'
                 => 'comes <strong>every night, before dawn</strong>',
             // Reglas (general)
-            'and additional guests must be paid.'
-                => 'and there is a charge for each additional guest.',
             'Do not wash clothes with the tap water from the apartment.'
                 => 'Please don\'t do laundry in the apartment.',
             'In <strong>Services</strong> you have nearby laundromats and our washing service.'
@@ -176,6 +174,8 @@ final class CorreccionesDeTraduccion
             'Escreva-nos no WhatsApp para {{ whatsapp_numero }}'
                 => 'Escreva-nos pelo WhatsApp no número {{ whatsapp_numero }}',
             // Reglas (general)
+            'e cada hóspede adicional incorre em um custo.'
+                => 'e cada hóspede adicional tem um custo.',
             'você pode encontrá-la na <strong>área de Serviços</strong>'
                 => 'você faz o pedido na seção <strong>Serviços</strong> deste guia',
             'Os cilindros de gás duram'
@@ -287,8 +287,8 @@ final class CorreccionesDeTraduccion
             'passe <strong>tous les matins</strong>'
                 => 'passe <strong>chaque nuit, avant l&#39;aube</strong>',
             // Reglas (general)
-            'les invités supplémentaires doivent être payés.'
-                => 'toute personne supplémentaire est payante.',
+            'et chaque invité supplémentaire entraîne un coût supplémentaire.'
+                => 'et chaque personne supplémentaire est facturée.',
             // Calefactor (general)
             '<strong>Opération :</strong>'
                 => '<strong>Fonctionnement :</strong>',
