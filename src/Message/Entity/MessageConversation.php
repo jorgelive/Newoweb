@@ -1166,7 +1166,7 @@ class MessageConversation
         return $this;
     }
 
-    private function tieneIdentidadDeTelefono(): bool
+    public function tieneIdentidadDeTelefono(): bool
     {
         foreach ($this->identidades as $identidad) {
             if ($identidad->getTipo() === IdentidadTipo::TELEFONO) {

@@ -1155,3 +1155,21 @@ Los automáticos ya no justifican un resumen diario: caben en la guardia técnic
 
 En los dos, el agente le dijo al huésped «ya he avisado al equipo» en un mensaje que **no le
 llegó**. Que lo atendiera una persona después fue suerte, no diseño.
+
+---
+
+## Ventana por número: dos restos que la revisión dejó fuera — 13/10/2026
+
+Salieron de la segunda revisión de Fable del cambio «la ventana de WhatsApp es de cada número»
+(`docs/Mensajeria.md` §5). Ninguno bloqueaba el despliegue.
+
+- **Los botones contestan a la salida, no al que pulsó.** Sólo la rama IA contesta al número que
+  escribió (`AiConversationProcessor::telefonoDeRespuesta()`). Los handlers deterministas —botones,
+  `PedirHora…`— no ponen `telefonoSalida`: si pulsa el SEGUNDO número, la respuesta mira la ventana
+  del principal y, sin ella, no sale. El arreglo es el mismo patrón: leer
+  `Message::getTelefonoOrigen()` del entrante y pasarlo a la respuesta.
+- **El hilo `staff` de un operador no vincula su móvil nuevo.**
+  `AvisoAlEquipoService::conversacionStaff()` sólo llama a `vincular()` al CREAR el hilo. Si el
+  operador cambia de móvil, `setGuestPhone()` deja ahora la ventana cerrada —bien: ese número nunca
+  escribió—, pero el número no queda como identidad, y cuando el operador escriba desde él caerá en
+  un hilo `manual` aparte. Falta vincularlo también en el camino del hilo existente.

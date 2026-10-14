@@ -552,7 +552,10 @@ class Message
             // `WhatsappMetaReceivePersister` con `abrirVentanaWhatsappDe()`. Sólo un hilo sin
             // identidad de salida —anterior a las identidades— la sigue abriendo aquí, en el hilo,
             // que es lo único que tiene. Ver `MessageIdentidad::$ventanaWhatsappHasta`.
-            if ($this->channel?->getId() === 'whatsapp_meta' && $this->conversation->identidadDeSalida() === null) {
+            // ⚠️ «Sin identidades de teléfono», no sólo «sin identidad de salida»: un hilo CON
+            // identidades cuya salida no es ninguna no tiene ventana abierta, y abrirla aquí
+            // dependía de que el persister la cerrara después (Fable, 13/10/2026).
+            if ($this->channel?->getId() === 'whatsapp_meta' && !$this->conversation->tieneIdentidadDeTelefono()) {
                 $this->conversation->setWhatsappSessionValidUntil(
                     DateTimeImmutable::createFromInterface($msgDate)->modify('+24 hours')
                 );

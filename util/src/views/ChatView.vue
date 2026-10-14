@@ -2016,14 +2016,14 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
             <!-- A qué número sale, cuando hay más de uno. La ventana de 24 h es de cada número:
                  el candado y el modo «esperar» son los del elegido. -->
             <select
-                v-if="telefonosDeSalida.length > 1 && selectedChannels.includes('whatsapp_meta')"
+                v-if="telefonosDeSalida.length + (salidaFueraDeLista ? 1 : 0) > 1 && selectedChannels.includes('whatsapp_meta')"
                 :value="telefonoElegido ?? salidaDelHilo"
                 @change="telefonoElegido = ($event.target as HTMLSelectElement).value || null"
                 class="px-2 py-1.5 rounded-lg text-xs font-bold border border-green-200 bg-white text-slate-700 shrink-0 focus:outline-none focus:ring-1 focus:ring-green-400"
                 title="A qué número sale por WhatsApp"
             >
               <option v-if="salidaFueraDeLista" :value="salidaDelHilo">
-                {{ formatearTelefono('+' + salidaDelHilo) || salidaDelHilo }} · salida actual {{ ventanaAbierta && !telefonoSalidaDistinto ? '· ventana abierta' : '· 🔒 sin ventana' }}
+                {{ formatearTelefono('+' + salidaDelHilo) || salidaDelHilo }} · salida actual {{ ventanaDe(store.currentConversation?.whatsappSessionValidUntil ?? null) ? '· ventana abierta' : '· 🔒 sin ventana' }}
               </option>
               <option v-for="t in telefonosDeSalida" :key="t.valor" :value="t.valor">
                 {{ formatearTelefono('+' + t.valor) || t.valor }} {{ ventanaDe(t.ventanaHasta) ? '· ventana abierta' : '· 🔒 sin ventana' }}
