@@ -1752,6 +1752,14 @@ este orden: 🔑 cómo se abre · 🧭 cómo llegar (pasos) · 🚪 tu puerta ·
 marcador se quita solo si no hay vídeo, pero la frase no, y quedaría huérfana. Cuando la 5 tenga el
 suyo, se cambia `video` en el comando y se relanza.
 
+⚠️ **El traductor no conoce el sitio.** «Al pie de las gradas» salió «at the foot of the stands» (y
+«Tribüne», «tribunes», «arquibancadas»…) en los seis idiomas, «al terminarlas, la tienes de frente»
+un «verás el resultado», y en italiano «gira a la derecha» un «haz la llamada». El español es de
+Jorge y no se toca para complacer al traductor: el comando aplica `CORRECCIONES` (frase traducida →
+corregida, por idioma) **después** de traducir, en cada pasada y conservando el `origenHash`. Si una
+retraducción cambia la frase, el comando avisa de la corrección huérfana. Ojo con el francés: lleva
+espacio duro (U+00A0) antes de «:» y «;».
+
 Para ver qué casitas tienen ya cada medio, «Medios de las casitas» filtra por **casita y por tipo**
 (`PmsUnidadMediaCrudController::configureFilters()`).
 
