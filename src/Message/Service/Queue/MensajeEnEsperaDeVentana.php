@@ -382,7 +382,7 @@ final readonly class MensajeEnEsperaDeVentana
         foreach ($this->esperando($hilo) as $mensaje) {
             // Un aviso sólo cubre lo que espera al MISMO número: el permiso de uno no abre la
             // ventana del otro.
-            if ($mensaje === $nuevo || $mensaje->getTelefonoSalida() !== $nuevo->getTelefonoSalida()) {
+            if ($mensaje === $nuevo || $hilo->destinoDe($mensaje) !== $hilo->destinoDe($nuevo)) {
                 continue;
             }
 

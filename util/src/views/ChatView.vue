@@ -803,11 +803,19 @@ const telefonosDeSalida = computed(() =>
 const telefonoElegido = ref<string | null>(null);
 watch(() => store.currentConversation?.id, () => { telefonoElegido.value = null; });
 
+/** El número de salida del hilo, en dígitos (como el `valor` de las identidades). */
+const salidaDelHilo = computed(() => (store.currentConversation?.guestPhone ?? '').replace(/\D/g, ''));
+
+/**
+ * El de salida NO está entre los vivos y sin vetar (p. ej. varios vivos sin principal y el viejo
+ * retirado): se ofrece igual, o el `<select>` pintaría el primero mientras el mensaje va a éste.
+ */
+const salidaFueraDeLista = computed(() =>
+  !!salidaDelHilo.value && !telefonosDeSalida.value.some(t => t.valor === salidaDelHilo.value));
+
 /** El elegido, sólo si es OTRO que el de salida del hilo: es lo único que el backend necesita. */
-const telefonoSalidaDistinto = computed<string | null>(() => {
-  const salida = (store.currentConversation?.guestPhone ?? '').replace(/\D/g, '');
-  return telefonoElegido.value && telefonoElegido.value !== salida ? telefonoElegido.value : null;
-});
+const telefonoSalidaDistinto = computed<string | null>(() =>
+  telefonoElegido.value && telefonoElegido.value !== salidaDelHilo.value ? telefonoElegido.value : null);
 
 const ventanaAbierta = computed(() => {
   const chat = store.currentConversation;
@@ -2009,11 +2017,14 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                  el candado y el modo «esperar» son los del elegido. -->
             <select
                 v-if="telefonosDeSalida.length > 1 && selectedChannels.includes('whatsapp_meta')"
-                :value="telefonoElegido ?? (store.currentConversation?.guestPhone ?? '').replace(/\D/g, '')"
+                :value="telefonoElegido ?? salidaDelHilo"
                 @change="telefonoElegido = ($event.target as HTMLSelectElement).value || null"
                 class="px-2 py-1.5 rounded-lg text-xs font-bold border border-green-200 bg-white text-slate-700 shrink-0 focus:outline-none focus:ring-1 focus:ring-green-400"
                 title="A qué número sale por WhatsApp"
             >
+              <option v-if="salidaFueraDeLista" :value="salidaDelHilo">
+                {{ formatearTelefono('+' + salidaDelHilo) || salidaDelHilo }} · salida actual {{ ventanaAbierta && !telefonoSalidaDistinto ? '· ventana abierta' : '· 🔒 sin ventana' }}
+              </option>
               <option v-for="t in telefonosDeSalida" :key="t.valor" :value="t.valor">
                 {{ formatearTelefono('+' + t.valor) || t.valor }} {{ ventanaDe(t.ventanaHasta) ? '· ventana abierta' : '· 🔒 sin ventana' }}
               </option>

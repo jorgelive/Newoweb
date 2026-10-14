@@ -1122,7 +1122,14 @@ class MessageConversation
         $identidad = $this->identidadDeSalida($telefono);
 
         if ($identidad === null) {
-            $this->whatsappSessionValidUntil = $hasta;
+            // Sólo abre la del hilo si quien escribe ES el número de salida, o si el hilo no tiene
+            // identidades de teléfono (no hay otra cosa que abrir). Un número ajeno a ambas cosas
+            // no puede abrir la ventana de otro: es exactamente el error que esto corrige.
+            $valor = IdentidadTipo::TELEFONO->normalizar($telefono);
+
+            if (!$this->tieneIdentidadDeTelefono() || $valor === $this->salidaNormalizada()) {
+                $this->whatsappSessionValidUntil = $hasta;
+            }
 
             return $this;
         }
@@ -1139,8 +1146,12 @@ class MessageConversation
      * verdad en las identidades. La leen el chat, el agente, las órdenes, los avisos al equipo…
      * y todos preguntan en realidad «¿puedo escribirle texto libre al número al que va a salir?».
      *
-     * Sin identidad para `guestPhone` no se toca: es un hilo sin identidades y su ventana sólo
-     * existe en el hilo.
+     * Sin identidad para `guestPhone`:
+     * - **un hilo SIN identidades de teléfono** no se toca: su ventana sólo existe en el hilo;
+     * - **un hilo CON identidades** cuya salida no es ninguna de ellas (un número sembrado a mano,
+     *   el móvil nuevo de un operador) queda CERRADO. Ese número nunca escribió —si lo hubiera
+     *   hecho, sería identidad—, y dejar la ventana del número anterior hacía que el texto libre
+     *   saliera hacia él y rebotara con 131047 (revisión de Fable, 13/10/2026).
      */
     public function recalcularVentanaWhatsapp(): self
     {
@@ -1148,9 +1159,28 @@ class MessageConversation
 
         if ($salida !== null) {
             $this->whatsappSessionValidUntil = $salida->getVentanaWhatsappHasta();
+        } elseif ($this->tieneIdentidadDeTelefono()) {
+            $this->whatsappSessionValidUntil = null;
         }
 
         return $this;
+    }
+
+    private function tieneIdentidadDeTelefono(): bool
+    {
+        foreach ($this->identidades as $identidad) {
+            if ($identidad->getTipo() === IdentidadTipo::TELEFONO) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** `guestPhone` normalizado, o `''`: el número por el que sale WhatsApp si no se elige otro. */
+    public function salidaNormalizada(): string
+    {
+        return IdentidadTipo::TELEFONO->normalizar((string) $this->guestPhone);
     }
 
     /**
@@ -1167,8 +1197,26 @@ class MessageConversation
 
         $identidad = $this->identidadDeSalida($telefono);
 
-        // Un número que no es del hilo no tiene ventana que valga.
-        return $identidad !== null && $identidad->tieneVentanaWhatsappAbierta();
+        if ($identidad !== null) {
+            return $identidad->tieneVentanaWhatsappAbierta();
+        }
+
+        // Sin identidad, sólo el número de SALIDA tiene ventana: la del hilo, que es lo único que
+        // hay en un hilo anterior a las identidades. Sin esto, el envío (que siempre pregunta por
+        // el número de destino) contestaba «cerrada» donde el encolador había dicho «abierta», y
+        // el mensaje moría en la cola con un motivo falso (revisión de Fable, 13/10/2026).
+        $valor = IdentidadTipo::TELEFONO->normalizar($telefono);
+
+        return $valor !== '' && $valor === $this->salidaNormalizada() && $this->isWhatsappSessionActive();
+    }
+
+    /**
+     * El número al que sale ESTE mensaje, normalizado: el elegido o, si no, el de salida del
+     * hilo. Para comparar destinos sin que `null` y «el de salida escrito» parezcan distintos.
+     */
+    public function destinoDe(Message $mensaje): string
+    {
+        return $mensaje->getTelefonoSalida() ?? $this->salidaNormalizada();
     }
 
     /**

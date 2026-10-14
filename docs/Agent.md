@@ -94,6 +94,14 @@ abierto, y de ahí salen la ventana de ráfaga, el idioma, el perfil de conversa
 restricción de canal. En la 4 no hay nadie: no hay idioma que respetar, ni ventana de 24 h, ni
 canal que restringir — y por eso su actor tampoco tiene nada de eso.
 
+⚠️ **La ventana de 24 h de la entrada 1 es la del NÚMERO que escribió (13/10/2026).** Meta la
+cuenta por número, y la persona puede tener dos. `AiConversationProcessor::motivoParaCallarse()`
+mira la de `telefonoDeRespuesta()` —el número del entrante (`metadata.telefono_origen`), si es un
+teléfono vivo del hilo— y `encolarRespuesta()` le contesta a ése. Antes miraba la del hilo, que es
+la del principal: con Camille, que escribía desde su segundo número, se habría callado sin fallo ni
+aviso. El principal no se toca. El detalle, en `docs/Mensajeria.md` §5, «La ventana de WhatsApp es
+de cada NÚMERO».
+
 ### 1.3 Media entrada más: el resumen
 
 `ResumenConversacionService` vive en `src/Message/` y llama al motor por su cuenta. Es de la

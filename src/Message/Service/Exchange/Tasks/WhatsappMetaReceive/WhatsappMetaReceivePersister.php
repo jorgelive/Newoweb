@@ -327,6 +327,11 @@ readonly class WhatsappMetaReceivePersister
         $windowExpiry = (clone $msgDate)->modify('+24 hours');
         $conversation->abrirVentanaWhatsappDe($guestPhone, $windowExpiry);
 
+        // Desde qué número escribió: el agente contesta a ÉSE, que es el que tiene la ventana
+        // (`AiConversationProcessor::telefonoDeRespuesta()`). Sin esto, con dos números el
+        // agente miraba la ventana del principal, la veía cerrada y se callaba.
+        $message->addMetadata('telefono_origen', IdentidadTipo::TELEFONO->normalizar($guestPhone));
+
         // 4. ⏳ Con la ventana abierta, sale lo que el operador dejó esperando. Da igual que el
         // cliente pulse «Sí, envíamela» o escriba otra cosa: cualquier mensaje suyo la abre.
         //

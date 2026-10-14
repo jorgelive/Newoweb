@@ -730,6 +730,18 @@ class Message
     public function getReferenciaEspera(): ?string { return $this->referenciaEspera; }
     public function setReferenciaEspera(?string $referencia): self { $this->referenciaEspera = $referencia; return $this; }
 
+    /**
+     * Desde qué número escribió un ENTRANTE de WhatsApp, normalizado. Lo estampa
+     * `WhatsappMetaReceivePersister`; lo lee el agente para contestar a ESE número, que es el
+     * que tiene la ventana abierta aunque no sea el principal (Camille, 12/10/2026).
+     */
+    public function getTelefonoOrigen(): ?string
+    {
+        $origen = $this->getMetadata()['telefono_origen'] ?? null;
+
+        return is_string($origen) && $origen !== '' ? $origen : null;
+    }
+
     /** El número elegido para ESTE envío, normalizado; `null` = el de salida del hilo. */
     public function getTelefonoSalida(): ?string
     {
@@ -857,7 +869,10 @@ class Message
     {
         $publicas = array_intersect_key(
             $this->metadata,
-            array_flip(['beds24', 'whatsappMeta', 'dispatch_errors', 'dispatch_warnings'])
+            // `telefono_salida` / `telefono_origen`: a qué número salió y desde cuál escribió. Con la
+            // ventana por número el chat tiene que poder enseñarlo, y es el único rastro de una
+            // elección hecha a mano.
+            array_flip(['beds24', 'whatsappMeta', 'dispatch_errors', 'dispatch_warnings', 'telefono_salida', 'telefono_origen'])
         );
 
         // `beds24` y `whatsappMeta` siempre presentes, como hacía `getMetadata()`: el front

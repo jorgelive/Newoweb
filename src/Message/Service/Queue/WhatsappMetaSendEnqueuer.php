@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Queue;
 
+use App\Message\Enum\IdentidadTipo;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Enum\ConnectivityProvider;
@@ -81,6 +82,12 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
         // vetar del propio hilo: si no, se lanza —queda `failed` con el motivo— en vez de caer al
         // de siempre. Mandarlo a un número distinto del que se eligió sería peor que no mandarlo.
         $elegido = $message->getTelefonoSalida();
+
+        // Elegir el número de salida de siempre es no elegir nada: así un hilo sin identidades
+        // no lo rechaza por no encontrarle identidad, y la ventana es la del hilo.
+        if ($elegido !== null && $elegido === IdentidadTipo::TELEFONO->normalizar((string) $targetPhone)) {
+            $elegido = null;
+        }
 
         if ($elegido !== null) {
             $identidad = $conversation->identidadDeSalida($elegido);

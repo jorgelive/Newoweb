@@ -369,8 +369,13 @@ final readonly class AiConversationProcessor
         // 5. VENTANA DE 24 H DE WHATSAPP. Fuera de sesión Meta sólo acepta plantillas
         // aprobadas, así que un texto generado sería rechazado por el enqueuer y acabaría
         // como mensaje FAILED. Mejor no generarlo: ahorra la llamada al modelo y el ruido.
+        //
+        // ⚠️ La ventana es de cada NÚMERO: se mira la del que escribió, que es a quien se
+        // contesta (`telefonoDeRespuesta()`). Con la del hilo —la del principal— el agente se
+        // callaba ante quien escribía desde su segundo número (Camille, 12/10/2026).
         $canal = (string) ($entrante->getChannel()?->getId() ?? '');
-        if ($canal === 'whatsapp_meta' && !$conversacion->isWhatsappSessionActive()) {
+        if ($canal === 'whatsapp_meta'
+            && !$conversacion->ventanaWhatsappAbiertaPara($this->telefonoDeRespuesta($conversacion, $entrante))) {
             return 'fuera_de_ventana_24h';
         }
 
@@ -1540,6 +1545,28 @@ final readonly class AiConversationProcessor
      */
     private const array MOTIVOS_DE_AVERIA = ['motor_no_disponible', 'sin_respuesta'];
 
+    /**
+     * A qué número contesta el agente por WhatsApp: al que escribió, si no es el de salida del
+     * hilo y sigue siendo un teléfono vivo y sin vetar de la persona. `null` = el de siempre.
+     *
+     * 🔥 Es lo natural —se le contesta a quien habló— y es el único número con ventana segura:
+     * acaba de escribir. El principal NO se toca: quien reservó sigue siendo la salida por defecto
+     * de lo programado; esto es sólo la respuesta a ese mensaje (decisión del 13/10/2026, frente a
+     * cambiar el principal al número que escribe).
+     */
+    private function telefonoDeRespuesta(MessageConversation $conversacion, Message $entrante): ?string
+    {
+        $origen = $entrante->getTelefonoOrigen();
+
+        if ($origen === null || $origen === $conversacion->salidaNormalizada()) {
+            return null;
+        }
+
+        $identidad = $conversacion->identidadDeSalida($origen);
+
+        return $identidad !== null && $identidad->estaViva() && !$identidad->isBloqueado() ? $origen : null;
+    }
+
     private function encolarRespuesta(MessageConversation $conversacion, Message $entrante, string $texto): void
     {
         $canal = $entrante->getChannel();
@@ -1558,6 +1585,11 @@ final readonly class AiConversationProcessor
         $salida->setContentExternal($texto);
         $salida->setLanguageCode($conversacion->getIdioma()->getId() ?? 'es');
         $salida->addMetadata('generado_por', 'ia');
+
+        // Por WhatsApp, al número que escribió (ver `telefonoDeRespuesta()`).
+        if ($canal?->getId() === 'whatsapp_meta') {
+            $salida->setTelefonoSalida($this->telefonoDeRespuesta($conversacion, $entrante));
+        }
 
         // El acuse se marca para poder reconocerlo sin mirar su texto. Comparar aquí con las
         // siete redacciones es barato y pasa una sola vez; hacerlo al leer era lo que fallaba.

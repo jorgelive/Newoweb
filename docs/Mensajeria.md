@@ -928,7 +928,26 @@ envío (chat: «A qué número» si hay más de uno)            Message::$telefo
   `guestPhone` (el setter, sólo si cambia) y tras una fusión.
 - **Un hilo sin identidad de salida** —anterior a las identidades, 11 en producción el 13/10—
   sigue con la ventana en el hilo: es lo único que tiene. Por eso `Message::onPrePersist()` sólo
-  abre la del hilo cuando `identidadDeSalida()` es `null`.
+  abre la del hilo cuando `identidadDeSalida()` es `null`, y `ventanaWhatsappAbiertaPara()` cae a
+  la del hilo **cuando el número pedido es el de salida** y no tiene identidad. ⚠️ Sin esa caída,
+  el envío —que siempre pregunta por el número de destino— decía «cerrada» donde el encolador
+  había dicho «abierta», y el mensaje moría en la cola con «envío libre fuera de ventana», un
+  motivo falso. Lo cazó la revisión de Fable antes de desplegar.
+- **Salida que no es identidad, en un hilo que SÍ tiene identidades** (un número sembrado a mano,
+  el móvil nuevo de un operador en `conversacionStaff()`): ventana **cerrada**. Ese número nunca
+  escribió; quedarse con la ventana del anterior mandaba texto libre a uno sin ella. Y un número
+  ajeno al hilo que escribe no abre la ventana del de salida.
+- 🤖 **El agente contesta al número que ESCRIBIÓ** (`AiConversationProcessor::telefonoDeRespuesta()`).
+  El entrante guarda `metadata.telefono_origen`; si no es el de salida y es un teléfono vivo y sin
+  vetar del hilo, la ventana que se mira es la suya y la respuesta lleva `telefonoSalida`. Sin
+  esto, Camille habría seguido sin respuesta, ahora en silencio: el agente miraba la ventana del
+  principal, la veía cerrada y se callaba con `fuera_de_ventana_24h`, sin fallo ni aviso.
+  ⚠️ **El principal NO se cambia** (decisión del 13/10/2026): lo programado sigue saliendo a quien
+  reservó; esto es sólo la respuesta a ese mensaje. La alternativa —que el número que escribe pase
+  a principal si el actual no tiene ventana— se descartó por romper esa regla.
+- **En tiempo real**: `MercureConversationDto` manda `whatsappSessionValidUntil` y
+  `ventanasWhatsapp` (`valor → hasta`), y `chatStore` los aplica al hilo abierto. Sin eso, tras
+  escribir el segundo número el selector seguía diciendo «sin ventana» hasta recargar.
 - ⚠️ **El teléfono «vivo» del dominio pisaba al elegido.** `WhatsappMetaSendMappingStrategy` no
   manda a la cola: le pregunta al resolver del asunto (`ContactoDelAsunto`, el principal) y, si
   contesta, manda ahí. Con un número elegido eso lo devolvería al principal **sin un solo error**;
@@ -942,6 +961,11 @@ envío (chat: «A qué número» si hay más de uno)            Message::$telefo
   dura 24 h, así que la imprecisión se extinguió sola al día siguiente.
 - `telefonoSalida` viaja como `referenciaEspera`: campo del formulario en `message:write`, sin
   columna, guardado en `metadata.telefono_salida` porque se lee después (la cola, la liberación).
+  Sólo se acepta al CREAR (no hay `Patch` en `Message`). Elegir el número de salida de siempre es
+  no elegir nada (`WhatsappMetaSendEnqueuer` lo anula), y la espera compara destinos con
+  `MessageConversation::destinoDe()`, para que `null` y «el de salida escrito» no pidan dos avisos.
+  `telefono_salida` y `telefono_origen` van en `getMetadataPublica()`: el chat puede enseñar a qué
+  número salió cada mensaje.
 
 ### ⏳ Mensaje en espera: WhatsApp con la ventana cerrada (28/09/2026)
 
@@ -7463,6 +7487,7 @@ de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar
 | Cambiar a quién llegan los avisos | quien construye el `AvisoAlEquipo` | Es el campo `rol`. Reciben los que lo tengan **y** móvil registrado (`destinatarios()`) |
 | Cambiar cuándo se sugiere unir dos hilos o cuándo se avisa | `MessageConversation::sugerirFusion()` / `FusionSugeridaListener` | «El choque de identificadores que nadie veía» |
 | Cambiar cómo se abre o se lee la ventana de 24 h de un número | `MessageConversation` | `abrirVentanaWhatsappDe()`, `recalcularVentanaWhatsapp()`, `ventanaWhatsappAbiertaPara()`; la verdad en `MessageIdentidad::$ventanaWhatsappHasta` (§5, «La ventana de WhatsApp es de cada NÚMERO») |
+| A qué número contesta el agente por WhatsApp | `AiConversationProcessor` | `telefonoDeRespuesta()` — al que escribió (`metadata.telefono_origen`), sin tocar el principal |
 | Mandar un mensaje a OTRO número del hilo | `Message::setTelefonoSalida()` | validado en `WhatsappMetaSendEnqueuer::createQueueEntity()`; el selector es `telefonosDeSalida` en `ChatView.vue` |
 | Cambiar qué teléfono queda de salida al unir dos hilos | `FusionadorDeHilos` | `telefonoPropuesto()` (la regla) y `telefonosCandidatos()`; el selector es `TelefonoPrincipalDeFusion.vue` (§«Fusionar dejó de ser sólo un comando») |
 | Cambiar el texto del aviso de fusión sugerida | `AvisarFusionSugeridaDispatchHandler` (dentro de ventana) / plantilla `aviso_fusion_sugerida_interno` (`msg:crear:aviso-fusion`) | En Meta, texto nuevo = versión nueva |

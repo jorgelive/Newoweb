@@ -97,4 +97,61 @@ final class VentanaWhatsappPorNumeroTest extends TestCase
         self::assertSame(self::WHATSAPP, $mensaje->getMetadata()['telefono_salida'] ?? null);
         self::assertNull((new Message())->setTelefonoSalida('')->getTelefonoSalida());
     }
+
+    /**
+     * Hilo sin identidades: el número de salida usa la ventana del hilo también cuando se pregunta
+     * POR NÚMERO, que es como pregunta el envío. Antes el envío decía «cerrada» y el encolador
+     * «abierta» (Fable, 13/10/2026).
+     */
+    public function testEnUnHiloSinIdentidadesElNumeroDeSalidaUsaLaVentanaDelHilo(): void
+    {
+        $hilo = new MessageConversation('pms_reserva', 'x');
+        $hilo->setGuestPhone('+' . self::RESERVA);
+        $hilo->abrirVentanaWhatsappDe(self::RESERVA, new DateTimeImmutable('+20 hours'));
+
+        self::assertTrue($hilo->ventanaWhatsappAbiertaPara(self::RESERVA));
+        self::assertFalse($hilo->ventanaWhatsappAbiertaPara(self::WHATSAPP), 'Otro número no hereda la del hilo.');
+    }
+
+    /** Cambiar la salida a un número que no es identidad (nunca escribió) la deja cerrada. */
+    public function testUnaSalidaNuevaSinIdentidadQuedaSinVentana(): void
+    {
+        $hilo = $this->hiloConDosNumeros();
+        $hilo->abrirVentanaWhatsappDe(self::RESERVA, new DateTimeImmutable('+20 hours'));
+        self::assertTrue($hilo->isWhatsappSessionActive());
+
+        $hilo->setGuestPhone('51987654321');
+
+        self::assertFalse($hilo->isWhatsappSessionActive(), 'Era la ventana del número ANTERIOR: 131047 seguro.');
+    }
+
+    /** Un número ajeno que escribe no abre la ventana del de salida. */
+    public function testUnNumeroAjenoQueEscribeNoAbreLaVentanaDeLaSalida(): void
+    {
+        $hilo = $this->hiloConDosNumeros();
+
+        $hilo->abrirVentanaWhatsappDe('51987654321', new DateTimeImmutable('+20 hours'));
+
+        self::assertFalse($hilo->isWhatsappSessionActive());
+    }
+
+    /** `null` y «el número de salida escrito» son el mismo destino: un solo aviso de espera. */
+    public function testElDestinoPorDefectoYElDeSalidaEscritoSonElMismo(): void
+    {
+        $hilo = $this->hiloConDosNumeros();
+
+        self::assertSame(
+            $hilo->destinoDe(new Message()),
+            $hilo->destinoDe((new Message())->setTelefonoSalida('+' . self::RESERVA)),
+        );
+        self::assertNotSame($hilo->destinoDe(new Message()), $hilo->destinoDe((new Message())->setTelefonoSalida(self::WHATSAPP)));
+    }
+
+    public function testElEntranteGuardaDesdeQueNumeroEscribio(): void
+    {
+        $entrante = (new Message())->addMetadata('telefono_origen', self::WHATSAPP);
+
+        self::assertSame(self::WHATSAPP, $entrante->getTelefonoOrigen());
+        self::assertNull((new Message())->getTelefonoOrigen());
+    }
 }

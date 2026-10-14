@@ -569,10 +569,26 @@ export const useChatStore = defineStore('chatStore', () => {
                     });
                 }
 
+                // La ventana de WhatsApp es de cada NÚMERO (`MercureConversationDto::$ventanasWhatsapp`).
+                // Se aplica al hilo ABIERTO: es donde el selector de número y el candado la leen, y
+                // sin esto seguían diciendo «sin ventana» hasta recargar aunque ese número acabara
+                // de escribir.
+                if (isCurrentOpen && currentConversation.value) {
+                    // `Object.assign` y objetos nuevos: el esquema las marca `readonly` porque el
+                    // cliente no las escribe en la API, no porque no puedan refrescarse aquí.
+                    const ventanas = (convData.ventanasWhatsapp ?? {}) as Record<string, string | null>;
+                    Object.assign(currentConversation.value, {
+                        identidades: (currentConversation.value.identidades ?? []).map(i =>
+                            i.valor && i.valor in ventanas ? { ...i, ventanaWhatsappHasta: ventanas[i.valor] ?? null } : i),
+                        whatsappSessionValidUntil: convData.whatsappSessionValidUntil ?? null,
+                        whatsappSessionActive: convData.whatsappSessionActive,
+                    });
+                }
+
                 if (existingConv) {
                     // FIX #5: NO sobrescribir el "@id" original con el IRI de Mercure;
                     // otras partes del código (sendMessage) construyen URLs con él.
-                    const { '@id': _mercureIri, '@type': _t, ...rest } = convData;
+                    const { '@id': _mercureIri, '@type': _t, ventanasWhatsapp: _v, ...rest } = convData;
                     Object.assign(existingConv, rest);
                 } else {
                     conversations.value.unshift(convData);

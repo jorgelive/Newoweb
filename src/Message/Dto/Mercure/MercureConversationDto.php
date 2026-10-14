@@ -25,6 +25,16 @@ class MercureConversationDto implements JsonSerializable
     private int $unreadCount;
     private ?string $createdAt;
     private bool $whatsappSessionActive;
+    private ?string $whatsappSessionValidUntil;
+
+    /**
+     * La ventana de cada teléfono, `valor → hasta` (ATOM o null). Es de cada NÚMERO desde el
+     * 13/10/2026: sin esto, cuando escribía el segundo número de alguien, el selector del chat
+     * seguía diciendo «sin ventana» hasta recargar (revisión de Fable).
+     *
+     * @var array<string, string|null>
+     */
+    private array $ventanasWhatsapp = [];
 
     private bool $whatsappDisabled;
     private ?string $whatsappDisabledReason;
@@ -63,6 +73,13 @@ class MercureConversationDto implements JsonSerializable
         $this->unreadCount = $conversation->getUnreadCount();
         $this->createdAt = $conversation->getCreatedAt() ? $conversation->getCreatedAt()->format(DateTimeInterface::ATOM) : null;
         $this->whatsappSessionActive = $conversation->isWhatsappSessionActive();
+        $this->whatsappSessionValidUntil = $conversation->getWhatsappSessionValidUntil()?->format(DateTimeInterface::ATOM);
+
+        foreach ($conversation->getIdentidades() as $identidad) {
+            if ($identidad->getTipo() === \App\Message\Enum\IdentidadTipo::TELEFONO) {
+                $this->ventanasWhatsapp[$identidad->getValor()] = $identidad->getVentanaWhatsappHasta()?->format(DateTimeInterface::ATOM);
+            }
+        }
 
         $this->whatsappDisabled = $conversation->isWhatsappDisabled();
         $this->whatsappDisabledReason = $conversation->getWhatsappDisabledReason();
@@ -95,6 +112,8 @@ class MercureConversationDto implements JsonSerializable
                 'unreadCount' => $this->getUnreadCount(),
                 'createdAt' => $this->getCreatedAt(),
                 'whatsappSessionActive' => $this->isWhatsappSessionActive(),
+                'whatsappSessionValidUntil' => $this->whatsappSessionValidUntil,
+                'ventanasWhatsapp' => $this->ventanasWhatsapp,
 
                 'whatsappDisabled' => $this->isWhatsappDisabled(),
                 'whatsappDisabledReason' => $this->getWhatsappDisabledReason(),
