@@ -35,6 +35,14 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * estructura —el asistente y la guía no pueden contarlo distinto— y no se traduce.
  *
  * Idempotente: sólo escribe los ítems cuyo texto cambia, para no retraducir lo que ya está.
+ *
+ * ⚠️ **El traductor no sabe dónde está**: tradujo «al pie de las gradas» como «at the foot of the
+ * stands» (y «Tribüne», «tribunes», «arquibancadas»…) en los seis idiomas, «Al terminarlas, la
+ * tienes de frente» como «verás el resultado», y en italiano «gira a la derecha» como «haz la
+ * llamada». El español es de Jorge y no se reescribe para complacer al traductor: los arreglos van
+ * en {@see self::CORRECCIONES}, que se aplican después de traducir, en cada pasada, conservando
+ * el `origenHash` —así el traductor da la fila por buena y no la pisa—. Si un día se retraduce
+ * y una corrección ya no encuentra su frase, el comando lo avisa: hay que mirarla otra vez.
  */
 #[AsCommand(
     name: 'app:pms:guia:formato-puertas',
@@ -98,6 +106,69 @@ final class PmsGuiaFormatoPuertasCommand extends Command
         ],
     ];
 
+    /**
+     * Frase traducida → frase corregida, por idioma (revisadas el 14/10/2026). Se buscan en las
+     * siete puertas: cada frase es lo bastante concreta para no casar donde no toca.
+     *
+     * Además de los errores de sentido, aquí van las de género: la puerta es femenina en todos
+     * los idiomas que lo marcan y el traductor, sin el sustantivo delante, la hizo masculina
+     * («Il possède», «Come aprirlo», «la seta aponta para ele»).
+     *
+     * ⚠️ Cada reemplazo NO puede contener su búsqueda, o cada pasada la volvería a aplicar.
+     *
+     * @var array<string, array<string, string>>
+     */
+    private const array CORRECCIONES = [
+        'en' => [
+            'the second gate, right at the foot of the stands.' => 'the second door, right at the foot of the steps.',
+            'When you finish them, you have it right in front of you.' => 'At the top of the steps, your door is right in front of you.',
+            'the first one on the right, in red.' => 'the first one on the right, the red one.',
+        ],
+        'de' => [
+            'So öffnen Sie es:</strong> Es hat ein einzelnes Schloss' => 'So öffnen Sie die Tür:</strong> Sie hat ein einzelnes Schloss',
+            'nicht in der Passage.' => 'nicht im Durchgang.',
+            'am Ende des Ganges' => 'am Ende des Durchgangs',
+            'Es ist das zweite Tor, direkt am Fuße der Tribüne.' => 'Es ist die zweite Tür, direkt am Fuß der Treppe.',
+            'Wenn du sie fertig hast, hast du es direkt vor dir.' => 'Oben angekommen, befindet sie sich direkt vor Ihnen.',
+            'die erste rechts, rot.' => 'die erste rechts, die rote.',
+        ],
+        'fr' => [
+            'Il possède une seule serrure' => 'Elle a une seule serrure',
+            'cadenas' => 'serrures',
+            'celui du' => 'celle du',
+            'celle du haut ouvert :' => 'celle du haut ouverte :',
+            'tout au pied des tribunes.' => 'juste au pied des marches.',
+            'Une fois que vous les aurez terminés, vous l&#39;aurez juste devant vous.' => 'En haut des marches, elle est juste devant vous.',
+            'Tourner à gauche.' => 'Tournez à gauche.',
+            'la première à droite, en rouge.' => 'la première à droite, la rouge.',
+            '(la flèche le désigne)' => '(la flèche la désigne)',
+        ],
+        'it' => [
+            'Come aprirlo:' => 'Come aprirla:',
+            'È il secondo ingresso, proprio ai piedi delle tribune.' => 'È la seconda porta, proprio ai piedi della scalinata.',
+            'in fondo al corridoio' => 'in fondo al passaggio',
+            'Quando li avrai finiti, li avrai proprio davanti a te.' => 'In cima alle scale, la troverete proprio di fronte.',
+            'Girare a ' => 'Girate a ',
+            'Poi, fai la chiamata.' => 'Poi girate a destra.',
+            'la prima a destra, in rosso.' => 'la prima a destra, quella rossa.',
+            '(la freccia lo indica)' => '(la freccia la indica)',
+        ],
+        'nl' => [
+            'Hoe open je het:</strong> Het heeft één slot' => 'Hoe open je hem:</strong> Er zit één slot op',
+            'Het is de tweede ingang, helemaal aan de voet van de tribunes.' => 'Het is de tweede deur, direct onderaan de trap.',
+            'aan het einde van de gang' => 'aan het einde van de doorgang',
+            'Als je ze af hebt, heb je ze recht voor je liggen.' => 'Boven aan de trap zie je hem recht voor je.',
+            'de eerste aan de rechterkant, in het rood.' => 'de eerste aan de rechterkant, de rode.',
+            'dan gaat hij vanzelf open.' => 'dan gaat hij open zonder te forceren.',
+        ],
+        'pt' => [
+            'É o segundo portão, bem no pé das arquibancadas.' => 'É a segunda porta, bem ao pé da escada.',
+            'Quando você terminar, terá o resultado bem na sua frente.' => 'No alto da escada, ela fica bem à sua frente.',
+            'a primeira à direita, em vermelho.' => 'a primeira à direita, a vermelha.',
+            '(a seta aponta para ele)' => '(a seta aponta para ela)',
+        ],
+    ];
+
     public function __construct(private readonly EntityManagerInterface $em)
     {
         parent::__construct();
@@ -115,6 +186,8 @@ final class PmsGuiaFormatoPuertasCommand extends Command
         $seco = (bool) $input->getOption('dry-run');
         $ver = $input->getOption('ver');
         $tocados = 0;
+        /** @var list<PmsGuiaItem> $items */
+        $items = [];
 
         foreach (self::CASAS as $n => $casa) {
             $publicado = $this->publicado($n, $casa);
@@ -132,6 +205,8 @@ final class PmsGuiaFormatoPuertasCommand extends Command
                 $io->warning(sprintf('No encuentro «%s».', $nombre));
                 continue;
             }
+
+            $items[] = $item;
 
             $actualEs = null;
             foreach ($item->getDescripcion() ?? [] as $fila) {
@@ -156,12 +231,85 @@ final class PmsGuiaFormatoPuertasCommand extends Command
         }
 
         if (!$seco) {
+            // Primero se traduce (al guardar); después se corrige lo que tradujo.
             $this->em->flush();
         }
 
-        $io->success(sprintf('%d puerta(s) %s.', $tocados, $seco ? 'cambiarían' : 'reescritas y retraducidas'));
+        [$corregidas, $huerfanas] = $this->corregir($items, $seco);
+
+        if (!$seco) {
+            $this->em->flush();
+        }
+
+        foreach ($huerfanas as $huerfana) {
+            $io->warning(sprintf('Corrección sin efecto, la traducción cambió: %s', $huerfana));
+        }
+
+        $io->success(sprintf(
+            '%d puerta(s) %s; %d traducción(es) %s.',
+            $tocados,
+            $seco ? 'cambiarían' : 'reescritas y retraducidas',
+            $corregidas,
+            $seco ? 'se corregirían' : 'corregidas a mano',
+        ));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Aplica {@see self::CORRECCIONES} sobre lo traducido, sin tocar el `origenHash` de la fila.
+     *
+     * @param list<PmsGuiaItem> $items
+     *
+     * @return array{int, list<string>} filas corregidas, y las correcciones que no encontraron su frase
+     */
+    private function corregir(array $items, bool $seco): array
+    {
+        $corregidas = 0;
+        $vistas = [];
+
+        foreach ($items as $item) {
+            $filas = $item->getDescripcion() ?? [];
+            $cambio = false;
+
+            foreach ($filas as $i => $fila) {
+                $idioma = $fila['language'] ?? '';
+                $texto = $fila['content'] ?? null;
+                if (!is_string($texto)) {
+                    continue;
+                }
+
+                $nuevo = $texto;
+                foreach (self::CORRECCIONES[$idioma] ?? [] as $buscar => $reemplazo) {
+                    if (str_contains($nuevo, $buscar) || str_contains($nuevo, $reemplazo)) {
+                        $vistas[$idioma . "\0" . $buscar] = true;
+                    }
+                    $nuevo = str_replace($buscar, $reemplazo, $nuevo);
+                }
+
+                if ($nuevo !== $texto) {
+                    $filas[$i]['content'] = $nuevo;
+                    $cambio = true;
+                    ++$corregidas;
+                }
+            }
+
+            if ($cambio && !$seco) {
+                // Sin esto el listener podría volver a traducir encima de lo corregido.
+                $item->setEjecutarTraduccion(false)->setDescripcion($filas);
+            }
+        }
+
+        $huerfanas = [];
+        foreach (self::CORRECCIONES as $idioma => $pares) {
+            foreach (array_keys($pares) as $buscar) {
+                if (!isset($vistas[$idioma . "\0" . $buscar])) {
+                    $huerfanas[] = sprintf('[%s] %s', $idioma, $buscar);
+                }
+            }
+        }
+
+        return [$corregidas, $huerfanas];
     }
 
     /** @param array{cerradura: string, llegar: list<string>, puerta: string, video: bool, nota: ?string} $casa */
