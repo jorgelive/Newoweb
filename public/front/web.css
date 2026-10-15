@@ -129,6 +129,11 @@ h3 { font-size: 1.2rem; }
 .galeria a { display: block; aspect-ratio: 4 / 3; border-radius: 10px; overflow: hidden; background: #d9d2c5; }
 .galeria img { width: 100%; height: 100%; object-fit: cover; transition: transform .2s ease; }
 .galeria a:hover img { transform: scale(1.04); }
+.galeria-mas { margin-top: 10px; }
+.galeria-mas summary { cursor: pointer; color: var(--primario); font-weight: 700; padding: 8px 0; list-style: none; }
+.galeria-mas summary::-webkit-details-marker { display: none; }
+.galeria-mas summary::before { content: '+ '; }
+.galeria-mas[open] summary::before { content: '− '; }
 .caja-reserva { background: var(--papel); border-radius: var(--radio); box-shadow: var(--sombra); padding: 22px; display: flex; flex-direction: column; gap: 14px; }
 @media (min-width: 960px) { .caja-reserva { position: sticky; top: 90px; } }
 .lista-precios { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }

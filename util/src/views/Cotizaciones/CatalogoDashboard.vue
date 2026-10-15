@@ -93,7 +93,7 @@ const linkPublico = (cat: CatalogoResumen): string =>
 
 /** URL en la web pública, sólo si está publicado y tiene dirección (`TourController::catalogo`). */
 const linkWeb = (cat: CatalogoResumen): string | null =>
-  cat.publicadoWeb && cat.slug ? `${getUrls().web}/tours/${cat.slug}` : null;
+  cat.publicadoWeb && cat.slug ? `${getUrls().web}/${cat.slug}` : null;
 
 /** «Oferta Cusco 2026» → «oferta-cusco-2026»: la sugerencia de dirección al publicar. */
 const sugerirSlug = (texto: string): string =>
@@ -818,7 +818,7 @@ onMounted(() => {
             <div>
               <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Dirección web</label>
               <div class="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[#376875] shadow-sm">
-                <span class="pl-3 text-xs text-slate-400 whitespace-nowrap">/tours/</span>
+                <span class="pl-3 text-xs text-slate-400 whitespace-nowrap">{{ getUrls().web.replace('https://', '') }}/</span>
                 <input v-model="editCatalogo.slug" type="text" placeholder="ofertas-cusco"
                        @blur="editCatalogo.slug = sugerirSlug(editCatalogo.slug)"
                        class="w-full px-1 py-3 text-sm font-bold outline-none">

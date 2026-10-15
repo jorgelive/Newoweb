@@ -180,7 +180,26 @@ class CotizacionCatalogo
     private bool $ofrecidoPorAgente = false;
 
     /**
-     * Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique.
+     * Palabras que no pueden ser el slug de un catálogo: desde el 15/10/2026 el catálogo vive en
+     * la RAÍZ de la web (`openperu.pe/{slug}`), y ahí ya hay rutas fijas, carpetas que sirve nginx
+     * y URLs viejas del PHPTravels que redirigen a la portada. Un catálogo llamado «legal» o «es»
+     * dejaría de verse, o taparía una de ellas.
+     *
+     * ⚠️ La ruta las excluye en su propia expresión (`TourController::SLUG_CATALOGO`), y
+     * `SlugsDeCatalogoTest` comprueba que la expresión rechaza todas las de aquí: si se añade una
+     * ruta de un tramo a la web, va en las dos.
+     */
+    public const array SLUGS_RESERVADOS = [
+        // rutas de la web
+        'en', 'tours', 'legal', 'libro-de-reclamaciones', 'complaints-book', 'robots', 'sitemap', 'favicon',
+        // carpetas de `public/` y de nginx
+        'front', 'media', 'carga', 'build', 'bundles', 'index',
+        // URLs viejas del PHPTravels que redirigen a la portada (`LegadoController`)
+        'es', 'hotels', 'blog', 'login', 'register', 'supplier', 'notfound',
+    ];
+
+    /**
+     * Tramo de la URL pública: `/{slug}` (antes `/tours/{slug}`, que redirige). Nulo mientras no se publique.
      *
      * ⚠️ Cambiarlo rompe los enlaces ya compartidos del catálogo (los de los tours no: esos se
      * identifican por número de propuesta y redirigen a su forma canónica).
@@ -363,6 +382,12 @@ class CotizacionCatalogo
     {
         if ($this->publicadoWeb && ($this->slug === null || $this->slug === '')) {
             $context->buildViolation('Para publicar el catálogo en la web hace falta su dirección (slug).')
+                ->atPath('slug')
+                ->addViolation();
+        }
+
+        if ($this->slug !== null && in_array($this->slug, self::SLUGS_RESERVADOS, true)) {
+            $context->buildViolation(sprintf('«%s» está reservada por la web: elige otra dirección.', $this->slug))
                 ->atPath('slug')
                 ->addViolation();
         }

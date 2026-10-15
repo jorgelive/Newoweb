@@ -1,0 +1,3 @@
+{# Una foto de la galería de la ficha: miniatura en la rejilla, la grande al pulsar. Recibe `img` (ruta) y `n`. #}
+{% set ruta = img|trim('/', 'left') %}
+<a href="{{ ruta|imagine_filter('travel_cliente') }}" target="_blank" rel="noopener"><img src="{{ ruta|imagine_filter('travel_galeria') }}" alt="{{ tour.titulo }} — {{ n }}" loading="lazy" width="480" height="360"></a>

@@ -23,6 +23,18 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final class TourController extends AbstractController
 {
+    /**
+     * El slug de un catálogo en la RAÍZ de la web (15/10/2026): minúsculas, números y guiones, y
+     * ninguna de `CotizacionCatalogo::SLUGS_RESERVADOS` —rutas de un tramo, carpetas de nginx y
+     * URLs viejas que redirigen—. La exclusión va en la expresión y no sólo en el validador
+     * porque un catálogo antiguo con ese nombre, o una URL vieja, no pasan por el validador.
+     * `SlugsDeCatalogoTest` comprueba que las dos listas casan.
+     *
+     * Las rutas de catálogo llevan además prioridad −5: las fijas (0) ganan siempre, y las de
+     * `LegadoController` (−10) sólo cuando ninguna otra casa.
+     */
+    public const string SLUG_CATALOGO = '(?!(?:en|tours|legal|libro-de-reclamaciones|complaints-book|robots|sitemap|favicon|front|media|carga|build|bundles|index|es|hotels|blog|login|register|supplier|notfound)(?:/|$))[a-z0-9]+(?:-[a-z0-9]+)*';
+
     public function __construct(
         private readonly CatalogoWebLector $lector,
         #[Autowire('%pax_host_url%')]
@@ -42,10 +54,11 @@ final class TourController extends AbstractController
     }
 
     #[Route(
-        path: ['es' => '/tours/{catalogo}', 'en' => '/en/tours/{catalogo}'],
+        path: ['es' => '/{catalogo}', 'en' => '/en/{catalogo}'],
         name: 'front_catalogo',
-        requirements: ['catalogo' => '[a-z0-9]+(?:-[a-z0-9]+)*'],
+        requirements: ['catalogo' => self::SLUG_CATALOGO],
         methods: ['GET'],
+        priority: -5,
     )]
     public function catalogo(Request $request, string $catalogo): Response
     {
@@ -61,10 +74,11 @@ final class TourController extends AbstractController
      * canónica: retitular un tour no rompe los enlaces ya compartidos por WhatsApp.
      */
     #[Route(
-        path: ['es' => '/tours/{catalogo}/{tour}', 'en' => '/en/tours/{catalogo}/{tour}'],
+        path: ['es' => '/{catalogo}/{tour}', 'en' => '/en/{catalogo}/{tour}'],
         name: 'front_tour',
-        requirements: ['catalogo' => '[a-z0-9]+(?:-[a-z0-9]+)*', 'tour' => '\d+(?:-[a-z0-9-]*)?'],
+        requirements: ['catalogo' => self::SLUG_CATALOGO, 'tour' => '\d+(?:-[a-z0-9-]*)?'],
         methods: ['GET'],
+        priority: -5,
     )]
     public function tour(Request $request, string $catalogo, string $tour): Response
     {
@@ -97,6 +111,32 @@ final class TourController extends AbstractController
             // El itinerario día a día vive en `pax` y no se replica aquí (Cotizaciones.md §6.u).
             'itinerario_url' => sprintf('%s/catalogo/%s/p/%d', rtrim($this->paxHostUrl, '/'), $ficha->catalogo->localizador, $ficha->tour->propuesta),
         ]));
+    }
+
+    /**
+     * Las URLs de antes del 15/10/2026, con `/tours/` delante: 301 a la de la raíz. Están en
+     * WhatsApps ya enviados, en el buscador y en las tarjetas compartidas; un 301 conserva todo eso.
+     */
+    #[Route(
+        path: ['es' => '/tours/{catalogo}', 'en' => '/en/tours/{catalogo}'],
+        name: 'front_catalogo_tours',
+        requirements: ['catalogo' => '[a-z0-9]+(?:-[a-z0-9]+)*'],
+        methods: ['GET'],
+    )]
+    public function catalogoConTours(string $catalogo): Response
+    {
+        return $this->redirectToRoute('front_catalogo', ['catalogo' => $catalogo], Response::HTTP_MOVED_PERMANENTLY);
+    }
+
+    #[Route(
+        path: ['es' => '/tours/{catalogo}/{tour}', 'en' => '/en/tours/{catalogo}/{tour}'],
+        name: 'front_tour_tours',
+        requirements: ['catalogo' => '[a-z0-9]+(?:-[a-z0-9]+)*', 'tour' => '\d+(?:-[a-z0-9-]*)?'],
+        methods: ['GET'],
+    )]
+    public function tourConTours(string $catalogo, string $tour): Response
+    {
+        return $this->redirectToRoute('front_tour', ['catalogo' => $catalogo, 'tour' => $tour], Response::HTTP_MOVED_PERMANENTLY);
     }
 
     /**

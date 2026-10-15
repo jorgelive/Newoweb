@@ -56,6 +56,17 @@ liip_imagine:
                 downscale: { max: [1600, 900] }
                 strip: ~
 
+        # --- FILTRO 5b: MINIATURA DE LA GALERÍA (ficha web del tour) ---
+        # 4:3 como las casillas de `.galeria`, al doble de su ancho máximo para pantallas densas.
+        # Antes la rejilla cargaba la versión grande (`travel_cliente`, hasta 1600 px) de cada foto.
+        travel_galeria:
+            quality: 75
+            format: webp
+            filters:
+                auto_rotate: ~
+                thumbnail: { size: [480, 360], mode: outbound, allow_upscale: false }
+                strip: ~
+
         # --- FILTRO 6: DOCUMENTO DE IDENTIDAD (pasaporte, DNI, autorización notarial) ---
         # 🔥 No se reusa `pms_compress_initial` porque el trabajo es OTRO: una foto de habitación
         # se mira, un DNI se LEE. A 1600 px, si el documento ocupa media foto —que es lo normal

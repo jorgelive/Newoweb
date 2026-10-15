@@ -61,7 +61,7 @@ Un catálogo (`CotizacionCatalogo`) aparece cuando cumple **las tres**:
 |---|---|
 | `activo` | El enlace privado por localizador funciona (ya existía). |
 | `publicadoWeb` | Sale en openperu.pe. **No es lo mismo que `activo`**: un catálogo para una agencia se manda por enlace y no debe listarse. |
-| `slug` | Su URL: `/tours/{slug}`. Publicar sin él lo rechaza el validador (`validarPublicacionWeb()`). |
+| `slug` | Su URL: `/{slug}`, en la raíz. Publicar sin él lo rechaza el validador (`validarPublicacionWeb()`), y también una palabra reservada (`SLUGS_RESERVADOS`). |
 
 Dentro, sólo los tours con `Cotizacion::$publicado = true`. **No hay previsualización de
 operador** (en `pax` sí, ver `CotizacionCatalogoPublicProvider`): las páginas se cachean 5 min
@@ -87,7 +87,10 @@ dice si el enlace es la ficha web o la página de pax.
 
 La **galería de la ficha** abre con las fotos de los bloques destacados (la estrella del editor,
 `destacadosComponenteIds`) y sigue en orden de itinerario: ver `docs/Cotizaciones.md`, «La propuesta
-destaca un bloque en su cabecera».
+destaca un bloque en su cabecera». Enseña **todas** (15/10/2026): 12 a la vista y el resto tras
+«Ver las N fotos» (`<details>`, sin JavaScript). La rejilla usa la miniatura `travel_galeria`
+(480×360, WebP, ~24 KB) y el enlace abre la grande `travel_cliente`; antes se cortaba en 12 y cada
+casilla descargaba la de 1600 px.
 
 El «desde» es el **efectivo**: el override escrito a mano o, si no hay, el precio calculado por
 pasajero (redondeado hacia arriba), el mismo que enseña el itinerario. Con una sola clase la web dice
@@ -163,7 +166,19 @@ portada: <section class="seccion marca-…">  ·  catálogo y ficha: <body class
 
 ## 4. SEO y compartir
 
-- **URL del tour**: `/tours/{catalogo}/{propuesta}-{slug}`. El número identifica; el slug sale
+- **Catálogos en la RAÍZ (15/10/2026)**: `/{catalogo}` y `/{catalogo}/{propuesta}-{slug}`; las de
+  antes (`/tours/…`, `/en/tours/…`) responden **301** (`front_catalogo_tours`, `front_tour_tours`).
+  El slug compite con todo lo que ya vive en un tramo de la raíz, y por eso hay dos defensas que
+  `SlugsDeCatalogoTest` mantiene casadas:
+  - la ruta lo excluye en su propia expresión (`TourController::SLUG_CATALOGO`) y va con
+    prioridad −5: las fijas (0) ganan y las de `LegadoController` (−10) sólo si nada más casa;
+  - la entidad no deja guardar un slug reservado (`CotizacionCatalogo::SLUGS_RESERVADOS`: rutas
+    de un tramo, carpetas de nginx como `front`, `media` o `carga`, y las URLs viejas del
+    PHPTravels que redirigen a la portada).
+
+  ⚠️ Una ruta nueva de UN tramo en la web (`/experiencias`, por ejemplo) va en las dos listas, o
+  un catálogo con ese nombre la taparía —o ella al catálogo—.
+- **URL del tour**: `/{catalogo}/{propuesta}-{slug}`. El número identifica; el slug sale
   del título en el idioma de la página y es cosmético. Si no coincide (título cambiado, otro
   idioma, enlace viejo) → **301 a la canónica**. Retitular un tour no rompe enlaces ya
   compartidos por WhatsApp; **cambiar el `slug` del catálogo, sí**.
@@ -336,8 +351,13 @@ producción.
   `wp-login.php` y demás sondas → 404 de Symfony (antes las ejecutaba PHP 7.4).
 
 **Pendiente:** retirar `/var/www/phptravels` y PHP 7.4 tras volcar `phptravels_legacy` (ya
-nadie los sirve); `/favicon.ico` en la raíz da 404 —las páginas declaran el suyo en
-`/front/`, pero los robots lo piden igual—.
+nadie los sirve). `/favicon.ico` en la raíz daba 404 —las páginas declaran el suyo en `/front/`,
+pero navegadores y robots lo piden igual—: desde el 15/10/2026 lo sirve
+`SeoController::favicon()`, por controlador como `robots.txt` (no en `public/`, que comparten
+todos los hosts).
+
+⚠️ **`/login` responde en openperu.pe**: es el login del panel (`app_login`), declarado sin host,
+así que contesta en todos los dominios. No viene de la web; anotado para revisarlo aparte.
 
 La migración `Version20261007010000` (columnas web del catálogo + tabla del libro) y
 `Version20261008010000` (marca del catálogo) ya están aplicadas.
@@ -373,6 +393,8 @@ La migración `Version20261007010000` (columnas web del catálogo + tabla del li
 | Qué tours / qué datos tiene una tarjeta | `src/Cotizacion/Service/TourTarjetaResolver.php` | `tarjetas()` |
 | Idioma de los contenidos y su caída | `src/Front/Comun/Service/TextoI18n.php` | `en()` |
 | Portada, catálogo, ficha | `src/Front/Tours/Controller/TourController.php` + `templates/front/tours/*.html.twig` | `portada()`, `catalogo()`, `tour()` |
+| Añadir una ruta de UN tramo a la web, o reservar una palabra | `CotizacionCatalogo::SLUGS_RESERVADOS` **y** `TourController::SLUG_CATALOGO` | lo vigila `SlugsDeCatalogoTest` |
+| Cuántas fotos de la galería se ven sin desplegar, o su miniatura | `templates/front/tours/tour.html.twig` (`visibles`) · `config/packages/liip_imagine.yaml` | `travel_galeria` |
 | Menú, lema o WhatsApp de la cabecera de tours | `templates/front/tours/layout.html.twig` | bloques `nav`, `pie_lema`, `whatsapp_flotante` |
 | Lo que comparten las dos webs (head, pie, idiomas) | `templates/front/comun/base.html.twig` | — |
 | Qué web es un dominio | `src/Front/Comun/Service/SitioWeb.php` | `de()` |

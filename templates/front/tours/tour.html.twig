@@ -57,12 +57,25 @@
 
             {% if ficha.galeria|length > 1 %}
                 <h2 style="margin-top:32px">{{ 'tour.galeria'|trans({}, 'front_tours') }}</h2>
+                {# Todas las fotos: 12 a la vista y el resto tras «Ver las N fotos» (<details>, sin JS).
+                   La rejilla usa la miniatura; el enlace, la grande. Antes se cortaba en 12 y
+                   cada casilla descargaba la versión de 1600 px. #}
+                {% set visibles = 12 %}
                 <div class="galeria">
-                    {% for img in ficha.galeria|slice(0, 12) %}
-                        {% set grande = img|trim('/', 'left')|imagine_filter('travel_cliente') %}
-                        <a href="{{ grande }}" target="_blank" rel="noopener"><img src="{{ grande }}" alt="{{ tour.titulo }} — {{ loop.index }}" loading="lazy" width="480" height="360"></a>
+                    {% for img in ficha.galeria|slice(0, visibles) %}
+                        {% include 'front/tours/_foto_galeria.html.twig' with {'img': img, 'n': loop.index} %}
                     {% endfor %}
                 </div>
+                {% if ficha.galeria|length > visibles %}
+                    <details class="galeria-mas">
+                        <summary>{{ 'tour.ver_fotos'|trans({'%n%': ficha.galeria|length}, 'front_tours') }}</summary>
+                        <div class="galeria">
+                            {% for img in ficha.galeria|slice(visibles) %}
+                                {% include 'front/tours/_foto_galeria.html.twig' with {'img': img, 'n': visibles + loop.index} %}
+                            {% endfor %}
+                        </div>
+                    </details>
+                {% endif %}
             {% endif %}
         </div>
 

@@ -36,6 +36,7 @@ tour:
     whatsapp_mensaje: 'Hola, me interesa el tour «%tour%»: %url%'
     itinerario: 'Ver itinerario completo'
     galeria: Galería
+    ver_fotos: 'Ver las %n% fotos'
     otros: 'Otros tours que te pueden gustar'
     nota_precio: 'Precios referenciales «desde». Te confirmamos disponibilidad y precio final para tu fecha por WhatsApp.'
 pie:

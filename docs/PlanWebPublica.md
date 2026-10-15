@@ -76,7 +76,7 @@ Rosa)—, ver Fase 2.
 
 ```
 /                                     portada (es)
-/{catalogo}                           un catálogo          ← decidido 07/10/2026 (hoy: /tours/{catalogo})
+/{catalogo}                           un catálogo          ← hecho 15/10/2026 (/tours/{catalogo} → 301)
 /{catalogo}/{propuesta}-{slug}        un tour
 /experiencias                         galería de clientes (Fase 3)
 /en/...                               lo mismo en inglés
@@ -87,7 +87,7 @@ corta y mejor para buscadores que `/tours/viajes-de-promocion`, y «tours» no d
 promoción. El precio: el `slug` de un catálogo compite con las rutas fijas (`legal`,
 `libro-de-reclamaciones`, `experiencias`, `en`, `robots.txt`…) y con las del legacy; el
 validador del catálogo tiene que rechazar las palabras reservadas, y `/tours/{slug}` responde
-301 a la nueva.
+301 a la nueva. **Hecho el 15/10/2026**: ver `docs/WebPublica.md` §4.
 
 El identificador del tour es el **número de propuesta**; el slug del título es cosmético. Si no
 coincide (título cambiado, idioma distinto) se responde **301 a la URL canónica**, así que

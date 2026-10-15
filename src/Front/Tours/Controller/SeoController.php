@@ -6,22 +6,42 @@ namespace App\Front\Tours\Controller;
 
 use App\Front\Tours\Service\CatalogoWebLector;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * `robots.txt` y `sitemap.xml` de la web pública. Van por controlador y no como archivos en
- * `public/` porque `public/` lo comparten todos los hosts (api, util, pax…): un `robots.txt`
- * estático le diría lo mismo a todos.
+ * `robots.txt`, `sitemap.xml` y `favicon.ico` de la web pública. Van por controlador y no como
+ * archivos en `public/` porque `public/` lo comparten todos los hosts (api, util, pax…): un
+ * `robots.txt` estático le diría lo mismo a todos.
  */
 final class SeoController extends AbstractController
 {
     /** Los idiomas con interfaz traducida (translations/front.*.yaml y front_tours.*.yaml). */
     public const IDIOMAS = ['es', 'en'];
 
-    public function __construct(private readonly CatalogoWebLector $lector)
+    public function __construct(
+        private readonly CatalogoWebLector $lector,
+        #[Autowire('%kernel.project_dir%/public/front/favicon.ico')]
+        private readonly string $favicon = '',
+    ) {
+    }
+
+    /**
+     * `/favicon.ico` en la raíz. Las páginas enlazan el suyo (`/front/favicon.ico`), pero
+     * navegadores, buscadores y lectores de enlaces lo piden en la raíz sin mirar el HTML, y daba
+     * 404 en cada visita (15/10/2026). Mismo archivo, caché de una semana.
+     */
+    #[Route(path: '/favicon.ico', name: 'front_favicon', methods: ['GET'])]
+    public function favicon(): BinaryFileResponse
     {
+        $respuesta = new BinaryFileResponse($this->favicon, 200, ['Content-Type' => 'image/x-icon']);
+        $respuesta->setPublic();
+        $respuesta->setMaxAge(604800);
+
+        return $respuesta;
     }
 
     #[Route(path: '/robots.txt', name: 'front_robots', methods: ['GET'])]

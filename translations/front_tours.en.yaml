@@ -34,6 +34,7 @@ tour:
     whatsapp_mensaje: 'Hi, I''m interested in the tour "%tour%": %url%'
     itinerario: 'See full itinerary'
     galeria: Gallery
+    ver_fotos: 'See all %n% photos'
     otros: 'Other tours you may like'
     nota_precio: 'Indicative "from" prices. We''ll confirm availability and the final price for your date on WhatsApp.'
 pie:
