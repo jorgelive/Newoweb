@@ -589,15 +589,15 @@ onMounted(() => {
                        class="group bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-[#376875]/10 hover:border-[#376875]/40 transition-all duration-300 flex flex-col">
 
                 <!-- Portada -->
+                <!-- Sin foto, cabecera baja: el hueco 16:9 con un icono en medio ocupaba media tarjeta
+                     para decir sólo «no hay foto». Eso lo dice ahora una etiqueta. -->
                 <div @click="abrirTour(tour.id)"
-                     class="relative aspect-video bg-slate-100 overflow-hidden cursor-pointer shrink-0">
+                     class="relative bg-slate-100 overflow-hidden cursor-pointer shrink-0"
+                     :class="portadaTour(tour) ? 'aspect-video' : 'h-32'">
                   <img v-if="portadaTour(tour)" :src="thumbUrl(portadaTour(tour), 'travel_thumb_admin')"
                        :alt="t18(tour.titulo)" loading="lazy"
                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
-                  <div v-else class="w-full h-full bg-linear-to-br from-[#376875] to-[#1f4550] flex flex-col items-center justify-center gap-1.5">
-                    <i class="fas fa-mountain text-3xl text-white/25"></i>
-                    <span class="text-[8px] font-black uppercase tracking-widest text-white/40">Itinerario sin fotos</span>
-                  </div>
+                  <div v-else class="w-full h-full bg-linear-to-br from-[#376875] to-[#1f4550]"></div>
 
                   <div class="absolute inset-0 bg-linear-to-t from-black/80 via-black/15 to-transparent pointer-events-none"></div>
 
@@ -606,6 +606,10 @@ onMounted(() => {
                     <span class="bg-slate-900/85 backdrop-blur text-white text-[9px] font-black px-2 py-1 rounded-lg tracking-widest">T{{ tour.propuesta }}</span>
                     <span v-if="diasLabel(tour)" class="bg-white/95 backdrop-blur text-[#376875] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg">
                       <i class="fas fa-route mr-1 text-[#E07845]"></i>{{ diasLabel(tour) }}
+                    </span>
+                    <span v-if="!portadaTour(tour)" class="bg-white/15 backdrop-blur text-white/80 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg"
+                          title="Ningún segmento del itinerario tiene fotos: el cliente ve una cabecera de color">
+                      <i class="fas fa-image mr-1"></i>Sin fotos
                     </span>
                   </div>
 

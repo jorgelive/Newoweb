@@ -95,6 +95,8 @@ h3 { font-size: 1.2rem; }
 .tarjeta:hover { transform: translateY(-3px); box-shadow: 0 2px 4px rgba(29,42,47,.08), 0 14px 32px rgba(29,42,47,.12); }
 .tarjeta-foto { position: relative; aspect-ratio: 4 / 3; background: #d9d2c5; }
 .tarjeta-foto img { width: 100%; height: 100%; object-fit: cover; }
+/* Sin foto, una franja con la etiqueta de días: el hueco 4:3 vacío era más grande que la tarjeta. */
+.tarjeta-foto.sin-foto { aspect-ratio: auto; height: 56px; background: linear-gradient(135deg, var(--primario), var(--primario-osc)); }
 .chip { position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,.95); color: var(--primario); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; }
 .tarjeta-cuerpo { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .tarjeta-cuerpo h3 { margin: 0; }

@@ -147,8 +147,10 @@ const resumenPlano = (tour: PaxTourResumen): string =>
                  @click="verTour(tour.propuesta)"
                  class="group bg-white rounded-3xl border border-slate-200/70 shadow-[0_10px_30px_rgb(15,23,42,0.06)] hover:shadow-[0_18px_45px_rgb(55,104,117,0.15)] hover:border-slate-300 hover:-translate-y-0.5 overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.995]">
 
-          <!-- Portada -->
-          <div class="relative aspect-video overflow-hidden bg-slate-100">
+          <!-- Portada. Sin foto, una cabecera baja con el tinte: el hueco 16:9 vacío era más grande
+               que el propio contenido y hacía parecer rota la tarjeta (traslados, 15/10/2026). -->
+          <div class="relative overflow-hidden bg-slate-100"
+               :class="tour.imagenPortada?.imageUrl ? 'aspect-video' : 'h-36 md:h-40'">
             <img v-if="tour.imagenPortada?.imageUrl"
                  :src="thumbUrl(tour.imagenPortada.imageUrl, 'travel_cliente')"
                  :alt="store.traducir(tour.titulo)"

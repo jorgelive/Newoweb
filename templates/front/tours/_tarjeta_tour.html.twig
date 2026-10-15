@@ -1,6 +1,6 @@
 {# Tarjeta de un tour. Recibe `tour` (TourTarjetaWeb) y `catalogo` (CatalogoWeb). #}
 <a class="tarjeta" href="{{ path('front_tour', {'catalogo': catalogo.slug, 'tour': tour.propuesta ~ '-' ~ tour.slug}) }}">
-    <div class="tarjeta-foto">
+    <div class="tarjeta-foto{{ tour.imagenUrl ? '' : ' sin-foto' }}">
         {% if tour.imagenUrl %}
             <img src="{{ tour.imagenUrl|trim('/', 'left')|imagine_filter('travel_cliente') }}" alt="{{ tour.titulo }}" loading="lazy" width="800" height="600">
         {% endif %}
