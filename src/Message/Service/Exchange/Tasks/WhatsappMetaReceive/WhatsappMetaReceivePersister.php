@@ -8,6 +8,7 @@ use App\Dto\Lee;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Exchange\Entity\MetaConfig;
 use App\Message\Entity\Message;
+use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Entity\MessageChannel;
 use App\Message\Enum\IdentidadTipo;
 use App\Message\Service\Conversacion\ResolutorDeHilo;
@@ -514,6 +515,15 @@ readonly class WhatsappMetaReceivePersister
             $this->merger->merge($message, 'whatsappMeta', $metaDataToMerge, 'whatsapp_meta', $metaMessageId);
         }
 
+        // La FILA DE LA COLA de ese envío, que hasta el 15/10/2026 no se enteraba de nada: ver
+        // `WhatsappMetaSendQueue::registrarEstadoDeMeta()`. Va después del merge porque éste
+        // recarga el mensaje; la cola es otra entidad y viaja en el mismo flush.
+        $this->colaDelEnvio($message, $metaMessageId)?->registrarEstadoDeMeta(
+            $status,
+            $this->horaDelAviso($timestamp),
+            $status === 'failed' ? ($metaDataToMerge['error_code'] ?? null) . ': ' . ($metaDataToMerge['error_reason'] ?? '') : null,
+        );
+
         // =================================================================
         // PASO 2: TRANSICIONES DOCTRINE (Sobre la entidad ya recargada)
         // =================================================================
@@ -791,6 +801,41 @@ readonly class WhatsappMetaReceivePersister
      * * @param string $metaMessageId El identificador wamid retornado por Meta
      * @return Message|null Retorna la entidad hidratada
      */
+    /**
+     * La fila de la cola que mandó ESE envío: la que lleva su id de Meta en la respuesta. Un mensaje
+     * puede tener varias (reintentos, el acuse de lectura de uno entrante); si ninguna casa por el id
+     * —una respuesta guardada sin él—, la última que salió bien.
+     */
+    private function colaDelEnvio(Message $message, string $metaMessageId): ?WhatsappMetaSendQueue
+    {
+        $ultimaBuena = null;
+
+        foreach ($message->getWhatsappMetaSendQueues() as $cola) {
+            if (str_contains($cola->getLastResponseRaw() ?? '', $metaMessageId)) {
+                return $cola;
+            }
+
+            if ($cola->getStatus() === WhatsappMetaSendQueue::STATUS_SUCCESS) {
+                $ultimaBuena = $cola;
+            }
+        }
+
+        return $ultimaBuena;
+    }
+
+    /**
+     * La hora del aviso en la zona del sistema (`APP_ZONA_HORARIA`), como el resto de columnas
+     * `datetime`: el timestamp de Meta es UTC y guardado tal cual saldría cinco horas adelantado.
+     */
+    private function horaDelAviso(?int $timestamp): DateTimeImmutable
+    {
+        $zona = new \DateTimeZone(date_default_timezone_get());
+
+        return $timestamp !== null
+            ? (new DateTimeImmutable('@' . $timestamp))->setTimezone($zona)
+            : new DateTimeImmutable('now', $zona);
+    }
+
     private function findMessageByMetaId(string $metaMessageId): ?Message
     {
         $rsm = new ResultSetMappingBuilder($this->em);

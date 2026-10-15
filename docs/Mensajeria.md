@@ -1127,6 +1127,37 @@ Tests: `tests/Exchange/Engine/FiltroDeVetosTest.php`,
 desde un listener de entidad crearía una cascada de eventos y bucles. Se hace a mano en
 `MarkConversationReadController`. El comentario en el propio listener lo advierte; no lo quites.
 
+### Los avisos de estado de Meta llegan a DOS sitios: el mensaje y su cola (15/10/2026)
+
+Meta avisa de cada envío por el webhook (`statuses`: `sent` · `delivered` · `read` · `failed`), y
+`WhatsappMetaReceivePersister::updateMessageStatus()` lo escribe en:
+
+```
+aviso de Meta (wamid) ──▶ el MENSAJE   metadata.whatsappMeta.{sent,delivered,read}_at, error_*; estado
+                     └──▶ su COLA      delivery_status · delivered_at · read_at · webhook_history
+                                       (WhatsappMetaSendQueue::registrarEstadoDeMeta())
+```
+
+🔥 **La segunda flecha no existía.** Las colas se quedaban en `submitted` para siempre —2 177
+entregadas en producción, ni una con `delivered_at`— y no se notaba: las marcas del chat leen
+PRIMERO el mensaje (`ChatView.vue::getWhatsappStatus()`) y la cola es su respaldo. Donde sí se veía
+era en el panel de la cola y en el `deliveryStatus` que viaja por Mercure.
+
+- **La fila es la del envío**: la que lleva el `wamid` en `last_response_raw`
+  (`colaDelEnvio()`); si ninguna, la última que salió bien. Un mensaje tiene varias filas cuando hubo
+  reintentos, y el acuse de lectura de un ENTRANTE también crea una (`"status":"read"` hacia Meta).
+- **Sólo sube**: Meta no garantiza el orden y un `delivered` llega a veces después del `read`. Leído
+  implica entregado, y la entrega guardada es la más temprana.
+- **Un `failed` no toca la entrega** (la llamada a la API sí salió bien; el fallo ya está en el
+  mensaje y en el veto del número): queda en `webhook_history` con su código.
+- **Hora**: el timestamp de Meta es UTC; se guarda en la del sistema (`APP_ZONA_HORARIA`), como las
+  demás columnas `datetime`.
+- `Version20261015100000` rellenó el pasado desde el `metadata` del mensaje, sólo en las filas que
+  casan por `wamid` (2 054 de 2 177) y sin historial, que no existe para atrás.
+
+⚠️ **Al probarlo: `phpstan analyse -q` no enseña los errores, sólo devuelve el código de salida.**
+Para leer el resultado hay que correrlo sin `-q`.
+
 ---
 
 ## 6. El barrido periódico
@@ -7502,6 +7533,7 @@ de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar
 | **Subir una plantilla a Meta sin pasar por el panel** | `msg:meta:push <code> --idiomas=es,en` | Mismo servicio que el botón. El idioma es obligatorio (`--todos` a sabiendas): subir uno **reabre su revisión**. `--ver` no sube nada, sólo enseña qué idiomas hay y en qué estado |
 | **Ver qué le llega al huésped, sin enviarle nada** | `msg:plantilla:ver <code> <localizador>` | Hidrata contra una reserva REAL con el mismo `HidratadorDeMarcadores` del envío. `--canal=beds24\|link\|meta`, `--idioma` |
 | **Cambiar el texto de una plantilla desde la consola** | `msg:plantilla:cuerpo <code> --exportar` → editar → `--desde=<archivo>` | Por el ORM, así que `AutoTranslate` rehace los otros seis idiomas (y el comando dice cuáles). Parte del texto VIVO, no pisa lo editado en el panel. Sólo `beds24` y `link`: el de Meta se cambia rotando (§18) |
+| Qué se guarda en la cola de WhatsApp cuando Meta avisa (entregado, leído, fallido) | `src/Message/Entity/WhatsappMetaSendQueue.php` | `registrarEstadoDeMeta()`; qué fila, en `WhatsappMetaReceivePersister::colaDelEnvio()` |
 | Cambiar el WhatsApp que se da en las plantillas | CRUD de establecimientos → `telefonoPrincipal` | Sale por `{{ whatsapp_numero }}` y `{{ whatsapp_url }}`, y es el MISMO que publican el catálogo y la guía. Ver `docs/Telefonos.md` §5 bis |
 | Escribir un teléfono nuestro en un texto | `{{ whatsapp_numero }}` / `{{ emergencia_numero }}` (y sus `_url`) | **Las mismas claves en las plantillas y en la guía** desde el 14/09/2026: el mismo editor escribe en los dos. Ver `docs/PmsGuiaHuesped.md` §3 ter |
 | Cambiar cómo se sustituye un `{{ marcador }}` | `HidratadorDeMarcadores` | Existe con `null` → nada; ausente → se deja crudo. **Es `array_key_exists`, no `??`** — con `??` un huésped leyó «un pago por {{ importe_a_pagar }}» |

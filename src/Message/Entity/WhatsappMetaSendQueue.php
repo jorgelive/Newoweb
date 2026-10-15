@@ -163,6 +163,62 @@ class WhatsappMetaSendQueue implements MessageQueueItemInterface, MemoryCleanabl
         }
     }
 
+    /**
+     * Refleja en la cola un aviso de estado de Meta (`sent` · `delivered` · `read` · `failed`).
+     *
+     * 🔥 **Hasta el 15/10/2026 nadie escribía aquí.** Los avisos de Meta llegaban y se procesaban,
+     * pero sólo tocaban el MENSAJE (`metadata.whatsappMeta.*_at` y su estado): las 2 177 colas
+     * entregadas de producción se quedaron en `submitted`, sin `deliveredAt`, `readAt` ni historial.
+     * No se notaba porque las marcas del chat leen primero el mensaje
+     * (`ChatView.vue::getWhatsappStatus()`); la cola es su respaldo y lo que enseña el panel.
+     * Lo llama `WhatsappMetaReceivePersister::updateMessageStatus()`.
+     *
+     * **Sólo sube**: Meta no garantiza el orden y un `delivered` puede llegar después del `read`.
+     * Un `failed` no cambia el estado de entrega —el envío a la API sí salió bien, y el fallo ya
+     * queda en el mensaje—; queda en el historial con su motivo.
+     */
+    public function registrarEstadoDeMeta(string $estado, DateTimeImmutable $cuando, ?string $error = null): void
+    {
+        $this->addWebhookEntry(array_filter([
+            'status' => $estado,
+            'at' => $cuando->format(DATE_ATOM),
+            'error' => $error,
+        ], static fn (mixed $v): bool => $v !== null));
+
+        $nuevo = match ($estado) {
+            'read' => self::DELIVERY_READ,
+            'delivered' => self::DELIVERY_DELIVERED,
+            'sent' => self::DELIVERY_SUBMITTED,
+            default => null,
+        };
+
+        if ($nuevo === null) {
+            return;
+        }
+
+        if (self::rangoDeEntrega($nuevo) > self::rangoDeEntrega($this->deliveryStatus)) {
+            $this->deliveryStatus = $nuevo;
+        }
+
+        // Un `read` sin `delivered` previo (o llegado antes): leído implica entregado.
+        if ($nuevo === self::DELIVERY_READ) {
+            $this->readAt ??= $cuando;
+            $this->deliveredAt ??= $cuando;
+        } elseif ($nuevo === self::DELIVERY_DELIVERED) {
+            $this->deliveredAt = $this->deliveredAt === null || $cuando < $this->deliveredAt ? $cuando : $this->deliveredAt;
+        }
+    }
+
+    private static function rangoDeEntrega(string $estado): int
+    {
+        return match ($estado) {
+            self::DELIVERY_READ => 3,
+            self::DELIVERY_DELIVERED => 2,
+            self::DELIVERY_SUBMITTED => 1,
+            default => 0,
+        };
+    }
+
     public function markFailure(string $reason, ?int $httpCode, DateTimeImmutable $nextRetry): void
     {
         $this->status = self::STATUS_FAILED;
