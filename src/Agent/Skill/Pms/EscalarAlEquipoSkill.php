@@ -375,8 +375,18 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
                 . 'esperar en vez de usarla. Termina con la acción, no con el estado del caso.';
         }
 
+        // ⚠️ **«Anotado» suena a hecho.** El 16/10/2026 una huésped pidió Casita 7 para el
+        // domingo y el modelo contestó «c'est bien noté pour la Casita 7… l'équipe mettra à jour
+        // votre réservation»: para ella, reservado. No lo estaba —nadie lo creó, y esa noche
+        // estaba además por debajo de la estancia mínima—. La instrucción decía con quién y por
+        // dónde, pero no EN QUÉ ESTADO queda lo que pidió, y el hueco lo rellenó el modelo con
+        // la versión optimista. Se le da el hecho, en positivo, y la frase que sí es verdad.
         return 'Ya está avisado el equipo. Dile al huésped que le escribirán POR AQUÍ; no le des '
-            . 'un plazo concreto, que no lo sabes, y no digas que alguien acudirá a verle.';
+            . 'un plazo concreto, que no lo sabes, y no digas que alguien acudirá a verle. Si lo '
+            . 'que pide es algo que hay que conceder —una noche, una reserva, cambiar fechas u '
+            . 'horario, un servicio—, todavía NO está concedido: queda pendiente de que el '
+            . 'equipo lo confirme. Díselo así, como petición en curso («he pasado tu petición '
+            . 'al equipo y te confirmarán por aquí»), no como algo ya anotado o reservado.';
     }
 
     /**

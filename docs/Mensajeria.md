@@ -2554,6 +2554,14 @@ respuesta del propio bot redefina el idioma del huésped es un bucle esperando a
 ⚠️ El aviso de `escalar_al_equipo` **sí** rellena los dos a propósito: va a una conversación
 `staff`, ya está en español y no hay nada que traducir.
 
+#### ⚠️ Lo que el operador lee puede tener una línea MENOS que lo que escribió el huésped (16/10/2026)
+
+Con un espacio al final de una línea, Google Translate **se come la línea siguiente entera**. Una
+huésped escribió «…jusque samedi soir⎵\nOn part jeudi matin tôt vers 6h30» y el chat en español
+sólo traía la primera frase: el equipo le volvió a pedir una hora que ya había dado. El agente sí
+la vio, porque lee el original — por eso el fallo sólo se nota del lado del operador. Se arregla
+en `GoogleTranslateService` para todas las traducciones; el detalle, en `docs/Autotraduccion.md` §9.
+
 ### Configuración
 
 | Variable | Efecto |
@@ -6916,6 +6924,19 @@ Dos capas, porque una no basta:
    error no. Vender una noche que ya pasó no existe como caso de uso — para mirar atrás está
    `consultar_ocupacion`.
 
+#### 🌙 Por debajo de la estancia mínima: se ofrece, con la condición delante (16/10/2026)
+
+Cada casita ya traía `estancia_minima` y el modelo la ignoraba: ofreció Casita 7 y Casita 2 para
+UNA noche cuando las dos piden 2 esa fecha. **No se esconde la casita** —Jorge: una noche suelta
+entre dos reservas a veces conviene venderla, y eso lo decide una persona—. Cuando las noches
+pedidas no llegan al mínimo, la casita lleva además `bajo_estancia_minima`
+(`ConsultarDisponibilidadSkill::avisoEstanciaMinima()`): ofrecerla con su precio, decir el mínimo,
+dejarla como petición para el equipo y, si pregunta el huésped, escalarla.
+
+Va como **campo propio** por la misma razón que `precio_desde`: un aviso en prosa depende de que
+alguien lo lea; un campo con nombre propio en la casita que se ofrece, no. Está en
+`CAMPOS_SIN_IMPORTES`, así que también lo ve quien escribe desde una OTA.
+
 #### 💸 Lo cotizado ES lo cobrado (y no lo era)
 
 Durante un día entero la cotización usó la limpieza configurable de la unidad mientras el CARGO
@@ -10792,6 +10813,19 @@ sin prometer plazo.
 Verificado con `php tools/pruebas/probar-enfriamiento.php`: no enfría sin avisos previos, ni con un aviso de
 otra conversación, ni con uno que falló al encolarse, ni con uno de hace tres horas; sí con uno de
 hace un momento.
+
+#### Lo que se escala queda PENDIENTE, y al huésped hay que decírselo así (16/10/2026)
+
+`queDecirle()` decía **por dónde** le contestarían («por aquí») pero no **en qué estado** quedaba
+lo que pidió, y el modelo rellenó el hueco con la versión optimista. Clémence Mougin pidió Casita 7
+para el domingo y recibió «c'est bien noté pour la Casita 7… l'équipe mettra à jour votre
+réservation»: para ella, reservado. No lo estaba —nadie lo creó, y la noche estaba además por
+debajo de la estancia mínima—.
+
+Ahora la instrucción da el hecho en positivo: si lo pedido hay que **concederlo** (una noche, una
+reserva, cambiar fechas u horario, un servicio), queda pendiente de que el equipo lo confirme, y se
+le dice como petición en curso —«he pasado tu petición al equipo y te confirmarán por aquí»—.
+Para una avería no cambia nada: ahí no hay nada que conceder.
 
 ### 22.9 Entrar directo al paso siguiente
 

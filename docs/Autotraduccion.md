@@ -304,6 +304,24 @@ está traducido. Si mañana el árbol crece un nivel, ese `duplicar()` también 
 Cambiar prioridades en `maestro_idioma` no surte efecto en los workers de messenger hasta
 reiniciarlos.
 
+### ⚠️ Un espacio antes del salto y Google se come la línea siguiente *(arreglado el 16/10/2026)*
+
+No la traduce mal: **la omite**, sin ninguna señal en la respuesta. Reproducido tres de tres veces
+con un mensaje real de WhatsApp:
+
+```
+"…jusque samedi soir⎵\nOn part jeudi matin tôt vers 6h30 du matin"  → sólo la primera frase
+"…jusque samedi soir\nOn part jeudi matin tôt vers 6h30 du matin"   → las dos
+```
+
+`GoogleTranslateService::sinEspaciosAntesDelSalto()` quita esos espacios en `translate()` y en
+`translateWithDetection()`, o sea en el único sitio por el que pasan todas las traducciones: el
+chat en los dos sentidos, lo que el bot escribe para el operador y el contenido con
+`#[AutoTranslate]`. Sólo en `text/plain`: en HTML un espacio antes del salto no significa nada.
+
+En 60 días de chat, 11 mensajes entrantes traían esa forma. No todos pierden la línea —depende del
+texto—, y por eso no se había visto: casi siempre sale bien.
+
 ### Dos mecanismos de sobrescritura conviven
 
 Además del flag de la entidad hay flags `sobreescribirTraduccion` **por contenedor dentro del

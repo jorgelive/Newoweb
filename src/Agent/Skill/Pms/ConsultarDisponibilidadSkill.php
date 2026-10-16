@@ -58,7 +58,7 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
      */
     private const array CAMPOS_SIN_IMPORTES = [
         'id', 'nombre', 'establecimiento', 'capacidad', 'habitaciones', 'camas', 'banos', 'pax',
-        'estancia_minima',
+        'estancia_minima', 'bajo_estancia_minima',
     ];
 
     /** Y lo único del resumen. Fuera `cotizacion` y `aviso_pax`, que hablan de dinero. */
@@ -129,7 +129,9 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
                 . 'directo se lo ahorra—, nunca lo sumes al total. '
                 . '🔗 Cada casita trae «enlace» cuando hay uno que se pueda dar: pásalo tal cual '
                 . 'cuando la ofrezcas. Si no lo trae, no lo inventes ni pases otro: nómbrala. '
-                . 'Si la respuesta trae «precio» en vez de importes, síguelo al pie de la letra.',
+                . 'Si la respuesta trae «precio» en vez de importes, síguelo al pie de la letra. '
+                . '🌙 Si una casita trae «bajo_estancia_minima», también: la ofreces igual, con '
+                . 'su precio, y le dices la estancia mínima y que lo consultas con el equipo.',
             parametros: [
                 SkillParameter::texto('desde', 'Fecha de entrada en formato YYYY-MM-DD.'),
                 SkillParameter::texto('hasta', 'Fecha de salida en formato YYYY-MM-DD. '
@@ -868,11 +870,46 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
             // es pedirle que se equivoque con dinero. Aquí llega hecha.
             'servicio_en_otas' => $this->referenciaServicio($resumen, $moneda),
             'estancia_minima' => $resumen['min_stay'] > 0 ? $resumen['min_stay'] : null,
+            'bajo_estancia_minima' => self::avisoEstanciaMinima($noches, $resumen['min_stay']),
             'noches_sin_tarifa' => $resumen['noches_sin_tarifa'] > 0
                 ? $resumen['noches_sin_tarifa']
                 : null,
         ], static fn ($v) => $v !== null) + $fila;
 
         return ['fila' => $filaFinal, 'total' => $resumen['total'], 'moneda' => $moneda];
+    }
+
+    /**
+     * Qué hacer cuando piden menos noches que la estancia mínima de la casita, o `null` si no.
+     *
+     * 🌙 **No se esconde la casita: se ofrece con la condición delante.** El campo
+     * `estancia_minima` ya viajaba en la respuesta y el modelo lo ignoraba: el 16/10/2026 ofreció
+     * Casita 7 y Casita 2 para UNA noche —las dos piden 2 esa fecha— y lo dejó «anotado». Jorge:
+     * no es para que no salga, sino para que el cliente sepa que el mínimo es tal y que se
+     * consulta con el equipo. Una noche suelta entre dos reservas a veces conviene venderla, y
+     * eso lo decide una persona, no la tarifa ni el modelo.
+     *
+     * Va como campo propio y no como una frase más en la descripción por la misma razón que
+     * `precio_desde`: un aviso en prosa depende de que alguien lo lea, y un campo con nombre
+     * propio en la casita que se ofrece no se puede pasar por alto sin saltarse un dato.
+     */
+    public static function avisoEstanciaMinima(int $noches, int $minimo): ?string
+    {
+        if ($minimo <= 1 || $noches <= 0 || $noches >= $minimo) {
+            return null;
+        }
+
+        return sprintf(
+            'Piden %d %s y esta casita tiene una estancia mínima de %d noches. Ofrécela igual, con '
+            . 'su precio, y díselo claro: la estancia mínima es de %d noches y una estancia más '
+            . 'corta la tiene que aprobar el equipo, así que lo consultas con ellos y le confirman '
+            . 'por aquí. Es una petición pendiente, todavía no una reserva. Si quien pregunta es '
+            . 'el huésped, pásalo al equipo con escalar_al_equipo diciendo que está por debajo '
+            . 'del mínimo.',
+            $noches,
+            $noches === 1 ? 'noche' : 'noches',
+            $minimo,
+            $minimo,
+        );
     }
 }

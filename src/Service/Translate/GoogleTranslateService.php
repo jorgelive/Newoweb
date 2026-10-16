@@ -55,7 +55,7 @@ class GoogleTranslateService
      */
     public function translate(string|array $text, string $targetLanguage, ?string $sourceLanguage = null, string $mimeType = 'text/plain'): array
     {
-        $contents = is_array($text) ? $text : [$text];
+        $contents = self::sinEspaciosAntesDelSalto(is_array($text) ? $text : [$text], $mimeType);
         $parent = sprintf('projects/%s/locations/%s', $this->projectId, $this->location);
 
         $request = (new TranslateTextRequest())
@@ -97,7 +97,7 @@ class GoogleTranslateService
      */
     public function translateWithDetection(string|array $text, string $targetLanguage, string $mimeType = 'text/plain'): array
     {
-        $contents = is_array($text) ? $text : [$text];
+        $contents = self::sinEspaciosAntesDelSalto(is_array($text) ? $text : [$text], $mimeType);
         $parent = sprintf('projects/%s/locations/%s', $this->projectId, $this->location);
 
         // Al NO setear setSourceLanguageCode, Google activa la detección automática.
@@ -128,6 +128,45 @@ class GoogleTranslateService
         } catch (ApiException $e) {
             throw $e;
         }
+    }
+
+    /**
+     * Quita los espacios que quedan al final de una línea, justo antes del salto.
+     *
+     * ⚠️ **Con uno de esos espacios, Google se come la línea siguiente entera.** No la traduce
+     * mal: la omite, y la respuesta no da ninguna señal. Reproducido el 16/10/2026, tres de tres
+     * veces, con un mensaje real de WhatsApp:
+     *
+     * ```
+     * "…jusque samedi soir \nOn part jeudi matin tôt vers 6h30 du matin"
+     *   → "Nos gustaría dejarlos allí desde el jueves por la mañana hasta el sábado por la noche."
+     * "…jusque samedi soir\nOn part jeudi matin tôt vers 6h30 du matin"
+     *   → las dos frases
+     * ```
+     *
+     * El equipo leyó la versión corta y le volvió a pedir la hora de salida a una huésped que ya
+     * la había dado. El asistente sí la vio, porque lee el original: el fallo sólo se nota del
+     * lado que lee la traducción. Y pasa igual en sentido contrario —lo que escribe el operador
+     * puede llegarle al huésped sin una frase—, por eso va aquí, en el único sitio por el que
+     * pasan todas las traducciones.
+     *
+     * Sólo en texto plano: en HTML el espacio antes de un salto no significa nada y lo que se
+     * traduce lleva marcado que no conviene tocar.
+     *
+     * @param list<string> $textos
+     *
+     * @return list<string>
+     */
+    public static function sinEspaciosAntesDelSalto(array $textos, string $mimeType = 'text/plain'): array
+    {
+        if ($mimeType !== 'text/plain') {
+            return $textos;
+        }
+
+        return array_map(
+            static fn (string $t): string => preg_replace('/\h+(?=\R)/u', '', $t) ?? $t,
+            $textos,
+        );
     }
 
     /**
