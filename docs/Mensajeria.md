@@ -6930,8 +6930,13 @@ Cada casita ya traía `estancia_minima` y el modelo la ignoraba: ofreció Casita
 UNA noche cuando las dos piden 2 esa fecha. **No se esconde la casita** —Jorge: una noche suelta
 entre dos reservas a veces conviene venderla, y eso lo decide una persona—. Cuando las noches
 pedidas no llegan al mínimo, la casita lleva además `bajo_estancia_minima`
-(`ConsultarDisponibilidadSkill::avisoEstanciaMinima()`): ofrecerla con su precio, decir el mínimo,
-dejarla como petición para el equipo y, si pregunta el huésped, escalarla.
+(`ConsultarDisponibilidadSkill::avisoEstanciaMinima()`): ofrecerla con su precio y la limpieza,
+y luego, con un «pero», decir que la estancia mínima es otra y **preguntarle si quiere que el equipo
+vea una excepción**. Sólo si dice que sí se escala, con un motivo que ya dice «por debajo del mínimo
+de N: ¿se hace una excepción?», y se le dice que se está consultando, sin darlo por aceptado.
+
+Se pregunta antes de escalar, en vez de escalar siempre, porque quien sólo estaba mirando precios
+no tiene por qué generar un aviso al equipo.
 
 Va como **campo propio** por la misma razón que `precio_desde`: un aviso en prosa depende de que
 alguien lo lea; un campo con nombre propio en la casita que se ofrece, no. Está en

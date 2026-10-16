@@ -131,7 +131,8 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
                 . 'cuando la ofrezcas. Si no lo trae, no lo inventes ni pases otro: nómbrala. '
                 . 'Si la respuesta trae «precio» en vez de importes, síguelo al pie de la letra. '
                 . '🌙 Si una casita trae «bajo_estancia_minima», también: la ofreces igual, con '
-                . 'su precio, y le dices la estancia mínima y que lo consultas con el equipo.',
+                . 'su precio y la limpieza, le dices que la estancia mínima es otra y le '
+                . 'preguntas si quiere que el equipo vea una excepción.',
             parametros: [
                 SkillParameter::texto('desde', 'Fecha de entrada en formato YYYY-MM-DD.'),
                 SkillParameter::texto('hasta', 'Fecha de salida en formato YYYY-MM-DD. '
@@ -889,6 +890,10 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
      * consulta con el equipo. Una noche suelta entre dos reservas a veces conviene venderla, y
      * eso lo decide una persona, no la tarifa ni el modelo.
      *
+     * Se le PREGUNTA antes de escalar («¿quieres que el equipo vea si puede hacer una
+     * excepción?») en vez de escalar siempre: quien sólo estaba mirando precios no tiene por qué
+     * generar un aviso al equipo, y quien de verdad la quiere dice que sí.
+     *
      * Va como campo propio y no como una frase más en la descripción por la misma razón que
      * `precio_desde`: un aviso en prosa depende de que alguien lo lea, y un campo con nombre
      * propio en la casita que se ofrece no se puede pasar por alto sin saltarse un dato.
@@ -901,14 +906,18 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
 
         return sprintf(
             'Piden %d %s y esta casita tiene una estancia mínima de %d noches. Ofrécela igual, con '
-            . 'su precio, y díselo claro: la estancia mínima es de %d noches y una estancia más '
-            . 'corta la tiene que aprobar el equipo, así que lo consultas con ellos y le confirman '
-            . 'por aquí. Es una petición pendiente, todavía no una reserva. Si quien pregunta es '
-            . 'el huésped, pásalo al equipo con escalar_al_equipo diciendo que está por debajo '
-            . 'del mínimo.',
+            . 'su precio y la limpieza tal como vienen en «desglose», y a continuación, con un '
+            . '«pero»: la estancia mínima es de %d noches. Pregúntale si quiere que se lo '
+            . 'consultes al equipo para ver si pueden hacer una excepción. Si dice que sí, llama a '
+            . 'escalar_al_equipo con el motivo «pide %d %s en <casita>, por debajo del mínimo de '
+            . '%d: ¿se hace una excepción?» y dile que lo estás consultando, sin darlo por '
+            . 'aceptado. Si quien pregunta es alguien del equipo, basta con decirle el mínimo.',
             $noches,
             $noches === 1 ? 'noche' : 'noches',
             $minimo,
+            $minimo,
+            $noches,
+            $noches === 1 ? 'noche' : 'noches',
             $minimo,
         );
     }
