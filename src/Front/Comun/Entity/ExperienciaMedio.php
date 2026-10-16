@@ -54,9 +54,14 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
             processor: ExperienciaMedioProcessor::class,
         ),
         // Reordenar, cambiar el pie o la portada no reenvían el binario.
+        //
+        // ⚠️ **Grupo propio, no el del alta.** Con el de escritura entero, un PATCH podía cambiar
+        // `tipo` de `video` a `foto` —dejando una foto sin archivo, porque el processor sólo corre
+        // en el Post— o mudar el medio a OTRO álbum, saltándose la autorización del suyo. Lo que
+        // se retoca después de subir es sólo la colocación y el pie.
         new Patch(
             normalizationContext: ['groups' => ['experiencia:read']],
-            denormalizationContext: ['groups' => ['experiencia_medio:write']],
+            denormalizationContext: ['groups' => ['experiencia_medio:patch']],
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
         ),
         new Delete(
@@ -83,7 +88,10 @@ class ExperienciaMedio
         return $this->id;
     }
 
+    // Sin `NotNull` la columna lo rechazaba igual, pero en MySQL: un alta sin álbum daba un 500
+    // en vez de un 422 con el motivo. El mismo caso que `CotizacionPago::$file`.
     #[Groups(['experiencia_medio:write'])]
+    #[Assert\NotNull(message: 'El medio tiene que ser de un álbum.')]
     #[ORM\ManyToOne(targetEntity: ExperienciaAlbum::class, inversedBy: 'medios')]
     #[ORM\JoinColumn(name: 'album_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?ExperienciaAlbum $album = null;
@@ -92,16 +100,16 @@ class ExperienciaMedio
     #[ORM\Column(type: 'string', length: 10, enumType: ExperienciaMedioTipoEnum::class)]
     private ExperienciaMedioTipoEnum $tipo = ExperienciaMedioTipoEnum::FOTO;
 
-    #[Groups(['experiencia:read', 'experiencia_medio:write'])]
+    #[Groups(['experiencia:read', 'experiencia_medio:write', 'experiencia_medio:patch'])]
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
     private int $orden = 0;
 
-    #[Groups(['experiencia:read', 'experiencia_medio:write'])]
+    #[Groups(['experiencia:read', 'experiencia_medio:write', 'experiencia_medio:patch'])]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $esPortada = false;
 
     /** @var list<array{language?: string, content?: string|null}> */
-    #[Groups(['experiencia:read', 'experiencia_medio:write'])]
+    #[Groups(['experiencia:read', 'experiencia_medio:write', 'experiencia_medio:patch'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $pie = [];

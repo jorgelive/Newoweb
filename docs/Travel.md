@@ -297,6 +297,21 @@ error porque una clave de array acepta cualquier string).
 los revisa ninguna herramienta — al renombrar una entidad, `grep` de su nombre viejo cubre
 `templates/panel/` igual que cubre `util/` y `pax/`.
 
+### La subida de la galería sólo acepta imágenes de verdad (16/10/2026)
+
+`TravelOrganizacionImagenMultipartProcessor` pasa la subida por
+`App\Panel\Media\ImagenSubidaSegura::verificar()` antes de dársela a Vich: whitelist por el
+**contenido** del archivo (JPEG, PNG, WebP, GIF, AVIF, HEIC/HEIF), no por la extensión ni por el
+`Content-Type` que manda el cliente.
+
+⚠️ **No bastaba con que luego se convierta a WebP.** `VichWebpConversionListener` **se aparta** si
+el MIME no es `image/*`, si es `image/svg+xml` o si Imagick falla (su `catch` es silencioso a
+propósito), y en los tres casos el original se guarda tal cual, con la extensión que adivine
+`MediaTokenNamer`. Como el destino está en `public/`, que comparten todos los hosts
+(`util.`, `panel.`, `pax.`, `api.`, `openperu.pe`), un SVG con `<script>` sería XSS almacenado en
+el origen del panel. El porqué entero, y la misma guarda en la galería de experiencias, en
+`docs/WebPublica.md` §2.1.a.
+
 ### Y una cuarta: el `adder`/`remover` no coincidía con el nombre de la propiedad (02/09/2026)
 
 Editar una organización daba `NoSuchPropertyException: Could not determine access type for

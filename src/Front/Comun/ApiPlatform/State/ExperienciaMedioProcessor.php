@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Front\Comun\Entity\ExperienciaMedio;
 use App\Front\Comun\Enum\ExperienciaMedioTipoEnum;
+use App\Panel\Media\ImagenSubidaSegura;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -19,6 +20,10 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  *
  * Con archivo, el medio ES una foto aunque no se diga: así util no tiene que mandar `tipo` en
  * cada subida, y un vídeo nunca arrastra un binario. Una foto SIN archivo es un 422 desde aquí.
+ *
+ * 🔒 Y lo que llega se comprueba antes de aceptarlo ({@see ImagenSubidaSegura}): el destino es
+ * `public/`, compartido por todos los hosts, así que un SVG con script sería XSS en el origen del
+ * panel. Va aquí y no en la entidad porque el validador corre antes que este processor.
  *
  * @implements ProcessorInterface<ExperienciaMedio, ExperienciaMedio>
  */
@@ -42,6 +47,10 @@ final readonly class ExperienciaMedioProcessor implements ProcessorInterface
             $subida = $this->requestStack->getCurrentRequest()?->files->get('imagen');
 
             if ($subida instanceof UploadedFile) {
+                // 🔒 Antes de nada: que sea de verdad una foto. La carpeta de destino está en
+                // `public/` y la comparten todos los hosts. Ver `ImagenSubidaSegura`.
+                ImagenSubidaSegura::verificar($subida);
+
                 $data->setTipo(ExperienciaMedioTipoEnum::FOTO);
                 $data->setVideoUrl(null);
                 $data->setImageFile($subida);

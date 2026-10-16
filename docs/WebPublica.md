@@ -13,6 +13,7 @@ preguntas abiertas están en `docs/PlanWebPublica.md`.
 1. [Piezas y flujo](#1-piezas-y-flujo)
 2. [Qué sale en la web](#2-qué-sale-en-la-web)
    - [2.1 Experiencias: álbumes de fotos y vídeos](#21-experiencias-álbumes-de-fotos-y-vídeos-16102026)
+   - [2.1.a Lo que se acepta como foto](#21a-lo-que-se-acepta-como-foto-y-por-qué-se-mira-en-el-procesador-16102026)
 3. [Plantillas, estilos e idiomas](#3-plantillas-estilos-e-idiomas)
 4. [SEO y compartir](#4-seo-y-compartir)
 5. [Libro de Reclamaciones](#5-libro-de-reclamaciones)
@@ -148,6 +149,49 @@ menú «Experiencias» (front_hay_experiencias()) · sitemap
 validador de la entidad y rechazaba TODAS las subidas: el archivo lo recoge
 `ExperienciaMedioProcessor`, que corre después. Vive en el procesador (422 «Falta la foto»); la del
 enlace de vídeo sí puede ir en la entidad, porque el enlace llega en el cuerpo.
+
+**Y de ahí sale lo mismo para la seguridad de la subida**, que es el apartado siguiente.
+
+#### 2.1.a Lo que se acepta como foto, y por qué se mira en el procesador (16/10/2026)
+
+Hallazgos de la revisión independiente del commit de experiencias. Los tres primeros, corregidos:
+
+🔒 **El archivo se comprueba por su CONTENIDO antes de aceptarlo** — `ImagenSubidaSegura::verificar()`,
+llamado desde `ExperienciaMedioProcessor` y desde `TravelOrganizacionImagenMultipartProcessor`
+(la galería de organizaciones tenía el mismo hueco). Whitelist: JPEG, PNG, WebP, GIF, AVIF, HEIC/HEIF.
+
+Lo que había antes dejaba pasar cualquier cosa, y las tres piezas se tapaban entre sí:
+
+| Pieza | Qué hace con un archivo que no es una foto |
+|---|---|
+| `ExperienciaMedio::$imageFile` | sin `#[Assert\Image]`, y aunque lo tuviera **no se ejecuta**: el validador corre antes de que el procesador recoja el binario |
+| `VichWebpConversionListener` | **se aparta** si el MIME no es `image/*`, si es `image/svg+xml`, o si Imagick falla (su `catch` es silencioso a propósito): el original sigue intacto |
+| `MediaTokenNamer` | conserva la extensión adivinada del contenido, así que un SVG se guarda `.svg` |
+
+⚠️ **Y el destino está en `public/`, que comparten TODOS los hosts** (`openperu.pe`, `util.`, `pax.`,
+`panel.`, `api.` tienen el mismo `root`). Un SVG con `<script>` colgado ahí es XSS almacenado en el
+mismo origen que la sesión del operador. Ejecutar PHP no se puede —nginx sólo encamina `index.php`,
+comprobado en producción el 16/10/2026—, pero eso lo defiende la configuración del servidor, no la
+aplicación.
+
+🔒 **Retirar un álbum borra las miniaturas de Liip** — `ExperienciaAlbumCacheListener` (al desmarcar
+«autorizado» o «publicado») y `ExperienciaMedioCacheListener` (al reemplazar o borrar una foto, que
+es el listener estándar que faltaba). Vich borra el original; las copias de `public/media/cache/…`
+las servía nginx sin pasar por PHP y no las tocaba nadie.
+
+⚠️ **Lo que esto NO arregla, y es una decisión pendiente de Jorge:** el ORIGINAL sigue en
+`public/carga/front/experiencias/` y su URL responde mientras el archivo exista. Lo único que lo
+protege es el token aleatorio de 8 bytes del nombre (`MediaTrait::initializeToken()`): no se
+adivina, pero **un enlace ya repartido o indexado no se invalida al revocar la autorización**.
+Cerrarlo del todo es sacar estas fotos de `public/` y servirlas por controlador con
+`X-Accel-Redirect`, como `cotizacion_file_archivos`, y eso cambia también cómo las pinta la web
+(y cómo cachea Liip). Con menores de por medio, merece decidirse a conciencia, no de pasada.
+
+**El PATCH de un medio tiene su propio grupo** (`experiencia_medio:patch`: `orden`, `esPortada`,
+`pie`). Con el grupo de alta entero se podía cambiar `tipo` de `video` a `foto` —dejando una foto
+sin archivo, porque el procesador sólo corre en el `Post`— o mudar el medio a **otro álbum**,
+saltándose la autorización del suyo. Y `$album` lleva `#[Assert\NotNull]`: la columna lo rechazaba
+igual, pero en MySQL, o sea un 500 en vez de un 422 con el motivo.
 
 **Falta (siguientes entregas de la Fase 3):** elegir en cada catálogo qué álbumes o vídeos enseña,
 la franja «Experiencias reales» en las secciones de la portada y en la página del catálogo, y el
@@ -446,6 +490,8 @@ La migración `Version20261007010000` (columnas web del catálogo + tabla del li
 | Publicar un álbum: qué exige | `src/Front/Comun/Entity/ExperienciaAlbum.php` | `validarPublicacion()`, `esVisibleEnLaWeb()` |
 | Qué enlaces de vídeo se aceptan y cómo se reproducen | `src/Front/Comun/Dto/VideoExterno.php` | `desdeUrl()`, `reproductor()`, `miniatura()` (espejo de la miniatura en `ExperienciasView.vue`) |
 | Subida de fotos de un álbum | `src/Front/Comun/ApiPlatform/State/ExperienciaMedioProcessor.php` · `util/src/stores/front/experienciaStore.ts` | `process()`, `subirFoto()` |
+| Qué formatos de imagen se aceptan (aquí y en Travel) | `src/Panel/Media/ImagenSubidaSegura.php` | `MIMES`, `verificar()` |
+| Limpiar las miniaturas al retirar o borrar | `src/Front/Comun/EventListener/ExperienciaAlbumCacheListener.php` · `ExperienciaMedioCacheListener.php` | `postUpdate()`, `getMapping()` |
 | La pantalla de álbumes en util | `util/src/views/Experiencias/ExperienciasView.vue` | — |
 | Añadir una ruta de UN tramo a la web, o reservar una palabra | `CotizacionCatalogo::SLUGS_RESERVADOS` **y** `TourController::SLUG_CATALOGO` | lo vigila `SlugsDeCatalogoTest` |
 | Cuántas fotos de la galería se ven sin desplegar, o su miniatura | `templates/front/tours/tour.html.twig` (`visibles`) · `config/packages/liip_imagine.yaml` | `travel_galeria` |

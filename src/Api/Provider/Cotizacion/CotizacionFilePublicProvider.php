@@ -183,8 +183,8 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 'reservable'      => $reservable = $estadoEnum !== null && ComoReservarResolver::seOfreceEnEstado($file, $estadoEnum),
                 // Lo ya pagado, con la misma regla que el detalle: si cubre el adelanto, la tarjeta
                 // dice «adelanto recibido» en vez de volver a pedirlo a un clic del detalle.
-                'pagadoUsd'       => $reservable && !$oculto
-                    ? ComoReservarResolver::pagadoVisible($file, $f['propuesta'])['usd']
+                'pagadoUsd'       => $reservable
+                    ? ComoReservarResolver::pagadoVisible($file, $f['propuesta'], $oculto)['usd']
                     : 0.0,
                 // ⚠️ Como DÍA (`Y-m-d`), no como instante con desplazamiento.
                 //

@@ -72,11 +72,17 @@ final readonly class ComoReservarResolver
      * el dinero de todas — a la vista de cualquiera y diciéndole «adelanto recibido» a quien no
      * pagó. Lo de cada familia, cuando haya cuenta por persona identificada.
      *
+     * 🔒 **Y con el precio oculto, tampoco.** Una propuesta `SIN_PRECIO` no dice cuánto cuesta el
+     * viaje; decir cuánto se ha pagado de ella es el mismo dinero por otra puerta. La portada ya
+     * lo hacía y el detalle no (revisión del 16/10/2026): el bloque «Cómo reservar» cuelga de
+     * `CotizacionFile`, así que `CotizacionPublicNormalizer::redactarMontos()` —que sólo mira la
+     * `Cotizacion`— no lo tapaba. La regla vive aquí para que no haya dos.
+     *
      * @return array{usd: float, porMoneda: array<string, float>}
      */
-    public static function pagadoVisible(CotizacionFile $file, int $propuesta): array
+    public static function pagadoVisible(CotizacionFile $file, int $propuesta, bool $precioOculto): array
     {
-        return $file->getModo()->ocultaTotalDeGrupo()
+        return $file->getModo()->ocultaTotalDeGrupo() || $precioOculto
             ? ['usd' => 0.0, 'porMoneda' => []]
             : CuentaDelExpediente::pagadoDePropuesta($file, $propuesta);
     }
@@ -134,7 +140,7 @@ final readonly class ComoReservarResolver
                 'es' => $this->politica('es'),
                 'en' => $this->politica('en'),
             ],
-            pagadoUsd: ($pagado = self::pagadoVisible($file, $cotizacion->getPropuesta()))['usd'],
+            pagadoUsd: ($pagado = self::pagadoVisible($file, $cotizacion->getPropuesta(), $cotizacion->isPrecioOculto()))['usd'],
             pagadoPorMoneda: $pagado['porMoneda'],
         );
     }

@@ -4127,6 +4127,13 @@ CotizacionPagoMovimientoProvider ── la Caja de Finanzas, junto a alojamiento
   los dólares reconvertidos al cambio de la cotización. 🔒 **En un expediente de grupo no**: el
   enlace lo tienen todas las familias, y la suma de lo pagado sería el dinero de todas, a la vista
   de cualquiera y diciéndole «recibido» a quien no pagó (`ComoReservarResolver::pagadoVisible()`).
+- 🔒 **Y con el precio oculto, tampoco** (revisión del 16/10/2026). Una propuesta `SIN_PRECIO` no
+  dice cuánto cuesta el viaje; decir cuánto se ha pagado de ella es el mismo dinero por otra
+  puerta. La portada ya lo tapaba (`$reservable && !$oculto`) y **el detalle no**, porque el
+  bloque «Cómo reservar» cuelga de `CotizacionFile` y `CotizacionPublicNormalizer::redactarMontos()`
+  sólo mira la `Cotizacion`: el JSON público del detalle seguía trayendo `comoReservar.pagadoUsd`.
+  ⚠️ La regla vive ahora **dentro** de `pagadoVisible()`, con el precio oculto como tercer
+  parámetro, para que las dos superficies no puedan volver a discrepar.
 - **Validación** (`CotizacionPago::validar()` y atributos): importe con punto y dos decimales
   (⚠️ `Positive` a secas dejaba pasar `'abc'` y `'12,50'`: en PHP 8 `'abc' > 0` es `true`, y
   MySQL respondía con un 500), tipo de cambio entre 1 y 10 con punto, fecha no futura, propuesta

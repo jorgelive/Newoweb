@@ -6,6 +6,7 @@ namespace App\Travel\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
+use App\Panel\Media\ImagenSubidaSegura;
 use App\Travel\Entity\TravelOrganizacionImagen;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -22,8 +23,11 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * propiedad de Doctrine confunde al denormalizador (es la razón por la que el de documentos
  * usa `documento`). A partir de aquí manda VichUploader, y
  * {@see \App\Panel\EventListener\Media\VichWebpConversionListener} convierte a WebP.
- */
-/**
+ *
+ * 🔒 Antes de entregárselo a Vich se comprueba que sea una imagen de verdad
+ * ({@see ImagenSubidaSegura}): esta galería se guarda en `public/`, que comparten todos los
+ * hosts, y la conversión a WebP se aparta en silencio ante un SVG o un fallo de Imagick.
+ *
  * ⚠️ Genérico en `mixed`, y no en la entidad, porque es la verdad: API Platform le pasa
  * cualquier cosa y este procesador **delega** lo que no sea una imagen. Declararlo estrecho
  * hacía que PHPStan diera la guarda de abajo por siempre cierta —y esa guarda es justo la que
@@ -59,6 +63,7 @@ final readonly class TravelOrganizacionImagenMultipartProcessor implements Proce
             $subida = $request->files->get('imagen');
 
             if ($subida instanceof UploadedFile) {
+                ImagenSubidaSegura::verificar($subida);
                 $data->setImageFile($subida);
             }
         }

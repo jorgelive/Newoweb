@@ -21255,17 +21255,7 @@ export interface components {
             updatedAt?: string | null;
         };
         /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
-        "ExperienciaMedio-experiencia_medio.write": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            album?: string;
-            /**
-             * @default foto
-             * @enum {string}
-             */
-            tipo: "foto" | "video";
+        "ExperienciaMedio-experiencia_medio.patch.jsonMergePatch": {
             /** @default 0 */
             orden: number;
             /** @default false */
@@ -21273,16 +21263,14 @@ export interface components {
             pie?: {
                 [key: string]: string | null;
             }[];
-            /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
-            videoUrl?: string | null;
         };
         /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
-        "ExperienciaMedio-experiencia_medio.write.jsonMergePatch": {
+        "ExperienciaMedio-experiencia_medio.write": {
             /**
              * Format: iri-reference
              * @example https://example.com/
              */
-            album?: string;
+            album: string;
             /**
              * @default foto
              * @enum {string}
@@ -42482,7 +42470,7 @@ export interface operations {
         /** @description The updated ExperienciaMedio resource */
         requestBody: {
             content: {
-                "application/merge-patch+json": components["schemas"]["ExperienciaMedio-experiencia_medio.write.jsonMergePatch"];
+                "application/merge-patch+json": components["schemas"]["ExperienciaMedio-experiencia_medio.patch.jsonMergePatch"];
             };
         };
         responses: {

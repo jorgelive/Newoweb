@@ -65,7 +65,22 @@ final class ComoReservarResolverTest extends TestCase
         $file->addCotizacion((new Cotizacion())->setPropuesta(1)->setEstado(CotizacionEstadoEnum::ENVIADO)->setTotalVenta('900'));
         $file->getPagos()->add((new CotizacionPago())->setFile($file)->setMonto('300')->setMoneda('USD'));
 
-        self::assertSame(['usd' => 0.0, 'porMoneda' => []], ComoReservarResolver::pagadoVisible($file, 1));
+        self::assertSame(['usd' => 0.0, 'porMoneda' => []], ComoReservarResolver::pagadoVisible($file, 1, false));
+    }
+
+    /**
+     * Revisión del 16/10/2026: con el precio oculto, el detalle seguía mandando lo pagado. La
+     * portada ya lo tapaba; el bloque del detalle cuelga del expediente, así que el redactor de
+     * montos de la cotización no llegaba hasta él.
+     */
+    public function testConElPrecioOcultoTampocoSeEnsenaLoPagado(): void
+    {
+        $file = (new CotizacionFile())->setModo(FileModoEnum::ESTANDAR);
+        $file->addCotizacion((new Cotizacion())->setPropuesta(1)->setEstado(CotizacionEstadoEnum::ENVIADO)->setTotalVenta('900'));
+        $file->getPagos()->add((new CotizacionPago())->setFile($file)->setMonto('300')->setMoneda('USD')->setPropuesta(1));
+
+        self::assertSame(300.0, ComoReservarResolver::pagadoVisible($file, 1, false)['usd'], 'Con precio a la vista, lo pagado se dice');
+        self::assertSame(['usd' => 0.0, 'porMoneda' => []], ComoReservarResolver::pagadoVisible($file, 1, true));
     }
 
     public function testElRestoSePagaElDiaDelPrimerServicio(): void
