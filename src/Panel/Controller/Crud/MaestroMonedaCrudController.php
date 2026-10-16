@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Panel\Controller\Crud;
 
+use App\Panel\Field\CamposDeTraduccion;
 // ✅ Restauramos la herencia de tu BaseCrudController
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Entity\Maestro\MaestroMoneda;
@@ -105,7 +106,10 @@ class MaestroMonedaCrudController extends BaseCrudController
             ->setEntryType(TranslationTextType::class)
             ->hideOnIndex()
             ->setColumns(12)
-            ->setHelp('Escribe el español y guarda: el resto se traduce solo. Revisa los idiomas: una palabra suelta se traduce mal.');
+            ->setHelp('Revisados a mano (app:maestro:monedas:titulos). Al editar no se retraducen salvo que marques «Traducir automáticamente».');
+
+        // Maestro de rótulos: al editar, la casilla de traducir sale desmarcada. Ver CamposDeTraduccion.
+        yield from CamposDeTraduccion::deMaestroDeRotulos($pageName, Roles::MAESTROS_WRITE);
 
         // ✅ Auditoría mediante TimestampTrait (createdAt, updatedAt)
         yield FormField::addPanel('Tiempos de Registro')->setIcon('fa fa-clock')->onlyOnDetail();

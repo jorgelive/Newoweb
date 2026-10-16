@@ -27,6 +27,15 @@ trait AutoTranslateControlTrait
      *
      * Lo usa `app:traduccion:sellar-hash` para garantizar que el sellado **no puede** traducir:
      * apagado aquí, el servicio sale antes de mirar nada.
+     *
+     * ⛔ **No cambies este `true`.** Lo comparten las 29 entidades traducibles y todo lo que las
+     * guarda —el editor de util, la API, los comandos, el panel—: a `false`, nada volvería a
+     * traducirse y las fichas en otros idiomas se quedarían viejas sin un solo error. Para que un
+     * MAESTRO DE RÓTULOS no se retraduzca al editarlo, se pone por defecto en SU formulario:
+     * {@see \App\Panel\Field\CamposDeTraduccion::deMaestroDeRotulos()} (16/10/2026).
+     *
+     * Y es virtual —sin columna— a propósito: guardado, «apagado una vez» pasaría a significar
+     * «no se traduce nunca más», sin que se viera en ningún sitio.
      */
     private bool $ejecutarTraduccion = true;
 

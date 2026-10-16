@@ -4,7 +4,7 @@ Cómo el contenido escrito en español llega a los otros seis idiomas, quién de
 rehace una traducción, y las trampas que este sistema ha tenido.
 
 **Alcance:** `src/Service/Translate/`, `src/EventListener/AutoTranslationEventListener.php`,
-`src/Attribute/AutoTranslate.php`, `src/Entity/Trait/AutoTranslateControlTrait.php` y las 25
+`src/Attribute/AutoTranslate.php`, `src/Entity/Trait/AutoTranslateControlTrait.php` y las 29
 entidades que lo usan.
 
 ## Índice
@@ -20,6 +20,7 @@ entidades que lo usan.
 9. [Gotchas](#9-gotchas)
 11. [Traducciones que hablan de otra cosa](#11-traducciones-que-hablan-de-otra-cosa-05102026) — el clon, el auditor y la tanda que falla en silencio
 12. [Lo que el traductor dice mal](#12-lo-que-el-traductor-dice-mal-14102026) — correcciones y rótulos fijos
+13. [Maestros de rótulos: lo revisado no se pisa al editar](#13-maestros-de-rótulos-lo-revisado-no-se-pisa-al-editar-16102026)
 10. [Dónde tocar para cambiar X](#10-dónde-tocar-para-cambiar-x)
 
 ---
@@ -480,6 +481,44 @@ aplicar dos veces igual a una. Los graves se contrastaron con el español.
 
 ---
 
+## 13. Maestros de rótulos: lo revisado no se pisa al editar (16/10/2026)
+
+⚠️ **Lo primero que hay que decidir al poner `#[AutoTranslate]` en una entidad nueva** es qué
+clase de texto lleva. El aviso está también en el propio atributo para quien implemente.
+
+| | Texto largo | Maestro de rótulos |
+|---|---|---|
+| Ejemplos | ítem de la guía, nota, segmento, cotización, experiencia | `UiI18n`, `MaestroMoneda`, `TravelItemDiccionario`, `PmsCatalogo` |
+| El traductor | tiene contexto: acierta | sin contexto, adivina: «Siguiente» → «Following» |
+| Quién lo cuida | nadie, uno por uno: se propaga solo | una persona, revisado a mano |
+| Lo que interesa | que corregir el español llegue a los siete idiomas | que lo revisado **no se pise sin querer** |
+| «Traducir automáticamente» en el panel | marcado, siempre | **desmarcado al editar**, marcado al crear |
+
+Un maestro de rótulos lo declara su CRUD con
+`CamposDeTraduccion::deMaestroDeRotulos($pageName, $permiso)` (`src/Panel/Field/`): devuelve los dos
+interruptores, con el de traducir desmarcado en la edición y marcado en el alta —al crear no hay
+nada revisado que proteger, y sin traducir nacería con seis idiomas vacíos—. Al editar un texto
+desmarcado se guarda tal cual; si se cambió el español, se marca la casilla o se corrigen los
+idiomas a mano, y la ayuda del formulario lo dice.
+
+**Por qué en el formulario y no en la entidad.** `ejecutarTraduccion` es virtual —sin columna— y
+su `true` por defecto lo comparten las 29 entidades y todo lo que las guarda: el editor de util, la
+API, los comandos y el panel. Ponerlo a `false` en el trait apagaría la traducción de cotizaciones,
+guía y catálogo sin un solo error. Y guardarlo en una columna cambiaría su significado: «apagado
+una vez» pasaría a ser «no se traduce nunca más», sin que se viera en ningún sitio. Lo que se
+protege es la **edición desde el panel**, que es donde se pisa lo revisado.
+
+Las otras dos defensas siguen valiendo y se suman:
+
+- **Una palabra que se repite en varios maestros** va a `CorreccionesDeTraduccion::FIJAS` (§12): se
+  traduce por su español y a Google ni se le pregunta.
+- **Una traducción concreta que no debe rehacerse nunca**, ni aunque cambie el español:
+  `origenHash: 'manual'` (§3). Es lo que hace `app:maestro:monedas:titulos` con los nombres de
+  moneda.
+
+**Al crear un maestro nuevo de este tipo**, se añade a la tabla de arriba y a la cabecera de
+`CamposDeTraduccion`.
+
 ## 10. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método / clave |
@@ -491,6 +530,7 @@ aplicar dos veces igual a una. Los graves se contrastaron con el español.
 | Blindar una traducción concreta | el dato | `origenHash: 'manual'` en esa fila |
 | Añadir o quitar un idioma | `maestro_idioma` | `prioridad > 0`. Bajarlo a 0 ya **no** borra nada, pero exige reiniciar los workers |
 | Evitar que un comando traduzca | el comando | `setEjecutarTraduccion(false)` antes del flush |
+| **Proteger un maestro de rótulos** al editarlo en el panel | su CRUD | `CamposDeTraduccion::deMaestroDeRotulos()` — §13. **Nunca** cambiando el `true` del trait |
 | Sellar contenido sin traducirlo | — | `app:traduccion:sellar-hash --dry-run --clase=` |
 | **Encontrar traducciones que no se corresponden con su español** | — | `app:traduccion:auditar` — §11 |
 | Saber si una tanda de traducción falló | `AutoTranslationService` | `olvidarFallos()` antes, `fallos()` después — el log solo no basta (§11) |

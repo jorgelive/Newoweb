@@ -260,7 +260,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Finanzas/`, resolvers `*/Finanzas/*OrigenCobroResolver.php`, cobros en `util/` y `pax/` | `docs/FinanzasEnlacesPago.md` |
 | `src/Service/Phone/`, listeners de integridad de teléfonos, `util/src/utils/telefono.ts` | `docs/Telefonos.md` |
 | `src/Agent/Alexa/`, `VoiceAssistant`, `AlexaController` (el agente por voz) | `docs/AgentVoz.md` |
-| `src/Service/Translate/`, `AutoTranslationEventListener`, `#[AutoTranslate]`, `AutoTranslateControlTrait` | `docs/Autotraduccion.md` |
+| `src/Service/Translate/`, `AutoTranslationEventListener`, `#[AutoTranslate]`, `AutoTranslateControlTrait` | `docs/Autotraduccion.md` — ⚠️ al poner `#[AutoTranslate]` en algo nuevo, decide si es **texto largo** o **maestro de rótulos** (§13): los rótulos se protegen en su CRUD con `CamposDeTraduccion::deMaestroDeRotulos()`, nunca tocando el `true` del trait |
 | Fechas, husos horarios, `APP_ZONA_HORARIA`, `PmsEstablecimiento::$timezone`, `dominio/fecha/` | `docs/ZonasHorarias.md` — el estándar es **hora de pared del establecimiento**; léelo antes de tocar cualquier fecha |
 | `src/Logging/`, `config/packages/monolog.yaml`, rotación de logs | `docs/Logging.md` |
 | `config/packages/mailer.yaml`, variables `MAILER_*`, envío por Graph | `docs/CorreoSaliente.md` |

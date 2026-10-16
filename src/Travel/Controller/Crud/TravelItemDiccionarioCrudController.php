@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Travel\Controller\Crud;
 
+use App\Panel\Field\CamposDeTraduccion;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Travel\Entity\TravelItemDiccionario;
-use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
@@ -63,13 +63,8 @@ class TravelItemDiccionarioCrudController extends BaseCrudController
 
         yield FormField::addPanel('Contenido Multilingüe')->setIcon('fa fa-language');
 
-        yield BooleanField::new('ejecutarTraduccion', 'Traducir Automáticamente')
-            ->onlyOnForms()
-            ->setColumns(6);
-
-        yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir Existentes')
-            ->onlyOnForms()
-            ->setColumns(6);
+        // Maestro de rótulos: al editar, la casilla de traducir sale desmarcada. Ver CamposDeTraduccion.
+        yield from CamposDeTraduccion::deMaestroDeRotulos($pageName);
 
         yield CollectionField::new('titulo', 'Viñeta / Título')
             ->setEntryType(TranslationTextType::class)

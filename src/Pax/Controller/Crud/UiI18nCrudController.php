@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Pax\Controller\Crud;
 
+use App\Panel\Field\CamposDeTraduccion;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Pax\Entity\UiI18n;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ArrayField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
@@ -46,23 +46,20 @@ final class UiI18nCrudController extends AbstractCrudController
             ->setMaxLength(40);
 
         yield ChoiceField::new('scope', 'Ámbito / Scope')
+            // ⚠️ Los valores son los que HAY en la base (16/10/2026). Faltaban `cotizacion` y
+            // `catalogo`, y «Guía» guardaba `guía` con tilde frente a `guia` en los datos: el
+            // selector salía vacío y, al ser obligatorio, 199 textos no se podían guardar.
             ->setChoices([
                 'Reserva' => 'reserva',
-                'Guía' => 'guía',
+                'Guía' => 'guia',
+                'Cotización' => 'cotizacion',
+                'Catálogo' => 'catalogo',
                 'WiFi' => 'wifi',
                 'Común' => 'comun',
             ])
             ->renderAsBadges();
-        yield BooleanField::new('ejecutarTraduccion', 'Traducir automáticamente')
-            ->onlyOnForms()
-            ->setPermission(Roles::RESERVAS_WRITE)
-            ->setColumns(6);
-
-        yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir traducciones')
-            ->onlyOnForms()
-            ->setPermission(Roles::RESERVAS_WRITE)
-            ->setColumns(6)
-            ->setHelp('⚠️ Reemplazará textos existentes.');
+        // Maestro de rótulos: al editar, la casilla de traducir sale desmarcada. Ver CamposDeTraduccion.
+        yield from CamposDeTraduccion::deMaestroDeRotulos($pageName, Roles::RESERVAS_WRITE);
 
         /**
          * Para el campo 'contenido', usamos CollectionField.
@@ -72,6 +69,6 @@ final class UiI18nCrudController extends AbstractCrudController
             ->allowAdd()
             ->allowDelete()
             ->setEntryType(TranslationTextType::class) // Necesitarás un FormType simple para esto
-            ->setHelp('Solo necesitas agregar "es" (Español), el sistema traducirá el resto al guardar.');
+            ->setHelp('Al crear basta con el español: el resto se traduce al guardar. Al editar, lo revisado no se toca salvo que marques «Traducir automáticamente».');
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Field\CamposDeTraduccion;
 use App\Panel\Helper\VistaI18n;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationTextType;
@@ -110,16 +111,8 @@ class PmsCatalogoCrudController extends BaseCrudController
             })
             ->renderAsHtml();
 
-        yield BooleanField::new('ejecutarTraduccion', 'Traducir automáticamente')
-            ->onlyOnForms()
-            ->setPermission(Roles::RESERVAS_WRITE)
-            ->setColumns(6);
-
-        yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir traducciones')
-            ->onlyOnForms()
-            ->setPermission(Roles::RESERVAS_WRITE)
-            ->setColumns(6)
-            ->setHelp('⚠️ Reemplazará textos existentes.');
+        // Maestro de rótulos: al editar, la casilla de traducir sale desmarcada. Ver CamposDeTraduccion.
+        yield from CamposDeTraduccion::deMaestroDeRotulos($pageName, Roles::RESERVAS_WRITE);
 
         // --- PANEL 2: TEXTOS COMERCIALES ---
         yield FormField::addPanel('Título y gancho')
