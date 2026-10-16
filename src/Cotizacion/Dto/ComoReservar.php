@@ -67,6 +67,14 @@ final readonly class ComoReservar
          */
         #[Groups(['pax_cotizacion:read'])]
         public array $pagadoPorMoneda = [],
+
+        /**
+         * El enlace de pago con tarjeta vigente de esta propuesta, o `null` si no hay ninguno:
+         * «Cómo reservar» pinta entonces «Pagar con tarjeta» en vez de «te enviamos un enlace». Lo
+         * emite solo `CotizacionEnlaceService` al publicar la propuesta.
+         */
+        #[Groups(['pax_cotizacion:read'])]
+        public ?ComoReservarEnlace $enlacePago = null,
     ) {
     }
 }

@@ -2655,8 +2655,29 @@ const rotuloProcedencia = computed(() => {
                 {{ maestroStore.t('cot_por_donde_pagar') || 'Por dónde pagar' }}<template v-if="rotuloProcedencia"> · {{ rotuloProcedencia }}</template>
               </h4>
 
-              <!-- La tarjeta no es una cuenta: se cobra con un enlace que se emite al reservar. -->
-              <div v-if="store.comoReservar.conTarjeta"
+              <!-- Con enlace vigente, la tarjeta es un BOTÓN: lo emite el servidor al publicar la
+                   propuesta (`CotizacionEnlaceService`). Lleva el importe con la comisión de la
+                   pasarela, que paga el cliente como en alojamiento. -->
+              <a v-if="store.comoReservar.conTarjeta && store.comoReservar.enlacePago"
+                 :href="store.comoReservar.enlacePago.url"
+                 class="mt-3 flex items-center gap-3 rounded-2xl bg-[#E07845] hover:bg-[#D06535] px-4 py-3 shadow-sm text-white transition-colors">
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-white/15">
+                  <i class="fas fa-credit-card text-sm"></i>
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="block font-black leading-tight text-base">{{ maestroStore.t('cot_pagar_con_tarjeta') || 'Pagar con tarjeta' }}</span>
+                  <span v-if="Number(store.comoReservar.enlacePago.recargoPorcentaje) > 0" class="block text-[11px] text-white/85 leading-snug mt-0.5">
+                    {{ maestroStore.t('res_recargo_nota', { pct: String(Number(store.comoReservar.enlacePago.recargoPorcentaje)) }) || `Incluye ${Number(store.comoReservar.enlacePago.recargoPorcentaje)}% de comisión` }}
+                  </span>
+                </span>
+                <span class="shrink-0 text-right">
+                  <span class="block text-lg font-black tabular-nums leading-none">{{ store.comoReservar.enlacePago.moneda === 'PEN' ? 'S/' : '$' }} {{ Number(store.comoReservar.enlacePago.montoTotal).toLocaleString(maestroStore.idiomaActual, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
+                  <i class="fas fa-arrow-right text-xs mt-1"></i>
+                </span>
+              </a>
+
+              <!-- Sin enlace todavía: la tarjeta no es una cuenta, se le manda uno al pedirlo. -->
+              <div v-else-if="store.comoReservar.conTarjeta"
                    class="mt-3 flex items-start gap-3 rounded-2xl border border-[#376875]/10 bg-white px-4 py-3 shadow-sm">
                 <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-[#376875] text-white">
                   <i class="fas fa-credit-card text-sm"></i>

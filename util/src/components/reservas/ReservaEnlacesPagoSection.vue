@@ -359,8 +359,10 @@ function comprobarAntesDeCrear(): boolean {
     const pedido = props.prepago ? Number(props.prepago.monto) : saldoDelForm.value + excedente.value;
     if (pedido > 0.005 && Math.abs(monto - pedido) > 0.005) {
         return window.confirm(
-            `La guía del huésped pide ${simbolo} ${pedido.toFixed(2)}. Este enlace cobra ${simbolo} ${monto.toFixed(2)}.\n\n`
-            + 'El botón de su guía llevará a este enlace aunque la guía diga la otra cifra. ¿Crearlo igualmente?',
+            // Neutro a propósito: el componente lo usan la reserva (guía del huésped) y la cotización
+            // («Cómo reservar» de pax). Los dos le enseñan al cliente la cifra que se le pide.
+            `Al cliente se le pide ${simbolo} ${pedido.toFixed(2)}. Este enlace cobra ${simbolo} ${monto.toFixed(2)}.\n\n`
+            + 'Su botón de pago llevará a este enlace aunque su pantalla diga la otra cifra. ¿Crearlo igualmente?',
         );
     }
 

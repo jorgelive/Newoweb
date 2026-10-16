@@ -127,7 +127,79 @@ final readonly class CuentaDelExpediente
      */
     public static function pagadoDePropuesta(CotizacionFile $file, int $propuesta): array
     {
+        return self::pagadoContra($file, $propuesta, self::de($file)->propuestaBase);
+    }
+
+    /**
+     * Cada propuesta viva (sin cerradas ni canceladas), con su total, lo pagado y el saldo.
+     *
+     * Una fila por número de propuesta: la confirmada (u operada) si la hay —es la que se vendió y
+     * la que dice el dinero—; si no, la publicada. La operativa no: su dinero es el de su confirmada.
+     *
+     * @return list<PropuestaDeLaCuenta>
+     */
+    public static function propuestas(CotizacionFile $file): array
+    {
         $base = self::de($file)->propuestaBase;
+        $porNumero = [];
+
+        foreach (self::vivas($file) as $cotizacion) {
+            if (\in_array($cotizacion->getEstado(), [CotizacionEstadoEnum::CERRADO, CotizacionEstadoEnum::CANCELADO, CotizacionEstadoEnum::OPERATIVA], true)) {
+                continue;
+            }
+
+            $numero = $cotizacion->getPropuesta();
+            $actual = $porNumero[$numero] ?? null;
+
+            if ($actual === null || self::rango($cotizacion) > self::rango($actual)) {
+                $porNumero[$numero] = $cotizacion;
+            }
+        }
+
+        ksort($porNumero);
+        $lista = [];
+
+        foreach ($porNumero as $numero => $cotizacion) {
+            $id = $cotizacion->getId();
+            if ($id === null) {
+                continue;
+            }
+
+            $total = round((float) $cotizacion->origenFinancieroParaCliente()->getTotalVenta(), 2);
+            $pagado = self::pagadoContra($file, $numero, $base)['usd'];
+
+            $lista[] = new PropuestaDeLaCuenta(
+                propuesta: $numero,
+                cotizacionId: $id->toRfc4122(),
+                estado: $cotizacion->getEstado()->value,
+                totalUsd: $total,
+                pagadoUsd: $pagado,
+                saldoUsd: max(0.0, round($total - $pagado, 2)),
+                porcentajeAdelanto: $cotizacion->porcentajeDeAdelanto(),
+            );
+        }
+
+        return $lista;
+    }
+
+    /** Cuál de las filas de un mismo número es la que se cobra: vendida > publicada > el resto. */
+    private static function rango(Cotizacion $cotizacion): int
+    {
+        return match (true) {
+            \in_array($cotizacion->getEstado(), [CotizacionEstadoEnum::CONFIRMADO, CotizacionEstadoEnum::OPERADO], true) => 2,
+            $cotizacion->isPublicado() => 1,
+            default => 0,
+        };
+    }
+
+    /**
+     * La regla de lo pagado contra una propuesta, sabiendo ya cuál es la base (ver
+     * {@see self::pagadoDePropuesta()}). Aparte para no recalcular la base en cada propuesta.
+     *
+     * @return array{usd: float, porMoneda: array<string, float>}
+     */
+    private static function pagadoContra(CotizacionFile $file, int $propuesta, ?int $base): array
+    {
         $usd = 0.0;
         $porMoneda = [];
 

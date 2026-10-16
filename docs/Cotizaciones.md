@@ -4140,8 +4140,53 @@ CotizacionPagoMovimientoProvider ── la Caja de Finanzas, junto a alojamiento
   que exista en el expediente y pasajero del mismo expediente.
 - **Un expediente con pagos no se borra** (`CotizacionFileBorradoProcessor`): 409 con el motivo
   —«ciérralo en vez de borrarlo»—; cuentan también los anulados.
-- **El enlace de Culqi aún no registra solo** el pago: es la siguiente entrega, y la columna
-  `enlacePagoId` ya está esperando (ver `docs/Pendientes.md`).
+### Los enlaces de pago con tarjeta (16/10/2026)
+
+El cobro por Culqi, como en alojamiento y con las mismas piezas de Finanzas: el expediente sólo
+aporta su traductor (`CotizacionOrigenCobroResolver`) y quien sabe cuándo emitir
+(`CotizacionEnlaceService`).
+
+```
+util: publicar la propuesta ── CotizacionPublicadaEnlaceListener (publicado false→true, postFlush)
+                                   └─ CotizacionEnlaceService::emitirAdelanto()
+                                        importe = montoDeAdelanto() vía dominio/ (CalcularAdelanto)
+                                        └─ FinEnlacePagoService::crear(COTIZACION, cotizacionId, recargo, sin caducidad)
+pax «Cómo reservar» ── ComoReservarResolver: enlace vigente → botón «Pagar con tarjeta» (con comisión)
+el cliente paga ── FinEnlacePagoService::confirmarPago() → CotizacionOrigenCobroResolver::registrarCobro()
+                                        └─ CotizacionPago (tarjeta, neto, propuesta, enlacePagoId)
+                                             → vínculo «cliente» y Caja, por el mismo camino que el alta a mano
+util «Pagos del cliente» ── «Enlaces de pago» por propuesta (ReservaEnlacesPagoSection, el de alojamiento)
+```
+
+**Las reglas** (Jorge, 16/10/2026):
+
+- **El documento es la COTIZACIÓN** (`origenId`), la fila que se cobra: la confirmada si la hay,
+  si no la publicada (`CuentaDelExpediente::propuestas()`). Cada propuesta tiene sus enlaces; el
+  pago entra en el EXPEDIENTE con su número de propuesta.
+- **Se emite solo al PUBLICAR**, el adelanto, si la propuesta se ofrece, pide adelanto, tiene
+  total y no tiene nada pagado. Para TODOS los clientes: pax enseña el botón a quien se le ofrece
+  tarjeta, y el operador puede mandarlo a cualquiera. Republicar no duplica (reutiliza el vivo por
+  el mismo importe); despublicar no anula.
+- **La comisión la paga el cliente** (`conRecargo`), como en alojamiento: el enlace cobra neto +
+  comisión y lo que entra al expediente es el neto.
+- **El automático no caduca** (`vigenciaDias: 0`): no lo mira nadie, y caducado moriría en
+  silencio con el cliente sin poder pagar. El emitido a mano conserva la vigencia por defecto.
+- **Saldo en dólares**; desde el panel se puede emitir en soles, al tipo de cambio de la
+  cotización, y el pago entra con ese cambio para descontar exactamente lo cobrado.
+- **El mismo interruptor que alojamiento**, `finanzas.enlaces_prepago_activos`: dice si la
+  pasarela cobra de verdad.
+- **El tope de Culqi es 3000 USD por operación** (comisión incluida): el adelanto de un grupo
+  grande no cabe, el servicio no lo emite y lo deja en el log; pax sigue diciendo «te enviamos un
+  enlace». 🔒 La emisión automática **nunca lanza**: no puede tumbar la publicación.
+- **«Cobrar el total»** con el adelanto pendiente: en alojamiento marca la reserva; aquí emite el
+  enlace del saldo entero, que anula el del adelanto (un documento, un enlace vivo).
+- En la Caja, el localizador de un ENLACE de turismo pregunta primero de qué expediente es la
+  cotización (`FinanzasView::abrirExpedienteDeCotizacion()`); el de un PAGO ya trae el expediente.
+
+**Lo que falta (segunda entrega):** el aviso por WhatsApp al cobrar (`pago_recibido` sobre el hilo
+del expediente, que pide un `MessageDataResolver` de `cotizacion_file`) y el enlace del saldo media
+hora después de pagar el adelanto, con su plantilla de turismo —la de alojamiento habla de «tu
+llegada» y «tu guía»—, que hay que mandar a Meta. Ver `docs/Pendientes.md`.
 
 ### Dónde tocar
 
@@ -4166,6 +4211,11 @@ CotizacionPagoMovimientoProvider ── la Caja de Finanzas, junto a alojamiento
 | El panel de pagos en util | `util/src/components/cotizacion/FilePagosPanel.vue` | — |
 | Lo pagado en pax | `PaxCotizacionGuiaView.vue` | `pagoRecibido` |
 | Cómo salen en la Caja | `src/Cotizacion/Finanzas/CotizacionPagoMovimientoProvider.php` | `aMovimiento()` |
+| Cuánto pide un enlace / qué se apunta al cobrar | `src/Cotizacion/Finanzas/CotizacionOrigenCobroResolver.php` | `resolver()`, `saldoUsd()`, `registrarCobro()` |
+| Cuándo se emite solo el enlace del adelanto | `CotizacionPublicadaEnlaceListener`, `CotizacionEnlaceService` | `onFlush()`, `emitirAdelanto()` |
+| El importe del adelanto en el servidor | `src/Cotizacion/Dominio/CalcularAdelanto.php` ↔ `dominio/cotizacion/adelanto.cli.ts` | `montoDeAdelanto()` |
+| El botón «Pagar con tarjeta» de pax | `PaxCotizacionGuiaView.vue`, `ComoReservarResolver::enlaceVigente()` | `enlacePago` |
+| El panel de enlaces en util | `FilePagosPanel.vue` (monta `ReservaEnlacesPagoSection`) | `propuestaCobrada`, `cobrarTotal()` |
 
 ---
 

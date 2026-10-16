@@ -142,6 +142,34 @@ final class CuentaDelExpedienteTest extends TestCase
         self::assertSame(950.0, CuentaDelExpediente::de($file)->totalUsd);
     }
 
+    /** El panel de enlaces cobra la fila VENDIDA de cada número, nunca su operativa ni una descartada. */
+    public function testCadaPropuestaConSuFilaQueSeCobraYSuSaldo(): void
+    {
+        $file = new CotizacionFile();
+        $this->propuesta($file, 1, CotizacionEstadoEnum::CERRADO, '700');
+        $confirmada = $this->propuesta($file, 2, CotizacionEstadoEnum::CONFIRMADO, '900');
+        $this->propuesta($file, 2, CotizacionEstadoEnum::OPERATIVA, '0');
+        $this->propuesta($file, 3, CotizacionEstadoEnum::ENVIADO, '1200');
+        $this->pago($file, '300', 'USD', propuesta: 2);
+
+        $lista = CuentaDelExpediente::propuestas($file);
+
+        self::assertSame([2, 3], array_map(static fn ($p) => $p->propuesta, $lista));
+        self::assertSame((string) $confirmada->getId(), $lista[0]->cotizacionId);
+        self::assertSame([900.0, 300.0, 600.0], [$lista[0]->totalUsd, $lista[0]->pagadoUsd, $lista[0]->saldoUsd]);
+        // La hermana no se queda con lo pagado por la vendida.
+        self::assertSame([0.0, 1200.0], [$lista[1]->pagadoUsd, $lista[1]->saldoUsd]);
+    }
+
+    public function testElSaldoDeUnEnlaceNuncaEsNegativo(): void
+    {
+        $file = new CotizacionFile();
+        $cot = $this->propuesta($file, 1, CotizacionEstadoEnum::ENVIADO, '100');
+        $this->pago($file, '150', 'USD', propuesta: 1);
+
+        self::assertSame(0.0, \App\Cotizacion\Finanzas\CotizacionOrigenCobroResolver::saldoUsd($file, $cot));
+    }
+
     public function testPagarHaceClienteYAnularLoDeshace(): void
     {
         $file = new CotizacionFile();

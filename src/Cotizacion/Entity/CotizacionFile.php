@@ -572,6 +572,18 @@ class CotizacionFile
         return CuentaDelExpediente::de($this);
     }
 
+    /**
+     * Cada propuesta con su total, lo pagado y el saldo: lo que el panel de enlaces de pago de util
+     * necesita para saber cuánto pedir. Ver {@see CuentaDelExpediente::propuestas()}.
+     *
+     * @return list<\App\Cotizacion\Dto\PropuestaDeLaCuenta>
+     */
+    #[Groups(['file:item:read'])]
+    public function getCuentaPorPropuesta(): array
+    {
+        return CuentaDelExpediente::propuestas($this);
+    }
+
     /** ¿Ha pagado algo que cuente? Un pago anulado no hace cliente a nadie. */
     public function tienePagos(): bool
     {

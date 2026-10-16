@@ -22,16 +22,17 @@ la siguiente persona lo investiga otra vez.
 Tres piezas que salieron al montar «Cómo reservar» (`docs/Cotizaciones.md` §6.a) y que Jorge
 decidió dejar para después:
 
-1. **Enlace de Culqi desde la cotización.** El bloque le dice al cliente de fuera «te enviamos un
-   enlace de pago seguro», y ese enlace hoy se hace a mano (cobro manual con etiqueta
-   `cotizacion`). Para generarlo con el importe justo falta un
-   `CotizacionOrigenCobroResolver` (`FinOrigenCobroResolverInterface`, `FinOrigenCobro::COTIZACION`).
-   **El libro de pagos ya existe** (`CotizacionPago`, 16/10/2026): `resolver()` sale de
-   `CuentaDelExpediente::de()` (saldo de la propuesta que manda) y `registrarCobro()` crea un
-   `CotizacionPago` medio `tarjeta` con `enlacePagoId` —la columna ya está— y devuelve su id. Al
-   cobrarse, el vínculo y la Caja se ponen solos: el vínculo lo resincroniza
-   `CotizacionFileConversacionListener` en cuanto se inserta un `CotizacionPago`, venga de donde
-   venga, y la Caja lee la tabla.
+1. **Enlace de Culqi desde la cotización: HECHO el 16/10/2026** salvo el WhatsApp
+   (`docs/Cotizaciones.md` §6.a, «Los enlaces de pago con tarjeta»). Queda la segunda entrega:
+   - **El aviso al cobrar.** `CotizacionOrigenCobroResolver::confirmarAlCliente()` hoy sólo deja
+     constancia en el log. La plantilla `pago_recibido` sirve tal cual —su texto no habla de
+     alojamiento—, pero el hilo del expediente no sabe rellenar `guest_name` ni `account_url`:
+     falta un `MessageDataResolverInterface` para `cotizacion_file`, y comprobar que la URL del
+     botón de Meta admite la ruta de pax del expediente (`file/{localizador}/p/{n}`).
+   - **El enlace del saldo media hora después del adelanto**, como `app:pms:prepago:saldo-tras-adelanto`:
+     `CotizacionEnlaceService::emitirSaldo()` ya existe; falta el barrido (con `tools/cron/con-candado`
+     en el crontab) y una plantilla hermana de `saldo_pendiente` —esa dice «tu llegada» y «tu
+     guía»—, que hay que **mandar a Meta para aprobar** (no se envía sin preguntar a Jorge).
 2. **Clonar un tour del catálogo a una cotización con los pasajeros reales.** El precio del
    catálogo es referencial («desde»); hoy la cotización vendible se hace a mano. La clonación ya
    existe (`docs/Cotizaciones.md`, «Clonar una cotización a OTRO expediente o a un CATÁLOGO»):

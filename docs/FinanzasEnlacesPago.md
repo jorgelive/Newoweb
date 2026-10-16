@@ -189,8 +189,10 @@ src/Pms/Finanzas/    ← el PMS implementa los DOS contratos de Finanzas
 ├── PmsReservaOrigenCobroResolver              cobrar una reserva
 └── PmsPagoMovimientoProvider                  sus pagos, de cualquier medio, en la caja
 
-src/Cotizacion/Finanzas/  ← turismo, de momento sólo la caja (16/10/2026)
-└── CotizacionPagoMovimientoProvider           los `CotizacionPago` de los expedientes
+src/Cotizacion/Finanzas/  ← turismo implementa también los DOS contratos (16/10/2026)
+├── CotizacionOrigenCobroResolver              cobrar una COTIZACIÓN (origenId), apuntar en CotizacionPago
+├── CotizacionEnlaceService                    el adelanto al publicar, los pagables de pax
+└── CotizacionPagoMovimientoProvider           los `CotizacionPago` de los expedientes, en la caja
 
 util/  views/Finanzas/FinanzasView.vue, ReservaEnlacesPagoSection.vue,
        stores/finanzas/{enlacesPagoStore, cajaStore}.ts
@@ -745,7 +747,10 @@ El segundo es `CotizacionPagoMovimientoProvider` (16/10/2026): los pagos de los 
 turismo, sin los anulados, con origen `cotizacion` y el id del EXPEDIENTE — en la Caja, el
 localizador abre su ficha en util (`FinanzasView::abrirDocumento()`). Es justo el caso que
 justificaba separar los contratos: Cotizaciones aparece en la caja **sin** resolver de cobro
-todavía (ver `docs/Cotizaciones.md` §6.a y el pendiente de Culqi).
+todavía. Desde el mismo día también tiene resolver: ver `docs/Cotizaciones.md` §6.a, «Los enlaces
+de pago con tarjeta». Fue el segundo módulo que cobra, y se enchufó sin tocar Finanzas: el
+componente de util (`ReservaEnlacesPagoSection`) se montó con `origen-tipo="cotizacion"`, y sólo hubo
+que dejar neutros dos textos que hablaban de «la guía del huésped».
 
 ### Dos límites conocidos, y por qué se aceptan
 

@@ -3083,6 +3083,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
+            enlacePago?: components["schemas"]["ComoReservarEnlace"] | null;
         };
         "ComoReservar-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3119,6 +3120,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
+            enlacePago?: components["schemas"]["ComoReservarEnlace-pax_file.read_pax_cotizacion.read"] | null;
         };
         "ComoReservar.html": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3155,6 +3157,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
+            enlacePago?: components["schemas"]["ComoReservarEnlace.html"] | null;
         };
         "ComoReservar.html-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3191,6 +3194,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
+            enlacePago?: components["schemas"]["ComoReservarEnlace.html-pax_file.read_pax_cotizacion.read"] | null;
         };
         "ComoReservar.jsonld": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3227,6 +3231,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
+            enlacePago?: components["schemas"]["ComoReservarEnlace.jsonld"] | null;
         };
         "ComoReservar.jsonld-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3263,6 +3268,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
+            enlacePago?: components["schemas"]["ComoReservarEnlace.jsonld-pax_file.read_pax_cotizacion.read"] | null;
         };
         "ComoReservar.multipart": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3299,6 +3305,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
+            enlacePago?: components["schemas"]["ComoReservarEnlace.multipart"] | null;
         };
         "ComoReservar.multipart-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3335,6 +3342,95 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
+            enlacePago?: components["schemas"]["ComoReservarEnlace.multipart-pax_file.read_pax_cotizacion.read"] | null;
+        };
+        ComoReservarEnlace: {
+            /** @description La página de pago de pax (`/pago/{token}`). */
+            url?: string;
+            /** @description Lo que se cobrará en la tarjeta: el neto más la comisión. */
+            montoTotal?: string;
+            /** @description Lo que abona el viaje: sin la comisión. */
+            montoNeto?: string;
+            moneda?: string;
+            /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
+            recargoPorcentaje?: string;
+        };
+        "ComoReservarEnlace-pax_file.read_pax_cotizacion.read": {
+            /** @description La página de pago de pax (`/pago/{token}`). */
+            url?: string;
+            /** @description Lo que se cobrará en la tarjeta: el neto más la comisión. */
+            montoTotal?: string;
+            /** @description Lo que abona el viaje: sin la comisión. */
+            montoNeto?: string;
+            moneda?: string;
+            /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
+            recargoPorcentaje?: string;
+        };
+        "ComoReservarEnlace.html": {
+            /** @description La página de pago de pax (`/pago/{token}`). */
+            url?: string;
+            /** @description Lo que se cobrará en la tarjeta: el neto más la comisión. */
+            montoTotal?: string;
+            /** @description Lo que abona el viaje: sin la comisión. */
+            montoNeto?: string;
+            moneda?: string;
+            /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
+            recargoPorcentaje?: string;
+        };
+        "ComoReservarEnlace.html-pax_file.read_pax_cotizacion.read": {
+            /** @description La página de pago de pax (`/pago/{token}`). */
+            url?: string;
+            /** @description Lo que se cobrará en la tarjeta: el neto más la comisión. */
+            montoTotal?: string;
+            /** @description Lo que abona el viaje: sin la comisión. */
+            montoNeto?: string;
+            moneda?: string;
+            /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
+            recargoPorcentaje?: string;
+        };
+        "ComoReservarEnlace.jsonld": {
+            /** @description La página de pago de pax (`/pago/{token}`). */
+            url?: string;
+            /** @description Lo que se cobrará en la tarjeta: el neto más la comisión. */
+            montoTotal?: string;
+            /** @description Lo que abona el viaje: sin la comisión. */
+            montoNeto?: string;
+            moneda?: string;
+            /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
+            recargoPorcentaje?: string;
+        };
+        "ComoReservarEnlace.jsonld-pax_file.read_pax_cotizacion.read": {
+            /** @description La página de pago de pax (`/pago/{token}`). */
+            url?: string;
+            /** @description Lo que se cobrará en la tarjeta: el neto más la comisión. */
+            montoTotal?: string;
+            /** @description Lo que abona el viaje: sin la comisión. */
+            montoNeto?: string;
+            moneda?: string;
+            /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
+            recargoPorcentaje?: string;
+        };
+        "ComoReservarEnlace.multipart": {
+            /** @description La página de pago de pax (`/pago/{token}`). */
+            url?: string;
+            /** @description Lo que se cobrará en la tarjeta: el neto más la comisión. */
+            montoTotal?: string;
+            /** @description Lo que abona el viaje: sin la comisión. */
+            montoNeto?: string;
+            moneda?: string;
+            /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
+            recargoPorcentaje?: string;
+        };
+        "ComoReservarEnlace.multipart-pax_file.read_pax_cotizacion.read": {
+            /** @description La página de pago de pax (`/pago/{token}`). */
+            url?: string;
+            /** @description Lo que se cobrará en la tarjeta: el neto más la comisión. */
+            montoTotal?: string;
+            /** @description Lo que abona el viaje: sin la comisión. */
+            montoNeto?: string;
+            moneda?: string;
+            /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
+            recargoPorcentaje?: string;
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         Componente: {
@@ -11829,6 +11925,7 @@ export interface components {
             /** @description Documentos del EXPEDIENTE visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
             cuenta?: components["schemas"]["CuentaDelExpediente"];
+            readonly cuentaPorPropuesta?: components["schemas"]["PropuestaDeLaCuenta"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             /**
@@ -11895,6 +11992,7 @@ export interface components {
             }[];
             readonly localizador?: string | null;
             cuenta?: components["schemas"]["CuentaDelExpediente-file.item.read"];
+            readonly cuentaPorPropuesta?: components["schemas"]["PropuestaDeLaCuenta-file.item.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -11962,6 +12060,7 @@ export interface components {
             updatedAt?: string | null;
             readonly localizador?: string | null;
             cuenta?: components["schemas"]["CuentaDelExpediente-file.read_file.item.read_timestamp.read"];
+            readonly cuentaPorPropuesta?: components["schemas"]["PropuestaDeLaCuenta-file.read_file.item.read_timestamp.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -12444,6 +12543,7 @@ export interface components {
             /** @description Documentos del EXPEDIENTE visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
             cuenta?: components["schemas"]["CuentaDelExpediente.html"];
+            readonly cuentaPorPropuesta?: components["schemas"]["PropuestaDeLaCuenta.html"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             /**
@@ -12510,6 +12610,7 @@ export interface components {
             }[];
             readonly localizador?: string | null;
             cuenta?: components["schemas"]["CuentaDelExpediente.html-file.item.read"];
+            readonly cuentaPorPropuesta?: components["schemas"]["PropuestaDeLaCuenta.html-file.item.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -12577,6 +12678,7 @@ export interface components {
             updatedAt?: string | null;
             readonly localizador?: string | null;
             cuenta?: components["schemas"]["CuentaDelExpediente.html-file.read_file.item.read_timestamp.read"];
+            readonly cuentaPorPropuesta?: components["schemas"]["PropuestaDeLaCuenta.html-file.read_file.item.read_timestamp.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -12985,6 +13087,7 @@ export interface components {
             /** @description Documentos del EXPEDIENTE visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
             cuenta?: components["schemas"]["CuentaDelExpediente.jsonld"];
+            readonly cuentaPorPropuesta?: components["schemas"]["PropuestaDeLaCuenta.jsonld"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             /**
@@ -13052,6 +13155,7 @@ export interface components {
             }[];
             readonly localizador?: string | null;
             cuenta?: components["schemas"]["CuentaDelExpediente.jsonld-file.item.read"];
+            readonly cuentaPorPropuesta?: components["schemas"]["PropuestaDeLaCuenta.jsonld-file.item.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -13119,6 +13223,7 @@ export interface components {
             updatedAt?: string | null;
             readonly localizador?: string | null;
             cuenta?: components["schemas"]["CuentaDelExpediente.jsonld-file.read_file.item.read_timestamp.read"];
+            readonly cuentaPorPropuesta?: components["schemas"]["PropuestaDeLaCuenta.jsonld-file.read_file.item.read_timestamp.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -13530,6 +13635,7 @@ export interface components {
             /** @description Documentos del EXPEDIENTE visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
             cuenta?: components["schemas"]["CuentaDelExpediente.multipart"];
+            readonly cuentaPorPropuesta?: components["schemas"]["PropuestaDeLaCuenta.multipart"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             /**
@@ -13596,6 +13702,7 @@ export interface components {
             }[];
             readonly localizador?: string | null;
             cuenta?: components["schemas"]["CuentaDelExpediente.multipart-file.item.read"];
+            readonly cuentaPorPropuesta?: components["schemas"]["PropuestaDeLaCuenta.multipart-file.item.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -13663,6 +13770,7 @@ export interface components {
             updatedAt?: string | null;
             readonly localizador?: string | null;
             cuenta?: components["schemas"]["CuentaDelExpediente.multipart-file.read_file.item.read_timestamp.read"];
+            readonly cuentaPorPropuesta?: components["schemas"]["PropuestaDeLaCuenta.multipart-file.read_file.item.read_timestamp.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -34526,6 +34634,138 @@ export interface components {
             /** @description Moneda de la tarifa base APLANADA (id y símbolo sueltos). */
             readonly tarifaBaseMonedaId?: string | null;
             readonly tarifaBaseMonedaSimbolo?: string | null;
+        };
+        PropuestaDeLaCuenta: {
+            propuesta?: number;
+            /** @description La fila que se cobra: la confirmada si la hay; si no, la publicada. Es el `origenId` de sus enlaces. */
+            cotizacionId?: string;
+            estado?: string;
+            totalUsd?: number;
+            pagadoUsd?: number;
+            /** @description Lo que falta; nunca negativo (lo cobrado de más se ve en la cuenta del expediente). */
+            saldoUsd?: number;
+            porcentajeAdelanto?: number;
+        };
+        "PropuestaDeLaCuenta-file.item.read": {
+            propuesta?: number;
+            /** @description La fila que se cobra: la confirmada si la hay; si no, la publicada. Es el `origenId` de sus enlaces. */
+            cotizacionId?: string;
+            estado?: string;
+            totalUsd?: number;
+            pagadoUsd?: number;
+            /** @description Lo que falta; nunca negativo (lo cobrado de más se ve en la cuenta del expediente). */
+            saldoUsd?: number;
+            porcentajeAdelanto?: number;
+        };
+        "PropuestaDeLaCuenta-file.read_file.item.read_timestamp.read": {
+            propuesta?: number;
+            /** @description La fila que se cobra: la confirmada si la hay; si no, la publicada. Es el `origenId` de sus enlaces. */
+            cotizacionId?: string;
+            estado?: string;
+            totalUsd?: number;
+            pagadoUsd?: number;
+            /** @description Lo que falta; nunca negativo (lo cobrado de más se ve en la cuenta del expediente). */
+            saldoUsd?: number;
+            porcentajeAdelanto?: number;
+        };
+        "PropuestaDeLaCuenta.html": {
+            propuesta?: number;
+            /** @description La fila que se cobra: la confirmada si la hay; si no, la publicada. Es el `origenId` de sus enlaces. */
+            cotizacionId?: string;
+            estado?: string;
+            totalUsd?: number;
+            pagadoUsd?: number;
+            /** @description Lo que falta; nunca negativo (lo cobrado de más se ve en la cuenta del expediente). */
+            saldoUsd?: number;
+            porcentajeAdelanto?: number;
+        };
+        "PropuestaDeLaCuenta.html-file.item.read": {
+            propuesta?: number;
+            /** @description La fila que se cobra: la confirmada si la hay; si no, la publicada. Es el `origenId` de sus enlaces. */
+            cotizacionId?: string;
+            estado?: string;
+            totalUsd?: number;
+            pagadoUsd?: number;
+            /** @description Lo que falta; nunca negativo (lo cobrado de más se ve en la cuenta del expediente). */
+            saldoUsd?: number;
+            porcentajeAdelanto?: number;
+        };
+        "PropuestaDeLaCuenta.html-file.read_file.item.read_timestamp.read": {
+            propuesta?: number;
+            /** @description La fila que se cobra: la confirmada si la hay; si no, la publicada. Es el `origenId` de sus enlaces. */
+            cotizacionId?: string;
+            estado?: string;
+            totalUsd?: number;
+            pagadoUsd?: number;
+            /** @description Lo que falta; nunca negativo (lo cobrado de más se ve en la cuenta del expediente). */
+            saldoUsd?: number;
+            porcentajeAdelanto?: number;
+        };
+        "PropuestaDeLaCuenta.jsonld": {
+            propuesta?: number;
+            /** @description La fila que se cobra: la confirmada si la hay; si no, la publicada. Es el `origenId` de sus enlaces. */
+            cotizacionId?: string;
+            estado?: string;
+            totalUsd?: number;
+            pagadoUsd?: number;
+            /** @description Lo que falta; nunca negativo (lo cobrado de más se ve en la cuenta del expediente). */
+            saldoUsd?: number;
+            porcentajeAdelanto?: number;
+        };
+        "PropuestaDeLaCuenta.jsonld-file.item.read": {
+            propuesta?: number;
+            /** @description La fila que se cobra: la confirmada si la hay; si no, la publicada. Es el `origenId` de sus enlaces. */
+            cotizacionId?: string;
+            estado?: string;
+            totalUsd?: number;
+            pagadoUsd?: number;
+            /** @description Lo que falta; nunca negativo (lo cobrado de más se ve en la cuenta del expediente). */
+            saldoUsd?: number;
+            porcentajeAdelanto?: number;
+        };
+        "PropuestaDeLaCuenta.jsonld-file.read_file.item.read_timestamp.read": {
+            propuesta?: number;
+            /** @description La fila que se cobra: la confirmada si la hay; si no, la publicada. Es el `origenId` de sus enlaces. */
+            cotizacionId?: string;
+            estado?: string;
+            totalUsd?: number;
+            pagadoUsd?: number;
+            /** @description Lo que falta; nunca negativo (lo cobrado de más se ve en la cuenta del expediente). */
+            saldoUsd?: number;
+            porcentajeAdelanto?: number;
+        };
+        "PropuestaDeLaCuenta.multipart": {
+            propuesta?: number;
+            /** @description La fila que se cobra: la confirmada si la hay; si no, la publicada. Es el `origenId` de sus enlaces. */
+            cotizacionId?: string;
+            estado?: string;
+            totalUsd?: number;
+            pagadoUsd?: number;
+            /** @description Lo que falta; nunca negativo (lo cobrado de más se ve en la cuenta del expediente). */
+            saldoUsd?: number;
+            porcentajeAdelanto?: number;
+        };
+        "PropuestaDeLaCuenta.multipart-file.item.read": {
+            propuesta?: number;
+            /** @description La fila que se cobra: la confirmada si la hay; si no, la publicada. Es el `origenId` de sus enlaces. */
+            cotizacionId?: string;
+            estado?: string;
+            totalUsd?: number;
+            pagadoUsd?: number;
+            /** @description Lo que falta; nunca negativo (lo cobrado de más se ve en la cuenta del expediente). */
+            saldoUsd?: number;
+            porcentajeAdelanto?: number;
+        };
+        "PropuestaDeLaCuenta.multipart-file.read_file.item.read_timestamp.read": {
+            propuesta?: number;
+            /** @description La fila que se cobra: la confirmada si la hay; si no, la publicada. Es el `origenId` de sus enlaces. */
+            cotizacionId?: string;
+            estado?: string;
+            totalUsd?: number;
+            pagadoUsd?: number;
+            /** @description Lo que falta; nunca negativo (lo cobrado de más se ve en la cuenta del expediente). */
+            saldoUsd?: number;
+            porcentajeAdelanto?: number;
         };
         Segmento: {
             servicios?: string[];

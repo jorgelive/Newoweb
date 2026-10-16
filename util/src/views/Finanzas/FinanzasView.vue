@@ -23,6 +23,7 @@ import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
 import { useCapasEnHistorial } from '@/composables/useCapasEnHistorial';
+import { apiClient } from '@/services/apiClient';
 import { useCajaStore } from '@/stores/finanzas/cajaStore';
 import {
     clasesEstadoEnlace,
@@ -397,16 +398,34 @@ const reservaAbierta = ref<string | null>(null);
 const puedeAbrirDocumento = (origenTipo: string | null, origenId: string | null): boolean =>
     (origenTipo === 'pms_reserva' || origenTipo === 'cotizacion') && !!origenId;
 
-const abrirDocumento = (origenTipo: string | null, origenId: string | null): void => {
+const abrirDocumento = (origenTipo: string | null, origenId: string | null, esEnlace = false): void => {
     if (!puedeAbrirDocumento(origenTipo, origenId) || reservaAbierta.value) return;
 
     if (origenTipo === 'cotizacion' && origenId) {
-        void router.push({ name: 'file_detalle', params: { id: origenId } });
+        // ⚠️ Un ENLACE de turismo apunta a la COTIZACIÓN (la propuesta que se cobra); un PAGO de la
+        // caja, al EXPEDIENTE. Para el enlace se pregunta primero de qué expediente es.
+        if (esEnlace) {
+            void abrirExpedienteDeCotizacion(origenId);
+        } else {
+            void router.push({ name: 'file_detalle', params: { id: origenId } });
+        }
         return;
     }
 
     reservaAbierta.value = origenId;
     capas.abrir('reserva', () => { reservaAbierta.value = null; });
+};
+
+/** El expediente de una cotización, para abrir su ficha desde un enlace de pago. */
+const abrirExpedienteDeCotizacion = async (cotizacionId: string): Promise<void> => {
+    try {
+        const { data } = await apiClient.get<{ file?: string | { '@id'?: string } | null }>(`/platform/sales/cotizacions/${cotizacionId}`);
+        const iri = typeof data.file === 'string' ? data.file : data.file?.['@id'];
+        const fileId = iri?.split('/').pop();
+        if (fileId) await router.push({ name: 'file_detalle', params: { id: fileId } });
+    } catch {
+        // Cotización borrada: el enlace sobrevive (es un documento contable) y no hay a dónde ir.
+    }
 };
 
 const cerrarDocumento = (): void => capas.cerrar('reserva');
@@ -908,7 +927,7 @@ function fechaLarga(iso?: string | null): string {
                              `@click.stop` en todo, o la tarjeta abriría además la ficha. -->
                         <div class="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
                             <button v-if="puedeAbrirDocumento(c.origenTipo, c.origenId)" type="button"
-                                @click.stop="abrirDocumento(c.origenTipo, c.origenId)"
+                                @click.stop="abrirDocumento(c.origenTipo, c.origenId, true)"
                                 :title="c.origenTipo === 'cotizacion' ? 'Abrir el expediente' : 'Abrir la ficha de la reserva'"
                                 class="px-2 py-1 rounded border border-[#376875]/30 text-[11px] font-black text-[#376875]
                                        hover:bg-[#376875]/5 truncate">
@@ -1254,7 +1273,7 @@ function fechaLarga(iso?: string | null): string {
                         <div class="flex items-center justify-between gap-2">
                             <span class="font-black text-slate-800">{{ fichaOrigen.referencia }}</span>
                             <button v-if="puedeAbrirDocumento(fichaCobro.origenTipo, fichaCobro.origenId)" type="button"
-                                @click="abrirDocumento(fichaCobro.origenTipo, fichaCobro.origenId)"
+                                @click="abrirDocumento(fichaCobro.origenTipo, fichaCobro.origenId, true)"
                                 class="shrink-0 px-2 py-1 rounded-lg bg-[#376875] text-white text-[10px] font-black hover:bg-[#2c5560]">
                                 <i class="fas fa-bed mr-1"></i>Ver reserva
                             </button>

@@ -34,11 +34,13 @@ enum FinOrigenCobro: string
     case TOUR_RESERVA = 'tour_reserva';
 
     /**
-     * Expediente de cotización. Sin resolver todavía.
+     * Cotización de turismo (`App\Cotizacion\Entity\Cotizacion`), desde el 16/10/2026.
      *
-     * Se puede usar como **etiqueta de módulo** en un cobro manual aunque no exista el
-     * resolver: en ese caso `origenId` va vacío y sólo sirve para saber a qué negocio
-     * imputar el dinero al mirar el listado.
+     * `origenId` es la COTIZACIÓN —la propuesta que se cobra—, y por ella se llega al expediente;
+     * el pago entra en `CotizacionPago`. Ver `App\Cotizacion\Finanzas\CotizacionOrigenCobroResolver`.
+     *
+     * Sigue valiendo como **etiqueta de módulo** en un cobro manual sin documento (`origenId`
+     * vacío), que es como se hacía antes de existir el resolver.
      */
     case COTIZACION = 'cotizacion';
 

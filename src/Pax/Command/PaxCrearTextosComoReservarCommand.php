@@ -66,6 +66,8 @@ final class PaxCrearTextosComoReservarCommand extends Command
         'cot_falta_adelanto'         => 'Faltan {{ monto }} para completar el adelanto',
         'cot_pagado_completo'        => 'Pagado por completo. ¡Gracias!',
         'cot_gracias_pago'           => 'Recibimos tu pago, ¡gracias!',
+        // 16/10/2026: el botón del enlace de tarjeta que se emite al publicar la propuesta.
+        'cot_pagar_con_tarjeta'      => 'Pagar con tarjeta',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

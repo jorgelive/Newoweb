@@ -20,10 +20,13 @@ import { apiClient } from '@/services/apiClient';
 import { extractApiErrorMessage } from '@/services/apiError';
 import { hoyNaive } from '@/utils/naiveDate.ts';
 import { adelantoCubierto, montoDeAdelanto } from '@dominio/cotizacion/index.ts';
+import ReservaEnlacesPagoSection from '@/components/reservas/ReservaEnlacesPagoSection.vue';
+import { useEnlacesPagoStore } from '@/stores/finanzas/enlacesPagoStore';
 import {
   MEDIO_PAGO_LABELS,
   type ApiCotizacionFile,
   type ApiCotizacionPago,
+  type ApiPropuestaDeLaCuenta,
 } from '@/types/fileDetalleModel';
 
 const props = defineProps<{ file: ApiCotizacionFile }>();
@@ -168,6 +171,70 @@ const anular = async () => {
   }
 };
 
+/* ── Enlaces de pago (tarjeta) ────────────────────────────────────────────────
+ *
+ * El mismo componente que la reserva de alojamiento (`ReservaEnlacesPagoSection`), con la
+ * COTIZACIÓN como documento: cada propuesta tiene sus enlaces. El del adelanto lo emite solo el
+ * servidor al publicarla (`CotizacionEnlaceService`); aquí se ven, se copian, se anulan y se emiten
+ * a mano. Cobrado uno, el pago aparece solo en la lista de arriba (`CotizacionOrigenCobroResolver`).
+ */
+const enlacesStore = useEnlacesPagoStore();
+// Cast acotado: el esquema marca opcionales los campos del DTO, pero `PropuestaDeLaCuenta` (PHP) los
+// manda siempre todos. Ver `ApiPropuestaDeLaCuenta`.
+const porPropuesta = computed(() => (props.file.cuentaPorPropuesta ?? []) as ApiPropuestaDeLaCuenta[]);
+
+/** La que se cobra por defecto: la que manda en la cuenta, o la primera con saldo. */
+const propuestaEnlaces = ref<number | null>(null);
+watch(porPropuesta, (lista) => {
+  if (propuestaEnlaces.value !== null && lista.some(p => p.propuesta === propuestaEnlaces.value)) return;
+  const base = cuenta.value?.propuestaBase;
+  propuestaEnlaces.value = lista.find(p => p.propuesta === base)?.propuesta
+    ?? lista.find(p => p.saldoUsd > 0)?.propuesta
+    ?? lista[0]?.propuesta
+    ?? null;
+}, { immediate: true });
+
+const propuestaCobrada = computed(() => porPropuesta.value.find(p => p.propuesta === propuestaEnlaces.value) ?? null);
+
+const saldosDeEnlace = computed(() => {
+  const p = propuestaCobrada.value;
+  return p ? [{ moneda: 'USD', simbolo: '$', saldo: p.saldoUsd.toFixed(2) }] : [];
+});
+
+/** El adelanto, mientras no se haya pagado nada de esa propuesta. Mismo cálculo que pax. */
+const prepagoDeEnlace = computed(() => {
+  const p = propuestaCobrada.value;
+  if (!p || p.pagadoUsd > 0 || p.porcentajeAdelanto <= 0 || p.porcentajeAdelanto >= 100) return null;
+  return {
+    monto: montoDeAdelanto(p.totalUsd, p.porcentajeAdelanto).toFixed(2),
+    politicaCorta: `Adelanto ${p.porcentajeAdelanto} %`,
+    politicaEtiqueta: 'Para reservar; el resto, el día del primer servicio',
+    concepto: `Adelanto para reservar (${p.porcentajeAdelanto} %)`,
+  };
+});
+
+/**
+ * «Cobrar el total» con el adelanto pendiente. En alojamiento marca la reserva; aquí no hay nada
+ * que marcar: se emite el enlace por el saldo entero, que anula el del adelanto (un documento,
+ * un enlace vivo).
+ */
+const cobrarTotal = async () => {
+  const p = propuestaCobrada.value;
+  if (!p) return;
+  try {
+    await enlacesStore.crear({
+      origenTipo: 'cotizacion',
+      origenId: p.cotizacionId,
+      monto: p.saldoUsd.toFixed(2),
+      moneda: 'USD',
+      conRecargo: true,
+      concepto: 'Total del viaje',
+    });
+  } catch (e) {
+    window.alert(extractApiErrorMessage(e, 'No se pudo emitir el enlace del total.'));
+  }
+};
+
 const ESTADOS: Record<string, string> = {
   pendiente: 'pendiente', enviado: 'enviada', confirmado: 'confirmada', operado: 'operada', operativa: 'operativa',
 };
@@ -223,6 +290,30 @@ const ESTADOS: Record<string, string> = {
         <i class="fas fa-triangle-exclamation mr-1"></i>
         Hay pagos sobre la propuesta {{ cuenta.propuestaSinConfirmar }}, que sigue sin confirmar. Confírmala cuando
         corresponda: registrar un pago no la confirma.
+      </div>
+
+      <!-- Enlaces de pago con tarjeta, por propuesta -->
+      <div v-if="porPropuesta.length" class="border border-slate-200 rounded-2xl p-3 space-y-2">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+            <i class="fas fa-credit-card mr-1 text-[#376875]"></i> Enlaces de pago
+          </span>
+          <select v-if="porPropuesta.length > 1" v-model="propuestaEnlaces"
+                  class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold outline-none">
+            <option v-for="p in porPropuesta" :key="p.propuesta" :value="p.propuesta">
+              v{{ p.propuesta }} · {{ ESTADOS[p.estado] ?? p.estado }} · saldo {{ usd(p.saldoUsd) }}
+            </option>
+          </select>
+        </div>
+        <ReservaEnlacesPagoSection v-if="propuestaCobrada"
+                                   :key="propuestaCobrada.cotizacionId"
+                                   origen-tipo="cotizacion"
+                                   :origen-id="propuestaCobrada.cotizacionId"
+                                   :saldos="saldosDeEnlace"
+                                   :prepago="prepagoDeEnlace"
+                                   moneda-simbolo="$"
+                                   @actualizado="emit('actualizado')"
+                                   @cobrar-total="cobrarTotal" />
       </div>
 
       <!-- La lista -->

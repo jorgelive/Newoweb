@@ -335,3 +335,11 @@ export const MEDIO_PAGO_LABELS: Record<ApiCotizacionPago['medio'], string> = {
     efectivo: 'Efectivo',
     paypal: 'PayPal',
 };
+
+/**
+ * Una propuesta vista desde la cuenta: total, pagado y saldo en USD, y la fila que se cobra
+ * (`cotizacionId`, el `origenId` de sus enlaces de pago). La arma `CuentaDelExpediente::propuestas()`.
+ */
+export type ApiPropuestaDeLaCuenta = Required<NonNullable<ApiCotizacionFile['cuentaPorPropuesta']>[number]>;
+// ↑ `Required` porque es un modelo de LECTURA: el DTO PHP (`PropuestaDeLaCuenta`) no tiene campos
+//   opcionales, pero el esquema generado los marca todos así. Excepción 3 de CLAUDE.md.

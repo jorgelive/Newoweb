@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Cotizacion\Service\Publico;
 
 use App\Cotizacion\Dto\ComoReservar;
+use App\Cotizacion\Dto\ComoReservarEnlace;
 use App\Cotizacion\Dto\CuentaDelExpediente;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
@@ -12,7 +13,9 @@ use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Cotizacion\Enum\FileEstadoEnum;
 use App\Finanzas\Enum\FinAudienciaCobro;
 use App\Finanzas\Enum\FinMedioCobroTipo;
+use App\Cotizacion\Finanzas\CotizacionEnlaceService;
 use App\Finanzas\Repository\FinMedioCobroRepository;
+use App\Finanzas\Service\FinEnlacePagoService;
 use DateTimeImmutable;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -37,6 +40,8 @@ final readonly class ComoReservarResolver
     public function __construct(
         private FinMedioCobroRepository $mediosCobro,
         private UrlGeneratorInterface $urls,
+        private CotizacionEnlaceService $enlacesDeCotizacion,
+        private FinEnlacePagoService $enlaces,
     ) {
     }
 
@@ -142,6 +147,25 @@ final readonly class ComoReservarResolver
             ],
             pagadoUsd: ($pagado = self::pagadoVisible($file, $cotizacion->getPropuesta(), $cotizacion->isPrecioOculto()))['usd'],
             pagadoPorMoneda: $pagado['porMoneda'],
+            enlacePago: $this->enlaceVigente($cotizacion),
+        );
+    }
+
+    /** El enlace de tarjeta más reciente que el cliente puede pagar ahora, o `null`. */
+    private function enlaceVigente(Cotizacion $cotizacion): ?ComoReservarEnlace
+    {
+        $enlace = $this->enlacesDeCotizacion->pagables($cotizacion)[0] ?? null;
+
+        if ($enlace === null) {
+            return null;
+        }
+
+        return new ComoReservarEnlace(
+            url: $this->enlaces->urlPublica($enlace),
+            montoTotal: $enlace->getMontoTotal(),
+            montoNeto: $enlace->getMontoNeto(),
+            moneda: $enlace->getMonedaCodigo() ?? 'USD',
+            recargoPorcentaje: $enlace->getRecargoPorcentaje(),
         );
     }
 
