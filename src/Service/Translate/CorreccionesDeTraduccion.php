@@ -115,8 +115,6 @@ final class CorreccionesDeTraduccion
             '{{ data sheet: luggage-flexible-hours }}'
                 => '{{ ficha: equipaje-horarios-flexibles }}',
             // Traslados (general)
-            'We coordinate <strong>with them</strong> by sending them your flight details.'
-                => 'You arrange it <strong>with them</strong> directly by sending them your flight details.',
             // Estacionamiento (general)
             'the free beach <strong>is not a supervised area</strong>'
                 => 'the free parking lot <strong>is not a supervised area</strong>',
@@ -221,8 +219,6 @@ final class CorreccionesDeTraduccion
             // Traslados (general)
             'sem escadas ou trechos para pedestres'
                 => 'sem escadas nem trechos a pé',
-            'Nós coordenamos <strong>com eles</strong> enviando os detalhes do seu voo.'
-                => 'Isso deve ser combinado <strong>com eles</strong>, enviando a eles os dados do seu voo.',
             // Estacionamiento (general)
             'fica <strong>a Saphy&#39;s Garage</strong>'
                 => 'fica o <strong>Garaje de Saphy</strong>',
@@ -341,8 +337,6 @@ final class CorreccionesDeTraduccion
             'Entrée : de {{ hora_checkin }}'
                 => 'Arrivée : à partir de {{ hora_checkin }}',
             // Traslados (general)
-            'Nous nous chargeons de communiquer vos informations de vol <strong>avec eux</strong> .'
-                => 'Cela s&#39;organise <strong>directement avec eux</strong>, en leur envoyant vos informations de vol.',
             'sans escaliers ni zones piétonnes'
                 => 'sans escaliers ni trajet à pied',
             // Estacionamiento (general)
@@ -373,6 +367,9 @@ final class CorreccionesDeTraduccion
             // Instrucciones de salida (general)
             'sur le quai devant la maison'
                 => 'sur la plateforme devant la maison',
+            // Traslados (general), 15/10/2026
+            '<strong>des transferts aéroport privés (</strong> avec supplément)'
+                => '<strong>des transferts privés depuis l&#39;aéroport</strong>, avec supplément',
         ],
         'it' => [
             // Puertas (casas 1-7)
@@ -525,8 +522,6 @@ final class CorreccionesDeTraduccion
             // Traslados (general)
             'Il veicolo vi lascia davanti'
                 => 'Il veicolo ti lascia davanti',
-            'Ci coordiniamo <strong>con loro</strong> inviando loro i dettagli del tuo volo.'
-                => 'Va coordinato direttamente <strong>con loro</strong>, inviando i dati del tuo volo.',
             // Estacionamiento (general)
             '<strong>il Saphy&#39;s Garage</strong> (644 Saphy Street'
                 => '<strong>il Garaje de Saphy</strong> (Calle Saphy 644',
@@ -587,6 +582,9 @@ final class CorreccionesDeTraduccion
                 => 'Spegni le luci e scollega gli elettrodomestici',
             'Se avete bisogno che custodiamo i vostri bagagli dopo il check-out, fatecelo sapere'
                 => 'Se hai bisogno che custodiamo i tuoi bagagli dopo il check-out, faccelo sapere',
+            // Traslados (general), 15/10/2026
+            'viene offerto il servizio di prelievo gratuito dall&#39;aeroporto'
+                => 'viene offerto il trasferimento gratuito dall&#39;aeroporto',
         ],
         'de' => [
             // Puertas (casas 1-7)
@@ -680,8 +678,6 @@ final class CorreccionesDeTraduccion
             '🗝️ Abfahrt: bis {{ hora_checkout }}'
                 => '🗝️ Check-out: bis {{ hora_checkout }}',
             // Traslados (general)
-            'Wir koordinieren die Abholung <strong>mit Booking.com</strong> , indem wir Ihre Flugdaten übermitteln.'
-                => 'Die Abholung stimmen Sie <strong>direkt mit Booking.com</strong> ab, indem Sie dort Ihre Flugdaten angeben.',
             // Estacionamiento (general)
             '(644 Saphy Street,'
                 => '(Calle Saphy 644,',
@@ -715,6 +711,9 @@ final class CorreccionesDeTraduccion
             // Instrucciones de salida (general)
             'Lassen Sie den nummerierten Schlüssel in dem Safe, wo Sie ihn abgeholt haben.'
                 => 'Legen Sie den nummerierten Schlüssel wieder in den Safe, aus dem Sie ihn genommen haben.',
+            // Traslados (general), 15/10/2026
+            'Einige <strong>Genius-</strong> Kunden'
+                => 'Einige <strong>Genius</strong>-Kunden',
         ],
         'nl' => [
             // Puertas (casas 1-7)
@@ -847,8 +846,6 @@ final class CorreccionesDeTraduccion
                 => 'De auto zet je <strong>voor de deur</strong> af',
             'zonder trappen of loopvlakken'
                 => 'zonder trappen of stukken te voet',
-            'Wij coördineren dit <strong>met hen</strong> door je vluchtgegevens naar hen door te sturen.'
-                => 'Dit regel je zelf <strong>met hen</strong> door je vluchtgegevens naar hen te sturen.',
             // Estacionamiento (general)
             'Saphy Street 644'
                 => 'Calle Saphy 644',
@@ -917,6 +914,13 @@ final class CorreccionesDeTraduccion
                 => 'Heb je keukengerei gebruikt, was het dan af of spoel het om.',
             'Als u wilt dat wij uw bagage'
                 => 'Als je wilt dat wij je bagage',
+            // Traslados (general), 15/10/2026
+            'Wilt u liever bij de uitgang worden opgewacht?'
+                => 'Wil je liever bij de uitgang worden opgewacht?',
+            'sommige <strong>Genius-</strong> klanten'
+                => 'sommige <strong>Genius</strong>-klanten',
+            'krijgen gratis ophalen van de luchthaven aangeboden'
+                => 'krijgen een gratis ophaalservice vanaf de luchthaven aangeboden',
         ],
     ];
 
@@ -1022,6 +1026,10 @@ final class CorreccionesDeTraduccion
 
     public function aplicar(string $idioma, string $texto): string
     {
+        // Google suelta a veces espacios de anchura cero (delante de «a un costo», en italiano): no se
+        // ven, pero parten la palabra al buscar y al copiar. Ninguna traducción los quiere.
+        $texto = str_replace("\u{200b}", '', $texto);
+
         foreach (self::CORRECCIONES[$idioma] ?? [] as $buscar => $reemplazo) {
             $texto = str_replace($buscar, $reemplazo, $texto);
         }

@@ -461,6 +461,9 @@ código ≠ 0 si hay alguna.
 - **El reemplazo no contiene la búsqueda**, o cada pasada la volvería a aplicar. Lo comprueba
   `CorreccionesDeTraduccionTest`.
 - El francés lleva **espacio duro** antes de «:» y «;»: van con `\u{a0}`.
+- **Los espacios de anchura cero (U+200B) se quitan siempre**, en todos los idiomas, antes de las
+  frases: Google los suelta a veces («privati a un costo» en italiano) y no se ven, pero parten la
+  palabra al buscar y al copiar. Había en cuatro fichas de la guía.
 
 ### Registro
 

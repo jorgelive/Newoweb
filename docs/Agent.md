@@ -772,7 +772,13 @@ entenderá que el chat tiene dos personalidades». El cliente habla con UN chat;
 tiene traslado, pero nuestra agencia sí» suena a dos casas. Así que en las dos superficies: se
 contesta cómo llegar y se cierra con «¿quieres que te pase la información de un traslado privado
 desde el aeropuerto?»; **sólo con un sí** se llama a `consultar_tours` (`Version20261015130000`). Y
-en la app del huésped no se anuncia «pídelo por el chat», por lo mismo.
+en la app del huésped el traslado se presenta como nuestro y «con costo adicional»: «Escríbenos
+por el chat y te pasamos el precio».
+
+**El recojo de Booking** es gratis sólo para algunos clientes Genius, sobre todo en estancias
+largas (Jorge). La ficha publicada dice «revisa tu reserva» y que se coordina «con Booking» —con
+«con ellos» detrás de «clientes Genius», el «ellos» eran los clientes—; el agente, lo mismo
+(`Version20261015140000`).
 
 El modelo hizo lo que pudo con lo que tenía: buscó «servicios», luego «llegada», encontró la
 negativa del aeropuerto y la generalizó. **Una negativa sin acotar en un texto del agente es una
