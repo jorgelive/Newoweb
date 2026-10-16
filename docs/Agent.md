@@ -756,6 +756,16 @@ negocio de tours no existía**, en ninguna de las tres capas.
 | skills | `anotar_pedido_cotizacion` (de `turistico`) filtrada fuera; ninguna que mirase el catálogo | `consultar_tours` + `anotar_pedido_cotizacion` |
 | reglas (`InstruccionesDominioRegistry::para()`) | sin contexto ganaba UNO, el por defecto: «eres la primera impresión del alojamiento» | sin contexto hablan TODOS, el por defecto delante; tours añade `CotizacionInstruccionesDominio::VENTA` |
 | conocimiento | la única ficha de transporte terminaba en «No ofrecemos traslado propio.» | la oferta en positivo: «si prefiere que le recojan, la agencia vende el traslado desde el aeropuerto», con puntero a `consultar_tours` (`Version20261011120000`) |
+| guía (huésped) | la ficha «Traslados (general)» le decía «NO tenemos traslado propio» y, si insistía, «no lo hacemos, dilo claro» | lo mismo para el ALOJAMIENTO, más la oferta de la agencia con `consultar_tours` / `anotar_pedido_cotizacion` (`Version20261015120000`, 15/10/2026) |
+
+⚠️ **La ficha de conocimiento NO llega al huésped.** Sus `perfiles` son prospecto, interesado,
+personal y colaborador: al huésped de una casita le contesta la GUÍA (`consultar_guia` → tema
+«Traslados»), y ésa siguió negando el traslado dos días después de que la agencia lo vendiera.
+Ya había pasado el 07/10: «¿Disponen de servicio de traslado al aeropuerto?» → «No contamos con
+servicio de traslado propio». **Una oferta nueva se busca en las dos superficies**: el conocimiento
+(prospecto) y la guía (huésped). El reparto queda así: la guía o el conocimiento dicen CÓMO
+llegar y que la agencia vende el traslado; `consultar_tours` (Travel) da el producto, el precio y
+qué incluye; `anotar_pedido_cotizacion` lo deja pedido.
 
 El modelo hizo lo que pudo con lo que tenía: buscó «servicios», luego «llegada», encontró la
 negativa del aeropuerto y la generalizó. **Una negativa sin acotar en un texto del agente es una
