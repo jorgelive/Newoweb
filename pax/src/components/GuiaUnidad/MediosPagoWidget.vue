@@ -17,11 +17,27 @@ import type { GuiaMedioPago } from '@/types/paxHuespedGuiaModel';
  */
 const props = defineProps<{
   mediosPago?: GuiaMedioPago[];
+  /**
+   * Cada tarjeta se abre y se cierra (16/10/2026). Con diez cuentas desplegadas —Yape, Plin y
+   * ocho transferencias— quien busca la suya tenía que recorrer varias pantallas: plegadas, se lee
+   * la lista de un vistazo y se abre la que interesa. Lo usa «Cómo reservar» de la cotización; la
+   * guía del huésped sigue abierta mientras nadie decida lo contrario.
+   */
+  plegable?: boolean;
 }>();
 
 const maestroStore = useMaestroStore();
 
 const medios = computed<GuiaMedioPago[]>(() => props.mediosPago ?? []);
+
+/** Las tarjetas abiertas. Plegables, arrancan cerradas salvo que haya una sola: no hay qué elegir. */
+const abiertas = ref<Set<number>>(new Set());
+const estaAbierta = (index: number): boolean => !props.plegable || medios.value.length === 1 || abiertas.value.has(index);
+const alternar = (index: number) => {
+  const nuevas = new Set(abiertas.value);
+  if (nuevas.has(index)) nuevas.delete(index); else nuevas.add(index);
+  abiertas.value = nuevas;
+};
 
 /** Feedback al copiar: se marca el número copiado y se apaga solo. */
 const indiceCopiado = ref<number | null>(null);
@@ -44,6 +60,12 @@ const copiar = (texto: string, index: number) => {
 const encabezado = (medio: GuiaMedioPago): string =>
   [medio.banco ?? medio.medio, medio.moneda].filter(Boolean).join(' · ');
 
+/**
+ * La línea pequeña de encima, sólo cuando dice algo que el título no: «Transferencia bancaria»
+ * sobre «BCP · USD». Sobre «Yape · PEN» repetía «Yape» y ocupaba una línea entera.
+ */
+const antetitulo = (medio: GuiaMedioPago): string => (medio.banco ? medio.medio : '');
+
 const notaDe = (medio: GuiaMedioPago): string =>
   medio.nota ? maestroStore.traducir(medio.nota) : '';
 
@@ -52,28 +74,39 @@ const t = (clave: string, porDefecto: string): string => maestroStore.t(clave) |
 </script>
 
 <template>
-  <div v-if="medios.length > 0" class="space-y-3 my-6 not-prose">
+  <div v-if="medios.length > 0" class="my-6 not-prose" :class="plegable ? 'space-y-2' : 'space-y-3'">
     <div
         v-for="(medio, index) in medios"
         :key="index"
         class="relative overflow-hidden rounded-2xl border bg-white border-[#376875]/10 shadow-sm hover:shadow-md hover:border-[#376875]/30 transition-all duration-300"
     >
-      <div class="p-5 pb-3 flex items-center gap-4">
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm shrink-0 bg-[#376875] text-white">
-          <i class="fas text-lg" :class="medio.icono ?? 'fa-money-bill-wave'"></i>
-        </div>
+      <!-- Cabecera compacta: icono pequeño y una sola línea de título. Plegable, es el botón que
+           abre la tarjeta; si no, un bloque más. -->
+      <component :is="plegable ? 'button' : 'div'"
+                 :type="plegable ? 'button' : undefined"
+                 :aria-expanded="plegable ? estaAbierta(index) : undefined"
+                 @click="plegable && alternar(index)"
+                 class="w-full px-4 py-3 flex items-center gap-3 text-left"
+                 :class="plegable ? 'hover:bg-slate-50/70 transition-colors' : ''">
+        <span class="w-9 h-9 rounded-lg flex items-center justify-center shadow-sm shrink-0 bg-[#376875] text-white">
+          <i class="fas text-sm" :class="medio.icono ?? 'fa-money-bill-wave'"></i>
+        </span>
 
-        <div class="min-w-0">
-          <p class="text-[10px] font-black uppercase tracking-widest mb-0.5 text-[#E07845]">
-            {{ medio.medio }}
-          </p>
-          <h4 class="font-black text-gray-900 leading-tight text-lg truncate">
+        <span class="min-w-0 flex-1">
+          <span v-if="antetitulo(medio)" class="block text-[9px] font-black uppercase tracking-widest text-[#E07845] leading-tight">
+            {{ antetitulo(medio) }}
+          </span>
+          <span class="block font-black text-gray-900 leading-tight text-base truncate">
             {{ encabezado(medio) }}
-          </h4>
-        </div>
-      </div>
+          </span>
+        </span>
 
-      <div class="px-5 pb-5 pt-2 space-y-3">
+        <i v-if="plegable && medios.length > 1" class="fas text-slate-400 text-xs shrink-0 transition-transform"
+           :class="estaAbierta(index) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+      </component>
+
+      <!-- `v-show` y no `v-if`: el «copiado» de un número no se pierde al cerrar y abrir. -->
+      <div v-show="estaAbierta(index)" class="px-4 pb-4 pt-1 space-y-3">
         <!-- El número: lo que el huésped va a copiar. `select-all` para que un toque
              largo en móvil lo seleccione entero y no a medias. -->
         <div

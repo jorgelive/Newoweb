@@ -2657,12 +2657,12 @@ const rotuloProcedencia = computed(() => {
 
               <!-- La tarjeta no es una cuenta: se cobra con un enlace que se emite al reservar. -->
               <div v-if="store.comoReservar.conTarjeta"
-                   class="mt-3 flex items-start gap-3 rounded-2xl border border-[#376875]/10 bg-white p-4 shadow-sm">
-                <span class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#376875] text-white">
-                  <i class="fas fa-credit-card"></i>
+                   class="mt-3 flex items-start gap-3 rounded-2xl border border-[#376875]/10 bg-white px-4 py-3 shadow-sm">
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-[#376875] text-white">
+                  <i class="fas fa-credit-card text-sm"></i>
                 </span>
                 <span class="min-w-0">
-                  <span class="block font-black text-gray-900 leading-tight">{{ maestroStore.t('res_con_tarjeta') || 'Con tarjeta de crédito' }}</span>
+                  <span class="block font-black text-gray-900 leading-tight text-base">{{ maestroStore.t('res_con_tarjeta') || 'Con tarjeta de crédito' }}</span>
                   <span class="block text-[12px] text-slate-500 leading-snug mt-0.5">
                     {{ maestroStore.t('cot_tarjeta_enlace') || 'Te enviamos un enlace de pago seguro: pídelo cuando quieras reservar.' }}
                   </span>
@@ -2672,7 +2672,7 @@ const rotuloProcedencia = computed(() => {
               <!-- Sin cuentas que ofrecer (Western Union ya no llega a tiempo), el widget pinta su
                    «consúltanos por el chat». Con la tarjeta delante sobra: ya hay por dónde pagar. -->
               <MediosPagoWidget v-if="store.comoReservar.medios.length || !store.comoReservar.conTarjeta"
-                                :medios-pago="store.comoReservar.medios" />
+                                :medios-pago="store.comoReservar.medios" plegable />
 
               <p class="text-[11px] font-bold text-slate-500 leading-snug">
                 {{ maestroStore.t('res_aviso_pago') || 'Avísanos cuando lo hayas hecho y el equipo lo confirma. Si quieres, mándanos la captura.' }}

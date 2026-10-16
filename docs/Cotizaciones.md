@@ -4053,6 +4053,10 @@ pax: PaxCotizacionGuiaView ── montoDeAdelanto() / saldoTrasAdelanto() (domin
   (Western Union pide 2). Se pintan con `FinMedioCobro::fichaParaCliente()` y el mismo
   `MediosPagoWidget`. **Sin efectivo**: su nota habla del check-in y un adelanto se paga a
   distancia.
+  - **Plegables** (prop `plegable`, 16/10/2026): con diez cuentas abiertas el bloque medía varias
+    pantallas; plegadas se ve la lista de un vistazo y se abre la que interesa. La cabecera es
+    compacta en todas las tarjetas —icono pequeño, «Transferencia bancaria» sólo sobre un banco,
+    nunca «Yape» sobre «Yape · PEN»—. La guía del huésped usa el mismo widget sin plegar.
 - **La tarjeta no es una cuenta**: al de fuera (y a quien no se sabe) se le dice que se le manda un
   enlace de pago seguro. Generarlo desde la propia vista (Culqi) es la segunda entrega: falta un
   `FinOrigenCobroResolverInterface` para el expediente. Ver `docs/Pendientes.md`.
