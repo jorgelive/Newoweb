@@ -288,9 +288,19 @@ class Cotizacion
     #[ORM\Column(type: 'decimal', precision: 5, scale: 2, options: ['default' => '20.00'])]
     private string $comision = '20.00';
 
+    /**
+     * El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+     * servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+     *
+     * ⚠️ **Es un porcentaje, no un importe**, aunque la columna sea `decimal(12,2)`: así la trajo
+     * la migración desde Oweb, y nadie la usó hasta hoy —valía 0,00 en las 23 propuestas—. El
+     * importe lo calcula `montoDeAdelanto()` (`dominio/cotizacion/adelanto.ts`) sobre el total.
+     * Ver {@see self::porcentajeDeAdelanto()} y docs/Cotizaciones.md.
+     */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
-    private string $adelanto = '0.00';
+    #[Assert\Range(min: 0, max: 100, notInRangeMessage: 'El adelanto es un porcentaje: entre 0 y 100.')]
+    #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '50.00'])]
+    private string $adelanto = '50.00';
 
     /**
      * Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
@@ -1622,6 +1632,13 @@ class Cotizacion
     public function setComision(string $comision): void { $this->comision = $comision; }
 
     public function getAdelanto(): string { return $this->adelanto; }
+
+    /** El porcentaje de adelanto como número, acotado a 0–100 por si un dato viejo se sale. */
+    public function porcentajeDeAdelanto(): float
+    {
+        return max(0.0, min(100.0, (float) $this->adelanto));
+    }
+
     public function setAdelanto(string $adelanto): void { $this->adelanto = $adelanto; }
 
     public function getPresentacionPrecio(): PresentacionPrecioEnum { return $this->presentacionPrecio; }

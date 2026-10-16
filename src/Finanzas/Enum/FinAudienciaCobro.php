@@ -15,11 +15,45 @@ namespace App\Finanzas\Enum;
  * Por eso el medio dice a quién sirve y no se deja al criterio del modelo, que sólo ve un
  * número de cuenta y no sabe cuánto cuesta llegar hasta él.
  *
- * Quién es «de Perú» lo decide {@see \App\Agent\Skill\Pms\ConsultarMediosPagoSkill::esDePeru()}
- * con el país de la reserva y, si falta, el prefijo del teléfono.
+ * Quién es «de Perú» lo decide {@see self::desdePeru()} con el país y, si falta, el prefijo del
+ * teléfono. La usan la reserva de alojamiento ({@see \App\Pms\Finanzas\PmsProcedenciaHuesped}) y
+ * el expediente de cotización ({@see \App\Cotizacion\Service\Publico\ComoReservarResolver}).
  */
 enum FinAudienciaCobro: string
 {
+    /** Prefijo telefónico de Perú. */
+    private const string PREFIJO_PERU = '51';
+
+    /**
+     * ¿Paga desde Perú? `true` desde Perú, `false` desde fuera, `null` cuando no hay con qué saberlo.
+     *
+     * El país manda. Sin país se mira el teléfono, y la evidencia es **asimétrica**:
+     *
+     * - Teléfono que **no** empieza por 51 → `false`. Eso lo tecleó alguien: nadie le pone un +34
+     *   por defecto a nadie.
+     * - Teléfono que empieza por 51 → `null`, no `true`. {@see \App\Service\Phone\PhoneSanitizer::cleanPhoneNumber()}
+     *   **antepone el 51** a cualquier móvil de 9 dígitos que llegue sin prefijo, así que un `51…`
+     *   puede ser nuestro valor por defecto y no el del cliente. Con `null` se le enseñan todos los
+     *   medios y elige, que es mejor que esconderle el Western Union al que venía de fuera.
+     *
+     * Vive aquí, y no en el PMS, desde que la preguntan también las cotizaciones (16/10/2026): dos
+     * copias de esta regla acabarían ofreciéndole cuentas distintas a la misma persona.
+     */
+    public static function desdePeru(?string $paisIso, ?string $telefono): ?bool
+    {
+        if ($paisIso !== null && trim($paisIso) !== '') {
+            return strtoupper(trim($paisIso)) === 'PE';
+        }
+
+        $digitos = preg_replace('/\D/', '', (string) $telefono);
+
+        if ($digitos === null || $digitos === '') {
+            return null;
+        }
+
+        return str_starts_with($digitos, self::PREFIJO_PERU) ? null : false;
+    }
+
     /** Sirve para cualquiera: efectivo al llegar, tarjeta. */
     case TODOS = 'todos';
 

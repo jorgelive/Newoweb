@@ -1,6 +1,6 @@
 import { extractIdStr } from '@/utils/recurso';
 import { mandaElSegmento } from '@/utils/componenteTipo';
-import { posicionDeServicio, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
+import { montoDeAdelanto, posicionDeServicio, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
 import { comoCalculo, multiplicaPorCantidad, seProrratea, visibleParaCliente } from '@dominio/cotizacion/index.ts';
 import type { CalculoTarifa } from '@dominio/cotizacion/index.ts';
 import {defineStore} from 'pinia';
@@ -826,7 +826,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const numPaxGlobal = Math.max(cotizacion.value.numPax || 1, 1);
         const comisionGlobal = parseFloat(cotizacion.value.comision) || 0;
         const globalMarkup = comisionGlobal / 100;
-        const adelantoPct = (parseFloat(cotizacion.value.adelanto) || 0) / 100;
+        // Un PORCENTAJE (50 por defecto), no un importe. Ver `montoDeAdelanto()` en dominio/.
+        const porcentajeAdelanto = parseFloat(cotizacion.value.adelanto) || 0;
         const tc = parseFloat(cotizacion.value.tipoCambio) || tipoCambioSugerido.value || 1;
         const advertencias: string[] = [];
 
@@ -1608,7 +1609,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             totalCostoNeto: buckets.incluido.costoDolares + buckets.cortesia.costoDolares,
             totalVentaBruta: buckets.incluido.ventaDolares,
             ganancia,
-            montoAdelanto: buckets.incluido.ventaDolares * adelantoPct,
+            montoAdelanto: montoDeAdelanto(buckets.incluido.ventaDolares, porcentajeAdelanto),
             resumenGeneral: buckets,
             clasesPasajeros: clases
                 .sort((a, b) => b.edadMin - a.edadMin)
@@ -2740,7 +2741,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             idiomaEdicion: 'es',
             numPax: 1,
             comision: '20.00',
-            adelanto: '0.00',
+            adelanto: '50.00', // un PORCENTAJE: el 50 de siempre (Cotizacion::$adelanto)
             tipoCambio: String(tipoCambioSugerido.value || 1),
             totalCosto: '0.00',
             totalVenta: '0.00',

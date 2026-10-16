@@ -285,6 +285,36 @@ class FinMedioCobro
         return '';
     }
 
+    /**
+     * La ficha que se le enseña al cliente en `pax`, sin las claves vacías.
+     *
+     * La pintan `MediosPagoWidget` (guía del huésped) y el bloque «Cómo reservar» de la cotización,
+     * y es una sola para que las dos pantallas no enseñen la misma cuenta de dos formas.
+     *
+     * 🪞 Espejo de `pax/src/types/paxHuespedGuiaModel.ts` (`GuiaMedioPago`). **Si añades una
+     * clave aquí, añádela allí**: nada la genera sola y el front la ignoraría en silencio.
+     *
+     * La `nota` viaja como el array i18n crudo: la traduce el navegador con
+     * `maestroStore.traducir()`, porque el idioma de quien mira cambia con un clic y sin recargar.
+     *
+     * @return array<string, string|list<array{language?: string, content?: string|null}>>
+     */
+    public function fichaParaCliente(): array
+    {
+        return array_filter([
+            'tipo' => $this->tipo->value,
+            'medio' => $this->tipo->label(),
+            'icono' => $this->tipo->icono(),
+            'titular' => $this->titular,
+            'titularAlterno' => $this->titularAlterno,
+            'numero' => $this->numero,
+            'banco' => $this->banco,
+            'cci' => $this->cci,
+            'moneda' => $this->moneda,
+            'nota' => $this->getNota() !== [] ? $this->getNota() : null,
+        ], static fn ($v) => $v !== null && $v !== '');
+    }
+
     /** ¿Está listo para enseñárselo a alguien? Sin número no se ofrece, salvo el efectivo. */
     public function esOfrecible(): bool
     {

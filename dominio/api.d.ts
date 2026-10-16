@@ -2988,6 +2988,198 @@ export interface components {
              */
             enConflicto?: boolean;
         };
+        ComoReservar: {
+            /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
+            porcentajeAdelanto?: number;
+            /** @description Día del primer servicio (`Y-m-d`, hora de pared): cuándo se paga el resto. */
+            fechaPrimerServicio?: string | null;
+            /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
+            desdePeru?: boolean | null;
+            /**
+             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
+             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
+             */
+            conTarjeta?: boolean;
+            /**
+             * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
+             *     ya filtradas por procedencia y por los días que faltan.
+             */
+            medios?: {
+                [key: string]: string | null;
+            }[];
+            /** @description URL de la política en la web, por idioma (`es`, `en`). */
+            politicaDevoluciones?: {
+                [key: string]: string;
+            };
+        };
+        "ComoReservar-pax_file.read_pax_cotizacion.read": {
+            /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
+            porcentajeAdelanto?: number;
+            /** @description Día del primer servicio (`Y-m-d`, hora de pared): cuándo se paga el resto. */
+            fechaPrimerServicio?: string | null;
+            /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
+            desdePeru?: boolean | null;
+            /**
+             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
+             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
+             */
+            conTarjeta?: boolean;
+            /**
+             * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
+             *     ya filtradas por procedencia y por los días que faltan.
+             */
+            medios?: {
+                [key: string]: string | null;
+            }[];
+            /** @description URL de la política en la web, por idioma (`es`, `en`). */
+            politicaDevoluciones?: {
+                [key: string]: string;
+            };
+        };
+        "ComoReservar.html": {
+            /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
+            porcentajeAdelanto?: number;
+            /** @description Día del primer servicio (`Y-m-d`, hora de pared): cuándo se paga el resto. */
+            fechaPrimerServicio?: string | null;
+            /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
+            desdePeru?: boolean | null;
+            /**
+             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
+             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
+             */
+            conTarjeta?: boolean;
+            /**
+             * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
+             *     ya filtradas por procedencia y por los días que faltan.
+             */
+            medios?: {
+                [key: string]: string | null;
+            }[];
+            /** @description URL de la política en la web, por idioma (`es`, `en`). */
+            politicaDevoluciones?: {
+                [key: string]: string;
+            };
+        };
+        "ComoReservar.html-pax_file.read_pax_cotizacion.read": {
+            /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
+            porcentajeAdelanto?: number;
+            /** @description Día del primer servicio (`Y-m-d`, hora de pared): cuándo se paga el resto. */
+            fechaPrimerServicio?: string | null;
+            /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
+            desdePeru?: boolean | null;
+            /**
+             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
+             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
+             */
+            conTarjeta?: boolean;
+            /**
+             * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
+             *     ya filtradas por procedencia y por los días que faltan.
+             */
+            medios?: {
+                [key: string]: string | null;
+            }[];
+            /** @description URL de la política en la web, por idioma (`es`, `en`). */
+            politicaDevoluciones?: {
+                [key: string]: string;
+            };
+        };
+        "ComoReservar.jsonld": {
+            /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
+            porcentajeAdelanto?: number;
+            /** @description Día del primer servicio (`Y-m-d`, hora de pared): cuándo se paga el resto. */
+            fechaPrimerServicio?: string | null;
+            /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
+            desdePeru?: boolean | null;
+            /**
+             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
+             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
+             */
+            conTarjeta?: boolean;
+            /**
+             * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
+             *     ya filtradas por procedencia y por los días que faltan.
+             */
+            medios?: {
+                [key: string]: string | null;
+            }[];
+            /** @description URL de la política en la web, por idioma (`es`, `en`). */
+            politicaDevoluciones?: {
+                [key: string]: string;
+            };
+        };
+        "ComoReservar.jsonld-pax_file.read_pax_cotizacion.read": {
+            /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
+            porcentajeAdelanto?: number;
+            /** @description Día del primer servicio (`Y-m-d`, hora de pared): cuándo se paga el resto. */
+            fechaPrimerServicio?: string | null;
+            /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
+            desdePeru?: boolean | null;
+            /**
+             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
+             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
+             */
+            conTarjeta?: boolean;
+            /**
+             * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
+             *     ya filtradas por procedencia y por los días que faltan.
+             */
+            medios?: {
+                [key: string]: string | null;
+            }[];
+            /** @description URL de la política en la web, por idioma (`es`, `en`). */
+            politicaDevoluciones?: {
+                [key: string]: string;
+            };
+        };
+        "ComoReservar.multipart": {
+            /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
+            porcentajeAdelanto?: number;
+            /** @description Día del primer servicio (`Y-m-d`, hora de pared): cuándo se paga el resto. */
+            fechaPrimerServicio?: string | null;
+            /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
+            desdePeru?: boolean | null;
+            /**
+             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
+             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
+             */
+            conTarjeta?: boolean;
+            /**
+             * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
+             *     ya filtradas por procedencia y por los días que faltan.
+             */
+            medios?: {
+                [key: string]: string | null;
+            }[];
+            /** @description URL de la política en la web, por idioma (`es`, `en`). */
+            politicaDevoluciones?: {
+                [key: string]: string;
+            };
+        };
+        "ComoReservar.multipart-pax_file.read_pax_cotizacion.read": {
+            /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
+            porcentajeAdelanto?: number;
+            /** @description Día del primer servicio (`Y-m-d`, hora de pared): cuándo se paga el resto. */
+            fechaPrimerServicio?: string | null;
+            /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
+            desdePeru?: boolean | null;
+            /**
+             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
+             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
+             */
+            conTarjeta?: boolean;
+            /**
+             * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
+             *     ya filtradas por procedencia y por los días que faltan.
+             */
+            medios?: {
+                [key: string]: string | null;
+            }[];
+            /** @description URL de la política en la web, por idioma (`es`, `en`). */
+            politicaDevoluciones?: {
+                [key: string]: string;
+            };
+        };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         Componente: {
             /** @description Obtiene el nombre interno del componente. */
@@ -4690,7 +4882,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -4817,7 +5013,11 @@ export interface components {
             numPax: number;
             /** @default 20.00 */
             comision: string;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
@@ -4946,7 +5146,11 @@ export interface components {
             numPax: number;
             /** @default 20.00 */
             comision: string;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
@@ -5047,7 +5251,11 @@ export interface components {
             numPax: number;
             /** @default 20.00 */
             comision: string;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
@@ -5134,7 +5342,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -5219,7 +5431,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -5303,7 +5519,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -5378,7 +5598,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -5550,7 +5774,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -5677,7 +5905,11 @@ export interface components {
             numPax: number;
             /** @default 20.00 */
             comision: string;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
@@ -5792,7 +6024,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -5877,7 +6113,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -5961,7 +6201,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -6036,7 +6280,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -6116,7 +6364,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -6243,7 +6495,11 @@ export interface components {
             numPax: number;
             /** @default 20.00 */
             comision: string;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
@@ -6358,7 +6614,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -6443,7 +6703,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -6527,7 +6791,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -6602,7 +6870,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -6682,7 +6954,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -6809,7 +7085,11 @@ export interface components {
             numPax: number;
             /** @default 20.00 */
             comision: string;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Cómo se le presenta el precio al cliente (14/10/2026): sin precio, total del grupo, por
@@ -6924,7 +7204,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -7009,7 +7293,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -7093,7 +7381,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -7168,7 +7460,11 @@ export interface components {
             estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico" | "operativa";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /**
+             * @description El PORCENTAJE del total que se pide para reservar; el resto se paga el día del primer
+             *     servicio. 50 por defecto, como en Oweb, de donde vino la columna (16/10/2026).
+             * @default 50.00
+             */
             adelanto: string;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
@@ -11273,6 +11569,7 @@ export interface components {
              * @example https://example.com/
              */
             cotizacionParaCliente?: string | null;
+            comoReservar?: components["schemas"]["ComoReservar"] | null;
             /**
              * @description ¿Quien mira es un operador con sesión, y no el cliente?
              * @default false
@@ -11757,6 +12054,7 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion-pax_file.read_pax_cotizacion.read"] | null;
+            comoReservar?: components["schemas"]["ComoReservar-pax_file.read_pax_cotizacion.read"] | null;
             /**
              * @description ¿Quien mira es un operador con sesión, y no el cliente?
              * @default false
@@ -11875,6 +12173,7 @@ export interface components {
              * @example https://example.com/
              */
             cotizacionParaCliente?: string | null;
+            comoReservar?: components["schemas"]["ComoReservar.html"] | null;
             /**
              * @description ¿Quien mira es un operador con sesión, y no el cliente?
              * @default false
@@ -12285,6 +12584,7 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.html-pax_file.read_pax_cotizacion.read"] | null;
+            comoReservar?: components["schemas"]["ComoReservar.html-pax_file.read_pax_cotizacion.read"] | null;
             /**
              * @description ¿Quien mira es un operador con sesión, y no el cliente?
              * @default false
@@ -12403,6 +12703,7 @@ export interface components {
              * @example https://example.com/
              */
             cotizacionParaCliente?: string | null;
+            comoReservar?: components["schemas"]["ComoReservar.jsonld"] | null;
             /**
              * @description ¿Quien mira es un operador con sesión, y no el cliente?
              * @default false
@@ -12817,6 +13118,7 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.jsonld-pax_file.read_pax_cotizacion.read"] | null;
+            comoReservar?: components["schemas"]["ComoReservar.jsonld-pax_file.read_pax_cotizacion.read"] | null;
             /**
              * @description ¿Quien mira es un operador con sesión, y no el cliente?
              * @default false
@@ -12935,6 +13237,7 @@ export interface components {
              * @example https://example.com/
              */
             cotizacionParaCliente?: string | null;
+            comoReservar?: components["schemas"]["ComoReservar.multipart"] | null;
             /**
              * @description ¿Quien mira es un operador con sesión, y no el cliente?
              * @default false
@@ -13345,6 +13648,7 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.multipart-pax_file.read_pax_cotizacion.read"] | null;
+            comoReservar?: components["schemas"]["ComoReservar.multipart-pax_file.read_pax_cotizacion.read"] | null;
             /**
              * @description ¿Quien mira es un operador con sesión, y no el cliente?
              * @default false

@@ -19,6 +19,7 @@ use App\Cotizacion\Entity\CotizacionFileGrupo;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use Doctrine\DBAL\ArrayParameterType;
 use App\Cotizacion\Enum\PasajeroTipoEnum;
+use App\Cotizacion\Service\Publico\ComoReservarResolver;
 use App\Cotizacion\Service\Publico\IdentidadDelPasajero;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -50,6 +51,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         private readonly IdentidadDelPasajero $identidad,
         private readonly \App\Cotizacion\Documento\LectorDeDocumentoIdentidad $lectorDeIdentidad,
         private readonly \App\Cotizacion\Documento\LectorDeEticket $lectorDeEticket,
+        private readonly ComoReservarResolver $comoReservar,
     )
     {
     }
@@ -142,7 +144,8 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 ? $f['presentacionPrecio']
                 : PresentacionPrecioEnum::tryFrom($f['presentacionPrecio']);
             $oculto = $presentacion?->ocultaPrecio() ?? false;
-            $estado = $f['estado'] instanceof CotizacionEstadoEnum ? $f['estado']->value : $f['estado'];
+            $estadoEnum = $f['estado'] instanceof CotizacionEstadoEnum ? $f['estado'] : CotizacionEstadoEnum::tryFrom($f['estado']);
+            $estado = $estadoEnum !== null ? $estadoEnum->value : Lee::texto($f['estado']);
 
             return [
                 'propuesta'         => $f['propuesta'],
@@ -173,7 +176,11 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                         ? $f['totalVentaOrigen']
                         : $f['totalVenta']
                 ),
-                'adelanto'        => $oculto ? null : $f['adelanto'],
+                // Un porcentaje, no dinero: sale también con el precio oculto.
+                'adelanto'        => $f['adelanto'],
+                // ¿Se ofrece aún? Sólo entonces la portada dice «reserva con el 50 %». Lo decide
+                // el mismo juez que el bloque del detalle: ver `ComoReservarResolver::seOfrece()`.
+                'reservable'      => $estadoEnum !== null && ComoReservarResolver::seOfreceEnEstado($estadoEnum),
                 // ⚠️ Como DÍA (`Y-m-d`), no como instante con desplazamiento.
                 //
                 // Salía en `DATE_ATOM` y el cliente sólo la enseña como «Válida hasta el 15 de
@@ -335,6 +342,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             }
 
             $file->setCotizacionParaCliente($cotizacion);
+            $file->setComoReservar($this->comoReservar->para($file, $cotizacion, $ahora));
         }
 
         return $file;

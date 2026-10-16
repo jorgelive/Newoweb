@@ -17,6 +17,28 @@ la siguiente persona lo investiga otra vez.
 
 ---
 
+## Vender sin pasar a mano por una cotización — 16/10/2026
+
+Tres piezas que salieron al montar «Cómo reservar» (`docs/Cotizaciones.md` §6.a) y que Jorge
+decidió dejar para después:
+
+1. **Enlace de Culqi desde la cotización.** El bloque le dice al cliente de fuera «te enviamos un
+   enlace de pago seguro», y ese enlace hoy se hace a mano (cobro manual con etiqueta
+   `cotizacion`). Para generarlo con el importe justo falta un
+   `CotizacionOrigenCobroResolver` (`FinOrigenCobroResolverInterface`, `FinOrigenCobro::COTIZACION`).
+   Lo que hay que resolver antes: **Cotizaciones no tiene libro de pagos**, así que lo cobrado
+   tendría que salir de los propios `FinEnlacePago` pagados del expediente (y `registrarCobro()`
+   devolvería `null`), y el total de qué versión —la publicada que se ofrece— es el «documento».
+2. **Clonar un tour del catálogo a una cotización con los pasajeros reales.** El precio del
+   catálogo es referencial («desde»); hoy la cotización vendible se hace a mano. La clonación ya
+   existe (`docs/Cotizaciones.md`, «Clonar una cotización a OTRO expediente o a un CATÁLOGO»):
+   falta el camino inverso automático con el número de pasajeros.
+3. **Las cuentas de la empresa.** Todas las de `fin_medio_cobro` están a nombre de Susan Acuña
+   Romero (Western Union, de Jorge), y los tours los vende Openperu Travel Group SAC. Cuando haya
+   cuentas de la SAC, se cambian en el panel de Finanzas; nada del código las nombra.
+
+---
+
 ## 1. Nunca se marca la entrega ni la lectura en la cola de WhatsApp
 
 `msg_whatsapp_meta_send_queue` tiene `delivered_at` y `read_at`, y están **vacías en las 2368

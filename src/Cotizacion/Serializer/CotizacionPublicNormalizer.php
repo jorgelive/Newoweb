@@ -18,8 +18,9 @@ use Symfony\Component\Serializer\SerializerInterface;
  *
  * Responsabilidades:
  *  1. Si precioOculto=true, redacta SOLO los campos monetarios del JSON servido
- *     en el grupo `pax_cotizacion:read` (totalVenta, adelanto, y los montos
- *     dentro de clasificacionFinancieraCliente). Deliberadamente NO borra el
+ *     en el grupo `pax_cotizacion:read` (totalVenta y los montos dentro de
+ *     clasificacionFinancieraCliente). `adelanto` NO: es un porcentaje, no dice cuánto cuesta
+ *     nada, y el bloque «Cómo reservar» lo necesita también con el precio oculto. Deliberadamente NO borra el
  *     bloque completo: `inclusiones` (ya sin montos) y los datos descriptivos
  *     de `opcionesUpgrade` (nombre, tarifa, badges) no son dinero y deben
  *     seguir viéndose aunque el precio esté oculto. Ver redactarMontos().
@@ -114,7 +115,7 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
      */
     private function redactarMontos(array $data): array
     {
-        unset($data['totalVenta'], $data['adelanto']);
+        unset($data['totalVenta']);
 
         if (isset($data['clasificacionFinancieraCliente']) && \is_array($data['clasificacionFinancieraCliente'])) {
             $cfc = $data['clasificacionFinancieraCliente'];

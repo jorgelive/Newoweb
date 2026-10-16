@@ -9,6 +9,8 @@ import { useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { fmtNaiveDia } from '@dominio/fecha/index.ts';
+import { montoDeAdelanto } from '@dominio/cotizacion/index.ts';
+import type { PaxPropuestaResumen } from '@/types/paxCotizacionModel';
 import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
 
 const props = defineProps<{
@@ -119,6 +121,22 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
   return new Intl.NumberFormat(maestroStore.idiomaActual, { style: 'currency', currency: 'USD' }).format(usd);
 };
 
+/**
+ * «Reserva con el 50 %: $ 420» en el pie de la tarjeta, sólo si la propuesta aún se ofrece.
+ *
+ * ⚠️ `adelanto` es un PORCENTAJE. Aquí se pintaba como un importe —«Adelanto $ 50,00»— y no se
+ * notaba porque valía 0 en todas. El importe sale de `montoDeAdelanto()`, la misma función que
+ * usan el editor y el detalle; con el precio oculto no hay total y se dice el porcentaje a secas.
+ */
+const adelantoDe = (v: PaxPropuestaResumen): string => {
+  const pct = Number(v.adelanto);
+  if (!v.reservable || !(pct > 0)) return '';
+  if (pct >= 100) return maestroStore.t('cot_reserva_total') || 'Para reservar se paga el total';
+  const pctLabel = `${pct.toLocaleString(maestroStore.idiomaActual, { maximumFractionDigits: 2 })} %`;
+  const con = maestroStore.t('cot_reserva_con', { pct: pctLabel }) || `Reserva con el ${pctLabel}`;
+  if (v.totalVenta === null || v.precioOculto) return con;
+  return `${con}: ${formatearMontoPortada(String(montoDeAdelanto(Number(v.totalVenta), pct)), v.monedaGlobal, v.tipoCambio)}`;
+};
 </script>
 
 <template>
@@ -356,13 +374,13 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
 
             <!-- Pie tenue: adelanto · validez -->
             <p
-                v-if="(v.adelanto && Number(v.adelanto) > 0) || v.fechaExpiracion"
+                v-if="adelantoDe(v) || v.fechaExpiracion"
                 class="text-[10px] text-[#376875]/45 font-bold uppercase tracking-widest mt-3.5 text-right flex items-center justify-end gap-2 flex-wrap"
             >
-              <span v-if="v.adelanto && Number(v.adelanto) > 0">
-                <i class="fas fa-wallet mr-1 text-[#E07845]/60"></i>{{ maestroStore.t('cot_adelanto') || 'Adelanto' }} {{ formatearMontoPortada(v.adelanto, v.monedaGlobal, v.tipoCambio) }}
+              <span v-if="adelantoDe(v)">
+                <i class="fas fa-wallet mr-1 text-[#E07845]/60"></i>{{ adelantoDe(v) }}
               </span>
-              <span v-if="(v.adelanto && Number(v.adelanto) > 0) && v.fechaExpiracion" class="text-[#376875]/25">·</span>
+              <span v-if="adelantoDe(v) && v.fechaExpiracion" class="text-[#376875]/25">·</span>
               <span v-if="v.fechaExpiracion">
                 <i class="fas fa-hourglass-half mr-1 text-[#E07845]/60"></i>{{ maestroStore.t('cot_valida_hasta') || 'Válida hasta' }} {{ formatearFecha(v.fechaExpiracion) }}
               </span>

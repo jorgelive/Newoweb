@@ -6,6 +6,7 @@ import { paxCotizacionService } from '@/services/paxCotizacionService';
 import { useMaestroStore } from '../maestroStore';
 import type {
     PaxCotizacionFile,
+    PaxComoReservar,
     PaxCotizacion,
     PaxCotServicio,
     PaxCotComponente,
@@ -431,6 +432,9 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
     /** Cotización completa de la versión abierta */
     const cotizacion = computed<PaxCotizacion | null>(() => detalle.value?.cotizacionParaCliente ?? null);
 
+    /** Cómo reservar la propuesta abierta. Sólo en el detalle, y sólo si aún se ofrece. */
+    const comoReservar = computed<PaxComoReservar | null>(() => detalle.value?.comoReservar ?? null);
+
     /**
      * Lo que es TUYO en este viaje: tu nombre y tus códigos. `null` si no te has identificado o si
      * el expediente no lo pide.
@@ -474,7 +478,6 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
     const totalVenta = computed(() => ({
         monto: cotizacion.value?.totalVenta ?? '0.00',
         moneda: cotizacion.value?.monedaGlobal ?? 'USD',
-        adelanto: cotizacion.value?.adelanto ?? '0.00',
     }));
 
     /**
@@ -535,7 +538,7 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
         portadaCatalogo, lastUpdatePortadaCatalogo, esCatalogo,
         // getters
         file, propuestas, tours, cotizacion, documentos, pasajeros,
-        inclusiones, gruposUpgrade, precioVisible, totalVenta, itinerario,
+        inclusiones, gruposUpgrade, precioVisible, totalVenta, itinerario, comoReservar,
         // acciones
         cargarPortada, cargarPropuesta, traducir,
         cargarPortadaCatalogo, cargarPropuestaCatalogo,

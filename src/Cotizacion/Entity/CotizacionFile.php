@@ -21,6 +21,7 @@ use App\Cotizacion\ApiPlatform\State\CotizacionFileItemProvider;
 use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
 use App\Cotizacion\ApiPlatform\Filter\CotizacionFileNombreFilter;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
+use App\Cotizacion\Dto\ComoReservar;
 use App\Cotizacion\Enum\PaisDeControlEnum;
 use App\Cotizacion\Enum\FileEstadoEnum;
 use App\Cotizacion\Enum\FileModoEnum;
@@ -308,6 +309,9 @@ class CotizacionFile
     /** Cotización completa de la versión solicitada en la URL (solo detalle). */
     private ?Cotizacion $cotizacionParaCliente = null;
 
+    /** Cómo reservar esa versión: lo pone el provider con `ComoReservarResolver` (solo detalle). */
+    private ?ComoReservar $comoReservar = null;
+
     /**
      * ¿Quien mira es un operador con sesión, y no el cliente?
      *
@@ -402,6 +406,26 @@ class CotizacionFile
     public function setCotizacionParaCliente(?Cotizacion $cotizacion): self
     {
         $this->cotizacionParaCliente = $cotizacion;
+        return $this;
+    }
+
+    /**
+     * El adelanto, cuándo se paga el resto, por dónde pagar y la política de devoluciones de la
+     * versión que se está mirando. `null` en la portada y en una propuesta que ya no se ofrece
+     * (confirmada, operativa…): ver {@see \App\Cotizacion\Service\Publico\ComoReservarResolver::seOfrece()}.
+     *
+     * Va en el expediente y no en la cotización porque depende de él: de su país sale qué medios
+     * se ofrecen.
+     */
+    #[Groups(['pax_cotizacion:read'])]
+    public function getComoReservar(): ?ComoReservar
+    {
+        return $this->comoReservar;
+    }
+
+    public function setComoReservar(?ComoReservar $comoReservar): self
+    {
+        $this->comoReservar = $comoReservar;
         return $this;
     }
 

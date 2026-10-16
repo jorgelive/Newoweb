@@ -24,11 +24,12 @@ import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import EstadoDeActividad, { type ExcepcionDeActividad } from '@/components/cotizacion/EstadoDeActividad.vue';
 import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
-import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnidades, resumenDeDuracion, mandaElSegmento } from '@dominio/cotizacion/index.ts';
+import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnidades, resumenDeDuracion, mandaElSegmento, montoDeAdelanto, saldoTrasAdelanto } from '@dominio/cotizacion/index.ts';
 import type { BloqueVista as BloqueVistaBase } from '@dominio/cotizacion/index.ts';
 import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
 import MisDocumentos, { faltanDocumentos, pedidosEfectivos } from '@/components/cotizacion/MisDocumentos.vue';
 import PanelPlegable from '@/components/cotizacion/PanelPlegable.vue';
+import MediosPagoWidget from '@/components/GuiaUnidad/MediosPagoWidget.vue';
 
 /** El bloque con los tipos de `pax` dentro: el módulo es genérico y los devuelve intactos. */
 type BloqueVista = BloqueVistaBase<PaxCotServicio>;
@@ -1621,13 +1622,68 @@ const rolDeMiembro = (rol?: string | null): string => {
   return '';
 };
 
-const adelantoVista = computed(() => {
-  const cot = store.cotizacion;
-  if (!cot) return '';
-  const a = Number(cot.adelanto);
-  const tc = tipoCambio.value || 1;
-  const [s, d] = cot.monedaGlobal === 'PEN' ? [a, a / tc] : [a * tc, a];
-  return mv(s, d);
+/* ── CÓMO RESERVAR ──────────────────────────────────────────────────────────
+ *
+ * La regla de venta que en Oweb salía bajo cada total y se perdió al pasar aquí (16/10/2026):
+ * para reservar, un porcentaje del total —el 50 por defecto—; el resto, el día del primer
+ * servicio. Debajo, por dónde pagar según el país del expediente y la política de devoluciones.
+ *
+ * ⚠️ **Aquí no se decide nada.** Si se enseña, el porcentaje, los medios y a quién se le ofrece
+ * la tarjeta los resuelve `ComoReservarResolver` (PHP); esta vista sólo convierte el porcentaje en
+ * dinero, con la misma función que el editor (`montoDeAdelanto()`, `dominio/cotizacion/`).
+ *
+ * 🔥 Sustituye a un `adelantoVista` que leía `adelanto` como un IMPORTE en la moneda de la
+ * cotización, mientras el editor lo trataba como porcentaje. Con la columna a 0 en todas no se
+ * vio nunca; al ponerla a 50 habría dicho «Adelanto $ 50,00» en un viaje de 840.
+ */
+const comoReservarAbierto = ref(false);
+
+const porcentajeAdelanto = computed(() => store.comoReservar?.porcentajeAdelanto ?? 0);
+
+const porcentajeLabel = computed(() =>
+    `${porcentajeAdelanto.value.toLocaleString(maestroStore.idiomaActual, { maximumFractionDigits: 2 })} %`);
+
+/**
+ * Los importes, sólo cuando el total está a la vista. Con el precio oculto, o enseñando sólo el
+ * precio por persona, no hay un total del que sacar la mitad: se dice el porcentaje a secas.
+ */
+const planReserva = computed(() => {
+  const total = totalViaje.value;
+  if (!store.comoReservar || !store.precioVisible || !total || ocultarTotales.value) return null;
+  const p = porcentajeAdelanto.value;
+  return {
+    adelanto: mv(montoDeAdelanto(total.soles, p), montoDeAdelanto(total.dolares, p)),
+    saldo: mv(saldoTrasAdelanto(total.soles, p), saldoTrasAdelanto(total.dolares, p)),
+  };
+});
+
+/** La línea de la cabecera plegada: lo que hay que saber aunque no se abra. */
+const notaComoReservar = computed(() => {
+  const p = porcentajeAdelanto.value;
+  if (p >= 100) return maestroStore.t('cot_reserva_total') || 'Para reservar se paga el total';
+  if (p <= 0) return maestroStore.t('cot_reserva_sin_adelanto') || 'Sin adelanto: todo se paga el día del primer servicio';
+  const con = maestroStore.t('cot_reserva_con', { pct: porcentajeLabel.value }) || `Reserva con el ${porcentajeLabel.value}`;
+  return planReserva.value ? `${con}: ${planReserva.value.adelanto}` : con;
+});
+
+const fechaDelResto = computed(() => {
+  const ymd = store.comoReservar?.fechaPrimerServicio;
+  return ymd ? formatearFecha(ymd) : null;
+});
+
+/** La web sólo tiene la política en español e inglés: cualquier otro idioma lee la inglesa. */
+const urlDevoluciones = computed(() => {
+  const urls = store.comoReservar?.politicaDevoluciones;
+  if (!urls) return null;
+  return maestroStore.idiomaActual === 'es' ? urls.es : urls.en;
+});
+
+/** Quién paga desde dónde, como rótulo de la lista. Sin país no se pone: se le enseña todo. */
+const rotuloProcedencia = computed(() => {
+  const desde = store.comoReservar?.desdePeru;
+  if (desde === true) return maestroStore.t('cot_desde_peru') || 'Desde Perú';
+  if (desde === false) return maestroStore.t('cot_desde_extranjero') || 'Desde el extranjero';
+  return '';
 });
 </script>
 
@@ -2475,24 +2531,10 @@ const adelantoVista = computed(() => {
               </div>
             </div>
 
-            <!-- Pie: pax/días (si hay precio) + adelanto -->
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3"
-                 :class="store.precioVisible && totalViaje ? 'justify-between' : 'justify-end'">
-              <p v-if="store.precioVisible && totalViaje" class="text-emerald-700/70 text-[11px] font-bold">
-                <template v-if="!ocultarTotales">{{ paxLabel }} · </template>{{ diasLabel }}
-              </p>
-              <div
-                  v-if="store.precioVisible && Number(store.cotizacion.adelanto) > 0"
-                  class="bg-slate-50 rounded-2xl border border-slate-200 px-4 py-2.5"
-              >
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-                  {{ maestroStore.t('cot_adelanto') || 'Adelanto' }}
-                </p>
-                <p class="text-base font-black text-gray-800 tabular-nums leading-none">
-                  {{ adelantoVista }}
-                </p>
-              </div>
-            </div>
+            <!-- Pie: pax/días (si hay precio). El adelanto vive en «Cómo reservar», debajo. -->
+            <p v-if="store.precioVisible && totalViaje" class="text-emerald-700/70 text-[11px] font-bold">
+              <template v-if="!ocultarTotales">{{ paxLabel }} · </template>{{ diasLabel }}
+            </p>
           </div>
 
           <!-- ── PIE-DISPARADOR ── Repite el toggle al final: cuando el desglose está
@@ -2509,6 +2551,82 @@ const adelantoVista = computed(() => {
           </button>
         </div>
       </section>
+
+      <!-- ══ CÓMO RESERVAR ═══════════════════════════════════════════════════════════
+           El adelanto y cuándo se paga el resto, por dónde pagar según el país del expediente y
+           la política de devoluciones. Sólo en una propuesta que aún se ofrece: lo decide
+           `ComoReservarResolver` (PHP), y si no viene, no hay bloque.
+
+           Plegado: con diez cuentas de Perú, abierto empujaría el itinerario dos pantallas más
+           abajo. La cabecera ya dice lo esencial —«Reserva con el 50 %: $ 420»—. -->
+      <div v-if="store.comoReservar" class="max-w-3xl mx-auto px-4 mt-4 no-imprimir">
+        <PanelPlegable v-model="comoReservarAbierto"
+                       icono="calendar-check"
+                       :titulo="maestroStore.t('cot_como_reservar') || 'Cómo reservar'"
+                       :nota="notaComoReservar"
+                       tono="pendiente">
+          <div class="space-y-5 pt-2">
+
+            <!-- El adelanto y el resto -->
+            <div v-if="porcentajeAdelanto > 0 && porcentajeAdelanto < 100" class="space-y-2">
+              <div class="flex items-center justify-between gap-4 bg-[#E07845]/5 border border-[#E07845]/15 rounded-xl px-4 py-3">
+                <span class="text-[11px] font-black text-[#E07845] uppercase tracking-widest">
+                  {{ maestroStore.t('cot_adelanto_para_reservar') || 'Adelanto para reservar' }} · {{ porcentajeLabel }}
+                </span>
+                <span v-if="planReserva" class="text-lg font-black text-gray-800 tabular-nums shrink-0">{{ planReserva.adelanto }}</span>
+              </div>
+              <div class="flex items-center justify-between gap-4 rounded-xl px-4 py-2">
+                <span class="text-[11px] font-bold text-slate-500 leading-snug">
+                  {{ maestroStore.t('cot_resto_primer_servicio') || 'El resto, el día del primer servicio' }}<template v-if="fechaDelResto"> ({{ fechaDelResto }})</template>
+                </span>
+                <span v-if="planReserva" class="text-sm font-black text-slate-600 tabular-nums shrink-0">{{ planReserva.saldo }}</span>
+              </div>
+            </div>
+            <p v-else class="text-[12px] font-bold text-slate-600">{{ notaComoReservar }}</p>
+
+            <!-- Por dónde pagar -->
+            <div>
+              <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                {{ maestroStore.t('cot_por_donde_pagar') || 'Por dónde pagar' }}<template v-if="rotuloProcedencia"> · {{ rotuloProcedencia }}</template>
+              </h4>
+
+              <!-- La tarjeta no es una cuenta: se cobra con un enlace que se emite al reservar. -->
+              <div v-if="store.comoReservar.conTarjeta"
+                   class="mt-3 flex items-start gap-3 rounded-2xl border border-[#376875]/10 bg-white p-4 shadow-sm">
+                <span class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#376875] text-white">
+                  <i class="fas fa-credit-card"></i>
+                </span>
+                <span class="min-w-0">
+                  <span class="block font-black text-gray-900 leading-tight">{{ maestroStore.t('res_con_tarjeta') || 'Con tarjeta de crédito' }}</span>
+                  <span class="block text-[12px] text-slate-500 leading-snug mt-0.5">
+                    {{ maestroStore.t('cot_tarjeta_enlace') || 'Te enviamos un enlace de pago seguro: pídelo cuando quieras reservar.' }}
+                  </span>
+                </span>
+              </div>
+
+              <MediosPagoWidget :medios-pago="store.comoReservar.medios" />
+
+              <p class="text-[11px] font-bold text-slate-500 leading-snug">
+                {{ maestroStore.t('res_aviso_pago') || 'Avísanos cuando lo hayas hecho y el equipo lo confirma. Si quieres, mándanos la captura.' }}
+              </p>
+            </div>
+
+            <!-- Cambios y devoluciones: la política vive en la web, aquí sólo se enlaza. -->
+            <div v-if="urlDevoluciones" class="border-t border-slate-200/70 pt-4">
+              <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                {{ maestroStore.t('cot_devoluciones') || 'Cambios y devoluciones' }}
+              </h4>
+              <p class="text-[12px] text-slate-600 leading-snug mt-1.5">
+                {{ maestroStore.t('cot_devoluciones_resumen') || 'Si cancelas, lo que se devuelve depende de con cuánta anticipación lo hagas.' }}
+                <a :href="urlDevoluciones" target="_blank" rel="noopener"
+                   class="font-black text-[#376875] underline underline-offset-2 hover:text-[#E07845]">
+                  {{ maestroStore.t('cot_ver_politica') || 'Ver la política completa' }}
+                </a>
+              </p>
+            </div>
+          </div>
+        </PanelPlegable>
+      </div>
 
       <!-- Modo de lectura del ITINERARIO (no confundir con la tarjeta de precio):
            'Resumen' colapsa descripciones y fotos, dejando títulos, subtítulos y horas.

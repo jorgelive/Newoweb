@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Finanzas;
 
+use App\Finanzas\Enum\FinAudienciaCobro;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Message\TelefonoDeContacto;
 
@@ -26,9 +27,6 @@ use App\Pms\Service\Message\TelefonoDeContacto;
  */
 final readonly class PmsProcedenciaHuesped
 {
-    /** Prefijo telefónico de Perú. */
-    private const string PREFIJO_PERU = '51';
-
     public function __construct(private TelefonoDeContacto $telefonos)
     {
     }
@@ -36,39 +34,14 @@ final readonly class PmsProcedenciaHuesped
     /**
      * `true` desde Perú, `false` desde fuera, `null` cuando no hay con qué saberlo.
      *
-     * El país de la reserva manda. Se mira el teléfono de CONTACTO
-     * ({@see PmsReserva::getTelefonoContacto()}) y no `telefono` a secas: cuál de los dos
-     * números es el bueno ya se decidió en un sitio y aquí sólo se consume.
-     *
-     * ### ⚠️ El prefijo 51 NO demuestra que sea peruano
-     *
-     * {@see \App\Service\Phone\PhoneSanitizer::cleanPhoneNumber()} **antepone el 51** a
-     * cualquier móvil de 9 dígitos que llegue sin prefijo, que es la mayoría. Un `51…` en la
-     * base puede haberlo puesto el saneador y no el huésped, así que leerlo como «es de Perú»
-     * es leer nuestro propio valor por defecto.
-     *
-     * Por eso la evidencia es asimétrica, y esto es lo contrario de lo que uno escribiría:
-     *
-     * - Teléfono que **no** empieza por 51 → `false`. Eso sí lo tecleó alguien: nadie le pone
-     *   un +34 por defecto a nadie.
-     * - Teléfono que empieza por 51 y reserva sin país → `null`, no `true`. Se le enseñan
-     *   todos los medios y que elija, que es mejor que darle por peruano y esconderle el
-     *   Western Union al que sí venía de fuera.
+     * La regla —el país manda; sin país, el teléfono, con la evidencia asimétrica del prefijo
+     * 51— vive en {@see FinAudienciaCobro::desdePeru()}, que comparte con las cotizaciones. Aquí
+     * sólo se decide QUÉ país y QUÉ teléfono son los de la reserva: se mira el teléfono de
+     * CONTACTO ({@see PmsReserva::getTelefonoContacto()}) y no `telefono` a secas, porque cuál de
+     * los dos números es el bueno ya se decidió en un sitio y aquí sólo se consume.
      */
     public function pagaDesdePeru(PmsReserva $reserva): ?bool
     {
-        $pais = $reserva->getPais()?->getId();
-
-        if ($pais !== null && $pais !== '') {
-            return strtoupper($pais) === 'PE';
-        }
-
-        $telefono = preg_replace('/\D/', '', (string) $this->telefonos->para($reserva));
-
-        if ($telefono === null || $telefono === '') {
-            return null;
-        }
-
-        return str_starts_with($telefono, self::PREFIJO_PERU) ? null : false;
+        return FinAudienciaCobro::desdePeru($reserva->getPais()?->getId(), $this->telefonos->para($reserva));
     }
 }

@@ -111,19 +111,6 @@ final class PmsGuiaHuespedProvider implements ProviderInterface
     }
 
     /**
-     * Los medios de cobro que aplican, aplanados para el navegador.
-     *
-     * 🪞 Espejo de `pax/src/types/paxHuespedGuiaModel.ts` (`GuiaMedioPago`). **Si añades una
-     * clave aquí, añádela allí**: nada la genera sola y el front la ignoraría en silencio.
-     * Ver docs/FinanzasEnlacesPago.md §7.
-     *
-     * La `nota` viaja como el array i18n crudo: la traduce el front con
-     * `maestroStore.traducir()`, igual que el resto de textos de la guía. Traducirla aquí
-     * obligaría al backend a saber en qué idioma está mirando el huésped ahora mismo, que es
-     * algo que cambia con un clic y sin recargar.
-     *
-     */
-    /**
      * Días completos hasta la llegada. 0 el mismo día, `null` si no hay fecha.
      *
      * Espejo de `ConsultarMediosPagoSkill::diasHastaLlegada()`: se compara por FECHA y no por
@@ -142,7 +129,13 @@ final class PmsGuiaHuespedProvider implements ProviderInterface
             ->format('%r%a'));
     }
 
-    /** @return list<array<string, mixed>> */
+    /**
+     * Los medios de cobro que aplican, aplanados para el navegador con
+     * {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()}, que comparte con la
+     * cotización. Ver docs/FinanzasEnlacesPago.md §7.
+     *
+     * @return list<array<string, mixed>>
+     */
     private function mediosPago(?bool $desdePeru, ?int $dias): array
     {
         $filas = [];
@@ -151,18 +144,7 @@ final class PmsGuiaHuespedProvider implements ProviderInterface
         // agente: si la app le enseña un medio que no llega, la contradicción la descubre el
         // huésped cuando ya no puede reaccionar.
         foreach ($this->mediosCobro->ofrecibles($desdePeru, $dias) as $medio) {
-            $filas[] = array_filter([
-                'tipo' => $medio->getTipo()->value,
-                'medio' => $medio->getTipo()->label(),
-                'icono' => $medio->getTipo()->icono(),
-                'titular' => $medio->getTitular(),
-                'titularAlterno' => $medio->getTitularAlterno(),
-                'numero' => $medio->getNumero(),
-                'banco' => $medio->getBanco(),
-                'cci' => $medio->getCci(),
-                'moneda' => $medio->getMoneda(),
-                'nota' => $medio->getNota() !== [] ? $medio->getNota() : null,
-            ], static fn ($v) => $v !== null && $v !== '');
+            $filas[] = $medio->fichaParaCliente();
         }
 
         return $filas;

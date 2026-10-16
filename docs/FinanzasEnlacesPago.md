@@ -427,7 +427,12 @@ Ninguno se genera solo. **Si tocas un lado, toca el otro.**
 | `FinPagoPublicoController::ver()` / `configuracion()` | `pax/src/types/paxPagoModel.ts` |
 | Librería KR de Izipay (sin paquete npm) | `pax/src/types/izipayKrypton.d.ts` |
 | Checkout Custom de Culqi (sin paquete npm) | `pax/src/types/culqiCheckout.d.ts` |
-| `PmsGuiaHuespedProvider::mediosPago()` (aplana `FinMedioCobro`) | `pax/src/types/paxHuespedGuiaModel.ts` (`GuiaMedioPago`) — §14 |
+| `FinMedioCobro::fichaParaCliente()` (la usan `PmsGuiaHuespedProvider::mediosPago()` y `ComoReservarResolver`) | `pax/src/types/paxHuespedGuiaModel.ts` (`GuiaMedioPago`) — §14 y `docs/Cotizaciones.md` §6.a |
+
+**Quién paga desde Perú** se decide en un solo sitio, `FinAudienciaCobro::desdePeru($pais,
+$telefono)`, desde el 16/10/2026: lo preguntan la reserva (`PmsProcedenciaHuesped`, que sólo elige
+qué país y qué teléfono son los suyos) y el expediente de cotización (`ComoReservarResolver`). Dos
+copias acabarían ofreciéndole cuentas distintas a la misma persona.
 
 Y un espejo que **no es TypeScript**: el porcentaje de recargo vive en
 `finanzas.recargo_tarjeta_porcentaje` (`config/services/services_finanzas.yaml`) **y** en

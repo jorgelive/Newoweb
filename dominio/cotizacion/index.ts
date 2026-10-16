@@ -19,6 +19,8 @@ export {
 
 export { mandaElSegmento } from './componenteTipo.ts';
 
+export { montoDeAdelanto, saldoTrasAdelanto } from './adelanto.ts';
+
 export {
     CALCULOS_TARIFA,
     ETIQUETAS_CALCULO,

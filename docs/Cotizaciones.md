@@ -3994,6 +3994,86 @@ Claves i18n del pie: `cot_ver_precios_perfil`, `cot_ver_perfiles_y_opciones`,
 
 ---
 
+## 6.a Cómo reservar: adelanto, medios de pago y devoluciones (16/10/2026)
+
+La regla de venta de la agencia, que en Oweb salía bajo cada total («reserve con el 50 %») y se
+perdió al pasar a este cotizador:
+
+> **Para reservar, un porcentaje del total (el 50 por defecto). El resto, el día del primer
+> servicio.** Al peruano se le ofrecen Yape, Plin y transferencias; al de fuera, tarjeta y
+> Western Union. Los cambios y devoluciones, según la política publicada en la web.
+
+En `pax` es un panel plegado bajo la tarjeta de precio, «Cómo reservar», cuya cabecera ya dice lo
+esencial: «Reserva con el 50 %: $ 420». Abierto: el adelanto y el resto con su fecha, por dónde
+pagar y el enlace a la política. La portada del expediente dice lo mismo en el pie de cada
+tarjeta.
+
+```
+Cotizacion::$adelanto (50)        CotizacionFile::$pais / $telefono
+        │                                    │
+        ▼                                    ▼
+ComoReservarResolver::para() ── FinAudienciaCobro::desdePeru() ── FinMedioCobroRepository::ofrecibles()
+        │                                                          (mismo catálogo que alojamiento)
+        ▼
+CotizacionFile::getComoReservar()  (pax_cotizacion:read, sólo en el detalle)
+        │
+        ▼
+pax: PaxCotizacionGuiaView ── montoDeAdelanto() / saldoTrasAdelanto() (dominio/cotizacion/adelanto.ts)
+                           └─ MediosPagoWidget (el de la guía del huésped)
+```
+
+**Las reglas**
+
+- **`adelanto` es un PORCENTAJE**, aunque la columna sea `decimal(12,2)`: así vino de Oweb. Valía
+  0,00 en las 23 propuestas y nadie lo leía; `Version20261016150000` lo pone a 50 (default y
+  filas a 0). Se edita en el editor de `util`, «Adelanto para reservar (%)», sólo fuera de un
+  catálogo. 0 = sin adelanto; 100 = todo para reservar.
+  - 🔥 **Dos pantallas lo leían como IMPORTE**: el pie de la portada («Adelanto $ 50,00») y una
+    pastilla del panel de precio que lo pasaba por la moneda de la cotización. Con todo a 0 no se
+    veía; al ponerlo a 50 habrían dicho «adelanto $ 50» en un viaje de 840. Se quitaron.
+  - **No es dinero, y no se redacta** con el precio oculto (`CotizacionPublicNormalizer`): el
+    bloque dice entonces el porcentaje a secas.
+- **El importe lo calcula UNA función**, `montoDeAdelanto()` de `dominio/`, que usan el editor
+  (`montoAdelanto` del resumen financiero) y `pax`. El saldo es el total **menos el adelanto ya
+  redondeado**: 50 % de 139,99 → 70,00 + 69,99, nunca 70,00 + 70,00.
+  - Con importe sólo si el total está a la vista: precio oculto o «sólo por persona» no tienen un
+    total del que sacar la mitad.
+- **Sólo en una propuesta que aún se ofrece** (`pendiente`, `enviado`):
+  `ComoReservarResolver::seOfreceEnEstado()`. A quien ya confirmó, «reserva con el 50 %» le invita
+  a pagar dos veces. La portada recibe el mismo veredicto en `reservable`, no lo deduce.
+- **Nunca en un catálogo.** El precio de un catálogo es referencial («desde»); para vender se pasa
+  antes por una cotización con los pasajeros reales. El catálogo es otra entidad y otro provider,
+  así que el bloque no existe ahí. Ver el pendiente en `docs/Pendientes.md`.
+- **Los medios son los de Finanzas, no una copia**: `FinMedioCobro` filtrado por
+  `FinAudienciaCobro::desdePeru()` —la misma regla que la guía del huésped y el agente: el país
+  manda y un prefijo 51 sin país no demuestra nada— y por los días hasta el primer servicio
+  (Western Union pide 2). Se pintan con `FinMedioCobro::fichaParaCliente()` y el mismo
+  `MediosPagoWidget`. **Sin efectivo**: su nota habla del check-in y un adelanto se paga a
+  distancia.
+- **La tarjeta no es una cuenta**: al de fuera (y a quien no se sabe) se le dice que se le manda un
+  enlace de pago seguro. Generarlo desde la propia vista (Culqi) es la segunda entrega: falta un
+  `FinOrigenCobroResolverInterface` para el expediente. Ver `docs/Pendientes.md`.
+- **Las devoluciones no se redactan aquí**: se enlaza `/legal/politica-de-cambios-y-devoluciones`
+  de la web (`front_legal`, español o inglés; otro idioma lee la inglesa). Copiar los tramos
+  serían dos versiones de una condición legal.
+- Las cuentas están a nombre de Susan Acuña Romero, no de la SAC que vende los tours. **Decidido
+  así por ahora** (16/10/2026): las cuentas de la empresa son un pendiente aparte.
+
+### Dónde tocar
+
+| Para cambiar… | Archivo | Símbolo |
+|---|---|---|
+| El 50 % por defecto | `Cotizacion.php` y `cotizacionEditorStore.ts` (la propuesta nueva) | `$adelanto` en los dos |
+| En qué estados se enseña | `src/Cotizacion/Service/Publico/ComoReservarResolver.php` | `seOfreceEnEstado()` |
+| Qué medios / a quién | `src/Finanzas/Enum/FinAudienciaCobro.php`, panel de Finanzas | `desdePeru()`, `FinMedioCobro::$audiencia` |
+| Qué datos de la cuenta se ven | `src/Finanzas/Entity/FinMedioCobro.php` | `fichaParaCliente()` ↔ `GuiaMedioPago` |
+| Cómo se calcula el importe | `dominio/cotizacion/adelanto.ts` | `montoDeAdelanto()`, `saldoTrasAdelanto()` |
+| El bloque en pax | `pax/src/views/cotizacion/PaxCotizacionGuiaView.vue` | «CÓMO RESERVAR», `planReserva` |
+| El pie de la portada | `pax/src/views/cotizacion/PaxFilePortadaView.vue` | `adelantoDe()` |
+| Los textos | `src/Pax/Command/PaxCrearTextosComoReservarCommand.php` | `pax:textos:como-reservar` |
+
+---
+
 ## 6.b Catálogo de Tours vs. Expediente de grupo (dos dashboards, dos lógicas)
 
 El árbol `Cotizacion` se reúsa en **dos contextos** con reglas de precio opuestas.

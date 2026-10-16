@@ -2931,6 +2931,16 @@ store.$onAction(({ name, args }) => {
                 <input v-model="store.cotizacion.comision" type="number" step="0.1" class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-right text-emerald-600 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm">
               </div>
 
+              <!-- El PORCENTAJE para reservar (50 por defecto, como en Oweb); el resto se paga el día
+                   del primer servicio. Lo enseña el bloque «Cómo reservar» de pax. Un catálogo no se
+                   vende directamente —su precio es referencial—, así que ahí no aparece. -->
+              <div v-if="!store.modoCatalogo" class="col-span-2">
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1"><i class="fas fa-wallet mr-1"></i> Adelanto para reservar (%)</label>
+                <input v-model="store.cotizacion.adelanto" type="number" step="5" min="0" max="100"
+                       class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-right text-[#E07845] outline-none focus:ring-2 focus:ring-[#376875] shadow-sm">
+                <p class="text-[9px] text-slate-400 mt-1 ml-1 font-medium leading-tight">El resto, el día del primer servicio. 100 = se paga todo para reservar.</p>
+              </div>
+
               <div class="col-span-2">
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1"><i class="fas fa-exchange-alt mr-1"></i> T. Cambio (Sugerido)</label>
                 <div class="relative">

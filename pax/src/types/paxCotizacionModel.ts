@@ -30,6 +30,7 @@
 // ============================================================================
 
 import type { components } from '@dominio/api';
+import type { GuiaMedioPago } from './paxHuespedGuiaModel';
 
 type SegmentoBase   = components['schemas']['CotizacionSegmento-pax_file.read_pax_cotizacion.read'];
 type CottarifaBase  = components['schemas']['CotizacionCottarifa-pax_file.read_pax_cotizacion.read'];
@@ -432,7 +433,14 @@ export interface PaxPropuestaResumen {
     precioOculto: boolean;
     tipoCambio: number;
     totalVenta: string | null; // null si precioOculto
+    /** PORCENTAJE del total para reservar (50 por defecto), no un importe. Ver `Cotizacion::$adelanto`. */
     adelanto: string | null;
+    /**
+     * ¿Se ofrece todavía (pendiente o enviada)? Sólo entonces la tarjeta dice «reserva con el
+     * 50 %». Lo decide `ComoReservarResolver::seOfreceEnEstado()` (PHP), el mismo juez que el
+     * bloque del detalle.
+     */
+    reservable?: boolean;
     fechaExpiracion?: string | null;
     fechaInicio?: string | null; // primera fecha de servicio (yyyy-MM-dd)
 }
@@ -452,9 +460,24 @@ export interface PaxPropuestaResumen {
  */
 type FileBase = components['schemas']['CotizacionFile-pax_file.read_pax_cotizacion.read'];
 
+/**
+ * Cómo reservar la propuesta abierta: adelanto, cuándo el resto, medios y devoluciones.
+ *
+ * Se estrechan dos campos que el esquema ve como diccionario abierto: las fichas de medio de pago
+ * (las mismas de la guía del huésped, `FinMedioCobro::fichaParaCliente()`) y las URLs de la
+ * política por idioma. Lo demás, del esquema tal cual. Ver `App\Cotizacion\Dto\ComoReservar`.
+ */
+export type PaxComoReservar = Omit<
+    components['schemas']['ComoReservar-pax_file.read_pax_cotizacion.read'],
+    'medios' | 'politicaDevoluciones'
+> & {
+    medios: GuiaMedioPago[];
+    politicaDevoluciones: { es: string; en: string };
+};
+
 export type PaxCotizacionFile = Omit<
     FileBase,
-    'propuestasParaCliente' | 'cotizacionParaCliente' | 'documentosParaCliente' | 'filepasajeros'
+    'propuestasParaCliente' | 'cotizacionParaCliente' | 'documentosParaCliente' | 'filepasajeros' | 'comoReservar'
 > & {
     '@context'?: string;
     '@id'?: string;
@@ -465,6 +488,8 @@ export type PaxCotizacionFile = Omit<
     cotizacionParaCliente?: PaxCotizacion | null;
     documentosParaCliente: PaxFilearchivo[];
     filepasajeros: PaxFilepasajero[];
+    /** Sólo en el detalle de una propuesta que aún se ofrece; `null` en las demás. */
+    comoReservar?: PaxComoReservar | null;
 };
 
 // --- Catálogo de tours (escaparate público) -------------------------------------
