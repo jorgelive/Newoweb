@@ -9456,6 +9456,51 @@ Reglas al tocar esta zona:
 
 ---
 
+## 6.z «Falló la sincronización» de un guardado que SÍ se guardó (16/10/2026)
+
+Reportado como «a veces me da error al guardar, aunque sí guarda». Los registros de nginx
+(`symfony_app_tiempos.log`, 14 días) lo zanjaron antes de leer código: **70 de 70 PUT con 200 y
+6 de 6 POST con 201**, el más lento en 10 s. El servidor no falló nunca: el error nacía en el
+navegador, **después** de que la base ya hubiera guardado.
+
+```
+1. borras la PRIMERA tarifa de un componente y guardas
+2. PUT  →  PropertyAccessor::writeCollection() llama a removeCottarifa() → removeElement()
+           la colección de Doctrine queda con un hueco en las claves: [1 => …]
+3. API Platform conserva el índice al serializar (normalizeCollectionOfRelations: $value[$index])
+           un array PHP sin claves seguidas sale en JSON como OBJETO: "cottarifas": {"1": {…}}
+4. util:  c.cottarifas.forEach(...)  →  TypeError  →  mismo catch que la petición
+           →  «Falló la sincronización con la base de datos»   (y el PUT había dado 200)
+```
+
+Cuatro colecciones —servicios, segmentos, componentes, ítems— ya tenían su `Object.values()` a
+mano; `cottarifas` no, y `grupos` tampoco (mismo caso al quitar un subgrupo).
+
+**Lo que se cambió en `cotizacionEditorStore.ts`:**
+
+- **`aplanarColecciones()` + `comoLista()`**: una sola normalización de TODAS las colecciones, en
+  los dos caminos —`fetchCotizacion()` y `guardarCotizacion()`—. La próxima colección que se
+  añada al árbol se añade ahí una vez, no en cada sitio que la recorre.
+- **La red y el repintado ya no comparten veredicto.** `guardarCotizacion()` guarda lo que
+  respondió la API en `guardada`; si algo falla DESPUÉS, el `catch` no avisa de error: recarga de
+  la base con `recargarTrasGuardar()` —el mismo camino que al abrir— y dice que se guardó. Si
+  hasta la recarga falla, al menos marca `createdAt` para que el siguiente guardado sea un PUT.
+- **Un alta cortada por la red se comprueba.** El POST lleva los UUID del navegador; reintentarlo
+  como POST chocaría con la clave primaria en cada intento. Si el error no trae respuesta de la
+  API y la cotización ya existe al consultarla, se da por guardada. Un 422 no entra por aquí.
+- **Tras guardar se ordena por relato**, igual que al abrir (`ordenarComponentesPorRelato()`, §6.aa).
+  Antes sólo se aplicaba el orden cronológico y el alojamiento cambiaba de sitio al pulsar
+  «Guardar».
+
+⚠️ **Lo que NO era, aunque una revisión externa lo apuntaba:** los `grupos` no llegan incrustados
+—`readableLink: false` desde el 04/09/2026—; `CotizacionPublicadaEventListener::postFlush()` no
+llama a ningún sincronizador (es un `UPDATE` en DQL); y la autotraducción síncrona no da timeouts
+con 300 s de margen en nginx y guardados de 10 s como mucho. **Antes de tocar el backend por un
+error «intermitente» del editor, mira los códigos de respuesta en el log de tiempos.**
+
+Fijado en `util/src/stores/cotizacion/guardadoCotizacion.test.ts`, con la respuesta tal como la
+manda API Platform: con el store anterior, dos de sus tres casos fallan.
+
 ## 8. Caché y gotchas
 
 | Store | Persiste en localStorage | TTL | Nota |
@@ -12235,6 +12280,8 @@ vuelvan ruido — y es el que viaja a la orden de servicio del proveedor.
 |---|---|---|
 | Cambiar qué cuenta como «sin nombre» | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `tarifasSinNombre` — lee la medición de arriba antes de ampliarla |
 | Cambiar el aviso al publicar | idem | el `confirm()` de `guardarCotizacion()`, junto al guarda de conflictos |
+| Una colección nueva del árbol que el editor recorre | `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `aplanarColecciones()` — una línea, vale para abrir y guardar (§6.z) |
+| Qué pasa si el guardado va bien y el repintado falla | idem | `recargarTrasGuardar()`, y el `catch` de `guardarCotizacion()` |
 | Cambiar con qué nace una tarifa nueva | idem | `agregarTarifa()` |
 | Cambiar el respaldo del nombre en el documento del proveedor | `src/Operacion/Service/BibliaSnapshotService.php` | las prioridades de `resolverDescripcion()` |
 

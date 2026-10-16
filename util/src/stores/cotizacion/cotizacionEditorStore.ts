@@ -1700,15 +1700,45 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
 
     /**
+     * Lo que el backend sirve como lista puede llegar como OBJETO: `{"1": {…}, "2": {…}}`.
+     *
+     * ⚠️ **Pasa en la respuesta de un PUT en cuanto se borra algo que no sea el último.** El
+     * `PropertyAccessor` de Symfony quita lo que falta con el *remover* (`removeCottarifa()` →
+     * `removeElement()`), que deja un hueco en las claves de la colección de Doctrine; API
+     * Platform conserva el índice al serializar (`normalizeCollectionOfRelations()`), y un array
+     * PHP sin claves seguidas sale en JSON como objeto.
+     *
+     * Hasta el 16/10/2026 se protegían cuatro colecciones a mano y **`cottarifas` no estaba**:
+     * borrar la primera tarifa de un componente y guardar hacía reventar el `forEach` del
+     * rehidratado, y el editor decía «Falló la sincronización» de un guardado que había ido bien
+     * (70 de 70 PUT con 200 en los registros de esos 14 días). Por eso va en un solo sitio, para
+     * las colecciones de los dos caminos —abrir y guardar— y no una por una.
+     */
+    const comoLista = <T>(valor: T[] | Record<string, T> | null | undefined): T[] =>
+        Array.isArray(valor) ? valor : (valor && typeof valor === 'object' ? Object.values(valor) : []);
+
+    const aplanarColecciones = (data: Cotizacion): void => {
+        data.cotservicios = comoLista(data.cotservicios);
+
+        for (const s of data.cotservicios) {
+            s.cotsegmentos = comoLista(s.cotsegmentos);
+            s.cotcomponentes = comoLista(s.cotcomponentes);
+
+            for (const c of s.cotcomponentes) {
+                c.cottarifas = comoLista(c.cottarifas);
+                c.snapshotItems = comoLista(c.snapshotItems);
+                c.grupos = comoLista(c.grupos);
+            }
+        }
+    };
+
+    /**
      * Deja los `grupos` de cada componente como IRIs.
      *
-     * ⚠️ La API los devuelve **embebidos** —en el contexto del editor `CotizacionFileGrupo` sólo
-     * serializa sus timestamps, así que llegan como `{'@id', createdAt, updatedAt}`— y hay que
-     * mandarlos como IRI al escribir. Sin normalizar, el primer guardado enviaría objetos y API
-     * Platform los rechazaría, o peor: crearía subgrupos nuevos.
-     *
-     * Se hace al cargar y no al guardar para que todo lo de en medio —el selector, el conteo de la
-     * franja— trabaje con una sola forma.
+     * Desde el 04/09/2026 la API ya los sirve como IRI (`readableLink: false` en
+     * `CotizacionCotcomponente::$grupos`); antes llegaban incrustados como `{'@id', createdAt,
+     * updatedAt}` y el segundo guardado daba un 500 («Nested documents… Use IRIs instead»). Esto
+     * se queda como red: acepta las dos formas y deja una sola para el selector y el conteo.
      */
     const normalizarGruposDeComponentes = (data: Cotizacion): void => {
         for (const servicio of data.cotservicios ?? []) {
@@ -2601,7 +2631,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             const response = await apiClient.get(`/platform/sales/cotizacions/${id}`);
             const data = response.data as Cotizacion;
 
-            if (!data.cotservicios) data.cotservicios = [];
+            aplanarColecciones(data);
 
             // IDs a hidratar en batch (evita waterfall)
             const componentesToFetch = new Set<string>();
@@ -2919,6 +2949,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
 
         isLoading.value = true;
+
+        // Lo que respondió la API, si llegó a responder. A partir de aquí la base YA guardó, y un
+        // fallo después —repintar, reordenar— no puede contarse como «no se guardó».
+        let guardada: Cotizacion | null = null;
+
         try {
             // req 5: normaliza roles antes de clonar el payload y de leer el resumen
             // financiero, para que lo que se persiste y lo que se recalcula coincidan.
@@ -3136,34 +3171,21 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             }
 
             const response = await (isUpdate ? apiClient.put : apiClient.post)(endpoint, payload);
-            const savedData = response.data;
+            const savedData = response.data as Cotizacion;
+            guardada = savedData;
 
-
-            if (savedData.cotservicios && !Array.isArray(savedData.cotservicios)) {
-                savedData.cotservicios = Object.values(savedData.cotservicios);
-            } else if (!savedData.cotservicios) {
-                savedData.cotservicios = [];
-            }
-
+            aplanarColecciones(savedData);
             savedData.idiomaEdicion = 'es';
 
             // Rehidratación local post-guardado
-            savedData.cotservicios.forEach((s: CotServicio) => {
+            savedData.cotservicios?.forEach((s: CotServicio) => {
                 s.sobreescribirTraduccion = false;
                 s.fechaInicioAbsoluta = getFechaLimpia(s.fechaInicioAbsoluta);
-
-                if (s.cotsegmentos && !Array.isArray(s.cotsegmentos)) {
-                    s.cotsegmentos = Object.values(s.cotsegmentos);
-                }
 
                 s.cotsegmentos?.forEach((seg: CotSegmento) => {
                     seg.sobreescribirTraduccion = false;
                     seg.fechaAbsoluta = getFechaLimpia(seg.fechaAbsoluta);
                 });
-
-                if (s.cotcomponentes && !Array.isArray(s.cotcomponentes)) {
-                    s.cotcomponentes = Object.values(s.cotcomponentes);
-                }
 
                 s.cotcomponentes?.forEach((c: ComponenteCompleto) => {
                     c.sobreescribirTraduccion = false;
@@ -3171,10 +3193,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     // Backfill del flag de horario si el backend no lo devolviera
                     if (c.sinHorario === undefined || c.sinHorario === null) {
                         c.sinHorario = sinHorarioDeTipo(c.tipo);
-                    }
-
-                    if (c.snapshotItems && !Array.isArray(c.snapshotItems)) {
-                        c.snapshotItems = Object.values(c.snapshotItems);
                     }
 
                     c.snapshotItems?.forEach((i: SnapshotItem) => {
@@ -3212,6 +3230,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 ordenarComponentesCronologicamente(s.cotcomponentes || [], s);
             });
 
+            // ⚠️ Lo mismo que al ABRIR, o el editor enseña un orden distinto según cómo se llegó:
+            // por relato al cargar, por reloj al guardar — y el alojamiento cambiaba de sitio en
+            // pantalla al pulsar «Guardar».
+            normalizarGruposDeComponentes(savedData);
+            ordenarComponentesPorRelato(savedData);
+
             // Asignación final con el árbol relacional completo y blindado
             cotizacion.value = savedData;
 
@@ -3238,6 +3262,30 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             return true;
         } catch (error) {
+            // ⚠️ **La API respondió bien y lo que falló fue el repintado local.** Antes caía aquí
+            // con el mismo mensaje que un fallo de red, y el operador volvía a guardar algo que ya
+            // estaba guardado. Se recarga de la base, que es la verdad, y se dice que se guardó.
+            if (guardada) {
+                console.error('Guardado correcto; falló el repintado local, se recarga de la base:', error);
+
+                return await recargarTrasGuardar(guardada);
+            }
+
+            // ⚠️ **Un alta que se cortó por la red puede haberse guardado.** El POST lleva los UUID
+            // del navegador, así que reintentarlo como POST chocaría con la clave primaria en cada
+            // intento. Si sin respuesta la cotización ya existe, es que se guardó.
+            if (cotizacion.value && !cotizacion.value.createdAt && !esRespuestaDeLaApi(error)) {
+                try {
+                    const { data } = await apiClient.get<Cotizacion>(`/platform/sales/cotizacions/${cotizacion.value.id}`);
+
+                    console.error('El alta se cortó, pero la cotización sí se creó:', error);
+
+                    return await recargarTrasGuardar(data);
+                } catch {
+                    // No existe (o tampoco hay red): de verdad no se guardó. Sigue al aviso.
+                }
+            }
+
             console.error('Error al guardar la cotización:', error);
 
             // El backend explica QUÉ pasa —«ese servicio pertenece a una Orden de Servicio…»— y
@@ -3248,6 +3296,49 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         } finally {
             isLoading.value = false;
         }
+    };
+
+    /** ¿El error trae respuesta de la API? Sin ella fue la red: el servidor puede haber guardado. */
+    const esRespuestaDeLaApi = (error: unknown): boolean =>
+        typeof error === 'object' && error !== null && 'response' in error && (error as { response?: unknown }).response != null;
+
+    /**
+     * Tras un guardado que la base SÍ aceptó, trae la cotización de nuevo por el mismo camino que
+     * al abrirla. Es la salida de emergencia de `guardarCotizacion()`: cuando el repintado local
+     * falla, lo guardado es la verdad y se pinta desde ahí.
+     *
+     * Siempre devuelve `true` —se guardó—: si hasta la recarga falla, al menos la cotización pasa
+     * a «existente» (`createdAt`), para que el próximo guardado sea un PUT y no repita el alta.
+     */
+    const recargarTrasGuardar = async (guardada: Cotizacion): Promise<boolean> => {
+        estadoPersistido.value = String(guardada.estado ?? '');
+        publicadoPersistido.value = guardada.publicado === true;
+
+        try {
+            await fetchCotizacion(String(guardada.id));
+
+            if (inspectorActivo.value !== 'resumen' && dataActiva.value) {
+                const relinked = revincularNodo(inspectorActivo.value, dataActiva.value);
+
+                if (relinked) {
+                    dataActiva.value = relinked;
+                } else {
+                    retrocederNivel();
+                }
+            }
+
+            alert('Cotización guardada exitosamente.');
+        } catch (e) {
+            console.error('Guardado correcto, pero no se pudo recargar:', e);
+
+            if (cotizacion.value && !cotizacion.value.createdAt) {
+                cotizacion.value.createdAt = guardada.createdAt ?? new Date().toISOString();
+            }
+
+            alert('La cotización se guardó, pero no se pudo refrescar la pantalla. Recarga la página antes de seguir editando.');
+        }
+
+        return true;
     };
     // ============================================================================
     // NAVEGACIÓN Y ABMC
